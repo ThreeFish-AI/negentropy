@@ -184,6 +184,7 @@ negentropy/
 
 ### Frontend（Next.js + npm/yarn）
 
+- 创建项目：`yarn create next-app@latest negentropy-ui --yes # cd apps`
 - 进入目录：`cd apps/negentropy-ui`
 - 开发启动：`npm run dev` 或 `yarn dev`（脚本对应 `next dev`）<sup>[[7]](#ref7)</sup><sup>[[8]](#ref8)</sup>
 - 生产构建：`npm run build` / `yarn build`（脚本对应 `next build`）<sup>[[8]](#ref8)</sup>
