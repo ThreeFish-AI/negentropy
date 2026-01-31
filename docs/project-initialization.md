@@ -124,7 +124,7 @@ negentropy/
 │   │   └── README.md              # 后端自述
 │   ├── negentropy-ui/             # Node.js 前端 (npm 管理)
 │   │   ├── package.json           # npm 项目配置
-│   │   ├── package-lock.json      # npm 锁文件（提交至版本库）
+│   │   ├── yarn.lock              # npm 锁文件（提交至版本库）
 │   │   ├── node_modules/          # 依赖安装目录（忽略）
 │   │   ├── .env.example           # 环境变量模板（前端）
 │   │   ├── src/                   # 源码目录
