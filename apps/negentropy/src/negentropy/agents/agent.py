@@ -1,14 +1,15 @@
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 
-# Import the 5 Wings (Specialist Agents)
-from .agents.perception import perception_agent
-from .agents.internalization import internalization_agent
-from .agents.contemplation import contemplation_agent
-from .agents.action import action_agent
-from .agents.influence import influence_agent
+# Import the 5 Wings (Specialist Agents) from sub_agents package
+from .faculties.perception import perception_agent
+from .faculties.internalization import internalization_agent
+from .faculties.contemplation import contemplation_agent
+from .faculties.action import action_agent
+from .faculties.influence import influence_agent
 
-# Import shared tools
+# Import shared tools from sibling package
+# Structure is: src/negentropy/agents/agent.py -> import from src/negentropy/agents/tools/common.py
 from .tools.common import log_activity
 
 # Define the Root Agent (The Self)
