@@ -1,4 +1,4 @@
-# Project Initiation
+# Project Initialization
 
 ## 设计原则
 
@@ -92,7 +92,7 @@ negentropy/
 ├── README.md                      # 项目自述
 ├── Makefile                       # 统一任务入口（可选）
 ├── docs/                          # 项目文档
-│   ├── project-structure.md       # 本文档
+│   ├── project-initialization.md  # 本文档
 │   └── ...
 ├── scripts/                       # 跨端工程脚本
 │   ├── setup.sh                   # 统一安装脚本
