@@ -63,8 +63,8 @@ flowchart LR
     Start[克隆项目] --> Setup[运行 scripts/setup.sh]
     Setup --> Dev[运行 scripts/dev.sh]
 
-    Dev --> Backend[后端: uvicorn --reload]
-    Dev --> Frontend[前端: vite dev]
+    Dev --> Backend[后端: uv run fastapi dev<br>uvicorn --reload]
+    Dev --> Frontend[前端: npm run dev<br>vite dev]
 
     Backend --> |热重载| Backend
     Frontend --> |热重载| Frontend
@@ -145,14 +145,14 @@ negentropy/
 
 ## 职责边界
 
-| 维度           | Backend (uv)                           | Frontend (npm)          |
-| -------------- | -------------------------------------- | ----------------------- |
-| **包管理器**   | `uv`                                   | `npm` / `pnpm` / `yarn` |
-| **锁文件**     | `uv.lock`                              | `package-lock.json`     |
-| **依赖安装**   | `uv sync`                              | `npm install`           |
-| **开发命令**   | `uv run python src/negentropy/main.py` | `npm run dev`           |
-| **测试命令**   | `uv run pytest`                        | `npm run test`          |
-| **代码格式化** | `ruff` / `black`                       | `eslint` / `prettier`   |
+| 维度           | Backend (uv)                                | Frontend (npm)                                    |
+| -------------- | ------------------------------------------- | ------------------------------------------------- |
+| **包管理器**   | `uv`                                        | `npm` / `pnpm` / `yarn`                           |
+| **锁文件**     | `uv.lock`                                   | `package-lock.json`                               |
+| **依赖安装**   | `uv sync`                                   | `npm install`                                     |
+| **开发命令**   | `uv run fastapi dev`<sup>[[6]](#ref6)</sup> | `npm run dev` / `yarn dev`<sup>[[7]](#ref7)</sup> |
+| **测试命令**   | `uv run pytest`                             | `npm run test`                                    |
+| **代码格式化** | `ruff` / `black`                            | `eslint` / `prettier`                             |
 
 ## 核心配置说明
 
@@ -172,7 +172,22 @@ negentropy/
 ## 工程脚本约定
 
 - `scripts/setup.sh`：一键安装依赖（后端 `uv sync` + 前端 `npm install`）
-- `scripts/dev.sh`：一键启动（后端 `uvicorn` + 前端 `npm run dev`）
+- `scripts/dev.sh`：一键启动（后端 `uv run fastapi dev` + 前端 `npm run dev`）
+
+## 官方启动指令（来自官方文档）
+
+### Backend（FastAPI + uv）
+
+- 创建项目：`uv init negentropy # cd apps`
+- 进入目录：`cd apps/negentropy`
+- 开发启动：`uv run fastapi dev`（FastAPI 官方建议 `fastapi dev`，由 `uv run` 承载执行）<sup>[[6]](#ref6)</sup><sup>[[9]](#ref9)</sup>
+
+### Frontend（Next.js + npm/yarn）
+
+- 进入目录：`cd apps/negentropy-ui`
+- 开发启动：`npm run dev` 或 `yarn dev`（脚本对应 `next dev`）<sup>[[7]](#ref7)</sup><sup>[[8]](#ref8)</sup>
+- 生产构建：`npm run build` / `yarn build`（脚本对应 `next build`）<sup>[[8]](#ref8)</sup>
+- 生产启动：`npm run start` / `yarn start`（脚本对应 `next start`）<sup>[[8]](#ref8)</sup>
 - `scripts/build.sh`：统一构建入口
 - `scripts/clean.sh`：清理缓存与产物
 
@@ -190,9 +205,9 @@ negentropy/
 
 | 文件                | 是否提交 | 说明                    |
 | ------------------- | -------- | ----------------------- |
-| `uv.lock`           | ✅ 是    | 确保 Python 环境可复现  |
-| `package-lock.json` | ✅ 是    | 确保 Node.js 环境可复现 |
-| `.python-version`   | ✅ 是    | 锚定 Python 版本        |
+| `uv.lock`           | ✅ 是     | 确保 Python 环境可复现  |
+| `package-lock.json` | ✅ 是     | 确保 Node.js 环境可复现 |
+| `.python-version`   | ✅ 是     | 锚定 Python 版本        |
 
 ### 3. 环境变量
 
@@ -347,5 +362,13 @@ app.add_middleware(
 <a id="ref4"></a>[4] T. A. of Service-Oriented Architecture, "RESTful API Design Best Practices," _IEEE Softw._, vol. 32, no. 1, pp. 56–64, 2015.
 
 <a id="ref5"></a>[5] A. Vaswani et al., "Attention is all you need," _Adv. Neural Inf. Process. Syst._, vol. 30, pp. 5998–6008, 2017.
+
+<a id="ref6"></a>[6] S. Ramirez, "First Steps," _FastAPI Documentation_, 2025. [Online]. Available: https://fastapi.tiangolo.com/tutorial/first-steps/
+
+<a id="ref7"></a>[7] Vercel, "Installation," _Next.js Documentation_, 2025. [Online]. Available: https://nextjs.org/docs/app/getting-started/installation
+
+<a id="ref8"></a>[8] Vercel, "next CLI," _Next.js Documentation_, 2025. [Online]. Available: https://nextjs.org/docs/app/api-reference/cli/next
+
+<a id="ref9"></a>[9] Astral, "uv CLI Reference," _uv Documentation_, 2025. [Online]. Available: https://docs.astral.sh/uv/reference/cli/#uv-run
 
 ---
