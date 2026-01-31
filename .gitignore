@@ -209,3 +209,4 @@ __marimo__/
 # Custom
 .vscode/settings.json
 .mcp.json
+apps/negentropy/tests/.adk/session.db
