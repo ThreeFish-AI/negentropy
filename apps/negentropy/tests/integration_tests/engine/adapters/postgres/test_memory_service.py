@@ -2,8 +2,8 @@ import pytest
 import uuid
 from google.adk.sessions import Session as ADKSession
 from google.adk.events import Event as ADKEvent
-from negentropy.adapters.postgres.memory_service import PostgresMemoryService
-from negentropy.db.session import AsyncSessionLocal
+from negentropy.engine.adapters.postgres.memory_service import PostgresMemoryService
+import negentropy.db.session as db_session
 from negentropy.models.hippocampus import Memory
 from sqlalchemy import select
 
@@ -28,7 +28,7 @@ async def test_memory_service_lifecycle():
     )
 
     # 3. 在数据库中创建 Thread 以避免 FK 违反
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         from negentropy.models.pulse import Thread
 
         thread = Thread(id=uuid.UUID(session_id), app_name=app_name, user_id=user_id, state={})
@@ -38,7 +38,7 @@ async def test_memory_service_lifecycle():
     # 4. 测试 add_session_to_memory (consolidate)
     await service.add_session_to_memory(session)
 
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         stmt = select(Memory).where(Memory.thread_id == uuid.UUID(session_id))
         result = await db.execute(stmt)
         memory = result.scalar_one_or_none()
@@ -73,7 +73,7 @@ async def test_memory_service_vector_search():
     user_id = "vector_user"
 
     # 直接插入一条带向量的记忆
-    async with AsyncSessionLocal() as db:
+    async with db_session.AsyncSessionLocal() as db:
         m = Memory(
             user_id=user_id,
             app_name=app_name,
