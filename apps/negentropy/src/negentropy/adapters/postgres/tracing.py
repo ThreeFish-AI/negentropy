@@ -17,11 +17,10 @@ OpenTelemetry 双路导出集成
 
 import json
 import uuid
+import logging
 from datetime import datetime
-from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Optional
 
-import asyncpg
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider, ReadableSpan
 from opentelemetry.sdk.trace.export import (
@@ -30,50 +29,78 @@ from opentelemetry.sdk.trace.export import (
     SpanExportResult,
     ConsoleSpanExporter,
 )
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
+try:
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+except ImportError:
+    OTLPSpanExporter = None
+
 from opentelemetry.trace import Status, StatusCode
+from sqlalchemy import insert
+
+import negentropy.db.session as db_session
+from negentropy.models.mind import Trace
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresSpanExporter(SpanExporter):
     """将 Span 持久化到 PostgreSQL traces 表"""
 
-    def __init__(self, pool: asyncpg.Pool):
-        self._pool = pool
+    def __init__(self):
+        # ORM implementation doesn't need a pool, it creates sessions on demand
+        pass
 
     def export(self, spans: list[ReadableSpan]) -> SpanExportResult:
         """同步导出 (内部异步)"""
         import asyncio
 
         try:
-            asyncio.get_event_loop().run_until_complete(self._async_export(spans))
+            # Note: This run_until_complete might conflict if called from within an existing loop.
+            # ...
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                loop.create_task(self._async_export(spans))
+            else:
+                asyncio.run(self._async_export(spans))
+
             return SpanExportResult.SUCCESS
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to export spans to Postgres: {e}")
             return SpanExportResult.FAILURE
 
     async def _async_export(self, spans: list[ReadableSpan]) -> None:
-        async with self._pool.acquire() as conn:
+        async with db_session.AsyncSessionLocal() as db:
+            trace_dicts = []
             for span in spans:
-                await conn.execute(
-                    """
-                    INSERT INTO traces
-                    (trace_id, span_id, parent_span_id, operation_name, span_kind,
-                     attributes, events, start_time, end_time, duration_ns,
-                     status_code, status_message)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                    """,
-                    format(span.context.trace_id, "032x"),
-                    format(span.context.span_id, "016x"),
-                    format(span.parent.span_id, "016x") if span.parent else None,
-                    span.name,
-                    span.kind.name if span.kind else "INTERNAL",
-                    json.dumps(dict(span.attributes or {})),
-                    json.dumps([self._event_to_dict(e) for e in (span.events or [])]),
-                    datetime.fromtimestamp(span.start_time / 1e9),
-                    datetime.fromtimestamp(span.end_time / 1e9) if span.end_time else None,
-                    (span.end_time - span.start_time) if span.end_time else None,
-                    span.status.status_code.name if span.status else "UNSET",
-                    span.status.description if span.status else None,
+                trace_dicts.append(
+                    {
+                        "trace_id": format(span.context.trace_id, "032x"),
+                        "span_id": format(span.context.span_id, "016x"),
+                        "parent_span_id": format(span.parent.span_id, "016x") if span.parent else None,
+                        "operation_name": span.name,
+                        "span_kind": span.kind.name if span.kind else "INTERNAL",
+                        "attributes": dict(span.attributes or {}),
+                        "events": [self._event_to_dict(e) for e in (span.events or [])],
+                        "start_time": datetime.fromtimestamp(span.start_time / 1e9),
+                        "end_time": datetime.fromtimestamp(span.end_time / 1e9) if span.end_time else None,
+                        "duration_ns": (span.end_time - span.start_time) if span.end_time else None,
+                        "status_code": span.status.status_code.name if span.status else "UNSET",
+                        "status_message": span.status.description if span.status else None,
+                    }
                 )
+
+            # Efficient batch insert
+            if trace_dicts:
+                # We use core insert to avoid overhead of model instantiation if possible,
+                # but models are fine too. Bulk insert mappings is efficient.
+                await db.execute(insert(Trace), trace_dicts)
+                await db.commit()
 
     def _event_to_dict(self, event) -> dict:
         return {"name": event.name, "timestamp": event.timestamp, "attributes": dict(event.attributes or {})}
@@ -87,7 +114,7 @@ class TracingManager:
     Trace 管理器 - 支持双路导出
 
     使用方式:
-        tracing = TracingManager(pg_pool=pool, otlp_endpoint="localhost:4317")
+        tracing = TracingManager(enable_postgres=True, otlp_endpoint="localhost:4317")
 
         @tracing.trace_tool_call("calculator")
         async def calculate(x, y):
@@ -97,7 +124,7 @@ class TracingManager:
     def __init__(
         self,
         service_name: str = "open-agent-engine",
-        pg_pool: asyncpg.Pool | None = None,
+        enable_postgres: bool = True,  # Replaced pg_pool with bool flag
         otlp_endpoint: str | None = None,
         console_export: bool = False,
         otlp_exporter: SpanExporter | None = None,  # For testing
@@ -105,16 +132,19 @@ class TracingManager:
         provider = TracerProvider()
 
         # 双路导出配置
-        if pg_pool:
+        if enable_postgres:
             # PostgreSQL: 持久化审计
-            provider.add_span_processor(BatchSpanProcessor(PostgresSpanExporter(pg_pool)))
+            provider.add_span_processor(BatchSpanProcessor(PostgresSpanExporter()))
 
         # OTLP: 实时可视化 (Langfuse)
         if otlp_exporter:
             # 优先使用注入的 Exporter (测试用)
             provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
         elif otlp_endpoint:
-            provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)))
+            if OTLPSpanExporter:
+                provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)))
+            else:
+                logger.warning("OTLP Exporter requested but opentelemetry-exporter-otlp not installed.")
 
         if console_export:
             provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
