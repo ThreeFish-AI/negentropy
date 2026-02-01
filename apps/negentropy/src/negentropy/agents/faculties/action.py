@@ -1,10 +1,11 @@
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from ..tools.common import log_activity
+from negentropy.config import settings
+from negentropy.tools.common import log_activity
 
 action_agent = LlmAgent(
     name="ActionFaculty",
-    model=LiteLlm("openai/glm-4.7"),
+    model=LiteLlm(settings.default_model),
     description="Negentropy 系统的「妙手」(The Hand)。对抗虚谈，负责精准的实现产品，并在现实交互环境中安全的执行。",
     instruction="""
 你是 **ActionFaculty** (行动系部)，是 Negentropy 系统的**「妙手」(The Hand)**。
