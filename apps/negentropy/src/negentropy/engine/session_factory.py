@@ -10,7 +10,6 @@ SessionServiceFactory: 统一的 SessionService 后端工厂
 from __future__ import annotations
 
 from enum import Enum
-from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from google.adk.sessions.base_session_service import BaseSessionService
@@ -65,9 +64,10 @@ _BACKEND_FACTORIES = {
     SessionBackend.VERTEXAI: create_vertexai_session_service,
     SessionBackend.POSTGRES: create_postgres_session_service,
 }
+# 模块级单例缓存 (替代 lru_cache，避免参数变化时返回错误实例)
+_session_service_instance: BaseSessionService | None = None
 
 
-@lru_cache(maxsize=1)
 def get_session_service(backend: str | None = None) -> BaseSessionService:
     """
     获取 SessionService 实例 (工厂函数)
@@ -82,22 +82,41 @@ def get_session_service(backend: str | None = None) -> BaseSessionService:
     Raises:
         ValueError: 不支持的后端类型
     """
+    global _session_service_instance
+
     backend_str = backend or settings.session_service_backend
     try:
         backend_enum = SessionBackend(backend_str.lower())
     except ValueError:
         raise ValueError(f"Unsupported session backend: {backend_str}. Supported: {[b.value for b in SessionBackend]}")
 
+    # 如果已有缓存实例且未显式指定 backend，直接返回
+    if _session_service_instance is not None and backend is None:
+        return _session_service_instance
+
     factory = _BACKEND_FACTORIES.get(backend_enum)
     if not factory:
         raise ValueError(f"No factory registered for backend: {backend_enum}")
 
-    return factory()
+    instance = factory()
+
+    # 仅在未显式指定 backend 时缓存 (避免测试中混用不同后端)
+    if backend is None:
+        _session_service_instance = instance
+
+    return instance
+
+
+def reset_session_service() -> None:
+    """重置单例缓存 (用于测试)"""
+    global _session_service_instance
+    _session_service_instance = None
 
 
 __all__ = [
     "SessionBackend",
     "get_session_service",
+    "reset_session_service",
     "create_inmemory_session_service",
     "create_vertexai_session_service",
     "create_postgres_session_service",
