@@ -172,29 +172,7 @@ class ToolRegistry:
             stmt = (
                 insert(Tool)
                 .values(
-                    app_name=app_name,
-                    name=tool.name,
-                    description=tool.description,
-                    openapi_schema=tool.parameters,
-                    permissions={"requires_confirmation": tool.requires_confirmation},
-                    is_active=True,
-                )
-                .on_conflict_do_update(
-                    index_elements=["app_name", "name"],
-                    set_={
-                        "description": tool.description,
-                        "openapi_schema": tool.parameters,
-                        "permissions": insert(Tool).excluded.permissions,
-                        "updated_at": insert(Tool).excluded.updated_at,
-                    },
-                )
-            )
-
-            # Simple overwrite approach for permissions in conflict
-            stmt = (
-                insert(Tool)
-                .values(
-                    id=uuid.uuid4(),  # Generate new ID if inserting
+                    id=uuid.uuid4(),
                     app_name=app_name,
                     name=tool.name,
                     description=tool.description,

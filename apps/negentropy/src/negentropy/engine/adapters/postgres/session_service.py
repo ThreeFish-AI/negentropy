@@ -31,7 +31,7 @@ from google.adk.sessions.base_session_service import (
 from google.adk.events import Event as ADKEvent
 
 # ORM 模型与会话工厂
-from negentropy.db.session import AsyncSessionLocal
+import negentropy.db.session as db_session
 from negentropy.models.pulse import AppState, Event, Thread, UserState
 
 
@@ -62,7 +62,7 @@ class PostgresSessionService(BaseSessionService):
         sid = session_id or str(uuid.uuid4())
         initial_state = state or {}
 
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             thread = Thread(
                 id=uuid.UUID(sid),
                 app_name=app_name,
@@ -95,7 +95,7 @@ class PostgresSessionService(BaseSessionService):
         except ValueError:
             return None
 
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             # 获取 Thread
             result = await db.execute(
                 select(Thread).where(
@@ -139,7 +139,7 @@ class PostgresSessionService(BaseSessionService):
 
     async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:
         """列出所有会话"""
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             query = select(Thread).where(Thread.app_name == app_name)
             if user_id:
                 query = query.where(Thread.user_id == user_id)
@@ -164,7 +164,7 @@ class PostgresSessionService(BaseSessionService):
 
     async def delete_session(self, *, app_name: str, user_id: str, session_id: str) -> None:
         """删除会话"""
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             await db.execute(
                 delete(Thread).where(
                     Thread.id == uuid.UUID(session_id),
@@ -187,7 +187,7 @@ class PostgresSessionService(BaseSessionService):
         event_id = self._ensure_uuid(event.id)
         invocation_id = self._ensure_uuid(event.invocation_id)
 
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             # 1. 插入 Event
             db_event = Event(
                 id=event_id,

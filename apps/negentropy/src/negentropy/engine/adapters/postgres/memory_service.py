@@ -29,7 +29,7 @@ from google.adk.memory.base_memory_service import (
 )
 
 # ORM 模型与会话工厂
-from negentropy.db.session import AsyncSessionLocal
+import negentropy.db.session as db_session
 from negentropy.models.hippocampus import Memory
 
 
@@ -100,7 +100,7 @@ class PostgresMemoryService(BaseMemoryService):
             except ValueError:
                 pass
 
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             memory = Memory(
                 thread_id=thread_id,
                 user_id=session.user_id,
@@ -126,7 +126,7 @@ class PostgresMemoryService(BaseMemoryService):
         if self._embedding_fn:
             query_embedding = await self._embedding_fn(query)
 
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             # 构造基础查询
             stmt = select(Memory).where(
                 Memory.app_name == app_name,
@@ -169,7 +169,7 @@ class PostgresMemoryService(BaseMemoryService):
 
     async def list_memories(self, *, app_name: str, user_id: str, limit: int = 100) -> list[MemoryEntry]:
         """列出用户所有记忆"""
-        async with AsyncSessionLocal() as db:
+        async with db_session.AsyncSessionLocal() as db:
             stmt = (
                 select(Memory)
                 .where(Memory.app_name == app_name, Memory.user_id == user_id)
