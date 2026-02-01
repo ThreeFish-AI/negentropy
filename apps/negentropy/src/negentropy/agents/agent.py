@@ -7,7 +7,7 @@ from negentropy.config import settings
 
 # Import shared tools from sibling package
 # Structure is: src/negentropy/agents/agent.py -> import from src/negentropy/agents/tools/common.py
-from negentropy.tools.common import log_activity
+from negentropy.agents.tools.common import log_activity
 
 # Import the 5 Wings (Specialist Agents) from sub_agents package
 from .faculties.action import action_agent
