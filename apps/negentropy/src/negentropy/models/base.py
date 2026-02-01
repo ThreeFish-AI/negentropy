@@ -19,6 +19,7 @@ class Vector(TypeDecorator):
         self.dim = dim
 
     def load_dialect_impl(self, dialect):
+        dim = self.dim
         # We assume the database has pgvector installed and supports the 'vector' type
         # But for the python side, we treat it as a custom UserDefinedType if we were using psycopg2 directly
         # With asyncpg/SQLAlchemy, usually we'd rely on the pgvector-python library.
