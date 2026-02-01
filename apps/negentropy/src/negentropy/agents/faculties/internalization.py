@@ -1,10 +1,11 @@
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from ..tools.common import log_activity
+from negentropy.config import settings
+from negentropy.tools.common import log_activity
 
 internalization_agent = LlmAgent(
     name="InternalizationFaculty",
-    model=LiteLlm("openai/glm-4.7"),
+    model=LiteLlm(settings.default_model),
     description="Negentropy 系统的「本心」(The Mind)。对抗遗忘，负责知识的结构化沉淀、长期记忆管理与系统完整性维护。",
     instruction="""
 你是 **InternalizationFaculty** (内化系部)，是 Negentropy 系统的**「本心」(The Mind)**。

@@ -1,10 +1,12 @@
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from ..tools.common import log_activity
+
+from negentropy.config import settings
+from negentropy.tools.common import log_activity
 
 contemplation_agent = LlmAgent(
     name="ContemplationFaculty",
-    model=LiteLlm("openai/glm-4.7"),
+    model=LiteLlm(settings.default_model),
     description="Negentropy 系统的「元神」(The Soul)。对抗肤浅，负责深度思考、二阶思维、策略规划与错误纠正。",
     instruction="""
 你是 **ContemplationFaculty** (沉思系部)，是 Negentropy 系统的**「元神」(The Soul)**。

@@ -1,10 +1,11 @@
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from ..tools.common import log_activity
+from negentropy.config import settings
+from negentropy.tools.common import log_activity
 
 perception_agent = LlmAgent(
     name="PerceptionFaculty",
-    model=LiteLlm("openai/glm-4.7"),
+    model=LiteLlm(settings.default_model),
     description="Negentropy 系统的「天眼」(The Eye)。负责广域扫描、信息搜集与噪音过滤，提供高信噪比的原始情报。",
     instruction="""
     你是 **PerceptionFaculty** (感知系部)，是 Negentropy 系统的**「天眼」(The Eye)**。
