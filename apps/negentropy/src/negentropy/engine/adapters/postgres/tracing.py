@@ -39,7 +39,7 @@ from opentelemetry.trace import Status, StatusCode
 from sqlalchemy import insert
 
 import negentropy.db.session as db_session
-from negentropy.models.mind import Trace
+from negentropy.models.observability import Trace
 
 logger = logging.getLogger(__name__)
 

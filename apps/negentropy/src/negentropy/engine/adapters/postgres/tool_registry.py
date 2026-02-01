@@ -15,7 +15,7 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
 import negentropy.db.session as db_session
-from negentropy.models.mind import Tool
+from negentropy.models.action import Tool
 
 
 @dataclass
