@@ -1,28 +1,26 @@
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 
-# Import the 5 Wings (Specialist Agents) from sub_agents package
-from .faculties.perception import perception_agent
-from .faculties.internalization import internalization_agent
-from .faculties.contemplation import contemplation_agent
-from .faculties.action import action_agent
-from .faculties.influence import influence_agent
+# Define the Root Agent (The Self)
+# This agent does not do heavy lifting itself but delegates to faculties.
+from negentropy.config import settings
 
 # Import shared tools from sibling package
 # Structure is: src/negentropy/agents/agent.py -> import from src/negentropy/agents/tools/common.py
 from negentropy.tools.common import log_activity
 
-# Define the Root Agent (The Self)
-# This agent does not do heavy lifting itself but delegates to faculties.
-from negentropy.config import settings
+# Import the 5 Wings (Specialist Agents) from sub_agents package
+from .faculties.action import action_agent
+from .faculties.contemplation import contemplation_agent
+from .faculties.influence import influence_agent
+from .faculties.internalization import internalization_agent
+from .faculties.perception import perception_agent
 
 # Define the Root Agent (The Self)
 # This agent does not do heavy lifting itself but delegates to faculties.
 root_agent = LlmAgent(
     name="NegentropyEngine",
-    model=LiteLlm(
-        settings.default_model
-    ),  # Use a stronger model for reasoning/orchestration
+    model=LiteLlm(settings.default_model),  # Use a stronger model for reasoning/orchestration
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
     instruction="""
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的**「本我」(The Self)**。
