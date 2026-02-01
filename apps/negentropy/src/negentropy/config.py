@@ -6,6 +6,9 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+    # Application
+    app_name: str = "negentropy"
+
     default_model: str = "openai/glm-4.7"
 
     # Database
