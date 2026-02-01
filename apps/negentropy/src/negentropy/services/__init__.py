@@ -1,1 +1,0 @@
-# Negentropy Services Package
