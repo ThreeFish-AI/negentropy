@@ -68,7 +68,7 @@ def create_postgres_memory_service(
     Returns:
         PostgresMemoryService 实例
     """
-    from negentropy.adapters.postgres.memory_service import PostgresMemoryService
+    from negentropy.engine.adapters.postgres.memory_service import PostgresMemoryService
 
     return PostgresMemoryService(embedding_fn=embedding_fn, consolidation_worker=consolidation_worker)
 
