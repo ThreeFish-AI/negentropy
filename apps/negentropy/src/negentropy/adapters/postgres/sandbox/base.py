@@ -22,7 +22,7 @@ class SandboxConfig:
     """沙箱配置 - 通用参数"""
 
     name: str = "agent-sandbox"
-    image: str = "python:3.11-slim"
+    image: str = "python:3.14-slim"
     memory_mb: int = 256
     cpu_cores: float = 0.5
     timeout_seconds: int = 30
