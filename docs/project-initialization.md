@@ -206,9 +206,9 @@ negentropy/
 
 | 文件                | 是否提交 | 说明                    |
 | ------------------- | -------- | ----------------------- |
-| `uv.lock`           | ✅ 是     | 确保 Python 环境可复现  |
-| `package-lock.json` | ✅ 是     | 确保 Node.js 环境可复现 |
-| `.python-version`   | ✅ 是     | 锚定 Python 版本        |
+| `uv.lock`           | ✅ 是    | 确保 Python 环境可复现  |
+| `package-lock.json` | ✅ 是    | 确保 Node.js 环境可复现 |
+| `.python-version`   | ✅ 是    | 锚定 Python 版本        |
 
 ### 3. 环境变量
 
