@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "negentropy"
 
+    # Model Configuration
     default_model: str = "openai/glm-4.7"
+    orchestrator_model: str = "openai/glm-4.7"  # 强推理模型用于 Root Agent
+    faculty_model: str = "openai/glm-4.7"  # 通用模型用于 Faculty Agents
 
     # Database
     database_url: str = "postgresql+asyncpg://aigc:@localhost:5432/negentropy"
