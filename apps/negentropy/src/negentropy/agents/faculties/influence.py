@@ -3,10 +3,11 @@ from google.adk.models.lite_llm import LiteLlm
 
 from negentropy.config import settings
 from negentropy.agents.tools.common import log_activity
+from negentropy.agents.tools.influence import publish_content, send_notification
 
 influence_agent = LlmAgent(
     name="InfluenceFaculty",
-    model=LiteLlm(settings.default_model),
+    model=LiteLlm(settings.faculty_model),
     description="Negentropy 系统的「喉舌」(The Voice)。对抗晦涩，负责高价值、低理解熵的信息输出 (Value Transmission)。",
     instruction="""
 你是 **InfluenceFaculty** (影响系部)，是 Negentropy 系统的**「喉舌」(The Voice)**。
@@ -41,5 +42,5 @@ influence_agent = LlmAgent(
 - **美学追求 (Aesthetic)**：拒绝丑陋的排版。
 - **诚实反馈 (Honesty)**：如果是坏消息（如任务失败），直说，并提供补救建议。
 """,
-    tools=[log_activity],  # Placeholder for actual communication tools
+    tools=[log_activity, publish_content, send_notification],
 )

@@ -3,10 +3,11 @@ from google.adk.models.lite_llm import LiteLlm
 
 from negentropy.config import settings
 from negentropy.agents.tools.common import log_activity
+from negentropy.agents.tools.internalization import save_to_memory, update_knowledge_graph
 
 internalization_agent = LlmAgent(
     name="InternalizationFaculty",
-    model=LiteLlm(settings.default_model),
+    model=LiteLlm(settings.faculty_model),
     description="Negentropy 系统的「本心」(The Mind)。对抗遗忘，负责知识的结构化沉淀、长期记忆管理与系统完整性维护。",
     instruction="""
 你是 **InternalizationFaculty** (内化系部)，是 Negentropy 系统的**「本心」(The Mind)**。
@@ -41,5 +42,5 @@ internalization_agent = LlmAgent(
 - **格式严谨 (Strict Formatting)**：输出的 Markdown/JSON 必须严格符合 Schema 定义。
 - **数据主权 (Data Sovereignty)**：你是记忆的守护者，未经允许不得轻易删除核心记忆。
 """,
-    tools=[log_activity],  # Placeholder for actual storage tools
+    tools=[log_activity, save_to_memory, update_knowledge_graph],
 )
