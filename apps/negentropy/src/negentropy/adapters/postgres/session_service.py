@@ -5,16 +5,21 @@ PostgresSessionService: ADK SessionService 的 PostgreSQL 实现
 - Session CRUD 操作
 - Event 追加与 State Delta 应用
 - State 前缀作用域路由
+
+重构说明：
+    本版本从 raw asyncpg + SQL 迁移到 SQLAlchemy ORM，复用：
+    - `db/session.py` 中的 `AsyncSessionLocal`
+    - `models/pulse.py` 中的 `Thread`, `Event`, `UserState`, `AppState`
 """
 
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-import asyncpg
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ADK 官方类型
 from google.adk.sessions import Session
@@ -23,7 +28,11 @@ from google.adk.sessions.base_session_service import (
     GetSessionConfig,
     ListSessionsResponse,
 )
-from google.adk.events import Event
+from google.adk.events import Event as ADKEvent
+
+# ORM 模型与会话工厂
+from negentropy.db.session import AsyncSessionLocal
+from negentropy.models.pulse import AppState, Event, Thread, UserState
 
 
 class PostgresSessionService(BaseSessionService):
@@ -38,8 +47,7 @@ class PostgresSessionService(BaseSessionService):
     3. State 前缀路由 (无前缀/user:/app:/temp:)
     """
 
-    def __init__(self, pool: asyncpg.Pool):
-        self._pool = pool
+    def __init__(self):
         self._temp_state: dict[str, dict] = {}  # temp: 前缀的内存缓存
 
     async def create_session(
@@ -54,17 +62,15 @@ class PostgresSessionService(BaseSessionService):
         sid = session_id or str(uuid.uuid4())
         initial_state = state or {}
 
-        async with self._pool.acquire() as conn:
-            await conn.execute(
-                """
-                INSERT INTO threads (id, app_name, user_id, state)
-                VALUES ($1, $2, $3, $4)
-                """,
-                uuid.UUID(sid),
-                app_name,
-                user_id,
-                json.dumps(initial_state),
+        async with AsyncSessionLocal() as db:
+            thread = Thread(
+                id=uuid.UUID(sid),
+                app_name=app_name,
+                user_id=user_id,
+                state=initial_state,
             )
+            db.add(thread)
+            await db.commit()
 
         return Session(
             id=sid,
@@ -89,105 +95,86 @@ class PostgresSessionService(BaseSessionService):
         except ValueError:
             return None
 
-        async with self._pool.acquire() as conn:
+        async with AsyncSessionLocal() as db:
             # 获取 Thread
-            row = await conn.fetchrow(
-                """
-                SELECT id, app_name, user_id, state, updated_at
-                FROM threads
-                WHERE id = $1 AND app_name = $2 AND user_id = $3
-                """,
-                sid,
-                app_name,
-                user_id,
+            result = await db.execute(
+                select(Thread).where(
+                    Thread.id == sid,
+                    Thread.app_name == app_name,
+                    Thread.user_id == user_id,
+                )
             )
-            if not row:
+            thread = result.scalar_one_or_none()
+            if not thread:
                 return None
 
             # 获取 Events
-            events_query = """
-                SELECT id, author, event_type, content, actions, created_at
-                FROM events
-                WHERE thread_id = $1
-                ORDER BY sequence_num ASC
-            """
+            events_query = select(Event).where(Event.thread_id == sid).order_by(Event.sequence_num.asc())
 
             # 支持 GetSessionConfig 的过滤
             if config and config.num_recent_events:
-                events_query = f"""
-                    SELECT * FROM (
-                        SELECT id, author, event_type, content, actions, created_at
-                        FROM events
-                        WHERE thread_id = $1
-                        ORDER BY sequence_num DESC
-                        LIMIT {config.num_recent_events}
-                    ) sub ORDER BY created_at ASC
-                """
+                # 获取最新 N 条，然后按时间正序
+                events_query = (
+                    select(Event)
+                    .where(Event.thread_id == sid)
+                    .order_by(Event.sequence_num.desc())
+                    .limit(config.num_recent_events)
+                )
 
-            events = await conn.fetch(events_query, uuid.UUID(session_id))
+            events_result = await db.execute(events_query)
+            events = list(events_result.scalars().all())
+
+            # 如果使用了 limit，需要反转回正序
+            if config and config.num_recent_events:
+                events = list(reversed(events))
 
             return Session(
-                id=str(row["id"]),
-                app_name=row["app_name"],
-                user_id=row["user_id"],
-                state=json.loads(row["state"]) if row["state"] else {},
-                events=[self._row_to_event(e) for e in events],
-                last_update_time=row["updated_at"].timestamp(),
+                id=str(thread.id),
+                app_name=thread.app_name,
+                user_id=thread.user_id,
+                state=thread.state or {},
+                events=[self._orm_to_adk_event(e) for e in events],
+                last_update_time=thread.updated_at.timestamp() if thread.updated_at else datetime.now().timestamp(),
             )
 
     async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:
         """列出所有会话"""
-        async with self._pool.acquire() as conn:
+        async with AsyncSessionLocal() as db:
+            query = select(Thread).where(Thread.app_name == app_name)
             if user_id:
-                rows = await conn.fetch(
-                    """
-                    SELECT id, app_name, user_id, state, updated_at
-                    FROM threads
-                    WHERE app_name = $1 AND user_id = $2
-                    ORDER BY updated_at DESC
-                    """,
-                    app_name,
-                    user_id,
-                )
-            else:
-                rows = await conn.fetch(
-                    """
-                    SELECT id, app_name, user_id, state, updated_at
-                    FROM threads
-                    WHERE app_name = $1
-                    ORDER BY updated_at DESC
-                    """,
-                    app_name,
-                )
+                query = query.where(Thread.user_id == user_id)
+            query = query.order_by(Thread.updated_at.desc())
+
+            result = await db.execute(query)
+            threads = result.scalars().all()
 
         sessions = [
             Session(
-                id=str(row["id"]),
-                app_name=row["app_name"],
-                user_id=row["user_id"],
-                state=json.loads(row["state"]) if row["state"] else {},
+                id=str(t.id),
+                app_name=t.app_name,
+                user_id=t.user_id,
+                state=t.state or {},
                 events=[],  # 列表不加载 events
-                last_update_time=row["updated_at"].timestamp(),
+                last_update_time=t.updated_at.timestamp() if t.updated_at else datetime.now().timestamp(),
             )
-            for row in rows
+            for t in threads
         ]
 
         return ListSessionsResponse(sessions=sessions)
 
     async def delete_session(self, *, app_name: str, user_id: str, session_id: str) -> None:
         """删除会话"""
-        async with self._pool.acquire() as conn:
-            await conn.execute(
-                """
-                DELETE FROM threads
-                WHERE id = $1 AND app_name = $2 AND user_id = $3
-                """,
-                uuid.UUID(session_id),
-                app_name,
-                user_id,
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                delete(Thread).where(
+                    Thread.id == uuid.UUID(session_id),
+                    Thread.app_name == app_name,
+                    Thread.user_id == user_id,
+                )
             )
+            await db.commit()
 
-    async def append_event(self, session: Session, event: Event) -> Event:
+    async def append_event(self, session: Session, event: ADKEvent) -> ADKEvent:
         """
         追加事件并应用 state_delta
 
@@ -200,34 +187,29 @@ class PostgresSessionService(BaseSessionService):
         event_id = self._ensure_uuid(event.id)
         invocation_id = self._ensure_uuid(event.invocation_id)
 
-        async with self._pool.acquire() as conn:
-            async with conn.transaction():
-                # 1. 插入 Event
-                await conn.execute(
-                    """
-                    INSERT INTO events
-                    (id, thread_id, invocation_id, author, event_type, content, actions)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                    """,
-                    event_id,
-                    uuid.UUID(session.id),
-                    invocation_id,
-                    event.author,
-                    "message",
-                    json.dumps(self._serialize_content(event.content)),
-                    json.dumps(event.actions.model_dump() if event.actions else {}),
-                )
+        async with AsyncSessionLocal() as db:
+            # 1. 插入 Event
+            db_event = Event(
+                id=event_id,
+                thread_id=uuid.UUID(session.id),
+                invocation_id=invocation_id,
+                author=event.author,
+                event_type="message",
+                content=self._serialize_content(event.content),
+                actions=event.actions.model_dump() if event.actions else {},
+            )
+            db.add(db_event)
 
-                # 2. 应用 state_delta 到数据库
-                if event.actions and event.actions.state_delta:
-                    await self._apply_state_delta_to_db(conn, session, event.actions.state_delta)
+            # 2. 应用 state_delta 到数据库
+            if event.actions and event.actions.state_delta:
+                await self._apply_state_delta_to_db(db, session, event.actions.state_delta)
+
+            await db.commit()
 
         event.id = event_id
         return event
 
-    async def _apply_state_delta_to_db(
-        self, conn: asyncpg.Connection, session: Session, state_delta: dict[str, Any]
-    ) -> None:
+    async def _apply_state_delta_to_db(self, db: AsyncSession, session: Session, state_delta: dict[str, Any]) -> None:
         """应用 state_delta，根据前缀路由到不同存储"""
         session_updates = {}
         user_updates = {}
@@ -249,53 +231,52 @@ class PostgresSessionService(BaseSessionService):
                 # 无前缀 -> threads.state
                 session_updates[key] = value
 
-        # 更新 Session State
+        # 更新 Session State (Thread)
         if session_updates:
-            await conn.execute(
-                """
-                UPDATE threads
-                SET state = state || $1::jsonb, updated_at = NOW()
-                WHERE id = $2
-                """,
-                json.dumps(session_updates),
-                uuid.UUID(session.id),
-            )
+            result = await db.execute(select(Thread).where(Thread.id == uuid.UUID(session.id)))
+            thread = result.scalar_one_or_none()
+            if thread:
+                thread.state = {**(thread.state or {}), **session_updates}
 
-        # 更新 User State
+        # 更新 User State (UPSERT)
         if user_updates:
-            await conn.execute(
-                """
-                INSERT INTO user_states (user_id, app_name, state)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (user_id, app_name)
-                DO UPDATE SET state = user_states.state || $3::jsonb,
-                              updated_at = NOW()
-                """,
-                session.user_id,
-                session.app_name,
-                json.dumps(user_updates),
+            result = await db.execute(
+                select(UserState).where(
+                    UserState.user_id == session.user_id,
+                    UserState.app_name == session.app_name,
+                )
             )
+            user_state = result.scalar_one_or_none()
+            if user_state:
+                user_state.state = {**(user_state.state or {}), **user_updates}
+            else:
+                db.add(
+                    UserState(
+                        user_id=session.user_id,
+                        app_name=session.app_name,
+                        state=user_updates,
+                    )
+                )
 
-        # 更新 App State
+        # 更新 App State (UPSERT)
         if app_updates:
-            await conn.execute(
-                """
-                INSERT INTO app_states (app_name, state)
-                VALUES ($1, $2)
-                ON CONFLICT (app_name)
-                DO UPDATE SET state = app_states.state || $2::jsonb,
-                              updated_at = NOW()
-                """,
-                session.app_name,
-                json.dumps(app_updates),
-            )
+            result = await db.execute(select(AppState).where(AppState.app_name == session.app_name))
+            app_state = result.scalar_one_or_none()
+            if app_state:
+                app_state.state = {**(app_state.state or {}), **app_updates}
+            else:
+                db.add(
+                    AppState(
+                        app_name=session.app_name,
+                        state=app_updates,
+                    )
+                )
 
-    def _row_to_event(self, row) -> Event:
-        """将数据库行转换为 ADK Event 对象"""
+    def _orm_to_adk_event(self, event: Event) -> ADKEvent:
+        """将 ORM Event 对象转换为 ADK Event 对象"""
         from google.genai import types
 
-        content_dict = json.loads(row["content"]) if row["content"] else {}
-        actions_dict = json.loads(row["actions"]) if row["actions"] else {}
+        content_dict = event.content or {}
 
         # 从存储的字典重建 Content 对象
         content = None
@@ -307,7 +288,12 @@ class PostgresSessionService(BaseSessionService):
             if parts:
                 content = types.Content(role=content_dict.get("role", "user"), parts=parts)
 
-        return Event(id=str(row["id"]), author=row["author"], content=content, timestamp=row["created_at"].timestamp())
+        return ADKEvent(
+            id=str(event.id),
+            author=event.author,
+            content=content,
+            timestamp=event.created_at.timestamp() if event.created_at else datetime.now().timestamp(),
+        )
 
     def _ensure_uuid(self, value: Any) -> uuid.UUID:
         """确保值是有效的 UUID 对象"""
