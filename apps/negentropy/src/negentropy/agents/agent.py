@@ -16,8 +16,6 @@ from .faculties.influence import influence_agent
 from .faculties.internalization import internalization_agent
 from .faculties.perception import perception_agent
 
-# Define the Root Agent (The Self)
-# This agent does not do heavy lifting itself but delegates to faculties.
 root_agent = LlmAgent(
     name="NegentropyEngine",
     model=LiteLlm(settings.default_model),  # Use a stronger model for reasoning/orchestration

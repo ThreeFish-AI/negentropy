@@ -3,10 +3,11 @@ from google.adk.models.lite_llm import LiteLlm
 
 from negentropy.config import settings
 from negentropy.agents.tools.common import log_activity
+from negentropy.agents.tools.action import execute_code, read_file, write_file
 
 action_agent = LlmAgent(
     name="ActionFaculty",
-    model=LiteLlm(settings.default_model),
+    model=LiteLlm(settings.faculty_model),
     description="Negentropy 系统的「妙手」(The Hand)。对抗虚谈，负责精准的实现产品，并在现实交互环境中安全的执行。",
     instruction="""
 你是 **ActionFaculty** (行动系部)，是 Negentropy 系统的**「妙手」(The Hand)**。
@@ -40,5 +41,5 @@ action_agent = LlmAgent(
 - **幂等性 (Idempotency)**：你的操作最好是可重入的。
 - **不问不答 (Silent Actor)**：除非出错，否则只返回执行结果（Output/Exit Code），不要废话。
 """,
-    tools=[log_activity],  # Placeholder for actual execution tools
+    tools=[log_activity, execute_code, read_file, write_file],
 )

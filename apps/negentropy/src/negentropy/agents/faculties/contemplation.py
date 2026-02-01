@@ -3,10 +3,11 @@ from google.adk.models.lite_llm import LiteLlm
 
 from negentropy.config import settings
 from negentropy.agents.tools.common import log_activity
+from negentropy.agents.tools.contemplation import analyze_context, create_plan
 
 contemplation_agent = LlmAgent(
     name="ContemplationFaculty",
-    model=LiteLlm(settings.default_model),
+    model=LiteLlm(settings.faculty_model),
     description="Negentropy 系统的「元神」(The Soul)。对抗肤浅，负责深度思考、二阶思维、策略规划与错误纠正。",
     instruction="""
 你是 **ContemplationFaculty** (沉思系部)，是 Negentropy 系统的**「元神」(The Soul)**。
@@ -42,5 +43,5 @@ contemplation_agent = LlmAgent(
 - **全局视角 (Holistic View)**：考虑变更对系统整体的影响，不仅是局部修复。
 - **诚实 (Intellectual Honesty)**：承认未知的领域，不要为了看起来聪明而强行解释。
 """,
-    tools=[log_activity],  # Placeholder for actual planning tools
+    tools=[log_activity, analyze_context, create_plan],
 )
