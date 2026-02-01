@@ -29,13 +29,7 @@ cd negentropy
 
 ## 🌳 Repository Structure
 
-```text
-negentropy/
-├── AGENTS.md       # AI 协作协议与工程行为准则
-├── LICENSE         # 许可协议
-├── README.md       # 项目自述文档 (本文件)
-└── ...             # 其他源码与文档
-```
+详见 [docs/project-initialization.md](./docs/project-initialization.md)
 
 ## ℹ️ Getting Help
 
