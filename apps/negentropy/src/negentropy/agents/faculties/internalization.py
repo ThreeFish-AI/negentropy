@@ -7,7 +7,7 @@ from negentropy.agents.tools.internalization import save_to_memory, update_knowl
 
 internalization_agent = LlmAgent(
     name="InternalizationFaculty",
-    model=LiteLlm(settings.faculty_model),
+    model=LiteLlm(settings.faculty_model, **settings.llm.to_litellm_kwargs()),
     description="Negentropy 系统的「本心」(The Mind)。对抗遗忘，负责知识的结构化沉淀、长期记忆管理与系统完整性维护。",
     instruction="""
 你是 **InternalizationFaculty** (内化系部)，是 Negentropy 系统的**「本心」(The Mind)**。

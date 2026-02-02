@@ -1,7 +1,7 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
+from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -59,7 +59,40 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # 在运行迁移前，确保 negentropy schema 存在
+    from negentropy.models.base import NEGENTROPY_SCHEMA
+
+    connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {NEGENTROPY_SCHEMA}"))
+    connection.commit()
+
+    def include_object(object, name, type_, reflected, compare_to):
+        """
+        过滤器：仅管理 negentropy schema 中的对象。
+
+        - 排除 public schema 中的表（如 ADK 的 sessions/events/app_states 等）
+        - 排除旧版 alembic_version 表
+        - 仅追踪 negentropy schema 中的业务表
+        """
+        if type_ == "table":
+            # 如果是反射的表（数据库中已存在），检查其 schema
+            if reflected:
+                table_schema = object.schema
+                # 只管理 negentropy schema 中的表
+                return table_schema == NEGENTROPY_SCHEMA
+            # 如果是模型定义的表，检查 compare_to 的 schema
+            if compare_to is not None:
+                return compare_to.schema == NEGENTROPY_SCHEMA
+            # 模型中定义的表，检查 object 本身的 schema
+            return getattr(object, "schema", None) == NEGENTROPY_SCHEMA
+        return True
+
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_schemas=True,  # 确保 Alembic 能识别 schema
+        version_table_schema=NEGENTROPY_SCHEMA,  # 将版本表也放入 negentropy schema
+        include_object=include_object,  # 过滤非 negentropy schema 的对象
+    )
 
     with context.begin_transaction():
         context.run_migrations()
