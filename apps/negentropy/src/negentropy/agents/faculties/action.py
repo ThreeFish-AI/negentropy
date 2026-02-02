@@ -7,7 +7,7 @@ from negentropy.agents.tools.action import execute_code, read_file, write_file
 
 action_agent = LlmAgent(
     name="ActionFaculty",
-    model=LiteLlm(settings.faculty_model),
+    model=LiteLlm(settings.faculty_model, **settings.llm.to_litellm_kwargs()),
     description="Negentropy 系统的「妙手」(The Hand)。对抗虚谈，负责精准的实现产品，并在现实交互环境中安全的执行。",
     instruction="""
 你是 **ActionFaculty** (行动系部)，是 Negentropy 系统的**「妙手」(The Hand)**。
