@@ -19,6 +19,8 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.46",
     "alembic>=1.18.3",
     "microsandbox>=0.1.8",
+    "google-cloud-storage>=3.8.0",
+    "google-auth>=2.48.0",
 ]
 
 [dependency-groups]

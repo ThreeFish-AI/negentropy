@@ -15,6 +15,7 @@ from negentropy.agents.agent import root_agent
 from negentropy.config import settings
 from negentropy.engine.memory_factory import get_memory_service
 from negentropy.engine.session_factory import get_session_service
+from negentropy.engine.artifacts_factory import get_artifact_service
 
 if TYPE_CHECKING:
     from google.adk.agents.base_agent import BaseAgent
@@ -52,6 +53,7 @@ def get_runner(
         agent=agent or root_agent,
         session_service=get_session_service(),
         memory_service=get_memory_service(),
+        artifact_service=get_artifact_service(),
         auto_create_session=auto_create_session,
     )
 
