@@ -46,9 +46,7 @@ def create_gcs_artifact_service() -> BaseArtifactService:
     try:
         google.auth.default()
     except google.auth.exceptions.DefaultCredentialsError:
-        raise ValueError(
-            "GCS ArtifactService requires Google Cloud credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS)"
-        )
+        raise ValueError("GCS ArtifactService requires Google Cloud credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS)")
 
     return GcsArtifactService(bucket_name=settings.gcs_bucket_name)
 
