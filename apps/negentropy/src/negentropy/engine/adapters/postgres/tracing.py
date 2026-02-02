@@ -35,9 +35,10 @@ except ImportError:
     OTLPSpanExporter = None
 
 from opentelemetry.trace import Status, StatusCode
-from sqlalchemy import insert
+from sqlalchemy import insert, create_engine
+from sqlalchemy.orm import sessionmaker
 
-import negentropy.db.session as db_session
+from negentropy.config import settings
 from negentropy.models.observability import Trace
 from negentropy.logging import get_logger
 
@@ -48,65 +49,58 @@ class PostgresSpanExporter(SpanExporter):
     """将 Span 持久化到 PostgreSQL traces 表"""
 
     def __init__(self):
-        # ORM implementation doesn't need a pool, it creates sessions on demand
-        pass
+        # 创建同步 Engine，用于 OpenTelemetry 后台线程
+        # 必须使用 psycopg 驱动 (sync)
+        db_url = str(settings.database_url).replace("postgresql+asyncpg", "postgresql+psycopg")
+        self._engine = create_engine(
+            db_url,
+            pool_pre_ping=True,
+            pool_size=settings.db_pool_size,
+            max_overflow=settings.db_max_overflow,
+            pool_recycle=settings.db_pool_recycle,
+            echo=False,  # Tracing logs not needed
+        )
+        self._SessionLocal = sessionmaker(bind=self._engine)
 
     def export(self, spans: list[ReadableSpan]) -> SpanExportResult:
-        """同步导出 (内部异步)"""
-        import asyncio
-
+        """同步导出 (运行在 OTel 的后台线程中)"""
         try:
-            # Note: This run_until_complete might conflict if called from within an existing loop.
-            # ...
+            with self._SessionLocal() as session:
+                trace_dicts = []
+                for span in spans:
+                    trace_dicts.append(
+                        {
+                            "trace_id": format(span.context.trace_id, "032x"),
+                            "span_id": format(span.context.span_id, "016x"),
+                            "parent_span_id": format(span.parent.span_id, "016x") if span.parent else None,
+                            "operation_name": span.name,
+                            "span_kind": span.kind.name if span.kind else "INTERNAL",
+                            "attributes": dict(span.attributes or {}),
+                            "events": [self._event_to_dict(e) for e in (span.events or [])],
+                            "start_time": datetime.fromtimestamp(span.start_time / 1e9),
+                            "end_time": datetime.fromtimestamp(span.end_time / 1e9) if span.end_time else None,
+                            "duration_ns": (span.end_time - span.start_time) if span.end_time else None,
+                            "status_code": span.status.status_code.name if span.status else "UNSET",
+                            "status_message": span.status.description if span.status else None,
+                        }
+                    )
 
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = None
-
-            if loop and loop.is_running():
-                loop.create_task(self._async_export(spans))
-            else:
-                asyncio.run(self._async_export(spans))
+                # Efficient batch insert
+                if trace_dicts:
+                    session.execute(insert(Trace), trace_dicts)
+                    session.commit()
 
             return SpanExportResult.SUCCESS
         except Exception as e:
             logger.error(f"Failed to export spans to Postgres: {e}")
             return SpanExportResult.FAILURE
 
-    async def _async_export(self, spans: list[ReadableSpan]) -> None:
-        async with db_session.AsyncSessionLocal() as db:
-            trace_dicts = []
-            for span in spans:
-                trace_dicts.append(
-                    {
-                        "trace_id": format(span.context.trace_id, "032x"),
-                        "span_id": format(span.context.span_id, "016x"),
-                        "parent_span_id": format(span.parent.span_id, "016x") if span.parent else None,
-                        "operation_name": span.name,
-                        "span_kind": span.kind.name if span.kind else "INTERNAL",
-                        "attributes": dict(span.attributes or {}),
-                        "events": [self._event_to_dict(e) for e in (span.events or [])],
-                        "start_time": datetime.fromtimestamp(span.start_time / 1e9),
-                        "end_time": datetime.fromtimestamp(span.end_time / 1e9) if span.end_time else None,
-                        "duration_ns": (span.end_time - span.start_time) if span.end_time else None,
-                        "status_code": span.status.status_code.name if span.status else "UNSET",
-                        "status_message": span.status.description if span.status else None,
-                    }
-                )
-
-            # Efficient batch insert
-            if trace_dicts:
-                # We use core insert to avoid overhead of model instantiation if possible,
-                # but models are fine too. Bulk insert mappings is efficient.
-                await db.execute(insert(Trace), trace_dicts)
-                await db.commit()
-
     def _event_to_dict(self, event) -> dict:
         return {"name": event.name, "timestamp": event.timestamp, "attributes": dict(event.attributes or {})}
 
     def shutdown(self) -> None:
-        pass
+        if self._engine:
+            self._engine.dispose()
 
 
 class TracingManager:
