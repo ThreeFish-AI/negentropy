@@ -17,7 +17,6 @@ OpenTelemetry 双路导出集成
 
 import json
 import uuid
-import logging
 from datetime import datetime
 from typing import Any, Optional
 
@@ -40,8 +39,9 @@ from sqlalchemy import insert
 
 import negentropy.db.session as db_session
 from negentropy.models.observability import Trace
+from negentropy.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PostgresSpanExporter(SpanExporter):

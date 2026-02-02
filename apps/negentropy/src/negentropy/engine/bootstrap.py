@@ -1,4 +1,3 @@
-import logging
 import sys
 from typing import Any, Optional
 from pathlib import Path
@@ -14,8 +13,18 @@ from negentropy.engine.factories import (
     get_credential_service,
 )
 from negentropy.config import settings
+from negentropy.logging import configure_logging, get_logger
 
-logger = logging.getLogger("negentropy.bootstrap")
+# Initialize logging early
+configure_logging(
+    level=settings.log_level,
+    sinks=settings.log_sinks,
+    file_path=settings.log_file_path,
+    gcloud_project=settings.vertex_project_id,
+    gcloud_log_name=settings.gcloud_log_name,
+)
+
+logger = get_logger("negentropy.bootstrap")
 
 # ------------------------------------------------------------------------------
 # Save original implementations to allow fallback
