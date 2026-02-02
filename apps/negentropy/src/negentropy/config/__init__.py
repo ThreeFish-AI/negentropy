@@ -40,6 +40,7 @@ from .database import DatabaseSettings
 from .environment import EnvironmentSettings, get_env_files
 from .llm import LlmSettings
 from .logging import LoggingSettings
+from .observability import ObservabilitySettings
 from .services import ServicesSettings
 
 
@@ -89,8 +90,8 @@ class Settings(BaseSettings):
         return LoggingSettings(_env_file=_get_env_files())
 
     @cached_property
-    def database(self) -> DatabaseSettings:
-        return DatabaseSettings(_env_file=_get_env_files())
+    def observability(self) -> ObservabilitySettings:
+        return ObservabilitySettings(_env_file=_get_env_files())
 
     @cached_property
     def database(self) -> DatabaseSettings:
@@ -216,6 +217,7 @@ __all__ = [
     "EnvironmentSettings",
     "LlmSettings",
     "LoggingSettings",
+    "ObservabilitySettings",
     "DatabaseSettings",
     "ServicesSettings",
 ]
