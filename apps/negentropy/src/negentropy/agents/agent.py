@@ -18,7 +18,8 @@ from .faculties.perception import perception_agent
 
 root_agent = LlmAgent(
     name="NegentropyEngine",
-    model=LiteLlm(settings.default_model),  # Use a stronger model for reasoning/orchestration
+    # Model configured via unified settings (see config/llm.py)
+    model=LiteLlm(settings.llm.full_model_name, **settings.llm.to_litellm_kwargs()),
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
     instruction="""
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的**「本我」(The Self)**。
