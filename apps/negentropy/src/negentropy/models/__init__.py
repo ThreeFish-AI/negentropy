@@ -4,6 +4,7 @@ from .internalization import ConsolidationJob, Fact, Instruction, Memory
 from .observability import Trace
 from .perception import Corpus, Knowledge
 from .pulse import AppState, Event, Message, Run, Snapshot, Thread, UserState
+from .security import Credential
 
 __all__ = [
     # Base
@@ -33,4 +34,6 @@ __all__ = [
     # Perception
     "Corpus",
     "Knowledge",
+    # Security
+    "Credential",
 ]
