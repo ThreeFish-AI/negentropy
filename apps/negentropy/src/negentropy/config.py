@@ -24,8 +24,10 @@ class Settings(BaseSettings):
     # MemoryService Backend: inmemory | vertexai | postgres
     memory_service_backend: str = "postgres"
 
-    # SessionService Backend: inmemory | vertexai | postgres
-    session_service_backend: str = "postgres"
+    # SessionService Backend: inmemory | vertexai | database | postgres
+    # - database: ADK 官方 DatabaseSessionService
+    # - postgres: 自定义 PostgresSessionService (使用 negentropy.models.pulse)
+    session_service_backend: str = "database"
 
     # VertexAI Configuration (required when using vertexai backend)
     vertex_project_id: str | None = None
