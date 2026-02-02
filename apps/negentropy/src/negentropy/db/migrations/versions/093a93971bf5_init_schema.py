@@ -1,8 +1,8 @@
-"""Initial Schema
+"""Init Schema
 
-Revision ID: ec89143c6bc8
+Revision ID: 093a93971bf5
 Revises:
-Create Date: 2026-02-02 03:38:24.673201+00:00
+Create Date: 2026-02-02 05:57:25.308107+00:00
 
 """
 
@@ -16,7 +16,7 @@ import negentropy.models.base
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "ec89143c6bc8"
+revision: str = "093a93971bf5"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -44,6 +44,29 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("app_name", "name", name="corpus_app_name_unique"),
         schema="negentropy",
+    )
+    op.create_table(
+        "credentials",
+        sa.Column("app_name", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("credential_key", sa.String(), nullable=False),
+        sa.Column("credential_data", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint("app_name", "user_id", "credential_key"),
+        schema="negentropy",
+    )
+    op.create_index(
+        op.f("ix_negentropy_credentials_app_name"), "credentials", ["app_name"], unique=False, schema="negentropy"
+    )
+    op.create_index(
+        op.f("ix_negentropy_credentials_credential_key"),
+        "credentials",
+        ["credential_key"],
+        unique=False,
+        schema="negentropy",
+    )
+    op.create_index(
+        op.f("ix_negentropy_credentials_user_id"), "credentials", ["user_id"], unique=False, schema="negentropy"
     )
     op.create_table(
         "instructions",
@@ -298,6 +321,10 @@ def downgrade() -> None:
     op.drop_table("threads", schema="negentropy")
     op.drop_table("sandbox_executions", schema="negentropy")
     op.drop_table("instructions", schema="negentropy")
+    op.drop_index(op.f("ix_negentropy_credentials_user_id"), table_name="credentials", schema="negentropy")
+    op.drop_index(op.f("ix_negentropy_credentials_credential_key"), table_name="credentials", schema="negentropy")
+    op.drop_index(op.f("ix_negentropy_credentials_app_name"), table_name="credentials", schema="negentropy")
+    op.drop_table("credentials", schema="negentropy")
     op.drop_table("corpus", schema="negentropy")
     op.drop_table("app_states", schema="negentropy")
     # ### end Alembic commands ###
