@@ -1,8 +1,8 @@
-"""Initial Schema
+"""Init Schema
 
-Revision ID: 43618f029e28
+Revision ID: 093a93971bf5
 Revises:
-Create Date: 2026-02-01 08:55:18.311516+00:00
+Create Date: 2026-02-02 05:57:25.308107+00:00
 
 """
 
@@ -16,7 +16,7 @@ import negentropy.models.base
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "43618f029e28"
+revision: str = "093a93971bf5"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,6 +30,7 @@ def upgrade() -> None:
         sa.Column("state", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("app_name"),
+        schema="negentropy",
     )
     op.create_table(
         "corpus",
@@ -42,6 +43,30 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("app_name", "name", name="corpus_app_name_unique"),
+        schema="negentropy",
+    )
+    op.create_table(
+        "credentials",
+        sa.Column("app_name", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("credential_key", sa.String(), nullable=False),
+        sa.Column("credential_data", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint("app_name", "user_id", "credential_key"),
+        schema="negentropy",
+    )
+    op.create_index(
+        op.f("ix_negentropy_credentials_app_name"), "credentials", ["app_name"], unique=False, schema="negentropy"
+    )
+    op.create_index(
+        op.f("ix_negentropy_credentials_credential_key"),
+        "credentials",
+        ["credential_key"],
+        unique=False,
+        schema="negentropy",
+    )
+    op.create_index(
+        op.f("ix_negentropy_credentials_user_id"), "credentials", ["user_id"], unique=False, schema="negentropy"
     )
     op.create_table(
         "instructions",
@@ -54,6 +79,7 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("app_name", "instruction_key", "version", name="instructions_app_key_version_unique"),
+        schema="negentropy",
     )
     op.create_table(
         "sandbox_executions",
@@ -69,6 +95,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "threads",
@@ -82,6 +109,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("app_name", "user_id", "id", name="threads_app_user_unique"),
+        schema="negentropy",
     )
     op.create_table(
         "tools",
@@ -99,6 +127,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("app_name", "name", name="tools_app_name_unique"),
+        schema="negentropy",
     )
     op.create_table(
         "traces",
@@ -118,6 +147,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "user_states",
@@ -126,6 +156,7 @@ def upgrade() -> None:
         sa.Column("state", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("user_id", "app_name"),
+        schema="negentropy",
     )
     op.create_table(
         "consolidation_jobs",
@@ -138,8 +169,9 @@ def upgrade() -> None:
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["threads.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "events",
@@ -152,8 +184,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("sequence_num", sa.Integer(), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["threads.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "facts",
@@ -169,9 +202,10 @@ def upgrade() -> None:
         sa.Column("valid_until", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["threads.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("user_id", "app_name", "fact_type", "key", name="facts_user_key_unique"),
+        schema="negentropy",
     )
     op.create_table(
         "knowledge",
@@ -185,8 +219,9 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.ForeignKeyConstraint(["corpus_id"], ["corpus.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["corpus_id"], ["negentropy.corpus.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "memories",
@@ -202,8 +237,9 @@ def upgrade() -> None:
         sa.Column("last_accessed_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["threads.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "runs",
@@ -215,8 +251,9 @@ def upgrade() -> None:
         sa.Column("started_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["threads.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "snapshots",
@@ -226,9 +263,10 @@ def upgrade() -> None:
         sa.Column("events_summary", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["threads.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("thread_id", "version", name="snapshots_thread_version_unique"),
+        schema="negentropy",
     )
     op.create_table(
         "tool_executions",
@@ -243,9 +281,10 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.ForeignKeyConstraint(
             ["tool_id"],
-            ["tools.id"],
+            ["negentropy.tools.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     op.create_table(
         "messages",
@@ -257,30 +296,35 @@ def upgrade() -> None:
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["event_id"], ["events.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["thread_id"], ["threads.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["event_id"], ["negentropy.events.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        schema="negentropy",
     )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table("messages")
-    op.drop_table("tool_executions")
-    op.drop_table("snapshots")
-    op.drop_table("runs")
-    op.drop_table("memories")
-    op.drop_table("knowledge")
-    op.drop_table("facts")
-    op.drop_table("events")
-    op.drop_table("consolidation_jobs")
-    op.drop_table("user_states")
-    op.drop_table("traces")
-    op.drop_table("tools")
-    op.drop_table("threads")
-    op.drop_table("sandbox_executions")
-    op.drop_table("instructions")
-    op.drop_table("corpus")
-    op.drop_table("app_states")
+    op.drop_table("messages", schema="negentropy")
+    op.drop_table("tool_executions", schema="negentropy")
+    op.drop_table("snapshots", schema="negentropy")
+    op.drop_table("runs", schema="negentropy")
+    op.drop_table("memories", schema="negentropy")
+    op.drop_table("knowledge", schema="negentropy")
+    op.drop_table("facts", schema="negentropy")
+    op.drop_table("events", schema="negentropy")
+    op.drop_table("consolidation_jobs", schema="negentropy")
+    op.drop_table("user_states", schema="negentropy")
+    op.drop_table("traces", schema="negentropy")
+    op.drop_table("tools", schema="negentropy")
+    op.drop_table("threads", schema="negentropy")
+    op.drop_table("sandbox_executions", schema="negentropy")
+    op.drop_table("instructions", schema="negentropy")
+    op.drop_index(op.f("ix_negentropy_credentials_user_id"), table_name="credentials", schema="negentropy")
+    op.drop_index(op.f("ix_negentropy_credentials_credential_key"), table_name="credentials", schema="negentropy")
+    op.drop_index(op.f("ix_negentropy_credentials_app_name"), table_name="credentials", schema="negentropy")
+    op.drop_table("credentials", schema="negentropy")
+    op.drop_table("corpus", schema="negentropy")
+    op.drop_table("app_states", schema="negentropy")
     # ### end Alembic commands ###

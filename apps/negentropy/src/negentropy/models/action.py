@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from .base import TIMESTAMP, Base, TimestampMixin, UUIDMixin
+from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin
 
 
 class Tool(Base, UUIDMixin, TimestampMixin):
@@ -23,7 +23,10 @@ class Tool(Base, UUIDMixin, TimestampMixin):
     call_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     avg_latency_ms: Mapped[float] = mapped_column(Float, default=0, server_default="0")
 
-    __table_args__ = (UniqueConstraint("app_name", "name", name="tools_app_name_unique"),)
+    __table_args__ = (
+        UniqueConstraint("app_name", "name", name="tools_app_name_unique"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
 
     executions: Mapped[List["ToolExecution"]] = relationship(back_populates="tool", cascade="all, delete-orphan")
 
@@ -31,7 +34,7 @@ class Tool(Base, UUIDMixin, TimestampMixin):
 class ToolExecution(Base, UUIDMixin):
     __tablename__ = "tool_executions"
 
-    tool_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("tools.id"))
+    tool_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.tools.id"))
     run_id: Mapped[Optional[UUID]] = mapped_column()  # Loose coupling
     input_params: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)
     output_result: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)
@@ -41,25 +44,6 @@ class ToolExecution(Base, UUIDMixin):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     tool: Mapped["Tool"] = relationship(back_populates="executions")
-
-
-class Trace(Base, UUIDMixin):
-    __tablename__ = "traces"
-
-    run_id: Mapped[Optional[UUID]] = mapped_column()
-    trace_id: Mapped[str] = mapped_column(String(32), nullable=False)
-    span_id: Mapped[str] = mapped_column(String(16), nullable=False)
-    parent_span_id: Mapped[Optional[str]] = mapped_column(String(16))
-    operation_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    span_kind: Mapped[str] = mapped_column(String(20), nullable=False, default="INTERNAL", server_default="'INTERNAL'")
-    attributes: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
-    events: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSONB, server_default="'[]'")
-    start_time: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-    end_time: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
-    duration_ns: Mapped[Optional[int]] = mapped_column(BigInteger)
-    status_code: Mapped[Optional[str]] = mapped_column(String(10), default="UNSET", server_default="'UNSET'")
-    status_message: Mapped[Optional[str]] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
 
 class SandboxExecution(Base, UUIDMixin):

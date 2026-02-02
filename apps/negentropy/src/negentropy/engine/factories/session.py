@@ -25,7 +25,8 @@ class SessionBackend(str, Enum):
 
     INMEMORY = "inmemory"
     VERTEXAI = "vertexai"
-    POSTGRES = "postgres"
+    DATABASE = "database"  # ADK 官方 DatabaseSessionService
+    POSTGRES = "postgres"  # 自定义 PostgresSessionService (使用 pulse.py 模型)
 
 
 def create_inmemory_session_service() -> BaseSessionService:
@@ -48,8 +49,8 @@ def create_vertexai_session_service() -> BaseSessionService:
     )
 
 
-def create_postgres_session_service() -> BaseSessionService:
-    """创建 Postgres 后端 (ADK 内置，使用 DATABASE_URL)"""
+def create_database_session_service() -> BaseSessionService:
+    """创建 Database 后端 (ADK 官方 DatabaseSessionService)"""
     from google.adk.sessions import DatabaseSessionService
 
     if not settings.database_url:
@@ -58,10 +59,19 @@ def create_postgres_session_service() -> BaseSessionService:
     return DatabaseSessionService(db_url=settings.database_url)
 
 
+def create_postgres_session_service() -> BaseSessionService:
+    """创建自定义 Postgres 后端 (使用 negentropy.models.pulse)"""
+    # 延迟导入避免模块加载时注册 ORM
+    from negentropy.engine.adapters.postgres.session_service import PostgresSessionService
+
+    return PostgresSessionService()
+
+
 # 后端创建函数映射表 (Strategy Pattern)
 _BACKEND_FACTORIES = {
     SessionBackend.INMEMORY: create_inmemory_session_service,
     SessionBackend.VERTEXAI: create_vertexai_session_service,
+    SessionBackend.DATABASE: create_database_session_service,
     SessionBackend.POSTGRES: create_postgres_session_service,
 }
 # 模块级单例缓存 (替代 lru_cache，避免参数变化时返回错误实例)
@@ -73,7 +83,7 @@ def get_session_service(backend: str | None = None) -> BaseSessionService:
     获取 SessionService 实例 (工厂函数)
 
     Args:
-        backend: 后端类型，可选值：inmemory, vertexai, postgres
+        backend: 后端类型，可选值：inmemory, vertexai, database, postgres
                  若为 None，则从 settings.session_service_backend 读取
 
     Returns:
@@ -119,5 +129,6 @@ __all__ = [
     "reset_session_service",
     "create_inmemory_session_service",
     "create_vertexai_session_service",
+    "create_database_session_service",
     "create_postgres_session_service",
 ]

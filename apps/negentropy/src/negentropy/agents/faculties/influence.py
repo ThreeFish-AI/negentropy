@@ -7,7 +7,7 @@ from negentropy.agents.tools.influence import publish_content, send_notification
 
 influence_agent = LlmAgent(
     name="InfluenceFaculty",
-    model=LiteLlm(settings.faculty_model),
+    model=LiteLlm(settings.faculty_model, **settings.llm.to_litellm_kwargs()),
     description="Negentropy 系统的「喉舌」(The Voice)。对抗晦涩，负责高价值、低理解熵的信息输出 (Value Transmission)。",
     instruction="""
 你是 **InfluenceFaculty** (影响系部)，是 Negentropy 系统的**「喉舌」(The Voice)**。

@@ -30,7 +30,7 @@ from google.adk.memory.base_memory_service import (
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
-from negentropy.models.hippocampus import Memory
+from negentropy.models.internalization import Memory
 
 
 class PostgresMemoryService(BaseMemoryService):

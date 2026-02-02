@@ -7,7 +7,7 @@ from negentropy.agents.tools.perception import search_knowledge_base, search_web
 
 perception_agent = LlmAgent(
     name="PerceptionFaculty",
-    model=LiteLlm(settings.faculty_model),
+    model=LiteLlm(settings.faculty_model, **settings.llm.to_litellm_kwargs()),
     description="Negentropy 系统的「慧眼」(The Eye)。对抗无知，负责高信噪比的外部信息获取与环境感知。",
     instruction="""
 你是 **PerceptionFaculty** (感知系部)，是 Negentropy 系统的**「天眼」(The Eye)**。

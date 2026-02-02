@@ -60,8 +60,14 @@ class Vector(TypeDecorator):
         return VectorType()
 
 
+# Schema 名称常量，用于隔离业务表与 ADK 后台表 (ADK 默认使用 public schema)
+NEGENTROPY_SCHEMA = "negentropy"
+
+
 class Base(DeclarativeBase):
-    pass
+    """所有业务模型的基类，统一归入 negentropy schema"""
+
+    __table_args__ = {"schema": NEGENTROPY_SCHEMA}
 
 
 TIMESTAMP = DateTime(timezone=True)

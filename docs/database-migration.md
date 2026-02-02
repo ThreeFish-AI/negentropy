@@ -6,6 +6,19 @@
 - **演进机制 (Mechanism)**：Alembic 负责捕捉信源变更并生成版本化的迁移脚本。
 - **脚本位置**：[`apps/negentropy/src/negentropy/db/migrations/`](../apps/negentropy/src/negentropy/db/migrations/)
 
+## Schema 分离策略 (Schema Isolation)
+
+为避免业务表与 ADK 原生表冲突（如 `sessions`、`events`、`app_states`、`user_states`），系统采用 PostgreSQL **Schema 隔离**策略：
+
+| Schema       | 归属     | 说明                                               |
+| ------------ | -------- | -------------------------------------------------- |
+| `negentropy` | 业务模型 | `src/negentropy/models/` 下所有表，由 Alembic 管理 |
+| `public`     | ADK 原生 | `DatabaseSessionService` 自动创建的会话/事件表     |
+
+> [!NOTE]
+>
+> Schema 名称由 [`NEGENTROPY_SCHEMA`](../apps/negentropy/src/negentropy/models/base.py) 常量定义。Alembic 迁移时会自动创建此 Schema。
+
 ## 环境准备 (Prerequisites)
 
 为了维护系统的完整性，所有迁移操作必须严格在 **应用根目录** (`apps/negentropy`) 下执行。

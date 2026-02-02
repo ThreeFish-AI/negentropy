@@ -7,7 +7,7 @@ from negentropy.agents.tools.contemplation import analyze_context, create_plan
 
 contemplation_agent = LlmAgent(
     name="ContemplationFaculty",
-    model=LiteLlm(settings.faculty_model),
+    model=LiteLlm(settings.faculty_model, **settings.llm.to_litellm_kwargs()),
     description="Negentropy 系统的「元神」(The Soul)。对抗肤浅，负责深度思考、二阶思维、策略规划与错误纠正。",
     instruction="""
 你是 **ContemplationFaculty** (沉思系部)，是 Negentropy 系统的**「元神」(The Soul)**。

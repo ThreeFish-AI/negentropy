@@ -209,4 +209,8 @@ __marimo__/
 # Custom
 .vscode/settings.json
 .mcp.json
-**/.adk/session.db
+# ADK Artifacts
+**/.adk/
+*.adk
+**/session.db
+**/artifacts/

@@ -32,7 +32,9 @@ from google.adk.events import Event as ADKEvent
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
-from negentropy.models.pulse import AppState, Event, Thread, UserState
+
+# 注意：模型不在此处导入，而是在 PostgresSessionService.__init__ 中延迟导入
+# 这样可以避免在选择其他 SessionService 时注册 ORM 模型
 
 
 class PostgresSessionService(BaseSessionService):
@@ -48,6 +50,20 @@ class PostgresSessionService(BaseSessionService):
     """
 
     def __init__(self):
+        """
+        初始化 PostgresSessionService
+
+        延迟导入 pulse.py 模型以避免在选择其他 SessionService 时注册 ORM
+        """
+        # 延迟导入模型，只有在实例化时才导入
+        from negentropy.models.pulse import AppState, Event, Thread, UserState
+
+        # 保存模型类供后续使用
+        self.Thread = Thread
+        self.Event = Event
+        self.UserState = UserState
+        self.AppState = AppState
+
         self._temp_state: dict[str, dict] = {}  # temp: 前缀的内存缓存
 
     async def create_session(
@@ -63,7 +79,7 @@ class PostgresSessionService(BaseSessionService):
         initial_state = state or {}
 
         async with db_session.AsyncSessionLocal() as db:
-            thread = Thread(
+            thread = self.Thread(
                 id=uuid.UUID(sid),
                 app_name=app_name,
                 user_id=user_id,
@@ -98,10 +114,10 @@ class PostgresSessionService(BaseSessionService):
         async with db_session.AsyncSessionLocal() as db:
             # 获取 Thread
             result = await db.execute(
-                select(Thread).where(
-                    Thread.id == sid,
-                    Thread.app_name == app_name,
-                    Thread.user_id == user_id,
+                select(self.Thread).where(
+                    self.Thread.id == sid,
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
                 )
             )
             thread = result.scalar_one_or_none()
@@ -109,15 +125,15 @@ class PostgresSessionService(BaseSessionService):
                 return None
 
             # 获取 Events
-            events_query = select(Event).where(Event.thread_id == sid).order_by(Event.sequence_num.asc())
+            events_query = select(self.Event).where(self.Event.thread_id == sid).order_by(self.Event.sequence_num.asc())
 
             # 支持 GetSessionConfig 的过滤
             if config and config.num_recent_events:
                 # 获取最新 N 条，然后按时间正序
                 events_query = (
-                    select(Event)
-                    .where(Event.thread_id == sid)
-                    .order_by(Event.sequence_num.desc())
+                    select(self.Event)
+                    .where(self.Event.thread_id == sid)
+                    .order_by(self.Event.sequence_num.desc())
                     .limit(config.num_recent_events)
                 )
 
@@ -140,10 +156,10 @@ class PostgresSessionService(BaseSessionService):
     async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:
         """列出所有会话"""
         async with db_session.AsyncSessionLocal() as db:
-            query = select(Thread).where(Thread.app_name == app_name)
+            query = select(self.Thread).where(self.Thread.app_name == app_name)
             if user_id:
-                query = query.where(Thread.user_id == user_id)
-            query = query.order_by(Thread.updated_at.desc())
+                query = query.where(self.Thread.user_id == user_id)
+            query = query.order_by(self.Thread.updated_at.desc())
 
             result = await db.execute(query)
             threads = result.scalars().all()
@@ -166,10 +182,10 @@ class PostgresSessionService(BaseSessionService):
         """删除会话"""
         async with db_session.AsyncSessionLocal() as db:
             await db.execute(
-                delete(Thread).where(
-                    Thread.id == uuid.UUID(session_id),
-                    Thread.app_name == app_name,
-                    Thread.user_id == user_id,
+                delete(self.Thread).where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
                 )
             )
             await db.commit()
@@ -189,7 +205,7 @@ class PostgresSessionService(BaseSessionService):
 
         async with db_session.AsyncSessionLocal() as db:
             # 1. 插入 Event
-            db_event = Event(
+            db_event = self.Event(
                 id=event_id,
                 thread_id=uuid.UUID(session.id),
                 invocation_id=invocation_id,
@@ -233,7 +249,7 @@ class PostgresSessionService(BaseSessionService):
 
         # 更新 Session State (Thread)
         if session_updates:
-            result = await db.execute(select(Thread).where(Thread.id == uuid.UUID(session.id)))
+            result = await db.execute(select(self.Thread).where(self.Thread.id == uuid.UUID(session.id)))
             thread = result.scalar_one_or_none()
             if thread:
                 thread.state = {**(thread.state or {}), **session_updates}
@@ -241,9 +257,9 @@ class PostgresSessionService(BaseSessionService):
         # 更新 User State (UPSERT)
         if user_updates:
             result = await db.execute(
-                select(UserState).where(
-                    UserState.user_id == session.user_id,
-                    UserState.app_name == session.app_name,
+                select(self.UserState).where(
+                    self.UserState.user_id == session.user_id,
+                    self.UserState.app_name == session.app_name,
                 )
             )
             user_state = result.scalar_one_or_none()
@@ -251,7 +267,7 @@ class PostgresSessionService(BaseSessionService):
                 user_state.state = {**(user_state.state or {}), **user_updates}
             else:
                 db.add(
-                    UserState(
+                    self.UserState(
                         user_id=session.user_id,
                         app_name=session.app_name,
                         state=user_updates,
@@ -260,19 +276,19 @@ class PostgresSessionService(BaseSessionService):
 
         # 更新 App State (UPSERT)
         if app_updates:
-            result = await db.execute(select(AppState).where(AppState.app_name == session.app_name))
+            result = await db.execute(select(self.AppState).where(self.AppState.app_name == session.app_name))
             app_state = result.scalar_one_or_none()
             if app_state:
                 app_state.state = {**(app_state.state or {}), **app_updates}
             else:
                 db.add(
-                    AppState(
+                    self.AppState(
                         app_name=session.app_name,
                         state=app_updates,
                     )
                 )
 
-    def _orm_to_adk_event(self, event: Event) -> ADKEvent:
+    def _orm_to_adk_event(self, event: "Event") -> ADKEvent:
         """将 ORM Event 对象转换为 ADK Event 对象"""
         from google.genai import types
 
