@@ -4,8 +4,9 @@ LLM Configuration.
 Implements a Unified Design Language for model configuration,
 abstracting provider-specific details into high-level intents.
 
-GLM-4.7 Thinking Mode Reference:
-- https://docs.bigmodel.cn/cn/guide/capabilities/thinking-mode
+Provider References:
+- ZAI (Zhipu AI): https://docs.litellm.ai/docs/providers/zai
+- GLM Thinking Mode: https://docs.bigmodel.cn/cn/guide/capabilities/thinking-mode
 """
 
 from typing import Any, Dict, Literal, Optional
@@ -28,13 +29,13 @@ class LlmSettings(BaseSettings):
     )
 
     # Core Identity
-    provider: Literal["openai", "anthropic", "vertex_ai", "deepseek", "ollama"] = Field(
-        default="openai",
-        description="The model provider backend.",
+    provider: Literal["openai", "anthropic", "zai", "vertex_ai", "deepseek", "ollama"] = Field(
+        default="zai",
+        description="The model provider backend (zai = Zhipu AI for GLM models).",
     )
     model_name: str = Field(
         default="glm-4.7",
-        description="The specific model identifier (e.g., 'gpt-4o', 'claude-3-7-sonnet').",
+        description="The specific model identifier (e.g., 'gpt-4o', 'claude-3-7-sonnet', 'glm-4.7').",
     )
 
     # Generation Parameters
@@ -62,7 +63,7 @@ class LlmSettings(BaseSettings):
 
     @property
     def full_model_name(self) -> str:
-        """Returns the LiteLLM-compatible model string (e.g. 'openai/glm-4.7')."""
+        """Returns the LiteLLM-compatible model string (e.g. 'zai/glm-4.7')."""
         if "/" in self.model_name:
             return self.model_name
         return f"{self.provider}/{self.model_name}"
@@ -90,40 +91,37 @@ class LlmSettings(BaseSettings):
         """
         Applies provider-specific thinking/reasoning parameters.
 
-        GLM-4.7 uses OpenAI-compatible API, but the `thinking` parameter is
-        GLM-specific. We use `extra_body` to bypass LiteLLM's parameter validation
-        and transparently forward the thinking config to BigModel API.
+        Each provider has different mechanisms for extended reasoning:
+        - OpenAI o1/o3: reasoning_effort parameter
+        - ZAI (GLM): thinking dict via extra_body
+        - Anthropic (Claude): thinking dict as native parameter
         """
         model_lower = self.model_name.lower()
 
-        # OpenAI o1/o3 reasoning models (use reasoning_effort as standard param)
+        # OpenAI o1/o3 reasoning models
         if self.provider == "openai" and model_lower.startswith(("o1", "o3")):
             if self.thinking_mode:
                 kwargs["reasoning_effort"] = self.reasoning_effort
             return
 
-        # GLM models via OpenAI provider: Use extra_body to bypass validation
-        # LiteLLM doesn't recognize glm-4.7 as a valid model, so we pass
-        # the thinking parameter via extra_body which is forwarded transparently.
-        if "glm" in model_lower:
+        # ZAI (Zhipu AI) GLM models: Use extra_body for thinking parameter
+        # LiteLLM natively supports ZAI provider, but thinking param needs extra_body
+        if self.provider == "zai" or "glm" in model_lower:
             thinking_config: Dict[str, Any]
             if self.thinking_mode:
                 thinking_config = {
                     "type": "enabled",
                     "budget_tokens": self.thinking_budget,
                 }
-                # GLM-specific: Preserved Thinking (clear_thinking=False)
                 if self.preserve_thinking:
                     thinking_config["clear_thinking"] = False
             else:
                 thinking_config = {"type": "disabled"}
 
-            # Use extra_body to pass GLM-specific parameters
             kwargs["extra_body"] = {"thinking": thinking_config}
             return
 
         # Anthropic Claude models: Use thinking parameter directly
-        # LiteLLM natively supports thinking for recognized Claude models
         if self.provider == "anthropic" or "claude" in model_lower:
             if self.thinking_mode:
                 kwargs["thinking"] = {
