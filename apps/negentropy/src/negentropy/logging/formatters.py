@@ -64,6 +64,10 @@ class ConsoleFormatter:
         else:
             short_logger = ".".join(parts[-2:])
 
+        # Pad logger name to fixed width for alignment (20 chars, right-aligned)
+        short_logger = f"{short_logger:>20}"
+
+
         # Format level with fixed width and color
         level_upper = level.upper()
         level_colored = colorize(f"{level_upper:>5}", level)
