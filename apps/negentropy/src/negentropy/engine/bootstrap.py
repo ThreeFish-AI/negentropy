@@ -13,7 +13,7 @@ from negentropy.engine.factories import (
     get_credential_service,
 )
 from negentropy.config import settings
-from negentropy.logging import configure_logging, get_logger
+from negentropy.logging import configure_logging, get_logger, LiteLLMLoggingCallback
 
 # Initialize logging early
 configure_logging(
@@ -24,6 +24,15 @@ configure_logging(
     gcloud_project=settings.vertex_project_id,
     gcloud_log_name=settings.gcloud_log_name,
 )
+
+# Register LiteLLM callback for clean usage logging
+try:
+    import litellm
+
+    litellm.success_callback = [LiteLLMLoggingCallback()]
+    litellm.failure_callback = [LiteLLMLoggingCallback()]
+except ImportError:
+    pass
 
 logger = get_logger("negentropy.bootstrap")
 
