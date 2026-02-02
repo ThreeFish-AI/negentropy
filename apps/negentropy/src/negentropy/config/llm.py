@@ -9,10 +9,22 @@ Provider References:
 - GLM Thinking Mode: https://docs.bigmodel.cn/cn/guide/capabilities/thinking-mode
 """
 
+from enum import Enum
 from typing import Any, Dict, Literal, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class LlmVendor(str, Enum):
+    """Supported LLM vendors."""
+
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    ZAI = "zai"
+    VERTEX_AI = "vertex_ai"
+    DEEPSEEK = "deepseek"
+    OLLAMA = "ollama"
 
 
 class LlmSettings(BaseSettings):
@@ -29,9 +41,10 @@ class LlmSettings(BaseSettings):
     )
 
     # Core Identity
-    provider: Literal["openai", "anthropic", "zai", "vertex_ai", "deepseek", "ollama"] = Field(
-        default="zai",
-        description="The model provider backend (zai = Zhipu AI for GLM models).",
+    vendor: LlmVendor = Field(
+        default=LlmVendor.ZAI,
+        validation_alias="NE_LLM_PROVIDER",  # Keep backward compatibility with .env
+        description="The model vendor backend.",
     )
     model_name: str = Field(
         default="glm-4.7",
@@ -66,7 +79,7 @@ class LlmSettings(BaseSettings):
         """Returns the LiteLLM-compatible model string (e.g. 'zai/glm-4.7')."""
         if "/" in self.model_name:
             return self.model_name
-        return f"{self.provider}/{self.model_name}"
+        return f"{self.vendor.value}/{self.model_name}"
 
     def to_litellm_kwargs(self) -> Dict[str, Any]:
         """
@@ -98,15 +111,10 @@ class LlmSettings(BaseSettings):
         """
         model_lower = self.model_name.lower()
 
-        # OpenAI o1/o3 reasoning models
-        if self.provider == "openai" and model_lower.startswith(("o1", "o3")):
-            if self.thinking_mode:
-                kwargs["reasoning_effort"] = self.reasoning_effort
-            return
-
-        # ZAI (Zhipu AI) GLM models: Use extra_body for thinking parameter
-        # LiteLLM natively supports ZAI provider, but thinking param needs extra_body
-        if self.provider == "zai" or "glm" in model_lower:
+        # 1. ZAI (Zhipu AI) GLM models
+        # Reference: https://docs.litellm.ai/docs/providers/zai
+        # Note: LiteLLM currently requires passing `thinking` inside `extra_body` for ZAI
+        if self.vendor == LlmVendor.ZAI or "glm" in model_lower:
             thinking_config: Dict[str, Any]
             if self.thinking_mode:
                 thinking_config = {
@@ -121,8 +129,9 @@ class LlmSettings(BaseSettings):
             kwargs["extra_body"] = {"thinking": thinking_config}
             return
 
-        # Anthropic Claude models: Use thinking parameter directly
-        if self.provider == "anthropic" or "claude" in model_lower:
+        # 2. Anthropic Claude models
+        # Reference: https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking
+        if self.vendor == LlmVendor.ANTHROPIC or "claude" in model_lower:
             if self.thinking_mode:
                 kwargs["thinking"] = {
                     "type": "enabled",
@@ -132,4 +141,12 @@ class LlmSettings(BaseSettings):
                 kwargs["thinking"] = {"type": "disabled"}
             return
 
-        # Deepseek / Ollama / Other: No thinking support (passthrough)
+        # 3. OpenAI o1/o3 reasoning models
+        # Reference: https://platform.openai.com/docs/guides/reasoning
+        if self.vendor == LlmVendor.OPENAI and model_lower.startswith(("o1", "o3")):
+            if self.thinking_mode:
+                kwargs["reasoning_effort"] = self.reasoning_effort
+            return
+
+        # 4. Other Providers: No thinking support (passthrough)
+        # Deepseek / Ollama / Vertex AI default behavior is to ignore these params
