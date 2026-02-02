@@ -137,10 +137,10 @@ class TracingManager:
         else:
             # 优先使用 ObservabilitySettings 配置
             langfuse = settings.observability
-            
+
             # 使用传入的 endpoint 或配置中的 Langfuse host
             endpoint = otlp_endpoint or langfuse.langfuse_host
-            
+
             should_enable_otlp = (
                 # 显式传入了 endpoint
                 otlp_endpoint is not None
@@ -154,18 +154,18 @@ class TracingManager:
                     # 如果有 Langfuse 凭证，添加 Basic Auth Header
                     if langfuse.langfuse_public_key and langfuse.langfuse_secret_key:
                         import base64
-                        
+
                         # Langfuse 使用 Basic Auth (User=Public Key, Pass=Secret Key)
-                        credentials = f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
+                        credentials = (
+                            f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
+                        )
                         basic_auth = base64.b64encode(credentials.encode()).decode()
                         headers["Authorization"] = f"Basic {basic_auth}"
-                    
+
                     provider.add_span_processor(
                         BatchSpanProcessor(
                             OTLPSpanExporter(
-                                endpoint=endpoint, 
-                                headers=headers,
-                                insecure=not endpoint.startswith("https")
+                                endpoint=endpoint, headers=headers, insecure=not endpoint.startswith("https")
                             )
                         )
                     )
