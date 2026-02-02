@@ -20,7 +20,8 @@ class Settings(BaseSettings):
 
     # Logging Configuration
     log_level: str = "INFO"
-    log_sinks: str = "stdio"  # stdio | file | gcloud | stdio,file
+    log_sinks: str = "stdio"  # stdio | file | gcloud (comma-separated)
+    log_format: str = "console"  # console (dev) | json (machine)
     log_file_path: str = "logs/negentropy.log"
     gcloud_log_name: str = "negentropy"
 

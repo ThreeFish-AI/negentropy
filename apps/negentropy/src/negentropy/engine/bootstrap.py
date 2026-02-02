@@ -19,6 +19,7 @@ from negentropy.logging import configure_logging, get_logger
 configure_logging(
     level=settings.log_level,
     sinks=settings.log_sinks,
+    fmt=settings.log_format,
     file_path=settings.log_file_path,
     gcloud_project=settings.vertex_project_id,
     gcloud_log_name=settings.gcloud_log_name,
