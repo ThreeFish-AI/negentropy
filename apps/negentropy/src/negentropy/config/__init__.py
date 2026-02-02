@@ -107,7 +107,6 @@ class Settings(BaseSettings):
     def openai(self) -> OpenAISettings:
         return OpenAISettings()
 
-
     # =========================================================================
     # Legacy Compatibility Layer
     # =========================================================================
@@ -229,6 +228,7 @@ __all__ = [
     "Settings",
     "settings",
     "AppSettings",
+    "EnvironmentSettings",
     "LlmSettings",
     "LoggingSettings",
     "DatabaseSettings",
