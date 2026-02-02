@@ -22,17 +22,21 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     # MemoryService Backend: inmemory | vertexai | postgres
-    memory_service_backend: str = "postgres"
+    memory_service_backend: str = "inmemory"
 
     # SessionService Backend: inmemory | vertexai | database | postgres
     # - database: ADK 官方 DatabaseSessionService
     # - postgres: 自定义 PostgresSessionService (使用 negentropy.models.pulse)
-    session_service_backend: str = "database"
+    session_service_backend: str = "inmemory"
 
     # VertexAI Configuration (required when using vertexai backend)
     vertex_project_id: str | None = None
     vertex_location: str | None = None
     vertex_agent_engine_id: str | None = None
+
+    # ArtifactService Backend: inmemory | gcs
+    artifact_service_backend: str = "inmemory"
+    gcs_bucket_name: str | None = None
 
 
 settings = Settings()
