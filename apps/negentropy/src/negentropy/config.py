@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_base_url: str | None = None
 
+    # Logging Configuration
+    log_level: str = "INFO"
+    log_sinks: str = "stdio"  # stdio | file | gcloud | stdio,file
+    log_file_path: str = "logs/negentropy.log"
+    gcloud_log_name: str = "negentropy"
+
     # Database
     database_url: str = "postgresql+asyncpg://aigc:@localhost:5432/negentropy"
     db_pool_size: int = 5
