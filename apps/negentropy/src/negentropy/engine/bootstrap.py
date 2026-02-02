@@ -13,7 +13,8 @@ from negentropy.engine.factories import (
     get_credential_service,
 )
 from negentropy.config import settings
-from negentropy.logging import configure_logging, get_logger, LiteLLMLoggingCallback
+from negentropy.logging import configure_logging, get_logger
+from negentropy.instrumentation import LiteLLMLoggingCallback
 
 # Initialize logging early
 configure_logging(
