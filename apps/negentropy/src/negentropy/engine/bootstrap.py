@@ -7,9 +7,12 @@ from pathlib import Path
 import google.adk.cli.utils.service_factory as original_factory
 
 # Import our custom factories
-from negentropy.engine.session_factory import get_session_service
-from negentropy.engine.memory_factory import get_memory_service
-from negentropy.engine.artifacts_factory import get_artifact_service
+from negentropy.engine.factories import (
+    get_session_service,
+    get_memory_service,
+    get_artifact_service,
+    get_credential_service,
+)
 from negentropy.config import settings
 
 logger = logging.getLogger("negentropy.bootstrap")
@@ -111,7 +114,6 @@ def apply_adk_patches():
     # Patch InMemoryCredentialService to use our Factory
     # This avoids the experimental warning while allowing flexible backend configuration
     from google.adk.cli import fast_api
-    from negentropy.engine.credential_factory import get_credential_service
 
     # fast_api.py calls: credential_service = InMemoryCredentialService()
     # So we replace the class with a factory function that returns our instance.

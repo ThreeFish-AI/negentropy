@@ -13,9 +13,9 @@ from google.adk.runners import Runner
 
 from negentropy.agents.agent import root_agent
 from negentropy.config import settings
-from negentropy.engine.memory_factory import get_memory_service
-from negentropy.engine.session_factory import get_session_service
-from negentropy.engine.artifacts_factory import get_artifact_service
+from negentropy.engine.factories.memory import get_memory_service
+from negentropy.engine.factories.session import get_session_service
+from negentropy.engine.factories.artifacts import get_artifact_service
 
 if TYPE_CHECKING:
     from google.adk.agents.base_agent import BaseAgent
