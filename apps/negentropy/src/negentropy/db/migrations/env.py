@@ -68,7 +68,7 @@ def do_run_migrations(connection: Connection) -> None:
     def include_object(object, name, type_, reflected, compare_to):
         """
         过滤器：仅管理 negentropy schema 中的对象。
-        
+
         - 排除 public schema 中的表（如 ADK 的 sessions/events/app_states 等）
         - 排除旧版 alembic_version 表
         - 仅追踪 negentropy schema 中的业务表
