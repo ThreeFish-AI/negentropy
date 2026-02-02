@@ -2,10 +2,6 @@ import sys
 import os
 from unittest.mock import MagicMock, patch, PropertyMock
 
-# In a proper pytest environment, src is usually automatically added,
-# but we'll include this to be safe or if run standalone
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
-
 from negentropy.engine.factories.artifacts import get_artifact_service, reset_artifact_service
 from negentropy.config import settings
 
