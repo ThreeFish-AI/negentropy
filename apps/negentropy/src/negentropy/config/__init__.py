@@ -37,26 +37,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .app import AppSettings
 from .database import DatabaseSettings
-from .environment import EnvironmentSettings
+from .environment import EnvironmentSettings, get_env_files
 from .llm import LlmSettings
 from .logging import LoggingSettings
-from .openai import OpenAISettings
 from .services import ServicesSettings
 
 
 def _get_env_files() -> tuple[str, ...]:
     """
     Determine which .env files to load based on NE_ENV.
-
-    This function is called at module import time to configure the Settings class.
+    Delegates to environment.get_env_files.
     """
     env = os.getenv("NE_ENV", "development")
-    return (
-        ".env",
-        ".env.local",
-        f".env.{env}",
-        f".env.{env}.local",
-    )
+    return get_env_files(env)
 
 
 class Settings(BaseSettings):
@@ -100,12 +93,12 @@ class Settings(BaseSettings):
         return DatabaseSettings(_env_file=_get_env_files())
 
     @cached_property
-    def services(self) -> ServicesSettings:
-        return ServicesSettings(_env_file=_get_env_files())
+    def database(self) -> DatabaseSettings:
+        return DatabaseSettings(_env_file=_get_env_files())
 
     @cached_property
-    def openai(self) -> OpenAISettings:
-        return OpenAISettings(_env_file=_get_env_files())
+    def services(self) -> ServicesSettings:
+        return ServicesSettings(_env_file=_get_env_files())
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -136,7 +129,7 @@ class Settings(BaseSettings):
 
     @property
     def log_level(self) -> str:
-        return self.logging.level
+        return self.logging.level.value
 
     @property
     def log_sinks(self) -> str:
@@ -144,7 +137,7 @@ class Settings(BaseSettings):
 
     @property
     def log_format(self) -> str:
-        return self.logging.format
+        return self.logging.format.value
 
     @property
     def log_file_path(self) -> str:
@@ -156,7 +149,7 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return self.database.url
+        return str(self.database.url)
 
     @property
     def db_pool_size(self) -> int:
@@ -176,19 +169,19 @@ class Settings(BaseSettings):
 
     @property
     def credential_service_backend(self) -> str:
-        return self.services.credential_backend
+        return self.services.credential_backend.value
 
     @property
     def memory_service_backend(self) -> str:
-        return self.services.memory_backend
+        return self.services.memory_backend.value
 
     @property
     def session_service_backend(self) -> str:
-        return self.services.session_backend
+        return self.services.session_backend.value
 
     @property
     def artifact_service_backend(self) -> str:
-        return self.services.artifact_backend
+        return self.services.artifact_backend.value
 
     @property
     def gcs_bucket_name(self) -> str | None:
@@ -205,14 +198,6 @@ class Settings(BaseSettings):
     @property
     def vertex_agent_engine_id(self) -> str | None:
         return self.services.vertex_agent_engine_id
-
-    @property
-    def openai_api_key(self) -> str | None:
-        return self.openai.openai_api_key
-
-    @property
-    def openai_base_url(self) -> str | None:
-        return self.openai.openai_base_url
 
     # Deprecated: Use settings.llm directly
     @property
@@ -233,5 +218,4 @@ __all__ = [
     "LoggingSettings",
     "DatabaseSettings",
     "ServicesSettings",
-    "OpenAISettings",
 ]

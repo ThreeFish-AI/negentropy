@@ -36,14 +36,16 @@ class LlmSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="NE_LLM_",
+        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        frozen=True,
     )
 
     # Core Identity
     vendor: LlmVendor = Field(
         default=LlmVendor.ZAI,
-        validation_alias="NE_LLM_PROVIDER",  # Keep backward compatibility with .env
+        validation_alias="NE_LLM_VENDOR",
         description="The model vendor backend.",
     )
     model_name: str = Field(
