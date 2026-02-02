@@ -21,8 +21,7 @@ root_agent = LlmAgent(
     # Model configured via unified settings (see config/llm.py)
     model=LiteLlm(settings.llm.full_model_name, **settings.llm.to_litellm_kwargs()),
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
-    instruction=lambda ctx: (
-        """
+    instruction="""
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的**「本我」(The Self)**。
 
 ## 核心哲学：熵减 (Entropy Reduction)
@@ -63,13 +62,7 @@ root_agent = LlmAgent(
 - **绝无幻觉 (No Hallucination)**：严禁臆造事实。必须委派 [感知] 寻找真相。
 - **最小干预 (Minimal Intervention)**：不要过度设计。使用最简的系部路径解决问题（奥卡姆剃刀）。
 - **单一事实源 (Single Source of Truth)**：依赖 [内化] 获取历史上下文，而非依赖你短暂的上下文窗口。
-"""
-        + (
-            ""
-            if settings.llm.thinking_mode
-            else "\n\n## 系统指令 (System Directive)\n不要输出内部思考过程 (Internal Monologue) 或 Context-Anchoring 分析。直接输出最终结果或工具调用。"
-        )
-    ),
+""",
     tools=[log_activity],
     sub_agents=[
         perception_agent,
