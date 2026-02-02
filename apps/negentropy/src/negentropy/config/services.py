@@ -13,7 +13,6 @@ class ServicesSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="NE_SVC_",
-        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )

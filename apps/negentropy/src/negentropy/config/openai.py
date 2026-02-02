@@ -13,7 +13,6 @@ class OpenAISettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="",  # Use standard OPENAI_* env vars
-        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
