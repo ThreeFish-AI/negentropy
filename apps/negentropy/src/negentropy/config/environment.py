@@ -14,6 +14,18 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 Environment = Literal["development", "testing", "staging", "production"]
 
 
+def get_env_files(env: str) -> tuple[str, ...]:
+    """
+    Returns the list of .env files to load in priority order for a given environment.
+    """
+    return (
+        ".env",
+        ".env.local",
+        f".env.{env}",
+        f".env.{env}.local",
+    )
+
+
 class EnvironmentSettings(BaseSettings):
     """
     Environment detection and configuration.
@@ -32,6 +44,7 @@ class EnvironmentSettings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        frozen=True,
     )
 
     env: Environment = Field(
@@ -62,12 +75,7 @@ class EnvironmentSettings(BaseSettings):
 
         Lower index = higher priority (loaded last, overrides earlier).
         """
-        return (
-            ".env",
-            ".env.local",
-            f".env.{self.env}",
-            f".env.{self.env}.local",
-        )
+        return get_env_files(self.env)
 
     @property
     def debug(self) -> bool:

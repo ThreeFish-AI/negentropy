@@ -2,10 +2,35 @@
 ADK Services Configuration.
 """
 
+from enum import Enum
 from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class CredentialBackend(str, Enum):
+    POSTGRES = "postgres"
+    INMEMORY = "inmemory"
+    SESSION = "session"
+
+
+class MemoryBackend(str, Enum):
+    INMEMORY = "inmemory"
+    VERTEXAI = "vertexai"
+    POSTGRES = "postgres"
+
+
+class SessionBackend(str, Enum):
+    INMEMORY = "inmemory"
+    VERTEXAI = "vertexai"
+    DATABASE = "database"
+    POSTGRES = "postgres"
+
+
+class ArtifactBackend(str, Enum):
+    INMEMORY = "inmemory"
+    GCS = "gcs"
 
 
 class ServicesSettings(BaseSettings):
@@ -13,32 +38,34 @@ class ServicesSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="NE_SVC_",
+        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        frozen=True,
     )
 
-    # Credential Service Backend: postgres | inmemory | session
-    credential_backend: str = Field(
-        default="inmemory",
-        description="Credential service backend (postgres, inmemory, session)",
+    # Credential Service Backend
+    credential_backend: CredentialBackend = Field(
+        default=CredentialBackend.INMEMORY,
+        description="Credential service backend",
     )
 
-    # Memory Service Backend: inmemory | vertexai | postgres
-    memory_backend: str = Field(
-        default="inmemory",
-        description="Memory service backend (inmemory, vertexai, postgres)",
+    # Memory Service Backend
+    memory_backend: MemoryBackend = Field(
+        default=MemoryBackend.INMEMORY,
+        description="Memory service backend",
     )
 
-    # Session Service Backend: inmemory | vertexai | database | postgres
-    session_backend: str = Field(
-        default="inmemory",
-        description="Session service backend (inmemory, vertexai, database, postgres)",
+    # Session Service Backend
+    session_backend: SessionBackend = Field(
+        default=SessionBackend.INMEMORY,
+        description="Session service backend",
     )
 
-    # Artifact Service Backend: inmemory | gcs
-    artifact_backend: str = Field(
-        default="inmemory",
-        description="Artifact service backend (inmemory, gcs)",
+    # Artifact Service Backend
+    artifact_backend: ArtifactBackend = Field(
+        default=ArtifactBackend.INMEMORY,
+        description="Artifact service backend",
     )
 
     # GCS Configuration
