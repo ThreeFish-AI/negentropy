@@ -460,6 +460,53 @@ def configure_logging(
     # 4. Intercept Third-Party Loggers
     _intercept_third_party_loggers()
 
+    # 5. Intercept sys.stdout & sys.stderr (for random prints like "Local timezone: ...")
+    # Store original streams to avoid recursion and for attribute proxying
+    if not isinstance(sys.stdout, StreamToLogger):
+        sys.stdout = StreamToLogger(get_logger("stdout"), logging.INFO, sys.stdout)
+
+    if not isinstance(sys.stderr, StreamToLogger):
+        sys.stderr = StreamToLogger(get_logger("stderr"), logging.INFO, sys.stderr)
+
+
+class StreamToLogger:
+    """Redirects writes to a logger instance."""
+
+    def __init__(self, logger: structlog.stdlib.BoundLogger, level: int, original_stream: Any):
+        self.logger = logger
+        self.level = level
+        self.original_stream = original_stream
+        self.linebuf = ""
+
+    def write(self, buf: str | bytes) -> None:
+        if isinstance(buf, bytes):
+            buf = buf.decode(self.encoding, errors="replace")
+
+        for line in buf.splitlines(True):
+            # If the line ends with a newline, log it immediately
+            if line.endswith("\n"):
+                self.linebuf += line.rstrip()
+                if self.linebuf:
+                    self.logger.log(self.level, self.linebuf)
+                self.linebuf = ""
+            else:
+                self.linebuf += line
+
+    def flush(self) -> None:
+        if self.linebuf:
+            self.logger.log(self.level, self.linebuf)
+            self.linebuf = ""
+
+    def isatty(self) -> bool:
+        return False
+
+    @property
+    def encoding(self) -> str:
+        return getattr(self.original_stream, "encoding", "utf-8")
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.original_stream, name)
+
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """Get a structured logger instance."""
