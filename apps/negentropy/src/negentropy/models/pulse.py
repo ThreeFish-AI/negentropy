@@ -112,4 +112,4 @@ class AppState(Base):
 
 
 # Forward references for relationships to be defined in other modules
-from .hippocampus import ConsolidationJob  # noqa: F401
+from .internalization import ConsolidationJob  # noqa: F401
