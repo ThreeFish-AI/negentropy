@@ -13,7 +13,9 @@ from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin,
 class Memory(Base, UUIDMixin):
     __tablename__ = "memories"
 
-    thread_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL"))
+    thread_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
+    )
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     memory_type: Mapped[str] = mapped_column(
@@ -39,7 +41,9 @@ class Memory(Base, UUIDMixin):
 class Fact(Base, UUIDMixin):
     __tablename__ = "facts"
 
-    thread_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL"))
+    thread_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
+    )
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     fact_type: Mapped[str] = mapped_column(
@@ -62,7 +66,9 @@ class Fact(Base, UUIDMixin):
 class ConsolidationJob(Base, UUIDMixin):
     __tablename__ = "consolidation_jobs"
 
-    thread_id: Mapped[UUID] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False)
+    thread_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="'pending'")
     job_type: Mapped[str] = mapped_column(String(50), nullable=False)
     result: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
