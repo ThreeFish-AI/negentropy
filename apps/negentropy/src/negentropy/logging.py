@@ -328,11 +328,27 @@ def configure_logging(
         structlog.processors.format_exc_info,
     ]
 
+    # Custom logger factory that suppresses empty output (avoids /dev/null overhead)
+    class NopFile:
+        def write(self, s: str) -> None:
+            pass
+
+        def flush(self) -> None:
+            pass
+
+    _NOP_FILE = NopFile()
+
+    class SilentPrintLoggerFactory:
+        """Logger factory that returns a logger writing to nowhere."""
+
+        def __call__(self, *args: Any) -> structlog.PrintLogger:
+            return structlog.PrintLogger(file=_NOP_FILE)
+
     structlog.configure(
         processors=shared_processors + [multi_sink_renderer],
-        wrapper_class=structlog.stdlib.BoundLogger,
+        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, level.upper(), logging.INFO)),
         context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(),
+        logger_factory=SilentPrintLoggerFactory(),
         cache_logger_on_first_use=False,
     )
 
