@@ -11,8 +11,12 @@ class Settings(BaseSettings):
 
     # Model Configuration
     default_model: str = "openai/glm-4.7"
-    orchestrator_model: str = "openai/glm-4.7"  # 强推理模型用于 Root Agent
-    faculty_model: str = "openai/glm-4.7"  # 通用模型用于 Faculty Agents
+    orchestrator_model: str = "openai/glm-4.7"
+    faculty_model: str = "openai/glm-4.7"
+
+    # OpenAI Configuration
+    openai_api_key: str | None = None
+    openai_base_url: str | None = None
 
     # Database
     database_url: str = "postgresql+asyncpg://aigc:@localhost:5432/negentropy"
@@ -20,6 +24,12 @@ class Settings(BaseSettings):
     db_max_overflow: int = 10
     db_pool_recycle: int = 3600
     db_echo: bool = False
+
+    # CredentialService Backend: postgres | inmemory | session
+    # - postgres: Custom PostgresCredentialService (Persistent, Production-grade)
+    # - inmemory: ADK InMemoryCredentialService
+    # - session: ADK SessionStateCredentialService
+    credential_service_backend: str = "inmemory"
 
     # MemoryService Backend: inmemory | vertexai | postgres
     memory_service_backend: str = "inmemory"
@@ -37,12 +47,6 @@ class Settings(BaseSettings):
     # ArtifactService Backend: inmemory | gcs
     artifact_service_backend: str = "inmemory"
     gcs_bucket_name: str | None = None
-
-    # CredentialService Backend: postgres | inmemory | session
-    # - postgres: Custom PostgresCredentialService (Persistent, Production-grade)
-    # - inmemory: ADK InMemoryCredentialService
-    # - session: ADK SessionStateCredentialService
-    credential_service_backend: str = "inmemory"
 
 
 settings = Settings()
