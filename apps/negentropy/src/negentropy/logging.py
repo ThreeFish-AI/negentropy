@@ -1,9 +1,9 @@
 """
 Unified Logging Service for Negentropy.
 
-Provides structured JSON logging with multiple sink support:
-- stdio: Standard output (dev)
-- file: Local file rotation (dev)
+Provides structured logging with multiple sink support:
+- stdio: Standard output (console/json format)
+- file: Local file rotation with JSON
 - gcloud: Google Cloud Logging (production)
 
 Design Pattern: Strategy Pattern for sink abstraction.
@@ -17,7 +17,7 @@ import sys
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import orjson
 import structlog
@@ -25,6 +25,38 @@ from structlog.typing import EventDict, WrappedLogger
 
 if TYPE_CHECKING:
     from google.cloud.logging import Client as GCloudLoggingClient
+
+# =============================================================================
+# Types
+# =============================================================================
+
+LogFormat = Literal["console", "json"]
+
+# =============================================================================
+# ANSI Color Codes (for console format)
+# =============================================================================
+
+COLORS = {
+    "reset": "\033[0m",
+    "bold": "\033[1m",
+    "dim": "\033[2m",
+    # Levels
+    "debug": "\033[36m",  # Cyan
+    "info": "\033[32m",  # Green
+    "warning": "\033[33m",  # Yellow
+    "error": "\033[31m",  # Red
+    "critical": "\033[1;31m",  # Bold Red
+    # Components
+    "timestamp": "\033[90m",  # Gray
+    "logger": "\033[35m",  # Magenta
+    "key": "\033[34m",  # Blue
+}
+
+
+def colorize(text: str, color: str) -> str:
+    """Apply ANSI color to text."""
+    return f"{COLORS.get(color, '')}{text}{COLORS['reset']}"
+
 
 # =============================================================================
 # JSON Serialization
@@ -56,22 +88,87 @@ class BaseSink(ABC):
 
 
 class StdioSink(BaseSink):
-    """Standard output sink for development."""
+    """Standard I/O sink with configurable format.
 
-    def __init__(self, stream: Any = None):
+    Args:
+        fmt: Output format - "console" (colored human-readable) or "json"
+        stream: Output stream (default: stderr)
+    """
+
+    def __init__(self, fmt: LogFormat = "console", stream: Any = None):
+        self._fmt = fmt
         self._stream = stream or sys.stderr
 
     def emit(self, event_dict: EventDict) -> None:
+        if self._fmt == "json":
+            self._emit_json(event_dict)
+        else:
+            self._emit_console(event_dict)
+
+    def _emit_json(self, event_dict: EventDict) -> None:
+        """Emit JSON format for machine parsing."""
         json_str = orjson_dumps(event_dict)
         self._stream.write(json_str + "\n")
         self._stream.flush()
 
+    def _emit_console(self, event_dict: EventDict) -> None:
+        """Emit colored console format for dev.
+
+        Format: HH:MM:SS │ LEVEL │ logger │ message [key=value ...]
+        """
+        # Extract core fields
+        level = event_dict.get("level", "info").lower()
+        message = event_dict.get("message", event_dict.get("event", ""))
+        logger_name = event_dict.get("logger", "root")
+        timestamp = event_dict.get("timestamp", "")
+
+        # Format timestamp (extract time portion only)
+        if timestamp:
+            try:
+                time_part = timestamp.split("T")[1][:8] if "T" in timestamp else timestamp[:8]
+            except (IndexError, TypeError):
+                time_part = timestamp[:8]
+        else:
+            time_part = datetime.now().strftime("%H:%M:%S")
+
+        # Shorten logger name (last part only)
+        short_logger = logger_name.split(".")[-1] if "." in logger_name else logger_name
+
+        # Format level with fixed width and color
+        level_upper = level.upper()
+        level_colored = colorize(f"{level_upper:>5}", level)
+
+        # Build extra key=value pairs
+        excluded_keys = {"level", "message", "event", "logger", "timestamp", "_name"}
+        extras = []
+        for k, v in event_dict.items():
+            if k not in excluded_keys:
+                key_colored = colorize(k, "key")
+                extras.append(f"{key_colored}={v}")
+
+        # Compose output line
+        line_parts = [
+            colorize(time_part, "timestamp"),
+            "│",
+            level_colored,
+            "│",
+            colorize(short_logger, "logger"),
+            "│",
+            str(message),
+        ]
+
+        if extras:
+            line_parts.append(colorize(" " + " ".join(extras), "dim"))
+
+        self._stream.write(" ".join(line_parts) + "\n")
+        self._stream.flush()
+
     def close(self) -> None:
-        pass  # No cleanup needed for stdio
+        pass
 
 
 class FileSink(BaseSink):
-    """Local file sink with optional rotation."""
+    """Local file sink with rotation (JSON format)."""
 
     def __init__(self, path: str | Path, max_bytes: int = 10 * 1024 * 1024, backup_count: int = 5):
         self._path = Path(path)
@@ -118,7 +215,6 @@ class GCloudSink(BaseSink):
     def emit(self, event_dict: EventDict) -> None:
         if not self._available or not self._logger:
             return
-        # Map structlog level to GCloud severity
         level = event_dict.get("level", "INFO").upper()
         severity_map = {
             "DEBUG": "DEBUG",
@@ -128,7 +224,6 @@ class GCloudSink(BaseSink):
             "CRITICAL": "CRITICAL",
         }
         severity = severity_map.get(level, "DEFAULT")
-        # GCloud expects struct payload
         self._logger.log_struct(event_dict, severity=severity)
 
     def close(self) -> None:
@@ -169,13 +264,13 @@ _sinks: list[BaseSink] = []
 
 
 def multi_sink_renderer(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> str:
-    """Render log to all configured sinks and return JSON string."""
+    """Render log to all configured sinks. Returns empty to suppress default output."""
     for sink in _sinks:
         try:
             sink.emit(event_dict)
         except Exception:
             pass  # Fail silently to avoid breaking the application
-    return orjson_dumps(event_dict)
+    return ""
 
 
 # =============================================================================
@@ -187,6 +282,7 @@ def configure_logging(
     *,
     level: str = "INFO",
     sinks: str = "stdio",
+    fmt: str = "console",
     file_path: str = "logs/negentropy.log",
     gcloud_project: str | None = None,
     gcloud_log_name: str = "negentropy",
@@ -197,6 +293,7 @@ def configure_logging(
     Args:
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         sinks: Comma-separated sink names (stdio, file, gcloud)
+        fmt: Output format for stdio sink (console, json)
         file_path: Path for file sink
         gcloud_project: GCP project ID for gcloud sink
         gcloud_log_name: Log name for gcloud sink
@@ -208,53 +305,48 @@ def configure_logging(
         sink.close()
     _sinks.clear()
 
+    # Normalize format
+    log_format: LogFormat = "json" if fmt.lower() == "json" else "console"
+
     # Create requested sinks
     sink_names = [s.strip().lower() for s in sinks.split(",")]
     for name in sink_names:
         if name == "stdio":
-            _sinks.append(StdioSink())
+            _sinks.append(StdioSink(fmt=log_format))
         elif name == "file":
             _sinks.append(FileSink(file_path))
         elif name == "gcloud":
             _sinks.append(GCloudSink(project_id=gcloud_project, log_name=gcloud_log_name))
 
-    # Configure structlog
+    # Configure structlog with custom processor pipeline
+    shared_processors = [
+        structlog.stdlib.add_log_level,
+        add_timestamp,
+        add_logger_name,
+        rename_event_key,
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+    ]
+
     structlog.configure(
-        processors=[
-            structlog.stdlib.add_log_level,
-            add_timestamp,
-            add_logger_name,
-            rename_event_key,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            multi_sink_renderer,
-        ],
+        processors=shared_processors + [multi_sink_renderer],
         wrapper_class=structlog.stdlib.BoundLogger,
         context_class=dict,
         logger_factory=structlog.stdlib.LoggerFactory(),
-        cache_logger_on_first_use=True,
+        cache_logger_on_first_use=False,
     )
 
-    # Also configure stdlib logging to capture ADK/third-party logs
+    # Configure stdlib logging level
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stderr,
         level=getattr(logging, level.upper(), logging.INFO),
+        force=True,
     )
-    # Route stdlib logs through structlog
-    structlog.stdlib.recreate_defaults()
 
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
-    """
-    Get a structured logger instance.
-
-    Args:
-        name: Logger name (typically __name__)
-
-    Returns:
-        Bound logger instance
-    """
+    """Get a structured logger instance."""
     return structlog.get_logger(_name=name or "root")
 
 
@@ -262,7 +354,6 @@ def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
 # Module Initialization
 # =============================================================================
 
-# Default configuration (can be overridden by calling configure_logging)
 _default_configured = False
 
 
