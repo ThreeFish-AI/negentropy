@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from .base import TIMESTAMP, Base, TimestampMixin, UUIDMixin
+from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin
 
 
 class Tool(Base, UUIDMixin, TimestampMixin):
@@ -23,7 +23,10 @@ class Tool(Base, UUIDMixin, TimestampMixin):
     call_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     avg_latency_ms: Mapped[float] = mapped_column(Float, default=0, server_default="0")
 
-    __table_args__ = (UniqueConstraint("app_name", "name", name="tools_app_name_unique"),)
+    __table_args__ = (
+        UniqueConstraint("app_name", "name", name="tools_app_name_unique"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
 
     executions: Mapped[List["ToolExecution"]] = relationship(back_populates="tool", cascade="all, delete-orphan")
 
@@ -31,7 +34,7 @@ class Tool(Base, UUIDMixin, TimestampMixin):
 class ToolExecution(Base, UUIDMixin):
     __tablename__ = "tool_executions"
 
-    tool_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("tools.id"))
+    tool_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.tools.id"))
     run_id: Mapped[Optional[UUID]] = mapped_column()  # Loose coupling
     input_params: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)
     output_result: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)

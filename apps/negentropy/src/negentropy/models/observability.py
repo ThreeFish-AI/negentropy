@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from .base import TIMESTAMP, Base, UUIDMixin
+from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, UUIDMixin
 
 
 class Trace(Base, UUIDMixin):
