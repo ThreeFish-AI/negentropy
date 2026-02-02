@@ -17,8 +17,8 @@ def mock_modules():
         sys.modules["negentropy.agents"] = MagicMock()
 
     # Also mock session/memory factories to allow simple import
-    sys.modules["negentropy.engine.memory_factory"] = MagicMock()
-    sys.modules["negentropy.engine.session_factory"] = MagicMock()
+    sys.modules["negentropy.engine.factories.memory"] = MagicMock()
+    sys.modules["negentropy.engine.factories.session"] = MagicMock()
 
     # Mock ADK dependencies that might be hit
     sys.modules["google.adk.runners"] = MagicMock()
@@ -26,7 +26,7 @@ def mock_modules():
 
 mock_modules()
 
-from negentropy.engine.runner_factory import get_runner, reset_runner
+from negentropy.engine.factories.runner import get_runner, reset_runner
 # negentropy.engine.artifacts_factory is real
 
 
@@ -37,13 +37,13 @@ def test_runner_artifact_injection():
     # Mock the Runner class to capture arguments
     MockRunner = MagicMock()
     # We must patch the Runner name reachable inside runner_factory
-    with patch("negentropy.engine.runner_factory.Runner", MockRunner):
+    with patch("negentropy.engine.factories.runner.Runner", MockRunner):
         # Mock get_artifact_service to return a specific mock
         mock_artifact_service = MagicMock()
         # We patch where it's imported in runner_factory
-        with patch("negentropy.engine.runner_factory.get_artifact_service", return_value=mock_artifact_service):
+        with patch("negentropy.engine.factories.runner.get_artifact_service", return_value=mock_artifact_service):
             # We also need to patch root_agent since we default to it
-            with patch("negentropy.engine.runner_factory.root_agent", MagicMock()):
+            with patch("negentropy.engine.factories.runner.root_agent", MagicMock()):
                 runner = get_runner(app_name="test_app", agent=MagicMock())
 
                 # Verify Runner was initialized with artifact_service

@@ -1,12 +1,12 @@
 import sys
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 # In a proper pytest environment, src is usually automatically added,
 # but we'll include this to be safe or if run standalone
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
 
-from negentropy.engine.artifacts_factory import get_artifact_service, reset_artifact_service
+from negentropy.engine.factories.artifacts import get_artifact_service, reset_artifact_service
 from negentropy.config import settings
 
 
@@ -14,7 +14,8 @@ def test_inmemory_factory():
     print("Testing InMemory Factory...")
     reset_artifact_service()
     # Mock settings
-    with patch.object(settings, "artifact_service_backend", "inmemory"):
+    with patch("negentropy.config.Settings.artifact_service_backend", new_callable=PropertyMock) as mock_backend:
+        mock_backend.return_value = "inmemory"
         service = get_artifact_service()
         print(f"Service created: {service}")
         assert service is not None
@@ -27,8 +28,10 @@ def test_gcs_factory():
     reset_artifact_service()
 
     # Mock settings
-    with patch.object(settings, "artifact_service_backend", "gcs"):
-        with patch.object(settings, "gcs_bucket_name", "test-bucket"):
+    with patch("negentropy.config.Settings.artifact_service_backend", new_callable=PropertyMock) as mock_backend:
+        mock_backend.return_value = "gcs"
+        with patch("negentropy.config.Settings.gcs_bucket_name", new_callable=PropertyMock) as mock_bucket:
+            mock_bucket.return_value = "test-bucket"
             # Mock google.auth.default to not raise
             with patch("google.auth.default", return_value=(None, None)):
                 # Mock GcsArtifactService to avoid real GCS connection
@@ -43,8 +46,10 @@ def test_gcs_factory_missing_bucket():
     print("Testing GCS Factory Missing Bucket...")
     reset_artifact_service()
 
-    with patch.object(settings, "artifact_service_backend", "gcs"):
-        with patch.object(settings, "gcs_bucket_name", None):
+    with patch("negentropy.config.Settings.artifact_service_backend", new_callable=PropertyMock) as mock_backend:
+        mock_backend.return_value = "gcs"
+        with patch("negentropy.config.Settings.gcs_bucket_name", new_callable=PropertyMock) as mock_bucket:
+            mock_bucket.return_value = None
             try:
                 get_artifact_service()
                 print("FAILED: Should have raised ValueError")
