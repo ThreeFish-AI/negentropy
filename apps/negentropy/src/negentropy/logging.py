@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 LogFormat = Literal["console", "json"]
 
 # =============================================================================
-# ANSI Color Codes (for console format)
+# ANSI Color Codes & Formatter (Orthogonality)
 # =============================================================================
 
 COLORS = {
@@ -56,6 +56,60 @@ COLORS = {
 def colorize(text: str, color: str) -> str:
     """Apply ANSI color to text."""
     return f"{COLORS.get(color, '')}{text}{COLORS['reset']}"
+
+
+class ConsoleFormatter:
+    """Handles human-readable console log rendering (Separation of Concerns)."""
+
+    EXCLUDED_KEYS = {"level", "message", "event", "logger", "timestamp", "_name"}
+
+    @staticmethod
+    def format(event_dict: EventDict) -> str:
+        """Format an event dict into a colored string."""
+        # Extract core fields
+        level = event_dict.get("level", "info").lower()
+        message = event_dict.get("message", event_dict.get("event", ""))
+        logger_name = event_dict.get("logger", "root")
+        timestamp = event_dict.get("timestamp", "")
+
+        # Format timestamp (extract time portion only)
+        if timestamp:
+            try:
+                time_part = timestamp.split("T")[1][:8] if "T" in timestamp else timestamp[:8]
+            except (IndexError, TypeError):
+                time_part = timestamp[:8]
+        else:
+            time_part = datetime.now().strftime("%H:%M:%S")
+
+        # Shorten logger name (last part only)
+        short_logger = logger_name.split(".")[-1] if "." in logger_name else logger_name
+
+        # Format level with fixed width and color
+        level_upper = level.upper()
+        level_colored = colorize(f"{level_upper:>5}", level)
+
+        # Build extra key=value pairs
+        extras = []
+        for k, v in event_dict.items():
+            if k not in ConsoleFormatter.EXCLUDED_KEYS:
+                key_colored = colorize(k, "key")
+                extras.append(f"{key_colored}={v}")
+
+        # Compose output line
+        line_parts = [
+            colorize(time_part, "timestamp"),
+            "│",
+            level_colored,
+            "│",
+            colorize(short_logger, "logger"),
+            "│",
+            str(message),
+        ]
+
+        if extras:
+            line_parts.append(colorize(" " + " ".join(extras), "dim"))
+
+        return " ".join(line_parts)
 
 
 # =============================================================================
@@ -101,66 +155,11 @@ class StdioSink(BaseSink):
 
     def emit(self, event_dict: EventDict) -> None:
         if self._fmt == "json":
-            self._emit_json(event_dict)
+            output = orjson_dumps(event_dict)
         else:
-            self._emit_console(event_dict)
+            output = ConsoleFormatter.format(event_dict)
 
-    def _emit_json(self, event_dict: EventDict) -> None:
-        """Emit JSON format for machine parsing."""
-        json_str = orjson_dumps(event_dict)
-        self._stream.write(json_str + "\n")
-        self._stream.flush()
-
-    def _emit_console(self, event_dict: EventDict) -> None:
-        """Emit colored console format for dev.
-
-        Format: HH:MM:SS │ LEVEL │ logger │ message [key=value ...]
-        """
-        # Extract core fields
-        level = event_dict.get("level", "info").lower()
-        message = event_dict.get("message", event_dict.get("event", ""))
-        logger_name = event_dict.get("logger", "root")
-        timestamp = event_dict.get("timestamp", "")
-
-        # Format timestamp (extract time portion only)
-        if timestamp:
-            try:
-                time_part = timestamp.split("T")[1][:8] if "T" in timestamp else timestamp[:8]
-            except (IndexError, TypeError):
-                time_part = timestamp[:8]
-        else:
-            time_part = datetime.now().strftime("%H:%M:%S")
-
-        # Shorten logger name (last part only)
-        short_logger = logger_name.split(".")[-1] if "." in logger_name else logger_name
-
-        # Format level with fixed width and color
-        level_upper = level.upper()
-        level_colored = colorize(f"{level_upper:>5}", level)
-
-        # Build extra key=value pairs
-        excluded_keys = {"level", "message", "event", "logger", "timestamp", "_name"}
-        extras = []
-        for k, v in event_dict.items():
-            if k not in excluded_keys:
-                key_colored = colorize(k, "key")
-                extras.append(f"{key_colored}={v}")
-
-        # Compose output line
-        line_parts = [
-            colorize(time_part, "timestamp"),
-            "│",
-            level_colored,
-            "│",
-            colorize(short_logger, "logger"),
-            "│",
-            str(message),
-        ]
-
-        if extras:
-            line_parts.append(colorize(" " + " ".join(extras), "dim"))
-
-        self._stream.write(" ".join(line_parts) + "\n")
+        self._stream.write(output + "\n")
         self._stream.flush()
 
     def close(self) -> None:
@@ -274,30 +273,83 @@ def multi_sink_renderer(logger: WrappedLogger, method_name: str, event_dict: Eve
 
 
 # =============================================================================
-# Public API
+# Interaction Metrics (Value Transmission)
 # =============================================================================
 
 
-def configure_logging(
-    *,
-    level: str = "INFO",
-    sinks: str = "stdio",
-    fmt: str = "console",
-    file_path: str = "logs/negentropy.log",
-    gcloud_project: str | None = None,
-    gcloud_log_name: str = "negentropy",
-) -> None:
-    """
-    Configure the logging system.
+class LiteLLMLoggingCallback:
+    """Callback to log interaction metrics (token usage, cost, latency) via structlog."""
 
-    Args:
-        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        sinks: Comma-separated sink names (stdio, file, gcloud)
-        fmt: Output format for stdio sink (console, json)
-        file_path: Path for file sink
-        gcloud_project: GCP project ID for gcloud sink
-        gcloud_log_name: Log name for gcloud sink
-    """
+    def __init__(self) -> None:
+        self._logger = get_logger("negentropy.llm.usage")
+
+    def _get_model_cost(self, kwargs: dict) -> float:
+        try:
+            from litellm import completion_cost
+
+            # Create a mock response object for cost calculation if response_obj is available
+            response_obj = kwargs.get("response_obj")
+            if response_obj:
+                return float(completion_cost(completion_response=response_obj))
+            return 0.0
+        except Exception:
+            return 0.0
+
+    def log_success_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
+        """Log successful LLM interaction."""
+        try:
+            model = kwargs.get("model", "unknown")
+            input_tokens = 0
+            output_tokens = 0
+
+            # Extract usage from response
+            if hasattr(response_obj, "usage"):
+                usage = response_obj.usage
+                input_tokens = getattr(usage, "prompt_tokens", 0)
+                output_tokens = getattr(usage, "completion_tokens", 0)
+
+            # Calculate cost
+            cost = self._get_model_cost({"response_obj": response_obj, "model": model})
+
+            # Calculate latency
+            latency_ms = (end_time - start_time).total_seconds() * 1000
+
+            self._logger.info(
+                f"[{model}] {input_tokens} -> {output_tokens} tokens",
+                model=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost_usd=f"{cost:.6f}",
+                latency_ms=f"{latency_ms:.0f}",
+            )
+        except Exception:
+            pass  # Fail safe
+
+    def log_failure_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
+        """Log failed LLM interaction."""
+        try:
+            model = kwargs.get("model", "unknown")
+            exception = kwargs.get("exception", "unknown error")
+
+            latency_ms = (end_time - start_time).total_seconds() * 1000
+
+            get_logger("negentropy.llm.error").error(
+                f"[{model}] Failed: {str(exception)}",
+                model=model,
+                error=str(exception),
+                latency_ms=f"{latency_ms:.0f}",
+            )
+        except Exception:
+            pass
+
+
+# =============================================================================
+# Configuration & Public API
+# =============================================================================
+
+
+def _initialize_sinks(sinks: str, fmt: str, file_path: str, gcloud_project: str | None, gcloud_log_name: str) -> None:
+    """Initialize configure sinks based on input."""
     global _sinks
 
     # Close existing sinks
@@ -318,7 +370,9 @@ def configure_logging(
         elif name == "gcloud":
             _sinks.append(GCloudSink(project_id=gcloud_project, log_name=gcloud_log_name))
 
-    # Configure structlog with custom processor pipeline
+
+def _configure_structlog(level: str) -> None:
+    """Configure structlog processors and factory."""
     shared_processors = [
         structlog.stdlib.add_log_level,
         add_timestamp,
@@ -352,29 +406,61 @@ def configure_logging(
         cache_logger_on_first_use=False,
     )
 
-    # Configure stdlib logging level
+
+def _intercept_third_party_loggers() -> None:
+    """Intercept and reconfigure third-party libraries (Uvicorn, LiteLLM)."""
+    # 1. Uvicorn: Remove default handlers and propagate to root (handled by structlog)
+    for logger_name in ["uvicorn", "uvicorn.access", "uvicorn.error"]:
+        lg = logging.getLogger(logger_name)
+        lg.handlers = []  # Remove Uvicorn's default handlers
+        lg.propagate = True
+
+    # 2. LiteLLM: Suppress internal logging to avoid noise and use callback instead
+    litellm_logger = logging.getLogger("LiteLLM")
+    litellm_logger.handlers = []
+    litellm_logger.propagate = False  # Completely silence internal logs
+    litellm_logger.setLevel(logging.CRITICAL)  # Only critical errors (if any)
+
+
+def configure_logging(
+    *,
+    level: str = "INFO",
+    sinks: str = "stdio",
+    fmt: str = "console",
+    file_path: str = "logs/negentropy.log",
+    gcloud_project: str | None = None,
+    gcloud_log_name: str = "negentropy",
+) -> None:
+    """
+    Configure the unified logging system.
+
+    Args:
+        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        sinks: Comma-separated sink names (stdio, file, gcloud)
+        fmt: Output format for stdio sink (console, json)
+        file_path: Path for file sink
+        gcloud_project: GCP project ID for gcloud sink
+        gcloud_log_name: Log name for gcloud sink
+    """
+    # 1. Initialize Sinks
+    _initialize_sinks(sinks, fmt, file_path, gcloud_project, gcloud_log_name)
+
+    # 2. Configure Structlog
+    _configure_structlog(level)
+
+    # 3. Configure Stdlib Logging (Root)
+    root_level = getattr(logging, level.upper(), logging.INFO)
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stderr,
-        level=getattr(logging, level.upper(), logging.INFO),
+        level=root_level,
         force=True,
     )
+
+    # 4. Intercept Third-Party Loggers
+    _intercept_third_party_loggers()
 
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """Get a structured logger instance."""
     return structlog.get_logger(_name=name or "root")
-
-
-# =============================================================================
-# Module Initialization
-# =============================================================================
-
-_default_configured = False
-
-
-def _ensure_configured() -> None:
-    global _default_configured
-    if not _default_configured:
-        configure_logging()
-        _default_configured = True
