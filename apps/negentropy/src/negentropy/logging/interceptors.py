@@ -71,7 +71,6 @@ class RedirectStdLibHandler(logging.Handler):
         return ".".join(parts[-2:])
 
 
-
 def intercept_third_party_loggers() -> None:
     """Intercept and reconfigure third-party libraries."""
 
