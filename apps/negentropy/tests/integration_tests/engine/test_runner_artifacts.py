@@ -1,9 +1,9 @@
-
 import sys
 import os
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
+
 
 # Helper to mock modules before they are imported
 def mock_modules():
@@ -12,26 +12,28 @@ def mock_modules():
         agent_mock = MagicMock()
         agent_mock.root_agent = MagicMock()
         sys.modules["negentropy.agents.agent"] = agent_mock
-    
+
     if "negentropy.agents" not in sys.modules:
         sys.modules["negentropy.agents"] = MagicMock()
-    
+
     # Also mock session/memory factories to allow simple import
     sys.modules["negentropy.engine.memory_factory"] = MagicMock()
     sys.modules["negentropy.engine.session_factory"] = MagicMock()
-    
+
     # Mock ADK dependencies that might be hit
     sys.modules["google.adk.runners"] = MagicMock()
+
 
 mock_modules()
 
 from negentropy.engine.runner_factory import get_runner, reset_runner
-# negentropy.engine.artifacts_factory is real 
+# negentropy.engine.artifacts_factory is real
+
 
 def test_runner_artifact_injection():
     print("Testing Runner Artifact Injection...")
     reset_runner()
-    
+
     # Mock the Runner class to capture arguments
     MockRunner = MagicMock()
     # We must patch the Runner name reachable inside runner_factory
@@ -43,19 +45,20 @@ def test_runner_artifact_injection():
             # We also need to patch root_agent since we default to it
             with patch("negentropy.engine.runner_factory.root_agent", MagicMock()):
                 runner = get_runner(app_name="test_app", agent=MagicMock())
-                
+
                 # Verify Runner was initialized with artifact_service
                 print(f"Runner call args: {MockRunner.call_args}")
                 if MockRunner.call_args is None:
-                     raise AssertionError("Runner was not called!")
+                    raise AssertionError("Runner was not called!")
                 _, kwargs = MockRunner.call_args
-                
+
                 if "artifact_service" in kwargs:
                     print("SUCCESS: artifact_service passed to Runner.")
                     assert kwargs["artifact_service"] == mock_artifact_service
                 else:
                     print("FAILED: artifact_service NOT passed to Runner.")
                     raise AssertionError("artifact_service missing in Runner init")
+
 
 if __name__ == "__main__":
     test_runner_artifact_injection()
