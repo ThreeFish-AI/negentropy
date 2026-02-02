@@ -134,11 +134,43 @@ class TracingManager:
         if otlp_exporter:
             # 优先使用注入的 Exporter (测试用)
             provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
-        elif otlp_endpoint:
-            if OTLPSpanExporter:
-                provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)))
-            else:
-                logger.warning("OTLP Exporter requested but opentelemetry-exporter-otlp not installed.")
+        else:
+            # 优先使用 ObservabilitySettings 配置
+            langfuse = settings.observability
+            
+            # 使用传入的 endpoint 或配置中的 Langfuse host
+            endpoint = otlp_endpoint or langfuse.langfuse_host
+            
+            should_enable_otlp = (
+                # 显式传入了 endpoint
+                otlp_endpoint is not None
+                # 或者配置了 Langfuse 且启用了 export
+                or (langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langfuse_secret_key)
+            )
+
+            if should_enable_otlp:
+                if OTLPSpanExporter:
+                    headers = {}
+                    # 如果有 Langfuse 凭证，添加 Basic Auth Header
+                    if langfuse.langfuse_public_key and langfuse.langfuse_secret_key:
+                        import base64
+                        
+                        # Langfuse 使用 Basic Auth (User=Public Key, Pass=Secret Key)
+                        credentials = f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
+                        basic_auth = base64.b64encode(credentials.encode()).decode()
+                        headers["Authorization"] = f"Basic {basic_auth}"
+                    
+                    provider.add_span_processor(
+                        BatchSpanProcessor(
+                            OTLPSpanExporter(
+                                endpoint=endpoint, 
+                                headers=headers,
+                                insecure=not endpoint.startswith("https")
+                            )
+                        )
+                    )
+                else:
+                    logger.warning("OTLP Exporter requested but opentelemetry-exporter-otlp not installed.")
 
         if console_export:
             provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
