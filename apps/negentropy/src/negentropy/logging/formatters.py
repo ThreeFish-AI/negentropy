@@ -56,8 +56,13 @@ class ConsoleFormatter:
         else:
             time_part = datetime.now().strftime("%H:%M:%S")
 
-        # Shorten logger name (last part only)
-        short_logger = logger_name.split(".")[-1] if "." in logger_name else logger_name
+        # Shorten logger name while preserving context
+        # Keep at most 2 parts for readability (e.g., 'uvicorn.error', 'adk.sessions')
+        parts = logger_name.split(".")
+        if len(parts) <= 2:
+            short_logger = logger_name
+        else:
+            short_logger = ".".join(parts[-2:])
 
         # Format level with fixed width and color
         level_upper = level.upper()
