@@ -59,7 +59,18 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # 在运行迁移前，确保 negentropy schema 存在
+    from negentropy.models.base import NEGENTROPY_SCHEMA
+
+    connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {NEGENTROPY_SCHEMA}"))
+    connection.commit()
+
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_schemas=True,  # 确保 Alembic 能识别 schema
+        version_table_schema=NEGENTROPY_SCHEMA,  # 将版本表也放入 negentropy schema
+    )
 
     with context.begin_transaction():
         context.run_migrations()
