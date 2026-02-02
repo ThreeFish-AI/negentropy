@@ -1,5 +1,5 @@
 from negentropy.agents.agent import root_agent
-from negentropy.engine.runner_factory import get_runner
+from negentropy.engine.factories import get_runner
 
 # Expose the root agent for the ADK runner
 # This allows 'uv run adk web src/negentropy' to find the agent
