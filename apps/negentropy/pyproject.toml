@@ -74,3 +74,9 @@ testpaths = ["tests"]
 # -v: Verbose output
 # --strict-markers: Error on undefined markers to prevent typos
 addopts = "-v --strict-markers"
+# Ignore specific warnings
+filterwarnings = [
+    # Upstream warning from google-genai incompatible with Python 3.14
+    # See: https://github.com/googleapis/python-genai/issues/???
+    "ignore:'_UnionGenericAlias' is deprecated:DeprecationWarning"
+]
