@@ -38,5 +38,11 @@ class Settings(BaseSettings):
     artifact_service_backend: str = "inmemory"
     gcs_bucket_name: str | None = None
 
+    # CredentialService Backend: postgres | inmemory | session
+    # - postgres: Custom PostgresCredentialService (Persistent, Production-grade)
+    # - inmemory: ADK InMemoryCredentialService
+    # - session: ADK SessionStateCredentialService
+    credential_service_backend: str = "inmemory"
+
 
 settings = Settings()

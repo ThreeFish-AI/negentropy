@@ -100,12 +100,23 @@ def apply_adk_patches():
     This allows ADK CLI commands (like `adk web`) to use services configured
     in .env without needing explicit CLI arguments.
     """
+
     logger.info("Monkey-patching ADK service factories to use negentropy configuration...")
 
     # Patch the module directly
     original_factory.create_session_service_from_options = patched_create_session_service_from_options
     original_factory.create_memory_service_from_options = patched_create_memory_service_from_options
     original_factory.create_artifact_service_from_options = patched_create_artifact_service_from_options
+
+    # Patch InMemoryCredentialService to use our Factory
+    # This avoids the experimental warning while allowing flexible backend configuration
+    from google.adk.cli import fast_api
+    from negentropy.engine.credential_factory import get_credential_service
+
+    # fast_api.py calls: credential_service = InMemoryCredentialService()
+    # So we replace the class with a factory function that returns our instance.
+    fast_api.InMemoryCredentialService = get_credential_service
+    logger.info("Intercepted ADK default CredentialService to use configurable backend")
 
     # Also patch cli.cli which imports these functions
 
@@ -128,3 +139,4 @@ def apply_adk_patches():
                 mod.create_artifact_service_from_options = patched_create_artifact_service_from_options
 
     logger.info("ADK service factories patched successfully.")
+    logger.info(f"Using configured credential backend: {settings.credential_service_backend}")
