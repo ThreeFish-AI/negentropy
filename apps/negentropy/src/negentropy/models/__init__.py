@@ -1,5 +1,5 @@
 from .action import SandboxExecution, Tool, ToolExecution
-from .base import Base, TimestampMixin, Vector
+from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector
 from .internalization import ConsolidationJob, Fact, Instruction, Memory
 from .observability import Trace
 from .perception import Corpus, Knowledge
@@ -8,9 +8,10 @@ from .pulse import AppState, Event, Message, Run, Snapshot, Thread, UserState
 __all__ = [
     # Base
     "Base",
+    "NEGENTROPY_SCHEMA",
     "TimestampMixin",
     "Vector",
-    # Agent
+    # Pulse
     "Thread",
     "Event",
     "Run",
