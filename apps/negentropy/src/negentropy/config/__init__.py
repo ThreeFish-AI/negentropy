@@ -80,32 +80,32 @@ class Settings(BaseSettings):
     # Environment detection (loaded first to determine other configs)
     @cached_property
     def environment(self) -> EnvironmentSettings:
-        return EnvironmentSettings()
+        return EnvironmentSettings(_env_file=_get_env_files())
 
     # Composed sub-settings (each loads from its own env prefix)
     @cached_property
     def app(self) -> AppSettings:
-        return AppSettings()
+        return AppSettings(_env_file=_get_env_files())
 
     @cached_property
     def llm(self) -> LlmSettings:
-        return LlmSettings()
+        return LlmSettings(_env_file=_get_env_files())
 
     @cached_property
     def logging(self) -> LoggingSettings:
-        return LoggingSettings()
+        return LoggingSettings(_env_file=_get_env_files())
 
     @cached_property
     def database(self) -> DatabaseSettings:
-        return DatabaseSettings()
+        return DatabaseSettings(_env_file=_get_env_files())
 
     @cached_property
     def services(self) -> ServicesSettings:
-        return ServicesSettings()
+        return ServicesSettings(_env_file=_get_env_files())
 
     @cached_property
     def openai(self) -> OpenAISettings:
-        return OpenAISettings()
+        return OpenAISettings(_env_file=_get_env_files())
 
     # =========================================================================
     # Legacy Compatibility Layer
