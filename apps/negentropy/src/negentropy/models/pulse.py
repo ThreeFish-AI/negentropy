@@ -39,7 +39,9 @@ class Thread(Base, UUIDMixin, TimestampMixin):
 class Event(Base, UUIDMixin):
     __tablename__ = "events"
 
-    thread_id: Mapped[UUID] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False)
+    thread_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
+    )
     invocation_id: Mapped[UUID] = mapped_column(nullable=False)
     author: Mapped[str] = mapped_column(String(50), nullable=False)  # 'user', 'agent', 'tool'
     event_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'message', 'tool_call', 'state_update'
@@ -57,7 +59,9 @@ class Event(Base, UUIDMixin):
 class Run(Base, UUIDMixin):
     __tablename__ = "runs"
 
-    thread_id: Mapped[UUID] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False)
+    thread_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="'pending'")
     thinking_steps: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSONB, server_default="'[]'")
     tool_calls: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSONB, server_default="'[]'")
@@ -71,7 +75,9 @@ class Run(Base, UUIDMixin):
 class Message(Base, UUIDMixin):
     __tablename__ = "messages"
 
-    thread_id: Mapped[UUID] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False)
+    thread_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
+    )
     event_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.events.id", ondelete="SET NULL"))
     role: Mapped[str] = mapped_column(String(20), nullable=False)  # 'user', 'assistant', 'tool', 'system'
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -86,7 +92,9 @@ class Message(Base, UUIDMixin):
 class Snapshot(Base, UUIDMixin):
     __tablename__ = "snapshots"
 
-    thread_id: Mapped[UUID] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False)
+    thread_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
+    )
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     state: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
     events_summary: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")

@@ -29,7 +29,9 @@ class Corpus(Base, UUIDMixin, TimestampMixin):
 class Knowledge(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "knowledge"
 
-    corpus_id: Mapped[UUID] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.corpus.id", ondelete="CASCADE"), nullable=False)
+    corpus_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.corpus.id", ondelete="CASCADE"), nullable=False
+    )
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(1536))
