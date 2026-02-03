@@ -29,6 +29,9 @@ class ToolDefinition:
     is_active: bool
     call_count: int
     avg_latency_ms: float
+    call_count_success: int
+    call_count_failed: int
+    call_count_denied: int
 
 
 @dataclass
@@ -73,9 +76,12 @@ class ToolRegistry:
                     openapi_schema=openapi_schema or {},
                     permissions=permissions or {"allowed_users": ["*"]},
                     is_active=True,
-                    call_count=0,
-                    avg_latency_ms=0.0,
-                )
+                call_count=0,
+                avg_latency_ms=0.0,
+                call_count_success=0,
+                call_count_failed=0,
+                call_count_denied=0,
+            )
                 .on_conflict_do_update(
                     index_elements=["app_name", "name"],
                     set_={
@@ -104,6 +110,9 @@ class ToolRegistry:
             is_active=tool_orm.is_active,
             call_count=tool_orm.call_count,
             avg_latency_ms=tool_orm.avg_latency_ms,
+            call_count_success=tool_orm.call_count_success,
+            call_count_failed=tool_orm.call_count_failed,
+            call_count_denied=tool_orm.call_count_denied,
         )
 
     async def get_available_tools(
@@ -128,6 +137,9 @@ class ToolRegistry:
                 is_active=r.is_active,
                 call_count=r.call_count,
                 avg_latency_ms=r.avg_latency_ms,
+                call_count_success=r.call_count_success,
+                call_count_failed=r.call_count_failed,
+                call_count_denied=r.call_count_denied,
             )
             for r in rows
             if self._is_tool_allowed(r.permissions or {}, user_id, roles)
@@ -164,7 +176,7 @@ class ToolRegistry:
                         error="permission_denied",
                         latency_ms=0.0,
                     )
-                    await self._update_tool_stats(name=name, latency_ms=0.0)
+                    await self._update_tool_stats(name=name, status="denied", latency_ms=0.0)
                     raise PermissionError(f"User '{user_id}' is not allowed to invoke tool '{name}'")
 
         start = time.time()
@@ -190,9 +202,10 @@ class ToolRegistry:
                 error=str(error),
                 latency_ms=latency,
             )
+            await self._update_tool_stats(name=name, status="failed", latency_ms=latency)
             raise error
 
-        await self._update_tool_stats(name=name, latency_ms=latency)
+        await self._update_tool_stats(name=name, status="success", latency_ms=latency)
 
         await self._record_execution(
             tool_row,
@@ -297,19 +310,25 @@ class ToolRegistry:
             db.add(execution)
             await db.commit()
 
-    async def _update_tool_stats(self, *, name: str, latency_ms: float) -> None:
+    async def _update_tool_stats(self, *, name: str, status: str, latency_ms: float) -> None:
         async with db_session.AsyncSessionLocal() as db:
-            # Atomic update:
-            # avg_latency = (old_avg * count + new_latency) / (count + 1)
-            # count = count + 1
-            stmt = (
-                update(Tool)
-                .where(Tool.app_name == self._app_name, Tool.name == name)
-                .values(
-                    call_count=Tool.call_count + 1,
-                    avg_latency_ms=(Tool.avg_latency_ms * Tool.call_count + latency_ms) / (Tool.call_count + 1),
+            if status == "denied":
+                stmt = (
+                    update(Tool)
+                    .where(Tool.app_name == self._app_name, Tool.name == name)
+                    .values(call_count_denied=Tool.call_count_denied + 1)
                 )
-            )
+            else:
+                stmt = (
+                    update(Tool)
+                    .where(Tool.app_name == self._app_name, Tool.name == name)
+                    .values(
+                        call_count=Tool.call_count + 1,
+                        avg_latency_ms=(Tool.avg_latency_ms * Tool.call_count + latency_ms) / (Tool.call_count + 1),
+                        call_count_success=Tool.call_count_success + (1 if status == "success" else 0),
+                        call_count_failed=Tool.call_count_failed + (1 if status == "failed" else 0),
+                    )
+                )
             await db.execute(stmt)
             await db.commit()
 

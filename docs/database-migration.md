@@ -57,6 +57,15 @@
   3. 无缝衔接异步 SQLAlchemy 引擎（`asyncpg`），让迁移以异步方式运行。
 - **用法**：多数情况下无需修改。当模型包结构变更或连接方式需调整时，才修改此文件。
 
+## pgvector (vector 类型) 的 Alembic 识别
+
+当数据库启用了 `pgvector`，且模型中使用 `Vector` 类型时，Alembic autogenerate 可能在反射阶段报出 “unknown type 'vector' / Couldn't determine database type” 等告警。为避免**抑制告警**、同时确保**正常功能**，本项目在 [`env.py`](../apps/negentropy/src/negentropy/db/migrations/env.py) 中注册了 `vector` 的反射映射，并在 `compare_type` 中对 `Vector` 做等价比较，从源头消除不必要的类型告警。
+
+关键约束：
+
+- **不屏蔽告警**：保留 Alembic 的正常提示机制，仅让 `vector` 类型能够被正确识别。
+- **不改变运行时逻辑**：只影响 Alembic 反射与比对行为，不影响应用读写。
+
 ## 演进工作流 (Workflow)
 
 ### 1. 捕捉变更 (Capture)
