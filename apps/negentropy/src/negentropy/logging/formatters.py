@@ -109,6 +109,15 @@ class ConsoleFormatter:
             return text
         return colorize(text, color)
 
+    @staticmethod
+    def _decode_unicode_escapes(text: str) -> str:
+        if "\\u" not in text and "\\U" not in text:
+            return text
+        try:
+            return bytes(text, "utf-8").decode("unicode_escape")
+        except Exception:
+            return text
+
     @classmethod
     def format(cls, event_dict: EventDict, *, use_color: bool = True) -> str:
         """Format an event dict into an aligned string."""
@@ -116,6 +125,8 @@ class ConsoleFormatter:
         message = event_dict.get("message", event_dict.get("event", ""))
         logger_name = event_dict.get("logger", "root")
         source = event_dict.get("source")
+
+        message_text = cls._decode_unicode_escapes(str(message))
 
         display_logger = str(logger_name)
         if logger_name in {"stdout", "stderr"} and source:
@@ -134,11 +145,12 @@ class ConsoleFormatter:
                 continue
             if k not in ConsoleFormatter.EXCLUDED_KEYS:
                 key_colored = cls._maybe_color(k, "key", use_color)
-                value_colored = cls._maybe_color(str(v), "dim", use_color)
+                value_text = cls._decode_unicode_escapes(str(v))
+                value_colored = cls._maybe_color(value_text, "dim", use_color)
                 extras.append(f"{key_colored}={value_colored}")
 
         if extras:
-            message = f"{message} " + " ".join(extras)
+            message_text = f"{message_text} " + " ".join(extras)
 
         level_upper = level.upper()
         level_text = cls._colorize_level(
@@ -163,6 +175,6 @@ class ConsoleFormatter:
                     use_color,
                 ),
                 ConsoleFormatter.SEPARATOR,
-                str(message),
+                message_text,
             ]
         )
