@@ -225,7 +225,13 @@ def apply_adk_patches():
                             # Extract or generate session_id for Langfuse grouping
                             # Priority: Header > Query > JSON Body > Generated
                             session_id = request.headers.get("X-Session-ID") or request.query_params.get("session_id")
+                            session_source = "header" if request.headers.get("X-Session-ID") else (
+                                "query" if request.query_params.get("session_id") else None
+                            )
                             user_id = request.headers.get("X-User-ID") or request.query_params.get("user_id")
+                            user_source = "header" if request.headers.get("X-User-ID") else (
+                                "query" if request.query_params.get("user_id") else None
+                            )
 
                             if session_id is None:
                                 try:
@@ -235,12 +241,18 @@ def apply_adk_patches():
                                     ):
                                         body = await request.json()
                                         session_id = body.get("sessionId") or body.get("session_id")
-                                        user_id = user_id or body.get("userId") or body.get("user_id")
+                                        if session_id and session_source is None:
+                                            session_source = "body"
+                                        if user_id is None:
+                                            user_id = body.get("userId") or body.get("user_id")
+                                            if user_id and user_source is None:
+                                                user_source = "body"
                                 except Exception as e:
                                     logger.debug(f"Failed to read request JSON for session/user id: {e}")
 
                             if session_id is None:
                                 session_id = str(uuid.uuid4())
+                                session_source = "generated"
 
                             # Set tracing context so all spans get Langfuse attributes
                             set_tracing_context(session_id=session_id, user_id=user_id)
@@ -250,7 +262,13 @@ def apply_adk_patches():
                             if user_id:
                                 request.state.user_id = user_id
 
-                            logger.debug(f"Tracing context set: session_id={session_id}, user_id={user_id}")
+                            logger.debug(
+                                "Tracing context set: session_id=%s (source=%s), user_id=%s (source=%s)",
+                                session_id,
+                                session_source,
+                                user_id,
+                                user_source,
+                            )
 
                     except Exception as e:
                         logger.warning(f"Failed to ensure tracing init in middleware: {e}")
