@@ -11,6 +11,25 @@ from structlog.typing import EventDict
 # Console Formatter (Aligned Columns)
 # =============================================================================
 
+COLORS = {
+    "reset": "\033[0m",
+    "bold": "\033[1m",
+    "dim": "\033[2m",
+    "debug": "\033[36m",
+    "info": "\033[32m",
+    "warning": "\033[33m",
+    "error": "\033[31m",
+    "critical": "\033[1;31m",
+    "timestamp": "\033[90m",
+    "logger": "\033[35m",
+    "key": "\033[34m",
+}
+
+
+def colorize(text: str, color: str) -> str:
+    """Apply ANSI color to text."""
+    return f"{COLORS.get(color, '')}{text}{COLORS['reset']}"
+
 
 class ConsoleFormatter:
     """Handles human-readable console log rendering (fixed width, right-aligned)."""
@@ -28,7 +47,7 @@ class ConsoleFormatter:
     TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
     TIMESTAMP_WIDTH = 19
     LEVEL_WIDTH = 8
-    LOGGER_WIDTH = 36
+    LOGGER_WIDTH = 32
     SEPARATOR = " | "
 
     @classmethod
@@ -84,6 +103,12 @@ class ConsoleFormatter:
             return text
         return f"{color}{text}{cls._RESET}"
 
+    @staticmethod
+    def _maybe_color(text: str, color: str, use_color: bool) -> str:
+        if not use_color:
+            return text
+        return colorize(text, color)
+
     @classmethod
     def format(cls, event_dict: EventDict, *, use_color: bool = True) -> str:
         """Format an event dict into an aligned string."""
@@ -108,7 +133,9 @@ class ConsoleFormatter:
             if k == "source" and logger_name in {"stdout", "stderr"} and source:
                 continue
             if k not in ConsoleFormatter.EXCLUDED_KEYS:
-                extras.append(f"{k}={v}")
+                key_colored = cls._maybe_color(k, "key", use_color)
+                value_colored = cls._maybe_color(str(v), "dim", use_color)
+                extras.append(f"{key_colored}={value_colored}")
 
         if extras:
             message = f"{message} " + " ".join(extras)
@@ -122,11 +149,19 @@ class ConsoleFormatter:
 
         return "".join(
             [
-                ConsoleFormatter._fit_right(str(timestamp), ConsoleFormatter.TIMESTAMP_WIDTH),
+                cls._maybe_color(
+                    ConsoleFormatter._fit_right(str(timestamp), ConsoleFormatter.TIMESTAMP_WIDTH),
+                    "timestamp",
+                    use_color,
+                ),
                 ConsoleFormatter.SEPARATOR,
                 level_text,
                 ConsoleFormatter.SEPARATOR,
-                ConsoleFormatter._fit_right(display_logger, ConsoleFormatter.LOGGER_WIDTH),
+                cls._maybe_color(
+                    ConsoleFormatter._fit_right(display_logger, ConsoleFormatter.LOGGER_WIDTH),
+                    "logger",
+                    use_color,
+                ),
                 ConsoleFormatter.SEPARATOR,
                 str(message),
             ]
