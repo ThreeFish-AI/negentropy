@@ -212,10 +212,12 @@ def apply_adk_patches():
             from starlette.middleware.base import BaseHTTPMiddleware
             from starlette.requests import Request
             from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
+            from opentelemetry import baggage, context as otel_context
             import uuid
 
             class TracingInitMiddleware(BaseHTTPMiddleware):
                 async def dispatch(self, request: Request, call_next):
+                    token = None
                     try:
                         manager = get_tracing_manager()
                         if manager:
@@ -257,6 +259,16 @@ def apply_adk_patches():
                             # Set tracing context so all spans get Langfuse attributes
                             set_tracing_context(session_id=session_id, user_id=user_id)
 
+                            # Propagate via OTel baggage for cross-thread/task spans
+                            ctx = otel_context.get_current()
+                            if session_id:
+                                ctx = baggage.set_baggage("langfuse.session.id", session_id, context=ctx)
+                                ctx = baggage.set_baggage("session.id", session_id, context=ctx)
+                            if user_id:
+                                ctx = baggage.set_baggage("langfuse.user.id", user_id, context=ctx)
+                                ctx = baggage.set_baggage("user.id", user_id, context=ctx)
+                            token = otel_context.attach(ctx)
+
                             # Store session_id in request state for later use
                             request.state.session_id = session_id
                             if user_id:
@@ -273,7 +285,11 @@ def apply_adk_patches():
                     except Exception as e:
                         logger.warning(f"Failed to ensure tracing init in middleware: {e}")
 
-                    return await call_next(request)
+                    try:
+                        return await call_next(request)
+                    finally:
+                        if token is not None:
+                            otel_context.detach(token)
 
             app.add_middleware(TracingInitMiddleware)
             return app

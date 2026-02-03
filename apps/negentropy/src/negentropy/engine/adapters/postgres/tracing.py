@@ -22,7 +22,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from typing import Any, Optional
 
-from opentelemetry import trace, context
+from opentelemetry import trace, context, baggage
 from opentelemetry.sdk.trace import TracerProvider, ReadableSpan, SpanProcessor
 from opentelemetry.sdk.trace.export import (
     BatchSpanProcessor,
@@ -97,6 +97,12 @@ class LangfuseAttributesProcessor(SpanProcessor):
             return
 
         session_id, user_id = get_tracing_context()
+        if not session_id or not user_id:
+            ctx = context.get_current()
+            if not session_id:
+                session_id = baggage.get_baggage("langfuse.session.id", ctx) or baggage.get_baggage("session.id", ctx)
+            if not user_id:
+                user_id = baggage.get_baggage("langfuse.user.id", ctx) or baggage.get_baggage("user.id", ctx)
 
         if session_id:
             span.set_attribute("langfuse.session.id", session_id)
