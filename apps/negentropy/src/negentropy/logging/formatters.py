@@ -46,6 +46,7 @@ class ConsoleFormatter:
         level = event_dict.get("level", "info").lower()
         message = event_dict.get("message", event_dict.get("event", ""))
         logger_name = event_dict.get("logger", "root")
+        source = event_dict.get("source")
         timestamp = event_dict.get("timestamp", "")
 
         # Format timestamp (extract time portion only)
@@ -65,6 +66,15 @@ class ConsoleFormatter:
         else:
             short_logger = ".".join(parts[-2:])
 
+        # For stdout/stderr logs, surface the source in the logger column
+        if logger_name in {"stdout", "stderr"} and source:
+            source_parts = str(source).split(".")
+            if len(source_parts) <= 2:
+                short_source = str(source)
+            else:
+                short_source = ".".join(source_parts[-2:])
+            short_logger = f"{logger_name}:{short_source}"
+
         # Pad logger name to fixed width for alignment (20 chars, right-aligned)
         short_logger = f"{short_logger:>20}"
 
@@ -75,6 +85,8 @@ class ConsoleFormatter:
         # Build extra key=value pairs
         extras = []
         for k, v in event_dict.items():
+            if k == "source" and logger_name in {"stdout", "stderr"} and source:
+                continue
             if k not in ConsoleFormatter.EXCLUDED_KEYS:
                 key_colored = colorize(k, "key")
                 extras.append(f"{key_colored}={v}")
