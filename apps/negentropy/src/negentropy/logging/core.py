@@ -140,7 +140,7 @@ def configure_logging(
     gcloud_log_name: str = "negentropy",
     console_timestamp_format: str = "%Y-%m-%d %H:%M:%S",
     console_level_width: int = 8,
-    console_logger_width: int = 48,
+    console_logger_width: int = 36,
     console_separator: str = " | ",
 ) -> None:
     """
