@@ -17,6 +17,7 @@ class LiteLLMLoggingCallback:
         """Ensure TracingManager has attached its configuration."""
         try:
             from negentropy.engine.adapters.postgres.tracing import get_tracing_manager
+
             manager = get_tracing_manager()
             if manager:
                 # Accessing .tracer triggers _ensure_initialized()
