@@ -3,6 +3,7 @@ Instrumentation and Observability Callbacks.
 """
 
 from typing import Any
+import json
 
 from negentropy.logging import get_logger
 
@@ -86,3 +87,66 @@ class LiteLLMLoggingCallback:
             )
         except Exception:
             pass
+
+
+class LangfuseOtelCostCallback:
+    """
+    LiteLLM OpenTelemetry callback wrapper that injects Langfuse cost attributes.
+
+    Langfuse expects cost on OTEL spans via `gen_ai.usage.cost` or
+    `langfuse.observation.cost_details`. LiteLLM does not set these by default.
+    """
+
+    def __init__(self) -> None:
+        from litellm.integrations.opentelemetry import OpenTelemetry
+
+        class _LangfuseOtel(OpenTelemetry):
+            def set_attributes(self, span, kwargs, response_obj):
+                super().set_attributes(span, kwargs, response_obj)
+                try:
+                    cost = self._extract_total_cost(kwargs, response_obj)
+                    if cost is not None:
+                        self.safe_set_attribute(span, "gen_ai.usage.cost", cost)
+                        self.safe_set_attribute(
+                            span,
+                            "langfuse.observation.cost_details",
+                            json.dumps({"total": cost}),
+                        )
+                except Exception:
+                    pass
+
+            @staticmethod
+            def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
+                cost = kwargs.get("response_cost")
+                if cost is None:
+                    standard_logging = kwargs.get("standard_logging_object")
+                    cost_breakdown = None
+                    if isinstance(standard_logging, dict):
+                        cost_breakdown = standard_logging.get("cost_breakdown")
+                    elif standard_logging is not None:
+                        if hasattr(standard_logging, "get") and callable(standard_logging.get):
+                            cost_breakdown = standard_logging.get("cost_breakdown")
+                        if cost_breakdown is None:
+                            cost_breakdown = getattr(standard_logging, "cost_breakdown", None)
+                    cost = (cost_breakdown or {}).get("total_cost")
+
+                if cost is None and response_obj is not None:
+                    try:
+                        from litellm.cost_calculator import completion_cost
+
+                        cost = completion_cost(completion_response=response_obj)
+                    except Exception:
+                        cost = None
+
+                try:
+                    return float(cost) if cost is not None else None
+                except (TypeError, ValueError):
+                    return None
+
+        self._otel = _LangfuseOtel()
+
+    def log_success_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
+        self._otel.log_success_event(kwargs, response_obj, start_time, end_time)
+
+    def log_failure_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
+        self._otel.log_failure_event(kwargs, response_obj, start_time, end_time)
