@@ -13,6 +13,19 @@ class LiteLLMLoggingCallback:
     def __init__(self) -> None:
         self._logger = get_logger("negentropy.llm.usage")
 
+    def _ensure_tracing(self):
+        """Ensure TracingManager has attached its configuration."""
+        try:
+            from negentropy.engine.adapters.postgres.tracing import get_tracing_manager
+            manager = get_tracing_manager()
+            if manager:
+                # Accessing .tracer triggers _ensure_initialized()
+                self._logger.debug("Triggering TracingManager initialization check from instrumentation...")
+                t = manager.tracer
+                self._logger.debug(f"Got tracer: {t}")
+        except Exception as e:
+            self._logger.error(f"Failed to ensure tracing: {e}")
+
     def _get_model_cost(self, kwargs: dict) -> float:
         try:
             from litellm import completion_cost
@@ -27,6 +40,7 @@ class LiteLLMLoggingCallback:
 
     def log_success_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
         """Log successful LLM interaction."""
+        self._ensure_tracing()
         try:
             model = kwargs.get("model", "unknown")
             input_tokens = 0

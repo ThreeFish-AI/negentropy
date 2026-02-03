@@ -16,9 +16,14 @@ from negentropy.config import settings
 from negentropy.engine.factories.memory import get_memory_service
 from negentropy.engine.factories.session import get_session_service
 from negentropy.engine.factories.artifacts import get_artifact_service
+from negentropy.engine.adapters.postgres.tracing import init_tracing
 
 if TYPE_CHECKING:
     from google.adk.agents.base_agent import BaseAgent
+
+# Initialize OpenTelemetry tracing manager (lazy initialization of OTel)
+# This creates the singleton instance but does not touch global OTel state yet.
+init_tracing()
 
 
 # 模块级单例缓存
