@@ -16,7 +16,7 @@ from negentropy.engine.factories import (
 )
 from negentropy.config import settings
 from negentropy.logging import configure_logging, get_logger
-from negentropy.instrumentation import LiteLLMLoggingCallback
+from negentropy.instrumentation import LiteLLMLoggingCallback, patch_litellm_otel_cost
 
 # Initialize logging early
 configure_logging(
@@ -64,6 +64,7 @@ try:
     # LiteLLM's "otel" callback uses the OpenTelemetry environment variables set above
     # to send traces to Langfuse. This is the PRIMARY mechanism for creating traces from LLM calls.
     # We also keep our custom LiteLLMLoggingCallback for additional logging.
+    patch_litellm_otel_cost()
     litellm.success_callback = [LiteLLMLoggingCallback(), "otel"]
     litellm.failure_callback = [LiteLLMLoggingCallback(), "otel"]
 

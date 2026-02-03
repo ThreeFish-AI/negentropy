@@ -7,6 +7,7 @@ import json
 
 from negentropy.logging import get_logger
 from opentelemetry import trace
+from litellm.integrations.opentelemetry import OpenTelemetry
 
 
 class LiteLLMLoggingCallback:
@@ -132,3 +133,30 @@ def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
         return float(cost) if cost is not None else None
     except (TypeError, ValueError):
         return None
+
+
+def patch_litellm_otel_cost() -> None:
+    """
+    Monkey-patch LiteLLM OpenTelemetry set_attributes to inject cost without replacing the 'otel' callback.
+    """
+    if getattr(OpenTelemetry.set_attributes, "_ne_cost_patched", False):
+        return
+
+    original = OpenTelemetry.set_attributes
+
+    def _patched_set_attributes(self, span, kwargs, response_obj):
+        original(self, span, kwargs, response_obj)
+        try:
+            cost = _extract_total_cost(kwargs, response_obj)
+            if cost is not None:
+                self.safe_set_attribute(span, "gen_ai.usage.cost", cost)
+                self.safe_set_attribute(
+                    span,
+                    "langfuse.observation.cost_details",
+                    json.dumps({"total": cost}),
+                )
+        except Exception:
+            pass
+
+    _patched_set_attributes._ne_cost_patched = True  # type: ignore[attr-defined]
+    OpenTelemetry.set_attributes = _patched_set_attributes  # type: ignore[assignment]
