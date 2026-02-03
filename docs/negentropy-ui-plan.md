@@ -51,7 +51,7 @@
 - **新会话**：点击 “New Session” 生成新 `session_id`，立即建立 AG-UI 连接并写入列表。
 - **会话切换**：切换时重新订阅对应 `session_id` 的事件流，主栏清空并回放（如后端支持历史）。
 - **发送指令**：输入框支持多行，`Enter` 发送，`Shift+Enter` 换行；发送时主栏显示 `TEXT_MESSAGE_START` 占位。
-- **流式更新**：文本、工具、状态事件按类型渲染，不做“隐式合并”，仅在 UI 拼接展示。
+- **流式更新**：文本、工具、状态事件按类型渲染；展示层允许做可逆 compaction 以降低冗余（不影响事件语义）。
 - **断连提示**：SSE 断开时提示“连接中断，重试中…”，重连成功后恢复。
 
 **事件到 UI 的映射**
@@ -160,6 +160,7 @@
 ### P0. 骨架与连通性
 
 - ✅ 已完成：建立 `/api/agui` 代理层（SSE/POST 转发）。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)。
+- ✅ 已完成：BFF 将 ADK SSE 事件转换为 AG-UI 事件流（含 Run/Message/Tool/State/Activity）。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts) 与 [apps/negentropy-ui/lib/adk.ts](../apps/negentropy-ui/lib/adk.ts)。<sup>[[5]](#ref5)</sup>
 - ✅ 已完成：环境变量（`AGUI_BASE_URL` + `NEXT_PUBLIC_AGUI_APP_NAME` + `NEXT_PUBLIC_AGUI_USER_ID`）本地配置。<sup>[[4]](#ref4)</sup>
 - ✅ 已完成：主界面最小 UI 骨架与事件展示。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
   - **验证记录（feature/1.0.0）**：使用该分支提供的 `ZAI_API_KEY`/`ZAI_API_BASE`，`POST /api/agui` 返回 `glm-4.7` 的 SSE 分片输出，验证通过。
@@ -167,13 +168,13 @@
 ### P1. 事件驱动 UI
 
 - ✅ 已完成：ADK Event → UI 适配（文本/状态增量）。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
-- ✅ 已完成：Tool/Artifact 事件解析并落入事件时间线（保持结构化展示）。<sup>[[5]](#ref5)</sup>
-- ⏳ 可选：事件缓存与 compaction（降低冗余）。<sup>[[10]](#ref10)</sup>
+- ✅ 已完成：Tool/Artifact 事件结构化卡片展示（入参/出参/状态/Artifact 内容）。实现见 [apps/negentropy-ui/components/ui/EventTimeline.tsx](../apps/negentropy-ui/components/ui/EventTimeline.tsx)。<sup>[[5]](#ref5)</sup>
+- ✅ 已完成：事件 compaction（降低冗余）。基于 `compactEvents` 进行合并展示。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。<sup>[[10]](#ref10)</sup>
 
 ### P2. CopilotKit 集成
 
-- 引入 CopilotKit Provider + `useAgent` 实现统一 Agent 状态管理。<sup>[[9]](#ref9)</sup>
-- 将前端动作（确认/修正/补充信息）以工具调用形式上报。
+- ✅ 已完成：引入 CopilotKit Provider + `useAgent` 实现统一 Agent 状态管理。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。<sup>[[9]](#ref9)</sup>
+- ✅ 已完成：前端动作（确认/修正/补充信息）以工具调用形式上报，并在必要时追加用户反馈消息继续执行。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
 
 ### P3. 可观测性与稳定性
 
@@ -327,13 +328,15 @@ flowchart LR
 
 ### 13.0 当前实现状态（与工程同步）
 
-- **BFF 代理**：已实现 `POST /api/agui`，完成 SSE 转发与错误封装（见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)）。
+- **BFF 代理**：已实现 `POST /api/agui`，完成 ADK → AG-UI 事件转换与 SSE 输出（见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)、[apps/negentropy-ui/lib/adk.ts](../apps/negentropy-ui/lib/adk.ts)）。
 - **健康检查**：已实现 `GET /api/health`（见 [apps/negentropy-ui/app/api/health/route.ts](../apps/negentropy-ui/app/api/health/route.ts)）。
 - **Session 创建**：已实现 `POST /api/agui/sessions`（见 [apps/negentropy-ui/app/api/agui/sessions/route.ts](../apps/negentropy-ui/app/api/agui/sessions/route.ts)）。
 - **Session 列表**：已实现 `GET /api/agui/sessions/list`（见 [apps/negentropy-ui/app/api/agui/sessions/list/route.ts](../apps/negentropy-ui/app/api/agui/sessions/list/route.ts)）。
 - **Session 回放**：已实现 `GET /api/agui/sessions/:id` 并在 UI 端加载历史 events（见 [apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts](../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts)）。
 - **密钥映射**：已在启动阶段将 `NE_API_KEY` 映射到 `ZAI_API_KEY`（见 [apps/negentropy/src/negentropy/engine/bootstrap.py](../apps/negentropy/src/negentropy/engine/bootstrap.py)）。
-- **UI 骨架**：已实现三栏布局、session 创建与 SSE 事件展示（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。
+- **UI 骨架**：已实现三栏布局、session 创建与 Agent 事件展示（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。
+- **CopilotKit 统一连接**：已接入 `CopilotKitProvider` + `useAgent` + `HttpAgent`，统一消息/状态/事件流（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。
+- **事件 compaction + 卡片化**：Tool/Artifact/State 事件进行合并并结构化展示（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)、[apps/negentropy-ui/components/ui/EventTimeline.tsx](../apps/negentropy-ui/components/ui/EventTimeline.tsx)）。
 - **组件拆分**：已抽取 Header/SessionList/ChatStream/Composer/StateSnapshot/EventTimeline（见 [apps/negentropy-ui/components/ui/Header.tsx](../apps/negentropy-ui/components/ui/Header.tsx) 等）。
 
 ### 13.1 接口契约草案（AG-UI 事件流视角）
@@ -341,32 +344,31 @@ flowchart LR
 #### 13.1.1 发送输入并获取流式响应（SSE over POST）
 
 - **路径**：`POST /api/agui`
-- **目的**：通过 BFF 代理层调用后端 `POST /run_sse`，返回 SSE 事件流。
+- **目的**：通过 BFF 代理层调用后端 `POST /run_sse`，将 ADK SSE 转换为 AG-UI 事件流。
 - **请求头**：
   - `X-Session-ID`: string（可选；用于 tracing/归档）
   - `X-User-ID`: string（可选；用于 tracing）
-- **请求体（对齐 ADK RunAgentRequest）**：
+- **请求体（对齐 AG-UI RunAgentInput）**：
 
 ```json
 {
-  "app_name": "agents",
-  "user_id": "ui",
-  "session_id": "uuid",
-  "new_message": {
-    "role": "user",
-    "parts": [
-      { "text": "user message" }
-    ]
-  },
-  "streaming": true,
-  "state_delta": null,
-  "invocation_id": null
+  "threadId": "uuid",
+  "runId": "uuid",
+  "state": {},
+  "messages": [
+    { "id": "msg_1", "role": "user", "content": "user message" }
+  ],
+  "context": [],
+  "tools": [],
+  "forwardedProps": {}
 }
 ```
 
+- **查询参数**：
+  - `app_name` / `user_id` / `session_id`（必填；由 UI 传入）
 - **响应**：`200 OK` + `text/event-stream`
 
-> 说明：该结构来源于 ADK `RunAgentRequest`，UI 不做字段扩展，保持透传。
+> 说明：UI 以 AG-UI RunAgentInput 为输入，BFF 内部映射为 ADK `RunAgentRequest` 后请求后端。
 
 #### 13.1.2 Session 创建（HTTP）
 
