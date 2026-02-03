@@ -76,12 +76,12 @@ class ToolRegistry:
                     openapi_schema=openapi_schema or {},
                     permissions=permissions or {"allowed_users": ["*"]},
                     is_active=True,
-                call_count=0,
-                avg_latency_ms=0.0,
-                call_count_success=0,
-                call_count_failed=0,
-                call_count_denied=0,
-            )
+                    call_count=0,
+                    avg_latency_ms=0.0,
+                    call_count_success=0,
+                    call_count_failed=0,
+                    call_count_denied=0,
+                )
                 .on_conflict_do_update(
                     index_elements=["app_name", "name"],
                     set_={
