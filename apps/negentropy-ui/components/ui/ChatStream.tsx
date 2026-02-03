@@ -1,6 +1,6 @@
-type ChatMessage = {
-  id: string;
-  role: "user" | "agent" | "system";
+import type { Message } from "@ag-ui/core";
+
+type ChatMessage = Pick<Message, "id" | "role"> & {
   content: string;
 };
 
