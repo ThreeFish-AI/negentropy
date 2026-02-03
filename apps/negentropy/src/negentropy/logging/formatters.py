@@ -37,6 +37,7 @@ class ConsoleFormatter:
     """Handles human-readable console log rendering (Separation of Concerns)."""
 
     EXCLUDED_KEYS = {"level", "message", "event", "logger", "timestamp", "_name"}
+    LEVEL_WIDTH = 7
 
     @staticmethod
     def format(event_dict: EventDict) -> str:
@@ -69,7 +70,7 @@ class ConsoleFormatter:
 
         # Format level with fixed width and color
         level_upper = level.upper()
-        level_colored = colorize(f"{level_upper:>5}", level)
+        level_colored = colorize(f"{level_upper:>{ConsoleFormatter.LEVEL_WIDTH}}", level)
 
         # Build extra key=value pairs
         extras = []
