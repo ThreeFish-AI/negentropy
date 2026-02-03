@@ -1,4 +1,6 @@
 import sys
+import os
+import base64
 from typing import Any, Optional
 from pathlib import Path
 
@@ -26,16 +28,44 @@ configure_logging(
     gcloud_log_name=settings.gcloud_log_name,
 )
 
-# Register LiteLLM callback for clean usage logging
+# Initialize logger AFTER configure_logging
+logger = get_logger("negentropy.bootstrap")
+
+# Configure OpenTelemetry environment variables for LiteLLM's "otel" callback
+# This MUST be done before importing litellm, as the callback reads these at import time
+langfuse = settings.observability
+if langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langfuse_secret_key:
+    # Set OTLP endpoint for LiteLLM's otel callback
+    # Note: Use the base OTLP endpoint without /v1/traces suffix
+    # LiteLLM will append the correct path based on the protocol
+    base_endpoint = langfuse.langfuse_host.rstrip("/")
+
+    # For HTTP/protobuf exporter, the endpoint should be the base URL
+    # LiteLLM/OTel will append /v1/traces automatically
+    os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = f"{base_endpoint}/api/public/otel"
+
+    # Set Basic Auth headers for Langfuse
+    credentials = f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
+    basic_auth = base64.b64encode(credentials.encode()).decode()
+    os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"Authorization=Basic {basic_auth}"
+
+    logger.info(f"Configured LiteLLM OTel callback to use Langfuse: {base_endpoint}/api/public/otel")
+else:
+    logger.warning("Langfuse not configured - LiteLLM OTel callback will use default endpoint (localhost:4317)")
+
+# Register LiteLLM callbacks
 try:
     import litellm
 
+    # LiteLLM's "otel" callback uses the OpenTelemetry environment variables set above
+    # to send traces to Langfuse. This is the PRIMARY mechanism for creating traces from LLM calls.
+    # We also keep our custom LiteLLMLoggingCallback for additional logging.
     litellm.success_callback = [LiteLLMLoggingCallback(), "otel"]
     litellm.failure_callback = [LiteLLMLoggingCallback(), "otel"]
+
+    logger.info("LiteLLM callbacks registered: custom logging + otel")
 except ImportError:
     pass
-
-logger = get_logger("negentropy.bootstrap")
 
 # ------------------------------------------------------------------------------
 # Save original implementations to allow fallback
@@ -176,7 +206,8 @@ def apply_adk_patches():
 
             from starlette.middleware.base import BaseHTTPMiddleware
             from starlette.requests import Request
-            from negentropy.engine.adapters.postgres.tracing import get_tracing_manager
+            from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
+            import uuid
 
             class TracingInitMiddleware(BaseHTTPMiddleware):
                 async def dispatch(self, request: Request, call_next):
@@ -185,9 +216,31 @@ def apply_adk_patches():
                         if manager:
                             # ensure_initialized is idempotent and fast after first run
                             manager._ensure_initialized()
+
+                            # Extract or generate session_id for Langfuse grouping
+                            # Priority: Header > Query > Generated
+                            session_id = (
+                                request.headers.get("X-Session-ID")
+                                or request.query_params.get("session_id")
+                                or str(uuid.uuid4())
+                            )
+
+                            # Extract user_id if available
+                            user_id = request.headers.get("X-User-ID") or request.query_params.get("user_id")
+
+                            # Set tracing context so all spans get Langfuse attributes
+                            set_tracing_context(session_id=session_id, user_id=user_id)
+
+                            # Store session_id in request state for later use
+                            request.state.session_id = session_id
+                            if user_id:
+                                request.state.user_id = user_id
+
+                            logger.debug(f"Tracing context set: session_id={session_id}, user_id={user_id}")
+
                     except Exception as e:
                         logger.warning(f"Failed to ensure tracing init in middleware: {e}")
-                    
+
                     return await call_next(request)
 
             app.add_middleware(TracingInitMiddleware)
@@ -216,7 +269,11 @@ def apply_adk_patches():
             if hasattr(mod, "create_artifact_service_from_options"):
                 mod.create_artifact_service_from_options = patched_create_artifact_service_from_options
             # Patch create_app in modules if present
-            if hasattr(mod, "create_app") and mod.create_app != patched_create_app and mod.create_app == original_create_app:
+            if (
+                hasattr(mod, "create_app")
+                and mod.create_app != patched_create_app
+                and mod.create_app == original_create_app
+            ):
                 mod.create_app = patched_create_app
 
     logger.info(f"ADK service factories patched successfully: {', '.join(patched_items)}")
