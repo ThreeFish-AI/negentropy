@@ -162,7 +162,7 @@
 - ✅ 已完成：建立 `/api/agui` 代理层（SSE/POST 转发）。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)。
 - ✅ 已完成：环境变量（`AGUI_BASE_URL` + `NEXT_PUBLIC_AGUI_APP_NAME` + `NEXT_PUBLIC_AGUI_USER_ID`）本地配置。<sup>[[4]](#ref4)</sup>
 - ✅ 已完成：主界面最小 UI 骨架与事件展示。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
-  - **验证记录**：`POST /api/agui/sessions` 成功创建 session，`POST /api/agui` 返回 SSE；当前因 **ZAI_API_KEY 仍为占位值** 触发 `AuthenticationError`（token incorrect），需替换为真实密钥后复验。
+  - **验证记录（feature/1.0.0）**：使用该分支提供的 `ZAI_API_KEY`/`ZAI_API_BASE`，`POST /api/agui` 返回 `glm-4.7` 的 SSE 分片输出，验证通过。
 
 ### P1. 事件驱动 UI
 
