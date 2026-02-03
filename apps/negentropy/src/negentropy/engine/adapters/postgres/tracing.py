@@ -227,27 +227,24 @@ class TracingManager:
 
         current_provider = trace.get_tracer_provider()
 
-        provider = TracerProvider()
-
-        # Add LangfuseAttributesProcessor FIRST - this injects session/user context into all spans
-        # Must be added before any exporters so all spans have the attributes
-        provider.add_span_processor(LangfuseAttributesProcessor())
+        # Build processors list using public APIs only
+        processors: list[SpanProcessor] = []
+        processors.append(LangfuseAttributesProcessor())
         logger.info(
             "LangfuseAttributesProcessor added - will inject langfuse.session.id and langfuse.user.id into all spans"
         )
 
         # 双路导出配置
         if self.enable_postgres:
-            # PostgreSQL: 持久化审计
-            provider.add_span_processor(BatchSpanProcessor(PostgresSpanExporter()))
+            processors.append(BatchSpanProcessor(PostgresSpanExporter()))
 
         # OTLP: 实时可视化 (Langfuse)
-        if self.otlp_exporter:
-            # 优先使用注入的 Exporter (测试用)
-            provider.add_span_processor(BatchSpanProcessor(self.otlp_exporter))
-        else:
-            # 优先使用 ObservabilitySettings 配置
-            langfuse = settings.observability
+            if self.otlp_exporter:
+                # 优先使用注入的 Exporter (测试用)
+                processors.append(BatchSpanProcessor(self.otlp_exporter))
+            else:
+                # 优先使用 ObservabilitySettings 配置
+                langfuse = settings.observability
 
             # 使用传入的 endpoint 或配置中的 Langfuse OTLP 端点
             endpoint = self.otlp_endpoint or langfuse.langfuse_otlp_endpoint
@@ -281,7 +278,7 @@ class TracingManager:
 
                     try:
                         otlp_exporter = OTLPSpanExporter(endpoint=endpoint, headers=headers)
-                        provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+                        processors.append(BatchSpanProcessor(otlp_exporter))
                         logger.info(f"OTLP Exporter created and added: {type(otlp_exporter).__name__}")
                     except Exception as e:
                         logger.error(f"Failed to create OTLP Exporter: {e}")
@@ -297,7 +294,7 @@ class TracingManager:
                 logger.warning(f"  OTLPSpanExporter available: {OTLPSpanExporter is not None}")
 
         if self.console_export:
-            provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
+            processors.append(BatchSpanProcessor(ConsoleSpanExporter()))
 
         # Logic to attach -> merge -> or set
         is_proxy = type(current_provider).__name__ == "ProxyTracerProvider"
@@ -305,27 +302,29 @@ class TracingManager:
         if is_proxy:
             # If it is still a Proxy, it means ADK didn't set a real one yet.
             # We try to set ours.
+            provider = TracerProvider()
+            for processor in processors:
+                provider.add_span_processor(processor)
             try:
                 trace.set_tracer_provider(provider)
                 self._tracer = trace.get_tracer(self.service_name)
                 logger.info("Global TracerProvider set successfully.")
+                self._initialized = True
+                return
             except Exception as e:
                 # Race condition: someone else set it just now
                 logger.warning(f"Failed to set global TracerProvider ({e}), falling back to attachment.")
-                # Retrieve the winner provider
                 current_provider = trace.get_tracer_provider()
-                is_proxy = False
 
-        if not is_proxy:
-            # Real provider (or un-overridable proxy) exists. Attach our processors.
-            logger.info(f"Attaching processors to existing TracerProvider: {type(current_provider).__name__}")
-            if hasattr(current_provider, "add_span_processor"):
-                for processor in provider._active_span_processor._span_processors:
-                    current_provider.add_span_processor(processor)
-            else:
-                logger.warning("Existing TracerProvider does not support add_span_processor. Traces may be lost.")
+        # Real provider (or un-overridable proxy) exists. Attach our processors.
+        logger.info(f"Attaching processors to existing TracerProvider: {type(current_provider).__name__}")
+        if hasattr(current_provider, "add_span_processor"):
+            for processor in processors:
+                current_provider.add_span_processor(processor)
+        else:
+            logger.warning("Existing TracerProvider does not support add_span_processor. Traces may be lost.")
 
-            self._tracer = trace.get_tracer(self.service_name)
+        self._tracer = trace.get_tracer(self.service_name)
 
         self._initialized = True
 
