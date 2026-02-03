@@ -227,19 +227,22 @@ def apply_adk_patches():
                             # Extract or generate session_id for Langfuse grouping
                             # Priority: Header > Query > JSON Body > Generated
                             session_id = request.headers.get("X-Session-ID") or request.query_params.get("session_id")
-                            session_source = "header" if request.headers.get("X-Session-ID") else (
-                                "query" if request.query_params.get("session_id") else None
+                            session_source = (
+                                "header"
+                                if request.headers.get("X-Session-ID")
+                                else ("query" if request.query_params.get("session_id") else None)
                             )
                             user_id = request.headers.get("X-User-ID") or request.query_params.get("user_id")
-                            user_source = "header" if request.headers.get("X-User-ID") else (
-                                "query" if request.query_params.get("user_id") else None
+                            user_source = (
+                                "header"
+                                if request.headers.get("X-User-ID")
+                                else ("query" if request.query_params.get("user_id") else None)
                             )
 
                             if session_id is None:
                                 try:
-                                    if (
-                                        request.method in {"POST", "PATCH"}
-                                        and "application/json" in (request.headers.get("content-type") or "")
+                                    if request.method in {"POST", "PATCH"} and "application/json" in (
+                                        request.headers.get("content-type") or ""
                                     ):
                                         body = await request.json()
                                         session_id = body.get("sessionId") or body.get("session_id")

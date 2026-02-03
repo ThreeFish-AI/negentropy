@@ -238,7 +238,7 @@ class TracingManager:
         if self.enable_postgres:
             processors.append(BatchSpanProcessor(PostgresSpanExporter()))
 
-        # OTLP: 实时可视化 (Langfuse)
+            # OTLP: 实时可视化 (Langfuse)
             if self.otlp_exporter:
                 # 优先使用注入的 Exporter (测试用)
                 processors.append(BatchSpanProcessor(self.otlp_exporter))
