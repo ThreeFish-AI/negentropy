@@ -6,11 +6,7 @@ from typing import Any
 import json
 
 from negentropy.logging import get_logger
-
-try:
-    from litellm.integrations.opentelemetry import OpenTelemetry
-except Exception:
-    OpenTelemetry = None
+from litellm.integrations.opentelemetry import OpenTelemetry
 
 
 class LiteLLMLoggingCallback:
@@ -94,65 +90,52 @@ class LiteLLMLoggingCallback:
             pass
 
 
-if OpenTelemetry is None:
+class LangfuseOtelCostCallback(OpenTelemetry):  # type: ignore[misc]
+    """
+    LiteLLM OpenTelemetry callback that injects Langfuse cost attributes.
 
-    class LangfuseOtelCostCallback:
-        """Fallback when LiteLLM OpenTelemetry is unavailable."""
+    Langfuse expects cost on OTEL spans via `gen_ai.usage.cost` or
+    `langfuse.observation.cost_details`. LiteLLM does not set these by default.
+    """
 
-        def log_success_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
-            return None
+    def set_attributes(self, span, kwargs, response_obj):
+        super().set_attributes(span, kwargs, response_obj)
+        try:
+            cost = self._extract_total_cost(kwargs, response_obj)
+            if cost is not None:
+                self.safe_set_attribute(span, "gen_ai.usage.cost", cost)
+                self.safe_set_attribute(
+                    span,
+                    "langfuse.observation.cost_details",
+                    json.dumps({"total": cost}),
+                )
+        except Exception:
+            pass
 
-        def log_failure_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
-            return None
-
-else:
-
-    class LangfuseOtelCostCallback(OpenTelemetry):  # type: ignore[misc]
-        """
-        LiteLLM OpenTelemetry callback that injects Langfuse cost attributes.
-
-        Langfuse expects cost on OTEL spans via `gen_ai.usage.cost` or
-        `langfuse.observation.cost_details`. LiteLLM does not set these by default.
-        """
-
-        def set_attributes(self, span, kwargs, response_obj):
-            super().set_attributes(span, kwargs, response_obj)
-            try:
-                cost = self._extract_total_cost(kwargs, response_obj)
-                if cost is not None:
-                    self.safe_set_attribute(span, "gen_ai.usage.cost", cost)
-                    self.safe_set_attribute(
-                        span,
-                        "langfuse.observation.cost_details",
-                        json.dumps({"total": cost}),
-                    )
-            except Exception:
-                pass
-
-        @staticmethod
-        def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
-            cost = kwargs.get("response_cost")
-            if cost is None:
-                standard_logging = kwargs.get("standard_logging_object")
-                cost_breakdown = None
-                if isinstance(standard_logging, dict):
+    @staticmethod
+    def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
+        cost = kwargs.get("response_cost")
+        if cost is None:
+            standard_logging = kwargs.get("standard_logging_object")
+            cost_breakdown = None
+            if isinstance(standard_logging, dict):
+                cost_breakdown = standard_logging.get("cost_breakdown")
+            elif standard_logging is not None:
+                if hasattr(standard_logging, "get") and callable(standard_logging.get):
                     cost_breakdown = standard_logging.get("cost_breakdown")
-                elif standard_logging is not None:
-                    if hasattr(standard_logging, "get") and callable(standard_logging.get):
-                        cost_breakdown = standard_logging.get("cost_breakdown")
-                    if cost_breakdown is None:
-                        cost_breakdown = getattr(standard_logging, "cost_breakdown", None)
-                cost = (cost_breakdown or {}).get("total_cost")
+                if cost_breakdown is None:
+                    cost_breakdown = getattr(standard_logging, "cost_breakdown", None)
+            cost = (cost_breakdown or {}).get("total_cost")
 
-            if cost is None and response_obj is not None:
-                try:
-                    from litellm.cost_calculator import completion_cost
-
-                    cost = completion_cost(completion_response=response_obj)
-                except Exception:
-                    cost = None
-
+        if cost is None and response_obj is not None:
             try:
-                return float(cost) if cost is not None else None
-            except (TypeError, ValueError):
-                return None
+                from litellm.cost_calculator import completion_cost
+
+                cost = completion_cost(completion_response=response_obj)
+            except Exception:
+                cost = None
+
+        try:
+            return float(cost) if cost is not None else None
+        except (TypeError, ValueError):
+            return None
