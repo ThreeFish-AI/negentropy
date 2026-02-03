@@ -5,6 +5,7 @@ Log formatters and color utilities.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
 from structlog.typing import EventDict
 
 # =============================================================================
@@ -118,6 +119,23 @@ class ConsoleFormatter:
         except Exception:
             return text
 
+    @staticmethod
+    def _maybe_decode_json(text: str) -> str:
+        stripped = text.strip()
+        if not stripped:
+            return text
+        if (stripped[0] not in "{[") or (stripped[-1] not in "}]"):
+            return text
+        try:
+            loaded = json.loads(stripped)
+        except Exception:
+            return text
+        if isinstance(loaded, (dict, list)):
+            return json.dumps(loaded, ensure_ascii=False, separators=(",", ":"))
+        if isinstance(loaded, str):
+            return loaded
+        return text
+
     @classmethod
     def format(cls, event_dict: EventDict, *, use_color: bool = True) -> str:
         """Format an event dict into an aligned string."""
@@ -127,6 +145,7 @@ class ConsoleFormatter:
         source = event_dict.get("source")
 
         message_text = cls._decode_unicode_escapes(str(message))
+        message_text = cls._maybe_decode_json(message_text)
 
         display_logger = str(logger_name)
         if logger_name in {"stdout", "stderr"} and source:
@@ -146,6 +165,7 @@ class ConsoleFormatter:
             if k not in ConsoleFormatter.EXCLUDED_KEYS:
                 key_colored = cls._maybe_color(k, "key", use_color)
                 value_text = cls._decode_unicode_escapes(str(v))
+                value_text = cls._maybe_decode_json(value_text)
                 value_colored = cls._maybe_color(value_text, "dim", use_color)
                 extras.append(f"{key_colored}={value_colored}")
 
