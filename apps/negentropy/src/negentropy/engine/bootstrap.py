@@ -223,15 +223,24 @@ def apply_adk_patches():
                             manager._ensure_initialized()
 
                             # Extract or generate session_id for Langfuse grouping
-                            # Priority: Header > Query > Generated
-                            session_id = (
-                                request.headers.get("X-Session-ID")
-                                or request.query_params.get("session_id")
-                                or str(uuid.uuid4())
-                            )
-
-                            # Extract user_id if available
+                            # Priority: Header > Query > JSON Body > Generated
+                            session_id = request.headers.get("X-Session-ID") or request.query_params.get("session_id")
                             user_id = request.headers.get("X-User-ID") or request.query_params.get("user_id")
+
+                            if session_id is None:
+                                try:
+                                    if (
+                                        request.method in {"POST", "PATCH"}
+                                        and "application/json" in (request.headers.get("content-type") or "")
+                                    ):
+                                        body = await request.json()
+                                        session_id = body.get("sessionId") or body.get("session_id")
+                                        user_id = user_id or body.get("userId") or body.get("user_id")
+                                except Exception as e:
+                                    logger.debug(f"Failed to read request JSON for session/user id: {e}")
+
+                            if session_id is None:
+                                session_id = str(uuid.uuid4())
 
                             # Set tracing context so all spans get Langfuse attributes
                             set_tracing_context(session_id=session_id, user_id=user_id)
