@@ -41,3 +41,9 @@ class ObservabilitySettings(BaseSettings):
         default=True,
         description="Enable Langfuse export if keys are present",
     )
+
+    @property
+    def langfuse_otlp_endpoint(self) -> str:
+        """Full Langfuse OTLP endpoint with correct path for HTTP/protobuf."""
+        base = self.langfuse_host.rstrip("/")
+        return f"{base}/api/public/otel/v1/traces"

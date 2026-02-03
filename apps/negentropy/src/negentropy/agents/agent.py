@@ -16,6 +16,7 @@ from .faculties.influence import influence_agent
 from .faculties.internalization import internalization_agent
 from .faculties.perception import perception_agent
 
+
 root_agent = LlmAgent(
     name="NegentropyEngine",
     # Model configured via unified settings (see config/llm.py)

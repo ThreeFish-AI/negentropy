@@ -30,8 +30,8 @@ configure_logging(
 try:
     import litellm
 
-    litellm.success_callback = [LiteLLMLoggingCallback()]
-    litellm.failure_callback = [LiteLLMLoggingCallback()]
+    litellm.success_callback = [LiteLLMLoggingCallback(), "otel"]
+    litellm.failure_callback = [LiteLLMLoggingCallback(), "otel"]
 except ImportError:
     pass
 
@@ -126,10 +126,34 @@ def apply_adk_patches():
 
     logger.info("Monkey-patching ADK service factories to use negentropy configuration...")
 
+    patched_items = []
+
+    # Helper to clean factory names for display
+    def _add_patch(target_name: str, factory_func):
+        # Extract "SessionService" from "patched_create_session_service_from_options"
+        # Logic: remove "patched_create_" prefix and "_from_options" suffix, title case
+        name = factory_func.__name__
+        if name.startswith("patched_create_"):
+            name = name.replace("patched_create_", "").replace("_from_options", "")
+            # Convert snake_case to CamelCase (simple title casing for display)
+            parts = name.split("_")
+            name = "".join(part.title() for part in parts)
+
+        patched_items.append(name)
+        return factory_func
+
     # Patch the module directly
-    original_factory.create_session_service_from_options = patched_create_session_service_from_options
-    original_factory.create_memory_service_from_options = patched_create_memory_service_from_options
-    original_factory.create_artifact_service_from_options = patched_create_artifact_service_from_options
+    original_factory.create_session_service_from_options = _add_patch(
+        "SessionService", patched_create_session_service_from_options
+    )
+
+    original_factory.create_memory_service_from_options = _add_patch(
+        "MemoryService", patched_create_memory_service_from_options
+    )
+
+    original_factory.create_artifact_service_from_options = _add_patch(
+        "ArtifactService", patched_create_artifact_service_from_options
+    )
 
     # Patch InMemoryCredentialService to use our Factory
     # This avoids the experimental warning while allowing flexible backend configuration
@@ -138,7 +162,39 @@ def apply_adk_patches():
     # fast_api.py calls: credential_service = InMemoryCredentialService()
     # So we replace the class with a factory function that returns our instance.
     fast_api.InMemoryCredentialService = get_credential_service
+    # For classes/functions, just use __name__ or __qualname__
+    patched_items.append("CredentialService")  # get_credential_service is a function, return type implies service logic
     logger.info("Intercepted ADK default CredentialService to use configurable backend")
+
+    # Patch create_app to inject Middleware
+    if hasattr(fast_api, "create_app"):
+        original_create_app = fast_api.create_app
+
+        def patched_create_app(*args, **kwargs):
+            app = original_create_app(*args, **kwargs)
+            logger.info("Injecting TracingInitMiddleware into ADK FastAPI app")
+
+            from starlette.middleware.base import BaseHTTPMiddleware
+            from starlette.requests import Request
+            from negentropy.engine.adapters.postgres.tracing import get_tracing_manager
+
+            class TracingInitMiddleware(BaseHTTPMiddleware):
+                async def dispatch(self, request: Request, call_next):
+                    try:
+                        manager = get_tracing_manager()
+                        if manager:
+                            # ensure_initialized is idempotent and fast after first run
+                            manager._ensure_initialized()
+                    except Exception as e:
+                        logger.warning(f"Failed to ensure tracing init in middleware: {e}")
+                    
+                    return await call_next(request)
+
+            app.add_middleware(TracingInitMiddleware)
+            return app
+
+        fast_api.create_app = patched_create_app
+        patched_items.append("create_app (Middleware Injection)")
 
     # Also patch cli.cli which imports these functions
 
@@ -159,6 +215,9 @@ def apply_adk_patches():
                 mod.create_memory_service_from_options = patched_create_memory_service_from_options
             if hasattr(mod, "create_artifact_service_from_options"):
                 mod.create_artifact_service_from_options = patched_create_artifact_service_from_options
+            # Patch create_app in modules if present
+            if hasattr(mod, "create_app") and mod.create_app != patched_create_app and mod.create_app == original_create_app:
+                mod.create_app = patched_create_app
 
-    logger.info("ADK service factories patched successfully.")
+    logger.info(f"ADK service factories patched successfully: {', '.join(patched_items)}")
     logger.info(f"Using configured credential backend: {settings.credential_service_backend}")
