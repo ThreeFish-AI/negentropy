@@ -15,11 +15,20 @@ from structlog.typing import EventDict
 class ConsoleFormatter:
     """Handles human-readable console log rendering (fixed width, right-aligned)."""
 
+    _RESET = "\x1b[0m"
+    _LEVEL_COLORS = {
+        "DEBUG": "\x1b[36m",
+        "INFO": "\x1b[32m",
+        "WARNING": "\x1b[33m",
+        "ERROR": "\x1b[31m",
+        "CRITICAL": "\x1b[1;31m",
+    }
+
     EXCLUDED_KEYS = {"level", "message", "event", "logger", "timestamp", "_name"}
     TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
     TIMESTAMP_WIDTH = 19
     LEVEL_WIDTH = 8
-    LOGGER_WIDTH = 48
+    LOGGER_WIDTH = 36
     SEPARATOR = " | "
 
     @classmethod
@@ -34,7 +43,7 @@ class ConsoleFormatter:
         """Configure alignment and rendering parameters."""
         if timestamp_format:
             cls.TIMESTAMP_FORMAT = timestamp_format
-            cls.TIMESTAMP_WIDTH = len(timestamp_format)
+            cls.TIMESTAMP_WIDTH = len(datetime.now().strftime(timestamp_format))
         if level_width:
             cls.LEVEL_WIDTH = level_width
         if logger_width:
@@ -66,8 +75,17 @@ class ConsoleFormatter:
                 pass
         return datetime.now().strftime(cls.TIMESTAMP_FORMAT)
 
-    @staticmethod
-    def format(event_dict: EventDict) -> str:
+    @classmethod
+    def _colorize_level(cls, text: str, level_upper: str, use_color: bool) -> str:
+        if not use_color:
+            return text
+        color = cls._LEVEL_COLORS.get(level_upper)
+        if not color:
+            return text
+        return f"{color}{text}{cls._RESET}"
+
+    @classmethod
+    def format(cls, event_dict: EventDict, *, use_color: bool = True) -> str:
         """Format an event dict into an aligned string."""
         level = event_dict.get("level", "info").lower()
         message = event_dict.get("message", event_dict.get("event", ""))
@@ -96,12 +114,17 @@ class ConsoleFormatter:
             message = f"{message} " + " ".join(extras)
 
         level_upper = level.upper()
+        level_text = cls._colorize_level(
+            ConsoleFormatter._fit_right(level_upper, ConsoleFormatter.LEVEL_WIDTH),
+            level_upper,
+            use_color,
+        )
 
         return "".join(
             [
                 ConsoleFormatter._fit_right(str(timestamp), ConsoleFormatter.TIMESTAMP_WIDTH),
                 ConsoleFormatter.SEPARATOR,
-                ConsoleFormatter._fit_right(level_upper, ConsoleFormatter.LEVEL_WIDTH),
+                level_text,
                 ConsoleFormatter.SEPARATOR,
                 ConsoleFormatter._fit_right(display_logger, ConsoleFormatter.LOGGER_WIDTH),
                 ConsoleFormatter.SEPARATOR,

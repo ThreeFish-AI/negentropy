@@ -42,5 +42,5 @@ class LoggingSettings(BaseSettings):
         description="Console timestamp format",
     )
     console_level_width: int = Field(default=8, description="Console level column width")
-    console_logger_width: int = Field(default=48, description="Console logger column width")
+    console_logger_width: int = Field(default=36, description="Console logger column width")
     console_separator: str = Field(default=" | ", description="Console column separator")
