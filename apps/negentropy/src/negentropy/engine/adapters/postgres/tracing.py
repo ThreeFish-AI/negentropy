@@ -15,6 +15,7 @@ OpenTelemetry 双路导出集成
     └─────────────┘  └─────────────┘  └─────────────┘
 """
 
+import asyncio
 import json
 import uuid
 from contextvars import ContextVar
@@ -164,6 +165,10 @@ class PostgresSpanExporter(SpanExporter):
         except Exception as e:
             logger.error(f"Failed to export spans to Postgres: {e}")
             return SpanExportResult.FAILURE
+
+    async def _async_export(self, spans: list[ReadableSpan]) -> SpanExportResult:
+        """异步导出封装 (用于测试/异步环境)"""
+        return await asyncio.to_thread(self.export, spans)
 
     def _event_to_dict(self, event) -> dict:
         return {"name": event.name, "timestamp": event.timestamp, "attributes": dict(event.attributes or {})}

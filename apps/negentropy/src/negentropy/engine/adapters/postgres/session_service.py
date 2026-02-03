@@ -15,7 +15,7 @@ PostgresSessionService: ADK SessionService 的 PostgreSQL 实现
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import delete, select
@@ -65,6 +65,7 @@ class PostgresSessionService(BaseSessionService):
         self.AppState = AppState
 
         self._temp_state: dict[str, dict] = {}  # temp: 前缀的内存缓存
+        self._session_id_error = "session_id must be a valid UUID string"
 
     async def create_session(
         self,
@@ -76,6 +77,8 @@ class PostgresSessionService(BaseSessionService):
     ) -> Session:
         """创建新会话"""
         sid = session_id or str(uuid.uuid4())
+        if session_id is not None:
+            self._validate_session_id(session_id)
         initial_state = state or {}
 
         async with db_session.AsyncSessionLocal() as db:
@@ -94,7 +97,7 @@ class PostgresSessionService(BaseSessionService):
             user_id=user_id,
             state=initial_state,
             events=[],
-            last_update_time=datetime.now().timestamp(),
+            last_update_time=datetime.now(timezone.utc).timestamp(),
         )
 
     async def get_session(
@@ -106,6 +109,7 @@ class PostgresSessionService(BaseSessionService):
         config: Optional[GetSessionConfig] = None,
     ) -> Optional[Session]:
         """获取会话"""
+        self._validate_session_id(session_id)
         try:
             sid = uuid.UUID(session_id)
         except ValueError:
@@ -150,7 +154,7 @@ class PostgresSessionService(BaseSessionService):
                 user_id=thread.user_id,
                 state=thread.state or {},
                 events=[self._orm_to_adk_event(e) for e in events],
-                last_update_time=thread.updated_at.timestamp() if thread.updated_at else datetime.now().timestamp(),
+                last_update_time=thread.updated_at.timestamp() if thread.updated_at else datetime.now(timezone.utc).timestamp(),
             )
 
     async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:
@@ -171,7 +175,7 @@ class PostgresSessionService(BaseSessionService):
                 user_id=t.user_id,
                 state=t.state or {},
                 events=[],  # 列表不加载 events
-                last_update_time=t.updated_at.timestamp() if t.updated_at else datetime.now().timestamp(),
+                last_update_time=t.updated_at.timestamp() if t.updated_at else datetime.now(timezone.utc).timestamp(),
             )
             for t in threads
         ]
@@ -180,6 +184,7 @@ class PostgresSessionService(BaseSessionService):
 
     async def delete_session(self, *, app_name: str, user_id: str, session_id: str) -> None:
         """删除会话"""
+        self._validate_session_id(session_id)
         async with db_session.AsyncSessionLocal() as db:
             await db.execute(
                 delete(self.Thread).where(
@@ -200,6 +205,7 @@ class PostgresSessionService(BaseSessionService):
         event = await super().append_event(session, event)
 
         # 持久化到数据库 - 安全处理 UUID
+        self._validate_session_id(session.id)
         event_id = self._ensure_uuid(event.id)
         invocation_id = self._ensure_uuid(event.invocation_id)
 
@@ -308,7 +314,7 @@ class PostgresSessionService(BaseSessionService):
             id=str(event.id),
             author=event.author,
             content=content,
-            timestamp=event.created_at.timestamp() if event.created_at else datetime.now().timestamp(),
+            timestamp=event.created_at.timestamp() if event.created_at else datetime.now(timezone.utc).timestamp(),
         )
 
     def _ensure_uuid(self, value: Any) -> uuid.UUID:
@@ -323,6 +329,13 @@ class PostgresSessionService(BaseSessionService):
         except (ValueError, AttributeError):
             # 如果解析失败，生成新的 UUID
             return uuid.uuid4()
+
+    def _validate_session_id(self, session_id: str) -> None:
+        """严格校验 session_id 必须为 UUID 字符串"""
+        try:
+            uuid.UUID(session_id)
+        except ValueError as exc:
+            raise ValueError(self._session_id_error) from exc
 
     def _serialize_content(self, content: Any) -> dict:
         """安全序列化 Event.content"""

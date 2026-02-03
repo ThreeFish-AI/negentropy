@@ -3,19 +3,19 @@ ToolRegistry: 数据库驱动的动态工具注册表
 """
 
 from __future__ import annotations
-import json
-import uuid
-import time
-import asyncio
+
 import inspect
+import json
+import time
+import uuid
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
 import negentropy.db.session as db_session
-from negentropy.models.action import Tool
+from negentropy.models.action import Tool, ToolExecution
 
 
 @dataclass
@@ -54,6 +54,7 @@ class ToolRegistry:
         func: Callable,
         *,
         display_name: str | None = None,
+        description: str | None = None,
         openapi_schema: dict | None = None,
         permissions: dict | None = None,
     ) -> ToolDefinition:
@@ -68,7 +69,7 @@ class ToolRegistry:
                     app_name=self._app_name,
                     name=name,
                     display_name=display_name or name,
-                    # description is optional
+                    description=description,
                     openapi_schema=openapi_schema or {},
                     permissions=permissions or {"allowed_users": ["*"]},
                     is_active=True,
@@ -79,6 +80,7 @@ class ToolRegistry:
                     index_elements=["app_name", "name"],
                     set_={
                         "display_name": display_name or name,
+                        "description": description,
                         "openapi_schema": openapi_schema or {},
                         "permissions": permissions or {"allowed_users": ["*"]},
                     },
@@ -104,7 +106,11 @@ class ToolRegistry:
             avg_latency_ms=tool_orm.avg_latency_ms,
         )
 
-    async def get_available_tools(self, user_id: str | None = None) -> list[ToolDefinition]:
+    async def get_available_tools(
+        self,
+        user_id: str | None = None,
+        roles: list[str] | None = None,
+    ) -> list[ToolDefinition]:
         """获取可用工具列表"""
         async with db_session.AsyncSessionLocal() as db:
             stmt = select(Tool).where(Tool.app_name == self._app_name, Tool.is_active == True)
@@ -124,43 +130,78 @@ class ToolRegistry:
                 avg_latency_ms=r.avg_latency_ms,
             )
             for r in rows
+            if self._is_tool_allowed(r.permissions or {}, user_id, roles)
         ]
 
-    async def invoke_tool(self, name: str, params: dict, *, run_id: str | None = None) -> Any:
+    async def invoke_tool(
+        self,
+        name: str,
+        params: dict,
+        *,
+        run_id: str | None = None,
+        user_id: str | None = None,
+        roles: list[str] | None = None,
+    ) -> Any:
         """调用工具并记录统计"""
         func = self._function_registry.get(name)
         if not func:
             raise ValueError(f"Tool '{name}' not found")
 
+        tool_row = None
+        if user_id is not None or roles is not None or run_id is not None:
+            async with db_session.AsyncSessionLocal() as db:
+                stmt = select(Tool).where(Tool.app_name == self._app_name, Tool.name == name)
+                result = await db.execute(stmt)
+                tool_row = result.scalar_one_or_none()
+            permissions = tool_row.permissions if tool_row and tool_row.permissions else {}
+            if user_id is not None or roles is not None:
+                if not self._is_tool_allowed(permissions, user_id, roles):
+                    await self._record_execution(
+                        tool_row,
+                        run_id=run_id,
+                        input_params=params,
+                        status="denied",
+                        error="permission_denied",
+                        latency_ms=0.0,
+                    )
+                    await self._update_tool_stats(name=name, latency_ms=0.0)
+                    raise PermissionError(f"User '{user_id}' is not allowed to invoke tool '{name}'")
+
         start = time.time()
+        error: Exception | None = None
+        result: Any = None
         # Execute tool
         try:
             if inspect.iscoroutinefunction(func):
                 result = await func(**params)
             else:
                 result = func(**params)
-        except Exception as e:
-            # Here we might want to log failure, but ToolRegistry primarily invokes
-            raise e
+        except Exception as exc:
+            error = exc
 
         latency = (time.time() - start) * 1000
 
-        # Update stats
-        async with db_session.AsyncSessionLocal() as db:
-            # Atomic update:
-            # avg_latency = (old_avg * count + new_latency) / (count + 1)
-            # count = count + 1
-            stmt = (
-                update(Tool)
-                .where(Tool.app_name == self._app_name, Tool.name == name)
-                .values(
-                    call_count=Tool.call_count + 1,
-                    avg_latency_ms=(Tool.avg_latency_ms * Tool.call_count + latency) / (Tool.call_count + 1),
-                )
+        if error is not None:
+            await self._record_execution(
+                tool_row,
+                run_id=run_id,
+                input_params=params,
+                status="failed",
+                error=str(error),
+                latency_ms=latency,
             )
-            await db.execute(stmt)
-            await db.commit()
+            raise error
 
+        await self._update_tool_stats(name=name, latency_ms=latency)
+
+        await self._record_execution(
+            tool_row,
+            run_id=run_id,
+            input_params=params,
+            output_result=result,
+            status="success",
+            latency_ms=latency,
+        )
         return result
 
     async def register_frontend_tool(self, app_name: str, tool: FrontendTool) -> None:
@@ -196,3 +237,89 @@ class ToolRegistry:
     def get_frontend_tools(self, app_name: str) -> list[FrontendTool]:
         """获取应用的前端工具列表"""
         return [tool for key, tool in self._frontend_tools.items() if key.startswith(f"{app_name}:")]
+
+    def _is_tool_allowed(self, permissions: dict, user_id: str | None, roles: list[str] | None) -> bool:
+        """基于 permissions 决定是否允许访问工具 (RBAC + 用户白名单)"""
+        allowed_users = permissions.get("allowed_users")
+        allowed_roles = permissions.get("allowed_roles")
+        if not allowed_users and not allowed_roles:
+            return True
+        if allowed_roles:
+            if not isinstance(allowed_roles, list):
+                return True
+            if "*" in allowed_roles:
+                return True
+            if roles and any(role in allowed_roles for role in roles):
+                return True
+            if allowed_users is None:
+                return False
+        if not allowed_users:
+            return True
+        if not isinstance(allowed_users, list):
+            return True
+        if "*" in allowed_users:
+            return True
+        if user_id is None:
+            return False
+        return user_id in allowed_users
+
+    async def _record_execution(
+        self,
+        tool: Tool | None,
+        *,
+        run_id: str | None,
+        input_params: dict | None = None,
+        output_result: Any | None = None,
+        status: str | None = None,
+        error: str | None = None,
+        latency_ms: float | None = None,
+    ) -> None:
+        """记录工具执行审计"""
+        if tool is None:
+            return
+        run_uuid = None
+        if run_id:
+            try:
+                run_uuid = uuid.UUID(run_id)
+            except ValueError:
+                run_uuid = None
+        normalized_result = self._normalize_output_result(output_result)
+        execution = ToolExecution(
+            tool_id=tool.id,
+            run_id=run_uuid,
+            input_params=input_params,
+            output_result=normalized_result,
+            status=status,
+            latency_ms=latency_ms,
+            error=error,
+        )
+        async with db_session.AsyncSessionLocal() as db:
+            db.add(execution)
+            await db.commit()
+
+    async def _update_tool_stats(self, *, name: str, latency_ms: float) -> None:
+        async with db_session.AsyncSessionLocal() as db:
+            # Atomic update:
+            # avg_latency = (old_avg * count + new_latency) / (count + 1)
+            # count = count + 1
+            stmt = (
+                update(Tool)
+                .where(Tool.app_name == self._app_name, Tool.name == name)
+                .values(
+                    call_count=Tool.call_count + 1,
+                    avg_latency_ms=(Tool.avg_latency_ms * Tool.call_count + latency_ms) / (Tool.call_count + 1),
+                )
+            )
+            await db.execute(stmt)
+            await db.commit()
+
+    def _normalize_output_result(self, output_result: Any | None) -> dict | None:
+        if output_result is None:
+            return None
+        if isinstance(output_result, dict):
+            return output_result
+        try:
+            serialized = json.loads(json.dumps(output_result, default=str))
+        except (TypeError, ValueError):
+            return {"value": str(output_result)}
+        return {"value": serialized}

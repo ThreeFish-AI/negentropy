@@ -14,11 +14,10 @@ PostgresMemoryService: ADK MemoryService 的 PostgreSQL 实现
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session as ORMSession
 
 # ADK 官方类型
 from google.adk.sessions import Session as ADKSession
@@ -133,9 +132,10 @@ class PostgresMemoryService(BaseMemoryService):
                 Memory.user_id == user_id,
             )
 
-            if query_embedding:
+            if query_embedding is not None:
                 # 向量相似度排序: <=> 是余弦距离 (Distance)，越大越不相关
                 # 相关度分值我们可以简单用 (1 - 距离) 来模拟
+                stmt = stmt.where(Memory.embedding.is_not(None))
                 distance = Memory.embedding.op("<=>")(query_embedding)
                 stmt = stmt.order_by(distance.asc()).limit(10)
 
@@ -159,7 +159,9 @@ class PostgresMemoryService(BaseMemoryService):
                     id=str(m.id),
                     content=content_val,
                     author="system",
-                    timestamp=m.created_at.isoformat() if m.created_at else datetime.now().isoformat(),
+                    timestamp=m.created_at.isoformat()
+                    if m.created_at
+                    else datetime.now(timezone.utc).isoformat(),
                     relevance_score=m.retention_score,
                     custom_metadata=m.metadata_ or {},
                 )
@@ -187,7 +189,9 @@ class PostgresMemoryService(BaseMemoryService):
                     id=str(m.id),
                     content=content_val,
                     author="system",
-                    timestamp=m.created_at.isoformat() if m.created_at else datetime.now().isoformat(),
+                    timestamp=m.created_at.isoformat()
+                    if m.created_at
+                    else datetime.now(timezone.utc).isoformat(),
                     relevance_score=m.retention_score,
                     custom_metadata=m.metadata_ or {},
                 )
