@@ -159,14 +159,16 @@
 
 ### P0. 骨架与连通性
 
-- 建立 `/api/agui` 代理层（SSE 转发）。
-- 统一环境变量（`NEXT_PUBLIC_AGUI_BASE_URL` + server-only `AGUI_BASE_URL`）。<sup>[[4]](#ref4)</sup>
-- 在 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx) 用最小 UI 渲染消息流。
+- ✅ 已完成：建立 `/api/agui` 代理层（SSE/POST 转发）。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)。
+- ✅ 已完成：环境变量（`AGUI_BASE_URL` + `NEXT_PUBLIC_AGUI_APP_NAME` + `NEXT_PUBLIC_AGUI_USER_ID`）本地配置。<sup>[[4]](#ref4)</sup>
+- ✅ 已完成：主界面最小 UI 骨架与事件展示。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
+  - **验证记录**：`POST /api/agui/sessions` 成功创建 session，`POST /api/agui` 返回 SSE；当前因 **ZAI_API_KEY 仍为占位值** 触发 `AuthenticationError`（token incorrect），需替换为真实密钥后复验。
 
 ### P1. 事件驱动 UI
 
-- 实现 Event → UI 适配层：Text/Tool/State/Activity 事件渲染。<sup>[[5]](#ref5)</sup>
-- 事件缓存与 compaction（可选）：降低事件冗余与日志体积。<sup>[[10]](#ref10)</sup>
+- ✅ 已完成：ADK Event → UI 适配（文本/状态增量）。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
+- ✅ 已完成：Tool/Artifact 事件解析并落入事件时间线（保持结构化展示）。<sup>[[5]](#ref5)</sup>
+- ⏳ 可选：事件缓存与 compaction（降低冗余）。<sup>[[10]](#ref10)</sup>
 
 ### P2. CopilotKit 集成
 
@@ -323,46 +325,80 @@ flowchart LR
 
 > 仅提供“草案级”定义，保证最小可落地与可演进；所有字段以 AG-UI 事件流为主，不在前端重复定义后端真值。
 
+### 13.0 当前实现状态（与工程同步）
+
+- **BFF 代理**：已实现 `POST /api/agui`，完成 SSE 转发与错误封装（见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)）。
+- **健康检查**：已实现 `GET /api/health`（见 [apps/negentropy-ui/app/api/health/route.ts](../apps/negentropy-ui/app/api/health/route.ts)）。
+- **Session 创建**：已实现 `POST /api/agui/sessions`（见 [apps/negentropy-ui/app/api/agui/sessions/route.ts](../apps/negentropy-ui/app/api/agui/sessions/route.ts)）。
+- **Session 列表**：已实现 `GET /api/agui/sessions/list`（见 [apps/negentropy-ui/app/api/agui/sessions/list/route.ts](../apps/negentropy-ui/app/api/agui/sessions/list/route.ts)）。
+- **Session 回放**：已实现 `GET /api/agui/sessions/:id` 并在 UI 端加载历史 events（见 [apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts](../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts)）。
+- **密钥映射**：已在启动阶段将 `NE_API_KEY` 映射到 `ZAI_API_KEY`（见 [apps/negentropy/src/negentropy/engine/bootstrap.py](../apps/negentropy/src/negentropy/engine/bootstrap.py)）。
+- **UI 骨架**：已实现三栏布局、session 创建与 SSE 事件展示（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。
+- **组件拆分**：已抽取 Header/SessionList/ChatStream/Composer/StateSnapshot/EventTimeline（见 [apps/negentropy-ui/components/ui/Header.tsx](../apps/negentropy-ui/components/ui/Header.tsx) 等）。
+
 ### 13.1 接口契约草案（AG-UI 事件流视角）
 
-#### 13.1.1 发送输入（HTTP）
+#### 13.1.1 发送输入并获取流式响应（SSE over POST）
 
 - **路径**：`POST /api/agui`
-- **目的**：通过 BFF 代理层发送用户输入到后端 ADK 服务。
+- **目的**：通过 BFF 代理层调用后端 `POST /run_sse`，返回 SSE 事件流。
 - **请求头**：
-  - `X-Session-ID`: string（可选；用于会话归档）
+  - `X-Session-ID`: string（可选；用于 tracing/归档）
   - `X-User-ID`: string（可选；用于 tracing）
+- **请求体（对齐 ADK RunAgentRequest）**：
+
+```json
+{
+  "app_name": "agents",
+  "user_id": "ui",
+  "session_id": "uuid",
+  "new_message": {
+    "role": "user",
+    "parts": [
+      { "text": "user message" }
+    ]
+  },
+  "streaming": true,
+  "state_delta": null,
+  "invocation_id": null
+}
+```
+
+- **响应**：`200 OK` + `text/event-stream`
+
+> 说明：该结构来源于 ADK `RunAgentRequest`，UI 不做字段扩展，保持透传。
+
+#### 13.1.2 Session 创建（HTTP）
+
+- **路径**：`POST /api/agui/sessions`
+- **目的**：创建 Session 并返回 `session_id`。
 - **请求体（草案）**：
 
 ```json
 {
-  "session_id": "uuid",
-  "user_id": "string",
-  "input": "user message",
-  "metadata": {
-    "source": "ui",
-    "locale": "zh-CN"
-  }
+  "app_name": "agents",
+  "user_id": "ui",
+  "session_id": "optional",
+  "state": {}
 }
 ```
-
-- **响应**：`202 Accepted`（开始流式响应），或 `200`（若后端直接返回完成态）。
-
-> 说明：实际字段以后端 ADK/AG-UI 的接入方式为准；该草案仅用于 UI 侧的最小约定，不作为后端契约替代品。
-
-#### 13.1.2 事件流（SSE）
-
-- **路径**：`GET /api/agui?session_id=...`
-- **返回**：SSE 事件流，事件类型遵循 AG-UI 规范（如 `TEXT_MESSAGE_*`、`TOOL_CALL_*`、`STATE_*` 等）。<sup>[[5]](#ref5)</sup>
 
 #### 13.1.3 事件负载（前端侧最小解析）
 
 ```json
 {
-  "type": "TEXT_MESSAGE_CONTENT",
+  "type": "ADK_EVENT",
   "timestamp": "iso-8601",
   "payload": {
-    "text": "partial token"
+    "id": "uuid",
+    "author": "system",
+    "content": {
+      "role": "model",
+      "parts": [{ "text": "Error: ..." }]
+    },
+    "actions": {
+      "stateDelta": {}
+    }
   },
   "meta": {
     "session_id": "uuid",
@@ -377,8 +413,10 @@ flowchart LR
 
 | 路径 | 方法 | 目的 | 备注 |
 | ---- | ---- | ---- | ---- |
-| `/api/agui` | `GET` | 建立 SSE 事件流 | 透传后端流式事件 |
-| `/api/agui` | `POST` | 发送用户输入 | 返回 202/200 |
+| `/api/agui` | `POST` | 发送用户输入并返回 SSE | 透传后端 `/run_sse` |
+| `/api/agui/sessions` | `POST` | 创建 Session | 透传后端 session API |
+| `/api/agui/sessions/list` | `GET` | 拉取 Session 列表 | 透传后端 session API |
+| `/api/agui/sessions/:id` | `GET` | 获取 Session 详情（含 events） | 用于回放 |
 | `/api/health` | `GET` | UI 运行自检 | 可选 |
 
 > BFF 代理层仅做连接与头部注入，不做协议语义改写，避免“二次真值源”。
@@ -439,7 +477,19 @@ type AguiEvent = {
   id: string;                // 事件唯一 ID（幂等）
   type: string;              // 事件类型（AG-UI 标准）
   timestamp: string;         // ISO-8601
-  payload: Record<string, unknown>;
+  payload: {
+    id?: string;
+    author?: string;
+    content?: {
+      role?: string;
+      parts?: Array<{ text?: string }>;
+    };
+    actions?: {
+      stateDelta?: Record<string, unknown>;
+      artifactDelta?: Record<string, unknown>;
+    };
+    [key: string]: unknown;
+  };
   meta: {
     session_id?: string;
     run_id?: string;
@@ -482,14 +532,18 @@ type StatePayload = {
 #### 13.4.2 请求字段（POST /api/agui）
 
 ```ts
-type AguiInputRequest = {
+type AguiRunRequest = {
+  app_name: string;       // 必填
+  user_id: string;        // 必填
   session_id: string;     // 必填
-  user_id?: string;       // 可选
-  input: string;          // 必填
+  new_message: {
+    role: "user";
+    parts: Array<{ text: string }>;
+  };
+  streaming: boolean;     // true
+  state_delta?: Record<string, unknown> | null;
+  invocation_id?: string | null;
   metadata?: {
-    source?: "ui";
-    locale?: string;
-    client_ts?: string;   // ISO-8601
     client_request_id?: string; // UUID，用于去重
   };
 };
@@ -497,8 +551,8 @@ type AguiInputRequest = {
 
 **校验规则**
 - `session_id` 需为 UUID（前端生成或后端返回）。
-- `input` 不能为空，最大长度建议 `<= 8000` 字符（避免请求过大）。
-- `metadata.client_ts` 必须为 ISO-8601（用于排序与排查）。
+- `new_message.parts[0].text` 不能为空，最大长度建议 `<= 8000` 字符。
+- `app_name/user_id/session_id` 不允许为空。
 
 #### 13.4.3 错误码（BFF 统一返回）
 
