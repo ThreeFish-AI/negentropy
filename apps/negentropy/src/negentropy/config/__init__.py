@@ -149,6 +149,22 @@ class Settings(BaseSettings):
         return self.logging.gcloud_log_name
 
     @property
+    def log_console_timestamp_format(self) -> str:
+        return self.logging.console_timestamp_format
+
+    @property
+    def log_console_level_width(self) -> int:
+        return self.logging.console_level_width
+
+    @property
+    def log_console_logger_width(self) -> int:
+        return self.logging.console_logger_width
+
+    @property
+    def log_console_separator(self) -> str:
+        return self.logging.console_separator
+
+    @property
     def database_url(self) -> str:
         return str(self.database.url)
 

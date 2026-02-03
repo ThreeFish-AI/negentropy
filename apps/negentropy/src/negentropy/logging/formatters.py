@@ -4,105 +4,107 @@ Log formatters and color utilities.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from structlog.typing import EventDict
 
 # =============================================================================
-# ANSI Color Codes & Formatter (Orthogonality)
+# Console Formatter (Aligned Columns)
 # =============================================================================
-
-COLORS = {
-    "reset": "\033[0m",
-    "bold": "\033[1m",
-    "dim": "\033[2m",
-    # Levels
-    "debug": "\033[36m",  # Cyan
-    "info": "\033[32m",  # Green
-    "warning": "\033[33m",  # Yellow
-    "error": "\033[31m",  # Red
-    "critical": "\033[1;31m",  # Bold Red
-    # Components
-    "timestamp": "\033[90m",  # Gray
-    "logger": "\033[35m",  # Magenta
-    "key": "\033[34m",  # Blue
-}
-
-
-def colorize(text: str, color: str) -> str:
-    """Apply ANSI color to text."""
-    return f"{COLORS.get(color, '')}{text}{COLORS['reset']}"
 
 
 class ConsoleFormatter:
-    """Handles human-readable console log rendering (Separation of Concerns)."""
+    """Handles human-readable console log rendering (fixed width, right-aligned)."""
 
     EXCLUDED_KEYS = {"level", "message", "event", "logger", "timestamp", "_name"}
-    LEVEL_WIDTH = 7
+    TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
+    TIMESTAMP_WIDTH = 19
+    LEVEL_WIDTH = 8
+    LOGGER_WIDTH = 48
+    SEPARATOR = " | "
+
+    @classmethod
+    def configure(
+        cls,
+        *,
+        timestamp_format: str | None = None,
+        level_width: int | None = None,
+        logger_width: int | None = None,
+        separator: str | None = None,
+    ) -> None:
+        """Configure alignment and rendering parameters."""
+        if timestamp_format:
+            cls.TIMESTAMP_FORMAT = timestamp_format
+            cls.TIMESTAMP_WIDTH = len(timestamp_format)
+        if level_width:
+            cls.LEVEL_WIDTH = level_width
+        if logger_width:
+            cls.LOGGER_WIDTH = logger_width
+        if separator is not None:
+            cls.SEPARATOR = separator
+
+    @staticmethod
+    def _fit_right(text: str, width: int) -> str:
+        if width <= 0:
+            return text
+        if len(text) > width:
+            if width <= 3:
+                text = text[-width:]
+            else:
+                text = "..." + text[-(width - 3) :]
+        return f"{text:>{width}}"
+
+    @classmethod
+    def _format_timestamp(cls, raw_timestamp: str | None) -> str:
+        if raw_timestamp:
+            try:
+                normalized = raw_timestamp.replace("Z", "+00:00")
+                dt = datetime.fromisoformat(normalized)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone().strftime(cls.TIMESTAMP_FORMAT)
+            except (ValueError, TypeError):
+                pass
+        return datetime.now().strftime(cls.TIMESTAMP_FORMAT)
 
     @staticmethod
     def format(event_dict: EventDict) -> str:
-        """Format an event dict into a colored string."""
-        # Extract core fields
+        """Format an event dict into an aligned string."""
         level = event_dict.get("level", "info").lower()
         message = event_dict.get("message", event_dict.get("event", ""))
         logger_name = event_dict.get("logger", "root")
         source = event_dict.get("source")
-        timestamp = event_dict.get("timestamp", "")
 
-        # Format timestamp (extract time portion only)
-        if timestamp:
-            try:
-                time_part = timestamp.split("T")[1][:8] if "T" in timestamp else timestamp[:8]
-            except (IndexError, TypeError):
-                time_part = timestamp[:8]
-        else:
-            time_part = datetime.now().strftime("%H:%M:%S")
-
-        # Shorten logger name while preserving context
-        # Keep at most 2 parts for readability (e.g., 'uvicorn.error', 'adk.sessions')
-        parts = logger_name.split(".")
-        if len(parts) <= 2:
-            short_logger = logger_name
-        else:
-            short_logger = ".".join(parts[-2:])
-
-        # For stdout/stderr logs, surface the source in the logger column
+        display_logger = str(logger_name)
         if logger_name in {"stdout", "stderr"} and source:
             source_parts = str(source).split(".")
             if len(source_parts) <= 2:
                 short_source = str(source)
             else:
                 short_source = ".".join(source_parts[-2:])
-            short_logger = f"{logger_name}:{short_source}"
+            display_logger = f"{logger_name}:{short_source}"
 
-        # Pad logger name to fixed width for alignment (20 chars, right-aligned)
-        short_logger = f"{short_logger:>20}"
+        timestamp = ConsoleFormatter._format_timestamp(event_dict.get("timestamp"))
 
-        # Format level with fixed width and color
-        level_upper = level.upper()
-        level_colored = colorize(f"{level_upper:>{ConsoleFormatter.LEVEL_WIDTH}}", level)
-
-        # Build extra key=value pairs
         extras = []
         for k, v in event_dict.items():
             if k == "source" and logger_name in {"stdout", "stderr"} and source:
                 continue
             if k not in ConsoleFormatter.EXCLUDED_KEYS:
-                key_colored = colorize(k, "key")
-                extras.append(f"{key_colored}={v}")
-
-        # Compose output line
-        line_parts = [
-            colorize(time_part, "timestamp"),
-            "│",
-            level_colored,
-            "│",
-            colorize(short_logger, "logger"),
-            "│",
-            str(message),
-        ]
+                extras.append(f"{k}={v}")
 
         if extras:
-            line_parts.append(colorize(" " + " ".join(extras), "dim"))
+            message = f"{message} " + " ".join(extras)
 
-        return " ".join(line_parts)
+        level_upper = level.upper()
+
+        return "".join(
+            [
+                ConsoleFormatter._fit_right(str(timestamp), ConsoleFormatter.TIMESTAMP_WIDTH),
+                ConsoleFormatter.SEPARATOR,
+                ConsoleFormatter._fit_right(level_upper, ConsoleFormatter.LEVEL_WIDTH),
+                ConsoleFormatter.SEPARATOR,
+                ConsoleFormatter._fit_right(display_logger, ConsoleFormatter.LOGGER_WIDTH),
+                ConsoleFormatter.SEPARATOR,
+                str(message),
+            ]
+        )

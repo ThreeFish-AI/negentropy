@@ -26,6 +26,10 @@ configure_logging(
     file_path=settings.log_file_path,
     gcloud_project=settings.vertex_project_id,
     gcloud_log_name=settings.gcloud_log_name,
+    console_timestamp_format=settings.log_console_timestamp_format,
+    console_level_width=settings.log_console_level_width,
+    console_logger_width=settings.log_console_logger_width,
+    console_separator=settings.log_console_separator,
 )
 
 # Initialize logger AFTER configure_logging

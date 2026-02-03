@@ -14,6 +14,7 @@ from structlog.typing import EventDict, WrappedLogger
 from structlog import stdlib
 
 from .sinks import BaseSink, StdioSink, FileSink, GCloudSink, LogFormat
+from .formatters import ConsoleFormatter
 from .io import StreamToLogger
 
 # =============================================================================
@@ -137,6 +138,10 @@ def configure_logging(
     file_path: str = "logs/negentropy.log",
     gcloud_project: str | None = None,
     gcloud_log_name: str = "negentropy",
+    console_timestamp_format: str = "%Y-%m-%d %H:%M:%S",
+    console_level_width: int = 8,
+    console_logger_width: int = 48,
+    console_separator: str = " | ",
 ) -> None:
     """
     Configure the unified logging system.
@@ -154,6 +159,14 @@ def configure_logging(
 
     # 1. Initialize Sinks
     _initialize_sinks(sinks, fmt, file_path, gcloud_project, gcloud_log_name)
+
+    # 1.1 Configure console formatter (aligned columns)
+    ConsoleFormatter.configure(
+        timestamp_format=console_timestamp_format,
+        level_width=console_level_width,
+        logger_width=console_logger_width,
+        separator=console_separator,
+    )
 
     # 2. Configure Structlog
     _configure_structlog(level)
