@@ -154,7 +154,9 @@ class PostgresSessionService(BaseSessionService):
                 user_id=thread.user_id,
                 state=thread.state or {},
                 events=[self._orm_to_adk_event(e) for e in events],
-                last_update_time=thread.updated_at.timestamp() if thread.updated_at else datetime.now(timezone.utc).timestamp(),
+                last_update_time=thread.updated_at.timestamp()
+                if thread.updated_at
+                else datetime.now(timezone.utc).timestamp(),
             )
 
     async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:

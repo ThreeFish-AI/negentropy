@@ -159,9 +159,7 @@ class PostgresMemoryService(BaseMemoryService):
                     id=str(m.id),
                     content=content_val,
                     author="system",
-                    timestamp=m.created_at.isoformat()
-                    if m.created_at
-                    else datetime.now(timezone.utc).isoformat(),
+                    timestamp=m.created_at.isoformat() if m.created_at else datetime.now(timezone.utc).isoformat(),
                     relevance_score=m.retention_score,
                     custom_metadata=m.metadata_ or {},
                 )
@@ -189,9 +187,7 @@ class PostgresMemoryService(BaseMemoryService):
                     id=str(m.id),
                     content=content_val,
                     author="system",
-                    timestamp=m.created_at.isoformat()
-                    if m.created_at
-                    else datetime.now(timezone.utc).isoformat(),
+                    timestamp=m.created_at.isoformat() if m.created_at else datetime.now(timezone.utc).isoformat(),
                     relevance_score=m.retention_score,
                     custom_metadata=m.metadata_ or {},
                 )
