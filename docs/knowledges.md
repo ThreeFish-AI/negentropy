@@ -97,14 +97,14 @@ sequenceDiagram
 ### 5.2 Retrieval（检索）
 
 - **Semantic**：向量距离排序（`embedding <=> query_embedding`）
-- **Keyword**：`search_vector` + BM25 (`ts_rank_cd`) 
+- **Keyword**：`search_vector` + BM25 (`ts_rank_cd`)
 - **Hybrid**：语义 + 关键词加权融合（后端合并，未来可切换到 `kb_hybrid_search`）<sup>[[2]](#ref2)</sup>
 
 ## 6. 工程落地（本次实现）
 
 ### 6.1 模块结构
 
-- [apps/negentropy/src/negentropy/knowledge/__init__.py](../apps/negentropy/src/negentropy/knowledge/__init__.py)
+- [apps/negentropy/src/negentropy/knowledge/**init**.py](../apps/negentropy/src/negentropy/knowledge/__init__.py)
 - [apps/negentropy/src/negentropy/knowledge/types.py](../apps/negentropy/src/negentropy/knowledge/types.py)
 - [apps/negentropy/src/negentropy/knowledge/chunking.py](../apps/negentropy/src/negentropy/knowledge/chunking.py)
 - [apps/negentropy/src/negentropy/knowledge/repository.py](../apps/negentropy/src/negentropy/knowledge/repository.py)
@@ -117,8 +117,8 @@ sequenceDiagram
 - **KnowledgeRepository**：对 `Corpus/Knowledge` 的 CRUD + 检索（语义/关键词）。
 - **KnowledgeService**：编排 ingestion 与检索策略，提供扩展点（chunking/embedding）。
 - **ChunkingConfig/SearchConfig**：将策略参数显式化，避免散落在调用侧。<sup>[[1]](#ref1)</sup>
-- **Knowledge API**：提供 Dashboard/Base/Graph/Memory/Pipelines 入口，对齐 UI 结构（见 [apps/negentropy/src/negentropy/knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)）。 
-- **Embedding 配置**：沿用 LLM 配置域扩展（见 [apps/negentropy/src/negentropy/config/llm.py](../apps/negentropy/src/negentropy/config/llm.py)），支持独立 embedding model。 
+- **Knowledge API**：提供 Dashboard/Base/Graph/Memory/Pipelines 入口，对齐 UI 结构（见 [apps/negentropy/src/negentropy/knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)）。
+- **Embedding 配置**：沿用 LLM 配置域扩展（见 [apps/negentropy/src/negentropy/config/llm.py](../apps/negentropy/src/negentropy/config/llm.py)），支持独立 embedding model。
 
 ## 7. 扩展点（为 Graph/Memory 预留）
 
@@ -140,6 +140,52 @@ sequenceDiagram
 
 ## 参考文献
 
-<a id="ref1"></a>[1] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, "Design Patterns: Elements of Reusable Object-Oriented Software," *Addison-Wesley Professional*, 1994.
+<a id="ref1"></a>[1] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, "Design Patterns: Elements of Reusable Object-Oriented Software," _Addison-Wesley Professional_, 1994.
 
 <a id="ref2"></a>[2] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," arXiv:2005.11401, 2020.
+
+## 10. User Guide (使用指南)
+
+本节介绍 Knowledge 系统的核心功能与操作流程。
+
+### 10.1 Knowledge Base (知识库管理)
+
+作为静态知识的容器，支持对非结构化文档的索引与混合检索。
+
+- **Corpus 创建**：定义知识库边界（如 `product-manuals`），配置切片策略（Chunk Size / Overlap）。
+- **Ingestion (写入)**：将文本/文件切片并向量化。
+  - _Chunking_:自动按配置切分。
+  - _Embedding_: 调用配置模型（如 `text-embedding-3-small`）生成向量。
+- **Search (检索)**：提供三种模式调试检索效果。
+  - `Semantic`: 纯向量相似度（召回语义相关）。
+  - `Keyword`: BM25 关键词匹配（召回精确匹配）。
+  - `Hybrid`: 加权融合（默认），兼顾语义与精准度。
+
+### 10.2 Knowledge Graph (知识图谱视图)
+
+提供实体关系的动态可视化与人工修正能力。
+
+- **Visualization**: 力导向图（Force-Directed Graph）展示实体（Entity）与关系（Edge）。
+  - _交互_: 支持缩放、平移、节点拖拽固定。
+- **Extraction & Write-back**:
+  - 系统自动从 Knowledge Base 抽取三元组。
+  - **写回 (Upsert)**: 用户可在 UI 上确认图谱状态，点击“写回图谱”将其固化到后端版本库。
+
+### 10.3 User Memory (用户记忆治理)
+
+面向 User ID 的长期记忆审计与干预。
+
+- **Timeline**: 按时间轴展示用户相关的记忆片段（来源于交互或文档）。
+- **Audit (审计)**: 对记忆片段进行治理，不仅是删除，更是隐私合规的关键。
+  - `Retain`: 保留（默认）。
+  - `Delete`: 物理删除。
+  - `Anonymize`: 匿名化处理（保留统计价值但移除 PII）。
+- **Policy**: 展示当前生效的记忆保留策略（TTL / 敏感度分级）。
+
+### 10.4 Pipelines (流水线监控)
+
+监控 Knowledge 系统内部的异步任务与数据流转。
+
+- **Runs**: 查看所有触发的任务（如 Ingestion, Graph Extraction, Memory Sync）。
+  - _状态_: `Completed` (绿), `Running` (黄), `Failed` (红).
+- **Debug**: 点击任务可查看详细的 Input / Output / Error 堆栈，辅助定位构建失败原因（如 Embedding API 超时、数据库约束冲突）。
