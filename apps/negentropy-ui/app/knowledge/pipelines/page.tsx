@@ -38,6 +38,21 @@ export default function KnowledgePipelinesPage() {
   }, []);
 
   const runs = payload?.runs || [];
+  const statusColor = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "completed":
+      case "success":
+        return "bg-emerald-500";
+      case "running":
+      case "in_progress":
+        return "bg-amber-500";
+      case "failed":
+      case "error":
+        return "bg-rose-500";
+      default:
+        return "bg-zinc-400";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -92,7 +107,10 @@ export default function KnowledgePipelinesPage() {
                   onClick={() => setSelected(run)}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold">{run.id}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${statusColor(run.status)}`} />
+                      <span className="text-xs font-semibold">{run.run_id || run.id}</span>
+                    </div>
                     <span className="text-[11px] opacity-70">{run.status || "unknown"}</span>
                   </div>
                   <p className="mt-1 text-[11px] opacity-70">{run.trigger || "manual"}</p>
@@ -129,6 +147,27 @@ export default function KnowledgePipelinesPage() {
               </div>
             ) : (
               <p className="mt-3 text-xs text-zinc-500">选择作业查看详情</p>
+            )}
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-zinc-900">Timeline</h2>
+            {runs.length ? (
+              <div className="mt-3 space-y-3">
+                {runs.map((run) => (
+                  <div key={run.id} className="flex gap-3 text-xs text-zinc-600">
+                    <div className="flex flex-col items-center">
+                      <span className={`h-2 w-2 rounded-full ${statusColor(run.status)}`} />
+                      <span className="h-full w-px bg-zinc-200" />
+                    </div>
+                    <div>
+                      <p className="text-zinc-900">{run.run_id || run.id}</p>
+                      <p className="text-[11px] text-zinc-500">{run.trigger || "manual"}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-zinc-500">暂无时间线</p>
             )}
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
