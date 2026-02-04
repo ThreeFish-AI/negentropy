@@ -73,13 +73,26 @@ function normalizeMessageContent(message: Message) {
 }
 
 function mapMessagesToChat(messages: Message[]) {
-  return messages
+  const merged: Array<{ id: string; role: string; content: string }> = [];
+  messages
     .filter((message) => message.role !== "tool")
-    .map((message) => ({
-      id: message.id,
-      role: message.role,
-      content: normalizeMessageContent(message),
-    }));
+    .forEach((message) => {
+      const content = normalizeMessageContent(message);
+      if (!content) {
+        return;
+      }
+      const last = merged[merged.length - 1];
+      if (last && last.role === "assistant" && message.role === "assistant") {
+        last.content = `${last.content}${content}`;
+        return;
+      }
+      merged.push({
+        id: message.id,
+        role: message.role,
+        content,
+      });
+    });
+  return merged;
 }
 
 function ConfirmationToolCard({
