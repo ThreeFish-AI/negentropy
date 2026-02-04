@@ -12,7 +12,9 @@ Provider References:
 from enum import Enum
 from typing import Any, Dict, Literal, Optional
 
-from pydantic import Field
+import os
+
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,6 +42,7 @@ class LlmSettings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         frozen=True,
+        validate_default=True,
     )
 
     # Core Identity
@@ -54,14 +57,17 @@ class LlmSettings(BaseSettings):
     )
     embedding_model_name: Optional[str] = Field(
         default=None,
+        validation_alias=AliasChoices("EMBEDDING_MODEL", "NE_LLM_EMBEDDING_MODEL"),
         description="Embedding model identifier. If unset, defaults to model_name.",
     )
     embedding_dimensions: Optional[int] = Field(
         default=None,
+        validation_alias=AliasChoices("EMBEDDING_DIMENSIONS", "NE_LLM_EMBEDDING_DIMENSIONS"),
         description="Optional embedding dimensions (OpenAI text-embedding-3+).",
     )
     embedding_input_type: Optional[str] = Field(
         default=None,
+        validation_alias=AliasChoices("EMBEDDING_INPUT_TYPE", "NE_LLM_EMBEDDING_INPUT_TYPE"),
         description="Optional input_type for embedding models (e.g., 'search_query', 'search_document').",
     )
 
@@ -97,17 +103,28 @@ class LlmSettings(BaseSettings):
 
     @property
     def embedding_full_model_name(self) -> str:
-        model_name = self.embedding_model_name or self.model_name
+        env_model = os.getenv("NE_LLM_EMBEDDING_MODEL")
+        model_name = self.embedding_model_name or env_model or self.model_name
         if "/" in model_name:
             return model_name
         return f"{self.vendor.value}/{model_name}"
 
     def to_litellm_embedding_kwargs(self) -> Dict[str, Any]:
         kwargs: Dict[str, Any] = {}
-        if self.embedding_dimensions:
-            kwargs["dimensions"] = self.embedding_dimensions
-        if self.embedding_input_type:
-            kwargs["input_type"] = self.embedding_input_type
+        dimensions = self.embedding_dimensions
+        if dimensions is None:
+            raw = os.getenv("NE_LLM_EMBEDDING_DIMENSIONS")
+            if raw is not None:
+                try:
+                    dimensions = int(raw)
+                except ValueError:
+                    dimensions = None
+        if dimensions is not None:
+            kwargs["dimensions"] = dimensions
+
+        input_type = self.embedding_input_type or os.getenv("NE_LLM_EMBEDDING_INPUT_TYPE")
+        if input_type:
+            kwargs["input_type"] = input_type
         return kwargs
 
     def to_litellm_kwargs(self) -> Dict[str, Any]:
@@ -179,3 +196,26 @@ class LlmSettings(BaseSettings):
 
         # 4. Other Providers: No thinking support (passthrough)
         # Deepseek / Ollama / Vertex AI default behavior is to ignore these params
+
+    @field_validator("embedding_model_name", mode="before")
+    @classmethod
+    def _load_embedding_model_env(cls, value: Optional[str]) -> Optional[str]:
+        return value or os.getenv("NE_LLM_EMBEDDING_MODEL")
+
+    @field_validator("embedding_dimensions", mode="before")
+    @classmethod
+    def _load_embedding_dimensions_env(cls, value: Optional[int]) -> Optional[int]:
+        if value is not None:
+            return value
+        raw = os.getenv("NE_LLM_EMBEDDING_DIMENSIONS")
+        if raw is None:
+            return None
+        try:
+            return int(raw)
+        except ValueError:
+            return None
+
+    @field_validator("embedding_input_type", mode="before")
+    @classmethod
+    def _load_embedding_input_type_env(cls, value: Optional[str]) -> Optional[str]:
+        return value or os.getenv("NE_LLM_EMBEDDING_INPUT_TYPE")
