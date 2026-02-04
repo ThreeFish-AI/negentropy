@@ -587,7 +587,7 @@ export function HomeBody({
       onEvent: ({ event }) =>
         setRawEvents((prev) => {
           const next = [...prev, event];
-          return next.slice(-500);
+          return next.slice(-10000);
         }),
     });
 
@@ -820,7 +820,7 @@ export function HomeBody({
       ];
       const next = [...prev, ...optimisticEvents];
       // Increase buffer to prevent dropping messages
-      return next.slice(-2000);
+      return next.slice(-10000);
     });
     agent.addMessage(newMessage);
     setInputValue("");
@@ -906,15 +906,9 @@ export function HomeBody({
     messagesForRenderBase,
     optimisticMessages,
   );
-  const chatMessages =
-    rawEvents.length > 0
-      ? ensureUniqueMessageIds(
-          buildChatMessagesFromEventsWithFallback(
-            rawEvents,
-            mergedMessagesForRender,
-          ),
-        )
-      : ensureUniqueMessageIds(mapMessagesToChat(mergedMessagesForRender));
+  const chatMessages = ensureUniqueMessageIds(
+    mapMessagesToChat(mergedMessagesForRender),
+  );
 
   return (
     <div className="h-screen flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
@@ -935,6 +929,7 @@ export function HomeBody({
               value={inputValue}
               onChange={setInputValue}
               onSend={sendInput}
+              isGenerating={connection === "streaming"}
               disabled={
                 !sessionId ||
                 connection === "streaming" ||
