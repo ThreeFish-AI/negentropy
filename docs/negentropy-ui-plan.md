@@ -245,6 +245,8 @@
   - 修复策略：BFF 注入 `threadId/runId` 到所有 AG‑UI 事件；ADK 事件解析增强（兼容 `content.text` / `content.content` / `message.content`），并忽略空 `artifactDelta/stateDelta`。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)、[apps/negentropy-ui/lib/adk.ts](../apps/negentropy-ui/lib/adk.ts)。
   - 进一步异常：中栏/右栏消息与快照未随流式更新，Runtime Logs 频繁“跳动”。
   - 修复策略：移除对 `agent.messages/state` 的过度 memo，确保 `useAgent` 触发的更新可直接反映到 UI（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。  
+  - 流式拆分问题：assistant 片段被拆为多条消息。
+  - 修复策略：中栏渲染改为基于 AG‑UI `TEXT_MESSAGE_*` 事件流聚合，按 `messageId` 汇聚为单条消息（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。
   - **验证待补录**：需在 UI 侧完成真实交互验证，并记录日志缓冲输出与断连/重连表现（见下方模板）。
 
 **UI 真实验证模板（待补录）**
