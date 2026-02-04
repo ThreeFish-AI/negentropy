@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { fetchGraph, KnowledgeGraphPayload } from "@/lib/knowledge";
+import { fetchGraph, KnowledgeGraphPayload, upsertGraph } from "@/lib/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
@@ -14,6 +14,7 @@ export default function KnowledgeGraphPage() {
   const [payload, setPayload] = useState<KnowledgeGraphPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +63,24 @@ export default function KnowledgeGraphPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-900">Graph Canvas</h2>
-            <span className="text-xs text-zinc-500">点击节点查看详情</span>
+            <div className="flex items-center gap-3 text-xs text-zinc-500">
+              <span>点击节点查看详情</span>
+              <button
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900"
+                onClick={async () => {
+                  if (!payload) return;
+                  setSaveStatus("saving");
+                  try {
+                    await upsertGraph({ app_name: APP_NAME, graph: payload });
+                    setSaveStatus("saved");
+                  } catch (err) {
+                    setSaveStatus(`error:${String(err)}`);
+                  }
+                }}
+              >
+                写回图谱
+              </button>
+            </div>
           </div>
           <div className="mt-4 flex h-[360px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50">
             {layout.length ? (
@@ -143,7 +161,9 @@ export default function KnowledgeGraphPage() {
             )}
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
-            {error ? `加载失败：${error}` : `状态源：${payload ? "已加载" : "等待加载"}`}
+            {error
+              ? `加载失败：${error}`
+              : `状态源：${payload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
           </div>
         </aside>
       </div>

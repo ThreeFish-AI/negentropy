@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { fetchPipelines, KnowledgePipelinesPayload } from "@/lib/knowledge";
+import { fetchPipelines, KnowledgePipelinesPayload, upsertPipelines } from "@/lib/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
@@ -13,6 +13,7 @@ export default function KnowledgePipelinesPage() {
   const [payload, setPayload] = useState<KnowledgePipelinesPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<RunRecord | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -44,7 +45,28 @@ export default function KnowledgePipelinesPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-900">Runs</h2>
-            <span className="text-xs text-zinc-500">{payload?.last_updated_at || "-"}</span>
+            <div className="flex items-center gap-3 text-xs text-zinc-500">
+              <span>{payload?.last_updated_at || "-"}</span>
+              <button
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900"
+                onClick={async () => {
+                  if (!payload) return;
+                  setSaveStatus("saving");
+                  try {
+                    await upsertPipelines({
+                      app_name: APP_NAME,
+                      runs: payload.runs,
+                      last_updated_at: payload.last_updated_at ?? undefined,
+                    });
+                    setSaveStatus("saved");
+                  } catch (err) {
+                    setSaveStatus(`error:${String(err)}`);
+                  }
+                }}
+              >
+                写回管线
+              </button>
+            </div>
           </div>
           {runs.length ? (
             <div className="mt-4 space-y-3 text-xs text-zinc-600">
@@ -99,7 +121,9 @@ export default function KnowledgePipelinesPage() {
             )}
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
-            {error ? `加载失败：${error}` : `状态源：${payload ? "已加载" : "等待加载"}`}
+            {error
+              ? `加载失败：${error}`
+              : `状态源：${payload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
           </div>
         </aside>
       </div>
