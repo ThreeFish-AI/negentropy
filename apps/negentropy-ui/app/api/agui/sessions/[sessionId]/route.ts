@@ -19,13 +19,14 @@ function errorResponse(code: string, message: string, status = 500) {
 
 export async function GET(
   request: Request,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     return errorResponse("AGUI_INTERNAL_ERROR", "AGUI_BASE_URL is not configured", 500);
   }
 
+  const { sessionId } = await params;
   const { searchParams } = new URL(request.url);
   const appName = searchParams.get("app_name");
   const userId = searchParams.get("user_id");
@@ -36,7 +37,7 @@ export async function GET(
 
   const upstreamUrl = new URL(
     `/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(
-      params.sessionId
+      sessionId
     )}`,
     baseUrl
   );
