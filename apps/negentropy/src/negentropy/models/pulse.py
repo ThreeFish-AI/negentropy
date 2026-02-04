@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Integer, Sequence, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, Sequence, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -48,7 +48,12 @@ class Event(Base, UUIDMixin):
     content: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     actions: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
-    sequence_num: Mapped[int] = mapped_column(Integer, Sequence("events_sequence_num_seq"), nullable=False)
+    sequence_num: Mapped[int] = mapped_column(
+        Integer,
+        Sequence("events_sequence_num_seq", schema=NEGENTROPY_SCHEMA),
+        server_default=text("nextval('negentropy.events_sequence_num_seq'::regclass)"),
+        nullable=False,
+    )
     # Note: Using Integer for BIGSERIAL might need BigInteger, but standard int in Py matches.
     # We might need to handle the explicit sequence definition if we were creating tables, but for mapping it's fine.
 
