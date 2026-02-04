@@ -15,7 +15,8 @@ import { z } from "zod";
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
 import { EventTimeline, TimelineItem } from "../components/ui/EventTimeline";
-import { Header } from "../components/ui/Header";
+import { SiteHeader } from "../components/layout/SiteHeader";
+import { useAuth } from "../components/providers/AuthProvider";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
@@ -163,7 +164,8 @@ function buildChatMessagesFromEventsWithFallback(
         id: messageId,
         role: ("role" in event && event.role) || fallback?.role || "assistant",
         content: "",
-        timestamp: "timestamp" in event && event.timestamp ? event.timestamp : 0,
+        timestamp:
+          "timestamp" in event && event.timestamp ? event.timestamp : 0,
         order: orderCounter++,
       };
       messageMap.set(messageId, entry);
@@ -877,13 +879,19 @@ export function HomeBody({
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <Header
-        title={activeSession?.label || "未选择会话"}
-        connection={connection}
-        onNewSession={startNewSession}
-        user={user}
-        onLogout={onLogout}
-      />
+      <SiteHeader>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium">
+            {connection}
+          </span>
+          <button
+            className="rounded-full bg-black px-4 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 transition-transform active:scale-95"
+            onClick={startNewSession}
+          >
+            New Session
+          </button>
+        </div>
+      </SiteHeader>
 
       <div className="grid min-h-[calc(100vh-72px)] grid-cols-12 gap-0">
         <SessionList
@@ -923,40 +931,17 @@ export function HomeBody({
 }
 
 export default function Home() {
-  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user, status: authStatus, login, logout } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
 
   const [agent, setAgent] = useState<HttpAgent | null>(null);
 
   useEffect(() => {
-    const loadAuth = async () => {
-      try {
-        const response = await fetch("/api/auth/me", { cache: "no-store" });
-        if (!response.ok) {
-          setAuthStatus("unauthenticated");
-          setAuthUser(null);
-          setUserId(null);
-          return;
-        }
-        const payload = (await response.json()) as { user: AuthUser };
-        setAuthUser(payload.user);
-        setUserId(payload.user.userId);
-        setAuthStatus("authenticated");
-      } catch (error) {
-        console.warn("Failed to load auth state", error);
-        setAuthStatus("unauthenticated");
-      }
-    };
-    loadAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!userId) {
+    if (!user) {
       return;
     }
+    const userId = user.userId;
     const resolvedSession = sessionId || "pending";
     setAgent(
       new HttpAgent({
@@ -968,25 +953,12 @@ export default function Home() {
         threadId: resolvedSession,
       }),
     );
-  }, [sessionId, userId]);
+  }, [sessionId, user]);
 
   const copilotAgents = useMemo(
     () => (agent ? { [AGENT_ID]: agent } : {}),
     [agent],
   );
-
-  const handleLogin = useCallback(() => {
-    window.location.href = "/api/auth/login";
-  }, []);
-
-  const handleLogout = useCallback(async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      window.location.href = "/";
-    } catch (error) {
-      console.warn("Failed to logout", error);
-    }
-  }, []);
 
   if (authStatus === "loading") {
     return (
@@ -996,7 +968,7 @@ export default function Home() {
     );
   }
 
-  if (authStatus !== "authenticated" || !userId) {
+  if (authStatus === "unauthenticated" || !user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 text-center">
         <div className="max-w-md space-y-2">
@@ -1012,7 +984,7 @@ export default function Home() {
         </div>
         <button
           className="rounded-full bg-black px-6 py-2 text-xs font-semibold text-white"
-          onClick={handleLogin}
+          onClick={login}
           type="button"
         >
           使用 Google 登录
@@ -1036,12 +1008,12 @@ export default function Home() {
     >
       <HomeBody
         sessionId={sessionId}
-        userId={userId}
-        user={authUser}
+        userId={user.userId}
+        user={user}
         setSessionId={setSessionId}
         sessions={sessions}
         setSessions={setSessions}
-        onLogout={handleLogout}
+        onLogout={logout}
       />
     </CopilotKitProvider>
   );
