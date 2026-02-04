@@ -1,15 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { fetchGraph, KnowledgeGraphPayload, upsertGraph } from "@/lib/knowledge";
+import {
+  fetchGraph,
+  KnowledgeGraphPayload,
+  upsertGraph,
+} from "@/lib/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
 type GraphNode = { id: string; label?: string; type?: string };
 type GraphEdge = { source: string; target: string; label?: string };
-type GraphNodePos = GraphNode & { x: number; y: number; vx: number; vy: number; fx?: number | null; fy?: number | null };
+type GraphNodePos = GraphNode & {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  fx?: number | null;
+  fy?: number | null;
+};
 
 export default function KnowledgeGraphPage() {
   const [payload, setPayload] = useState<KnowledgeGraphPayload | null>(null);
@@ -18,7 +29,9 @@ export default function KnowledgeGraphPage() {
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [retryQueue, setRetryQueue] = useState<KnowledgeGraphPayload[]>([]);
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const simulationRef = useRef<import("d3-force").Simulation<GraphNodePos, undefined> | null>(null);
+  const simulationRef = useRef<
+    import("d3-force").Simulation<GraphNodePos, undefined> | null
+  >(null);
 
   useEffect(() => {
     let active = true;
@@ -38,8 +51,8 @@ export default function KnowledgeGraphPage() {
     };
   }, []);
 
-  const nodes = (payload?.nodes || []) as GraphNode[];
-  const edges = (payload?.edges || []) as GraphEdge[];
+  const nodes = useMemo(() => (payload?.nodes || []) as GraphNode[], [payload]);
+  const edges = useMemo(() => (payload?.edges || []) as GraphEdge[], [payload]);
   const runs = payload?.runs || [];
   const latestRun = (runs[0] || {}) as { run_id?: string; version?: number };
 
@@ -54,7 +67,13 @@ export default function KnowledgeGraphPage() {
         setLayout([]);
         return;
       }
-      const { forceSimulation, forceManyBody, forceLink, forceCenter, forceCollide } = await import("d3-force");
+      const {
+        forceSimulation,
+        forceManyBody,
+        forceLink,
+        forceCenter,
+        forceCollide,
+      } = await import("d3-force");
       const { select } = await import("d3-selection");
       const { zoom } = await import("d3-zoom");
 
@@ -78,11 +97,20 @@ export default function KnowledgeGraphPage() {
           if (!source || !target) return null;
           return { source, target, label: edge.label };
         })
-        .filter((edge) => edge !== null) as { source: GraphNodePos; target: GraphNodePos; label?: string }[];
+        .filter((edge) => edge !== null) as {
+        source: GraphNodePos;
+        target: GraphNodePos;
+        label?: string;
+      }[];
 
       const simulation = forceSimulation(nodesArr)
         .force("charge", forceManyBody().strength(-240))
-        .force("link", forceLink(links).id((d) => (d as GraphNodePos).id).distance(120))
+        .force(
+          "link",
+          forceLink(links)
+            .id((d) => (d as GraphNodePos).id)
+            .distance(120),
+        )
         .force("center", forceCenter(width / 2, height / 2))
         .force("collide", forceCollide(20))
         .alphaDecay(0.03);
@@ -95,7 +123,7 @@ export default function KnowledgeGraphPage() {
           .scaleExtent([0.5, 2.5])
           .on("zoom", (event) => {
             g.attr("transform", event.transform.toString());
-          })
+          }),
       );
 
       setLayout([...nodesArr]);
@@ -134,7 +162,8 @@ export default function KnowledgeGraphPage() {
         .call(
           drag<SVGCircleElement, GraphNodePos>()
             .on("start", (event, d) => {
-              if (!event.active && simulationRef.current) simulationRef.current.alphaTarget(0.3).restart();
+              if (!event.active && simulationRef.current)
+                simulationRef.current.alphaTarget(0.3).restart();
               d.fx = d.x;
               d.fy = d.y;
             })
@@ -143,10 +172,11 @@ export default function KnowledgeGraphPage() {
               d.fy = event.y;
             })
             .on("end", (event, d) => {
-              if (!event.active && simulationRef.current) simulationRef.current.alphaTarget(0);
+              if (!event.active && simulationRef.current)
+                simulationRef.current.alphaTarget(0);
               d.fx = null;
               d.fy = null;
-            })
+            }),
         );
     };
     run();
@@ -155,15 +185,21 @@ export default function KnowledgeGraphPage() {
     };
   }, [layout]);
 
-  const selectedNode = layout.find((node) => node.id === selectedNodeId) || null;
+  const selectedNode =
+    layout.find((node) => node.id === selectedNodeId) || null;
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <KnowledgeNav title="Knowledge Graph" description="实体关系视图与构建历史" />
+      <KnowledgeNav
+        title="Knowledge Graph"
+        description="实体关系视图与构建历史"
+      />
       <div className="grid gap-6 px-6 py-6 lg:grid-cols-[2.2fr_1fr]">
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-900">Graph Canvas</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              Graph Canvas
+            </h2>
             <div className="flex items-center gap-3 text-xs text-zinc-500">
               <span>点击节点查看详情</span>
               <button
@@ -194,50 +230,67 @@ export default function KnowledgeGraphPage() {
           </div>
           <div className="mt-4 flex h-[360px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50">
             {layout.length ? (
-              <svg ref={svgRef} width={360} height={360} className="rounded-xl bg-white/60">
+              <svg
+                ref={svgRef}
+                width={360}
+                height={360}
+                className="rounded-xl bg-white/60"
+              >
                 <g className="graph-layer">
-                {edges.map((edge, index) => {
-                  const source = layout.find((node) => node.id === edge.source);
-                  const target = layout.find((node) => node.id === edge.target);
-                  if (!source || !target) {
-                    return null;
-                  }
-                  return (
-                    <g key={`${edge.source}-${edge.target}-${index}`}>
-                      <line
-                        x1={source.x}
-                        y1={source.y}
-                        x2={target.x}
-                        y2={target.y}
-                        stroke="#d4d4d8"
-                        strokeWidth={1.4}
+                  {edges.map((edge, index) => {
+                    const source = layout.find(
+                      (node) => node.id === edge.source,
+                    );
+                    const target = layout.find(
+                      (node) => node.id === edge.target,
+                    );
+                    if (!source || !target) {
+                      return null;
+                    }
+                    return (
+                      <g key={`${edge.source}-${edge.target}-${index}`}>
+                        <line
+                          x1={source.x}
+                          y1={source.y}
+                          x2={target.x}
+                          y2={target.y}
+                          stroke="#d4d4d8"
+                          strokeWidth={1.4}
+                        />
+                        {edge.label ? (
+                          <text
+                            x={(source.x + target.x) / 2}
+                            y={(source.y + target.y) / 2}
+                            fontSize={9}
+                            fill="#71717a"
+                          >
+                            {edge.label}
+                          </text>
+                        ) : null}
+                      </g>
+                    );
+                  })}
+                  {layout.map((node) => (
+                    <g key={node.id} onClick={() => setSelectedNodeId(node.id)}>
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={selectedNodeId === node.id ? 18 : 14}
+                        fill={
+                          selectedNodeId === node.id ? "#18181b" : "#3f3f46"
+                        }
                       />
-                      {edge.label ? (
-                        <text
-                          x={(source.x + target.x) / 2}
-                          y={(source.y + target.y) / 2}
-                          fontSize={9}
-                          fill="#71717a"
-                        >
-                          {edge.label}
-                        </text>
-                      ) : null}
+                      <text
+                        x={node.x}
+                        y={node.y + 30}
+                        fontSize={10}
+                        textAnchor="middle"
+                        fill="#27272a"
+                      >
+                        {node.label || node.id}
+                      </text>
                     </g>
-                  );
-                })}
-                {layout.map((node) => (
-                  <g key={node.id} onClick={() => setSelectedNodeId(node.id)}>
-                    <circle
-                      cx={node.x}
-                      cy={node.y}
-                      r={selectedNodeId === node.id ? 18 : 14}
-                      fill={selectedNodeId === node.id ? "#18181b" : "#3f3f46"}
-                    />
-                    <text x={node.x} y={node.y + 30} fontSize={10} textAnchor="middle" fill="#27272a">
-                      {node.label || node.id}
-                    </text>
-                  </g>
-                ))}
+                  ))}
                 </g>
               </svg>
             ) : (
@@ -247,7 +300,9 @@ export default function KnowledgeGraphPage() {
         </div>
         <aside className="space-y-4">
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Entity Detail</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              Entity Detail
+            </h2>
             {selectedNode ? (
               <div className="mt-3 text-xs text-zinc-600">
                 <p>ID: {selectedNode.id}</p>
@@ -263,7 +318,10 @@ export default function KnowledgeGraphPage() {
             {runs.length ? (
               <div className="mt-3 space-y-2 text-xs text-zinc-600">
                 {runs.map((run, index) => (
-                  <div key={index} className="rounded-lg border border-zinc-200 p-2">
+                  <div
+                    key={index}
+                    className="rounded-lg border border-zinc-200 p-2"
+                  >
                     {JSON.stringify(run)}
                   </div>
                 ))}
