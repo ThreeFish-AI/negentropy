@@ -73,6 +73,12 @@ export async function POST(request: Request) {
   if (!sessionId) {
     return errorResponse("AGUI_BAD_REQUEST", "session_id is required", 400);
   }
+  const resolvedThreadId =
+    (typeof body.threadId === "string" && body.threadId.trim()) ||
+    sessionId;
+  const resolvedRunId =
+    (typeof body.runId === "string" && body.runId.trim()) ||
+    crypto.randomUUID();
 
   const latestUserText = buildRunPayload(body);
   if (!latestUserText) {
@@ -123,6 +129,8 @@ export async function POST(request: Request) {
     async start(controller) {
       const runStart: BaseEvent = {
         type: EventType.RUN_STARTED,
+        threadId: resolvedThreadId,
+        runId: resolvedRunId,
         timestamp: Date.now() / 1000,
       };
       controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(runStart)));
@@ -146,19 +154,25 @@ export async function POST(request: Request) {
               if (!trimmed.startsWith("data:")) {
                 continue;
               }
-              const jsonText = trimmed.replace(/^data:\\s*/, "");
+              const jsonText = trimmed.replace(/^data:\s*/, "");
               if (!jsonText) {
                 continue;
               }
               try {
                 const parsed = JSON.parse(jsonText) as AdkEventPayload;
-                const events = adkEventToAguiEvents(parsed);
+                const events = adkEventToAguiEvents(parsed).map((event) => ({
+                  ...event,
+                  threadId: "threadId" in event ? event.threadId : resolvedThreadId,
+                  runId: "runId" in event ? event.runId : resolvedRunId,
+                }));
                 for (const event of events) {
                   controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(event)));
                 }
               } catch (error) {
                 const errEvent: BaseEvent = {
                   type: EventType.RUN_ERROR,
+                  threadId: resolvedThreadId,
+                  runId: resolvedRunId,
                   message: `Failed to parse ADK event: ${String(error)}`,
                   code: "ADK_EVENT_PARSE_ERROR",
                   timestamp: Date.now() / 1000,
@@ -172,6 +186,8 @@ export async function POST(request: Request) {
       } catch (error) {
         const errEvent: BaseEvent = {
           type: EventType.RUN_ERROR,
+          threadId: resolvedThreadId,
+          runId: resolvedRunId,
           message: `Upstream stream error: ${String(error)}`,
           code: "ADK_STREAM_ERROR",
           timestamp: Date.now() / 1000,
@@ -180,6 +196,8 @@ export async function POST(request: Request) {
       } finally {
         const runFinish: BaseEvent = {
           type: EventType.RUN_FINISHED,
+          threadId: resolvedThreadId,
+          runId: resolvedRunId,
           timestamp: Date.now() / 1000,
           result: "ok",
         };

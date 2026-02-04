@@ -8,7 +8,7 @@ import {
   useAgent,
   useHumanInTheLoop,
 } from "@copilotkitnext/react";
-import { HttpAgent, compactEvents } from "@ag-ui/client";
+import { HttpAgent, compactEvents, randomUUID } from "@ag-ui/client";
 import { BaseEvent, EventType, Message } from "@ag-ui/core";
 import { z } from "zod";
 
@@ -279,7 +279,7 @@ function useConfirmationTool(onFollowup?: (payload: { action: string; note: stri
   );
 }
 
-function HomeBody({
+export function HomeBody({
   sessionId,
   userId,
   setSessionId,
@@ -422,24 +422,30 @@ function HomeBody({
     [agent, userId]
   );
 
-  useConfirmationTool(async (payload) => {
-    if (!agent || !sessionId || agent.isRunning) {
-      return;
-    }
-    agent.addMessage({
-      id: crypto.randomUUID(),
-      role: "user",
-      content: `HITL:${payload.action} ${payload.note || ""}`.trim(),
-    });
-    try {
-      setConnection("connecting");
-      await agent.runAgent({});
-      await loadSessions();
-    } catch (error) {
-      setConnection("error");
-      console.warn("Failed to submit HITL response", error);
-    }
-  });
+  const resolvedThreadId = sessionId ?? "pending";
+  const handleConfirmationFollowup = useCallback(
+    async (payload: { action: string; note: string }) => {
+      if (!agent || !sessionId || agent.isRunning) {
+        return;
+      }
+      agent.addMessage({
+        id: crypto.randomUUID(),
+        role: "user",
+        content: `HITL:${payload.action} ${payload.note || ""}`.trim(),
+      });
+      try {
+        setConnection("connecting");
+        await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
+        await loadSessions();
+      } catch (error) {
+        setConnection("error");
+        console.warn("Failed to submit HITL response", error);
+      }
+    },
+    [agent, loadSessions, resolvedThreadId, sessionId]
+  );
+
+  useConfirmationTool(handleConfirmationFollowup);
 
   const sendInput = async () => {
     if (!agent || !sessionId || !inputValue.trim()) {
@@ -458,7 +464,7 @@ function HomeBody({
     setInputValue("");
     try {
       setConnection("connecting");
-      await agent.runAgent({});
+      await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
       await loadSessions();
     } catch (error) {
       setConnection("error");
@@ -518,20 +524,37 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
 
-  const agent = useMemo(() => {
-    const resolvedSession = sessionId || "pending";
+  const [agent, setAgent] = useState(() => {
+    const initialSession = "pending";
     return new HttpAgent({
-      url: buildAgentUrl(resolvedSession, userId),
+      url: buildAgentUrl(initialSession, userId),
       headers: {
-        "X-Session-ID": resolvedSession,
+        "X-Session-ID": initialSession,
         "X-User-ID": userId,
       },
+      threadId: initialSession,
     });
+  });
+
+  useEffect(() => {
+    const resolvedSession = sessionId || "pending";
+    setAgent(
+      new HttpAgent({
+        url: buildAgentUrl(resolvedSession, userId),
+        headers: {
+          "X-Session-ID": resolvedSession,
+          "X-User-ID": userId,
+        },
+        threadId: resolvedSession,
+      })
+    );
   }, [sessionId, userId]);
+
+  const copilotAgents = useMemo(() => ({ [AGENT_ID]: agent }), [agent]);
 
   return (
     <CopilotKitProvider
-      agents__unsafe_dev_only={agent ? { [AGENT_ID]: agent } : {}}
+      agents__unsafe_dev_only={copilotAgents}
       showDevConsole="auto"
     >
       <HomeBody

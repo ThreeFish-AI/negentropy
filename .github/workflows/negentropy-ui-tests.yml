@@ -1,0 +1,36 @@
+name: negentropy-ui-tests
+
+on:
+  push:
+    paths:
+      - "apps/negentropy-ui/**"
+      - ".github/workflows/negentropy-ui-tests.yml"
+  pull_request:
+    paths:
+      - "apps/negentropy-ui/**"
+      - ".github/workflows/negentropy-ui-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/negentropy-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+          cache-dependency-path: apps/negentropy-ui/yarn.lock
+
+      - name: Configure npm registry
+        run: yarn config set registry https://registry.npmmirror.com
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests
+        run: yarn test
