@@ -459,6 +459,7 @@ export function HomeBody({
   const [inputValue, setInputValue] = useState("");
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
   const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [sessionSnapshot, setSessionSnapshot] = useState<Record<
     string,
     unknown
@@ -750,11 +751,13 @@ export function HomeBody({
     }
 
     const messageId = crypto.randomUUID();
-    agent.addMessage({
+    const newMessage: Message = {
       id: messageId,
       role: "user",
       content: inputValue.trim(),
-    });
+    };
+    setOptimisticMessages((prev) => [...prev, newMessage]);
+    agent.addMessage(newMessage);
     setInputValue("");
     try {
       setConnectionWithMetrics("connecting");
@@ -777,6 +780,7 @@ export function HomeBody({
       return;
     }
     setSessionMessages([]);
+    setOptimisticMessages([]);
     setSessionSnapshot(null);
     setRawEvents([]);
     setLoadedSessionId(null);
@@ -785,12 +789,29 @@ export function HomeBody({
   }, [sessionId, agent, loadSessionDetail]);
 
   const agentMessages = agent ? (agent.messages as Message[]) : [];
+  useEffect(() => {
+    if (agentMessages.length === 0) {
+      return;
+    }
+    const knownIds = new Set(agentMessages.map((message) => message.id));
+    setOptimisticMessages((prev) =>
+      prev.filter((message) => !knownIds.has(message.id)),
+    );
+  }, [agentMessages]);
   const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
   const hasLoadedSession = loadedSessionId === sessionId;
-  const messagesForRender =
+  const messagesForRenderBase =
     hasLoadedSession && agentMessages.length > 0
       ? agentMessages
       : sessionMessages;
+  const baseIds = new Set(messagesForRenderBase.map((message) => message.id));
+  const optimisticForRender = optimisticMessages.filter(
+    (message) => !baseIds.has(message.id),
+  );
+  const messagesForRender = [
+    ...messagesForRenderBase,
+    ...optimisticForRender,
+  ];
   const snapshotForRender = hasLoadedSession
     ? (agentSnapshot ?? sessionSnapshot)
     : sessionSnapshot;
