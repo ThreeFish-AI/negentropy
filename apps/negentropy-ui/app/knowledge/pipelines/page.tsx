@@ -14,6 +14,7 @@ export default function KnowledgePipelinesPage() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<RunRecord | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [retryQueue, setRetryQueue] = useState<RunRecord[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -50,17 +51,27 @@ export default function KnowledgePipelinesPage() {
               <button
                 className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900"
                 onClick={async () => {
-                  if (!payload) return;
+                  if (!selected) return;
                   setSaveStatus("saving");
                   try {
                     await upsertPipelines({
                       app_name: APP_NAME,
-                      runs: payload.runs,
-                      last_updated_at: payload.last_updated_at ?? undefined,
+                      run_id: selected.run_id,
+                      status: selected.status || "completed",
+                      payload: {
+                        duration: selected.duration,
+                        trigger: selected.trigger,
+                        input: selected.input,
+                        output: selected.output,
+                        error: selected.error,
+                      },
+                      expected_version: selected.version,
+                      idempotency_key: crypto.randomUUID(),
                     });
                     setSaveStatus("saved");
                   } catch (err) {
                     setSaveStatus(`error:${String(err)}`);
+                    setRetryQueue((prev) => [...prev, selected]);
                   }
                 }}
               >
@@ -125,6 +136,41 @@ export default function KnowledgePipelinesPage() {
               ? `加载失败：${error}`
               : `状态源：${payload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
           </div>
+          {retryQueue.length ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm">
+              <p className="font-semibold">待重试写回：{retryQueue.length}</p>
+              <button
+                className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"
+                onClick={async () => {
+                  const next = retryQueue[0];
+                  if (!next) return;
+                  setSaveStatus("retrying");
+                  try {
+                    await upsertPipelines({
+                      app_name: APP_NAME,
+                      run_id: next.run_id,
+                      status: next.status || "completed",
+                      payload: {
+                        duration: next.duration,
+                        trigger: next.trigger,
+                        input: next.input,
+                        output: next.output,
+                        error: next.error,
+                      },
+                      expected_version: next.version,
+                      idempotency_key: crypto.randomUUID(),
+                    });
+                    setRetryQueue((prev) => prev.slice(1));
+                    setSaveStatus("saved");
+                  } catch (err) {
+                    setSaveStatus(`error:${String(err)}`);
+                  }
+                }}
+              >
+                重试写回
+              </button>
+            </div>
+          ) : null}
         </aside>
       </div>
     </div>

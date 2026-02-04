@@ -16,6 +16,7 @@ export default function KnowledgeMemoryPage() {
   const [auditMap, setAuditMap] = useState<Record<string, AuditAction>>({});
   const [auditNote, setAuditNote] = useState("");
   const [auditStatus, setAuditStatus] = useState<string | null>(null);
+  const [retryAudit, setRetryAudit] = useState<{ userId: string; decisions: Record<string, AuditAction>; note?: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -146,10 +147,16 @@ export default function KnowledgeMemoryPage() {
                     user_id: selectedUserId,
                     decisions: auditMap,
                     note: auditNote || undefined,
+                    idempotency_key: crypto.randomUUID(),
                   });
                   setAuditStatus("saved");
                 } catch (err) {
                   setAuditStatus(`error:${String(err)}`);
+                  setRetryAudit({
+                    userId: selectedUserId,
+                    decisions: auditMap,
+                    note: auditNote || undefined,
+                  });
                 }
               }}
             >
@@ -157,6 +164,32 @@ export default function KnowledgeMemoryPage() {
             </button>
             {auditStatus ? <p className="mt-2 text-[11px] text-zinc-500">{auditStatus}</p> : null}
           </div>
+          {retryAudit ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm">
+              <p className="font-semibold">审计写回失败，待重试</p>
+              <button
+                className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"
+                onClick={async () => {
+                  setAuditStatus("retrying");
+                  try {
+                    await submitMemoryAudit({
+                      app_name: APP_NAME,
+                      user_id: retryAudit.userId,
+                      decisions: retryAudit.decisions,
+                      note: retryAudit.note,
+                      idempotency_key: crypto.randomUUID(),
+                    });
+                    setRetryAudit(null);
+                    setAuditStatus("saved");
+                  } catch (err) {
+                    setAuditStatus(`error:${String(err)}`);
+                  }
+                }}
+              >
+                重试写回
+              </button>
+            </div>
+          ) : null}
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
             {error ? `加载失败：${error}` : `状态源：${payload ? "已加载" : "等待加载"}`}
           </div>

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -11,9 +10,9 @@ from sqlalchemy import func, select
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.models.perception import Corpus, Knowledge
-from negentropy.models.pulse import AppState, UserState
 
 from .embedding import build_embedding_fn
+from .dao import KnowledgeRunDao
 from .service import KnowledgeService
 from .types import ChunkingConfig, CorpusSpec, SearchConfig
 
@@ -82,30 +81,33 @@ class GraphPayload(BaseModel):
 
 class GraphUpsertRequest(BaseModel):
     app_name: Optional[str] = None
+    run_id: str
+    status: str = "pending"
     graph: GraphPayload
+    idempotency_key: Optional[str] = None
+    expected_version: Optional[int] = None
 
 
 class PipelinesUpsertRequest(BaseModel):
     app_name: Optional[str] = None
-    runs: list[Dict[str, Any]] = Field(default_factory=list)
-    last_updated_at: Optional[str] = None
-
-
-class MemoryUpsertRequest(BaseModel):
-    app_name: Optional[str] = None
-    users: list[Dict[str, Any]] = Field(default_factory=list)
-    timeline: list[Dict[str, Any]] = Field(default_factory=list)
-    policies: Dict[str, Any] = Field(default_factory=dict)
+    run_id: str
+    status: str = "pending"
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    idempotency_key: Optional[str] = None
+    expected_version: Optional[int] = None
 
 
 class MemoryAuditRequest(BaseModel):
     app_name: Optional[str] = None
     user_id: str
     decisions: Dict[str, str] = Field(default_factory=dict)
+    expected_versions: Optional[Dict[str, int]] = None
     note: Optional[str] = None
+    idempotency_key: Optional[str] = None
 
 
 _service: Optional[KnowledgeService] = None
+_dao: Optional[KnowledgeRunDao] = None
 
 
 def _get_service() -> KnowledgeService:
@@ -113,6 +115,13 @@ def _get_service() -> KnowledgeService:
     if _service is None:
         _service = KnowledgeService(embedding_fn=build_embedding_fn())
     return _service
+
+
+def _get_dao() -> KnowledgeRunDao:
+    global _dao
+    if _dao is None:
+        _dao = KnowledgeRunDao()
+    return _dao
 
 
 def _resolve_app_name(app_name: Optional[str]) -> str:
@@ -134,69 +143,17 @@ def _build_chunking_config(
     )
 
 
-async def _load_app_state(app_name: str) -> AppState:
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(AppState).where(AppState.app_name == app_name))
-        state = result.scalar_one_or_none()
-        if state is None:
-            state = AppState(app_name=app_name, state={})
-            db.add(state)
-            await db.commit()
-            await db.refresh(state)
-        return state
-
-
-async def _update_app_state(app_name: str, updater: callable) -> Dict[str, Any]:
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(AppState).where(AppState.app_name == app_name))
-        state = result.scalar_one_or_none()
-        if state is None:
-            state = AppState(app_name=app_name, state={})
-            db.add(state)
-        state_dict = state.state or {}
-        state.state = updater(state_dict)
-        await db.commit()
-        await db.refresh(state)
-        return state.state or {}
-
-
-async def _load_user_state(app_name: str, user_id: str) -> UserState:
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(UserState).where(UserState.app_name == app_name, UserState.user_id == user_id)
-        )
-        state = result.scalar_one_or_none()
-        if state is None:
-            state = UserState(app_name=app_name, user_id=user_id, state={})
-            db.add(state)
-            await db.commit()
-            await db.refresh(state)
-        return state
-
-
-async def _update_user_state(app_name: str, user_id: str, updater: callable) -> Dict[str, Any]:
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(UserState).where(UserState.app_name == app_name, UserState.user_id == user_id)
-        )
-        state = result.scalar_one_or_none()
-        if state is None:
-            state = UserState(app_name=app_name, user_id=user_id, state={})
-            db.add(state)
-        state_dict = state.state or {}
-        state.state = updater(state_dict)
-        await db.commit()
-        await db.refresh(state)
-        return state.state or {}
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard(app_name: Optional[str] = Query(default=None)) -> DashboardResponse:
     resolved_app = _resolve_app_name(app_name)
-    app_state = await _load_app_state(resolved_app)
-    knowledge_state = (app_state.state or {}).get("knowledge", {})
-    pipeline_runs = knowledge_state.get("pipelines", {}).get("runs", [])
-    alerts = knowledge_state.get("alerts", [])
+    dao = _get_dao()
+    pipeline_runs = [
+        (run.payload or {}) | {"run_id": run.run_id, "status": run.status, "version": run.version}
+        for run in await dao.list_pipeline_runs(resolved_app, limit=10)
+    ]
+    alerts = []
     async with AsyncSessionLocal() as db:
         corpus_count = await db.scalar(select(func.count()).select_from(Corpus).where(Corpus.app_name == resolved_app))
         knowledge_count = await db.scalar(
@@ -363,107 +320,125 @@ async def search(corpus_id: UUID, payload: SearchRequest) -> Dict[str, Any]:
 @router.get("/graph")
 async def get_graph(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
     resolved_app = _resolve_app_name(app_name)
-    state = await _load_app_state(resolved_app)
-    knowledge_state = (state.state or {}).get("knowledge", {})
-    graph = knowledge_state.get("graph", {})
+    dao = _get_dao()
+    latest = await dao.get_latest_graph(resolved_app)
+    graph = latest.payload if latest else {}
+    runs = await dao.list_graph_runs(resolved_app, limit=20)
     return {
         "nodes": graph.get("nodes", []),
         "edges": graph.get("edges", []),
-        "runs": graph.get("runs", []),
+        "runs": [
+            {
+                "run_id": run.run_id,
+                "status": run.status,
+                "version": run.version,
+                "updated_at": run.updated_at.isoformat() if run.updated_at else None,
+            }
+            for run in runs
+        ],
     }
 
 
 @router.post("/graph")
 async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
     resolved_app = _resolve_app_name(payload.app_name)
-
-    def updater(state: Dict[str, Any]) -> Dict[str, Any]:
-        knowledge_state = state.get("knowledge", {})
-        knowledge_state["graph"] = payload.graph.model_dump()
-        knowledge_state["last_updated_at"] = datetime.now(timezone.utc).isoformat()
-        state["knowledge"] = knowledge_state
-        return state
-
-    new_state = await _update_app_state(resolved_app, updater)
-    return {"status": "ok", "graph": new_state.get("knowledge", {}).get("graph", {})}
+    dao = _get_dao()
+    result = await dao.upsert_graph_run(
+        app_name=resolved_app,
+        run_id=payload.run_id,
+        status=payload.status,
+        payload=payload.graph.model_dump(),
+        idempotency_key=payload.idempotency_key,
+        expected_version=payload.expected_version,
+    )
+    if result.status == "conflict":
+        raise HTTPException(status_code=409, detail="Graph run version conflict")
+    return {"status": result.status, "graph": result.record}
 
 
 @router.get("/memory")
 async def get_memory(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
     resolved_app = _resolve_app_name(app_name)
-    state = await _load_app_state(resolved_app)
-    knowledge_state = (state.state or {}).get("knowledge", {})
-    memory_state = knowledge_state.get("memory", {})
+    dao = _get_dao()
+    audits = await dao.list_memory_audits(resolved_app, limit=100)
     return {
-        "users": memory_state.get("users", []),
-        "timeline": memory_state.get("timeline", []),
-        "policies": memory_state.get("policies", {}),
+        "users": [],
+        "timeline": [],
+        "policies": {},
+        "audits": [
+            {
+                "memory_id": audit.memory_id,
+                "decision": audit.decision,
+                "note": audit.note,
+                "version": audit.version,
+                "created_at": audit.created_at.isoformat() if audit.created_at else None,
+            }
+            for audit in audits
+        ],
     }
-
-
-@router.post("/memory")
-async def upsert_memory(payload: MemoryUpsertRequest) -> Dict[str, Any]:
-    resolved_app = _resolve_app_name(payload.app_name)
-
-    def updater(state: Dict[str, Any]) -> Dict[str, Any]:
-        knowledge_state = state.get("knowledge", {})
-        knowledge_state["memory"] = {
-            "users": payload.users,
-            "timeline": payload.timeline,
-            "policies": payload.policies,
-        }
-        knowledge_state["last_updated_at"] = datetime.now(timezone.utc).isoformat()
-        state["knowledge"] = knowledge_state
-        return state
-
-    new_state = await _update_app_state(resolved_app, updater)
-    return {"status": "ok", "memory": new_state.get("knowledge", {}).get("memory", {})}
 
 
 @router.post("/memory/audit")
 async def audit_memory(payload: MemoryAuditRequest) -> Dict[str, Any]:
     resolved_app = _resolve_app_name(payload.app_name)
-    user_id = payload.user_id
-
-    def updater(state: Dict[str, Any]) -> Dict[str, Any]:
-        knowledge_state = state.get("knowledge", {})
-        audits = knowledge_state.get("memory_audits", {})
-        audits.update(payload.decisions)
-        knowledge_state["memory_audits"] = audits
-        knowledge_state["audit_note"] = payload.note
-        knowledge_state["audit_updated_at"] = datetime.now(timezone.utc).isoformat()
-        state["knowledge"] = knowledge_state
-        return state
-
-    new_state = await _update_user_state(resolved_app, user_id, updater)
-    return {"status": "ok", "audits": new_state.get("knowledge", {}).get("memory_audits", {})}
+    dao = _get_dao()
+    try:
+        audits = await dao.record_memory_audits(
+            app_name=resolved_app,
+            user_id=payload.user_id,
+            decisions=payload.decisions,
+            idempotency_key=payload.idempotency_key,
+            expected_versions=payload.expected_versions,
+            note=payload.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {
+        "status": "ok",
+        "audits": [
+            {
+                "memory_id": audit.memory_id,
+                "decision": audit.decision,
+                "version": audit.version,
+                "created_at": audit.created_at.isoformat() if audit.created_at else None,
+            }
+            for audit in audits
+        ],
+    }
 
 
 @router.get("/pipelines")
 async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
     resolved_app = _resolve_app_name(app_name)
-    state = await _load_app_state(resolved_app)
-    knowledge_state = (state.state or {}).get("knowledge", {})
-    pipelines = knowledge_state.get("pipelines", {})
+    dao = _get_dao()
+    runs = await dao.list_pipeline_runs(resolved_app, limit=50)
     return {
-        "runs": pipelines.get("runs", []),
-        "last_updated_at": pipelines.get("last_updated_at"),
+        "runs": [
+            {
+                "id": str(run.id),
+                "run_id": run.run_id,
+                "status": run.status,
+                "version": run.version,
+                **(run.payload or {}),
+            }
+            for run in runs
+        ],
+        "last_updated_at": runs[0].updated_at.isoformat() if runs else None,
     }
 
 
 @router.post("/pipelines")
 async def upsert_pipelines(payload: PipelinesUpsertRequest) -> Dict[str, Any]:
     resolved_app = _resolve_app_name(payload.app_name)
-
-    def updater(state: Dict[str, Any]) -> Dict[str, Any]:
-        knowledge_state = state.get("knowledge", {})
-        knowledge_state["pipelines"] = {
-            "runs": payload.runs,
-            "last_updated_at": payload.last_updated_at or datetime.now(timezone.utc).isoformat(),
-        }
-        knowledge_state["last_updated_at"] = datetime.now(timezone.utc).isoformat()
-        state["knowledge"] = knowledge_state
-        return state
-
-    new_state = await _update_app_state(resolved_app, updater)
-    return {"status": "ok", "pipelines": new_state.get("knowledge", {}).get("pipelines", {})}
+    dao = _get_dao()
+    result = await dao.upsert_pipeline_run(
+        app_name=resolved_app,
+        run_id=payload.run_id,
+        status=payload.status,
+        payload=payload.payload,
+        idempotency_key=payload.idempotency_key,
+        expected_version=payload.expected_version,
+    )
+    if result.status == "conflict":
+        raise HTTPException(status_code=409, detail="Pipeline run version conflict")
+    return {"status": result.status, "pipeline": result.record}
