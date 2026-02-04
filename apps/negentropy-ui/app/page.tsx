@@ -563,13 +563,9 @@ export function HomeBody({
     loadSessionDetail(sessionId);
   }, [sessionId, agent, loadSessionDetail]);
 
-  const agentMessages = useMemo(() => {
-    return agent ? (agent.messages as Message[]) : [];
-  }, [agent]);
-  const agentSnapshot = useMemo(() => {
-    return agent ? (agent.state as Record<string, unknown>) : null;
-  }, [agent]);
-  const chatMessages = useMemo(() => mapMessagesToChat(agentMessages), [agentMessages]);
+  const agentMessages = agent ? (agent.messages as Message[]) : [];
+  const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
+  const chatMessages = mapMessagesToChat(agentMessages);
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
