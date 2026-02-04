@@ -19,7 +19,7 @@ import { Header } from "../components/ui/Header";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
-import { AdkEventPayload, adkEventToAguiEvents, adkEventsToMessages, adkEventsToSnapshot } from "@/lib/adk";
+import { AdkEventPayload, adkEventToAguiEvents, adkEventsToMessages, adkEventsToSnapshot } from "../lib/adk";
 
 type ConnectionState = "idle" | "connecting" | "streaming" | "error";
 
