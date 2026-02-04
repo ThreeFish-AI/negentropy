@@ -879,25 +879,14 @@ export function HomeBody({
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <SiteHeader>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium">
-            {connection}
-          </span>
-          <button
-            className="rounded-full bg-black px-4 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 transition-transform active:scale-95"
-            onClick={startNewSession}
-          >
-            New Session
-          </button>
-        </div>
-      </SiteHeader>
+      <SiteHeader />
 
       <div className="grid min-h-[calc(100vh-72px)] grid-cols-12 gap-0">
         <SessionList
           sessions={sessions}
           activeId={sessionId}
           onSelect={setSessionId}
+          onNewSession={startNewSession}
         />
 
         <main className="col-span-7 border-r border-zinc-200 bg-zinc-50 p-6">
@@ -915,7 +904,7 @@ export function HomeBody({
         </main>
 
         <aside className="col-span-3 bg-white p-6">
-          <StateSnapshot snapshot={snapshotForRender} />
+          <StateSnapshot snapshot={snapshotForRender} connection={connection} />
           <EventTimeline events={timelineItems} />
           <LogBufferPanel
             entries={logEntries}
