@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { fetchGraph, KnowledgeGraphPayload, upsertGraph } from "@/lib/knowledge";
@@ -9,7 +9,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
 type GraphNode = { id: string; label?: string; type?: string };
 type GraphEdge = { source: string; target: string; label?: string };
-type GraphNodePos = GraphNode & { x: number; y: number; vx: number; vy: number };
+type GraphNodePos = GraphNode & { x: number; y: number; vx: number; vy: number; fx?: number | null; fy?: number | null };
 
 export default function KnowledgeGraphPage() {
   const [payload, setPayload] = useState<KnowledgeGraphPayload | null>(null);
@@ -17,6 +17,8 @@ export default function KnowledgeGraphPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [retryQueue, setRetryQueue] = useState<KnowledgeGraphPayload[]>([]);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const simulationRef = useRef<import("d3-force").Simulation<GraphNodePos, undefined> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -44,81 +46,114 @@ export default function KnowledgeGraphPage() {
   const [layout, setLayout] = useState<GraphNodePos[]>([]);
 
   useEffect(() => {
-    if (!nodes.length) {
-      setLayout([]);
+    let active = true;
+    let cleanup: (() => void) | null = null;
+
+    const run = async () => {
+      if (!nodes.length || !svgRef.current) {
+        setLayout([]);
+        return;
+      }
+      const { forceSimulation, forceManyBody, forceLink, forceCenter, forceCollide } = await import("d3-force");
+      const { select } = await import("d3-selection");
+      const { zoom } = await import("d3-zoom");
+
+      const width = 360;
+      const height = 360;
+      const nodeMap = new Map<string, GraphNodePos>();
+      nodes.forEach((node) => {
+        nodeMap.set(node.id, {
+          ...node,
+          x: width / 2 + (Math.random() - 0.5) * 120,
+          y: height / 2 + (Math.random() - 0.5) * 120,
+          vx: 0,
+          vy: 0,
+        });
+      });
+      const nodesArr = Array.from(nodeMap.values());
+      const links = edges
+        .map((edge) => {
+          const source = nodeMap.get(edge.source);
+          const target = nodeMap.get(edge.target);
+          if (!source || !target) return null;
+          return { source, target, label: edge.label };
+        })
+        .filter((edge) => edge !== null) as { source: GraphNodePos; target: GraphNodePos; label?: string }[];
+
+      const simulation = forceSimulation(nodesArr)
+        .force("charge", forceManyBody().strength(-240))
+        .force("link", forceLink(links).id((d) => (d as GraphNodePos).id).distance(120))
+        .force("center", forceCenter(width / 2, height / 2))
+        .force("collide", forceCollide(20))
+        .alphaDecay(0.03);
+      simulationRef.current = simulation;
+
+      const svg = select(svgRef.current);
+      const g = svg.select("g.graph-layer");
+      svg.call(
+        zoom<SVGSVGElement, unknown>()
+          .scaleExtent([0.5, 2.5])
+          .on("zoom", (event) => {
+            g.attr("transform", event.transform.toString());
+          })
+      );
+
+      setLayout([...nodesArr]);
+
+      simulation.on("tick", () => {
+        if (!active) return;
+        setLayout([...nodesArr]);
+      });
+
+      cleanup = () => {
+        simulationRef.current = null;
+        simulation.stop();
+      };
+    };
+
+    run();
+    return () => {
+      active = false;
+      cleanup?.();
+    };
+  }, [nodes, edges]);
+
+  useEffect(() => {
+    if (!svgRef.current || !simulationRef.current || !layout.length) {
       return;
     }
-    const width = 360;
-    const height = 360;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const nodeMap = new Map<string, GraphNodePos>();
-    nodes.forEach((node) => {
-      nodeMap.set(node.id, {
-        ...node,
-        x: centerX + (Math.random() - 0.5) * 120,
-        y: centerY + (Math.random() - 0.5) * 120,
-        vx: 0,
-        vy: 0,
-      });
-    });
-    const nodesArr = Array.from(nodeMap.values());
-    const edgePairs = edges
-      .map((edge) => {
-        const source = nodeMap.get(edge.source);
-        const target = nodeMap.get(edge.target);
-        if (!source || !target) return null;
-        return { source, target };
-      })
-      .filter((edge) => edge !== null) as { source: GraphNodePos; target: GraphNodePos }[];
-
-    const iterations = 160;
-    const repulsion = 1400;
-    const spring = 0.05;
-    const damping = 0.75;
-    const targetDistance = 120;
-
-    for (let i = 0; i < iterations; i += 1) {
-      for (let a = 0; a < nodesArr.length; a += 1) {
-        const nodeA = nodesArr[a];
-        let fx = 0;
-        let fy = 0;
-        for (let b = 0; b < nodesArr.length; b += 1) {
-          if (a === b) continue;
-          const nodeB = nodesArr[b];
-          const dx = nodeA.x - nodeB.x;
-          const dy = nodeA.y - nodeB.y;
-          const distSq = Math.max(dx * dx + dy * dy, 60);
-          const force = repulsion / distSq;
-          fx += (dx / Math.sqrt(distSq)) * force;
-          fy += (dy / Math.sqrt(distSq)) * force;
-        }
-        nodeA.vx = (nodeA.vx + fx) * damping;
-        nodeA.vy = (nodeA.vy + fy) * damping;
-      }
-
-      edgePairs.forEach(({ source, target }) => {
-        const dx = target.x - source.x;
-        const dy = target.y - source.y;
-        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-        const delta = dist - targetDistance;
-        const force = spring * delta;
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-        source.vx += fx;
-        source.vy += fy;
-        target.vx -= fx;
-        target.vy -= fy;
-      });
-
-      nodesArr.forEach((node) => {
-        node.x = Math.min(width - 24, Math.max(24, node.x + node.vx));
-        node.y = Math.min(height - 24, Math.max(24, node.y + node.vy));
-      });
-    }
-
-    setLayout(nodesArr);
-  }, [nodes, edges]);
+    let active = true;
+    const run = async () => {
+      const { select } = await import("d3-selection");
+      const { drag } = await import("d3-drag");
+      if (!active || !simulationRef.current) return;
+      const svg = select(svgRef.current);
+      const g = svg.select("g.graph-layer");
+      g.selectAll("circle")
+        .data(layout, (d: GraphNodePos) => d.id)
+        .call(
+          drag<SVGCircleElement, GraphNodePos>()
+            .on("start", (event, d) => {
+              if (!event.active && simulationRef.current) simulationRef.current.alphaTarget(0.3).restart();
+              d.fx = d.x;
+              d.fy = d.y;
+            })
+            .on("drag", (event, d) => {
+              d.fx = event.x;
+              d.fy = event.y;
+            })
+            .on("end", (event, d) => {
+              if (!event.active && simulationRef.current) simulationRef.current.alphaTarget(0);
+              d.fx = null;
+              d.fy = null;
+            })
+        );
+    };
+    run();
+    return () => {
+      active = false;
+    };
+  }, [layout]);
 
   const selectedNode = layout.find((node) => node.id === selectedNodeId) || null;
 
@@ -159,7 +194,8 @@ export default function KnowledgeGraphPage() {
           </div>
           <div className="mt-4 flex h-[360px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50">
             {layout.length ? (
-              <svg width={360} height={360} className="rounded-xl bg-white/60">
+              <svg ref={svgRef} width={360} height={360} className="rounded-xl bg-white/60">
+                <g className="graph-layer">
                 {edges.map((edge, index) => {
                   const source = layout.find((node) => node.id === edge.source);
                   const target = layout.find((node) => node.id === edge.target);
@@ -202,6 +238,7 @@ export default function KnowledgeGraphPage() {
                     </text>
                   </g>
                 ))}
+                </g>
               </svg>
             ) : (
               <p className="text-xs text-zinc-500">暂无图谱数据</p>
