@@ -2,8 +2,8 @@ import Link from "next/link";
 
 type HeaderProps = {
   title: string;
-  connection: string;
-  onNewSession: () => void;
+  connection?: string;
+  onNewSession?: () => void;
   user?: {
     name?: string | null;
     email?: string | null;
@@ -21,15 +21,20 @@ export function Header({
   user,
   onLogin,
   onLogout,
-}: HeaderProps) {
+  children,
+  showHomeLink = false,
+}: HeaderProps & { children?: React.ReactNode; showHomeLink?: boolean }) {
   return (
     <div className="border-b border-zinc-200 bg-white px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-            Negentropy UI
-          </p>
-          <h1 className="text-xl font-semibold">{title}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+              Negentropy UI
+            </p>
+            <h1 className="text-xl font-semibold">{title}</h1>
+          </div>
+          {children}
         </div>
         <div className="flex items-center gap-3 text-sm">
           {user ? (
@@ -54,7 +59,7 @@ export function Header({
                 </span>
               </div>
               <button
-                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700"
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
                 onClick={onLogout}
                 type="button"
               >
@@ -63,28 +68,44 @@ export function Header({
             </div>
           ) : (
             <button
-              className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700"
+              className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
               onClick={onLogin}
               type="button"
             >
               Login
             </button>
           )}
-          <Link
-            href="/knowledge"
-            className="text-xs font-medium text-zinc-600 hover:text-zinc-900"
-          >
-            Knowledge
-          </Link>
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium">
-            {connection}
-          </span>
-          <button
-            className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white"
-            onClick={onNewSession}
-          >
-            New Session
-          </button>
+
+          {showHomeLink ? (
+            <Link
+              href="/"
+              className="text-xs font-medium text-zinc-600 hover:text-zinc-900"
+            >
+              Back to Home
+            </Link>
+          ) : (
+            <Link
+              href="/knowledge"
+              className="text-xs font-medium text-zinc-600 hover:text-zinc-900"
+            >
+              Knowledge
+            </Link>
+          )}
+
+          {connection && (
+            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium">
+              {connection}
+            </span>
+          )}
+
+          {onNewSession && (
+            <button
+              className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
+              onClick={onNewSession}
+            >
+              New Session
+            </button>
+          )}
         </div>
       </div>
     </div>
