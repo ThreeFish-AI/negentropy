@@ -48,7 +48,5 @@ class AuthSettings(BaseSettings):
     allowed_emails: list[str] = Field(default_factory=list, description="Allowed email addresses")
     admin_emails: list[str] = Field(default_factory=list, description="Emails with admin role")
 
-    user_id_strategy: Literal["sub", "email"] = Field(
-        default="sub", description="User ID source: google sub or email"
-    )
+    user_id_strategy: Literal["sub", "email"] = Field(default="sub", description="User ID source: google sub or email")
     default_redirect_path: str = Field(default="/", description="Default redirect path after login")

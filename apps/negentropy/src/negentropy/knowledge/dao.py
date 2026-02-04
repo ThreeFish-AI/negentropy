@@ -224,7 +224,9 @@ class KnowledgeRunDao:
                 await db.refresh(audit)
         return audits
 
-    async def list_memory_audits(self, app_name: str, user_id: Optional[str] = None, limit: int = 100) -> list[MemoryAuditLog]:
+    async def list_memory_audits(
+        self, app_name: str, user_id: Optional[str] = None, limit: int = 100
+    ) -> list[MemoryAuditLog]:
         async with self._session_factory() as db:
             stmt = select(MemoryAuditLog).where(MemoryAuditLog.app_name == app_name)
             if user_id:

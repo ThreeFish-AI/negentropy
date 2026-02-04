@@ -143,8 +143,6 @@ def _build_chunking_config(
     )
 
 
-
-
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard(app_name: Optional[str] = Query(default=None)) -> DashboardResponse:
     resolved_app = _resolve_app_name(app_name)

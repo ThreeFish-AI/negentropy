@@ -75,7 +75,9 @@ class KnowledgeRepository:
             await db.delete(corpus)
             await db.commit()
 
-    async def add_knowledge(self, *, corpus_id: UUID, app_name: str, chunks: Iterable[KnowledgeChunk]) -> list[KnowledgeRecord]:
+    async def add_knowledge(
+        self, *, corpus_id: UUID, app_name: str, chunks: Iterable[KnowledgeChunk]
+    ) -> list[KnowledgeRecord]:
         items = [
             Knowledge(
                 corpus_id=corpus_id,
