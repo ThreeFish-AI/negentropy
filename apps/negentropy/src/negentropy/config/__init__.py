@@ -36,6 +36,7 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .app import AppSettings
+from .auth import AuthSettings
 from .database import DatabaseSettings
 from .environment import EnvironmentSettings, get_env_files
 from .llm import LlmSettings
@@ -100,6 +101,10 @@ class Settings(BaseSettings):
     @cached_property
     def services(self) -> ServicesSettings:
         return ServicesSettings(_env_file=_get_env_files())
+
+    @cached_property
+    def auth(self) -> AuthSettings:
+        return AuthSettings(_env_file=_get_env_files())
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -236,4 +241,5 @@ __all__ = [
     "ObservabilitySettings",
     "DatabaseSettings",
     "ServicesSettings",
+    "AuthSettings",
 ]

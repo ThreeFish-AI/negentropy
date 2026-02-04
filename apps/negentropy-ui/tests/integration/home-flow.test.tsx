@@ -28,9 +28,11 @@ function Wrapper({ sessionId }: { sessionId: string | null }) {
     <HomeBody
       sessionId={currentSession}
       userId="ui"
+      user={null}
       setSessionId={setCurrentSession}
       sessions={sessions}
       setSessions={setSessions}
+      onLogout={() => {}}
     />
   );
 }

@@ -221,6 +221,8 @@ def apply_adk_patches():
             from opentelemetry import baggage, context as otel_context
             import uuid
             from negentropy.knowledge.api import router as knowledge_router
+            from negentropy.auth.api import router as auth_router
+            from negentropy.auth.middleware import AuthMiddleware
 
             class TracingInitMiddleware(BaseHTTPMiddleware):
                 async def dispatch(self, request: Request, call_next):
@@ -302,9 +304,13 @@ def apply_adk_patches():
                             otel_context.detach(token)
 
             app.add_middleware(TracingInitMiddleware)
+            app.add_middleware(AuthMiddleware)
             if not any(route.path.startswith("/knowledge") for route in app.router.routes):
                 app.include_router(knowledge_router)
                 logger.info("Knowledge API router mounted under /knowledge")
+            if not any(route.path.startswith("/auth") for route in app.router.routes):
+                app.include_router(auth_router)
+                logger.info("Auth API router mounted under /auth")
             return app
 
         fast_api.create_app = patched_create_app

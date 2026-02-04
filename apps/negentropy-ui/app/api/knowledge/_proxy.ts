@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildAuthHeaders } from "@/lib/sso";
 
 function getBaseUrl() {
   return (
@@ -9,7 +10,7 @@ function getBaseUrl() {
 }
 
 function extractForwardHeaders(request: Request) {
-  const headers = new Headers();
+  const headers = buildAuthHeaders(request);
 
   const auth = request.headers.get("authorization");
   if (auth) {

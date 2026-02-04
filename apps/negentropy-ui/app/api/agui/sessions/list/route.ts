@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildAuthHeaders } from "@/lib/sso";
 
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "GET",
       headers: {
+        ...Object.fromEntries(buildAuthHeaders(request)),
         Accept: "application/json",
       },
       cache: "no-store",

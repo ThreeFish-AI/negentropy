@@ -43,9 +43,19 @@ type ConfirmationToolArgs = {
   payload?: Record<string, unknown>;
 };
 
+type AuthUser = {
+  userId: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+  roles?: string[];
+  provider?: string;
+};
+
+type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+
 const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
-const DEFAULT_USER_ID = process.env.NEXT_PUBLIC_AGUI_USER_ID || "ui";
 
 function createSessionLabel(id: string) {
   return `Session ${id.slice(0, 8)}`;
@@ -304,15 +314,19 @@ function useConfirmationTool(onFollowup?: (payload: { action: string; note: stri
 export function HomeBody({
   sessionId,
   userId,
+  user,
   setSessionId,
   sessions,
   setSessions,
+  onLogout,
 }: {
   sessionId: string | null;
   userId: string;
+  user: AuthUser | null;
   setSessionId: (id: string | null) => void;
   sessions: SessionRecord[];
   setSessions: React.Dispatch<React.SetStateAction<SessionRecord[]>>;
+  onLogout: () => void;
 }) {
   const { agent } = useAgent({
     agentId: AGENT_ID,
@@ -588,7 +602,13 @@ export function HomeBody({
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <Header title={activeSession?.label || "未选择会话"} connection={connection} onNewSession={startNewSession} />
+      <Header
+        title={activeSession?.label || "未选择会话"}
+        connection={connection}
+        onNewSession={startNewSession}
+        user={user}
+        onLogout={onLogout}
+      />
 
       <div className="grid min-h-[calc(100vh-72px)] grid-cols-12 gap-0">
         <SessionList sessions={sessions} activeId={sessionId} onSelect={setSessionId} />
@@ -620,23 +640,40 @@ export function HomeBody({
 }
 
 export default function Home() {
-  const [userId] = useState(DEFAULT_USER_ID);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
 
-  const [agent, setAgent] = useState(() => {
-    const initialSession = "pending";
-    return new HttpAgent({
-      url: buildAgentUrl(initialSession, userId),
-      headers: {
-        "X-Session-ID": initialSession,
-        "X-User-ID": userId,
-      },
-      threadId: initialSession,
-    });
-  });
+  const [agent, setAgent] = useState<HttpAgent | null>(null);
 
   useEffect(() => {
+    const loadAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!response.ok) {
+          setAuthStatus("unauthenticated");
+          setAuthUser(null);
+          setUserId(null);
+          return;
+        }
+        const payload = (await response.json()) as { user: AuthUser };
+        setAuthUser(payload.user);
+        setUserId(payload.user.userId);
+        setAuthStatus("authenticated");
+      } catch (error) {
+        console.warn("Failed to load auth state", error);
+        setAuthStatus("unauthenticated");
+      }
+    };
+    loadAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
     const resolvedSession = sessionId || "pending";
     setAgent(
       new HttpAgent({
@@ -650,19 +687,58 @@ export default function Home() {
     );
   }, [sessionId, userId]);
 
-  const copilotAgents = useMemo(() => ({ [AGENT_ID]: agent }), [agent]);
+  const copilotAgents = useMemo(() => (agent ? { [AGENT_ID]: agent } : {}), [agent]);
+
+  const handleLogin = useCallback(() => {
+    window.location.href = "/api/auth/login";
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "/";
+    } catch (error) {
+      console.warn("Failed to logout", error);
+    }
+  }, []);
+
+  if (authStatus === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500">
+        正在验证登录状态...
+      </div>
+    );
+  }
+
+  if (authStatus !== "authenticated" || !userId) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 text-center">
+        <div className="max-w-md space-y-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Negentropy UI</p>
+          <h1 className="text-2xl font-semibold text-zinc-900">需要登录以继续</h1>
+          <p className="text-sm text-zinc-500">使用 Google OAuth 进行单点登录。</p>
+        </div>
+        <button
+          className="rounded-full bg-black px-6 py-2 text-xs font-semibold text-white"
+          onClick={handleLogin}
+          type="button"
+        >
+          使用 Google 登录
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <CopilotKitProvider
-      agents__unsafe_dev_only={copilotAgents}
-      showDevConsole="auto"
-    >
+    <CopilotKitProvider agents__unsafe_dev_only={copilotAgents} showDevConsole="auto">
       <HomeBody
         sessionId={sessionId}
         userId={userId}
+        user={authUser}
         setSessionId={setSessionId}
         sessions={sessions}
         setSessions={setSessions}
+        onLogout={handleLogout}
       />
     </CopilotKitProvider>
   );
