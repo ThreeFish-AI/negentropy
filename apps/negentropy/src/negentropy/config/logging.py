@@ -37,3 +37,10 @@ class LoggingSettings(BaseSettings):
     format: LogFormat = Field(default=LogFormat.CONSOLE, description="Output format")
     file_path: str = Field(default="logs/negentropy.log", description="Path for file sink")
     gcloud_log_name: str = Field(default="negentropy", description="Log name for GCloud sink")
+    console_timestamp_format: str = Field(
+        default="%Y-%m-%d %H:%M:%S",
+        description="Console timestamp format",
+    )
+    console_level_width: int = Field(default=8, description="Console level column width")
+    console_logger_width: int = Field(default=32, description="Console logger column width")
+    console_separator: str = Field(default=" | ", description="Console column separator")

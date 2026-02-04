@@ -36,10 +36,12 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .app import AppSettings
+from .auth import AuthSettings
 from .database import DatabaseSettings
 from .environment import EnvironmentSettings, get_env_files
 from .llm import LlmSettings
 from .logging import LoggingSettings
+from .observability import ObservabilitySettings
 from .services import ServicesSettings
 
 
@@ -89,8 +91,8 @@ class Settings(BaseSettings):
         return LoggingSettings(_env_file=_get_env_files())
 
     @cached_property
-    def database(self) -> DatabaseSettings:
-        return DatabaseSettings(_env_file=_get_env_files())
+    def observability(self) -> ObservabilitySettings:
+        return ObservabilitySettings(_env_file=_get_env_files())
 
     @cached_property
     def database(self) -> DatabaseSettings:
@@ -99,6 +101,10 @@ class Settings(BaseSettings):
     @cached_property
     def services(self) -> ServicesSettings:
         return ServicesSettings(_env_file=_get_env_files())
+
+    @cached_property
+    def auth(self) -> AuthSettings:
+        return AuthSettings(_env_file=_get_env_files())
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -146,6 +152,22 @@ class Settings(BaseSettings):
     @property
     def gcloud_log_name(self) -> str:
         return self.logging.gcloud_log_name
+
+    @property
+    def log_console_timestamp_format(self) -> str:
+        return self.logging.console_timestamp_format
+
+    @property
+    def log_console_level_width(self) -> int:
+        return self.logging.console_level_width
+
+    @property
+    def log_console_logger_width(self) -> int:
+        return self.logging.console_logger_width
+
+    @property
+    def log_console_separator(self) -> str:
+        return self.logging.console_separator
 
     @property
     def database_url(self) -> str:
@@ -216,6 +238,8 @@ __all__ = [
     "EnvironmentSettings",
     "LlmSettings",
     "LoggingSettings",
+    "ObservabilitySettings",
     "DatabaseSettings",
     "ServicesSettings",
+    "AuthSettings",
 ]

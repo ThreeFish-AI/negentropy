@@ -1,4 +1,6 @@
 import sys
+import os
+import base64
 from typing import Any, Optional
 from pathlib import Path
 
@@ -14,7 +16,13 @@ from negentropy.engine.factories import (
 )
 from negentropy.config import settings
 from negentropy.logging import configure_logging, get_logger
-from negentropy.instrumentation import LiteLLMLoggingCallback
+from negentropy.instrumentation import LiteLLMLoggingCallback, patch_litellm_otel_cost
+
+# ------------------------------------------------------------------------------
+# Map Negentropy API key to provider-specific env vars (if not already set)
+# ------------------------------------------------------------------------------
+if os.getenv("NE_API_KEY") and not os.getenv("ZAI_API_KEY"):
+    os.environ["ZAI_API_KEY"] = os.environ["NE_API_KEY"]
 
 # Initialize logging early
 configure_logging(
@@ -24,18 +32,51 @@ configure_logging(
     file_path=settings.log_file_path,
     gcloud_project=settings.vertex_project_id,
     gcloud_log_name=settings.gcloud_log_name,
+    console_timestamp_format=settings.log_console_timestamp_format,
+    console_level_width=settings.log_console_level_width,
+    console_logger_width=settings.log_console_logger_width,
+    console_separator=settings.log_console_separator,
 )
 
-# Register LiteLLM callback for clean usage logging
+# Initialize logger AFTER configure_logging
+logger = get_logger("negentropy.bootstrap")
+
+# Configure OpenTelemetry environment variables for LiteLLM's "otel" callback
+# This MUST be done before importing litellm, as the callback reads these at import time
+langfuse = settings.observability
+if langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langfuse_secret_key:
+    # Set OTLP endpoint for LiteLLM's otel callback
+    # Note: Use the base OTLP endpoint without /v1/traces suffix
+    # LiteLLM will append the correct path based on the protocol
+    base_endpoint = langfuse.langfuse_host.rstrip("/")
+
+    # For HTTP/protobuf exporter, the endpoint should be the base URL
+    # LiteLLM/OTel will append /v1/traces automatically
+    os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = f"{base_endpoint}/api/public/otel"
+
+    # Set Basic Auth headers for Langfuse
+    credentials = f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
+    basic_auth = base64.b64encode(credentials.encode()).decode()
+    os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"Authorization=Basic {basic_auth}"
+
+    logger.info(f"Configured LiteLLM OTel callback to use Langfuse: {base_endpoint}/api/public/otel")
+else:
+    logger.warning("Langfuse not configured - LiteLLM OTel callback will use default endpoint (localhost:4317)")
+
+# Register LiteLLM callbacks
 try:
     import litellm
 
-    litellm.success_callback = [LiteLLMLoggingCallback()]
-    litellm.failure_callback = [LiteLLMLoggingCallback()]
+    # LiteLLM's "otel" callback uses the OpenTelemetry environment variables set above
+    # to send traces to Langfuse. This is the PRIMARY mechanism for creating traces from LLM calls.
+    # We also keep our custom LiteLLMLoggingCallback for additional logging.
+    patch_litellm_otel_cost()
+    litellm.success_callback = [LiteLLMLoggingCallback(), "otel"]
+    litellm.failure_callback = [LiteLLMLoggingCallback(), "otel"]
+
+    logger.info("LiteLLM callbacks registered: custom logging + otel")
 except ImportError:
     pass
-
-logger = get_logger("negentropy.bootstrap")
 
 # ------------------------------------------------------------------------------
 # Save original implementations to allow fallback
@@ -126,10 +167,34 @@ def apply_adk_patches():
 
     logger.info("Monkey-patching ADK service factories to use negentropy configuration...")
 
+    patched_items = []
+
+    # Helper to clean factory names for display
+    def _add_patch(target_name: str, factory_func):
+        # Extract "SessionService" from "patched_create_session_service_from_options"
+        # Logic: remove "patched_create_" prefix and "_from_options" suffix, title case
+        name = factory_func.__name__
+        if name.startswith("patched_create_"):
+            name = name.replace("patched_create_", "").replace("_from_options", "")
+            # Convert snake_case to CamelCase (simple title casing for display)
+            parts = name.split("_")
+            name = "".join(part.title() for part in parts)
+
+        patched_items.append(name)
+        return factory_func
+
     # Patch the module directly
-    original_factory.create_session_service_from_options = patched_create_session_service_from_options
-    original_factory.create_memory_service_from_options = patched_create_memory_service_from_options
-    original_factory.create_artifact_service_from_options = patched_create_artifact_service_from_options
+    original_factory.create_session_service_from_options = _add_patch(
+        "SessionService", patched_create_session_service_from_options
+    )
+
+    original_factory.create_memory_service_from_options = _add_patch(
+        "MemoryService", patched_create_memory_service_from_options
+    )
+
+    original_factory.create_artifact_service_from_options = _add_patch(
+        "ArtifactService", patched_create_artifact_service_from_options
+    )
 
     # Patch InMemoryCredentialService to use our Factory
     # This avoids the experimental warning while allowing flexible backend configuration
@@ -138,7 +203,127 @@ def apply_adk_patches():
     # fast_api.py calls: credential_service = InMemoryCredentialService()
     # So we replace the class with a factory function that returns our instance.
     fast_api.InMemoryCredentialService = get_credential_service
+    # For classes/functions, just use __name__ or __qualname__
+    patched_items.append("CredentialService")  # get_credential_service is a function, return type implies service logic
     logger.info("Intercepted ADK default CredentialService to use configurable backend")
+
+    def _inject_negentropy_routes(app):
+        logger.info("Injecting TracingInitMiddleware into ADK FastAPI app")
+
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from starlette.requests import Request
+        from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
+        from opentelemetry import baggage, context as otel_context
+        import uuid
+        from negentropy.knowledge.api import router as knowledge_router
+        from negentropy.auth.api import router as auth_router
+        from negentropy.auth.middleware import AuthMiddleware
+
+        class TracingInitMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next):
+                token = None
+                try:
+                    manager = get_tracing_manager()
+                    if manager:
+                        # ensure_initialized is idempotent and fast after first run
+                        manager._ensure_initialized()
+
+                        # Extract or generate session_id for Langfuse grouping
+                        # Priority: Header > Query > JSON Body > Generated
+                        session_id = request.headers.get("X-Session-ID") or request.query_params.get("session_id")
+                        session_source = (
+                            "header"
+                            if request.headers.get("X-Session-ID")
+                            else ("query" if request.query_params.get("session_id") else None)
+                        )
+                        user_id = request.headers.get("X-User-ID") or request.query_params.get("user_id")
+                        user_source = (
+                            "header"
+                            if request.headers.get("X-User-ID")
+                            else ("query" if request.query_params.get("user_id") else None)
+                        )
+
+                        if session_id is None:
+                            try:
+                                if request.method in {"POST", "PATCH"} and "application/json" in (
+                                    request.headers.get("content-type") or ""
+                                ):
+                                    body = await request.json()
+                                    session_id = body.get("sessionId") or body.get("session_id")
+                                    if session_id and session_source is None:
+                                        session_source = "body"
+                                    if user_id is None:
+                                        user_id = body.get("userId") or body.get("user_id")
+                                        if user_id and user_source is None:
+                                            user_source = "body"
+                            except Exception as e:
+                                logger.debug(f"Failed to read request JSON for session/user id: {e}")
+
+                        if session_id is None:
+                            session_id = str(uuid.uuid4())
+                            session_source = "generated"
+
+                        # Set tracing context so all spans get Langfuse attributes
+                        set_tracing_context(session_id=session_id, user_id=user_id)
+
+                        # Propagate via OTel baggage for cross-thread/task spans
+                        ctx = otel_context.get_current()
+                        if session_id:
+                            ctx = baggage.set_baggage("langfuse.session.id", session_id, context=ctx)
+                            ctx = baggage.set_baggage("session.id", session_id, context=ctx)
+                        if user_id:
+                            ctx = baggage.set_baggage("langfuse.user.id", user_id, context=ctx)
+                            ctx = baggage.set_baggage("user.id", user_id, context=ctx)
+                        token = otel_context.attach(ctx)
+
+                        # Store session_id in request state for later use
+                        request.state.session_id = session_id
+                        if user_id:
+                            request.state.user_id = user_id
+
+                        logger.debug(
+                            "Tracing context set: session_id=%s (source=%s), user_id=%s (source=%s)",
+                            session_id,
+                            session_source,
+                            user_id,
+                            user_source,
+                        )
+
+                except Exception as e:
+                    logger.warning(f"Failed to ensure tracing init in middleware: {e}")
+
+                try:
+                    return await call_next(request)
+                finally:
+                    if token is not None:
+                        otel_context.detach(token)
+
+        app.add_middleware(TracingInitMiddleware)
+        app.add_middleware(AuthMiddleware)
+        if not any(route.path.startswith("/knowledge") for route in app.router.routes):
+            app.include_router(knowledge_router)
+            logger.info("Knowledge API router mounted under /knowledge")
+        if not any(route.path.startswith("/auth") for route in app.router.routes):
+            app.include_router(auth_router)
+            logger.info("Auth API router mounted under /auth")
+        return app
+
+    # Patch get_fast_api_app via AdkWebServer so it applies to current call
+    try:
+        from google.adk.cli.adk_web_server import AdkWebServer
+
+        if not getattr(AdkWebServer.get_fast_api_app, "_negentropy_patched", False):
+            original_get_fast_api_app = AdkWebServer.get_fast_api_app
+
+            def patched_get_fast_api_app(self, *args, **kwargs):
+                app = original_get_fast_api_app(self, *args, **kwargs)
+                return _inject_negentropy_routes(app)
+
+            patched_get_fast_api_app._negentropy_patched = True
+            AdkWebServer.get_fast_api_app = patched_get_fast_api_app
+            patched_items.append("AdkWebServer.get_fast_api_app (Middleware Injection)")
+    except Exception as exc:
+        logger.warning(f"Failed to patch AdkWebServer.get_fast_api_app: {exc}")
 
     # Also patch cli.cli which imports these functions
 
@@ -159,6 +344,13 @@ def apply_adk_patches():
                 mod.create_memory_service_from_options = patched_create_memory_service_from_options
             if hasattr(mod, "create_artifact_service_from_options"):
                 mod.create_artifact_service_from_options = patched_create_artifact_service_from_options
+            # Patch create_app in modules if present
+            if (
+                hasattr(mod, "create_app")
+                and mod.create_app != patched_create_app
+                and mod.create_app == original_create_app
+            ):
+                mod.create_app = patched_create_app
 
-    logger.info("ADK service factories patched successfully.")
+    logger.info(f"ADK service factories patched successfully: {', '.join(patched_items)}")
     logger.info(f"Using configured credential backend: {settings.credential_service_backend}")

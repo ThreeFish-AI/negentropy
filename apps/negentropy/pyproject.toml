@@ -8,43 +8,55 @@ packages = ["src/negentropy"]
 [project]
 name = "negentropy"
 version = "0.1.0"
-description = "Add your description here"
+description = "An entropy-reducing 'cultivation' system for AI agents."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "asyncpg>=0.31.0",
-    "google-adk>=1.23.0",
-    "litellm>=1.81.6",
-    "pydantic-settings>=2.12.0",
-    "sqlalchemy[asyncio]>=2.0.46",
-    "alembic>=1.18.3",
-    "microsandbox>=0.1.8",
-    "google-cloud-storage>=3.8.0",
-    "google-auth>=2.48.0",
-    # Logging
-    "structlog>=25.5.0",
-    "orjson>=3.11.6",
-    "google-cloud-logging>=3.13.0",
+    # Database Drivers & ORM
+    "asyncpg>=0.31.0",              # High-performance async PostgreSQL driver
+    "psycopg[binary]>=3.2.0",       # Synchronous PostgreSQL driver (for OTel)
+    "sqlalchemy[asyncio]>=2.0.46",  # SQL Toolkit and ORM
+    "alembic>=1.18.3",              # Database migration tool
+    
+    # Core Infrastructure
+    "google-adk>=1.23.0",           # Google Agent Development Kit foundation
+    "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
+    "pydantic-settings>=2.12.0",    # Configuration management using Pydantic models
+    
+    # LLM & AI Services
+    "litellm>=1.81.6",              # Unified interface for various LLM providers
+    
+    # Google Cloud Services
+    "google-cloud-storage>=3.8.0",  # Object storage for artifacts
+    "google-auth>=2.48.0",          # Authentication for Google services
+    "google-cloud-logging>=3.13.0", # Cloud Logging integration
+    "httpx>=0.27.0",                # Async HTTP client for OAuth
+    
+    # Utilities
+    "structlog>=25.5.0",            # Structured logging for machine-readability
+    "orjson>=3.11.6",               # Fast JSON serialization
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-asyncio>=1.3.0",
-    "ruff>=0.14.14",
+    "pytest>=9.0.2",           # Testing framework
+    "pytest-asyncio>=1.3.0",   # Asyncio support for pytest
+    "ruff>=0.14.14",           # Fast Python linter and formatter
 ]
 
 [tool.ruff]
+# Set line length to 120 chars to accommodate modern display widths
 line-length = 120
-target-version = "py313"
+# Target Python 3.13+ features
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
+    "E",   # pycodestyle errors: Ensures adherence to PEP 8 style guide
+    "F",   # pyflakes: Detects logical errors like unused imports/variables
+    "I",   # isort: Sorts imports for cleaner file headers
+    "B",   # flake8-bugbear: Catches common bugs and design problems
+    "UP",  # pyupgrade: Upgrades syntax to newer Python versions automatically
 ]
 ignore = []
 
@@ -55,6 +67,18 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-# 只要看到 async def 开头的测试函数，就自动把它当作异步测试来处理。
-asyncio_mode = "auto"   
-
+# Automatically treat async def functions as async tests (no manual @pytest.mark.asyncio needed)
+asyncio_mode = "auto"
+# Add src to pythonpath so tests can import the package directly without installation
+pythonpath = ["src"]
+# Restrict test discovery to the tests directory to avoid picking up scripts or other files
+testpaths = ["tests"]
+# -v: Verbose output
+# --strict-markers: Error on undefined markers to prevent typos
+addopts = "-v --strict-markers"
+# Ignore specific warnings
+filterwarnings = [
+    # Upstream warning from google-genai incompatible with Python 3.14
+    # See: https://github.com/googleapis/python-genai/issues/???
+    "ignore:'_UnionGenericAlias' is deprecated:DeprecationWarning"
+]

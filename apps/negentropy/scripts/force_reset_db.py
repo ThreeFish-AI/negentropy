@@ -1,9 +1,6 @@
 import asyncio
 import sys
-import os
 
-# Ensure we can import config
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 from negentropy.config import settings
 from sqlalchemy.ext.asyncio import create_async_engine

@@ -4,7 +4,7 @@ from google.adk.sessions import Session as ADKSession
 from google.adk.events import Event as ADKEvent
 from negentropy.engine.adapters.postgres.memory_service import PostgresMemoryService
 import negentropy.db.session as db_session
-from negentropy.models.hippocampus import Memory
+from negentropy.models.internalization import Memory
 from sqlalchemy import select
 
 
