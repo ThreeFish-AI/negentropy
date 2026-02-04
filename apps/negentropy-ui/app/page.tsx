@@ -105,6 +105,45 @@ function mapMessagesToChat(messages: Message[]) {
   return merged;
 }
 
+function buildChatMessagesFromEvents(events: BaseEvent[]) {
+  const messageMap = new Map<string, { id: string; role: string; content: string }>();
+  const ordered: Array<{ id: string; role: string; content: string }> = [];
+
+  events.forEach((event) => {
+    if (
+      event.type !== EventType.TEXT_MESSAGE_START &&
+      event.type !== EventType.TEXT_MESSAGE_CONTENT &&
+      event.type !== EventType.TEXT_MESSAGE_END
+    ) {
+      return;
+    }
+    const messageId = "messageId" in event ? event.messageId : undefined;
+    if (!messageId) {
+      return;
+    }
+    if (event.type === EventType.TEXT_MESSAGE_START) {
+      if (!messageMap.has(messageId)) {
+        const next = {
+          id: messageId,
+          role: "role" in event ? event.role : "assistant",
+          content: "",
+        };
+        messageMap.set(messageId, next);
+        ordered.push(next);
+      }
+      return;
+    }
+    if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
+      const target = messageMap.get(messageId);
+      if (target) {
+        target.content = `${target.content}${event.delta ?? ""}`;
+      }
+    }
+  });
+
+  return ordered.filter((item) => item.content.trim().length > 0);
+}
+
 function ConfirmationToolCard({
   status,
   args,
@@ -345,6 +384,7 @@ export function HomeBody({
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
   const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
   const [sessionSnapshot, setSessionSnapshot] = useState<Record<string, unknown> | null>(null);
+  const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
@@ -462,12 +502,15 @@ export function HomeBody({
         }))
         .sort((a: SessionRecord, b: SessionRecord) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0));
       setSessions(nextSessions);
+      if (sessionId && !nextSessions.some((session) => session.id === sessionId)) {
+        setSessionId(null);
+      }
     } catch (error) {
       setConnectionWithMetrics("error");
       addLog("error", "load_sessions_failed", { message: String(error) });
       console.warn("Failed to load sessions", error);
     }
-  }, [userId, setSessions, setConnectionWithMetrics, addLog]);
+  }, [userId, sessionId, setSessions, setSessionId, setConnectionWithMetrics, addLog]);
 
   const startNewSession = async () => {
     try {
@@ -483,6 +526,13 @@ export function HomeBody({
       });
       const payload = await response.json();
       if (!response.ok) {
+        if (response.status === 404) {
+          addLog("warn", "session_not_found", { sessionId: id });
+          setSessions((prev) => prev.filter((session) => session.id !== id));
+          if (sessionId === id) {
+            setSessionId(null);
+          }
+        }
         return;
       }
       const id = payload.id as string;
@@ -516,6 +566,7 @@ export function HomeBody({
       setRawEvents(mappedEvents);
       setSessionMessages(messages);
       setSessionSnapshot(snapshot || null);
+      setLoadedSessionId(id);
       if (agent) {
         agent.setMessages(messages);
         agent.setState(snapshot || {});
@@ -526,7 +577,7 @@ export function HomeBody({
         console.warn("Failed to load session detail", error);
       }
     },
-    [agent, userId, setConnectionWithMetrics, addLog]
+    [agent, userId, setConnectionWithMetrics, addLog, sessionId, setSessionId, setSessions]
   );
 
   const resolvedThreadId = sessionId ?? "pending";
@@ -590,15 +641,22 @@ export function HomeBody({
     if (!sessionId) {
       return;
     }
+    setSessionMessages([]);
+    setSessionSnapshot(null);
+    setRawEvents([]);
+    setLoadedSessionId(null);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSessionDetail(sessionId);
   }, [sessionId, agent, loadSessionDetail]);
 
   const agentMessages = agent ? (agent.messages as Message[]) : [];
   const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
-  const messagesForRender = agentMessages.length > 0 ? agentMessages : sessionMessages;
-  const snapshotForRender = agentSnapshot ?? sessionSnapshot;
-  const chatMessages = mapMessagesToChat(messagesForRender);
+  const hasLoadedSession = loadedSessionId === sessionId;
+  const messagesForRender =
+    hasLoadedSession && agentMessages.length > 0 ? agentMessages : sessionMessages;
+  const snapshotForRender = hasLoadedSession ? agentSnapshot ?? sessionSnapshot : sessionSnapshot;
+  const chatMessages =
+    rawEvents.length > 0 ? buildChatMessagesFromEvents(rawEvents) : mapMessagesToChat(messagesForRender);
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
