@@ -9,6 +9,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
 type GraphNode = { id: string; label?: string; type?: string };
 type GraphEdge = { source: string; target: string; label?: string };
+type GraphNodePos = GraphNode & { x: number; y: number; vx: number; vy: number };
 
 export default function KnowledgeGraphPage() {
   const [payload, setPayload] = useState<KnowledgeGraphPayload | null>(null);
@@ -40,21 +41,84 @@ export default function KnowledgeGraphPage() {
   const runs = payload?.runs || [];
   const latestRun = (runs[0] || {}) as { run_id?: string; version?: number };
 
-  const layout = useMemo(() => {
+  const [layout, setLayout] = useState<GraphNodePos[]>([]);
+
+  useEffect(() => {
     if (!nodes.length) {
-      return [];
+      setLayout([]);
+      return;
     }
-    const center = { x: 180, y: 180 };
-    const radius = 120;
-    return nodes.map((node, index) => {
-      const angle = (index / nodes.length) * Math.PI * 2;
-      return {
+    const width = 360;
+    const height = 360;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const nodeMap = new Map<string, GraphNodePos>();
+    nodes.forEach((node) => {
+      nodeMap.set(node.id, {
         ...node,
-        x: center.x + radius * Math.cos(angle),
-        y: center.y + radius * Math.sin(angle),
-      };
+        x: centerX + (Math.random() - 0.5) * 120,
+        y: centerY + (Math.random() - 0.5) * 120,
+        vx: 0,
+        vy: 0,
+      });
     });
-  }, [nodes]);
+    const nodesArr = Array.from(nodeMap.values());
+    const edgePairs = edges
+      .map((edge) => {
+        const source = nodeMap.get(edge.source);
+        const target = nodeMap.get(edge.target);
+        if (!source || !target) return null;
+        return { source, target };
+      })
+      .filter((edge) => edge !== null) as { source: GraphNodePos; target: GraphNodePos }[];
+
+    const iterations = 160;
+    const repulsion = 1400;
+    const spring = 0.05;
+    const damping = 0.75;
+    const targetDistance = 120;
+
+    for (let i = 0; i < iterations; i += 1) {
+      for (let a = 0; a < nodesArr.length; a += 1) {
+        const nodeA = nodesArr[a];
+        let fx = 0;
+        let fy = 0;
+        for (let b = 0; b < nodesArr.length; b += 1) {
+          if (a === b) continue;
+          const nodeB = nodesArr[b];
+          const dx = nodeA.x - nodeB.x;
+          const dy = nodeA.y - nodeB.y;
+          const distSq = Math.max(dx * dx + dy * dy, 60);
+          const force = repulsion / distSq;
+          fx += (dx / Math.sqrt(distSq)) * force;
+          fy += (dy / Math.sqrt(distSq)) * force;
+        }
+        nodeA.vx = (nodeA.vx + fx) * damping;
+        nodeA.vy = (nodeA.vy + fy) * damping;
+      }
+
+      edgePairs.forEach(({ source, target }) => {
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+        const delta = dist - targetDistance;
+        const force = spring * delta;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        source.vx += fx;
+        source.vy += fy;
+        target.vx -= fx;
+        target.vy -= fy;
+      });
+
+      nodesArr.forEach((node) => {
+        node.x = Math.min(width - 24, Math.max(24, node.x + node.vx));
+        node.y = Math.min(height - 24, Math.max(24, node.y + node.vy));
+      });
+    }
+
+    setLayout(nodesArr);
+  }, [nodes, edges]);
 
   const selectedNode = layout.find((node) => node.id === selectedNodeId) || null;
 
