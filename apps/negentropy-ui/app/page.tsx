@@ -125,7 +125,10 @@ function mergeAdjacentAssistant(messages: ChatMessage[]) {
   return merged;
 }
 
-function buildChatMessagesFromEvents(events: BaseEvent[]) {
+function buildStreamedAssistantMessagesFromEvents(
+  events: BaseEvent[],
+  ignoreMessageIds: Set<string>,
+) {
   const messageMap = new Map<
     string,
     { id: string; role: string; content: string }
@@ -146,11 +149,17 @@ function buildChatMessagesFromEvents(events: BaseEvent[]) {
     }
     if (event.type === EventType.TEXT_MESSAGE_START) {
       if (!messageMap.has(messageId)) {
+        if (ignoreMessageIds.has(messageId)) {
+          return;
+        }
         const next = {
           id: messageId,
           role: "role" in event ? event.role : "assistant",
           content: "",
         };
+        if (next.role === "user") {
+          return;
+        }
         messageMap.set(messageId, next);
         ordered.push(next);
       }
@@ -162,11 +171,17 @@ function buildChatMessagesFromEvents(events: BaseEvent[]) {
         target.content = `${target.content}${event.delta ?? ""}`;
         return;
       }
+      if (ignoreMessageIds.has(messageId)) {
+        return;
+      }
       const fallback = {
         id: messageId,
         role: "role" in event ? event.role : "assistant",
         content: event.delta ?? "",
       };
+      if (fallback.role === "user") {
+        return;
+      }
       messageMap.set(messageId, fallback);
       ordered.push(fallback);
     }
@@ -862,8 +877,15 @@ export function HomeBody({
     optimisticMessages,
   );
   const baseChatMessages = mapMessagesToChat(mergedMessagesForRender);
+  const userMessageIds = new Set(
+    baseChatMessages
+      .filter((message) => message.role === "user")
+      .map((message) => message.id),
+  );
   const streamedChatMessages =
-    rawEvents.length > 0 ? buildChatMessagesFromEvents(rawEvents) : [];
+    rawEvents.length > 0
+      ? buildStreamedAssistantMessagesFromEvents(rawEvents, userMessageIds)
+      : [];
   const chatMessages = ensureUniqueMessageIds(
     mergeStreamWithMessages(baseChatMessages, streamedChatMessages),
   );
