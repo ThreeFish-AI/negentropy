@@ -757,6 +757,30 @@ export function HomeBody({
       content: inputValue.trim(),
     };
     setOptimisticMessages((prev) => [...prev, newMessage]);
+    setRawEvents((prev) => {
+      const timestamp = Date.now();
+      const optimisticEvents: BaseEvent[] = [
+        {
+          type: EventType.TEXT_MESSAGE_START,
+          messageId,
+          role: "user",
+          timestamp,
+        } as BaseEvent,
+        {
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          messageId,
+          delta: newMessage.content,
+          timestamp,
+        } as BaseEvent,
+        {
+          type: EventType.TEXT_MESSAGE_END,
+          messageId,
+          timestamp,
+        } as BaseEvent,
+      ];
+      const next = [...prev, ...optimisticEvents];
+      return next.slice(-500);
+    });
     agent.addMessage(newMessage);
     setInputValue("");
     try {
