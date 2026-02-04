@@ -2,13 +2,14 @@ import { EventEncoder } from "@ag-ui/encoder";
 import { BaseEvent, EventType } from "@ag-ui/core";
 import { NextResponse } from "next/server";
 import { AdkEventPayload, adkEventToAguiEvents } from "@/lib/adk";
+import { buildAuthHeaders } from "@/lib/sso";
 
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 }
 
 function extractForwardHeaders(request: Request) {
-  const headers = new Headers();
+  const headers = buildAuthHeaders(request);
 
   const auth = request.headers.get("authorization");
   if (auth) {

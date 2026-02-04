@@ -30,6 +30,7 @@ dependencies = [
     "google-cloud-storage>=3.8.0",  # Object storage for artifacts
     "google-auth>=2.48.0",          # Authentication for Google services
     "google-cloud-logging>=3.13.0", # Cloud Logging integration
+    "httpx>=0.27.0",                # Async HTTP client for OAuth
     
     # Utilities
     "structlog>=25.5.0",            # Structured logging for machine-readability
