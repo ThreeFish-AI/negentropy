@@ -125,15 +125,24 @@ function mergeAdjacentAssistant(messages: ChatMessage[]) {
   return merged;
 }
 
-function buildStreamedAssistantMessagesFromEvents(
+function buildChatMessagesFromEventsWithFallback(
   events: BaseEvent[],
-  ignoreMessageIds: Set<string>,
+  fallbackMessages: Message[],
 ) {
+  const fallbackById = new Map<string, Message>();
+  fallbackMessages.forEach((message) => fallbackById.set(message.id, message));
+
   const messageMap = new Map<
     string,
-    { id: string; role: string; content: string }
+    {
+      id: string;
+      role: string;
+      content: string;
+      timestamp: number;
+      order: number;
+    }
   >();
-  const ordered: Array<{ id: string; role: string; content: string }> = [];
+  let orderCounter = 0;
 
   events.forEach((event) => {
     if (
@@ -147,75 +156,51 @@ function buildStreamedAssistantMessagesFromEvents(
     if (!messageId) {
       return;
     }
-    if (event.type === EventType.TEXT_MESSAGE_START) {
-      if (!messageMap.has(messageId)) {
-        if (ignoreMessageIds.has(messageId)) {
-          return;
-        }
-        const next = {
-          id: messageId,
-          role: "role" in event ? event.role : "assistant",
-          content: "",
-        };
-        if (next.role === "user") {
-          return;
-        }
-        messageMap.set(messageId, next);
-        ordered.push(next);
-      }
-      return;
+    let entry = messageMap.get(messageId);
+    if (!entry) {
+      const fallback = fallbackById.get(messageId);
+      entry = {
+        id: messageId,
+        role: ("role" in event && event.role) || fallback?.role || "assistant",
+        content: "",
+        timestamp: "timestamp" in event && event.timestamp ? event.timestamp : 0,
+        order: orderCounter++,
+      };
+      messageMap.set(messageId, entry);
     }
     if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
-      const target = messageMap.get(messageId);
-      if (target) {
-        target.content = `${target.content}${event.delta ?? ""}`;
-        return;
-      }
-      if (ignoreMessageIds.has(messageId)) {
-        return;
-      }
-      const fallback = {
-        id: messageId,
-        role: "role" in event ? event.role : "assistant",
-        content: event.delta ?? "",
-      };
-      if (fallback.role === "user") {
-        return;
-      }
-      messageMap.set(messageId, fallback);
-      ordered.push(fallback);
+      entry.content = `${entry.content}${event.delta ?? ""}`;
+    }
+    if (entry.timestamp === 0 && "timestamp" in event && event.timestamp) {
+      entry.timestamp = event.timestamp;
     }
   });
 
-  return mergeAdjacentAssistant(
-    ordered.filter((item) => item.content.trim().length > 0),
-  );
-}
+  const ordered = Array.from(messageMap.values())
+    .map((entry) => {
+      if (!entry.content.trim()) {
+        const fallback = fallbackById.get(entry.id);
+        if (fallback) {
+          entry.content = normalizeMessageContent(fallback);
+          entry.role = fallback.role;
+        }
+      }
+      return entry;
+    })
+    .filter((entry) => entry.content.trim().length > 0)
+    .sort((a, b) => {
+      if (a.timestamp && b.timestamp && a.timestamp !== b.timestamp) {
+        return a.timestamp - b.timestamp;
+      }
+      return a.order - b.order;
+    })
+    .map((entry) => ({
+      id: entry.id,
+      role: entry.role,
+      content: entry.content,
+    }));
 
-function mergeStreamWithMessages(
-  baseMessages: ChatMessage[],
-  streamedMessages: ChatMessage[],
-) {
-  if (streamedMessages.length === 0) {
-    return baseMessages;
-  }
-  let streamIndex = 0;
-  const merged = baseMessages.map((message) => {
-    if (message.role === "assistant" && streamIndex < streamedMessages.length) {
-      const streamed = streamedMessages[streamIndex];
-      streamIndex += 1;
-      return {
-        id: streamed.id || message.id,
-        role: message.role,
-        content: streamed.content,
-      };
-    }
-    return message;
-  });
-  for (; streamIndex < streamedMessages.length; streamIndex += 1) {
-    merged.push(streamedMessages[streamIndex]);
-  }
-  return merged;
+  return mergeAdjacentAssistant(ordered);
 }
 
 function ensureUniqueMessageIds(messages: ChatMessage[]) {
@@ -880,19 +865,15 @@ export function HomeBody({
     messagesForRenderBase,
     optimisticMessages,
   );
-  const baseChatMessages = mapMessagesToChat(mergedMessagesForRender);
-  const userMessageIds = new Set(
-    baseChatMessages
-      .filter((message) => message.role === "user")
-      .map((message) => message.id),
-  );
-  const streamedChatMessages =
+  const chatMessages =
     rawEvents.length > 0
-      ? buildStreamedAssistantMessagesFromEvents(rawEvents, userMessageIds)
-      : [];
-  const chatMessages = ensureUniqueMessageIds(
-    mergeStreamWithMessages(baseChatMessages, streamedChatMessages),
-  );
+      ? ensureUniqueMessageIds(
+          buildChatMessagesFromEventsWithFallback(
+            rawEvents,
+            mergedMessagesForRender,
+          ),
+        )
+      : ensureUniqueMessageIds(mapMessagesToChat(mergedMessagesForRender));
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
