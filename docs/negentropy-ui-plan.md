@@ -178,7 +178,7 @@
 
 ### P3. 可观测性与稳定性
 
-- UI 侧埋点（事件耗时、连接断开、重试次数）。
+- ✅ 已完成：UI 侧埋点（事件耗时、连接重试次数、错误次数）。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
 - `session_id`/`user_id` 贯穿前后端（参见 [apps/negentropy/src/negentropy/engine/bootstrap.py](../apps/negentropy/src/negentropy/engine/bootstrap.py)）。
 - ✅ 已完成：最小回归测试（单元 + 集成）。覆盖 `lib/adk` 事件映射、核心 UI 组件（ChatStream/EventTimeline/StateSnapshot/Composer），并在 `tests/integration` mock `useAgent` 验证页面级交互流程；配置 `vitest`。实现见 [apps/negentropy-ui/tests](../apps/negentropy-ui/tests)、[apps/negentropy-ui/vitest.config.ts](../apps/negentropy-ui/vitest.config.ts)。
 - ✅ 已完成：CI 回归（GitHub Actions）在 `apps/negentropy-ui` 变更时执行 `yarn test`。实现见 [.github/workflows/negentropy-ui-tests.yml](../.github/workflows/negentropy-ui-tests.yml)。
@@ -243,6 +243,18 @@
   - 修复后复验：`POST /api/agui` 正常输出 `TEXT_MESSAGE_*`、`STATE_DELTA`、`ACTIVITY_SNAPSHOT` 等 AG‑UI 事件，流式交互通过。
   - 新增异常：UI 侧仅出现空 `ARTIFACT {}` 与 `STATE_DELTA []`，对话消息不展示；控制台出现 `threadId/runId` 缺失报错。
   - 修复策略：BFF 注入 `threadId/runId` 到所有 AG‑UI 事件；ADK 事件解析增强（兼容 `content.text` / `content.content` / `message.content`），并忽略空 `artifactDelta/stateDelta`。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)、[apps/negentropy-ui/lib/adk.ts](../apps/negentropy-ui/lib/adk.ts)。
+  - **验证待补录**：需在 UI 侧完成真实交互验证，并记录日志缓冲输出与断连/重连表现（见下方模板）。
+
+**UI 真实验证模板（待补录）**
+- **时间**：
+- **环境**：浏览器 / 版本 / 系统
+- **路径**：New Session → 发送消息 → HITL 确认/修正/补充 → 会话切换/回放
+- **结果**：
+  - 消息是否显示：✅/❌
+  - State Snapshot 是否更新：✅/❌
+  - Artifact 卡片是否可读：✅/❌
+  - 断连/重连行为：✅/❌（描述）
+  - Runtime Logs 关键条目（复制粘贴）：
 
 ## 11. 未来扩展：知识库/知识图谱/用户记忆管理
 
