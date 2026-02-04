@@ -133,6 +133,7 @@ function buildChatMessagesFromEventsWithFallback(
   const fallbackById = new Map<string, Message>();
   fallbackMessages.forEach((message) => fallbackById.set(message.id, message));
 
+  // 1. Process events into map
   const messageMap = new Map<
     string,
     {
@@ -140,10 +141,8 @@ function buildChatMessagesFromEventsWithFallback(
       role: string;
       content: string;
       timestamp: number;
-      order: number;
     }
   >();
-  let orderCounter = 0;
 
   events.forEach((event) => {
     if (
@@ -166,7 +165,6 @@ function buildChatMessagesFromEventsWithFallback(
         content: "",
         timestamp:
           "timestamp" in event && event.timestamp ? event.timestamp : 0,
-        order: orderCounter++,
       };
       messageMap.set(messageId, entry);
     }
@@ -175,6 +173,28 @@ function buildChatMessagesFromEventsWithFallback(
     }
     if (entry.timestamp === 0 && "timestamp" in event && event.timestamp) {
       entry.timestamp = event.timestamp;
+    }
+  });
+
+  // 2. Add missing fallback messages (preserves history not in streaming window)
+  fallbackMessages.forEach((fallback) => {
+    if (!messageMap.has(fallback.id)) {
+      // Convert Date to seconds timestamp to match events
+      const timestamp = fallback.createdAt
+        ? fallback.createdAt.getTime() / 1000
+        : 0;
+      messageMap.set(fallback.id, {
+        id: fallback.id,
+        role: fallback.role,
+        content: normalizeMessageContent(fallback),
+        timestamp,
+      });
+    } else {
+      // Backfill timestamp if missing from events
+      const entry = messageMap.get(fallback.id)!;
+      if (entry.timestamp === 0 && fallback.createdAt) {
+        entry.timestamp = fallback.createdAt.getTime() / 1000;
+      }
     }
   });
 
@@ -191,10 +211,13 @@ function buildChatMessagesFromEventsWithFallback(
     })
     .filter((entry) => entry.content.trim().length > 0)
     .sort((a, b) => {
-      if (a.timestamp && b.timestamp && a.timestamp !== b.timestamp) {
+      // Sort by timestamp (seconds)
+      if (a.timestamp && b.timestamp) {
         return a.timestamp - b.timestamp;
       }
-      return a.order - b.order;
+      // If timestamps missing/equal, fallback to ID comparison or specific roles?
+      // Assuming reliable timestamps for now.
+      return 0;
     })
     .map((entry) => ({
       id: entry.id,
@@ -753,14 +776,15 @@ export function HomeBody({
     }
 
     const messageId = crypto.randomUUID();
+    const timestamp = Date.now() / 1000;
     const newMessage: Message = {
       id: messageId,
       role: "user",
       content: inputValue.trim(),
+      createdAt: new Date(timestamp * 1000),
     };
     setOptimisticMessages((prev) => [...prev, newMessage]);
     setRawEvents((prev) => {
-      const timestamp = Date.now();
       const optimisticEvents: BaseEvent[] = [
         {
           type: EventType.TEXT_MESSAGE_START,
@@ -781,7 +805,8 @@ export function HomeBody({
         } as BaseEvent,
       ];
       const next = [...prev, ...optimisticEvents];
-      return next.slice(-500);
+      // Increase buffer to prevent dropping messages
+      return next.slice(-2000);
     });
     agent.addMessage(newMessage);
     setInputValue("");
