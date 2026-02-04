@@ -329,6 +329,8 @@ export function HomeBody({
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
+  const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
+  const [sessionSnapshot, setSessionSnapshot] = useState<Record<string, unknown> | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
@@ -498,6 +500,8 @@ export function HomeBody({
       const mappedEvents = events.flatMap(adkEventToAguiEvents);
 
       setRawEvents(mappedEvents);
+      setSessionMessages(messages);
+      setSessionSnapshot(snapshot || null);
       if (agent) {
         agent.setMessages(messages);
         agent.setState(snapshot || {});
@@ -578,7 +582,9 @@ export function HomeBody({
 
   const agentMessages = agent ? (agent.messages as Message[]) : [];
   const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
-  const chatMessages = mapMessagesToChat(agentMessages);
+  const messagesForRender = agentMessages.length > 0 ? agentMessages : sessionMessages;
+  const snapshotForRender = agentSnapshot ?? sessionSnapshot;
+  const chatMessages = mapMessagesToChat(messagesForRender);
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -598,7 +604,7 @@ export function HomeBody({
         </main>
 
         <aside className="col-span-3 bg-white p-6">
-          <StateSnapshot snapshot={agentSnapshot} />
+          <StateSnapshot snapshot={snapshotForRender} />
           <EventTimeline events={timelineItems} />
           <LogBufferPanel
             entries={logEntries}
