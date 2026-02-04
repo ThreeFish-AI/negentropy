@@ -3,9 +3,16 @@ type ComposerProps = {
   onChange: (value: string) => void;
   onSend: () => void;
   disabled: boolean;
+  isGenerating?: boolean;
 };
 
-export function Composer({ value, onChange, onSend, disabled }: ComposerProps) {
+export function Composer({
+  value,
+  onChange,
+  onSend,
+  disabled,
+  isGenerating,
+}: ComposerProps) {
   return (
     <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4">
       <textarea
@@ -23,11 +30,14 @@ export function Composer({ value, onChange, onSend, disabled }: ComposerProps) {
       <div className="mt-3 flex items-center justify-between">
         <p className="text-xs text-zinc-500">Shift+Enter 换行</p>
         <button
-          className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
+          className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 transition-all flex items-center gap-2"
           onClick={onSend}
           disabled={disabled || !value.trim()}
         >
-          Send
+          {isGenerating && (
+            <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+          )}
+          {isGenerating ? "Generating..." : "Send"}
         </button>
       </div>
     </div>
