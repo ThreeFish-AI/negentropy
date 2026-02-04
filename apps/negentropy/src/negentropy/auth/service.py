@@ -93,7 +93,12 @@ class AuthService:
 
     def _build_state_token(self, redirect: str) -> str:
         now = int(time.time())
-        payload = {"typ": "oauth_state", "iat": now, "exp": now + self._settings.state_ttl_seconds, "redirect": redirect}
+        payload = {
+            "typ": "oauth_state",
+            "iat": now,
+            "exp": now + self._settings.state_ttl_seconds,
+            "redirect": redirect,
+        }
         return encode_token(payload, self._settings.token_secret.get_secret_value())
 
     def _parse_state_token(self, token: str) -> str:
