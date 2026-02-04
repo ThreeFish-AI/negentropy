@@ -87,6 +87,8 @@ function normalizeMessageContent(message: Message) {
   return message.content ? JSON.stringify(message.content) : "";
 }
 
+type ChatMessage = { id: string; role: string; content: string };
+
 function mapMessagesToChat(messages: Message[]) {
   const merged: Array<{ id: string; role: string; content: string }> = [];
   messages
@@ -107,6 +109,19 @@ function mapMessagesToChat(messages: Message[]) {
         content,
       });
     });
+  return merged;
+}
+
+function mergeAdjacentAssistant(messages: ChatMessage[]) {
+  const merged: ChatMessage[] = [];
+  messages.forEach((message) => {
+    const last = merged[merged.length - 1];
+    if (last && last.role === "assistant" && message.role === "assistant") {
+      last.content = `${last.content}${message.content}`;
+      return;
+    }
+    merged.push({ ...message });
+  });
   return merged;
 }
 
@@ -145,11 +160,47 @@ function buildChatMessagesFromEvents(events: BaseEvent[]) {
       const target = messageMap.get(messageId);
       if (target) {
         target.content = `${target.content}${event.delta ?? ""}`;
+        return;
       }
+      const fallback = {
+        id: messageId,
+        role: "role" in event ? event.role : "assistant",
+        content: event.delta ?? "",
+      };
+      messageMap.set(messageId, fallback);
+      ordered.push(fallback);
     }
   });
 
-  return ordered.filter((item) => item.content.trim().length > 0);
+  return mergeAdjacentAssistant(
+    ordered.filter((item) => item.content.trim().length > 0),
+  );
+}
+
+function mergeStreamWithMessages(
+  baseMessages: ChatMessage[],
+  streamedMessages: ChatMessage[],
+) {
+  if (streamedMessages.length === 0) {
+    return baseMessages;
+  }
+  let streamIndex = 0;
+  const merged = baseMessages.map((message) => {
+    if (message.role === "assistant" && streamIndex < streamedMessages.length) {
+      const streamed = streamedMessages[streamIndex];
+      streamIndex += 1;
+      return {
+        id: streamed.id || message.id,
+        role: message.role,
+        content: streamed.content,
+      };
+    }
+    return message;
+  });
+  for (; streamIndex < streamedMessages.length; streamIndex += 1) {
+    merged.push(streamedMessages[streamIndex]);
+  }
+  return merged;
 }
 
 function ConfirmationToolCard({
@@ -728,10 +779,13 @@ export function HomeBody({
   const snapshotForRender = hasLoadedSession
     ? (agentSnapshot ?? sessionSnapshot)
     : sessionSnapshot;
-  const chatMessages =
-    rawEvents.length > 0
-      ? buildChatMessagesFromEvents(rawEvents)
-      : mapMessagesToChat(messagesForRender);
+  const baseChatMessages = mapMessagesToChat(messagesForRender);
+  const streamedChatMessages =
+    rawEvents.length > 0 ? buildChatMessagesFromEvents(rawEvents) : [];
+  const chatMessages = mergeStreamWithMessages(
+    baseChatMessages,
+    streamedChatMessages,
+  );
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
