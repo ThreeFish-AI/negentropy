@@ -1,3 +1,4 @@
+import { MessageBubble } from "./MessageBubble";
 import type { Message } from "@ag-ui/core";
 
 type ChatMessage = Pick<Message, "id" | "role"> & {
@@ -17,12 +18,7 @@ export function ChatStream({ messages }: ChatStreamProps) {
         </div>
       ) : (
         messages.map((message) => (
-          <div key={message.id} className="rounded-2xl bg-white p-4 shadow-sm">
-            <div className="mb-2 text-xs uppercase tracking-[0.2em] text-zinc-400">
-              {message.role}
-            </div>
-            <p className="text-sm leading-relaxed text-zinc-800">{message.content}</p>
-          </div>
+          <MessageBubble key={message.id} message={message} />
         ))
       )}
     </div>
