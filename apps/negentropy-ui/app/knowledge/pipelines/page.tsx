@@ -54,6 +54,22 @@ export default function KnowledgePipelinesPage() {
     }
   };
 
+  const formatDuration = (durationMs?: number, startedAt?: string, completedAt?: string) => {
+    if (durationMs && durationMs > 0) {
+      const seconds = Math.round(durationMs / 1000);
+      return `${seconds}s`;
+    }
+    if (startedAt && completedAt) {
+      const start = new Date(startedAt).getTime();
+      const end = new Date(completedAt).getTime();
+      if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {
+        const seconds = Math.round((end - start) / 1000);
+        return `${seconds}s`;
+      }
+    }
+    return "-";
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <KnowledgeNav title="Pipelines" description="作业运行与错误定位" />
@@ -74,6 +90,9 @@ export default function KnowledgePipelinesPage() {
                       run_id: selected.run_id,
                       status: selected.status || "completed",
                       payload: {
+                        started_at: selected.started_at,
+                        completed_at: selected.completed_at,
+                        duration_ms: selected.duration_ms,
                         duration: selected.duration,
                         trigger: selected.trigger,
                         input: selected.input,
@@ -126,6 +145,14 @@ export default function KnowledgePipelinesPage() {
             <h2 className="text-sm font-semibold text-zinc-900">Run Detail</h2>
             {selected ? (
               <div className="mt-3 space-y-3 text-xs text-zinc-600">
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <p className="text-[11px] uppercase text-zinc-400">Timing</p>
+                  <p className="mt-2 text-[11px] text-zinc-600">Started: {selected.started_at || "-"}</p>
+                  <p className="text-[11px] text-zinc-600">Completed: {selected.completed_at || "-"}</p>
+                  <p className="text-[11px] text-zinc-600">
+                    Duration: {formatDuration(selected.duration_ms, selected.started_at, selected.completed_at)}
+                  </p>
+                </div>
                 <div>
                   <p className="text-[11px] uppercase text-zinc-400">Input</p>
                   <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px]">
@@ -161,7 +188,13 @@ export default function KnowledgePipelinesPage() {
                     </div>
                     <div>
                       <p className="text-zinc-900">{run.run_id || run.id}</p>
-                      <p className="text-[11px] text-zinc-500">{run.trigger || "manual"}</p>
+                      <p className="text-[11px] text-zinc-500">
+                        {run.trigger || "manual"} · {formatDuration(run.duration_ms, run.started_at, run.completed_at)}
+                      </p>
+                      <p className="text-[11px] text-zinc-400">{run.started_at ? `开始 ${run.started_at}` : "开始 -"}</p>
+                      <p className="text-[11px] text-zinc-400">
+                        {run.completed_at ? `结束 ${run.completed_at}` : "结束 -"}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -190,6 +223,9 @@ export default function KnowledgePipelinesPage() {
                       run_id: next.run_id,
                       status: next.status || "completed",
                       payload: {
+                        started_at: next.started_at,
+                        completed_at: next.completed_at,
+                        duration_ms: next.duration_ms,
                         duration: next.duration,
                         trigger: next.trigger,
                         input: next.input,
