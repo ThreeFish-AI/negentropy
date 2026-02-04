@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import type { Message } from "@ag-ui/core";
 
@@ -10,8 +11,19 @@ type ChatStreamProps = {
 };
 
 export function ChatStream({ messages }: ChatStreamProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   return (
-    <div className="space-y-4">
+    <div
+      ref={scrollRef}
+      className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
+    >
       {messages.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-500">
           发送指令开始对话。事件流将实时展示在右侧。
