@@ -60,6 +60,11 @@ class LlmSettings(BaseSettings):
         validation_alias=AliasChoices("EMBEDDING_MODEL", "NE_LLM_EMBEDDING_MODEL"),
         description="Embedding model identifier. If unset, defaults to model_name.",
     )
+    embedding_vendor: Optional[LlmVendor] = Field(
+        default=None,
+        validation_alias=AliasChoices("EMBEDDING_VENDOR", "NE_LLM_EMBEDDING_VENDOR"),
+        description="Optional vendor override for embedding model.",
+    )
     embedding_dimensions: Optional[int] = Field(
         default=None,
         validation_alias=AliasChoices("EMBEDDING_DIMENSIONS", "NE_LLM_EMBEDDING_DIMENSIONS"),
@@ -107,7 +112,8 @@ class LlmSettings(BaseSettings):
         model_name = self.embedding_model_name or env_model or self.model_name
         if "/" in model_name:
             return model_name
-        return f"{self.vendor.value}/{model_name}"
+        vendor = self.embedding_vendor or self.vendor
+        return f"{vendor.value}/{model_name}"
 
     def to_litellm_embedding_kwargs(self) -> Dict[str, Any]:
         kwargs: Dict[str, Any] = {}
@@ -201,6 +207,22 @@ class LlmSettings(BaseSettings):
     @classmethod
     def _load_embedding_model_env(cls, value: Optional[str]) -> Optional[str]:
         return value or os.getenv("NE_LLM_EMBEDDING_MODEL")
+
+    @field_validator("embedding_vendor", mode="before")
+    @classmethod
+    def _load_embedding_vendor_env(cls, value: Optional[LlmVendor]) -> Optional[LlmVendor]:
+        raw = os.getenv("NE_LLM_EMBEDDING_VENDOR")
+        if value is not None:
+            return value
+        if raw is None:
+            return None
+        normalized = raw.lower()
+        if normalized in {"google", "vertex", "vertexai"}:
+            return LlmVendor.VERTEX_AI
+        try:
+            return LlmVendor(normalized)
+        except ValueError:
+            return None
 
     @field_validator("embedding_dimensions", mode="before")
     @classmethod
