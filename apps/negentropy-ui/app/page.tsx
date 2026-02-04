@@ -804,18 +804,40 @@ export function HomeBody({
     hasLoadedSession && agentMessages.length > 0
       ? agentMessages
       : sessionMessages;
-  const baseIds = new Set(messagesForRenderBase.map((message) => message.id));
-  const optimisticForRender = optimisticMessages.filter(
-    (message) => !baseIds.has(message.id),
-  );
-  const messagesForRender = [
-    ...messagesForRenderBase,
-    ...optimisticForRender,
-  ];
   const snapshotForRender = hasLoadedSession
     ? (agentSnapshot ?? sessionSnapshot)
     : sessionSnapshot;
-  const baseChatMessages = mapMessagesToChat(messagesForRender);
+  const mergeOptimisticMessages = (
+    base: Message[],
+    optimistic: Message[],
+  ): Message[] => {
+    if (optimistic.length === 0) {
+      return base;
+    }
+    const merged = [...base];
+    const indexById = new Map<string, number>();
+    merged.forEach((message, index) => {
+      indexById.set(message.id, index);
+    });
+    optimistic.forEach((message) => {
+      const index = indexById.get(message.id);
+      if (index === undefined) {
+        merged.push(message);
+        indexById.set(message.id, merged.length - 1);
+        return;
+      }
+      const existing = merged[index];
+      if (!existing.content && message.content) {
+        merged[index] = { ...existing, content: message.content };
+      }
+    });
+    return merged;
+  };
+  const mergedMessagesForRender = mergeOptimisticMessages(
+    messagesForRenderBase,
+    optimisticMessages,
+  );
+  const baseChatMessages = mapMessagesToChat(mergedMessagesForRender);
   const streamedChatMessages =
     rawEvents.length > 0 ? buildChatMessagesFromEvents(rawEvents) : [];
   const chatMessages = ensureUniqueMessageIds(
