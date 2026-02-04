@@ -203,6 +203,21 @@ function mergeStreamWithMessages(
   return merged;
 }
 
+function ensureUniqueMessageIds(messages: ChatMessage[]) {
+  const seen = new Map<string, number>();
+  return messages.map((message) => {
+    const count = seen.get(message.id) ?? 0;
+    seen.set(message.id, count + 1);
+    if (count === 0) {
+      return message;
+    }
+    return {
+      ...message,
+      id: `${message.id}:${count}`,
+    };
+  });
+}
+
 function ConfirmationToolCard({
   status,
   args,
@@ -782,9 +797,8 @@ export function HomeBody({
   const baseChatMessages = mapMessagesToChat(messagesForRender);
   const streamedChatMessages =
     rawEvents.length > 0 ? buildChatMessagesFromEvents(rawEvents) : [];
-  const chatMessages = mergeStreamWithMessages(
-    baseChatMessages,
-    streamedChatMessages,
+  const chatMessages = ensureUniqueMessageIds(
+    mergeStreamWithMessages(baseChatMessages, streamedChatMessages),
   );
 
   return (
