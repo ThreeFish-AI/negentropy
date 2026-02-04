@@ -566,6 +566,9 @@ export function HomeBody({
           });
         }
         setConnectionWithMetrics("idle");
+        if (sessionId) {
+          updateCurrentSessionTime(sessionId);
+        }
       },
       onRunErrorEvent: () => {
         metricsRef.current.errorCount += 1;
@@ -639,7 +642,9 @@ export function HomeBody({
         sessionId &&
         !nextSessions.some((session) => session.id === sessionId)
       ) {
-        setSessionId(null);
+        setSessionId(nextSessions.length > 0 ? nextSessions[0].id : null);
+      } else if (!sessionId && nextSessions.length > 0) {
+        setSessionId(nextSessions[0].id);
       }
     } catch (error) {
       setConnectionWithMetrics("error");
@@ -654,6 +659,15 @@ export function HomeBody({
     setConnectionWithMetrics,
     addLog,
   ]);
+
+  const updateCurrentSessionTime = useCallback((id: string) => {
+    setSessions((prev) => {
+      const target = prev.find((s) => s.id === id);
+      if (!target) return prev;
+      const others = prev.filter((s) => s.id !== id);
+      return [{ ...target, lastUpdateTime: Date.now() }, ...others];
+    });
+  }, []);
 
   const startNewSession = async () => {
     try {
@@ -903,10 +917,10 @@ export function HomeBody({
       : ensureUniqueMessageIds(mapMessagesToChat(mergedMessagesForRender));
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="h-screen flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
       <SiteHeader />
 
-      <div className="grid min-h-[calc(100vh-72px)] grid-cols-12 gap-0">
+      <div className="grid h-[calc(100vh-72px)] grid-cols-12 gap-0 overflow-hidden">
         <SessionList
           sessions={sessions}
           activeId={sessionId}
@@ -914,21 +928,23 @@ export function HomeBody({
           onNewSession={startNewSession}
         />
 
-        <main className="col-span-7 border-r border-zinc-200 bg-zinc-50 p-6">
+        <main className="col-span-7 flex flex-col h-full border-r border-zinc-200 bg-zinc-50 overflow-hidden">
           <ChatStream messages={chatMessages} />
-          <Composer
-            value={inputValue}
-            onChange={setInputValue}
-            onSend={sendInput}
-            disabled={
-              !sessionId ||
-              connection === "streaming" ||
-              pendingConfirmations > 0
-            }
-          />
+          <div className="p-6 pt-2 shrink-0">
+            <Composer
+              value={inputValue}
+              onChange={setInputValue}
+              onSend={sendInput}
+              disabled={
+                !sessionId ||
+                connection === "streaming" ||
+                pendingConfirmations > 0
+              }
+            />
+          </div>
         </main>
 
-        <aside className="col-span-3 bg-white p-6">
+        <aside className="col-span-3 h-full bg-white p-6 overflow-y-auto">
           <StateSnapshot snapshot={snapshotForRender} connection={connection} />
           <EventTimeline events={timelineItems} />
           <LogBufferPanel
