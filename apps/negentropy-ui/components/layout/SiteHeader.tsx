@@ -14,13 +14,15 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
     <div className="border-b border-zinc-200 bg-white px-6 py-4 sticky top-0 z-50">
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Brand and Primary Nav */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        <div className="flex items-center gap-9">
+          <Link href="/" className="flex items-center gap-0">
+            <img
+              src="/logo.png"
+              alt="Negentropy"
+              className="h-9 w-16 object-contain"
+            />
+            <span className="text-[15px] font-bold tracking-[0.1em] text-black">
               Negentropy
-            </span>
-            <span className="text-lg font-bold text-zinc-900 leading-tight">
-              UI
             </span>
           </Link>
 
