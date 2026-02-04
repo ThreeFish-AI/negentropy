@@ -4,6 +4,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 import type { Message } from "@ag-ui/core";
 import { micromark } from "micromark";
+import { gfm, gfmHtml } from "micromark-extension-gfm";
 
 type ChatMessageProps = {
   message: Pick<Message, "id" | "role" | "content">;
@@ -42,8 +43,11 @@ export function MessageBubble({ message }: ChatMessageProps) {
     );
   }
 
-  // Render markdown safely-ish (assuming internal trusting agent)
-  const htmlContent = micromark(content);
+  // Render markdown with GFM support
+  const htmlContent = micromark(content, {
+    extensions: [gfm()],
+    htmlExtensions: [gfmHtml()],
+  });
 
   return (
     <div
@@ -101,6 +105,14 @@ export function MessageBubble({ message }: ChatMessageProps) {
             "[&_a]:underline [&_a]:underline-offset-2",
             !isUser && "[&_a]:text-indigo-600 hover:[&_a]:text-indigo-500",
             isUser && "[&_a]:text-zinc-200 hover:[&_a]:text-white",
+            // Table styles
+            "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm",
+            "[&_th]:border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
+            "[&_td]:border [&_td]:px-3 [&_td]:py-2",
+            !isUser &&
+              "[&_th]:border-zinc-200 [&_th]:bg-zinc-50 [&_td]:border-zinc-200",
+            isUser &&
+              "[&_th]:border-zinc-700 [&_th]:bg-zinc-800 [&_td]:border-zinc-700",
           )}
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
