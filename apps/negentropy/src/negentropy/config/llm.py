@@ -52,6 +52,18 @@ class LlmSettings(BaseSettings):
         default="glm-4.7",
         description="The specific model identifier (e.g., 'gpt-4o', 'claude-3-7-sonnet', 'glm-4.7').",
     )
+    embedding_model_name: Optional[str] = Field(
+        default=None,
+        description="Embedding model identifier. If unset, defaults to model_name.",
+    )
+    embedding_dimensions: Optional[int] = Field(
+        default=None,
+        description="Optional embedding dimensions (OpenAI text-embedding-3+).",
+    )
+    embedding_input_type: Optional[str] = Field(
+        default=None,
+        description="Optional input_type for embedding models (e.g., 'search_query', 'search_document').",
+    )
 
     # Generation Parameters
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
@@ -82,6 +94,21 @@ class LlmSettings(BaseSettings):
         if "/" in self.model_name:
             return self.model_name
         return f"{self.vendor.value}/{self.model_name}"
+
+    @property
+    def embedding_full_model_name(self) -> str:
+        model_name = self.embedding_model_name or self.model_name
+        if "/" in model_name:
+            return model_name
+        return f"{self.vendor.value}/{model_name}"
+
+    def to_litellm_embedding_kwargs(self) -> Dict[str, Any]:
+        kwargs: Dict[str, Any] = {}
+        if self.embedding_dimensions:
+            kwargs["dimensions"] = self.embedding_dimensions
+        if self.embedding_input_type:
+            kwargs["input_type"] = self.embedding_input_type
+        return kwargs
 
     def to_litellm_kwargs(self) -> Dict[str, Any]:
         """
