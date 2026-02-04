@@ -19,7 +19,12 @@ import { Header } from "../components/ui/Header";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
-import { AdkEventPayload, adkEventToAguiEvents, adkEventsToMessages, adkEventsToSnapshot } from "./lib/adk";
+import {
+  AdkEventPayload,
+  adkEventToAguiEvents,
+  adkEventsToMessages,
+  adkEventsToSnapshot,
+} from "@/lib/adk";
 
 type ConnectionState = "idle" | "connecting" | "streaming" | "error";
 
@@ -106,7 +111,10 @@ function mapMessagesToChat(messages: Message[]) {
 }
 
 function buildChatMessagesFromEvents(events: BaseEvent[]) {
-  const messageMap = new Map<string, { id: string; role: string; content: string }>();
+  const messageMap = new Map<
+    string,
+    { id: string; role: string; content: string }
+  >();
   const ordered: Array<{ id: string; role: string; content: string }> = [];
 
   events.forEach((event) => {
@@ -326,7 +334,9 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
   return items;
 }
 
-function useConfirmationTool(onFollowup?: (payload: { action: string; note: string }) => void) {
+function useConfirmationTool(
+  onFollowup?: (payload: { action: string; note: string }) => void,
+) {
   useHumanInTheLoop<ConfirmationToolArgs>(
     {
       name: "ui.confirmation",
@@ -346,7 +356,7 @@ function useConfirmationTool(onFollowup?: (payload: { action: string; note: stri
         />
       ),
     },
-    [onFollowup]
+    [onFollowup],
   );
 }
 
@@ -383,48 +393,63 @@ export function HomeBody({
   const [inputValue, setInputValue] = useState("");
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
   const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
-  const [sessionSnapshot, setSessionSnapshot] = useState<Record<string, unknown> | null>(null);
+  const [sessionSnapshot, setSessionSnapshot] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
-    [sessions, sessionId]
+    [sessions, sessionId],
   );
 
-  const addLog = useCallback((level: LogEntry["level"], message: string, payload?: Record<string, unknown>) => {
-    setLogEntries((prev) => {
-      const next = [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          level,
-          message,
-          payload,
-        },
-      ];
-      return next.slice(-200);
-    });
-  }, []);
+  const addLog = useCallback(
+    (
+      level: LogEntry["level"],
+      message: string,
+      payload?: Record<string, unknown>,
+    ) => {
+      setLogEntries((prev) => {
+        const next = [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            level,
+            message,
+            payload,
+          },
+        ];
+        return next.slice(-200);
+      });
+    },
+    [],
+  );
 
-  const reportMetric = useCallback((name: string, payload: Record<string, unknown>) => {
-    if (process.env.NODE_ENV !== "production") {
-      console.debug(`[metrics] ${name}`, payload);
-    }
-    addLog("info", name, payload);
-  }, [addLog]);
+  const reportMetric = useCallback(
+    (name: string, payload: Record<string, unknown>) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug(`[metrics] ${name}`, payload);
+      }
+      addLog("info", name, payload);
+    },
+    [addLog],
+  );
 
   const setConnectionWithMetrics = useCallback(
     (next: ConnectionState) => {
       setConnection((prev) => {
         if (prev === "error" && next === "connecting") {
           metricsRef.current.reconnectCount += 1;
-          reportMetric("reconnect", { count: metricsRef.current.reconnectCount });
+          reportMetric("reconnect", {
+            count: metricsRef.current.reconnectCount,
+          });
         }
         return next;
       });
     },
-    [reportMetric]
+    [reportMetric],
   );
 
   useEffect(() => {
@@ -441,20 +466,27 @@ export function HomeBody({
       },
       onRunFinishedEvent: () => {
         if (metricsRef.current.lastRunStartedAt) {
-          metricsRef.current.lastRunMs = performance.now() - metricsRef.current.lastRunStartedAt;
+          metricsRef.current.lastRunMs =
+            performance.now() - metricsRef.current.lastRunStartedAt;
           metricsRef.current.lastRunStartedAt = 0;
-          reportMetric("run_finished", { lastRunMs: metricsRef.current.lastRunMs });
+          reportMetric("run_finished", {
+            lastRunMs: metricsRef.current.lastRunMs,
+          });
         }
         setConnectionWithMetrics("idle");
       },
       onRunErrorEvent: () => {
         metricsRef.current.errorCount += 1;
-        reportMetric("run_error", { errorCount: metricsRef.current.errorCount });
+        reportMetric("run_error", {
+          errorCount: metricsRef.current.errorCount,
+        });
         setConnectionWithMetrics("error");
       },
       onRunFailed: () => {
         metricsRef.current.errorCount += 1;
-        reportMetric("run_failed", { errorCount: metricsRef.current.errorCount });
+        reportMetric("run_failed", {
+          errorCount: metricsRef.current.errorCount,
+        });
         setConnectionWithMetrics("error");
       },
       onEvent: ({ event }) =>
@@ -470,7 +502,10 @@ export function HomeBody({
   const pendingConfirmations = useMemo(() => {
     const pending = new Set<string>();
     rawEvents.forEach((event) => {
-      if (event.type === EventType.TOOL_CALL_START && event.toolCallName === "ui.confirmation") {
+      if (
+        event.type === EventType.TOOL_CALL_START &&
+        event.toolCallName === "ui.confirmation"
+      ) {
         pending.add(event.toolCallId);
       }
       if (event.type === EventType.TOOL_CALL_RESULT) {
@@ -481,14 +516,17 @@ export function HomeBody({
   }, [rawEvents]);
 
   const compactedEvents = useMemo(() => compactEvents(rawEvents), [rawEvents]);
-  const timelineItems = useMemo(() => buildTimelineItems(compactedEvents), [compactedEvents]);
+  const timelineItems = useMemo(
+    () => buildTimelineItems(compactedEvents),
+    [compactedEvents],
+  );
 
   const loadSessions = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/agui/sessions/list?app_name=${encodeURIComponent(APP_NAME)}&user_id=${encodeURIComponent(
-          userId
-        )}`
+          userId,
+        )}`,
       );
       const payload = await response.json();
       if (!response.ok || !Array.isArray(payload)) {
@@ -500,9 +538,15 @@ export function HomeBody({
           label: createSessionLabel(session.id),
           lastUpdateTime: session.lastUpdateTime,
         }))
-        .sort((a: SessionRecord, b: SessionRecord) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0));
+        .sort(
+          (a: SessionRecord, b: SessionRecord) =>
+            (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
+        );
       setSessions(nextSessions);
-      if (sessionId && !nextSessions.some((session) => session.id === sessionId)) {
+      if (
+        sessionId &&
+        !nextSessions.some((session) => session.id === sessionId)
+      ) {
         setSessionId(null);
       }
     } catch (error) {
@@ -510,7 +554,14 @@ export function HomeBody({
       addLog("error", "load_sessions_failed", { message: String(error) });
       console.warn("Failed to load sessions", error);
     }
-  }, [userId, sessionId, setSessions, setSessionId, setConnectionWithMetrics, addLog]);
+  }, [
+    userId,
+    sessionId,
+    setSessions,
+    setSessionId,
+    setConnectionWithMetrics,
+    addLog,
+  ]);
 
   const startNewSession = async () => {
     try {
@@ -537,7 +588,10 @@ export function HomeBody({
       }
       const id = payload.id as string;
       const label = createSessionLabel(id);
-      setSessions((prev) => [{ id, label, lastUpdateTime: payload.lastUpdateTime }, ...prev]);
+      setSessions((prev) => [
+        { id, label, lastUpdateTime: payload.lastUpdateTime },
+        ...prev,
+      ]);
       setSessionId(id);
     } catch (error) {
       setConnectionWithMetrics("error");
@@ -551,33 +605,45 @@ export function HomeBody({
       try {
         const response = await fetch(
           `/api/agui/sessions/${encodeURIComponent(id)}?app_name=${encodeURIComponent(
-            APP_NAME
-          )}&user_id=${encodeURIComponent(userId)}`
+            APP_NAME,
+          )}&user_id=${encodeURIComponent(userId)}`,
         );
-      const payload = await response.json();
-      if (!response.ok) {
-        return;
-      }
-      const events = Array.isArray(payload.events) ? (payload.events as AdkEventPayload[]) : [];
-      const messages = adkEventsToMessages(events);
-      const snapshot = adkEventsToSnapshot(events);
-      const mappedEvents = events.flatMap(adkEventToAguiEvents);
+        const payload = await response.json();
+        if (!response.ok) {
+          return;
+        }
+        const events = Array.isArray(payload.events)
+          ? (payload.events as AdkEventPayload[])
+          : [];
+        const messages = adkEventsToMessages(events);
+        const snapshot = adkEventsToSnapshot(events);
+        const mappedEvents = events.flatMap(adkEventToAguiEvents);
 
-      setRawEvents(mappedEvents);
-      setSessionMessages(messages);
-      setSessionSnapshot(snapshot || null);
-      setLoadedSessionId(id);
-      if (agent) {
-        agent.setMessages(messages);
-        agent.setState(snapshot || {});
-      }
+        setRawEvents(mappedEvents);
+        setSessionMessages(messages);
+        setSessionSnapshot(snapshot || null);
+        setLoadedSessionId(id);
+        if (agent) {
+          agent.setMessages(messages);
+          agent.setState(snapshot || {});
+        }
       } catch (error) {
         setConnectionWithMetrics("error");
-        addLog("error", "load_session_detail_failed", { message: String(error) });
+        addLog("error", "load_session_detail_failed", {
+          message: String(error),
+        });
         console.warn("Failed to load session detail", error);
       }
     },
-    [agent, userId, setConnectionWithMetrics, addLog, sessionId, setSessionId, setSessions]
+    [
+      agent,
+      userId,
+      setConnectionWithMetrics,
+      addLog,
+      sessionId,
+      setSessionId,
+      setSessions,
+    ],
   );
 
   const resolvedThreadId = sessionId ?? "pending";
@@ -593,7 +659,10 @@ export function HomeBody({
       });
       try {
         setConnectionWithMetrics("connecting");
-        await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
+        await agent.runAgent({
+          runId: randomUUID(),
+          threadId: resolvedThreadId,
+        });
         await loadSessions();
       } catch (error) {
         setConnectionWithMetrics("error");
@@ -601,7 +670,7 @@ export function HomeBody({
         console.warn("Failed to submit HITL response", error);
       }
     },
-    [agent, loadSessions, resolvedThreadId, sessionId]
+    [agent, loadSessions, resolvedThreadId, sessionId],
   );
 
   useConfirmationTool(handleConfirmationFollowup);
@@ -653,10 +722,16 @@ export function HomeBody({
   const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
   const hasLoadedSession = loadedSessionId === sessionId;
   const messagesForRender =
-    hasLoadedSession && agentMessages.length > 0 ? agentMessages : sessionMessages;
-  const snapshotForRender = hasLoadedSession ? agentSnapshot ?? sessionSnapshot : sessionSnapshot;
+    hasLoadedSession && agentMessages.length > 0
+      ? agentMessages
+      : sessionMessages;
+  const snapshotForRender = hasLoadedSession
+    ? (agentSnapshot ?? sessionSnapshot)
+    : sessionSnapshot;
   const chatMessages =
-    rawEvents.length > 0 ? buildChatMessagesFromEvents(rawEvents) : mapMessagesToChat(messagesForRender);
+    rawEvents.length > 0
+      ? buildChatMessagesFromEvents(rawEvents)
+      : mapMessagesToChat(messagesForRender);
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -669,7 +744,11 @@ export function HomeBody({
       />
 
       <div className="grid min-h-[calc(100vh-72px)] grid-cols-12 gap-0">
-        <SessionList sessions={sessions} activeId={sessionId} onSelect={setSessionId} />
+        <SessionList
+          sessions={sessions}
+          activeId={sessionId}
+          onSelect={setSessionId}
+        />
 
         <main className="col-span-7 border-r border-zinc-200 bg-zinc-50 p-6">
           <ChatStream messages={chatMessages} />
@@ -677,7 +756,11 @@ export function HomeBody({
             value={inputValue}
             onChange={setInputValue}
             onSend={sendInput}
-            disabled={!sessionId || connection === "streaming" || pendingConfirmations > 0}
+            disabled={
+              !sessionId ||
+              connection === "streaming" ||
+              pendingConfirmations > 0
+            }
           />
         </main>
 
@@ -741,11 +824,14 @@ export default function Home() {
           "X-User-ID": userId,
         },
         threadId: resolvedSession,
-      })
+      }),
     );
   }, [sessionId, userId]);
 
-  const copilotAgents = useMemo(() => (agent ? { [AGENT_ID]: agent } : {}), [agent]);
+  const copilotAgents = useMemo(
+    () => (agent ? { [AGENT_ID]: agent } : {}),
+    [agent],
+  );
 
   const handleLogin = useCallback(() => {
     window.location.href = "/api/auth/login";
@@ -772,9 +858,15 @@ export default function Home() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 text-center">
         <div className="max-w-md space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Negentropy UI</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">需要登录以继续</h1>
-          <p className="text-sm text-zinc-500">使用 Google OAuth 进行单点登录。</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+            Negentropy UI
+          </p>
+          <h1 className="text-2xl font-semibold text-zinc-900">
+            需要登录以继续
+          </h1>
+          <p className="text-sm text-zinc-500">
+            使用 Google OAuth 进行单点登录。
+          </p>
         </div>
         <button
           className="rounded-full bg-black px-6 py-2 text-xs font-semibold text-white"
@@ -788,7 +880,10 @@ export default function Home() {
   }
 
   return (
-    <CopilotKitProvider agents__unsafe_dev_only={copilotAgents} showDevConsole="auto">
+    <CopilotKitProvider
+      agents__unsafe_dev_only={copilotAgents}
+      showDevConsole="auto"
+    >
       <HomeBody
         sessionId={sessionId}
         userId={userId}
