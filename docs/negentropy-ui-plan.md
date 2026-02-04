@@ -180,12 +180,69 @@
 
 - UI 侧埋点（事件耗时、连接断开、重试次数）。
 - `session_id`/`user_id` 贯穿前后端（参见 [apps/negentropy/src/negentropy/engine/bootstrap.py](../apps/negentropy/src/negentropy/engine/bootstrap.py)）。
+- ✅ 已完成：最小回归测试（单元 + 集成）。覆盖 `lib/adk` 事件映射、核心 UI 组件（ChatStream/EventTimeline/StateSnapshot/Composer），并在 `tests/integration` mock `useAgent` 验证页面级交互流程；配置 `vitest`。实现见 [apps/negentropy-ui/tests](../apps/negentropy-ui/tests)、[apps/negentropy-ui/vitest.config.ts](../apps/negentropy-ui/vitest.config.ts)。
+- ✅ 已完成：CI 回归（GitHub Actions）在 `apps/negentropy-ui` 变更时执行 `yarn test`。实现见 [.github/workflows/negentropy-ui-tests.yml](../.github/workflows/negentropy-ui-tests.yml)。
 
 ## 10. 风险与验证（Feedback Loop）
 
 - **SSE 断连与重连**：验证断网/刷新后的会话恢复策略。
 - **状态漂移**：UI 不做隐式写入，以 `STATE_*` 事件为唯一真值。<sup>[[5]](#ref5)</sup>
 - **环境变量泄漏**：仅暴露 `NEXT_PUBLIC_` 前缀变量。<sup>[[4]](#ref4)</sup>
+
+### 10.1 验证路径与操作指引（页面 + 流式交互）
+
+> 目标：确保 UI → BFF → ADK → AG-UI 全链路可用，消息/工具/状态/Artifact 均可见。
+
+**前置条件**
+
+- 后端 ADK 已启动，`AGUI_BASE_URL` 可访问。
+- 前端已启动：`http://localhost:3000`。
+- `.env.local` 中 `NEXT_PUBLIC_AGUI_APP_NAME` 与 `NEXT_PUBLIC_AGUI_USER_ID` 已设置。
+
+**页面可用性**
+
+- 打开 `/`：三栏布局显示（Session 列表 / 对话区 / 状态+事件）。
+- 点击 **New Session**：左栏新增会话，标题更新为新会话。
+
+**流式交互（核心）**
+
+1. 输入框发送普通指令（例如“请用一句话概括当前状态”）。
+2. 期望结果：
+   - 中栏出现用户消息与 Agent 回应（逐步更新）。
+   - 右栏 Event Timeline 出现文本/工具/状态/Artifact 相关卡片。
+   - 连接状态 `connecting → streaming → idle` 变化可见。
+
+**Tool/Artifact 卡片**
+
+- 若后端触发工具调用：右栏展示工具卡片（名称/入参/结果/状态）。
+- 若后端产出 Artifact：右栏展示 Artifact 卡片（内容结构化）。
+
+**HITL 验证（确认/修正/补充）**
+
+- 触发需要确认的工具调用（后端产生 `requestedToolConfirmations`）。
+- UI 显示确认卡片：点击“确认/修正/补充”任意按钮。
+- 期望结果：
+  - UI 上报并继续执行（连接状态再次切换）。
+  - Timeline 记录 Tool 结果或状态变化。
+
+**Session 回放**
+
+- 切换左侧已有 Session：
+  - 中栏加载历史消息。
+  - 右栏加载历史事件卡片。
+  - State Snapshot 呈现历史状态。
+
+### 10.2 实际验证记录（dev server）
+
+- **页面可用性**：`GET /` 返回完整 HTML（三栏布局可见）。
+- **健康检查**：`GET /api/health` 返回 `{ status: "ok" }`。
+- **Session 列表**：`GET /api/agui/sessions/list` 返回会话数组（backend 可达）。
+- **流式交互（BFF → ADK → AG-UI）**：
+  - 初始异常：`POST /api/agui` 返回 `RUN_STARTED` 后连续 `RUN_ERROR(ADK_EVENT_PARSE_ERROR)`。
+  - 根因修复：`/api/agui` 的 SSE 行解析正则从 `data:\\s*` 修正为 `data:\s*`（详见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)）。
+  - 修复后复验：`POST /api/agui` 正常输出 `TEXT_MESSAGE_*`、`STATE_DELTA`、`ACTIVITY_SNAPSHOT` 等 AG‑UI 事件，流式交互通过。
+  - 新增异常：UI 侧仅出现空 `ARTIFACT {}` 与 `STATE_DELTA []`，对话消息不展示；控制台出现 `threadId/runId` 缺失报错。
+  - 修复策略：BFF 注入 `threadId/runId` 到所有 AG‑UI 事件；ADK 事件解析增强（兼容 `content.text` / `content.content` / `message.content`），并忽略空 `artifactDelta/stateDelta`。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)、[apps/negentropy-ui/lib/adk.ts](../apps/negentropy-ui/lib/adk.ts)。
 
 ## 11. 未来扩展：知识库/知识图谱/用户记忆管理
 
