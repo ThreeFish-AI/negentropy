@@ -20,5 +20,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Upstream connection failed: ${String(error)}` }, { status: 502 });
   }
 
-  return NextResponse.json({ status: "ok" }, { status: upstreamResponse.status });
+  const response = new NextResponse(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    headers: new Headers(upstreamResponse.headers),
+  });
+  response.headers.set("cache-control", "no-store");
+  return response;
 }
