@@ -832,7 +832,11 @@ export function HomeBody({
     if (agentMessages.length === 0) {
       return;
     }
-    const knownIds = new Set(agentMessages.map((message) => message.id));
+    const knownIds = new Set(
+      agentMessages
+        .filter((message) => normalizeMessageContent(message).trim().length > 0)
+        .map((message) => message.id),
+    );
     setOptimisticMessages((prev) =>
       prev.filter((message) => !knownIds.has(message.id)),
     );
