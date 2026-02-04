@@ -4,6 +4,35 @@ import { NextResponse } from "next/server";
 import { AdkEventPayload, adkEventToAguiEvents } from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
 
+const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
+
+function jsonPointerEscape(segment: string) {
+  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+function toPatchOperations(delta: Record<string, unknown>) {
+  return Object.entries(delta).map(([key, value]) => ({
+    op: "add",
+    path: `/${jsonPointerEscape(key)}`,
+    value,
+  }));
+}
+
+function normalizeAguiEvent(event: BaseEvent) {
+  const next = { ...event } as BaseEvent & { role?: string; delta?: unknown };
+  if ("role" in next && typeof next.role === "string" && !ALLOWED_ROLES.has(next.role)) {
+    next.role = "assistant";
+  }
+  if (next.type === EventType.STATE_DELTA && next.delta && !Array.isArray(next.delta)) {
+    if (typeof next.delta === "object") {
+      next.delta = toPatchOperations(next.delta as Record<string, unknown>);
+    } else {
+      next.delta = [];
+    }
+  }
+  return next;
+}
+
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 }
@@ -161,11 +190,13 @@ export async function POST(request: Request) {
               }
               try {
                 const parsed = JSON.parse(jsonText) as AdkEventPayload;
-                const events = adkEventToAguiEvents(parsed).map((event) => ({
-                  ...event,
-                  threadId: "threadId" in event ? event.threadId : resolvedThreadId,
-                  runId: "runId" in event ? event.runId : resolvedRunId,
-                }));
+                const events = adkEventToAguiEvents(parsed).map((event) =>
+                  normalizeAguiEvent({
+                    ...event,
+                    threadId: "threadId" in event ? event.threadId : resolvedThreadId,
+                    runId: "runId" in event ? event.runId : resolvedRunId,
+                  })
+                );
                 for (const event of events) {
                   controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(event)));
                 }
