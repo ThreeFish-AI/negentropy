@@ -11,12 +11,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@ag-ui/client": "0.0.43",
-    "@ag-ui/core": "0.0.43",
-    "@ag-ui/encoder": "0.0.43",
-    "@copilotkit/react-core": "^1.51.3",
-    "@copilotkit/react-ui": "^1.51.3",
+    "@ag-ui/client": "0.0.42",
+    "@ag-ui/core": "0.0.42",
+    "@ag-ui/encoder": "0.0.42",
     "@copilotkitnext/react": "1.51.3",
+    "micromark": "^4.0.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -38,6 +37,7 @@
     "jsdom": "^28.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^6.0.0",
     "vitest": "^4.0.18"
   }
 }
