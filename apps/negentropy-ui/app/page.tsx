@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CopilotKitProvider,
@@ -16,6 +16,7 @@ import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
 import { EventTimeline, TimelineItem } from "../components/ui/EventTimeline";
 import { Header } from "../components/ui/Header";
+import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
 import { AdkEventPayload, adkEventToAguiEvents, adkEventsToMessages, adkEventsToSnapshot } from "@/lib/adk";
@@ -26,6 +27,14 @@ type SessionRecord = {
   id: string;
   label: string;
   lastUpdateTime?: number;
+};
+
+type LogEntry = {
+  id: string;
+  timestamp: number;
+  level: "info" | "warn" | "error";
+  message: string;
+  payload?: Record<string, unknown>;
 };
 
 type ConfirmationToolArgs = {
@@ -297,6 +306,14 @@ export function HomeBody({
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnStateChanged],
   });
   const [connection, setConnection] = useState<ConnectionState>("idle");
+  const metricsRef = useRef({
+    runCount: 0,
+    errorCount: 0,
+    reconnectCount: 0,
+    lastRunStartedAt: 0,
+    lastRunMs: 0,
+  });
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
 
@@ -305,16 +322,72 @@ export function HomeBody({
     [sessions, sessionId]
   );
 
+  const addLog = useCallback((level: LogEntry["level"], message: string, payload?: Record<string, unknown>) => {
+    setLogEntries((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          level,
+          message,
+          payload,
+        },
+      ];
+      return next.slice(-200);
+    });
+  }, []);
+
+  const reportMetric = useCallback((name: string, payload: Record<string, unknown>) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug(`[metrics] ${name}`, payload);
+    }
+    addLog("info", name, payload);
+  }, [addLog]);
+
+  const setConnectionWithMetrics = useCallback(
+    (next: ConnectionState) => {
+      setConnection((prev) => {
+        if (prev === "error" && next === "connecting") {
+          metricsRef.current.reconnectCount += 1;
+          reportMetric("reconnect", { count: metricsRef.current.reconnectCount });
+        }
+        return next;
+      });
+    },
+    [reportMetric]
+  );
+
   useEffect(() => {
     if (!agent) {
       return;
     }
     const subscription = agent.subscribe({
-      onRunInitialized: () => setConnection("connecting"),
-      onRunStartedEvent: () => setConnection("streaming"),
-      onRunFinishedEvent: () => setConnection("idle"),
-      onRunErrorEvent: () => setConnection("error"),
-      onRunFailed: () => setConnection("error"),
+      onRunInitialized: () => setConnectionWithMetrics("connecting"),
+      onRunStartedEvent: () => {
+        metricsRef.current.runCount += 1;
+        metricsRef.current.lastRunStartedAt = performance.now();
+        reportMetric("run_started", { runCount: metricsRef.current.runCount });
+        setConnectionWithMetrics("streaming");
+      },
+      onRunFinishedEvent: () => {
+        if (metricsRef.current.lastRunStartedAt) {
+          metricsRef.current.lastRunMs = performance.now() - metricsRef.current.lastRunStartedAt;
+          metricsRef.current.lastRunStartedAt = 0;
+          reportMetric("run_finished", { lastRunMs: metricsRef.current.lastRunMs });
+        }
+        setConnectionWithMetrics("idle");
+      },
+      onRunErrorEvent: () => {
+        metricsRef.current.errorCount += 1;
+        reportMetric("run_error", { errorCount: metricsRef.current.errorCount });
+        setConnectionWithMetrics("error");
+      },
+      onRunFailed: () => {
+        metricsRef.current.errorCount += 1;
+        reportMetric("run_failed", { errorCount: metricsRef.current.errorCount });
+        setConnectionWithMetrics("error");
+      },
       onEvent: ({ event }) =>
         setRawEvents((prev) => {
           const next = [...prev, event];
@@ -323,7 +396,7 @@ export function HomeBody({
     });
 
     return () => subscription.unsubscribe();
-  }, [agent]);
+  }, [agent, reportMetric, setConnectionWithMetrics]);
 
   const pendingConfirmations = useMemo(() => {
     const pending = new Set<string>();
@@ -361,10 +434,11 @@ export function HomeBody({
         .sort((a: SessionRecord, b: SessionRecord) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0));
       setSessions(nextSessions);
     } catch (error) {
-      setConnection("error");
+      setConnectionWithMetrics("error");
+      addLog("error", "load_sessions_failed", { message: String(error) });
       console.warn("Failed to load sessions", error);
     }
-  }, [userId, setSessions]);
+  }, [userId, setSessions, setConnectionWithMetrics, addLog]);
 
   const startNewSession = async () => {
     try {
@@ -387,7 +461,8 @@ export function HomeBody({
       setSessions((prev) => [{ id, label, lastUpdateTime: payload.lastUpdateTime }, ...prev]);
       setSessionId(id);
     } catch (error) {
-      setConnection("error");
+      setConnectionWithMetrics("error");
+      addLog("error", "create_session_failed", { message: String(error) });
       console.warn("Failed to create session", error);
     }
   };
@@ -415,11 +490,12 @@ export function HomeBody({
         agent.setState(snapshot || {});
       }
       } catch (error) {
-        setConnection("error");
+        setConnectionWithMetrics("error");
+        addLog("error", "load_session_detail_failed", { message: String(error) });
         console.warn("Failed to load session detail", error);
       }
     },
-    [agent, userId]
+    [agent, userId, setConnectionWithMetrics, addLog]
   );
 
   const resolvedThreadId = sessionId ?? "pending";
@@ -434,11 +510,12 @@ export function HomeBody({
         content: `HITL:${payload.action} ${payload.note || ""}`.trim(),
       });
       try {
-        setConnection("connecting");
+        setConnectionWithMetrics("connecting");
         await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
         await loadSessions();
       } catch (error) {
-        setConnection("error");
+        setConnectionWithMetrics("error");
+        addLog("error", "hitl_submit_failed", { message: String(error) });
         console.warn("Failed to submit HITL response", error);
       }
     },
@@ -463,11 +540,12 @@ export function HomeBody({
     });
     setInputValue("");
     try {
-      setConnection("connecting");
+      setConnectionWithMetrics("connecting");
       await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
       await loadSessions();
     } catch (error) {
-      setConnection("error");
+      setConnectionWithMetrics("error");
+      addLog("error", "run_agent_failed", { message: String(error) });
       console.warn("Failed to run agent", error);
     }
   };
@@ -513,6 +591,13 @@ export function HomeBody({
         <aside className="col-span-3 bg-white p-6">
           <StateSnapshot snapshot={agentSnapshot} />
           <EventTimeline events={timelineItems} />
+          <LogBufferPanel
+            entries={logEntries}
+            onExport={() => {
+              const payload = JSON.stringify(logEntries, null, 2);
+              void navigator.clipboard?.writeText(payload);
+            }}
+          />
         </aside>
       </div>
     </div>
