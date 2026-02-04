@@ -4,27 +4,26 @@ Log formatters and color utilities.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
+import json
 from structlog.typing import EventDict
 
 # =============================================================================
-# ANSI Color Codes & Formatter (Orthogonality)
+# Console Formatter (Aligned Columns)
 # =============================================================================
 
 COLORS = {
     "reset": "\033[0m",
     "bold": "\033[1m",
     "dim": "\033[2m",
-    # Levels
-    "debug": "\033[36m",  # Cyan
-    "info": "\033[32m",  # Green
-    "warning": "\033[33m",  # Yellow
-    "error": "\033[31m",  # Red
-    "critical": "\033[1;31m",  # Bold Red
-    # Components
-    "timestamp": "\033[90m",  # Gray
-    "logger": "\033[35m",  # Magenta
-    "key": "\033[34m",  # Blue
+    "debug": "\033[36m",
+    "info": "\033[32m",
+    "warning": "\033[33m",
+    "error": "\033[31m",
+    "critical": "\033[1;31m",
+    "timestamp": "\033[90m",
+    "logger": "\033[35m",
+    "key": "\033[34m",
 }
 
 
@@ -34,62 +33,168 @@ def colorize(text: str, color: str) -> str:
 
 
 class ConsoleFormatter:
-    """Handles human-readable console log rendering (Separation of Concerns)."""
+    """Handles human-readable console log rendering (fixed width, right-aligned)."""
+
+    _RESET = "\x1b[0m"
+    _LEVEL_COLORS = {
+        "DEBUG": "\x1b[36m",
+        "INFO": "\x1b[32m",
+        "WARNING": "\x1b[33m",
+        "ERROR": "\x1b[31m",
+        "CRITICAL": "\x1b[1;31m",
+    }
 
     EXCLUDED_KEYS = {"level", "message", "event", "logger", "timestamp", "_name"}
+    TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
+    TIMESTAMP_WIDTH = 19
+    LEVEL_WIDTH = 8
+    LOGGER_WIDTH = 32
+    SEPARATOR = " | "
+
+    @classmethod
+    def configure(
+        cls,
+        *,
+        timestamp_format: str | None = None,
+        level_width: int | None = None,
+        logger_width: int | None = None,
+        separator: str | None = None,
+    ) -> None:
+        """Configure alignment and rendering parameters."""
+        if timestamp_format:
+            cls.TIMESTAMP_FORMAT = timestamp_format
+            cls.TIMESTAMP_WIDTH = len(datetime.now().strftime(timestamp_format))
+        if level_width:
+            cls.LEVEL_WIDTH = level_width
+        if logger_width:
+            cls.LOGGER_WIDTH = logger_width
+        if separator is not None:
+            cls.SEPARATOR = separator
 
     @staticmethod
-    def format(event_dict: EventDict) -> str:
-        """Format an event dict into a colored string."""
-        # Extract core fields
+    def _fit_right(text: str, width: int) -> str:
+        if width <= 0:
+            return text
+        if len(text) > width:
+            if width <= 3:
+                text = text[-width:]
+            else:
+                text = "..." + text[-(width - 3) :]
+        return f"{text:>{width}}"
+
+    @classmethod
+    def _format_timestamp(cls, raw_timestamp: str | None) -> str:
+        if raw_timestamp:
+            try:
+                normalized = raw_timestamp.replace("Z", "+00:00")
+                dt = datetime.fromisoformat(normalized)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone().strftime(cls.TIMESTAMP_FORMAT)
+            except (ValueError, TypeError):
+                pass
+        return datetime.now().strftime(cls.TIMESTAMP_FORMAT)
+
+    @classmethod
+    def _colorize_level(cls, text: str, level_upper: str, use_color: bool) -> str:
+        if not use_color:
+            return text
+        color = cls._LEVEL_COLORS.get(level_upper)
+        if not color:
+            return text
+        return f"{color}{text}{cls._RESET}"
+
+    @staticmethod
+    def _maybe_color(text: str, color: str, use_color: bool) -> str:
+        if not use_color:
+            return text
+        return colorize(text, color)
+
+    @staticmethod
+    def _decode_unicode_escapes(text: str) -> str:
+        if "\\u" not in text and "\\U" not in text:
+            return text
+        try:
+            return bytes(text, "utf-8").decode("unicode_escape")
+        except Exception:
+            return text
+
+    @staticmethod
+    def _maybe_decode_json(text: str) -> str:
+        stripped = text.strip()
+        if not stripped:
+            return text
+        if (stripped[0] not in "{[") or (stripped[-1] not in "}]"):
+            return text
+        try:
+            loaded = json.loads(stripped)
+        except Exception:
+            return text
+        if isinstance(loaded, (dict, list)):
+            return json.dumps(loaded, ensure_ascii=False, separators=(",", ":"))
+        if isinstance(loaded, str):
+            return loaded
+        return text
+
+    @classmethod
+    def format(cls, event_dict: EventDict, *, use_color: bool = True) -> str:
+        """Format an event dict into an aligned string."""
         level = event_dict.get("level", "info").lower()
         message = event_dict.get("message", event_dict.get("event", ""))
         logger_name = event_dict.get("logger", "root")
-        timestamp = event_dict.get("timestamp", "")
+        source = event_dict.get("source")
 
-        # Format timestamp (extract time portion only)
-        if timestamp:
-            try:
-                time_part = timestamp.split("T")[1][:8] if "T" in timestamp else timestamp[:8]
-            except (IndexError, TypeError):
-                time_part = timestamp[:8]
-        else:
-            time_part = datetime.now().strftime("%H:%M:%S")
+        message_text = cls._decode_unicode_escapes(str(message))
+        message_text = cls._maybe_decode_json(message_text)
 
-        # Shorten logger name while preserving context
-        # Keep at most 2 parts for readability (e.g., 'uvicorn.error', 'adk.sessions')
-        parts = logger_name.split(".")
-        if len(parts) <= 2:
-            short_logger = logger_name
-        else:
-            short_logger = ".".join(parts[-2:])
+        display_logger = str(logger_name)
+        if logger_name in {"stdout", "stderr"} and source:
+            source_parts = str(source).split(".")
+            if len(source_parts) <= 2:
+                short_source = str(source)
+            else:
+                short_source = ".".join(source_parts[-2:])
+            display_logger = f"{logger_name}:{short_source}"
 
-        # Pad logger name to fixed width for alignment (20 chars, right-aligned)
-        short_logger = f"{short_logger:>20}"
+        timestamp = ConsoleFormatter._format_timestamp(event_dict.get("timestamp"))
 
-        # Format level with fixed width and color
-        level_upper = level.upper()
-        level_colored = colorize(f"{level_upper:>5}", level)
-
-        # Build extra key=value pairs
         extras = []
         for k, v in event_dict.items():
+            if k == "source" and logger_name in {"stdout", "stderr"} and source:
+                continue
             if k not in ConsoleFormatter.EXCLUDED_KEYS:
-                key_colored = colorize(k, "key")
-                extras.append(f"{key_colored}={v}")
-
-        # Compose output line
-        line_parts = [
-            colorize(time_part, "timestamp"),
-            "│",
-            level_colored,
-            "│",
-            colorize(short_logger, "logger"),
-            "│",
-            str(message),
-        ]
+                key_colored = cls._maybe_color(k, "key", use_color)
+                value_text = cls._decode_unicode_escapes(str(v))
+                value_text = cls._maybe_decode_json(value_text)
+                value_colored = cls._maybe_color(value_text, "dim", use_color)
+                extras.append(f"{key_colored}={value_colored}")
 
         if extras:
-            line_parts.append(colorize(" " + " ".join(extras), "dim"))
+            message_text = f"{message_text} " + " ".join(extras)
 
-        return " ".join(line_parts)
+        level_upper = level.upper()
+        level_text = cls._colorize_level(
+            ConsoleFormatter._fit_right(level_upper, ConsoleFormatter.LEVEL_WIDTH),
+            level_upper,
+            use_color,
+        )
+
+        return "".join(
+            [
+                cls._maybe_color(
+                    ConsoleFormatter._fit_right(str(timestamp), ConsoleFormatter.TIMESTAMP_WIDTH),
+                    "timestamp",
+                    use_color,
+                ),
+                ConsoleFormatter.SEPARATOR,
+                level_text,
+                ConsoleFormatter.SEPARATOR,
+                cls._maybe_color(
+                    ConsoleFormatter._fit_right(display_logger, ConsoleFormatter.LOGGER_WIDTH),
+                    "logger",
+                    use_color,
+                ),
+                ConsoleFormatter.SEPARATOR,
+                message_text,
+            ]
+        )

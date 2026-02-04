@@ -4,7 +4,8 @@ from unittest.mock import MagicMock
 from negentropy.engine.adapters.postgres.tool_registry import ToolRegistry, FrontendTool
 from negentropy.engine.adapters.postgres.tracing import TracingManager, PostgresSpanExporter
 import negentropy.db.session as db_session
-from negentropy.models.mind import Tool, Trace
+from negentropy.models.action import Tool
+from negentropy.models.observability import Trace
 from sqlalchemy import select, delete
 
 
@@ -95,7 +96,7 @@ async def test_tracing_export():
 
     # Verify DB
     async with db_session.AsyncSessionLocal() as db:
-        from negentropy.models.mind import Trace
+        from negentropy.models.observability import Trace
 
         stmt = select(Trace).where(Trace.operation_name == "test_span")
         result = await db.execute(stmt)

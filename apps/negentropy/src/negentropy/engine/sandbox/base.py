@@ -22,12 +22,13 @@ class SandboxConfig:
     """沙箱配置 - 通用参数"""
 
     name: str = "agent-sandbox"
-    image: str = "python:3.14-slim"
+    image: str = "microsandbox/python"
     memory_mb: int = 256
     cpu_cores: float = 0.5
     timeout_seconds: int = 30
     network_enabled: bool = False
     allow_file_access: bool = False
+    api_key: str | None = None
 
 
 @dataclass

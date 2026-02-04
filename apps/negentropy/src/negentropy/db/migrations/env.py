@@ -18,7 +18,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from negentropy.models.base import Base
+from negentropy.models.base import Base, Vector as VectorType
 
 # Import all models to ensure they are registered with Base.metadata
 from negentropy.models import *  # noqa
@@ -32,6 +32,21 @@ target_metadata = Base.metadata
 
 
 from negentropy.config import settings
+
+# Register pgvector type name for reflection to avoid "unknown type" warnings.
+# This does not suppress warnings; it teaches SQLAlchemy how to interpret 'vector'.
+from sqlalchemy.dialects.postgresql.base import ischema_names
+from sqlalchemy.types import UserDefinedType
+
+
+class _PGVector(UserDefinedType):
+    cache_ok = True
+
+    def get_col_spec(self, **kw):
+        return "vector"
+
+
+ischema_names.setdefault("vector", _PGVector)
 
 
 def run_migrations_offline() -> None:
@@ -86,12 +101,21 @@ def do_run_migrations(connection: Connection) -> None:
             return getattr(object, "schema", None) == NEGENTROPY_SCHEMA
         return True
 
+    def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):
+        # Treat pgvector columns as equivalent to our Vector TypeDecorator
+        if isinstance(metadata_type, VectorType):
+            if hasattr(inspected_type, "get_col_spec"):
+                return not inspected_type.get_col_spec().startswith("vector")
+            return False
+        return None
+
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
         include_schemas=True,  # 确保 Alembic 能识别 schema
         version_table_schema=NEGENTROPY_SCHEMA,  # 将版本表也放入 negentropy schema
         include_object=include_object,  # 过滤非 negentropy schema 的对象
+        compare_type=compare_type,
     )
 
     with context.begin_transaction():

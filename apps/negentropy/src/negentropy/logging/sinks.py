@@ -59,7 +59,8 @@ class StdioSink(BaseSink):
         if self._fmt == "json":
             output = orjson_dumps(event_dict)
         else:
-            output = ConsoleFormatter.format(event_dict)
+            use_color = bool(getattr(self._stream, "isatty", lambda: False)())
+            output = ConsoleFormatter.format(event_dict, use_color=use_color)
 
         self._stream.write(output + "\n")
         self._stream.flush()

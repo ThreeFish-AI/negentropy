@@ -1,0 +1,96 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { fetchDashboard, KnowledgeDashboard } from "@/lib/knowledge";
+
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+
+export default function KnowledgeDashboardPage() {
+  const [data, setData] = useState<KnowledgeDashboard | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchDashboard(APP_NAME)
+      .then((payload) => {
+        if (active) {
+          setData(payload);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(String(err));
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const metrics = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+    return [
+      { label: "Corpus", value: data.corpus_count },
+      { label: "Knowledge", value: data.knowledge_count },
+      { label: "Last Build", value: data.last_build_at || "-" },
+    ];
+  }, [data]);
+
+  return (
+    <div className="min-h-screen bg-zinc-50">
+      <KnowledgeNav title="Knowledge Dashboard" description="Knowledge 指标、构建与告警概览" />
+      <div className="grid gap-6 px-6 py-6 lg:grid-cols-[2.2fr_1fr]">
+        <section className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {metrics.map((metric) => (
+              <div key={metric.label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{metric.label}</p>
+                <p className="mt-2 text-2xl font-semibold text-zinc-900">{metric.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-zinc-900">Pipeline Runs</h2>
+              <span className="text-xs text-zinc-500">最近 24h</span>
+            </div>
+            {data?.pipeline_runs?.length ? (
+              <div className="mt-4 space-y-3 text-xs text-zinc-600">
+                {data.pipeline_runs.map((item, index) => (
+                  <div key={index} className="rounded-lg border border-dashed border-zinc-200 p-3">
+                    {JSON.stringify(item)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-xs text-zinc-500">暂无作业记录</p>
+            )}
+          </div>
+        </section>
+        <aside className="space-y-4">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-zinc-900">Alerts</h2>
+            {data?.alerts?.length ? (
+              <div className="mt-3 space-y-3 text-xs text-zinc-600">
+                {data.alerts.map((item, index) => (
+                  <div key={index} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    {JSON.stringify(item)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-zinc-500">暂无告警</p>
+            )}
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
+            {error ? `加载失败：${error}` : "数据由 /api/knowledge/dashboard 提供"}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

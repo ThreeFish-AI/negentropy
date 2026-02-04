@@ -7,7 +7,7 @@ PostgreSQL Adapters Package
 from .memory_service import PostgresMemoryService
 from .session_service import PostgresSessionService
 from .tool_registry import ToolRegistry, ToolDefinition, FrontendTool
-from .tracing import TracingManager, PostgresSpanExporter
+from .tracing import TracingManager, PostgresSpanExporter, init_tracing, get_tracing_manager
 
 __all__ = [
     "PostgresMemoryService",
@@ -17,4 +17,6 @@ __all__ = [
     "FrontendTool",
     "TracingManager",
     "PostgresSpanExporter",
+    "init_tracing",
+    "get_tracing_manager",
 ]

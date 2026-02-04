@@ -22,6 +22,9 @@ class Tool(Base, UUIDMixin, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     call_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     avg_latency_ms: Mapped[float] = mapped_column(Float, default=0, server_default="0")
+    call_count_success: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    call_count_failed: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    call_count_denied: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     __table_args__ = (
         UniqueConstraint("app_name", "name", name="tools_app_name_unique"),
