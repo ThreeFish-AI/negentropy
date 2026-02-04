@@ -243,6 +243,8 @@
   - 修复后复验：`POST /api/agui` 正常输出 `TEXT_MESSAGE_*`、`STATE_DELTA`、`ACTIVITY_SNAPSHOT` 等 AG‑UI 事件，流式交互通过。
   - 新增异常：UI 侧仅出现空 `ARTIFACT {}` 与 `STATE_DELTA []`，对话消息不展示；控制台出现 `threadId/runId` 缺失报错。
   - 修复策略：BFF 注入 `threadId/runId` 到所有 AG‑UI 事件；ADK 事件解析增强（兼容 `content.text` / `content.content` / `message.content`），并忽略空 `artifactDelta/stateDelta`。实现见 [apps/negentropy-ui/app/api/agui/route.ts](../apps/negentropy-ui/app/api/agui/route.ts)、[apps/negentropy-ui/lib/adk.ts](../apps/negentropy-ui/lib/adk.ts)。
+  - 进一步异常：中栏/右栏消息与快照未随流式更新，Runtime Logs 频繁“跳动”。
+  - 修复策略：移除对 `agent.messages/state` 的过度 memo，确保 `useAgent` 触发的更新可直接反映到 UI（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。  
   - **验证待补录**：需在 UI 侧完成真实交互验证，并记录日志缓冲输出与断连/重连表现（见下方模板）。
 
 **UI 真实验证模板（待补录）**
