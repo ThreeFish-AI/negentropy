@@ -207,114 +207,123 @@ def apply_adk_patches():
     patched_items.append("CredentialService")  # get_credential_service is a function, return type implies service logic
     logger.info("Intercepted ADK default CredentialService to use configurable backend")
 
-    # Patch create_app to inject Middleware
-    if hasattr(fast_api, "create_app"):
-        original_create_app = fast_api.create_app
+    def _inject_negentropy_routes(app):
+        logger.info("Injecting TracingInitMiddleware into ADK FastAPI app")
 
-        def patched_create_app(*args, **kwargs):
-            app = original_create_app(*args, **kwargs)
-            logger.info("Injecting TracingInitMiddleware into ADK FastAPI app")
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from starlette.requests import Request
+        from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
+        from opentelemetry import baggage, context as otel_context
+        import uuid
+        from negentropy.knowledge.api import router as knowledge_router
+        from negentropy.auth.api import router as auth_router
+        from negentropy.auth.middleware import AuthMiddleware
 
-            from starlette.middleware.base import BaseHTTPMiddleware
-            from starlette.requests import Request
-            from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
-            from opentelemetry import baggage, context as otel_context
-            import uuid
-            from negentropy.knowledge.api import router as knowledge_router
-            from negentropy.auth.api import router as auth_router
-            from negentropy.auth.middleware import AuthMiddleware
+        class TracingInitMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next):
+                token = None
+                try:
+                    manager = get_tracing_manager()
+                    if manager:
+                        # ensure_initialized is idempotent and fast after first run
+                        manager._ensure_initialized()
 
-            class TracingInitMiddleware(BaseHTTPMiddleware):
-                async def dispatch(self, request: Request, call_next):
-                    token = None
-                    try:
-                        manager = get_tracing_manager()
-                        if manager:
-                            # ensure_initialized is idempotent and fast after first run
-                            manager._ensure_initialized()
+                        # Extract or generate session_id for Langfuse grouping
+                        # Priority: Header > Query > JSON Body > Generated
+                        session_id = request.headers.get("X-Session-ID") or request.query_params.get("session_id")
+                        session_source = (
+                            "header"
+                            if request.headers.get("X-Session-ID")
+                            else ("query" if request.query_params.get("session_id") else None)
+                        )
+                        user_id = request.headers.get("X-User-ID") or request.query_params.get("user_id")
+                        user_source = (
+                            "header"
+                            if request.headers.get("X-User-ID")
+                            else ("query" if request.query_params.get("user_id") else None)
+                        )
 
-                            # Extract or generate session_id for Langfuse grouping
-                            # Priority: Header > Query > JSON Body > Generated
-                            session_id = request.headers.get("X-Session-ID") or request.query_params.get("session_id")
-                            session_source = (
-                                "header"
-                                if request.headers.get("X-Session-ID")
-                                else ("query" if request.query_params.get("session_id") else None)
-                            )
-                            user_id = request.headers.get("X-User-ID") or request.query_params.get("user_id")
-                            user_source = (
-                                "header"
-                                if request.headers.get("X-User-ID")
-                                else ("query" if request.query_params.get("user_id") else None)
-                            )
+                        if session_id is None:
+                            try:
+                                if request.method in {"POST", "PATCH"} and "application/json" in (
+                                    request.headers.get("content-type") or ""
+                                ):
+                                    body = await request.json()
+                                    session_id = body.get("sessionId") or body.get("session_id")
+                                    if session_id and session_source is None:
+                                        session_source = "body"
+                                    if user_id is None:
+                                        user_id = body.get("userId") or body.get("user_id")
+                                        if user_id and user_source is None:
+                                            user_source = "body"
+                            except Exception as e:
+                                logger.debug(f"Failed to read request JSON for session/user id: {e}")
 
-                            if session_id is None:
-                                try:
-                                    if request.method in {"POST", "PATCH"} and "application/json" in (
-                                        request.headers.get("content-type") or ""
-                                    ):
-                                        body = await request.json()
-                                        session_id = body.get("sessionId") or body.get("session_id")
-                                        if session_id and session_source is None:
-                                            session_source = "body"
-                                        if user_id is None:
-                                            user_id = body.get("userId") or body.get("user_id")
-                                            if user_id and user_source is None:
-                                                user_source = "body"
-                                except Exception as e:
-                                    logger.debug(f"Failed to read request JSON for session/user id: {e}")
+                        if session_id is None:
+                            session_id = str(uuid.uuid4())
+                            session_source = "generated"
 
-                            if session_id is None:
-                                session_id = str(uuid.uuid4())
-                                session_source = "generated"
+                        # Set tracing context so all spans get Langfuse attributes
+                        set_tracing_context(session_id=session_id, user_id=user_id)
 
-                            # Set tracing context so all spans get Langfuse attributes
-                            set_tracing_context(session_id=session_id, user_id=user_id)
+                        # Propagate via OTel baggage for cross-thread/task spans
+                        ctx = otel_context.get_current()
+                        if session_id:
+                            ctx = baggage.set_baggage("langfuse.session.id", session_id, context=ctx)
+                            ctx = baggage.set_baggage("session.id", session_id, context=ctx)
+                        if user_id:
+                            ctx = baggage.set_baggage("langfuse.user.id", user_id, context=ctx)
+                            ctx = baggage.set_baggage("user.id", user_id, context=ctx)
+                        token = otel_context.attach(ctx)
 
-                            # Propagate via OTel baggage for cross-thread/task spans
-                            ctx = otel_context.get_current()
-                            if session_id:
-                                ctx = baggage.set_baggage("langfuse.session.id", session_id, context=ctx)
-                                ctx = baggage.set_baggage("session.id", session_id, context=ctx)
-                            if user_id:
-                                ctx = baggage.set_baggage("langfuse.user.id", user_id, context=ctx)
-                                ctx = baggage.set_baggage("user.id", user_id, context=ctx)
-                            token = otel_context.attach(ctx)
+                        # Store session_id in request state for later use
+                        request.state.session_id = session_id
+                        if user_id:
+                            request.state.user_id = user_id
 
-                            # Store session_id in request state for later use
-                            request.state.session_id = session_id
-                            if user_id:
-                                request.state.user_id = user_id
+                        logger.debug(
+                            "Tracing context set: session_id=%s (source=%s), user_id=%s (source=%s)",
+                            session_id,
+                            session_source,
+                            user_id,
+                            user_source,
+                        )
 
-                            logger.debug(
-                                "Tracing context set: session_id=%s (source=%s), user_id=%s (source=%s)",
-                                session_id,
-                                session_source,
-                                user_id,
-                                user_source,
-                            )
+                except Exception as e:
+                    logger.warning(f"Failed to ensure tracing init in middleware: {e}")
 
-                    except Exception as e:
-                        logger.warning(f"Failed to ensure tracing init in middleware: {e}")
+                try:
+                    return await call_next(request)
+                finally:
+                    if token is not None:
+                        otel_context.detach(token)
 
-                    try:
-                        return await call_next(request)
-                    finally:
-                        if token is not None:
-                            otel_context.detach(token)
+        app.add_middleware(TracingInitMiddleware)
+        app.add_middleware(AuthMiddleware)
+        if not any(route.path.startswith("/knowledge") for route in app.router.routes):
+            app.include_router(knowledge_router)
+            logger.info("Knowledge API router mounted under /knowledge")
+        if not any(route.path.startswith("/auth") for route in app.router.routes):
+            app.include_router(auth_router)
+            logger.info("Auth API router mounted under /auth")
+        return app
 
-            app.add_middleware(TracingInitMiddleware)
-            app.add_middleware(AuthMiddleware)
-            if not any(route.path.startswith("/knowledge") for route in app.router.routes):
-                app.include_router(knowledge_router)
-                logger.info("Knowledge API router mounted under /knowledge")
-            if not any(route.path.startswith("/auth") for route in app.router.routes):
-                app.include_router(auth_router)
-                logger.info("Auth API router mounted under /auth")
-            return app
+    # Patch get_fast_api_app via AdkWebServer so it applies to current call
+    try:
+        from google.adk.cli.adk_web_server import AdkWebServer
 
-        fast_api.create_app = patched_create_app
-        patched_items.append("create_app (Middleware Injection)")
+        if not getattr(AdkWebServer.get_fast_api_app, "_negentropy_patched", False):
+            original_get_fast_api_app = AdkWebServer.get_fast_api_app
+
+            def patched_get_fast_api_app(self, *args, **kwargs):
+                app = original_get_fast_api_app(self, *args, **kwargs)
+                return _inject_negentropy_routes(app)
+
+            patched_get_fast_api_app._negentropy_patched = True
+            AdkWebServer.get_fast_api_app = patched_get_fast_api_app
+            patched_items.append("AdkWebServer.get_fast_api_app (Middleware Injection)")
+    except Exception as exc:
+        logger.warning(f"Failed to patch AdkWebServer.get_fast_api_app: {exc}")
 
     # Also patch cli.cli which imports these functions
 

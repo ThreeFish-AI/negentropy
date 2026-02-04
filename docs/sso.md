@@ -152,6 +152,28 @@ SSO 相关接口自身不产生 AG-UI 事件流；事件流仍由 `/run_sse` 与
 
 路径规则遵循 JSON Pointer 转义（`~` → `~0`，`/` → `~1`），以保证嵌套字段在 UI 端可被准确更新。
 
+### 删除语义示例
+
+当上游状态需要删除字段时，Patch 应使用 `remove`：
+
+```json
+[
+  { "op": "remove", "path": "/flags/beta" },
+  { "op": "remove", "path": "/profile/language" }
+]
+```
+
+### 数组语义示例
+
+数组的追加/替换需使用索引或 `-`：
+
+```json
+[
+  { "op": "add", "path": "/notifications/-", "value": "new-alert" },
+  { "op": "replace", "path": "/notifications/0", "value": "first-alert" }
+]
+```
+
 ## 6. 前端集成（negentropy-ui）
 
 关键对接点：
