@@ -107,9 +107,50 @@ flowchart TD
 | `/auth/google/login` | GET | 发起 Google OAuth 登录 |
 | `/auth/google/callback` | GET | OAuth 回调与 Cookie 写入 |
 | `/auth/me` | GET | 获取当前登录用户 |
-| `/auth/logout` | POST | 清理 Cookie 并重定向 |
+| `/auth/logout` | POST | 清理 Cookie 并返回 `{ status: "ok" }` |
 | `/auth/users/{user_id}` | GET | 查询用户状态（Admin） |
 | `/auth/users/{user_id}/roles` | PATCH | 更新用户角色（Admin） |
+
+## 5.1 接口事件说明（前后端联动）
+
+SSO 相关接口自身不产生 AG-UI 事件流；事件流仍由 `/run_sse` 与 Session 接口产生。前端处理逻辑如下：
+
+- `/api/agui`：接收 ADK 事件，转换为 AG-UI `EventType`，用于 UI 与日志面板展示。
+- `/api/agui/sessions/*`：加载历史事件，转换为消息与状态快照。
+
+映射实现参考：
+- `[adk.ts](../apps/negentropy-ui/lib/adk.ts)`（ADK → AG-UI 事件转换）
+- `[agui route](../apps/negentropy-ui/app/api/agui/route.ts)`（事件流转发）
+
+## 5.2 JSON Patch（状态 Delta）语义示例
+
+当 ADK 事件中的 `stateDelta` 为对象时，前端会将其转换为 RFC6902 JSON Patch 并输出 `STATE_DELTA` 事件：
+
+输入（ADK `stateDelta`）：
+
+```json
+{
+  "profile": {
+    "timezone": "Asia/Shanghai",
+    "language": "zh-CN"
+  },
+  "flags": {
+    "beta": true
+  }
+}
+```
+
+转换后（AG-UI `STATE_DELTA`，`delta` 为 JSON Patch）：
+
+```json
+[
+  { "op": "replace", "path": "/profile/timezone", "value": "Asia/Shanghai" },
+  { "op": "replace", "path": "/profile/language", "value": "zh-CN" },
+  { "op": "replace", "path": "/flags/beta", "value": true }
+]
+```
+
+路径规则遵循 JSON Pointer 转义（`~` → `~0`，`/` → `~1`），以保证嵌套字段在 UI 端可被准确更新。
 
 ## 6. 前端集成（negentropy-ui）
 
