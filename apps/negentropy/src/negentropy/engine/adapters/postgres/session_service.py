@@ -152,7 +152,7 @@ class PostgresSessionService(BaseSessionService):
                 id=str(thread.id),
                 app_name=thread.app_name,
                 user_id=thread.user_id,
-                state=thread.state or {},
+                state={**(thread.state or {}), "metadata": thread.metadata_ or {}},  # 合并 metadata_ 到 state
                 events=[self._orm_to_adk_event(e) for e in events],
                 last_update_time=thread.updated_at.timestamp()
                 if thread.updated_at
@@ -175,7 +175,7 @@ class PostgresSessionService(BaseSessionService):
                 id=str(t.id),
                 app_name=t.app_name,
                 user_id=t.user_id,
-                state=t.state or {},
+                state={**(t.state or {}), "metadata": t.metadata_ or {}},  # 合并 metadata_ 到 state
                 events=[],  # 列表不加载 events
                 last_update_time=t.updated_at.timestamp() if t.updated_at else datetime.now(timezone.utc).timestamp(),
             )
@@ -229,12 +229,60 @@ class PostgresSessionService(BaseSessionService):
                 await self._apply_state_delta_to_db(db, session, event.actions.state_delta)
 
             # 3. 更新 Thread updated_at
-            await db.execute(
+            stmt = (
                 update(self.Thread)
                 .where(self.Thread.id == uuid.UUID(session.id))
                 .values(updated_at=datetime.now(timezone.utc))
             )
 
+            # 4. 自动生成标题 (如果不存在)
+            # 简单策略：当事件数量达到 2 时 (User + Assistant)，生成标题
+            # 避免每次都生成，且要有足够上下文
+            should_generate_title = False
+
+            # 1. 检查 metadata 是否已存在 title
+            # 注意：session.state 是内存中的状态，可能不包含最新的 metadata_ 列数据
+            # 但 SessionService.get_session 我们已经合并了 metadata_ 到 state['metadata']
+            current_title = (session.state.get("metadata") or {}).get("title")
+
+            # 2. 过滤非工具事件
+            non_tool_events = [e for e in session.events if e.content and e.content.parts]
+
+            if len(non_tool_events) >= 2 and not current_title:
+                should_generate_title = True
+
+            if should_generate_title:
+                try:
+                    from negentropy.knowledge.summarization import SessionSummarizer
+                    from google.genai import types
+
+                    summarizer = SessionSummarizer()
+
+                    history = []
+                    for e in session.events[-5:]:  # 只取最近 5 条作为上下文
+                        role = "user" if e.author == "user" else "model"
+                        parts = [types.Part(text=p.text) for p in e.content.parts if p.text]
+                        if parts:
+                            history.append(types.Content(role=role, parts=parts))
+
+                    if history:
+                        title = await summarizer.generate_title(history)
+                        if title:
+                            # Fetch current metadata to merge
+                            meta_result = await db.execute(
+                                select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session.id))
+                            )
+                            current_metadata = meta_result.scalar() or {}
+                            current_metadata["title"] = title
+
+                            # Merge updates into the statement
+                            stmt = stmt.values(metadata_=current_metadata)
+
+                except Exception as ex:
+                    # 容错，不影响主流程
+                    pass  # 实际生产中应 log.warning
+
+            await db.execute(stmt)
             await db.commit()
 
         event.id = event_id
