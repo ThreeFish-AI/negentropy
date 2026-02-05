@@ -9,7 +9,7 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
   return (
     <div className="border-b border-zinc-200 bg-white px-6 py-4 sticky top-0 z-50">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Brand and Primary Nav */}
+        {/* Brand */}
         <div className="flex items-center gap-9">
           <Link href="/" className="flex items-center gap-0">
             <img
@@ -21,12 +21,11 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
               Negentropy
             </span>
           </Link>
-
-          <MainNav items={mainNavConfig} />
         </div>
 
         {/* User Area and Actions */}
         <div className="flex items-center gap-3 text-sm">
+          <MainNav items={mainNavConfig} />
           {children}
           <div className="h-4 w-px bg-zinc-200 mx-2 hidden sm:block"></div>
           <UserNav />
