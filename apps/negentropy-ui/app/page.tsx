@@ -503,6 +503,25 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
   return items;
 }
 
+/**
+ * Reconstructs the state snapshot from STATE_DELTA events up to a point in time
+ * Uses event sourcing pattern: apply all STATE_DELTA events in sequence
+ */
+function buildStateSnapshotFromEvents(events: BaseEvent[]): Record<string, unknown> | null {
+  let state: Record<string, unknown> = {};
+  let hasState = false;
+
+  for (const event of events) {
+    if (event.type === EventType.STATE_DELTA) {
+      hasState = true;
+      // Apply delta - shallow merge for simplicity
+      state = { ...state, ...(event as { delta: Record<string, unknown> }).delta };
+    }
+  }
+
+  return hasState ? state : null;
+}
+
 function useConfirmationTool(
   onFollowup?: (payload: { action: string; note: string }) => void,
 ) {
@@ -570,6 +589,7 @@ export function HomeBody({
     unknown
   > | null>(null);
   const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
@@ -715,7 +735,58 @@ export function HomeBody({
     return pending.size;
   }, [rawEvents]);
 
-  const compactedEvents = useMemo(() => compactEvents(rawEvents), [rawEvents]);
+  // Build message-timestamp map from raw events for filtering
+  const messageTimestamps = useMemo(() => {
+    const timestampMap = new Map<string, number>();
+
+    // Process all TEXT_MESSAGE events to build the map
+    rawEvents.forEach((event) => {
+      if (
+        event.type === EventType.TEXT_MESSAGE_START ||
+        event.type === EventType.TEXT_MESSAGE_CONTENT ||
+        event.type === EventType.TEXT_MESSAGE_END
+      ) {
+        const messageId = "messageId" in event ? event.messageId : undefined;
+        const timestamp = "timestamp" in event ? event.timestamp : undefined;
+
+        if (messageId && timestamp !== undefined) {
+          // Store the timestamp for this message
+          if (!timestampMap.has(messageId)) {
+            timestampMap.set(messageId, timestamp);
+          }
+        }
+      }
+    });
+
+    // Also backfill from sessionMessages for any messages without event timestamps
+    sessionMessages.forEach((message) => {
+      if (!timestampMap.has(message.id) && message.createdAt) {
+        timestampMap.set(message.id, message.createdAt.getTime() / 1000);
+      }
+    });
+
+    return timestampMap;
+  }, [rawEvents, sessionMessages]);
+
+  // Filter events based on selected message timestamp
+  const filteredRawEvents = useMemo(() => {
+    if (!selectedMessageId) {
+      return rawEvents; // Show all events (current behavior)
+    }
+
+    const cutoffTimestamp = messageTimestamps.get(selectedMessageId);
+    if (cutoffTimestamp === undefined) {
+      return rawEvents; // Message not found, show all
+    }
+
+    // Filter events to only those before/at the selected message's timestamp
+    return rawEvents.filter(event => {
+      const eventTimestamp = event.timestamp || 0;
+      return eventTimestamp <= cutoffTimestamp;
+    });
+  }, [rawEvents, selectedMessageId, messageTimestamps]);
+
+  const compactedEvents = useMemo(() => compactEvents(filteredRawEvents), [filteredRawEvents]);
   const timelineItems = useMemo(
     () => buildTimelineItems(compactedEvents),
     [compactedEvents],
@@ -878,6 +949,30 @@ export function HomeBody({
 
   useConfirmationTool(handleConfirmationFollowup);
 
+  // Auto-select latest message when sidebar opens
+  useEffect(() => {
+    if (showRightPanel && !selectedMessageId && chatMessages.length > 0) {
+      // Select the most recent message (last in array)
+      const latestMessage = chatMessages[chatMessages.length - 1];
+      setSelectedMessageId(latestMessage.id);
+    }
+    // Optional: Clear selection when sidebar closes
+    // if (!showRightPanel && selectedMessageId) {
+    //   setSelectedMessageId(null);
+    // }
+  }, [showRightPanel, selectedMessageId, chatMessages]);
+
+  // Escape key to return to live view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedMessageId) {
+        setSelectedMessageId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedMessageId]);
+
   const sendInput = async () => {
     if (!agent || !sessionId || !inputValue.trim()) {
       return;
@@ -978,6 +1073,21 @@ export function HomeBody({
     ? (agentSnapshot ?? sessionSnapshot)
     : sessionSnapshot;
 
+  // Reconstruct state snapshot from filtered events for historical viewing
+  const historicalSnapshot = useMemo(
+    () => buildStateSnapshotFromEvents(filteredRawEvents),
+    [filteredRawEvents],
+  );
+
+  const snapshotForDisplay = useMemo(() => {
+    // If no message selected, use current/live snapshot
+    if (!selectedMessageId) {
+      return snapshotForRender;
+    }
+    // Otherwise use reconstructed historical snapshot
+    return historicalSnapshot;
+  }, [selectedMessageId, snapshotForRender, historicalSnapshot]);
+
   const mergedMessagesForRender = useMemo(() => {
     const knownIds = new Set(
       messagesForRenderBase
@@ -1018,18 +1128,23 @@ export function HomeBody({
   const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
   const chatMessages = ensureUniqueMessageIds(mappedMessages);
 
-  // Debugging logs to investigate missing content
-  // eslint-disable-next-line no-console
-  console.log("DEBUG: Render Cycle", {
-    sessionId,
-    hasLoadedSession,
-    agentMessagesLen: agentMessages.length,
-    optimisticLen: optimisticMessages.length,
-    mergedLen: mergedMessagesForRender.length,
-    mappedLen: mappedMessages.length,
-    finalLen: chatMessages.length,
-    lastMessage: chatMessages[chatMessages.length - 1],
-  });
+  // Filter log entries based on selected message timestamp
+  const filteredLogEntries = useMemo(() => {
+    if (!selectedMessageId) {
+      return logEntries; // Show all logs when no selection
+    }
+
+    const cutoffTimestamp = messageTimestamps.get(selectedMessageId);
+    if (cutoffTimestamp === undefined) {
+      return logEntries; // Message not found, show all
+    }
+
+    // LogEntry.timestamp is in milliseconds (Date.now()), event timestamps are seconds
+    // Convert cutoff to milliseconds for comparison
+    const cutoffMs = cutoffTimestamp * 1000;
+
+    return logEntries.filter(entry => entry.timestamp <= cutoffMs);
+  }, [logEntries, selectedMessageId, messageTimestamps]);
 
   return (
     <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
@@ -1102,7 +1217,14 @@ export function HomeBody({
 
           {/* Chat Stream Area */}
           <div className="flex-1 overflow-hidden flex flex-col relative">
-            <ChatStream messages={chatMessages} />
+            <ChatStream
+              messages={chatMessages}
+              selectedMessageId={selectedMessageId}
+              onMessageSelect={(id) => {
+                setSelectedMessageId(id);
+                setShowRightPanel(true); // Auto-open sidebar if closed
+              }}
+            />
             <div className="p-6 pt-2 shrink-0 w-full max-w-4xl mx-auto">
               <Composer
                 value={inputValue}
@@ -1128,15 +1250,33 @@ export function HomeBody({
           }`}
         >
           <div className="w-80 h-full overflow-y-auto p-6">
+            {/* Historical view indicator */}
+            {selectedMessageId && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-amber-800">历史视图</span>
+                  <button
+                    onClick={() => setSelectedMessageId(null)}
+                    className="text-xs text-amber-600 hover:text-amber-800 underline"
+                  >
+                    返回实时
+                  </button>
+                </div>
+                <p className="text-[10px] text-amber-700 mt-1">
+                  显示选定消息的观察数据
+                </p>
+              </div>
+            )}
+
             <StateSnapshot
-              snapshot={snapshotForRender}
-              connection={connection}
+              snapshot={snapshotForDisplay}
+              connection={selectedMessageId ? "idle" : connection}
             />
             <EventTimeline events={timelineItems} />
             <LogBufferPanel
-              entries={logEntries}
+              entries={filteredLogEntries}
               onExport={() => {
-                const payload = JSON.stringify(logEntries, null, 2);
+                const payload = JSON.stringify(filteredLogEntries, null, 2);
                 void navigator.clipboard?.writeText(payload);
               }}
             />

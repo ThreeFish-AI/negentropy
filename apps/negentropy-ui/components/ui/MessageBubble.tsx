@@ -10,6 +10,8 @@ import { MermaidDiagram } from "./MermaidDiagram";
 
 type ChatMessageProps = {
   message: Pick<Message, "id" | "role" | "content">;
+  isSelected?: boolean;
+  onSelect?: (messageId: string) => void;
 };
 
 function normalizeContent(content: Message["content"]): string {
@@ -191,7 +193,7 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
-export function MessageBubble({ message }: ChatMessageProps) {
+export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProps) {
   const { user } = useAuth();
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
@@ -210,9 +212,11 @@ export function MessageBubble({ message }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        "flex w-full gap-4 group", // Added group for hover effect
+        "flex w-full gap-4 group cursor-pointer", // Added cursor-pointer for clickability
         isUser ? "flex-row-reverse" : "flex-row",
+        isSelected && "bg-zinc-100/50", // Highlight when selected
       )}
+      onClick={() => onSelect?.(message.id)}
     >
       {/* Avatar */}
       <div className="shrink-0">
