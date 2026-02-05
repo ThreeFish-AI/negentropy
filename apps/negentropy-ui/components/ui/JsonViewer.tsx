@@ -124,7 +124,8 @@ export const JsonNode = ({
 export const JsonViewer = ({ data }: { data: unknown }) => {
   const [copied, setCopied] = useState(false);
 
-  const copyToClipboard = () => {
+  const copyToClipboard = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
