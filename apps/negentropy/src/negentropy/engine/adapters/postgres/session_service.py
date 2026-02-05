@@ -280,7 +280,15 @@ class PostgresSessionService(BaseSessionService):
 
                 except Exception as ex:
                     # 容错，不影响主流程
-                    pass  # 实际生产中应 log.warning
+                    from negentropy.logging import get_logger
+                    logger = get_logger("negentropy.session_service")
+                    logger.warning(
+                        "Failed to generate session title",
+                        session_id=session.id,
+                        error_type=type(ex).__name__,
+                        error=str(ex),
+                        events_count=len(session.events)
+                    )
 
             await db.execute(stmt)
             await db.commit()
