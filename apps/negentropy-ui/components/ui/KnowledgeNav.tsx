@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { SiteHeader } from "../layout/SiteHeader";
 
 const NAV_ITEMS = [
   { href: "/knowledge", label: "Dashboard" },
@@ -18,8 +17,6 @@ export function KnowledgeNav({
 }) {
   return (
     <>
-      <SiteHeader />
-
       <div className="border-b border-zinc-200 bg-white px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
