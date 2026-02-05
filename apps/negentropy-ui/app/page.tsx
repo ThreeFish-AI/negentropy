@@ -949,19 +949,6 @@ export function HomeBody({
 
   useConfirmationTool(handleConfirmationFollowup);
 
-  // Auto-select latest message when sidebar opens
-  useEffect(() => {
-    if (showRightPanel && !selectedMessageId && chatMessages.length > 0) {
-      // Select the most recent message (last in array)
-      const latestMessage = chatMessages[chatMessages.length - 1];
-      setSelectedMessageId(latestMessage.id);
-    }
-    // Optional: Clear selection when sidebar closes
-    // if (!showRightPanel && selectedMessageId) {
-    //   setSelectedMessageId(null);
-    // }
-  }, [showRightPanel, selectedMessageId, chatMessages]);
-
   // Escape key to return to live view
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1127,6 +1114,19 @@ export function HomeBody({
 
   const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
   const chatMessages = ensureUniqueMessageIds(mappedMessages);
+
+  // Auto-select latest message when sidebar opens
+  useEffect(() => {
+    if (showRightPanel && !selectedMessageId && chatMessages.length > 0) {
+      // Select the most recent message (last in array)
+      const latestMessage = chatMessages[chatMessages.length - 1];
+      setSelectedMessageId(latestMessage.id);
+    }
+    // Optional: Clear selection when sidebar closes
+    // if (!showRightPanel && selectedMessageId) {
+    //   setSelectedMessageId(null);
+    // }
+  }, [showRightPanel, selectedMessageId, chatMessages]);
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
