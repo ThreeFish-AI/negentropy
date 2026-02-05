@@ -555,7 +555,10 @@ export function HomeBody({
         const target = prev.find((s) => s.id === id);
         if (!target) return prev;
         const others = prev.filter((s) => s.id !== id);
-        return [{ ...target, lastUpdateTime: Date.now() }, ...others];
+        const updated = { ...target, lastUpdateTime: Date.now() };
+        return [updated, ...others].sort(
+          (a, b) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
+        );
       });
     },
     [setSessions],
@@ -570,6 +573,16 @@ export function HomeBody({
     },
     [addLog],
   );
+
+  // ... (keeping intervening code if any, but replacing the function block to be safe)
+  // Wait, replace_file_content needs contiguous block.
+  // I will split this into two replacements if needed or just target updateCurrentSessionTime first.
+
+  // Actually, I can do it in two chunks? No, replace_file_content is single contiguous.
+  // I will use multi_replace_file_content for safety if I need to touch multiple places,
+  // or just replace updateCurrentSessionTime block first.
+
+  // use multi_replace_file_content to fix both locations.
 
   const setConnectionWithMetrics = useCallback(
     (next: ConnectionState) => {
@@ -718,12 +731,13 @@ export function HomeBody({
         }
         return;
       }
-      const id = payload.id as string;
+      const id = payload.id;
       const label = createSessionLabel(id);
-      setSessions((prev) => [
-        { id, label, lastUpdateTime: payload.lastUpdateTime },
-        ...prev,
-      ]);
+      setSessions((prev) =>
+        [{ id, label, lastUpdateTime: payload.lastUpdateTime }, ...prev].sort(
+          (a, b) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
+        ),
+      );
       setSessionId(id);
     } catch (error) {
       setConnectionWithMetrics("error");
