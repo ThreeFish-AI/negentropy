@@ -871,6 +871,9 @@ export function HomeBody({
     });
     agent.addMessage(newMessage);
     setInputValue("");
+    if (sessionId) {
+      updateCurrentSessionTime(sessionId);
+    }
     try {
       setConnectionWithMetrics("connecting");
       await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
@@ -887,36 +890,36 @@ export function HomeBody({
     loadSessions();
   }, [loadSessions]);
 
+  /* Refactored: State clearing moved to handleSessionChange to avoid set-state-in-effect */
+  const handleSessionChange = useCallback((newId: string | null) => {
+    setSessionId(newId);
+    if (newId) {
+      setSessionMessages([]);
+      setOptimisticMessages([]);
+      setSessionSnapshot(null);
+      setRawEvents([]);
+      setLoadedSessionId(null);
+    }
+  }, []);
+
   useEffect(() => {
     if (!sessionId) {
       return;
     }
-    setSessionMessages([]);
-    setOptimisticMessages([]);
-    setSessionSnapshot(null);
-    setRawEvents([]);
-    setLoadedSessionId(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Only fetch data in effect
     loadSessionDetail(sessionId);
   }, [sessionId, agent, loadSessionDetail]);
 
-  const agentMessages = agent ? (agent.messages as Message[]) : EMPTY_MESSAGES;
-
-  useEffect(() => {
-    if (agentMessages.length === 0) {
-      return;
-    }
-    const knownIds = new Set(
-      agentMessages
-        .filter((message) => normalizeMessageContent(message).trim().length > 0)
-        .map((message) => message.id),
-    );
-    setOptimisticMessages((prev) =>
-      prev.filter((message) => !knownIds.has(message.id)),
-    );
-  }, [agentMessages]);
-  const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
   const hasLoadedSession = loadedSessionId === sessionId;
+
+  const agentMessages = agent ? (agent.messages as Message[]) : EMPTY_MESSAGES;
+  const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
+
+  /* Removed problematic effect that caused cascading renders:
+     useEffect(() => { ... setOptimisticMessages ... }, [agentMessages])
+     Instead, we filter optimistic messages during derived state calculation.
+  */
+
   const messagesForRenderBase =
     hasLoadedSession && agentMessages.length > 0
       ? agentMessages
@@ -924,19 +927,30 @@ export function HomeBody({
   const snapshotForRender = hasLoadedSession
     ? (agentSnapshot ?? sessionSnapshot)
     : sessionSnapshot;
-  const mergeOptimisticMessages = (
-    base: Message[],
-    optimistic: Message[],
-  ): Message[] => {
-    if (optimistic.length === 0) {
-      return base;
+
+  const mergedMessagesForRender = useMemo(() => {
+    const knownIds = new Set(
+      messagesForRenderBase
+        .filter((message) => normalizeMessageContent(message).trim().length > 0)
+        .map((message) => message.id),
+    );
+
+    // Filter out optimistic messages that are already in the base messages
+    const validOptimistic = optimisticMessages.filter(
+      (message) => !knownIds.has(message.id),
+    );
+
+    if (validOptimistic.length === 0) {
+      return messagesForRenderBase;
     }
-    const merged = [...base];
+
+    const merged = [...messagesForRenderBase];
     const indexById = new Map<string, number>();
     merged.forEach((message, index) => {
       indexById.set(message.id, index);
     });
-    optimistic.forEach((message) => {
+
+    validOptimistic.forEach((message) => {
       const index = indexById.get(message.id);
       if (index === undefined) {
         merged.push(message);
@@ -949,11 +963,7 @@ export function HomeBody({
       }
     });
     return merged;
-  };
-  const mergedMessagesForRender = mergeOptimisticMessages(
-    messagesForRenderBase,
-    optimisticMessages,
-  );
+  }, [messagesForRenderBase, optimisticMessages]);
 
   const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
   const chatMessages = ensureUniqueMessageIds(mappedMessages);
@@ -986,7 +996,7 @@ export function HomeBody({
             <SessionList
               sessions={sessions}
               activeId={sessionId}
-              onSelect={setSessionId}
+              onSelect={handleSessionChange}
               onNewSession={startNewSession}
             />
           </div>
@@ -1092,24 +1102,20 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
 
-  const [agent, setAgent] = useState<HttpAgent | null>(null);
-
-  useEffect(() => {
+  const agent = useMemo(() => {
     if (!user) {
-      return;
+      return null;
     }
     const userId = user.userId;
     const resolvedSession = sessionId || "pending";
-    setAgent(
-      new HttpAgent({
-        url: buildAgentUrl(resolvedSession, userId),
-        headers: {
-          "X-Session-ID": resolvedSession,
-          "X-User-ID": userId,
-        },
-        threadId: resolvedSession,
-      }),
-    );
+    return new HttpAgent({
+      url: buildAgentUrl(resolvedSession, userId),
+      headers: {
+        "X-Session-ID": resolvedSession,
+        "X-User-ID": userId,
+      },
+      threadId: resolvedSession,
+    });
   }, [sessionId, user]);
 
   const copilotAgents = useMemo(
