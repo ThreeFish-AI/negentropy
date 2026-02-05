@@ -445,6 +445,56 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
         });
         break;
       }
+      case EventType.STATE_SNAPSHOT: {
+        items.push({
+          id: `snapshot_${items.length}`,
+          kind: "state",
+          title: "State Snapshot",
+          content: event.snapshot,
+          timestamp: event.timestamp,
+          runId,
+        });
+        break;
+      }
+      case EventType.MESSAGES_SNAPSHOT: {
+        // 消息历史快照由外部处理，这里仅记录日志
+        // 实际的消息更新逻辑由事件订阅者处理
+        break;
+      }
+      case EventType.STEP_STARTED: {
+        items.push({
+          id: `step_${event.stepId}_start`,
+          kind: "event",
+          title: `Step: ${event.stepName}`,
+          content: { status: "started" },
+          timestamp: event.timestamp,
+          runId,
+        });
+        break;
+      }
+      case EventType.STEP_FINISHED: {
+        items.push({
+          id: `step_${event.stepId}_finish`,
+          kind: "event",
+          title: `Step Complete: ${event.stepId}`,
+          content: event.result,
+          timestamp: event.timestamp,
+          runId,
+        });
+        break;
+      }
+      case EventType.RAW:
+      case EventType.CUSTOM: {
+        items.push({
+          id: `custom_${items.length}`,
+          kind: "event",
+          title: event.type === EventType.RAW ? "Raw Event" : `Custom: ${event.eventType}`,
+          content: event.data,
+          timestamp: event.timestamp,
+          runId,
+        });
+        break;
+      }
       default:
         break;
     }
