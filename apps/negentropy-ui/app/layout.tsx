@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Negentropy UI",
+  title: "Negentropy",
   description: "Agentic entropy reduction system",
 };
 
