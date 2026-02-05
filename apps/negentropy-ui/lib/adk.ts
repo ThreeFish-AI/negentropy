@@ -1,5 +1,7 @@
 import { BaseEvent, EventType, Message } from "@ag-ui/core";
 
+// ... (imports)
+
 export type AdkEventPayload = {
   id: string;
   threadId?: string;
@@ -7,17 +9,40 @@ export type AdkEventPayload = {
   timestamp?: number;
   author?: string;
   content?: {
-    parts?: Array<{ text?: string; type?: string }>;
+    parts?: Array<{
+      text?: string;
+      type?: string;
+      functionCall?: {
+        id: string;
+        name: string;
+        args: Record<string, unknown>;
+      };
+      functionResponse?: {
+        id: string;
+        name: string;
+        response: {
+          result: unknown;
+        };
+      };
+    }>;
   };
   message?: {
     role: string;
     content: string | Array<{ text?: string; type?: string }>;
+    // Standard OpenAI/ADK tool calls
+    tool_calls?: Array<{
+      id: string;
+      type: "function";
+      function: { name: string; arguments: string };
+    }>;
+    // Standard OpenAI/ADK tool result
+    tool_call_id?: string;
   };
   actions?: {
     stateDelta?: Record<string, unknown>;
     artifactDelta?: Record<string, unknown>;
   };
-  delta?: string; // For streaming compatibility if needed
+  delta?: string;
 };
 
 export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
@@ -27,11 +52,10 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     threadId: payload.threadId || "default",
     runId: payload.runId || "default",
     timestamp,
+    messageId: payload.id,
   };
 
-  const messageId = payload.id;
-
-  // Text messages
+  // 1. Text Messages
   let textParts: string[] = [];
   if (payload.content?.parts) {
     textParts = payload.content.parts.map((p) => p.text || "").filter(Boolean);
@@ -45,12 +69,20 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     }
   }
 
-  if (textParts.length > 0) {
+  // Emit Text Events only if not a Tool Result
+  const isToolResponsePart = payload.content?.parts?.some(
+    (p) => p.functionResponse,
+  );
+
+  if (
+    textParts.length > 0 &&
+    payload.message?.role !== "tool" &&
+    !isToolResponsePart
+  ) {
     const role = payload.message?.role || payload.author || "assistant";
 
     events.push({
       type: EventType.TEXT_MESSAGE_START,
-      messageId,
       role,
       ...common,
     } as unknown as BaseEvent);
@@ -59,7 +91,6 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     if (fullText) {
       events.push({
         type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId,
         delta: fullText,
         ...common,
       } as unknown as BaseEvent);
@@ -67,12 +98,109 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
 
     events.push({
       type: EventType.TEXT_MESSAGE_END,
-      messageId,
       ...common,
     } as unknown as BaseEvent);
   }
 
-  // State Delta
+  // 2. Tool Calls (OpenAI Style)
+  if (payload.message?.tool_calls) {
+    payload.message.tool_calls.forEach((tc) => {
+      events.push({
+        type: EventType.TOOL_CALL_START,
+        toolCallId: tc.id,
+        toolCallName: tc.function.name,
+        ...common,
+      } as unknown as BaseEvent);
+
+      if (tc.function.arguments) {
+        events.push({
+          type: EventType.TOOL_CALL_ARGS,
+          toolCallId: tc.id,
+          delta: tc.function.arguments,
+          ...common,
+        } as unknown as BaseEvent);
+      }
+
+      events.push({
+        type: EventType.TOOL_CALL_END,
+        toolCallId: tc.id,
+        ...common,
+      } as unknown as BaseEvent);
+    });
+  }
+
+  // 2b. Tool Calls (Gemini/Parts Style)
+  if (payload.content?.parts) {
+    payload.content.parts.forEach((part) => {
+      if (part.functionCall) {
+        const fc = part.functionCall;
+        events.push({
+          type: EventType.TOOL_CALL_START,
+          toolCallId: fc.id,
+          toolCallName: fc.name,
+          ...common,
+        } as unknown as BaseEvent);
+
+        const argsString = JSON.stringify(fc.args || {});
+        events.push({
+          type: EventType.TOOL_CALL_ARGS,
+          toolCallId: fc.id,
+          delta: argsString,
+          ...common,
+        } as unknown as BaseEvent);
+
+        events.push({
+          type: EventType.TOOL_CALL_END,
+          toolCallId: fc.id,
+          ...common,
+        } as unknown as BaseEvent);
+      }
+    });
+  }
+
+  // 3. Tool Result (OpenAI Style)
+  if (payload.message?.role === "tool" && payload.message.tool_call_id) {
+    const content = textParts.join("") || payload.delta || "";
+    events.push({
+      type: EventType.TOOL_CALL_RESULT,
+      toolCallId: payload.message.tool_call_id,
+      content,
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  // 3b. Tool Result (Gemini/Parts Style)
+  if (payload.content?.parts) {
+    payload.content.parts.forEach((part) => {
+      if (part.functionResponse) {
+        const fr = part.functionResponse;
+        const result = fr.response?.result ?? fr.response ?? null;
+        const content =
+          typeof result === "string" ? result : JSON.stringify(result);
+        events.push({
+          type: EventType.TOOL_CALL_RESULT,
+          toolCallId: fr.id,
+          content,
+          ...common,
+        } as unknown as BaseEvent);
+      }
+    });
+  }
+
+  // 4. Artifacts (Activity)
+  if (
+    payload.actions?.artifactDelta &&
+    Object.keys(payload.actions.artifactDelta).length > 0
+  ) {
+    events.push({
+      type: EventType.ACTIVITY_SNAPSHOT,
+      activityType: "artifact",
+      content: payload.actions.artifactDelta || {},
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  // 5. State Delta
   if (
     payload.actions?.stateDelta &&
     Object.keys(payload.actions.stateDelta).length > 0
@@ -81,7 +209,6 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
       type: EventType.STATE_DELTA,
       delta: payload.actions.stateDelta,
       ...common,
-      messageId,
     } as unknown as BaseEvent);
   }
 
@@ -89,6 +216,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
 }
 
 export function adkEventsToMessages(events: AdkEventPayload[]): Message[] {
+  // ... (unchanged)
   return events.map((e) => {
     let content = "";
     if (e.content?.parts) {

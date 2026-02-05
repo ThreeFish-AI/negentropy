@@ -347,6 +347,8 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
   const toolIndex = new Map<string, number>();
 
   events.forEach((event) => {
+    const runId = "runId" in event ? (event.runId as string) : undefined;
+
     switch (event.type) {
       case EventType.TOOL_CALL_START: {
         const { toolCallId, toolCallName } = event;
@@ -358,6 +360,7 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
           result: "",
           status: "running",
           timestamp: event.timestamp,
+          runId,
         };
         toolIndex.set(toolCallId, items.length);
         items.push(item);
@@ -392,6 +395,7 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
             result: content,
             status: "completed",
             timestamp: event.timestamp,
+            runId,
           });
         }
         break;
@@ -414,6 +418,7 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
             title: "Artifact",
             content: event.content,
             timestamp: event.timestamp,
+            runId,
           });
         }
         break;
@@ -425,6 +430,7 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
           title: "State Delta",
           content: event.delta,
           timestamp: event.timestamp,
+          runId,
         });
         break;
       }
@@ -435,6 +441,7 @@ function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
           title: "Run Error",
           content: event.message,
           timestamp: event.timestamp,
+          runId,
         });
         break;
       }

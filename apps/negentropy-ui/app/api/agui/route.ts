@@ -20,10 +20,18 @@ function toPatchOperations(delta: Record<string, unknown>) {
 
 function normalizeAguiEvent(event: BaseEvent) {
   const next = { ...event } as BaseEvent & { role?: string; delta?: unknown };
-  if ("role" in next && typeof next.role === "string" && !ALLOWED_ROLES.has(next.role)) {
+  if (
+    "role" in next &&
+    typeof next.role === "string" &&
+    !ALLOWED_ROLES.has(next.role)
+  ) {
     next.role = "assistant";
   }
-  if (next.type === EventType.STATE_DELTA && next.delta && !Array.isArray(next.delta)) {
+  if (
+    next.type === EventType.STATE_DELTA &&
+    next.delta &&
+    !Array.isArray(next.delta)
+  ) {
     if (typeof next.delta === "object") {
       next.delta = toPatchOperations(next.delta as Record<string, unknown>);
     } else {
@@ -66,7 +74,7 @@ function errorResponse(code: string, message: string, status = 500) {
         message,
       },
     },
-    { status }
+    { status },
   );
 }
 
@@ -86,33 +94,47 @@ function buildRunPayload(input: Record<string, unknown>) {
 export async function POST(request: Request) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
-    return errorResponse("AGUI_INTERNAL_ERROR", "AGUI_BASE_URL is not configured", 500);
+    return errorResponse(
+      "AGUI_INTERNAL_ERROR",
+      "AGUI_BASE_URL is not configured",
+      500,
+    );
   }
 
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch (error) {
-    return errorResponse("AGUI_BAD_REQUEST", `Invalid JSON body: ${String(error)}`, 400);
+    return errorResponse(
+      "AGUI_BAD_REQUEST",
+      `Invalid JSON body: ${String(error)}`,
+      400,
+    );
   }
 
   const url = new URL(request.url);
-  const appName = url.searchParams.get("app_name") || (body.app_name as string) || "agents";
-  const userId = url.searchParams.get("user_id") || (body.user_id as string) || "ui";
-  const sessionId = url.searchParams.get("session_id") || (body.session_id as string);
+  const appName =
+    url.searchParams.get("app_name") || (body.app_name as string) || "agents";
+  const userId =
+    url.searchParams.get("user_id") || (body.user_id as string) || "ui";
+  const sessionId =
+    url.searchParams.get("session_id") || (body.session_id as string);
   if (!sessionId) {
     return errorResponse("AGUI_BAD_REQUEST", "session_id is required", 400);
   }
   const resolvedThreadId =
-    (typeof body.threadId === "string" && body.threadId.trim()) ||
-    sessionId;
+    (typeof body.threadId === "string" && body.threadId.trim()) || sessionId;
   const resolvedRunId =
     (typeof body.runId === "string" && body.runId.trim()) ||
     crypto.randomUUID();
 
   const latestUserText = buildRunPayload(body);
   if (!latestUserText) {
-    return errorResponse("AGUI_BAD_REQUEST", "RunAgentInput requires a user message", 400);
+    return errorResponse(
+      "AGUI_BAD_REQUEST",
+      "RunAgentInput requires a user message",
+      400,
+    );
   }
 
   const headers = extractForwardHeaders(request);
@@ -142,11 +164,19 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
+    return errorResponse(
+      "AGUI_UPSTREAM_ERROR",
+      `Upstream connection failed: ${String(error)}`,
+      502,
+    );
   }
 
   if (!upstreamResponse.ok || !upstreamResponse.body) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", "Upstream returned non-OK status", upstreamResponse.status);
+    return errorResponse(
+      "AGUI_UPSTREAM_ERROR",
+      "Upstream returned non-OK status",
+      upstreamResponse.status,
+    );
   }
 
   const accept = request.headers.get("accept") ?? "text/event-stream";
@@ -188,17 +218,21 @@ export async function POST(request: Request) {
               if (!jsonText) {
                 continue;
               }
+
               try {
                 const parsed = JSON.parse(jsonText) as AdkEventPayload;
                 const events = adkEventToAguiEvents(parsed).map((event) =>
                   normalizeAguiEvent({
                     ...event,
-                    threadId: "threadId" in event ? event.threadId : resolvedThreadId,
+                    threadId:
+                      "threadId" in event ? event.threadId : resolvedThreadId,
                     runId: "runId" in event ? event.runId : resolvedRunId,
-                  })
+                  }),
                 );
                 for (const event of events) {
-                  controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(event)));
+                  controller.enqueue(
+                    textEncoder.encode(eventEncoder.encodeSSE(event)),
+                  );
                 }
               } catch (error) {
                 const errEvent: BaseEvent = {
@@ -209,7 +243,9 @@ export async function POST(request: Request) {
                   code: "ADK_EVENT_PARSE_ERROR",
                   timestamp: Date.now() / 1000,
                 };
-                controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(errEvent)));
+                controller.enqueue(
+                  textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
+                );
               }
             }
             boundary = buffer.indexOf("\n\n");
@@ -224,7 +260,9 @@ export async function POST(request: Request) {
           code: "ADK_STREAM_ERROR",
           timestamp: Date.now() / 1000,
         };
-        controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(errEvent)));
+        controller.enqueue(
+          textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
+        );
       } finally {
         const runFinish: BaseEvent = {
           type: EventType.RUN_FINISHED,
@@ -233,7 +271,9 @@ export async function POST(request: Request) {
           timestamp: Date.now() / 1000,
           result: "ok",
         };
-        controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(runFinish)));
+        controller.enqueue(
+          textEncoder.encode(eventEncoder.encodeSSE(runFinish)),
+        );
         controller.close();
       }
     },
