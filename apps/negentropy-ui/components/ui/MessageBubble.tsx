@@ -3,8 +3,10 @@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 import type { Message } from "@ag-ui/core";
-import { micromark } from "micromark";
-import { gfm, gfmHtml } from "micromark-extension-gfm";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+// @ts-expect-error - no types for specific component import in this context or module resolution issue
+import { MermaidDiagram } from "./MermaidDiagram";
 
 type ChatMessageProps = {
   message: Pick<Message, "id" | "role" | "content">;
@@ -42,12 +44,6 @@ export function MessageBubble({ message }: ChatMessageProps) {
       </div>
     );
   }
-
-  // Render markdown with GFM support
-  const htmlContent = micromark(content, {
-    extensions: [gfm()],
-    htmlExtensions: [gfmHtml()],
-  });
 
   return (
     <div
@@ -114,8 +110,34 @@ export function MessageBubble({ message }: ChatMessageProps) {
             isUser &&
               "[&_th]:border-zinc-700 [&_th]:bg-zinc-800 [&_td]:border-zinc-700",
           )}
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              // @ts-expect-error - react-markdown types might mismatch slightly
+              code({ className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || "");
+                const isMermaid = match && match[1] === "mermaid";
+
+                if (isMermaid) {
+                  return (
+                    <MermaidDiagram
+                      code={String(children).replace(/\n$/, "")}
+                    />
+                  );
+                }
+
+                return (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
       </div>
     </div>
   );
