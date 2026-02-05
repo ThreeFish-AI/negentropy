@@ -41,8 +41,14 @@ export type AdkEventPayload = {
   actions?: {
     stateDelta?: Record<string, unknown>;
     artifactDelta?: Record<string, unknown>;
+    stateSnapshot?: Record<string, unknown>;
+    messagesSnapshot?: Message[];
+    stepStarted?: { id: string; name: string };
+    stepFinished?: { id: string; result: unknown };
   };
   delta?: string;
+  raw?: Record<string, unknown>;
+  custom?: { type: string; data: unknown };
 };
 
 export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
@@ -208,6 +214,61 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     events.push({
       type: EventType.STATE_DELTA,
       delta: payload.actions.stateDelta,
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  // 6. State Snapshot（完整状态快照）
+  if (payload.actions?.stateSnapshot) {
+    events.push({
+      type: EventType.STATE_SNAPSHOT,
+      snapshot: payload.actions.stateSnapshot,
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  // 7. Messages Snapshot（消息历史快照）
+  if (payload.actions?.messagesSnapshot) {
+    events.push({
+      type: EventType.MESSAGES_SNAPSHOT,
+      messages: payload.actions.messagesSnapshot,
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  // 8. Step Started/Finished（细粒度进度）
+  if (payload.actions?.stepStarted) {
+    events.push({
+      type: EventType.STEP_STARTED,
+      stepId: payload.actions.stepStarted.id,
+      stepName: payload.actions.stepStarted.name,
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  if (payload.actions?.stepFinished) {
+    events.push({
+      type: EventType.STEP_FINISHED,
+      stepId: payload.actions.stepFinished.id,
+      result: payload.actions.stepFinished.result,
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  // 9. RAW/CUSTOM 事件（透传机制）
+  if (payload.raw) {
+    events.push({
+      type: EventType.RAW,
+      data: payload.raw,
+      ...common,
+    } as unknown as BaseEvent);
+  }
+
+  if (payload.custom) {
+    events.push({
+      type: EventType.CUSTOM,
+      eventType: payload.custom.type,
+      data: payload.custom.data,
       ...common,
     } as unknown as BaseEvent);
   }
