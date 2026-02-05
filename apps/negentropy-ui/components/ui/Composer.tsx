@@ -14,10 +14,13 @@ export function Composer({
   isGenerating,
 }: ComposerProps) {
   return (
-    <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4">
+    <form
+      className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4"
+      autoComplete="off"
+      onSubmit={(e) => e.preventDefault()}
+    >
       <textarea
-        name="message"
-        id="chat-input"
+        name="prompt_content"
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
@@ -36,6 +39,7 @@ export function Composer({
       <div className="mt-3 flex items-center justify-between">
         <p className="text-xs text-zinc-500">Shift+Enter 换行</p>
         <button
+          type="button"
           className="rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40 transition-all flex items-center gap-2"
           onClick={onSend}
           disabled={disabled || !value.trim()}
@@ -46,6 +50,6 @@ export function Composer({
           {isGenerating ? "Generating..." : "Send"}
         </button>
       </div>
-    </div>
+    </form>
   );
 }
