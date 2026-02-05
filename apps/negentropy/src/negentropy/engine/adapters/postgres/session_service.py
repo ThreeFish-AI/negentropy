@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ADK 官方类型
@@ -227,6 +227,13 @@ class PostgresSessionService(BaseSessionService):
             # 2. 应用 state_delta 到数据库
             if event.actions and event.actions.state_delta:
                 await self._apply_state_delta_to_db(db, session, event.actions.state_delta)
+
+            # 3. 更新 Thread updated_at
+            await db.execute(
+                update(self.Thread)
+                .where(self.Thread.id == uuid.UUID(session.id))
+                .values(updated_at=datetime.now(timezone.utc))
+            )
 
             await db.commit()
 
