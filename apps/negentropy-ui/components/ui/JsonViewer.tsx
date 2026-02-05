@@ -143,9 +143,7 @@ export const JsonViewer = ({ data }: { data: unknown }) => {
           <Copy className="w-3.5 h-3.5 text-zinc-500" />
         )}
       </button>
-      <div className="overflow-x-auto">
-        <JsonNode value={data} isLast={true} />
-      </div>
+      <JsonNode value={data} isLast={true} />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import { JsonViewer } from "./JsonViewer";
+import { cn } from "../../lib/utils";
 
 type StateSnapshotProps = {
   snapshot: Record<string, unknown> | null;
@@ -9,7 +10,7 @@ type StateSnapshotProps = {
 
 export function StateSnapshot({ snapshot, connection }: StateSnapshotProps) {
   return (
-    <div className="mb-6 flex flex-col h-[40vh]">
+    <div className="mb-6 flex flex-col">
       <div className="shrink-0 mb-3 flex items-center justify-between">
         <p className="text-xs font-semibold uppercase text-zinc-500 tracking-wider">
           State Snapshot
@@ -32,15 +33,24 @@ export function StateSnapshot({ snapshot, connection }: StateSnapshotProps) {
           </span>
         )}
       </div>
-      <div className="flex-1 overflow-auto rounded-xl border border-zinc-200 bg-white p-3 shadow-sm relative custom-scrollbar">
+      <div
+        className={cn(
+          "min-h-[100px] overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-200 bg-white p-3 shadow-sm relative custom-scrollbar group/snapshot",
+          !snapshot ? "h-32" : "h-64 resize-y",
+        )}
+      >
         {!snapshot ? (
           <div className="absolute inset-0 flex items-center justify-center text-zinc-300 text-xs">
             No State Available
           </div>
         ) : (
-          <div className="min-w-fit h-full">
+          <div className="w-full h-fit">
             <JsonViewer data={snapshot} />
           </div>
+        )}
+        {/* Resize handle hint */}
+        {snapshot && (
+          <div className="absolute bottom-1 right-1 w-2 h-2 border-r-2 border-b-2 border-zinc-500 opacity-20 group-hover/snapshot:opacity-50 transition-opacity pointer-events-none" />
         )}
       </div>
     </div>
