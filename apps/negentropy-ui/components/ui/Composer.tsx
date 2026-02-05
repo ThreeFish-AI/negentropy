@@ -16,6 +16,12 @@ export function Composer({
   return (
     <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4">
       <textarea
+        name="message"
+        id="chat-input"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
         className="h-28 w-full resize-none rounded-lg border border-zinc-200 p-3 text-sm outline-none focus:border-zinc-400"
         placeholder="输入指令..."
         value={value}
