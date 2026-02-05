@@ -683,11 +683,18 @@ export function HomeBody({
         return;
       }
       const nextSessions = payload
-        .map((session: { id: string; lastUpdateTime?: number }) => ({
-          id: session.id,
-          label: createSessionLabel(session.id),
-          lastUpdateTime: session.lastUpdateTime,
-        }))
+        .map(
+          (session: {
+            id: string;
+            lastUpdateTime?: number;
+            state?: { metadata?: { title?: string } };
+          }) => ({
+            id: session.id,
+            label:
+              session.state?.metadata?.title || createSessionLabel(session.id),
+            lastUpdateTime: session.lastUpdateTime,
+          }),
+        )
         .sort(
           (a: SessionRecord, b: SessionRecord) =>
             (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
@@ -1014,7 +1021,7 @@ export function HomeBody({
               </svg>
             </button>
 
-            <div className="text-xs font-medium text-zinc-400">
+            <div className="text-xs font-medium text-zinc-400 max-w-md truncate mx-4">
               {activeSession ? activeSession.label : "Negentropy"}
             </div>
 

@@ -40,10 +40,10 @@ export function SessionList({
             <button
               key={session.id}
               onClick={() => onSelect(session.id)}
-              className={`w-full rounded-lg px-3 py-2 text-left text-xs font-medium ${
+              className={`w-full rounded-lg px-3 py-2 text-left text-xs font-medium truncate transition-colors ${
                 session.id === activeId
                   ? "bg-zinc-900 text-white"
-                  : "bg-zinc-100 text-zinc-700"
+                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
               }`}
             >
               {session.label}
