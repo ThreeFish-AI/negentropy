@@ -8,9 +8,11 @@ type ChatMessage = Pick<Message, "id" | "role"> & {
 
 type ChatStreamProps = {
   messages: ChatMessage[];
+  selectedMessageId?: string | null;
+  onMessageSelect?: (messageId: string) => void;
 };
 
-export function ChatStream({ messages }: ChatStreamProps) {
+export function ChatStream({ messages, selectedMessageId, onMessageSelect }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Sticky scroll logic
@@ -76,7 +78,12 @@ export function ChatStream({ messages }: ChatStreamProps) {
         </div>
       ) : (
         messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isSelected={message.id === selectedMessageId}
+            onSelect={onMessageSelect}
+          />
         ))
       )}
     </div>
