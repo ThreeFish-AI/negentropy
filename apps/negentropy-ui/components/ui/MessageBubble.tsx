@@ -71,8 +71,8 @@ export function MessageBubble({ message }: ChatMessageProps) {
             </div>
           )
         ) : (
-          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shadow-sm ring-2 ring-indigo-50 tracking-wider shrink-0">
-            NE
+          <div className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center shadow-sm ring-2 ring-indigo-50/50 shrink-0 overflow-hidden">
+            <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
           </div>
         )}
       </div>

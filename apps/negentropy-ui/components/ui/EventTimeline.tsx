@@ -291,10 +291,10 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
   if (events.length === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-center opacity-40">
-        <div className="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center mb-3">
+      <div className="h-32 flex flex-col items-center justify-center text-center opacity-40">
+        <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center mb-2">
           <svg
-            className="w-5 h-5 text-zinc-400"
+            className="w-4 h-4 text-zinc-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -307,8 +307,8 @@ export function EventTimeline({ events }: EventTimelineProps) {
             />
           </svg>
         </div>
-        <p className="text-xs font-medium text-zinc-600">No events yet</p>
-        <p className="text-[10px] text-zinc-400 max-w-[12rem] mt-1">
+        <p className="text-[11px] font-medium text-zinc-600">No events yet</p>
+        <p className="text-[9px] text-zinc-400 max-w-[10rem] mt-0.5">
           Reference events will appear here during execution.
         </p>
       </div>

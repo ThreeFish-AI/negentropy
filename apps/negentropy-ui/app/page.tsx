@@ -502,7 +502,7 @@ export function HomeBody({
   });
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [showLeftPanel, setShowLeftPanel] = useState(true);
-  const [showRightPanel, setShowRightPanel] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(false);
   const metricsRef = useRef({
     runCount: 0,
     errorCount: 0,
