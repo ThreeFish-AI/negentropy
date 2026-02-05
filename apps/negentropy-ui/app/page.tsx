@@ -972,10 +972,8 @@ export function HomeBody({
   });
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
-      <SiteHeader />
-
-      <div className="flex h-[calc(100vh-72px)] overflow-hidden relative">
+    <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
+      <div className="flex h-full overflow-hidden relative">
         {/* Left Sidebar: Session List */}
         <div
           className={`shrink-0 h-full border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden ${
