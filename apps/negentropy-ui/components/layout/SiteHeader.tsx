@@ -13,7 +13,7 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
         <div className="flex items-center gap-9">
           <Link href="/" className="flex items-center gap-0">
             <img
-              src="/logo.png"
+              src="/logo.svg"
               alt="Negentropy"
               className="h-9 w-16 object-contain"
             />
