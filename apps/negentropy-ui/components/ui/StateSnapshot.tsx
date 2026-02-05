@@ -36,7 +36,7 @@ export function StateSnapshot({ snapshot, connection }: StateSnapshotProps) {
       <div
         className={cn(
           "min-h-[100px] overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-200 bg-white p-3 shadow-sm relative custom-scrollbar group/snapshot",
-          !snapshot ? "h-32" : "h-64 resize-y",
+          !snapshot ? "h-[85px]" : "h-[170px] resize-y",
         )}
       >
         {!snapshot ? (
