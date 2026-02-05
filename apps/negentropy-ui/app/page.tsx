@@ -89,27 +89,48 @@ function normalizeMessageContent(message: Message) {
 }
 
 type ChatMessage = { id: string; role: string; content: string };
+const EMPTY_MESSAGES: Message[] = [];
 
 function mapMessagesToChat(messages: Message[]) {
   const merged: Array<{ id: string; role: string; content: string }> = [];
-  messages
-    .filter((message) => message.role !== "tool")
-    .forEach((message) => {
-      const content = normalizeMessageContent(message);
-      if (!content) {
-        return;
-      }
-      const last = merged[merged.length - 1];
-      if (last && last.role === "assistant" && message.role === "assistant") {
+  messages.forEach((message) => {
+    const rawRole = (message.role || "assistant").toLowerCase();
+
+    // 1. Block technical/hidden roles
+    if (rawRole === "tool" || rawRole === "system" || rawRole === "function") {
+      return;
+    }
+
+    // 2. Normalize everything else to "user" or "assistant"
+    // This ensures that "model", "bot", or custom roles are treated as assistant content
+    const role = rawRole === "user" ? "user" : "assistant";
+
+    const content = normalizeMessageContent(message);
+    if (!content) {
+      return;
+    }
+
+    const last = merged[merged.length - 1];
+
+    // 3. Smart Merge Strategy
+    // Handles two cases:
+    // A) Snapshot Updates (e.g. "Hello" -> "Hello World"): New content starts with old. REPLACE.
+    // B) Delta/Chunks (e.g. "Hello" -> "!"): New content appends to old. CONCATENATE.
+    if (last && last.role === "assistant" && role === "assistant") {
+      if (content.startsWith(last.content)) {
+        last.content = content;
+      } else {
         last.content = `${last.content}${content}`;
-        return;
       }
-      merged.push({
-        id: message.id,
-        role: message.role,
-        content,
-      });
+      return;
+    }
+
+    merged.push({
+      id: message.id,
+      role,
+      content,
     });
+  });
   return merged;
 }
 
@@ -473,6 +494,8 @@ export function HomeBody({
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnStateChanged],
   });
   const [connection, setConnection] = useState<ConnectionState>("idle");
+  const [showLeftPanel, setShowLeftPanel] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
   const metricsRef = useRef({
     runCount: 0,
     errorCount: 0,
@@ -517,6 +540,18 @@ export function HomeBody({
       });
     },
     [],
+  );
+
+  const updateCurrentSessionTime = useCallback(
+    (id: string) => {
+      setSessions((prev) => {
+        const target = prev.find((s) => s.id === id);
+        if (!target) return prev;
+        const others = prev.filter((s) => s.id !== id);
+        return [{ ...target, lastUpdateTime: Date.now() }, ...others];
+      });
+    },
+    [setSessions],
   );
 
   const reportMetric = useCallback(
@@ -651,23 +686,7 @@ export function HomeBody({
       addLog("error", "load_sessions_failed", { message: String(error) });
       console.warn("Failed to load sessions", error);
     }
-  }, [
-    userId,
-    sessionId,
-    setSessions,
-    setSessionId,
-    setConnectionWithMetrics,
-    addLog,
-  ]);
-
-  const updateCurrentSessionTime = useCallback((id: string) => {
-    setSessions((prev) => {
-      const target = prev.find((s) => s.id === id);
-      if (!target) return prev;
-      const others = prev.filter((s) => s.id !== id);
-      return [{ ...target, lastUpdateTime: Date.now() }, ...others];
-    });
-  }, []);
+  }, [addLog, userId, sessionId, updateCurrentSessionTime]);
 
   const startNewSession = async () => {
     try {
@@ -853,7 +872,8 @@ export function HomeBody({
     loadSessionDetail(sessionId);
   }, [sessionId, agent, loadSessionDetail]);
 
-  const agentMessages = agent ? (agent.messages as Message[]) : [];
+  const agentMessages = agent ? (agent.messages as Message[]) : EMPTY_MESSAGES;
+
   useEffect(() => {
     if (agentMessages.length === 0) {
       return;
@@ -906,50 +926,136 @@ export function HomeBody({
     messagesForRenderBase,
     optimisticMessages,
   );
-  const chatMessages = ensureUniqueMessageIds(
-    mapMessagesToChat(mergedMessagesForRender),
-  );
+
+  const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
+  const chatMessages = ensureUniqueMessageIds(mappedMessages);
+
+  // Debugging logs to investigate missing content
+  // eslint-disable-next-line no-console
+  console.log("DEBUG: Render Cycle", {
+    sessionId,
+    hasLoadedSession,
+    agentMessagesLen: agentMessages.length,
+    optimisticLen: optimisticMessages.length,
+    mergedLen: mergedMessagesForRender.length,
+    mappedLen: mappedMessages.length,
+    finalLen: chatMessages.length,
+    lastMessage: chatMessages[chatMessages.length - 1],
+  });
 
   return (
     <div className="h-screen flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
       <SiteHeader />
 
-      <div className="grid h-[calc(100vh-72px)] grid-cols-12 gap-0 overflow-hidden">
-        <SessionList
-          sessions={sessions}
-          activeId={sessionId}
-          onSelect={setSessionId}
-          onNewSession={startNewSession}
-        />
-
-        <main className="col-span-7 flex flex-col h-full border-r border-zinc-200 bg-zinc-50 overflow-hidden">
-          <ChatStream messages={chatMessages} />
-          <div className="p-6 pt-2 shrink-0">
-            <Composer
-              value={inputValue}
-              onChange={setInputValue}
-              onSend={sendInput}
-              isGenerating={connection === "streaming"}
-              disabled={
-                !sessionId ||
-                connection === "streaming" ||
-                pendingConfirmations > 0
-              }
+      <div className="flex h-[calc(100vh-72px)] overflow-hidden relative">
+        {/* Left Sidebar: Session List */}
+        <div
+          className={`shrink-0 h-full border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden ${
+            showLeftPanel
+              ? "w-64 translate-x-0 opacity-100"
+              : "w-0 -translate-x-10 opacity-0"
+          }`}
+        >
+          <div className="w-64 h-full overflow-hidden flex flex-col">
+            <SessionList
+              sessions={sessions}
+              activeId={sessionId}
+              onSelect={setSessionId}
+              onNewSession={startNewSession}
             />
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col h-full min-w-0 bg-zinc-50 relative overflow-hidden transition-all duration-300">
+          {/* Internal Toolbar for Toggles */}
+          <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-200/50 bg-white/50 backdrop-blur-sm z-10 w-full">
+            <button
+              onClick={() => setShowLeftPanel(!showLeftPanel)}
+              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors"
+              title={showLeftPanel ? "Close Sidebar" : "Open Sidebar"}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+                />
+                {/* Replaced with a simple Sidebar Icon */}
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+              </svg>
+            </button>
+
+            <div className="text-xs font-medium text-zinc-400">
+              {activeSession ? activeSession.label : "Negentropy"}
+            </div>
+
+            <button
+              onClick={() => setShowRightPanel(!showRightPanel)}
+              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors"
+              title={showRightPanel ? "Close Panel" : "Open Panel"}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="15" y1="3" x2="15" y2="21" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Chat Stream Area */}
+          <div className="flex-1 overflow-hidden flex flex-col relative">
+            <ChatStream messages={chatMessages} />
+            <div className="p-6 pt-2 shrink-0 w-full max-w-4xl mx-auto">
+              <Composer
+                value={inputValue}
+                onChange={setInputValue}
+                onSend={sendInput}
+                isGenerating={connection === "streaming"}
+                disabled={
+                  !sessionId ||
+                  connection === "streaming" ||
+                  pendingConfirmations > 0
+                }
+              />
+            </div>
           </div>
         </main>
 
-        <aside className="col-span-3 h-full bg-white p-6 overflow-y-auto">
-          <StateSnapshot snapshot={snapshotForRender} connection={connection} />
-          <EventTimeline events={timelineItems} />
-          <LogBufferPanel
-            entries={logEntries}
-            onExport={() => {
-              const payload = JSON.stringify(logEntries, null, 2);
-              void navigator.clipboard?.writeText(payload);
-            }}
-          />
-        </aside>
+        {/* Right Sidebar: Timeline & Logs */}
+        <div
+          className={`shrink-0 h-full border-l border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden ${
+            showRightPanel
+              ? "w-80 translate-x-0 opacity-100"
+              : "w-0 translate-x-10 opacity-0"
+          }`}
+        >
+          <div className="w-80 h-full overflow-y-auto p-6">
+            <StateSnapshot
+              snapshot={snapshotForRender}
+              connection={connection}
+            />
+            <EventTimeline events={timelineItems} />
+            <LogBufferPanel
+              entries={logEntries}
+              onExport={() => {
+                const payload = JSON.stringify(logEntries, null, 2);
+                void navigator.clipboard?.writeText(payload);
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
