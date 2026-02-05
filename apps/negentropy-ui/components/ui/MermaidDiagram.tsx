@@ -48,7 +48,8 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     };
   }, [code]);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(code);
     } catch (err) {

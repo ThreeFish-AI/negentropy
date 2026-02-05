@@ -39,7 +39,8 @@ function MessageActions({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<"like" | "dislike" | null>(null);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
@@ -90,7 +91,10 @@ function MessageActions({ content }: { content: string }) {
       <div className="w-px h-3 bg-zinc-200 mx-1" />
 
       <button
-        onClick={() => setFeedback(feedback === "like" ? null : "like")}
+        onClick={(e) => {
+          e.stopPropagation();
+          setFeedback(feedback === "like" ? null : "like");
+        }}
         className={cn(
           "p-1 rounded transition-colors",
           feedback === "like"
@@ -114,7 +118,10 @@ function MessageActions({ content }: { content: string }) {
         </svg>
       </button>
       <button
-        onClick={() => setFeedback(feedback === "dislike" ? null : "dislike")}
+        onClick={(e) => {
+          e.stopPropagation();
+          setFeedback(feedback === "dislike" ? null : "dislike");
+        }}
         className={cn(
           "p-1 rounded transition-colors",
           feedback === "dislike"
@@ -144,7 +151,8 @@ function MessageActions({ content }: { content: string }) {
 function CopyButton({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
