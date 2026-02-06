@@ -269,3 +269,64 @@ class SearchConfig:
         if v < 1:
             raise ValueError(f"rrf_k must be at least 1, got {v}")
         return v
+
+
+# ============================================================================
+# Knowledge Graph Types
+# ============================================================================
+
+@dataclass(frozen=True)
+class GraphNode:
+    """知识图谱节点
+
+    表示知识图谱中的一个实体节点。
+    """
+    id: str
+    label: Optional[str] = None
+    node_type: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class GraphEdge:
+    """知识图谱边
+
+    表示知识图谱中两个节点之间的关系。
+    """
+    source: str
+    target: str
+    label: Optional[str] = None
+    edge_type: Optional[str] = None
+    weight: float = 1.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class KnowledgeGraphPayload:
+    """知识图谱数据结构
+
+    包含节点和边的完整图谱数据。
+    """
+    nodes: List[GraphNode]
+    edges: List[GraphEdge]
+    runs: Optional[List[Dict[str, Any]]] = None
+
+
+# ============================================================================
+# Memory Governance Types
+# ============================================================================
+
+AuditAction = Literal["retain", "delete", "anonymize"]
+
+
+@dataclass(frozen=True)
+class AuditRecord:
+    """审计记录
+
+    表示一次记忆审计决策的记录。
+    """
+    memory_id: str
+    decision: str
+    version: Optional[int] = None
+    note: Optional[str] = None
+    created_at: Optional[datetime] = None
