@@ -20,14 +20,10 @@ import {
   adkEventsToMessages,
   adkEventsToSnapshot,
 } from "@/lib/adk";
+import type { SessionRecord, ConnectionState } from "@/types/common";
 
-export type SessionRecord = {
-  id: string;
-  label: string;
-  lastUpdateTime?: number;
-};
-
-export type ConnectionState = "idle" | "connecting" | "streaming" | "error";
+// 重新导出类型以保持向后兼容
+export type { SessionRecord, ConnectionState };
 
 export interface UseSessionManagerOptions {
   userId: string;

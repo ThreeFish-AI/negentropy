@@ -14,16 +14,10 @@
 import { useRef, useState, useCallback, useMemo } from "react";
 import { BaseEvent, compactEvents } from "@ag-ui/core";
 import { buildTimelineItems } from "@/utils/timeline";
+import type { LogEntry, ConnectionState } from "@/types/common";
 
-export type LogEntry = {
-  id: string;
-  timestamp: number;
-  level: "info" | "warn" | "error";
-  message: string;
-  payload?: Record<string, unknown>;
-};
-
-export type ConnectionState = "idle" | "connecting" | "streaming" | "error";
+// 重新导出类型以保持向后兼容
+export type { LogEntry, ConnectionState };
 
 export interface UseEventProcessorOptions {
   sessionMessages?: BaseEvent[];
