@@ -1,26 +1,26 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
+import {
+  errorResponse as aguiErrorResponse,
+  AGUI_ERROR_CODES,
+} from "@/lib/errors";
 
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 }
 
-function errorResponse(code: string, message: string, status = 500) {
-  return NextResponse.json(
-    {
-      error: {
-        code,
-        message,
-      },
-    },
-    { status }
-  );
+function errorResponse(
+  code: keyof typeof AGUI_ERROR_CODES,
+  message: string,
+  traceId?: string,
+): Response {
+  return aguiErrorResponse(code, message, traceId);
 }
 
 export async function POST(request: Request) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
-    return errorResponse("AGUI_INTERNAL_ERROR", "AGUI_BASE_URL is not configured", 500);
+    return errorResponse("INTERNAL_ERROR", "AGUI_BASE_URL is not configured");
   }
 
   let body: {
@@ -33,11 +33,11 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as typeof body;
   } catch (error) {
-    return errorResponse("AGUI_BAD_REQUEST", `Invalid JSON body: ${String(error)}`, 400);
+    return errorResponse("BAD_REQUEST", `Invalid JSON body: ${String(error)}`);
   }
 
   if (!body?.app_name || !body?.user_id) {
-    return errorResponse("AGUI_BAD_REQUEST", "app_name and user_id are required", 400);
+    return errorResponse("BAD_REQUEST", "app_name and user_id are required");
   }
 
   const upstreamUrl = new URL(
@@ -63,12 +63,12 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
+    return errorResponse("UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`);
   }
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
+    return errorResponse("UPSTREAM_ERROR", text || "Upstream returned non-OK status");
   }
 
   try {
