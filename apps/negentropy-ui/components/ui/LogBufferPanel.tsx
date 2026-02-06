@@ -1,10 +1,4 @@
-type LogEntry = {
-  id: string;
-  timestamp: number;
-  level: "info" | "warn" | "error";
-  message: string;
-  payload?: Record<string, unknown>;
-};
+import type { LogEntry } from "@/types/common";
 
 type LogBufferPanelProps = {
   entries: LogEntry[];
@@ -33,8 +27,8 @@ export function LogBufferPanel({ entries, onExport }: LogBufferPanelProps) {
         {entries.length === 0 ? (
           <p className="text-zinc-400">暂无日志</p>
         ) : (
-          entries.map((entry) => (
-            <div key={entry.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-2">
+          entries.map((entry, index) => (
+            <div key={entry.id ?? `${entry.timestamp}-${index}`} className="rounded-lg border border-zinc-100 bg-zinc-50 p-2">
               <div className="flex items-center justify-between text-[10px] uppercase text-zinc-400">
                 <span>{entry.level}</span>
                 <span>{formatTime(entry.timestamp)}</span>

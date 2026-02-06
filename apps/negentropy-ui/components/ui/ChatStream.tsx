@@ -1,10 +1,7 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import type { Message } from "@ag-ui/core";
-
-type ChatMessage = Pick<Message, "id" | "role"> & {
-  content: string;
-};
+import type { ChatMessage } from "@/types/common";
 
 type ChatStreamProps = {
   messages: ChatMessage[];

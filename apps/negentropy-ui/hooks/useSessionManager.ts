@@ -22,9 +22,6 @@ import {
 } from "@/lib/adk";
 import type { SessionRecord, ConnectionState } from "@/types/common";
 
-// 重新导出类型以保持向后兼容
-export type { SessionRecord, ConnectionState };
-
 export interface UseSessionManagerOptions {
   userId: string;
   appName: string;
