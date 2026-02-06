@@ -104,21 +104,71 @@ sequenceDiagram
 
 ### 6.1 模块结构
 
-- [apps/negentropy/src/negentropy/knowledge/**init**.py](../apps/negentropy/src/negentropy/knowledge/__init__.py)
+- [apps/negentropy/src/negentropy/knowledge/__init__.py](../apps/negentropy/src/negentropy/knowledge/__init__.py)
 - [apps/negentropy/src/negentropy/knowledge/types.py](../apps/negentropy/src/negentropy/knowledge/types.py)
 - [apps/negentropy/src/negentropy/knowledge/chunking.py](../apps/negentropy/src/negentropy/knowledge/chunking.py)
 - [apps/negentropy/src/negentropy/knowledge/repository.py](../apps/negentropy/src/negentropy/knowledge/repository.py)
 - [apps/negentropy/src/negentropy/knowledge/service.py](../apps/negentropy/src/negentropy/knowledge/service.py)
 - [apps/negentropy/src/negentropy/knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)
+- [apps/negentropy/src/negentropy/knowledge/exceptions.py](../apps/negentropy/src/negentropy/knowledge/exceptions.py) - 统一异常体系
+- [apps/negentropy/src/negentropy/knowledge/constants.py](../apps/negentropy/src/negentropy/knowledge/constants.py) - 常量定义
 - [apps/negentropy-ui/app/api/knowledge](../apps/negentropy-ui/app/api/knowledge)（BFF 代理层）
 
 ### 6.2 关键职责
 
-- **KnowledgeRepository**：对 `Corpus/Knowledge` 的 CRUD + 检索（语义/关键词）。
+- **KnowledgeRepository**：对 `Corpus/Knowledge` 的 CRUD + 检索（语义/关键词/混合）。
 - **KnowledgeService**：编排 ingestion 与检索策略，提供扩展点（chunking/embedding）。
 - **ChunkingConfig/SearchConfig**：将策略参数显式化，避免散落在调用侧。<sup>[[1]](#ref1)</sup>
 - **Knowledge API**：提供 Dashboard/Base/Graph/Memory/Pipelines 入口，对齐 UI 结构（见 [apps/negentropy/src/negentropy/knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)）。
 - **Embedding 配置**：沿用 LLM 配置域扩展（见 [apps/negentropy/src/negentropy/config/llm.py](../apps/negentropy/src/negentropy/config/llm.py)），支持独立 embedding model。
+
+### 6.3 异常处理体系
+
+**异常层次结构**（正交分解）：
+```
+KnowledgeError
+├── DomainError
+│   ├── CorpusNotFound - 语料库不存在 (404)
+│   ├── KnowledgeNotFound - 知识块不存在 (404)
+│   └── VersionConflict - 版本冲突 (409)
+├── InfrastructureError
+│   ├── EmbeddingFailed - 向量化失败 (500)
+│   ├── SearchError - 检索失败 (500)
+│   └── DatabaseError - 数据库错误 (500)
+└── ValidationError
+    ├── InvalidChunkSize - 无效分块大小 (400)
+    ├── InvalidSearchConfig - 无效搜索配置 (400)
+    └── InvalidMetadata - 无效元数据 (400)
+```
+
+**HTTP 状态码映射**：
+- `400 Bad Request`: 参数验证失败
+- `404 Not Found`: 资源不存在
+- `409 Conflict`: 版本冲突
+- `500 Internal Server Error`: 基础设施错误
+
+### 6.4 性能优化
+
+**批量插入优化**：
+- 使用 PostgreSQL 原生 `INSERT` 批量插入
+- 替代逐条 ORM 操作，预期提升 3-5 倍写入性能
+
+**混合检索优化**：
+- 优先使用数据库原生 `kb_hybrid_search()` 函数
+- 自动降级到 Python 端混合检索（回退方案）
+- 预期减少 20% 检索延迟
+
+### 6.5 配置验证
+
+**ChunkingConfig 验证规则**：
+- `chunk_size`: 1 ~ 100000
+- `overlap`: 0 ~ chunk_size * 0.5
+- `preserve_newlines`: true/false
+
+**SearchConfig 验证规则**：
+- `mode`: 'semantic' | 'keyword' | 'hybrid'
+- `limit`: 1 ~ 1000
+- `semantic_weight`, `keyword_weight`: 0.0 ~ 1.0
 
 ## 7. 扩展点（为 Graph/Memory 预留）
 
@@ -131,6 +181,72 @@ sequenceDiagram
 - **日志**：ingestion 起止、chunk 数量、写入耗时。
 - **指标**：检索命中率、向量检索耗时、索引失败数。
 - **验证**：最小回归（写入 + 检索 + 回滚）。
+
+### 8.1 结构化日志
+
+**索引流程日志**：
+```python
+logger.info("ingestion_started",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            text_length=len(text),
+            source_uri=source_uri,
+            chunk_size=config.chunk_size,
+            overlap=config.overlap)
+
+logger.info("chunks_created",
+            corpus_id=str(corpus_id),
+            chunk_count=len(chunks))
+
+logger.info("embeddings_attached",
+            corpus_id=str(corpus_id),
+            chunk_count=len(chunks))
+
+logger.info("ingestion_completed",
+            corpus_id=str(corpus_id),
+            record_count=len(records))
+```
+
+**检索流程日志**：
+```python
+logger.info("search_started",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            mode=config.mode,
+            limit=config.limit,
+            query_preview=query[:100])
+
+logger.info("search_completed",
+            corpus_id=str(corpus_id),
+            mode=config.mode,
+            semantic_count=len(semantic_matches),
+            keyword_count=len(keyword_matches),
+            merged_count=len(results))
+```
+
+### 8.2 错误追踪
+
+**API 层错误日志**：
+```python
+logger.warning("corpus_not_found", details=exc.details)
+logger.warning("version_conflict", details=exc.details)
+logger.warning("validation_error", details=exc.details)
+logger.error("infrastructure_error", details=exc.details)
+logger.error("database_error", details=exc.details)
+```
+
+### 8.3 性能监控
+
+**关键指标**：
+- 索引速度: chunks/秒
+- 搜索延迟: P95 < 100ms
+- 向量化延迟: P95 < 500ms
+- 数据库查询延迟: P95 < 50ms
+
+**监控集成**：
+- Langfuse 追踪（利用现有 `ObservabilitySettings`）
+- Prometheus 指标（可选）
+- 结构化日志解析（Elasticsearch/Loki）
 
 ## 9. 风险与边界控制
 
