@@ -1,4 +1,4 @@
-from .chunking import chunk_text
+from .chunking import chunk_text, semantic_chunk_async
 from .reranking import (
     APIReranker,
     CompositeReranker,
@@ -12,6 +12,7 @@ from .repository import KnowledgeRepository
 from .service import KnowledgeService
 from .types import (
     ChunkingConfig,
+    ChunkingStrategy,
     CorpusRecord,
     CorpusSpec,
     KnowledgeChunk,
@@ -22,9 +23,11 @@ from .types import (
 
 __all__ = [
     "chunk_text",
+    "semantic_chunk_async",
     "KnowledgeRepository",
     "KnowledgeService",
     "ChunkingConfig",
+    "ChunkingStrategy",
     "CorpusRecord",
     "CorpusSpec",
     "KnowledgeChunk",
