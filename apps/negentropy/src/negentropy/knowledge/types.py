@@ -5,12 +5,23 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
+from pydantic import FieldValidationInfo, field_validator
+
+from .constants import (
+    MAX_OVERLAP_RATIO,
+    MIN_CHUNK_SIZE,
+)
+
 
 SearchMode = Literal["semantic", "keyword", "hybrid"]
 
 
 @dataclass(frozen=True)
 class CorpusSpec:
+    """语料库创建规范
+
+    用于创建新的 Corpus 实例。
+    """
     app_name: str
     name: str
     description: Optional[str] = None
@@ -19,6 +30,10 @@ class CorpusSpec:
 
 @dataclass(frozen=True)
 class CorpusRecord:
+    """语料库记录
+
+    表示已创建的 Corpus 实例，包含所有持久化字段。
+    """
     id: UUID
     app_name: str
     name: str
@@ -30,6 +45,10 @@ class CorpusRecord:
 
 @dataclass(frozen=True)
 class KnowledgeChunk:
+    """知识块
+
+    表示待索引的文本分块，包含内容和元数据。
+    """
     content: str
     source_uri: Optional[str] = None
     chunk_index: int = 0
@@ -39,6 +58,10 @@ class KnowledgeChunk:
 
 @dataclass(frozen=True)
 class KnowledgeRecord:
+    """知识记录
+
+    表示已持久化的 Knowledge 实例。
+    """
     id: UUID
     corpus_id: UUID
     app_name: str
@@ -53,6 +76,10 @@ class KnowledgeRecord:
 
 @dataclass(frozen=True)
 class KnowledgeMatch:
+    """知识匹配结果
+
+    表示检索返回的单条匹配结果，包含各种分数。
+    """
     id: UUID
     content: str
     source_uri: Optional[str]
@@ -64,15 +91,97 @@ class KnowledgeMatch:
 
 @dataclass(frozen=True)
 class ChunkingConfig:
+    """分块配置
+
+    控制文本如何被分割成可索引的块。
+    """
     chunk_size: int = 800
     overlap: int = 100
     preserve_newlines: bool = True
 
+    @field_validator("chunk_size")
+    @classmethod
+    def validate_chunk_size(cls, v: int) -> int:
+        """验证分块大小
+
+        确保 chunk_size 为正数且在合理范围内。
+        """
+        if v < MIN_CHUNK_SIZE:
+            raise ValueError(f"chunk_size must be at least {MIN_CHUNK_SIZE}, got {v}")
+        if v > 100000:  # 100K 字符上限
+            raise ValueError(f"chunk_size must be at most 100000, got {v}")
+        return v
+
+    @field_validator("overlap")
+    @classmethod
+    def validate_overlap(cls, v: int, info: FieldValidationInfo) -> int:
+        """验证重叠大小
+
+        确保 overlap 为非负数且小于 chunk_size。
+        """
+        if v < 0:
+            raise ValueError(f"overlap must be non-negative, got {v}")
+
+        # 获取 chunk_size 的值（如果可用）
+        chunk_size = info.data.get("chunk_size", 800)
+        if v >= chunk_size:
+            raise ValueError(
+                f"overlap must be less than chunk_size ({chunk_size}), got {v}"
+            )
+
+        # 验证重叠比例
+        max_overlap = int(chunk_size * MAX_OVERLAP_RATIO)
+        if v > max_overlap:
+            raise ValueError(
+                f"overlap ({v}) exceeds {MAX_OVERLAP_RATIO * 100}% of chunk_size ({chunk_size})"
+            )
+
+        return v
+
 
 @dataclass(frozen=True)
 class SearchConfig:
+    """检索配置
+
+    控制搜索行为，包括模式、限制和权重。
+    """
     mode: SearchMode = "hybrid"
     limit: int = 20
     semantic_weight: float = 0.7
     keyword_weight: float = 0.3
     metadata_filter: Optional[Dict[str, Any]] = None
+
+    @field_validator("limit")
+    @classmethod
+    def validate_limit(cls, v: int) -> int:
+        """验证结果限制
+
+        确保 limit 为正数且在合理范围内。
+        """
+        if v < 1:
+            raise ValueError(f"limit must be at least 1, got {v}")
+        if v > 1000:
+            raise ValueError(f"limit must be at most 1000, got {v}")
+        return v
+
+    @field_validator("semantic_weight", "keyword_weight")
+    @classmethod
+    def validate_weights(cls, v: float) -> float:
+        """验证权重值
+
+        确保权重在 [0, 1] 范围内。
+        """
+        if not (0.0 <= v <= 1.0):
+            raise ValueError(f"weight must be between 0 and 1, got {v}")
+        return v
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, v: str) -> str:
+        """验证搜索模式
+
+        确保模式为支持的值之一。
+        """
+        if v not in ("semantic", "keyword", "hybrid"):
+            raise ValueError(f"mode must be 'semantic', 'keyword', or 'hybrid', got {v}")
+        return v
