@@ -40,7 +40,6 @@ import {
   mergeAdjacentAssistant,
   buildChatMessagesFromEventsWithFallback,
   ensureUniqueMessageIds,
-  type ChatMessage,
 } from "@/utils/message";
 import { buildTimelineItems } from "@/utils/timeline";
 import { buildStateSnapshotFromEvents } from "@/utils/state";
@@ -52,6 +51,7 @@ import type {
   LogEntry,
   AuthUser,
   AuthStatus,
+  ChatMessage,
 } from "@/types/common";
 
 const AGENT_ID = "negentropy";

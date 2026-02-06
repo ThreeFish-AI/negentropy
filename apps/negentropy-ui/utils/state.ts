@@ -7,6 +7,20 @@
 import { BaseEvent, EventType } from "@ag-ui/core";
 
 /**
+ * 类型守卫：检查事件是否为 STATE_DELTA 事件
+ */
+function isStateDeltaEvent(
+  event: BaseEvent,
+): event is BaseEvent & { delta: Record<string, unknown> } {
+  return (
+    event.type === EventType.STATE_DELTA &&
+    "delta" in event &&
+    typeof event.delta === "object" &&
+    event.delta !== null
+  );
+}
+
+/**
  * 从 STATE_DELTA 事件重建状态快照
  *
  * 使用事件溯源模式：按顺序应用所有 STATE_DELTA 事件
@@ -29,12 +43,12 @@ export function buildStateSnapshotFromEvents(
   let hasState = false;
 
   for (const event of events) {
-    if (event.type === EventType.STATE_DELTA) {
+    if (isStateDeltaEvent(event)) {
       hasState = true;
       // Apply delta - shallow merge for simplicity
       state = {
         ...state,
-        ...(event as { delta: Record<string, unknown> }).delta,
+        ...event.delta,
       };
     }
   }

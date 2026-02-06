@@ -1,15 +1,15 @@
 import { EventEncoder } from "@ag-ui/encoder";
 import { BaseEvent, EventType } from "@ag-ui/core";
-import { NextResponse } from "next/server";
 import { AdkEventPayload, adkEventToAguiEvents } from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
-  type AguiErrorCode,
 } from "@/lib/errors";
 
 const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
+
+type NormalizableEvent = BaseEvent & { role?: string; delta?: unknown };
 
 function jsonPointerEscape(segment: string) {
   return segment.replace(/~/g, "~0").replace(/\//g, "~1");
@@ -23,8 +23,8 @@ function toPatchOperations(delta: Record<string, unknown>) {
   }));
 }
 
-function normalizeAguiEvent(event: BaseEvent) {
-  const next = { ...event } as BaseEvent & { role?: string; delta?: unknown };
+function normalizeAguiEvent(event: BaseEvent): BaseEvent {
+  const next = { ...event } as NormalizableEvent;
   if (
     "role" in next &&
     typeof next.role === "string" &&
@@ -71,14 +71,6 @@ function extractForwardHeaders(request: Request) {
   return headers;
 }
 
-function errorResponse(
-  code: AguiErrorCode,
-  message: string,
-  traceId?: string,
-): Response {
-  return aguiErrorResponse(code, message, traceId);
-}
-
 function buildRunPayload(input: Record<string, unknown>) {
   const messages = Array.isArray(input.messages) ? input.messages : [];
   const lastUser = [...messages]
@@ -95,7 +87,7 @@ function buildRunPayload(input: Record<string, unknown>) {
 export async function POST(request: Request) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
-    return errorResponse(
+    return aguiErrorResponse(
       AGUI_ERROR_CODES.INTERNAL_ERROR,
       "AGUI_BASE_URL is not configured",
     );
@@ -105,7 +97,7 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch (error) {
-    return errorResponse(
+    return aguiErrorResponse(
       AGUI_ERROR_CODES.BAD_REQUEST,
       `Invalid JSON body: ${String(error)}`,
     );
@@ -119,7 +111,7 @@ export async function POST(request: Request) {
   const sessionId =
     url.searchParams.get("session_id") || (body.session_id as string);
   if (!sessionId) {
-    return errorResponse(
+    return aguiErrorResponse(
       AGUI_ERROR_CODES.BAD_REQUEST,
       "session_id is required",
     );
@@ -132,7 +124,7 @@ export async function POST(request: Request) {
 
   const latestUserText = buildRunPayload(body);
   if (!latestUserText) {
-    return errorResponse(
+    return aguiErrorResponse(
       AGUI_ERROR_CODES.BAD_REQUEST,
       "RunAgentInput requires a user message",
     );
@@ -165,14 +157,14 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse(
+    return aguiErrorResponse(
       AGUI_ERROR_CODES.UPSTREAM_ERROR,
       `Upstream connection failed: ${String(error)}`,
     );
   }
 
   if (!upstreamResponse.ok || !upstreamResponse.body) {
-    return errorResponse(
+    return aguiErrorResponse(
       AGUI_ERROR_CODES.UPSTREAM_ERROR,
       "Upstream returned non-OK status",
     );

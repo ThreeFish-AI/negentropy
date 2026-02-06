@@ -9,18 +9,10 @@ function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 }
 
-function errorResponse(
-  code: keyof typeof AGUI_ERROR_CODES,
-  message: string,
-  traceId?: string,
-): Response {
-  return aguiErrorResponse(code, message, traceId);
-}
-
 export async function POST(request: Request) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
-    return errorResponse("INTERNAL_ERROR", "AGUI_BASE_URL is not configured");
+    return aguiErrorResponse(AGUI_ERROR_CODES.INTERNAL_ERROR, "AGUI_BASE_URL is not configured");
   }
 
   let body: {
@@ -33,11 +25,11 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as typeof body;
   } catch (error) {
-    return errorResponse("BAD_REQUEST", `Invalid JSON body: ${String(error)}`);
+    return aguiErrorResponse(AGUI_ERROR_CODES.BAD_REQUEST, `Invalid JSON body: ${String(error)}`);
   }
 
   if (!body?.app_name || !body?.user_id) {
-    return errorResponse("BAD_REQUEST", "app_name and user_id are required");
+    return aguiErrorResponse(AGUI_ERROR_CODES.BAD_REQUEST, "app_name and user_id are required");
   }
 
   const upstreamUrl = new URL(
@@ -63,12 +55,12 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse("UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`);
+    return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, `Upstream connection failed: ${String(error)}`);
   }
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return errorResponse("UPSTREAM_ERROR", text || "Upstream returned non-OK status");
+    return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, text || "Upstream returned non-OK status");
   }
 
   try {

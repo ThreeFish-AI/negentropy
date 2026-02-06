@@ -22,22 +22,22 @@ export const AGUI_ERROR_CODES = {
 } as const;
 
 /**
- * 错误码类型
+ * 错误码类型（使用值类型，而非键类型）
  */
-export type AguiErrorCode = keyof typeof AGUI_ERROR_CODES;
+export type AguiErrorCode = (typeof AGUI_ERROR_CODES)[keyof typeof AGUI_ERROR_CODES];
 
 /**
  * 错误码到 HTTP 状态码的映射
  */
 const ERROR_CODE_TO_STATUS: Record<AguiErrorCode, number> = {
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  RATE_LIMITED: 429,
-  UPSTREAM_TIMEOUT: 504,
-  UPSTREAM_ERROR: 502,
-  INTERNAL_ERROR: 500,
+  AGUI_BAD_REQUEST: 400,
+  AGUI_UNAUTHORIZED: 401,
+  AGUI_FORBIDDEN: 403,
+  AGUI_NOT_FOUND: 404,
+  AGUI_RATE_LIMITED: 429,
+  AGUI_UPSTREAM_TIMEOUT: 504,
+  AGUI_UPSTREAM_ERROR: 502,
+  AGUI_INTERNAL_ERROR: 500,
 };
 
 /**
@@ -116,7 +116,7 @@ export function errorResponse(
  */
 export function toAguiError(
   error: unknown,
-  defaultCode: AguiErrorCode = "INTERNAL_ERROR",
+  defaultCode: AguiErrorCode = "AGUI_INTERNAL_ERROR",
 ): AguiError {
   if (error instanceof AguiError) {
     return error;

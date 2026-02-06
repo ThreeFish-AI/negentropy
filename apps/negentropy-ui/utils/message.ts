@@ -6,8 +6,9 @@
 
 import { Message } from "@ag-ui/core";
 import { BaseEvent, EventType } from "@ag-ui/core";
+import type { ChatMessage } from "@/types/common";
 
-export type ChatMessage = { id: string; role: string; content: string };
+export type { ChatMessage };
 
 /**
  * 标准化消息内容为字符串

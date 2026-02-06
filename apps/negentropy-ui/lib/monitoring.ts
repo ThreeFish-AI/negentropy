@@ -10,49 +10,45 @@
  * 生产环境可扩展集成远程日志服务
  */
 
-type LogLevel = "debug" | "info" | "warn" | "error";
+import type { LogEntry } from "@/types/common";
 
-export type LogEntry = {
-  level: LogLevel;
-  message: string;
-  timestamp: number;
-  context?: Record<string, unknown>;
-};
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 class Logger {
   private logs: LogEntry[] = [];
   private maxLogs = 500;
 
-  log(level: LogLevel, message: string, context?: Record<string, unknown>) {
+  log(level: LogLevel, message: string, payload?: Record<string, unknown>) {
     const entry: LogEntry = {
+      id: crypto.randomUUID(),
       level,
       message,
       timestamp: Date.now(),
-      context,
+      payload,
     };
     this.logs.push(entry);
     if (this.logs.length > this.maxLogs) {
       this.logs = this.logs.slice(-this.maxLogs);
     }
     if (process.env.NODE_ENV === "development") {
-      console[level](`[${level.toUpperCase()}]`, message, context);
+      console[level](`[${level.toUpperCase()}]`, message, payload);
     }
   }
 
-  debug(message: string, context?: Record<string, unknown>) {
-    this.log("debug", message, context);
+  debug(message: string, payload?: Record<string, unknown>) {
+    this.log("debug", message, payload);
   }
 
-  info(message: string, context?: Record<string, unknown>) {
-    this.log("info", message, context);
+  info(message: string, payload?: Record<string, unknown>) {
+    this.log("info", message, payload);
   }
 
-  warn(message: string, context?: Record<string, unknown>) {
-    this.log("warn", message, context);
+  warn(message: string, payload?: Record<string, unknown>) {
+    this.log("warn", message, payload);
   }
 
-  error(message: string, context?: Record<string, unknown>) {
-    this.log("error", message, context);
+  error(message: string, payload?: Record<string, unknown>) {
+    this.log("error", message, payload);
   }
 
   getLogs(): LogEntry[] {
