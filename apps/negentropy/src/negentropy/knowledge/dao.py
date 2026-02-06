@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
-from negentropy.models.knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun, MemoryAuditLog
+from negentropy.models.knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 
 
 @dataclass(frozen=True)
@@ -165,75 +165,6 @@ class KnowledgeRunDao:
                 return UpsertResult("conflict", {"run_id": run_id})
             await db.refresh(record)
             return UpsertResult("created", self._to_pipeline_record(record))
-
-    async def record_memory_audits(
-        self,
-        *,
-        app_name: str,
-        user_id: str,
-        decisions: Dict[str, str],
-        idempotency_key: Optional[str],
-        expected_versions: Optional[Dict[str, int]],
-        note: Optional[str],
-    ) -> list[MemoryAuditLog]:
-        audits: list[MemoryAuditLog] = []
-        async with self._session_factory() as db:
-            for memory_id, decision in decisions.items():
-                if idempotency_key:
-                    stmt = select(MemoryAuditLog).where(
-                        MemoryAuditLog.app_name == app_name,
-                        MemoryAuditLog.user_id == user_id,
-                        MemoryAuditLog.memory_id == memory_id,
-                        MemoryAuditLog.idempotency_key == idempotency_key,
-                    )
-                    result = await db.execute(stmt)
-                    existing = result.scalar_one_or_none()
-                    if existing:
-                        audits.append(existing)
-                        continue
-
-                stmt = select(func.max(MemoryAuditLog.version)).where(
-                    MemoryAuditLog.app_name == app_name,
-                    MemoryAuditLog.user_id == user_id,
-                    MemoryAuditLog.memory_id == memory_id,
-                )
-                result = await db.execute(stmt)
-                current_version = result.scalar_one()
-                expected = (expected_versions or {}).get(memory_id)
-                if expected is not None:
-                    if current_version is None and expected != 0:
-                        raise ValueError("memory_audit_version_conflict")
-                    if current_version is not None and expected != current_version:
-                        raise ValueError("memory_audit_version_conflict")
-                next_version = 1 if current_version is None else int(current_version) + 1
-
-                audit = MemoryAuditLog(
-                    app_name=app_name,
-                    user_id=user_id,
-                    memory_id=memory_id,
-                    decision=decision,
-                    note=note,
-                    idempotency_key=idempotency_key,
-                    version=next_version,
-                )
-                db.add(audit)
-                audits.append(audit)
-
-            await db.commit()
-            for audit in audits:
-                await db.refresh(audit)
-        return audits
-
-    async def list_memory_audits(
-        self, app_name: str, user_id: Optional[str] = None, limit: int = 100
-    ) -> list[MemoryAuditLog]:
-        async with self._session_factory() as db:
-            stmt = select(MemoryAuditLog).where(MemoryAuditLog.app_name == app_name)
-            if user_id:
-                stmt = stmt.where(MemoryAuditLog.user_id == user_id)
-            stmt = stmt.order_by(MemoryAuditLog.created_at.desc()).limit(limit)
-            result = await db.execute(stmt)
-            return list(result.scalars().all())
 
     @staticmethod
     def _to_graph_record(record: KnowledgeGraphRun) -> Dict[str, Any]:

@@ -5,6 +5,8 @@ def __getattr__(name: str):
     if name in {
         "get_memory_service",
         "reset_memory_service",
+        "get_memory_governance_service",
+        "reset_memory_governance_service",
         "get_runner",
         "reset_runner",
         "get_session_service",
@@ -23,6 +25,8 @@ def __getattr__(name: str):
 __all__ = [
     "get_memory_service",
     "reset_memory_service",
+    "get_memory_governance_service",
+    "reset_memory_governance_service",
     "get_session_service",
     "reset_session_service",
     "get_runner",

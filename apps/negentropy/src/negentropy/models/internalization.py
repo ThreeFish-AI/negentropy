@@ -94,3 +94,30 @@ class Instruction(Base, UUIDMixin):
         UniqueConstraint("app_name", "instruction_key", "version", name="instructions_app_key_version_unique"),
         {"schema": NEGENTROPY_SCHEMA},
     )
+
+
+class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
+    """
+    Memory Audit Log Model
+
+    用于记录用户记忆的审计决策，支持版本控制和幂等性。
+
+    参考文献:
+    [1] A. Ebbinghaus, "Memory: A Contribution to Experimental Psychology," 1885.
+    """
+    __tablename__ = "memory_audit_logs"
+
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    memory_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    decision: Mapped[str] = mapped_column(String(20), nullable=False)
+    note: Mapped[Optional[str]] = mapped_column(Text)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(255))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "app_name", "user_id", "memory_id", "idempotency_key", name="memory_audit_logs_idempotency_unique"
+        ),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
