@@ -33,7 +33,7 @@ import { useEventProcessor } from "@/hooks/useEventProcessor";
 import { useUIState } from "@/hooks/useUIState";
 
 // 提取的工具函数
-import { createSessionLabel } from "@/utils/session";
+import { createSessionLabel, buildAgentUrl } from "@/utils/session";
 import {
   normalizeMessageContent,
   mapMessagesToChat,
@@ -81,7 +81,6 @@ const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
 // 类型定义保留在文件中
-type ConnectionState = "idle" | "connecting" | "streaming" | "error";
 
 function ConfirmationToolCard({
   status,
@@ -165,7 +164,9 @@ function ConfirmationToolCard({
  * Reconstructs the state snapshot from STATE_DELTA events up to a point in time
  * Uses event sourcing pattern: apply all STATE_DELTA events in sequence
  */
-function buildStateSnapshotFromEvents(events: BaseEvent[]): Record<string, unknown> | null {
+function buildStateSnapshotFromEvents(
+  events: BaseEvent[],
+): Record<string, unknown> | null {
   let state: Record<string, unknown> = {};
   let hasState = false;
 
@@ -173,7 +174,10 @@ function buildStateSnapshotFromEvents(events: BaseEvent[]): Record<string, unkno
     if (event.type === EventType.STATE_DELTA) {
       hasState = true;
       // Apply delta - shallow merge for simplicity
-      state = { ...state, ...(event as { delta: Record<string, unknown> }).delta };
+      state = {
+        ...state,
+        ...(event as { delta: Record<string, unknown> }).delta,
+      };
     }
   }
 
@@ -247,7 +251,9 @@ export function HomeBody({
     unknown
   > | null>(null);
   const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null,
+  );
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
@@ -438,13 +444,16 @@ export function HomeBody({
     }
 
     // Filter events to only those before/at the selected message's timestamp
-    return rawEvents.filter(event => {
+    return rawEvents.filter((event) => {
       const eventTimestamp = event.timestamp || 0;
       return eventTimestamp <= cutoffTimestamp;
     });
   }, [rawEvents, selectedMessageId, messageTimestamps]);
 
-  const compactedEvents = useMemo(() => compactEvents(filteredRawEvents), [filteredRawEvents]);
+  const compactedEvents = useMemo(
+    () => compactEvents(filteredRawEvents),
+    [filteredRawEvents],
+  );
   const timelineItems = useMemo(
     () => buildTimelineItems(compactedEvents),
     [compactedEvents],
@@ -610,13 +619,13 @@ export function HomeBody({
   // Escape key to return to live view
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedMessageId) {
+      if (e.key === "Escape" && selectedMessageId) {
         setSelectedMessageId(null);
         setShowRightPanel(false);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedMessageId]);
 
   const sendInput = async () => {
@@ -802,7 +811,7 @@ export function HomeBody({
     // Convert cutoff to milliseconds for comparison
     const cutoffMs = cutoffTimestamp * 1000;
 
-    return logEntries.filter(entry => entry.timestamp <= cutoffMs);
+    return logEntries.filter((entry) => entry.timestamp <= cutoffMs);
   }, [logEntries, selectedMessageId, messageTimestamps]);
 
   return (
@@ -919,7 +928,9 @@ export function HomeBody({
             {selectedMessageId && (
               <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-amber-800">历史视图</span>
+                  <span className="text-xs font-semibold text-amber-800">
+                    历史视图
+                  </span>
                   <button
                     onClick={() => {
                       setSelectedMessageId(null);
