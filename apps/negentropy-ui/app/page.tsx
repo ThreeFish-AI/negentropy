@@ -6,11 +6,9 @@ import {
   CopilotKitProvider,
   UseAgentUpdate,
   useAgent,
-  useHumanInTheLoop,
 } from "@copilotkitnext/react";
 import { HttpAgent, compactEvents, randomUUID } from "@ag-ui/client";
 import { BaseEvent, EventType, Message } from "@ag-ui/core";
-import { z } from "zod";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
@@ -20,10 +18,7 @@ import { useAuth } from "../components/providers/AuthProvider";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
-import {
-  ConfirmationToolCard,
-  type ConfirmationToolArgs,
-} from "../components/ui/ConfirmationToolCard";
+import { ConfirmationToolCard } from "../components/ui/ConfirmationToolCard";
 import {
   AdkEventPayload,
   adkEventToAguiEvents,
@@ -35,6 +30,7 @@ import {
 import { useSessionManager } from "@/hooks/useSessionManager";
 import { useEventProcessor } from "@/hooks/useEventProcessor";
 import { useUIState } from "@/hooks/useUIState";
+import { useConfirmationTool, type ConfirmationToolArgs } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
 import { createSessionLabel, buildAgentUrl } from "@/utils/session";
@@ -47,86 +43,19 @@ import {
   type ChatMessage,
 } from "@/utils/message";
 import { buildTimelineItems } from "@/utils/timeline";
+import { buildStateSnapshotFromEvents } from "@/utils/state";
 
-type ConnectionState = "idle" | "connecting" | "streaming" | "error";
-
-type SessionRecord = {
-  id: string;
-  label: string;
-  lastUpdateTime?: number;
-};
-
-type LogEntry = {
-  id: string;
-  timestamp: number;
-  level: "info" | "warn" | "error";
-  message: string;
-  payload?: Record<string, unknown>;
-};
-
-type AuthUser = {
-  userId: string;
-  email?: string;
-  name?: string;
-  picture?: string;
-  roles?: string[];
-  provider?: string;
-};
-
-type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+// 统一的类型定义
+import type {
+  ConnectionState,
+  SessionRecord,
+  LogEntry,
+  AuthUser,
+  AuthStatus,
+} from "@/types/common";
 
 const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
-
-/**
- * Reconstructs the state snapshot from STATE_DELTA events up to a point in time
- * Uses event sourcing pattern: apply all STATE_DELTA events in sequence
- */
-function buildStateSnapshotFromEvents(
-  events: BaseEvent[],
-): Record<string, unknown> | null {
-  let state: Record<string, unknown> = {};
-  let hasState = false;
-
-  for (const event of events) {
-    if (event.type === EventType.STATE_DELTA) {
-      hasState = true;
-      // Apply delta - shallow merge for simplicity
-      state = {
-        ...state,
-        ...(event as { delta: Record<string, unknown> }).delta,
-      };
-    }
-  }
-
-  return hasState ? state : null;
-}
-
-function useConfirmationTool(
-  onFollowup?: (payload: { action: string; note: string }) => void,
-) {
-  useHumanInTheLoop<ConfirmationToolArgs>(
-    {
-      name: "ui.confirmation",
-      description: "用于前端确认/修正/补充的人工确认流程",
-      parameters: z.object({
-        title: z.string().optional(),
-        detail: z.string().optional(),
-        payload: z.record(z.any()).optional(),
-      }),
-      render: ({ status, args, respond, result }) => (
-        <ConfirmationToolCard
-          status={status}
-          args={args as ConfirmationToolArgs}
-          respond={respond}
-          result={result}
-          onFollowup={onFollowup}
-        />
-      ),
-    },
-    [onFollowup],
-  );
-}
 
 export function HomeBody({
   sessionId,

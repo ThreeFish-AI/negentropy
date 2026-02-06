@@ -7,8 +7,5 @@
 // AG-UI 事件类型
 export * from "./agui";
 
-// 会话相关类型 (待补充)
-// export * from "./session";
-
-// UI 组件类型 (待补充)
-// export * from "./ui";
+// 通用类型
+export * from "./common";
