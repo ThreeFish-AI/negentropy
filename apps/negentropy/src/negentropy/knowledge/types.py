@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
@@ -14,6 +15,16 @@ from .constants import (
 
 
 SearchMode = Literal["semantic", "keyword", "hybrid", "rrf"]
+
+
+class ChunkingStrategy(Enum):
+    """分块策略枚举
+
+    定义不同的文本分块策略，用于将长文本分割成适合索引的块。
+    """
+    FIXED = "fixed"         # 固定大小分块（字符级别）
+    RECURSIVE = "recursive" # 递归分块（段落 > 句子 > 词）
+    SEMANTIC = "semantic"   # 语义分块（基于句子相似度）
 
 
 @dataclass(frozen=True)
@@ -94,10 +105,37 @@ class ChunkingConfig:
     """分块配置
 
     控制文本如何被分割成可索引的块。
+
+    支持三种分块策略:
+    - "fixed": 固定大小分块（字符级别），简单高效
+    - "recursive": 递归分块（段落 > 句子 > 词），保持结构
+    - "semantic": 语义分块（基于句子相似度），保持语义完整性
+
+    语义分块参考文献:
+    [1] G. Kamalloo and A. K. G., "Semantic Chunking for RAG Applications," 2024.
+    [2] LlamaIndex, "Semantic Chunking," GitHub, 2024.
     """
+    strategy: ChunkingStrategy = ChunkingStrategy.RECURSIVE
     chunk_size: int = 800
     overlap: int = 100
     preserve_newlines: bool = True
+    # 语义分块专用参数
+    semantic_threshold: float = 0.85  # 相似度阈值，低于此值时切分
+    min_chunk_size: int = 50          # 最小块大小（字符数）
+    max_chunk_size: int = 2000        # 最大块大小（字符数），用于滑动窗口合并
+
+    @field_validator("strategy")
+    @classmethod
+    def validate_strategy(cls, v: ChunkingStrategy | str) -> ChunkingStrategy:
+        """验证分块策略"""
+        if isinstance(v, ChunkingStrategy):
+            return v
+        try:
+            return ChunkingStrategy(v)
+        except ValueError:
+            raise ValueError(
+                f"strategy must be one of {[s.value for s in ChunkingStrategy]}, got {v}"
+            )
 
     @field_validator("chunk_size")
     @classmethod
@@ -136,6 +174,30 @@ class ChunkingConfig:
                 f"overlap ({v}) exceeds {MAX_OVERLAP_RATIO * 100}% of chunk_size ({chunk_size})"
             )
 
+        return v
+
+    @field_validator("semantic_threshold")
+    @classmethod
+    def validate_semantic_threshold(cls, v: float) -> float:
+        """验证语义相似度阈值"""
+        if not (0.0 <= v <= 1.0):
+            raise ValueError(f"semantic_threshold must be between 0 and 1, got {v}")
+        return v
+
+    @field_validator("min_chunk_size")
+    @classmethod
+    def validate_min_chunk_size(cls, v: int) -> int:
+        """验证最小块大小"""
+        if v < 1:
+            raise ValueError(f"min_chunk_size must be at least 1, got {v}")
+        return v
+
+    @field_validator("max_chunk_size")
+    @classmethod
+    def validate_max_chunk_size(cls, v: int) -> int:
+        """验证最大块大小"""
+        if v < 100:
+            raise ValueError(f"max_chunk_size must be at least 100, got {v}")
         return v
 
 
