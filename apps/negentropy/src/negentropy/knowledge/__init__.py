@@ -1,4 +1,13 @@
 from .chunking import chunk_text
+from .reranking import (
+    APIReranker,
+    CompositeReranker,
+    LocalReranker,
+    NoopReranker,
+    Reranker,
+    RerankConfig,
+    create_default_reranker,
+)
 from .repository import KnowledgeRepository
 from .service import KnowledgeService
 from .types import (
@@ -22,4 +31,12 @@ __all__ = [
     "KnowledgeMatch",
     "KnowledgeRecord",
     "SearchConfig",
+    # Reranking exports
+    "Reranker",
+    "RerankConfig",
+    "LocalReranker",
+    "APIReranker",
+    "NoopReranker",
+    "CompositeReranker",
+    "create_default_reranker",
 ]
