@@ -9,8 +9,8 @@
  * - 消息流展示
  */
 
-// Utils
-export { mergeOptimisticMessages } from "./utils/message-merge";
+// Utils (re-export from utils/)
+export { mergeOptimisticMessages } from "@/utils/message-merge";
 
 // Hooks
 export { useMessageSender } from "./hooks/useMessageSender";

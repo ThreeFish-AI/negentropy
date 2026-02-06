@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { mergeOptimisticMessages } from "@/features/messaging/utils/message-merge";
+import { mergeOptimisticMessages } from "@/utils/message-merge";
 import type { Message } from "@ag-ui/core";
 
 describe("mergeOptimisticMessages", () => {

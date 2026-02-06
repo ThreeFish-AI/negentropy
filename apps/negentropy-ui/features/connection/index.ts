@@ -9,9 +9,9 @@
  * - 连接状态展示
  */
 
-// Components
-export { ConnectionBadge } from "./components/ConnectionBadge";
-export type { ConnectionBadgeProps } from "./components/ConnectionBadge";
+// Components (re-export from components/ui/)
+export { ConnectionBadge } from "@/components/ui/ConnectionBadge";
+export type { ConnectionBadgeProps } from "@/components/ui/ConnectionBadge";
 
 // Hooks
 export { useConnectionState } from "./hooks/useConnectionState";
