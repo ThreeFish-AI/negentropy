@@ -1,7 +1,7 @@
 from .action import SandboxExecution, Tool, ToolExecution
 from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector
-from .internalization import ConsolidationJob, Fact, Instruction, Memory
-from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun, MemoryAuditLog
+from .internalization import ConsolidationJob, Fact, Instruction, Memory, MemoryAuditLog
+from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .observability import Trace
 from .perception import Corpus, Knowledge
 from .pulse import AppState, Event, Message, Run, Snapshot, Thread, UserState
@@ -26,6 +26,7 @@ __all__ = [
     "Fact",
     "ConsolidationJob",
     "Instruction",
+    "MemoryAuditLog",
     # Action (was Mind)
     "Tool",
     "ToolExecution",
@@ -38,7 +39,6 @@ __all__ = [
     # Knowledge Runtime
     "KnowledgeGraphRun",
     "KnowledgePipelineRun",
-    "MemoryAuditLog",
     # Security
     "Credential",
 ]

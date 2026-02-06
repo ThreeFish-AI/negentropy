@@ -117,15 +117,6 @@ class PipelinesUpsertRequest(BaseModel):
     expected_version: Optional[int] = None
 
 
-class MemoryAuditRequest(BaseModel):
-    app_name: Optional[str] = None
-    user_id: str
-    decisions: Dict[str, str] = Field(default_factory=dict)
-    expected_versions: Optional[Dict[str, int]] = None
-    note: Optional[str] = None
-    idempotency_key: Optional[str] = None
-
-
 _service: Optional[KnowledgeService] = None
 _dao: Optional[KnowledgeRunDao] = None
 
@@ -492,57 +483,6 @@ async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
     if result.status == "conflict":
         raise HTTPException(status_code=409, detail="Graph run version conflict")
     return {"status": result.status, "graph": result.record}
-
-
-@router.get("/memory")
-async def get_memory(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
-    resolved_app = _resolve_app_name(app_name)
-    dao = _get_dao()
-    audits = await dao.list_memory_audits(resolved_app, limit=100)
-    return {
-        "users": [],
-        "timeline": [],
-        "policies": {},
-        "audits": [
-            {
-                "memory_id": audit.memory_id,
-                "decision": audit.decision,
-                "note": audit.note,
-                "version": audit.version,
-                "created_at": audit.created_at.isoformat() if audit.created_at else None,
-            }
-            for audit in audits
-        ],
-    }
-
-
-@router.post("/memory/audit")
-async def audit_memory(payload: MemoryAuditRequest) -> Dict[str, Any]:
-    resolved_app = _resolve_app_name(payload.app_name)
-    dao = _get_dao()
-    try:
-        audits = await dao.record_memory_audits(
-            app_name=resolved_app,
-            user_id=payload.user_id,
-            decisions=payload.decisions,
-            idempotency_key=payload.idempotency_key,
-            expected_versions=payload.expected_versions,
-            note=payload.note,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {
-        "status": "ok",
-        "audits": [
-            {
-                "memory_id": audit.memory_id,
-                "decision": audit.decision,
-                "version": audit.version,
-                "created_at": audit.created_at.isoformat() if audit.created_at else None,
-            }
-            for audit in audits
-        ],
-    }
 
 
 @router.get("/pipelines")

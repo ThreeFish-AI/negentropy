@@ -310,23 +310,3 @@ class KnowledgeGraphPayload:
     nodes: List[GraphNode]
     edges: List[GraphEdge]
     runs: Optional[List[Dict[str, Any]]] = None
-
-
-# ============================================================================
-# Memory Governance Types
-# ============================================================================
-
-AuditAction = Literal["retain", "delete", "anonymize"]
-
-
-@dataclass(frozen=True)
-class AuditRecord:
-    """审计记录
-
-    表示一次记忆审计决策的记录。
-    """
-    memory_id: str
-    decision: str
-    version: Optional[int] = None
-    note: Optional[str] = None
-    created_at: Optional[datetime] = None
