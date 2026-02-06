@@ -612,6 +612,7 @@ export function HomeBody({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && selectedMessageId) {
         setSelectedMessageId(null);
+        setShowRightPanel(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -879,8 +880,14 @@ export function HomeBody({
               messages={chatMessages}
               selectedMessageId={selectedMessageId}
               onMessageSelect={(id) => {
-                setSelectedMessageId(id);
-                setShowRightPanel(true); // Auto-open sidebar if closed
+                if (selectedMessageId === id) {
+                  // Toggle off: just deselect
+                  setSelectedMessageId(null);
+                } else {
+                  // Select new message and ensure sidebar is open
+                  setSelectedMessageId(id);
+                  setShowRightPanel(true);
+                }
               }}
             />
             <div className="p-6 pt-2 shrink-0 w-full max-w-4xl mx-auto">
@@ -914,7 +921,10 @@ export function HomeBody({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-800">历史视图</span>
                   <button
-                    onClick={() => setSelectedMessageId(null)}
+                    onClick={() => {
+                      setSelectedMessageId(null);
+                      // Sidebar stays open, auto-select will pick latest message
+                    }}
                     className="text-xs text-amber-600 hover:text-amber-800 underline"
                   >
                     返回实时
