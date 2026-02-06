@@ -21,6 +21,10 @@ import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
 import {
+  ConfirmationToolCard,
+  type ConfirmationToolArgs,
+} from "../components/ui/ConfirmationToolCard";
+import {
   AdkEventPayload,
   adkEventToAguiEvents,
   adkEventsToMessages,
@@ -60,12 +64,6 @@ type LogEntry = {
   payload?: Record<string, unknown>;
 };
 
-type ConfirmationToolArgs = {
-  title?: string;
-  detail?: string;
-  payload?: Record<string, unknown>;
-};
-
 type AuthUser = {
   userId: string;
   email?: string;
@@ -79,86 +77,6 @@ type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
-
-// 类型定义保留在文件中
-
-function ConfirmationToolCard({
-  status,
-  args,
-  respond,
-  result,
-  onFollowup,
-}: {
-  status: "inProgress" | "executing" | "complete";
-  args: ConfirmationToolArgs;
-  respond?: (result: unknown) => Promise<void>;
-  result?: string;
-  onFollowup?: (payload: { action: string; note: string }) => void;
-}) {
-  const [note, setNote] = useState("");
-  const payloadText = JSON.stringify(args?.payload ?? {}, null, 2);
-
-  if (status === "complete") {
-    return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-700">
-        <p className="font-semibold">已反馈</p>
-        <p className="mt-1 break-words">{result}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-      <p className="text-sm font-semibold">需要确认</p>
-      {args?.title ? <p className="mt-1 text-xs">{args.title}</p> : null}
-      {args?.detail ? <p className="mt-1 text-xs">{args.detail}</p> : null}
-      {payloadText !== "{}" ? (
-        <pre className="mt-2 max-h-24 overflow-auto rounded bg-white/80 p-2 text-[10px]">
-          {payloadText}
-        </pre>
-      ) : null}
-      <textarea
-        className="mt-2 w-full rounded border border-amber-200 bg-white p-2 text-[11px]"
-        rows={2}
-        placeholder="补充说明（可选）"
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-      />
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button
-          className="rounded-full bg-emerald-600 px-3 py-1 text-[11px] text-white"
-          onClick={async () => {
-            if (!respond) return;
-            await respond({ action: "confirm", note });
-            onFollowup?.({ action: "confirm", note });
-          }}
-        >
-          确认
-        </button>
-        <button
-          className="rounded-full bg-slate-700 px-3 py-1 text-[11px] text-white"
-          onClick={async () => {
-            if (!respond) return;
-            await respond({ action: "correct", note });
-            onFollowup?.({ action: "correct", note });
-          }}
-        >
-          修正
-        </button>
-        <button
-          className="rounded-full bg-indigo-600 px-3 py-1 text-[11px] text-white"
-          onClick={async () => {
-            if (!respond) return;
-            await respond({ action: "supplement", note });
-            onFollowup?.({ action: "supplement", note });
-          }}
-        >
-          补充
-        </button>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Reconstructs the state snapshot from STATE_DELTA events up to a point in time

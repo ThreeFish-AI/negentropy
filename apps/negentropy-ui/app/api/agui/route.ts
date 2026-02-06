@@ -3,6 +3,11 @@ import { BaseEvent, EventType } from "@ag-ui/core";
 import { NextResponse } from "next/server";
 import { AdkEventPayload, adkEventToAguiEvents } from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
+import {
+  errorResponse as aguiErrorResponse,
+  AGUI_ERROR_CODES,
+  type AguiErrorCode,
+} from "@/lib/errors";
 
 const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
 
@@ -66,16 +71,12 @@ function extractForwardHeaders(request: Request) {
   return headers;
 }
 
-function errorResponse(code: string, message: string, status = 500) {
-  return NextResponse.json(
-    {
-      error: {
-        code,
-        message,
-      },
-    },
-    { status },
-  );
+function errorResponse(
+  code: AguiErrorCode,
+  message: string,
+  traceId?: string,
+): Response {
+  return aguiErrorResponse(code, message, traceId);
 }
 
 function buildRunPayload(input: Record<string, unknown>) {
@@ -95,9 +96,8 @@ export async function POST(request: Request) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     return errorResponse(
-      "AGUI_INTERNAL_ERROR",
+      AGUI_ERROR_CODES.INTERNAL_ERROR,
       "AGUI_BASE_URL is not configured",
-      500,
     );
   }
 
@@ -106,9 +106,8 @@ export async function POST(request: Request) {
     body = (await request.json()) as Record<string, unknown>;
   } catch (error) {
     return errorResponse(
-      "AGUI_BAD_REQUEST",
+      AGUI_ERROR_CODES.BAD_REQUEST,
       `Invalid JSON body: ${String(error)}`,
-      400,
     );
   }
 
@@ -120,7 +119,10 @@ export async function POST(request: Request) {
   const sessionId =
     url.searchParams.get("session_id") || (body.session_id as string);
   if (!sessionId) {
-    return errorResponse("AGUI_BAD_REQUEST", "session_id is required", 400);
+    return errorResponse(
+      AGUI_ERROR_CODES.BAD_REQUEST,
+      "session_id is required",
+    );
   }
   const resolvedThreadId =
     (typeof body.threadId === "string" && body.threadId.trim()) || sessionId;
@@ -131,9 +133,8 @@ export async function POST(request: Request) {
   const latestUserText = buildRunPayload(body);
   if (!latestUserText) {
     return errorResponse(
-      "AGUI_BAD_REQUEST",
+      AGUI_ERROR_CODES.BAD_REQUEST,
       "RunAgentInput requires a user message",
-      400,
     );
   }
 
@@ -165,17 +166,15 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     return errorResponse(
-      "AGUI_UPSTREAM_ERROR",
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
       `Upstream connection failed: ${String(error)}`,
-      502,
     );
   }
 
   if (!upstreamResponse.ok || !upstreamResponse.body) {
     return errorResponse(
-      "AGUI_UPSTREAM_ERROR",
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
       "Upstream returned non-OK status",
-      upstreamResponse.status,
     );
   }
 

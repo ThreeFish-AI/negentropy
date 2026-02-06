@@ -1,4 +1,21 @@
 import { BaseEvent, EventType, Message } from "@ag-ui/core";
+import {
+  createTextMessageStartEvent,
+  createTextMessageContentEvent,
+  createTextMessageEndEvent,
+  createToolCallStartEvent,
+  createToolCallArgsEvent,
+  createToolCallEndEvent,
+  createToolCallResultEvent,
+  createStateDeltaEvent,
+  createStateSnapshotEvent,
+  createActivitySnapshotEvent,
+  createMessagesSnapshotEvent,
+  createStepStartedEvent,
+  createStepFinishedEvent,
+  createRawEvent,
+  createCustomEvent,
+} from "./adk/guards";
 
 // ... (imports)
 
@@ -87,51 +104,26 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
   ) {
     const role = payload.message?.role || payload.author || "assistant";
 
-    events.push({
-      type: EventType.TEXT_MESSAGE_START,
-      role,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createTextMessageStartEvent(common, role));
 
     const fullText = textParts.join("");
     if (fullText) {
-      events.push({
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        delta: fullText,
-        ...common,
-      } as unknown as BaseEvent);
+      events.push(createTextMessageContentEvent(common, fullText));
     }
 
-    events.push({
-      type: EventType.TEXT_MESSAGE_END,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createTextMessageEndEvent(common));
   }
 
   // 2. Tool Calls (OpenAI Style)
   if (payload.message?.tool_calls) {
     payload.message.tool_calls.forEach((tc) => {
-      events.push({
-        type: EventType.TOOL_CALL_START,
-        toolCallId: tc.id,
-        toolCallName: tc.function.name,
-        ...common,
-      } as unknown as BaseEvent);
+      events.push(createToolCallStartEvent(common, tc.id, tc.function.name));
 
       if (tc.function.arguments) {
-        events.push({
-          type: EventType.TOOL_CALL_ARGS,
-          toolCallId: tc.id,
-          delta: tc.function.arguments,
-          ...common,
-        } as unknown as BaseEvent);
+        events.push(createToolCallArgsEvent(common, tc.id, tc.function.arguments));
       }
 
-      events.push({
-        type: EventType.TOOL_CALL_END,
-        toolCallId: tc.id,
-        ...common,
-      } as unknown as BaseEvent);
+      events.push(createToolCallEndEvent(common, tc.id));
     });
   }
 
@@ -140,26 +132,12 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     payload.content.parts.forEach((part) => {
       if (part.functionCall) {
         const fc = part.functionCall;
-        events.push({
-          type: EventType.TOOL_CALL_START,
-          toolCallId: fc.id,
-          toolCallName: fc.name,
-          ...common,
-        } as unknown as BaseEvent);
+        events.push(createToolCallStartEvent(common, fc.id, fc.name));
 
         const argsString = JSON.stringify(fc.args || {});
-        events.push({
-          type: EventType.TOOL_CALL_ARGS,
-          toolCallId: fc.id,
-          delta: argsString,
-          ...common,
-        } as unknown as BaseEvent);
+        events.push(createToolCallArgsEvent(common, fc.id, argsString));
 
-        events.push({
-          type: EventType.TOOL_CALL_END,
-          toolCallId: fc.id,
-          ...common,
-        } as unknown as BaseEvent);
+        events.push(createToolCallEndEvent(common, fc.id));
       }
     });
   }
@@ -167,12 +145,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
   // 3. Tool Result (OpenAI Style)
   if (payload.message?.role === "tool" && payload.message.tool_call_id) {
     const content = textParts.join("") || payload.delta || "";
-    events.push({
-      type: EventType.TOOL_CALL_RESULT,
-      toolCallId: payload.message.tool_call_id,
-      content,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createToolCallResultEvent(common, payload.message.tool_call_id, content));
   }
 
   // 3b. Tool Result (Gemini/Parts Style)
@@ -183,12 +156,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
         const result = fr.response?.result ?? fr.response ?? null;
         const content =
           typeof result === "string" ? result : JSON.stringify(result);
-        events.push({
-          type: EventType.TOOL_CALL_RESULT,
-          toolCallId: fr.id,
-          content,
-          ...common,
-        } as unknown as BaseEvent);
+        events.push(createToolCallResultEvent(common, fr.id, content));
       }
     });
   }
@@ -198,12 +166,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     payload.actions?.artifactDelta &&
     Object.keys(payload.actions.artifactDelta).length > 0
   ) {
-    events.push({
-      type: EventType.ACTIVITY_SNAPSHOT,
-      activityType: "artifact",
-      content: payload.actions.artifactDelta || {},
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createActivitySnapshotEvent(common, "artifact", payload.actions.artifactDelta || {}));
   }
 
   // 5. State Delta
@@ -211,66 +174,35 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     payload.actions?.stateDelta &&
     Object.keys(payload.actions.stateDelta).length > 0
   ) {
-    events.push({
-      type: EventType.STATE_DELTA,
-      delta: payload.actions.stateDelta,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createStateDeltaEvent(common, payload.actions.stateDelta));
   }
 
   // 6. State Snapshot（完整状态快照）
   if (payload.actions?.stateSnapshot) {
-    events.push({
-      type: EventType.STATE_SNAPSHOT,
-      snapshot: payload.actions.stateSnapshot,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createStateSnapshotEvent(common, payload.actions.stateSnapshot));
   }
 
   // 7. Messages Snapshot（消息历史快照）
   if (payload.actions?.messagesSnapshot) {
-    events.push({
-      type: EventType.MESSAGES_SNAPSHOT,
-      messages: payload.actions.messagesSnapshot,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createMessagesSnapshotEvent(common, payload.actions.messagesSnapshot));
   }
 
   // 8. Step Started/Finished（细粒度进度）
   if (payload.actions?.stepStarted) {
-    events.push({
-      type: EventType.STEP_STARTED,
-      stepId: payload.actions.stepStarted.id,
-      stepName: payload.actions.stepStarted.name,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createStepStartedEvent(common, payload.actions.stepStarted.id, payload.actions.stepStarted.name));
   }
 
   if (payload.actions?.stepFinished) {
-    events.push({
-      type: EventType.STEP_FINISHED,
-      stepId: payload.actions.stepFinished.id,
-      result: payload.actions.stepFinished.result,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createStepFinishedEvent(common, payload.actions.stepFinished.id, payload.actions.stepFinished.result));
   }
 
   // 9. RAW/CUSTOM 事件（透传机制）
   if (payload.raw) {
-    events.push({
-      type: EventType.RAW,
-      data: payload.raw,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createRawEvent(common, payload.raw));
   }
 
   if (payload.custom) {
-    events.push({
-      type: EventType.CUSTOM,
-      eventType: payload.custom.type,
-      data: payload.custom.data,
-      ...common,
-    } as unknown as BaseEvent);
+    events.push(createCustomEvent(common, payload.custom.type, payload.custom.data));
   }
 
   return events;
