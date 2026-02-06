@@ -22,8 +22,8 @@ export type { ConfirmationToolArgs };
 export function useConfirmationTool(
   onFollowup?: (payload: { action: string; note: string }) => void,
 ) {
-  useHumanInTheLoop<ConfirmationToolArgs>(
-    ({
+  useHumanInTheLoop(
+    {
       name: "ui.confirmation",
       description: "用于前端确认/修正/补充的人工确认流程",
       parameters: z.object({
@@ -40,7 +40,7 @@ export function useConfirmationTool(
           onFollowup={onFollowup}
         />
       ),
-    }),
+    },
     [onFollowup],
   );
 }
