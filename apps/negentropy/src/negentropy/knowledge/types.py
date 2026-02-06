@@ -13,7 +13,7 @@ from .constants import (
 )
 
 
-SearchMode = Literal["semantic", "keyword", "hybrid"]
+SearchMode = Literal["semantic", "keyword", "hybrid", "rrf"]
 
 
 @dataclass(frozen=True)
@@ -144,12 +144,23 @@ class SearchConfig:
     """检索配置
 
     控制搜索行为，包括模式、限制和权重。
+
+    支持的检索模式:
+    - "semantic": 纯语义检索 (向量相似度)
+    - "keyword": 纯关键词检索 (BM25)
+    - "hybrid": 加权融合检索 (semantic_weight * semantic_score + keyword_weight * keyword_score)
+    - "rrf": RRF 融合检索 (Reciprocal Rank Fusion，对分数尺度不敏感)
+
+    RRF 模式参考文献:
+    [1] Y. Wang et al., "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods,"
+        SIGIR'18, 2018.
     """
     mode: SearchMode = "hybrid"
     limit: int = 20
     semantic_weight: float = 0.7
     keyword_weight: float = 0.3
     metadata_filter: Optional[Dict[str, Any]] = None
+    rrf_k: int = 60  # RRF 平滑常数，仅用于 "rrf" 模式
 
     @field_validator("limit")
     @classmethod
@@ -182,6 +193,17 @@ class SearchConfig:
 
         确保模式为支持的值之一。
         """
-        if v not in ("semantic", "keyword", "hybrid"):
-            raise ValueError(f"mode must be 'semantic', 'keyword', or 'hybrid', got {v}")
+        if v not in ("semantic", "keyword", "hybrid", "rrf"):
+            raise ValueError(f"mode must be 'semantic', 'keyword', 'hybrid', or 'rrf', got {v}")
+        return v
+
+    @field_validator("rrf_k")
+    @classmethod
+    def validate_rrf_k(cls, v: int) -> int:
+        """验证 RRF 平滑常数
+
+        确保值为正数。
+        """
+        if v < 1:
+            raise ValueError(f"rrf_k must be at least 1, got {v}")
         return v

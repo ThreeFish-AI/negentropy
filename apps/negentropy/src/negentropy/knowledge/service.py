@@ -158,7 +158,15 @@ class KnowledgeService:
     ) -> list[KnowledgeMatch]:
         """搜索知识库
 
-        支持三种模式: semantic、keyword、hybrid
+        支持四种检索模式:
+        - "semantic": 基于向量相似度的语义检索
+        - "keyword": 基于 BM25 的关键词检索
+        - "hybrid": 加权融合检索 (semantic_weight * semantic_score + keyword_weight * keyword_score)
+        - "rrf": RRF 融合检索 (Reciprocal Rank Fusion，对分数尺度不敏感)
+
+        RRF 模式参考文献:
+        [1] Y. Wang et al., "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods,"
+            SIGIR'18, 2018.
         """
         config = config or SearchConfig()
         query_preview = query[:TEXT_PREVIEW_MAX_LENGTH] if query else ""
@@ -176,6 +184,46 @@ class KnowledgeService:
             query_preview=query_preview,
         )
 
+        # RRF 模式: 使用专门的 RRF 检索方法
+        if config.mode == "rrf":
+            if not self._embedding_fn:
+                logger.warning("rrf_search_failed_no_embedding", corpus_id=str(corpus_id))
+                # 回退到关键词检索
+                keyword_matches = await self._repository.keyword_search(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    query=query,
+                    limit=config.limit,
+                    metadata_filter=config.metadata_filter,
+                )
+                logger.info(
+                    "search_completed",
+                    corpus_id=str(corpus_id),
+                    mode="keyword_fallback",
+                    result_count=len(keyword_matches),
+                )
+                return keyword_matches
+
+            query_embedding = await self._embedding_fn(query)
+            results = await self._repository.rrf_search(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                query=query,
+                query_embedding=query_embedding,
+                limit=config.limit,
+                k=config.rrf_k,
+            )
+
+            logger.info(
+                "search_completed",
+                corpus_id=str(corpus_id),
+                mode="rrf",
+                rrf_k=config.rrf_k,
+                result_count=len(results),
+            )
+            return results
+
+        # 其他模式: semantic, keyword, hybrid
         query_embedding = None
         if config.mode in ("semantic", "hybrid") and self._embedding_fn:
             query_embedding = await self._embedding_fn(query)

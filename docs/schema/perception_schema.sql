@@ -387,6 +387,93 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ================================
+-- Part 6.5: Knowledge Base RRF Search 函数
+-- Reciprocal Rank Fusion 融合检索
+-- 基于 [030-the-perception.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/engine/030-the-perception.md)
+-- 任务 ID: P1-2
+-- ================================
+
+CREATE OR REPLACE FUNCTION kb_rrf_search(
+    p_corpus_id UUID,
+    p_app_name VARCHAR(255),
+    p_query TEXT,
+    p_query_embedding vector(1536),
+    p_limit INTEGER DEFAULT 50,
+    p_k INTEGER DEFAULT 60  -- RRF 平滑常数，默认 60
+)
+RETURNS TABLE (
+    id UUID,
+    content TEXT,
+    source_uri TEXT,
+    rrf_score REAL,
+    semantic_rank INTEGER,
+    keyword_rank INTEGER,
+    metadata JSONB
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH
+    -- 1. 语义检索 + 排名
+    semantic_ranked AS (
+        SELECT
+            kb.id, kb.content, kb.source_uri, kb.metadata,
+            ROW_NUMBER() OVER (ORDER BY kb.embedding <=> p_query_embedding) AS rank
+        FROM knowledge kb
+        WHERE kb.corpus_id = p_corpus_id
+          AND kb.app_name = p_app_name
+          AND kb.embedding IS NOT NULL
+        ORDER BY kb.embedding <=> p_query_embedding
+        LIMIT p_limit * 3
+    ),
+    -- 2. 关键词检索 + 排名
+    keyword_ranked AS (
+        SELECT
+            kb.id, kb.content, kb.source_uri, kb.metadata,
+            ROW_NUMBER() OVER (
+                ORDER BY ts_rank_cd(kb.search_vector, plainto_tsquery('english', p_query)) DESC
+            ) AS rank
+        FROM knowledge kb
+        WHERE kb.corpus_id = p_corpus_id
+          AND kb.app_name = p_app_name
+          AND kb.search_vector @@ plainto_tsquery('english', p_query)
+        ORDER BY ts_rank_cd(kb.search_vector, plainto_tsquery('english', p_query)) DESC
+        LIMIT p_limit * 3
+    ),
+    -- 3. RRF 融合
+    -- 公式: RRF(d) = sum(1 / (k + rank_r(d)))
+    -- 参考文献: [1] Y. Wang et al., "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods," SIGIR'18
+    rrf_combined AS (
+        SELECT
+            COALESCE(s.id, k.id) AS id,
+            COALESCE(s.content, k.content) AS content,
+            COALESCE(s.source_uri, k.source_uri) AS source_uri,
+            COALESCE(s.metadata, k.metadata) AS metadata,
+            s.rank AS semantic_rank,
+            k.rank AS keyword_rank,
+            -- RRF 公式: sum(1 / (k + rank))
+            (COALESCE(1.0 / (p_k + s.rank), 0) +
+             COALESCE(1.0 / (p_k + k.rank), 0))::REAL AS rrf_score
+        FROM semantic_ranked s
+        FULL OUTER JOIN keyword_ranked k ON s.id = k.id
+    )
+    -- 4. 按 RRF 分数排序
+    SELECT
+        c.id,
+        c.content,
+        c.source_uri,
+        c.rrf_score,
+        c.semantic_rank::INTEGER,
+        c.keyword_rank::INTEGER,
+        c.metadata
+    FROM rrf_combined c
+    ORDER BY c.rrf_score DESC
+    LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION kb_rrf_search IS 'Knowledge Base RRF 融合检索函数，使用 Reciprocal Rank Fusion 算法合并语义和关键词检索结果';
+
+-- ================================
 -- Part 7: 验证脚本
 -- ================================
 
