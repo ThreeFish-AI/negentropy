@@ -16,6 +16,7 @@ from .constants import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_KEYWORD_WEIGHT,
     DEFAULT_OVERLAP,
+    DEFAULT_SEARCH_LIMIT,
     DEFAULT_SEMANTIC_WEIGHT,
 )
 from .embedding import build_embedding_fn
