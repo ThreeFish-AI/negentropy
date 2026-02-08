@@ -30,7 +30,7 @@ from negentropy.knowledge.constants import (
     DEFAULT_SEARCH_LIMIT,
     DEFAULT_SEMANTIC_WEIGHT,
 )
-from negentropy.knowledge.embedding import build_embedding_fn
+from negentropy.knowledge.embedding import build_batch_embedding_fn, build_embedding_fn
 from negentropy.knowledge.service import KnowledgeService
 from negentropy.knowledge.types import SearchConfig
 from negentropy.logging import get_logger
@@ -52,7 +52,10 @@ def _get_knowledge_service() -> KnowledgeService:
     """
     global _knowledge_service
     if _knowledge_service is None:
-        _knowledge_service = KnowledgeService(embedding_fn=build_embedding_fn())
+        _knowledge_service = KnowledgeService(
+            embedding_fn=build_embedding_fn(),
+            batch_embedding_fn=build_batch_embedding_fn(),
+        )
     return _knowledge_service
 
 
