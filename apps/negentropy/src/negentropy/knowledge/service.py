@@ -28,6 +28,7 @@ from .types import (
 logger = get_logger("negentropy.knowledge.service")
 
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
+BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
 
 
 class KnowledgeService:
@@ -35,10 +36,12 @@ class KnowledgeService:
         self,
         repository: Optional[KnowledgeRepository] = None,
         embedding_fn: Optional[EmbeddingFn] = None,
+        batch_embedding_fn: Optional[BatchEmbeddingFn] = None,
         chunking_config: Optional[ChunkingConfig] = None,
     ) -> None:
         self._repository = repository or KnowledgeRepository()
         self._embedding_fn = embedding_fn
+        self._batch_embedding_fn = batch_embedding_fn
         self._chunking_config = chunking_config or ChunkingConfig()
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
@@ -321,11 +324,32 @@ class KnowledgeService:
         return chunks
 
     async def _attach_embeddings(self, chunks: Iterable[KnowledgeChunk]) -> list[KnowledgeChunk]:
+        chunk_list = list(chunks)
+
+        if not chunk_list:
+            return []
+
+        # 优先使用批量向量化（一次 API 调用完成所有 chunk）
+        if self._batch_embedding_fn:
+            texts = [c.content for c in chunk_list]
+            embeddings = await self._batch_embedding_fn(texts)
+            return [
+                KnowledgeChunk(
+                    content=c.content,
+                    source_uri=c.source_uri,
+                    chunk_index=c.chunk_index,
+                    metadata=c.metadata,
+                    embedding=emb,
+                )
+                for c, emb in zip(chunk_list, embeddings)
+            ]
+
+        # 回退到逐条向量化
         if not self._embedding_fn:
-            return list(chunks)
+            return chunk_list
 
         enriched: list[KnowledgeChunk] = []
-        for chunk in chunks:
+        for chunk in chunk_list:
             embedding = await self._embedding_fn(chunk.content)
             enriched.append(
                 KnowledgeChunk(
