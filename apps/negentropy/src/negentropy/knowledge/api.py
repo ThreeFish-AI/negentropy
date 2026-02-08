@@ -19,7 +19,7 @@ from .constants import (
     DEFAULT_SEARCH_LIMIT,
     DEFAULT_SEMANTIC_WEIGHT,
 )
-from .embedding import build_embedding_fn
+from .embedding import build_batch_embedding_fn, build_embedding_fn
 from .dao import KnowledgeRunDao
 from .exceptions import (
     CorpusNotFound,
@@ -125,7 +125,10 @@ _dao: Optional[KnowledgeRunDao] = None
 def _get_service() -> KnowledgeService:
     global _service
     if _service is None:
-        _service = KnowledgeService(embedding_fn=build_embedding_fn())
+        _service = KnowledgeService(
+            embedding_fn=build_embedding_fn(),
+            batch_embedding_fn=build_batch_embedding_fn(),
+        )
     return _service
 
 

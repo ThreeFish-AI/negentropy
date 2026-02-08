@@ -11,7 +11,7 @@ Embedding 向量化模块
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Any, Dict, List
+from typing import Any
 
 from negentropy.config import settings
 from negentropy.logging import get_logger
