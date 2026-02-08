@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import FieldValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, ValidationInfo
 
 from .constants import (
     MAX_OVERLAP_RATIO,
@@ -100,8 +100,7 @@ class KnowledgeMatch:
     combined_score: float = 0.0
 
 
-@dataclass(frozen=True)
-class ChunkingConfig:
+class ChunkingConfig(BaseModel):
     """分块配置
 
     控制文本如何被分割成可索引的块。
@@ -115,6 +114,8 @@ class ChunkingConfig:
     [1] G. Kamalloo and A. K. G., "Semantic Chunking for RAG Applications," 2024.
     [2] LlamaIndex, "Semantic Chunking," GitHub, 2024.
     """
+    model_config = ConfigDict(frozen=True)
+
     strategy: ChunkingStrategy = ChunkingStrategy.RECURSIVE
     chunk_size: int = 800
     overlap: int = 100
@@ -124,7 +125,7 @@ class ChunkingConfig:
     min_chunk_size: int = 50          # 最小块大小（字符数）
     max_chunk_size: int = 2000        # 最大块大小（字符数），用于滑动窗口合并
 
-    @field_validator("strategy")
+    @field_validator("strategy", mode="before")
     @classmethod
     def validate_strategy(cls, v: ChunkingStrategy | str) -> ChunkingStrategy:
         """验证分块策略"""
@@ -152,7 +153,7 @@ class ChunkingConfig:
 
     @field_validator("overlap")
     @classmethod
-    def validate_overlap(cls, v: int, info: FieldValidationInfo) -> int:
+    def validate_overlap(cls, v: int, info: ValidationInfo) -> int:
         """验证重叠大小
 
         确保 overlap 为非负数且小于 chunk_size。
@@ -201,8 +202,7 @@ class ChunkingConfig:
         return v
 
 
-@dataclass(frozen=True)
-class SearchConfig:
+class SearchConfig(BaseModel):
     """检索配置
 
     控制搜索行为，包括模式、限制和权重。
@@ -217,6 +217,8 @@ class SearchConfig:
     [1] Y. Wang et al., "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods,"
         SIGIR'18, 2018.
     """
+    model_config = ConfigDict(frozen=True)
+
     mode: SearchMode = "hybrid"
     limit: int = 20
     semantic_weight: float = 0.7

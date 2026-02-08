@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from negentropy.knowledge.chunking import (
     _cosine_similarity,
@@ -66,12 +67,10 @@ class TestChunkingOverlap:
         # 第二块应包含第一块的最后 2 个字符
         assert result[1][:2] == "aa"
 
-    def test_overlap_equal_to_chunk_size_is_clamped(self) -> None:
-        """重叠等于分块大小时应被限制"""
-        text = "a" * 20
-        result = chunk_text(text, ChunkingConfig(chunk_size=10, overlap=10))
-        # overlap 应被限制为 chunk_size - 1
-        assert len(result) == 2
+    def test_overlap_equal_to_chunk_size_raises_validation_error(self) -> None:
+        """重叠等于分块大小时应抛出验证异常"""
+        with pytest.raises(ValidationError, match="overlap"):
+            ChunkingConfig(chunk_size=10, overlap=10)
 
 
 class TestChunkingNewlines:
@@ -108,11 +107,10 @@ class TestChunkingEdgeCases:
         assert len(result) == 2
         assert result[0] != result[1]
 
-    def test_negative_overlap_is_treated_as_zero(self) -> None:
-        """负重叠应被处理为零"""
-        text = "a" * 20
-        result = chunk_text(text, ChunkingConfig(chunk_size=10, overlap=-1))
-        assert len(result) == 2
+    def test_negative_overlap_raises_validation_error(self) -> None:
+        """负重叠应抛出验证异常"""
+        with pytest.raises(ValidationError, match="overlap must be non-negative"):
+            ChunkingConfig(chunk_size=10, overlap=-1)
 
     def test_text_with_special_characters(self) -> None:
         """特殊字符应被正确处理"""
@@ -148,17 +146,17 @@ class TestChunkingEdgeCases:
 class TestChunkingConfigValidation:
     """配置验证测试"""
 
-    def test_chunk_size_zero_is_clamped_to_one(self) -> None:
-        """零分块大小应被限制为 1"""
+    def test_chunk_size_zero_raises_validation_error(self) -> None:
+        """零分块大小应抛出验证异常"""
         text = "abc"
-        result = chunk_text(text, ChunkingConfig(chunk_size=0, overlap=0))
-        assert len(result) >= 1
+        with pytest.raises(ValidationError, match="chunk_size must be at least"):
+            ChunkingConfig(chunk_size=0, overlap=0)
 
-    def test_negative_chunk_size_is_treated_as_one(self) -> None:
-        """负分块大小应被处理为 1"""
+    def test_negative_chunk_size_raises_validation_error(self) -> None:
+        """负分块大小应抛出验证异常"""
         text = "abc"
-        result = chunk_text(text, ChunkingConfig(chunk_size=-1, overlap=0))
-        assert len(result) >= 1
+        with pytest.raises(ValidationError, match="chunk_size must be at least"):
+            ChunkingConfig(chunk_size=-1, overlap=0)
 
 
 class TestChunkingDeterminism:
@@ -398,7 +396,7 @@ class TestChunkingStrategy:
 
     def test_config_strategy_invalid_string(self) -> None:
         """测试无效策略字符串"""
-        with pytest.raises(ValueError, match="strategy must be one of"):
+        with pytest.raises(ValidationError, match="strategy must be one of"):
             ChunkingConfig(strategy="invalid")
 
 
@@ -425,15 +423,15 @@ class TestChunkingConfigExtended:
 
     def test_config_validation_semantic_threshold_bounds(self) -> None:
         """测试 semantic_threshold 验证"""
-        with pytest.raises(ValueError, match="semantic_threshold must be between 0 and 1"):
+        with pytest.raises(ValidationError, match="semantic_threshold must be between 0 and 1"):
             ChunkingConfig(semantic_threshold=1.5)
 
     def test_config_validation_min_chunk_size(self) -> None:
         """测试 min_chunk_size 验证"""
-        with pytest.raises(ValueError, match="min_chunk_size must be at least 1"):
+        with pytest.raises(ValidationError, match="min_chunk_size must be at least 1"):
             ChunkingConfig(min_chunk_size=0)
 
     def test_config_validation_max_chunk_size(self) -> None:
         """测试 max_chunk_size 验证"""
-        with pytest.raises(ValueError, match="max_chunk_size must be at least 100"):
+        with pytest.raises(ValidationError, match="max_chunk_size must be at least 100"):
             ChunkingConfig(max_chunk_size=50)
