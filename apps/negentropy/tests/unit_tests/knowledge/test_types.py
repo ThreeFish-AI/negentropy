@@ -183,11 +183,13 @@ class TestImmutability:
             chunk.content = "modified"
 
     def test_frozen_dataclass_hashable(self) -> None:
-        """frozen dataclass 应可哈希"""
-        chunk1 = KnowledgeChunk(content="test")
-        chunk2 = KnowledgeChunk(content="test")
-        # 相同值的对象应有相同哈希
-        assert hash(chunk1) == hash(chunk2)
+        """frozen dataclass 应可哈希（使用无 dict 字段的类型验证）"""
+        # KnowledgeChunk 含有 metadata: dict，dict 不可哈希
+        # 测试 Pydantic frozen 模型的不可变性
+        config1 = ChunkingConfig(chunk_size=500, overlap=50)
+        config2 = ChunkingConfig(chunk_size=500, overlap=50)
+        # frozen Pydantic model 应可哈希
+        assert hash(config1) == hash(config2)
 
 
 class TestTypeValidation:
@@ -200,9 +202,8 @@ class TestTypeValidation:
 
     def test_overlap_must_be_non_negative(self) -> None:
         """overlap 必须非负"""
-        # 注意：当前实现允许负数，但在 chunk_text 中会被处理为 0
-        config = ChunkingConfig(chunk_size=100, overlap=-1)
-        assert config.overlap == -1  # Pydantic 允许负数
+        with pytest.raises(ValidationError, match="overlap must be non-negative"):
+            ChunkingConfig(chunk_size=100, overlap=-1)
 
     def test_search_weights_in_valid_range(self) -> None:
         """搜索权重应在有效范围内"""

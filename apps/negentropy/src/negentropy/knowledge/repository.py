@@ -87,7 +87,7 @@ class KnowledgeRepository:
     ) -> list[KnowledgeRecord]:
         """批量添加知识块
 
-        使用 PostgreSQL 的批量插入优化性能，而非逐条 ORM 操作。
+        使用 PostgreSQL 的 INSERT ... RETURNING 子句一次性完成插入并获取生成的 ID。
         """
         chunk_list = list(chunks)
 
@@ -110,24 +110,39 @@ class KnowledgeRepository:
 
         try:
             async with self._session_factory() as db:
-                # 使用 PostgreSQL 原生 INSERT 批量插入
-                stmt = pg_insert(Knowledge).values(values)
-                await db.execute(stmt)
-                await db.commit()
-
-                # 返回插入的记录（通过重新查询获取生成的 ID）
-                # 注意：在生产环境中，可使用 RETURNING 子句优化
-                stmt = select(Knowledge).where(
-                    Knowledge.corpus_id == corpus_id,
-                    Knowledge.app_name == app_name,
-                    Knowledge.source_uri.in_(
-                        {chunk.source_uri for chunk in chunk_list if chunk.source_uri}
-                    ),
+                # 使用 PostgreSQL INSERT ... RETURNING 子句直接获取插入结果
+                # 避免二次查询丢失 source_uri=None 的记录
+                stmt = pg_insert(Knowledge).values(values).returning(
+                    Knowledge.id,
+                    Knowledge.corpus_id,
+                    Knowledge.app_name,
+                    Knowledge.content,
+                    Knowledge.source_uri,
+                    Knowledge.chunk_index,
+                    Knowledge.metadata_,
+                    Knowledge.embedding,
+                    Knowledge.created_at,
+                    Knowledge.updated_at,
                 )
                 result = await db.execute(stmt)
-                items = result.scalars().all()
+                await db.commit()
 
-                return [self._to_knowledge_record(item) for item in items]
+                rows = result.fetchall()
+                return [
+                    KnowledgeRecord(
+                        id=row.id,
+                        corpus_id=row.corpus_id,
+                        app_name=row.app_name,
+                        content=row.content,
+                        source_uri=row.source_uri,
+                        chunk_index=row.chunk_index,
+                        metadata=row.metadata_ or {},
+                        embedding=row.embedding,
+                        created_at=row.created_at,
+                        updated_at=row.updated_at,
+                    )
+                    for row in rows
+                ]
 
         except IntegrityError as exc:
             raise DatabaseError(
