@@ -309,7 +309,7 @@ class PostgresMemoryService(BaseMemoryService):
         sql = text("""
             SELECT id, content, metadata, retention_score, created_at,
                    ts_rank_cd(search_vector, plainto_tsquery('english', :query)) AS rank_score
-            FROM negentropy.memories
+            FROM memories
             WHERE user_id = :user_id
               AND app_name = :app_name
               AND search_vector @@ plainto_tsquery('english', :query)
