@@ -139,25 +139,6 @@ export interface KnowledgeGraphPayload {
   }>;
 }
 
-export interface KnowledgeMemoryPayload {
-  users?: Array<{ id: string; label?: string }>;
-  timeline?: Array<{
-    id: string;
-    user_id: string;
-    summary: string;
-    source?: string;
-    timestamp?: string;
-  }>;
-  policies?: Record<string, unknown>;
-  audits?: Array<{
-    memory_id: string;
-    decision: string;
-    note?: string;
-    version: number;
-    created_at?: string;
-  }>;
-}
-
 export interface KnowledgePipelinesPayload {
   last_updated_at?: string;
   runs?: Array<{
@@ -189,16 +170,6 @@ export interface SearchResults {
 export interface GraphUpsertResult {
   status: string;
   graph?: unknown;
-}
-
-export interface MemoryAuditResult {
-  status: string;
-  audits?: Array<{
-    memory_id: string;
-    decision: string;
-    version: number;
-    created_at?: string;
-  }>;
 }
 
 export interface PipelineUpsertResult {
@@ -439,40 +410,6 @@ export async function upsertGraph(params: {
   });
   if (!res.ok) {
     throw new Error(`Failed to upsert graph: ${res.statusText}`);
-  }
-  return res.json();
-}
-
-// ============================================================================
-// User Memory
-// ============================================================================
-
-export async function fetchMemory(appName?: string): Promise<KnowledgeMemoryPayload> {
-  const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
-  const res = await fetch(`/api/knowledge/memory${params}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch memory: ${res.statusText}`);
-  }
-  return res.json();
-}
-
-export async function submitMemoryAudit(params: {
-  app_name?: string;
-  user_id: string;
-  decisions: Record<string, string>;
-  note?: string;
-  expected_versions?: Record<string, number>;
-  idempotency_key?: string;
-}): Promise<MemoryAuditResult> {
-  const res = await fetch("/api/knowledge/memory/audit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to submit memory audit: ${res.statusText}`);
   }
   return res.json();
 }

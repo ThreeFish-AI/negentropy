@@ -15,4 +15,8 @@ export const mainNavConfig: MainNavItem[] = [
     title: "Knowledge",
     href: "/knowledge",
   },
+  {
+    title: "Memory",
+    href: "/memory",
+  },
 ];
