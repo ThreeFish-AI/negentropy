@@ -20,6 +20,7 @@ Memory Governance Service
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -29,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
-from negentropy.models.internalization import Memory, MemoryAuditLog
+from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
 
 logger = get_logger("negentropy.engine.governance.memory")
 
@@ -266,11 +267,20 @@ class MemoryGovernanceService:
         access_count: int,
         last_accessed_at: datetime,
         created_at: datetime,
+        lambda_: float = 0.1,
     ) -> float:
         """计算记忆保留分数
 
-        基于艾宾浩斯遗忘曲线计算记忆的保留分数。
+        基于艾宾浩斯遗忘曲线的指数衰减模型计算记忆的保留分数。
         分数越高表示记忆越重要，应该保留。
+
+        公式:
+            retention_score = min(1.0, time_decay × frequency_boost / 5.0)
+            time_decay = e^(-λ × days_elapsed)
+            frequency_boost = 1 + ln(1 + access_count)
+
+        其中 λ 是衰减常数（默认 0.1），days_elapsed 是距最后访问的天数。
+        频率因子使用对数增长，避免高频访问过度膨胀分数。
 
         参考文献:
         [1] A. Ebbinghaus, "Memory: A Contribution to Experimental Psychology,"
@@ -281,34 +291,32 @@ class MemoryGovernanceService:
             access_count: 访问次数
             last_accessed_at: 最后访问时间
             created_at: 创建时间
+            lambda_: 衰减常数 (默认 0.1，越大衰减越快)
 
         Returns:
             保留分数 (0.0 - 1.0)
         """
-        # 计算时间衰减因子
         now = datetime.now()
-        days_since_creation = (now - created_at).days
-        days_since_access = (now - last_accessed_at).days
+        days_since_access = max(0, (now - last_accessed_at).total_seconds() / 86400)
 
-        # 艾宾浩斯遗忘曲线简化模型
-        # R(t) = e^(-t/S)
-        # 其中 t 是时间，S 是记忆强度（与访问次数相关）
+        # 指数衰减: R(t) = e^(-λ × t)
+        time_decay = math.exp(-lambda_ * days_since_access)
 
-        memory_strength = 1.0 + (access_count * 0.1)  # 记忆强度
-        time_decay = max(0.0, 1.0 - (days_since_access / (memory_strength * 365)))
+        # 频率增强: frequency_boost = 1 + ln(1 + access_count)
+        frequency_boost = 1.0 + math.log(1.0 + access_count)
 
-        # 访问频率因子
-        access_frequency_factor = min(1.0, access_count / 10.0)
-
-        # 综合保留分数
-        retention_score = (time_decay * 0.7) + (access_frequency_factor * 0.3)
+        # 综合保留分数（归一化到 [0, 1]）
+        retention_score = min(1.0, time_decay * frequency_boost / 5.0)
 
         logger.debug(
             "calculate_retention_score",
             memory_id=memory_id,
             retention_score=retention_score,
+            time_decay=time_decay,
+            frequency_boost=frequency_boost,
             access_count=access_count,
             days_since_access=days_since_access,
+            lambda_=lambda_,
         )
 
         return max(0.0, min(1.0, retention_score))
@@ -397,6 +405,11 @@ class MemoryGovernanceService:
     ) -> None:
         """执行审计决策
 
+        同时处理 Memory 和关联的 Fact 记录，确保 GDPR 合规:
+        - delete: 物理删除 Memory 和关联 Fact
+        - anonymize: 匿名化 Memory 和关联 Fact（保留统计价值但移除 PII）
+        - retain: 保留，不做操作
+
         Args:
             db: 数据库会话
             app_name: 应用名称
@@ -405,7 +418,7 @@ class MemoryGovernanceService:
             decision: 决策类型
         """
         if decision == "delete":
-            # 执行删除操作
+            # 删除 Memory
             stmt = select(Memory).where(
                 Memory.app_name == app_name,
                 Memory.user_id == user_id,
@@ -414,10 +427,24 @@ class MemoryGovernanceService:
             result = await db.execute(stmt)
             memory = result.scalar_one_or_none()
             if memory:
+                # 同时删除关联的 Fact 记录（同一用户、同一 thread）
+                if memory.thread_id:
+                    fact_stmt = select(Fact).where(
+                        Fact.app_name == app_name,
+                        Fact.user_id == user_id,
+                        Fact.thread_id == memory.thread_id,
+                    )
+                    fact_result = await db.execute(fact_stmt)
+                    facts = fact_result.scalars().all()
+                    for fact in facts:
+                        await db.delete(fact)
+                        logger.debug("execute_decision_delete_fact", fact_key=fact.key)
+
                 await db.delete(memory)
                 logger.debug("execute_decision_delete", memory_id=memory_id)
+
         elif decision == "anonymize":
-            # 执行匿名化操作（移除 PII）
+            # 匿名化 Memory
             stmt = select(Memory).where(
                 Memory.app_name == app_name,
                 Memory.user_id == user_id,
@@ -426,10 +453,26 @@ class MemoryGovernanceService:
             result = await db.execute(stmt)
             memory = result.scalar_one_or_none()
             if memory:
-                # 简单的匿名化：清空 content 和 metadata
                 memory.content = "[ANONYMIZED]"
                 memory.metadata_ = {}
+                memory.embedding = None  # 清除向量表示
+
+                # 匿名化关联的 Fact 记录
+                if memory.thread_id:
+                    fact_stmt = select(Fact).where(
+                        Fact.app_name == app_name,
+                        Fact.user_id == user_id,
+                        Fact.thread_id == memory.thread_id,
+                    )
+                    fact_result = await db.execute(fact_stmt)
+                    facts = fact_result.scalars().all()
+                    for fact in facts:
+                        fact.value = {"anonymized": True}
+                        fact.embedding = None
+                        logger.debug("execute_decision_anonymize_fact", fact_key=fact.key)
+
                 logger.debug("execute_decision_anonymize", memory_id=memory_id)
+
         elif decision == "retain":
             logger.debug("execute_decision_retain", memory_id=memory_id)
 

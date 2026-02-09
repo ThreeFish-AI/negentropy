@@ -14,6 +14,7 @@ from .constants import (
     TEXT_PREVIEW_MAX_LENGTH,
 )
 from .exceptions import SearchError
+from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
     ChunkingConfig,
@@ -38,11 +39,13 @@ class KnowledgeService:
         embedding_fn: Optional[EmbeddingFn] = None,
         batch_embedding_fn: Optional[BatchEmbeddingFn] = None,
         chunking_config: Optional[ChunkingConfig] = None,
+        reranker: Optional[Reranker] = None,
     ) -> None:
         self._repository = repository or KnowledgeRepository()
         self._embedding_fn = embedding_fn
         self._batch_embedding_fn = batch_embedding_fn
         self._chunking_config = chunking_config or ChunkingConfig()
+        self._reranker = reranker or NoopReranker()
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
@@ -217,6 +220,9 @@ class KnowledgeService:
                 k=config.rrf_k,
             )
 
+            # L1 精排
+            results = await self._reranker.rerank(query, results)
+
             logger.info(
                 "search_completed",
                 corpus_id=str(corpus_id),
@@ -263,6 +269,8 @@ class KnowledgeService:
             )
 
         if config.mode == "semantic":
+            # L1 精排
+            semantic_matches = await self._reranker.rerank(query, semantic_matches)
             logger.info(
                 "search_completed",
                 corpus_id=str(corpus_id),
@@ -288,6 +296,9 @@ class KnowledgeService:
             keyword_weight=config.keyword_weight,
             limit=config.limit,
         )
+
+        # L1 精排
+        results = await self._reranker.rerank(query, results)
 
         logger.info(
             "search_completed",

@@ -4,6 +4,7 @@ PostgresMemoryService: ADK MemoryService 的 PostgreSQL 实现
 继承 Google ADK BaseMemoryService，复用 Phase 2 Hippocampus 的记忆巩固能力，实现：
 - Session 到 Memory 的转化 (add_session_to_memory)
 - 混合检索 (search_memory) - 支持语义 + BM25 Hybrid Search
+- 访问行为记录 (record_access) - 更新 access_count/last_accessed_at，驱动遗忘曲线
 
 重构说明：
     本版本从 raw SQL 迁移到 SQLAlchemy ORM，复用：
@@ -21,9 +22,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, List, Optional
 
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 
 # ADK 官方类型
 from google.adk.sessions import Session as ADKSession
@@ -36,6 +37,7 @@ from google.adk.memory.base_memory_service import (
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory
 
 logger = get_logger("negentropy.engine.adapters.postgres.memory_service")
@@ -139,6 +141,9 @@ class PostgresMemoryService(BaseMemoryService):
         1. Hybrid Search: 语义 + BM25 融合检索（需要 embedding_fn）
         2. BM25 全文检索: 利用 search_vector GIN 索引
         3. ilike 回退: 当 search_vector 不可用时的最终回退
+
+        检索完成后异步更新被召回记忆的 access_count 和 last_accessed_at，
+        驱动艾宾浩斯遗忘曲线动态生效。<sup>[1]</sup>
         """
         # 生成查询向量
         query_embedding = None
@@ -152,16 +157,20 @@ class PostgresMemoryService(BaseMemoryService):
                     error=str(exc),
                 )
 
+        memories_data: list[dict[str, Any]] = []
+
         if query_embedding is not None:
             # 策略 1: 尝试 DB 原生 hybrid_search()
             try:
-                memories_data = await self._hybrid_search_native(
+                result = await self._hybrid_search_native(
                     app_name=app_name,
                     user_id=user_id,
                     query=query,
                     query_embedding=query_embedding,
                 )
-                if memories_data is not None:
+                if result is not None:
+                    memories_data = result
+                    await self._record_access(memories_data)
                     return self._build_search_response(memories_data)
             except Exception as exc:
                 logger.warning(
@@ -176,6 +185,7 @@ class PostgresMemoryService(BaseMemoryService):
                 user_id=user_id,
                 query_embedding=query_embedding,
             )
+            await self._record_access(memories_data)
             return self._build_search_response(memories_data)
 
         # 策略 3: BM25 全文检索
@@ -186,6 +196,7 @@ class PostgresMemoryService(BaseMemoryService):
                 query=query,
             )
             if memories_data:
+                await self._record_access(memories_data)
                 return self._build_search_response(memories_data)
         except Exception as exc:
             logger.warning(
@@ -200,6 +211,7 @@ class PostgresMemoryService(BaseMemoryService):
             user_id=user_id,
             query=query,
         )
+        await self._record_access(memories_data)
         return self._build_search_response(memories_data)
 
     async def _hybrid_search_native(
@@ -215,13 +227,16 @@ class PostgresMemoryService(BaseMemoryService):
         利用 perception_schema.sql 中定义的 hybrid_search() 函数，
         在一次 SQL 调用中完成语义 + BM25 融合检索。
 
+        注意：使用 schema 前缀 `{NEGENTROPY_SCHEMA}` 确保与 ORM 一致，
+        embedding 参数通过参数化绑定避免注入风险。
+
         Returns:
             检索结果列表，失败返回 None
         """
-        sql = text("""
+        sql = text(f"""
             SELECT id, content, semantic_score, keyword_score, combined_score, metadata
-            FROM hybrid_search(
-                :user_id, :app_name, :query, :embedding::vector,
+            FROM {NEGENTROPY_SCHEMA}.hybrid_search(
+                :user_id, :app_name, :query, :embedding::vector(1536),
                 :limit, :semantic_weight, :keyword_weight
             )
         """)
@@ -233,7 +248,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "user_id": user_id,
                     "app_name": app_name,
                     "query": query,
-                    "embedding": str(query_embedding),
+                    "embedding": query_embedding,
                     "limit": _DEFAULT_SEARCH_LIMIT,
                     "semantic_weight": _DEFAULT_SEMANTIC_WEIGHT,
                     "keyword_weight": _DEFAULT_KEYWORD_WEIGHT,
@@ -306,10 +321,10 @@ class PostgresMemoryService(BaseMemoryService):
 
         利用 memories.search_vector GIN 索引进行高效全文搜索。
         """
-        sql = text("""
+        sql = text(f"""
             SELECT id, content, metadata, retention_score, created_at,
                    ts_rank_cd(search_vector, plainto_tsquery('english', :query)) AS rank_score
-            FROM memories
+            FROM {NEGENTROPY_SCHEMA}.memories
             WHERE user_id = :user_id
               AND app_name = :app_name
               AND search_vector @@ plainto_tsquery('english', :query)
@@ -375,6 +390,48 @@ class PostgresMemoryService(BaseMemoryService):
             }
             for m in memories_orms
         ]
+
+    async def _record_access(self, memories_data: list[dict[str, Any]]) -> None:
+        """记录记忆访问行为
+
+        批量更新被召回记忆的 access_count 和 last_accessed_at，
+        驱动艾宾浩斯遗忘曲线动态生效。<sup>[1]</sup>
+
+        使用批量 UPDATE 避免 N+1 问题。
+        """
+        if not memories_data:
+            return
+
+        memory_ids = [m["id"] for m in memories_data if m.get("id")]
+        if not memory_ids:
+            return
+
+        try:
+            async with db_session.AsyncSessionLocal() as db:
+                now = datetime.now(timezone.utc)
+                # 批量更新 access_count 和 last_accessed_at
+                stmt = (
+                    update(Memory)
+                    .where(Memory.id.in_(memory_ids))
+                    .values(
+                        access_count=Memory.access_count + 1,
+                        last_accessed_at=now,
+                    )
+                )
+                await db.execute(stmt)
+                await db.commit()
+
+            logger.debug(
+                "memory_access_recorded",
+                memory_count=len(memory_ids),
+            )
+        except Exception as exc:
+            # 访问记录失败不应影响检索结果返回
+            logger.warning(
+                "memory_access_record_failed",
+                memory_count=len(memory_ids),
+                error=str(exc),
+            )
 
     def _build_search_response(self, memories_data: list[dict[str, Any]]) -> SearchMemoryResponse:
         """构建 ADK SearchMemoryResponse"""

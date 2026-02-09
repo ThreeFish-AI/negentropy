@@ -2,6 +2,7 @@
 Knowledge Graph 处理模块
 
 提供知识图谱的构建、查询和更新功能。
+使用 Strategy Pattern 分离实体/关系提取策略，便于后续替换（如 LLM 提取）。
 
 参考文献:
 [1] J. Tang et al., "LINE: Large-scale Information Network Embedding,"
@@ -13,6 +14,7 @@ Knowledge Graph 处理模块
 from __future__ import annotations
 
 import re
+from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
@@ -23,39 +25,26 @@ from .types import GraphEdge, GraphNode, KnowledgeGraphPayload
 logger = get_logger("negentropy.knowledge.graph")
 
 
-class GraphProcessor:
-    """知识图谱处理器
+# ============================================================================
+# Strategy 抽象基类
+# ============================================================================
 
-    职责:
-    1. 从知识块提取实体和关系
-    2. 构建图结构
-    3. 支持图谱查询和更新
-    4. 图谱去重和合并
 
-    遵循 AGENTS.md 原则：
-    - Single Responsibility: 只处理图谱相关逻辑
-    - Orthogonal Decomposition: 与存储、展示分离
+class EntityExtractor(ABC):
+    """实体提取器抽象基类
+
+    定义实体提取的通用接口，支持多种实现:
+    - RegexEntityExtractor: 基于正则表达式（当前默认）
+    - LLMEntityExtractor: 基于 LLM（预留接口）
     """
 
-    def __init__(self) -> None:
-        """初始化图谱处理器"""
-        self._nodes: Dict[str, GraphNode] = {}
-        self._edges: List[GraphEdge] = []
-
-    async def extract_entities(
+    @abstractmethod
+    async def extract(
         self,
         text: str,
         corpus_id: UUID,
     ) -> List[GraphNode]:
         """从文本中提取实体节点
-
-        使用规则和模式匹配提取常见实体类型：
-        - 人名（大写开头的词组）
-        - 组织名（Inc, Corp, LLC 后缀）
-        - 日期和时间
-        - URL 和标识符
-
-        TODO: 未来可集成 NLP 模型（如 spaCy）进行更精确的实体识别
 
         Args:
             text: 输入文本
@@ -64,10 +53,62 @@ class GraphProcessor:
         Returns:
             提取的实体节点列表
         """
+        pass
+
+
+class RelationExtractor(ABC):
+    """关系提取器抽象基类
+
+    定义关系提取的通用接口，支持多种实现:
+    - CooccurrenceRelationExtractor: 基于共现（当前默认）
+    - LLMRelationExtractor: 基于 LLM（预留接口）
+    """
+
+    @abstractmethod
+    async def extract(
+        self,
+        entities: List[GraphNode],
+        text: str,
+    ) -> List[GraphEdge]:
+        """从文本中提取实体间关系
+
+        Args:
+            entities: 实体节点列表
+            text: 输入文本
+
+        Returns:
+            提取的关系边列表
+        """
+        pass
+
+
+# ============================================================================
+# Strategy 实现
+# ============================================================================
+
+
+class RegexEntityExtractor(EntityExtractor):
+    """基于正则表达式的实体提取器
+
+    使用规则和模式匹配提取常见实体类型:
+    - 人名（大写开头的词组）
+    - 组织名（Inc, Corp, LLC 后缀）
+    - URL
+
+    局限性: 无法处理中文实体，对英文的准确率较低。
+    建议在生产环境中替换为 LLMEntityExtractor。
+    """
+
+    async def extract(
+        self,
+        text: str,
+        corpus_id: UUID,
+    ) -> List[GraphNode]:
         logger.debug(
             "extract_entities_started",
             corpus_id=str(corpus_id),
             text_length=len(text),
+            extractor="regex",
         )
 
         entities: List[GraphNode] = []
@@ -108,7 +149,7 @@ class GraphProcessor:
             if url not in seen:
                 entity = GraphNode(
                     id=f"entity:{uuid4()}",
-                    label=url[:50],  # 截断过长 URL
+                    label=url[:50],
                     node_type="url",
                     metadata={"url": url, "source": "regex_extraction"},
                 )
@@ -123,45 +164,37 @@ class GraphProcessor:
 
         return entities
 
-    async def extract_relations(
+
+class CooccurrenceRelationExtractor(RelationExtractor):
+    """基于共现的关系提取器
+
+    如果两个实体在同一句话中出现，创建 "co_occurs" 关系。
+
+    局限性: 无法提取精确的语义关系。
+    建议在生产环境中替换为 LLMRelationExtractor。
+    """
+
+    async def extract(
         self,
         entities: List[GraphNode],
         text: str,
     ) -> List[GraphEdge]:
-        """从文本中提取实体间关系
-
-        基于共现和上下文提取简单关系：
-        - 如果两个实体在同一句话中，创建 "co_occurs" 关系
-        - 提取常见的谓词关系（如 "is", "has", "works for"）
-
-        TODO: 未来可集成依存句法分析提取更精确的关系
-
-        Args:
-            entities: 实体节点列表
-            text: 输入文本
-
-        Returns:
-            提取的关系边列表
-        """
         logger.debug(
             "extract_relations_started",
             entity_count=len(entities),
             text_length=len(text),
+            extractor="cooccurrence",
         )
 
         edges: List[GraphEdge] = []
-
-        # 按句子分割文本
         sentences = re.split(r"[.!?]+", text)
 
-        # 为每个句子建立实体索引
         for sentence in sentences:
             sentence_entities = []
             for entity in entities:
                 if entity.label and entity.label in sentence:
                     sentence_entities.append(entity)
 
-            # 为同一句子中的实体创建共现关系
             for i, entity1 in enumerate(sentence_entities):
                 for entity2 in sentence_entities[i + 1 :]:
                     edge = GraphEdge(
@@ -180,6 +213,54 @@ class GraphProcessor:
         )
 
         return edges
+
+
+class GraphProcessor:
+    """知识图谱处理器
+
+    职责:
+    1. 从知识块提取实体和关系（通过可替换的 Strategy）
+    2. 构建图结构
+    3. 支持图谱查询和更新
+    4. 图谱去重和合并
+
+    遵循 AGENTS.md 原则：
+    - Single Responsibility: 只处理图谱相关逻辑
+    - Orthogonal Decomposition: 与存储、展示分离
+    - Strategy Pattern: 实体/关系提取可替换
+    """
+
+    def __init__(
+        self,
+        entity_extractor: Optional[EntityExtractor] = None,
+        relation_extractor: Optional[RelationExtractor] = None,
+    ) -> None:
+        """初始化图谱处理器
+
+        Args:
+            entity_extractor: 实体提取策略（默认 RegexEntityExtractor）
+            relation_extractor: 关系提取策略（默认 CooccurrenceRelationExtractor）
+        """
+        self._entity_extractor = entity_extractor or RegexEntityExtractor()
+        self._relation_extractor = relation_extractor or CooccurrenceRelationExtractor()
+        self._nodes: Dict[str, GraphNode] = {}
+        self._edges: List[GraphEdge] = []
+
+    async def extract_entities(
+        self,
+        text: str,
+        corpus_id: UUID,
+    ) -> List[GraphNode]:
+        """从文本中提取实体节点（委托给 EntityExtractor）"""
+        return await self._entity_extractor.extract(text, corpus_id)
+
+    async def extract_relations(
+        self,
+        entities: List[GraphNode],
+        text: str,
+    ) -> List[GraphEdge]:
+        """从文本中提取实体间关系（委托给 RelationExtractor）"""
+        return await self._relation_extractor.extract(entities, text)
 
     async def build_graph(
         self,

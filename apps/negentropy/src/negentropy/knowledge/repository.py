@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import Corpus, Knowledge
 
 from .constants import BATCH_INSERT_SIZE, RECALL_MULTIPLIER
@@ -254,10 +255,10 @@ class KnowledgeRepository:
             params["metadata_filter"] = json.dumps(metadata_filter)
 
         stmt = text(
-            """
+            f"""
             SELECT id, content, source_uri, metadata,
                    ts_rank_cd(search_vector, plainto_tsquery('english', :query))::REAL AS keyword_score
-            FROM negentropy.knowledge
+            FROM {NEGENTROPY_SCHEMA}.knowledge
             WHERE corpus_id = :corpus_id
               AND app_name = :app_name
               AND search_vector @@ plainto_tsquery('english', :query)
@@ -330,7 +331,7 @@ class KnowledgeRepository:
             pass
 
         stmt = text(
-            """
+            f"""
             SELECT
                 id,
                 content,
@@ -339,7 +340,7 @@ class KnowledgeRepository:
                 semantic_score::REAL,
                 keyword_score::REAL,
                 combined_score::REAL
-            FROM kb_hybrid_search(
+            FROM {NEGENTROPY_SCHEMA}.kb_hybrid_search(
                 :p_corpus_id::UUID,
                 :p_app_name::VARCHAR,
                 :p_query::TEXT,
@@ -518,7 +519,7 @@ class KnowledgeRepository:
         }
 
         stmt = text(
-            """
+            f"""
             SELECT
                 id,
                 content,
@@ -527,7 +528,7 @@ class KnowledgeRepository:
                 rrf_score::REAL,
                 semantic_rank::INTEGER,
                 keyword_rank::INTEGER
-            FROM kb_rrf_search(
+            FROM {NEGENTROPY_SCHEMA}.kb_rrf_search(
                 :p_corpus_id::UUID,
                 :p_app_name::VARCHAR,
                 :p_query::TEXT,
