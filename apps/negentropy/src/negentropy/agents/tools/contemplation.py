@@ -14,14 +14,14 @@ from typing import Any
 
 from google.adk.tools import ToolContext
 
-from negentropy.agents.state import (
-    ACTION_FACULTY,
-    CONTEMPLATION_FACULTY,
-    INFLUENCE_FACULTY,
-    INTERNALIZATION_FACULTY,
-    PERCEPTION_FACULTY,
-)
 from negentropy.logging import get_logger
+
+# Faculty agent name constants
+PERCEPTION_FACULTY = "PerceptionFaculty"
+INTERNALIZATION_FACULTY = "InternalizationFaculty"
+CONTEMPLATION_FACULTY = "ContemplationFaculty"
+ACTION_FACULTY = "ActionFaculty"
+INFLUENCE_FACULTY = "InfluenceFaculty"
 
 logger = get_logger("negentropy.tools.contemplation")
 
