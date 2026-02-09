@@ -46,12 +46,14 @@
 flowchart LR
   subgraph API[API Layer]
     KAPI[Knowledge API]
+    MAPI[Memory API]
   end
 
   subgraph Service[Service Layer]
     KSvc[KnowledgeService]
     Rerank[Reranker L1]
     MGov[MemoryGovernance]
+    FSvc[FactService]
   end
 
   subgraph Repo[Repository Layer]
@@ -72,15 +74,17 @@ flowchart LR
   KRepo --> Knowledge
   KRepo --> HybridFn
   KRepo --> RRFFn
-  MGov --> MemSvc --> Memory
+  MAPI --> MGov --> MemSvc --> Memory
+  MAPI --> FSvc --> Memory
+  MAPI --> MemSvc
 
   classDef api fill:#0b3d91,stroke:#0b3d91,color:#ffffff;
   classDef svc fill:#0f5132,stroke:#0f5132,color:#ffffff;
   classDef repo fill:#0f5132,stroke:#0f5132,color:#ffffff;
   classDef store fill:#842029,stroke:#842029,color:#ffffff;
 
-  class KAPI api
-  class KSvc,Rerank,MGov svc
+  class KAPI,MAPI api
+  class KSvc,Rerank,MGov,FSvc svc
   class KRepo,MemSvc repo
   class Corpus,Knowledge,Memory,HybridFn,RRFFn store
 ```

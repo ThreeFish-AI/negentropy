@@ -170,41 +170,46 @@ async def get_memory_dashboard(
     resolved_app = _resolve_app_name(app_name)
 
     async with AsyncSessionLocal() as db:
-        # 基础条件
-        memory_base = select(Memory).where(Memory.app_name == resolved_app)
-        fact_base = select(Fact).where(Fact.app_name == resolved_app)
+        # 基础条件（统一 user_id 过滤，确保所有查询行为一致）
+        memory_filters = [Memory.app_name == resolved_app]
+        audit_filters = [MemoryAuditLog.app_name == resolved_app]
+        fact_filters = [Fact.app_name == resolved_app]
 
         if user_id:
-            memory_base = memory_base.where(Memory.user_id == user_id)
-            fact_base = fact_base.where(Fact.user_id == user_id)
+            memory_filters.append(Memory.user_id == user_id)
+            audit_filters.append(MemoryAuditLog.user_id == user_id)
+            fact_filters.append(Fact.user_id == user_id)
 
         # 用户数
         user_count = await db.scalar(
             select(func.count(func.distinct(Memory.user_id))).where(
-                Memory.app_name == resolved_app
+                *memory_filters
             )
         )
 
         # 记忆总数
         memory_count = await db.scalar(
-            select(func.count()).select_from(memory_base.subquery())
+            select(func.count()).select_from(
+                select(Memory).where(*memory_filters).subquery()
+            )
         )
 
         # Facts 数量
         now = datetime.now(timezone.utc)
         fact_count = await db.scalar(
             select(func.count()).select_from(
-                fact_base.where(
-                    (Fact.valid_until.is_(None)) | (Fact.valid_until > now)
-                ).subquery()
+                select(Fact)
+                .where(
+                    *fact_filters,
+                    (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
+                )
+                .subquery()
             )
         )
 
         # 平均 retention_score
         avg_retention = await db.scalar(
-            select(func.avg(Memory.retention_score)).where(
-                Memory.app_name == resolved_app
-            )
+            select(func.avg(Memory.retention_score)).where(*memory_filters)
         )
 
         # 低保留记忆数 (retention_score < 0.1)
@@ -212,7 +217,7 @@ async def get_memory_dashboard(
             select(func.count()).select_from(
                 select(Memory)
                 .where(
-                    Memory.app_name == resolved_app,
+                    *memory_filters,
                     Memory.retention_score < 0.1,
                 )
                 .subquery()
@@ -223,7 +228,7 @@ async def get_memory_dashboard(
         recent_audit_count = await db.scalar(
             select(func.count()).select_from(
                 select(MemoryAuditLog)
-                .where(MemoryAuditLog.app_name == resolved_app)
+                .where(*audit_filters)
                 .subquery()
             )
         )

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/memory", label: "Dashboard" },
@@ -14,6 +17,11 @@ export function MemoryNav({
   title: string;
   description?: string;
 }) {
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    href === "/memory" ? pathname === "/memory" : pathname.startsWith(href);
+
   return (
     <>
       <div className="border-b border-zinc-200 bg-white px-6 py-4">
@@ -34,7 +42,11 @@ export function MemoryNav({
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-full border border-zinc-200 px-3 py-1 text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
+                className={`rounded-full border px-3 py-1 transition-colors ${
+                  isActive(item.href)
+                    ? "border-zinc-900 bg-zinc-900 text-white"
+                    : "border-zinc-200 text-zinc-600 hover:border-zinc-900 hover:text-zinc-900"
+                }`}
               >
                 {item.label}
               </Link>
