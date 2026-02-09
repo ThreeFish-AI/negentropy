@@ -1,9 +1,8 @@
 from google.adk.agents import LlmAgent
-from google.adk.models.lite_llm import LiteLlm
 
+from negentropy.agents._model import create_model
 from negentropy.agents.tools.common import log_activity
 from negentropy.agents.tools.internalization import save_to_memory, update_knowledge_graph
-from negentropy.config import settings
 
 _DESCRIPTION = (
     "Handles: memory storage, knowledge structuring, knowledge graph updates, long-term retention. "
@@ -60,11 +59,14 @@ def create_internalization_agent(*, output_key: str | None = None) -> LlmAgent:
     """
     return LlmAgent(
         name="InternalizationFaculty",
-        model=LiteLlm(settings.llm.full_model_name, **settings.llm.to_litellm_kwargs()),
+        model=create_model(),
         description=_DESCRIPTION,
         instruction=_INSTRUCTION,
         tools=[log_activity, save_to_memory, update_knowledge_graph],
         output_key=output_key,
+        # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
+        disallow_transfer_to_parent=output_key is not None,
+        disallow_transfer_to_peers=output_key is not None,
     )
 
 

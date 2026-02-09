@@ -1,9 +1,8 @@
 from google.adk.agents import LlmAgent
-from google.adk.models.lite_llm import LiteLlm
 
+from negentropy.agents._model import create_model
 from negentropy.agents.tools.common import log_activity
 from negentropy.agents.tools.contemplation import analyze_context, create_plan
-from negentropy.config import settings
 
 _DESCRIPTION = (
     "Handles: deep analysis, strategic planning, root cause analysis, second-order thinking, risk assessment. "
@@ -59,11 +58,14 @@ def create_contemplation_agent(*, output_key: str | None = None) -> LlmAgent:
     """
     return LlmAgent(
         name="ContemplationFaculty",
-        model=LiteLlm(settings.llm.full_model_name, **settings.llm.to_litellm_kwargs()),
+        model=create_model(),
         description=_DESCRIPTION,
         instruction=_INSTRUCTION,
         tools=[log_activity, analyze_context, create_plan],
         output_key=output_key,
+        # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
+        disallow_transfer_to_parent=output_key is not None,
+        disallow_transfer_to_peers=output_key is not None,
     )
 
 

@@ -1,8 +1,7 @@
 from google.adk.agents import LlmAgent
-from google.adk.models.lite_llm import LiteLlm
 
+from negentropy.agents._model import create_model
 from negentropy.agents.tools.common import log_activity
-from negentropy.config import settings
 
 from .faculties.action import action_agent
 from .faculties.contemplation import contemplation_agent
@@ -18,7 +17,7 @@ from .pipelines.standard import (
 root_agent = LlmAgent(
     name="NegentropyEngine",
     # Model configured via unified settings (see config/llm.py)
-    model=LiteLlm(settings.llm.full_model_name, **settings.llm.to_litellm_kwargs()),
+    model=create_model(),
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
     instruction="""
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的 **「本我」(The Self)**。
