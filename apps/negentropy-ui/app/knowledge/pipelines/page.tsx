@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { fetchPipelines, KnowledgePipelinesPayload, upsertPipelines } from "@/lib/knowledge";
+import { fetchPipelines, KnowledgePipelinesPayload, upsertPipelines } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 

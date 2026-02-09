@@ -12,7 +12,7 @@ import {
   ingestText,
   replaceSource,
   searchKnowledge,
-} from "@/lib/knowledge";
+} from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
