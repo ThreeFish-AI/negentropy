@@ -1,8 +1,8 @@
 from google.adk.agents import LlmAgent
 
-from negentropy.agents._model import create_model
-from negentropy.agents.tools.action import execute_code, read_file, write_file
-from negentropy.agents.tools.common import log_activity
+from .._model import create_model
+from ..tools.action import execute_code, read_file, write_file
+from ..tools.common import log_activity
 
 _DESCRIPTION = (
     "Handles: code execution, file operations, implementation, system changes, tool invocation. "
