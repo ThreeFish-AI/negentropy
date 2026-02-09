@@ -216,6 +216,7 @@ def apply_adk_patches():
         from opentelemetry import baggage, context as otel_context
         import uuid
         from negentropy.knowledge.api import router as knowledge_router
+        from negentropy.engine.api import router as memory_router
         from negentropy.auth.api import router as auth_router
         from negentropy.auth.middleware import AuthMiddleware
 
@@ -303,6 +304,9 @@ def apply_adk_patches():
         if not any(route.path.startswith("/knowledge") for route in app.router.routes):
             app.include_router(knowledge_router)
             logger.info("Knowledge API router mounted under /knowledge")
+        if not any(route.path.startswith("/memory") for route in app.router.routes):
+            app.include_router(memory_router)
+            logger.info("Memory API router mounted under /memory")
         if not any(route.path.startswith("/auth") for route in app.router.routes):
             app.include_router(auth_router)
             logger.info("Auth API router mounted under /auth")

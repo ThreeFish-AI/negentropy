@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 const NAV_ITEMS = [
-  { href: "/knowledge", label: "Dashboard" },
-  { href: "/knowledge/base", label: "Knowledge Base" },
-  { href: "/knowledge/graph", label: "Knowledge Graph" },
-  { href: "/knowledge/pipelines", label: "Pipelines" },
+  { href: "/memory", label: "Dashboard" },
+  { href: "/memory/timeline", label: "Timeline" },
+  { href: "/memory/facts", label: "Facts" },
+  { href: "/memory/audit", label: "Audit" },
 ];
 
-export function KnowledgeNav({
+export function MemoryNav({
   title,
   description,
 }: {
@@ -20,7 +20,7 @@ export function KnowledgeNav({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-zinc-500">Knowledge</span>
+              <span className="text-zinc-500">Memory</span>
               <span className="text-zinc-300">/</span>
               <span className="font-semibold text-zinc-900">{title}</span>
             </div>
