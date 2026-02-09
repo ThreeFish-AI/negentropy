@@ -9,7 +9,7 @@ Faculty Pipelines Module - 系部流水线模块
     https://google.github.io/adk-docs/agents/workflow-agents/
 """
 
-from negentropy.agents.pipelines.standard import (
+from .standard import (
     KNOWLEDGE_ACQUISITION_PIPELINE_NAME,
     PROBLEM_SOLVING_PIPELINE_NAME,
     VALUE_DELIVERY_PIPELINE_NAME,

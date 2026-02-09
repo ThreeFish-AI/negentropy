@@ -24,11 +24,11 @@ Standard Faculty Pipelines - 标准系部流水线
 
 from google.adk.agents import SequentialAgent
 
-from negentropy.agents.faculties.action import create_action_agent
-from negentropy.agents.faculties.contemplation import create_contemplation_agent
-from negentropy.agents.faculties.influence import create_influence_agent
-from negentropy.agents.faculties.internalization import create_internalization_agent
-from negentropy.agents.faculties.perception import create_perception_agent
+from ..faculties.action import create_action_agent
+from ..faculties.contemplation import create_contemplation_agent
+from ..faculties.influence import create_influence_agent
+from ..faculties.internalization import create_internalization_agent
+from ..faculties.perception import create_perception_agent
 
 # 流水线名称常量
 KNOWLEDGE_ACQUISITION_PIPELINE_NAME = "KnowledgeAcquisitionPipeline"

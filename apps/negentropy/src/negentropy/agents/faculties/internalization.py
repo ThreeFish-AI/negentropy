@@ -1,8 +1,8 @@
 from google.adk.agents import LlmAgent
 
-from negentropy.agents._model import create_model
-from negentropy.agents.tools.common import log_activity
-from negentropy.agents.tools.internalization import save_to_memory, update_knowledge_graph
+from .._model import create_model
+from ..tools.common import log_activity
+from ..tools.internalization import save_to_memory, update_knowledge_graph
 from negentropy.config import settings
 
 _DESCRIPTION = (

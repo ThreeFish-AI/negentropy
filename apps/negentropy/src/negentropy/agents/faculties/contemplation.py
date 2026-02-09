@@ -1,8 +1,8 @@
 from google.adk.agents import LlmAgent
 
-from negentropy.agents._model import create_model
-from negentropy.agents.tools.common import log_activity
-from negentropy.agents.tools.contemplation import analyze_context, create_plan
+from .._model import create_model
+from ..tools.common import log_activity
+from ..tools.contemplation import analyze_context, create_plan
 from negentropy.config import settings
 
 _DESCRIPTION = (
