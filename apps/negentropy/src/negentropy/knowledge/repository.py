@@ -15,7 +15,7 @@ from negentropy.models.perception import Corpus, Knowledge
 
 from .constants import BATCH_INSERT_SIZE, RECALL_MULTIPLIER
 from .exceptions import DatabaseError, SearchError
-from .types import CorpusRecord, CorpusSpec, KnowledgeChunk, KnowledgeMatch, KnowledgeRecord
+from .types import CorpusRecord, CorpusSpec, KnowledgeChunk, KnowledgeMatch, KnowledgeRecord, merge_search_results
 
 
 logger = get_logger("negentropy.knowledge.repository")
@@ -421,63 +421,14 @@ class KnowledgeRepository:
             metadata_filter=metadata_filter,
         )
 
-        # 合并结果
-        merged: Dict[UUID, KnowledgeMatch] = {}
-
-        for match in semantic_matches:
-            merged[match.id] = KnowledgeMatch(
-                id=match.id,
-                content=match.content,
-                source_uri=match.source_uri,
-                metadata=match.metadata,
-                semantic_score=match.semantic_score,
-                keyword_score=0.0,
-                combined_score=0.0,
-            )
-
-        for match in keyword_matches:
-            existing = merged.get(match.id)
-            if existing:
-                merged[match.id] = KnowledgeMatch(
-                    id=existing.id,
-                    content=existing.content,
-                    source_uri=existing.source_uri,
-                    metadata=existing.metadata,
-                    semantic_score=existing.semantic_score,
-                    keyword_score=match.keyword_score,
-                    combined_score=0.0,
-                )
-            else:
-                merged[match.id] = KnowledgeMatch(
-                    id=match.id,
-                    content=match.content,
-                    source_uri=match.source_uri,
-                    metadata=match.metadata,
-                    semantic_score=0.0,
-                    keyword_score=match.keyword_score,
-                    combined_score=0.0,
-                )
-
-        # 重新计算融合分数并排序
-        recomputed: list[KnowledgeMatch] = []
-        for match in merged.values():
-            combined_score = (
-                match.semantic_score * semantic_weight + match.keyword_score * keyword_weight
-            )
-            recomputed.append(
-                KnowledgeMatch(
-                    id=match.id,
-                    content=match.content,
-                    source_uri=match.source_uri,
-                    metadata=match.metadata,
-                    semantic_score=match.semantic_score,
-                    keyword_score=match.keyword_score,
-                    combined_score=combined_score,
-                )
-            )
-
-        ordered = sorted(recomputed, key=lambda item: item.combined_score, reverse=True)
-        return ordered[:limit]
+        # 委托给共享的融合逻辑（消除与 KnowledgeService._merge_matches 的重复）
+        return merge_search_results(
+            semantic_matches,
+            keyword_matches,
+            semantic_weight=semantic_weight,
+            keyword_weight=keyword_weight,
+            limit=limit,
+        )
 
     async def rrf_search(
         self,

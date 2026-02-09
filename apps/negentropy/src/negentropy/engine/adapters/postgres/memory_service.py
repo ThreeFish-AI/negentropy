@@ -20,6 +20,7 @@ PostgresMemoryService: ADK MemoryService 的 PostgreSQL 实现
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any, List, Optional
@@ -365,14 +366,17 @@ class PostgresMemoryService(BaseMemoryService):
         """ilike 模糊搜索回退
 
         当 search_vector 不可用时的最终回退方案。
+        注意: 转义 LIKE 通配符 (% _) 防止用户操纵匹配模式。
         """
+        # 转义 LIKE 特殊字符，防止通配符注入
+        escaped_query = re.sub(r"([%_])", r"\\\1", query)
         async with db_session.AsyncSessionLocal() as db:
             stmt = (
                 select(Memory)
                 .where(
                     Memory.app_name == app_name,
                     Memory.user_id == user_id,
-                    Memory.content.ilike(f"%{query}%"),
+                    Memory.content.ilike(f"%{escaped_query}%"),
                 )
                 .order_by(Memory.created_at.desc())
                 .limit(_DEFAULT_SEARCH_LIMIT)
@@ -402,7 +406,7 @@ class PostgresMemoryService(BaseMemoryService):
         if not memories_data:
             return
 
-        memory_ids = [m["id"] for m in memories_data if m.get("id")]
+        memory_ids = [uuid.UUID(m["id"]) for m in memories_data if m.get("id")]
         if not memory_ids:
             return
 
