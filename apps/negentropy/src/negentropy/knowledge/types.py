@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, Iterable, List, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator, ValidationInfo
@@ -271,6 +271,84 @@ class SearchConfig(BaseModel):
         if v < 1:
             raise ValueError(f"rrf_k must be at least 1, got {v}")
         return v
+
+
+# ============================================================================
+# Search Result Merge Utilities
+# ============================================================================
+
+
+def merge_search_results(
+    semantic_matches: "Iterable[KnowledgeMatch]",
+    keyword_matches: "Iterable[KnowledgeMatch]",
+    *,
+    semantic_weight: float,
+    keyword_weight: float,
+    limit: int,
+) -> "list[KnowledgeMatch]":
+    """融合语义和关键词检索结果
+
+    纯函数，供 KnowledgeService 和 KnowledgeRepository 复用。
+
+    策略:
+    1. 以 semantic_matches 为基础构建合并字典
+    2. 合并 keyword_matches 的分数
+    3. 重新计算 combined_score = semantic_score * w_s + keyword_score * w_k
+    4. 按 combined_score 降序排列并返回前 limit 条
+    """
+    merged: Dict[UUID, KnowledgeMatch] = {}
+
+    for match in semantic_matches:
+        merged[match.id] = KnowledgeMatch(
+            id=match.id,
+            content=match.content,
+            source_uri=match.source_uri,
+            metadata=match.metadata,
+            semantic_score=match.semantic_score,
+            keyword_score=0.0,
+            combined_score=0.0,
+        )
+
+    for match in keyword_matches:
+        existing = merged.get(match.id)
+        if existing:
+            merged[match.id] = KnowledgeMatch(
+                id=existing.id,
+                content=existing.content,
+                source_uri=existing.source_uri,
+                metadata=existing.metadata,
+                semantic_score=existing.semantic_score,
+                keyword_score=match.keyword_score,
+                combined_score=0.0,
+            )
+        else:
+            merged[match.id] = KnowledgeMatch(
+                id=match.id,
+                content=match.content,
+                source_uri=match.source_uri,
+                metadata=match.metadata,
+                semantic_score=0.0,
+                keyword_score=match.keyword_score,
+                combined_score=0.0,
+            )
+
+    recomputed: list[KnowledgeMatch] = []
+    for match in merged.values():
+        combined_score = match.semantic_score * semantic_weight + match.keyword_score * keyword_weight
+        recomputed.append(
+            KnowledgeMatch(
+                id=match.id,
+                content=match.content,
+                source_uri=match.source_uri,
+                metadata=match.metadata,
+                semantic_score=match.semantic_score,
+                keyword_score=match.keyword_score,
+                combined_score=combined_score,
+            )
+        )
+
+    ordered = sorted(recomputed, key=lambda item: item.combined_score, reverse=True)
+    return ordered[:limit]
 
 
 # ============================================================================

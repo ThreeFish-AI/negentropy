@@ -331,6 +331,11 @@ async def delete_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default
         if not corpus:
             raise HTTPException(status_code=404, detail="Corpus not found")
 
+        # 记录将被级联删除的 Knowledge 数量（审计可追溯性）
+        knowledge_count = await db.scalar(
+            select(func.count()).select_from(Knowledge).where(Knowledge.corpus_id == corpus_id)
+        )
+
         await db.delete(corpus)
         await db.commit()
 
@@ -338,6 +343,7 @@ async def delete_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default
         "corpus_deleted",
         corpus_id=str(corpus_id),
         app_name=resolved_app,
+        knowledge_count=knowledge_count or 0,
     )
 
 

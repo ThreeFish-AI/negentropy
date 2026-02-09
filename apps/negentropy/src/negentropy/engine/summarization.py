@@ -24,7 +24,7 @@ class SessionSummarizer:
     def __init__(self):
         kwargs = settings.llm.to_litellm_kwargs()
         kwargs["max_tokens"] = 20
-        logger.debug(f"SessionSummarizer initialized with kwargs: {kwargs}")
+        logger.debug("session_summarizer_initialized")
         self.model = LiteLlm(settings.llm.full_model_name, **kwargs)
 
     async def generate_title(self, history: List[types.Content]) -> Optional[str]:
@@ -34,7 +34,7 @@ class SessionSummarizer:
         if not history:
             return None
 
-        logger.info(f"Generating title with {len(history)} events")
+        logger.info("generating_title", event_count=len(history))
 
         prompt = (
             "请将以下对话内容概括为 3-5 个词的标题。\n"
@@ -49,7 +49,7 @@ class SessionSummarizer:
             instruction = types.Content(role="user", parts=[types.Part(text=prompt)])
             chat_history.append(instruction)
 
-            logger.debug(f"Title generation request: events={len(history)}, max_tokens=20")
+            logger.debug("title_generation_request", event_count=len(history), max_tokens=20)
 
             request = LlmRequest(
                 contents=chat_history,
@@ -67,15 +67,16 @@ class SessionSummarizer:
                         if part.text:
                             response_text += part.text
 
-            logger.debug(f"Raw LLM response: {len(response_text)} chars - {response_text[:100]}...")
+            logger.debug("llm_response_received", response_length=len(response_text))
 
             if response_text:
                 title = response_text.strip().strip('"').strip("'")
 
                 if len(title) > 100:
                     logger.warning(
-                        f"Generated title too long ({len(title)} chars): {title[:100]}...",
-                        history_length=len(history)
+                        "title_too_long",
+                        title_length=len(title),
+                        history_length=len(history),
                     )
                     words = title.split()[:5]
                     title = " ".join(words)
@@ -86,18 +87,18 @@ class SessionSummarizer:
                         title = title[len(prefix):].strip()
 
                 if len(title) > 100:
-                    logger.error(f"Title still too long after processing, returning None")
+                    logger.error("title_still_too_long_after_processing")
                     return None
 
                 if len(title) < 3:
-                    logger.warning(f"Generated title too short: '{title}'")
+                    logger.warning("title_too_short", title_length=len(title))
                     return None
 
-                logger.info(f"Generated session title: {title}")
+                logger.info("session_title_generated", title=title)
                 return title
 
             return None
 
         except Exception as e:
-            logger.warning(f"Failed to generate session title: {e}")
+            logger.warning("title_generation_failed", error=str(e))
             return None

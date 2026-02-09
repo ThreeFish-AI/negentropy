@@ -24,6 +24,7 @@ from .types import (
     KnowledgeMatch,
     KnowledgeRecord,
     SearchConfig,
+    merge_search_results,
 )
 
 logger = get_logger("negentropy.knowledge.service")
@@ -280,6 +281,8 @@ class KnowledgeService:
             return semantic_matches
 
         if config.mode == "keyword":
+            # L1 精排
+            keyword_matches = await self._reranker.rerank(query, keyword_matches)
             logger.info(
                 "search_completed",
                 corpus_id=str(corpus_id),
@@ -384,110 +387,13 @@ class KnowledgeService:
     ) -> list[KnowledgeMatch]:
         """融合语义和关键词检索结果
 
-        策略:
-        1. 以 semantic_matches 为基础
-        2. 合并 keyword_matches 的分数
-        3. 重新计算 combined_score
-        4. 按分数排序并返回前 limit 条
+        委托给 types.merge_search_results() 共享实现，
+        消除与 KnowledgeRepository._fallback_hybrid_search() 的重复逻辑。
         """
-        # 第一步: 初始化合并字典
-        merged = self._initialize_merged_dict(semantic_matches)
-
-        # 第二步: 合并关键词结果
-        merged = self._merge_keyword_results(merged, keyword_matches)
-
-        # 第三步: 重新计算融合分数
-        recomputed = self._recompute_combined_scores(
-            merged,
+        return merge_search_results(
+            semantic_matches,
+            keyword_matches,
             semantic_weight=semantic_weight,
             keyword_weight=keyword_weight,
+            limit=limit,
         )
-
-        # 第四步: 排序并限制数量
-        return self._sort_and_limit(recomputed, limit=limit)
-
-    @staticmethod
-    def _initialize_merged_dict(
-        semantic_matches: Iterable[KnowledgeMatch],
-    ) -> Dict[UUID, KnowledgeMatch]:
-        """初始化合并字典，以语义检索结果为基础"""
-        merged: Dict[UUID, KnowledgeMatch] = {}
-        for match in semantic_matches:
-            merged[match.id] = KnowledgeMatch(
-                id=match.id,
-                content=match.content,
-                source_uri=match.source_uri,
-                metadata=match.metadata,
-                semantic_score=match.semantic_score,
-                keyword_score=0.0,
-                combined_score=0.0,
-            )
-        return merged
-
-    @staticmethod
-    def _merge_keyword_results(
-        merged: Dict[UUID, KnowledgeMatch],
-        keyword_matches: Iterable[KnowledgeMatch],
-    ) -> Dict[UUID, KnowledgeMatch]:
-        """合并关键词检索结果到字典"""
-        for match in keyword_matches:
-            existing = merged.get(match.id)
-            if existing:
-                # 已存在，更新 keyword_score
-                merged[match.id] = KnowledgeMatch(
-                    id=existing.id,
-                    content=existing.content,
-                    source_uri=existing.source_uri,
-                    metadata=existing.metadata,
-                    semantic_score=existing.semantic_score,
-                    keyword_score=match.keyword_score,
-                    combined_score=0.0,
-                )
-            else:
-                # 不存在，新增纯关键词结果
-                merged[match.id] = KnowledgeMatch(
-                    id=match.id,
-                    content=match.content,
-                    source_uri=match.source_uri,
-                    metadata=match.metadata,
-                    semantic_score=0.0,
-                    keyword_score=match.keyword_score,
-                    combined_score=0.0,
-                )
-        return merged
-
-    @staticmethod
-    def _recompute_combined_scores(
-        merged: Dict[UUID, KnowledgeMatch],
-        *,
-        semantic_weight: float,
-        keyword_weight: float,
-    ) -> list[KnowledgeMatch]:
-        """重新计算所有结果的融合分数"""
-        recomputed: list[KnowledgeMatch] = []
-        for match in merged.values():
-            combined_score = (
-                match.semantic_score * semantic_weight + match.keyword_score * keyword_weight
-            )
-            recomputed.append(
-                KnowledgeMatch(
-                    id=match.id,
-                    content=match.content,
-                    source_uri=match.source_uri,
-                    metadata=match.metadata,
-                    semantic_score=match.semantic_score,
-                    keyword_score=match.keyword_score,
-                    combined_score=combined_score,
-                )
-            )
-        return recomputed
-
-    @staticmethod
-    def _sort_and_limit(
-        matches: list[KnowledgeMatch],
-        *,
-        limit: int,
-    ) -> list[KnowledgeMatch]:
-        """按融合分数排序并限制返回数量"""
-        ordered = sorted(matches, key=lambda item: item.combined_score, reverse=True)
-        return ordered[:limit]

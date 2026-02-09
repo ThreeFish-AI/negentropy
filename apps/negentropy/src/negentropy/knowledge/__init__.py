@@ -23,6 +23,7 @@ from .types import (
     KnowledgeMatch,
     KnowledgeRecord,
     SearchConfig,
+    merge_search_results,
 )
 
 __all__ = [
@@ -39,6 +40,7 @@ __all__ = [
     "KnowledgeMatch",
     "KnowledgeRecord",
     "SearchConfig",
+    "merge_search_results",
     # Graph types
     "GraphNode",
     "GraphEdge",
