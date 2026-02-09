@@ -164,9 +164,15 @@ export async function POST(request: Request) {
   }
 
   if (!upstreamResponse.ok || !upstreamResponse.body) {
+    let detail = "Upstream returned non-OK status";
+    try {
+      detail = (await upstreamResponse.text()) || detail;
+    } catch {
+      // 读取失败时保留默认消息
+    }
     return aguiErrorResponse(
       AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      "Upstream returned non-OK status",
+      detail,
     );
   }
 
