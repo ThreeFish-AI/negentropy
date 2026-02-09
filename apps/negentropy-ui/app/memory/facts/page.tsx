@@ -111,7 +111,7 @@ export default function MemoryFactsPage() {
 
         {error && (
           <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
-            {String(error)}
+            {error?.message || String(error)}
           </div>
         )}
 

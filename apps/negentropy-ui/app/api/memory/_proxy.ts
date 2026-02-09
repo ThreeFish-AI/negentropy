@@ -68,7 +68,12 @@ export async function proxyGet(request: Request, path: string) {
     return errorResponse("MEMORY_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
   }
 
-  return NextResponse.json(JSON.parse(text));
+  try {
+    return NextResponse.json(JSON.parse(text));
+  } catch {
+    // 后端返回空或非 JSON 时，安全降级
+    return NextResponse.json({ data: text || null });
+  }
 }
 
 export async function proxyPost(request: Request, path: string) {
@@ -105,5 +110,10 @@ export async function proxyPost(request: Request, path: string) {
     return errorResponse("MEMORY_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
   }
 
-  return NextResponse.json(JSON.parse(text));
+  try {
+    return NextResponse.json(JSON.parse(text));
+  } catch {
+    // 后端返回空或非 JSON 时，安全降级
+    return NextResponse.json({ data: text || null });
+  }
 }
