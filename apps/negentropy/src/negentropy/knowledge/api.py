@@ -315,6 +315,32 @@ async def get_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=No
     )
 
 
+@router.delete("/base/{corpus_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=None)) -> None:
+    """删除语料库及其所有知识块
+
+    级联删除: 删除 Corpus 时同时删除所有关联的 Knowledge 记录。
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    async with AsyncSessionLocal() as db:
+        stmt = select(Corpus).where(Corpus.id == corpus_id, Corpus.app_name == resolved_app)
+        result = await db.execute(stmt)
+        corpus = result.scalar_one_or_none()
+
+        if not corpus:
+            raise HTTPException(status_code=404, detail="Corpus not found")
+
+        await db.delete(corpus)
+        await db.commit()
+
+    logger.info(
+        "corpus_deleted",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+    )
+
+
 @router.post("/base/{corpus_id}/ingest")
 async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]:
     """索引文本到知识库

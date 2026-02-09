@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
@@ -53,51 +52,15 @@ class KnowledgeRunDao:
         idempotency_key: Optional[str],
         expected_version: Optional[int],
     ) -> UpsertResult:
-        async with self._session_factory() as db:
-            if idempotency_key:
-                stmt = select(KnowledgeGraphRun).where(
-                    KnowledgeGraphRun.app_name == app_name,
-                    KnowledgeGraphRun.idempotency_key == idempotency_key,
-                )
-                result = await db.execute(stmt)
-                existing = result.scalar_one_or_none()
-                if existing:
-                    return UpsertResult("idempotent", self._to_graph_record(existing))
-
-            stmt = select(KnowledgeGraphRun).where(
-                KnowledgeGraphRun.app_name == app_name,
-                KnowledgeGraphRun.run_id == run_id,
-            )
-            result = await db.execute(stmt)
-            existing = result.scalar_one_or_none()
-            if existing:
-                if expected_version is not None and existing.version != expected_version:
-                    return UpsertResult("conflict", self._to_graph_record(existing))
-                existing.status = status
-                existing.payload = payload
-                existing.version = existing.version + 1
-                if idempotency_key:
-                    existing.idempotency_key = idempotency_key
-                await db.commit()
-                await db.refresh(existing)
-                return UpsertResult("updated", self._to_graph_record(existing))
-
-            record = KnowledgeGraphRun(
-                app_name=app_name,
-                run_id=run_id,
-                status=status,
-                payload=payload,
-                idempotency_key=idempotency_key,
-                version=1,
-            )
-            db.add(record)
-            try:
-                await db.commit()
-            except IntegrityError:
-                await db.rollback()
-                return UpsertResult("conflict", {"run_id": run_id})
-            await db.refresh(record)
-            return UpsertResult("created", self._to_graph_record(record))
+        return await self._upsert_run(
+            model_class=KnowledgeGraphRun,
+            app_name=app_name,
+            run_id=run_id,
+            status=status,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            expected_version=expected_version,
+        )
 
     async def list_pipeline_runs(self, app_name: str, limit: int = 50) -> list[KnowledgePipelineRun]:
         async with self._session_factory() as db:
@@ -120,26 +83,58 @@ class KnowledgeRunDao:
         idempotency_key: Optional[str],
         expected_version: Optional[int],
     ) -> UpsertResult:
+        return await self._upsert_run(
+            model_class=KnowledgePipelineRun,
+            app_name=app_name,
+            run_id=run_id,
+            status=status,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            expected_version=expected_version,
+        )
+
+    async def _upsert_run(
+        self,
+        *,
+        model_class: Type,
+        app_name: str,
+        run_id: str,
+        status: str,
+        payload: Dict[str, Any],
+        idempotency_key: Optional[str],
+        expected_version: Optional[int],
+    ) -> UpsertResult:
+        """通用 upsert 逻辑，适用于 GraphRun 和 PipelineRun
+
+        流程:
+        1. 幂等性检查（若有 idempotency_key）
+        2. 查找现有记录并更新（版本控制）
+        3. 创建新记录
+        """
         async with self._session_factory() as db:
+            # 幂等性检查
             if idempotency_key:
-                stmt = select(KnowledgePipelineRun).where(
-                    KnowledgePipelineRun.app_name == app_name,
-                    KnowledgePipelineRun.idempotency_key == idempotency_key,
+                stmt = select(model_class).where(
+                    model_class.app_name == app_name,
+                    model_class.idempotency_key == idempotency_key,
                 )
                 result = await db.execute(stmt)
                 existing = result.scalar_one_or_none()
                 if existing:
-                    return UpsertResult("idempotent", self._to_pipeline_record(existing))
+                    return UpsertResult("idempotent", self._to_record(existing))
 
-            stmt = select(KnowledgePipelineRun).where(
-                KnowledgePipelineRun.app_name == app_name,
-                KnowledgePipelineRun.run_id == run_id,
+            # 查找现有记录
+            stmt = select(model_class).where(
+                model_class.app_name == app_name,
+                model_class.run_id == run_id,
             )
             result = await db.execute(stmt)
             existing = result.scalar_one_or_none()
             if existing:
+                # 版本冲突检查
                 if expected_version is not None and existing.version != expected_version:
-                    return UpsertResult("conflict", self._to_pipeline_record(existing))
+                    return UpsertResult("conflict", self._to_record(existing))
+                # 更新
                 existing.status = status
                 existing.payload = payload
                 existing.version = existing.version + 1
@@ -147,9 +142,10 @@ class KnowledgeRunDao:
                     existing.idempotency_key = idempotency_key
                 await db.commit()
                 await db.refresh(existing)
-                return UpsertResult("updated", self._to_pipeline_record(existing))
+                return UpsertResult("updated", self._to_record(existing))
 
-            record = KnowledgePipelineRun(
+            # 创建新记录
+            record = model_class(
                 app_name=app_name,
                 run_id=run_id,
                 status=status,
@@ -164,21 +160,11 @@ class KnowledgeRunDao:
                 await db.rollback()
                 return UpsertResult("conflict", {"run_id": run_id})
             await db.refresh(record)
-            return UpsertResult("created", self._to_pipeline_record(record))
+            return UpsertResult("created", self._to_record(record))
 
     @staticmethod
-    def _to_graph_record(record: KnowledgeGraphRun) -> Dict[str, Any]:
-        return {
-            "id": str(record.id),
-            "run_id": record.run_id,
-            "status": record.status,
-            "payload": record.payload,
-            "version": record.version,
-            "updated_at": record.updated_at.isoformat() if record.updated_at else None,
-        }
-
-    @staticmethod
-    def _to_pipeline_record(record: KnowledgePipelineRun) -> Dict[str, Any]:
+    def _to_record(record: Any) -> Dict[str, Any]:
+        """通用记录转换"""
         return {
             "id": str(record.id),
             "run_id": record.run_id,

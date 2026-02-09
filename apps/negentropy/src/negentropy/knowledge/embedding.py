@@ -2,6 +2,7 @@
 Embedding 向量化模块
 
 提供文本向量化能力，支持单条和批量向量化。
+内置指数退避重试机制，应对外部 API 的不稳定性。
 
 参考文献:
 [1] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,"
@@ -10,6 +11,7 @@ Embedding 向量化模块
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -22,6 +24,11 @@ logger = get_logger("negentropy.knowledge.embedding")
 
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
+
+# 重试配置
+_MAX_RETRIES = 3
+_BASE_BACKOFF_SECONDS = 1.0
+_TIMEOUT_SECONDS = 30.0
 
 
 def _extract_embedding_from_item(item: Any) -> list[float] | None:
@@ -66,6 +73,59 @@ def _extract_data_from_response(response: Any) -> list[Any] | None:
     return data if data else None
 
 
+async def _call_with_retry(
+    coro_factory,
+    *,
+    max_retries: int = _MAX_RETRIES,
+    base_backoff: float = _BASE_BACKOFF_SECONDS,
+    timeout: float = _TIMEOUT_SECONDS,
+    context: str = "",
+) -> Any:
+    """带指数退避重试和超时的异步调用
+
+    Args:
+        coro_factory: 返回协程的工厂函数（每次重试创建新协程）
+        max_retries: 最大重试次数
+        base_backoff: 基础退避秒数
+        timeout: 单次调用超时秒数
+        context: 上下文描述（用于日志）
+
+    Returns:
+        协程返回值
+
+    Raises:
+        最后一次重试的异常
+    """
+    last_exc = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            return await asyncio.wait_for(coro_factory(), timeout=timeout)
+        except asyncio.TimeoutError:
+            last_exc = TimeoutError(f"Embedding API timed out after {timeout}s")
+            logger.warning(
+                "embedding_timeout",
+                attempt=attempt,
+                max_retries=max_retries,
+                timeout=timeout,
+                context=context,
+            )
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(
+                "embedding_retry",
+                attempt=attempt,
+                max_retries=max_retries,
+                error=str(exc),
+                context=context,
+            )
+
+        if attempt < max_retries:
+            backoff = base_backoff * (2 ** (attempt - 1))
+            await asyncio.sleep(backoff)
+
+    raise last_exc
+
+
 def build_embedding_fn() -> EmbeddingFn:
     """构建单条文本向量化函数
 
@@ -85,12 +145,18 @@ def build_embedding_fn() -> EmbeddingFn:
         try:
             import litellm
 
-            response = await litellm.aembedding(
-                model=model_name,
-                input=[cleaned],
-                **settings.llm.to_litellm_embedding_kwargs(),
+            async def _call():
+                return await litellm.aembedding(
+                    model=model_name,
+                    input=[cleaned],
+                    **settings.llm.to_litellm_embedding_kwargs(),
+                )
+
+            response = await _call_with_retry(
+                _call,
+                context=f"embed({cleaned[:50]}...)",
             )
-        except Exception as exc:
+        except (TimeoutError, Exception) as exc:
             logger.error("embedding_request_failed", model=model_name, exc_info=exc)
             raise EmbeddingFailed(
                 text_preview=cleaned[:100],
@@ -148,12 +214,18 @@ def build_batch_embedding_fn() -> BatchEmbeddingFn:
         try:
             import litellm
 
-            response = await litellm.aembedding(
-                model=model_name,
-                input=non_empty_texts,
-                **settings.llm.to_litellm_embedding_kwargs(),
+            async def _call():
+                return await litellm.aembedding(
+                    model=model_name,
+                    input=non_empty_texts,
+                    **settings.llm.to_litellm_embedding_kwargs(),
+                )
+
+            response = await _call_with_retry(
+                _call,
+                context=f"batch_embed({len(non_empty_texts)} texts)",
             )
-        except Exception as exc:
+        except (TimeoutError, Exception) as exc:
             logger.error(
                 "batch_embedding_request_failed",
                 model=model_name,

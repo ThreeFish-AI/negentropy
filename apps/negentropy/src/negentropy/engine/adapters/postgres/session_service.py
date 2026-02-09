@@ -253,7 +253,7 @@ class PostgresSessionService(BaseSessionService):
 
             if should_generate_title:
                 try:
-                    from negentropy.knowledge.summarization import SessionSummarizer
+                    from negentropy.engine.summarization import SessionSummarizer
                     from google.genai import types
 
                     summarizer = SessionSummarizer()
