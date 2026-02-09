@@ -9,16 +9,6 @@ Faculty Pipelines Module - 系部流水线模块
     https://google.github.io/adk-docs/agents/workflow-agents/
 """
 
-from negentropy.agents.pipelines.adaptive import adaptive_orchestrator
-from negentropy.agents.pipelines.iterative import (
-    DEFAULT_MAX_ITERATIONS,
-    DEFAULT_QUALITY_THRESHOLD,
-    MIN_IMPROVEMENT_THRESHOLD,
-    create_action_refinement_loop,
-    create_contemplation_refinement_loop,
-    create_perception_refinement_loop,
-    create_refinement_loop,
-)
 from negentropy.agents.pipelines.standard import (
     KNOWLEDGE_ACQUISITION_PIPELINE_NAME,
     PROBLEM_SOLVING_PIPELINE_NAME,
@@ -36,14 +26,4 @@ __all__ = [
     "KNOWLEDGE_ACQUISITION_PIPELINE_NAME",
     "PROBLEM_SOLVING_PIPELINE_NAME",
     "VALUE_DELIVERY_PIPELINE_NAME",
-    # 迭代精化
-    "create_refinement_loop",
-    "create_contemplation_refinement_loop",
-    "create_perception_refinement_loop",
-    "create_action_refinement_loop",
-    "DEFAULT_MAX_ITERATIONS",
-    "DEFAULT_QUALITY_THRESHOLD",
-    "MIN_IMPROVEMENT_THRESHOLD",
-    # 自适应编排
-    "adaptive_orchestrator",
 ]
