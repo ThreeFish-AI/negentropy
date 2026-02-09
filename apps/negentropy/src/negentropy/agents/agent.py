@@ -1,31 +1,19 @@
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 
-# Define the Root Agent (The Self)
-# This agent does not do heavy lifting itself but delegates to faculties.
+from negentropy.agents.tools.common import log_activity
 from negentropy.config import settings
 
-# Import shared tools from sibling package
-# Structure is: src/negentropy/agents/agent.py -> import from src/negentropy/agents/tools/common.py
-from negentropy.agents.tools.common import log_activity
-
-# Import the 5 Wings (Specialist Agents) from sub_agents package
 from .faculties.action import action_agent
 from .faculties.contemplation import contemplation_agent
 from .faculties.influence import influence_agent
 from .faculties.internalization import internalization_agent
 from .faculties.perception import perception_agent
-
-# Import standard pipelines for structured coordination
 from .pipelines.standard import (
-    KNOWLEDGE_ACQUISITION_PIPELINE_NAME,
-    PROBLEM_SOLVING_PIPELINE_NAME,
-    VALUE_DELIVERY_PIPELINE_NAME,
     create_knowledge_acquisition_pipeline,
     create_problem_solving_pipeline,
     create_value_delivery_pipeline,
 )
-
 
 root_agent = LlmAgent(
     name="NegentropyEngine",
