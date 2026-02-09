@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { fetchDashboard, KnowledgeDashboard } from "@/lib/knowledge";
+import { fetchDashboard, KnowledgeDashboard } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
