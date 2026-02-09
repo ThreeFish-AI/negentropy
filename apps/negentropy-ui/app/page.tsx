@@ -826,7 +826,7 @@ export default function Home() {
     const userId = user.userId;
     const resolvedSession = sessionId || "pending";
     return new HttpAgent({
-      url: buildAgentUrl(resolvedSession, userId),
+      url: buildAgentUrl(resolvedSession, userId, APP_NAME),
       headers: {
         "X-Session-ID": resolvedSession,
         "X-User-ID": userId,
