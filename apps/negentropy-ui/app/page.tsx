@@ -352,6 +352,61 @@ export function HomeBody({
     }
   }, [addLog, userId, sessionId, updateCurrentSessionTime]);
 
+  const renameSession = useCallback(
+    async (id: string, title: string) => {
+      const cleanedTitle = title.trim();
+      let previousLabel: string | null = null;
+
+      setSessions((prev) => {
+        const target = prev.find((session) => session.id === id);
+        previousLabel = target?.label ?? null;
+        return prev.map((session) =>
+          session.id === id
+            ? {
+                ...session,
+                label: cleanedTitle || createSessionLabel(id),
+              }
+            : session,
+        );
+      });
+
+      try {
+        const response = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(id)}/title`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              app_name: APP_NAME,
+              user_id: userId,
+              title: cleanedTitle || null,
+            }),
+          },
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error?.message || "update_session_title_failed");
+        }
+        await loadSessions();
+      } catch (error) {
+        if (previousLabel !== null) {
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === id ? { ...session, label: previousLabel as string } : session,
+            ),
+          );
+        }
+        addLog("error", "update_session_title_failed", {
+          message: String(error),
+          sessionId: id,
+        });
+      }
+    },
+    [addLog, createSessionLabel, loadSessions, setSessions, userId],
+  );
+
   const clearTitleRefreshTimers = useCallback(() => {
     titleRefreshTimersRef.current.forEach((timer) => {
       clearTimeout(timer);
@@ -694,6 +749,7 @@ export function HomeBody({
               activeId={sessionId}
               onSelect={handleSessionChange}
               onNewSession={startNewSession}
+              onRename={renameSession}
             />
           </div>
         </div>
