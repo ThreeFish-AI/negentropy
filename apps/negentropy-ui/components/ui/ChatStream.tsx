@@ -7,9 +7,15 @@ type ChatStreamProps = {
   messages: ChatMessage[];
   selectedMessageId?: string | null;
   onMessageSelect?: (messageId: string) => void;
+  contentClassName?: string;
 };
 
-export function ChatStream({ messages, selectedMessageId, onMessageSelect }: ChatStreamProps) {
+export function ChatStream({
+  messages,
+  selectedMessageId,
+  onMessageSelect,
+  contentClassName,
+}: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Sticky scroll logic
@@ -67,22 +73,26 @@ export function ChatStream({ messages, selectedMessageId, onMessageSelect }: Cha
     <div
       ref={scrollRef}
       onScroll={onScroll}
-      className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
+      className="flex-1 overflow-y-auto custom-scrollbar"
     >
-      {messages.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-500">
-          发送指令开始对话。事件流将实时展示在右侧。
-        </div>
-      ) : (
-        messages.map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isSelected={message.id === selectedMessageId}
-            onSelect={onMessageSelect}
-          />
-        ))
-      )}
+      <div
+        className={`mx-auto w-full px-6 py-6 space-y-4 ${contentClassName ?? ""}`}
+      >
+        {messages.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-500">
+            发送指令开始对话。事件流将实时展示在右侧。
+          </div>
+        ) : (
+          messages.map((message) => (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              isSelected={message.id === selectedMessageId}
+              onSelect={onMessageSelect}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
