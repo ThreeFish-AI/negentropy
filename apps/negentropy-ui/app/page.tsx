@@ -732,6 +732,8 @@ export function HomeBody({
     return logEntries.filter((entry) => entry.timestamp <= cutoffMs);
   }, [logEntries, selectedMessageId, messageTimestamps]);
 
+  const contentWidthClass = showRightPanel ? "max-w-4xl" : "max-w-none";
+
   return (
     <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
       <div className="flex h-full overflow-hidden relative">
@@ -817,8 +819,9 @@ export function HomeBody({
                   setShowRightPanel(true);
                 }
               }}
+              contentClassName={contentWidthClass}
             />
-            <div className="p-6 pt-2 shrink-0 w-full max-w-4xl mx-auto">
+            <div className={`p-6 pt-2 shrink-0 w-full mx-auto ${contentWidthClass}`}>
               <Composer
                 value={inputValue}
                 onChange={setInputValue}
