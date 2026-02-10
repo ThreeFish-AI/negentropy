@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.mermaid-diagram svg {
+  overflow: visible;
+}
+
+.mermaid-diagram foreignObject,
+.mermaid-diagram .label,
+.mermaid-diagram .nodeLabel {
+  overflow: visible;
+}
+
+.mermaid-diagram .nodeLabel {
+  padding: 0 2px;
+}
