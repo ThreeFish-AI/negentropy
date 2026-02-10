@@ -180,3 +180,53 @@ async def status_check(user: Optional[AuthUser] = Depends(get_optional_user)) ->
         "mode": settings.auth.mode,
         "authenticated": user is not None,
     }
+
+
+# =============================================================================
+# Admin API Endpoints
+# =============================================================================
+
+
+@router.get("/admin/users")
+async def list_users(current_user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
+    """List all users. Requires admin role."""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(UserState).where(UserState.app_name == settings.app_name))
+        user_states = result.scalars().all()
+
+    users = []
+    for us in user_states:
+        state = us.state or {}
+        profile = state.get("profile", {})
+        auth_info = state.get("auth", {})
+        users.append(
+            {
+                "userId": us.user_id,
+                "email": profile.get("email"),
+                "name": profile.get("name"),
+                "picture": profile.get("picture"),
+                "roles": state.get("roles", ["user"]),
+                "lastLoginAt": auth_info.get("last_login_at"),
+            }
+        )
+
+    return {"users": users}
+
+
+@router.get("/admin/roles")
+async def list_roles() -> dict[str, Any]:
+    """List all available roles and their permissions."""
+    from .rbac import get_all_roles
+
+    return {"roles": get_all_roles()}
+
+
+@router.get("/admin/permissions")
+async def list_permissions() -> dict[str, Any]:
+    """List all available permissions."""
+    from .rbac import get_all_permissions
+
+    return {"permissions": get_all_permissions()}
