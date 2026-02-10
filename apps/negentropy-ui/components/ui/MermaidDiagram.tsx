@@ -48,6 +48,9 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 
     const renderDiagram = async () => {
       try {
+        if (typeof document !== "undefined" && document.fonts?.ready) {
+          await document.fonts.ready;
+        }
         const parseResult = await mermaid.parse(normalizedCode, {
           suppressErrors: true,
         });
