@@ -90,9 +90,7 @@ class TestRetentionScoreCalculation:
             )
             expected_decay = math.exp(-lambda_ * days)
             expected_score = min(1.0, expected_decay * 1.0 / 5.0)
-            assert abs(score - expected_score) < 0.01, (
-                f"Day {days}: expected {expected_score:.4f}, got {score:.4f}"
-            )
+            assert abs(score - expected_score) < 0.01, f"Day {days}: expected {expected_score:.4f}, got {score:.4f}"
 
     @pytest.mark.asyncio
     async def test_score_bounded_0_1(self, governance_service):

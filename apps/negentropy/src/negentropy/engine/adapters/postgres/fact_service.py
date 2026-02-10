@@ -164,9 +164,7 @@ class FactService:
                 stmt = stmt.where(Fact.fact_type == fact_type)
 
             # 过滤已失效的 Fact
-            stmt = stmt.where(
-                (Fact.valid_until.is_(None)) | (Fact.valid_until > now)
-            )
+            stmt = stmt.where((Fact.valid_until.is_(None)) | (Fact.valid_until > now))
 
             result = await db.execute(stmt)
             return result.scalar_one_or_none()
@@ -320,13 +318,10 @@ class FactService:
         now = datetime.now(timezone.utc)
 
         async with db_session.AsyncSessionLocal() as db:
-            stmt = (
-                select(Fact)
-                .where(
-                    Fact.user_id == user_id,
-                    Fact.app_name == app_name,
-                    (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
-                )
+            stmt = select(Fact).where(
+                Fact.user_id == user_id,
+                Fact.app_name == app_name,
+                (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
             )
 
             if fact_type:

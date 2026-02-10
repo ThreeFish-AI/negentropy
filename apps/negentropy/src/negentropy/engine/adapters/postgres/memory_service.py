@@ -443,11 +443,7 @@ class PostgresMemoryService(BaseMemoryService):
         for m in memories_data:
             content_val = {"parts": [{"text": m["content"]}]}
             created_at = m.get("created_at")
-            timestamp = (
-                created_at.isoformat()
-                if created_at
-                else datetime.now(timezone.utc).isoformat()
-            )
+            timestamp = created_at.isoformat() if created_at else datetime.now(timezone.utc).isoformat()
 
             memories.append(
                 MemoryEntry(

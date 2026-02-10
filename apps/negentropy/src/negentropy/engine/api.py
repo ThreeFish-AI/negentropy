@@ -181,17 +181,11 @@ async def get_memory_dashboard(
             fact_filters.append(Fact.user_id == user_id)
 
         # 用户数
-        user_count = await db.scalar(
-            select(func.count(func.distinct(Memory.user_id))).where(
-                *memory_filters
-            )
-        )
+        user_count = await db.scalar(select(func.count(func.distinct(Memory.user_id))).where(*memory_filters))
 
         # 记忆总数
         memory_count = await db.scalar(
-            select(func.count()).select_from(
-                select(Memory).where(*memory_filters).subquery()
-            )
+            select(func.count()).select_from(select(Memory).where(*memory_filters).subquery())
         )
 
         # Facts 数量
@@ -208,9 +202,7 @@ async def get_memory_dashboard(
         )
 
         # 平均 retention_score
-        avg_retention = await db.scalar(
-            select(func.avg(Memory.retention_score)).where(*memory_filters)
-        )
+        avg_retention = await db.scalar(select(func.avg(Memory.retention_score)).where(*memory_filters))
 
         # 低保留记忆数 (retention_score < 0.1)
         low_retention_count = await db.scalar(
@@ -226,11 +218,7 @@ async def get_memory_dashboard(
 
         # 近期审计数
         recent_audit_count = await db.scalar(
-            select(func.count()).select_from(
-                select(MemoryAuditLog)
-                .where(*audit_filters)
-                .subquery()
-            )
+            select(func.count()).select_from(select(MemoryAuditLog).where(*audit_filters).subquery())
         )
 
     return MemoryDashboardResponse(
@@ -266,17 +254,11 @@ async def list_memories(
         user_result = await db.execute(user_stmt)
         user_rows = user_result.all()
 
-        users = [
-            {"id": row.user_id, "label": f"{row.user_id} ({row.count})"}
-            for row in user_rows
-        ]
+        users = [{"id": row.user_id, "label": f"{row.user_id} ({row.count})"} for row in user_rows]
 
         # 获取记忆时间线
         memory_stmt = (
-            select(Memory)
-            .where(Memory.app_name == resolved_app)
-            .order_by(Memory.created_at.desc())
-            .limit(limit)
+            select(Memory).where(Memory.app_name == resolved_app).order_by(Memory.created_at.desc()).limit(limit)
         )
         if user_id:
             memory_stmt = memory_stmt.where(Memory.user_id == user_id)
@@ -340,13 +322,15 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
         elif isinstance(entry.content, str):
             content_text = entry.content
 
-        items.append({
-            "id": entry.id,
-            "content": content_text,
-            "timestamp": entry.timestamp,
-            "relevance_score": entry.relevance_score,
-            "metadata": entry.custom_metadata or {},
-        })
+        items.append(
+            {
+                "id": entry.id,
+                "content": content_text,
+                "timestamp": entry.timestamp,
+                "relevance_score": entry.relevance_score,
+                "metadata": entry.custom_metadata or {},
+            }
+        )
 
     return MemorySearchResponse(count=len(items), items=items)
 

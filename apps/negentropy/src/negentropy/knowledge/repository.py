@@ -113,17 +113,21 @@ class KnowledgeRepository:
             async with self._session_factory() as db:
                 # 使用 PostgreSQL INSERT ... RETURNING 子句直接获取插入结果
                 # 避免二次查询丢失 source_uri=None 的记录
-                stmt = pg_insert(Knowledge).values(values).returning(
-                    Knowledge.id,
-                    Knowledge.corpus_id,
-                    Knowledge.app_name,
-                    Knowledge.content,
-                    Knowledge.source_uri,
-                    Knowledge.chunk_index,
-                    Knowledge.metadata_,
-                    Knowledge.embedding,
-                    Knowledge.created_at,
-                    Knowledge.updated_at,
+                stmt = (
+                    pg_insert(Knowledge)
+                    .values(values)
+                    .returning(
+                        Knowledge.id,
+                        Knowledge.corpus_id,
+                        Knowledge.app_name,
+                        Knowledge.content,
+                        Knowledge.source_uri,
+                        Knowledge.chunk_index,
+                        Knowledge.metadata_,
+                        Knowledge.embedding,
+                        Knowledge.created_at,
+                        Knowledge.updated_at,
+                    )
                 )
                 result = await db.execute(stmt)
                 await db.commit()

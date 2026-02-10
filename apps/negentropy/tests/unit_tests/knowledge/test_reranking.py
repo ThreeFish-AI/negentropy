@@ -191,9 +191,7 @@ class TestCompositeRerankerFallback:
         primary = FailingReranker()
         fallback = FailingReranker()
         final_fallback = NoopReranker()
-        reranker = CompositeReranker(
-            primary=primary, fallback=fallback, final_fallback=final_fallback
-        )
+        reranker = CompositeReranker(primary=primary, fallback=fallback, final_fallback=final_fallback)
         config = RerankConfig(top_k=3)
         result = await reranker.rerank("test query", sample_matches, config)
         assert len(result) == 3

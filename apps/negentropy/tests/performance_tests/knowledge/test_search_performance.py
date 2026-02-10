@@ -58,6 +58,7 @@ class TestSearchPerformance:
 
         目标: P95 < 100ms
         """
+
         # 使用模拟 embedding 函数避免外部调用
         async def mock_embedding(text: str) -> list[float]:
             return [0.0] * 1536
@@ -113,6 +114,7 @@ class TestSearchPerformance:
 
         比较数据库端混合 vs Python 端混合的性能差异
         """
+
         async def mock_embedding(text: str) -> list[float]:
             return [0.0] * 1536
 
@@ -145,6 +147,7 @@ class TestIngestionPerformance:
 
         目标: > 1000 chunks/秒
         """
+
         async def mock_embedding(text: str) -> list[float]:
             return [0.0] * 1536
 

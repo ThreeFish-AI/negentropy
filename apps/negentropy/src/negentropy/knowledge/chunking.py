@@ -279,9 +279,7 @@ async def semantic_chunk_async(
         return _recursive_chunk(text, config)
 
     # 3. 计算相邻句子相似度并确定分割点
-    split_indices = await _find_split_points(
-        sentences, embeddings, config.semantic_threshold
-    )
+    split_indices = await _find_split_points(sentences, embeddings, config.semantic_threshold)
 
     # 4. 在分割点处切分
     chunks = []
