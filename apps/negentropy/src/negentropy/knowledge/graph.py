@@ -356,15 +356,15 @@ class GraphProcessor:
     ) -> KnowledgeGraphPayload:
         """合并多个图谱
 
-        合并策略：
-- 节点按 label 合并
-        - 边去重并累加权重
+                合并策略：
+        - 节点按 label 合并
+                - 边去重并累加权重
 
-        Args:
-            graphs: 图谱列表
+                Args:
+                    graphs: 图谱列表
 
-        Returns:
-            合并后的图谱
+                Returns:
+                    合并后的图谱
         """
         logger.info(
             "merge_graphs_started",

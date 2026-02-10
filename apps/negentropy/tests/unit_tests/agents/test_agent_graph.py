@@ -97,7 +97,9 @@ def test_factory_creates_independent_instances():
 def _assert_pipeline_structure(pipeline: SequentialAgent, expected_names: list[str], expected_keys: list[str]):
     """通用 pipeline 结构断言"""
     agents = pipeline.sub_agents
-    assert len(agents) == len(expected_names), f"Pipeline {pipeline.name}: 预期 {len(expected_names)} 步, 实际 {len(agents)} 步"
+    assert len(agents) == len(expected_names), (
+        f"Pipeline {pipeline.name}: 预期 {len(expected_names)} 步, 实际 {len(agents)} 步"
+    )
     for i, (agent, name, key) in enumerate(zip(agents, expected_names, expected_keys)):
         assert agent.name == name, f"步骤 {i}: 预期 {name}, 实际 {agent.name}"
         assert agent.output_key == key, f"步骤 {i} ({name}): 预期 output_key={key!r}, 实际 {agent.output_key!r}"
@@ -142,24 +144,16 @@ def test_pipeline_agents_disallow_transfer():
     """Pipeline 内的 agent 应禁止 transfer（边界管理原则）"""
     pipeline = create_problem_solving_pipeline()
     for agent in pipeline.sub_agents:
-        assert agent.disallow_transfer_to_parent is True, (
-            f"{agent.name}: disallow_transfer_to_parent 应为 True"
-        )
-        assert agent.disallow_transfer_to_peers is True, (
-            f"{agent.name}: disallow_transfer_to_peers 应为 True"
-        )
+        assert agent.disallow_transfer_to_parent is True, f"{agent.name}: disallow_transfer_to_parent 应为 True"
+        assert agent.disallow_transfer_to_peers is True, f"{agent.name}: disallow_transfer_to_peers 应为 True"
 
 
 def test_singleton_agents_allow_transfer():
     """root_agent 直接委派的单例 agent 应允许 transfer（默认行为）"""
     singletons = [perception_agent, internalization_agent, contemplation_agent, action_agent, influence_agent]
     for agent in singletons:
-        assert agent.disallow_transfer_to_parent is False, (
-            f"{agent.name}: 单例应允许 transfer_to_parent"
-        )
-        assert agent.disallow_transfer_to_peers is False, (
-            f"{agent.name}: 单例应允许 transfer_to_peers"
-        )
+        assert agent.disallow_transfer_to_parent is False, f"{agent.name}: 单例应允许 transfer_to_parent"
+        assert agent.disallow_transfer_to_peers is False, f"{agent.name}: 单例应允许 transfer_to_peers"
 
 
 # ---------------------------------------------------------------------------

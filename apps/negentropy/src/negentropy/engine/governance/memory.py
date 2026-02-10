@@ -41,6 +41,7 @@ class AuditRecord:
 
     表示一次记忆审计决策的记录。
     """
+
     memory_id: str
     decision: str
     version: Optional[int] = None
@@ -335,8 +336,7 @@ class MemoryGovernanceService:
         for memory_id, decision in decisions.items():
             if decision not in valid_actions:
                 raise ValueError(
-                    f"Invalid decision '{decision}' for memory '{memory_id}'. "
-                    f"Must be one of {valid_actions}"
+                    f"Invalid decision '{decision}' for memory '{memory_id}'. Must be one of {valid_actions}"
                 )
 
     async def _get_current_version(

@@ -106,10 +106,7 @@ class VersionConflict(DomainError):
         expected_version: int,
         actual_version: int,
     ) -> None:
-        message = (
-            f"{resource_type} '{resource_id}' version conflict: "
-            f"expected {expected_version}, got {actual_version}"
-        )
+        message = f"{resource_type} '{resource_id}' version conflict: expected {expected_version}, got {actual_version}"
         details = {
             "resource_type": resource_type,
             "resource_id": resource_id,

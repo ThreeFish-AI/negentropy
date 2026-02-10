@@ -343,8 +343,7 @@ def create_plan(
         # 如果推荐了流水线，添加使用建议
         if recommended_pipeline:
             result["pipeline_suggestion"] = (
-                f"建议使用 '{recommended_pipeline}' 流水线，"
-                f"它包含了完成任务所需的系部组合。"
+                f"建议使用 '{recommended_pipeline}' 流水线，它包含了完成任务所需的系部组合。"
             )
 
         logger.info(
@@ -355,4 +354,3 @@ def create_plan(
         )
 
     return result
-

@@ -84,7 +84,7 @@ class SessionSummarizer:
                 prefixes = ["Title:", "标题：", "Summary:", "摘要：", "The title is"]
                 for prefix in prefixes:
                     if title.startswith(prefix):
-                        title = title[len(prefix):].strip()
+                        title = title[len(prefix) :].strip()
 
                 if len(title) > 100:
                     logger.error("title_still_too_long_after_processing")

@@ -103,6 +103,7 @@ class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
     参考文献:
     [1] A. Ebbinghaus, "Memory: A Contribution to Experimental Psychology," 1885.
     """
+
     __tablename__ = "memory_audit_logs"
 
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)

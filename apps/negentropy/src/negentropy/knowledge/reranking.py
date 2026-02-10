@@ -29,6 +29,7 @@ class RerankConfig:
 
     控制重排序行为。
     """
+
     top_k: int = 10  # 返回结果数量
     score_threshold: float = 0.0  # 最低分数阈值
     normalize_scores: bool = True  # 是否归一化分数

@@ -22,9 +22,10 @@ class ChunkingStrategy(Enum):
 
     定义不同的文本分块策略，用于将长文本分割成适合索引的块。
     """
-    FIXED = "fixed"         # 固定大小分块（字符级别）
-    RECURSIVE = "recursive" # 递归分块（段落 > 句子 > 词）
-    SEMANTIC = "semantic"   # 语义分块（基于句子相似度）
+
+    FIXED = "fixed"  # 固定大小分块（字符级别）
+    RECURSIVE = "recursive"  # 递归分块（段落 > 句子 > 词）
+    SEMANTIC = "semantic"  # 语义分块（基于句子相似度）
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class CorpusSpec:
 
     用于创建新的 Corpus 实例。
     """
+
     app_name: str
     name: str
     description: Optional[str] = None
@@ -45,6 +47,7 @@ class CorpusRecord:
 
     表示已创建的 Corpus 实例，包含所有持久化字段。
     """
+
     id: UUID
     app_name: str
     name: str
@@ -60,6 +63,7 @@ class KnowledgeChunk:
 
     表示待索引的文本分块，包含内容和元数据。
     """
+
     content: str
     source_uri: Optional[str] = None
     chunk_index: int = 0
@@ -73,6 +77,7 @@ class KnowledgeRecord:
 
     表示已持久化的 Knowledge 实例。
     """
+
     id: UUID
     corpus_id: UUID
     app_name: str
@@ -91,6 +96,7 @@ class KnowledgeMatch:
 
     表示检索返回的单条匹配结果，包含各种分数。
     """
+
     id: UUID
     content: str
     source_uri: Optional[str]
@@ -114,6 +120,7 @@ class ChunkingConfig(BaseModel):
     [1] G. Kamalloo and A. K. G., "Semantic Chunking for RAG Applications," 2024.
     [2] LlamaIndex, "Semantic Chunking," GitHub, 2024.
     """
+
     model_config = ConfigDict(frozen=True)
 
     strategy: ChunkingStrategy = ChunkingStrategy.RECURSIVE
@@ -122,8 +129,8 @@ class ChunkingConfig(BaseModel):
     preserve_newlines: bool = True
     # 语义分块专用参数
     semantic_threshold: float = 0.85  # 相似度阈值，低于此值时切分
-    min_chunk_size: int = 50          # 最小块大小（字符数）
-    max_chunk_size: int = 2000        # 最大块大小（字符数），用于滑动窗口合并
+    min_chunk_size: int = 50  # 最小块大小（字符数）
+    max_chunk_size: int = 2000  # 最大块大小（字符数），用于滑动窗口合并
 
     @field_validator("strategy", mode="before")
     @classmethod
@@ -134,9 +141,7 @@ class ChunkingConfig(BaseModel):
         try:
             return ChunkingStrategy(v)
         except ValueError:
-            raise ValueError(
-                f"strategy must be one of {[s.value for s in ChunkingStrategy]}, got {v}"
-            )
+            raise ValueError(f"strategy must be one of {[s.value for s in ChunkingStrategy]}, got {v}")
 
     @field_validator("chunk_size")
     @classmethod
@@ -164,16 +169,12 @@ class ChunkingConfig(BaseModel):
         # 获取 chunk_size 的值（如果可用）
         chunk_size = info.data.get("chunk_size", 800)
         if v >= chunk_size:
-            raise ValueError(
-                f"overlap must be less than chunk_size ({chunk_size}), got {v}"
-            )
+            raise ValueError(f"overlap must be less than chunk_size ({chunk_size}), got {v}")
 
         # 验证重叠比例
         max_overlap = int(chunk_size * MAX_OVERLAP_RATIO)
         if v > max_overlap:
-            raise ValueError(
-                f"overlap ({v}) exceeds {MAX_OVERLAP_RATIO * 100}% of chunk_size ({chunk_size})"
-            )
+            raise ValueError(f"overlap ({v}) exceeds {MAX_OVERLAP_RATIO * 100}% of chunk_size ({chunk_size})")
 
         return v
 
@@ -217,6 +218,7 @@ class SearchConfig(BaseModel):
     [1] Y. Wang et al., "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods,"
         SIGIR'18, 2018.
     """
+
     model_config = ConfigDict(frozen=True)
 
     mode: SearchMode = "hybrid"
@@ -355,12 +357,14 @@ def merge_search_results(
 # Knowledge Graph Types
 # ============================================================================
 
+
 @dataclass(frozen=True)
 class GraphNode:
     """知识图谱节点
 
     表示知识图谱中的一个实体节点。
     """
+
     id: str
     label: Optional[str] = None
     node_type: Optional[str] = None
@@ -373,6 +377,7 @@ class GraphEdge:
 
     表示知识图谱中两个节点之间的关系。
     """
+
     source: str
     target: str
     label: Optional[str] = None
@@ -387,6 +392,7 @@ class KnowledgeGraphPayload:
 
     包含节点和边的完整图谱数据。
     """
+
     nodes: List[GraphNode]
     edges: List[GraphEdge]
     runs: Optional[List[Dict[str, Any]]] = None

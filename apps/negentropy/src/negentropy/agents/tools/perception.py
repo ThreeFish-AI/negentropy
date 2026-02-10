@@ -187,9 +187,7 @@ async def search_knowledge_base(
         return {"status": "failed", "error": str(exc)}
 
 
-async def _fallback_to_memory_search(
-    query: str, limit: int, tool_context: ToolContext
-) -> dict[str, Any]:
+async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolContext) -> dict[str, Any]:
     """回退到 ADK MemoryService 搜索
 
     当知识库为空或检索失败时，使用 MemoryService 作为回退方案。
@@ -226,9 +224,7 @@ async def _fallback_to_memory_search(
                 "chunk_index": 0,
                 "snippet": text[:_MAX_SNIPPET_CHARS],
                 "truncated": len(text) > _MAX_SNIPPET_CHARS,
-                "metadata": (
-                    getattr(entry, "custom_metadata", {}) if hasattr(entry, "custom_metadata") else {}
-                ),
+                "metadata": (getattr(entry, "custom_metadata", {}) if hasattr(entry, "custom_metadata") else {}),
                 "semantic_score": 0.0,
                 "keyword_score": 0.0,
                 "combined_score": 0.0,
