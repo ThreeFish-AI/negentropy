@@ -65,7 +65,7 @@ export function SessionList({
           <p className="text-xs text-zinc-400">暂无会话</p>
         ) : (
           sessions.map((session) => (
-            <div key={session.id} className="flex items-center gap-2">
+            <div key={session.id}>
               {editingId === session.id ? (
                 <input
                   value={draftTitle}
@@ -94,39 +94,23 @@ export function SessionList({
                   autoFocus
                 />
               ) : (
-                <>
-                  <button
-                    onClick={() => onSelect(session.id)}
-                    className={`flex-1 rounded-lg px-3 py-2 text-left text-xs font-medium truncate transition-colors ${
-                      session.id === activeId
-                        ? "bg-zinc-900 text-white"
-                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                    }`}
-                    type="button"
-                  >
-                    {session.label}
-                  </button>
-                  {onRename && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        startEdit(session);
-                      }}
-                      className="rounded-md border border-zinc-200 bg-white p-1 text-zinc-400 hover:text-zinc-700 hover:border-zinc-300"
-                      title="编辑标题"
-                    >
-                      <svg
-                        className="h-3.5 w-3.5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M14.846 2.146a1.5 1.5 0 0 1 2.121 2.122l-9.19 9.19a1.5 1.5 0 0 1-.67.39l-3.26.93a.5.5 0 0 1-.62-.62l.93-3.26a1.5 1.5 0 0 1 .39-.67l9.19-9.19Z" />
-                      </svg>
-                    </button>
-                  )}
-                </>
+                <button
+                  onClick={() => onSelect(session.id)}
+                  onDoubleClick={() => {
+                    if (onRename) {
+                      startEdit(session);
+                    }
+                  }}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-xs font-medium truncate transition-colors ${
+                    session.id === activeId
+                      ? "bg-zinc-900 text-white"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  }`}
+                  type="button"
+                  title={onRename ? "双击编辑标题" : undefined}
+                >
+                  {session.label}
+                </button>
               )}
             </div>
           ))
