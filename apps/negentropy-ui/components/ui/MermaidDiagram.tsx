@@ -14,6 +14,17 @@ interface MermaidDiagramProps {
   code: string;
 }
 
+function normalizeMermaidCode(raw: string): string {
+  if (!raw) {
+    return "";
+  }
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === "undefined") {
+    return "";
+  }
+  return trimmed;
+}
+
 export function MermaidDiagram({ code }: MermaidDiagramProps) {
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -21,22 +32,48 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     () => `mermaid-${Math.random().toString(36).substring(2, 9)}`,
   );
   const elementId = useRef(id);
+  const lastErrorSignature = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
+    const normalizedCode = normalizeMermaidCode(code);
+
+    if (!normalizedCode) {
+      setSvg("");
+      setError(null);
+      return () => {
+        isMounted = false;
+      };
+    }
 
     const renderDiagram = async () => {
       try {
-        const { svg } = await mermaid.render(elementId.current, code);
+        const parseResult = await mermaid.parse(normalizedCode, {
+          suppressErrors: true,
+        });
+        if (!parseResult) {
+          if (isMounted) {
+            setSvg("");
+            setError("Failed to render diagram");
+          }
+          return;
+        }
+        const { svg } = await mermaid.render(elementId.current, normalizedCode);
         if (isMounted) {
           setSvg(svg);
           setError(null);
         }
       } catch (err) {
         if (isMounted) {
-          console.error("Mermaid rendering failed:", err);
           setError("Failed to render diagram");
           // Mermaid might verify fail, just show code block fallback if needed, or error message
+        }
+        if (process.env.NODE_ENV !== "production") {
+          const signature = `${normalizedCode}::${String(err)}`;
+          if (lastErrorSignature.current !== signature) {
+            lastErrorSignature.current = signature;
+            console.error("Mermaid rendering failed:", err);
+          }
         }
       }
     };
