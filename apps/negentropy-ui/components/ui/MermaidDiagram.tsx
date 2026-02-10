@@ -8,6 +8,9 @@ mermaid.initialize({
   theme: "default",
   securityLevel: "loose",
   fontFamily: "inherit",
+  flowchart: {
+    htmlLabels: true,
+  },
 });
 
 interface MermaidDiagramProps {

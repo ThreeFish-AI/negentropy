@@ -31,10 +31,14 @@ body {
 
 .mermaid-diagram foreignObject,
 .mermaid-diagram .label,
-.mermaid-diagram .nodeLabel {
+.mermaid-diagram .nodeLabel,
+.mermaid-diagram .edgeLabel {
   overflow: visible;
 }
 
-.mermaid-diagram .nodeLabel {
-  padding: 0 2px;
+.mermaid-diagram .nodeLabel,
+.mermaid-diagram .edgeLabel {
+  padding: 0 4px;
+  display: inline-block;
+  box-sizing: content-box;
 }
