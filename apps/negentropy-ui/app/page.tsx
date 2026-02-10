@@ -659,19 +659,6 @@ export function HomeBody({
   const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
   const chatMessages = ensureUniqueMessageIds(mappedMessages);
 
-  // Auto-select latest message when sidebar opens
-  useEffect(() => {
-    if (showRightPanel && !selectedMessageId && chatMessages.length > 0) {
-      // Select the most recent message (last in array)
-      const latestMessage = chatMessages[chatMessages.length - 1];
-      setSelectedMessageId(latestMessage.id);
-    }
-    // Optional: Clear selection when sidebar closes
-    // if (!showRightPanel && selectedMessageId) {
-    //   setSelectedMessageId(null);
-    // }
-  }, [showRightPanel, selectedMessageId, chatMessages]);
-
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
     if (!selectedMessageId) {
@@ -800,8 +787,8 @@ export function HomeBody({
           }`}
         >
           <div className="w-80 h-full overflow-y-auto p-6">
-            {/* Historical view indicator */}
-            {selectedMessageId && (
+            {/* View mode indicator + minimal interaction hint */}
+            {selectedMessageId ? (
               <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-800">
@@ -810,7 +797,6 @@ export function HomeBody({
                   <button
                     onClick={() => {
                       setSelectedMessageId(null);
-                      // Sidebar stays open, auto-select will pick latest message
                     }}
                     className="text-xs text-amber-600 hover:text-amber-800 underline"
                   >
@@ -819,6 +805,17 @@ export function HomeBody({
                 </div>
                 <p className="text-[10px] text-amber-700 mt-1">
                   显示选定消息的观察数据
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 rounded-lg bg-zinc-50 border border-zinc-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-zinc-500">
+                    实时视图
+                  </span>
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  点击任意消息进入历史视图，再次点击或点“返回实时”回到实时
                 </p>
               </div>
             )}
