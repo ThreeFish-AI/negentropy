@@ -217,6 +217,7 @@ def apply_adk_patches():
         import uuid
         from negentropy.knowledge.api import router as knowledge_router
         from negentropy.engine.api import router as memory_router
+        from negentropy.engine.sessions_api import router as sessions_router
         from negentropy.auth.api import router as auth_router
         from negentropy.auth.middleware import AuthMiddleware
 
@@ -310,6 +311,9 @@ def apply_adk_patches():
         if not any(route.path.startswith("/auth") for route in app.router.routes):
             app.include_router(auth_router)
             logger.info("Auth API router mounted under /auth")
+        if not any(getattr(route, "path", "").endswith("/sessions/{session_id}/title") for route in app.router.routes):
+            app.include_router(sessions_router)
+            logger.info("Sessions API router mounted for title updates")
         return app
 
     # Patch get_fast_api_app via AdkWebServer so it applies to current call
