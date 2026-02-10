@@ -86,13 +86,14 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="flex h-full flex-col bg-zinc-50">
       <AdminNav
         title="User Management"
         description="Manage users and role assignments"
       />
-      <div className="px-6 py-6">
-        <div className="mx-auto max-w-4xl">
+      <div className="flex-1 overflow-auto">
+        <div className="px-6 py-6">
+          <div className="mx-auto max-w-4xl">
           {/* Current User Info */}
           <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-4">
             <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
@@ -239,6 +240,7 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
