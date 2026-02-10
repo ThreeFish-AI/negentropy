@@ -245,13 +245,14 @@ export default function RoleManagementPage() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="flex h-full flex-col bg-zinc-50">
       <AdminNav
         title="Role Management"
         description="Bind roles to page-level read/write permissions"
       />
-      <div className="px-6 py-6">
-        <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex-1 overflow-auto">
+        <div className="px-6 py-6">
+          <div className="mx-auto max-w-5xl space-y-6">
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-700">
             Role bindings are sourced from the server RBAC configuration. This
             page edits a local draft and does not persist changes yet.
@@ -418,6 +419,7 @@ export default function RoleManagementPage() {
               <pre>{exportSnapshot}</pre>
             </div>
           </details>
+          </div>
         </div>
       </div>
     </div>
