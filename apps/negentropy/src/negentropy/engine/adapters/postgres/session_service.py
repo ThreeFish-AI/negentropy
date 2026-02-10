@@ -355,6 +355,50 @@ class PostgresSessionService(BaseSessionService):
             return
         await asyncio.gather(*list(self._title_tasks))
 
+    async def update_session_title(
+        self,
+        *,
+        app_name: str,
+        user_id: str,
+        session_id: str,
+        title: Optional[str],
+    ) -> bool:
+        """更新会话标题 (metadata.title)"""
+        self._validate_session_id(session_id)
+
+        async with db_session.AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(self.Thread).where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
+                )
+            )
+            thread = result.scalar_one_or_none()
+            if not thread:
+                return False
+
+            current_metadata = thread.metadata_ or {}
+            if title:
+                current_metadata["title"] = title
+            else:
+                current_metadata.pop("title", None)
+
+            await db.execute(
+                update(self.Thread)
+                .where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
+                )
+                .values(
+                    metadata_=current_metadata,
+                    updated_at=datetime.now(timezone.utc),
+                )
+            )
+            await db.commit()
+        return True
+
     async def _apply_state_delta_to_db(self, db: AsyncSession, session: Session, state_delta: dict[str, Any]) -> None:
         """应用 state_delta，根据前缀路由到不同存储"""
         session_updates = {}
