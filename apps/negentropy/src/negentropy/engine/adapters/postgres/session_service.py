@@ -14,6 +14,7 @@ PostgresSessionService: ADK SessionService 的 PostgreSQL 实现
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -66,6 +67,7 @@ class PostgresSessionService(BaseSessionService):
 
         self._temp_state: dict[str, dict] = {}  # temp: 前缀的内存缓存
         self._session_id_error = "session_id must be a valid UUID string"
+        self._title_tasks: set[asyncio.Task] = set()
 
     async def create_session(
         self,
@@ -235,67 +237,123 @@ class PostgresSessionService(BaseSessionService):
                 .values(updated_at=datetime.now(timezone.utc))
             )
 
-            # 4. 自动生成标题 (如果不存在)
-            # 简单策略：当事件数量达到 2 时 (User + Assistant)，生成标题
-            # 避免每次都生成，且要有足够上下文
-            should_generate_title = False
-
-            # 1. 检查 metadata 是否已存在 title
-            # 注意：session.state 是内存中的状态，可能不包含最新的 metadata_ 列数据
-            # 但 SessionService.get_session 我们已经合并了 metadata_ 到 state['metadata']
-            current_title = (session.state.get("metadata") or {}).get("title")
-
-            # 2. 过滤非工具事件
-            non_tool_events = [e for e in session.events if e.content and e.content.parts]
-
-            if len(non_tool_events) >= 2 and not current_title:
-                should_generate_title = True
-
-            if should_generate_title:
-                try:
-                    from negentropy.engine.summarization import SessionSummarizer
-                    from google.genai import types
-
-                    summarizer = SessionSummarizer()
-
-                    history = []
-                    for e in session.events[-5:]:  # 只取最近 5 条作为上下文
-                        role = "user" if e.author == "user" else "model"
-                        parts = [types.Part(text=p.text) for p in e.content.parts if p.text]
-                        if parts:
-                            history.append(types.Content(role=role, parts=parts))
-
-                    if history:
-                        title = await summarizer.generate_title(history)
-                        if title:
-                            # Fetch current metadata to merge
-                            meta_result = await db.execute(
-                                select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session.id))
-                            )
-                            current_metadata = meta_result.scalar() or {}
-                            current_metadata["title"] = title
-
-                            # Merge updates into the statement
-                            stmt = stmt.values(metadata_=current_metadata)
-
-                except Exception as ex:
-                    # 容错，不影响主流程
-                    from negentropy.logging import get_logger
-
-                    logger = get_logger("negentropy.session_service")
-                    logger.warning(
-                        "Failed to generate session title",
-                        session_id=session.id,
-                        error_type=type(ex).__name__,
-                        error=str(ex),
-                        events_count=len(session.events),
-                    )
-
             await db.execute(stmt)
             await db.commit()
 
+        if event.author == "user":
+            self._schedule_title_generation(session.id)
+
         event.id = event_id
         return event
+
+    async def _generate_title_for_session(self, session_id: str) -> None:
+        """后台生成标题并更新 metadata_"""
+        self._validate_session_id(session_id)
+
+        from negentropy.engine.summarization import SessionSummarizer
+        from google.genai import types
+        from negentropy.logging import get_logger
+
+        logger = get_logger("negentropy.session_service")
+
+        async with db_session.AsyncSessionLocal() as db:
+            meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
+            current_metadata = meta_result.scalar() or {}
+            if current_metadata.get("title"):
+                return
+
+            events_result = await db.execute(
+                select(self.Event)
+                .where(self.Event.thread_id == uuid.UUID(session_id))
+                .order_by(self.Event.sequence_num.desc())
+                .limit(6)
+            )
+            recent_events = list(reversed(events_result.scalars().all()))
+
+            history = []
+            for e in recent_events:
+                content_dict = e.content or {}
+                parts: list[types.Part] = []
+
+                if isinstance(content_dict, dict):
+                    raw_parts = content_dict.get("parts")
+                    if isinstance(raw_parts, list):
+                        for part in raw_parts:
+                            if isinstance(part, dict) and part.get("text"):
+                                parts.append(types.Part(text=part["text"]))
+                    elif content_dict.get("text"):
+                        parts.append(types.Part(text=content_dict["text"]))
+
+                if parts:
+                    role = "user" if e.author == "user" else "model"
+                    history.append(types.Content(role=role, parts=parts))
+
+            if not history:
+                return
+
+            try:
+                summarizer = SessionSummarizer()
+                title = await summarizer.generate_title(history)
+            except Exception as ex:
+                logger.warning(
+                    "Failed to generate session title",
+                    session_id=session_id,
+                    error_type=type(ex).__name__,
+                    error=str(ex),
+                    events_count=len(recent_events),
+                )
+                return
+
+            if not title:
+                return
+
+            # 再次确认未被外部写入标题，避免覆盖用户手动设置
+            meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
+            current_metadata = meta_result.scalar() or {}
+            if current_metadata.get("title"):
+                return
+
+            current_metadata["title"] = title
+            await db.execute(
+                update(self.Thread).where(self.Thread.id == uuid.UUID(session_id)).values(metadata_=current_metadata)
+            )
+            await db.commit()
+
+    def _schedule_title_generation(self, session_id: str) -> None:
+        """创建后台任务生成标题，不阻塞主流程"""
+        from negentropy.logging import get_logger
+
+        logger = get_logger("negentropy.session_service")
+        try:
+            task = asyncio.create_task(self._generate_title_for_session(session_id))
+        except RuntimeError:
+            # 没有事件循环时跳过，避免阻塞或崩溃
+            logger.warning("title_generation_skipped_no_event_loop", session_id=session_id)
+            return
+
+        self._title_tasks.add(task)
+
+        def _on_done(t: asyncio.Task) -> None:
+            self._title_tasks.discard(t)
+            if t.cancelled():
+                return
+            try:
+                t.result()
+            except Exception as ex:
+                logger.warning(
+                    "title_generation_task_failed",
+                    session_id=session_id,
+                    error_type=type(ex).__name__,
+                    error=str(ex),
+                )
+
+        task.add_done_callback(_on_done)
+
+    async def wait_for_background_tasks(self) -> None:
+        """仅用于测试：等待后台标题任务完成"""
+        if not self._title_tasks:
+            return
+        await asyncio.gather(*list(self._title_tasks))
 
     async def _apply_state_delta_to_db(self, db: AsyncSession, session: Session, state_delta: dict[str, Any]) -> None:
         """应用 state_delta，根据前缀路由到不同存储"""

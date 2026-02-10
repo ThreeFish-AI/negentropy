@@ -7,9 +7,11 @@ Session Summarization - 对话标题生成
 与 Knowledge（静态文档）无关，遵循 Boundary Management 原则。
 """
 
+import re
+from typing import List, Optional
+
 from google.adk.models import LlmRequest
 from google.adk.models.lite_llm import LiteLlm
-from typing import List, Optional
 from google.genai import types
 
 from negentropy.config import settings
@@ -29,7 +31,7 @@ class SessionSummarizer:
 
     async def generate_title(self, history: List[types.Content]) -> Optional[str]:
         """
-        Generates a 3-5 word title for the given conversation history.
+        Generates a short title (roughly 12 Chinese character width) for the given conversation history.
         """
         if not history:
             return None
@@ -37,10 +39,11 @@ class SessionSummarizer:
         logger.info("generating_title", event_count=len(history))
 
         prompt = (
-            "请将以下对话内容概括为 3-5 个词的标题。\n"
+            "请根据以下对话生成一个简短标题，长度约 10-12 个汉字（不超过 12 个汉字）。\n"
+            "若为英文，尽量简短（不超过 24 个字符）。\n"
             "仅输出标题文本，不要引号、前缀、冒号或任何解释。\n"
             "格式要求：直接输出标题，不要有 'Title:' 等前缀。\n\n"
-            "Summarize the conversation into a title of 3-5 words. "
+            "Summarize the conversation into a short title. "
             "Output ONLY the title text. No quotes. No prefixes. No explanations."
         )
 
@@ -78,13 +81,23 @@ class SessionSummarizer:
                         title_length=len(title),
                         history_length=len(history),
                     )
-                    words = title.split()[:5]
+                    words = title.split()[:8]
                     title = " ".join(words)
 
                 prefixes = ["Title:", "标题：", "Summary:", "摘要：", "The title is"]
                 for prefix in prefixes:
                     if title.startswith(prefix):
                         title = title[len(prefix) :].strip()
+
+                # Normalize whitespace/newlines
+                title = re.sub(r"\s+", " ", title).strip()
+
+                # Enforce length for UI width (~12 Chinese chars)
+                if re.search(r"[\u4e00-\u9fff]", title):
+                    title = title[:12].strip()
+                else:
+                    if len(title) > 24:
+                        title = title[:24].strip()
 
                 if len(title) > 100:
                     logger.error("title_still_too_long_after_processing")
