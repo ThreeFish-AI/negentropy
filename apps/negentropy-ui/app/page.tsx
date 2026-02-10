@@ -89,6 +89,7 @@ export function HomeBody({
     lastRunStartedAt: 0,
     lastRunMs: 0,
   });
+  const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
@@ -351,6 +352,26 @@ export function HomeBody({
     }
   }, [addLog, userId, sessionId, updateCurrentSessionTime]);
 
+  const clearTitleRefreshTimers = useCallback(() => {
+    titleRefreshTimersRef.current.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    titleRefreshTimersRef.current = [];
+  }, []);
+
+  useEffect(() => () => clearTitleRefreshTimers(), [clearTitleRefreshTimers]);
+
+  const scheduleTitleRefresh = useCallback(() => {
+    clearTitleRefreshTimers();
+    const delays = [800, 1600, 3000];
+    delays.forEach((delay) => {
+      const timer = setTimeout(() => {
+        void loadSessions();
+      }, delay);
+      titleRefreshTimersRef.current.push(timer);
+    });
+  }, [clearTitleRefreshTimers, loadSessions]);
+
   const startNewSession = async () => {
     try {
       const response = await fetch("/api/agui/sessions", {
@@ -522,10 +543,17 @@ export function HomeBody({
     if (sessionId) {
       updateCurrentSessionTime(sessionId);
     }
+    const shouldPollTitle =
+      !!sessionId &&
+      (!activeSession ||
+        activeSession.label === createSessionLabel(sessionId));
     try {
       setConnectionWithMetrics("connecting");
       await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
       await loadSessions();
+      if (shouldPollTitle) {
+        scheduleTitleRefresh();
+      }
     } catch (error) {
       setConnectionWithMetrics("error");
       addLog("error", "run_agent_failed", { message: String(error) });
