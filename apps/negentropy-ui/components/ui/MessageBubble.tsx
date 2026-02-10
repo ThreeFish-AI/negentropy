@@ -248,7 +248,12 @@ export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProp
       </div>
 
       {/* Bubble Container */}
-      <div className="flex flex-col max-w-[85%]">
+      <div
+        className={cn(
+          "flex flex-col",
+          isUser ? "max-w-[85%]" : "w-full max-w-full",
+        )}
+      >
         <div
           className={cn(
             "rounded-2xl px-5 py-3 text-sm shadow-sm transition-all",
