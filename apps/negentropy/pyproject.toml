@@ -35,6 +35,8 @@ dependencies = [
     # Utilities
     "structlog>=25.5.0",            # Structured logging for machine-readability
     "orjson>=3.11.6",               # Fast JSON serialization
+    "beautifulsoup4>=4.12.3",       # HTML parsing
+    "pypdf>=4.0.1",                 # PDF parsing
 ]
 
 [dependency-groups]
