@@ -9,6 +9,8 @@
  *     SIGIR'18, 2018.
  */
 
+"use client";
+
 import { useCallback, useState } from "react";
 import {
   SearchResults,
@@ -104,39 +106,42 @@ export function useKnowledgeSearch(
   const [error, setError] = useState<Error | null>(null);
 
   // 执行搜索
-  const search = useCallback(async (query: string, config?: SearchConfig) => {
-    if (!query.trim()) {
-      setResults({ count: 0, items: [] });
-      return { count: 0, items: [] };
-    }
+  const search = useCallback(
+    async (query: string, config?: SearchConfig) => {
+      if (!query.trim()) {
+        setResults({ count: 0, items: [] });
+        return { count: 0, items: [] };
+      }
 
-    setIsSearching(true);
-    setError(null);
+      setIsSearching(true);
+      setError(null);
 
-    try {
-      const finalConfig = { ...defaultConfig, ...config };
-      const searchResults = await searchKnowledge(corpusId, {
-        app_name: appName,
-        query,
-        mode: finalConfig.mode,
-        limit: finalConfig.limit,
-        semantic_weight: finalConfig.semantic_weight,
-        keyword_weight: finalConfig.keyword_weight,
-        metadata_filter: finalConfig.metadata_filter,
-      });
+      try {
+        const finalConfig = { ...defaultConfig, ...config };
+        const searchResults = await searchKnowledge(corpusId, {
+          app_name: appName,
+          query,
+          mode: finalConfig.mode,
+          limit: finalConfig.limit,
+          semantic_weight: finalConfig.semantic_weight,
+          keyword_weight: finalConfig.keyword_weight,
+          metadata_filter: finalConfig.metadata_filter,
+        });
 
-      setResults(searchResults);
-      onSuccess?.(searchResults);
-      return searchResults;
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      onError?.(error as KnowledgeError);
-      throw error;
-    } finally {
-      setIsSearching(false);
-    }
-  }, [corpusId, appName, defaultConfig, onError, onSuccess]);
+        setResults(searchResults);
+        onSuccess?.(searchResults);
+        return searchResults;
+      } catch (err) {
+        const error = err as Error;
+        setError(error);
+        onError?.(error as KnowledgeError);
+        throw error;
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [corpusId, appName, defaultConfig, onError, onSuccess],
+  );
 
   // 清空结果
   const clearResults = useCallback(() => {

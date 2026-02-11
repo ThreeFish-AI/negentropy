@@ -9,6 +9,8 @@
  *     Addison-Wesley Professional, 1994.
  */
 
+"use client";
+
 import { useCallback, useEffect, useState } from "react";
 import {
   CorpusRecord,
