@@ -310,6 +310,37 @@ export async function fetchCorpus(
   return res.json();
 }
 
+export interface KnowledgeItem {
+  id: string;
+  content: string;
+  source_uri: string | null;
+  created_at: string;
+  chunk_index: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface KnowledgeListResponse {
+  count: number;
+  items: KnowledgeItem[];
+}
+
+export async function fetchKnowledgeItems(
+  corpusId: string,
+  params: { limit?: number; offset?: number },
+): Promise<KnowledgeListResponse> {
+  const query = new URLSearchParams();
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.offset) query.set("offset", String(params.offset));
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/knowledge?${query.toString()}`,
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch knowledge items: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function ingestText(
   id: string,
   params: {
