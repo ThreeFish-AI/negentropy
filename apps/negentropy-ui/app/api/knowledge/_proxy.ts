@@ -38,14 +38,18 @@ function errorResponse(code: string, message: string, status = 500) {
         message,
       },
     },
-    { status }
+    { status },
   );
 }
 
 export async function proxyGet(request: Request, path: string) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
-    return errorResponse("KNOWLEDGE_INTERNAL_ERROR", "KNOWLEDGE_BASE_URL is not configured", 500);
+    return errorResponse(
+      "KNOWLEDGE_INTERNAL_ERROR",
+      "KNOWLEDGE_BASE_URL is not configured",
+      500,
+    );
   }
 
   const upstreamUrl = new URL(path, baseUrl);
@@ -60,12 +64,20 @@ export async function proxyGet(request: Request, path: string) {
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse("KNOWLEDGE_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      `Upstream connection failed: ${String(error)}`,
+      502,
+    );
   }
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return errorResponse("KNOWLEDGE_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      text || "Upstream returned non-OK status",
+      upstreamResponse.status,
+    );
   }
 
   return NextResponse.json(JSON.parse(text));
@@ -74,14 +86,22 @@ export async function proxyGet(request: Request, path: string) {
 export async function proxyPost(request: Request, path: string) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
-    return errorResponse("KNOWLEDGE_INTERNAL_ERROR", "KNOWLEDGE_BASE_URL is not configured", 500);
+    return errorResponse(
+      "KNOWLEDGE_INTERNAL_ERROR",
+      "KNOWLEDGE_BASE_URL is not configured",
+      500,
+    );
   }
 
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch (error) {
-    return errorResponse("KNOWLEDGE_BAD_REQUEST", `Invalid JSON body: ${String(error)}`, 400);
+    return errorResponse(
+      "KNOWLEDGE_BAD_REQUEST",
+      `Invalid JSON body: ${String(error)}`,
+      400,
+    );
   }
 
   const upstreamUrl = new URL(path, baseUrl);
@@ -97,13 +117,136 @@ export async function proxyPost(request: Request, path: string) {
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse("KNOWLEDGE_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      `Upstream connection failed: ${String(error)}`,
+      502,
+    );
   }
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return errorResponse("KNOWLEDGE_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      text || "Upstream returned non-OK status",
+      upstreamResponse.status,
+    );
   }
 
   return NextResponse.json(JSON.parse(text));
+}
+export async function proxyPatch(request: Request, path: string) {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    return errorResponse(
+      "KNOWLEDGE_INTERNAL_ERROR",
+      "KNOWLEDGE_BASE_URL is not configured",
+      500,
+    );
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch (error) {
+    return errorResponse(
+      "KNOWLEDGE_BAD_REQUEST",
+      `Invalid JSON body: ${String(error)}`,
+      400,
+    );
+  }
+
+  const upstreamUrl = new URL(path, baseUrl);
+  const headers = extractForwardHeaders(request);
+  headers.set("content-type", "application/json");
+
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(upstreamUrl, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch (error) {
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      `Upstream connection failed: ${String(error)}`,
+      502,
+    );
+  }
+
+  const text = await upstreamResponse.text();
+  if (!upstreamResponse.ok) {
+    try {
+      // Try to parse error details if available
+      const errorJson = JSON.parse(text);
+      return NextResponse.json(errorJson, { status: upstreamResponse.status });
+    } catch {
+      // Fallback if not JSON
+    }
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      text || "Upstream returned non-OK status",
+      upstreamResponse.status,
+    );
+  }
+
+  return NextResponse.json(JSON.parse(text));
+}
+
+export async function proxyDelete(request: Request, path: string) {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    return errorResponse(
+      "KNOWLEDGE_INTERNAL_ERROR",
+      "KNOWLEDGE_BASE_URL is not configured",
+      500,
+    );
+  }
+
+  const upstreamUrl = new URL(path, baseUrl);
+  const incomingUrl = new URL(request.url);
+  upstreamUrl.search = incomingUrl.search;
+
+  let upstreamResponse: Response;
+  try {
+    const headers = extractForwardHeaders(request);
+    upstreamResponse = await fetch(upstreamUrl, {
+      method: "DELETE",
+      headers,
+      cache: "no-store",
+    });
+  } catch (error) {
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      `Upstream connection failed: ${String(error)}`,
+      502,
+    );
+  }
+
+  if (upstreamResponse.status === 204) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const text = await upstreamResponse.text();
+  if (!upstreamResponse.ok) {
+    try {
+      const errorJson = JSON.parse(text);
+      return NextResponse.json(errorJson, { status: upstreamResponse.status });
+    } catch {
+      // fallback
+    }
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      text || "Upstream returned non-OK status",
+      upstreamResponse.status,
+    );
+  }
+
+  try {
+    return NextResponse.json(JSON.parse(text));
+  } catch {
+    return new NextResponse(text, { status: upstreamResponse.status });
+  }
 }
