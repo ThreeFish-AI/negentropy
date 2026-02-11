@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { fetchKnowledgeItems, KnowledgeItem } from "@/features/knowledge";
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+
 interface ContentExplorerProps {
   corpusId: string;
   appName: string;
@@ -13,7 +15,7 @@ export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     let mounted = true;
@@ -47,11 +49,15 @@ export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
     return () => {
       mounted = false;
     };
-  }, [corpusId, appName, page]);
+  }, [corpusId, appName, page, pageSize]);
 
   // Handle page change
   const handlePrev = () => setPage((p) => Math.max(1, p - 1));
   const handleNext = () => setPage((p) => p + 1);
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1); // Reset to first page when changing page size
+  };
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -59,22 +65,44 @@ export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
         <h2 className="text-sm font-semibold text-zinc-900">
           Knowledge Content
         </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={handlePrev}
-            disabled={page === 1 || loading}
-            className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span className="text-xs self-center">Page {page}</span>
-          <button
-            onClick={handleNext}
-            disabled={items.length < pageSize || loading}
-            className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:opacity-50"
-          >
-            Next
-          </button>
+        <div className="flex items-center gap-3">
+          {/* Page size selector */}
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="page-size" className="text-xs text-zinc-400">
+              Rows
+            </label>
+            <select
+              id="page-size"
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Pagination controls */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handlePrev}
+              disabled={page === 1 || loading}
+              className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-zinc-500">Page {page}</span>
+            <button
+              onClick={handleNext}
+              disabled={items.length < pageSize || loading}
+              className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 
@@ -91,9 +119,9 @@ export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
       ) : items.length === 0 ? (
         <p className="mt-4 text-xs text-zinc-500">No items found.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 max-h-[500px] overflow-y-auto overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-xs">
-            <thead>
+            <thead className="sticky top-0 bg-white">
               <tr className="border-b border-zinc-100 text-zinc-500">
                 <th className="pb-2 font-medium">Source</th>
                 <th className="pb-2 font-medium">Content Preview</th>
