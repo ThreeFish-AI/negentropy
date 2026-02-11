@@ -5,7 +5,7 @@ from uuid import UUID
 
 from negentropy.logging import get_logger
 
-from .chunking import chunk_text
+from .chunking import chunk_text, semantic_chunk_async
 from .constants import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_KEYWORD_WEIGHT,
@@ -88,7 +88,7 @@ class KnowledgeService:
             overlap=config.overlap,
         )
 
-        chunks = self._build_chunks(
+        chunks = await self._build_chunks(
             text,
             source_uri=source_uri,
             metadata=metadata,
@@ -322,7 +322,7 @@ class KnowledgeService:
 
         return results
 
-    def _build_chunks(
+    async def _build_chunks(
         self,
         text: str,
         *,
@@ -331,7 +331,22 @@ class KnowledgeService:
         chunking_config: ChunkingConfig,
     ) -> Iterable[KnowledgeChunk]:
         metadata = metadata or {}
-        raw_chunks = chunk_text(text, chunking_config)
+        
+        # Determine strategy and call appropriate chunking function
+        from .types import ChunkingStrategy
+
+        if chunking_config.strategy == ChunkingStrategy.SEMANTIC:
+            if not self._embedding_fn:
+                # Fallback to recursive if no embedding function
+                logger.warning("semantic_chunking_no_embedding_fn_fallback")
+                raw_chunks = chunk_text(text, chunking_config)
+            else:
+                raw_chunks = await semantic_chunk_async(
+                    text, chunking_config, self._embedding_fn
+                )
+        else:
+            raw_chunks = chunk_text(text, chunking_config)
+
         chunks: list[KnowledgeChunk] = []
         for index, content in enumerate(raw_chunks):
             chunks.append(
