@@ -370,7 +370,7 @@ class KnowledgeService:
         chunking_config: ChunkingConfig,
     ) -> Iterable[KnowledgeChunk]:
         metadata = metadata or {}
-        
+
         # Determine strategy and call appropriate chunking function
         from .types import ChunkingStrategy
 
@@ -380,9 +380,7 @@ class KnowledgeService:
                 logger.warning("semantic_chunking_no_embedding_fn_fallback")
                 raw_chunks = chunk_text(text, chunking_config)
             else:
-                raw_chunks = await semantic_chunk_async(
-                    text, chunking_config, self._embedding_fn
-                )
+                raw_chunks = await semantic_chunk_async(text, chunking_config, self._embedding_fn)
         else:
             raw_chunks = chunk_text(text, chunking_config)
 
