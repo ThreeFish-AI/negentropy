@@ -35,7 +35,12 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(1536))
-    # search_vector: Mapped[Any] # tsvector again, skipping for ORM mapping
+    # TSVector type is not directly supported by SQLAlchemy, so we use UserDefinedType or just Any for now
+    # However, for Alembic to detect it, we might need a custom type.
+    # For now, let's use TSVECTOR from sqlalchemy.dialects.postgresql
+    from sqlalchemy.dialects.postgresql import TSVECTOR
+
+    search_vector: Mapped[Optional[Any]] = mapped_column(TSVECTOR)
     source_uri: Mapped[Optional[str]] = mapped_column(Text)
     chunk_index: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
