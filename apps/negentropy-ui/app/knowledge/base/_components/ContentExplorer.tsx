@@ -5,11 +5,11 @@ import { fetchKnowledgeItems, KnowledgeItem } from "@/features/knowledge";
 
 interface ContentExplorerProps {
   corpusId: string;
+  appName: string;
 }
 
-export function ContentExplorer({ corpusId }: ContentExplorerProps) {
+export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
   const [items, setItems] = useState<KnowledgeItem[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -24,15 +24,12 @@ export function ContentExplorer({ corpusId }: ContentExplorerProps) {
       try {
         const offset = (page - 1) * pageSize;
         const data = await fetchKnowledgeItems(corpusId, {
+          appName,
           limit: pageSize,
           offset,
         });
         if (mounted) {
           setItems(data.items);
-          setTotal(data.count); // Note: count from backend is for the page, we might need total count for proper pagination but current API returns page count?
-          // Actually backend returns "count": len(knowledge_items), which is just page count.
-          // To implement proper pagination we would need a total count endpoint or modify list_knowledge to return total.
-          // For now, we'll just show "Next" if we got a full page.
         }
       } catch (err) {
         if (mounted) {
@@ -50,7 +47,7 @@ export function ContentExplorer({ corpusId }: ContentExplorerProps) {
     return () => {
       mounted = false;
     };
-  }, [corpusId, page]);
+  }, [corpusId, appName, page]);
 
   // Handle page change
   const handlePrev = () => setPage((p) => Math.max(1, p - 1));

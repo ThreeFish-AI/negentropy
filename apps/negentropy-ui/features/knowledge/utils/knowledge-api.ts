@@ -326,9 +326,10 @@ export interface KnowledgeListResponse {
 
 export async function fetchKnowledgeItems(
   corpusId: string,
-  params: { limit?: number; offset?: number },
+  params: { appName?: string; limit?: number; offset?: number },
 ): Promise<KnowledgeListResponse> {
   const query = new URLSearchParams();
+  if (params.appName) query.set("app_name", params.appName);
   if (params.limit) query.set("limit", String(params.limit));
   if (params.offset) query.set("offset", String(params.offset));
 

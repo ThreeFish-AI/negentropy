@@ -180,7 +180,11 @@ export default function KnowledgeBasePage() {
                   appName={APP_NAME}
                 />
               ) : (
-                <ContentExplorer key={selectedId} corpusId={selectedId} />
+                <ContentExplorer
+                  key={selectedId}
+                  corpusId={selectedId}
+                  appName={APP_NAME}
+                />
               )}
             </div>
           ) : (
