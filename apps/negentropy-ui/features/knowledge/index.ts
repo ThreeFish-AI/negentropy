@@ -43,6 +43,7 @@ export {
   createCorpus,
   fetchCorpus,
   ingestText,
+  ingestUrl,
   replaceSource,
   searchKnowledge,
   fetchGraph,
