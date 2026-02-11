@@ -119,7 +119,7 @@ export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
       ) : items.length === 0 ? (
         <p className="mt-4 text-xs text-zinc-500">No items found.</p>
       ) : (
-        <div className="mt-4 max-h-[500px] overflow-y-auto overflow-x-auto custom-scrollbar">
+        <div className="mt-4 max-h-[calc(100vh-20rem)] overflow-y-auto overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-white">
               <tr className="border-b border-zinc-100 text-zinc-500">

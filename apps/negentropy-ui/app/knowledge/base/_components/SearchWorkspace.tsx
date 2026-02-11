@@ -89,7 +89,7 @@ export function SearchWorkspace({ corpusId, appName }: SearchWorkspaceProps) {
       <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900">检索结果</h2>
         {matches.length > 0 ? (
-          <div className="custom-scrollbar mt-3 max-h-[500px] space-y-3 overflow-y-auto pr-1">
+          <div className="custom-scrollbar mt-3 max-h-[calc(100vh-24rem)] space-y-3 overflow-y-auto pr-1">
             {matches.map((item) => (
               <div
                 key={item.id}
