@@ -24,6 +24,7 @@ import {
   updateCorpus,
   deleteCorpus,
   ingestText,
+  ingestUrl,
   replaceSource,
   searchKnowledge,
   KnowledgeError,
@@ -86,6 +87,12 @@ export interface UseKnowledgeBaseReturnValue {
   ingestText: (params: {
     text: string;
     source_uri?: string;
+    metadata?: Record<string, unknown>;
+    chunkingConfig?: ChunkingConfig;
+  }) => Promise<IngestResult>;
+  /** 摄取 URL */
+  ingestUrl: (params: {
+    url: string;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<IngestResult>;
@@ -293,6 +300,40 @@ export function useKnowledgeBase(
     [corpus?.id, appName, onError, onIngestSuccess],
   );
 
+  // 摄取 URL
+  const ingestUrlHandler = useCallback(
+    async (params: {
+      url: string;
+      metadata?: Record<string, unknown>;
+      chunkingConfig?: ChunkingConfig;
+    }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await ingestUrl(corpus.id, {
+          app_name: appName,
+          url: params.url,
+          metadata: params.metadata,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+        });
+        setState({ isLoading: false, error: null });
+        onIngestSuccess?.(result);
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError, onIngestSuccess],
+  );
+
   // 替换源文本
   const replaceSourceHandler = useCallback(
     async (params: {
@@ -377,6 +418,7 @@ export function useKnowledgeBase(
     updateCorpus: updateCorpusHandler,
     deleteCorpus: deleteCorpusHandler,
     ingestText: ingestTextHandler,
+    ingestUrl: ingestUrlHandler,
     replaceSource: replaceSourceHandler,
     search: searchHandler,
   };
