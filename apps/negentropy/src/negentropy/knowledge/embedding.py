@@ -199,72 +199,80 @@ def build_batch_embedding_fn() -> BatchEmbeddingFn:
     """
     model_name = settings.llm.embedding_full_model_name
 
+    MAX_BATCH_SIZE = 10  # Conservative batch size to avoid token limits (20k)
+
     async def batch_embed(texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
 
-        cleaned = [t.strip() for t in texts]
-        # 过滤空文本，但保留索引映射
-        non_empty_indices = [i for i, t in enumerate(cleaned) if t]
-        non_empty_texts = [cleaned[i] for i in non_empty_indices]
+        # Split texts into batches
+        batches = [texts[i : i + MAX_BATCH_SIZE] for i in range(0, len(texts), MAX_BATCH_SIZE)]
+        results: list[list[float]] = []
 
-        if not non_empty_texts:
-            return [[] for _ in texts]
+        for batch_texts in batches:
+            cleaned = [t.strip() for t in batch_texts]
+            # Filter empty texts but keep index mapping
+            non_empty_indices = [i for i, t in enumerate(cleaned) if t]
+            non_empty_texts = [cleaned[i] for i in non_empty_indices]
 
-        try:
-            import litellm
+            batch_results: list[list[float]] = [[] for _ in batch_texts]
 
-            async def _call():
-                return await litellm.aembedding(
-                    model=model_name,
-                    input=non_empty_texts,
-                    **settings.llm.to_litellm_embedding_kwargs(),
-                )
+            if non_empty_texts:
+                try:
+                    import litellm
 
-            response = await _call_with_retry(
-                _call,
-                context=f"batch_embed({len(non_empty_texts)} texts)",
-            )
-        except (TimeoutError, Exception) as exc:
-            logger.error(
-                "batch_embedding_request_failed",
-                model=model_name,
-                batch_size=len(non_empty_texts),
-                exc_info=exc,
-            )
-            raise EmbeddingFailed(
-                text_preview=f"batch({len(non_empty_texts)} texts)",
-                model=model_name,
-                reason=str(exc),
-            ) from exc
+                    async def _call():
+                        return await litellm.aembedding(
+                            model=model_name,
+                            input=non_empty_texts,
+                            **settings.llm.to_litellm_embedding_kwargs(),
+                        )
 
-        data = _extract_data_from_response(response)
-        if not data:
-            raise EmbeddingFailed(
-                text_preview=f"batch({len(non_empty_texts)} texts)",
-                model=model_name,
-                reason="Empty response data from batch embedding API",
-            )
+                    response = await _call_with_retry(
+                        _call,
+                        context=f"batch_embed({len(non_empty_texts)} texts)",
+                    )
+                except (TimeoutError, Exception) as exc:
+                    logger.error(
+                        "batch_embedding_request_failed",
+                        model=model_name,
+                        batch_size=len(non_empty_texts),
+                        exc_info=exc,
+                    )
+                    raise EmbeddingFailed(
+                        text_preview=f"batch({len(non_empty_texts)} texts)",
+                        model=model_name,
+                        reason=str(exc),
+                    ) from exc
 
-        if len(data) != len(non_empty_texts):
-            raise EmbeddingFailed(
-                text_preview=f"batch({len(non_empty_texts)} texts)",
-                model=model_name,
-                reason=f"Response count mismatch: expected {len(non_empty_texts)}, got {len(data)}",
-            )
+                data = _extract_data_from_response(response)
+                if not data:
+                    raise EmbeddingFailed(
+                        text_preview=f"batch({len(non_empty_texts)} texts)",
+                        model=model_name,
+                        reason="Empty response data from batch embedding API",
+                    )
 
-        # 提取 embeddings 并映射回原始位置
-        result: list[list[float]] = [[] for _ in texts]
-        for idx, data_item in zip(non_empty_indices, data):
-            embedding = _extract_embedding_from_item(data_item)
-            if embedding is None:
-                raise EmbeddingFailed(
-                    text_preview=cleaned[idx][:100],
-                    model=model_name,
-                    reason=f"No embedding vector found for item at index {idx}",
-                )
-            result[idx] = embedding
+                if len(data) != len(non_empty_texts):
+                    raise EmbeddingFailed(
+                        text_preview=f"batch({len(non_empty_texts)} texts)",
+                        model=model_name,
+                        reason=f"Response count mismatch: expected {len(non_empty_texts)}, got {len(data)}",
+                    )
 
-        return result
+                # Extract embeddings and map back to original positions in batch
+                for idx, data_item in zip(non_empty_indices, data):
+                    embedding = _extract_embedding_from_item(data_item)
+                    if embedding is None:
+                        raise EmbeddingFailed(
+                            text_preview=cleaned[idx][:100],
+                            model=model_name,
+                            reason=f"No embedding vector found for item at index {idx}",
+                        )
+                    batch_results[idx] = embedding
+
+            results.extend(batch_results)
+
+        return results
 
     return batch_embed
