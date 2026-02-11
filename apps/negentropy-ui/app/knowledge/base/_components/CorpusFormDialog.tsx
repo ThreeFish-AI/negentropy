@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { CorpusRecord } from "@/features/knowledge";
+import { CorpusRecord, ChunkingStrategy } from "@/features/knowledge";
 
 interface CorpusFormDialogProps {
   isOpen: boolean;
@@ -24,26 +26,46 @@ export function CorpusFormDialog({
 }: CorpusFormDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [chunkSize, setChunkSize] = useState<string>("1000");
-  const [overlap, setOverlap] = useState<string>("200");
-  const [preserveNewlines, setPreserveNewlines] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Chunking Config State
+  const [strategy, setStrategy] = useState<ChunkingStrategy>("recursive");
+  const [chunkSize, setChunkSize] = useState<string>("800");
+  const [overlap, setOverlap] = useState<string>("100");
+  const [preserveNewlines, setPreserveNewlines] = useState(true);
+
+  // Semantic specific
+  const [semanticThreshold, setSemanticThreshold] = useState<string>("0.85");
+  const [minChunkSize, setMinChunkSize] = useState<string>("50");
+  const [maxChunkSize, setMaxChunkSize] = useState<string>("2000");
 
   useEffect(() => {
     if (isOpen) {
       if (mode === "edit" && initialData) {
         setName(initialData.name);
         setDescription(initialData.description || "");
-        setChunkSize(String(initialData.config?.chunk_size || "1000"));
-        setOverlap(String(initialData.config?.overlap || "200"));
-        setPreserveNewlines(initialData.config?.preserve_newlines !== false);
+
+        const conf = initialData.config || {};
+        setStrategy((conf.strategy as ChunkingStrategy) || "recursive");
+        setChunkSize(String(conf.chunk_size || "800"));
+        setOverlap(String(conf.overlap || "100"));
+        setPreserveNewlines(conf.preserve_newlines !== false);
+
+        setSemanticThreshold(String(conf.semantic_threshold || "0.85"));
+        setMinChunkSize(String(conf.min_chunk_size || "50"));
+        setMaxChunkSize(String(conf.max_chunk_size || "2000"));
+
         setShowAdvanced(false);
       } else {
         setName("");
         setDescription("");
-        setChunkSize("1000");
-        setOverlap("200");
+        setStrategy("recursive");
+        setChunkSize("800");
+        setOverlap("100");
         setPreserveNewlines(true);
+        setSemanticThreshold("0.85");
+        setMinChunkSize("50");
+        setMaxChunkSize("2000");
         setShowAdvanced(false);
       }
     }
@@ -52,13 +74,24 @@ export function CorpusFormDialog({
   const handleSubmit = async () => {
     if (!name.trim() || isLoading) return;
 
-    const config: Record<string, unknown> = {};
+    const config: Record<string, unknown> = {
+      strategy,
+      preserve_newlines: preserveNewlines,
+    };
+
     const size = parseInt(chunkSize, 10);
     const ov = parseInt(overlap, 10);
-
     if (!isNaN(size)) config.chunk_size = size;
     if (!isNaN(ov)) config.overlap = ov;
-    config.preserve_newlines = preserveNewlines;
+
+    if (strategy === "semantic") {
+      const thresh = parseFloat(semanticThreshold);
+      const minSize = parseInt(minChunkSize, 10);
+      const maxSize = parseInt(maxChunkSize, 10);
+      if (!isNaN(thresh)) config.semantic_threshold = thresh;
+      if (!isNaN(minSize)) config.min_chunk_size = minSize;
+      if (!isNaN(maxSize)) config.max_chunk_size = maxSize;
+    }
 
     await onSubmit({
       name: name.trim(),
@@ -147,30 +180,103 @@ export function CorpusFormDialog({
             </button>
 
             {showAdvanced && (
-              <div className="mt-3 grid grid-cols-2 gap-4 rounded-lg bg-zinc-50 p-3">
+              <div className="mt-3 space-y-3 rounded-lg bg-zinc-50 p-3">
+                {/* Strategy Selection */}
                 <div>
                   <label className="mb-1 block text-[10px] font-medium text-zinc-500">
-                    Chunk Size (Chars)
+                    Strategy
                   </label>
-                  <input
-                    type="number"
+                  <select
                     className="w-full rounded border border-zinc-200 px-2 py-1 text-xs"
-                    value={chunkSize}
-                    onChange={(e) => setChunkSize(e.target.value)}
-                  />
+                    value={strategy}
+                    onChange={(e) =>
+                      setStrategy(e.target.value as ChunkingStrategy)
+                    }
+                  >
+                    <option value="fixed">Fixed (Fixed Character Size)</option>
+                    <option value="recursive">
+                      Recursive (Structure Aware)
+                    </option>
+                    <option value="semantic">
+                      Semantic (Embedding Similarity)
+                    </option>
+                  </select>
                 </div>
-                <div>
-                  <label className="mb-1 block text-[10px] font-medium text-zinc-500">
-                    Overlap (Chars)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full rounded border border-zinc-200 px-2 py-1 text-xs"
-                    value={overlap}
-                    onChange={(e) => setOverlap(e.target.value)}
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium text-zinc-500">
+                      Chunk Size (Target)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+                      value={chunkSize}
+                      onChange={(e) => setChunkSize(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-medium text-zinc-500">
+                      Overlap (Chars)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+                      value={overlap}
+                      onChange={(e) => setOverlap(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-2 flex items-center">
+
+                {strategy === "semantic" && (
+                  <div className="grid grid-cols-2 gap-3 border-t border-zinc-200 pt-3">
+                    <div className="col-span-2">
+                      <label className="mb-1 block text-[10px] font-medium text-blue-600">
+                        Semantic Chunking Options
+                      </label>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-zinc-500">
+                        Similarity Threshold (0-1)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.05"
+                        max="1.0"
+                        min="0.0"
+                        className="w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+                        value={semanticThreshold}
+                        onChange={(e) => setSemanticThreshold(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">
+                          Max Size
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+                          value={maxChunkSize}
+                          onChange={(e) => setMaxChunkSize(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">
+                          Min Size
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+                          value={minChunkSize}
+                          onChange={(e) => setMinChunkSize(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center pt-1">
                   <input
                     type="checkbox"
                     id="preserve-newlines"
@@ -182,13 +288,17 @@ export function CorpusFormDialog({
                     htmlFor="preserve-newlines"
                     className="ml-2 text-xs text-zinc-600"
                   >
-                    Preserve Newlines (Keep paragraph structure)
+                    Preserve Newlines
                   </label>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-[10px] text-zinc-400">
-                    注意：修改配置仅影响后续导入的文档，不影响已索引的内容。
-                  </p>
+
+                <div className="text-[10px] text-zinc-400">
+                  {strategy === "fixed" &&
+                    "按固定字符数切分，简单高效但不感知语义。"}
+                  {strategy === "recursive" &&
+                    "递归切分 (段落 > 句子 > 词)，保持文段结构完整。"}
+                  {strategy === "semantic" &&
+                    "基于 Embedding 相似度切分，确保 Chunk 语义连贯，需消耗 Token。"}
                 </div>
               </div>
             )}
