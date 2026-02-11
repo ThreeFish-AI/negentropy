@@ -342,6 +342,25 @@ export async function ingestText(
   return handleKnowledgeError(res);
 }
 
+export async function ingestUrl(
+  id: string,
+  params: {
+    app_name?: string;
+    url: string;
+    metadata?: Record<string, unknown>;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  },
+): Promise<IngestResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/ingest_url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
 export async function replaceSource(
   id: string,
   params: {
