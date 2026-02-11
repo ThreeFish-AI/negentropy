@@ -101,6 +101,11 @@ export default function KnowledgeBasePage() {
     [kb.replaceSource],
   );
 
+  const handleIngestUrl = useCallback(
+    (params: { url: string }) => kb.ingestUrl(params),
+    [kb.ingestUrl],
+  );
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <KnowledgeNav
@@ -154,6 +159,7 @@ export default function KnowledgeBasePage() {
           <IngestPanel
             corpusId={selectedId}
             onIngest={handleIngest}
+            onIngestUrl={handleIngestUrl}
             onReplace={handleReplace}
           />
         </main>
