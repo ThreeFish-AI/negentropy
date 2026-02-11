@@ -11,10 +11,17 @@
 
 export type SearchMode = "semantic" | "keyword" | "hybrid";
 
+export type ChunkingStrategy = "fixed" | "recursive" | "semantic";
+
 export interface ChunkingConfig {
+  strategy?: ChunkingStrategy;
   chunk_size?: number;
   overlap?: number;
   preserve_newlines?: boolean;
+  // Semantic chunking specific
+  semantic_threshold?: number;
+  min_chunk_size?: number;
+  max_chunk_size?: number;
 }
 
 export interface SearchConfig {
@@ -232,10 +239,7 @@ async function parseKnowledgeError(res: Response): Promise<KnowledgeError> {
 /**
  * 统一的错误处理包装器
  */
-async function handleKnowledgeError<T>(
-  res: Response,
-  context: string,
-): Promise<T> {
+async function handleKnowledgeError<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const error = await parseKnowledgeError(res);
     throw error;
@@ -269,7 +273,7 @@ export async function fetchCorpora(appName?: string): Promise<CorpusRecord[]> {
   const res = await fetch(`/api/knowledge/base${params}`, {
     cache: "no-store",
   });
-  return handleKnowledgeError(res, "fetchCorpora");
+  return handleKnowledgeError(res);
 }
 
 export async function createCorpus(params: {
@@ -335,7 +339,7 @@ export async function ingestText(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
-  return handleKnowledgeError(res, "ingestText");
+  return handleKnowledgeError(res);
 }
 
 export async function replaceSource(
@@ -434,7 +438,7 @@ export async function searchKnowledge(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
-  return handleKnowledgeError(res, "searchKnowledge");
+  return handleKnowledgeError(res);
 }
 
 // ============================================================================

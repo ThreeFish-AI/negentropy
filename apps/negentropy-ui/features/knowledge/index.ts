@@ -57,6 +57,7 @@ export {
 
 export type {
   SearchMode,
+  ChunkingStrategy,
   ChunkingConfig,
   SearchConfig,
   KnowledgeErrorResponse,
