@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CorpusRecord } from "@/features/knowledge";
+import { CorpusRecord, useKnowledgeBase } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { useKnowledgeBase } from "@/features/knowledge";
 
 import { CorpusList } from "./_components/CorpusList";
 import { CorpusDetail } from "./_components/CorpusDetail";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { IngestPanel } from "./_components/IngestPanel";
 import { SearchWorkspace } from "./_components/SearchWorkspace";
+import { ContentExplorer } from "./_components/ContentExplorer";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
@@ -22,6 +22,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
  */
 export default function KnowledgeBasePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"search" | "content">("search");
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -55,6 +56,11 @@ export default function KnowledgeBasePage() {
     }
   }, [kb.corpora, selectedId]);
 
+  // Reset tab when selection changes
+  useEffect(() => {
+    setActiveTab("search");
+  }, [selectedId]);
+
   // Handlers for List Actions
   const handleEditClick = (corpus: CorpusRecord) => {
     setEditingCorpus(corpus);
@@ -73,7 +79,7 @@ export default function KnowledgeBasePage() {
       await kb.deleteCorpus(id);
       if (selectedId === id) setSelectedId(null);
     },
-    [kb.deleteCorpus, selectedId],
+    [kb, selectedId],
   );
 
   // Handler for Dialog Submit
@@ -93,17 +99,17 @@ export default function KnowledgeBasePage() {
 
   const handleIngest = useCallback(
     (params: { text: string; source_uri?: string }) => kb.ingestText(params),
-    [kb.ingestText],
+    [kb],
   );
 
   const handleReplace = useCallback(
     (params: { text: string; source_uri: string }) => kb.replaceSource(params),
-    [kb.replaceSource],
+    [kb],
   );
 
   const handleIngestUrl = useCallback(
     (params: { url: string }) => kb.ingestUrl(params),
-    [kb.ingestUrl],
+    [kb],
   );
 
   return (
@@ -136,19 +142,47 @@ export default function KnowledgeBasePage() {
             </button>
           </div>
 
-          {/* Replaced CreateCorpusForm with Dialog trigger above */}
-
           <CorpusDetail corpus={kb.corpus} />
         </aside>
 
         {/* Right workspace: Search + Ingest */}
         <main className="space-y-4">
           {selectedId ? (
-            <SearchWorkspace
-              key={selectedId}
-              corpusId={selectedId}
-              appName={APP_NAME}
-            />
+            <div className="space-y-4">
+              {/* Tabs */}
+              <div className="flex border-b border-zinc-200">
+                <button
+                  onClick={() => setActiveTab("search")}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    activeTab === "search"
+                      ? "border-b-2 border-zinc-900 text-zinc-900"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  Search
+                </button>
+                <button
+                  onClick={() => setActiveTab("content")}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    activeTab === "content"
+                      ? "border-b-2 border-zinc-900 text-zinc-900"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  Content
+                </button>
+              </div>
+
+              {activeTab === "search" ? (
+                <SearchWorkspace
+                  key={selectedId}
+                  corpusId={selectedId}
+                  appName={APP_NAME}
+                />
+              ) : (
+                <ContentExplorer key={selectedId} corpusId={selectedId} />
+              )}
+            </div>
           ) : (
             <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
               <p className="text-xs text-zinc-500">
