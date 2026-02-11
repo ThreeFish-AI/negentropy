@@ -413,6 +413,12 @@ logger.error("database_error", details=exc.details)
 
 ### 11.1 Knowledge Base (知识库管理)
 
+> [!IMPORTANT]
+> **Authentication Required**: Knowledge 系统受 RBAC 保护。
+>
+> - **View**: 所有已认证用户可查看公共知识库。
+> - **Edit**: 仅 `admin` 或 `knowledge_manager` 角色可创建/更像语料库。
+
 作为静态知识的容器，支持对非结构化文档的**索引 (Indexing)**、**更新 (Upsert)** 与**混合检索 (Hybrid Search)**。
 
 #### 11.1.1 功能特性 (Features)
@@ -510,6 +516,9 @@ logger.error("database_error", details=exc.details)
 面向 User ID 的长期记忆审计与动态干预面板，包含 Episodic Memory (Timeline) 与 Semantic Memory (Facts) 双重视图。
 
 ### 12.1 Dashboard (记忆概览)
+
+> [!NOTE]
+> **Admin Access**: 管理员 (`admin` 角色) 可查看任意用户的 Memory Dashboard 以进行审计与合规检查。普通用户仅能查看自己的数据。
 
 #### 12.1.1 功能特性 (Features)
 
