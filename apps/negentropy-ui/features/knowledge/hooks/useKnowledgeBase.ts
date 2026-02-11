@@ -19,6 +19,8 @@ import {
   fetchCorpus,
   fetchCorpora,
   createCorpus,
+  updateCorpus,
+  deleteCorpus,
   ingestText,
   replaceSource,
   searchKnowledge,
@@ -67,6 +69,17 @@ export interface UseKnowledgeBaseReturnValue {
     description?: string;
     config?: Record<string, unknown>;
   }) => Promise<CorpusRecord>;
+  /** 更新语料库 */
+  updateCorpus: (
+    id: string,
+    params: {
+      name?: string;
+      description?: string;
+      config?: Record<string, unknown>;
+    },
+  ) => Promise<CorpusRecord>;
+  /** 删除语料库 */
+  deleteCorpus: (id: string) => Promise<void>;
   /** 摄取文本 */
   ingestText: (params: {
     text: string;
@@ -190,6 +203,58 @@ export function useKnowledgeBase(
     [appName, onError],
   );
 
+  // 更新语料库
+  const updateCorpusHandler = useCallback(
+    async (
+      id: string,
+      params: {
+        name?: string;
+        description?: string;
+        config?: Record<string, unknown>;
+      },
+    ) => {
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await updateCorpus(id, params);
+        setCorpora((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, ...result } : c)),
+        );
+        if (corpus?.id === id) {
+          setCorpus((prev) => (prev ? { ...prev, ...result } : result));
+        }
+        setState({ isLoading: false, error: null });
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, onError],
+  );
+
+  // 删除语料库
+  const deleteCorpusHandler = useCallback(
+    async (id: string) => {
+      setState({ isLoading: true, error: null });
+      try {
+        await deleteCorpus(id);
+        setCorpora((prev) => prev.filter((c) => c.id !== id));
+        if (corpus?.id === id) {
+          setCorpus(null);
+        }
+        setState({ isLoading: false, error: null });
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, onError],
+  );
+
   // 摄取文本
   const ingestTextHandler = useCallback(
     async (params: {
@@ -307,6 +372,8 @@ export function useKnowledgeBase(
     loadCorpus,
     loadCorpora,
     createCorpus: createCorpusHandler,
+    updateCorpus: updateCorpusHandler,
+    deleteCorpus: deleteCorpusHandler,
     ingestText: ingestTextHandler,
     replaceSource: replaceSourceHandler,
     search: searchHandler,
