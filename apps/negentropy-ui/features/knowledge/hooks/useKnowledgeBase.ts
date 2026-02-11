@@ -167,7 +167,7 @@ export function useKnowledgeBase(
         app_name: appName,
         ...params,
       });
-      setCorpora((prev) => [...prev, result]);
+      setCorpora((prev) => [result, ...prev]);
       setState({ isLoading: false, error: null });
       return result;
     } catch (error) {
