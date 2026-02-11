@@ -22,7 +22,9 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
  */
 export default function KnowledgeBasePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"search" | "content">("search");
+  const [activeTab, setActiveTab] = useState<"search" | "content" | "ingest">(
+    "search",
+  );
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -145,45 +147,53 @@ export default function KnowledgeBasePage() {
           <CorpusDetail corpus={kb.corpus} />
         </aside>
 
-        {/* Right workspace: Search + Ingest */}
+        {/* Right workspace */}
         <main className="space-y-4">
           {selectedId ? (
             <div className="space-y-4">
               {/* Tabs */}
               <div className="flex border-b border-zinc-200">
-                <button
-                  onClick={() => setActiveTab("search")}
-                  className={`px-4 py-2 text-sm font-medium ${
-                    activeTab === "search"
-                      ? "border-b-2 border-zinc-900 text-zinc-900"
-                      : "text-zinc-500 hover:text-zinc-700"
-                  }`}
-                >
-                  Search
-                </button>
-                <button
-                  onClick={() => setActiveTab("content")}
-                  className={`px-4 py-2 text-sm font-medium ${
-                    activeTab === "content"
-                      ? "border-b-2 border-zinc-900 text-zinc-900"
-                      : "text-zinc-500 hover:text-zinc-700"
-                  }`}
-                >
-                  Content
-                </button>
+                {(
+                  [
+                    { key: "search", label: "Search" },
+                    { key: "content", label: "Content" },
+                    { key: "ingest", label: "Ingest / Replace" },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`px-4 py-2 text-sm font-medium ${
+                      activeTab === tab.key
+                        ? "border-b-2 border-zinc-900 text-zinc-900"
+                        : "text-zinc-500 hover:text-zinc-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
 
-              {activeTab === "search" ? (
+              {activeTab === "search" && (
                 <SearchWorkspace
                   key={selectedId}
                   corpusId={selectedId}
                   appName={APP_NAME}
                 />
-              ) : (
+              )}
+              {activeTab === "content" && (
                 <ContentExplorer
                   key={selectedId}
                   corpusId={selectedId}
                   appName={APP_NAME}
+                />
+              )}
+              {activeTab === "ingest" && (
+                <IngestPanel
+                  corpusId={selectedId}
+                  onIngest={handleIngest}
+                  onIngestUrl={handleIngestUrl}
+                  onReplace={handleReplace}
                 />
               )}
             </div>
@@ -194,12 +204,6 @@ export default function KnowledgeBasePage() {
               </p>
             </div>
           )}
-          <IngestPanel
-            corpusId={selectedId}
-            onIngest={handleIngest}
-            onIngestUrl={handleIngestUrl}
-            onReplace={handleReplace}
-          />
         </main>
       </div>
 
