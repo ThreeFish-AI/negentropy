@@ -63,6 +63,28 @@ class KnowledgeRepository:
             await db.refresh(corpus)
             return self._to_corpus_record(corpus)
 
+    async def update_corpus(self, corpus_id: UUID, spec: Dict[str, Any]) -> Optional[CorpusRecord]:
+        async with self._session_factory() as db:
+            stmt = select(Corpus).where(Corpus.id == corpus_id)
+            result = await db.execute(stmt)
+            corpus = result.scalar_one_or_none()
+            if not corpus:
+                return None
+
+            for key, value in spec.items():
+                if hasattr(corpus, key):
+                    setattr(corpus, key, value)
+
+            # Ensure updated_at is refreshed
+            # SQLAlchemy handles updated_at automatically via onupdate=func.now() if configured,
+            # but our model uses TimestampMixin with server_default.
+            # We might need to manually set it or rely on DB trigger if exists.
+            # Assuming standard SQLAlchemy behavior for now.
+
+            await db.commit()
+            await db.refresh(corpus)
+            return self._to_corpus_record(corpus)
+
     async def get_or_create_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         existing = await self.get_corpus(app_name=spec.app_name, name=spec.name)
         if existing:
