@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo, useState } from "react";
 import { useKnowledgeSearch, type SearchMode } from "@/features/knowledge";
 
@@ -96,9 +98,7 @@ export function SearchWorkspace({ corpusId, appName }: SearchWorkspaceProps) {
                 <p className="text-zinc-900">{item.content}</p>
                 <div className="mt-2 flex items-center gap-3 text-[11px] text-zinc-500">
                   <span>{item.source_uri || "-"}</span>
-                  <span>
-                    score: {(item.combined_score ?? 0).toFixed(4)}
-                  </span>
+                  <span>score: {(item.combined_score ?? 0).toFixed(4)}</span>
                 </div>
               </div>
             ))}
