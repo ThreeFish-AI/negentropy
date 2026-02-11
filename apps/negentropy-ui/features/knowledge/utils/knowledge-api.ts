@@ -37,7 +37,11 @@ export class KnowledgeError extends Error {
   code: string;
   details?: Record<string, unknown>;
 
-  constructor(code: string, message: string, details?: Record<string, unknown>) {
+  constructor(
+    code: string,
+    message: string,
+    details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "KnowledgeError";
     this.code = code;
@@ -84,7 +88,11 @@ export class InvalidSearchConfigError extends ValidationError {
 
 // 基础设施异常
 export class InfrastructureError extends KnowledgeError {
-  constructor(code: string, message: string, details?: Record<string, unknown>) {
+  constructor(
+    code: string,
+    message: string,
+    details?: Record<string, unknown>,
+  ) {
     super(code, message, details);
     this.name = "InfrastructureError";
   }
@@ -129,8 +137,18 @@ export interface KnowledgeMatch {
 }
 
 export interface KnowledgeGraphPayload {
-  nodes: Array<{ id: string; label?: string; type?: string; [key: string]: unknown }>;
-  edges: Array<{ source: string; target: string; label?: string; [key: string]: unknown }>;
+  nodes: Array<{
+    id: string;
+    label?: string;
+    type?: string;
+    [key: string]: unknown;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    label?: string;
+    [key: string]: unknown;
+  }>;
   runs?: Array<{
     run_id?: string;
     status?: string;
@@ -229,7 +247,9 @@ async function handleKnowledgeError<T>(
 // Dashboard
 // ============================================================================
 
-export async function fetchDashboard(appName?: string): Promise<KnowledgeDashboard> {
+export async function fetchDashboard(
+  appName?: string,
+): Promise<KnowledgeDashboard> {
   const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
   const res = await fetch(`/api/knowledge/dashboard${params}`, {
     cache: "no-store",
@@ -341,6 +361,34 @@ export async function replaceSource(
   return res.json();
 }
 
+export async function updateCorpus(
+  id: string,
+  params: {
+    name?: string;
+    description?: string;
+    config?: Record<string, unknown>;
+  },
+): Promise<CorpusRecord> {
+  const res = await fetch(`/api/knowledge/base/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update corpus: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function deleteCorpus(id: string): Promise<void> {
+  const res = await fetch(`/api/knowledge/base/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to delete corpus: ${res.statusText}`);
+  }
+}
+
 export async function searchKnowledge(
   id: string,
   params: {
@@ -360,16 +408,25 @@ export async function searchKnowledge(
     throw new InvalidSearchConfigError({ limit, min: 1, max: 1000 });
   }
 
-  if (semantic_weight !== undefined && (semantic_weight < 0 || semantic_weight > 1)) {
+  if (
+    semantic_weight !== undefined &&
+    (semantic_weight < 0 || semantic_weight > 1)
+  ) {
     throw new InvalidSearchConfigError({ semantic_weight, min: 0, max: 1 });
   }
 
-  if (keyword_weight !== undefined && (keyword_weight < 0 || keyword_weight > 1)) {
+  if (
+    keyword_weight !== undefined &&
+    (keyword_weight < 0 || keyword_weight > 1)
+  ) {
     throw new InvalidSearchConfigError({ keyword_weight, min: 0, max: 1 });
   }
 
   if (mode !== undefined && !["semantic", "keyword", "hybrid"].includes(mode)) {
-    throw new InvalidSearchConfigError({ mode, allowed: ["semantic", "keyword", "hybrid"] });
+    throw new InvalidSearchConfigError({
+      mode,
+      allowed: ["semantic", "keyword", "hybrid"],
+    });
   }
 
   const res = await fetch(`/api/knowledge/base/${id}/search`, {
@@ -384,7 +441,9 @@ export async function searchKnowledge(
 // Knowledge Graph
 // ============================================================================
 
-export async function fetchGraph(appName?: string): Promise<KnowledgeGraphPayload> {
+export async function fetchGraph(
+  appName?: string,
+): Promise<KnowledgeGraphPayload> {
   const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
   const res = await fetch(`/api/knowledge/graph${params}`, {
     cache: "no-store",
@@ -418,7 +477,9 @@ export async function upsertGraph(params: {
 // Pipelines
 // ============================================================================
 
-export async function fetchPipelines(appName?: string): Promise<KnowledgePipelinesPayload> {
+export async function fetchPipelines(
+  appName?: string,
+): Promise<KnowledgePipelinesPayload> {
   const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
   const res = await fetch(`/api/knowledge/pipelines${params}`, {
     cache: "no-store",
