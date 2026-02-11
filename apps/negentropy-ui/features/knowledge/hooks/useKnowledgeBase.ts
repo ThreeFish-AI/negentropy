@@ -23,7 +23,7 @@ import {
   replaceSource,
   searchKnowledge,
   KnowledgeError,
-} from "../index";
+} from "../utils/knowledge-api";
 
 // ============================================================================
 // Types
@@ -120,7 +120,13 @@ const DEFAULT_LOADING_STATE = {
 export function useKnowledgeBase(
   options: UseKnowledgeBaseOptions = {},
 ): UseKnowledgeBaseReturnValue {
-  const { appName, corpusId: initialCorpusId, onError, onIngestSuccess, onSearchSuccess } = options;
+  const {
+    appName,
+    corpusId: initialCorpusId,
+    onError,
+    onIngestSuccess,
+    onSearchSuccess,
+  } = options;
 
   // 状态管理
   const [corpus, setCorpus] = useState<CorpusRecord | null>(null);
@@ -128,18 +134,21 @@ export function useKnowledgeBase(
   const [state, setState] = useState(DEFAULT_LOADING_STATE);
 
   // 加载语料库
-  const loadCorpus = useCallback(async (id: string) => {
-    setState({ isLoading: true, error: null });
-    try {
-      const result = await fetchCorpus(id, appName);
-      setCorpus(result);
-      setState({ isLoading: false, error: null });
-    } catch (error) {
-      const err = error as Error;
-      setState({ isLoading: false, error: err });
-      onError?.(err as KnowledgeError);
-    }
-  }, [appName, onError]);
+  const loadCorpus = useCallback(
+    async (id: string) => {
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await fetchCorpus(id, appName);
+        setCorpus(result);
+        setState({ isLoading: false, error: null });
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+      }
+    },
+    [appName, onError],
+  );
 
   // 加载所有语料库
   const loadCorpora = useCallback(async () => {
@@ -156,120 +165,132 @@ export function useKnowledgeBase(
   }, [appName, onError]);
 
   // 创建语料库
-  const createCorpusHandler = useCallback(async (params: {
-    name: string;
-    description?: string;
-    config?: Record<string, unknown>;
-  }) => {
-    setState({ isLoading: true, error: null });
-    try {
-      const result = await createCorpus({
-        app_name: appName,
-        ...params,
-      });
-      setCorpora((prev) => [result, ...prev]);
-      setState({ isLoading: false, error: null });
-      return result;
-    } catch (error) {
-      const err = error as Error;
-      setState({ isLoading: false, error: err });
-      onError?.(err as KnowledgeError);
-      throw err;
-    }
-  }, [appName, onError]);
+  const createCorpusHandler = useCallback(
+    async (params: {
+      name: string;
+      description?: string;
+      config?: Record<string, unknown>;
+    }) => {
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await createCorpus({
+          app_name: appName,
+          ...params,
+        });
+        setCorpora((prev) => [result, ...prev]);
+        setState({ isLoading: false, error: null });
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [appName, onError],
+  );
 
   // 摄取文本
-  const ingestTextHandler = useCallback(async (params: {
-    text: string;
-    source_uri?: string;
-    metadata?: Record<string, unknown>;
-    chunkingConfig?: ChunkingConfig;
-  }) => {
-    if (!corpus?.id) {
-      throw new Error("No corpus selected");
-    }
+  const ingestTextHandler = useCallback(
+    async (params: {
+      text: string;
+      source_uri?: string;
+      metadata?: Record<string, unknown>;
+      chunkingConfig?: ChunkingConfig;
+    }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
 
-    setState({ isLoading: true, error: null });
-    try {
-      const result = await ingestText(corpus.id, {
-        app_name: appName,
-        text: params.text,
-        source_uri: params.source_uri,
-        metadata: params.metadata,
-        chunk_size: params.chunkingConfig?.chunk_size,
-        overlap: params.chunkingConfig?.overlap,
-        preserve_newlines: params.chunkingConfig?.preserve_newlines,
-      });
-      setState({ isLoading: false, error: null });
-      onIngestSuccess?.(result);
-      return result;
-    } catch (error) {
-      const err = error as Error;
-      setState({ isLoading: false, error: err });
-      onError?.(err as KnowledgeError);
-      throw err;
-    }
-  }, [corpus?.id, appName, onError, onIngestSuccess]);
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await ingestText(corpus.id, {
+          app_name: appName,
+          text: params.text,
+          source_uri: params.source_uri,
+          metadata: params.metadata,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+        });
+        setState({ isLoading: false, error: null });
+        onIngestSuccess?.(result);
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError, onIngestSuccess],
+  );
 
   // 替换源文本
-  const replaceSourceHandler = useCallback(async (params: {
-    text: string;
-    source_uri: string;
-    metadata?: Record<string, unknown>;
-    chunkingConfig?: ChunkingConfig;
-  }) => {
-    if (!corpus?.id) {
-      throw new Error("No corpus selected");
-    }
+  const replaceSourceHandler = useCallback(
+    async (params: {
+      text: string;
+      source_uri: string;
+      metadata?: Record<string, unknown>;
+      chunkingConfig?: ChunkingConfig;
+    }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
 
-    setState({ isLoading: true, error: null });
-    try {
-      const result = await replaceSource(corpus.id, {
-        app_name: appName,
-        text: params.text,
-        source_uri: params.source_uri,
-        metadata: params.metadata,
-        chunk_size: params.chunkingConfig?.chunk_size,
-        overlap: params.chunkingConfig?.overlap,
-        preserve_newlines: params.chunkingConfig?.preserve_newlines,
-      });
-      setState({ isLoading: false, error: null });
-      return result;
-    } catch (error) {
-      const err = error as Error;
-      setState({ isLoading: false, error: err });
-      onError?.(err as KnowledgeError);
-      throw err;
-    }
-  }, [corpus?.id, appName, onError]);
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await replaceSource(corpus.id, {
+          app_name: appName,
+          text: params.text,
+          source_uri: params.source_uri,
+          metadata: params.metadata,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+        });
+        setState({ isLoading: false, error: null });
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError],
+  );
 
   // 搜索知识库
-  const searchHandler = useCallback(async (query: string, config?: SearchConfig) => {
-    if (!corpus?.id) {
-      throw new Error("No corpus selected");
-    }
+  const searchHandler = useCallback(
+    async (query: string, config?: SearchConfig) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
 
-    setState({ isLoading: true, error: null });
-    try {
-      const result = await searchKnowledge(corpus.id, {
-        app_name: appName,
-        query,
-        mode: config?.mode,
-        limit: config?.limit,
-        semantic_weight: config?.semantic_weight,
-        keyword_weight: config?.keyword_weight,
-        metadata_filter: config?.metadata_filter,
-      });
-      setState({ isLoading: false, error: null });
-      onSearchSuccess?.(result);
-      return result;
-    } catch (error) {
-      const err = error as Error;
-      setState({ isLoading: false, error: err });
-      onError?.(err as KnowledgeError);
-      throw err;
-    }
-  }, [corpus?.id, appName, onError, onSearchSuccess]);
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await searchKnowledge(corpus.id, {
+          app_name: appName,
+          query,
+          mode: config?.mode,
+          limit: config?.limit,
+          semantic_weight: config?.semantic_weight,
+          keyword_weight: config?.keyword_weight,
+          metadata_filter: config?.metadata_filter,
+        });
+        setState({ isLoading: false, error: null });
+        onSearchSuccess?.(result);
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError, onSearchSuccess],
+  );
 
   // 初始化：如果有 corpusId，加载语料库
   useEffect(() => {
