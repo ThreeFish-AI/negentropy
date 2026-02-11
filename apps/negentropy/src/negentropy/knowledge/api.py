@@ -72,6 +72,15 @@ class IngestRequest(BaseModel):
     preserve_newlines: Optional[bool] = None
 
 
+class IngestUrlRequest(BaseModel):
+    app_name: Optional[str] = None
+    url: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    chunk_size: Optional[int] = None
+    overlap: Optional[int] = None
+    preserve_newlines: Optional[bool] = None
+
+
 class ReplaceSourceRequest(BaseModel):
     app_name: Optional[str] = None
     text: str
@@ -420,6 +429,51 @@ async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]
 
         logger.info(
             "api_ingest_completed",
+            corpus_id=str(corpus_id),
+            record_count=len(records),
+        )
+
+        return {"count": len(records), "items": [r.id for r in records]}
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
+
+
+@router.post("/base/{corpus_id}/ingest_url")
+async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, Any]:
+    """Fetch content from URL and ingest into knowledge base."""
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    logger.info(
+        "api_ingest_url_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        url=payload.url,
+    )
+
+    try:
+        service = _get_service()
+        chunking_config = _build_chunking_config(
+            chunk_size=payload.chunk_size,
+            overlap=payload.overlap,
+            preserve_newlines=payload.preserve_newlines,
+        )
+        records = await service.ingest_url(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            url=payload.url,
+            metadata=payload.metadata,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_ingest_url_completed",
             corpus_id=str(corpus_id),
             record_count=len(records),
         )
