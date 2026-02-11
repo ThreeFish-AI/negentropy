@@ -202,6 +202,22 @@ class KnowledgeService:
             chunking_config=chunking_config,
         )
 
+    async def list_knowledge(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[KnowledgeRecord]:
+        """List knowledge items in a corpus."""
+        return await self._repository.list_knowledge(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            limit=limit,
+            offset=offset,
+        )
+
     async def search(
         self,
         *,
