@@ -467,10 +467,20 @@ logger.error("database_error", details=exc.details)
    - `Score` 分布（Semantic Score vs Keyword Score）。
    - `Metadata` 字段信息。
 
-**4. 删除语料库 (Delete Corpus)**
+**4. 编辑语料库 (Edit Corpus)**
 
-1. 在 Corpus 详情页点击 **Delete**。
-2. **警告**: 此操作为**级联删除**，将物理删除该 Corpus 下所有 Knowledge Chunks 及索引数据，不可恢复。
+1. 在 Corpus 列表项右侧点击 **更多操作** (三点图标)。
+2. 选择 **编辑配置**。
+3. 修改 `Name`, `Description` 或 `Config` (Chunk Size, Overlap 等)。
+4. 点击 **Save** 保存更改。
+   - **注意**: 修改 Chunking Config 不会自动重新索引现有文档，仅对新 ingestion 生效。如需应用新配置，请重新 ingest 文档。
+
+**5. 删除语料库 (Delete Corpus)**
+
+1. 在 Corpus 列表项右侧点击 **更多操作** (三点图标)。
+2. 选择 **删除数据源**。
+3. 在确认对话框中点击 **Delete**。
+4. **警告**: 此操作为**级联删除**，将物理删除该 Corpus 下所有 Knowledge Chunks 及索引数据，不可恢复。
 
 ### 11.2 Knowledge Graph (知识图谱)
 
