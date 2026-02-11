@@ -20,13 +20,13 @@
 
 > **Knowledge 与 Memory 的本质区别**：
 >
-> | 维度 | Knowledge Base | User Memory |
-> |------|---------------|-------------|
-> | 性质 | 静态文档 | 动态记忆 |
-> | 归属 | 共享（按 Corpus） | 个人（按 User） |
-> | 生命周期 | 持久存在 | 遗忘曲线衰减 |
-> | 治理 | 版本控制 | 审计（Retain/Delete/Anonymize） |
-> | 检索 | 混合检索（Semantic + BM25 + RRF） | 语义 + 时间衰减 |
+> | 维度     | Knowledge Base                    | User Memory                     |
+> | -------- | --------------------------------- | ------------------------------- |
+> | 性质     | 静态文档                          | 动态记忆                        |
+> | 归属     | 共享（按 Corpus）                 | 个人（按 User）                 |
+> | 生命周期 | 持久存在                          | 遗忘曲线衰减                    |
+> | 治理     | 版本控制                          | 审计（Retain/Delete/Anonymize） |
+> | 检索     | 混合检索（Semantic + BM25 + RRF） | 语义 + 时间衰减                 |
 
 ## 2. 领域模型与职责拆分
 
@@ -199,6 +199,7 @@ flowchart LR
 ### 6.3 异常处理体系
 
 **异常层次结构**（正交分解）：
+
 ```
 KnowledgeError
 ├── DomainError
@@ -216,6 +217,7 @@ KnowledgeError
 ```
 
 **HTTP 状态码映射**：
+
 - `400 Bad Request`: 参数验证失败
 - `404 Not Found`: 资源不存在
 - `409 Conflict`: 版本冲突
@@ -224,10 +226,12 @@ KnowledgeError
 ### 6.4 性能优化
 
 **批量插入优化**：
+
 - 使用 PostgreSQL 原生 `INSERT` 批量插入
 - 替代逐条 ORM 操作，预期提升 3-5 倍写入性能
 
 **混合检索优化**：
+
 - 优先使用数据库原生 `kb_hybrid_search()` 函数
 - 自动降级到 Python 端混合检索（回退方案）
 - 预期减少 20% 检索延迟
@@ -235,11 +239,13 @@ KnowledgeError
 ### 6.5 配置验证
 
 **ChunkingConfig 验证规则**：
+
 - `chunk_size`: 1 ~ 100000
-- `overlap`: 0 ~ chunk_size * 0.5
+- `overlap`: 0 ~ chunk_size \* 0.5
 - `preserve_newlines`: true/false
 
 **SearchConfig 验证规则**：
+
 - `mode`: 'semantic' | 'keyword' | 'hybrid' | 'rrf'
 - `limit`: 1 ~ 1000
 - `semantic_weight`, `keyword_weight`: 0.0 ~ 1.0
@@ -265,11 +271,11 @@ frequency_boost = 1 + ln(1 + access_count)
 **典型衰减曲线**（λ=0.1, access_count=0）:
 
 | days | time_decay | retention_score |
-|------|-----------|----------------|
-| 0    | 1.00      | 0.20           |
-| 7    | 0.50      | 0.10           |
-| 14   | 0.25      | 0.05           |
-| 30   | 0.05      | 0.01           |
+| ---- | ---------- | --------------- |
+| 0    | 1.00       | 0.20            |
+| 7    | 0.50       | 0.10            |
+| 14   | 0.25       | 0.05            |
+| 30   | 0.05       | 0.01            |
 
 ### 7.2 访问计数追踪
 
@@ -313,6 +319,7 @@ Memory 和关联 Fact 同步处理，确保 GDPR 合规：
 ### 9.1 结构化日志
 
 **索引流程日志**：
+
 ```python
 logger.info("ingestion_started",
             corpus_id=str(corpus_id),
@@ -336,6 +343,7 @@ logger.info("ingestion_completed",
 ```
 
 **检索流程日志**：
+
 ```python
 logger.info("search_started",
             corpus_id=str(corpus_id),
@@ -355,6 +363,7 @@ logger.info("search_completed",
 ### 9.2 错误追踪
 
 **API 层错误日志**：
+
 ```python
 logger.warning("corpus_not_found", details=exc.details)
 logger.warning("version_conflict", details=exc.details)
@@ -366,12 +375,14 @@ logger.error("database_error", details=exc.details)
 ### 9.3 性能监控
 
 **关键指标**：
+
 - 索引速度: chunks/秒
 - 搜索延迟: P95 < 100ms
 - 向量化延迟: P95 < 500ms
 - 数据库查询延迟: P95 < 50ms
 
 **监控集成**：
+
 - Langfuse 追踪（利用现有 `ObservabilitySettings`）
 - Prometheus 指标（可选）
 - 结构化日志解析（Elasticsearch/Loki）
@@ -396,58 +407,170 @@ logger.error("database_error", details=exc.details)
 
 <a id="ref5"></a>[5] H. Ebbinghaus, "Memory: A Contribution to Experimental Psychology," _Teachers College, Columbia University_, 1885/1913.
 
-## 11. User Guide (使用指南)
+## 11. Knowledge System User Guide (知识系统指南)
 
-本节介绍 Knowledge 系统的核心功能与操作流程。
+本节详细介绍 Knowledge Base 与 Knowledge Graph 的核心功能特性与用户操作流程。
 
 ### 11.1 Knowledge Base (知识库管理)
 
-作为静态知识的容器，支持对非结构化文档的索引与混合检索。
+作为静态知识的容器，支持对非结构化文档的**索引 (Indexing)**、**更新 (Upsert)** 与**混合检索 (Hybrid Search)**。
 
-- **Corpus 创建**：定义知识库边界（如 `product-manuals`），配置切片策略（Chunk Size / Overlap）。
-- **Corpus 删除**：`DELETE /knowledge/base/{corpus_id}`，级联删除所有关联 Knowledge 记录。
-- **Ingestion (写入)**：将文本/文件切片并向量化。
-  - _Chunking_: 支持 Fixed/Recursive/Semantic 三种策略，自动按配置切分。
-  - _Embedding_: 调用配置模型（如 `text-embedding-3-small`），内置重试机制。
-- **Search (检索)**：提供四种模式调试检索效果。
-  - `Semantic`: 纯向量相似度（召回语义相关）。
-  - `Keyword`: BM25 关键词匹配（召回精确匹配）。
-  - `Hybrid`: 加权融合（默认），兼顾语义与精准度。
-  - `RRF`: Reciprocal Rank Fusion，对分数尺度不敏感的融合算法。
+#### 11.1.1 功能特性 (Features)
 
-### 11.2 Knowledge Graph (知识图谱视图)
+- **Corpus (语料库)**：知识的逻辑边界（Namespace）。每个 Corpus 拥有独立的配置策略，物理上隔离检索范围。
+- **Chunking Strategies (切片策略)**：
+  - **Fixed Size**: 按固定字符数切分（如 `1000 chars`），简单高效。
+  - **Recursive**: 递归字符切分（按段落 `\n\n` -> 句子 `.` -> 词 ），保持语义连贯性。
+  - **Semantic**: 基于 Embedding 相似度突变点进行切分，聚合语义相似的段落。
+- **Embedding Models**:
+  - 默认模型：`vertex_ai/text-embedding-005` (768维/1536维)，平衡性能与成本。
+  - 备选模型：`openai/text-embedding-3-small`。
+- **Retrieval Modes (检索模式)**：
+  - **Semantic**: 向量余弦相似度（Cosine Similarity），召回语义相关。
+  - **Keyword**: BM25 关键词匹配，召回精确匹配（如错误码、专有名词）。
+  - **Hybrid**: 加权融合（Weighted Sum），$Score = W_s \cdot S_{semantic} + W_k \cdot S_{keyword}$。
+  - **RRF**: 倒数排名融合（Reciprocal Rank Fusion），无需调参即可获得稳健结果。
 
-提供实体关系的动态可视化与人工修正能力。
+#### 11.1.2 操作步骤 (Operation Steps)
 
-- **Visualization**: 力导向图（Force-Directed Graph）展示实体（Entity）与关系（Edge）。
-  - _交互_: 支持缩放、平移、节点拖拽固定。
-- **Extraction & Write-back**:
-  - 系统自动从 Knowledge Base 抽取三元组（当前使用正则抽取，可通过 Strategy Pattern 替换为 LLM 抽取）。
-  - **写回 (Upsert)**: 用户可在 UI 上确认图谱状态，点击"写回图谱"将其固化到后端版本库。
+**1. 创建语料库 (Create Corpus)**
 
-### 11.3 User Memory (用户记忆治理)
+1. 进入 **Knowledge Base** 页面。
+2. 在左侧 "Sources" 栏点击 **Create** 按钮。
+3. 填写表单：
+   - `Name`: 唯一标识符（如 `product-manuals-v1`）。
+   - `Description`: 描述用途。
+   - `Config`: 可选 JSON 配置（如 `{"chunk_size": 1000, "overlap": 200}`）。
+4. 点击确认，系统将初始化 Corpus 容器。
 
-面向 User ID 的长期记忆审计与干预。
+**2. 索引文档 (Ingest Content)**
 
-- **Timeline**: 按时间轴展示用户相关的记忆片段（来源于交互或文档）。
-- **Retention Score**: 基于遗忘曲线计算记忆保留分数（0.0 ~ 1.0），分数越低表示记忆越可能被遗忘。
-- **Audit (审计)**: 对记忆片段进行治理，操作同时影响 Memory 和关联 Fact：
-  - `Retain`: 保留（默认）。
-  - `Delete`: 物理删除 Memory + 关联 Fact。
-  - `Anonymize`: 匿名化处理（保留统计价值但移除 PII）。
-- **Policy**: 展示当前生效的记忆保留策略（遗忘曲线参数 λ / 访问频率权重）。
+1. 在左侧列表选中目标 Corpus。
+2. 右侧 **Ingest Panel** 面板：
+   - `Source URI`: 输入文档的唯一标识（如 `manuals/en/deploy.md`）。
+   - `Text`: 粘贴文档全文内容。
+3. 点击 **Ingest**（追加模式）或 **Replace**（覆盖模式）。
+   - _Replace_: 原子性执行 `DELETE WHERE source_uri = ?` + `INSERT`，防止数据残留。
 
-### 11.4 Pipelines (流水线监控)
+**3. 检索测试 (Search & Debug)**
 
-监控 Knowledge 系统内部的异步任务与数据流转。
+1. 在 **Search Workspace** 区域输入 Query。
+2. 选择检索模式（Semantic / Keyword / Hybrid / RRF）。
+3. 点击 **Search**，观察：
+   - 召回的 Chunks 内容。
+   - `Score` 分布（Semantic Score vs Keyword Score）。
+   - `Metadata` 字段信息。
 
-- **Runs**: 查看所有触发的任务（如 Ingestion, Graph Extraction, Memory Sync）。
-  - _状态_: `Completed` (绿), `Running` (黄), `Failed` (红).
-- **Debug**: 点击任务可查看详细的 Input / Output / Error 堆栈，辅助定位构建失败原因（如 Embedding API 超时、数据库约束冲突）。
+**4. 删除语料库 (Delete Corpus)**
 
-## 12. 测试覆盖
+1. 在 Corpus 详情页点击 **Delete**。
+2. **警告**: 此操作为**级联删除**，将物理删除该 Corpus 下所有 Knowledge Chunks 及索引数据，不可恢复。
 
-### 12.1 单元测试
+### 11.2 Knowledge Graph (知识图谱)
+
+提供实体（Entity）与关系（Relation）的动态可视化视图，支持人工审查与版本快照。
+
+#### 11.2.1 功能特性 (Features)
+
+- **Force-Directed Layout**: 使用 D3.js 力导向图算法，自动布局实体节点，展现聚类结构。
+- **Interactive Editing**: 支持拖拽节点固定位置（Pinning），调整布局以获得最佳可视效果。
+- **Versioned Snapshots**: 图谱状态并非实时覆盖，而是以 `GraphRun` (Version) 形式保存快照，支持回滚。
+
+#### 11.2.2 操作步骤 (Operation Steps)
+
+**1. 查看图谱 (Visualization)**
+
+1. 进入 **Knowledge Graph** 页面。
+2. 系统自动加载最新的图谱快照 (Latest Version)。
+3. **交互操作**:
+   - **Zoom/Pan**: 滚轮缩放，按住左键拖拽画布。
+   - **Drag Node**: 拖拽节点可将其位置固定（fx/fy），再次点击释放固定。
+   - **Click Node**: 点击节点，右侧面板显示实体详细属性（Label, Type, Description）。
+
+**2. 保存快照 (Snapshot & Write-back)**
+
+1. 完成布局调整或实体确认后。
+2. 点击右上角 **"写回图谱" (Upsert Graph)** 按钮。
+3. 系统将当前图谱状态（Nodes + Edges + Layout）保存为新的 version。
+4. 在右侧 **"Build Runs"** 列表中可见新增的记录。
+
+### 11.3 Pipelines (系统监控)
+
+监控 Knowledge 系统内部的异步任务流转状态。
+
+- **Pipeline Runs**: 查看 Ingestion, Graph Extraction, Memory Sync 等后台任务。
+- **Status**:
+  - `Running`: 任务执行中（黄色）。
+  - `Completed`: 执行成功（绿色）。
+  - `Failed`: 执行失败（红色），点击可查看 Error Stack Trace。
+- **Alerts**: 系统自动捕获的异常（如 Embedding API Rate Limit, DB Connection Timeout）。
+
+## 12. Memory System User Guide (记忆系统指南)
+
+面向 User ID 的长期记忆审计与动态干预面板，包含 Episodic Memory (Timeline) 与 Semantic Memory (Facts) 双重视图。
+
+### 12.1 Dashboard (记忆概览)
+
+#### 12.1.1 功能特性 (Features)
+
+- **Metrics**: 全局统计，包括 User Count, Memory Count, Fact Count 及平均 Retention Score。
+- **Retention Alert**: "Low Retention" 指标，识别即将遗忘的关键记忆，便于人工干预。
+- **User Filtering**: 支持按 `User ID` 筛选，查看特定用户的完整记忆轨迹。
+
+#### 12.1.2 操作步骤 (Operation Steps)
+
+1. 进入 **Memory System** -> **Dashboard**。
+2. 观察顶部 **Metrics Cards** 了解系统整体记忆健康度。
+3. 在搜索栏输入目标 `User ID` 并回车，面板数据将刷新为该用户的专属视图。
+
+### 12.2 Memory Audit (行为审计)
+
+#### 12.2.1 功能特性 (Features)
+
+- **Audit Queue**: 待审列表，优先展示低置信度或低 Retention Score 的记忆片段。
+- **Governance Actions**: 符合 GDPR 的治理操作：
+  - **Retain**: 确认保留（提升 Retention Score 至 1.0）。
+  - **Delete**: 物理删除 Memory + 关联 Fact。
+  - **Anonymize**: 匿名化处理（保留统计价值但移除 PII）。
+
+#### 12.2.2 操作步骤 (Operation Steps)
+
+1. 切换至 **Audit** 标签页。
+2. 选中一条待审记忆（Memory Item）。
+3. 阅读 Content 与 Context。
+4. 点击底部操作按钮 (**Retain** / **Delete** / **Anonymize**)。
+5. 系统自动生成 `MemoryAuditLog` 记录操作。
+
+### 12.3 Facts Management (事实管理)
+
+#### 12.3.1 功能特性 (Features)
+
+- **Semantic View**: 查看从对话中提取的结构化事实（如 User Preferences, Biographical Info）。
+- **Validity Period**: 每个 Fact 包含 `valid_from` 与 `valid_until`，支持时效性管理。
+
+#### 12.3.2 操作步骤 (Operation Steps)
+
+1. 切换至 **Facts** 标签页。
+2. 浏览 Key-Value 列表。
+3. 如发现错误事实，点击 **Edit** 修正 Value 或 **Delete** 移除。
+4. 修改立即生效，并同步影响下游 Agent 的 Context。
+
+### 12.4 Timeline (时间轴视图)
+
+#### 12.4.1 功能特性 (Features)
+
+- **Chronological View**: 按时间倒序展示用户的交互 Memory 片段。
+- **Access Tracking**: 显示每次记忆的 `Access Count` 与 `Last Accessed` 时间，直观展示遗忘曲线效果。
+
+#### 12.4.2 操作步骤 (Operation Steps)
+
+1. 切换至 **Timeline** 标签页。
+2. 滚动浏览用户的历史记忆流。
+3. 悬停在某条 Memory 上，查看其 Embedding 维度信息或原始来源。
+
+## 13. 测试覆盖
+
+### 13.1 单元测试
 
 ```bash
 cd apps/negentropy
@@ -458,7 +581,7 @@ uv run pytest tests/unit_tests/engine/ -v            # Memory 治理
 - **Knowledge**: chunking / types / reranking 测试
 - **Memory Governance**: 遗忘曲线（新鲜记忆/高频访问/长期未访问/指数衰减公式/边界值/自定义 λ）
 
-### 12.2 集成测试（需要 PostgreSQL）
+### 13.2 集成测试（需要 PostgreSQL）
 
 ```bash
 uv run pytest tests/integration_tests/knowledge/ -v
