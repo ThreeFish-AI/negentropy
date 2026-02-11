@@ -37,12 +37,17 @@ export function CorpusDetail({ corpus }: CorpusDetailProps) {
         </p>
         <div className="my-2 border-t border-zinc-100" />
         <p>
+          <span className="text-zinc-400">Strategy</span>{" "}
+          <span className="capitalize">
+            {String(config.strategy || "recursive")}
+          </span>
+        </p>
+        <p>
           <span className="text-zinc-400">Chunk Size</span>{" "}
           {config.chunk_size || 800}
         </p>
         <p>
-          <span className="text-zinc-400">Overlap</span>{" "}
-          {config.overlap || 100}
+          <span className="text-zinc-400">Overlap</span> {config.overlap || 100}
         </p>
         <p>
           <span className="text-zinc-400">Embedding</span>{" "}
