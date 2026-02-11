@@ -51,6 +51,14 @@ class KnowledgeService:
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
 
+    async def update_corpus(self, corpus_id: UUID, spec: Dict[str, Any]) -> CorpusRecord:
+        corpus = await self._repository.update_corpus(corpus_id, spec)
+        if not corpus:
+            from .exceptions import CorpusNotFound
+
+            raise CorpusNotFound(details={"corpus_id": str(corpus_id)})
+        return corpus
+
     async def list_corpora(self, *, app_name: str) -> list[CorpusRecord]:
         return await self._repository.list_corpora(app_name=app_name)
 

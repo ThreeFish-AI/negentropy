@@ -47,6 +47,12 @@ class CorpusCreateRequest(BaseModel):
     config: Dict[str, Any] = Field(default_factory=dict)
 
 
+class CorpusUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
+
+
 class CorpusResponse(BaseModel):
     id: UUID
     app_name: str
@@ -313,6 +319,39 @@ async def get_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=No
         config=corpus.config or {},
         knowledge_count=count or 0,
     )
+
+
+@router.patch("/base/{corpus_id}", response_model=CorpusResponse)
+async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> CorpusResponse:
+    service = _get_service()
+    update_data = payload.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    try:
+        corpus = await service.update_corpus(corpus_id=corpus_id, spec=update_data)
+        # Fetch knowledge count separately since update doesn't return it
+        dao = _get_dao()
+        # Optimization: Reuse existing count logic or separate query
+        # For simplicity, returning 0 or fetching count if critical.
+        # API expects knowledge_count.
+
+        # We need to fetch count to adhere to response model
+        async with AsyncSessionLocal() as db:
+            knowledge_count = await db.scalar(
+                select(func.count()).select_from(Knowledge).where(Knowledge.corpus_id == corpus.id)
+            )
+
+        return CorpusResponse(
+            id=corpus.id,
+            app_name=corpus.app_name,
+            name=corpus.name,
+            description=corpus.description,
+            config=corpus.config or {},
+            knowledge_count=knowledge_count or 0,
+        )
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
 
 
 @router.delete("/base/{corpus_id}", status_code=status.HTTP_204_NO_CONTENT)
