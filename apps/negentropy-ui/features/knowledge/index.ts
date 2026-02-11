@@ -50,6 +50,7 @@ export {
   upsertGraph,
   fetchPipelines,
   upsertPipelines,
+  fetchKnowledgeItems,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -71,6 +72,8 @@ export type {
   SearchResults,
   GraphUpsertResult,
   PipelineUpsertResult,
+  KnowledgeItem,
+  KnowledgeListResponse,
 } from "./utils/knowledge-api";
 
 // ============================================================================
