@@ -445,6 +445,40 @@ async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]
         ) from exc
 
 
+@router.get("/base/{corpus_id}/knowledge")
+async def list_knowledge(
+    corpus_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, le=100),
+    offset: int = 0,
+) -> Dict[str, Any]:
+    """列出知识库中的知识条目"""
+    resolved_app = _resolve_app_name(app_name)
+    service = _get_service()
+    
+    knowledge_items = await service.list_knowledge(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        limit=limit,
+        offset=offset,
+    )
+    
+    return {
+        "count": len(knowledge_items),
+        "items": [
+            {
+                "id": str(item.id),
+                "content": item.content,  # Content preview handled by frontend if needed
+                "source_uri": item.source_uri,
+                "created_at": item.created_at,
+                "chunk_index": item.chunk_index,
+                "metadata": item.metadata,
+            }
+            for item in knowledge_items
+        ],
+    }
+
+
 @router.post("/base/{corpus_id}/ingest_url")
 async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, Any]:
     """Fetch content from URL and ingest into knowledge base."""
