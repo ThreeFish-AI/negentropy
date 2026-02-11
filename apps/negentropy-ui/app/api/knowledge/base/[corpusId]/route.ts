@@ -1,5 +1,9 @@
 import { proxyGet } from "../../_proxy";
 
-export async function GET(request: Request, context: { params: { corpusId: string } }) {
-  return proxyGet(request, `/knowledge/base/${context.params.corpusId}`);
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ corpusId: string }> },
+) {
+  const { corpusId } = await context.params;
+  return proxyGet(request, `/knowledge/base/${corpusId}`);
 }
