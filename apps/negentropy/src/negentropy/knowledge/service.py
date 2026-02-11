@@ -14,6 +14,7 @@ from .constants import (
     TEXT_PREVIEW_MAX_LENGTH,
 )
 from .exceptions import SearchError
+from .content import fetch_content
 from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
@@ -160,6 +161,44 @@ class KnowledgeService:
             text=text,
             source_uri=source_uri,
             metadata=metadata,
+            chunking_config=chunking_config,
+        )
+
+    async def ingest_url(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        url: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        chunking_config: Optional[ChunkingConfig] = None,
+    ) -> list[KnowledgeRecord]:
+        """Fetch content from URL and ingest into knowledge base."""
+        logger.info("ingest_url_started", corpus_id=str(corpus_id), url=url)
+
+        try:
+            text = await fetch_content(url)
+        except ValueError as exc:
+            # Wrap content fetching errors
+            from .exceptions import KnowledgeError
+
+            raise KnowledgeError(
+                code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
+            ) from exc
+
+        if not text:
+            raise ValueError("No content extracted from URL")
+
+        # Merge metadata
+        meta = metadata or {}
+        meta["source_url"] = url
+
+        return await self.ingest_text(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            text=text,
+            source_uri=url,
+            metadata=meta,
             chunking_config=chunking_config,
         )
 
