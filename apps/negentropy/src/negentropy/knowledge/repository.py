@@ -200,6 +200,29 @@ class KnowledgeRepository:
             await db.commit()
             return len(items)
 
+    async def list_knowledge(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[KnowledgeRecord]:
+        async with self._session_factory() as db:
+            stmt = (
+                select(Knowledge)
+                .where(
+                    Knowledge.corpus_id == corpus_id,
+                    Knowledge.app_name == app_name,
+                )
+                .order_by(Knowledge.created_at.desc())
+                .limit(limit)
+                .offset(offset)
+            )
+            result = await db.execute(stmt)
+            items = result.scalars().all()
+            return [self._to_knowledge_record(item) for item in items]
+
     async def semantic_search(
         self,
         *,
