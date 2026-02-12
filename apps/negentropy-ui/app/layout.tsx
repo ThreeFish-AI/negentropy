@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import "./globals.css";
@@ -28,15 +29,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950`}
       >
         <ErrorBoundary>
-          <AuthProvider>
-            <div className="flex flex-col h-screen overflow-hidden">
-              <SiteHeader />
-              <main className="flex-1 overflow-hidden relative">{children}</main>
-            </div>
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <div className="flex flex-col h-screen overflow-hidden">
+                <SiteHeader />
+                <main className="flex-1 overflow-hidden relative">{children}</main>
+              </div>
+            </AuthProvider>
+          </ThemeProvider>
         </ErrorBoundary>
       </body>
     </html>
