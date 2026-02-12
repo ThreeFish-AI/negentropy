@@ -455,14 +455,14 @@ async def list_knowledge(
     """列出知识库中的知识条目"""
     resolved_app = _resolve_app_name(app_name)
     service = _get_service()
-    
+
     knowledge_items = await service.list_knowledge(
         corpus_id=corpus_id,
         app_name=resolved_app,
         limit=limit,
         offset=offset,
     )
-    
+
     return {
         "count": len(knowledge_items),
         "items": [
