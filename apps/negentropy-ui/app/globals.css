@@ -81,3 +81,18 @@ body {
     color: #a1a1aa;
   }
 }
+
+/* 输入控件文本样式 - 符合 WCAG 2.1 AA 对比度标准 (4.5:1) */
+input,
+textarea,
+select {
+  color: #18181b; /* zinc-900, 亮色模式主文本色 */
+}
+
+@media (prefers-color-scheme: dark) {
+  input,
+  textarea,
+  select {
+    color: #f4f4f5; /* zinc-100, 深色模式主文本色 */
+  }
+}
