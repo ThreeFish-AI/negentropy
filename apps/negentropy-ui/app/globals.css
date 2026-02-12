@@ -42,3 +42,42 @@ body {
   display: inline-block;
   box-sizing: content-box;
 }
+
+/* Placeholder 样式 - 符合 WCAG 2.1 AA 对比度标准 (4.5:1) */
+::placeholder {
+  color: #71717a; /* zinc-500, 对比度 ~4.6:1 */
+  opacity: 1;
+}
+
+::-webkit-input-placeholder {
+  color: #71717a;
+  opacity: 1;
+}
+
+::-moz-placeholder {
+  color: #71717a;
+  opacity: 1;
+}
+
+:-ms-input-placeholder {
+  color: #71717a;
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::placeholder {
+    color: #a1a1aa; /* zinc-400, 深色模式下更亮 */
+  }
+
+  ::-webkit-input-placeholder {
+    color: #a1a1aa;
+  }
+
+  ::-moz-placeholder {
+    color: #a1a1aa;
+  }
+
+  :-ms-input-placeholder {
+    color: #a1a1aa;
+  }
+}
