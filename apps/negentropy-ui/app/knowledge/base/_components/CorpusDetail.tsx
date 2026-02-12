@@ -10,47 +10,49 @@ export function CorpusDetail({ corpus }: CorpusDetailProps) {
 
   if (!corpus) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">数据源详情</h2>
-        <p className="mt-3 text-xs text-zinc-500">请选择数据源</p>
+      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-card-foreground">
+          数据源详情
+        </h2>
+        <p className="mt-3 text-xs text-muted">请选择数据源</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-zinc-900">数据源详情</h2>
-      <div className="mt-3 space-y-1.5 text-xs text-zinc-600">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <h2 className="text-sm font-semibold text-card-foreground">数据源详情</h2>
+      <div className="mt-3 space-y-1.5 text-xs text-muted">
         <p>
-          <span className="text-zinc-400">Name</span>{" "}
-          <span className="font-medium text-zinc-900">{corpus.name}</span>
+          <span className="text-muted/70">Name</span>{" "}
+          <span className="font-medium text-foreground">{corpus.name}</span>
         </p>
         <p>
-          <span className="text-zinc-400">Description</span>{" "}
+          <span className="text-muted/70">Description</span>{" "}
           {corpus.description || "-"}
         </p>
         <p>
-          <span className="text-zinc-400">Knowledge Count</span>{" "}
-          <span className="font-medium text-zinc-900">
+          <span className="text-muted/70">Knowledge Count</span>{" "}
+          <span className="font-medium text-foreground">
             {corpus.knowledge_count}
           </span>
         </p>
-        <div className="my-2 border-t border-zinc-100" />
+        <div className="my-2 border-t border-border" />
         <p>
-          <span className="text-zinc-400">Strategy</span>{" "}
+          <span className="text-muted/70">Strategy</span>{" "}
           <span className="capitalize">
             {String(config.strategy || "recursive")}
           </span>
         </p>
         <p>
-          <span className="text-zinc-400">Chunk Size</span>{" "}
+          <span className="text-muted/70">Chunk Size</span>{" "}
           {config.chunk_size || 800}
         </p>
         <p>
-          <span className="text-zinc-400">Overlap</span> {config.overlap || 100}
+          <span className="text-muted/70">Overlap</span> {config.overlap || 100}
         </p>
         <p>
-          <span className="text-zinc-400">Embedding</span>{" "}
+          <span className="text-muted/70">Embedding</span>{" "}
           {config.embedding_model || "default"}
         </p>
       </div>

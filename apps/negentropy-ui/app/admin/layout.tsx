@@ -22,7 +22,7 @@ export default function AdminLayout({
   if (status === "loading") {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-sm text-zinc-500">Loading...</div>
+        <div className="text-sm text-zinc-500 dark:text-zinc-400">Loading...</div>
       </div>
     );
   }

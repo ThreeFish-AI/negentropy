@@ -82,8 +82,10 @@ export function IngestPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-zinc-900">Ingest / Replace</h2>
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <h2 className="text-sm font-semibold text-card-foreground">
+        Ingest / Replace
+      </h2>
       <div>
         {/* Mode Switcher */}
         <div className="mt-3 flex gap-4 text-xs">
@@ -91,8 +93,8 @@ export function IngestPanel({
             onClick={() => setMode("text")}
             className={`pb-1 font-medium ${
               mode === "text"
-                ? "border-b-2 border-zinc-900 text-zinc-900"
-                : "text-zinc-500 hover:text-zinc-700"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted hover:text-foreground"
             }`}
           >
             Raw Text
@@ -101,8 +103,8 @@ export function IngestPanel({
             onClick={() => setMode("url")}
             className={`pb-1 font-medium ${
               mode === "url"
-                ? "border-b-2 border-zinc-900 text-zinc-900"
-                : "text-zinc-500 hover:text-zinc-700"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted hover:text-foreground"
             }`}
           >
             From URL
@@ -112,13 +114,13 @@ export function IngestPanel({
         {mode === "text" ? (
           <>
             <input
-              className="mt-3 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+              className="mt-3 w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder-muted"
               placeholder="source_uri (optional)"
               value={sourceUri}
               onChange={(e) => setSourceUri(e.target.value)}
             />
             <textarea
-              className="mt-2 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+              className="mt-2 w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder-muted"
               rows={4}
               placeholder="Paste knowledge text"
               value={text}
@@ -127,7 +129,7 @@ export function IngestPanel({
           </>
         ) : (
           <input
-            className="mt-3 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
+            className="mt-3 w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder-muted"
             placeholder="https://example.com/article"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -157,12 +159,12 @@ export function IngestPanel({
           )}
         </div>
         {successMsg && (
-          <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">
+          <div className="mt-3 rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
             {successMsg}
           </div>
         )}
         {error && (
-          <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+          <div className="mt-3 rounded-lg border border-error/50 bg-error/10 p-3 text-xs text-error">
             {error.message}
           </div>
         )}

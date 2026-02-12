@@ -102,12 +102,12 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 
   if (error) {
     return (
-      <div className="p-4 border border-red-200 bg-red-50 rounded text-red-600 text-xs font-mono relative group">
+      <div className="p-4 border border-error/20 bg-error/10 rounded text-error text-xs font-mono relative group">
         <p className="font-bold mb-1">Mermaid Error</p>
         <pre className="whitespace-pre-wrap">{code}</pre>
         <button
           onClick={handleCopy}
-          className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-red-100 text-red-400 hover:text-red-700 transition-colors opacity-0 group-hover:opacity-100"
+          className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-error/20 text-error/60 hover:text-error transition-colors opacity-0 group-hover:opacity-100"
           title="Copy Code"
         >
           <svg
@@ -131,13 +131,13 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   return (
     <div className="relative group my-4">
       <div
-        className="mermaid-diagram overflow-x-auto bg-white p-4 rounded-lg border border-zinc-100 shadow-sm"
+        className="mermaid-diagram overflow-x-auto bg-card p-4 rounded-lg border border-border shadow-sm"
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={handleCopy}
-          className="p-1.5 rounded-md bg-white/80 hover:bg-white border border-zinc-200 shadow-sm text-zinc-400 hover:text-zinc-600 backdrop-blur-sm transition-all"
+          className="p-1.5 rounded-md bg-card/80 hover:bg-card border border-border shadow-sm text-muted hover:text-foreground backdrop-blur-sm transition-all"
           title="Copy Mermaid Code"
         >
           <svg

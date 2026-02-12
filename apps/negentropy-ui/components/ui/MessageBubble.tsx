@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import type { Message } from "@ag-ui/core";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-// @ts-expect-error - no types for specific component import in this context or module resolution issue
 import { MermaidDiagram } from "./MermaidDiagram";
 
 type ChatMessageProps = {
@@ -54,7 +53,7 @@ function MessageActions({ content }: { content: string }) {
     <div className="flex items-center gap-1 mt-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
       <button
         onClick={handleCopy}
-        className="p-1 text-zinc-400 hover:text-zinc-600 rounded transition-colors"
+        className="p-1 text-muted hover:text-foreground rounded transition-colors"
         title="Copy"
       >
         {copied ? (
@@ -88,7 +87,7 @@ function MessageActions({ content }: { content: string }) {
         )}
       </button>
 
-      <div className="w-px h-3 bg-zinc-200 mx-1" />
+      <div className="w-px h-3 bg-border mx-1" />
 
       <button
         onClick={(e) => {
@@ -98,8 +97,8 @@ function MessageActions({ content }: { content: string }) {
         className={cn(
           "p-1 rounded transition-colors",
           feedback === "like"
-            ? "text-green-600 bg-green-50"
-            : "text-zinc-400 hover:text-zinc-600",
+            ? "text-success bg-success/10"
+            : "text-muted hover:text-text-secondary",
         )}
         title="Good response"
       >
@@ -125,8 +124,8 @@ function MessageActions({ content }: { content: string }) {
         className={cn(
           "p-1 rounded transition-colors",
           feedback === "dislike"
-            ? "text-red-600 bg-red-50"
-            : "text-zinc-400 hover:text-zinc-600",
+            ? "text-error bg-error/10"
+            : "text-muted hover:text-text-secondary",
         )}
         title="Bad response"
       >
@@ -165,7 +164,7 @@ function CopyButton({ code }: { code: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors opacity-0 group-hover:opacity-100"
+      className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-muted/50 text-muted hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
       title="Copy Code"
     >
       {copied ? (
@@ -201,7 +200,11 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
-export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProps) {
+export function MessageBubble({
+  message,
+  isSelected,
+  onSelect,
+}: ChatMessageProps) {
   const { user } = useAuth();
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
@@ -210,7 +213,7 @@ export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProp
   if (isSystem) {
     return (
       <div className="flex justify-center py-4">
-        <span className="text-xs text-zinc-400 bg-zinc-100 px-3 py-1 rounded-full">
+        <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
           System: {content}
         </span>
       </div>
@@ -222,7 +225,7 @@ export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProp
       className={cn(
         "flex w-full gap-4 group cursor-pointer", // Added cursor-pointer for clickability
         isUser ? "flex-row-reverse" : "flex-row",
-        isSelected && "bg-zinc-100/50", // Highlight when selected
+        isSelected && "bg-muted/50", // Highlight when selected
       )}
       onClick={() => onSelect?.(message.id)}
     >
@@ -233,15 +236,15 @@ export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProp
             <img
               src={user.picture}
               alt="Me"
-              className="w-8 h-8 rounded-full border border-zinc-200"
+              className="w-8 h-8 rounded-full border border-border"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold">
+            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">
               U
             </div>
           )
         ) : (
-          <div className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center shadow-sm ring-2 ring-indigo-50/50 shrink-0 overflow-hidden">
+          <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm ring-2 ring-primary/20 shrink-0 overflow-hidden">
             <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
           </div>
         )}
@@ -258,8 +261,8 @@ export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProp
           className={cn(
             "rounded-2xl px-5 py-3 text-sm shadow-sm transition-all",
             isUser
-              ? "bg-zinc-900 text-white rounded-tr-sm leading-relaxed"
-              : "bg-white text-zinc-900 border border-zinc-200 rounded-tl-sm leading-snug",
+              ? "bg-foreground text-background rounded-tr-sm leading-relaxed"
+              : "bg-card text-foreground border border-border rounded-tl-sm leading-snug",
           )}
         >
           <div
@@ -273,22 +276,22 @@ export function MessageBubble({ message, isSelected, onSelect }: ChatMessageProp
               "[&>h2]:text-sm [&>h2]:font-bold [&>h2]:mb-2",
               "[&_code]:font-mono [&_code]:text-[0.9em]",
               !isUser &&
-                "[&_code]:bg-zinc-100 [&_code]:text-pink-600 [&_code]:px-1 [&_code]:rounded",
+                "[&_code]:bg-muted [&_code]:text-accent-foreground [&_code]:px-1 [&_code]:rounded",
               isUser &&
-                "[&_code]:bg-zinc-800 [&_code]:text-zinc-200 [&_code]:px-1 [&_code]:rounded",
-              "[&_pre]:bg-zinc-900 [&_pre]:text-zinc-50 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2",
+                "[&_code]:bg-background/20 [&_code]:text-background [&_code]:px-1 [&_code]:rounded",
+              "[&_pre]:bg-background/50 [&_pre]:text-foreground [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2",
               "[&_pre_code]:bg-transparent [&_pre_code]:text-inherit [&_pre_code]:p-0",
               "[&_a]:underline [&_a]:underline-offset-2",
-              !isUser && "[&_a]:text-indigo-600 hover:[&_a]:text-indigo-500",
-              isUser && "[&_a]:text-zinc-200 hover:[&_a]:text-white",
+              !isUser && "[&_a]:text-primary hover:[&_a]:text-primary/80",
+              isUser && "[&_a]:text-background hover:[&_a]:text-background/80",
               // Table styles
               "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm",
               "[&_th]:border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
               "[&_td]:border [&_td]:px-3 [&_td]:py-2",
               !isUser &&
-                "[&_th]:border-zinc-200 [&_th]:bg-zinc-50 [&_td]:border-zinc-200",
+                "[&_th]:border-border [&_th]:bg-muted/50 [&_td]:border-border",
               isUser &&
-                "[&_th]:border-zinc-700 [&_th]:bg-zinc-800 [&_td]:border-zinc-700",
+                "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
           >
             <ReactMarkdown

@@ -23,7 +23,7 @@ export function MainNav({ items }: MainNavProps) {
   return (
     <div className="flex gap-6 md:gap-10">
       {visibleItems?.length ? (
-        <nav className="flex items-center gap-1 bg-zinc-100/50 p-1 rounded-full">
+        <nav className="flex items-center gap-1 bg-zinc-100/50 p-1 rounded-full dark:bg-zinc-800/50">
           {visibleItems.map((item, index) => {
             // Logic to determine active state.
             // For "/", it matches exactly or if strictly root.
@@ -40,8 +40,8 @@ export function MainNav({ items }: MainNavProps) {
                 className={cn(
                   "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
                   isActive
-                    ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200"
-                    : "text-zinc-500 hover:text-zinc-900",
+                    ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700"
+                    : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
                   item.disabled && "cursor-not-allowed opacity-80",
                 )}
               >

@@ -79,7 +79,7 @@ export function ChatStream({
         className={`mx-auto w-full px-6 py-6 space-y-4 ${contentClassName ?? ""}`}
       >
         {messages.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-500">
+          <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
             发送指令开始对话。事件流将实时展示在右侧。
           </div>
         ) : (
