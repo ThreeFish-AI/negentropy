@@ -82,51 +82,49 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
     }
 
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
-        <div className="flex items-center justify-between text-[10px] uppercase text-zinc-400 mb-2">
+      <div className="rounded-xl border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
+        <div className="flex items-center justify-between text-[10px] uppercase text-muted mb-2">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
             <span>Tool Call</span>
           </div>
           <span>{formatTimestamp(item.timestamp)}</span>
         </div>
-        <div className="text-sm font-semibold text-zinc-800 break-all mb-2">
+        <div className="text-sm font-semibold text-foreground break-all mb-2">
           {item.name}
         </div>
         {item.args ? (
           <div className="mt-2 text-[10px]">
-            <span className="uppercase tracking-wider text-[9px] text-zinc-400 block mb-1">
+            <span className="uppercase tracking-wider text-[9px] text-muted block mb-1">
               Args
             </span>
-            <div className="rounded bg-zinc-50 p-2 border border-zinc-100 max-h-64 overflow-auto custom-scrollbar">
+            <div className="rounded bg-muted/30 p-2 border border-border-muted max-h-64 overflow-auto custom-scrollbar">
               <JsonViewer data={argsObj} />
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-[10px] text-zinc-400 italic">No arguments</p>
+          <p className="mt-2 text-[10px] text-muted italic">No arguments</p>
         )}
 
         {item.result && (
           <div className="mt-2 text-[10px]">
-            <span className="uppercase tracking-wider text-[9px] text-zinc-400 block mb-1">
+            <span className="uppercase tracking-wider text-[9px] text-muted block mb-1">
               Result
             </span>
-            <div className="rounded bg-emerald-50/50 p-2 border border-emerald-100 max-h-64 overflow-auto custom-scrollbar">
+            <div className="rounded bg-success/10 p-2 border border-success/20 max-h-64 overflow-auto custom-scrollbar">
               <JsonViewer data={resultObj} />
             </div>
           </div>
         )}
         {!item.result && item.status !== "running" && (
-          <p className="mt-2 text-[10px] text-zinc-400 italic">
-            No return value
-          </p>
+          <p className="mt-2 text-[10px] text-muted italic">No return value</p>
         )}
         <div className="mt-2 flex justify-end">
           <span
             className={`text-[9px] uppercase font-medium px-1.5 py-0.5 rounded ${
               item.status === "running"
-                ? "bg-amber-100 text-amber-600"
-                : "bg-zinc-100 text-zinc-500"
+                ? "bg-warning/20 text-warning"
+                : "bg-muted/20 text-muted"
             }`}
           >
             {item.status}
@@ -138,8 +136,8 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
 
   if (item.kind === "artifact") {
     return (
-      <div className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-3 shadow-sm group">
-        <div className="flex items-center justify-between text-[10px] uppercase text-indigo-400 mb-2">
+      <div className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-3 shadow-sm group dark:border-indigo-800 dark:bg-indigo-950/30">
+        <div className="flex items-center justify-between text-[10px] uppercase text-indigo-400 mb-2 dark:text-indigo-400">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
             <span>{item.title}</span>
@@ -152,7 +150,7 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
                   JSON.stringify(item.content, null, 2),
                 )
               }
-              className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-indigo-600"
+              className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-indigo-600 dark:hover:text-indigo-300"
               title="Copy to Clipboard"
             >
               <svg
@@ -171,7 +169,7 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
             </button>
           </div>
         </div>
-        <pre className="mt-2 max-h-40 overflow-auto rounded bg-white/80 p-2 text-[10px] text-indigo-800 border border-indigo-100 font-mono">
+        <pre className="mt-2 max-h-40 overflow-auto rounded bg-card/80 p-2 text-[10px] text-indigo-800 border border-indigo-100 font-mono dark:text-indigo-200 dark:border-indigo-800">
           {JSON.stringify(item.content, null, 2)}
         </pre>
       </div>
@@ -180,15 +178,15 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
 
   if (item.kind === "state") {
     return (
-      <div className="rounded-xl border border-sky-200 bg-sky-50/30 p-3 shadow-sm">
-        <div className="flex items-center justify-between text-[10px] uppercase text-sky-400 mb-2">
+      <div className="rounded-xl border border-sky-200 bg-sky-50/30 p-3 shadow-sm dark:border-sky-800 dark:bg-sky-950/30">
+        <div className="flex items-center justify-between text-[10px] uppercase text-sky-400 mb-2 dark:text-sky-400">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
             <span>{item.title}</span>
           </div>
           <span>{formatTimestamp(item.timestamp)}</span>
         </div>
-        <pre className="mt-2 max-h-32 overflow-auto rounded bg-white/80 p-2 text-[10px] text-sky-800 border border-sky-100 font-mono">
+        <pre className="mt-2 max-h-32 overflow-auto rounded bg-card/80 p-2 text-[10px] text-sky-800 border border-sky-100 font-mono dark:text-sky-200 dark:border-sky-800">
           {JSON.stringify(item.content, null, 2)}
         </pre>
       </div>
@@ -196,12 +194,13 @@ function TimelineItemRenderer({ item }: { item: TimelineItem }) {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
-      <div className="flex items-center justify-between text-[10px] uppercase text-zinc-400 mb-2">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center justify-between text-[10px] uppercase text-muted mb-2">
         <span>{item.title}</span>
         <span>{formatTimestamp(item.timestamp)}</span>
       </div>
-      <div className="mt-1 text-[11px] text-zinc-600 break-words">
+
+      <div className="mt-1 text-[11px] text-text-secondary break-words">
         {typeof item.content === "string"
           ? item.content
           : JSON.stringify(item.content)}
@@ -222,9 +221,9 @@ function TimelineGroup({
   if (!items.length) return null;
 
   return (
-    <div className="relative mb-8 last:mb-0 pl-4 border-l-2 border-zinc-100/80 hover:border-zinc-200 transition-colors">
+    <div className="relative mb-8 last:mb-0 pl-4 border-l-2 border-border-muted hover:border-border transition-colors">
       <div
-        className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-zinc-200 ring-4 ring-white cursor-pointer hover:bg-zinc-300 transition-colors z-10"
+        className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-border ring-4 ring-background cursor-pointer hover:bg-muted-foreground/20 transition-colors z-10 dark:hover:bg-muted-foreground/40"
         onClick={() => setIsCollapsed(!isCollapsed)}
         title={isCollapsed ? "Expand Group" : "Collapse Group"}
       />
@@ -233,11 +232,11 @@ function TimelineGroup({
         className="mb-3 flex items-center gap-2 select-none"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-600 cursor-pointer transition-colors">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted hover:text-text-secondary cursor-pointer transition-colors">
           {runId ? `Run ${runId.slice(0, 8)}` : "System Events"}
         </span>
-        <span className="text-[10px] text-zinc-300">•</span>
-        <span className="text-[10px] text-zinc-400">
+        <span className="text-[10px] text-border-muted">•</span>
+        <span className="text-[10px] text-muted">
           {formatTimestamp(items[0].timestamp)}
         </span>
       </div>
@@ -251,7 +250,7 @@ function TimelineGroup({
       )}
       {isCollapsed && (
         <div
-          className="text-[10px] text-zinc-400 italic pl-1 cursor-pointer hover:text-zinc-600"
+          className="text-[10px] text-muted italic pl-1 cursor-pointer hover:text-text-secondary"
           onClick={() => setIsCollapsed(false)}
         >
           {items.length} events hidden...
@@ -292,9 +291,9 @@ export function EventTimeline({ events }: EventTimelineProps) {
   if (events.length === 0) {
     return (
       <div className="h-32 flex flex-col items-center justify-center text-center opacity-40">
-        <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center mb-2">
+        <div className="w-10 h-10 bg-muted/50 rounded-full flex items-center justify-center mb-2">
           <svg
-            className="w-4 h-4 text-zinc-400"
+            className="w-4 h-4 text-muted"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -307,8 +306,10 @@ export function EventTimeline({ events }: EventTimelineProps) {
             />
           </svg>
         </div>
-        <p className="text-[11px] font-medium text-zinc-600">No events yet</p>
-        <p className="text-[9px] text-zinc-400 max-w-[10rem] mt-0.5">
+        <p className="text-[11px] font-medium text-text-secondary">
+          No events yet
+        </p>
+        <p className="text-[9px] text-muted max-w-[10rem] mt-0.5">
           Reference events will appear here during execution.
         </p>
       </div>
@@ -317,7 +318,7 @@ export function EventTimeline({ events }: EventTimelineProps) {
 
   return (
     <div>
-      <p className="mb-4 text-xs font-semibold uppercase text-zinc-500 tracking-wider">
+      <p className="mb-4 text-xs font-semibold uppercase text-muted tracking-wider">
         Event Timeline
       </p>
       <div className="relative pb-8 min-h-[200px]">

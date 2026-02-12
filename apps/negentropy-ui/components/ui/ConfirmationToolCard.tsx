@@ -60,7 +60,7 @@ export function ConfirmationToolCard({
   // 已完成状态
   if (status === "complete") {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200">
+      <div className="rounded-xl border border-success/20 bg-success/10 p-4 text-xs text-success-foreground">
         <p className="font-semibold">已反馈</p>
         <p className="mt-1 break-words">{result}</p>
       </div>
@@ -69,17 +69,17 @@ export function ConfirmationToolCard({
 
   // 确认中状态
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+    <div className="rounded-xl border border-warning/20 bg-warning/10 p-4 text-xs text-warning-foreground">
       <p className="text-sm font-semibold">需要确认</p>
       {args?.title ? <p className="mt-1 text-xs">{args.title}</p> : null}
       {args?.detail ? <p className="mt-1 text-xs">{args.detail}</p> : null}
       {payloadText !== "{}" ? (
-        <pre className="mt-2 max-h-24 overflow-auto rounded bg-white/80 p-2 text-[10px] dark:bg-black/20">
+        <pre className="mt-2 max-h-24 overflow-auto rounded bg-card/80 p-2 text-[10px]">
           {payloadText}
         </pre>
       ) : null}
       <textarea
-        className="mt-2 w-full rounded border border-amber-200 bg-white p-2 text-[11px] dark:border-amber-800 dark:bg-slate-900 dark:text-slate-100"
+        className="mt-2 w-full rounded border border-input-border bg-input p-2 text-[11px] text-foreground placeholder:text-muted-foreground"
         rows={2}
         placeholder="补充说明（可选）"
         value={note}
@@ -87,7 +87,7 @@ export function ConfirmationToolCard({
       />
       <div className="mt-2 flex flex-wrap gap-2">
         <button
-          className="rounded-full bg-emerald-600 px-3 py-1 text-[11px] text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-full bg-success px-3 py-1 text-[11px] text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={async () => {
             if (!respond) return;
             await respond({ action: "confirm", note });
@@ -97,7 +97,7 @@ export function ConfirmationToolCard({
           确认
         </button>
         <button
-          className="rounded-full bg-slate-700 px-3 py-1 text-[11px] text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-full bg-secondary px-3 py-1 text-[11px] text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={async () => {
             if (!respond) return;
             await respond({ action: "correct", note });
@@ -107,7 +107,7 @@ export function ConfirmationToolCard({
           修正
         </button>
         <button
-          className="rounded-full bg-indigo-600 px-3 py-1 text-[11px] text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-full bg-primary px-3 py-1 text-[11px] text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={async () => {
             if (!respond) return;
             await respond({ action: "supplement", note });

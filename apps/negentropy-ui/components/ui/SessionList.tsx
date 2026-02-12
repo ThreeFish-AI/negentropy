@@ -45,14 +45,12 @@ export function SessionList({
   );
 
   return (
-    <aside className="col-span-2 h-full border-r border-zinc-200 bg-white p-4 overflow-y-auto custom-scrollbar">
+    <aside className="col-span-2 h-full border-r border-border bg-card p-4 overflow-y-auto custom-scrollbar">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase text-zinc-500">
-          Sessions
-        </p>
+        <p className="text-xs font-semibold uppercase text-muted">Sessions</p>
         {onNewSession && (
           <button
-            className="rounded-full bg-black px-3 py-1 text-[10px] font-semibold text-white hover:bg-zinc-800 transition-transform active:scale-95"
+            className="rounded-full bg-foreground px-3 py-1 text-[10px] font-semibold text-background hover:bg-zinc-800 transition-transform active:scale-95 dark:hover:bg-zinc-200"
             onClick={onNewSession}
             type="button"
           >
@@ -62,7 +60,7 @@ export function SessionList({
       </div>
       <div className="space-y-2">
         {sessions.length === 0 ? (
-          <p className="text-xs text-zinc-400">暂无会话</p>
+          <p className="text-xs text-muted">暂无会话</p>
         ) : (
           sessions.map((session) => (
             <div key={session.id}>
@@ -89,7 +87,7 @@ export function SessionList({
                       void finishEdit(false);
                     }
                   }}
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                  className="w-full rounded-lg border border-border bg-input px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="输入会话标题"
                   autoFocus
                 />
@@ -103,8 +101,8 @@ export function SessionList({
                   }}
                   className={`w-full rounded-lg px-3 py-2 text-left text-xs font-medium truncate transition-colors ${
                     session.id === activeId
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-text-secondary hover:bg-accent"
                   }`}
                   type="button"
                   title={onRename ? "双击编辑标题" : undefined}

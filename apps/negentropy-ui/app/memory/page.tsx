@@ -61,27 +61,27 @@ export default function MemoryDashboardPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <MemoryNav title="Dashboard" description="Memory 指标概览" />
       <div className="px-6 py-6">
         {/* D3: 操作栏 — 用户筛选 + 刷新 */}
         <div className="mb-6 flex items-center gap-3">
           <input
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-xs w-64"
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs w-64 dark:border-zinc-700 dark:bg-zinc-800"
             placeholder="Filter by User ID (optional)"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleFilterUser()}
           />
           <button
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white"
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white dark:bg-zinc-800 dark:text-zinc-100"
             onClick={handleFilterUser}
           >
             Filter
           </button>
           {activeUserId && (
             <button
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
               onClick={handleClearFilter}
             >
               Clear
@@ -89,37 +89,37 @@ export default function MemoryDashboardPage() {
           )}
           <div className="flex-1" />
           <button
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
+            className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
             onClick={loadDashboard}
             disabled={isLoading}
           >
             {isLoading ? "Refreshing..." : "Refresh"}
           </button>
           {activeUserId && (
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
               Filtered: {activeUserId}
             </span>
           )}
         </div>
 
         {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-xs text-rose-700">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
             {error}
           </div>
         ) : !dashboard ? (
-          <p className="text-xs text-zinc-500">Loading...</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading...</p>
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {cards.map((card) => (
                 <div
                   key={card.label}
-                  className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+                  className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
                 >
-                  <p className="text-[11px] uppercase tracking-wide text-zinc-400">
+                  <p className="text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
                     {card.label}
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-zinc-900">
+                  <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                     {card.value}
                   </p>
                 </div>
@@ -127,7 +127,7 @@ export default function MemoryDashboardPage() {
             </div>
 
             {dashboard.low_retention_count > 0 && (
-              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700">
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
                 <p className="font-semibold">
                   {dashboard.low_retention_count} memories with low retention
                   score (&lt; 10%)
