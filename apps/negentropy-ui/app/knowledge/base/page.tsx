@@ -154,7 +154,7 @@ export default function KnowledgeBasePage() {
           {selectedId ? (
             <div className="space-y-4">
               {/* Tabs */}
-              <div className="flex border-b border-border">
+              <div className="flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium">
                 {(
                   [
                     { key: "search", label: "Search" },
@@ -165,9 +165,9 @@ export default function KnowledgeBasePage() {
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`px-4 py-2 text-sm font-medium ${
+                    className={`rounded-full px-4 py-1.5 text-xs transition-all ${
                       activeTab === tab.key
-                        ? "border-b-2 border-primary text-primary"
+                        ? "bg-foreground text-background shadow-sm ring-1 ring-border"
                         : "text-muted hover:text-foreground"
                     }`}
                   >
