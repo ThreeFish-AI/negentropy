@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* CSS 变量定义 */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -47,31 +48,22 @@ body {
   box-sizing: content-box;
 }
 
-/* 输入控件样式 - 符合 WCAG 2.1 AA 对比度标准 (4.5:1) */
-input,
-textarea,
-select {
-  color: var(--input-text);
-  color-scheme: light dark;
-}
+/*
+ * 输入控件基础样式
+ * 使用 @layer base 确保在 Tailwind preflight 之后应用
+ * 符合 WCAG 2.1 AA 对比度标准 (≥4.5:1)
+ */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    color: var(--input-text);
+    color-scheme: light dark;
+  }
 
-/* Placeholder 样式 */
-::placeholder {
-  color: var(--input-placeholder);
-  opacity: 1;
-}
-
-::-webkit-input-placeholder {
-  color: var(--input-placeholder);
-  opacity: 1;
-}
-
-::-moz-placeholder {
-  color: var(--input-placeholder);
-  opacity: 1;
-}
-
-:-ms-input-placeholder {
-  color: var(--input-placeholder);
-  opacity: 1;
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"])::placeholder,
+  textarea::placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
 }
