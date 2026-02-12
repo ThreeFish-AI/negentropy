@@ -40,8 +40,8 @@ export function MainNav({ items }: MainNavProps) {
                 className={cn(
                   "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
                   isActive
-                    ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700"
-                    : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
+                    ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                    : "text-muted hover:text-foreground",
                   item.disabled && "cursor-not-allowed opacity-80",
                 )}
               >

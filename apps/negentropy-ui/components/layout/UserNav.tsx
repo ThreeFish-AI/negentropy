@@ -23,7 +23,9 @@ export function UserNav() {
   }, []);
 
   if (status === "loading") {
-    return <div className="text-xs text-zinc-400 dark:text-zinc-500">Loading...</div>;
+    return (
+      <div className="text-xs text-zinc-400 dark:text-zinc-500">Loading...</div>
+    );
   }
 
   if (!user) {
@@ -44,27 +46,27 @@ export function UserNav() {
         className={cn(
           "flex items-center gap-2 rounded-full border border-transparent p-1 pr-3 transition-colors outline-none",
           isOpen
-            ? "bg-zinc-100 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
-            : "hover:bg-zinc-100 hover:border-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-zinc-700",
+            ? "bg-muted border-border"
+            : "hover:bg-muted hover:border-border",
         )}
       >
         {user.picture ? (
           <img
             src={user.picture}
             alt={user.name || "User"}
-            className="h-7 w-7 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
+            className="h-7 w-7 rounded-full border border-border object-cover"
           />
         ) : (
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
             {(user.name || user.email || "?").slice(0, 1).toUpperCase()}
           </div>
         )}
-        <span className="text-xs font-medium text-zinc-700 hidden sm:inline-block max-w-[100px] truncate dark:text-zinc-300">
+        <span className="text-xs font-medium text-muted-foreground hidden sm:inline-block max-w-[100px] truncate hover:text-foreground">
           {user.name || "User"}
         </span>
         <svg
           className={cn(
-            "h-3 w-3 text-zinc-400 transition-transform dark:text-zinc-500",
+            "h-3 w-3 text-muted-foreground transition-transform",
             isOpen && "rotate-180",
           )}
           fill="none"
@@ -81,22 +83,24 @@ export function UserNav() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg ring-1 ring-black/5 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-right dark:border-zinc-700 dark:bg-zinc-900 dark:ring-white/5">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-popover p-2 shadow-lg ring-1 ring-black/5 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
           <div className="px-2 py-1.5 mb-1">
-            <p className="text-sm font-medium text-zinc-900 truncate dark:text-zinc-100">
+            <p className="text-sm font-medium text-foreground truncate">
               {user.name || "User"}
             </p>
-            <p className="text-xs text-zinc-500 truncate dark:text-zinc-400">{user.email}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user.email}
+            </p>
           </div>
 
-          <div className="h-px bg-zinc-100 my-1 -mx-1 dark:bg-zinc-800" />
+          <div className="h-px bg-border my-1 -mx-1" />
 
           <button
             onClick={() => {
               logout();
               setIsOpen(false);
             }}
-            className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors dark:text-red-400 dark:hover:bg-red-950"
+            className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-medium text-error hover:bg-error/10 rounded-lg transition-colors"
           >
             <svg
               className="h-3.5 w-3.5"

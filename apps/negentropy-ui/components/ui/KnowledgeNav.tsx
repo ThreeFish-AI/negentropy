@@ -43,7 +43,7 @@ export function KnowledgeNav({
             )}
           </div>
 
-          <nav className="flex items-center gap-1 bg-zinc-100/50 p-1 rounded-full dark:bg-zinc-800/50">
+          <nav className="flex items-center gap-1 bg-muted/50 p-1 rounded-full">
             {NAV_ITEMS.map((item) => {
               const active = isActive(item.href);
               return (
@@ -52,8 +52,8 @@ export function KnowledgeNav({
                   href={item.href}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                     active
-                      ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-700"
-                      : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                      ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                      : "text-muted hover:text-foreground"
                   }`}
                 >
                   {item.label}

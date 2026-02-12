@@ -37,15 +37,15 @@ export function MemoryNav({
             )}
           </div>
 
-          <nav className="flex flex-wrap items-center gap-2 text-xs font-medium">
+          <nav className="flex items-center gap-1 bg-muted/50 p-1 rounded-full">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-full border px-3 py-1 transition-colors ${
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   isActive(item.href)
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border text-text-secondary hover:border-foreground hover:text-foreground"
+                    ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                    : "text-muted hover:text-foreground"
                 }`}
               >
                 {item.label}
