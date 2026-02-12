@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --input-text: #18181b; /* zinc-900, 输入控件文本色 */
+  --input-placeholder: #71717a; /* zinc-500, placeholder 颜色 */
 }
 
 @theme inline {
@@ -16,6 +18,8 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --input-text: #f4f4f5; /* zinc-100, 深色模式输入文本色 */
+    --input-placeholder: #a1a1aa; /* zinc-400, 深色模式 placeholder */
   }
 }
 
@@ -43,56 +47,31 @@ body {
   box-sizing: content-box;
 }
 
-/* Placeholder 样式 - 符合 WCAG 2.1 AA 对比度标准 (4.5:1) */
+/* 输入控件样式 - 符合 WCAG 2.1 AA 对比度标准 (4.5:1) */
+input,
+textarea,
+select {
+  color: var(--input-text);
+  color-scheme: light dark;
+}
+
+/* Placeholder 样式 */
 ::placeholder {
-  color: #71717a; /* zinc-500, 对比度 ~4.6:1 */
+  color: var(--input-placeholder);
   opacity: 1;
 }
 
 ::-webkit-input-placeholder {
-  color: #71717a;
+  color: var(--input-placeholder);
   opacity: 1;
 }
 
 ::-moz-placeholder {
-  color: #71717a;
+  color: var(--input-placeholder);
   opacity: 1;
 }
 
 :-ms-input-placeholder {
-  color: #71717a;
+  color: var(--input-placeholder);
   opacity: 1;
-}
-
-@media (prefers-color-scheme: dark) {
-  ::placeholder {
-    color: #a1a1aa; /* zinc-400, 深色模式下更亮 */
-  }
-
-  ::-webkit-input-placeholder {
-    color: #a1a1aa;
-  }
-
-  ::-moz-placeholder {
-    color: #a1a1aa;
-  }
-
-  :-ms-input-placeholder {
-    color: #a1a1aa;
-  }
-}
-
-/* 输入控件文本样式 - 符合 WCAG 2.1 AA 对比度标准 (4.5:1) */
-input,
-textarea,
-select {
-  color: #18181b; /* zinc-900, 亮色模式主文本色 */
-}
-
-@media (prefers-color-scheme: dark) {
-  input,
-  textarea,
-  select {
-    color: #f4f4f5; /* zinc-100, 深色模式主文本色 */
-  }
 }
