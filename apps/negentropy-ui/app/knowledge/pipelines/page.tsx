@@ -71,16 +71,16 @@ export default function KnowledgePipelinesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav title="Pipelines" description="作业运行与错误定位" />
       <div className="grid gap-6 px-6 py-6 lg:grid-cols-[2.2fr_1fr]">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-900">Runs</h2>
-            <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Runs</h2>
+            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
               <span>{payload?.last_updated_at || "-"}</span>
               <button
-                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900"
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
                 onClick={async () => {
                   if (!selected) return;
                   setSaveStatus("saving");
@@ -114,14 +114,14 @@ export default function KnowledgePipelinesPage() {
             </div>
           </div>
           {runs.length ? (
-            <div className="mt-4 space-y-3 text-xs text-zinc-600">
+            <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
               {runs.map((run) => (
                 <button
                   key={run.id}
                   className={`w-full rounded-lg border px-3 py-2 text-left ${
                     selected?.id === run.id
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-200 text-zinc-700 hover:border-zinc-400"
+                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      : "border-zinc-200 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
                   }`}
                   onClick={() => setSelected(run)}
                 >
@@ -137,62 +137,62 @@ export default function KnowledgePipelinesPage() {
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-xs text-zinc-500">暂无作业</p>
+            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无作业</p>
           )}
         </div>
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Run Detail</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Run Detail</h2>
             {selected ? (
-              <div className="mt-3 space-y-3 text-xs text-zinc-600">
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-[11px] uppercase text-zinc-400">Timing</p>
-                  <p className="mt-2 text-[11px] text-zinc-600">Started: {selected.started_at || "-"}</p>
-                  <p className="text-[11px] text-zinc-600">Completed: {selected.completed_at || "-"}</p>
-                  <p className="text-[11px] text-zinc-600">
+              <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+                  <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Timing</p>
+                  <p className="mt-2 text-[11px] text-zinc-600 dark:text-zinc-400">Started: {selected.started_at || "-"}</p>
+                  <p className="text-[11px] text-zinc-600 dark:text-zinc-400">Completed: {selected.completed_at || "-"}</p>
+                  <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
                     Duration: {formatDuration(selected.duration_ms, selected.started_at, selected.completed_at)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase text-zinc-400">Input</p>
-                  <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px]">
+                  <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Input</p>
+                  <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
                     {JSON.stringify(selected.input ?? {}, null, 2)}
                   </pre>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase text-zinc-400">Output</p>
-                  <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px]">
+                  <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Output</p>
+                  <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
                     {JSON.stringify(selected.output ?? {}, null, 2)}
                   </pre>
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase text-zinc-400">Error</p>
-                  <pre className="mt-2 max-h-24 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px]">
+                  <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Error</p>
+                  <pre className="mt-2 max-h-24 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
                     {JSON.stringify(selected.error ?? {}, null, 2)}
                   </pre>
                 </div>
               </div>
             ) : (
-              <p className="mt-3 text-xs text-zinc-500">选择作业查看详情</p>
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">选择作业查看详情</p>
             )}
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Timeline</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Timeline</h2>
             {runs.length ? (
               <div className="mt-3 space-y-3">
                 {runs.map((run) => (
-                  <div key={run.id} className="flex gap-3 text-xs text-zinc-600">
+                  <div key={run.id} className="flex gap-3 text-xs text-zinc-600 dark:text-zinc-400">
                     <div className="flex flex-col items-center">
                       <span className={`h-2 w-2 rounded-full ${statusColor(run.status)}`} />
-                      <span className="h-full w-px bg-zinc-200" />
+                      <span className="h-full w-px bg-zinc-200 dark:bg-zinc-700" />
                     </div>
                     <div>
-                      <p className="text-zinc-900">{run.run_id || run.id}</p>
-                      <p className="text-[11px] text-zinc-500">
+                      <p className="text-zinc-900 dark:text-zinc-100">{run.run_id || run.id}</p>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                         {run.trigger || "manual"} · {formatDuration(run.duration_ms, run.started_at, run.completed_at)}
                       </p>
-                      <p className="text-[11px] text-zinc-400">{run.started_at ? `开始 ${run.started_at}` : "开始 -"}</p>
-                      <p className="text-[11px] text-zinc-400">
+                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{run.started_at ? `开始 ${run.started_at}` : "开始 -"}</p>
+                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
                         {run.completed_at ? `结束 ${run.completed_at}` : "结束 -"}
                       </p>
                     </div>
@@ -200,16 +200,16 @@ export default function KnowledgePipelinesPage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-3 text-xs text-zinc-500">暂无时间线</p>
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无时间线</p>
             )}
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
             {error
               ? `加载失败：${error}`
               : `状态源：${payload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
           </div>
           {retryQueue.length ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
               <p className="font-semibold">待重试写回：{retryQueue.length}</p>
               <button
                 className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"

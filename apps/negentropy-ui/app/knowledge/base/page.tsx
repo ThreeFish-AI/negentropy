@@ -115,7 +115,7 @@ export default function KnowledgeBasePage() {
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-background">
       <KnowledgeNav
         title="Knowledge Base"
         description="数据源管理、索引构建与检索配置"
@@ -123,8 +123,10 @@ export default function KnowledgeBasePage() {
       <div className="grid gap-6 px-6 py-6 lg:grid-cols-[280px_1fr]">
         {/* Left sidebar: Sources + Detail */}
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Sources</h2>
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <h2 className="text-sm font-semibold text-card-foreground">
+              Sources
+            </h2>
             <div className="mt-3">
               <CorpusList
                 corpora={kb.corpora}
@@ -138,7 +140,7 @@ export default function KnowledgeBasePage() {
 
             <button
               onClick={handleCreateClick}
-              className="mt-3 w-full rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-xs text-zinc-500 hover:border-zinc-400 hover:text-zinc-700"
+              className="mt-3 w-full rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-foreground hover:text-foreground"
             >
               + 新建数据源
             </button>
@@ -152,7 +154,7 @@ export default function KnowledgeBasePage() {
           {selectedId ? (
             <div className="space-y-4">
               {/* Tabs */}
-              <div className="flex border-b border-zinc-200">
+              <div className="flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium">
                 {(
                   [
                     { key: "search", label: "Search" },
@@ -163,10 +165,10 @@ export default function KnowledgeBasePage() {
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`px-4 py-2 text-sm font-medium ${
+                    className={`rounded-full px-4 py-1.5 text-xs transition-all ${
                       activeTab === tab.key
-                        ? "border-b-2 border-zinc-900 text-zinc-900"
-                        : "text-zinc-500 hover:text-zinc-700"
+                        ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                        : "text-muted hover:text-foreground"
                     }`}
                   >
                     {tab.label}
@@ -198,8 +200,8 @@ export default function KnowledgeBasePage() {
               )}
             </div>
           ) : (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-              <p className="text-xs text-zinc-500">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <p className="text-xs text-muted">
                 请先选择或创建一个数据源以开始。
               </p>
             </div>
