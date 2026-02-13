@@ -12,12 +12,12 @@ export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const cycleTheme = () => {
-    if (theme === "light") {
-      setTheme("dark");
-    } else if (theme === "dark") {
-      setTheme("system");
-    } else {
+    // 业界通用模式：基于当前视觉状态进行反向切换，确保每次点击都有视觉反馈。
+    // 这解决了 3 态轮询（Dark -> System -> Light）中 System 与某一方视觉一致导致“点击无效”的问题。
+    if (resolvedTheme === "dark") {
       setTheme("light");
+    } else {
+      setTheme("dark");
     }
   };
 
