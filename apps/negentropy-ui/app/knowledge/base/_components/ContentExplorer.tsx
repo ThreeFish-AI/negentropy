@@ -1,6 +1,6 @@
 "use strict";
 
-import { useEffect, useState } from "react";
+import { forwardRef, useImperativeHandle, useEffect, useState } from "react";
 import { fetchKnowledgeItems, KnowledgeItem } from "@/features/knowledge";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
@@ -10,12 +10,28 @@ interface ContentExplorerProps {
   appName: string;
 }
 
-export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
-  const [items, setItems] = useState<KnowledgeItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+export interface ContentExplorerRef {
+  clearItems: () => void;
+}
+
+export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerProps>(
+  function ContentExplorer({ corpusId, appName }, ref) {
+    const [items, setItems] = useState<KnowledgeItem[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        clearItems: () => {
+          setItems([]);
+          setError(null);
+        },
+      }),
+      [],
+    );
 
   useEffect(() => {
     let mounted = true;
@@ -156,4 +172,5 @@ export function ContentExplorer({ corpusId, appName }: ContentExplorerProps) {
       )}
     </div>
   );
-}
+  },
+);
