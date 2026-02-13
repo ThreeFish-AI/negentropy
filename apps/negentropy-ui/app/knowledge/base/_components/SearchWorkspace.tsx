@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { useKnowledgeSearch, type SearchMode } from "@/features/knowledge";
 
 interface SearchWorkspaceProps {
@@ -8,17 +8,30 @@ interface SearchWorkspaceProps {
   appName: string;
 }
 
-export function SearchWorkspace({ corpusId, appName }: SearchWorkspaceProps) {
-  const [query, setQuery] = useState("");
-  const [mode, setMode] = useState<SearchMode>("hybrid");
+export interface SearchWorkspaceRef {
+  clearResults: () => void;
+}
 
-  const searchConfig = useMemo(() => ({ mode, limit: 10 }), [mode]);
+export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspaceProps>(
+  function SearchWorkspace({ corpusId, appName }, ref) {
+    const [query, setQuery] = useState("");
+    const [mode, setMode] = useState<SearchMode>("hybrid");
 
-  const { results, isSearching, error, search } = useKnowledgeSearch({
-    corpusId,
-    appName,
-    defaultConfig: searchConfig,
-  });
+    const searchConfig = useMemo(() => ({ mode, limit: 10 }), [mode]);
+
+    const { results, isSearching, error, search, clearResults } = useKnowledgeSearch({
+      corpusId,
+      appName,
+      defaultConfig: searchConfig,
+    });
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        clearResults: () => clearResults(),
+      }),
+      [clearResults],
+    );
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -111,4 +124,5 @@ export function SearchWorkspace({ corpusId, appName }: SearchWorkspaceProps) {
       </div>
     </div>
   );
-}
+  },
+);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CorpusRecord, useKnowledgeBase } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -9,8 +9,8 @@ import { CorpusList } from "./_components/CorpusList";
 import { CorpusDetail } from "./_components/CorpusDetail";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { IngestPanel } from "./_components/IngestPanel";
-import { SearchWorkspace } from "./_components/SearchWorkspace";
-import { ContentExplorer } from "./_components/ContentExplorer";
+import { SearchWorkspace, SearchWorkspaceRef } from "./_components/SearchWorkspace";
+import { ContentExplorer, ContentExplorerRef } from "./_components/ContentExplorer";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
@@ -25,6 +25,10 @@ export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState<"search" | "content" | "ingest">(
     "search",
   );
+
+  // Refs for child components
+  const searchWorkspaceRef = useRef<SearchWorkspaceRef>(null);
+  const contentExplorerRef = useRef<ContentExplorerRef>(null);
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -58,9 +62,12 @@ export default function KnowledgeBasePage() {
     }
   }, [kb.corpora, selectedId]);
 
-  // Reset tab when selection changes
+  // Clear child component results when selection changes
   useEffect(() => {
-    setActiveTab("search");
+    if (selectedId) {
+      searchWorkspaceRef.current?.clearResults();
+      contentExplorerRef.current?.clearItems();
+    }
   }, [selectedId]);
 
   // Handlers for List Actions
@@ -178,14 +185,14 @@ export default function KnowledgeBasePage() {
 
               {activeTab === "search" && (
                 <SearchWorkspace
-                  key={selectedId}
+                  ref={searchWorkspaceRef}
                   corpusId={selectedId}
                   appName={APP_NAME}
                 />
               )}
               {activeTab === "content" && (
                 <ContentExplorer
-                  key={selectedId}
+                  ref={contentExplorerRef}
                   corpusId={selectedId}
                   appName={APP_NAME}
                 />
