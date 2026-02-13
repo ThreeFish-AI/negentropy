@@ -51,11 +51,11 @@ export function SearchWorkspace({ corpusId, appName }: SearchWorkspaceProps) {
             onKeyDown={handleKeyDown}
           />
           <button
-            className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            className="rounded bg-blue-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
             disabled={isSearching || !query.trim()}
             onClick={handleSearch}
           >
-            {isSearching ? "搜索中…" : "Search"}
+            {isSearching ? "Searching..." : "Search"}
           </button>
         </div>
         <div className="mt-2 flex w-fit items-center gap-1 rounded-full bg-zinc-100/50 p-1 dark:bg-zinc-800/50">
