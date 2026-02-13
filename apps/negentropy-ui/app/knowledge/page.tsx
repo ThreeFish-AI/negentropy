@@ -56,7 +56,7 @@ export default function KnowledgeDashboardPage() {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
         title="Knowledge Dashboard"
         description="Knowledge 指标、构建与告警概览"
@@ -67,59 +67,59 @@ export default function KnowledgeDashboardPage() {
             {metrics.map((metric) => (
               <div
                 key={metric.label}
-                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
               >
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
                   {metric.label}
                 </p>
-                <p className="mt-2 text-2xl font-semibold text-zinc-900">
+                <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
                   {metric.value}
                 </p>
               </div>
             ))}
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-900">
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 Pipeline Runs
               </h2>
-              <span className="text-xs text-zinc-500">最近 24h</span>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">最近 24h</span>
             </div>
             {data?.pipeline_runs?.length ? (
-              <div className="mt-4 space-y-3 text-xs text-zinc-600">
+              <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
                 {data.pipeline_runs.map((item, index) => (
                   <div
                     key={index}
-                    className="rounded-lg border border-dashed border-zinc-200 p-3"
+                    className="rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-700"
                   >
                     {JSON.stringify(item)}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-4 text-xs text-zinc-500">暂无作业记录</p>
+              <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">暂无作业记录</p>
             )}
           </div>
         </section>
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Alerts</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alerts</h2>
             {data?.alerts?.length ? (
-              <div className="mt-3 space-y-3 text-xs text-zinc-600">
+              <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
                 {data.alerts.map((item, index) => (
                   <div
                     key={index}
-                    className="rounded-lg border border-amber-200 bg-amber-50 p-3"
+                    className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
                   >
                     {JSON.stringify(item)}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-3 text-xs text-zinc-500">暂无告警</p>
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无告警</p>
             )}
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
             {error
               ? `加载失败：${error}`
               : "数据由 /api/knowledge/dashboard 提供"}

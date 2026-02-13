@@ -735,11 +735,11 @@ export function HomeBody({
   const contentWidthClass = showRightPanel ? "max-w-4xl" : "max-w-none";
 
   return (
-    <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden">
+    <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">
       <div className="flex h-full overflow-hidden relative">
         {/* Left Sidebar: Session List */}
         <div
-          className={`shrink-0 h-full border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden ${
+          className={`shrink-0 h-full border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden dark:border-zinc-800 dark:bg-zinc-900 ${
             showLeftPanel
               ? "w-64 translate-x-0 opacity-100"
               : "w-0 -translate-x-10 opacity-0"
@@ -757,12 +757,12 @@ export function HomeBody({
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col h-full min-w-0 bg-zinc-50 relative overflow-hidden transition-all duration-300">
+        <main className="flex-1 flex flex-col h-full min-w-0 bg-zinc-50 relative overflow-hidden transition-all duration-300 dark:bg-zinc-950">
           {/* Internal Toolbar for Toggles */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-200/50 bg-white/50 backdrop-blur-sm z-10 w-full">
+          <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-200/50 bg-white/50 backdrop-blur-sm z-10 w-full dark:border-zinc-700/50 dark:bg-zinc-900/50">
             <button
               onClick={() => setShowLeftPanel(!showLeftPanel)}
-              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors"
+              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-700/80"
               title={showLeftPanel ? "Close Sidebar" : "Open Sidebar"}
             >
               <svg
@@ -783,13 +783,13 @@ export function HomeBody({
               </svg>
             </button>
 
-            <div className="text-xs font-medium text-zinc-400 max-w-md truncate mx-4">
+            <div className="text-xs font-medium text-zinc-400 max-w-md truncate mx-4 dark:text-zinc-500">
               {activeSession ? activeSession.label : "Negentropy"}
             </div>
 
             <button
               onClick={() => setShowRightPanel(!showRightPanel)}
-              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors"
+              className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-700/80"
               title={showRightPanel ? "Close Panel" : "Open Panel"}
             >
               <svg
@@ -810,13 +810,16 @@ export function HomeBody({
               messages={chatMessages}
               selectedMessageId={selectedMessageId}
               onMessageSelect={(id) => {
+                // 右侧栏未打开时，点击消息不产生任何影响
+                if (!showRightPanel) {
+                  return;
+                }
                 if (selectedMessageId === id) {
                   // Toggle off: just deselect
                   setSelectedMessageId(null);
                 } else {
-                  // Select new message and ensure sidebar is open
+                  // Select new message（右侧栏已处于打开状态）
                   setSelectedMessageId(id);
-                  setShowRightPanel(true);
                 }
               }}
               contentClassName={contentWidthClass}
@@ -839,7 +842,7 @@ export function HomeBody({
 
         {/* Right Sidebar: Timeline & Logs */}
         <div
-          className={`shrink-0 h-full border-l border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden ${
+          className={`shrink-0 h-full border-l border-zinc-200 bg-white transition-all duration-300 ease-in-out overflow-hidden dark:border-zinc-800 dark:bg-zinc-900 ${
             showRightPanel
               ? "w-80 translate-x-0 opacity-100"
               : "w-0 translate-x-10 opacity-0"
@@ -848,33 +851,33 @@ export function HomeBody({
           <div className="w-80 h-full overflow-y-auto p-6">
             {/* View mode indicator + minimal interaction hint */}
             {selectedMessageId ? (
-              <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:border-amber-800 dark:bg-amber-950/50">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-amber-800">
+                  <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
                     历史视图
                   </span>
                   <button
                     onClick={() => {
                       setSelectedMessageId(null);
                     }}
-                    className="text-xs text-amber-600 hover:text-amber-800 underline"
+                    className="text-xs text-amber-600 hover:text-amber-800 underline dark:text-amber-400 dark:hover:text-amber-300"
                   >
                     返回实时
                   </button>
                 </div>
-                <p className="text-[10px] text-amber-700 mt-1">
+                <p className="text-[10px] text-amber-700 mt-1 dark:text-amber-300">
                   显示选定消息的观察数据
                 </p>
               </div>
             ) : (
-              <div className="mb-4 p-3 rounded-lg bg-zinc-50 border border-zinc-200">
+              <div className="mb-4 p-3 rounded-lg bg-zinc-50 border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-500">
+                  <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     实时视图
                   </span>
                 </div>
-                <p className="text-[10px] text-zinc-500 mt-1">
-                  点击任意消息进入历史视图，再次点击或点“返回实时”回到实时
+                <p className="text-[10px] text-zinc-500 mt-1 dark:text-zinc-400">
+                  点击任意消息进入历史视图，再次点击或点"返回实时"回到实时
                 </p>
               </div>
             )}
@@ -926,7 +929,7 @@ export default function Home() {
 
   if (authStatus === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
         正在验证登录状态...
       </div>
     );
@@ -934,20 +937,20 @@ export default function Home() {
 
   if (authStatus === "unauthenticated" || !user) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 text-center dark:bg-zinc-950">
         <div className="max-w-md space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             Negentropy UI
           </p>
-          <h1 className="text-2xl font-semibold text-zinc-900">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
             需要登录以继续
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             使用 Google OAuth 进行单点登录。
           </p>
         </div>
         <button
-          className="rounded-full bg-black px-6 py-2 text-xs font-semibold text-white"
+          className="rounded-full bg-black px-6 py-2 text-xs font-semibold text-white dark:bg-white dark:text-black"
           onClick={login}
           type="button"
         >
@@ -959,7 +962,7 @@ export default function Home() {
 
   if (!agent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
         正在初始化 Agent...
       </div>
     );

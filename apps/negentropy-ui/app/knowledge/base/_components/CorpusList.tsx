@@ -53,7 +53,7 @@ export function CorpusList({
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="h-10 w-full animate-pulse rounded-lg bg-zinc-100"
+            className="h-10 w-full animate-pulse rounded-lg bg-zinc-100 dark:bg-zinc-800"
           />
         ))}
       </div>
@@ -62,7 +62,7 @@ export function CorpusList({
 
   if (corpora.length === 0) {
     return (
-      <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-400">
+      <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
         No corpora found
       </div>
     );
@@ -73,10 +73,10 @@ export function CorpusList({
       {corpora.map((corpus) => (
         <div
           key={corpus.id}
-          className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+          className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-all ${
             selectedId === corpus.id
-              ? "bg-zinc-900 text-white"
-              : "text-zinc-600 hover:bg-zinc-100"
+              ? "bg-foreground text-background shadow-md font-medium"
+              : "text-muted hover:bg-muted/50 hover:text-foreground"
           }`}
           onClick={() => onSelect(corpus.id)}
         >
@@ -84,7 +84,9 @@ export function CorpusList({
             <span className="font-medium">{corpus.name}</span>
             <span
               className={`ml-2 text-xs ${
-                selectedId === corpus.id ? "text-zinc-400" : "text-zinc-400"
+                selectedId === corpus.id
+                  ? "text-background/70"
+                  : "text-muted/70"
               }`}
             >
               {corpus.knowledge_count} items
@@ -92,10 +94,10 @@ export function CorpusList({
           </div>
 
           <button
-            className={`invisible p-1 opacity-0 hover:text-zinc-300 group-hover:visible group-hover:opacity-100 ${
+            className={`invisible p-1 opacity-0 group-hover:visible group-hover:opacity-100 ${
               selectedId === corpus.id
-                ? "text-zinc-400"
-                : "text-zinc-400 hover:text-zinc-900"
+                ? "visible opacity-100 text-background/80 hover:text-background"
+                : "text-muted hover:text-foreground"
             }`}
             onClick={(e) => {
               e.stopPropagation();
@@ -110,17 +112,17 @@ export function CorpusList({
           {menuOpenId === corpus.id && (
             <div
               ref={menuRef}
-              className="absolute right-0 top-8 z-10 w-32 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+              className="absolute right-0 top-8 z-50 w-32 origin-top-right rounded-md border border-border bg-white py-1 shadow-lg focus:outline-none dark:bg-zinc-900"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="block w-full px-4 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-100"
+                className="block w-full px-4 py-2 text-left text-xs text-zinc-900 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
                 onClick={(e) => handleAction(e, "edit", corpus)}
               >
                 编辑配置
               </button>
               <button
-                className="block w-full px-4 py-2 text-left text-xs text-red-600 hover:bg-zinc-100"
+                className="block w-full px-4 py-2 text-left text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                 onClick={(e) => handleAction(e, "delete", corpus)}
               >
                 删除数据源

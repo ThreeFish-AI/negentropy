@@ -189,21 +189,21 @@ export default function KnowledgeGraphPage() {
     layout.find((node) => node.id === selectedNodeId) || null;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
         title="Knowledge Graph"
         description="实体关系视图与构建历史"
       />
       <div className="grid gap-6 px-6 py-6 lg:grid-cols-[2.2fr_1fr]">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-900">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Graph Canvas
             </h2>
-            <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
               <span>点击节点查看详情</span>
               <button
-                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900"
+                className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
                 onClick={async () => {
                   if (!payload) return;
                   setSaveStatus("saving");
@@ -228,13 +228,13 @@ export default function KnowledgeGraphPage() {
               </button>
             </div>
           </div>
-          <div className="mt-4 flex h-[360px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50">
+          <div className="mt-4 flex h-[360px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
             {layout.length ? (
               <svg
                 ref={svgRef}
                 width={360}
                 height={360}
-                className="rounded-xl bg-white/60"
+                className="rounded-xl bg-white/60 dark:bg-zinc-800/60"
               >
                 <g className="graph-layer">
                   {edges.map((edge, index) => {
@@ -294,44 +294,44 @@ export default function KnowledgeGraphPage() {
                 </g>
               </svg>
             ) : (
-              <p className="text-xs text-zinc-500">暂无图谱数据</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">暂无图谱数据</p>
             )}
           </div>
         </div>
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Entity Detail
             </h2>
             {selectedNode ? (
-              <div className="mt-3 text-xs text-zinc-600">
+              <div className="mt-3 text-xs text-zinc-600 dark:text-zinc-400">
                 <p>ID: {selectedNode.id}</p>
                 <p>Label: {selectedNode.label || "-"}</p>
                 <p>Type: {selectedNode.type || "-"}</p>
               </div>
             ) : (
-              <p className="mt-2 text-xs text-zinc-500">暂无实体选中</p>
+              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">暂无实体选中</p>
             )}
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Build Runs</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Build Runs</h2>
             {runs.length ? (
-              <div className="mt-3 space-y-2 text-xs text-zinc-600">
+              <div className="mt-3 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
                 {runs.map((run, index) => (
                   <div
                     key={index}
-                    className="rounded-lg border border-zinc-200 p-2"
+                    className="rounded-lg border border-zinc-200 p-2 dark:border-zinc-700"
                   >
                     {JSON.stringify(run)}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-xs text-zinc-500">暂无构建记录</p>
+              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">暂无构建记录</p>
             )}
           </div>
           {retryQueue.length ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
               <p className="font-semibold">待重试写回：{retryQueue.length}</p>
               <button
                 className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"
@@ -360,7 +360,7 @@ export default function KnowledgeGraphPage() {
               </button>
             </div>
           ) : null}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
             {error
               ? `加载失败：${error}`
               : `状态源：${payload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}

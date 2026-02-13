@@ -41,11 +41,11 @@ export function ConnectionBadge({
   appName = "Negentropy",
 }: ConnectionBadgeProps) {
   return (
-    <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-200/50 bg-white/50 backdrop-blur-sm z-10 w-full dark:border-zinc-800/50 dark:bg-zinc-900/50">
+    <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/50 bg-background/50 backdrop-blur-sm z-10 w-full">
       {/* 左侧面板切换按钮 */}
       <button
         onClick={onToggleLeftPanel}
-        className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-800/80"
+        className="group p-1.5 rounded-md hover:bg-muted/80 text-muted transition-colors"
         title={showLeftPanel ? "Close Sidebar" : "Open Sidebar"}
       >
         <svg
@@ -66,14 +66,14 @@ export function ConnectionBadge({
       </button>
 
       {/* 当前会话标签 */}
-      <div className="text-xs font-medium text-zinc-400 max-w-md truncate mx-4 dark:text-zinc-500">
+      <div className="text-xs font-medium text-muted max-w-md truncate mx-4">
         {activeSession ? activeSession.label : appName}
       </div>
 
       {/* 右侧面板切换按钮 */}
       <button
         onClick={onToggleRightPanel}
-        className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-800/80"
+        className="group p-1.5 rounded-md hover:bg-muted/80 text-muted transition-colors"
         title={showRightPanel ? "Close Panel" : "Open Panel"}
       >
         <svg
