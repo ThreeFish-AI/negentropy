@@ -58,11 +58,11 @@ export function SearchWorkspace({ corpusId, appName }: SearchWorkspaceProps) {
             {isSearching ? "搜索中…" : "Search"}
           </button>
         </div>
-        <div className="mt-2 flex items-center gap-1 bg-zinc-100/50 p-1 rounded-full w-fit dark:bg-zinc-800/50">
+        <div className="mt-2 flex w-fit items-center gap-1 rounded-full bg-zinc-100/50 p-1 dark:bg-zinc-800/50">
           {(["semantic", "keyword", "hybrid"] as const).map((option) => (
             <button
               key={option}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
                 mode === option
                   ? "bg-foreground text-background shadow-sm ring-1 ring-border"
                   : "text-muted hover:text-foreground"
@@ -89,7 +89,7 @@ export function SearchWorkspace({ corpusId, appName }: SearchWorkspaceProps) {
       <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-card-foreground">检索结果</h2>
         {matches.length > 0 ? (
-          <div className="custom-scrollbar mt-3 max-h-[calc(100vh-24rem)] space-y-3 overflow-y-auto pr-1">
+          <div className="custom-scrollbar mt-3 h-[calc(100vh-29.625rem)] space-y-3 overflow-y-auto pr-1">
             {matches.map((item) => (
               <div
                 key={item.id}
