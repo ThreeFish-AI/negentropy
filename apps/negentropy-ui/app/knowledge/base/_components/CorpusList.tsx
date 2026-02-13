@@ -73,10 +73,10 @@ export function CorpusList({
       {corpora.map((corpus) => (
         <div
           key={corpus.id}
-          className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+          className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm transition-all ${
             selectedId === corpus.id
-              ? "bg-primary text-primary-foreground"
-              : "text-muted hover:bg-muted/50"
+              ? "bg-foreground text-background shadow-md font-medium"
+              : "text-muted hover:bg-muted/50 hover:text-foreground"
           }`}
           onClick={() => onSelect(corpus.id)}
         >
@@ -85,8 +85,8 @@ export function CorpusList({
             <span
               className={`ml-2 text-xs ${
                 selectedId === corpus.id
-                  ? "text-primary-foreground/80"
-                  : "text-muted"
+                  ? "text-background/70"
+                  : "text-muted/70"
               }`}
             >
               {corpus.knowledge_count} items
@@ -94,9 +94,9 @@ export function CorpusList({
           </div>
 
           <button
-            className={`invisible p-1 opacity-0 hover:text-foreground group-hover:visible group-hover:opacity-100 ${
+            className={`invisible p-1 opacity-0 group-hover:visible group-hover:opacity-100 ${
               selectedId === corpus.id
-                ? "text-primary-foreground/80"
+                ? "visible opacity-100 text-background/80 hover:text-background"
                 : "text-muted hover:text-foreground"
             }`}
             onClick={(e) => {
