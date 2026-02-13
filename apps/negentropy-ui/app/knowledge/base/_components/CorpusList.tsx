@@ -112,17 +112,17 @@ export function CorpusList({
           {menuOpenId === corpus.id && (
             <div
               ref={menuRef}
-              className="absolute right-0 top-8 z-10 w-32 origin-top-right rounded-md bg-popover py-1 shadow-lg ring-1 ring-border focus:outline-none"
+              className="absolute right-0 top-8 z-50 w-32 origin-top-right rounded-md border border-border bg-white py-1 shadow-lg focus:outline-none dark:bg-zinc-900"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="block w-full px-4 py-2 text-left text-xs text-popover-foreground hover:bg-muted-foreground/10"
+                className="block w-full px-4 py-2 text-left text-xs text-zinc-900 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
                 onClick={(e) => handleAction(e, "edit", corpus)}
               >
                 编辑配置
               </button>
               <button
-                className="block w-full px-4 py-2 text-left text-xs text-error hover:bg-error/10"
+                className="block w-full px-4 py-2 text-left text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                 onClick={(e) => handleAction(e, "delete", corpus)}
               >
                 删除数据源
