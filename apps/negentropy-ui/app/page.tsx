@@ -810,13 +810,16 @@ export function HomeBody({
               messages={chatMessages}
               selectedMessageId={selectedMessageId}
               onMessageSelect={(id) => {
+                // 右侧栏未打开时，点击消息不产生任何影响
+                if (!showRightPanel) {
+                  return;
+                }
                 if (selectedMessageId === id) {
                   // Toggle off: just deselect
                   setSelectedMessageId(null);
                 } else {
-                  // Select new message and ensure sidebar is open
+                  // Select new message（右侧栏已处于打开状态）
                   setSelectedMessageId(id);
-                  setShowRightPanel(true);
                 }
               }}
               contentClassName={contentWidthClass}
