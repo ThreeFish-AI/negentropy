@@ -20,6 +20,10 @@
   --input-foreground: #18181b;
   --input-placeholder: #71717a;
 
+  /* 浮层 (Popover/Dropdown) */
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
   /* 边框 */
   --border: #e4e4e7; /* zinc-200 */
   --border-muted: #f4f4f5; /* zinc-100 */
@@ -50,6 +54,8 @@
   --color-card-foreground: var(--card-foreground);
   --color-input: var(--input);
   --color-input-foreground: var(--input-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-border: var(--border);
   --color-border-muted: var(--border-muted);
   --color-text-primary: var(--text-primary);
@@ -72,6 +78,8 @@
   --input: #27272a;
   --input-foreground: #f4f4f5;
   --input-placeholder: #a1a1aa;
+  --popover: #18181b; /* zinc-900 (same as card) */
+  --popover-foreground: #fafafa;
   --border: #27272a;
   --border-muted: #3f3f46;
   --muted: #27272a; /* zinc-800 */
