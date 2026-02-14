@@ -289,7 +289,12 @@ export default function KnowledgeBasePage() {
 
                       {/* 右侧: Content 表格 + 分页 */}
                       <div className="flex min-h-0 flex-1 flex-col gap-3">
-                        {/* 分页控件 - 移到上方 */}
+                        <ContentExplorer
+                          items={displayChunks}
+                          loading={contentLoading}
+                          error={contentError}
+                        />
+                        {/* 分页控件 */}
                         {totalChunks > 0 && (
                           <div className="shrink-0 flex items-center justify-end gap-3">
                             <div className="flex items-center gap-1.5">
@@ -330,11 +335,6 @@ export default function KnowledgeBasePage() {
                             </div>
                           </div>
                         )}
-                        <ContentExplorer
-                          items={displayChunks}
-                          loading={contentLoading}
-                          error={contentError}
-                        />
                       </div>
                     </div>
                   )}
