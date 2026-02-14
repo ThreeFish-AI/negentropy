@@ -1,10 +1,15 @@
 import { EventEncoder } from "@ag-ui/encoder";
 import { BaseEvent, EventType } from "@ag-ui/core";
-import { NextResponse } from "next/server";
 import { AdkEventPayload, adkEventToAguiEvents } from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
+import {
+  errorResponse as aguiErrorResponse,
+  AGUI_ERROR_CODES,
+} from "@/lib/errors";
 
 const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
+
+type NormalizableEvent = BaseEvent & { role?: string; delta?: unknown };
 
 function jsonPointerEscape(segment: string) {
   return segment.replace(/~/g, "~0").replace(/\//g, "~1");
@@ -18,12 +23,20 @@ function toPatchOperations(delta: Record<string, unknown>) {
   }));
 }
 
-function normalizeAguiEvent(event: BaseEvent) {
-  const next = { ...event } as BaseEvent & { role?: string; delta?: unknown };
-  if ("role" in next && typeof next.role === "string" && !ALLOWED_ROLES.has(next.role)) {
+function normalizeAguiEvent(event: BaseEvent): BaseEvent {
+  const next = { ...event } as NormalizableEvent;
+  if (
+    "role" in next &&
+    typeof next.role === "string" &&
+    !ALLOWED_ROLES.has(next.role)
+  ) {
     next.role = "assistant";
   }
-  if (next.type === EventType.STATE_DELTA && next.delta && !Array.isArray(next.delta)) {
+  if (
+    next.type === EventType.STATE_DELTA &&
+    next.delta &&
+    !Array.isArray(next.delta)
+  ) {
     if (typeof next.delta === "object") {
       next.delta = toPatchOperations(next.delta as Record<string, unknown>);
     } else {
@@ -58,18 +71,6 @@ function extractForwardHeaders(request: Request) {
   return headers;
 }
 
-function errorResponse(code: string, message: string, status = 500) {
-  return NextResponse.json(
-    {
-      error: {
-        code,
-        message,
-      },
-    },
-    { status }
-  );
-}
-
 function buildRunPayload(input: Record<string, unknown>) {
   const messages = Array.isArray(input.messages) ? input.messages : [];
   const lastUser = [...messages]
@@ -86,33 +87,47 @@ function buildRunPayload(input: Record<string, unknown>) {
 export async function POST(request: Request) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
-    return errorResponse("AGUI_INTERNAL_ERROR", "AGUI_BASE_URL is not configured", 500);
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.INTERNAL_ERROR,
+      "AGUI_BASE_URL is not configured",
+    );
   }
 
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch (error) {
-    return errorResponse("AGUI_BAD_REQUEST", `Invalid JSON body: ${String(error)}`, 400);
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.BAD_REQUEST,
+      `Invalid JSON body: ${String(error)}`,
+    );
   }
 
   const url = new URL(request.url);
-  const appName = url.searchParams.get("app_name") || (body.app_name as string) || "agents";
-  const userId = url.searchParams.get("user_id") || (body.user_id as string) || "ui";
-  const sessionId = url.searchParams.get("session_id") || (body.session_id as string);
+  const appName =
+    url.searchParams.get("app_name") || (body.app_name as string) || "agents";
+  const userId =
+    url.searchParams.get("user_id") || (body.user_id as string) || "ui";
+  const sessionId =
+    url.searchParams.get("session_id") || (body.session_id as string);
   if (!sessionId) {
-    return errorResponse("AGUI_BAD_REQUEST", "session_id is required", 400);
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.BAD_REQUEST,
+      "session_id is required",
+    );
   }
   const resolvedThreadId =
-    (typeof body.threadId === "string" && body.threadId.trim()) ||
-    sessionId;
+    (typeof body.threadId === "string" && body.threadId.trim()) || sessionId;
   const resolvedRunId =
     (typeof body.runId === "string" && body.runId.trim()) ||
     crypto.randomUUID();
 
   const latestUserText = buildRunPayload(body);
   if (!latestUserText) {
-    return errorResponse("AGUI_BAD_REQUEST", "RunAgentInput requires a user message", 400);
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.BAD_REQUEST,
+      "RunAgentInput requires a user message",
+    );
   }
 
   const headers = extractForwardHeaders(request);
@@ -142,11 +157,23 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      `Upstream connection failed: ${String(error)}`,
+    );
   }
 
   if (!upstreamResponse.ok || !upstreamResponse.body) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", "Upstream returned non-OK status", upstreamResponse.status);
+    let detail = "Upstream returned non-OK status";
+    try {
+      detail = (await upstreamResponse.text()) || detail;
+    } catch {
+      // 读取失败时保留默认消息
+    }
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      detail,
+    );
   }
 
   const accept = request.headers.get("accept") ?? "text/event-stream";
@@ -188,17 +215,21 @@ export async function POST(request: Request) {
               if (!jsonText) {
                 continue;
               }
+
               try {
                 const parsed = JSON.parse(jsonText) as AdkEventPayload;
                 const events = adkEventToAguiEvents(parsed).map((event) =>
                   normalizeAguiEvent({
                     ...event,
-                    threadId: "threadId" in event ? event.threadId : resolvedThreadId,
+                    threadId:
+                      "threadId" in event ? event.threadId : resolvedThreadId,
                     runId: "runId" in event ? event.runId : resolvedRunId,
-                  })
+                  }),
                 );
                 for (const event of events) {
-                  controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(event)));
+                  controller.enqueue(
+                    textEncoder.encode(eventEncoder.encodeSSE(event)),
+                  );
                 }
               } catch (error) {
                 const errEvent: BaseEvent = {
@@ -209,7 +240,9 @@ export async function POST(request: Request) {
                   code: "ADK_EVENT_PARSE_ERROR",
                   timestamp: Date.now() / 1000,
                 };
-                controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(errEvent)));
+                controller.enqueue(
+                  textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
+                );
               }
             }
             boundary = buffer.indexOf("\n\n");
@@ -224,7 +257,9 @@ export async function POST(request: Request) {
           code: "ADK_STREAM_ERROR",
           timestamp: Date.now() / 1000,
         };
-        controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(errEvent)));
+        controller.enqueue(
+          textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
+        );
       } finally {
         const runFinish: BaseEvent = {
           type: EventType.RUN_FINISHED,
@@ -233,7 +268,9 @@ export async function POST(request: Request) {
           timestamp: Date.now() / 1000,
           result: "ok",
         };
-        controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(runFinish)));
+        controller.enqueue(
+          textEncoder.encode(eventEncoder.encodeSSE(runFinish)),
+        );
         controller.close();
       }
     },

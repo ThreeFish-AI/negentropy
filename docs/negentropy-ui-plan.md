@@ -249,6 +249,72 @@
   - 修复策略：中栏渲染改为基于 AG‑UI `TEXT_MESSAGE_*` 事件流聚合，按 `messageId` 汇聚为单条消息（见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)）。
   - **验证待补录**：需在 UI 侧完成真实交互验证，并记录日志缓冲输出与断连/重连表现（见下方模板）。
 
+### 10.3 第四阶段实施记录（features/ 模块化重构）
+
+**目标**：按功能模块组织代码，提高可维护性和可测试性
+
+**实施内容**：
+
+- ✅ **类型安全加固**（第一阶段）
+  - 创建 `types/agui.ts` - AG-UI 事件类型定义
+  - 创建 `lib/adk/guards.ts` - 类型守卫函数
+  - 重构 `lib/adk.ts` - 消除 32 处类型断言
+
+- ✅ **统一错误处理**（第一阶段）
+  - 创建 `lib/errors.ts` - 统一错误码定义
+  - 更新 BFF 路由错误响应
+
+- ✅ **组件提取**（第二、三阶段）
+  - `components/ui/ConfirmationToolCard.tsx` - HITL 确认卡片
+  - `components/ui/ConnectionBadge.tsx` - 连接状态指示器
+  - `components/ui/ErrorMessage.tsx` - 错误消息组件
+
+- ✅ **Hooks 提取**（第二、三阶段）
+  - `hooks/useAgentSubscription.ts` - Agent 事件订阅
+  - `hooks/useMessageInput.ts` - 消息输入处理
+  - `hooks/useConfirmationTool.ts` - HITL 确认流程
+
+- ✅ **Utils 提取**（第二、三阶段）
+  - `utils/state.ts` - 状态快照构建
+  - `utils/message-merge.ts` - 消息合并逻辑
+  - `utils/message.ts` - 消息处理工具
+  - `utils/session.ts` - 会话工具
+  - `utils/timeline.ts` - 时间线构建
+
+- ✅ **Features 目录创建**（第四阶段 - 2026-02-06）
+  - `features/connection/` - 连接状态管理
+    - `components/ConnectionBadge.tsx`
+    - `hooks/useConnectionState.ts`
+  - `features/messaging/` - 消息发送和管理
+    - `utils/message-merge.ts`
+    - `hooks/useMessageSender.ts`
+  - `features/hitl/` - HITL 确认流程
+    - `components/ConfirmationCard.tsx`
+  - `features/timeline/` - 事件时间线展示
+    - `hooks/useEventFilter.ts`
+  - `features/debug/` - 日志和调试
+    - `hooks/useLogBuffer.ts`
+  - `features/session/` - 会话管理
+  - `features/auth/` - 认证相关功能
+
+- ✅ **单元测试补充**（第四阶段 - 2026-02-06）
+  - `tests/unit/features/messaging/message-merge.test.ts` - 消息合并功能测试（6/6 ✅）
+  - `tests/unit/features/timeline/useEventFilter.test.ts` - 事件过滤 Hook 测试（6/7 ⚠️）
+  - `tests/unit/utils/state.test.ts` - 状态快照构建测试（5/5 ✅）
+
+**代码行数变化**：
+- `app/page.tsx`: 1053 行 → 900 行（-15%）
+
+**测试覆盖率提升**：
+- 新增 3 个测试文件，17 个测试用例
+- 核心功能测试覆盖：消息合并、事件过滤、状态构建
+
+**预期后续工作**：
+- 更新 `app/page.tsx` 使用已提取的 feature 模块
+- 进一步提取剩余逻辑到 features/
+- 补充 E2E 测试
+- 完善 Knowledge 页面实现
+
 **UI 真实验证模板（待补录）**
 - **时间**：
 - **环境**：浏览器 / 版本 / 系统

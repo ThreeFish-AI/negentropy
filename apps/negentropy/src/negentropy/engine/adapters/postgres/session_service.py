@@ -14,11 +14,12 @@ PostgresSessionService: ADK SessionService 的 PostgreSQL 实现
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ADK 官方类型
@@ -66,6 +67,7 @@ class PostgresSessionService(BaseSessionService):
 
         self._temp_state: dict[str, dict] = {}  # temp: 前缀的内存缓存
         self._session_id_error = "session_id must be a valid UUID string"
+        self._title_tasks: set[asyncio.Task] = set()
 
     async def create_session(
         self,
@@ -152,7 +154,7 @@ class PostgresSessionService(BaseSessionService):
                 id=str(thread.id),
                 app_name=thread.app_name,
                 user_id=thread.user_id,
-                state=thread.state or {},
+                state={**(thread.state or {}), "metadata": thread.metadata_ or {}},  # 合并 metadata_ 到 state
                 events=[self._orm_to_adk_event(e) for e in events],
                 last_update_time=thread.updated_at.timestamp()
                 if thread.updated_at
@@ -175,7 +177,7 @@ class PostgresSessionService(BaseSessionService):
                 id=str(t.id),
                 app_name=t.app_name,
                 user_id=t.user_id,
-                state=t.state or {},
+                state={**(t.state or {}), "metadata": t.metadata_ or {}},  # 合并 metadata_ 到 state
                 events=[],  # 列表不加载 events
                 last_update_time=t.updated_at.timestamp() if t.updated_at else datetime.now(timezone.utc).timestamp(),
             )
@@ -228,10 +230,174 @@ class PostgresSessionService(BaseSessionService):
             if event.actions and event.actions.state_delta:
                 await self._apply_state_delta_to_db(db, session, event.actions.state_delta)
 
+            # 3. 更新 Thread updated_at
+            stmt = (
+                update(self.Thread)
+                .where(self.Thread.id == uuid.UUID(session.id))
+                .values(updated_at=datetime.now(timezone.utc))
+            )
+
+            await db.execute(stmt)
             await db.commit()
+
+        if event.author == "user":
+            self._schedule_title_generation(session.id)
 
         event.id = event_id
         return event
+
+    async def _generate_title_for_session(self, session_id: str) -> None:
+        """后台生成标题并更新 metadata_"""
+        self._validate_session_id(session_id)
+
+        from negentropy.engine.summarization import SessionSummarizer
+        from google.genai import types
+        from negentropy.logging import get_logger
+
+        logger = get_logger("negentropy.session_service")
+
+        async with db_session.AsyncSessionLocal() as db:
+            meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
+            current_metadata = meta_result.scalar() or {}
+            if current_metadata.get("title"):
+                return
+
+            events_result = await db.execute(
+                select(self.Event)
+                .where(self.Event.thread_id == uuid.UUID(session_id))
+                .order_by(self.Event.sequence_num.desc())
+                .limit(6)
+            )
+            recent_events = list(reversed(events_result.scalars().all()))
+
+            history = []
+            for e in recent_events:
+                content_dict = e.content or {}
+                parts: list[types.Part] = []
+
+                if isinstance(content_dict, dict):
+                    raw_parts = content_dict.get("parts")
+                    if isinstance(raw_parts, list):
+                        for part in raw_parts:
+                            if isinstance(part, dict) and part.get("text"):
+                                parts.append(types.Part(text=part["text"]))
+                    elif content_dict.get("text"):
+                        parts.append(types.Part(text=content_dict["text"]))
+
+                if parts:
+                    role = "user" if e.author == "user" else "model"
+                    history.append(types.Content(role=role, parts=parts))
+
+            if not history:
+                return
+
+            try:
+                summarizer = SessionSummarizer()
+                title = await summarizer.generate_title(history)
+            except Exception as ex:
+                logger.warning(
+                    "Failed to generate session title",
+                    session_id=session_id,
+                    error_type=type(ex).__name__,
+                    error=str(ex),
+                    events_count=len(recent_events),
+                )
+                return
+
+            if not title:
+                return
+
+            # 再次确认未被外部写入标题，避免覆盖用户手动设置
+            meta_result = await db.execute(select(self.Thread.metadata_).where(self.Thread.id == uuid.UUID(session_id)))
+            current_metadata = meta_result.scalar() or {}
+            if current_metadata.get("title"):
+                return
+
+            current_metadata["title"] = title
+            await db.execute(
+                update(self.Thread).where(self.Thread.id == uuid.UUID(session_id)).values(metadata_=current_metadata)
+            )
+            await db.commit()
+
+    def _schedule_title_generation(self, session_id: str) -> None:
+        """创建后台任务生成标题，不阻塞主流程"""
+        from negentropy.logging import get_logger
+
+        logger = get_logger("negentropy.session_service")
+        try:
+            task = asyncio.create_task(self._generate_title_for_session(session_id))
+        except RuntimeError:
+            # 没有事件循环时跳过，避免阻塞或崩溃
+            logger.warning("title_generation_skipped_no_event_loop", session_id=session_id)
+            return
+
+        self._title_tasks.add(task)
+
+        def _on_done(t: asyncio.Task) -> None:
+            self._title_tasks.discard(t)
+            if t.cancelled():
+                return
+            try:
+                t.result()
+            except Exception as ex:
+                logger.warning(
+                    "title_generation_task_failed",
+                    session_id=session_id,
+                    error_type=type(ex).__name__,
+                    error=str(ex),
+                )
+
+        task.add_done_callback(_on_done)
+
+    async def wait_for_background_tasks(self) -> None:
+        """仅用于测试：等待后台标题任务完成"""
+        if not self._title_tasks:
+            return
+        await asyncio.gather(*list(self._title_tasks))
+
+    async def update_session_title(
+        self,
+        *,
+        app_name: str,
+        user_id: str,
+        session_id: str,
+        title: Optional[str],
+    ) -> bool:
+        """更新会话标题 (metadata.title)"""
+        self._validate_session_id(session_id)
+
+        async with db_session.AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(self.Thread).where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
+                )
+            )
+            thread = result.scalar_one_or_none()
+            if not thread:
+                return False
+
+            current_metadata = thread.metadata_ or {}
+            if title:
+                current_metadata["title"] = title
+            else:
+                current_metadata.pop("title", None)
+
+            await db.execute(
+                update(self.Thread)
+                .where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
+                )
+                .values(
+                    metadata_=current_metadata,
+                    updated_at=datetime.now(timezone.utc),
+                )
+            )
+            await db.commit()
+        return True
 
     async def _apply_state_delta_to_db(self, db: AsyncSession, session: Session, state_delta: dict[str, Any]) -> None:
         """应用 state_delta，根据前缀路由到不同存储"""

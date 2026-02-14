@@ -3,19 +3,40 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
+from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus, Knowledge
 
-from .embedding import build_embedding_fn
+from .constants import (
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_KEYWORD_WEIGHT,
+    DEFAULT_OVERLAP,
+    DEFAULT_SEARCH_LIMIT,
+    DEFAULT_SEMANTIC_WEIGHT,
+)
+from .embedding import build_batch_embedding_fn, build_embedding_fn
 from .dao import KnowledgeRunDao
+from .exceptions import (
+    CorpusNotFound,
+    DatabaseError,
+    EmbeddingFailed,
+    InvalidChunkSize,
+    InvalidSearchConfig,
+    KnowledgeError,
+    SearchError,
+    ValidationError as KnowledgeValidationError,
+    VersionConflict,
+)
 from .service import KnowledgeService
 from .types import ChunkingConfig, CorpusSpec, SearchConfig
 
+
+logger = get_logger("negentropy.knowledge.api")
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 
@@ -24,6 +45,12 @@ class CorpusCreateRequest(BaseModel):
     name: str
     description: Optional[str] = None
     config: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CorpusUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
 
 
 class CorpusResponse(BaseModel):
@@ -39,6 +66,15 @@ class IngestRequest(BaseModel):
     app_name: Optional[str] = None
     text: str
     source_uri: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    chunk_size: Optional[int] = None
+    overlap: Optional[int] = None
+    preserve_newlines: Optional[bool] = None
+
+
+class IngestUrlRequest(BaseModel):
+    app_name: Optional[str] = None
+    url: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
     chunk_size: Optional[int] = None
     overlap: Optional[int] = None
@@ -97,15 +133,6 @@ class PipelinesUpsertRequest(BaseModel):
     expected_version: Optional[int] = None
 
 
-class MemoryAuditRequest(BaseModel):
-    app_name: Optional[str] = None
-    user_id: str
-    decisions: Dict[str, str] = Field(default_factory=dict)
-    expected_versions: Optional[Dict[str, int]] = None
-    note: Optional[str] = None
-    idempotency_key: Optional[str] = None
-
-
 _service: Optional[KnowledgeService] = None
 _dao: Optional[KnowledgeRunDao] = None
 
@@ -113,7 +140,10 @@ _dao: Optional[KnowledgeRunDao] = None
 def _get_service() -> KnowledgeService:
     global _service
     if _service is None:
-        _service = KnowledgeService(embedding_fn=build_embedding_fn())
+        _service = KnowledgeService(
+            embedding_fn=build_embedding_fn(),
+            batch_embedding_fn=build_batch_embedding_fn(),
+        )
     return _service
 
 
@@ -128,17 +158,73 @@ def _resolve_app_name(app_name: Optional[str]) -> str:
     return app_name or settings.app_name
 
 
+def _map_exception_to_http(exc: KnowledgeError) -> HTTPException:
+    """将 Knowledge 异常映射到 HTTP 异常
+
+    遵循 RESTful API 设计原则：
+    - 400: 请求参数错误
+    - 404: 资源不存在
+    - 409: 版本冲突
+    - 500: 服务器内部错误
+    """
+    if isinstance(exc, CorpusNotFound):
+        logger.warning("corpus_not_found", details=exc.details)
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": exc.code, "message": str(exc), "details": exc.details},
+        )
+
+    if isinstance(exc, VersionConflict):
+        logger.warning("version_conflict", details=exc.details)
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": exc.code, "message": str(exc), "details": exc.details},
+        )
+
+    if isinstance(exc, (InvalidChunkSize, InvalidSearchConfig)):
+        logger.warning("validation_error", details=exc.details)
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": exc.code, "message": str(exc), "details": exc.details},
+        )
+
+    if isinstance(exc, (EmbeddingFailed, SearchError)):
+        logger.error("infrastructure_error", details=exc.details)
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": exc.code, "message": str(exc), "details": exc.details},
+        )
+
+    if isinstance(exc, DatabaseError):
+        logger.error("database_error", details=exc.details)
+        return HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": exc.code, "message": "Database operation failed", "details": exc.details},
+        )
+
+    # 默认 500 错误
+    logger.error("unknown_knowledge_error", error=str(exc))
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail={"code": "INTERNAL_ERROR", "message": "An unexpected error occurred"},
+    )
+
+
 def _build_chunking_config(
     *,
     chunk_size: Optional[int],
     overlap: Optional[int],
     preserve_newlines: Optional[bool],
 ) -> Optional[ChunkingConfig]:
+    """构建分块配置
+
+    使用常量而非魔法数字，遵循 Single Source of Truth 原则。
+    """
     if chunk_size is None and overlap is None and preserve_newlines is None:
         return None
     return ChunkingConfig(
-        chunk_size=chunk_size or 800,
-        overlap=overlap or 100,
+        chunk_size=chunk_size or DEFAULT_CHUNK_SIZE,
+        overlap=overlap or DEFAULT_OVERLAP,
         preserve_newlines=True if preserve_newlines is None else preserve_newlines,
     )
 
@@ -244,23 +330,198 @@ async def get_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=No
     )
 
 
+@router.patch("/base/{corpus_id}", response_model=CorpusResponse)
+async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> CorpusResponse:
+    service = _get_service()
+    update_data = payload.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    try:
+        corpus = await service.update_corpus(corpus_id=corpus_id, spec=update_data)
+        # Fetch knowledge count separately since update doesn't return it
+        dao = _get_dao()
+        # Optimization: Reuse existing count logic or separate query
+        # For simplicity, returning 0 or fetching count if critical.
+        # API expects knowledge_count.
+
+        # We need to fetch count to adhere to response model
+        async with AsyncSessionLocal() as db:
+            knowledge_count = await db.scalar(
+                select(func.count()).select_from(Knowledge).where(Knowledge.corpus_id == corpus.id)
+            )
+
+        return CorpusResponse(
+            id=corpus.id,
+            app_name=corpus.app_name,
+            name=corpus.name,
+            description=corpus.description,
+            config=corpus.config or {},
+            knowledge_count=knowledge_count or 0,
+        )
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+
+
+@router.delete("/base/{corpus_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=None)) -> None:
+    """删除语料库及其所有知识块
+
+    级联删除: 删除 Corpus 时同时删除所有关联的 Knowledge 记录。
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    async with AsyncSessionLocal() as db:
+        stmt = select(Corpus).where(Corpus.id == corpus_id, Corpus.app_name == resolved_app)
+        result = await db.execute(stmt)
+        corpus = result.scalar_one_or_none()
+
+        if not corpus:
+            raise HTTPException(status_code=404, detail="Corpus not found")
+
+        # 记录将被级联删除的 Knowledge 数量（审计可追溯性）
+        knowledge_count = await db.scalar(
+            select(func.count()).select_from(Knowledge).where(Knowledge.corpus_id == corpus_id)
+        )
+
+        await db.delete(corpus)
+        await db.commit()
+
+    logger.info(
+        "corpus_deleted",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        knowledge_count=knowledge_count or 0,
+    )
+
+
 @router.post("/base/{corpus_id}/ingest")
 async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]:
-    service = _get_service()
-    chunking_config = _build_chunking_config(
-        chunk_size=payload.chunk_size,
-        overlap=payload.overlap,
-        preserve_newlines=payload.preserve_newlines,
-    )
-    records = await service.ingest_text(
-        corpus_id=corpus_id,
-        app_name=_resolve_app_name(payload.app_name),
-        text=payload.text,
+    """索引文本到知识库
+
+    集成统一异常处理和结构化日志。
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    logger.info(
+        "api_ingest_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        text_length=len(payload.text),
         source_uri=payload.source_uri,
-        metadata=payload.metadata,
-        chunking_config=chunking_config,
     )
-    return {"count": len(records), "items": [r.id for r in records]}
+
+    try:
+        service = _get_service()
+        chunking_config = _build_chunking_config(
+            chunk_size=payload.chunk_size,
+            overlap=payload.overlap,
+            preserve_newlines=payload.preserve_newlines,
+        )
+        records = await service.ingest_text(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            text=payload.text,
+            source_uri=payload.source_uri,
+            metadata=payload.metadata,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_ingest_completed",
+            corpus_id=str(corpus_id),
+            record_count=len(records),
+        )
+
+        return {"count": len(records), "items": [r.id for r in records]}
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
+
+
+@router.get("/base/{corpus_id}/knowledge")
+async def list_knowledge(
+    corpus_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, le=100),
+    offset: int = 0,
+) -> Dict[str, Any]:
+    """列出知识库中的知识条目"""
+    resolved_app = _resolve_app_name(app_name)
+    service = _get_service()
+
+    knowledge_items = await service.list_knowledge(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        limit=limit,
+        offset=offset,
+    )
+
+    return {
+        "count": len(knowledge_items),
+        "items": [
+            {
+                "id": str(item.id),
+                "content": item.content,  # Content preview handled by frontend if needed
+                "source_uri": item.source_uri,
+                "created_at": item.created_at,
+                "chunk_index": item.chunk_index,
+                "metadata": item.metadata,
+            }
+            for item in knowledge_items
+        ],
+    }
+
+
+@router.post("/base/{corpus_id}/ingest_url")
+async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, Any]:
+    """Fetch content from URL and ingest into knowledge base."""
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    logger.info(
+        "api_ingest_url_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        url=payload.url,
+    )
+
+    try:
+        service = _get_service()
+        chunking_config = _build_chunking_config(
+            chunk_size=payload.chunk_size,
+            overlap=payload.overlap,
+            preserve_newlines=payload.preserve_newlines,
+        )
+        records = await service.ingest_url(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            url=payload.url,
+            metadata=payload.metadata,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_ingest_url_completed",
+            corpus_id=str(corpus_id),
+            record_count=len(records),
+        )
+
+        return {"count": len(records), "items": [r.id for r in records]}
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
 
 
 @router.post("/base/{corpus_id}/replace_source")
@@ -284,35 +545,68 @@ async def replace_source(corpus_id: UUID, payload: ReplaceSourceRequest) -> Dict
 
 @router.post("/base/{corpus_id}/search")
 async def search(corpus_id: UUID, payload: SearchRequest) -> Dict[str, Any]:
-    service = _get_service()
-    config = SearchConfig(
-        mode=payload.mode or "hybrid",
-        limit=payload.limit or 20,
-        semantic_weight=payload.semantic_weight or 0.7,
-        keyword_weight=payload.keyword_weight or 0.3,
-        metadata_filter=payload.metadata_filter,
+    """搜索知识库
+
+    集成统一异常处理、结构化日志和配置验证。
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    search_mode = payload.mode or "hybrid"
+
+    logger.info(
+        "api_search_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        mode=search_mode,
+        limit=payload.limit or DEFAULT_SEARCH_LIMIT,
     )
-    matches = await service.search(
-        corpus_id=corpus_id,
-        app_name=_resolve_app_name(payload.app_name),
-        query=payload.query,
-        config=config,
-    )
-    return {
-        "count": len(matches),
-        "items": [
-            {
-                "id": str(item.id),
-                "content": item.content,
-                "source_uri": item.source_uri,
-                "metadata": item.metadata,
-                "semantic_score": item.semantic_score,
-                "keyword_score": item.keyword_score,
-                "combined_score": item.combined_score,
-            }
-            for item in matches
-        ],
-    }
+
+    try:
+        service = _get_service()
+        config = SearchConfig(
+            mode=search_mode,
+            limit=payload.limit or DEFAULT_SEARCH_LIMIT,
+            semantic_weight=payload.semantic_weight or DEFAULT_SEMANTIC_WEIGHT,
+            keyword_weight=payload.keyword_weight or DEFAULT_KEYWORD_WEIGHT,
+            metadata_filter=payload.metadata_filter,
+        )
+        matches = await service.search(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            query=payload.query,
+            config=config,
+        )
+
+        logger.info(
+            "api_search_completed",
+            corpus_id=str(corpus_id),
+            mode=search_mode,
+            result_count=len(matches),
+        )
+
+        return {
+            "count": len(matches),
+            "items": [
+                {
+                    "id": str(item.id),
+                    "content": item.content,
+                    "source_uri": item.source_uri,
+                    "metadata": item.metadata,
+                    "semantic_score": item.semantic_score,
+                    "keyword_score": item.keyword_score,
+                    "combined_score": item.combined_score,
+                }
+                for item in matches
+            ],
+        }
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("search_config_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_SEARCH_CONFIG", "message": "Invalid search configuration", "errors": exc.errors()},
+        ) from exc
 
 
 @router.get("/graph")
@@ -352,57 +646,6 @@ async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
     if result.status == "conflict":
         raise HTTPException(status_code=409, detail="Graph run version conflict")
     return {"status": result.status, "graph": result.record}
-
-
-@router.get("/memory")
-async def get_memory(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
-    resolved_app = _resolve_app_name(app_name)
-    dao = _get_dao()
-    audits = await dao.list_memory_audits(resolved_app, limit=100)
-    return {
-        "users": [],
-        "timeline": [],
-        "policies": {},
-        "audits": [
-            {
-                "memory_id": audit.memory_id,
-                "decision": audit.decision,
-                "note": audit.note,
-                "version": audit.version,
-                "created_at": audit.created_at.isoformat() if audit.created_at else None,
-            }
-            for audit in audits
-        ],
-    }
-
-
-@router.post("/memory/audit")
-async def audit_memory(payload: MemoryAuditRequest) -> Dict[str, Any]:
-    resolved_app = _resolve_app_name(payload.app_name)
-    dao = _get_dao()
-    try:
-        audits = await dao.record_memory_audits(
-            app_name=resolved_app,
-            user_id=payload.user_id,
-            decisions=payload.decisions,
-            idempotency_key=payload.idempotency_key,
-            expected_versions=payload.expected_versions,
-            note=payload.note,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {
-        "status": "ok",
-        "audits": [
-            {
-                "memory_id": audit.memory_id,
-                "decision": audit.decision,
-                "version": audit.version,
-                "created_at": audit.created_at.isoformat() if audit.created_at else None,
-            }
-            for audit in audits
-        ],
-    }
 
 
 @router.get("/pipelines")

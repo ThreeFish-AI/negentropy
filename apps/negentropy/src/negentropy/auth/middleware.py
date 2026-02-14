@@ -85,6 +85,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         user_id = _extract_user_id(request, body)
         if user_id and user_id != user.user_id:
-            return JSONResponse({"error": "user_id mismatch"}, status_code=status.HTTP_403_FORBIDDEN)
+            # Allow admins to access other users' data
+            is_admin = user.roles and "admin" in user.roles
+            if not is_admin:
+                return JSONResponse({"error": "user_id mismatch"}, status_code=status.HTTP_403_FORBIDDEN)
 
         return await call_next(request)

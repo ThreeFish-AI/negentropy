@@ -1,26 +1,155 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
+/*
+ * 设计令牌系统 (Design Tokens)
+ * 遵循 WCAG 2.1 AA 对比度标准 (≥4.5:1)
+ * 参考: Material Design Dark Theme, Radix UI Colors
+ */
 :root {
+  /* 基础颜色 */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #18181b;
+
+  /* 容器层级 (用于卡片、面板等) */
+  --card: #ffffff;
+  --card-foreground: #18181b;
+
+  /* 输入控件 */
+  --input: #ffffff;
+  --input-foreground: #18181b;
+  --input-placeholder: #71717a;
+
+  /* 浮层 (Popover/Dropdown) */
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  /* 边框 */
+  --border: #e4e4e7; /* zinc-200 */
+  --border-muted: #f4f4f5; /* zinc-100 */
+
+  /* 背景色 */
+  --muted: #f4f4f5; /* zinc-100 */
+
+  /* 文本层级 */
+  --text-primary: #18181b; /* zinc-900 */
+  --text-secondary: #52525b; /* zinc-600 */
+  --text-muted: #71717a; /* zinc-500 */
+
+  /* 状态色 */
+  --success: #10b981; /* emerald-500 */
+  --warning: #f59e0b; /* amber-500 */
+  --error: #ef4444; /* red-500 */
+  --info: #3b82f6; /* blue-500 */
+
+  /* 兼容旧变量 */
+  --input-text: var(--input-foreground);
 }
 
+/* Tailwind v4 主题配置 */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-input: var(--input);
+  --color-input-foreground: var(--input-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-border: var(--border);
+  --color-border-muted: var(--border-muted);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* 暗色模式 - 类选择器 (通过 next-themes 控制，支持手动切换和系统偏好) */
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --input: #27272a;
+  --input-foreground: #f4f4f5;
+  --input-placeholder: #a1a1aa;
+  --popover: #18181b; /* zinc-900 (same as card) */
+  --popover-foreground: #fafafa;
+  --border: #27272a;
+  --border-muted: #3f3f46;
+  --muted: #27272a; /* zinc-800 */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --info: #60a5fa;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.mermaid-diagram svg {
+  overflow: visible;
+}
+
+.mermaid-diagram foreignObject,
+.mermaid-diagram .label,
+.mermaid-diagram .nodeLabel,
+.mermaid-diagram .edgeLabel {
+  overflow: visible;
+}
+
+.mermaid-diagram .nodeLabel,
+.mermaid-diagram .edgeLabel {
+  padding: 0 4px;
+  display: inline-block;
+  box-sizing: content-box;
+}
+
+/*
+ * 输入控件基础样式
+ * 使用 @layer base 确保在 Tailwind preflight 之后应用
+ * 符合 WCAG 2.1 AA 对比度标准 (≥4.5:1)
+ */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    color: var(--input-text);
+    color-scheme: light dark;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not(
+      [type="range"]
+    )::placeholder,
+  textarea::placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
+
+  /* 浏览器前缀以确保兼容性 */
+  ::-webkit-input-placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
+
+  ::-moz-placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
+
+  :-ms-input-placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
 }

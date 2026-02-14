@@ -6,4 +6,12 @@ def __getattr__(name: str):
     raise AttributeError(f"module 'negentropy.agents' has no attribute {name}")
 
 
-__all__ = ["root_agent"]
+__all__ = [
+    "root_agent",
+    # 系部 (Faculties)
+    "faculties",
+    # 流水线 (Pipelines)
+    "pipelines",
+    # 工具 (Tools)
+    "tools",
+]

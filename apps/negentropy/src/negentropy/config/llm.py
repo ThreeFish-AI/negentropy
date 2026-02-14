@@ -80,6 +80,10 @@ class LlmSettings(BaseSettings):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(default=None)
     top_p: Optional[float] = Field(default=None)
+    drop_params: Optional[bool] = Field(
+        default=None,
+        description="是否在 LiteLLM 中自动丢弃不被当前供应商支持的参数。",
+    )
 
     # Thinking / Reasoning Abstraction
     thinking_mode: bool = Field(
@@ -146,6 +150,14 @@ class LlmSettings(BaseSettings):
 
         if self.top_p is not None:
             kwargs["top_p"] = self.top_p
+
+        if self.drop_params is not None:
+            kwargs["drop_params"] = self.drop_params
+        else:
+            model_lower = self.model_name.lower()
+            if self.vendor == LlmVendor.ZAI or "glm" in model_lower:
+                # 避免 ZAI/GLM 因未支持参数（如 max_completion_tokens）而失败
+                kwargs["drop_params"] = True
 
         # Handle Thinking/Reasoning Translation
         self._apply_thinking_config(kwargs)

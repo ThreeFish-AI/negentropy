@@ -1,273 +1,229 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CorpusRecord, useKnowledgeBase } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import {
-  CorpusRecord,
-  KnowledgeMatch,
-  createCorpus,
-  fetchCorpora,
-  fetchCorpus,
-  ingestText,
-  replaceSource,
-  searchKnowledge,
-} from "@/lib/knowledge";
+
+import { CorpusList } from "./_components/CorpusList";
+import { CorpusDetail } from "./_components/CorpusDetail";
+import { CorpusFormDialog } from "./_components/CorpusFormDialog";
+import { IngestPanel } from "./_components/IngestPanel";
+import { SearchWorkspace, SearchWorkspaceRef } from "./_components/SearchWorkspace";
+import { ContentExplorer, ContentExplorerRef } from "./_components/ContentExplorer";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
+/**
+ * KnowledgeBasePage
+ *
+ * 知识库管理主页。
+ * 包含：数据源列表(CRUD)、详情展示、索引面板、搜索工作台。
+ */
 export default function KnowledgeBasePage() {
-  const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selected, setSelected] = useState<CorpusRecord | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [newCorpusName, setNewCorpusName] = useState("");
-  const [newCorpusDesc, setNewCorpusDesc] = useState("");
-  const [sourceUri, setSourceUri] = useState("");
-  const [ingestTextValue, setIngestTextValue] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [mode, setMode] = useState("hybrid");
-  const [matches, setMatches] = useState<KnowledgeMatch[]>([]);
+  const [activeTab, setActiveTab] = useState<"search" | "content" | "ingest">(
+    "search",
+  );
+
+  // Refs for child components
+  const searchWorkspaceRef = useRef<SearchWorkspaceRef>(null);
+  const contentExplorerRef = useRef<ContentExplorerRef>(null);
+
+  // Dialog State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+  const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(
+    undefined,
+  );
+
+  const kb = useKnowledgeBase({
+    appName: APP_NAME,
+    corpusId: selectedId ?? undefined,
+  });
 
   useEffect(() => {
-    let active = true;
-    fetchCorpora(APP_NAME)
-      .then((items) => {
-        if (active) {
-          setCorpora(items);
-          if (!selectedId && items.length) {
-            setSelectedId(items[0].id);
-          }
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setError(String(err));
-        }
-      });
-    return () => {
-      active = false;
-    };
+    kb.loadCorpora();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!selectedId) {
-      setSelected(null);
-      return;
+    // Auto-select first if none selected
+    if (!selectedId && kb.corpora.length > 0) {
+      setSelectedId(kb.corpora[0].id);
     }
-    let active = true;
-    fetchCorpus(selectedId, APP_NAME)
-      .then((item) => {
-        if (active) {
-          setSelected(item);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setError(String(err));
-        }
-      });
-    return () => {
-      active = false;
-    };
+    // If selected ID no longer exists (e.g. after delete), select first
+    if (
+      selectedId &&
+      kb.corpora.length > 0 &&
+      !kb.corpora.find((c) => c.id === selectedId)
+    ) {
+      setSelectedId(kb.corpora[0].id);
+    }
+  }, [kb.corpora, selectedId]);
+
+  // Clear child component results when selection changes
+  useEffect(() => {
+    if (selectedId) {
+      searchWorkspaceRef.current?.clearResults();
+      contentExplorerRef.current?.clearItems();
+    }
   }, [selectedId]);
 
-  const selectedConfig = useMemo(() => selected?.config ?? {}, [selected]);
+  // Handlers for List Actions
+  const handleEditClick = (corpus: CorpusRecord) => {
+    setEditingCorpus(corpus);
+    setDialogMode("edit");
+    setIsDialogOpen(true);
+  };
+
+  const handleCreateClick = () => {
+    setEditingCorpus(undefined);
+    setDialogMode("create");
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await kb.deleteCorpus(id);
+      if (selectedId === id) setSelectedId(null);
+    },
+    [kb, selectedId],
+  );
+
+  // Handler for Dialog Submit
+  const handleDialogSubmit = async (params: {
+    name: string;
+    description?: string;
+    config?: Record<string, unknown>;
+  }) => {
+    if (dialogMode === "create") {
+      const created = await kb.createCorpus(params);
+      setSelectedId(created.id);
+    } else if (dialogMode === "edit" && editingCorpus) {
+      await kb.updateCorpus(editingCorpus.id, params);
+    }
+    setIsDialogOpen(false);
+  };
+
+  const handleIngest = useCallback(
+    (params: { text: string; source_uri?: string }) => kb.ingestText(params),
+    [kb],
+  );
+
+  const handleReplace = useCallback(
+    (params: { text: string; source_uri: string }) => kb.replaceSource(params),
+    [kb],
+  );
+
+  const handleIngestUrl = useCallback(
+    (params: { url: string }) => kb.ingestUrl(params),
+    [kb],
+  );
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <KnowledgeNav title="Knowledge Base" description="数据源管理、索引构建与检索配置" />
-      <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1fr_2.2fr_1.2fr]">
-        <aside className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-zinc-900">Sources</h2>
-          </div>
-          <div className="mt-3 space-y-2">
-            {corpora.length ? (
-              corpora.map((corpus) => (
-                <button
-                  key={corpus.id}
-                  onClick={() => setSelectedId(corpus.id)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left text-xs ${
-                    selectedId === corpus.id
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-200 text-zinc-700 hover:border-zinc-400"
-                  }`}
-                >
-                  <p className="text-xs font-semibold">{corpus.name}</p>
-                  <p className="mt-1 text-[11px] opacity-70">{corpus.description || corpus.app_name}</p>
-                </button>
-              ))
-            ) : (
-              <p className="text-xs text-zinc-500">暂无数据源</p>
-            )}
-          </div>
-          <div className="mt-4 border-t border-zinc-200 pt-4">
-            <p className="text-xs font-semibold text-zinc-900">新建数据源</p>
-            <input
-              className="mt-2 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
-              placeholder="Corpus name"
-              value={newCorpusName}
-              onChange={(event) => setNewCorpusName(event.target.value)}
-            />
-            <textarea
-              className="mt-2 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
-              rows={2}
-              placeholder="Description"
-              value={newCorpusDesc}
-              onChange={(event) => setNewCorpusDesc(event.target.value)}
-            />
+    <div className="min-h-screen bg-background">
+      <KnowledgeNav
+        title="Knowledge Base"
+        description="数据源管理、索引构建与检索配置"
+      />
+      <div className="grid gap-6 px-6 py-6 lg:grid-cols-[280px_1fr]">
+        {/* Left sidebar: Sources + Detail */}
+        <aside className="space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <h2 className="text-sm font-semibold text-card-foreground">
+              Sources
+            </h2>
+            <div className="mt-3">
+              <CorpusList
+                corpora={kb.corpora}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onEdit={handleEditClick}
+                onDelete={handleDelete}
+                isLoading={kb.isLoading}
+              />
+            </div>
+
             <button
-              className="mt-2 w-full rounded bg-black px-3 py-2 text-xs font-semibold text-white"
-              onClick={async () => {
-                if (!newCorpusName.trim()) return;
-                const created = await createCorpus({
-                  app_name: APP_NAME,
-                  name: newCorpusName.trim(),
-                  description: newCorpusDesc.trim() || undefined,
-                });
-                setCorpora((prev) => [created, ...prev]);
-                setSelectedId(created.id);
-                setNewCorpusName("");
-                setNewCorpusDesc("");
-              }}
+              onClick={handleCreateClick}
+              className="mt-3 w-full rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-foreground hover:text-foreground"
             >
-              Create Corpus
+              + 新建数据源
             </button>
           </div>
+
+          <CorpusDetail corpus={kb.corpus} />
         </aside>
 
+        {/* Right workspace */}
         <main className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Source Detail</h2>
-            {selected ? (
-              <div className="mt-3 text-xs text-zinc-600">
-                <p>Corpus: {selected.name}</p>
-                <p>Description: {selected.description || "-"}</p>
-                <p>Knowledge Count: {selected.knowledge_count}</p>
-              </div>
-            ) : (
-              <p className="mt-3 text-xs text-zinc-500">请选择数据源</p>
-            )}
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">检索结果</h2>
-            {matches.length ? (
-              <div className="mt-3 space-y-3">
-                {matches.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-zinc-200 p-3 text-xs">
-                    <p className="text-zinc-900">{item.content}</p>
-                    <p className="mt-2 text-[11px] text-zinc-500">{item.source_uri || "-"}</p>
-                    <p className="mt-2 text-[11px] text-zinc-500">
-                      score: {item.combined_score.toFixed(4)}
-                    </p>
-                  </div>
+          {selectedId ? (
+            <div className="space-y-4">
+              {/* Tabs */}
+              <div className="flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium">
+                {(
+                  [
+                    { key: "search", label: "Search" },
+                    { key: "content", label: "Content" },
+                    { key: "ingest", label: "Ingest / Replace" },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`rounded-full px-4 py-1.5 text-xs transition-all ${
+                      activeTab === tab.key
+                        ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <p className="mt-3 text-xs text-zinc-500">暂无结果</p>
-            )}
-          </div>
-        </main>
 
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Retrieval Config</h2>
-            <div className="mt-3 text-xs text-zinc-600">
-              <p>Chunk Size: {selectedConfig.chunk_size || 800}</p>
-              <p>Overlap: {selectedConfig.overlap || 100}</p>
-              <p>Embedding: {selectedConfig.embedding_model || "default"}</p>
+              {activeTab === "search" && (
+                <SearchWorkspace
+                  ref={searchWorkspaceRef}
+                  corpusId={selectedId}
+                  appName={APP_NAME}
+                />
+              )}
+              {activeTab === "content" && (
+                <ContentExplorer
+                  ref={contentExplorerRef}
+                  corpusId={selectedId}
+                  appName={APP_NAME}
+                />
+              )}
+              {activeTab === "ingest" && (
+                <IngestPanel
+                  corpusId={selectedId}
+                  onIngest={handleIngest}
+                  onIngestUrl={handleIngestUrl}
+                  onReplace={handleReplace}
+                />
+              )}
             </div>
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Ingest</h2>
-            <input
-              className="mt-2 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
-              placeholder="source_uri"
-              value={sourceUri}
-              onChange={(event) => setSourceUri(event.target.value)}
-            />
-            <textarea
-              className="mt-2 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
-              rows={5}
-              placeholder="Paste knowledge text"
-              value={ingestTextValue}
-              onChange={(event) => setIngestTextValue(event.target.value)}
-            />
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
-                onClick={async () => {
-                  if (!selectedId) return;
-                  await ingestText(selectedId, {
-                    app_name: APP_NAME,
-                    text: ingestTextValue,
-                    source_uri: sourceUri || undefined,
-                  });
-                }}
-              >
-                Ingest
-              </button>
-              <button
-                className="rounded bg-amber-600 px-3 py-1 text-xs font-semibold text-white"
-                onClick={async () => {
-                  if (!selectedId || !sourceUri) return;
-                  await replaceSource(selectedId, {
-                    app_name: APP_NAME,
-                    text: ingestTextValue,
-                    source_uri: sourceUri,
-                  });
-                }}
-              >
-                Replace Source
-              </button>
+          ) : (
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <p className="text-xs text-muted">
+                请先选择或创建一个数据源以开始。
+              </p>
             </div>
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-zinc-900">Search</h2>
-            <input
-              className="mt-2 w-full rounded border border-zinc-200 px-2 py-1 text-xs"
-              placeholder="Search query"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-              {["semantic", "keyword", "hybrid"].map((option) => (
-                <button
-                  key={option}
-                  className={`rounded-full border px-3 py-1 ${
-                    mode === option
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-200 text-zinc-600"
-                  }`}
-                  onClick={() => setMode(option)}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-            <button
-              className="mt-3 w-full rounded bg-black px-3 py-2 text-xs font-semibold text-white"
-              onClick={async () => {
-                if (!selectedId || !searchQuery.trim()) return;
-                const result = await searchKnowledge(selectedId, {
-                  app_name: APP_NAME,
-                  query: searchQuery,
-                  mode,
-                });
-                setMatches(result.items);
-              }}
-            >
-              Search Knowledge
-            </button>
-          </div>
-          {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
-              {error}
-            </div>
-          ) : null}
-        </aside>
+          )}
+        </main>
       </div>
+
+      <CorpusFormDialog
+        isOpen={isDialogOpen}
+        mode={dialogMode}
+        initialData={editingCorpus}
+        isLoading={kb.isLoading}
+        onClose={() => setIsDialogOpen(false)}
+        onSubmit={handleDialogSubmit}
+      />
     </div>
   );
 }

@@ -1,5 +1,9 @@
 import { proxyPost } from "../../../_proxy";
 
-export async function POST(request: Request, context: { params: { corpusId: string } }) {
-  return proxyPost(request, `/knowledge/base/${context.params.corpusId}/ingest`);
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ corpusId: string }> },
+) {
+  const { corpusId } = await context.params;
+  return proxyPost(request, `/knowledge/base/${corpusId}/ingest`);
 }

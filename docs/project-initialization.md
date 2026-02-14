@@ -181,7 +181,7 @@ negentropy/
 - 创建项目：`uv init negentropy # cd apps`
 - 进入目录：`cd apps/negentropy`
 - 开发启动：`uv run fastapi dev`（FastAPI 官方建议 `fastapi dev`，由 `uv run` 承载执行）<sup>[[6]](#ref6)</sup><sup>[[9]](#ref9)</sup>
-- ADK 启动：`uv run adk web --port 8000 src/negentropy` (Web Interface)
+- ADK 启动：`uv run adk web --port 8000 --reload_agents src/negentropy` (Web Interface，支持 Agents 代码热加载)
 
 ### Frontend（Next.js + npm/yarn）
 

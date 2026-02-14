@@ -10,7 +10,7 @@ from sqlalchemy.sql import func
 from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
 
 
-class Memory(Base, UUIDMixin):
+class Memory(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "memories"
 
     thread_id: Mapped[Optional[UUID]] = mapped_column(
@@ -27,7 +27,6 @@ class Memory(Base, UUIDMixin):
     retention_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
     access_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     last_accessed_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
     # search_vector: Mapped[Any] # tsvector support in SQLAlchemy needs specific handling or TypeDecorator
 
     # We need to handle search_vector.
@@ -38,7 +37,7 @@ class Memory(Base, UUIDMixin):
     # The schema references threads(id).
 
 
-class Fact(Base, UUIDMixin):
+class Fact(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "facts"
 
     thread_id: Mapped[Optional[UUID]] = mapped_column(
@@ -55,7 +54,6 @@ class Fact(Base, UUIDMixin):
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
     valid_until: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     __table_args__ = (
         UniqueConstraint("user_id", "app_name", "fact_type", "key", name="facts_user_key_unique"),
@@ -92,5 +90,33 @@ class Instruction(Base, UUIDMixin):
 
     __table_args__ = (
         UniqueConstraint("app_name", "instruction_key", "version", name="instructions_app_key_version_unique"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
+    """
+    Memory Audit Log Model
+
+    用于记录用户记忆的审计决策，支持版本控制和幂等性。
+
+    参考文献:
+    [1] A. Ebbinghaus, "Memory: A Contribution to Experimental Psychology," 1885.
+    """
+
+    __tablename__ = "memory_audit_logs"
+
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    memory_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    decision: Mapped[str] = mapped_column(String(20), nullable=False)
+    note: Mapped[Optional[str]] = mapped_column(Text)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(255))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "app_name", "user_id", "memory_id", "idempotency_key", name="memory_audit_logs_idempotency_unique"
+        ),
         {"schema": NEGENTROPY_SCHEMA},
     )

@@ -17,7 +17,8 @@ from google.adk.memory.base_memory_service import BaseMemoryService
 from negentropy.config import settings
 
 if TYPE_CHECKING:
-    pass
+    from negentropy.engine.adapters.postgres.fact_service import FactService
+    from negentropy.engine.governance.memory import MemoryGovernanceService
 
 # 类型别名：embedding 函数签名
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
@@ -129,6 +130,72 @@ def reset_memory_service() -> None:
     _memory_service_instance = None
 
 
+# ============================================================================
+# Memory Governance Factory
+# ============================================================================
+
+_memory_governance_service_instance: Optional["MemoryGovernanceService"] = None
+
+
+def get_memory_governance_service() -> "MemoryGovernanceService":
+    """
+    获取 MemoryGovernanceService 实例 (工厂函数)
+
+    Returns:
+        MemoryGovernanceService 实例
+    """
+    global _memory_governance_service_instance
+
+    if _memory_governance_service_instance is None:
+        from negentropy.engine.governance.memory import MemoryGovernanceService
+
+        _memory_governance_service_instance = MemoryGovernanceService()
+
+    return _memory_governance_service_instance
+
+
+def reset_memory_governance_service() -> None:
+    """重置 MemoryGovernanceService 单例缓存 (用于测试)"""
+    global _memory_governance_service_instance
+    _memory_governance_service_instance = None
+
+
+# ============================================================================
+# Fact Service Factory
+# ============================================================================
+
+_fact_service_instance: Optional["FactService"] = None
+
+
+def get_fact_service(embedding_fn: Optional[EmbeddingFn] = None) -> "FactService":
+    """
+    获取 FactService 实例 (工厂函数)
+
+    FactService 管理 Fact（语义记忆）的 CRUD 操作，
+    支持向量语义检索与 ilike 回退。
+
+    Args:
+        embedding_fn: 向量化函数，签名: async (text: str) -> list[float]
+
+    Returns:
+        FactService 实例
+    """
+    global _fact_service_instance
+
+    if _fact_service_instance is None:
+        from negentropy.engine.adapters.postgres.fact_service import FactService
+
+        _fact_service_instance = FactService(embedding_fn=embedding_fn)
+
+    return _fact_service_instance
+
+
+def reset_fact_service() -> None:
+    """重置 FactService 单例缓存 (用于测试)"""
+    global _fact_service_instance
+    _fact_service_instance = None
+
+
 __all__ = [
     "MemoryBackend",
     "EmbeddingFn",
@@ -137,4 +204,10 @@ __all__ = [
     "create_inmemory_memory_service",
     "create_vertexai_memory_service",
     "create_postgres_memory_service",
+    # Memory Governance
+    "get_memory_governance_service",
+    "reset_memory_governance_service",
+    # Fact Service
+    "get_fact_service",
+    "reset_fact_service",
 ]

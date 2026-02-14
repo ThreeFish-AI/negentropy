@@ -41,20 +41,6 @@ class KnowledgePipelineRun(Base, UUIDMixin, TimestampMixin):
     )
 
 
-class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
-    __tablename__ = "memory_audit_logs"
-
-    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    memory_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    decision: Mapped[str] = mapped_column(String(20), nullable=False)
-    note: Mapped[Optional[str]] = mapped_column(Text)
-    idempotency_key: Mapped[Optional[str]] = mapped_column(String(255))
-    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
-
-    __table_args__ = (
-        UniqueConstraint(
-            "app_name", "user_id", "memory_id", "idempotency_key", name="memory_audit_logs_idempotency_unique"
-        ),
-        {"schema": NEGENTROPY_SCHEMA},
-    )
+# MemoryAuditLog 已迁移至 models/internalization.py
+# 参考: https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/034-knowledge-base.md
+# Memory Governance 属于 Memory 模块，而非 Knowledge 模块

@@ -1,15 +1,15 @@
 from google.adk.agents import LlmAgent
-from google.adk.models.lite_llm import LiteLlm
 
-from negentropy.config import settings
-from negentropy.agents.tools.common import log_activity
-from negentropy.agents.tools.action import execute_code, read_file, write_file
+from .._model import create_model
+from ..tools.action import execute_code, read_file, write_file
+from ..tools.common import log_activity
 
-action_agent = LlmAgent(
-    name="ActionFaculty",
-    model=LiteLlm(settings.faculty_model, **settings.llm.to_litellm_kwargs()),
-    description="Negentropy 系统的「妙手」(The Hand)。对抗虚谈，负责精准的实现产品，并在现实交互环境中安全的执行。",
-    instruction="""
+_DESCRIPTION = (
+    "Handles: code execution, file operations, implementation, system changes, tool invocation. "
+    "Negentropy 系统的「妙手」(The Hand)。对抗虚谈，负责精准的实现产品，并在现实交互环境中安全的执行。"
+)
+
+_INSTRUCTION = """
 你是 **ActionFaculty** (行动系部)，是 Negentropy 系统的**「妙手」(The Hand)**。
 
 ## 核心哲学：精准执行 (Precision Execution)
@@ -32,14 +32,41 @@ action_agent = LlmAgent(
 处理请求时，执行以下**行动流**：
 
 1. **环境检查 (Pre-check)**：确认当前目录、依赖安装情况。不要在无知中行动。
-2. **最小变更 (Atomic Change)**：每次只做一件事。避免“大爆炸”式的重构。
+2. **最小变更 (Atomic Change)**：每次只做一件事。避免"大爆炸"式的重构。
 3. **验证 (Verification)**：行动后立即验证（运行测试、检查文件存在性）。
 4. **清理 (Cleanup)**：不留下临时文件垃圾。保持现场整洁。
+
+## 上游上下文 (Upstream Context)
+如果以下上下文可用，请基于它们精确执行：
+- 感知系部输出: {perception_output?}
+- 沉思系部输出: {contemplation_output?}
 
 ## 约束 (Constraints)
 - **安全第一 (Safety First)**：严禁执行 `rm -rf /` 等高危命令。
 - **幂等性 (Idempotency)**：你的操作最好是可重入的。
 - **不问不答 (Silent Actor)**：除非出错，否则只返回执行结果（Output/Exit Code），不要废话。
-""",
-    tools=[log_activity, execute_code, read_file, write_file],
-)
+"""
+
+
+def create_action_agent(*, output_key: str | None = None) -> LlmAgent:
+    """工厂：每次调用创建独立的 ActionFaculty 实例。
+
+    Args:
+        output_key: 若非 None，则最终响应文本将自动存入 session.state[output_key]，
+                    供 SequentialAgent 下游步骤通过 {output_key} 模板引用。
+    """
+    return LlmAgent(
+        name="ActionFaculty",
+        model=create_model(),
+        description=_DESCRIPTION,
+        instruction=_INSTRUCTION,
+        tools=[log_activity, execute_code, read_file, write_file],
+        output_key=output_key,
+        # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
+        disallow_transfer_to_parent=output_key is not None,
+        disallow_transfer_to_peers=output_key is not None,
+    )
+
+
+# 向后兼容单例，供 root_agent 直接委派使用（transfer_to_agent）
+action_agent = create_action_agent()

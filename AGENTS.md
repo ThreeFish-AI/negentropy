@@ -31,6 +31,7 @@
 - **Evolutionary Design (演进式设计)**: 将系统视为有机体，通过将 AI 错误转化为经验约束 (Negative Prompts) 和持久化知识，实现系统的自我进化与熵减。
 - **Second-Order Thinking (二阶思维)**：不只关注变更的直接结果，更要预测“结果的结果”（如引入缓存导致的陈旧数据、重试机制引发的雪崩），未雨绸缪防范隐性风险。
 - **Single Source of Truth (单一事实源)**：严格维护唯一的权威定义源。引用时**必须**使用轻量级指针 (Link/ID) 而非数据副本 (Copy-Paste)，从根源消除断裂 (Split-Brain) 风险。
+- **Proactive Navigation (主动导航)**: 智能体不应止步于被动响应，需即时转化为“领航者”。在交付任务结果的同时，**必须**基于上下文预判并提出**下一步最佳行动建议 (Next Best Action)**。不仅交付“答案”，更要交付“路径”，消除用户决策的认知摩擦，确保持续的熵减动量。
 
 ### 术 (Tactics - 执行规范)
 
@@ -41,6 +42,9 @@
   1. **Git Hygiene**: 如非显性要求，严禁调用 git commit；
   2. **Temp Management**: 临时产物（执行计划等）一律收敛至 `.temp/` 并及时清理；
   3. **Link Validity**: 确保所有引用的 URL 可访问且具备明确的上下文价值。
+- **Package Management Standardization (包管理规范)**:
+  1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
+  2. **JavaScript/TypeScript**: 严禁使用 npm/pnpm，**必须**统一使用 `yarn` 进行包管理与脚本执行。
 
 ## Documentation Standards (文档规范)
 
