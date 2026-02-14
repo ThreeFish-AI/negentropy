@@ -10,8 +10,8 @@ interface ContentExplorerProps {
 
 export function ContentExplorer({ items, loading, error }: ContentExplorerProps) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-card-foreground">
+    <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <h2 className="shrink-0 text-sm font-semibold text-card-foreground">
         Knowledge Content
       </h2>
 
@@ -28,7 +28,7 @@ export function ContentExplorer({ items, loading, error }: ContentExplorerProps)
       ) : items.length === 0 ? (
         <p className="mt-4 text-xs text-muted">No items found.</p>
       ) : (
-        <div className="mt-4 max-h-[calc(100vh-20rem)] overflow-y-auto overflow-x-auto custom-scrollbar">
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-card">
               <tr className="border-b border-border text-muted">
