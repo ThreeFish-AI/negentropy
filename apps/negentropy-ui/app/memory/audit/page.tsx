@@ -90,7 +90,7 @@ export default function MemoryAuditPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <MemoryNav
         title="Audit"
         description="记忆审计治理 (Retain / Delete / Anonymize)"

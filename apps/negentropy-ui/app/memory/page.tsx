@@ -61,7 +61,7 @@ export default function MemoryDashboardPage() {
     : [];
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-full flex-col bg-background">
       <MemoryNav title="Dashboard" description="Memory 指标概览" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">

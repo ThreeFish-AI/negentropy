@@ -65,7 +65,7 @@ export default function MemoryFactsPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <MemoryNav title="Facts" description="语义记忆管理 (结构化 KV)" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
