@@ -206,11 +206,11 @@ export default function KnowledgeBasePage() {
         description="数据源管理、索引构建与检索配置"
       />
       <div className="grid gap-6 px-6 py-6 lg:grid-cols-[280px_1fr]">
-        {/* Left sidebar: Sources + Detail */}
+        {/* Left sidebar: Corpus + Detail */}
         <aside className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-card-foreground">
-              Sources
+              Corpus
             </h2>
             <div className="mt-3">
               <CorpusList
