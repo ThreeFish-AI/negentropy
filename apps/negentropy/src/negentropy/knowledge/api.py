@@ -143,6 +143,7 @@ def _get_service() -> KnowledgeService:
         _service = KnowledgeService(
             embedding_fn=build_embedding_fn(),
             batch_embedding_fn=build_batch_embedding_fn(),
+            pipeline_dao=_get_dao(),
         )
     return _service
 
