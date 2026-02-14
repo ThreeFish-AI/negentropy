@@ -63,9 +63,9 @@ export default function KnowledgeApisPage() {
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="grid flex-1 gap-6 px-6 py-6 lg:grid-cols-[2.2fr_1fr]">
+        <div className="grid min-h-0 flex-1 overflow-hidden gap-6 px-6 py-6 lg:grid-cols-[2.2fr_1fr]">
           {/* Main Content */}
-          <section className="space-y-4 overflow-y-auto pr-2">
+          <section className="min-h-0 space-y-4 overflow-y-auto pr-2">
             {/* Stats */}
             {statsLoading ? <ApiStatsSkeleton /> : stats && <ApiStats stats={stats} />}
 
@@ -81,7 +81,7 @@ export default function KnowledgeApisPage() {
           </section>
 
           {/* Sidebar */}
-          <aside className="space-y-4 overflow-y-auto pr-2">
+          <aside className="min-h-0 space-y-4 overflow-y-auto pr-2">
             {/* Endpoint List */}
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
