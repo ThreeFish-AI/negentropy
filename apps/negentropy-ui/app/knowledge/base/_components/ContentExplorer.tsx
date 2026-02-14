@@ -1,6 +1,6 @@
 "use strict";
 
-import { forwardRef, useImperativeHandle, useEffect, useState } from "react";
+import { forwardRef, useImperativeHandle, useEffect, useState, useMemo, useCallback, Fragment } from "react";
 import { fetchKnowledgeItems, KnowledgeItem } from "@/features/knowledge";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
@@ -21,6 +21,37 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
+    const [expandedSources, setExpandedSources] = useState<Set<string | null>>(new Set());
+
+    // 按 source_uri 分组
+    const groupedItems = useMemo(() => {
+      const groups = new Map<string | null, KnowledgeItem[]>();
+      items.forEach((item) => {
+        const key = item.source_uri;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(item);
+      });
+      return Array.from(groups.entries())
+        .map(([sourceUri, groupItems]) => ({
+          sourceUri,
+          items: groupItems.sort((a, b) => a.chunk_index - b.chunk_index),
+        }))
+        .sort((a, b) => {
+          if (a.sourceUri === null) return 1;
+          if (b.sourceUri === null) return -1;
+          return a.sourceUri.localeCompare(b.sourceUri);
+        });
+    }, [items]);
+
+    // 切换分组展开状态
+    const toggleSource = useCallback((sourceUri: string | null) => {
+      setExpandedSources((prev) => {
+        const next = new Set(prev);
+        if (next.has(sourceUri)) next.delete(sourceUri);
+        else next.add(sourceUri);
+        return next;
+      });
+    }, []);
 
     useImperativeHandle(
       ref,
@@ -28,6 +59,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         clearItems: () => {
           setItems([]);
           setError(null);
+          setExpandedSources(new Set());
         },
       }),
       [],
@@ -145,27 +177,55 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
               </tr>
             </thead>
             <tbody className="text-foreground">
-              {items.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/50"
-                >
-                  <td
-                    className="max-w-[150px] truncate py-2 pr-4 text-muted"
-                    title={item.source_uri || ""}
-                  >
-                    {item.source_uri || "-"}
-                  </td>
-                  <td className="max-w-[300px] py-2 pr-4">
-                    <p className="line-clamp-2" title={item.content}>
-                      {item.content}
-                    </p>
-                  </td>
-                  <td className="whitespace-nowrap py-2 text-muted/70">
-                    {new Date(item.created_at).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
+              {groupedItems.map((group) => {
+                const isExpanded = expandedSources.has(group.sourceUri);
+                const groupKey = group.sourceUri ?? "__no_source__";
+                return (
+                  <Fragment key={groupKey}>
+                    {/* 分组行 */}
+                    <tr
+                      className="cursor-pointer border-b border-border hover:bg-muted/50"
+                      onClick={() => toggleSource(group.sourceUri)}
+                    >
+                      <td className="py-2 pr-4 font-medium">
+                        <span className="mr-1.5 inline-block w-3 text-center text-muted transition-transform duration-200">
+                          {isExpanded ? "▼" : "▶"}
+                        </span>
+                        <span
+                          className="max-w-[200px] truncate"
+                          title={group.sourceUri || ""}
+                        >
+                          {group.sourceUri || "(无来源)"}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4 text-muted">
+                        {group.items.length} chunk{group.items.length > 1 ? "s" : ""}
+                      </td>
+                      <td className="py-2 text-muted">-</td>
+                    </tr>
+                    {/* 子行（展开时显示） */}
+                    {isExpanded &&
+                      group.items.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="border-b border-border bg-muted/20 last:border-0"
+                        >
+                          <td className="truncate py-2 pr-4 pl-8 text-muted">
+                            └ Chunk {item.chunk_index}
+                          </td>
+                          <td className="max-w-[300px] py-2 pr-4">
+                            <p className="line-clamp-2" title={item.content}>
+                              {item.content}
+                            </p>
+                          </td>
+                          <td className="whitespace-nowrap py-2 text-muted/70">
+                            {new Date(item.created_at).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
