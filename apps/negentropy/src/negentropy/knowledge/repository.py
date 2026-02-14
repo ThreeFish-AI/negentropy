@@ -4,7 +4,7 @@ import json
 from typing import Any, Dict, Iterable, Optional
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 
@@ -205,23 +205,74 @@ class KnowledgeRepository:
         *,
         corpus_id: UUID,
         app_name: str,
+        source_uri: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> list[KnowledgeRecord]:
+    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int]]:
+        """列出知识库中的知识条目
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: 可选的来源 URI 过滤，传入 "__null__" 表示筛选无来源的条目
+            limit: 分页大小
+            offset: 偏移量
+
+        Returns:
+            tuple: (items, total_count, source_stats)
+            - items: 当前页的知识条目列表
+            - total_count: 符合条件的总数量（考虑 source_uri 过滤）
+            - source_stats: 全局的 source_uri 统计 {uri: count}，null 来源用 "__null__" 表示
+        """
         async with self._session_factory() as db:
+            # 基础查询条件
+            base_conditions = [
+                Knowledge.corpus_id == corpus_id,
+                Knowledge.app_name == app_name,
+            ]
+
+            # 如果指定了 source_uri 过滤
+            source_filter = None
+            if source_uri is not None:
+                if source_uri == "__null__":
+                    source_filter = Knowledge.source_uri.is_(None)
+                else:
+                    source_filter = Knowledge.source_uri == source_uri
+
+            # 查询当前页数据
             stmt = (
                 select(Knowledge)
-                .where(
-                    Knowledge.corpus_id == corpus_id,
-                    Knowledge.app_name == app_name,
-                )
+                .where(*base_conditions)
                 .order_by(Knowledge.created_at.desc())
                 .limit(limit)
                 .offset(offset)
             )
+            if source_filter is not None:
+                stmt = stmt.where(source_filter)
+
             result = await db.execute(stmt)
             items = result.scalars().all()
-            return [self._to_knowledge_record(item) for item in items]
+
+            # 查询符合条件的总数
+            count_stmt = select(func.count(Knowledge.id)).where(*base_conditions)
+            if source_filter is not None:
+                count_stmt = count_stmt.where(source_filter)
+            count_result = await db.execute(count_stmt)
+            total_count = count_result.scalar() or 0
+
+            # 查询全局 source_stats（不受 source_uri 过滤影响）
+            stats_stmt = (
+                select(Knowledge.source_uri, func.count(Knowledge.id))
+                .where(*base_conditions)
+                .group_by(Knowledge.source_uri)
+            )
+            stats_result = await db.execute(stats_stmt)
+            source_stats: Dict[str, int] = {}
+            for row in stats_result:
+                uri, count = row
+                source_stats[uri or "__null__"] = count
+
+            return [self._to_knowledge_record(item) for item in items], total_count, source_stats
 
     async def semantic_search(
         self,

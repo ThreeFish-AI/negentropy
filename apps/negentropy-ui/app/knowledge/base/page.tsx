@@ -30,11 +30,13 @@ export default function KnowledgeBasePage() {
 
   // Content 标签页状态
   const [selectedSourceUri, setSelectedSourceUri] = useState<string | null | undefined>(undefined);
-  const [allChunks, setAllChunks] = useState<KnowledgeItem[]>([]);
+  const [displayChunks, setDisplayChunks] = useState<KnowledgeItem[]>([]);
+  const [sourceStats, setSourceStats] = useState<Map<string | null, number>>(new Map());
   const [contentLoading, setContentLoading] = useState(false);
   const [contentError, setContentError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [totalChunks, setTotalChunks] = useState(0);
 
   // Refs for child components
   const searchWorkspaceRef = useRef<SearchWorkspaceRef>(null);
@@ -71,57 +73,52 @@ export default function KnowledgeBasePage() {
     }
   }, [kb.corpora, selectedId]);
 
-  // 加载全量 chunks 数据
-  const loadAllChunks = useCallback(async () => {
+  // 加载 chunks 数据（分页 + 获取全局统计）
+  const loadChunks = useCallback(async () => {
     if (!selectedId || activeTab !== "content") return;
     setContentLoading(true);
     setContentError(null);
     try {
       const data = await fetchKnowledgeItems(selectedId, {
         appName: APP_NAME,
-        limit: 10000, // 设置合理上限
-        offset: 0,
+        sourceUri: selectedSourceUri,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
       });
-      setAllChunks(data.items);
+      setDisplayChunks(data.items);
+      setTotalChunks(data.count);
+
+      // 更新全局统计（仅在 source_stats 存在时）
+      if (data.source_stats) {
+        const stats = new Map<string | null, number>();
+        Object.entries(data.source_stats).forEach(([uri, count]) => {
+          stats.set(uri === "__null__" ? null : uri, count);
+        });
+        setSourceStats(stats);
+      }
     } catch (err) {
       setContentError(err instanceof Error ? err.message : String(err));
     } finally {
       setContentLoading(false);
     }
-  }, [selectedId, activeTab]);
+  }, [selectedId, activeTab, selectedSourceUri, page, pageSize]);
 
   // 切换 corpus 或进入 content 标签页时加载数据
   useEffect(() => {
     if (activeTab === "content" && selectedId) {
-      loadAllChunks();
       setSelectedSourceUri(undefined);
       setPage(1);
+      loadChunks();
     }
-  }, [selectedId, activeTab, loadAllChunks]);
+  }, [selectedId, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 计算 sourceStats（全局统计）
-  const sourceStats = useMemo(() => {
-    const stats = new Map<string | null, number>();
-    allChunks.forEach((item) => {
-      const key = item.source_uri;
-      stats.set(key, (stats.get(key) || 0) + 1);
-    });
-    return stats;
-  }, [allChunks]);
+  // 分页或 source 筛选变化时重新加载
+  useEffect(() => {
+    if (activeTab === "content" && selectedId) {
+      loadChunks();
+    }
+  }, [selectedSourceUri, page, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 根据 selectedSourceUri 筛选 chunks
-  const filteredChunks = useMemo(() => {
-    if (selectedSourceUri === undefined) return allChunks;
-    return allChunks.filter((c) => c.source_uri === selectedSourceUri);
-  }, [allChunks, selectedSourceUri]);
-
-  // 分页计算
-  const displayChunks = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredChunks.slice(start, start + pageSize);
-  }, [filteredChunks, page, pageSize]);
-
-  const totalChunks = filteredChunks.length;
   const totalPages = Math.ceil(totalChunks / pageSize);
 
   // 切换 source 时重置分页

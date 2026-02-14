@@ -450,22 +450,39 @@ async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]
 async def list_knowledge(
     corpus_id: UUID,
     app_name: Optional[str] = Query(default=None),
-    limit: int = Query(default=20, le=100),
-    offset: int = 0,
+    source_uri: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ) -> Dict[str, Any]:
-    """列出知识库中的知识条目"""
+    """列出知识库中的知识条目
+
+    Args:
+        corpus_id: 知识库 ID
+        app_name: 应用名称
+        source_uri: 可选的来源 URI 过滤，传入 "__null__" 表示筛选无来源的条目
+        limit: 分页大小（1-100）
+        offset: 偏移量
+
+    Returns:
+        Dict: {
+            "count": 符合条件的总数,
+            "items": 当前页的知识条目,
+            "source_stats": {"source_uri": count, ...} 全局统计
+        }
+    """
     resolved_app = _resolve_app_name(app_name)
     service = _get_service()
 
-    knowledge_items = await service.list_knowledge(
+    knowledge_items, total_count, source_stats = await service.list_knowledge(
         corpus_id=corpus_id,
         app_name=resolved_app,
+        source_uri=source_uri,
         limit=limit,
         offset=offset,
     )
 
     return {
-        "count": len(knowledge_items),
+        "count": total_count,
         "items": [
             {
                 "id": str(item.id),
@@ -477,6 +494,7 @@ async def list_knowledge(
             }
             for item in knowledge_items
         ],
+        "source_stats": source_stats,
     }
 
 
