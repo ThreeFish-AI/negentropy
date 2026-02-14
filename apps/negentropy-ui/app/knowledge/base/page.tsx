@@ -200,158 +200,164 @@ export default function KnowledgeBasePage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-screen flex-col bg-background">
       <KnowledgeNav
         title="Knowledge Base"
         description="数据源管理、索引构建与检索配置"
       />
-      <div className="grid gap-6 px-6 py-6 lg:grid-cols-[280px_1fr]">
-        {/* Left sidebar: Corpus + Detail */}
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-card-foreground">
-              Corpus
-            </h2>
-            <div className="mt-3">
-              <CorpusList
-                corpora={kb.corpora}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onEdit={handleEditClick}
-                onDelete={handleDelete}
-                isLoading={kb.isLoading}
-              />
-            </div>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
+          {/* Left sidebar: Corpus + Detail */}
+          <aside className="min-h-0 min-w-0 w-[280px] shrink-0 overflow-y-auto">
+            <div className="space-y-4 pb-4 pr-2">
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <h2 className="text-sm font-semibold text-card-foreground">
+                  Corpus
+                </h2>
+                <div className="mt-3">
+                  <CorpusList
+                    corpora={kb.corpora}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                    onEdit={handleEditClick}
+                    onDelete={handleDelete}
+                    isLoading={kb.isLoading}
+                  />
+                </div>
 
-            <button
-              onClick={handleCreateClick}
-              className="mt-3 w-full rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-foreground hover:text-foreground"
-            >
-              + 新建数据源
-            </button>
-          </div>
-
-          <CorpusDetail corpus={kb.corpus} />
-        </aside>
-
-        {/* Right workspace */}
-        <main className="space-y-4">
-          {selectedId ? (
-            <div className="space-y-4">
-              {/* Tabs */}
-              <div className="flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium">
-                {(
-                  [
-                    { key: "search", label: "Search" },
-                    { key: "content", label: "Content" },
-                    { key: "ingest", label: "Ingest / Replace" },
-                  ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`rounded-full px-4 py-1.5 text-xs transition-all ${
-                      activeTab === tab.key
-                        ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                        : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                <button
+                  onClick={handleCreateClick}
+                  className="mt-3 w-full rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-foreground hover:text-foreground"
+                >
+                  + 新建数据源
+                </button>
               </div>
 
-              {activeTab === "search" && (
-                <SearchWorkspace
-                  ref={searchWorkspaceRef}
-                  corpusId={selectedId}
-                  appName={APP_NAME}
-                />
-              )}
-              {activeTab === "content" && (
-                <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
-                  {/* 左侧: Sources 列表 */}
-                  <aside>
-                    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-                      <h3 className="mb-2 text-xs font-semibold text-card-foreground">
-                        Sources
-                      </h3>
-                      <SourceList
-                        sourceStats={sourceStats}
-                        selectedUri={selectedSourceUri}
-                        onSelect={handleSourceSelect}
-                      />
-                    </div>
-                  </aside>
+              <CorpusDetail corpus={kb.corpus} />
+            </div>
+          </aside>
 
-                  {/* 右侧: Content 表格 + 分页 */}
-                  <div className="space-y-3">
-                    {/* 分页控件 - 移到上方 */}
-                    {totalChunks > 0 && (
-                      <div className="flex items-center justify-end gap-3">
-                        <div className="flex items-center gap-1.5">
-                          <label htmlFor="page-size" className="text-xs text-muted">
-                            Rows
-                          </label>
-                          <select
-                            id="page-size"
-                            value={pageSize}
-                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                            className="rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground outline-none focus:border-ring"
-                          >
-                            {PAGE_SIZE_OPTIONS.map((size) => (
-                              <option key={size} value={size}>
-                                {size}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={handlePagePrev}
-                            disabled={page === 1 || contentLoading}
-                            className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
-                          >
-                            Previous
-                          </button>
-                          <span className="text-xs text-muted">
-                            Page {page} / {totalPages || 1}
-                          </span>
-                          <button
-                            onClick={handlePageNext}
-                            disabled={page >= totalPages || contentLoading}
-                            className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
-                          >
-                            Next
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    <ContentExplorer
-                      items={displayChunks}
-                      loading={contentLoading}
-                      error={contentError}
-                    />
+          {/* Right workspace */}
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+            <div className="space-y-4 pb-4 pr-2">
+              {selectedId ? (
+                <div className="space-y-4">
+                  {/* Tabs */}
+                  <div className="flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium">
+                    {(
+                      [
+                        { key: "search", label: "Search" },
+                        { key: "content", label: "Content" },
+                        { key: "ingest", label: "Ingest / Replace" },
+                      ] as const
+                    ).map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`rounded-full px-4 py-1.5 text-xs transition-all ${
+                          activeTab === tab.key
+                            ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                            : "text-muted hover:text-foreground"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
+
+                  {activeTab === "search" && (
+                    <SearchWorkspace
+                      ref={searchWorkspaceRef}
+                      corpusId={selectedId}
+                      appName={APP_NAME}
+                    />
+                  )}
+                  {activeTab === "content" && (
+                    <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+                      {/* 左侧: Sources 列表 */}
+                      <aside>
+                        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                          <h3 className="mb-2 text-xs font-semibold text-card-foreground">
+                            Sources
+                          </h3>
+                          <SourceList
+                            sourceStats={sourceStats}
+                            selectedUri={selectedSourceUri}
+                            onSelect={handleSourceSelect}
+                          />
+                        </div>
+                      </aside>
+
+                      {/* 右侧: Content 表格 + 分页 */}
+                      <div className="space-y-3">
+                        {/* 分页控件 - 移到上方 */}
+                        {totalChunks > 0 && (
+                          <div className="flex items-center justify-end gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <label htmlFor="page-size" className="text-xs text-muted">
+                                Rows
+                              </label>
+                              <select
+                                id="page-size"
+                                value={pageSize}
+                                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                                className="rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground outline-none focus:border-ring"
+                              >
+                                {PAGE_SIZE_OPTIONS.map((size) => (
+                                  <option key={size} value={size}>
+                                    {size}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={handlePagePrev}
+                                disabled={page === 1 || contentLoading}
+                                className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
+                              >
+                                Previous
+                              </button>
+                              <span className="text-xs text-muted">
+                                Page {page} / {totalPages || 1}
+                              </span>
+                              <button
+                                onClick={handlePageNext}
+                                disabled={page >= totalPages || contentLoading}
+                                className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <ContentExplorer
+                          items={displayChunks}
+                          loading={contentLoading}
+                          error={contentError}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {activeTab === "ingest" && (
+                    <IngestPanel
+                      corpusId={selectedId}
+                      onIngest={handleIngest}
+                      onIngestUrl={handleIngestUrl}
+                      onReplace={handleReplace}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                  <p className="text-xs text-muted">
+                    请先选择或创建一个数据源以开始。
+                  </p>
                 </div>
               )}
-              {activeTab === "ingest" && (
-                <IngestPanel
-                  corpusId={selectedId}
-                  onIngest={handleIngest}
-                  onIngestUrl={handleIngestUrl}
-                  onReplace={handleReplace}
-                />
-              )}
             </div>
-          ) : (
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <p className="text-xs text-muted">
-                请先选择或创建一个数据源以开始。
-              </p>
-            </div>
-          )}
-        </main>
+          </main>
+        </div>
       </div>
 
       <CorpusFormDialog
