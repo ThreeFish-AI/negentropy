@@ -352,16 +352,25 @@ export interface KnowledgeItem {
 export interface KnowledgeListResponse {
   count: number;
   items: KnowledgeItem[];
+  source_stats?: Record<string, number>;
 }
 
 export async function fetchKnowledgeItems(
   corpusId: string,
-  params: { appName?: string; limit?: number; offset?: number },
+  params: {
+    appName?: string;
+    sourceUri?: string | null;
+    limit?: number;
+    offset?: number;
+  },
 ): Promise<KnowledgeListResponse> {
   const query = new URLSearchParams();
   if (params.appName) query.set("app_name", params.appName);
-  if (params.limit) query.set("limit", String(params.limit));
-  if (params.offset) query.set("offset", String(params.offset));
+  if (params.sourceUri !== undefined) {
+    query.set("source_uri", params.sourceUri ?? "__null__");
+  }
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.offset !== undefined) query.set("offset", String(params.offset));
 
   const res = await fetch(
     `/api/knowledge/base/${corpusId}/knowledge?${query.toString()}`,

@@ -559,13 +559,26 @@ class KnowledgeService:
         *,
         corpus_id: UUID,
         app_name: str,
+        source_uri: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> list[KnowledgeRecord]:
-        """List knowledge items in a corpus."""
+    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int]]:
+        """List knowledge items in a corpus.
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: 可选的来源 URI 过滤
+            limit: 分页大小
+            offset: 偏移量
+
+        Returns:
+            tuple: (items, total_count, source_stats)
+        """
         return await self._repository.list_knowledge(
             corpus_id=corpus_id,
             app_name=app_name,
+            source_uri=source_uri,
             limit=limit,
             offset=offset,
         )
