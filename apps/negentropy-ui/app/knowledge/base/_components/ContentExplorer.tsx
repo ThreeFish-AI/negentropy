@@ -5,17 +5,25 @@ import { fetchKnowledgeItems, KnowledgeItem } from "@/features/knowledge";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
+export interface SourceGroup {
+  sourceUri: string | null;
+  items: KnowledgeItem[];
+}
+
 interface ContentExplorerProps {
   corpusId: string;
   appName: string;
+  selectedSourceUri?: string | null;
+  onGroupsChange?: (groups: SourceGroup[]) => void;
 }
 
 export interface ContentExplorerRef {
   clearItems: () => void;
+  getSourceGroups: () => SourceGroup[];
 }
 
 export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerProps>(
-  function ContentExplorer({ corpusId, appName }, ref) {
+  function ContentExplorer({ corpusId, appName, selectedSourceUri, onGroupsChange }, ref) {
     const [items, setItems] = useState<KnowledgeItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +51,19 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
         });
     }, [items]);
 
+    // 根据 selectedSourceUri 筛选显示的分组
+    const filteredGroups = useMemo(() => {
+      if (selectedSourceUri === undefined) {
+        return groupedItems;
+      }
+      return groupedItems.filter((g) => g.sourceUri === selectedSourceUri);
+    }, [groupedItems, selectedSourceUri]);
+
+    // 通知父组件分组数据变化
+    useEffect(() => {
+      onGroupsChange?.(groupedItems);
+    }, [groupedItems, onGroupsChange]);
+
     // 切换分组展开状态
     const toggleSource = useCallback((sourceUri: string | null) => {
       setExpandedSources((prev) => {
@@ -61,8 +82,9 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
           setError(null);
           setExpandedSources(new Set());
         },
+        getSourceGroups: () => groupedItems,
       }),
-      [],
+      [groupedItems],
     );
 
   useEffect(() => {
@@ -177,7 +199,7 @@ export const ContentExplorer = forwardRef<ContentExplorerRef, ContentExplorerPro
               </tr>
             </thead>
             <tbody className="text-foreground">
-              {groupedItems.map((group) => {
+              {filteredGroups.map((group) => {
                 const isExpanded = expandedSources.has(group.sourceUri);
                 const groupKey = group.sourceUri ?? "__no_source__";
                 return (

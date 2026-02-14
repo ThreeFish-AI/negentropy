@@ -10,7 +10,8 @@ import { CorpusDetail } from "./_components/CorpusDetail";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { IngestPanel } from "./_components/IngestPanel";
 import { SearchWorkspace, SearchWorkspaceRef } from "./_components/SearchWorkspace";
-import { ContentExplorer, ContentExplorerRef } from "./_components/ContentExplorer";
+import { ContentExplorer, ContentExplorerRef, SourceGroup } from "./_components/ContentExplorer";
+import { SourceList } from "./_components/SourceList";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
@@ -25,6 +26,8 @@ export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState<"search" | "content" | "ingest">(
     "search",
   );
+  const [selectedSourceUri, setSelectedSourceUri] = useState<string | null | undefined>(undefined);
+  const [sourceGroups, setSourceGroups] = useState<SourceGroup[]>([]);
 
   // Refs for child components
   const searchWorkspaceRef = useRef<SearchWorkspaceRef>(null);
@@ -67,6 +70,8 @@ export default function KnowledgeBasePage() {
     if (selectedId) {
       searchWorkspaceRef.current?.clearResults();
       contentExplorerRef.current?.clearItems();
+      setSelectedSourceUri(undefined); // 重置 Source 筛选
+      setSourceGroups([]); // 清空分组数据
     }
   }, [selectedId]);
 
@@ -191,11 +196,30 @@ export default function KnowledgeBasePage() {
                 />
               )}
               {activeTab === "content" && (
-                <ContentExplorer
-                  ref={contentExplorerRef}
-                  corpusId={selectedId}
-                  appName={APP_NAME}
-                />
+                <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+                  {/* 左侧: Sources 列表 */}
+                  <aside>
+                    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                      <h3 className="mb-2 text-xs font-semibold text-card-foreground">
+                        Sources
+                      </h3>
+                      <SourceList
+                        groups={sourceGroups}
+                        selectedUri={selectedSourceUri}
+                        onSelect={setSelectedSourceUri}
+                      />
+                    </div>
+                  </aside>
+
+                  {/* 右侧: Content 表格 */}
+                  <ContentExplorer
+                    ref={contentExplorerRef}
+                    corpusId={selectedId}
+                    appName={APP_NAME}
+                    selectedSourceUri={selectedSourceUri}
+                    onGroupsChange={setSourceGroups}
+                  />
+                </div>
               )}
               {activeTab === "ingest" && (
                 <IngestPanel
