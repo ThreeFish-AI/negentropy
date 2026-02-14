@@ -93,3 +93,22 @@ export {
   InvalidSearchConfigError,
   InfrastructureError,
 } from "./utils/knowledge-api";
+
+// ============================================================================
+// API Specs (for API Documentation)
+// ============================================================================
+
+export {
+  KNOWLEDGE_API_ENDPOINTS,
+  getEndpointById,
+  getMethodColor,
+} from "./utils/api-specs";
+
+export type {
+  HttpMethod,
+  ApiParameter,
+  ApiRequestBody,
+  ApiResponse,
+  CodeExamples,
+  ApiEndpoint,
+} from "./utils/api-specs";
