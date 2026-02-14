@@ -32,7 +32,6 @@ export function ContentExplorer({ items, loading, error }: ContentExplorerProps)
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-card">
               <tr className="border-b border-border text-muted">
-                <th className="pb-2 font-medium">Source</th>
                 <th className="pb-2 font-medium">Content Preview</th>
                 <th className="pb-2 font-medium">Created At</th>
               </tr>
@@ -43,13 +42,7 @@ export function ContentExplorer({ items, loading, error }: ContentExplorerProps)
                   key={item.id}
                   className="border-b border-border last:border-0 hover:bg-muted/50"
                 >
-                  <td
-                    className="max-w-[150px] truncate py-2 pr-4 text-muted"
-                    title={item.source_uri || ""}
-                  >
-                    {item.source_uri || "(无来源)"}
-                  </td>
-                  <td className="max-w-[300px] py-2 pr-4">
+                  <td className="max-w-[400px] py-2 pr-4">
                     <p className="line-clamp-2" title={item.content}>
                       {item.content}
                     </p>
