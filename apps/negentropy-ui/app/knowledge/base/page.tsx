@@ -238,32 +238,31 @@ export default function KnowledgeBasePage() {
           </aside>
 
           {/* Right workspace */}
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-            <div className="space-y-4 pb-4 pr-2">
-              {selectedId ? (
-                <div className="space-y-4">
-                  {/* Tabs */}
-                  <div className="flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium">
-                    {(
-                      [
-                        { key: "search", label: "Search" },
-                        { key: "content", label: "Content" },
-                        { key: "ingest", label: "Ingest / Replace" },
-                      ] as const
-                    ).map((tab) => (
-                      <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={`rounded-full px-4 py-1.5 text-xs transition-all ${
-                          activeTab === tab.key
-                            ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                            : "text-muted hover:text-foreground"
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            {selectedId ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                {/* Tabs */}
+                <div className="shrink-0 flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium mb-4">
+                  {(
+                    [
+                      { key: "search", label: "Search" },
+                      { key: "content", label: "Content" },
+                      { key: "ingest", label: "Ingest / Replace" },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`rounded-full px-4 py-1.5 text-xs transition-all ${
+                        activeTab === tab.key
+                          ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                          : "text-muted hover:text-foreground"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
 
                   {activeTab === "search" && (
                     <SearchWorkspace
@@ -273,9 +272,9 @@ export default function KnowledgeBasePage() {
                     />
                   )}
                   {activeTab === "content" && (
-                    <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+                    <div className="flex min-h-0 flex-1 gap-4">
                       {/* 左侧: Sources 列表 */}
-                      <aside>
+                      <aside className="shrink-0 w-[200px]">
                         <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
                           <h3 className="mb-2 text-xs font-semibold text-card-foreground">
                             Sources
@@ -289,10 +288,10 @@ export default function KnowledgeBasePage() {
                       </aside>
 
                       {/* 右侧: Content 表格 + 分页 */}
-                      <div className="space-y-3">
+                      <div className="flex min-h-0 flex-1 flex-col gap-3">
                         {/* 分页控件 - 移到上方 */}
                         {totalChunks > 0 && (
-                          <div className="flex items-center justify-end gap-3">
+                          <div className="shrink-0 flex items-center justify-end gap-3">
                             <div className="flex items-center gap-1.5">
                               <label htmlFor="page-size" className="text-xs text-muted">
                                 Rows
@@ -340,14 +339,16 @@ export default function KnowledgeBasePage() {
                     </div>
                   )}
                   {activeTab === "ingest" && (
-                    <IngestPanel
-                      corpusId={selectedId}
-                      onIngest={handleIngest}
-                      onIngestUrl={handleIngestUrl}
-                      onReplace={handleReplace}
-                    />
+                    <div className="min-h-0 flex-1 overflow-y-auto pr-2 pb-4">
+                      <IngestPanel
+                        corpusId={selectedId}
+                        onIngest={handleIngest}
+                        onIngestUrl={handleIngestUrl}
+                        onReplace={handleReplace}
+                      />
+                    </div>
                   )}
-                </div>
+              </div>
               ) : (
                 <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                   <p className="text-xs text-muted">
@@ -355,7 +356,6 @@ export default function KnowledgeBasePage() {
                   </p>
                 </div>
               )}
-            </div>
           </main>
         </div>
       </div>
