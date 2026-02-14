@@ -3,11 +3,35 @@
 import { useEffect, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { fetchPipelines, KnowledgePipelinesPayload, upsertPipelines } from "@/features/knowledge";
+import {
+  fetchPipelines,
+  KnowledgePipelinesPayload,
+  PipelineRunRecord,
+  upsertPipelines,
+} from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
-type RunRecord = KnowledgePipelinesPayload["runs"][number];
+type RunRecord = PipelineRunRecord;
+
+// 阶段顺序定义（用于排序显示）
+const STAGE_ORDER = ["fetch", "delete", "chunk", "embed", "persist"];
+
+// 操作类型中文名称
+const OPERATION_LABELS: Record<string, string> = {
+  ingest_text: "文本摄入",
+  ingest_url: "URL 摄入",
+  replace_source: "替换源",
+};
+
+// 阶段名称中文名称
+const STAGE_LABELS: Record<string, string> = {
+  fetch: "获取内容",
+  delete: "删除旧记录",
+  chunk: "文本分块",
+  embed: "向量化",
+  persist: "持久化",
+};
 
 export default function KnowledgePipelinesPage() {
   const [payload, setPayload] = useState<KnowledgePipelinesPayload | null>(null);
@@ -49,6 +73,8 @@ export default function KnowledgePipelinesPage() {
       case "failed":
       case "error":
         return "bg-rose-500";
+      case "skipped":
+        return "bg-zinc-300 dark:bg-zinc-600";
       default:
         return "bg-zinc-400";
     }
@@ -56,6 +82,9 @@ export default function KnowledgePipelinesPage() {
 
   const formatDuration = (durationMs?: number, startedAt?: string, completedAt?: string) => {
     if (durationMs && durationMs > 0) {
+      if (durationMs < 1000) {
+        return `${durationMs}ms`;
+      }
       const seconds = Math.round(durationMs / 1000);
       return `${seconds}s`;
     }
@@ -63,11 +92,28 @@ export default function KnowledgePipelinesPage() {
       const start = new Date(startedAt).getTime();
       const end = new Date(completedAt).getTime();
       if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {
-        const seconds = Math.round((end - start) / 1000);
+        const ms = end - start;
+        if (ms < 1000) {
+          return `${ms}ms`;
+        }
+        const seconds = Math.round(ms / 1000);
         return `${seconds}s`;
       }
     }
     return "-";
+  };
+
+  // 获取排序后的阶段列表
+  const getSortedStages = (stages?: Record<string, RunRecord["stages"] extends Record<string, infer T> ? T : never>) => {
+    if (!stages) return [];
+    return Object.entries(stages).sort(([a], [b]) => {
+      const indexA = STAGE_ORDER.indexOf(a);
+      const indexB = STAGE_ORDER.indexOf(b);
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
   };
 
   return (
@@ -132,7 +178,24 @@ export default function KnowledgePipelinesPage() {
                     </div>
                     <span className="text-[11px] opacity-70">{run.status || "unknown"}</span>
                   </div>
-                  <p className="mt-1 text-[11px] opacity-70">{run.trigger || "manual"}</p>
+                  <div className="mt-1 flex items-center justify-between text-[11px] opacity-70">
+                    <span>
+                      {run.operation ? OPERATION_LABELS[run.operation] || run.operation : (run.trigger || "manual")}
+                    </span>
+                    <span>{formatDuration(run.duration_ms, run.started_at, run.completed_at)}</span>
+                  </div>
+                  {/* 阶段进度条 */}
+                  {run.stages && Object.keys(run.stages).length > 0 && (
+                    <div className="mt-2 flex items-center gap-1">
+                      {getSortedStages(run.stages).map(([stageName, stage]) => (
+                        <div
+                          key={stageName}
+                          className={`h-1.5 flex-1 rounded-full ${statusColor(stage.status)}`}
+                          title={`${STAGE_LABELS[stageName] || stageName}: ${stage.status}${stage.duration_ms ? ` (${stage.duration_ms}ms)` : ""}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -145,32 +208,85 @@ export default function KnowledgePipelinesPage() {
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Run Detail</h2>
             {selected ? (
               <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
+                {/* 基本信息 */}
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-                  <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Timing</p>
-                  <p className="mt-2 text-[11px] text-zinc-600 dark:text-zinc-400">Started: {selected.started_at || "-"}</p>
+                  <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Info</p>
+                  {selected.operation && (
+                    <p className="mt-2 text-[11px] text-zinc-600 dark:text-zinc-400">
+                      Operation: {OPERATION_LABELS[selected.operation] || selected.operation}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-zinc-600 dark:text-zinc-400">Started: {selected.started_at || "-"}</p>
                   <p className="text-[11px] text-zinc-600 dark:text-zinc-400">Completed: {selected.completed_at || "-"}</p>
                   <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
                     Duration: {formatDuration(selected.duration_ms, selected.started_at, selected.completed_at)}
                   </p>
                 </div>
+
+                {/* 阶段详情 */}
+                {selected.stages && Object.keys(selected.stages).length > 0 && (
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+                    <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Stages</p>
+                    <div className="mt-2 space-y-2">
+                      {getSortedStages(selected.stages).map(([stageName, stage]) => (
+                        <div key={stageName} className="flex items-center gap-2 text-[11px]">
+                          <span className={`h-2 w-2 rounded-full ${statusColor(stage.status)}`} />
+                          <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                            {STAGE_LABELS[stageName] || stageName}
+                          </span>
+                          <span className="text-zinc-400">
+                            {stage.duration_ms ? `${stage.duration_ms}ms` : "-"}
+                          </span>
+                          {stage.status === "skipped" && stage.reason && (
+                            <span className="text-zinc-400 italic">({stage.reason})</span>
+                          )}
+                          {stage.error && (
+                            <span className="truncate max-w-[120px] text-rose-500">
+                              {typeof stage.error === "object" && stage.error !== null && "message" in stage.error
+                                ? String((stage.error as { message?: unknown }).message)
+                                : JSON.stringify(stage.error)}
+                            </span>
+                          )}
+                          {stage.output && (
+                            <span className="truncate max-w-[120px] text-emerald-600 dark:text-emerald-400">
+                              {typeof stage.output === "object" && stage.output !== null && "chunk_count" in stage.output
+                                ? `${(stage.output as { chunk_count?: unknown }).chunk_count} chunks`
+                                : typeof stage.output === "object" && stage.output !== null && "record_count" in stage.output
+                                  ? `${(stage.output as { record_count?: unknown }).record_count} records`
+                                  : ""}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Input */}
                 <div>
                   <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Input</p>
                   <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
                     {JSON.stringify(selected.input ?? {}, null, 2)}
                   </pre>
                 </div>
+
+                {/* Output */}
                 <div>
                   <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Output</p>
                   <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
                     {JSON.stringify(selected.output ?? {}, null, 2)}
                   </pre>
                 </div>
-                <div>
-                  <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Error</p>
-                  <pre className="mt-2 max-h-24 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
-                    {JSON.stringify(selected.error ?? {}, null, 2)}
-                  </pre>
-                </div>
+
+                {/* Error */}
+                {selected.error && Object.keys(selected.error as Record<string, unknown>).length > 0 && (
+                  <div>
+                    <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Error</p>
+                    <pre className="mt-2 max-h-24 overflow-auto rounded-lg bg-rose-50 p-3 text-[11px] text-rose-700 dark:bg-rose-900/20 dark:text-rose-400">
+                      {JSON.stringify(selected.error, null, 2)}
+                    </pre>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">选择作业查看详情</p>
@@ -189,7 +305,7 @@ export default function KnowledgePipelinesPage() {
                     <div>
                       <p className="text-zinc-900 dark:text-zinc-100">{run.run_id || run.id}</p>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                        {run.trigger || "manual"} · {formatDuration(run.duration_ms, run.started_at, run.completed_at)}
+                        {run.operation ? OPERATION_LABELS[run.operation] || run.operation : (run.trigger || "manual")} · {formatDuration(run.duration_ms, run.started_at, run.completed_at)}
                       </p>
                       <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{run.started_at ? `开始 ${run.started_at}` : "开始 -"}</p>
                       <p className="text-[11px] text-zinc-400 dark:text-zinc-500">

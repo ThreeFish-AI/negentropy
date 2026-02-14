@@ -164,22 +164,52 @@ export interface KnowledgeGraphPayload {
   }>;
 }
 
+// Pipeline 阶段状态
+export type PipelineStageStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+// Pipeline 操作类型
+export type PipelineOperation =
+  | "ingest_text"
+  | "ingest_url"
+  | "replace_source";
+
+// Pipeline 阶段结果
+export interface PipelineStageResult {
+  status: PipelineStageStatus;
+  started_at?: string;
+  completed_at?: string;
+  duration_ms?: number;
+  error?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  reason?: string; // for skipped status
+}
+
+// Pipeline Run 记录
+export interface PipelineRunRecord {
+  id: string;
+  run_id: string;
+  status: string;
+  operation?: PipelineOperation;
+  trigger?: "api" | "ui" | "schedule";
+  started_at?: string;
+  completed_at?: string;
+  duration_ms?: number;
+  duration?: string;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  stages?: Record<string, PipelineStageResult>;
+  error?: Record<string, unknown>;
+  version?: number;
+}
+
 export interface KnowledgePipelinesPayload {
   last_updated_at?: string;
-  runs?: Array<{
-    id: string;
-    run_id: string;
-    status: string;
-    started_at?: string;
-    completed_at?: string;
-    duration_ms?: number;
-    duration?: string;
-    trigger?: string;
-    input?: unknown;
-    output?: unknown;
-    error?: unknown;
-    version?: number;
-  }>;
+  runs?: PipelineRunRecord[];
 }
 
 export interface IngestResult {
