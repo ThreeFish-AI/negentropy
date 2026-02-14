@@ -200,7 +200,7 @@ export default function KnowledgeBasePage() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
         title="Knowledge Base"
         description="数据源管理、索引构建与检索配置"

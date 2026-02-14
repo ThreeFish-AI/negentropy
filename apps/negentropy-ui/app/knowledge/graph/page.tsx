@@ -189,7 +189,7 @@ export default function KnowledgeGraphPage() {
     layout.find((node) => node.id === selectedNodeId) || null;
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
         title="Knowledge Graph"
         description="实体关系视图与构建历史"

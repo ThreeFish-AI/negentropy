@@ -117,7 +117,7 @@ export default function KnowledgePipelinesPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav title="Pipelines" description="作业运行与错误定位" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">

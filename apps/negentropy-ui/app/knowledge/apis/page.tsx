@@ -56,7 +56,7 @@ export default function KnowledgeApisPage() {
   }, []);
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
         title="Knowledge APIs"
         description="API 调用统计与交互式文档"
