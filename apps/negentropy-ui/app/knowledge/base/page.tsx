@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -286,12 +286,7 @@ export default function KnowledgeBasePage() {
 
                   {/* 右侧: Content 表格 + 分页 */}
                   <div className="space-y-3">
-                    <ContentExplorer
-                      items={displayChunks}
-                      loading={contentLoading}
-                      error={contentError}
-                    />
-                    {/* 分页控件 */}
+                    {/* 分页控件 - 移到上方 */}
                     {totalChunks > 0 && (
                       <div className="flex items-center justify-end gap-3">
                         <div className="flex items-center gap-1.5">
@@ -332,6 +327,11 @@ export default function KnowledgeBasePage() {
                         </div>
                       </div>
                     )}
+                    <ContentExplorer
+                      items={displayChunks}
+                      loading={contentLoading}
+                      error={contentError}
+                    />
                   </div>
                 </div>
               )}
