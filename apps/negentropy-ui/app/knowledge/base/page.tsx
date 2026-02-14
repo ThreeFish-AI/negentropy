@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CorpusRecord, useKnowledgeBase } from "@/features/knowledge";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 
@@ -10,10 +10,11 @@ import { CorpusDetail } from "./_components/CorpusDetail";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { IngestPanel } from "./_components/IngestPanel";
 import { SearchWorkspace, SearchWorkspaceRef } from "./_components/SearchWorkspace";
-import { ContentExplorer, ContentExplorerRef, SourceGroup } from "./_components/ContentExplorer";
+import { ContentExplorer } from "./_components/ContentExplorer";
 import { SourceList } from "./_components/SourceList";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
 /**
  * KnowledgeBasePage
@@ -26,12 +27,17 @@ export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState<"search" | "content" | "ingest">(
     "search",
   );
+
+  // Content 标签页状态
   const [selectedSourceUri, setSelectedSourceUri] = useState<string | null | undefined>(undefined);
-  const [sourceGroups, setSourceGroups] = useState<SourceGroup[]>([]);
+  const [allChunks, setAllChunks] = useState<KnowledgeItem[]>([]);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Refs for child components
   const searchWorkspaceRef = useRef<SearchWorkspaceRef>(null);
-  const contentExplorerRef = useRef<ContentExplorerRef>(null);
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -65,13 +71,83 @@ export default function KnowledgeBasePage() {
     }
   }, [kb.corpora, selectedId]);
 
-  // Clear child component results when selection changes
+  // 加载全量 chunks 数据
+  const loadAllChunks = useCallback(async () => {
+    if (!selectedId || activeTab !== "content") return;
+    setContentLoading(true);
+    setContentError(null);
+    try {
+      const data = await fetchKnowledgeItems(selectedId, {
+        appName: APP_NAME,
+        limit: 10000, // 设置合理上限
+        offset: 0,
+      });
+      setAllChunks(data.items);
+    } catch (err) {
+      setContentError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setContentLoading(false);
+    }
+  }, [selectedId, activeTab]);
+
+  // 切换 corpus 或进入 content 标签页时加载数据
+  useEffect(() => {
+    if (activeTab === "content" && selectedId) {
+      loadAllChunks();
+      setSelectedSourceUri(undefined);
+      setPage(1);
+    }
+  }, [selectedId, activeTab, loadAllChunks]);
+
+  // 计算 sourceStats（全局统计）
+  const sourceStats = useMemo(() => {
+    const stats = new Map<string | null, number>();
+    allChunks.forEach((item) => {
+      const key = item.source_uri;
+      stats.set(key, (stats.get(key) || 0) + 1);
+    });
+    return stats;
+  }, [allChunks]);
+
+  // 根据 selectedSourceUri 筛选 chunks
+  const filteredChunks = useMemo(() => {
+    if (selectedSourceUri === undefined) return allChunks;
+    return allChunks.filter((c) => c.source_uri === selectedSourceUri);
+  }, [allChunks, selectedSourceUri]);
+
+  // 分页计算
+  const displayChunks = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredChunks.slice(start, start + pageSize);
+  }, [filteredChunks, page, pageSize]);
+
+  const totalChunks = filteredChunks.length;
+  const totalPages = Math.ceil(totalChunks / pageSize);
+
+  // 切换 source 时重置分页
+  const handleSourceSelect = useCallback((uri: string | null | undefined) => {
+    setSelectedSourceUri(uri);
+    setPage(1);
+  }, []);
+
+  // 分页控件处理
+  const handlePagePrev = useCallback(() => {
+    setPage((p) => Math.max(1, p - 1));
+  }, []);
+
+  const handlePageNext = useCallback(() => {
+    setPage((p) => Math.min(totalPages, p + 1));
+  }, [totalPages]);
+
+  const handlePageSizeChange = useCallback((newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
+  }, []);
+
+  // Clear search results when corpus changes
   useEffect(() => {
     if (selectedId) {
       searchWorkspaceRef.current?.clearResults();
-      contentExplorerRef.current?.clearItems();
-      setSelectedSourceUri(undefined); // 重置 Source 筛选
-      setSourceGroups([]); // 清空分组数据
     }
   }, [selectedId]);
 
@@ -204,21 +280,62 @@ export default function KnowledgeBasePage() {
                         Sources
                       </h3>
                       <SourceList
-                        groups={sourceGroups}
+                        sourceStats={sourceStats}
                         selectedUri={selectedSourceUri}
-                        onSelect={setSelectedSourceUri}
+                        onSelect={handleSourceSelect}
                       />
                     </div>
                   </aside>
 
-                  {/* 右侧: Content 表格 */}
-                  <ContentExplorer
-                    ref={contentExplorerRef}
-                    corpusId={selectedId}
-                    appName={APP_NAME}
-                    selectedSourceUri={selectedSourceUri}
-                    onGroupsChange={setSourceGroups}
-                  />
+                  {/* 右侧: Content 表格 + 分页 */}
+                  <div className="space-y-3">
+                    <ContentExplorer
+                      items={displayChunks}
+                      loading={contentLoading}
+                      error={contentError}
+                    />
+                    {/* 分页控件 */}
+                    {totalChunks > 0 && (
+                      <div className="flex items-center justify-end gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <label htmlFor="page-size" className="text-xs text-muted">
+                            Rows
+                          </label>
+                          <select
+                            id="page-size"
+                            value={pageSize}
+                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                            className="rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground outline-none focus:border-ring"
+                          >
+                            {PAGE_SIZE_OPTIONS.map((size) => (
+                              <option key={size} value={size}>
+                                {size}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={handlePagePrev}
+                            disabled={page === 1 || contentLoading}
+                            className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-xs text-muted">
+                            Page {page} / {totalPages || 1}
+                          </span>
+                          <button
+                            onClick={handlePageNext}
+                            disabled={page >= totalPages || contentLoading}
+                            className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               {activeTab === "ingest" && (
