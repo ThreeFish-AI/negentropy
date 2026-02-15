@@ -1,4 +1,6 @@
-"use strict";
+"use client";
+
+import { useState } from "react";
 
 interface SourceListProps {
   sourceStats: Map<string | null, number>;
@@ -6,6 +8,15 @@ interface SourceListProps {
   onSelect: (uri: string | null | undefined) => void;
   onAddSource?: () => void;
   onReplaceSource?: (uri: string) => void;
+  onSyncSource?: (uri: string) => void;
+}
+
+/**
+ * 判断是否为 URL 类型的 Source
+ * 只有 URL 类型的 Source 才支持 Sync 操作
+ */
+function isUrlSource(uri: string): boolean {
+  return uri.startsWith("http://") || uri.startsWith("https://");
 }
 
 export function SourceList({
@@ -14,6 +25,7 @@ export function SourceList({
   onSelect,
   onAddSource,
   onReplaceSource,
+  onSyncSource,
 }: SourceListProps) {
   const totalCount = Array.from(sourceStats.values()).reduce((sum, c) => sum + c, 0);
 
@@ -60,6 +72,9 @@ export function SourceList({
       {sortedSources.map(({ uri, count }) => {
         const displayUri = uri || "(无来源)";
         const key = uri ?? "__no_source__";
+        const showMenu = uri && (onReplaceSource || onSyncSource);
+        const isUrl = uri ? isUrlSource(uri) : false;
+
         return (
           <div key={key} className="flex min-w-0 items-center gap-1">
             <button
@@ -76,15 +91,88 @@ export function SourceList({
                 {count} chunk{count > 1 ? "s" : ""}
               </span>
             </button>
-            {/* 操作按钮 */}
-            {onReplaceSource && uri && (
+            {/* 操作菜单 */}
+            {showMenu && (
+              <SourceMenu
+                uri={uri!}
+                isUrl={isUrl}
+                onReplace={onReplaceSource}
+                onSync={onSyncSource}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Source 操作下拉菜单
+ * 使用原生 CSS 实现，避免引入额外依赖
+ */
+function SourceMenu({
+  uri,
+  isUrl,
+  onReplace,
+  onSync,
+}: {
+  uri: string;
+  isUrl: boolean;
+  onReplace?: (uri: string) => void;
+  onSync?: (uri: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleReplace = () => {
+    setIsOpen(false);
+    onReplace?.(uri);
+  };
+
+  const handleSync = () => {
+    setIsOpen(false);
+    onSync?.(uri);
+  };
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="rounded p-1 text-muted hover:bg-muted/50 hover:text-foreground"
+        title="Source actions"
+      >
+        <svg
+          className="h-3.5 w-3.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
+          />
+        </svg>
+      </button>
+
+      {/* 下拉菜单 */}
+      {isOpen && (
+        <>
+          {/* 背景遮罩（点击关闭） */}
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+          {/* 菜单内容 */}
+          <div className="absolute right-0 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-border bg-card p-1 shadow-lg">
+            {onReplace && (
               <button
-                onClick={() => onReplaceSource(uri)}
-                className="shrink-0 rounded p-1 text-muted hover:bg-muted/50 hover:text-foreground"
-                title="Replace source"
+                onClick={handleReplace}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
               >
                 <svg
-                  className="h-3.5 w-3.5"
+                  className="h-3 w-3"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -93,14 +181,36 @@ export function SourceList({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                   />
                 </svg>
+                Replace
+              </button>
+            )}
+            {onSync && isUrl && (
+              <button
+                onClick={handleSync}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
+              >
+                <svg
+                  className="h-3 w-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                Sync
               </button>
             )}
           </div>
-        );
-      })}
+        </>
+      )}
     </div>
   );
 }

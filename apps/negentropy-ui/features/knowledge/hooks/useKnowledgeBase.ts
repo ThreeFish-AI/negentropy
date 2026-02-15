@@ -26,6 +26,7 @@ import {
   ingestText,
   ingestUrl,
   replaceSource,
+  syncSource as syncSourceApi,
   searchKnowledge,
   KnowledgeError,
 } from "../utils/knowledge-api";
@@ -103,6 +104,8 @@ export interface UseKnowledgeBaseReturnValue {
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<IngestResult>;
+  /** 同步 URL 源（重新拉取并摄入） */
+  syncSource: (params: { source_uri: string }) => Promise<IngestResult>;
   /** 搜索知识库 */
   search: (query: string, config?: SearchConfig) => Promise<SearchResults>;
 }
@@ -369,6 +372,32 @@ export function useKnowledgeBase(
     [corpus?.id, appName, onError],
   );
 
+  // 同步 URL 源
+  const syncSourceHandler = useCallback(
+    async (params: { source_uri: string }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await syncSourceApi(corpus.id, {
+          app_name: appName,
+          source_uri: params.source_uri,
+        });
+        setState({ isLoading: false, error: null });
+        onIngestSuccess?.(result);
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError, onIngestSuccess],
+  );
+
   // 搜索知识库
   const searchHandler = useCallback(
     async (query: string, config?: SearchConfig) => {
@@ -420,6 +449,7 @@ export function useKnowledgeBase(
     ingestText: ingestTextHandler,
     ingestUrl: ingestUrlHandler,
     replaceSource: replaceSourceHandler,
+    syncSource: syncSourceHandler,
     search: searchHandler,
   };
 }

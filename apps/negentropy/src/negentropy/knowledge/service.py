@@ -594,6 +594,164 @@ class KnowledgeService:
                 )
             raise
 
+    async def sync_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+    ) -> list[KnowledgeRecord]:
+        """Sync a URL source by re-fetching and re-ingesting content.
+
+        完整流程: Fetch → Delete old chunks → Chunking → Embedding → Persist
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: 原始 URL（必须是 HTTP/HTTPS URL）
+
+        Returns:
+            list[KnowledgeRecord]: 新创建的知识记录列表
+        """
+        tracker = None
+        config = self._chunking_config
+
+        # 初始化 Pipeline 追踪器
+        if self._pipeline_dao:
+            tracker = PipelineTracker(
+                dao=self._pipeline_dao,
+                app_name=app_name,
+                operation="sync_source",
+            )
+            await tracker.start(
+                {
+                    "corpus_id": str(corpus_id),
+                    "source_uri": source_uri,
+                    "chunk_size": config.chunk_size,
+                    "overlap": config.overlap,
+                }
+            )
+
+        logger.info(
+            "sync_source_started",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            source_uri=source_uri,
+            run_id=tracker.run_id if tracker else None,
+        )
+
+        try:
+            # 阶段 1: Fetch - 从原始 URL 获取最新内容
+            if tracker:
+                await tracker.start_stage("fetch")
+
+            try:
+                text = await fetch_content(source_uri)
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+
+                if tracker:
+                    await tracker.fail_stage(
+                        "fetch",
+                        {
+                            "type": "CONTENT_FETCH_FAILED",
+                            "message": str(exc),
+                        },
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
+                ) from exc
+
+            if tracker:
+                await tracker.complete_stage(
+                    "fetch",
+                    {
+                        "content_length": len(text) if text else 0,
+                        "source_uri": source_uri,
+                    },
+                )
+
+            if not text:
+                if tracker:
+                    await tracker.fail_stage(
+                        "fetch",
+                        {
+                            "type": "NO_CONTENT",
+                            "message": "No content extracted from URL",
+                        },
+                    )
+                raise ValueError("No content extracted from URL")
+
+            # 阶段 2: Delete - 删除该 source_uri 下的旧记录
+            if tracker:
+                await tracker.start_stage("delete")
+
+            deleted_count = await self._repository.delete_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+            )
+
+            if tracker:
+                await tracker.complete_stage(
+                    "delete",
+                    {
+                        "deleted_count": deleted_count,
+                    },
+                )
+
+            logger.info(
+                "sync_source_old_records_deleted",
+                corpus_id=str(corpus_id),
+                source_uri=source_uri,
+                deleted_count=deleted_count,
+            )
+
+            # 准备 metadata（保留原始 URL 信息）
+            metadata = {"source_url": source_uri}
+
+            # 后续阶段复用 _ingest_text_with_tracker
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=config,
+                tracker=tracker,
+            )
+
+            # 完成 Pipeline
+            if tracker:
+                await tracker.complete(
+                    {
+                        "deleted_count": deleted_count,
+                        "chunk_count": len(records),
+                    }
+                )
+
+            logger.info(
+                "sync_source_completed",
+                corpus_id=str(corpus_id),
+                source_uri=source_uri,
+                deleted_count=deleted_count,
+                new_chunk_count=len(records),
+                run_id=tracker.run_id if tracker else None,
+            )
+
+            return records
+
+        except Exception as exc:
+            if tracker and tracker.current_stage:
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
+            raise
+
     async def list_knowledge(
         self,
         *,
