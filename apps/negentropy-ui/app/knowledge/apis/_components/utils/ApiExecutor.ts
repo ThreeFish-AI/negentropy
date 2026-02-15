@@ -61,6 +61,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
       metadata: params.metadata as Record<string, unknown> | undefined,
       chunk_size: params.chunk_size as number | undefined,
       overlap: params.overlap as number | undefined,
+      preserve_newlines: params.preserve_newlines as boolean | undefined,
     });
   },
 
@@ -73,6 +74,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
       metadata: params.metadata as Record<string, unknown> | undefined,
       chunk_size: params.chunk_size as number | undefined,
       overlap: params.overlap as number | undefined,
+      preserve_newlines: params.preserve_newlines as boolean | undefined,
     });
   },
 
@@ -80,6 +82,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
     if (!corpusId) throw new Error("corpus_id is required");
     return fetchKnowledgeItems(corpusId, {
       appName: APP_NAME,
+      sourceUri: params.source_uri as string | undefined,
       limit: params.limit as number | undefined,
       offset: params.offset as number | undefined,
     });

@@ -1242,3 +1242,88 @@ async def get_graph_build_history(
             for run in runs
         ],
     }
+
+
+# ============================================================================
+# API 调用统计
+# ============================================================================
+
+
+class ApiStatsResponse(BaseModel):
+    """API 统计响应模型"""
+
+    total_calls: int = Field(description="总调用次数")
+    success_count: int = Field(description="成功调用次数")
+    failed_count: int = Field(description="失败调用次数")
+    avg_latency_ms: float = Field(description="平均延迟（毫秒）")
+
+
+@router.get("/stats", response_model=ApiStatsResponse)
+async def get_api_stats(
+    app_name: Optional[str] = Query(default=None),
+    period_hours: int = Query(default=24, ge=1, le=720, description="统计周期（小时）"),
+) -> ApiStatsResponse:
+    """获取 Knowledge API 调用统计
+
+    从 traces 表聚合统计 Knowledge API 的调用情况。
+
+    Args:
+        app_name: 应用名称（可选）
+        period_hours: 统计周期，默认 24 小时
+
+    Returns:
+        ApiStatsResponse: 包含总调用数、成功数、失败数和平均延迟
+    """
+    from datetime import datetime, timedelta
+
+    from sqlalchemy import and_, func as sql_func, select
+
+    from negentropy.models.observability import Trace
+
+    resolved_app = _resolve_app_name(app_name)
+    start_time = datetime.utcnow() - timedelta(hours=period_hours)
+
+    async with AsyncSessionLocal() as db:
+        # 查询符合条件 traces 的统计
+        # 过滤条件: operation_name 以 /knowledge/ 开头，且在时间范围内
+        stmt = (
+            select(
+                sql_func.count().label("total_calls"),
+                sql_func.count().filter(Trace.status_code == "OK").label("success_count"),
+                sql_func.count().filter(Trace.status_code != "OK").label("failed_count"),
+                sql_func.avg(Trace.duration_ns).label("avg_duration_ns"),
+            )
+            .where(
+                and_(
+                    Trace.operation_name.like("/knowledge/%"),
+                    Trace.start_time >= start_time,
+                )
+            )
+        )
+
+        result = await db.execute(stmt)
+        row = result.one()
+
+        total_calls = row.total_calls or 0
+        success_count = row.success_count or 0
+        failed_count = row.failed_count or 0
+        avg_duration_ns = row.avg_duration_ns or 0
+
+        # 纳秒转换为毫秒
+        avg_latency_ms = avg_duration_ns / 1_000_000 if avg_duration_ns else 0.0
+
+        logger.debug(
+            "API stats queried",
+            app_name=resolved_app,
+            period_hours=period_hours,
+            total_calls=total_calls,
+            success_count=success_count,
+            avg_latency_ms=avg_latency_ms,
+        )
+
+        return ApiStatsResponse(
+            total_calls=total_calls,
+            success_count=success_count,
+            failed_count=failed_count,
+            avg_latency_ms=round(avg_latency_ms, 2),
+        )
