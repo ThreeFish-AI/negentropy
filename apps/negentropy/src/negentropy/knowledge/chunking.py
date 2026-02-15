@@ -208,11 +208,7 @@ def _adjust_chunk_boundary(
                 new_end != end
                 and new_end > start
                 and original_end - new_end <= max_adj  # 调整幅度在限制内
-                and (
-                    new_end == 0
-                    or text[new_end - 1] == " "
-                    or not _EN_WORD_PATTERN.match(text[new_end - 1])
-                )
+                and (new_end == 0 or text[new_end - 1] == " " or not _EN_WORD_PATTERN.match(text[new_end - 1]))
             )
             if is_valid_boundary:
                 end = new_end
@@ -223,10 +219,7 @@ def _adjust_chunk_boundary(
                     new_end != end
                     and new_end - original_end <= max_adj  # 调整幅度在限制内
                     and new_end < len(text)
-                    and (
-                        text[new_end] == " "
-                        or not _EN_WORD_PATTERN.match(text[new_end])
-                    )
+                    and (text[new_end] == " " or not _EN_WORD_PATTERN.match(text[new_end]))
                 )
                 if is_valid_right:
                     end = new_end
@@ -242,10 +235,7 @@ def _adjust_chunk_boundary(
                 new_start != start
                 and new_start < end
                 and new_start - start <= max_adj
-                and (
-                    text[new_start - 1] == " "
-                    or not _EN_WORD_PATTERN.match(text[new_start - 1])
-                )
+                and (text[new_start - 1] == " " or not _EN_WORD_PATTERN.match(text[new_start - 1]))
             )
             if is_valid:
                 start = new_start

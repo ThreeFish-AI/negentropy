@@ -537,9 +537,7 @@ class TestWordBoundaryProtection:
         for chunk in chunks:
             english_words = re.findall(r"[a-zA-Z]+", chunk)
             for word in english_words:
-                assert word in ["This", "is", "English", "More", "here"], (
-                    f"Unexpected partial word: '{word}'"
-                )
+                assert word in ["This", "is", "English", "More", "here"], f"Unexpected partial word: '{word}'"
 
     def test_very_long_word_handling(self) -> None:
         """测试超长单词处理"""
