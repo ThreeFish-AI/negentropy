@@ -36,6 +36,58 @@ export interface CodeExamples {
   javascript: string;
 }
 
+// ============================================================================
+// 交互式表单类型定义 (Schema-Driven Form Generation)
+// ============================================================================
+
+/** 表单字段类型 */
+export type FormFieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "select"
+  | "checkbox"
+  | "json"
+  | "corpus_select";
+
+/** 表单字段配置 */
+export interface FormFieldConfig {
+  /** 字段名（对应 requestBody 中的属性） */
+  name: string;
+  /** 字段类型 */
+  type: FormFieldType;
+  /** 显示标签 */
+  label: string;
+  /** 是否必填 */
+  required: boolean;
+  /** 占位提示 */
+  placeholder?: string;
+  /** 默认值 */
+  defaultValue?: unknown;
+  /** 帮助文本 */
+  description?: string;
+  /** select 类型的选项 */
+  options?: Array<{ value: string; label: string }>;
+  /** 数字类型的范围 */
+  min?: number;
+  max?: number;
+  /** 分组（用于高级配置折叠） */
+  group?: "basic" | "advanced";
+}
+
+/** 交互式表单配置 */
+export interface InteractiveFormConfig {
+  /** 表单字段配置 */
+  fields: FormFieldConfig[];
+  /** 主操作按钮文本 */
+  submitLabel?: string;
+  /** 确认对话框配置（危险操作用） */
+  confirmDialog?: {
+    title: string;
+    message: string;
+  };
+}
+
 export interface ApiEndpoint {
   id: string;
   method: HttpMethod;
@@ -46,6 +98,8 @@ export interface ApiEndpoint {
   requestBody?: ApiRequestBody;
   responses: ApiResponse[];
   examples: CodeExamples;
+  /** 交互式表单配置（可选，未配置则显示不支持提示） */
+  interactiveForm?: InteractiveFormConfig;
 }
 
 const BASE_URL = "http://localhost:8000";
@@ -163,6 +217,74 @@ results.items.forEach(item => {
   console.log(\`- \${item.content.slice(0, 100)}...\`);
 });`,
     },
+    interactiveForm: {
+      fields: [
+        {
+          name: "corpus_id",
+          type: "corpus_select",
+          label: "语料库",
+          required: true,
+          placeholder: "选择语料库",
+        },
+        {
+          name: "query",
+          type: "textarea",
+          label: "查询文本",
+          required: true,
+          placeholder: "输入搜索查询",
+        },
+        {
+          name: "mode",
+          type: "select",
+          label: "搜索模式",
+          required: false,
+          defaultValue: "semantic",
+          options: [
+            { value: "semantic", label: "语义检索" },
+            { value: "keyword", label: "关键词检索" },
+            { value: "hybrid", label: "混合检索" },
+          ],
+        },
+        {
+          name: "limit",
+          type: "number",
+          label: "返回数量",
+          required: false,
+          defaultValue: 10,
+          min: 1,
+          max: 1000,
+        },
+        {
+          name: "semantic_weight",
+          type: "number",
+          label: "语义权重",
+          required: false,
+          min: 0,
+          max: 1,
+          group: "advanced",
+          description: "混合检索时语义相似度的权重 (0-1)",
+        },
+        {
+          name: "keyword_weight",
+          type: "number",
+          label: "关键词权重",
+          required: false,
+          min: 0,
+          max: 1,
+          group: "advanced",
+          description: "混合检索时关键词匹配的权重 (0-1)",
+        },
+        {
+          name: "metadata_filter",
+          type: "json",
+          label: "元数据过滤",
+          required: false,
+          group: "advanced",
+          description: "按元数据字段过滤结果",
+        },
+      ],
+      submitLabel: "执行搜索",
+    },
   },
   {
     id: "ingest",
@@ -258,6 +380,67 @@ print(f"Ingested {result['count']} chunks")`,
 const result = await response.json();
 console.log(\`Ingested \${result.count} chunks\`);`,
     },
+    interactiveForm: {
+      fields: [
+        {
+          name: "corpus_id",
+          type: "corpus_select",
+          label: "语料库",
+          required: true,
+          placeholder: "选择语料库",
+        },
+        {
+          name: "text",
+          type: "textarea",
+          label: "文本内容",
+          required: true,
+          placeholder: "输入要摄入的文本内容",
+        },
+        {
+          name: "source_uri",
+          type: "text",
+          label: "来源 URI",
+          required: false,
+          placeholder: "docs://example/doc1",
+          description: "来源标识，用于追溯和更新",
+        },
+        {
+          name: "metadata",
+          type: "json",
+          label: "元数据",
+          required: false,
+          group: "advanced",
+          description: "自定义元数据字段",
+        },
+        {
+          name: "chunk_size",
+          type: "number",
+          label: "分块大小",
+          required: false,
+          defaultValue: 800,
+          min: 1,
+          max: 100000,
+          group: "advanced",
+        },
+        {
+          name: "overlap",
+          type: "number",
+          label: "重叠字符数",
+          required: false,
+          defaultValue: 100,
+          group: "advanced",
+        },
+        {
+          name: "preserve_newlines",
+          type: "checkbox",
+          label: "保留换行符",
+          required: false,
+          defaultValue: false,
+          group: "advanced",
+        },
+      ],
+      submitLabel: "摄入文本",
+    },
   },
   {
     id: "ingest_url",
@@ -327,6 +510,52 @@ print(f"Ingested from URL: {result['count']} chunks")`,
 const result = await response.json();
 console.log(\`Ingested from URL: \${result.count} chunks\`);`,
     },
+    interactiveForm: {
+      fields: [
+        {
+          name: "corpus_id",
+          type: "corpus_select",
+          label: "语料库",
+          required: true,
+          placeholder: "选择语料库",
+        },
+        {
+          name: "url",
+          type: "text",
+          label: "URL",
+          required: true,
+          placeholder: "https://docs.example.com/guide",
+          description: "要抓取并摄入的网页 URL",
+        },
+        {
+          name: "metadata",
+          type: "json",
+          label: "元数据",
+          required: false,
+          group: "advanced",
+          description: "自定义元数据字段",
+        },
+        {
+          name: "chunk_size",
+          type: "number",
+          label: "分块大小",
+          required: false,
+          defaultValue: 800,
+          min: 1,
+          max: 100000,
+          group: "advanced",
+        },
+        {
+          name: "overlap",
+          type: "number",
+          label: "重叠字符数",
+          required: false,
+          defaultValue: 100,
+          group: "advanced",
+        },
+      ],
+      submitLabel: "从 URL 摄入",
+    },
   },
   {
     id: "replace_source",
@@ -395,6 +624,63 @@ print(f"Replaced source: {result['count']} chunks")`,
 
 const result = await response.json();
 console.log(\`Replaced source: \${result.count} chunks\`);`,
+    },
+    interactiveForm: {
+      fields: [
+        {
+          name: "corpus_id",
+          type: "corpus_select",
+          label: "语料库",
+          required: true,
+          placeholder: "选择语料库",
+        },
+        {
+          name: "source_uri",
+          type: "text",
+          label: "来源 URI",
+          required: true,
+          placeholder: "docs://example/doc1",
+          description: "要替换的来源标识",
+        },
+        {
+          name: "text",
+          type: "textarea",
+          label: "新的文本内容",
+          required: true,
+          placeholder: "输入更新后的文本内容",
+        },
+        {
+          name: "metadata",
+          type: "json",
+          label: "元数据",
+          required: false,
+          group: "advanced",
+          description: "自定义元数据字段",
+        },
+        {
+          name: "chunk_size",
+          type: "number",
+          label: "分块大小",
+          required: false,
+          defaultValue: 800,
+          min: 1,
+          max: 100000,
+          group: "advanced",
+        },
+        {
+          name: "overlap",
+          type: "number",
+          label: "重叠字符数",
+          required: false,
+          defaultValue: 100,
+          group: "advanced",
+        },
+      ],
+      submitLabel: "替换来源",
+      confirmDialog: {
+        title: "确认替换",
+        message: "此操作将删除该来源的所有现有知识块，并摄入新内容。确定要继续吗？",
+      },
     },
   },
   {
@@ -488,6 +774,36 @@ console.log(\`Total: \${result.count} items\`);
 result.items.forEach(item => {
   console.log(\`- [\${item.chunk_index}] \${item.content.slice(0, 50)}...\`);
 });`,
+    },
+    interactiveForm: {
+      fields: [
+        {
+          name: "corpus_id",
+          type: "corpus_select",
+          label: "语料库",
+          required: true,
+          placeholder: "选择语料库",
+        },
+        {
+          name: "limit",
+          type: "number",
+          label: "返回数量",
+          required: false,
+          defaultValue: 20,
+          min: 1,
+          max: 100,
+        },
+        {
+          name: "offset",
+          type: "number",
+          label: "偏移量",
+          required: false,
+          defaultValue: 0,
+          min: 0,
+          description: "用于分页，跳过前 N 条记录",
+        },
+      ],
+      submitLabel: "获取列表",
     },
   },
   {
@@ -583,6 +899,43 @@ print(f"Created corpus: {corpus['id']}")`,
 const corpus = await response.json();
 console.log(\`Created corpus: \${corpus.id}\`);`,
     },
+    interactiveForm: {
+      fields: [
+        {
+          name: "name",
+          type: "text",
+          label: "名称",
+          required: true,
+          placeholder: "例如：产品文档",
+        },
+        {
+          name: "description",
+          type: "textarea",
+          label: "描述",
+          required: false,
+          placeholder: "简要描述该语料库的内容用途...",
+        },
+        {
+          name: "chunk_size",
+          type: "number",
+          label: "分块大小",
+          required: false,
+          defaultValue: 800,
+          min: 1,
+          max: 100000,
+          group: "advanced",
+        },
+        {
+          name: "overlap",
+          type: "number",
+          label: "重叠字符数",
+          required: false,
+          defaultValue: 100,
+          group: "advanced",
+        },
+      ],
+      submitLabel: "创建语料库",
+    },
   },
   {
     id: "delete_corpus",
@@ -617,6 +970,22 @@ if response.status_code == 200:
 if (response.ok) {
   console.log('Corpus deleted successfully');
 }`,
+    },
+    interactiveForm: {
+      fields: [
+        {
+          name: "corpus_id",
+          type: "corpus_select",
+          label: "要删除的语料库",
+          required: true,
+          placeholder: "选择语料库",
+        },
+      ],
+      submitLabel: "删除语料库",
+      confirmDialog: {
+        title: "确认删除",
+        message: "此操作将删除语料库及其所有知识项，且不可恢复。确定要继续吗？",
+      },
     },
   },
 ];

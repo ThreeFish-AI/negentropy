@@ -42,6 +42,7 @@ export {
   fetchCorpora,
   createCorpus,
   fetchCorpus,
+  deleteCorpus,
   ingestText,
   ingestUrl,
   replaceSource,
@@ -111,4 +112,7 @@ export type {
   ApiResponse,
   CodeExamples,
   ApiEndpoint,
+  FormFieldType,
+  FormFieldConfig,
+  InteractiveFormConfig,
 } from "./utils/api-specs";
