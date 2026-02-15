@@ -52,6 +52,14 @@ export {
   fetchPipelines,
   upsertPipelines,
   fetchKnowledgeItems,
+  // Graph Enhanced API (Phase 1)
+  buildKnowledgeGraph,
+  fetchCorpusGraph,
+  searchKnowledgeGraph,
+  findGraphNeighbors,
+  findGraphPath,
+  clearCorpusGraph,
+  fetchGraphBuildHistory,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -79,6 +87,19 @@ export type {
   PipelineUpsertResult,
   KnowledgeItem,
   KnowledgeListResponse,
+  // Graph Enhanced Types (Phase 1)
+  GraphSearchMode,
+  GraphBuildParams,
+  GraphBuildResult,
+  GraphSearchParams,
+  GraphSearchResultItem,
+  GraphSearchResults,
+  GraphNeighborsParams,
+  GraphNeighborsResult,
+  GraphPathParams,
+  GraphPathResult,
+  GraphBuildRunRecord,
+  GraphBuildHistoryResult,
 } from "./utils/knowledge-api";
 
 // ============================================================================
