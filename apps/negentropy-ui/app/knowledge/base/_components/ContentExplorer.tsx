@@ -32,6 +32,7 @@ export function ContentExplorer({ items, loading, error }: ContentExplorerProps)
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-card">
               <tr className="border-b border-border text-muted">
+                <th className="pb-2 font-medium w-12">#</th>
                 <th className="pb-2 font-medium">Content Preview</th>
                 <th className="pb-2 font-medium">Created At</th>
               </tr>
@@ -42,6 +43,9 @@ export function ContentExplorer({ items, loading, error }: ContentExplorerProps)
                   key={item.id}
                   className="border-b border-border last:border-0 hover:bg-muted/50"
                 >
+                  <td className="whitespace-nowrap py-2 pr-2 text-muted/70">
+                    {item.chunk_index + 1}
+                  </td>
                   <td className="max-w-[400px] py-2 pr-4">
                     <p className="line-clamp-2" title={item.content}>
                       {item.content}
