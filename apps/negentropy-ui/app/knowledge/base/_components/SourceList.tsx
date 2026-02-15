@@ -63,7 +63,7 @@ export function SourceList({
         return (
           <div key={key} className="flex min-w-0 items-center gap-1">
             <button
-              className={`flex-1 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
+              className={`min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
                 selectedUri === uri
                   ? "bg-foreground text-background shadow-sm"
                   : "text-muted hover:bg-muted/50 hover:text-foreground"
