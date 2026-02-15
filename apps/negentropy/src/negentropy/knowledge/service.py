@@ -250,13 +250,15 @@ class KnowledgeService:
                 app_name=app_name,
                 operation="ingest_text",
             )
-            await tracker.start({
-                "corpus_id": str(corpus_id),
-                "source_uri": source_uri,
-                "text_length": len(text),
-                "chunk_size": config.chunk_size,
-                "overlap": config.overlap,
-            })
+            await tracker.start(
+                {
+                    "corpus_id": str(corpus_id),
+                    "source_uri": source_uri,
+                    "text_length": len(text),
+                    "chunk_size": config.chunk_size,
+                    "overlap": config.overlap,
+                }
+            )
 
         logger.info(
             "ingestion_started",
@@ -281,10 +283,13 @@ class KnowledgeService:
             )
         except Exception as exc:
             if tracker and tracker.current_stage:
-                await tracker.fail_stage(tracker.current_stage, {
-                    "type": type(exc).__name__,
-                    "message": str(exc),
-                })
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
             raise
 
     async def _ingest_text_with_tracker(
@@ -313,10 +318,13 @@ class KnowledgeService:
         )
 
         if tracker:
-            await tracker.complete_stage("chunk", {
-                "chunk_count": len(chunks),
-                "strategy": config.strategy.value if hasattr(config.strategy, "value") else str(config.strategy),
-            })
+            await tracker.complete_stage(
+                "chunk",
+                {
+                    "chunk_count": len(chunks),
+                    "strategy": config.strategy.value if hasattr(config.strategy, "value") else str(config.strategy),
+                },
+            )
 
         logger.debug(
             "chunks_created",
@@ -332,9 +340,12 @@ class KnowledgeService:
             chunks = await self._attach_embeddings(chunks)
 
             if tracker:
-                await tracker.complete_stage("embed", {
-                    "chunk_count": len(chunks),
-                })
+                await tracker.complete_stage(
+                    "embed",
+                    {
+                        "chunk_count": len(chunks),
+                    },
+                )
 
             logger.debug(
                 "embeddings_attached",
@@ -355,9 +366,12 @@ class KnowledgeService:
         )
 
         if tracker:
-            await tracker.complete_stage("persist", {
-                "record_count": len(records),
-            })
+            await tracker.complete_stage(
+                "persist",
+                {
+                    "record_count": len(records),
+                },
+            )
 
         logger.info(
             "ingestion_completed",
@@ -389,13 +403,15 @@ class KnowledgeService:
                 app_name=app_name,
                 operation="replace_source",
             )
-            await tracker.start({
-                "corpus_id": str(corpus_id),
-                "source_uri": source_uri,
-                "text_length": len(text),
-                "chunk_size": config.chunk_size,
-                "overlap": config.overlap,
-            })
+            await tracker.start(
+                {
+                    "corpus_id": str(corpus_id),
+                    "source_uri": source_uri,
+                    "text_length": len(text),
+                    "chunk_size": config.chunk_size,
+                    "overlap": config.overlap,
+                }
+            )
 
         logger.info(
             "replace_source_started",
@@ -417,9 +433,12 @@ class KnowledgeService:
             )
 
             if tracker:
-                await tracker.complete_stage("delete", {
-                    "deleted_count": deleted_count,
-                })
+                await tracker.complete_stage(
+                    "delete",
+                    {
+                        "deleted_count": deleted_count,
+                    },
+                )
 
             logger.info(
                 "old_records_deleted",
@@ -441,19 +460,24 @@ class KnowledgeService:
 
             # 完成 Pipeline
             if tracker:
-                await tracker.complete({
-                    "deleted_count": deleted_count,
-                    "chunk_count": len(records),
-                })
+                await tracker.complete(
+                    {
+                        "deleted_count": deleted_count,
+                        "chunk_count": len(records),
+                    }
+                )
 
             return records
 
         except Exception as exc:
             if tracker and tracker.current_stage:
-                await tracker.fail_stage(tracker.current_stage, {
-                    "type": type(exc).__name__,
-                    "message": str(exc),
-                })
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
             raise
 
     async def ingest_url(
@@ -476,12 +500,14 @@ class KnowledgeService:
                 app_name=app_name,
                 operation="ingest_url",
             )
-            await tracker.start({
-                "corpus_id": str(corpus_id),
-                "url": url,
-                "chunk_size": config.chunk_size,
-                "overlap": config.overlap,
-            })
+            await tracker.start(
+                {
+                    "corpus_id": str(corpus_id),
+                    "url": url,
+                    "chunk_size": config.chunk_size,
+                    "overlap": config.overlap,
+                }
+            )
 
         logger.info(
             "ingest_url_started",
@@ -501,26 +527,35 @@ class KnowledgeService:
                 from .exceptions import KnowledgeError
 
                 if tracker:
-                    await tracker.fail_stage("fetch", {
-                        "type": "CONTENT_FETCH_FAILED",
-                        "message": str(exc),
-                    })
+                    await tracker.fail_stage(
+                        "fetch",
+                        {
+                            "type": "CONTENT_FETCH_FAILED",
+                            "message": str(exc),
+                        },
+                    )
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
             if tracker:
-                await tracker.complete_stage("fetch", {
-                    "content_length": len(text) if text else 0,
-                    "url": url,
-                })
+                await tracker.complete_stage(
+                    "fetch",
+                    {
+                        "content_length": len(text) if text else 0,
+                        "url": url,
+                    },
+                )
 
             if not text:
                 if tracker:
-                    await tracker.fail_stage("fetch", {
-                        "type": "NO_CONTENT",
-                        "message": "No content extracted from URL",
-                    })
+                    await tracker.fail_stage(
+                        "fetch",
+                        {
+                            "type": "NO_CONTENT",
+                            "message": "No content extracted from URL",
+                        },
+                    )
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
@@ -540,18 +575,23 @@ class KnowledgeService:
 
             # 完成 Pipeline
             if tracker:
-                await tracker.complete({
-                    "chunk_count": len(records),
-                })
+                await tracker.complete(
+                    {
+                        "chunk_count": len(records),
+                    }
+                )
 
             return records
 
         except Exception as exc:
             if tracker and tracker.current_stage:
-                await tracker.fail_stage(tracker.current_stage, {
-                    "type": type(exc).__name__,
-                    "message": str(exc),
-                })
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
             raise
 
     async def list_knowledge(
