@@ -213,7 +213,8 @@ def apply_adk_patches():
         from starlette.middleware.base import BaseHTTPMiddleware
         from starlette.requests import Request
         from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
-        from opentelemetry import baggage, context as otel_context
+        from opentelemetry import baggage, context as otel_context, trace
+        from opentelemetry.sdk.trace import StatusCode, Status
         import uuid
         from negentropy.knowledge.api import router as knowledge_router
         from negentropy.engine.api import router as memory_router
@@ -294,11 +295,32 @@ def apply_adk_patches():
                 except Exception as e:
                     logger.warning(f"Failed to ensure tracing init in middleware: {e}")
 
-                try:
-                    return await call_next(request)
-                finally:
-                    if token is not None:
-                        otel_context.detach(token)
+                # 为 HTTP 请求创建 Span
+                tracer = trace.get_tracer("negentropy.http")
+                span_name = f"{request.method} {request.url.path}"
+
+                with tracer.start_as_current_span(span_name) as span:
+                    # 设置 HTTP 属性
+                    span.set_attribute("http.method", request.method)
+                    span.set_attribute("http.url", str(request.url))
+                    span.set_attribute("http.route", request.url.path)
+
+                    try:
+                        response = await call_next(request)
+                        span.set_attribute("http.status_code", response.status_code)
+
+                        if 200 <= response.status_code < 400:
+                            span.set_status(Status(StatusCode.OK))
+                        else:
+                            span.set_status(Status(StatusCode.ERROR))
+
+                        return response
+                    except Exception as e:
+                        span.set_status(Status(StatusCode.ERROR, str(e)))
+                        raise
+                    finally:
+                        if token is not None:
+                            otel_context.detach(token)
 
         app.add_middleware(TracingInitMiddleware)
         app.add_middleware(AuthMiddleware)
