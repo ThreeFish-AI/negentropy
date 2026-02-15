@@ -374,6 +374,11 @@ class KgEntityType(Enum):
     DOCUMENT = "document"  # 文档
     OTHER = "other"  # 其他
 
+    @classmethod
+    def all_values(cls) -> List[str]:
+        """获取所有实体类型值列表"""
+        return [e.value for e in cls]
+
 
 class KgRelationType(Enum):
     """知识图谱关系类型
@@ -402,6 +407,11 @@ class KgRelationType(Enum):
 
     # 共现关系（回退）
     CO_OCCURS = "CO_OCCURS"  # 共现
+
+    @classmethod
+    def all_values(cls) -> List[str]:
+        """获取所有关系类型值列表"""
+        return [e.value for e in cls]
 
 
 @dataclass(frozen=True)

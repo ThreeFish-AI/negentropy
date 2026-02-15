@@ -37,10 +37,8 @@ from .graph_repository import (
 from .llm_extractors import (
     CompositeEntityExtractor,
     CompositeRelationExtractor,
-    EntityType,
-    RelationType,
 )
-from .types import GraphEdge, GraphNode, KnowledgeGraphPayload
+from .types import GraphEdge, GraphNode, KgEntityType, KgRelationType, KnowledgeGraphPayload
 
 logger = get_logger("negentropy.knowledge.graph_service")
 
@@ -59,8 +57,8 @@ class GraphBuildConfig:
 
     enable_llm_extraction: bool = True
     llm_model: Optional[str] = None
-    entity_types: List[str] = field(default_factory=lambda: EntityType.ALL)
-    relation_types: List[str] = field(default_factory=lambda: RelationType.ALL)
+    entity_types: List[str] = field(default_factory=lambda: KgEntityType.all_values())
+    relation_types: List[str] = field(default_factory=lambda: KgRelationType.all_values())
     min_entity_confidence: float = 0.5
     min_relation_confidence: float = 0.5
     batch_size: int = 10

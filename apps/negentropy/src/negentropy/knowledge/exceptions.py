@@ -272,3 +272,101 @@ class InvalidMetadata(ValidationError):
             "reason": reason,
         }
         super().__init__(message, code="INVALID_METADATA", details=details)
+
+
+# ================================
+# 图谱异常 (Graph Error)
+# 知识图谱相关操作异常
+# ================================
+
+
+class GraphBuildError(InfrastructureError):
+    """图谱构建失败异常
+
+    当图谱构建过程失败时抛出。
+    """
+
+    def __init__(
+        self,
+        *,
+        corpus_id: str,
+        run_id: Optional[str] = None,
+        reason: str,
+    ) -> None:
+        message = f"Graph build failed for corpus '{corpus_id}': {reason}"
+        details = {
+            "corpus_id": corpus_id,
+            "reason": reason,
+        }
+        if run_id:
+            details["run_id"] = run_id
+        super().__init__(message, code="GRAPH_BUILD_ERROR", details=details)
+
+
+class EntityExtractionError(InfrastructureError):
+    """实体提取失败异常
+
+    当 LLM 实体提取过程失败时抛出。
+    """
+
+    def __init__(
+        self,
+        *,
+        corpus_id: str,
+        extractor_type: str,
+        reason: str,
+    ) -> None:
+        message = f"Entity extraction failed ({extractor_type}): {reason}"
+        details = {
+            "corpus_id": corpus_id,
+            "extractor_type": extractor_type,
+            "reason": reason,
+        }
+        super().__init__(message, code="ENTITY_EXTRACTION_ERROR", details=details)
+
+
+class RelationExtractionError(InfrastructureError):
+    """关系提取失败异常
+
+    当 LLM 关系提取过程失败时抛出。
+    """
+
+    def __init__(
+        self,
+        *,
+        corpus_id: str,
+        extractor_type: str,
+        reason: str,
+    ) -> None:
+        message = f"Relation extraction failed ({extractor_type}): {reason}"
+        details = {
+            "corpus_id": corpus_id,
+            "extractor_type": extractor_type,
+            "reason": reason,
+        }
+        super().__init__(message, code="RELATION_EXTRACTION_ERROR", details=details)
+
+
+class GraphSearchError(SearchError):
+    """图谱检索失败异常
+
+    当执行图谱检索操作失败时抛出。
+    """
+
+    def __init__(
+        self,
+        *,
+        corpus_id: str,
+        query: str,
+        reason: str,
+    ) -> None:
+        # Truncate query for display
+        query_preview = query[:50] + "..." if len(query) > 50 else query
+        super().__init__(
+            corpus_id=corpus_id,
+            search_mode="graph",
+            reason=f"Query '{query_preview}': {reason}",
+        )
+        # Override code to be more specific
+        self.code = "GRAPH_SEARCH_ERROR"
+        self.details["query_preview"] = query_preview

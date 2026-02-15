@@ -18,6 +18,7 @@ LLM 增强的知识图谱提取器
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -30,76 +31,14 @@ from negentropy.logging import get_logger
 if TYPE_CHECKING:
     from .graph import EntityExtractor, RelationExtractor
 
-from .types import GraphEdge, GraphNode
+from .types import GraphEdge, GraphNode, KgEntityType, KgRelationType
 
 logger = get_logger("negentropy.knowledge.llm_extractors")
 
 
-# ============================================================================
-# Entity and Relation Types
-# ============================================================================
-
-
-class EntityType:
-    """知识图谱实体类型
-
-    定义支持的实体类型，用于分类和筛选。
-    """
-
-    PERSON = "person"  # 人物
-    ORGANIZATION = "organization"  # 组织/公司
-    LOCATION = "location"  # 地点
-    EVENT = "event"  # 事件
-    CONCEPT = "concept"  # 概念/术语
-    PRODUCT = "product"  # 产品
-    DOCUMENT = "document"  # 文档
-    OTHER = "other"  # 其他
-
-    ALL = [PERSON, ORGANIZATION, LOCATION, EVENT, CONCEPT, PRODUCT, DOCUMENT, OTHER]
-
-
-class RelationType:
-    """知识图谱关系类型
-
-    定义支持的实体间关系类型。
-    """
-
-    # 组织关系
-    WORKS_FOR = "WORKS_FOR"  # 就职于
-    PART_OF = "PART_OF"  # 隶属于
-    LOCATED_IN = "LOCATED_IN"  # 位于
-
-    # 语义关系
-    RELATED_TO = "RELATED_TO"  # 相关
-    SIMILAR_TO = "SIMILAR_TO"  # 相似
-    DERIVED_FROM = "DERIVED_FROM"  # 衍生自
-
-    # 因果关系
-    CAUSES = "CAUSES"  # 导致
-    PRECEDES = "PRECEDES"  # 先于
-    FOLLOWS = "FOLLOWS"  # 后于
-
-    # 引用关系
-    MENTIONS = "MENTIONS"  # 提及
-    CREATED_BY = "CREATED_BY"  # 创建者
-
-    # 共现关系（回退）
-    CO_OCCURS = "CO_OCCURS"  # 共现
-
-    ALL = [
-        WORKS_FOR,
-        PART_OF,
-        LOCATED_IN,
-        RELATED_TO,
-        SIMILAR_TO,
-        DERIVED_FROM,
-        CAUSES,
-        PRECEDES,
-        FOLLOWS,
-        MENTIONS,
-        CREATED_BY,
-        CO_OCCURS,
-    ]
+# Backward compatibility aliases (deprecated: use KgEntityType/KgRelationType from types.py)
+EntityType = KgEntityType
+RelationType = KgRelationType
 
 
 # ============================================================================
@@ -356,9 +295,9 @@ Output as JSON with the following structure:
             if not name:
                 continue
 
-            entity_type = entity_data.get("type", EntityType.OTHER)
-            if entity_type not in EntityType.ALL:
-                entity_type = EntityType.OTHER
+            entity_type = entity_data.get("type", KgEntityType.OTHER.value)
+            if entity_type not in KgEntityType.all_values():
+                entity_type = KgEntityType.OTHER.value
 
             result = EntityExtractionResult(
                 name=name,
@@ -376,6 +315,8 @@ Output as JSON with the following structure:
 
         基于名称和语料库 ID 生成确定性 ID，确保同一实体在同一语料库中 ID 一致。
 
+        使用 SHA256 确保跨进程、跨运行的一致性。
+
         Args:
             name: 实体名称
             corpus_id: 语料库 ID
@@ -383,10 +324,10 @@ Output as JSON with the following structure:
         Returns:
             实体 ID 字符串
         """
-        # 使用哈希生成确定性 ID
+        # 使用 SHA256 生成确定性 ID（跨进程一致）
         hash_input = f"{corpus_id}:{name}"
-        hash_value = abs(hash(hash_input))
-        return f"entity:{hash_value:032x}"
+        hash_value = hashlib.sha256(hash_input.encode()).hexdigest()
+        return f"entity:{hash_value[:32]}"
 
     async def _fallback_extract(
         self,
@@ -601,7 +542,7 @@ Output as JSON with the following structure:
         prompt = self.EXTRACTION_PROMPT.format(
             entity_names=json.dumps(entity_names, ensure_ascii=False),
             text=truncated_text,
-            relation_types=", ".join(RelationType.ALL),
+            relation_types=", ".join(KgRelationType.all_values()),
         )
 
         # 重试逻辑
@@ -659,9 +600,9 @@ Output as JSON with the following structure:
             if not source or not target:
                 continue
 
-            relation_type = rel_data.get("type", RelationType.RELATED_TO)
-            if relation_type not in RelationType.ALL:
-                relation_type = RelationType.RELATED_TO
+            relation_type = rel_data.get("type", KgRelationType.RELATED_TO.value)
+            if relation_type not in KgRelationType.all_values():
+                relation_type = KgRelationType.RELATED_TO.value
 
             result = RelationExtractionResult(
                 source_name=source,
