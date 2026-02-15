@@ -6,9 +6,10 @@ interface ContentExplorerProps {
   items: KnowledgeItem[];
   loading?: boolean;
   error?: string | null;
+  offset?: number;
 }
 
-export function ContentExplorer({ items, loading, error }: ContentExplorerProps) {
+export function ContentExplorer({ items, loading, error, offset = 0 }: ContentExplorerProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border bg-card p-5 shadow-sm">
       <h2 className="shrink-0 text-sm font-semibold text-card-foreground">
@@ -38,13 +39,13 @@ export function ContentExplorer({ items, loading, error }: ContentExplorerProps)
               </tr>
             </thead>
             <tbody className="text-foreground">
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <tr
                   key={item.id}
                   className="border-b border-border last:border-0 hover:bg-muted/50"
                 >
                   <td className="whitespace-nowrap py-2 pr-2 text-muted/70">
-                    {item.chunk_index + 1}
+                    {offset + index + 1}
                   </td>
                   <td className="max-w-[400px] py-2 pr-4">
                     <p className="line-clamp-2" title={item.content}>
