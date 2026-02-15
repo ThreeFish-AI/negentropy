@@ -407,12 +407,15 @@ class AgeGraphRepository(GraphRepository):
             WHERE id = :entity_id
         """)
 
-        await session.execute(query, {
-            "entity_id": entity.id.replace("entity:", ""),
-            "entity_type": entity.node_type,
-            "confidence": confidence,
-            "metadata": str({"graph_label": entity.label}),
-        })
+        await session.execute(
+            query,
+            {
+                "entity_id": entity.id.replace("entity:", ""),
+                "entity_type": entity.node_type,
+                "confidence": confidence,
+                "metadata": str({"graph_label": entity.label}),
+            },
+        )
 
         await session.commit()
 
@@ -478,6 +481,7 @@ class AgeGraphRepository(GraphRepository):
         related_entities = []
         if row and row.related:
             import json
+
             related_entities = json.loads(row.related) if isinstance(row.related, str) else row.related
 
         # 添加新关系
@@ -492,10 +496,14 @@ class AgeGraphRepository(GraphRepository):
         """)
 
         import json
-        await session.execute(update_query, {
-            "source_id": source_id.replace("entity:", ""),
-            "related": json.dumps(related_entities),
-        })
+
+        await session.execute(
+            update_query,
+            {
+                "source_id": source_id.replace("entity:", ""),
+                "related": json.dumps(related_entities),
+            },
+        )
 
         await session.commit()
 
@@ -560,10 +568,13 @@ class AgeGraphRepository(GraphRepository):
             LIMIT :limit
         """)
 
-        result = await session.execute(query, {
-            "entity_id": entity_id.replace("entity:", ""),
-            "limit": limit,
-        })
+        result = await session.execute(
+            query,
+            {
+                "entity_id": entity_id.replace("entity:", ""),
+                "limit": limit,
+            },
+        )
 
         neighbors = []
         for row in result:
@@ -634,16 +645,20 @@ class AgeGraphRepository(GraphRepository):
         """)
 
         import json
-        result = await session.execute(query, {
-            "corpus_id": str(corpus_id),
-            "app_name": app_name,
-            "query": query_text,
-            "embedding": json.dumps(query_embedding),
-            "limit": limit,
-            "graph_depth": graph_depth,
-            "semantic_weight": semantic_weight,
-            "graph_weight": graph_weight,
-        })
+
+        result = await session.execute(
+            query,
+            {
+                "corpus_id": str(corpus_id),
+                "app_name": app_name,
+                "query": query_text,
+                "embedding": json.dumps(query_embedding),
+                "limit": limit,
+                "graph_depth": graph_depth,
+                "semantic_weight": semantic_weight,
+                "graph_weight": graph_weight,
+            },
+        )
 
         results = []
         for row in result:
@@ -687,10 +702,13 @@ class AgeGraphRepository(GraphRepository):
               AND entity_type IS NOT NULL
         """)
 
-        result = await session.execute(entities_query, {
-            "corpus_id": str(corpus_id),
-            "app_name": app_name,
-        })
+        result = await session.execute(
+            entities_query,
+            {
+                "corpus_id": str(corpus_id),
+                "app_name": app_name,
+            },
+        )
 
         nodes = []
         edges = []
@@ -778,14 +796,17 @@ class AgeGraphRepository(GraphRepository):
                 (:id, :app_name, :corpus_id, :run_id, 'running', :config::jsonb, :model, NOW())
         """)
 
-        await session.execute(query, {
-            "id": str(run_uuid),
-            "app_name": app_name,
-            "corpus_id": str(corpus_id),
-            "run_id": run_id,
-            "config": json.dumps(extractor_config),
-            "model": model_name,
-        })
+        await session.execute(
+            query,
+            {
+                "id": str(run_uuid),
+                "app_name": app_name,
+                "corpus_id": str(corpus_id),
+                "run_id": run_id,
+                "config": json.dumps(extractor_config),
+                "model": model_name,
+            },
+        )
 
         await session.commit()
 
@@ -818,13 +839,16 @@ class AgeGraphRepository(GraphRepository):
             WHERE id = :run_id
         """)
 
-        await session.execute(query, {
-            "run_id": str(run_id),
-            "status": status,
-            "entity_count": entity_count,
-            "relation_count": relation_count,
-            "error_message": error_message,
-        })
+        await session.execute(
+            query,
+            {
+                "run_id": str(run_id),
+                "status": status,
+                "entity_count": entity_count,
+                "relation_count": relation_count,
+                "error_message": error_message,
+            },
+        )
 
         await session.commit()
 
@@ -855,11 +879,14 @@ class AgeGraphRepository(GraphRepository):
             LIMIT :limit
         """)
 
-        result = await session.execute(query, {
-            "corpus_id": str(corpus_id),
-            "app_name": app_name,
-            "limit": limit,
-        })
+        result = await session.execute(
+            query,
+            {
+                "corpus_id": str(corpus_id),
+                "app_name": app_name,
+                "limit": limit,
+            },
+        )
 
         runs = []
         for row in result:

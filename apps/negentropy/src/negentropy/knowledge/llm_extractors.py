@@ -729,10 +729,14 @@ class CompositeEntityExtractor:
             fallback_to_regex: 失败时是否回退到正则
         """
         self._enable_llm = enable_llm
-        self._llm_extractor = LLMEntityExtractor(
-            model=llm_model,
-            fallback_to_regex=fallback_to_regex,
-        ) if enable_llm else None
+        self._llm_extractor = (
+            LLMEntityExtractor(
+                model=llm_model,
+                fallback_to_regex=fallback_to_regex,
+            )
+            if enable_llm
+            else None
+        )
 
     async def extract(
         self,
@@ -778,10 +782,14 @@ class CompositeRelationExtractor:
             fallback_to_cooccurrence: 失败时是否回退到共现
         """
         self._enable_llm = enable_llm
-        self._llm_extractor = LLMRelationExtractor(
-            model=llm_model,
-            fallback_to_cooccurrence=fallback_to_cooccurrence,
-        ) if enable_llm else None
+        self._llm_extractor = (
+            LLMRelationExtractor(
+                model=llm_model,
+                fallback_to_cooccurrence=fallback_to_cooccurrence,
+            )
+            if enable_llm
+            else None
+        )
 
     async def extract(
         self,
