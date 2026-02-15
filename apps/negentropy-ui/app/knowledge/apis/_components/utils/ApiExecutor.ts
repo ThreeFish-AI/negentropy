@@ -15,6 +15,8 @@ import {
   deleteCorpus,
 } from "@/features/knowledge";
 
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+
 type ExecutorResult = Promise<unknown>;
 
 interface ExecutorContext {
@@ -28,6 +30,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
   search: async ({ corpusId, params }) => {
     if (!corpusId) throw new Error("corpus_id is required");
     return searchKnowledge(corpusId, {
+      app_name: APP_NAME,
       query: params.query as string,
       mode: params.mode as "semantic" | "keyword" | "hybrid",
       limit: params.limit as number | undefined,
@@ -40,6 +43,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
   ingest: async ({ corpusId, params }) => {
     if (!corpusId) throw new Error("corpus_id is required");
     return ingestText(corpusId, {
+      app_name: APP_NAME,
       text: params.text as string,
       source_uri: params.source_uri as string | undefined,
       metadata: params.metadata as Record<string, unknown> | undefined,
@@ -52,6 +56,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
   ingest_url: async ({ corpusId, params }) => {
     if (!corpusId) throw new Error("corpus_id is required");
     return ingestUrl(corpusId, {
+      app_name: APP_NAME,
       url: params.url as string,
       metadata: params.metadata as Record<string, unknown> | undefined,
       chunk_size: params.chunk_size as number | undefined,
@@ -62,6 +67,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
   replace_source: async ({ corpusId, params }) => {
     if (!corpusId) throw new Error("corpus_id is required");
     return replaceSource(corpusId, {
+      app_name: APP_NAME,
       text: params.text as string,
       source_uri: params.source_uri as string,
       metadata: params.metadata as Record<string, unknown> | undefined,
@@ -73,6 +79,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
   list_knowledge: async ({ corpusId, params }) => {
     if (!corpusId) throw new Error("corpus_id is required");
     return fetchKnowledgeItems(corpusId, {
+      appName: APP_NAME,
       limit: params.limit as number | undefined,
       offset: params.offset as number | undefined,
     });
@@ -80,6 +87,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
 
   create_corpus: async ({ params }) => {
     return createCorpus({
+      app_name: APP_NAME,
       name: params.name as string,
       description: params.description as string | undefined,
       config: params.chunk_size || params.overlap
