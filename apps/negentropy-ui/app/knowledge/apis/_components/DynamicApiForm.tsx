@@ -25,6 +25,8 @@ function initFormValues(fields: FormFieldConfig[]): Record<string, unknown> {
       values[field.name] = field.defaultValue;
     } else if (field.type === "checkbox") {
       values[field.name] = false;
+    } else if (field.type === "number") {
+      values[field.name] = undefined;
     } else if (field.type === "json") {
       values[field.name] = undefined;
     } else {
