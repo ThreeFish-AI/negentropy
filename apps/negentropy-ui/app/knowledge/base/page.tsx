@@ -216,7 +216,10 @@ export default function KnowledgeBasePage() {
   const handleSyncSource = useCallback(
     async (uri: string) => {
       try {
-        await kb.syncSource({ source_uri: uri });
+        await kb.syncSource({
+          source_uri: uri,
+          chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
+        });
         loadChunks();
       } catch (err) {
         console.error("Sync source failed:", err);

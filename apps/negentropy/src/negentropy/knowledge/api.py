@@ -95,6 +95,9 @@ class ReplaceSourceRequest(BaseModel):
 class SyncSourceRequest(BaseModel):
     app_name: Optional[str] = None
     source_uri: str
+    chunk_size: Optional[int] = None
+    overlap: Optional[int] = None
+    preserve_newlines: Optional[bool] = None
 
 
 class SearchRequest(BaseModel):
@@ -681,10 +684,16 @@ async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, 
 
     try:
         service = _get_service()
+        chunking_config = _build_chunking_config(
+            chunk_size=payload.chunk_size,
+            overlap=payload.overlap,
+            preserve_newlines=payload.preserve_newlines,
+        )
         records = await service.sync_source(
             corpus_id=corpus_id,
             app_name=resolved_app,
             source_uri=source_uri,
+            chunking_config=chunking_config,
         )
 
         logger.info(

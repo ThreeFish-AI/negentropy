@@ -460,6 +460,9 @@ export async function syncSource(
   params: {
     app_name?: string;
     source_uri: string;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
   },
 ): Promise<IngestResult> {
   const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {

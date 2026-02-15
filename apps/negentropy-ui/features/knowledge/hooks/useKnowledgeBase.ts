@@ -374,7 +374,7 @@ export function useKnowledgeBase(
 
   // 同步 URL 源
   const syncSourceHandler = useCallback(
-    async (params: { source_uri: string }) => {
+    async (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => {
       if (!corpus?.id) {
         throw new Error("No corpus selected");
       }
@@ -384,6 +384,9 @@ export function useKnowledgeBase(
         const result = await syncSourceApi(corpus.id, {
           app_name: appName,
           source_uri: params.source_uri,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);

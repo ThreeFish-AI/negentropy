@@ -600,6 +600,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
+        chunking_config: Optional[ChunkingConfig] = None,
     ) -> list[KnowledgeRecord]:
         """Sync a URL source by re-fetching and re-ingesting content.
 
@@ -609,12 +610,13 @@ class KnowledgeService:
             corpus_id: 知识库 ID
             app_name: 应用名称
             source_uri: 原始 URL（必须是 HTTP/HTTPS URL）
+            chunking_config: 可选的分块配置，未提供时使用默认配置
 
         Returns:
             list[KnowledgeRecord]: 新创建的知识记录列表
         """
         tracker = None
-        config = self._chunking_config
+        config = chunking_config or self._chunking_config
 
         # 初始化 Pipeline 追踪器
         if self._pipeline_dao:
