@@ -61,7 +61,7 @@ export function SourceList({
         const displayUri = uri || "(无来源)";
         const key = uri ?? "__no_source__";
         return (
-          <div key={key} className="flex items-center gap-1">
+          <div key={key} className="flex min-w-0 items-center gap-1">
             <button
               className={`flex-1 rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
                 selectedUri === uri
