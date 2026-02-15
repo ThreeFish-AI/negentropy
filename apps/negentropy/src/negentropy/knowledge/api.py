@@ -1248,6 +1248,18 @@ async def get_graph_build_history(
 # API 调用统计
 # ============================================================================
 
+# Endpoint ID 到 operation_name LIKE 模式的映射
+# 用于按单个 API 端点过滤统计
+ENDPOINT_PATTERNS: dict[str, list[str]] = {
+    "search": ["%/search"],
+    "ingest": ["%/ingest"],  # 注意：需要排除 ingest_url
+    "ingest_url": ["%/ingest_url"],
+    "replace_source": ["%/replace_source"],
+    "list_knowledge": ["GET %/knowledge/%"],  # GET 请求
+    "create_corpus": ["POST /knowledge/base"],  # POST 到 /knowledge/base（无 UUID）
+    "delete_corpus": ["DELETE %/knowledge/base/%"],  # DELETE 请求
+}
+
 
 class ApiStatsResponse(BaseModel):
     """API 统计响应模型"""
@@ -1262,21 +1274,24 @@ class ApiStatsResponse(BaseModel):
 async def get_api_stats(
     app_name: Optional[str] = Query(default=None),
     period_hours: int = Query(default=24, ge=1, le=720, description="统计周期（小时）"),
+    endpoint: Optional[str] = Query(default=None, description="API endpoint ID (如 search, ingest)"),
 ) -> ApiStatsResponse:
     """获取 Knowledge API 调用统计
 
     从 traces 表聚合统计 Knowledge API 的调用情况。
+    支持按单个端点过滤，或返回所有 Knowledge API 的汇总统计。
 
     Args:
         app_name: 应用名称（可选）
         period_hours: 统计周期，默认 24 小时
+        endpoint: API 端点 ID（可选），如 "search"、"ingest" 等
 
     Returns:
         ApiStatsResponse: 包含总调用数、成功数、失败数和平均延迟
     """
     from datetime import datetime, timedelta
 
-    from sqlalchemy import and_, func as sql_func, select
+    from sqlalchemy import and_, func as sql_func, or_, select
 
     from negentropy.models.observability import Trace
 
@@ -1284,8 +1299,18 @@ async def get_api_stats(
     start_time = datetime.utcnow() - timedelta(hours=period_hours)
 
     async with AsyncSessionLocal() as db:
-        # 查询符合条件 traces 的统计
-        # 过滤条件: operation_name 以 /knowledge/ 开头，且在时间范围内
+        # 构建过滤条件
+        conditions = [Trace.start_time >= start_time]
+
+        if endpoint and endpoint in ENDPOINT_PATTERNS:
+            # 按单个端点过滤
+            patterns = ENDPOINT_PATTERNS[endpoint]
+            or_conditions = [Trace.operation_name.like(p) for p in patterns]
+            conditions.append(or_(*or_conditions))
+        else:
+            # 默认：所有 Knowledge API
+            conditions.append(Trace.operation_name.like("%/knowledge/%"))
+
         stmt = (
             select(
                 sql_func.count().label("total_calls"),
@@ -1293,12 +1318,7 @@ async def get_api_stats(
                 sql_func.count().filter(Trace.status_code != "OK").label("failed_count"),
                 sql_func.avg(Trace.duration_ns).label("avg_duration_ns"),
             )
-            .where(
-                and_(
-                    Trace.operation_name.like("%/knowledge/%"),
-                    Trace.start_time >= start_time,
-                )
-            )
+            .where(and_(*conditions))
         )
 
         result = await db.execute(stmt)
@@ -1316,6 +1336,7 @@ async def get_api_stats(
             "API stats queried",
             app_name=resolved_app,
             period_hours=period_hours,
+            endpoint=endpoint,
             total_calls=total_calls,
             success_count=success_count,
             avg_latency_ms=avg_latency_ms,
