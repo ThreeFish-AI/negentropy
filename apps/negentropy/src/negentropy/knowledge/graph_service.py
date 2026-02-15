@@ -249,8 +249,7 @@ class GraphService:
 
                     # 过滤低置信度实体
                     entities = [
-                        e for e in entities
-                        if e.metadata.get("confidence", 1.0) >= build_config.min_entity_confidence
+                        e for e in entities if e.metadata.get("confidence", 1.0) >= build_config.min_entity_confidence
                     ]
 
                     # 提取关系
@@ -258,7 +257,8 @@ class GraphService:
 
                     # 过滤低置信度关系
                     relations = [
-                        r for r in relations
+                        r
+                        for r in relations
                         if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
                     ]
 
@@ -266,7 +266,7 @@ class GraphService:
 
             # 批量处理
             for i in range(0, len(chunks), batch_size):
-                batch = chunks[i:i + batch_size]
+                batch = chunks[i : i + batch_size]
                 results = await asyncio.gather(
                     *[process_chunk(chunk) for chunk in batch],
                     return_exceptions=True,
@@ -300,10 +300,7 @@ class GraphService:
             )
 
             # 重新映射关系中的实体 ID
-            label_to_id = {
-                e.label: e.id
-                for e in entities_to_save
-            }
+            label_to_id = {e.label: e.id for e in entities_to_save}
 
             valid_relations = []
             for relation in all_relations:
@@ -445,7 +442,7 @@ class GraphService:
                         limit=query_config.neighbor_limit,
                     )
                     # 创建新的结果对象（因为 dataclass 是 frozen 的）
-                    object.__setattr__(result, 'neighbors', neighbors)
+                    object.__setattr__(result, "neighbors", neighbors)
                 except Exception as exc:
                     logger.warning(
                         "neighbor_load_error",
