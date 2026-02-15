@@ -26,7 +26,7 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.db.session import get_async_session
+from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 
@@ -381,9 +381,8 @@ class AgeGraphRepository(GraphRepository):
         """获取数据库会话"""
         if self._session:
             return self._session
-        async for session in get_async_session():
+        async with AsyncSessionLocal() as session:
             return session
-        raise RuntimeError("Failed to get database session")
 
     async def create_entity(
         self,
