@@ -293,6 +293,7 @@ export default function KnowledgeBasePage() {
                           items={displayChunks}
                           loading={contentLoading}
                           error={contentError}
+                          offset={(page - 1) * pageSize}
                         />
                         {/* 分页控件 */}
                         {totalChunks > 0 && (
