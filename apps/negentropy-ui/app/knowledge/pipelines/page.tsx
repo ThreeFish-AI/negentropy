@@ -33,6 +33,48 @@ const STAGE_LABELS: Record<string, string> = {
   persist: "持久化",
 };
 
+// Stage 宽度算法参数
+const MIN_STAGE_WIDTH = 8; // 最小宽度百分比
+const MAX_STAGE_WIDTH = 50; // 最大宽度百分比
+
+// 检查是否有运行中的 Run
+const hasRunningRuns = (runs: PipelineRunRecord[] | undefined): boolean => {
+  return (
+    runs?.some((run) => {
+      const status = run.status?.toLowerCase();
+      return status === "running" || status === "in_progress";
+    }) ?? false
+  );
+};
+
+// 计算 Stage 宽度（基于对数比例，避免极端比例）
+const calculateStageWidth = (
+  stage: { duration_ms?: number },
+  allStages: Record<string, { duration_ms?: number }>
+): string => {
+  const entries = Object.entries(allStages);
+  const stageCount = entries.length;
+
+  if (stageCount <= 1) return "100%";
+
+  // 计算对数耗时总和
+  let totalLogDuration = 0;
+  for (const [, s] of entries) {
+    const duration = s.duration_ms || 100; // 默认 100ms
+    totalLogDuration += Math.log10(duration + 1);
+  }
+
+  // 当前 Stage 的对数耗时
+  const currentDuration = stage.duration_ms || 100;
+  const currentLogDuration = Math.log10(currentDuration + 1);
+
+  // 按比例分配，限制范围
+  const proportionalWidth = (currentLogDuration / totalLogDuration) * 100;
+  const clampedWidth = Math.max(MIN_STAGE_WIDTH, Math.min(MAX_STAGE_WIDTH, proportionalWidth));
+
+  return `${clampedWidth}%`;
+};
+
 export default function KnowledgePipelinesPage() {
   const [payload, setPayload] = useState<KnowledgePipelinesPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +102,32 @@ export default function KnowledgePipelinesPage() {
       active = false;
     };
   }, []);
+
+  // 自动刷新 Effect（当有 running 状态时启动）
+  useEffect(() => {
+    if (!hasRunningRuns(payload?.runs)) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const data = await fetchPipelines(APP_NAME);
+        setPayload(data);
+        setError(null);
+
+        // 保持选中状态，更新数据
+        setSelected((prev) => {
+          if (!prev) return data.runs?.[0] ?? null;
+          const updated = data.runs?.find((r) => r.id === prev.id);
+          return updated ?? prev;
+        });
+      } catch (err) {
+        setError(String(err));
+      }
+    }, 3000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [payload?.runs]);
 
   const runs = payload?.runs || [];
   const statusColor = (status?: string) => {
@@ -193,9 +261,32 @@ export default function KnowledgePipelinesPage() {
                             {getSortedStages(run.stages).map(([stageName, stage]) => (
                               <div
                                 key={stageName}
-                                className={`h-1.5 flex-1 rounded-full ${statusColor(stage.status)}`}
-                                title={`${STAGE_LABELS[stageName] || stageName}: ${stage.status}${stage.duration_ms ? ` (${stage.duration_ms}ms)` : ""}`}
-                              />
+                                className="relative group"
+                                style={{ width: calculateStageWidth(stage, run.stages!) }}
+                              >
+                                <div className={`h-1.5 w-full rounded-full ${statusColor(stage.status)}`} />
+                                {/* Hover Tooltip */}
+                                <div
+                                  className="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md
+                                  bg-zinc-800 px-2 py-1.5 text-[11px] text-white opacity-0 shadow-lg
+                                  transition-opacity duration-150 group-hover:opacity-100
+                                  dark:bg-zinc-700 dark:text-zinc-100"
+                                >
+                                  <div className="font-medium">{STAGE_LABELS[stageName] || stageName}</div>
+                                  <div className="text-zinc-300 dark:text-zinc-400">
+                                    {stage.status}
+                                    {stage.duration_ms ? ` · ${formatDuration(stage.duration_ms)}` : ""}
+                                  </div>
+                                  {stage.status === "failed" && stage.error && (
+                                    <div className="mt-0.5 max-w-[150px] truncate text-rose-400">Error</div>
+                                  )}
+                                  {stage.status === "skipped" && stage.reason && (
+                                    <div className="mt-0.5 max-w-[150px] truncate italic text-zinc-400">
+                                      {stage.reason}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             ))}
                           </div>
                         )}
