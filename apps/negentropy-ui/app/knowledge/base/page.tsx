@@ -211,6 +211,19 @@ export default function KnowledgeBasePage() {
     setIsReplaceOpen(true);
   }, []);
 
+  // Sync Source handler
+  const handleSyncSource = useCallback(
+    async (uri: string) => {
+      try {
+        await kb.syncSource({ source_uri: uri });
+        loadChunks();
+      } catch (err) {
+        console.error("Sync source failed:", err);
+      }
+    },
+    [kb, loadChunks],
+  );
+
   const handleIngestSuccess = useCallback(() => {
     setIsAddSourceOpen(false);
     loadChunks();
@@ -306,6 +319,7 @@ export default function KnowledgeBasePage() {
                             onSelect={handleSourceSelect}
                             onAddSource={() => setIsAddSourceOpen(true)}
                             onReplaceSource={handleOpenReplace}
+                            onSyncSource={handleSyncSource}
                           />
                         </div>
                       </aside>

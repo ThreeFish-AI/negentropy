@@ -91,6 +91,11 @@ class ReplaceSourceRequest(BaseModel):
     preserve_newlines: Optional[bool] = None
 
 
+class SyncSourceRequest(BaseModel):
+    app_name: Optional[str] = None
+    source_uri: str
+
+
 class SearchRequest(BaseModel):
     app_name: Optional[str] = None
     query: str
@@ -560,6 +565,71 @@ async def replace_source(corpus_id: UUID, payload: ReplaceSourceRequest) -> Dict
         chunking_config=chunking_config,
     )
     return {"count": len(records), "items": [r.id for r in records]}
+
+
+@router.post("/base/{corpus_id}/sync_source")
+async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, Any]:
+    """Re-ingest a URL source with latest content.
+
+    重新从原始 URL 拉取内容并执行完整的 Ingest 流程：
+    Fetch → Delete old chunks → Chunking → Embedding → Persist
+
+    Args:
+        corpus_id: 知识库 ID
+        payload: 包含 source_uri（必须是有效的 URL）
+
+    Returns:
+        Dict: {"count": 新 chunks 数量, "items": [chunk_ids]}
+
+    Raises:
+        400: source_uri 不是有效的 URL
+        500: 内容获取或处理失败
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    source_uri = payload.source_uri
+
+    # 验证 source_uri 是有效的 URL
+    if not source_uri or not (source_uri.startswith("http://") or source_uri.startswith("https://")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_SOURCE_URI",
+                "message": "source_uri must be a valid HTTP/HTTPS URL for sync operation",
+            },
+        )
+
+    logger.info(
+        "api_sync_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        source_uri=source_uri,
+    )
+
+    try:
+        service = _get_service()
+        records = await service.sync_source(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            source_uri=source_uri,
+        )
+
+        logger.info(
+            "api_sync_source_completed",
+            corpus_id=str(corpus_id),
+            source_uri=source_uri,
+            record_count=len(records),
+        )
+
+        return {"count": len(records), "items": [r.id for r in records]}
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
 
 
 @router.post("/base/{corpus_id}/search")

@@ -455,6 +455,21 @@ export async function replaceSource(
   return res.json();
 }
 
+export async function syncSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+  },
+): Promise<IngestResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
 export async function updateCorpus(
   id: string,
   params: {
