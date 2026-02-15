@@ -241,7 +241,7 @@ export default function KnowledgeBasePage() {
         description="数据源管理、索引构建与检索配置"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
+        <div className="flex min-h-0 flex-1 gap-4 px-6 py-6">
           {/* Left sidebar: Corpus + Detail */}
           <aside className="min-h-0 min-w-0 w-[240px] shrink-0 overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
