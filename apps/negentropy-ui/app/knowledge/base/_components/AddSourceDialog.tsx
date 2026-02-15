@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { IngestResult } from "@/features/knowledge";
+import { IngestResult, ChunkingConfig } from "@/features/knowledge";
 
 interface AddSourceDialogProps {
   isOpen: boolean;
   corpusId: string | null;
   onClose: () => void;
-  onIngest: (params: { text: string; source_uri?: string }) => Promise<IngestResult>;
-  onIngestUrl: (params: { url: string }) => Promise<IngestResult>;
+  onIngest: (params: { text: string; source_uri?: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
+  onIngestUrl: (params: { url: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
+  chunkingConfig?: ChunkingConfig;
   onSuccess?: () => void;
 }
 
@@ -18,6 +19,7 @@ export function AddSourceDialog({
   onClose,
   onIngest,
   onIngestUrl,
+  chunkingConfig,
   onSuccess,
 }: AddSourceDialogProps) {
   const [mode, setMode] = useState<"text" | "url">("text");
@@ -40,9 +42,10 @@ export function AddSourceDialog({
         await onIngest({
           text,
           source_uri: sourceUri || undefined,
+          chunkingConfig,
         });
       } else {
-        await onIngestUrl({ url });
+        await onIngestUrl({ url, chunkingConfig });
       }
       // Reset form
       setSourceUri("");

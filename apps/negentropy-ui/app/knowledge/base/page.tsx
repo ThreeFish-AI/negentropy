@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase } from "@/features/knowledge";
+import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase, ChunkingConfig } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 
@@ -191,7 +191,8 @@ export default function KnowledgeBasePage() {
   };
 
   const handleIngest = useCallback(
-    (params: { text: string; source_uri?: string }) => kb.ingestText(params),
+    (params: { text: string; source_uri?: string; chunkingConfig?: ChunkingConfig }) =>
+      kb.ingestText(params),
     [kb],
   );
 
@@ -201,7 +202,7 @@ export default function KnowledgeBasePage() {
   );
 
   const handleIngestUrl = useCallback(
-    (params: { url: string }) => kb.ingestUrl(params),
+    (params: { url: string; chunkingConfig?: ChunkingConfig }) => kb.ingestUrl(params),
     [kb],
   );
 
@@ -403,6 +404,7 @@ export default function KnowledgeBasePage() {
         onClose={() => setIsAddSourceOpen(false)}
         onIngest={handleIngest}
         onIngestUrl={handleIngestUrl}
+        chunkingConfig={kb.corpus?.config as ChunkingConfig | undefined}
         onSuccess={handleIngestSuccess}
       />
 
