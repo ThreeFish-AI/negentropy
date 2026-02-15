@@ -1295,7 +1295,7 @@ async def get_api_stats(
             )
             .where(
                 and_(
-                    Trace.operation_name.like("/knowledge/%"),
+                    Trace.operation_name.like("%/knowledge/%"),
                     Trace.start_time >= start_time,
                 )
             )
