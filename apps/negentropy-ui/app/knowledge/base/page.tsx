@@ -230,7 +230,7 @@ export default function KnowledgeBasePage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
           {/* Left sidebar: Corpus + Detail */}
-          <aside className="min-h-0 min-w-0 w-[280px] shrink-0 overflow-y-auto">
+          <aside className="min-h-0 min-w-0 w-[240px] shrink-0 overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
               <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
                 <h2 className="text-sm font-semibold text-card-foreground">
@@ -295,7 +295,7 @@ export default function KnowledgeBasePage() {
                   {activeTab === "content" && (
                     <div className="flex min-h-0 flex-1 gap-4">
                       {/* 左侧: Sources 列表 */}
-                      <aside className="shrink-0 w-[200px]">
+                      <aside className="shrink-0 w-[220px]">
                         <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
                           <h3 className="mb-2 text-xs font-semibold text-card-foreground">
                             Sources
