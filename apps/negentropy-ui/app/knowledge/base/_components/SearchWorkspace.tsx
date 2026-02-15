@@ -51,9 +51,9 @@ export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspacePro
   const matches = results?.items ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Search bar */}
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="shrink-0 rounded-2xl border border-border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-card-foreground">Search</h2>
         <div className="mt-3 flex gap-2">
           <input
@@ -99,10 +99,10 @@ export const SearchWorkspace = forwardRef<SearchWorkspaceRef, SearchWorkspacePro
       </div>
 
       {/* Search results */}
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-card-foreground">检索结果</h2>
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="shrink-0 text-sm font-semibold text-card-foreground">检索结果</h2>
         {matches.length > 0 ? (
-          <div className="custom-scrollbar mt-3 h-[calc(100vh-29.625rem)] space-y-3 overflow-y-auto pr-1">
+          <div className="custom-scrollbar mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 pb-2">
             {matches.map((item) => (
               <div
                 key={item.id}

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/knowledge/base", label: "Knowledge Base" },
   { href: "/knowledge/graph", label: "Knowledge Graph" },
   { href: "/knowledge/pipelines", label: "Pipelines" },
+  { href: "/knowledge/apis", label: "APIs" },
 ];
 
 export function KnowledgeNav({

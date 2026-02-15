@@ -56,75 +56,81 @@ export default function KnowledgeDashboardPage() {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
         title="Knowledge Dashboard"
         description="Knowledge 指标、构建与告警概览"
       />
-      <div className="grid gap-6 px-6 py-6 lg:grid-cols-[2.2fr_1fr]">
-        <section className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            {metrics.map((metric) => (
-              <div
-                key={metric.label}
-                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-              >
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-                  {metric.label}
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-                  {metric.value}
-                </p>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
+          <section className="min-h-0 min-w-0 flex-[2.2] overflow-y-auto">
+            <div className="space-y-4 pb-4 pr-2">
+              <div className="grid gap-4 md:grid-cols-3">
+                {metrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                  >
+                    <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+                      {metric.label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+                      {metric.value}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                Pipeline Runs
-              </h2>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">最近 24h</span>
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    Pipeline Runs
+                  </h2>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">最近 24h</span>
+                </div>
+                {data?.pipeline_runs?.length ? (
+                  <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
+                    {data.pipeline_runs.map((item, index) => (
+                      <div
+                        key={index}
+                        className="rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-700"
+                      >
+                        {JSON.stringify(item)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">暂无作业记录</p>
+                )}
+              </div>
             </div>
-            {data?.pipeline_runs?.length ? (
-              <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
-                {data.pipeline_runs.map((item, index) => (
-                  <div
-                    key={index}
-                    className="rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-700"
-                  >
-                    {JSON.stringify(item)}
+          </section>
+          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+            <div className="space-y-4 pb-4 pr-2">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alerts</h2>
+                {data?.alerts?.length ? (
+                  <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
+                    {data.alerts.map((item, index) => (
+                      <div
+                        key={index}
+                        className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
+                      >
+                        {JSON.stringify(item)}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无告警</p>
+                )}
               </div>
-            ) : (
-              <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">暂无作业记录</p>
-            )}
-          </div>
-        </section>
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alerts</h2>
-            {data?.alerts?.length ? (
-              <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
-                {data.alerts.map((item, index) => (
-                  <div
-                    key={index}
-                    className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
-                  >
-                    {JSON.stringify(item)}
-                  </div>
-                ))}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+                {error
+                  ? `加载失败：${error}`
+                  : "数据由 /api/knowledge/dashboard 提供"}
               </div>
-            ) : (
-              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无告警</p>
-            )}
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-            {error
-              ? `加载失败：${error}`
-              : "数据由 /api/knowledge/dashboard 提供"}
-          </div>
-        </aside>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

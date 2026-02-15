@@ -42,6 +42,7 @@ export {
   fetchCorpora,
   createCorpus,
   fetchCorpus,
+  deleteCorpus,
   ingestText,
   ingestUrl,
   replaceSource,
@@ -51,6 +52,14 @@ export {
   fetchPipelines,
   upsertPipelines,
   fetchKnowledgeItems,
+  // Graph Enhanced API (Phase 1)
+  buildKnowledgeGraph,
+  fetchCorpusGraph,
+  searchKnowledgeGraph,
+  findGraphNeighbors,
+  findGraphPath,
+  clearCorpusGraph,
+  fetchGraphBuildHistory,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -68,12 +77,29 @@ export type {
   KnowledgeMatch,
   KnowledgeGraphPayload,
   KnowledgePipelinesPayload,
+  PipelineRunRecord,
+  PipelineStageResult,
+  PipelineStageStatus,
+  PipelineOperation,
   IngestResult,
   SearchResults,
   GraphUpsertResult,
   PipelineUpsertResult,
   KnowledgeItem,
   KnowledgeListResponse,
+  // Graph Enhanced Types (Phase 1)
+  GraphSearchMode,
+  GraphBuildParams,
+  GraphBuildResult,
+  GraphSearchParams,
+  GraphSearchResultItem,
+  GraphSearchResults,
+  GraphNeighborsParams,
+  GraphNeighborsResult,
+  GraphPathParams,
+  GraphPathResult,
+  GraphBuildRunRecord,
+  GraphBuildHistoryResult,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -89,3 +115,25 @@ export {
   InvalidSearchConfigError,
   InfrastructureError,
 } from "./utils/knowledge-api";
+
+// ============================================================================
+// API Specs (for API Documentation)
+// ============================================================================
+
+export {
+  KNOWLEDGE_API_ENDPOINTS,
+  getEndpointById,
+  getMethodColor,
+} from "./utils/api-specs";
+
+export type {
+  HttpMethod,
+  ApiParameter,
+  ApiRequestBody,
+  ApiResponse,
+  CodeExamples,
+  ApiEndpoint,
+  FormFieldType,
+  FormFieldConfig,
+  InteractiveFormConfig,
+} from "./utils/api-specs";

@@ -17,13 +17,24 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, Literal
 
 from negentropy.logging import get_logger
 
 from .types import ChunkingConfig, ChunkingStrategy
 
 logger = get_logger("negentropy.knowledge.chunking")
+
+
+# ================================
+# Word Boundary Protection
+# ================================
+
+# 英文字符正则表达式（用于单词边界检测）
+_EN_WORD_PATTERN = re.compile(r"[a-zA-Z]")
+
+# 单词边界调整的默认最大比例（相对于 chunk_size）
+_DEFAULT_MAX_ADJUSTMENT_RATIO = 0.3
 
 
 # ================================
@@ -78,6 +89,208 @@ def _split_into_sentences(text: str) -> list[str]:
 
 
 # ================================
+# Word Boundary Utilities
+# ================================
+
+
+def _find_word_boundary(
+    text: str,
+    position: int,
+    direction: Literal["left", "right"],
+    max_adjustment: int = 50,
+) -> int:
+    """查找最近的单词边界位置
+
+    对于英文文本，找到最近的空格字符作为边界。
+    对于中文文本，由于不需要特殊处理，返回原位置。
+
+    Args:
+        text: 输入文本
+        position: 当前位置
+        direction: 搜索方向，"left" 向左搜索（返回单词起始位置），
+                   "right" 向右搜索（返回单词结束位置）
+        max_adjustment: 最大调整距离，超过此距离则返回原位置
+
+    Returns:
+        调整后的边界位置，如果找不到合适边界则返回原位置
+    """
+    if position < 0:
+        return 0
+    if position >= len(text):
+        return len(text)
+
+    # 当前字符
+    current_char = text[position] if position < len(text) else ""
+
+    # 如果当前位置已经是空格或边界，直接返回
+    if current_char == " " or current_char == "":
+        return position
+
+    # 判断当前字符是否为英文
+    is_current_en = bool(_EN_WORD_PATTERN.match(current_char))
+
+    if not is_current_en:
+        # 当前字符不是英文，不需要调整
+        return position
+
+    if direction == "left":
+        # 向左搜索，找到单词起始位置
+        search_start = max(0, position - max_adjustment)
+
+        # 首先尝试找空格
+        for i in range(position - 1, search_start - 1, -1):
+            if i >= 0 and text[i] == " ":
+                return i + 1  # 返回空格后的位置
+
+        # 如果没找到空格，找非英文字符
+        for i in range(position - 1, search_start - 1, -1):
+            if i >= 0 and not _EN_WORD_PATTERN.match(text[i]):
+                return i + 1  # 返回非英文字符后的位置
+
+        return position
+
+    else:  # direction == "right"
+        # 向右搜索，找到单词结束位置
+        search_end = min(len(text), position + max_adjustment + 1)
+
+        # 首先尝试找空格
+        for i in range(position, search_end):
+            if text[i] == " ":
+                return i  # 返回空格位置
+
+        # 如果没找到空格，找非英文字符
+        for i in range(position, search_end):
+            if not _EN_WORD_PATTERN.match(text[i]):
+                return i  # 返回非英文字符位置
+
+        return position
+
+
+def _adjust_chunk_boundary(
+    text: str,
+    start: int,
+    end: int,
+    chunk_size: int,
+    max_adjustment_ratio: float = _DEFAULT_MAX_ADJUSTMENT_RATIO,
+) -> tuple[int, int]:
+    """调整分块边界以保护英文单词完整性
+
+    Args:
+        text: 输入文本
+        start: 当前分块起始位置
+        end: 当前分块结束位置
+        chunk_size: 目标分块大小
+        max_adjustment_ratio: 最大调整比例（相对于 chunk_size）
+
+    Returns:
+        调整后的 (start, end) 元组
+    """
+    if end >= len(text):
+        return start, end
+
+    # 使用更大的搜索范围，但调整结果受 max_adj 限制
+    max_adj = max(1, int(chunk_size * max_adjustment_ratio))
+    search_range = max(50, max_adj * 5)
+    original_end = end
+
+    # 检查 end 位置是否在英文单词中间
+    if end > 0 and end < len(text):
+        prev_char = text[end - 1]
+        next_char = text[end]
+
+        # 如果前后都是英文字符，说明切在了单词中间
+        if _EN_WORD_PATTERN.match(prev_char) and _EN_WORD_PATTERN.match(next_char):
+            # 优先向左找边界（缩短 chunk）
+            new_end = _find_word_boundary(text, end, "left", search_range)
+
+            # 检查是否找到了真正的单词边界，且调整幅度在限制内
+            is_valid_boundary = (
+                new_end != end
+                and new_end > start
+                and original_end - new_end <= max_adj  # 调整幅度在限制内
+                and (new_end == 0 or text[new_end - 1] == " " or not _EN_WORD_PATTERN.match(text[new_end - 1]))
+            )
+            if is_valid_boundary:
+                end = new_end
+            else:
+                # 尝试向右找边界（延长 chunk）
+                new_end = _find_word_boundary(text, end, "right", search_range)
+                is_valid_right = (
+                    new_end != end
+                    and new_end - original_end <= max_adj  # 调整幅度在限制内
+                    and new_end < len(text)
+                    and (text[new_end] == " " or not _EN_WORD_PATTERN.match(text[new_end]))
+                )
+                if is_valid_right:
+                    end = new_end
+
+    # 检查 start 位置是否在英文单词中间（针对有 overlap 的情况）
+    if start > 0 and start < len(text):
+        prev_char = text[start - 1]
+        curr_char = text[start]
+
+        if _EN_WORD_PATTERN.match(prev_char) and _EN_WORD_PATTERN.match(curr_char):
+            new_start = _find_word_boundary(text, start, "right", search_range)
+            is_valid = (
+                new_start != start
+                and new_start < end
+                and new_start - start <= max_adj
+                and (text[new_start - 1] == " " or not _EN_WORD_PATTERN.match(text[new_start - 1]))
+            )
+            if is_valid:
+                start = new_start
+
+    return start, end
+
+
+def _get_word_safe_overlap(
+    prev_chunk: str,
+    overlap_size: int,
+    max_adjustment_ratio: float = 0.15,
+) -> str:
+    """获取保护单词完整性的重叠文本
+
+    从前一个块的末尾提取 overlap_size 大小的文本，
+    但确保不会在英文单词中间切分。
+
+    Args:
+        prev_chunk: 前一个分块
+        overlap_size: 期望的重叠大小
+        max_adjustment_ratio: 最大调整比例
+
+    Returns:
+        调整后的重叠文本
+    """
+    if len(prev_chunk) <= overlap_size:
+        return prev_chunk
+
+    max_adj = max(1, int(overlap_size * max_adjustment_ratio))
+    overlap_start = len(prev_chunk) - overlap_size
+
+    # 检查是否在英文单词中间
+    if overlap_start > 0 and overlap_start < len(prev_chunk):
+        prev_char = prev_chunk[overlap_start - 1]
+        curr_char = prev_chunk[overlap_start]
+
+        if _EN_WORD_PATTERN.match(prev_char) and _EN_WORD_PATTERN.match(curr_char):
+            # 尝试向右找边界（增加 overlap）
+            new_start = _find_word_boundary(prev_chunk, overlap_start, "right", max_adj)
+
+            new_overlap_size = len(prev_chunk) - new_start
+
+            # 如果增加后的 overlap 不超过上限，使用新的边界
+            if new_overlap_size <= overlap_size + max_adj:
+                overlap_start = new_start
+            else:
+                # 尝试向左找边界（减少 overlap）
+                left_start = _find_word_boundary(prev_chunk, overlap_start, "left", max_adj)
+                if left_start != overlap_start and left_start < len(prev_chunk):
+                    overlap_start = left_start
+
+    return prev_chunk[overlap_start:]
+
+
+# ================================
 # 分块策略实现
 # ================================
 
@@ -112,6 +325,9 @@ def _fixed_chunk(text: str, config: ChunkingConfig) -> list[str]:
     """固定大小分块
 
     简单的字符级别分块，适合不需要考虑语义边界的场景。
+
+    支持英文单词完整性保护：切分时会尝试在单词边界处切分，
+    避免在英文单词中间切断。
     """
     cleaned = text.strip()
     if not cleaned:
@@ -119,20 +335,35 @@ def _fixed_chunk(text: str, config: ChunkingConfig) -> list[str]:
 
     chunk_size = max(1, config.chunk_size)
     overlap = min(max(0, config.overlap), chunk_size - 1)
-    step = max(1, chunk_size - overlap)
 
     chunks: list[str] = []
     start = 0
     length = len(cleaned)
     while start < length:
         end = min(length, start + chunk_size)
+
+        # 如果不是最后一块，尝试调整边界以保护单词完整性
+        if end < length:
+            _, adjusted_end = _adjust_chunk_boundary(cleaned, start, end, chunk_size)
+            # 只有当调整后的 end 仍在合理范围内才使用
+            if adjusted_end > start:
+                end = adjusted_end
+
         chunk = cleaned[start:end]
         if not config.preserve_newlines:
             chunk = " ".join(chunk.splitlines())
         chunk = chunk.strip()
         if chunk:
             chunks.append(chunk)
-        start += step
+
+        # 计算下一个 start
+        # 如果有 overlap，从当前 end 往回退 overlap 个字符
+        # 如果没有 overlap，从当前 end 开始
+        if overlap > 0 and end < length:
+            next_start = max(start + 1, end - overlap)  # 确保至少前进 1 个字符
+        else:
+            next_start = end
+        start = next_start
 
     return chunks
 
@@ -208,9 +439,11 @@ def _recursive_chunk(text: str, config: ChunkingConfig) -> list[str]:
         for i in range(1, len(chunks)):
             prev = chunks[i - 1]
             curr = chunks[i]
-            # 从前一个块的末尾取 overlap 字符
-            overlap_text = prev[-overlap:] if len(prev) > overlap else prev
-            chunks_with_overlap.append(overlap_text + " " + curr)
+            # 从前一个块的末尾取 overlap 字符，保护单词完整性
+            overlap_text = _get_word_safe_overlap(prev, overlap)
+            # 连接 overlap 和当前块，处理多余空格
+            combined = (overlap_text.rstrip() + " " + curr.lstrip()).strip()
+            chunks_with_overlap.append(combined)
         return chunks_with_overlap
 
     return chunks

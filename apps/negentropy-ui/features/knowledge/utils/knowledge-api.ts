@@ -164,22 +164,52 @@ export interface KnowledgeGraphPayload {
   }>;
 }
 
+// Pipeline 阶段状态
+export type PipelineStageStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+// Pipeline 操作类型
+export type PipelineOperation =
+  | "ingest_text"
+  | "ingest_url"
+  | "replace_source";
+
+// Pipeline 阶段结果
+export interface PipelineStageResult {
+  status: PipelineStageStatus;
+  started_at?: string;
+  completed_at?: string;
+  duration_ms?: number;
+  error?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  reason?: string; // for skipped status
+}
+
+// Pipeline Run 记录
+export interface PipelineRunRecord {
+  id: string;
+  run_id: string;
+  status: string;
+  operation?: PipelineOperation;
+  trigger?: "api" | "ui" | "schedule";
+  started_at?: string;
+  completed_at?: string;
+  duration_ms?: number;
+  duration?: string;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  stages?: Record<string, PipelineStageResult>;
+  error?: Record<string, unknown>;
+  version?: number;
+}
+
 export interface KnowledgePipelinesPayload {
   last_updated_at?: string;
-  runs?: Array<{
-    id: string;
-    run_id: string;
-    status: string;
-    started_at?: string;
-    completed_at?: string;
-    duration_ms?: number;
-    duration?: string;
-    trigger?: string;
-    input?: unknown;
-    output?: unknown;
-    error?: unknown;
-    version?: number;
-  }>;
+  runs?: PipelineRunRecord[];
 }
 
 export interface IngestResult {
@@ -322,16 +352,25 @@ export interface KnowledgeItem {
 export interface KnowledgeListResponse {
   count: number;
   items: KnowledgeItem[];
+  source_stats?: Record<string, number>;
 }
 
 export async function fetchKnowledgeItems(
   corpusId: string,
-  params: { appName?: string; limit?: number; offset?: number },
+  params: {
+    appName?: string;
+    sourceUri?: string | null;
+    limit?: number;
+    offset?: number;
+  },
 ): Promise<KnowledgeListResponse> {
   const query = new URLSearchParams();
   if (params.appName) query.set("app_name", params.appName);
-  if (params.limit) query.set("limit", String(params.limit));
-  if (params.offset) query.set("offset", String(params.offset));
+  if (params.sourceUri !== undefined) {
+    query.set("source_uri", params.sourceUri ?? "__null__");
+  }
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.offset !== undefined) query.set("offset", String(params.offset));
 
   const res = await fetch(
     `/api/knowledge/base/${corpusId}/knowledge?${query.toString()}`,
@@ -414,6 +453,21 @@ export async function replaceSource(
     throw new Error(`Failed to replace source: ${res.statusText}`);
   }
   return res.json();
+}
+
+export async function syncSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+  },
+): Promise<IngestResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
 }
 
 export async function updateCorpus(
@@ -526,6 +580,234 @@ export async function upsertGraph(params: {
     throw new Error(`Failed to upsert graph: ${res.statusText}`);
   }
   return res.json();
+}
+
+// ============================================================================
+// Knowledge Graph Enhanced API (Phase 1)
+// ============================================================================
+
+export type GraphSearchMode = "semantic" | "graph" | "hybrid";
+
+export interface GraphBuildParams {
+  app_name?: string;
+  enable_llm_extraction?: boolean;
+  llm_model?: string;
+  min_entity_confidence?: number;
+  min_relation_confidence?: number;
+  batch_size?: number;
+}
+
+export interface GraphBuildResult {
+  run_id: string;
+  corpus_id: string;
+  status: string;
+  entity_count: number;
+  relation_count: number;
+  chunks_processed: number;
+  elapsed_seconds: number;
+  error_message?: string;
+}
+
+export interface GraphSearchParams {
+  app_name?: string;
+  query: string;
+  mode?: GraphSearchMode;
+  limit?: number;
+  max_depth?: number;
+  semantic_weight?: number;
+  graph_weight?: number;
+  include_neighbors?: boolean;
+  neighbor_limit?: number;
+}
+
+export interface GraphSearchResultItem {
+  entity: {
+    id: string;
+    label?: string;
+    type?: string;
+    metadata?: Record<string, unknown>;
+  };
+  semantic_score: number;
+  graph_score: number;
+  combined_score: number;
+  neighbors: Array<{
+    id: string;
+    label?: string;
+    type?: string;
+  }>;
+}
+
+export interface GraphSearchResults {
+  count: number;
+  query_time_ms: number;
+  items: GraphSearchResultItem[];
+}
+
+export interface GraphNeighborsParams {
+  app_name?: string;
+  entity_id: string;
+  max_depth?: number;
+  limit?: number;
+}
+
+export interface GraphNeighborsResult {
+  entity_id: string;
+  count: number;
+  neighbors: Array<{
+    id: string;
+    label?: string;
+    type?: string;
+    metadata?: Record<string, unknown>;
+  }>;
+}
+
+export interface GraphPathParams {
+  app_name?: string;
+  source_id: string;
+  target_id: string;
+  max_depth?: number;
+}
+
+export interface GraphPathResult {
+  source_id: string;
+  target_id: string;
+  found: boolean;
+  path?: string[];
+  length: number;
+}
+
+export interface GraphBuildRunRecord {
+  id: string;
+  run_id: string;
+  status: string;
+  entity_count: number;
+  relation_count: number;
+  extractor_config?: Record<string, unknown>;
+  model_name?: string;
+  error_message?: string;
+  started_at?: string;
+  completed_at?: string;
+  created_at?: string;
+}
+
+export interface GraphBuildHistoryResult {
+  corpus_id: string;
+  count: number;
+  runs: GraphBuildRunRecord[];
+}
+
+/**
+ * 构建知识图谱
+ * 从语料库的知识块中提取实体和关系，构建知识图谱。
+ */
+export async function buildKnowledgeGraph(
+  corpusId: string,
+  params: GraphBuildParams = {},
+): Promise<GraphBuildResult> {
+  const res = await fetch(`/api/knowledge/base/${corpusId}/graph/build`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 获取语料库的知识图谱
+ */
+export async function fetchCorpusGraph(
+  corpusId: string,
+  appName?: string,
+  includeRuns = false,
+): Promise<KnowledgeGraphPayload> {
+  const query = new URLSearchParams();
+  if (appName) query.set("app_name", appName);
+  if (includeRuns) query.set("include_runs", "true");
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 图谱混合检索
+ * 结合向量相似度和图结构分数进行检索。
+ */
+export async function searchKnowledgeGraph(
+  corpusId: string,
+  params: GraphSearchParams,
+): Promise<GraphSearchResults> {
+  const res = await fetch(`/api/knowledge/base/${corpusId}/graph/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 查询实体邻居
+ */
+export async function findGraphNeighbors(
+  params: GraphNeighborsParams,
+): Promise<GraphNeighborsResult> {
+  const res = await fetch("/api/knowledge/graph/neighbors", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 查询两点间最短路径
+ */
+export async function findGraphPath(
+  params: GraphPathParams,
+): Promise<GraphPathResult> {
+  const res = await fetch("/api/knowledge/graph/path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 清除语料库的图谱数据
+ */
+export async function clearCorpusGraph(
+  corpusId: string,
+  appName?: string,
+): Promise<void> {
+  const query = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
+  const res = await fetch(`/api/knowledge/base/${corpusId}/graph${query}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to clear graph: ${res.statusText}`);
+  }
+}
+
+/**
+ * 获取图谱构建历史
+ */
+export async function fetchGraphBuildHistory(
+  corpusId: string,
+  appName?: string,
+  limit = 20,
+): Promise<GraphBuildHistoryResult> {
+  const query = new URLSearchParams();
+  if (appName) query.set("app_name", appName);
+  query.set("limit", String(limit));
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/history?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
 }
 
 // ============================================================================

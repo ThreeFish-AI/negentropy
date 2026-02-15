@@ -15,6 +15,7 @@ from .constants import (
 
 
 SearchMode = Literal["semantic", "keyword", "hybrid", "rrf"]
+GraphSearchMode = Literal["semantic", "graph", "hybrid"]
 
 
 class ChunkingStrategy(Enum):
@@ -358,6 +359,61 @@ def merge_search_results(
 # ============================================================================
 
 
+class KgEntityType(Enum):
+    """知识图谱实体类型
+
+    定义支持的实体类型，用于分类和筛选。
+    """
+
+    PERSON = "person"  # 人物
+    ORGANIZATION = "organization"  # 组织/公司
+    LOCATION = "location"  # 地点
+    EVENT = "event"  # 事件
+    CONCEPT = "concept"  # 概念/术语
+    PRODUCT = "product"  # 产品
+    DOCUMENT = "document"  # 文档
+    OTHER = "other"  # 其他
+
+    @classmethod
+    def all_values(cls) -> List[str]:
+        """获取所有实体类型值列表"""
+        return [e.value for e in cls]
+
+
+class KgRelationType(Enum):
+    """知识图谱关系类型
+
+    定义支持的实体间关系类型。
+    """
+
+    # 组织关系
+    WORKS_FOR = "WORKS_FOR"  # 就职于
+    PART_OF = "PART_OF"  # 隶属于
+    LOCATED_IN = "LOCATED_IN"  # 位于
+
+    # 语义关系
+    RELATED_TO = "RELATED_TO"  # 相关
+    SIMILAR_TO = "SIMILAR_TO"  # 相似
+    DERIVED_FROM = "DERIVED_FROM"  # 衍生自
+
+    # 因果关系
+    CAUSES = "CAUSES"  # 导致
+    PRECEDES = "PRECEDES"  # 先于
+    FOLLOWS = "FOLLOWS"  # 后于
+
+    # 引用关系
+    MENTIONS = "MENTIONS"  # 提及
+    CREATED_BY = "CREATED_BY"  # 创建者
+
+    # 共现关系（回退）
+    CO_OCCURS = "CO_OCCURS"  # 共现
+
+    @classmethod
+    def all_values(cls) -> List[str]:
+        """获取所有关系类型值列表"""
+        return [e.value for e in cls]
+
+
 @dataclass(frozen=True)
 class GraphNode:
     """知识图谱节点
@@ -396,3 +452,118 @@ class KnowledgeGraphPayload:
     nodes: List[GraphNode]
     edges: List[GraphEdge]
     runs: Optional[List[Dict[str, Any]]] = None
+
+
+@dataclass(frozen=True)
+class GraphSearchMatch:
+    """图谱检索结果
+
+    包含实体信息、相似度分数和图结构分数。
+    """
+
+    entity: GraphNode
+    semantic_score: float = 0.0
+    graph_score: float = 0.0
+    combined_score: float = 0.0
+    neighbors: List[GraphNode] = field(default_factory=list)
+    path: Optional[List[str]] = None
+
+
+class GraphSearchConfig(BaseModel):
+    """图谱检索配置
+
+    控制图谱检索和遍历的行为。
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    mode: GraphSearchMode = "hybrid"
+    max_depth: int = 2
+    limit: int = 100
+    semantic_weight: float = 0.6
+    graph_weight: float = 0.4
+    include_neighbors: bool = True
+    neighbor_limit: int = 10
+    entity_type_filter: Optional[str] = None
+
+    @field_validator("max_depth")
+    @classmethod
+    def validate_max_depth(cls, v: int) -> int:
+        """验证最大深度"""
+        if v < 1:
+            raise ValueError(f"max_depth must be at least 1, got {v}")
+        if v > 5:
+            raise ValueError(f"max_depth must be at most 5, got {v}")
+        return v
+
+    @field_validator("limit")
+    @classmethod
+    def validate_limit(cls, v: int) -> int:
+        """验证结果限制"""
+        if v < 1:
+            raise ValueError(f"limit must be at least 1, got {v}")
+        if v > 1000:
+            raise ValueError(f"limit must be at most 1000, got {v}")
+        return v
+
+    @field_validator("semantic_weight", "graph_weight")
+    @classmethod
+    def validate_weights(cls, v: float) -> float:
+        """验证权重值"""
+        if not (0.0 <= v <= 1.0):
+            raise ValueError(f"weight must be between 0 and 1, got {v}")
+        return v
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, v: str) -> str:
+        """验证搜索模式"""
+        if v not in ("semantic", "graph", "hybrid"):
+            raise ValueError(f"mode must be 'semantic', 'graph', or 'hybrid', got {v}")
+        return v
+
+
+class GraphBuildConfigModel(BaseModel):
+    """图谱构建配置
+
+    控制实体和关系提取的行为。
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    enable_llm_extraction: bool = True
+    llm_model: Optional[str] = None
+    entity_types: List[str] = field(default_factory=list)
+    relation_types: List[str] = field(default_factory=list)
+    min_entity_confidence: float = 0.5
+    min_relation_confidence: float = 0.5
+    batch_size: int = 10
+    max_concurrency: int = 3
+
+    @field_validator("min_entity_confidence", "min_relation_confidence")
+    @classmethod
+    def validate_confidence(cls, v: float) -> float:
+        """验证置信度阈值"""
+        if not (0.0 <= v <= 1.0):
+            raise ValueError(f"confidence must be between 0 and 1, got {v}")
+        return v
+
+    @field_validator("batch_size")
+    @classmethod
+    def validate_batch_size(cls, v: int) -> int:
+        """验证批次大小"""
+        if v < 1:
+            raise ValueError(f"batch_size must be at least 1, got {v}")
+        if v > 100:
+            raise ValueError(f"batch_size must be at most 100, got {v}")
+        return v
+
+    @field_validator("max_concurrency")
+    @classmethod
+    def validate_max_concurrency(cls, v: int) -> int:
+        """验证最大并发数"""
+        if v < 1:
+            raise ValueError(f"max_concurrency must be at least 1, got {v}")
+        if v > 10:
+            raise ValueError(f"max_concurrency must be at most 10, got {v}")
+        return v
