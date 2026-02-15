@@ -33,9 +33,72 @@ const STAGE_LABELS: Record<string, string> = {
   persist: "持久化",
 };
 
-// Stage 宽度算法参数
-const MIN_STAGE_WIDTH = 8; // 最小宽度百分比
-const MAX_STAGE_WIDTH = 50; // 最大宽度百分比
+// 阶段颜色定义（每个阶段固定颜色，通过亮度区分状态）
+const STAGE_COLORS: Record<
+  string,
+  { running: string; completed: string; failed: string; skipped: string }
+> = {
+  fetch: {
+    running: "bg-sky-400",
+    completed: "bg-sky-500",
+    failed: "bg-sky-700",
+    skipped: "bg-sky-300 dark:bg-sky-600",
+  },
+  delete: {
+    running: "bg-rose-400",
+    completed: "bg-rose-500",
+    failed: "bg-rose-700",
+    skipped: "bg-rose-300 dark:bg-rose-600",
+  },
+  chunk: {
+    running: "bg-amber-400",
+    completed: "bg-amber-500",
+    failed: "bg-amber-700",
+    skipped: "bg-amber-300 dark:bg-amber-600",
+  },
+  embed: {
+    running: "bg-violet-400",
+    completed: "bg-violet-500",
+    failed: "bg-violet-700",
+    skipped: "bg-violet-300 dark:bg-violet-600",
+  },
+  persist: {
+    running: "bg-emerald-400",
+    completed: "bg-emerald-500",
+    failed: "bg-emerald-700",
+    skipped: "bg-emerald-300 dark:bg-emerald-600",
+  },
+};
+
+// 默认阶段颜色（未知阶段）
+const DEFAULT_STAGE_COLOR = {
+  running: "bg-zinc-400",
+  completed: "bg-zinc-500",
+  failed: "bg-zinc-700",
+  skipped: "bg-zinc-300 dark:bg-zinc-600",
+};
+
+// 获取阶段颜色
+const getStageColor = (stageName: string, status?: string): string => {
+  const colors = STAGE_COLORS[stageName] || DEFAULT_STAGE_COLOR;
+  const statusKey = (status || "").toLowerCase();
+
+  switch (statusKey) {
+    case "running":
+    case "in_progress":
+      return colors.running;
+    case "completed":
+    case "success":
+      return colors.completed;
+    case "failed":
+    case "error":
+      return colors.failed;
+    case "skipped":
+      return colors.skipped;
+    default:
+      return colors.completed;
+  }
+};
 
 // 检查是否有运行中的 Run
 const hasRunningRuns = (runs: PipelineRunRecord[] | undefined): boolean => {
@@ -47,7 +110,7 @@ const hasRunningRuns = (runs: PipelineRunRecord[] | undefined): boolean => {
   );
 };
 
-// 计算 Stage 宽度（基于对数比例，避免极端比例）
+// 计算 Stage 宽度（基于平方根比例，更好体现耗时差异）
 const calculateStageWidth = (
   stage: { duration_ms?: number },
   allStages: Record<string, { duration_ms?: number }>
@@ -57,22 +120,26 @@ const calculateStageWidth = (
 
   if (stageCount <= 1) return "100%";
 
-  // 计算对数耗时总和
-  let totalLogDuration = 0;
+  // 使用平方根比例（比 log10 更能体现差异）
+  let totalSqrtDuration = 0;
   for (const [, s] of entries) {
-    const duration = s.duration_ms || 100; // 默认 100ms
-    totalLogDuration += Math.log10(duration + 1);
+    const duration = Math.max(s.duration_ms || 100, 10); // 最小 10ms
+    totalSqrtDuration += Math.sqrt(duration);
   }
 
-  // 当前 Stage 的对数耗时
-  const currentDuration = stage.duration_ms || 100;
-  const currentLogDuration = Math.log10(currentDuration + 1);
+  const currentDuration = Math.max(stage.duration_ms || 100, 10);
+  const currentSqrtDuration = Math.sqrt(currentDuration);
 
-  // 按比例分配，限制范围
-  const proportionalWidth = (currentLogDuration / totalLogDuration) * 100;
-  const clampedWidth = Math.max(MIN_STAGE_WIDTH, Math.min(MAX_STAGE_WIDTH, proportionalWidth));
+  // 按比例分配
+  let width = (currentSqrtDuration / totalSqrtDuration) * 100;
 
-  return `${clampedWidth}%`;
+  // 动态最小宽度：stage 越多，最小宽度越小
+  const dynamicMinWidth = Math.max(5, Math.floor(100 / stageCount / 2));
+  const maxWidth = 100 - dynamicMinWidth * (stageCount - 1);
+
+  width = Math.max(dynamicMinWidth, Math.min(maxWidth, width));
+
+  return `${width.toFixed(1)}%`;
 };
 
 export default function KnowledgePipelinesPage() {
@@ -264,7 +331,7 @@ export default function KnowledgePipelinesPage() {
                                 className="relative group"
                                 style={{ width: calculateStageWidth(stage, run.stages!) }}
                               >
-                                <div className={`h-1.5 w-full rounded-full ${statusColor(stage.status)}`} />
+                                <div className={`h-1.5 w-full rounded-full ${getStageColor(stageName, stage.status)}`} />
                                 {/* Hover Tooltip */}
                                 <div
                                   className="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md
