@@ -32,8 +32,9 @@ from .exceptions import (
     ValidationError as KnowledgeValidationError,
     VersionConflict,
 )
+from .graph_service import GraphService, GraphBuildConfig, GraphQueryConfig, get_graph_service
 from .service import KnowledgeService
-from .types import ChunkingConfig, CorpusSpec, SearchConfig
+from .types import ChunkingConfig, CorpusSpec, SearchConfig, GraphSearchConfig
 
 
 logger = get_logger("negentropy.knowledge.api")
@@ -138,8 +139,74 @@ class PipelinesUpsertRequest(BaseModel):
     expected_version: Optional[int] = None
 
 
+# Graph API Request/Response Models
+class GraphBuildRequest(BaseModel):
+    """图谱构建请求"""
+
+    app_name: Optional[str] = None
+    enable_llm_extraction: bool = True
+    llm_model: Optional[str] = None
+    min_entity_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    min_relation_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    batch_size: int = Field(default=10, ge=1, le=100)
+
+
+class GraphBuildResponse(BaseModel):
+    """图谱构建响应"""
+
+    run_id: str
+    corpus_id: UUID
+    status: str
+    entity_count: int
+    relation_count: int
+    chunks_processed: int
+    elapsed_seconds: float
+    error_message: Optional[str] = None
+
+
+class GraphSearchRequest(BaseModel):
+    """图谱检索请求"""
+
+    app_name: Optional[str] = None
+    query: str
+    mode: str = "hybrid"  # semantic, graph, hybrid
+    limit: int = Field(default=20, ge=1, le=100)
+    max_depth: int = Field(default=2, ge=1, le=5)
+    semantic_weight: float = Field(default=0.6, ge=0.0, le=1.0)
+    graph_weight: float = Field(default=0.4, ge=0.0, le=1.0)
+    include_neighbors: bool = True
+    neighbor_limit: int = Field(default=10, ge=1, le=50)
+
+
+class GraphSearchResponse(BaseModel):
+    """图谱检索响应"""
+
+    count: int
+    query_time_ms: float
+    items: list[Dict[str, Any]] = Field(default_factory=list)
+
+
+class GraphNeighborsRequest(BaseModel):
+    """邻居查询请求"""
+
+    app_name: Optional[str] = None
+    entity_id: str
+    max_depth: int = Field(default=2, ge=1, le=5)
+    limit: int = Field(default=100, ge=1, le=500)
+
+
+class GraphPathRequest(BaseModel):
+    """路径查询请求"""
+
+    app_name: Optional[str] = None
+    source_id: str
+    target_id: str
+    max_depth: int = Field(default=5, ge=1, le=10)
+
+
 _service: Optional[KnowledgeService] = None
 _dao: Optional[KnowledgeRunDao] = None
+_graph_service: Optional[GraphService] = None
 
 
 def _get_service() -> KnowledgeService:
@@ -151,6 +218,13 @@ def _get_service() -> KnowledgeService:
             pipeline_dao=_get_dao(),
         )
     return _service
+
+
+def _get_graph_service() -> GraphService:
+    global _graph_service
+    if _graph_service is None:
+        _graph_service = get_graph_service()
+    return _graph_service
 
 
 def _get_dao() -> KnowledgeRunDao:
@@ -772,3 +846,399 @@ async def upsert_pipelines(payload: PipelinesUpsertRequest) -> Dict[str, Any]:
     if result.status == "conflict":
         raise HTTPException(status_code=409, detail="Pipeline run version conflict")
     return {"status": result.status, "pipeline": result.record}
+
+
+# ============================================================================
+# Knowledge Graph API Endpoints (Phase 1 Enhancement)
+# ============================================================================
+
+
+@router.post("/base/{corpus_id}/graph/build")
+async def build_knowledge_graph(
+    corpus_id: UUID,
+    payload: GraphBuildRequest,
+) -> GraphBuildResponse:
+    """构建知识图谱
+
+    从语料库的知识块中提取实体和关系，构建知识图谱。
+
+    Args:
+        corpus_id: 语料库 ID
+        payload: 构建配置
+
+    Returns:
+        构建结果统计
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    logger.info(
+        "api_graph_build_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        enable_llm=payload.enable_llm_extraction,
+    )
+
+    try:
+        # 获取语料库中的所有知识块
+        service = _get_service()
+        knowledge_items, total_count, _ = await service.list_knowledge(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            limit=10000,  # 获取所有
+        )
+
+        if total_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "NO_KNOWLEDGE", "message": "No knowledge chunks found in corpus"},
+            )
+
+        # 准备知识块数据
+        chunks = [
+            {
+                "content": item.content,
+                "metadata": item.metadata or {},
+            }
+            for item in knowledge_items
+        ]
+
+        # 构建配置
+        config = GraphBuildConfig(
+            enable_llm_extraction=payload.enable_llm_extraction,
+            llm_model=payload.llm_model,
+            min_entity_confidence=payload.min_entity_confidence,
+            min_relation_confidence=payload.min_relation_confidence,
+            batch_size=payload.batch_size,
+        )
+
+        # 执行图谱构建
+        graph_service = _get_graph_service()
+        result = await graph_service.build_graph(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            chunks=chunks,
+            config=config,
+        )
+
+        logger.info(
+            "api_graph_build_completed",
+            corpus_id=str(corpus_id),
+            run_id=result.run_id,
+            entity_count=result.entity_count,
+            relation_count=result.relation_count,
+        )
+
+        return GraphBuildResponse(
+            run_id=result.run_id,
+            corpus_id=result.corpus_id,
+            status=result.status,
+            entity_count=result.entity_count,
+            relation_count=result.relation_count,
+            chunks_processed=result.chunks_processed,
+            elapsed_seconds=result.elapsed_seconds,
+            error_message=result.error_message,
+        )
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+
+
+@router.get("/base/{corpus_id}/graph", response_model=Dict[str, Any])
+async def get_corpus_graph(
+    corpus_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    include_runs: bool = Query(default=False),
+) -> Dict[str, Any]:
+    """获取语料库的知识图谱
+
+    Args:
+        corpus_id: 语料库 ID
+        app_name: 应用名称
+        include_runs: 是否包含构建历史
+
+    Returns:
+        图谱数据（节点和边）
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    logger.debug(
+        "api_get_corpus_graph",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        include_runs=include_runs,
+    )
+
+    graph_service = _get_graph_service()
+    graph = await graph_service.get_graph(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        include_runs=include_runs,
+    )
+
+    return {
+        "nodes": [
+            {
+                "id": node.id,
+                "label": node.label,
+                "type": node.node_type,
+                "metadata": node.metadata,
+            }
+            for node in graph.nodes
+        ],
+        "edges": [
+            {
+                "source": edge.source,
+                "target": edge.target,
+                "label": edge.label,
+                "type": edge.edge_type,
+                "weight": edge.weight,
+                "metadata": edge.metadata,
+            }
+            for edge in graph.edges
+        ],
+        "runs": graph.runs or [],
+    }
+
+
+@router.post("/base/{corpus_id}/graph/search", response_model=GraphSearchResponse)
+async def search_knowledge_graph(
+    corpus_id: UUID,
+    payload: GraphSearchRequest,
+) -> GraphSearchResponse:
+    """图谱混合检索
+
+    结合向量相似度和图结构分数进行检索。
+
+    Args:
+        corpus_id: 语料库 ID
+        payload: 检索请求
+
+    Returns:
+        检索结果
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    logger.info(
+        "api_graph_search_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        query=payload.query[:50],
+        mode=payload.mode,
+    )
+
+    try:
+        # 生成查询向量
+        embedding_fn = build_embedding_fn()
+        query_embedding = await embedding_fn(payload.query)
+
+        # 查询配置
+        config = GraphQueryConfig(
+            max_depth=payload.max_depth,
+            limit=payload.limit,
+            semantic_weight=payload.semantic_weight,
+            graph_weight=payload.graph_weight,
+            include_neighbors=payload.include_neighbors,
+            neighbor_limit=payload.neighbor_limit,
+        )
+
+        # 执行检索
+        graph_service = _get_graph_service()
+        result = await graph_service.search(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            query=payload.query,
+            query_embedding=query_embedding,
+            config=config,
+        )
+
+        logger.info(
+            "api_graph_search_completed",
+            corpus_id=str(corpus_id),
+            result_count=result.total_count,
+            query_time_ms=result.query_time_ms,
+        )
+
+        return GraphSearchResponse(
+            count=result.total_count,
+            query_time_ms=result.query_time_ms,
+            items=[
+                {
+                    "entity": {
+                        "id": item.entity.id,
+                        "label": item.entity.label,
+                        "type": item.entity.node_type,
+                        "metadata": item.entity.metadata,
+                    },
+                    "semantic_score": item.semantic_score,
+                    "graph_score": item.graph_score,
+                    "combined_score": item.combined_score,
+                    "neighbors": [
+                        {
+                            "id": n.id,
+                            "label": n.label,
+                            "type": n.node_type,
+                        }
+                        for n in item.neighbors
+                    ],
+                }
+                for item in result.entities
+            ],
+        )
+
+    except Exception as exc:
+        logger.error("api_graph_search_failed", error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "GRAPH_SEARCH_ERROR", "message": str(exc)},
+        ) from exc
+
+
+@router.post("/graph/neighbors")
+async def find_entity_neighbors(
+    payload: GraphNeighborsRequest,
+) -> Dict[str, Any]:
+    """查询实体邻居
+
+    Args:
+        payload: 邻居查询请求
+
+    Returns:
+        邻居节点列表
+    """
+    logger.debug(
+        "api_find_neighbors",
+        entity_id=payload.entity_id,
+        max_depth=payload.max_depth,
+    )
+
+    graph_service = _get_graph_service()
+    neighbors = await graph_service.find_neighbors(
+        entity_id=payload.entity_id,
+        max_depth=payload.max_depth,
+        limit=payload.limit,
+    )
+
+    return {
+        "entity_id": payload.entity_id,
+        "count": len(neighbors),
+        "neighbors": [
+            {
+                "id": node.id,
+                "label": node.label,
+                "type": node.node_type,
+                "metadata": node.metadata,
+            }
+            for node in neighbors
+        ],
+    }
+
+
+@router.post("/graph/path")
+async def find_entity_path(
+    payload: GraphPathRequest,
+) -> Dict[str, Any]:
+    """查询两点间最短路径
+
+    Args:
+        payload: 路径查询请求
+
+    Returns:
+        路径节点 ID 列表
+    """
+    logger.debug(
+        "api_find_path",
+        source_id=payload.source_id,
+        target_id=payload.target_id,
+        max_depth=payload.max_depth,
+    )
+
+    graph_service = _get_graph_service()
+    path = await graph_service.find_path(
+        source_id=payload.source_id,
+        target_id=payload.target_id,
+        max_depth=payload.max_depth,
+    )
+
+    return {
+        "source_id": payload.source_id,
+        "target_id": payload.target_id,
+        "found": path is not None,
+        "path": path,
+        "length": len(path) if path else 0,
+    }
+
+
+@router.delete("/base/{corpus_id}/graph", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_corpus_graph(
+    corpus_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+) -> None:
+    """清除语料库的图谱数据
+
+    Args:
+        corpus_id: 语料库 ID
+        app_name: 应用名称
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    logger.info(
+        "api_clear_graph",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+    )
+
+    graph_service = _get_graph_service()
+    count = await graph_service.clear_graph(corpus_id)
+
+    logger.info(
+        "api_graph_cleared",
+        corpus_id=str(corpus_id),
+        nodes_cleared=count,
+    )
+
+
+@router.get("/base/{corpus_id}/graph/history")
+async def get_graph_build_history(
+    corpus_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> Dict[str, Any]:
+    """获取图谱构建历史
+
+    Args:
+        corpus_id: 语料库 ID
+        app_name: 应用名称
+        limit: 结果数量限制
+
+    Returns:
+        构建运行历史列表
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    graph_service = _get_graph_service()
+    runs = await graph_service.get_build_history(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        limit=limit,
+    )
+
+    return {
+        "corpus_id": str(corpus_id),
+        "count": len(runs),
+        "runs": [
+            {
+                "id": str(run.id),
+                "run_id": run.run_id,
+                "status": run.status,
+                "entity_count": run.entity_count,
+                "relation_count": run.relation_count,
+                "extractor_config": run.extractor_config,
+                "model_name": run.model_name,
+                "error_message": run.error_message,
+                "started_at": run.started_at.isoformat() if run.started_at else None,
+                "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+                "created_at": run.created_at.isoformat() if run.created_at else None,
+            }
+            for run in runs
+        ],
+    }
