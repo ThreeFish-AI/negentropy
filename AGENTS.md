@@ -42,7 +42,7 @@
   1. **Git Hygiene**: 如非显性要求，严禁调用 git commit；
   2. **Temp Management**: 临时产物（执行计划等）一律收敛至 `.temp/` 并及时清理；
   3. **Link Validity**: 确保所有引用的 URL 可访问且具备明确的上下文价值；
-  4. **Git Commit**: 在需要提交变更到 Git 时，一律使用 Claude Code 的自定义 Slash Command: `/commit` 进行 git commit 操作。
+  4. **Git Commit**: 在需要提交变更到 Git 时，一律使用 Claude Code 的自定义 Slash Command: `/commit-no-push` 进行 git commit 操作。
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/pnpm，**必须**统一使用 `yarn` 进行包管理与脚本执行。
