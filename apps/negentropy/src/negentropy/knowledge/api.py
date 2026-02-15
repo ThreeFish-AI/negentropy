@@ -1259,14 +1259,15 @@ async def get_graph_build_history(
 
 # Endpoint ID 到 operation_name LIKE 模式的映射
 # 用于按单个 API 端点过滤统计
+# operation_name 格式: "{METHOD} {path}"，例如 "POST /knowledge/base/{uuid}/search"
 ENDPOINT_PATTERNS: dict[str, list[str]] = {
-    "search": ["%/search"],
-    "ingest": ["%/ingest"],  # 注意：需要排除 ingest_url
-    "ingest_url": ["%/ingest_url"],
-    "replace_source": ["%/replace_source"],
-    "list_knowledge": ["GET %/knowledge/%"],  # GET 请求
-    "create_corpus": ["POST /knowledge/base"],  # POST 到 /knowledge/base（无 UUID）
-    "delete_corpus": ["DELETE %/knowledge/base/%"],  # DELETE 请求
+    "search": ["POST %/search"],
+    "ingest": ["POST %/base/%/ingest"],  # 精确匹配，避免匹配 ingest_url
+    "ingest_url": ["POST %/ingest_url"],
+    "replace_source": ["POST %/replace_source"],
+    "list_knowledge": ["GET %/base/%/knowledge"],  # GET /knowledge/base/{uuid}/knowledge
+    "create_corpus": ["POST /knowledge/base"],  # 精确匹配（无 UUID）
+    "delete_corpus": ["DELETE %/base/%"],  # DELETE /knowledge/base/{uuid}
 }
 
 
