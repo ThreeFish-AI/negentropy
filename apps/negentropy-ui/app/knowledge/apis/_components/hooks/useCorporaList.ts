@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { CorpusRecord, fetchCorpora } from "@/features/knowledge";
 
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+
 interface UseCorporaListResult {
   corpora: CorpusRecord[];
   loading: boolean;
@@ -21,7 +23,7 @@ export function useCorporaList(): UseCorporaListResult {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchCorpora();
+        const data = await fetchCorpora(APP_NAME);
         if (mounted) {
           setCorpora(data);
         }
