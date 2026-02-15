@@ -239,11 +239,14 @@ class KnowledgeRepository:
                 else:
                     source_filter = Knowledge.source_uri == source_uri
 
-            # 查询当前页数据
+            # 查询当前页数据：按 source_uri 分组，组内按 chunk_index 排序
             stmt = (
                 select(Knowledge)
                 .where(*base_conditions)
-                .order_by(Knowledge.created_at.desc())
+                .order_by(
+                    Knowledge.source_uri.asc().nulls_last(),
+                    Knowledge.chunk_index.asc(),
+                )
                 .limit(limit)
                 .offset(offset)
             )
