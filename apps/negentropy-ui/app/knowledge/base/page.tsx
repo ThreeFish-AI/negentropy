@@ -8,10 +8,11 @@ import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { CorpusList } from "./_components/CorpusList";
 import { CorpusDetail } from "./_components/CorpusDetail";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
-import { IngestPanel } from "./_components/IngestPanel";
 import { SearchWorkspace, SearchWorkspaceRef } from "./_components/SearchWorkspace";
 import { ContentExplorer } from "./_components/ContentExplorer";
 import { SourceList } from "./_components/SourceList";
+import { AddSourceDialog } from "./_components/AddSourceDialog";
+import { ReplaceSourceDialog } from "./_components/ReplaceSourceDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
@@ -24,7 +25,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
  */
 export default function KnowledgeBasePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"search" | "content" | "ingest">(
+  const [activeTab, setActiveTab] = useState<"search" | "content">(
     "search",
   );
 
@@ -47,6 +48,11 @@ export default function KnowledgeBasePage() {
   const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(
     undefined,
   );
+
+  // Add/Replace Source Dialog State
+  const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
+  const [isReplaceOpen, setIsReplaceOpen] = useState(false);
+  const [replaceSourceUri, setReplaceSourceUri] = useState<string | null>(null);
 
   const kb = useKnowledgeBase({
     appName: APP_NAME,
@@ -199,6 +205,22 @@ export default function KnowledgeBasePage() {
     [kb],
   );
 
+  // Add/Replace Source handlers
+  const handleOpenReplace = useCallback((uri: string) => {
+    setReplaceSourceUri(uri);
+    setIsReplaceOpen(true);
+  }, []);
+
+  const handleIngestSuccess = useCallback(() => {
+    setIsAddSourceOpen(false);
+    loadChunks();
+  }, [loadChunks]);
+
+  const handleReplaceSuccess = useCallback(() => {
+    setIsReplaceOpen(false);
+    loadChunks();
+  }, [loadChunks]);
+
   return (
     <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
@@ -247,7 +269,6 @@ export default function KnowledgeBasePage() {
                     [
                       { key: "search", label: "Search" },
                       { key: "content", label: "Content" },
-                      { key: "ingest", label: "Ingest / Replace" },
                     ] as const
                   ).map((tab) => (
                     <button
@@ -283,6 +304,8 @@ export default function KnowledgeBasePage() {
                             sourceStats={sourceStats}
                             selectedUri={selectedSourceUri}
                             onSelect={handleSourceSelect}
+                            onAddSource={() => setIsAddSourceOpen(true)}
+                            onReplaceSource={handleOpenReplace}
                           />
                         </div>
                       </aside>
@@ -339,16 +362,6 @@ export default function KnowledgeBasePage() {
                       </div>
                     </div>
                   )}
-                  {activeTab === "ingest" && (
-                    <div className="min-h-0 flex-1 overflow-y-auto pr-2 pb-4">
-                      <IngestPanel
-                        corpusId={selectedId}
-                        onIngest={handleIngest}
-                        onIngestUrl={handleIngestUrl}
-                        onReplace={handleReplace}
-                      />
-                    </div>
-                  )}
               </div>
               ) : (
                 <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -368,6 +381,24 @@ export default function KnowledgeBasePage() {
         isLoading={kb.isLoading}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleDialogSubmit}
+      />
+
+      <AddSourceDialog
+        isOpen={isAddSourceOpen}
+        corpusId={selectedId}
+        onClose={() => setIsAddSourceOpen(false)}
+        onIngest={handleIngest}
+        onIngestUrl={handleIngestUrl}
+        onSuccess={handleIngestSuccess}
+      />
+
+      <ReplaceSourceDialog
+        isOpen={isReplaceOpen}
+        corpusId={selectedId}
+        sourceUri={replaceSourceUri}
+        onClose={() => setIsReplaceOpen(false)}
+        onReplace={handleReplace}
+        onSuccess={handleReplaceSuccess}
       />
     </div>
   );
