@@ -215,6 +215,10 @@ class KnowledgeService:
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
 
+    async def get_corpus_by_id(self, corpus_id: UUID) -> Optional[CorpusRecord]:
+        """获取指定 ID 的 Corpus"""
+        return await self._repository.get_corpus_by_id(corpus_id)
+
     async def update_corpus(self, corpus_id: UUID, spec: Dict[str, Any]) -> CorpusRecord:
         corpus = await self._repository.update_corpus(corpus_id, spec)
         if not corpus:

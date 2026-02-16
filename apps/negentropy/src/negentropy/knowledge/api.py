@@ -496,10 +496,22 @@ async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]
 
     try:
         service = _get_service()
+
+        # 获取 corpus 配置作为基础（Single Source of Truth）
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
         chunking_config = _build_chunking_config(
-            chunk_size=payload.chunk_size,
-            overlap=payload.overlap,
-            preserve_newlines=payload.preserve_newlines,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
         )
         records = await service.ingest_text(
             corpus_id=corpus_id,
@@ -594,10 +606,22 @@ async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, An
 
     try:
         service = _get_service()
+
+        # 获取 corpus 配置作为基础（Single Source of Truth）
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
         chunking_config = _build_chunking_config(
-            chunk_size=payload.chunk_size,
-            overlap=payload.overlap,
-            preserve_newlines=payload.preserve_newlines,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
         )
         records = await service.ingest_url(
             corpus_id=corpus_id,
@@ -684,10 +708,22 @@ async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, 
 
     try:
         service = _get_service()
+
+        # 获取 corpus 配置作为基础（Single Source of Truth）
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
         chunking_config = _build_chunking_config(
-            chunk_size=payload.chunk_size,
-            overlap=payload.overlap,
-            preserve_newlines=payload.preserve_newlines,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
         )
         records = await service.sync_source(
             corpus_id=corpus_id,
