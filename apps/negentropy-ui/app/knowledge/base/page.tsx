@@ -64,6 +64,14 @@ export default function KnowledgeBasePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 当 selectedId 变化时，加载对应的 corpus 数据
+  useEffect(() => {
+    if (selectedId) {
+      kb.loadCorpus(selectedId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
   useEffect(() => {
     // Auto-select first if none selected
     if (!selectedId && kb.corpora.length > 0) {
