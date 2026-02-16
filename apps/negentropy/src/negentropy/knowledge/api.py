@@ -1257,17 +1257,21 @@ async def get_graph_build_history(
 # API 调用统计
 # ============================================================================
 
-# Endpoint ID 到 operation_name LIKE 模式的映射
-# 用于按单个 API 端点过滤统计
+# Endpoint ID 到 PostgreSQL 正则表达式的映射
+# 使用 ~ 操作符进行精确匹配，避免 LIKE 模式的模糊匹配问题
+# 正则表达式要点：
+# - ^ 锚定字符串开头
+# - $ 锚定字符串结尾
+# - [^/]+ 匹配非斜杠字符（如 UUID）
 # operation_name 格式: "{METHOD} {path}"，例如 "POST /knowledge/base/{uuid}/search"
 ENDPOINT_PATTERNS: dict[str, list[str]] = {
-    "search": ["POST %/search"],
-    "ingest": ["POST %/base/%/ingest"],  # 精确匹配，避免匹配 ingest_url
-    "ingest_url": ["POST %/ingest_url"],
-    "replace_source": ["POST %/replace_source"],
-    "list_knowledge": ["GET %/base/%/knowledge"],  # GET /knowledge/base/{uuid}/knowledge
-    "create_corpus": ["POST /knowledge/base"],  # 精确匹配（无 UUID）
-    "delete_corpus": ["DELETE %/base/%"],  # DELETE /knowledge/base/{uuid}
+    "search": [r"^POST /knowledge/base/[^/]+/search$"],
+    "ingest": [r"^POST /knowledge/base/[^/]+/ingest$"],  # 精确匹配，不会匹配 ingest_url
+    "ingest_url": [r"^POST /knowledge/base/[^/]+/ingest_url$"],
+    "replace_source": [r"^POST /knowledge/base/[^/]+/replace_source$"],
+    "list_knowledge": [r"^GET /knowledge/base/[^/]+/knowledge$"],
+    "create_corpus": [r"^POST /knowledge/base$"],  # 精确匹配（无 UUID）
+    "delete_corpus": [r"^DELETE /knowledge/base/[^/]+$"],  # 精确匹配 UUID
 }
 
 
@@ -1313,13 +1317,13 @@ async def get_api_stats(
         conditions = [Trace.start_time >= start_time]
 
         if endpoint and endpoint in ENDPOINT_PATTERNS:
-            # 按单个端点过滤
+            # 按单个端点过滤，使用 PostgreSQL 正则表达式 (~) 进行精确匹配
             patterns = ENDPOINT_PATTERNS[endpoint]
-            or_conditions = [Trace.operation_name.like(p) for p in patterns]
+            or_conditions = [Trace.operation_name.op("~")(p) for p in patterns]
             conditions.append(or_(*or_conditions))
         else:
             # 默认：所有 Knowledge API
-            conditions.append(Trace.operation_name.like("%/knowledge/%"))
+            conditions.append(Trace.operation_name.op("~")(r"/knowledge/"))
 
         stmt = (
             select(
