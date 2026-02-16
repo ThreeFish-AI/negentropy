@@ -43,27 +43,28 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-          cache: "pip"
-          cache-dependency-path: apps/negentropy/pyproject.toml
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/negentropy/uv.lock
 
       - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
+        working-directory: apps/negentropy
+        run: uv sync
 
       - name: Run unit tests
-        run: |
-          pytest tests/unit_tests/ -v
+        run: uv run pytest tests/unit_tests/ -v
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
 
       - name: Run integration tests
-        run: |
-          pytest tests/integration_tests/ -v
+        run: uv run pytest tests/integration_tests/ -v
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
 
       - name: Run performance tests
-        run: |
-          pytest tests/performance_tests/ -v
+        run: uv run pytest tests/performance_tests/ -v
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
