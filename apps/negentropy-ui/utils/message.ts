@@ -53,13 +53,20 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
     const last = merged[merged.length - 1];
 
     // 3. 智能合并策略
-    // A) 快照更新 (如 "Hello" -> "Hello World"): 新内容以旧内容开头。替换。
-    // B) 增量/分块 (如 "Hello" -> "!"): 新内容追加到旧内容。连接。
+    // A) 去重：跳过完全相同的内容
+    // B) 快照更新 (如 "Hello" -> "Hello World"): 新内容以旧内容开头。替换。
+    // C) 不同消息：添加 Markdown 段落分隔符后追加
     if (last && last.role === "assistant" && role === "assistant") {
+      // 去重：跳过完全相同的内容
+      if (last.content === content) {
+        return;
+      }
+      // 快照更新：新内容包含旧内容（流式输出场景）
       if (content.startsWith(last.content)) {
         last.content = content;
       } else {
-        last.content = `${last.content}${content}`;
+        // 不同消息：添加 Markdown 段落分隔符
+        last.content = `${last.content}\n\n${content}`;
       }
       return;
     }
@@ -75,6 +82,12 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
 
 /**
  * 合并相邻的助手消息
+ *
+ * 智能合并策略：
+ * 1. 去重：跳过完全相同的内容
+ * 2. 快照更新：新内容是旧内容的扩展（流式输出），则替换
+ * 3. 段落分隔：不同内容之间添加 Markdown 段落分隔符 (\n\n)
+ *
  * @param messages 聊天消息数组
  * @returns 合并后的消息数组
  */
@@ -83,7 +96,20 @@ export function mergeAdjacentAssistant(messages: ChatMessage[]): ChatMessage[] {
   messages.forEach((message) => {
     const last = merged[merged.length - 1];
     if (last && last.role === "assistant" && message.role === "assistant") {
-      last.content = `${last.content}${message.content}`;
+      // 去重：跳过完全相同的内容
+      if (last.content === message.content) {
+        return;
+      }
+      // 快照更新：新内容是旧内容的扩展（流式输出场景）
+      if (
+        message.content.startsWith(last.content) &&
+        message.content.length > last.content.length
+      ) {
+        last.content = message.content;
+        return;
+      }
+      // 不同消息：添加 Markdown 段落分隔符
+      last.content = `${last.content}\n\n${message.content}`;
       return;
     }
     merged.push({ ...message });
