@@ -168,8 +168,11 @@ export function buildChatMessagesFromEventsWithFallback(
     if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
       entry.content = `${entry.content}${event.delta ?? ""}`;
     }
-    if (entry.timestamp === 0 && "timestamp" in event && event.timestamp) {
-      entry.timestamp = event.timestamp;
+    // 优化：始终使用非零 timestamp 更新（取最小值，即最早的时间）
+    if ("timestamp" in event && event.timestamp && event.timestamp > 0) {
+      if (entry.timestamp === 0 || event.timestamp < entry.timestamp) {
+        entry.timestamp = event.timestamp;
+      }
     }
   });
 
@@ -208,11 +211,21 @@ export function buildChatMessagesFromEventsWithFallback(
     })
     .filter((entry) => entry.content.trim().length > 0)
     .sort((a, b) => {
-      // 按时间戳排序（秒）
+      // 1. 优先使用 timestamp 排序
       if (a.timestamp && b.timestamp) {
-        return a.timestamp - b.timestamp;
+        const timeDiff = a.timestamp - b.timestamp;
+        if (timeDiff !== 0) {
+          return timeDiff;
+        }
+        // 2. timestamp 相同时，使用 messageId 作为稳定排序键
+        // 保持 messageId 的字典序，确保排序稳定
+        return a.id.localeCompare(b.id);
       }
-      return 0;
+      // 3. 如果只有一个有 timestamp，有 timestamp 的排前面
+      if (a.timestamp) return -1;
+      if (b.timestamp) return 1;
+      // 4. 都没有 timestamp，使用 messageId 排序
+      return a.id.localeCompare(b.id);
     })
     .map((entry) => ({
       id: entry.id,
