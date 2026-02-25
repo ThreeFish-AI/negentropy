@@ -54,6 +54,7 @@ export function createTextMessageStartEvent(
     runId: string;
     timestamp: number;
     messageId: string;
+    author?: string;
   },
   role: "user" | "agent" | "system",
 ): TextMessageStartEvent {

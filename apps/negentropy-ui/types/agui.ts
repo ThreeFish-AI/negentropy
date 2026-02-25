@@ -15,6 +15,8 @@ export interface BaseEventProps {
   runId: string;
   timestamp: number;
   messageId?: string;
+  /** 消息作者/Agent 名称（来自后端 AdkEventPayload.author） */
+  author?: string;
 }
 
 /**

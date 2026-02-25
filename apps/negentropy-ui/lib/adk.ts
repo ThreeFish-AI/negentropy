@@ -76,6 +76,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     runId: payload.runId || "default",
     timestamp,
     messageId: payload.id,
+    author: payload.author,
   };
 
   // 1. Text Messages

@@ -140,7 +140,7 @@ export function buildChatMessagesFromEventsWithFallback(
         timestamp:
           "timestamp" in event && event.timestamp ? event.timestamp : 0,
         runId: "runId" in event ? event.runId : undefined,
-        author: ("role" in event && event.role) || undefined,
+        author: "author" in event && event.author ? event.author : undefined,
       };
       messageMap.set(messageId, entry);
     }
