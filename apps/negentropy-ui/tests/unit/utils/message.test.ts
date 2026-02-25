@@ -10,59 +10,14 @@ import type { ChatMessage } from "@/types/common";
 import { Message, BaseEvent, EventType } from "@ag-ui/core";
 
 describe("mergeAdjacentAssistant", () => {
-  it("应该在不同的 assistant 消息之间添加分隔符", () => {
+  it("应该合并相邻的 assistant 消息", () => {
     const messages: ChatMessage[] = [
       { id: "1", role: "assistant", content: "First message" },
       { id: "2", role: "assistant", content: "Second message" },
     ];
     const result = mergeAdjacentAssistant(messages);
     expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("First message\n\nSecond message");
-  });
-
-  it("应该去重完全相同的内容", () => {
-    const messages: ChatMessage[] = [
-      { id: "1", role: "assistant", content: "Same content" },
-      { id: "2", role: "assistant", content: "Same content" },
-    ];
-    const result = mergeAdjacentAssistant(messages);
-    expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("Same content");
-  });
-
-  it("应该正确处理快照更新（流式输出）", () => {
-    const messages: ChatMessage[] = [
-      { id: "1", role: "assistant", content: "Hello" },
-      { id: "2", role: "assistant", content: "Hello World" },
-    ];
-    const result = mergeAdjacentAssistant(messages);
-    expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("Hello World");
-  });
-
-  it("应该正确处理增量快照更新", () => {
-    const messages: ChatMessage[] = [
-      { id: "1", role: "assistant", content: "GLM 5" },
-      { id: "2", role: "assistant", content: "GLM 5 的优势" },
-      { id: "3", role: "assistant", content: "GLM 5 的优势包括" },
-      { id: "4", role: "assistant", content: "GLM 5 的优势包括高效率" },
-    ];
-    const result = mergeAdjacentAssistant(messages);
-    expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("GLM 5 的优势包括高效率");
-  });
-
-  it("应该处理多个不同的 assistant 消息", () => {
-    const messages: ChatMessage[] = [
-      { id: "1", role: "assistant", content: "Perception: I see the problem" },
-      { id: "2", role: "assistant", content: "Internalization: I understand" },
-      { id: "3", role: "assistant", content: "Contemplation: Let me think" },
-    ];
-    const result = mergeAdjacentAssistant(messages);
-    expect(result).toHaveLength(1);
-    expect(result[0].content).toBe(
-      "Perception: I see the problem\n\nInternalization: I understand\n\nContemplation: Let me think"
-    );
+    expect(result[0].content).toBe("First messageSecond message");
   });
 
   it("应该不合并 user 消息", () => {
@@ -94,6 +49,17 @@ describe("mergeAdjacentAssistant", () => {
     expect(result).toHaveLength(1);
     expect(result[0].content).toBe("Single message");
   });
+
+  it("应该合并多个相邻的 assistant 消息", () => {
+    const messages: ChatMessage[] = [
+      { id: "1", role: "assistant", content: "First" },
+      { id: "2", role: "assistant", content: "Second" },
+      { id: "3", role: "assistant", content: "Third" },
+    ];
+    const result = mergeAdjacentAssistant(messages);
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toBe("FirstSecondThird");
+  });
 });
 
 describe("mapMessagesToChat", () => {
@@ -110,34 +76,16 @@ describe("mapMessagesToChat", () => {
     expect(result[1].role).toBe("assistant");
   });
 
-  it("应该在不同的 assistant 消息之间添加分隔符", () => {
+  it("应该保持所有消息的独立性（不合并）", () => {
     const messages: Message[] = [
       { id: "1", role: "assistant", content: "First", createdAt: new Date() },
       { id: "2", role: "assistant", content: "Second", createdAt: new Date() },
     ] as Message[];
     const result = mapMessagesToChat(messages);
-    expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("First\n\nSecond");
-  });
-
-  it("应该去重完全相同的内容", () => {
-    const messages: Message[] = [
-      { id: "1", role: "assistant", content: "Same", createdAt: new Date() },
-      { id: "2", role: "assistant", content: "Same", createdAt: new Date() },
-    ] as Message[];
-    const result = mapMessagesToChat(messages);
-    expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("Same");
-  });
-
-  it("应该正确处理快照更新", () => {
-    const messages: Message[] = [
-      { id: "1", role: "assistant", content: "Hello", createdAt: new Date() },
-      { id: "2", role: "assistant", content: "Hello World", createdAt: new Date() },
-    ] as Message[];
-    const result = mapMessagesToChat(messages);
-    expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("Hello World");
+    expect(result).toHaveLength(2);
+    // 不添加分隔符，保持原样
+    expect(result[0].content).toBe("First");
+    expect(result[1].content).toBe("Second");
   });
 
   it("应该处理 agent 角色为 assistant", () => {

@@ -33,7 +33,7 @@ export function normalizeMessageContent(message: Message): string {
  * @returns 聊天消息数组
  */
 export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
-  const merged: ChatMessage[] = [];
+  const chatMessages: ChatMessage[] = [];
   messages.forEach((message) => {
     const rawRole = (message.role || "assistant").toLowerCase();
 
@@ -50,43 +50,21 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
       return;
     }
 
-    const last = merged[merged.length - 1];
-
-    // 3. 智能合并策略
-    // A) 去重：跳过完全相同的内容
-    // B) 快照更新 (如 "Hello" -> "Hello World"): 新内容以旧内容开头。替换。
-    // C) 不同消息：添加 Markdown 段落分隔符后追加
-    if (last && last.role === "assistant" && role === "assistant") {
-      // 去重：跳过完全相同的内容
-      if (last.content === content) {
-        return;
-      }
-      // 快照更新：新内容包含旧内容（流式输出场景）
-      if (content.startsWith(last.content)) {
-        last.content = content;
-      } else {
-        // 不同消息：添加 Markdown 段落分隔符
-        last.content = `${last.content}\n\n${content}`;
-      }
-      return;
-    }
-
-    merged.push({
+    // 3. 不做任何合并，直接添加
+    chatMessages.push({
       id: message.id,
       role,
       content,
     });
   });
-  return merged;
+  return chatMessages;
 }
 
 /**
  * 合并相邻的助手消息
  *
- * 智能合并策略：
- * 1. 去重：跳过完全相同的内容
- * 2. 快照更新：新内容是旧内容的扩展（流式输出），则替换
- * 3. 段落分隔：不同内容之间添加 Markdown 段落分隔符 (\n\n)
+ * 简单合并策略：
+ * 将相邻的 assistant 消息内容合并在一起
  *
  * @param messages 聊天消息数组
  * @returns 合并后的消息数组
@@ -96,20 +74,8 @@ export function mergeAdjacentAssistant(messages: ChatMessage[]): ChatMessage[] {
   messages.forEach((message) => {
     const last = merged[merged.length - 1];
     if (last && last.role === "assistant" && message.role === "assistant") {
-      // 去重：跳过完全相同的内容
-      if (last.content === message.content) {
-        return;
-      }
-      // 快照更新：新内容是旧内容的扩展（流式输出场景）
-      if (
-        message.content.startsWith(last.content) &&
-        message.content.length > last.content.length
-      ) {
-        last.content = message.content;
-        return;
-      }
-      // 不同消息：添加 Markdown 段落分隔符
-      last.content = `${last.content}\n\n${message.content}`;
+      // 简单拼接，不添加分隔符
+      last.content = `${last.content}${message.content}`;
       return;
     }
     merged.push({ ...message });
