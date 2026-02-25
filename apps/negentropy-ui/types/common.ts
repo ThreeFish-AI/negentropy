@@ -53,7 +53,14 @@ export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
  * 聊天消息类型
  *
  * 从 Message 类型提取必要的字段，确保类型兼容性
+ * 扩展来源信息（author, timestamp, runId）用于 UI 显示
  */
 export type ChatMessage = Pick<Message, "id" | "role"> & {
   content: string;
+  /** Agent/作者名称（来自后端 AdkEventPayload.author） */
+  author?: string;
+  /** Unix 时间戳（秒），用于显示消息时间 */
+  timestamp?: number;
+  /** 运行 ID，用于标识消息所属的轮次 */
+  runId?: string;
 };

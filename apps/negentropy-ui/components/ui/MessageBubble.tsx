@@ -3,31 +3,49 @@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 import type { Message } from "@ag-ui/core";
+import type { ChatMessage } from "@/types/common";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram } from "./MermaidDiagram";
 
 type ChatMessageProps = {
-  message: Pick<Message, "id" | "role" | "content">;
+  message: ChatMessage;
   isSelected?: boolean;
   onSelect?: (messageId: string) => void;
 };
 
-function normalizeContent(content: Message["content"]): string {
-  if (typeof content === "string") {
-    return content;
+/**
+ * 格式化时间戳为相对时间显示
+ * @param timestamp Unix 时间戳（秒）
+ * @returns 格式化后的时间字符串
+ */
+function formatTimestamp(timestamp: number): string {
+  const now = Date.now() / 1000;
+  const diff = now - timestamp;
+
+  if (diff < 60) {
+    return "刚刚";
   }
-  if (Array.isArray(content)) {
-    return content
-      .map((c) => {
-        if (c.type === "text") {
-          return c.text;
-        }
-        return "";
-      })
-      .join("");
+  if (diff < 3600) {
+    return `${Math.floor(diff / 60)}分钟前`;
   }
-  return "";
+  if (diff < 86400) {
+    return `${Math.floor(diff / 3600)}小时前`;
+  }
+  if (diff < 604800) {
+    return `${Math.floor(diff / 86400)}天前`;
+  }
+  // 超过一周显示具体日期
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleDateString("zh-CN", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// ChatMessage.content 已经是字符串，不需要额外处理
+function normalizeContent(content: string): string {
+  return content;
 }
 
 import { useState } from "react";
@@ -361,6 +379,23 @@ export function MessageBubble({
             </ReactMarkdown>
           </div>
         </div>
+
+        {/* 元信息栏：显示作者和时间戳 */}
+        {!isUser && (message.author || message.timestamp) && (
+          <div className="flex items-center gap-2 mt-1.5 px-1">
+            {message.author && (
+              <span className="text-[10px] text-muted-foreground bg-muted/50 dark:bg-muted/30 px-1.5 py-0.5 rounded font-medium">
+                {message.author}
+              </span>
+            )}
+            {message.timestamp && (
+              <span className="text-[10px] text-muted-foreground">
+                {formatTimestamp(message.timestamp)}
+              </span>
+            )}
+          </div>
+        )}
+
         {!isUser && <MessageActions content={content} />}
       </div>
     </div>

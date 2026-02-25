@@ -50,11 +50,19 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
       return;
     }
 
-    // 3. 不做任何合并，直接添加
+    // 3. 提取来源信息（Message 扩展字段）
+    const author = (message as { author?: string }).author;
+    const timestamp = message.createdAt ? message.createdAt.getTime() / 1000 : undefined;
+    const runId = (message as { runId?: string }).runId;
+
+    // 4. 添加到结果
     chatMessages.push({
       id: message.id,
       role,
       content,
+      author,
+      timestamp,
+      runId,
     });
   });
   return chatMessages;
@@ -105,6 +113,8 @@ export function buildChatMessagesFromEventsWithFallback(
       role: string;
       content: string;
       timestamp: number;
+      runId?: string;
+      author?: string;
     }
   >();
 
@@ -129,6 +139,8 @@ export function buildChatMessagesFromEventsWithFallback(
         content: "",
         timestamp:
           "timestamp" in event && event.timestamp ? event.timestamp : 0,
+        runId: "runId" in event ? event.runId : undefined,
+        author: ("role" in event && event.role) || undefined,
       };
       messageMap.set(messageId, entry);
     }
@@ -155,6 +167,8 @@ export function buildChatMessagesFromEventsWithFallback(
         role: fallback.role,
         content: normalizeMessageContent(fallback),
         timestamp,
+        runId: (fallback as { runId?: string }).runId,
+        author: (fallback as { author?: string }).author,
       });
     } else {
       // 如果事件中缺少时间戳则回填
@@ -198,6 +212,9 @@ export function buildChatMessagesFromEventsWithFallback(
       id: entry.id,
       role: entry.role,
       content: entry.content,
+      timestamp: entry.timestamp || undefined,
+      runId: entry.runId,
+      author: entry.author,
     }));
 
   return mergeAdjacentAssistant(ordered);
