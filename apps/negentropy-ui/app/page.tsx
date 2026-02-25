@@ -733,7 +733,7 @@ export function HomeBody({
     return logEntries.filter((entry) => entry.timestamp <= cutoffMs);
   }, [logEntries, selectedMessageId, messageTimestamps]);
 
-  const contentWidthClass = showRightPanel ? "max-w-4xl" : "max-w-none";
+  const contentWidthClass = (!showLeftPanel && !showRightPanel) ? "max-w-5xl" : "max-w-none";
 
   return (
     <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">

@@ -63,8 +63,9 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
 /**
  * 合并相邻的助手消息
  *
- * 简单合并策略：
- * 将相邻的 assistant 消息内容合并在一起
+ * 合并策略：
+ * - 将相邻的 assistant 消息内容合并
+ * - 使用双换行符 (\n\n) 分隔不同消息内容，保持可读性
  *
  * @param messages 聊天消息数组
  * @returns 合并后的消息数组
@@ -74,8 +75,8 @@ export function mergeAdjacentAssistant(messages: ChatMessage[]): ChatMessage[] {
   messages.forEach((message) => {
     const last = merged[merged.length - 1];
     if (last && last.role === "assistant" && message.role === "assistant") {
-      // 简单拼接，不添加分隔符
-      last.content = `${last.content}${message.content}`;
+      // 使用双换行符分隔不同消息内容
+      last.content = `${last.content}\n\n${message.content}`;
       return;
     }
     merged.push({ ...message });
