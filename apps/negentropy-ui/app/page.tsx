@@ -712,7 +712,8 @@ export function HomeBody({
   }, [messagesForRenderBase, optimisticMessages]);
 
   const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
-  const chatMessages = ensureUniqueMessageIds(mappedMessages);
+  const mergedMessages = mergeAdjacentAssistant(mappedMessages);
+  const chatMessages = ensureUniqueMessageIds(mergedMessages);
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
