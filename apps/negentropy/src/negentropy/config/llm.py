@@ -45,14 +45,6 @@ class LlmSettings(BaseSettings):
         validate_default=True,
     )
 
-    # Model Pricing (USD per 1M tokens)
-    # Reference: https://open.bigmodel.cn/pricing
-    # Exchange rate: 1 USD ≈ 7 CNY
-    MODEL_PRICING: Dict[str, Dict[str, float]] = {
-        "glm-5": {"input": 0.5, "output": 0.5},  # GLM-5: ¥3.5/1M tokens ≈ $0.5/1M
-        # Add more models as needed
-    }
-
     # Core Identity
     vendor: LlmVendor = Field(
         default=LlmVendor.ZAI,
@@ -124,12 +116,13 @@ class LlmSettings(BaseSettings):
 
         Returns pricing dict with 'input' and 'output' keys (USD per 1M tokens),
         or None if the model is not in the pricing table.
+
+        Pricing data is loaded from config/pricing/glm_pricing.json.
+        Reference: https://open.bigmodel.cn/pricing
         """
-        model_lower = self.model_name.lower()
-        for key, pricing in self.MODEL_PRICING.items():
-            if key in model_lower:
-                return pricing
-        return None
+        from negentropy.config.pricing import get_model_pricing_usd
+
+        return get_model_pricing_usd(self.model_name)
 
     @property
     def embedding_full_model_name(self) -> str:

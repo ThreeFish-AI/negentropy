@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "source": "https://open.bigmodel.cn/pricing",
+    "updated_at": "2026-02-26",
+    "currency": "CNY",
+    "exchange_rate_usd_cny": 7.0
+  },
+  "models": {
+    "glm-5": {
+      "input": 4.0,
+      "output": 18.0
+    },
+    "glm-5-code": {
+      "input": 6.0,
+      "output": 28.0
+    },
+    "glm-4.7": {
+      "input": 2.0,
+      "output": 8.0
+    },
+    "glm-4.5-air": {
+      "input": 0.8,
+      "output": 2.0
+    },
+    "glm-4.7-flashx": {
+      "input": 0.5,
+      "output": 3.0
+    },
+    "glm-4.7-flash": {
+      "input": 0.0,
+      "output": 0.0,
+      "is_free": true
+    }
+  }
+}
