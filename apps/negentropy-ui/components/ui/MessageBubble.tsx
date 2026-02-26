@@ -285,7 +285,7 @@ export function MessageBubble({
         >
           <div
             className={cn(
-              "space-y-2 overflow-hidden wrap-break-word",
+              "space-y-2 overflow-hidden break-words whitespace-normal",
               "[&>p]:leading-snug [&>p]:mb-2 [&>p:last-child]:mb-0",
               "[&>ul]:list-disc [&>ul]:pl-4 [&>ul]:space-y-1",
               "[&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:space-y-1",
