@@ -45,6 +45,14 @@ class LlmSettings(BaseSettings):
         validate_default=True,
     )
 
+    # Model Pricing (USD per 1M tokens)
+    # Reference: https://open.bigmodel.cn/pricing
+    # Exchange rate: 1 USD ≈ 7 CNY
+    MODEL_PRICING: Dict[str, Dict[str, float]] = {
+        "glm-5": {"input": 0.5, "output": 0.5},  # GLM-5: ¥3.5/1M tokens ≈ $0.5/1M
+        # Add more models as needed
+    }
+
     # Core Identity
     vendor: LlmVendor = Field(
         default=LlmVendor.ZAI,
@@ -109,6 +117,19 @@ class LlmSettings(BaseSettings):
         if "/" in self.model_name:
             return self.model_name
         return f"{self.vendor.value}/{self.model_name}"
+
+    @property
+    def model_pricing(self) -> Optional[Dict[str, float]]:
+        """Returns pricing for the current model, if known.
+
+        Returns pricing dict with 'input' and 'output' keys (USD per 1M tokens),
+        or None if the model is not in the pricing table.
+        """
+        model_lower = self.model_name.lower()
+        for key, pricing in self.MODEL_PRICING.items():
+            if key in model_lower:
+                return pricing
+        return None
 
     @property
     def embedding_full_model_name(self) -> str:
