@@ -52,7 +52,9 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
 
     // 3. 提取来源信息（Message 扩展字段）
     const author = (message as { author?: string }).author;
-    const timestamp = message.createdAt ? message.createdAt.getTime() / 1000 : undefined;
+    const timestamp = message.createdAt
+      ? message.createdAt.getTime() / 1000
+      : undefined;
     const runId = (message as { runId?: string }).runId;
 
     // 4. 添加到结果
@@ -71,9 +73,9 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
 /**
  * 合并相邻的助手消息
  *
- * 合并策略：
- * - 将相邻的 assistant 消息内容合并
- * - 使用双换行符 (\n\n) 分隔不同消息内容，保持可读性
+ * 合并策略（基于 runId 区分场景）：
+ * - 同一 runId → 直接拼接（流式 token 碎片，不引入段落分隔）
+ * - 不同 runId / 无 runId → 使用双换行符 (\n\n) 分隔（多轮次答复）
  *
  * @param messages 聊天消息数组
  * @returns 合并后的消息数组
@@ -83,8 +85,14 @@ export function mergeAdjacentAssistant(messages: ChatMessage[]): ChatMessage[] {
   messages.forEach((message) => {
     const last = merged[merged.length - 1];
     if (last && last.role === "assistant" && message.role === "assistant") {
-      // 使用双换行符分隔不同消息内容
-      last.content = `${last.content}\n\n${message.content}`;
+      // 同一 runId → 直接拼接（流式 token 碎片，不引入段落分隔）
+      // 不同 runId / 无 runId → 换行分隔（不同轮次答复）
+      const sameRun =
+        last.runId && message.runId && last.runId === message.runId;
+      const separator = sameRun ? "" : "\n\n";
+      last.content = `${last.content}${separator}${message.content}`;
+      // 更新 runId 以便后续消息基于最新轮次判断
+      last.runId = message.runId;
       return;
     }
     merged.push({ ...message });
@@ -100,7 +108,7 @@ export function mergeAdjacentAssistant(messages: ChatMessage[]): ChatMessage[] {
  */
 export function buildChatMessagesFromEventsWithFallback(
   events: BaseEvent[],
-  fallbackMessages: Message[]
+  fallbackMessages: Message[],
 ): ChatMessage[] {
   const fallbackById = new Map<string, Message>();
   fallbackMessages.forEach((message) => fallbackById.set(message.id, message));
@@ -118,7 +126,16 @@ export function buildChatMessagesFromEventsWithFallback(
     }
   >();
 
+  // 追踪当前活跃的 runId（来自 RUN_STARTED 事件）
+  let currentRunId: string | undefined;
+
   events.forEach((event) => {
+    // 追踪最近的 RUN_STARTED 事件以获取 runId
+    if (event.type === EventType.RUN_STARTED) {
+      currentRunId =
+        "runId" in event ? (event as { runId: string }).runId : undefined;
+      return;
+    }
     if (
       event.type !== EventType.TEXT_MESSAGE_START &&
       event.type !== EventType.TEXT_MESSAGE_CONTENT &&
@@ -139,7 +156,8 @@ export function buildChatMessagesFromEventsWithFallback(
         content: "",
         timestamp:
           "timestamp" in event && event.timestamp ? event.timestamp : 0,
-        runId: "runId" in event ? event.runId : undefined,
+        // 使用当前活跃的 runId（来自最近的 RUN_STARTED 事件）
+        runId: currentRunId,
         author: "author" in event && event.author ? event.author : undefined,
       };
       messageMap.set(messageId, entry);

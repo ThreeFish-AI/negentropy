@@ -30,14 +30,15 @@ import {
 import { useSessionManager } from "@/hooks/useSessionManager";
 import { useEventProcessor } from "@/hooks/useEventProcessor";
 import { useUIState } from "@/hooks/useUIState";
-import { useConfirmationTool, type ConfirmationToolArgs } from "@/hooks/useConfirmationTool";
+import {
+  useConfirmationTool,
+  type ConfirmationToolArgs,
+} from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
 import { createSessionLabel, buildAgentUrl } from "@/utils/session";
 import {
   normalizeMessageContent,
-  mapMessagesToChat,
-  mergeAdjacentAssistant,
   buildChatMessagesFromEventsWithFallback,
   ensureUniqueMessageIds,
 } from "@/utils/message";
@@ -387,14 +388,18 @@ export function HomeBody({
         );
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(payload?.error?.message || "update_session_title_failed");
+          throw new Error(
+            payload?.error?.message || "update_session_title_failed",
+          );
         }
         await loadSessions();
       } catch (error) {
         if (previousLabel !== null) {
           setSessions((prev) =>
             prev.map((session) =>
-              session.id === id ? { ...session, label: previousLabel as string } : session,
+              session.id === id
+                ? { ...session, label: previousLabel as string }
+                : session,
             ),
           );
         }
@@ -600,8 +605,7 @@ export function HomeBody({
     }
     const shouldPollTitle =
       !!sessionId &&
-      (!activeSession ||
-        activeSession.label === createSessionLabel(sessionId));
+      (!activeSession || activeSession.label === createSessionLabel(sessionId));
     try {
       setConnectionWithMetrics("connecting");
       await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
@@ -711,9 +715,20 @@ export function HomeBody({
     return merged;
   }, [messagesForRenderBase, optimisticMessages]);
 
-  const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
-  const mergedMessages = mergeAdjacentAssistant(mappedMessages);
-  const chatMessages = ensureUniqueMessageIds(mergedMessages);
+  // 使用事件驱动构建聊天消息：
+  // - rawEvents 中按 messageId 拼接 delta（避免流式token逐词换行）
+  // - 从事件提取 runId（支持多轮次答复 \n\n 分隔）
+  // - mergedMessagesForRender 作为 fallback 补充非流窗口中的历史消息
+  const chatMessages = useMemo(
+    () =>
+      ensureUniqueMessageIds(
+        buildChatMessagesFromEventsWithFallback(
+          rawEvents,
+          mergedMessagesForRender,
+        ),
+      ),
+    [rawEvents, mergedMessagesForRender],
+  );
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
@@ -825,7 +840,9 @@ export function HomeBody({
               }}
               contentClassName={contentWidthClass}
             />
-            <div className={`p-6 pt-2 shrink-0 w-full mx-auto ${contentWidthClass}`}>
+            <div
+              className={`p-6 pt-2 shrink-0 w-full mx-auto ${contentWidthClass}`}
+            >
               <Composer
                 value={inputValue}
                 onChange={setInputValue}

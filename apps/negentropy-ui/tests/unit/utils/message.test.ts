@@ -5,19 +5,43 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { mergeAdjacentAssistant, mapMessagesToChat, buildChatMessagesFromEventsWithFallback } from "@/utils/message";
+import {
+  mergeAdjacentAssistant,
+  mapMessagesToChat,
+  buildChatMessagesFromEventsWithFallback,
+} from "@/utils/message";
 import type { ChatMessage } from "@/types/common";
 import { Message, BaseEvent, EventType } from "@ag-ui/core";
 
 describe("mergeAdjacentAssistant", () => {
-  it("应该合并相邻的 assistant 消息", () => {
+  it("应该合并相邻的 assistant 消息（无 runId，使用 \\n\\n 分隔）", () => {
     const messages: ChatMessage[] = [
       { id: "1", role: "assistant", content: "First message" },
       { id: "2", role: "assistant", content: "Second message" },
     ];
     const result = mergeAdjacentAssistant(messages);
     expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("First messageSecond message");
+    expect(result[0].content).toBe("First message\n\nSecond message");
+  });
+
+  it("应该直接拼接相同 runId 的相邻 assistant 消息（流式 token 碎片）", () => {
+    const messages: ChatMessage[] = [
+      { id: "1", role: "assistant", content: "First", runId: "run-1" },
+      { id: "2", role: "assistant", content: " Second", runId: "run-1" },
+    ];
+    const result = mergeAdjacentAssistant(messages);
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toBe("First Second");
+  });
+
+  it("应该用 \\n\\n 分隔不同 runId 的相邻 assistant 消息（多轮次答复）", () => {
+    const messages: ChatMessage[] = [
+      { id: "1", role: "assistant", content: "Run 1 reply", runId: "run-1" },
+      { id: "2", role: "assistant", content: "Run 2 reply", runId: "run-2" },
+    ];
+    const result = mergeAdjacentAssistant(messages);
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toBe("Run 1 reply\n\nRun 2 reply");
   });
 
   it("应该不合并 user 消息", () => {
@@ -29,7 +53,6 @@ describe("mergeAdjacentAssistant", () => {
     ];
     const result = mergeAdjacentAssistant(messages);
     expect(result).toHaveLength(4);
-    // 检查消息顺序和角色保持不变
     expect(result[0].role).toBe("user");
     expect(result[1].role).toBe("assistant");
     expect(result[2].role).toBe("user");
@@ -50,15 +73,28 @@ describe("mergeAdjacentAssistant", () => {
     expect(result[0].content).toBe("Single message");
   });
 
-  it("应该合并多个相邻的 assistant 消息", () => {
+  it("应该合并多个相邻的同 runId assistant 消息（流式碎片）", () => {
     const messages: ChatMessage[] = [
-      { id: "1", role: "assistant", content: "First" },
-      { id: "2", role: "assistant", content: "Second" },
-      { id: "3", role: "assistant", content: "Third" },
+      { id: "1", role: "assistant", content: "First", runId: "run-1" },
+      { id: "2", role: "assistant", content: " Second", runId: "run-1" },
+      { id: "3", role: "assistant", content: " Third", runId: "run-1" },
     ];
     const result = mergeAdjacentAssistant(messages);
     expect(result).toHaveLength(1);
-    expect(result[0].content).toBe("FirstSecondThird");
+    expect(result[0].content).toBe("First Second Third");
+  });
+
+  it("应该正确处理混合的 runId 序列", () => {
+    const messages: ChatMessage[] = [
+      { id: "1", role: "assistant", content: "A1", runId: "run-1" },
+      { id: "2", role: "assistant", content: " A2", runId: "run-1" },
+      { id: "3", role: "assistant", content: "B1", runId: "run-2" },
+      { id: "4", role: "assistant", content: " B2", runId: "run-2" },
+    ];
+    const result = mergeAdjacentAssistant(messages);
+    expect(result).toHaveLength(1);
+    // run-1 碎片直接拼接，run-1 与 run-2 之间用 \n\n 分隔，run-2 碎片直接拼接
+    expect(result[0].content).toBe("A1 A2\n\nB1 B2");
   });
 });
 
@@ -66,9 +102,19 @@ describe("mapMessagesToChat", () => {
   it("应该过滤 tool 和 system 角色", () => {
     const messages: Message[] = [
       { id: "1", role: "user", content: "Hello", createdAt: new Date() },
-      { id: "2", role: "system", content: "You are helpful", createdAt: new Date() },
+      {
+        id: "2",
+        role: "system",
+        content: "You are helpful",
+        createdAt: new Date(),
+      },
       { id: "3", role: "tool", content: "Tool result", createdAt: new Date() },
-      { id: "4", role: "assistant", content: "Hi there", createdAt: new Date() },
+      {
+        id: "4",
+        role: "assistant",
+        content: "Hi there",
+        createdAt: new Date(),
+      },
     ] as Message[];
     const result = mapMessagesToChat(messages);
     expect(result).toHaveLength(2);
@@ -90,7 +136,12 @@ describe("mapMessagesToChat", () => {
 
   it("应该处理 agent 角色为 assistant", () => {
     const messages: Message[] = [
-      { id: "1", role: "agent", content: "Agent response", createdAt: new Date() },
+      {
+        id: "1",
+        role: "agent",
+        content: "Agent response",
+        createdAt: new Date(),
+      },
     ] as Message[];
     const result = mapMessagesToChat(messages);
     expect(result).toHaveLength(1);
@@ -303,13 +354,13 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
         type: EventType.TEXT_MESSAGE_START,
         messageId: "msg1",
         role: "assistant",
-        timestamp: 2000,  // 初始 timestamp
+        timestamp: 2000, // 初始 timestamp
       } as BaseEvent,
       {
         type: EventType.TEXT_MESSAGE_CONTENT,
         messageId: "msg1",
         delta: "Hello",
-        timestamp: 1000,  // 更早的 timestamp，应该被使用
+        timestamp: 1000, // 更早的 timestamp，应该被使用
       } as BaseEvent,
       {
         type: EventType.TEXT_MESSAGE_END,
