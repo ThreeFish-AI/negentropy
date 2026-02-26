@@ -573,31 +573,9 @@ export function HomeBody({
       content: inputValue.trim(),
       createdAt: new Date(timestamp * 1000),
     };
+    // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
+    // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
     setOptimisticMessages((prev) => [...prev, newMessage]);
-    setRawEvents((prev) => {
-      const optimisticEvents: BaseEvent[] = [
-        {
-          type: EventType.TEXT_MESSAGE_START,
-          messageId,
-          role: "user",
-          timestamp,
-        } as BaseEvent,
-        {
-          type: EventType.TEXT_MESSAGE_CONTENT,
-          messageId,
-          delta: newMessage.content,
-          timestamp,
-        } as BaseEvent,
-        {
-          type: EventType.TEXT_MESSAGE_END,
-          messageId,
-          timestamp,
-        } as BaseEvent,
-      ];
-      const next = [...prev, ...optimisticEvents];
-      // Increase buffer to prevent dropping messages
-      return next.slice(-10000);
-    });
     agent.addMessage(newMessage);
     setInputValue("");
     if (sessionId) {

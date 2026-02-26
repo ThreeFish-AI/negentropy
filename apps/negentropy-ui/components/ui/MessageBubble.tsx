@@ -7,6 +7,7 @@ import type { ChatMessage } from "@/types/common";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram } from "./MermaidDiagram";
+import { ToolCallList } from "./ToolCallBubble";
 
 type ChatMessageProps = {
   message: ChatMessage;
@@ -394,6 +395,11 @@ export function MessageBubble({
               </span>
             )}
           </div>
+        )}
+
+        {/* 工具调用列表（内嵌在消息气泡中显示） */}
+        {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
+          <ToolCallList toolCalls={message.toolCalls} />
         )}
 
         {!isUser && <MessageActions content={content} />}
