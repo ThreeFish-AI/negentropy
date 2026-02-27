@@ -664,6 +664,7 @@ async def ingest_file(
     chunk_size: Optional[int] = Form(default=None),
     overlap: Optional[int] = Form(default=None),
     preserve_newlines: Optional[bool] = Form(default=None),
+    store_to_gcs: bool = Form(default=True),
 ) -> Dict[str, Any]:
     """从上传文件导入内容到知识库
 
@@ -671,21 +672,24 @@ async def ingest_file(
 
     流程:
     1. 验证文件类型和大小
-    2. 提取文本内容
-    3. 调用 ingest_text 完成分块和向量化
+    2. 检查重复（通过内容 Hash）
+    3. 存储原始文件到 GCS（如果启用）
+    4. 提取文本内容
+    5. 调用 ingest_text 完成分块和向量化
 
     Args:
         corpus_id: 知识库 ID
         file: 上传的文件
         app_name: 应用名称（可选）
-        source_uri: 来源 URI（可选，默认使用文件名）
+        source_uri: 来源 URI（可选，默认使用 GCS URI 或文件名）
         metadata: 元数据 JSON 字符串（可选）
         chunk_size: 分块大小（可选）
         overlap: 分块重叠（可选）
         preserve_newlines: 是否保留换行（可选）
+        store_to_gcs: 是否存储原始文件到 GCS（默认 True）
 
     Returns:
-        Dict: {"count": 分块数量, "items": [分块 ID 列表]}
+        Dict: {"count": 分块数量, "items": [分块 ID 列表], "document_id": 文档 ID, "duplicate": 是否重复}
 
     Raises:
         400: 文件过大、类型不支持、解析失败等
@@ -699,6 +703,7 @@ async def ingest_file(
         app_name=resolved_app,
         filename=file.filename,
         content_type=file.content_type,
+        store_to_gcs=store_to_gcs,
     )
 
     try:
@@ -734,6 +739,39 @@ async def ingest_file(
         # 清理文件名（防止路径遍历）
         safe_filename = sanitize_filename(file.filename)
 
+        # GCS 存储逻辑
+        doc_record = None
+        is_new_doc = True
+        gcs_uri = None
+
+        if store_to_gcs:
+            from negentropy.storage.service import DocumentStorageService
+            from negentropy.storage.gcs_client import StorageError
+
+            try:
+                storage_service = DocumentStorageService()
+                doc_record, is_new_doc = await storage_service.upload_and_store(
+                    corpus_id=corpus_id,
+                    app_name=resolved_app,
+                    content=content,
+                    filename=safe_filename,
+                    content_type=file.content_type,
+                    metadata={"source": "ingest_file"},
+                )
+                gcs_uri = doc_record.gcs_uri
+
+                logger.info(
+                    "document_storage_completed",
+                    corpus_id=str(corpus_id),
+                    doc_id=str(doc_record.id),
+                    is_new=is_new_doc,
+                    gcs_uri=gcs_uri,
+                )
+            except StorageError as exc:
+                logger.warning("gcs_storage_failed_proceeding_without_storage", error=str(exc))
+                # 继续处理，但不存储到 GCS
+
+        # 提取文本内容
         text = await extract_file_content(
             content=content,
             filename=safe_filename,
@@ -746,8 +784,8 @@ async def ingest_file(
                 detail={"code": "EMPTY_CONTENT", "message": "No text content extracted from file"},
             )
 
-        # 使用 source_uri 参数或清理后的文件名
-        final_source_uri = source_uri or safe_filename
+        # 使用 source_uri 参数 > GCS URI > 清理后的文件名
+        final_source_uri = source_uri or gcs_uri or safe_filename
 
         # 获取服务并执行摄入
         service = _get_service()
@@ -771,6 +809,8 @@ async def ingest_file(
         meta["original_filename"] = safe_filename
         meta["content_type"] = file.content_type
         meta["file_size"] = len(content)
+        if gcs_uri:
+            meta["gcs_uri"] = gcs_uri
 
         # 调用现有的 ingest_text
         records = await service.ingest_text(
@@ -787,9 +827,15 @@ async def ingest_file(
             corpus_id=str(corpus_id),
             filename=file.filename,
             record_count=len(records),
+            is_new_doc=is_new_doc,
         )
 
-        return {"count": len(records), "items": [r.id for r in records]}
+        result: Dict[str, Any] = {"count": len(records), "items": [r.id for r in records]}
+        if doc_record:
+            result["document_id"] = str(doc_record.id)
+            result["duplicate"] = not is_new_doc
+
+        return result
 
     except ValueError as exc:
         logger.warning("file_parse_error", error=str(exc))
@@ -805,6 +851,168 @@ async def ingest_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
         ) from exc
+
+
+# ============================================================================
+# Document Management API
+# ============================================================================
+
+
+class DocumentResponse(BaseModel):
+    """文档元信息响应模型"""
+
+    id: UUID
+    corpus_id: UUID
+    app_name: str
+    file_hash: str
+    original_filename: str
+    gcs_uri: str
+    content_type: Optional[str] = None
+    file_size: int
+    status: str
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentListResponse(BaseModel):
+    """文档列表响应模型"""
+
+    count: int
+    items: list[DocumentResponse]
+
+
+@router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
+async def list_documents(
+    corpus_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> DocumentListResponse:
+    """列出语料库中的已上传文档
+
+    Args:
+        corpus_id: 知识库 ID
+        app_name: 应用名称
+        limit: 分页大小
+        offset: 偏移量
+
+    Returns:
+        DocumentListResponse: 文档列表
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    docs, total = await storage_service.list_documents(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        limit=limit,
+        offset=offset,
+    )
+
+    return DocumentListResponse(
+        count=total,
+        items=[
+            DocumentResponse(
+                id=doc.id,
+                corpus_id=doc.corpus_id,
+                app_name=doc.app_name,
+                file_hash=doc.file_hash,
+                original_filename=doc.original_filename,
+                gcs_uri=doc.gcs_uri,
+                content_type=doc.content_type,
+                file_size=doc.file_size,
+                status=doc.status,
+                created_at=doc.created_at.isoformat() if doc.created_at else None,
+            )
+            for doc in docs
+        ],
+    )
+
+
+@router.get("/documents", response_model=DocumentListResponse)
+async def list_all_documents(
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> DocumentListResponse:
+    """列出所有已上传文档（跨语料库）
+
+    Args:
+        app_name: 应用名称
+        limit: 分页大小
+        offset: 偏移量
+
+    Returns:
+        DocumentListResponse: 文档列表
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    docs, total = await storage_service.list_documents(
+        corpus_id=None,
+        app_name=resolved_app,
+        limit=limit,
+        offset=offset,
+    )
+
+    return DocumentListResponse(
+        count=total,
+        items=[
+            DocumentResponse(
+                id=doc.id,
+                corpus_id=doc.corpus_id,
+                app_name=doc.app_name,
+                file_hash=doc.file_hash,
+                original_filename=doc.original_filename,
+                gcs_uri=doc.gcs_uri,
+                content_type=doc.content_type,
+                file_size=doc.file_size,
+                status=doc.status,
+                created_at=doc.created_at.isoformat() if doc.created_at else None,
+            )
+            for doc in docs
+        ],
+    )
+
+
+@router.delete("/base/{corpus_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(
+    corpus_id: UUID,
+    document_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    hard_delete: bool = Query(default=False),
+) -> None:
+    """删除文档
+
+    Args:
+        corpus_id: 知识库 ID
+        document_id: 文档 ID
+        app_name: 应用名称
+        hard_delete: 是否同时删除 GCS 中的原始文件（默认软删除）
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    deleted = await storage_service.delete_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        soft_delete=not hard_delete,
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
 
 
 @router.post("/base/{corpus_id}/replace_source")

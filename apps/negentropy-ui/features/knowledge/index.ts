@@ -45,6 +45,7 @@ export {
   deleteCorpus,
   ingestText,
   ingestUrl,
+  ingestFile,
   replaceSource,
   searchKnowledge,
   fetchGraph,
@@ -52,6 +53,10 @@ export {
   fetchPipelines,
   upsertPipelines,
   fetchKnowledgeItems,
+  // Document Management
+  fetchDocuments,
+  fetchAllDocuments,
+  deleteDocument,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,
@@ -87,6 +92,9 @@ export type {
   PipelineUpsertResult,
   KnowledgeItem,
   KnowledgeListResponse,
+  // Document Management
+  KnowledgeDocument,
+  DocumentListResponse,
   // Graph Enhanced Types (Phase 1)
   GraphSearchMode,
   GraphBuildParams,

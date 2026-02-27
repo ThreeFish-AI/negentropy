@@ -463,6 +463,92 @@ export async function ingestFile(
   return handleKnowledgeError(res);
 }
 
+// ============================================================================
+// Document Management Types
+// ============================================================================
+
+export interface KnowledgeDocument {
+  id: string;
+  corpus_id: string;
+  app_name: string;
+  file_hash: string;
+  original_filename: string;
+  gcs_uri: string;
+  content_type: string | null;
+  file_size: number;
+  status: string;
+  created_at: string | null;
+}
+
+export interface DocumentListResponse {
+  count: number;
+  items: KnowledgeDocument[];
+}
+
+// ============================================================================
+// Document Management API Functions
+// ============================================================================
+
+export async function fetchDocuments(
+  corpusId: string,
+  params?: {
+    appName?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<DocumentListResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function fetchAllDocuments(
+  params?: {
+    appName?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<DocumentListResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+
+  const res = await fetch(
+    `/api/knowledge/documents?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function deleteDocument(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+    hardDelete?: boolean;
+  },
+): Promise<void> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.hardDelete) query.set("hard_delete", "true");
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to delete document: ${res.statusText}`);
+  }
+}
+
 export async function replaceSource(
   id: string,
   params: {
