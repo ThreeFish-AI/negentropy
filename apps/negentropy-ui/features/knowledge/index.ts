@@ -150,8 +150,19 @@ export type { PipelineRunCardProps } from "./components/PipelineRunCard";
 // ============================================================================
 
 export {
+  // 常量
+  OPERATION_LABELS,
+  TRIGGER_LABELS,
+  STAGE_ORDER,
+  STAGE_LABELS,
+  STAGE_COLORS,
+  // 工具函数
   getPipelineStatusColor,
   getPipelineStatusTextColor,
   formatRelativeTime,
   truncateRunId,
+  getStageColor,
+  formatDuration,
+  calculateStageWidth,
+  getSortedStages,
 } from "./utils/pipeline-helpers";
