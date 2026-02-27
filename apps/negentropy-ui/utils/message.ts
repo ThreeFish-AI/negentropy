@@ -71,6 +71,60 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
 }
 
 /**
+ * 检查两个消息内容是否相似（用于去重）
+ *
+ * 相似条件：
+ * 1. 内容包含关系（一个包含另一个）
+ * 2. Jaccard 相似度 > 0.7（基于词汇集合）
+ *
+ * @param content1 第一个内容
+ * @param content2 第二个内容
+ * @returns 是否相似
+ */
+function isContentSimilar(content1: string, content2: string): boolean {
+  // 空内容不相似
+  if (!content1.trim() || !content2.trim()) return false;
+
+  // 规范化内容：去除空白、转小写
+  const normalized1 = content1.trim().toLowerCase();
+  const normalized2 = content2.trim().toLowerCase();
+
+  // 完全相同
+  if (normalized1 === normalized2) return true;
+
+  // 包含关系检查（对于长度差异不大的情况）
+  const len1 = normalized1.length;
+  const len2 = normalized2.length;
+  const lengthRatio = Math.min(len1, len2) / Math.max(len1, len2);
+
+  // 如果长度比例大于 0.7，检查包含关系
+  if (lengthRatio > 0.7) {
+    if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+      return true;
+    }
+  }
+
+  // Jaccard 相似度检查（基于词汇集合）
+  // 对于短消息（< 50 字符），使用更严格的完全匹配
+  if (len1 < 50 || len2 < 50) {
+    return false;
+  }
+
+  const words1 = new Set(normalized1.split(/\s+/).filter(Boolean));
+  const words2 = new Set(normalized2.split(/\s+/).filter(Boolean));
+
+  if (words1.size === 0 || words2.size === 0) return false;
+
+  // 计算交集
+  const intersection = new Set([...words1].filter((x) => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+
+  const jaccardSimilarity = intersection.size / union.size;
+
+  return jaccardSimilarity > 0.7;
+}
+
+/**
  * 合并相邻的助手消息
  *
  * 合并策略（基于 runId 区分场景）：
@@ -323,26 +377,42 @@ export function buildChatMessagesFromEventsWithFallback(
   });
 
   // 添加缺失的回退消息（保留不在流窗口中的历史）
+  // 使用内容相似度检查防止 ID 不同但内容相同的重复
   fallbackMessages.forEach((fallback) => {
-    if (!messageMap.has(fallback.id)) {
-      const timestamp = fallback.createdAt
-        ? fallback.createdAt.getTime() / 1000
-        : 0;
-      messageMap.set(fallback.id, {
-        id: fallback.id,
-        role: fallback.role,
-        content: normalizeMessageContent(fallback),
-        timestamp,
-        runId: (fallback as { runId?: string }).runId,
-        author: (fallback as { author?: string }).author,
-      });
-    } else {
-      // 如果事件中缺少时间戳则回填
+    const fallbackContent = normalizeMessageContent(fallback);
+
+    // 检查是否有 ID 匹配的消息
+    if (messageMap.has(fallback.id)) {
+      // 回填时间戳
       const entry = messageMap.get(fallback.id)!;
       if (entry.timestamp === 0 && fallback.createdAt) {
         entry.timestamp = fallback.createdAt.getTime() / 1000;
       }
+      return;
     }
+
+    // 检查是否有内容相似的消息（防止 ID 不同但内容相同的重复）
+    const hasSimilarContent = Array.from(messageMap.values()).some((entry) =>
+      isContentSimilar(entry.content, fallbackContent),
+    );
+
+    if (hasSimilarContent) {
+      // 跳过内容相似的 fallback 消息
+      return;
+    }
+
+    // 添加新的 fallback 消息
+    const timestamp = fallback.createdAt
+      ? fallback.createdAt.getTime() / 1000
+      : 0;
+    messageMap.set(fallback.id, {
+      id: fallback.id,
+      role: fallback.role,
+      content: fallbackContent,
+      timestamp,
+      runId: (fallback as { runId?: string }).runId,
+      author: (fallback as { author?: string }).author,
+    });
   });
 
   const ordered = Array.from(messageMap.values())
