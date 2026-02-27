@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 
@@ -639,6 +640,163 @@ async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, An
 
         return {"count": len(records), "items": [r.id for r in records]}
 
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
+
+
+# 文件大小限制 (50MB)
+MAX_FILE_SIZE = 50 * 1024 * 1024
+
+
+@router.post("/base/{corpus_id}/ingest_file")
+async def ingest_file(
+    corpus_id: UUID,
+    file: UploadFile = File(...),
+    app_name: Optional[str] = Form(default=None),
+    source_uri: Optional[str] = Form(default=None),
+    metadata: Optional[str] = Form(default=None),
+    chunk_size: Optional[int] = Form(default=None),
+    overlap: Optional[int] = Form(default=None),
+    preserve_newlines: Optional[bool] = Form(default=None),
+) -> Dict[str, Any]:
+    """从上传文件导入内容到知识库
+
+    支持格式: .txt, .md, .markdown, .pdf
+
+    流程:
+    1. 验证文件类型和大小
+    2. 提取文本内容
+    3. 调用 ingest_text 完成分块和向量化
+
+    Args:
+        corpus_id: 知识库 ID
+        file: 上传的文件
+        app_name: 应用名称（可选）
+        source_uri: 来源 URI（可选，默认使用文件名）
+        metadata: 元数据 JSON 字符串（可选）
+        chunk_size: 分块大小（可选）
+        overlap: 分块重叠（可选）
+        preserve_newlines: 是否保留换行（可选）
+
+    Returns:
+        Dict: {"count": 分块数量, "items": [分块 ID 列表]}
+
+    Raises:
+        400: 文件过大、类型不支持、解析失败等
+        404: corpus 不存在
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    logger.info(
+        "api_ingest_file_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        filename=file.filename,
+        content_type=file.content_type,
+    )
+
+    try:
+        # 读取文件内容
+        content = await file.read()
+
+        # 文件大小验证
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "code": "FILE_TOO_LARGE",
+                    "message": f"File size exceeds limit ({MAX_FILE_SIZE / 1024 / 1024:.0f}MB)",
+                    "size": len(content),
+                    "max_size": MAX_FILE_SIZE,
+                },
+            )
+
+        # 解析 metadata JSON
+        meta: Dict[str, Any] = {}
+        if metadata:
+            try:
+                meta = json.loads(metadata)
+            except json.JSONDecodeError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"code": "INVALID_METADATA", "message": "metadata must be valid JSON"},
+                ) from exc
+
+        # 提取文本
+        from .content import extract_file_content, sanitize_filename
+
+        # 清理文件名（防止路径遍历）
+        safe_filename = sanitize_filename(file.filename)
+
+        text = await extract_file_content(
+            content=content,
+            filename=safe_filename,
+            content_type=file.content_type,
+        )
+
+        if not text.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "EMPTY_CONTENT", "message": "No text content extracted from file"},
+            )
+
+        # 使用 source_uri 参数或清理后的文件名
+        final_source_uri = source_uri or safe_filename
+
+        # 获取服务并执行摄入
+        service = _get_service()
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建分块配置
+        final_chunk_size = chunk_size or corpus_config.get("chunk_size")
+        final_overlap = overlap or corpus_config.get("overlap")
+        final_preserve_newlines = preserve_newlines
+        if final_preserve_newlines is None:
+            final_preserve_newlines = corpus_config.get("preserve_newlines")
+
+        chunking_config = _build_chunking_config(
+            chunk_size=final_chunk_size,
+            overlap=final_overlap,
+            preserve_newlines=final_preserve_newlines,
+        )
+
+        # 添加文件元数据
+        meta["original_filename"] = safe_filename
+        meta["content_type"] = file.content_type
+        meta["file_size"] = len(content)
+
+        # 调用现有的 ingest_text
+        records = await service.ingest_text(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            text=text,
+            source_uri=final_source_uri,
+            metadata=meta,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_ingest_file_completed",
+            corpus_id=str(corpus_id),
+            filename=file.filename,
+            record_count=len(records),
+        )
+
+        return {"count": len(records), "items": [r.id for r in records]}
+
+    except ValueError as exc:
+        logger.warning("file_parse_error", error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "FILE_PARSE_ERROR", "message": str(exc)},
+        ) from exc
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
     except ValidationError as exc:

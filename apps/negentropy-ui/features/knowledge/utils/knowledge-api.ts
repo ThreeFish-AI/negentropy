@@ -432,6 +432,37 @@ export async function ingestUrl(
   return handleKnowledgeError(res);
 }
 
+export async function ingestFile(
+  id: string,
+  params: {
+    app_name?: string;
+    file: File;
+    source_uri?: string;
+    metadata?: Record<string, unknown>;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  },
+): Promise<IngestResult> {
+  const formData = new FormData();
+
+  if (params.app_name) formData.set("app_name", params.app_name);
+  formData.set("file", params.file);
+  if (params.source_uri) formData.set("source_uri", params.source_uri);
+  if (params.metadata) formData.set("metadata", JSON.stringify(params.metadata));
+  if (params.chunk_size) formData.set("chunk_size", String(params.chunk_size));
+  if (params.overlap) formData.set("overlap", String(params.overlap));
+  if (params.preserve_newlines !== undefined) {
+    formData.set("preserve_newlines", String(params.preserve_newlines));
+  }
+
+  const res = await fetch(`/api/knowledge/base/${id}/ingest_file`, {
+    method: "POST",
+    body: formData, // 不设置 Content-Type，让浏览器自动处理 multipart/form-data
+  });
+  return handleKnowledgeError(res);
+}
+
 export async function replaceSource(
   id: string,
   params: {

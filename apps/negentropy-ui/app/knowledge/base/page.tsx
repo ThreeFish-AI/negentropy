@@ -214,6 +214,12 @@ export default function KnowledgeBasePage() {
     [kb],
   );
 
+  const handleIngestFile = useCallback(
+    (params: { file: File; source_uri?: string; chunkingConfig?: ChunkingConfig }) =>
+      kb.ingestFile(params),
+    [kb],
+  );
+
   // Add/Replace Source handlers
   const handleOpenReplace = useCallback((uri: string) => {
     setReplaceSourceUri(uri);
@@ -415,6 +421,7 @@ export default function KnowledgeBasePage() {
         onClose={() => setIsAddSourceOpen(false)}
         onIngest={handleIngest}
         onIngestUrl={handleIngestUrl}
+        onIngestFile={handleIngestFile}
         chunkingConfig={kb.corpus?.config as ChunkingConfig | undefined}
         onSuccess={handleIngestSuccess}
       />

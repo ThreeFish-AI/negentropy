@@ -135,6 +135,58 @@ export async function proxyPost(request: Request, path: string) {
 
   return NextResponse.json(JSON.parse(text));
 }
+
+export async function proxyPostFormData(request: Request, path: string) {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    return errorResponse(
+      "KNOWLEDGE_INTERNAL_ERROR",
+      "KNOWLEDGE_BASE_URL is not configured",
+      500,
+    );
+  }
+
+  const formData = await request.formData();
+
+  const upstreamUrl = new URL(path, baseUrl);
+  const headers = extractForwardHeaders(request);
+  // 不设置 content-type，让浏览器自动处理 multipart/form-data 边界
+
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(upstreamUrl, {
+      method: "POST",
+      headers,
+      body: formData,
+      cache: "no-store",
+    });
+  } catch (error) {
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      `Upstream connection failed: ${String(error)}`,
+      502,
+    );
+  }
+
+  const text = await upstreamResponse.text();
+  if (!upstreamResponse.ok) {
+    try {
+      // Try to parse error details if available
+      const errorJson = JSON.parse(text);
+      return NextResponse.json(errorJson, { status: upstreamResponse.status });
+    } catch {
+      // Fallback if not JSON
+    }
+    return errorResponse(
+      "KNOWLEDGE_UPSTREAM_ERROR",
+      text || "Upstream returned non-OK status",
+      upstreamResponse.status,
+    );
+  }
+
+  return NextResponse.json(JSON.parse(text));
+}
+
 export async function proxyPatch(request: Request, path: string) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
