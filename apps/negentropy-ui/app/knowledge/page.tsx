@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { fetchDashboard, KnowledgeDashboard } from "@/features/knowledge";
+import { fetchDashboard, KnowledgeDashboard, PipelineRunList } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
 
@@ -87,20 +87,7 @@ export default function KnowledgeDashboardPage() {
                   </h2>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400">最近 24h</span>
                 </div>
-                {data?.pipeline_runs?.length ? (
-                  <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
-                    {data.pipeline_runs.map((item, index) => (
-                      <div
-                        key={index}
-                        className="rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-700"
-                      >
-                        {JSON.stringify(item)}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">暂无作业记录</p>
-                )}
+                <PipelineRunList runs={data?.pipeline_runs || []} />
               </div>
             </div>
           </section>

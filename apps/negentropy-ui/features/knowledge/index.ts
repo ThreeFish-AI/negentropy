@@ -137,3 +137,21 @@ export type {
   FormFieldConfig,
   InteractiveFormConfig,
 } from "./utils/api-specs";
+
+// ============================================================================
+// Components
+// ============================================================================
+
+export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
+export type { PipelineRunCardProps } from "./components/PipelineRunCard";
+
+// ============================================================================
+// Utils (Pipeline Helpers)
+// ============================================================================
+
+export {
+  getPipelineStatusColor,
+  getPipelineStatusTextColor,
+  formatRelativeTime,
+  truncateRunId,
+} from "./utils/pipeline-helpers";
