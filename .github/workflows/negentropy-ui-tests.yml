@@ -26,9 +26,6 @@ jobs:
           cache: "yarn"
           cache-dependency-path: apps/negentropy-ui/yarn.lock
 
-      - name: Configure npm registry
-        run: yarn config set registry https://registry.npmmirror.com
-
       - name: Install dependencies
         run: yarn install
 
