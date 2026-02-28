@@ -18,7 +18,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test_db
@@ -56,6 +56,26 @@ jobs:
 
       - name: Run unit tests
         run: uv run pytest tests/unit_tests/ -v
+        env:
+          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+
+      - name: Initialize database schema
+        run: |
+          uv run python -c "
+          import asyncio
+          from sqlalchemy import text
+          from sqlalchemy.ext.asyncio import create_async_engine
+
+          async def init_db():
+              engine = create_async_engine('postgresql+asyncpg://postgres:postgres@localhost:5432/test_db')
+              async with engine.begin() as conn:
+                  await conn.execute(text('CREATE SCHEMA IF NOT EXISTS negentropy'))
+                  await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+              await engine.dispose()
+
+          asyncio.run(init_db())
+          "
+          uv run alembic upgrade head
         env:
           NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 

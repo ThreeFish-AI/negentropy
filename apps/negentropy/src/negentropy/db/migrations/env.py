@@ -89,6 +89,10 @@ def do_run_migrations(connection: Connection) -> None:
     connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {NEGENTROPY_SCHEMA}"))
     connection.commit()
 
+    # 启用 pgvector 扩展（用于 vector 类型的 embedding 列）
+    connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    connection.commit()
+
     def include_object(object, name, type_, reflected, compare_to):
         """
         过滤器：仅管理 negentropy schema 中的对象。
