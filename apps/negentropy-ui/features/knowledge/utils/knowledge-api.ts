@@ -217,6 +217,13 @@ export interface IngestResult {
   items: string[];
 }
 
+// 异步 Pipeline 响应类型
+export interface AsyncPipelineResult {
+  run_id: string;
+  status: "running";
+  message: string;
+}
+
 export interface SearchResults {
   count: number;
   items: KnowledgeMatch[];
@@ -392,7 +399,7 @@ export async function ingestText(
     overlap?: number;
     preserve_newlines?: boolean;
   },
-): Promise<IngestResult> {
+): Promise<AsyncPipelineResult> {
   // 前端配置验证（对齐后端 types.py）
   const { chunk_size, overlap } = params;
   if (chunk_size !== undefined && (chunk_size < 1 || chunk_size > 100000)) {
@@ -423,7 +430,7 @@ export async function ingestUrl(
     overlap?: number;
     preserve_newlines?: boolean;
   },
-): Promise<IngestResult> {
+): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/ingest_url`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -620,16 +627,13 @@ export async function replaceSource(
     overlap?: number;
     preserve_newlines?: boolean;
   },
-): Promise<IngestResult> {
+): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/replace_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
-  if (!res.ok) {
-    throw new Error(`Failed to replace source: ${res.statusText}`);
-  }
-  return res.json();
+  return handleKnowledgeError(res);
 }
 
 export async function syncSource(
@@ -641,7 +645,7 @@ export async function syncSource(
     overlap?: number;
     preserve_newlines?: boolean;
   },
-): Promise<IngestResult> {
+): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -659,7 +663,7 @@ export async function rebuildSource(
     overlap?: number;
     preserve_newlines?: boolean;
   },
-): Promise<IngestResult> {
+): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/rebuild_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

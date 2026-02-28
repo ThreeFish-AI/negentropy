@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { IngestResult } from "@/features/knowledge";
+import { toast } from "sonner";
+import { AsyncPipelineResult } from "@/features/knowledge";
 
 interface ReplaceSourceDialogProps {
   isOpen: boolean;
   corpusId: string | null;
   sourceUri: string | null;
   onClose: () => void;
-  onReplace: (params: { text: string; source_uri: string }) => Promise<IngestResult>;
+  onReplace: (params: { text: string; source_uri: string }) => Promise<AsyncPipelineResult>;
   onSuccess?: () => void;
 }
 
@@ -31,10 +32,17 @@ export function ReplaceSourceDialog({
     setError(null);
     try {
       await onReplace({ text, source_uri: sourceUri });
+      toast.success("已开始替换知识源", {
+        description: "可在 Pipeline 页面查看构建进度",
+      });
       setText("");
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
+      toast.error("替换失败", {
+        description: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }

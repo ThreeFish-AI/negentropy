@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { IngestResult, ChunkingConfig } from "@/features/knowledge";
+import { toast } from "sonner";
+import { IngestResult, AsyncPipelineResult, ChunkingConfig } from "@/features/knowledge";
 
 // 支持的文件扩展名
 const SUPPORTED_EXTENSIONS = [".txt", ".md", ".markdown", ".pdf"];
@@ -11,8 +12,8 @@ interface AddSourceDialogProps {
   isOpen: boolean;
   corpusId: string | null;
   onClose: () => void;
-  onIngest: (params: { text: string; source_uri?: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
-  onIngestUrl: (params: { url: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
+  onIngest: (params: { text: string; source_uri?: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
+  onIngestUrl: (params: { url: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
   onIngestFile?: (params: { file: File; source_uri?: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
   chunkingConfig?: ChunkingConfig;
   onSuccess?: () => void;
@@ -113,13 +114,22 @@ export function AddSourceDialog({
           source_uri: sourceUri || undefined,
           chunkingConfig,
         });
+        toast.success("已开始摄入知识源", {
+          description: "可在 Pipeline 页面查看构建进度",
+        });
       } else if (mode === "url") {
         await onIngestUrl({ url, chunkingConfig });
+        toast.success("已开始从 URL 摄入知识源", {
+          description: "可在 Pipeline 页面查看构建进度",
+        });
       } else if (mode === "file" && onIngestFile) {
         await onIngestFile({
           file: selectedFile!,
           source_uri: sourceUri || undefined,
           chunkingConfig,
+        });
+        toast.success("已开始从文件摄入知识源", {
+          description: "可在 Pipeline 页面查看构建进度",
         });
       }
       // Reset form
@@ -129,7 +139,11 @@ export function AddSourceDialog({
       setSelectedFile(null);
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
+      toast.error("摄入失败", {
+        description: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }

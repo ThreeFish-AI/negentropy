@@ -212,6 +212,508 @@ class KnowledgeService:
         self._reranker = reranker or NoopReranker()
         self._pipeline_dao = pipeline_dao
 
+    # =========================================================================
+    # Pipeline 创建与执行（支持异步后台任务）
+    # =========================================================================
+
+    async def create_pipeline(
+        self,
+        *,
+        app_name: str,
+        operation: PipelineOperation,
+        input_data: Dict[str, Any],
+    ) -> str:
+        """创建 Pipeline 记录并返回 run_id
+
+        用于异步操作：先创建 running 状态的 Pipeline 记录，
+        然后在后台任务中执行实际操作。
+
+        Args:
+            app_name: 应用名称
+            operation: 操作类型（ingest_text, ingest_url, replace_source 等）
+            input_data: 输入数据
+
+        Returns:
+            str: run_id，用于后续追踪和执行
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation=operation,
+        )
+        await tracker.start(input_data)
+
+        logger.info(
+            "pipeline_created",
+            app_name=app_name,
+            operation=operation,
+            run_id=tracker.run_id,
+        )
+
+        return tracker.run_id
+
+    async def execute_ingest_text_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        text: str,
+        source_uri: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        chunking_config: Optional[ChunkingConfig] = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 ingest_text Pipeline（后台任务）
+
+        由 BackgroundTasks 调用，使用已有的 run_id 追踪执行状态。
+
+        Args:
+            run_id: 已创建的 Pipeline run_id
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            text: 要摄入的文本
+            source_uri: 来源 URI
+            metadata: 元数据
+            chunking_config: 分块配置
+
+        Returns:
+            list[KnowledgeRecord]: 创建的知识记录
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="ingest_text",
+            run_id=run_id,
+        )
+        # 恢复 tracker 状态（已由 create_pipeline 初始化）
+        tracker._status = "running"
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="ingest_text",
+        )
+
+        try:
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=chunking_config or self._chunking_config,
+                tracker=tracker,
+            )
+            await tracker.complete({"record_count": len(records)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+            )
+
+            return records
+
+        except Exception as exc:
+            if tracker.current_stage:
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {"type": type(exc).__name__, "message": str(exc)},
+                )
+            else:
+                # 如果没有当前阶段，直接标记整个 Pipeline 失败
+                tracker._status = "failed"
+                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
+                await tracker._persist()
+            raise
+
+    async def execute_ingest_url_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        url: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        chunking_config: Optional[ChunkingConfig] = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 ingest_url Pipeline（后台任务）"""
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="ingest_url",
+            run_id=run_id,
+        )
+        tracker._status = "running"
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="ingest_url",
+            url=url,
+        )
+
+        try:
+            # 阶段 1: Fetch
+            await tracker.start_stage("fetch")
+            try:
+                text = await fetch_content(url)
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+
+                await tracker.fail_stage("fetch", {"type": "CONTENT_FETCH_FAILED", "message": str(exc)})
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
+                ) from exc
+
+            await tracker.complete_stage("fetch", {"content_length": len(text) if text else 0, "url": url})
+
+            if not text:
+                await tracker.fail_stage("fetch", {"type": "NO_CONTENT", "message": "No content extracted from URL"})
+                raise ValueError("No content extracted from URL")
+
+            # Merge metadata
+            meta = metadata or {}
+            meta["source_url"] = url
+
+            # 后续阶段复用 _ingest_text_with_tracker
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=url,
+                metadata=meta,
+                chunking_config=chunking_config or self._chunking_config,
+                tracker=tracker,
+            )
+            await tracker.complete({"chunk_count": len(records)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+            )
+
+            return records
+
+        except Exception as exc:
+            if tracker.current_stage:
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {"type": type(exc).__name__, "message": str(exc)},
+                )
+            else:
+                tracker._status = "failed"
+                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
+                await tracker._persist()
+            raise
+
+    async def execute_replace_source_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        text: str,
+        source_uri: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        chunking_config: Optional[ChunkingConfig] = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 replace_source Pipeline（后台任务）"""
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="replace_source",
+            run_id=run_id,
+        )
+        tracker._status = "running"
+        config = chunking_config or self._chunking_config
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="replace_source",
+            source_uri=source_uri,
+        )
+
+        try:
+            # 阶段 1: Delete
+            await tracker.start_stage("delete")
+            deleted_count = await self._repository.delete_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+            )
+            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
+
+            # 后续阶段复用 _ingest_text_with_tracker
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=config,
+                tracker=tracker,
+            )
+            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+            )
+
+            return records
+
+        except Exception as exc:
+            if tracker.current_stage:
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {"type": type(exc).__name__, "message": str(exc)},
+                )
+            else:
+                tracker._status = "failed"
+                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
+                await tracker._persist()
+            raise
+
+    async def execute_sync_source_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        chunking_config: Optional[ChunkingConfig] = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 sync_source Pipeline（后台任务）"""
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="sync_source",
+            run_id=run_id,
+        )
+        tracker._status = "running"
+        config = chunking_config or self._chunking_config
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="sync_source",
+            source_uri=source_uri,
+        )
+
+        try:
+            # 阶段 1: Fetch
+            await tracker.start_stage("fetch")
+            try:
+                text = await fetch_content(source_uri)
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+
+                await tracker.fail_stage("fetch", {"type": "CONTENT_FETCH_FAILED", "message": str(exc)})
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
+                ) from exc
+
+            await tracker.complete_stage("fetch", {"content_length": len(text) if text else 0, "source_uri": source_uri})
+
+            if not text:
+                await tracker.fail_stage("fetch", {"type": "NO_CONTENT", "message": "No content extracted from URL"})
+                raise ValueError("No content extracted from URL")
+
+            # 阶段 2: Delete
+            await tracker.start_stage("delete")
+            deleted_count = await self._repository.delete_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+            )
+            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
+
+            metadata = {"source_url": source_uri}
+
+            # 后续阶段复用 _ingest_text_with_tracker
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=config,
+                tracker=tracker,
+            )
+            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+            )
+
+            return records
+
+        except Exception as exc:
+            if tracker.current_stage:
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {"type": type(exc).__name__, "message": str(exc)},
+                )
+            else:
+                tracker._status = "failed"
+                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
+                await tracker._persist()
+            raise
+
+    async def execute_rebuild_source_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        chunking_config: Optional[ChunkingConfig] = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 rebuild_source Pipeline（后台任务）"""
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="rebuild_source",
+            run_id=run_id,
+        )
+        tracker._status = "running"
+        config = chunking_config or self._chunking_config
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="rebuild_source",
+            source_uri=source_uri,
+        )
+
+        try:
+            # 阶段 1: Download
+            await tracker.start_stage("download")
+            try:
+                from negentropy.storage.service import DocumentStorageService
+                from negentropy.storage.gcs_client import StorageError
+
+                storage_service = DocumentStorageService()
+                content = await storage_service.get_document_content_by_uri(source_uri)
+
+                if content is None:
+                    raise ValueError(f"Document not found in GCS: {source_uri}")
+            except StorageError as exc:
+                from .exceptions import KnowledgeError
+
+                await tracker.fail_stage("download", {"type": "GCS_DOWNLOAD_FAILED", "message": str(exc)})
+                raise KnowledgeError(
+                    code="GCS_DOWNLOAD_FAILED",
+                    message=f"Failed to download content from GCS: {exc}",
+                ) from exc
+
+            await tracker.complete_stage("download", {"content_length": len(content) if content else 0, "source_uri": source_uri})
+
+            # 阶段 1.5: Extract
+            await tracker.start_stage("extract")
+            try:
+                from .content import extract_file_content
+
+                filename = source_uri.split("/")[-1]
+                content_type = _guess_content_type(filename)
+
+                text = await extract_file_content(
+                    content=content,
+                    filename=filename,
+                    content_type=content_type,
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+
+                await tracker.fail_stage("extract", {"type": "CONTENT_EXTRACTION_FAILED", "message": str(exc)})
+                raise KnowledgeError(
+                    code="CONTENT_EXTRACTION_FAILED",
+                    message=f"Failed to extract content: {exc}",
+                ) from exc
+
+            await tracker.complete_stage("extract", {"text_length": len(text) if text else 0, "source_uri": source_uri})
+
+            if not text:
+                await tracker.fail_stage("extract", {"type": "NO_CONTENT", "message": "No text content extracted from file"})
+                raise ValueError("No text content extracted from file")
+
+            # 阶段 2: Delete
+            await tracker.start_stage("delete")
+            deleted_count = await self._repository.delete_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+            )
+            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
+
+            metadata = {"gcs_uri": source_uri, "rebuild": True}
+
+            # 后续阶段复用 _ingest_text_with_tracker
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=config,
+                tracker=tracker,
+            )
+            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+            )
+
+            return records
+
+        except Exception as exc:
+            if tracker.current_stage:
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {"type": type(exc).__name__, "message": str(exc)},
+                )
+            else:
+                tracker._status = "failed"
+                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
+                await tracker._persist()
+            raise
+
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
 
