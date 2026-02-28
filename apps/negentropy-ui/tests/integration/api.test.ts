@@ -13,7 +13,7 @@ import { POST as createSession } from "@/app/api/agui/sessions/route";
 // Mock 环境变量
 const mockEnv = {
   AGUI_BASE_URL: "http://localhost:8000",
-  NEXT_PUBLIC_AGUI_APP_NAME: "agents",
+  NEXT_PUBLIC_AGUI_APP_NAME: "negentropy",
   NEXT_PUBLIC_AGUI_USER_ID: "test-user",
 };
 
@@ -51,7 +51,7 @@ describe("POST /api/agui", () => {
   it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
     delete process.env.AGUI_BASE_URL;
 
-    const request = createMockRequest("http://localhost:3000/api/agui?app_name=agents&user_id=test&session_id=test", {
+    const request = createMockRequest("http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=test", {
       method: "POST",
       body: JSON.stringify({
         messages: [{ role: "user", content: "test" }],
@@ -67,7 +67,7 @@ describe("POST /api/agui", () => {
   });
 
   it("应该返回错误当 JSON 无效", async () => {
-    const request = createMockRequest("http://localhost:3000/api/agui?app_name=agents&user_id=test&session_id=test", {
+    const request = createMockRequest("http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=test", {
       method: "POST",
       body: "invalid json",
     });
@@ -81,7 +81,7 @@ describe("POST /api/agui", () => {
   });
 
   it("应该返回错误当缺少 session_id", async () => {
-    const request = createMockRequest("http://localhost:3000/api/agui?app_name=agents&user_id=test", {
+    const request = createMockRequest("http://localhost:3000/api/agui?app_name=negentropy&user_id=test", {
       method: "POST",
       body: JSON.stringify({
         messages: [{ role: "user", content: "test" }],
@@ -97,7 +97,7 @@ describe("POST /api/agui", () => {
   });
 
   it("应该返回错误当缺少用户消息", async () => {
-    const request = createMockRequest("http://localhost:3000/api/agui?app_name=agents&user_id=test&session_id=test", {
+    const request = createMockRequest("http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=test", {
       method: "POST",
       body: JSON.stringify({
         messages: [],
@@ -129,7 +129,7 @@ describe("GET /api/agui/sessions/list", () => {
   it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
     delete process.env.AGUI_BASE_URL;
 
-    const request = createMockRequest("http://localhost:3000/api/agui/sessions/list?app_name=agents&user_id=test");
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/list?app_name=negentropy&user_id=test");
 
     const response = await GET(request);
     const data = await response.json();
@@ -149,7 +149,7 @@ describe("GET /api/agui/sessions/list", () => {
   });
 
   it("应该返回错误当缺少 user_id", async () => {
-    const request = createMockRequest("http://localhost:3000/api/agui/sessions/list?app_name=agents");
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/list?app_name=negentropy");
 
     const response = await GET(request);
     const data = await response.json();
@@ -178,7 +178,7 @@ describe("POST /api/agui/sessions", () => {
     const request = createMockRequest("http://localhost:3000/api/agui/sessions", {
       method: "POST",
       body: JSON.stringify({
-        app_name: "agents",
+        app_name: "negentropy",
         user_id: "test",
       }),
     });
@@ -222,7 +222,7 @@ describe("POST /api/agui/sessions", () => {
     const request = createMockRequest("http://localhost:3000/api/agui/sessions", {
       method: "POST",
       body: JSON.stringify({
-        app_name: "agents",
+        app_name: "negentropy",
       }),
     });
 
