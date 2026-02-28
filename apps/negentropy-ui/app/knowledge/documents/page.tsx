@@ -204,7 +204,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* 大小 - col-span-1 */}
-                      <div className="col-span-1 text-muted text-xs">
+                      <div className="col-span-1 text-muted text-xs text-center">
                         {formatFileSize(doc.file_size)}
                       </div>
 
@@ -224,7 +224,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* Created At - col-span-1 */}
-                      <div className="col-span-1 text-muted text-xs">
+                      <div className="col-span-1 text-muted text-xs text-center">
                         {formatRelativeTime(doc.created_at)}
                       </div>
 
