@@ -162,13 +162,13 @@ export default function DocumentsPage() {
           <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
             {/* 表头 */}
             <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted">
-              <div className="col-span-4">File Name</div>
-              <div className="col-span-1">Size</div>
-              <div className="col-span-1">File Hash</div>
-              <div className="col-span-3 text-right">Corpus</div>
-              <div className="col-span-1">Created By</div>
-              <div className="col-span-1">Created At</div>
-              <div className="col-span-1 text-right">Actions</div>
+              <div className="col-span-4 text-center border-r border-border">File Name</div>
+              <div className="col-span-1 text-center border-r border-border">Size</div>
+              <div className="col-span-1 text-center border-r border-border">File Hash</div>
+              <div className="col-span-3 text-center border-r border-border">Corpus</div>
+              <div className="col-span-1 text-center border-r border-border">Created By</div>
+              <div className="col-span-1 text-center border-r border-border">Created At</div>
+              <div className="col-span-1 text-center">Actions</div>
             </div>
 
             {/* 内容 */}
