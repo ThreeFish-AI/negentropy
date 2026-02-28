@@ -72,6 +72,9 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     # 状态追踪
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", server_default="'active'")
 
+    # 上传者信息
+    created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
     # 可选元数据
     metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
 

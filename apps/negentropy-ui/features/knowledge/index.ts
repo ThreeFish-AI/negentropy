@@ -57,6 +57,7 @@ export {
   fetchDocuments,
   fetchAllDocuments,
   deleteDocument,
+  downloadDocument,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,

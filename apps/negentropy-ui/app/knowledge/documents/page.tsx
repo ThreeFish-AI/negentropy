@@ -5,8 +5,10 @@ import {
   KnowledgeDocument,
   fetchAllDocuments,
   deleteDocument,
+  downloadDocument,
   fetchCorpora,
   CorpusRecord,
+  formatRelativeTime,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -42,6 +44,24 @@ function getFileIcon(contentType: string | null): JSX.Element {
   );
 }
 
+function truncateHash(hash: string | null): JSX.Element {
+  if (!hash) return <span className="text-muted">-</span>;
+  const truncated = `${hash.slice(0, 8)}...${hash.slice(-4)}`;
+  return (
+    <span className="font-mono text-xs text-muted cursor-help" title={hash}>
+      {truncated}
+    </span>
+  );
+}
+
+function displayUser(createdBy: string | null): string {
+  if (!createdBy) return "-";
+  if (createdBy.includes("@")) {
+    return createdBy.split("@")[0];
+  }
+  return createdBy.length > 12 ? createdBy.slice(0, 12) + "..." : createdBy;
+}
+
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
@@ -50,9 +70,9 @@ export default function DocumentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [selectedCorpusId, setSelectedCorpusId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
+  const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
 
   // 加载语料库列表
   const loadCorpora = useCallback(async () => {
@@ -108,14 +128,27 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleDownload = async (doc: KnowledgeDocument) => {
+    if (downloadingIds.has(doc.id)) return;
+
+    setDownloadingIds((prev) => new Set(prev).add(doc.id));
+    try {
+      await downloadDocument(doc.corpus_id, doc.id, { appName: APP_NAME });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to download document");
+    } finally {
+      setDownloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  };
+
   const getCorpusName = (corpusId: string) => {
     const corpus = corpora.find((c) => c.id === corpusId);
     return corpus?.name || corpusId;
   };
-
-  const filteredDocuments = selectedCorpusId
-    ? documents.filter((d) => d.corpus_id === selectedCorpusId)
-    : documents;
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -123,49 +156,18 @@ export default function DocumentsPage() {
         title="Documents"
         description="管理已上传到 GCS 的原始文档"
       />
-      <div className="flex min-h-0 flex-1 gap-3 px-6 py-6">
-        {/* 左侧: Corpus 筛选 */}
-        <aside className="min-h-0 min-w-0 w-[240px] shrink-0 overflow-y-auto">
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-card-foreground mb-3">
-              Filter by Corpus
-            </h2>
-            <div className="space-y-1">
-              <button
-                onClick={() => setSelectedCorpusId(null)}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                  selectedCorpusId === null
-                    ? "bg-foreground text-background"
-                    : "text-muted hover:bg-muted/50"
-                }`}
-              >
-                All Documents ({total})
-              </button>
-              {corpora.map((corpus) => (
-                <button
-                  key={corpus.id}
-                  onClick={() => setSelectedCorpusId(corpus.id)}
-                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                    selectedCorpusId === corpus.id
-                      ? "bg-foreground text-background"
-                      : "text-muted hover:bg-muted/50"
-                  }`}
-                >
-                  {corpus.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* 右侧: 文档列表 */}
+      <div className="flex min-h-0 flex-1 px-6 py-6">
+        {/* 文档列表 */}
         <main className="flex min-h-0 flex-1 flex-col">
           <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
             {/* 表头 */}
-            <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted">
-              <div className="col-span-5">File Name</div>
-              <div className="col-span-2">Size</div>
-              <div className="col-span-3">Corpus</div>
+            <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted">
+              <div className="col-span-3">File Name</div>
+              <div className="col-span-1">Size</div>
+              <div className="col-span-2">File Hash</div>
+              <div className="col-span-2">Corpus</div>
+              <div className="col-span-1">Created By</div>
+              <div className="col-span-1">Created At</div>
               <div className="col-span-2 text-right">Actions</div>
             </div>
 
@@ -177,41 +179,56 @@ export default function DocumentsPage() {
                 </div>
               ) : error ? (
                 <div className="p-6 text-center text-sm text-red-500">{error}</div>
-              ) : filteredDocuments.length === 0 ? (
+              ) : documents.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted">
                   No documents uploaded yet
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {filteredDocuments.map((doc) => (
+                  {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="grid grid-cols-12 gap-4 px-4 py-3 text-sm hover:bg-muted/30 transition-colors items-center"
+                      className="grid grid-cols-12 gap-2 px-4 py-3 text-sm hover:bg-muted/30 transition-colors items-center"
                     >
-                      {/* 文件名 */}
-                      <div className="col-span-5 flex items-center gap-3">
+                      {/* 文件名 - col-span-3 */}
+                      <div className="col-span-3 flex items-center gap-2">
                         {getFileIcon(doc.content_type)}
                         <div className="min-w-0">
                           <p className="font-medium text-foreground truncate">
                             {doc.original_filename}
                           </p>
                           <p className="text-xs text-muted truncate">
-                            {doc.content_type || "Unknown type"}
+                            {doc.content_type || "Unknown"}
                           </p>
                         </div>
                       </div>
 
-                      {/* 大小 */}
-                      <div className="col-span-2 text-muted">
+                      {/* 大小 - col-span-1 */}
+                      <div className="col-span-1 text-muted text-xs">
                         {formatFileSize(doc.file_size)}
                       </div>
 
-                      {/* 所属语料库 */}
-                      <div className="col-span-3 text-muted truncate">
+                      {/* File Hash - col-span-2 */}
+                      <div className="col-span-2">
+                        {truncateHash(doc.file_hash)}
+                      </div>
+
+                      {/* 所属语料库 - col-span-2 */}
+                      <div className="col-span-2 text-muted truncate text-xs">
                         {getCorpusName(doc.corpus_id)}
                       </div>
 
-                      {/* 操作 */}
+                      {/* Created By - col-span-1 */}
+                      <div className="col-span-1 text-muted truncate text-xs" title={doc.created_by || ""}>
+                        {displayUser(doc.created_by)}
+                      </div>
+
+                      {/* Created At - col-span-1 */}
+                      <div className="col-span-1 text-muted text-xs">
+                        {formatRelativeTime(doc.created_at)}
+                      </div>
+
+                      {/* 操作 - col-span-2 */}
                       <div className="col-span-2 flex justify-end items-center gap-2">
                         {deleteConfirm === doc.id ? (
                           <div className="flex items-center gap-2">
@@ -241,15 +258,27 @@ export default function DocumentsPage() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => setDeleteConfirm(doc.id)}
-                            className="rounded p-1.5 text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Delete document"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleDownload(doc)}
+                              disabled={downloadingIds.has(doc.id)}
+                              className="rounded p-1.5 text-muted hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                              title="Download document"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(doc.id)}
+                              className="rounded p-1.5 text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Delete document"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>

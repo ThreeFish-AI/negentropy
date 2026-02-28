@@ -478,6 +478,7 @@ export interface KnowledgeDocument {
   file_size: number;
   status: string;
   created_at: string | null;
+  created_by: string | null;
 }
 
 export interface DocumentListResponse {
@@ -546,6 +547,65 @@ export async function deleteDocument(
   );
   if (!res.ok) {
     throw new Error(`Failed to delete document: ${res.statusText}`);
+  }
+}
+
+export async function downloadDocument(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+  },
+): Promise<void> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/download?${query.toString()}`,
+  );
+
+  if (!res.ok) {
+    let errorMessage = `Failed to download document: ${res.statusText}`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.detail?.message) {
+        errorMessage = errorData.detail.message;
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+
+  // 获取文件名
+  const contentDisposition = res.headers.get("Content-Disposition");
+  let filename = "document";
+  if (contentDisposition) {
+    // Try UTF-8 encoded filename first
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''(.+?)(?:;|$)/);
+    if (utf8Match) {
+      filename = decodeURIComponent(utf8Match[1]);
+    } else {
+      // Fallback to standard filename
+      const standardMatch = contentDisposition.match(/filename="?(.+?)"?(?:;|$)/);
+      if (standardMatch) {
+        filename = standardMatch[1];
+      }
+    }
+  }
+
+  // 下载并触发浏览器保存
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  try {
+    a.click();
+  } finally {
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   }
 }
 

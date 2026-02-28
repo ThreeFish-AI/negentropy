@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import urllib.parse
+from io import BytesIO
 from typing import Any, Dict, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 
@@ -871,6 +874,7 @@ class DocumentResponse(BaseModel):
     file_size: int
     status: str
     created_at: Optional[str] = None
+    created_by: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -927,6 +931,7 @@ async def list_documents(
                 file_size=doc.file_size,
                 status=doc.status,
                 created_at=doc.created_at.isoformat() if doc.created_at else None,
+                created_by=doc.created_by,
             )
             for doc in docs
         ],
@@ -1013,6 +1018,69 @@ async def delete_document(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
         )
+
+
+@router.get("/base/{corpus_id}/documents/{document_id}/download")
+async def download_document(
+    corpus_id: UUID,
+    document_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+):
+    """下载文档原始文件
+
+    Args:
+        corpus_id: 知识库 ID
+        document_id: 文档 ID
+        app_name: 应用名称
+
+    Returns:
+        StreamingResponse: 文件流（带 Content-Disposition 头）
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+    from negentropy.storage.gcs_client import StorageError
+
+    storage_service = DocumentStorageService()
+
+    # 获取文档记录
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    # 下载文件内容
+    try:
+        content = await storage_service.get_document_content(document_id)
+        if content is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document content not found"},
+            )
+    except StorageError as exc:
+        logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
+        ) from exc
+
+    # 编码文件名以支持中文
+    encoded_filename = urllib.parse.quote(doc.original_filename)
+
+    return StreamingResponse(
+        BytesIO(content),
+        media_type=doc.content_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
+        },
+    )
 
 
 @router.post("/base/{corpus_id}/replace_source")
