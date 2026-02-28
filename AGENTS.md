@@ -50,7 +50,7 @@
   6. **Merge Workflow**: 完成分支合并后，必须检查 merge commit message 是否符合规范格式 `type(Scope): description;`。若不符合，调用 `/tidy-merge-message` 进行修正。
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
-  2. **JavaScript/TypeScript**: 严禁使用 npm/pnpm，**必须**统一使用 `yarn` 进行包管理与脚本执行。
+  2. **JavaScript/TypeScript**: 严禁使用 npm/yarn，**必须**统一使用 `pnpm` 进行包管理与脚本执行。
 
 ## Documentation Standards (文档规范)
 
