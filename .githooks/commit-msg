@@ -23,6 +23,42 @@ fi
 # 提取第一行（标题行）
 FIRST_LINE=$(echo "$COMMIT_MSG" | head -n1)
 
+# 检测 vibe-kanban 格式并自动转换
+# Feature: description (vibe-kanban XXX) -> feat(General): description (vibe-kanban XXX);
+# Fix: description (vibe-kanban XXX) -> fix(General): description (vibe-kanban XXX);
+if echo "$FIRST_LINE" | grep -qE "^(Feature|Fix|Bug|Enhancement|Refactor|Style|Docs|Test|Chore): .+ \(vibe-kanban [^)]+\)$"; then
+    # 类型映射表
+    case "$FIRST_LINE" in
+        Feature:*)    NEW_TYPE="feat" ;;
+        Enhancement:*) NEW_TYPE="feat" ;;
+        Fix:*)        NEW_TYPE="fix" ;;
+        Bug:*)        NEW_TYPE="fix" ;;
+        Refactor:*)   NEW_TYPE="refactor" ;;
+        Style:*)      NEW_TYPE="style" ;;
+        Docs:*)       NEW_TYPE="docs" ;;
+        Test:*)       NEW_TYPE="test" ;;
+        Chore:*)      NEW_TYPE="chore" ;;
+        *)            NEW_TYPE="feat" ;;
+    esac
+
+    # 提取内容（去除前缀类型和后缀 vibe-kanban ID）
+    CONTENT=$(echo "$FIRST_LINE" | sed -E 's/^[A-Za-z]+: (.+) \(vibe-kanban [^)]+\)$/\1/')
+
+    # 提取 vibe-kanban task ID
+    TASK_ID=$(echo "$FIRST_LINE" | sed -E 's/.*\(vibe-kanban ([^)]+)\)$/\1/')
+
+    # 构建新的 commit message（追加分号）
+    NEW_MSG="${NEW_TYPE}(General): ${CONTENT} (vibe-kanban ${TASK_ID});"
+
+    # 写回文件（保留原有 body 内容）
+    {
+        echo "$NEW_MSG"
+        echo "$COMMIT_MSG" | tail -n +2
+    } > "$COMMIT_MSG_FILE"
+
+    FIRST_LINE="$NEW_MSG"
+fi
+
 # 验证格式: type(Scope): description;
 # 类型列表
 TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
