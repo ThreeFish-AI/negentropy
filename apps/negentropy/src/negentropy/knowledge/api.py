@@ -6,7 +6,7 @@ from io import BytesIO
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
@@ -110,6 +110,14 @@ class RebuildSourceRequest(BaseModel):
     chunk_size: Optional[int] = None
     overlap: Optional[int] = None
     preserve_newlines: Optional[bool] = None
+
+
+class AsyncPipelineResponse(BaseModel):
+    """异步 Pipeline 响应模型"""
+
+    run_id: str
+    status: str = "running"
+    message: str
 
 
 class SearchRequest(BaseModel):
@@ -490,11 +498,16 @@ async def delete_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default
     )
 
 
-@router.post("/base/{corpus_id}/ingest")
-async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]:
-    """索引文本到知识库
+@router.post("/base/{corpus_id}/ingest", response_model=AsyncPipelineResponse)
+async def ingest_text(
+    corpus_id: UUID,
+    payload: IngestRequest,
+    background_tasks: BackgroundTasks,
+) -> AsyncPipelineResponse:
+    """异步索引文本到知识库
 
-    集成统一异常处理和结构化日志。
+    立即返回 run_id，实际处理在后台执行。
+    可在 Pipeline 页面查看进度。
     """
     resolved_app = _resolve_app_name(payload.app_name)
 
@@ -525,7 +538,24 @@ async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]
             overlap=overlap,
             preserve_newlines=preserve_newlines,
         )
-        records = await service.ingest_text(
+
+        # 创建 Pipeline 记录
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="ingest_text",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "source_uri": payload.source_uri,
+                "text_length": len(payload.text),
+                "chunk_size": chunking_config.chunk_size if chunking_config else None,
+                "overlap": chunking_config.overlap if chunking_config else None,
+            },
+        )
+
+        # 添加后台任务
+        background_tasks.add_task(
+            service.execute_ingest_text_pipeline,
+            run_id=run_id,
             corpus_id=corpus_id,
             app_name=resolved_app,
             text=payload.text,
@@ -535,12 +565,16 @@ async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]
         )
 
         logger.info(
-            "api_ingest_completed",
+            "api_ingest_queued",
             corpus_id=str(corpus_id),
-            record_count=len(records),
+            run_id=run_id,
         )
 
-        return {"count": len(records), "items": [r.id for r in records]}
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message="Ingest task started. Check Pipeline page for progress.",
+        )
 
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
@@ -604,9 +638,17 @@ async def list_knowledge(
     }
 
 
-@router.post("/base/{corpus_id}/ingest_url")
-async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, Any]:
-    """Fetch content from URL and ingest into knowledge base."""
+@router.post("/base/{corpus_id}/ingest_url", response_model=AsyncPipelineResponse)
+async def ingest_url(
+    corpus_id: UUID,
+    payload: IngestUrlRequest,
+    background_tasks: BackgroundTasks,
+) -> AsyncPipelineResponse:
+    """异步从 URL 获取内容并摄入知识库
+
+    立即返回 run_id，实际处理在后台执行。
+    可在 Pipeline 页面查看进度。
+    """
     resolved_app = _resolve_app_name(payload.app_name)
 
     logger.info(
@@ -635,7 +677,23 @@ async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, An
             overlap=overlap,
             preserve_newlines=preserve_newlines,
         )
-        records = await service.ingest_url(
+
+        # 创建 Pipeline 记录
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="ingest_url",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "url": payload.url,
+                "chunk_size": chunking_config.chunk_size if chunking_config else None,
+                "overlap": chunking_config.overlap if chunking_config else None,
+            },
+        )
+
+        # 添加后台任务
+        background_tasks.add_task(
+            service.execute_ingest_url_pipeline,
+            run_id=run_id,
             corpus_id=corpus_id,
             app_name=resolved_app,
             url=payload.url,
@@ -644,12 +702,16 @@ async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, An
         )
 
         logger.info(
-            "api_ingest_url_completed",
+            "api_ingest_url_queued",
             corpus_id=str(corpus_id),
-            record_count=len(records),
+            run_id=run_id,
         )
 
-        return {"count": len(records), "items": [r.id for r in records]}
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message="URL ingest task started. Check Pipeline page for progress.",
+        )
 
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
@@ -1091,42 +1153,85 @@ async def download_document(
     )
 
 
-@router.post("/base/{corpus_id}/replace_source")
-async def replace_source(corpus_id: UUID, payload: ReplaceSourceRequest) -> Dict[str, Any]:
-    service = _get_service()
-    chunking_config = _build_chunking_config(
-        chunk_size=payload.chunk_size,
-        overlap=payload.overlap,
-        preserve_newlines=payload.preserve_newlines,
-    )
-    records = await service.replace_source(
-        corpus_id=corpus_id,
-        app_name=_resolve_app_name(payload.app_name),
-        text=payload.text,
+@router.post("/base/{corpus_id}/replace_source", response_model=AsyncPipelineResponse)
+async def replace_source(
+    corpus_id: UUID,
+    payload: ReplaceSourceRequest,
+    background_tasks: BackgroundTasks,
+) -> AsyncPipelineResponse:
+    """异步替换源文本（删除旧记录 + 索引新记录）
+
+    立即返回 run_id，实际处理在后台执行。
+    可在 Pipeline 页面查看进度。
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    logger.info(
+        "api_replace_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
         source_uri=payload.source_uri,
-        metadata=payload.metadata,
-        chunking_config=chunking_config,
     )
-    return {"count": len(records), "items": [r.id for r in records]}
+
+    try:
+        service = _get_service()
+        chunking_config = _build_chunking_config(
+            chunk_size=payload.chunk_size,
+            overlap=payload.overlap,
+            preserve_newlines=payload.preserve_newlines,
+        )
+
+        # 创建 Pipeline 记录
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="replace_source",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "source_uri": payload.source_uri,
+                "text_length": len(payload.text),
+                "chunk_size": chunking_config.chunk_size if chunking_config else None,
+                "overlap": chunking_config.overlap if chunking_config else None,
+            },
+        )
+
+        # 添加后台任务
+        background_tasks.add_task(
+            service.execute_replace_source_pipeline,
+            run_id=run_id,
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            text=payload.text,
+            source_uri=payload.source_uri,
+            metadata=payload.metadata,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_replace_source_queued",
+            corpus_id=str(corpus_id),
+            run_id=run_id,
+        )
+
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message="Replace source task started. Check Pipeline page for progress.",
+        )
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
 
 
-@router.post("/base/{corpus_id}/sync_source")
-async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, Any]:
-    """Re-ingest a URL source with latest content.
+@router.post("/base/{corpus_id}/sync_source", response_model=AsyncPipelineResponse)
+async def sync_source(
+    corpus_id: UUID,
+    payload: SyncSourceRequest,
+    background_tasks: BackgroundTasks,
+) -> AsyncPipelineResponse:
+    """异步同步 URL 源（重新拉取并摄入）
 
-    重新从原始 URL 拉取内容并执行完整的 Ingest 流程：
-    Fetch → Delete old chunks → Chunking → Embedding → Persist
-
-    Args:
-        corpus_id: 知识库 ID
-        payload: 包含 source_uri（必须是有效的 URL）
-
-    Returns:
-        Dict: {"count": 新 chunks 数量, "items": [chunk_ids]}
-
-    Raises:
-        400: source_uri 不是有效的 URL
-        500: 内容获取或处理失败
+    立即返回 run_id，实际处理在后台执行。
+    可在 Pipeline 页面查看进度。
     """
     resolved_app = _resolve_app_name(payload.app_name)
     source_uri = payload.source_uri
@@ -1167,7 +1272,23 @@ async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, 
             overlap=overlap,
             preserve_newlines=preserve_newlines,
         )
-        records = await service.sync_source(
+
+        # 创建 Pipeline 记录
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="sync_source",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "source_uri": source_uri,
+                "chunk_size": chunking_config.chunk_size if chunking_config else None,
+                "overlap": chunking_config.overlap if chunking_config else None,
+            },
+        )
+
+        # 添加后台任务
+        background_tasks.add_task(
+            service.execute_sync_source_pipeline,
+            run_id=run_id,
             corpus_id=corpus_id,
             app_name=resolved_app,
             source_uri=source_uri,
@@ -1175,13 +1296,16 @@ async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, 
         )
 
         logger.info(
-            "api_sync_source_completed",
+            "api_sync_source_queued",
             corpus_id=str(corpus_id),
-            source_uri=source_uri,
-            record_count=len(records),
+            run_id=run_id,
         )
 
-        return {"count": len(records), "items": [r.id for r in records]}
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message="Sync source task started. Check Pipeline page for progress.",
+        )
 
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
@@ -1193,23 +1317,16 @@ async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, 
         ) from exc
 
 
-@router.post("/base/{corpus_id}/rebuild_source")
-async def rebuild_source(corpus_id: UUID, payload: RebuildSourceRequest) -> Dict[str, Any]:
-    """Rebuild a GCS source with latest corpus configuration.
+@router.post("/base/{corpus_id}/rebuild_source", response_model=AsyncPipelineResponse)
+async def rebuild_source(
+    corpus_id: UUID,
+    payload: RebuildSourceRequest,
+    background_tasks: BackgroundTasks,
+) -> AsyncPipelineResponse:
+    """异步重建 GCS 源（重新下载并摄入）
 
-    从 GCS 重新下载文件并执行完整的 Ingest 流程：
-    Download -> Extract -> Delete old chunks -> Chunking -> Embedding -> Persist
-
-    Args:
-        corpus_id: 知识库 ID
-        payload: 包含 source_uri（必须是有效的 GCS URI）
-
-    Returns:
-        Dict: {"count": 新 chunks 数量, "items": [chunk_ids]}
-
-    Raises:
-        400: source_uri 不是有效的 GCS URI
-        500: 内容获取或处理失败
+    立即返回 run_id，实际处理在后台执行。
+    可在 Pipeline 页面查看进度。
     """
     resolved_app = _resolve_app_name(payload.app_name)
     source_uri = payload.source_uri
@@ -1250,7 +1367,23 @@ async def rebuild_source(corpus_id: UUID, payload: RebuildSourceRequest) -> Dict
             overlap=overlap,
             preserve_newlines=preserve_newlines,
         )
-        records = await service.rebuild_source(
+
+        # 创建 Pipeline 记录
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="rebuild_source",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "source_uri": source_uri,
+                "chunk_size": chunking_config.chunk_size if chunking_config else None,
+                "overlap": chunking_config.overlap if chunking_config else None,
+            },
+        )
+
+        # 添加后台任务
+        background_tasks.add_task(
+            service.execute_rebuild_source_pipeline,
+            run_id=run_id,
             corpus_id=corpus_id,
             app_name=resolved_app,
             source_uri=source_uri,
@@ -1258,13 +1391,16 @@ async def rebuild_source(corpus_id: UUID, payload: RebuildSourceRequest) -> Dict
         )
 
         logger.info(
-            "api_rebuild_source_completed",
+            "api_rebuild_source_queued",
             corpus_id=str(corpus_id),
-            source_uri=source_uri,
-            record_count=len(records),
+            run_id=run_id,
         )
 
-        return {"count": len(records), "items": [r.id for r in records]}
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message="Rebuild source task started. Check Pipeline page for progress.",
+        )
 
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc

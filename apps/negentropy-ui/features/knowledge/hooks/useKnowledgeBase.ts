@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   CorpusRecord,
   IngestResult,
+  AsyncPipelineResult,
   SearchResults,
   ChunkingConfig,
   SearchConfig,
@@ -47,8 +48,8 @@ export interface UseKnowledgeBaseOptions {
   corpusId?: string;
   /** 错误回调 */
   onError?: (error: KnowledgeError) => void;
-  /** 成功回调 - 用于摄取操作 */
-  onIngestSuccess?: (result: IngestResult) => void;
+  /** 成功回调 - 用于摄取操作（异步响应） */
+  onIngestSuccess?: (result: AsyncPipelineResult) => void;
   /** 成功回调 - 用于搜索操作 */
   onSearchSuccess?: (results: SearchResults) => void;
 }
@@ -86,37 +87,37 @@ export interface UseKnowledgeBaseReturnValue {
   ) => Promise<CorpusRecord>;
   /** 删除语料库 */
   deleteCorpus: (id: string) => Promise<void>;
-  /** 摄取文本 */
+  /** 摄取文本（异步） */
   ingestText: (params: {
     text: string;
     source_uri?: string;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
-  }) => Promise<IngestResult>;
-  /** 摄取 URL */
+  }) => Promise<AsyncPipelineResult>;
+  /** 摄取 URL（异步） */
   ingestUrl: (params: {
     url: string;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
-  }) => Promise<IngestResult>;
-  /** 摄取文件 */
+  }) => Promise<AsyncPipelineResult>;
+  /** 摄取文件（同步，因为涉及文件上传） */
   ingestFile: (params: {
     file: File;
     source_uri?: string;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<IngestResult>;
-  /** 替换源文本 */
+  /** 替换源文本（异步） */
   replaceSource: (params: {
     text: string;
     source_uri: string;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
-  }) => Promise<IngestResult>;
-  /** 同步 URL 源（重新拉取并摄入） */
-  syncSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
-  /** 重建 GCS 源（重新下载并摄入） */
-  rebuildSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
+  }) => Promise<AsyncPipelineResult>;
+  /** 同步 URL 源（异步，重新拉取并摄入） */
+  syncSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
+  /** 重建 GCS 源（异步，重新下载并摄入） */
+  rebuildSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
   /** 搜索知识库 */
   search: (query: string, config?: SearchConfig) => Promise<SearchResults>;
 }

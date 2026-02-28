@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase, ChunkingConfig } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -234,31 +235,40 @@ export default function KnowledgeBasePage() {
           source_uri: uri,
           chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
         });
-        loadChunks();
+        toast.success("已开始同步知识源", {
+          description: "可在 Pipeline 页面查看构建进度",
+        });
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
         console.error("Sync source failed:", err);
+        toast.error("同步失败", {
+          description: errorMessage,
+        });
       }
     },
-    [kb, loadChunks],
+    [kb],
   );
 
   // Rebuild Source handler
   const handleRebuildSource = useCallback(
     async (uri: string) => {
       try {
-        console.log("Rebuilding source:", uri);
-        const result = await kb.rebuildSource({
+        await kb.rebuildSource({
           source_uri: uri,
           chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
         });
-        console.log(`Rebuild completed: ${result.count} chunks created`);
-        loadChunks();
+        toast.success("已开始重建知识源", {
+          description: "可在 Pipeline 页面查看构建进度",
+        });
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
         console.error("Rebuild source failed:", err);
-        alert(`Rebuild failed: ${err instanceof Error ? err.message : String(err)}`);
+        toast.error("重建失败", {
+          description: errorMessage,
+        });
       }
     },
-    [kb, loadChunks],
+    [kb],
   );
 
   const handleIngestSuccess = useCallback(() => {
