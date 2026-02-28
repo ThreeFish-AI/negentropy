@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import "./globals.css";
@@ -33,6 +34,7 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <ThemeProvider>
+            <ToastProvider />
             <AuthProvider>
               <div className="flex flex-col h-screen overflow-hidden">
                 <SiteHeader />

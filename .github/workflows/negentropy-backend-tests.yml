@@ -57,14 +57,14 @@ jobs:
       - name: Run unit tests
         run: uv run pytest tests/unit_tests/ -v
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
       - name: Run integration tests
         run: uv run pytest tests/integration_tests/ -v
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
       - name: Run performance tests
         run: uv run pytest tests/performance_tests/ -v
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db

@@ -43,6 +43,11 @@
   2. **Temp Management**: 临时产物（执行计划等）一律收敛至 `.temp/` 并及时清理；
   3. **Link Validity**: 确保所有引用的 URL 可访问且具备明确的上下文价值；
   4. **Git Commit**: 在需要提交变更到 Git 时，一律使用 Claude Code 的自定义 Slash Command: `/commit-no-push` 进行 git commit 操作。
+  5. **Git Hooks Initialization**: Clone 仓库后，必须运行以下命令初始化 Git Hooks：
+     ```bash
+     cp .githooks/* .git/hooks/ && chmod +x .git/hooks/*
+     ```
+  6. **Merge Workflow**: 完成分支合并后，必须检查 merge commit message 是否符合规范格式 `type(Scope): description;`。若不符合，调用 `/tidy-merge-message` 进行修正。
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/pnpm，**必须**统一使用 `yarn` 进行包管理与脚本执行。

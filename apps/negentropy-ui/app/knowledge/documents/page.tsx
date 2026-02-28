@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   KnowledgeDocument,
   fetchAllDocuments,
@@ -123,8 +124,9 @@ export default function DocumentsPage() {
       setTotal((t) => t - 1);
       setDeleteConfirm(null);
       setDeleteHard(false);
+      toast.success(deleteHard ? "Document permanently deleted" : "Document deleted");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete document");
+      toast.error(err instanceof Error ? err.message : "Failed to delete document");
     }
   };
 
@@ -134,8 +136,9 @@ export default function DocumentsPage() {
     setDownloadingIds((prev) => new Set(prev).add(doc.id));
     try {
       await downloadDocument(doc.corpus_id, doc.id, { appName: APP_NAME });
+      toast.success(`Downloaded: ${doc.original_filename}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to download document");
+      toast.error(err instanceof Error ? err.message : "Failed to download document");
     } finally {
       setDownloadingIds((prev) => {
         const next = new Set(prev);
@@ -219,7 +222,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* Created By - col-span-1 */}
-                      <div className="col-span-1 text-muted truncate text-xs" title={doc.created_by || ""}>
+                      <div className="col-span-1 text-muted truncate text-xs text-center" title={doc.created_by || ""}>
                         {displayUser(doc.created_by)}
                       </div>
 
@@ -229,7 +232,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* 操作 - col-span-1 */}
-                      <div className="col-span-1 flex justify-end items-center gap-2">
+                      <div className="col-span-1 flex justify-center items-center gap-2">
                         {deleteConfirm === doc.id ? (
                           <div className="flex items-center gap-2">
                             <label className="flex items-center gap-1 text-xs text-muted">
