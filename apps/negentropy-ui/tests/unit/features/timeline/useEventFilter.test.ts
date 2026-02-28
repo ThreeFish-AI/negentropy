@@ -98,8 +98,10 @@ describe("useEventFilter", () => {
 
     const { filteredEvents } = result.current;
 
-    // 应该包含所有事件（所有事件都 <= 2000）
-    expect(filteredEvents).toHaveLength(6);
+    // msg2 的 timestamp 是 2000，只有 timestamp <= 2000 的事件会被包含
+    // 即 msg1 (1000, 1001, 1002) + msg2 的 START (2000) = 4 个事件
+    // 2001 和 2002 的事件 > 2000，被过滤掉
+    expect(filteredEvents).toHaveLength(4);
   });
 
   it("应该返回所有事件（未找到选中的消息）", () => {

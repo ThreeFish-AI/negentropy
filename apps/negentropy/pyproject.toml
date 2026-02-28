@@ -52,7 +52,7 @@ dev = [
 # Set line length to 120 chars to accommodate modern display widths
 line-length = 120
 # Target Python 3.13+ features
-target-version = "py314"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = [
