@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   KnowledgeDocument,
   fetchAllDocuments,
@@ -123,8 +124,9 @@ export default function DocumentsPage() {
       setTotal((t) => t - 1);
       setDeleteConfirm(null);
       setDeleteHard(false);
+      toast.success(deleteHard ? "Document permanently deleted" : "Document deleted");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete document");
+      toast.error(err instanceof Error ? err.message : "Failed to delete document");
     }
   };
 
@@ -134,8 +136,9 @@ export default function DocumentsPage() {
     setDownloadingIds((prev) => new Set(prev).add(doc.id));
     try {
       await downloadDocument(doc.corpus_id, doc.id, { appName: APP_NAME });
+      toast.success(`Downloaded: ${doc.original_filename}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to download document");
+      toast.error(err instanceof Error ? err.message : "Failed to download document");
     } finally {
       setDownloadingIds((prev) => {
         const next = new Set(prev);
