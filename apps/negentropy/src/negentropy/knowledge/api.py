@@ -857,8 +857,12 @@ async def ingest_file(
                 detail={"code": "EMPTY_CONTENT", "message": "No text content extracted from file"},
             )
 
-        # 使用 source_uri 参数 > GCS URI > 清理后的文件名
-        final_source_uri = source_uri or gcs_uri or safe_filename
+        # GCS 存储的文件强制使用 gcs_uri 作为 source_uri（支持 Rebuild 功能）
+        # 只有非 GCS 存储时才使用用户提供的 source_uri 或文件名
+        if store_to_gcs and gcs_uri:
+            final_source_uri = gcs_uri
+        else:
+            final_source_uri = source_uri or safe_filename
 
         # 获取服务并执行摄入
         service = _get_service()
