@@ -276,7 +276,7 @@ class KnowledgeService:
         )
 
         try:
-            return await self._ingest_text_with_tracker(
+            records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
                 text=text,
@@ -285,6 +285,16 @@ class KnowledgeService:
                 chunking_config=config,
                 tracker=tracker,
             )
+
+            # 完成 Pipeline
+            if tracker:
+                await tracker.complete(
+                    {
+                        "chunk_count": len(records),
+                    }
+                )
+
+            return records
         except Exception as exc:
             if tracker and tracker.current_stage:
                 await tracker.fail_stage(
