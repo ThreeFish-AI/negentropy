@@ -119,13 +119,13 @@ export function CorpusList({
                 className="block w-full px-4 py-2 text-left text-xs text-zinc-900 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
                 onClick={(e) => handleAction(e, "edit", corpus)}
               >
-                编辑配置
+                Settings
               </button>
               <button
                 className="block w-full px-4 py-2 text-left text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                 onClick={(e) => handleAction(e, "delete", corpus)}
               >
-                删除数据源
+                Delete
               </button>
             </div>
           )}
