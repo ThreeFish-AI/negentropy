@@ -165,7 +165,7 @@ export default function DocumentsPage() {
               <div className="col-span-4">File Name</div>
               <div className="col-span-1">Size</div>
               <div className="col-span-1">File Hash</div>
-              <div className="col-span-3">Corpus</div>
+              <div className="col-span-3 text-right">Corpus</div>
               <div className="col-span-1">Created By</div>
               <div className="col-span-1">Created At</div>
               <div className="col-span-1 text-right">Actions</div>
@@ -214,7 +214,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* 所属语料库 - col-span-3 */}
-                      <div className="col-span-3 text-muted truncate text-xs" title={getCorpusName(doc.corpus_id)}>
+                      <div className="col-span-3 text-muted truncate text-xs text-right" title={getCorpusName(doc.corpus_id)}>
                         {getCorpusName(doc.corpus_id)}
                       </div>
 
