@@ -162,13 +162,13 @@ export default function DocumentsPage() {
           <div className="rounded-2xl border border-border bg-card shadow-sm flex-1 overflow-hidden flex flex-col">
             {/* 表头 */}
             <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted">
-              <div className="col-span-3">File Name</div>
+              <div className="col-span-4">File Name</div>
               <div className="col-span-1">Size</div>
-              <div className="col-span-2">File Hash</div>
-              <div className="col-span-2">Corpus</div>
+              <div className="col-span-1">File Hash</div>
+              <div className="col-span-3">Corpus</div>
               <div className="col-span-1">Created By</div>
               <div className="col-span-1">Created At</div>
-              <div className="col-span-2 text-right">Actions</div>
+              <div className="col-span-1 text-right">Actions</div>
             </div>
 
             {/* 内容 */}
@@ -190,8 +190,8 @@ export default function DocumentsPage() {
                       key={doc.id}
                       className="grid grid-cols-12 gap-2 px-4 py-3 text-sm hover:bg-muted/30 transition-colors items-center"
                     >
-                      {/* 文件名 - col-span-3 */}
-                      <div className="col-span-3 flex items-center gap-2">
+                      {/* 文件名 - col-span-4 */}
+                      <div className="col-span-4 flex items-center gap-2">
                         {getFileIcon(doc.content_type)}
                         <div className="min-w-0">
                           <p className="font-medium text-foreground truncate">
@@ -208,13 +208,13 @@ export default function DocumentsPage() {
                         {formatFileSize(doc.file_size)}
                       </div>
 
-                      {/* File Hash - col-span-2 */}
-                      <div className="col-span-2">
+                      {/* File Hash - col-span-1 */}
+                      <div className="col-span-1">
                         {truncateHash(doc.file_hash)}
                       </div>
 
-                      {/* 所属语料库 - col-span-2 */}
-                      <div className="col-span-2 text-muted truncate text-xs">
+                      {/* 所属语料库 - col-span-3 */}
+                      <div className="col-span-3 text-muted truncate text-xs">
                         {getCorpusName(doc.corpus_id)}
                       </div>
 
@@ -228,8 +228,8 @@ export default function DocumentsPage() {
                         {formatRelativeTime(doc.created_at)}
                       </div>
 
-                      {/* 操作 - col-span-2 */}
-                      <div className="col-span-2 flex justify-end items-center gap-2">
+                      {/* 操作 - col-span-1 */}
+                      <div className="col-span-1 flex justify-end items-center gap-2">
                         {deleteConfirm === doc.id ? (
                           <div className="flex items-center gap-2">
                             <label className="flex items-center gap-1 text-xs text-muted">
