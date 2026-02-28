@@ -65,7 +65,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # 文件标识
-    file_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # SHA-256
+    file_hash: Mapped[str] = mapped_column(String(64), nullable=False)  # SHA-256
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # 存储信息
@@ -81,6 +81,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),
+        Index("ix_knowledge_documents_file_hash", "file_hash"),
         Index("ix_knowledge_documents_app_name", "app_name"),
         Index("ix_knowledge_documents_status", "status"),
         {"schema": NEGENTROPY_SCHEMA},

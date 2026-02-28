@@ -73,6 +73,15 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+# 通过迁移文件手动创建的索引，不在 ORM 模型中定义
+# 这些索引需要在此忽略，否则 autogenerate 会尝试删除它们
+_IGNORED_INDEXES = frozenset({
+    "idx_kb_entity_type",                    # 部分索引 (WHERE entity_type IS NOT NULL)
+    "ix_negentropy_knowledge_search_vector", # GIN 索引 (TSVECTOR)
+    "ix_knowledge_documents_file_hash",      # 命名与 ORM 自动生成的不一致
+})
+
+
 def do_run_migrations(connection: Connection) -> None:
     # 在运行迁移前，确保 negentropy schema 存在
     from negentropy.models.base import NEGENTROPY_SCHEMA
@@ -86,8 +95,12 @@ def do_run_migrations(connection: Connection) -> None:
 
         - 排除 public schema 中的表（如 ADK 的 sessions/events/app_states 等）
         - 排除旧版 alembic_version 表
+        - 忽略手动创建的索引（_IGNORED_INDEXES）
         - 仅追踪 negentropy schema 中的业务表
         """
+        # 忽略手动创建的索引，避免 autogenerate 误报差异
+        if type_ == "index" and name in _IGNORED_INDEXES:
+            return False
         if type_ == "table":
             # 如果是反射的表（数据库中已存在），检查其 schema
             if reflected:
