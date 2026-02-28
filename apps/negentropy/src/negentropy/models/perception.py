@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint, Index
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -36,11 +36,7 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(1536))
-    # TSVector type is not directly supported by SQLAlchemy, so we use UserDefinedType or just Any for now
-    # However, for Alembic to detect it, we might need a custom type.
-    # For now, let's use TSVECTOR from sqlalchemy.dialects.postgresql
-    from sqlalchemy.dialects.postgresql import TSVECTOR
-
+    # TSVECTOR 用于全文搜索
     search_vector: Mapped[Optional[Any]] = mapped_column(TSVECTOR)
     source_uri: Mapped[Optional[str]] = mapped_column(Text)
     chunk_index: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

@@ -1,17 +1,60 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, String, TypeDecorator
+from sqlalchemy import DateTime, ForeignKey, Index, String, TypeDecorator
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
+from sqlalchemy.types import UserDefinedType
+
+
+# Schema 名称常量，用于隔离业务表与 ADK 后台表 (ADK 默认使用 public schema)
+NEGENTROPY_SCHEMA = "negentropy"
+
+
+# =============================================================================
+# Vector 类型实现
+# =============================================================================
+
+
+class _VectorImpl(UserDefinedType):
+    """pgvector vector 类型的底层实现"""
+
+    cache_ok = True
+
+    def __init__(self, dim: Optional[int] = None):
+        self.dim = dim
+
+    def get_col_spec(self, **kw) -> str:
+        return "vector" if self.dim is None else f"vector({self.dim})"
+
+    def bind_processor(self, dialect):
+        def process(value):
+            if value is None:
+                return None
+            if isinstance(value, list):
+                return str(value)  # pgvector input format is '[1,2,3]'
+            return value
+
+        return process
+
+    def result_processor(self, dialect, coltype):
+        def process(value):
+            if value is None:
+                return None
+            if isinstance(value, str):
+                # pgvector output format is '[1,2,3]'
+                return [float(x) for x in value.strip("[]").split(",")]
+            return value
+
+        return process
 
 
 class Vector(TypeDecorator):
     """SQLAlchemy TypeDecorator for pgvector's vector type."""
 
-    impl = String  # Use String as the underlying type for SQLAlchemy internal handling
+    impl = String
     cache_ok = True
 
     def __init__(self, dim: Optional[int] = None):
@@ -19,49 +62,35 @@ class Vector(TypeDecorator):
         self.dim = dim
 
     def load_dialect_impl(self, dialect):
-        dim = self.dim
-        # We assume the database has pgvector installed and supports the 'vector' type
-        # But for the python side, we treat it as a custom UserDefinedType if we were using psycopg2 directly
-        # With asyncpg/SQLAlchemy, usually we'd rely on the pgvector-python library.
-        # Since we don't have it, we'll try to map it to a format the DB accepts.
-        # However, without the library, SQLAlchemy schema generation might fail if we ask it to emit 'vector'.
-        # For now, we will assume standard SQLAlchemy UserDefinedType.
-        from sqlalchemy.types import UserDefinedType
-
-        class VectorType(UserDefinedType):
-            cache_ok = True
-
-            def get_col_spec(self, **kw):
-                if dim is None:
-                    return "vector"
-                return f"vector({dim})"
-
-            def bind_processor(self, dialect):
-                def process(value):
-                    if value is None:
-                        return None
-                    if isinstance(value, list):
-                        return str(value)  # pgvector input format is '[1,2,3]'
-                    return value
-
-                return process
-
-            def result_processor(self, dialect, coltype):
-                def process(value):
-                    if value is None:
-                        return None
-                    if isinstance(value, str):
-                        # pgvector output format is '[1,2,3]'
-                        return [float(x) for x in value.strip("[]").split(",")]
-                    return value
-
-                return process
-
-        return VectorType()
+        return _VectorImpl(dim=self.dim)
 
 
-# Schema 名称常量，用于隔离业务表与 ADK 后台表 (ADK 默认使用 public schema)
-NEGENTROPY_SCHEMA = "negentropy"
+# =============================================================================
+# ForeignKey 辅助函数
+# =============================================================================
+
+
+def fk(table: str, column: str = "id", ondelete: Optional[str] = None) -> ForeignKey:
+    """创建带 schema 的 ForeignKey
+
+    Args:
+        table: 表名
+        column: 列名，默认 'id'
+        ondelete: 删除行为，如 'CASCADE', 'SET NULL'
+
+    Returns:
+        配置好的 ForeignKey 对象
+
+    Example:
+        thread_id: Mapped[UUID] = mapped_column(fk("threads", ondelete="CASCADE"))
+    """
+    ref = f"{NEGENTROPY_SCHEMA}.{table}.{column}"
+    return ForeignKey(ref, ondelete=ondelete) if ondelete else ForeignKey(ref)
+
+
+# =============================================================================
+# Base 类和 Mixin
+# =============================================================================
 
 
 class Base(DeclarativeBase):
