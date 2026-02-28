@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Commit Message 格式验证
+# 规范: type(Scope): description;
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# 允许空提交（git commit --allow-empty-message）
+if [ -z "$COMMIT_MSG" ]; then
+    exit 0
+fi
+
+# 跳过 merge commit
+if grep -q "^Merge" "$COMMIT_MSG_FILE" 2>/dev/null; then
+    exit 0
+fi
+
+# 跳过 revert commit
+if grep -q "^Revert" "$COMMIT_MSG_FILE" 2>/dev/null; then
+    exit 0
+fi
+
+# 提取第一行（标题行）
+FIRST_LINE=$(echo "$COMMIT_MSG" | head -n1)
+
+# 验证格式: type(Scope): description;
+# 类型列表
+TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+PATTERN="^($TYPES)\([A-Za-z0-9_-]+\): .+;$"
+
+if ! echo "$FIRST_LINE" | grep -qE "$PATTERN"; then
+    echo ""
+    echo "❌ Commit Message 格式不符合规范！"
+    echo ""
+    echo "当前格式: $FIRST_LINE"
+    echo ""
+    echo "正确格式: type(Scope): description;"
+    echo ""
+    echo "示例:"
+    echo "  feat(Documents): 添加文件下载功能;"
+    echo "  fix(Auth): 修复登录验证逻辑;"
+    echo "  ci(Tests): 更新测试环境配置;"
+    echo ""
+    echo "类型列表: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+    echo ""
+    exit 1
+fi
+
+exit 0
