@@ -105,7 +105,7 @@ export async function POST(request: Request) {
 
   const url = new URL(request.url);
   const appName =
-    url.searchParams.get("app_name") || (body.app_name as string) || "agents";
+    url.searchParams.get("app_name") || (body.app_name as string) || "negentropy";
   const userId =
     url.searchParams.get("user_id") || (body.user_id as string) || "ui";
   const sessionId =
