@@ -104,6 +104,14 @@ class SyncSourceRequest(BaseModel):
     preserve_newlines: Optional[bool] = None
 
 
+class RebuildSourceRequest(BaseModel):
+    app_name: Optional[str] = None
+    source_uri: str
+    chunk_size: Optional[int] = None
+    overlap: Optional[int] = None
+    preserve_newlines: Optional[bool] = None
+
+
 class SearchRequest(BaseModel):
     app_name: Optional[str] = None
     query: str
@@ -1168,6 +1176,89 @@ async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, 
 
         logger.info(
             "api_sync_source_completed",
+            corpus_id=str(corpus_id),
+            source_uri=source_uri,
+            record_count=len(records),
+        )
+
+        return {"count": len(records), "items": [r.id for r in records]}
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
+
+
+@router.post("/base/{corpus_id}/rebuild_source")
+async def rebuild_source(corpus_id: UUID, payload: RebuildSourceRequest) -> Dict[str, Any]:
+    """Rebuild a GCS source with latest corpus configuration.
+
+    从 GCS 重新下载文件并执行完整的 Ingest 流程：
+    Download -> Extract -> Delete old chunks -> Chunking -> Embedding -> Persist
+
+    Args:
+        corpus_id: 知识库 ID
+        payload: 包含 source_uri（必须是有效的 GCS URI）
+
+    Returns:
+        Dict: {"count": 新 chunks 数量, "items": [chunk_ids]}
+
+    Raises:
+        400: source_uri 不是有效的 GCS URI
+        500: 内容获取或处理失败
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    source_uri = payload.source_uri
+
+    # 验证 source_uri 是有效的 GCS URI
+    if not source_uri or not source_uri.startswith("gs://"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_SOURCE_URI",
+                "message": "source_uri must be a valid GCS URI (gs://...) for rebuild operation",
+            },
+        )
+
+    logger.info(
+        "api_rebuild_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        source_uri=source_uri,
+    )
+
+    try:
+        service = _get_service()
+
+        # 获取 corpus 配置作为基础
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
+        chunking_config = _build_chunking_config(
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
+        )
+        records = await service.rebuild_source(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            source_uri=source_uri,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_rebuild_source_completed",
             corpus_id=str(corpus_id),
             source_uri=source_uri,
             record_count=len(records),

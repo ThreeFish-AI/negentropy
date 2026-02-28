@@ -650,6 +650,24 @@ export async function syncSource(
   return handleKnowledgeError(res);
 }
 
+export async function rebuildSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  },
+): Promise<IngestResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/rebuild_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
 export async function updateCorpus(
   id: string,
   params: {

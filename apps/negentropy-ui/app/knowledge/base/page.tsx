@@ -242,6 +242,25 @@ export default function KnowledgeBasePage() {
     [kb, loadChunks],
   );
 
+  // Rebuild Source handler
+  const handleRebuildSource = useCallback(
+    async (uri: string) => {
+      try {
+        console.log("Rebuilding source:", uri);
+        const result = await kb.rebuildSource({
+          source_uri: uri,
+          chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
+        });
+        console.log(`Rebuild completed: ${result.count} chunks created`);
+        loadChunks();
+      } catch (err) {
+        console.error("Rebuild source failed:", err);
+        alert(`Rebuild failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+    [kb, loadChunks],
+  );
+
   const handleIngestSuccess = useCallback(() => {
     setIsAddSourceOpen(false);
     loadChunks();
@@ -338,6 +357,7 @@ export default function KnowledgeBasePage() {
                             onAddSource={() => setIsAddSourceOpen(true)}
                             onReplaceSource={handleOpenReplace}
                             onSyncSource={handleSyncSource}
+                            onRebuildSource={handleRebuildSource}
                           />
                         </div>
                       </aside>

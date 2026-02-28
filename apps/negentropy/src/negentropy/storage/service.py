@@ -296,3 +296,20 @@ class DocumentStorageService:
 
         gcs_client = self._get_gcs_client()
         return gcs_client.download(doc.gcs_uri)
+
+    async def get_document_content_by_uri(self, gcs_uri: str) -> Optional[bytes]:
+        """Download document content by GCS URI directly.
+
+        用于 Rebuild 操作，直接通过 GCS URI 下载文件内容。
+
+        Args:
+            gcs_uri: Full GCS URI (gs://bucket/path)
+
+        Returns:
+            File content as bytes
+
+        Raises:
+            StorageError: If GCS download fails
+        """
+        gcs_client = self._get_gcs_client()
+        return gcs_client.download(gcs_uri)

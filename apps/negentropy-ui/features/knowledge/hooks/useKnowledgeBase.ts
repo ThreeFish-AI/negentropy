@@ -28,6 +28,7 @@ import {
   ingestFile as ingestFileApi,
   replaceSource,
   syncSource as syncSourceApi,
+  rebuildSource as rebuildSourceApi,
   searchKnowledge,
   KnowledgeError,
 } from "../utils/knowledge-api";
@@ -113,7 +114,9 @@ export interface UseKnowledgeBaseReturnValue {
     chunkingConfig?: ChunkingConfig;
   }) => Promise<IngestResult>;
   /** 同步 URL 源（重新拉取并摄入） */
-  syncSource: (params: { source_uri: string }) => Promise<IngestResult>;
+  syncSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
+  /** 重建 GCS 源（重新下载并摄入） */
+  rebuildSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
   /** 搜索知识库 */
   search: (query: string, config?: SearchConfig) => Promise<SearchResults>;
 }
@@ -445,6 +448,35 @@ export function useKnowledgeBase(
     [corpus?.id, appName, onError, onIngestSuccess],
   );
 
+  // 重建 GCS 源
+  const rebuildSourceHandler = useCallback(
+    async (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await rebuildSourceApi(corpus.id, {
+          app_name: appName,
+          source_uri: params.source_uri,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+        });
+        setState({ isLoading: false, error: null });
+        onIngestSuccess?.(result);
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError, onIngestSuccess],
+  );
+
   // 搜索知识库
   const searchHandler = useCallback(
     async (query: string, config?: SearchConfig) => {
@@ -498,6 +530,7 @@ export function useKnowledgeBase(
     ingestFile: ingestFileHandler,
     replaceSource: replaceSourceHandler,
     syncSource: syncSourceHandler,
+    rebuildSource: rebuildSourceHandler,
     search: searchHandler,
   };
 }
