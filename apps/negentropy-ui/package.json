@@ -16,6 +16,7 @@
     "@ag-ui/encoder": "0.0.42",
     "@copilotkitnext/react": "1.51.3",
     "d3-drag": "^3.0.0",
+    "lucide-react": "^0.525.0",
     "d3-force": "^3.0.0",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
