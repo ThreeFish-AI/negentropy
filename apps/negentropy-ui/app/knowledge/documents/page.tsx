@@ -49,7 +49,7 @@ function truncateHash(hash: string | null): JSX.Element {
   if (!hash) return <span className="text-muted">-</span>;
   const truncated = `${hash.slice(0, 8)}...${hash.slice(-4)}`;
   return (
-    <span className="font-mono text-xs text-muted cursor-help" title={hash}>
+    <span className="font-mono text-xs text-muted" title={hash}>
       {truncated}
     </span>
   );
