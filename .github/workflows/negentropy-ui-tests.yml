@@ -19,18 +19,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "yarn"
-          cache-dependency-path: apps/negentropy-ui/yarn.lock
+          cache: "pnpm"
+          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
 
       - name: Configure npm registry
-        run: yarn config set registry https://registry.npmmirror.com
+        run: pnpm config set registry https://registry.npmmirror.com
 
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
 
       - name: Run tests
-        run: yarn test
+        run: pnpm test
