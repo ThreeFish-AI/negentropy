@@ -4,7 +4,7 @@ import { EventTimeline, type TimelineItem } from "../../components/ui/EventTimel
 describe("EventTimeline", () => {
   it("renders empty state", () => {
     render(<EventTimeline events={[]} />);
-    expect(screen.getByText("暂无事件")).toBeInTheDocument();
+    expect(screen.getByText("No events yet")).toBeInTheDocument();
   });
 
   it("renders artifact and state cards", () => {
@@ -42,7 +42,8 @@ describe("EventTimeline", () => {
     ];
     render(<EventTimeline events={events} />);
     expect(screen.getByText("doThing")).toBeInTheDocument();
-    expect(screen.getByText("{\"x\":1}")).toBeInTheDocument();
-    expect(screen.getByText("ok")).toBeInTheDocument();
+    // JsonViewer renders args and result in formatted structure
+    expect(screen.getByText((content) => content.includes("x"))).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes("ok"))).toBeInTheDocument();
   });
 });

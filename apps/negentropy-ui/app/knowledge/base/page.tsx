@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase } from "@/features/knowledge";
+import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase, ChunkingConfig } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 
@@ -63,6 +63,14 @@ export default function KnowledgeBasePage() {
     kb.loadCorpora();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 当 selectedId 变化时，加载对应的 corpus 数据
+  useEffect(() => {
+    if (selectedId) {
+      kb.loadCorpus(selectedId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   useEffect(() => {
     // Auto-select first if none selected
@@ -191,7 +199,8 @@ export default function KnowledgeBasePage() {
   };
 
   const handleIngest = useCallback(
-    (params: { text: string; source_uri?: string }) => kb.ingestText(params),
+    (params: { text: string; source_uri?: string; chunkingConfig?: ChunkingConfig }) =>
+      kb.ingestText(params),
     [kb],
   );
 
@@ -201,7 +210,13 @@ export default function KnowledgeBasePage() {
   );
 
   const handleIngestUrl = useCallback(
-    (params: { url: string }) => kb.ingestUrl(params),
+    (params: { url: string; chunkingConfig?: ChunkingConfig }) => kb.ingestUrl(params),
+    [kb],
+  );
+
+  const handleIngestFile = useCallback(
+    (params: { file: File; source_uri?: string; chunkingConfig?: ChunkingConfig }) =>
+      kb.ingestFile(params),
     [kb],
   );
 
@@ -215,10 +230,32 @@ export default function KnowledgeBasePage() {
   const handleSyncSource = useCallback(
     async (uri: string) => {
       try {
-        await kb.syncSource({ source_uri: uri });
+        await kb.syncSource({
+          source_uri: uri,
+          chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
+        });
         loadChunks();
       } catch (err) {
         console.error("Sync source failed:", err);
+      }
+    },
+    [kb, loadChunks],
+  );
+
+  // Rebuild Source handler
+  const handleRebuildSource = useCallback(
+    async (uri: string) => {
+      try {
+        console.log("Rebuilding source:", uri);
+        const result = await kb.rebuildSource({
+          source_uri: uri,
+          chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
+        });
+        console.log(`Rebuild completed: ${result.count} chunks created`);
+        loadChunks();
+      } catch (err) {
+        console.error("Rebuild source failed:", err);
+        alert(`Rebuild failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     },
     [kb, loadChunks],
@@ -241,7 +278,7 @@ export default function KnowledgeBasePage() {
         description="数据源管理、索引构建与检索配置"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
+        <div className="flex min-h-0 flex-1 gap-3 px-6 py-6">
           {/* Left sidebar: Corpus + Detail */}
           <aside className="min-h-0 min-w-0 w-[240px] shrink-0 overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
@@ -320,6 +357,7 @@ export default function KnowledgeBasePage() {
                             onAddSource={() => setIsAddSourceOpen(true)}
                             onReplaceSource={handleOpenReplace}
                             onSyncSource={handleSyncSource}
+                            onRebuildSource={handleRebuildSource}
                           />
                         </div>
                       </aside>
@@ -403,6 +441,8 @@ export default function KnowledgeBasePage() {
         onClose={() => setIsAddSourceOpen(false)}
         onIngest={handleIngest}
         onIngestUrl={handleIngestUrl}
+        onIngestFile={handleIngestFile}
+        chunkingConfig={kb.corpus?.config as ChunkingConfig | undefined}
         onSuccess={handleIngestSuccess}
       />
 

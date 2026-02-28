@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import json
+import urllib.parse
+from io import BytesIO
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 
@@ -95,6 +99,17 @@ class ReplaceSourceRequest(BaseModel):
 class SyncSourceRequest(BaseModel):
     app_name: Optional[str] = None
     source_uri: str
+    chunk_size: Optional[int] = None
+    overlap: Optional[int] = None
+    preserve_newlines: Optional[bool] = None
+
+
+class RebuildSourceRequest(BaseModel):
+    app_name: Optional[str] = None
+    source_uri: str
+    chunk_size: Optional[int] = None
+    overlap: Optional[int] = None
+    preserve_newlines: Optional[bool] = None
 
 
 class SearchRequest(BaseModel):
@@ -493,10 +508,22 @@ async def ingest_text(corpus_id: UUID, payload: IngestRequest) -> Dict[str, Any]
 
     try:
         service = _get_service()
+
+        # 获取 corpus 配置作为基础（Single Source of Truth）
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
         chunking_config = _build_chunking_config(
-            chunk_size=payload.chunk_size,
-            overlap=payload.overlap,
-            preserve_newlines=payload.preserve_newlines,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
         )
         records = await service.ingest_text(
             corpus_id=corpus_id,
@@ -591,10 +618,22 @@ async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, An
 
     try:
         service = _get_service()
+
+        # 获取 corpus 配置作为基础（Single Source of Truth）
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
         chunking_config = _build_chunking_config(
-            chunk_size=payload.chunk_size,
-            overlap=payload.overlap,
-            preserve_newlines=payload.preserve_newlines,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
         )
         records = await service.ingest_url(
             corpus_id=corpus_id,
@@ -620,6 +659,436 @@ async def ingest_url(corpus_id: UUID, payload: IngestUrlRequest) -> Dict[str, An
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
         ) from exc
+
+
+# 文件大小限制 (50MB)
+MAX_FILE_SIZE = 50 * 1024 * 1024
+
+
+@router.post("/base/{corpus_id}/ingest_file")
+async def ingest_file(
+    corpus_id: UUID,
+    file: UploadFile = File(...),
+    app_name: Optional[str] = Form(default=None),
+    source_uri: Optional[str] = Form(default=None),
+    metadata: Optional[str] = Form(default=None),
+    chunk_size: Optional[int] = Form(default=None),
+    overlap: Optional[int] = Form(default=None),
+    preserve_newlines: Optional[bool] = Form(default=None),
+    store_to_gcs: bool = Form(default=True),
+) -> Dict[str, Any]:
+    """从上传文件导入内容到知识库
+
+    支持格式: .txt, .md, .markdown, .pdf
+
+    流程:
+    1. 验证文件类型和大小
+    2. 检查重复（通过内容 Hash）
+    3. 存储原始文件到 GCS（如果启用）
+    4. 提取文本内容
+    5. 调用 ingest_text 完成分块和向量化
+
+    Args:
+        corpus_id: 知识库 ID
+        file: 上传的文件
+        app_name: 应用名称（可选）
+        source_uri: 来源 URI（可选，默认使用 GCS URI 或文件名）
+        metadata: 元数据 JSON 字符串（可选）
+        chunk_size: 分块大小（可选）
+        overlap: 分块重叠（可选）
+        preserve_newlines: 是否保留换行（可选）
+        store_to_gcs: 是否存储原始文件到 GCS（默认 True）
+
+    Returns:
+        Dict: {"count": 分块数量, "items": [分块 ID 列表], "document_id": 文档 ID, "duplicate": 是否重复}
+
+    Raises:
+        400: 文件过大、类型不支持、解析失败等
+        404: corpus 不存在
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    logger.info(
+        "api_ingest_file_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        filename=file.filename,
+        content_type=file.content_type,
+        store_to_gcs=store_to_gcs,
+    )
+
+    try:
+        # 读取文件内容
+        content = await file.read()
+
+        # 文件大小验证
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "code": "FILE_TOO_LARGE",
+                    "message": f"File size exceeds limit ({MAX_FILE_SIZE / 1024 / 1024:.0f}MB)",
+                    "size": len(content),
+                    "max_size": MAX_FILE_SIZE,
+                },
+            )
+
+        # 解析 metadata JSON
+        meta: Dict[str, Any] = {}
+        if metadata:
+            try:
+                meta = json.loads(metadata)
+            except json.JSONDecodeError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"code": "INVALID_METADATA", "message": "metadata must be valid JSON"},
+                ) from exc
+
+        # 提取文本
+        from .content import extract_file_content, sanitize_filename
+
+        # 清理文件名（防止路径遍历）
+        safe_filename = sanitize_filename(file.filename)
+
+        # GCS 存储逻辑
+        doc_record = None
+        is_new_doc = True
+        gcs_uri = None
+
+        if store_to_gcs:
+            from negentropy.storage.service import DocumentStorageService
+            from negentropy.storage.gcs_client import StorageError
+
+            try:
+                storage_service = DocumentStorageService()
+                doc_record, is_new_doc = await storage_service.upload_and_store(
+                    corpus_id=corpus_id,
+                    app_name=resolved_app,
+                    content=content,
+                    filename=safe_filename,
+                    content_type=file.content_type,
+                    metadata={"source": "ingest_file"},
+                )
+                gcs_uri = doc_record.gcs_uri
+
+                logger.info(
+                    "document_storage_completed",
+                    corpus_id=str(corpus_id),
+                    doc_id=str(doc_record.id),
+                    is_new=is_new_doc,
+                    gcs_uri=gcs_uri,
+                )
+            except StorageError as exc:
+                logger.warning("gcs_storage_failed_proceeding_without_storage", error=str(exc))
+                # 继续处理，但不存储到 GCS
+
+        # 提取文本内容
+        text = await extract_file_content(
+            content=content,
+            filename=safe_filename,
+            content_type=file.content_type,
+        )
+
+        if not text.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "EMPTY_CONTENT", "message": "No text content extracted from file"},
+            )
+
+        # 使用 source_uri 参数 > GCS URI > 清理后的文件名
+        final_source_uri = source_uri or gcs_uri or safe_filename
+
+        # 获取服务并执行摄入
+        service = _get_service()
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建分块配置
+        final_chunk_size = chunk_size or corpus_config.get("chunk_size")
+        final_overlap = overlap or corpus_config.get("overlap")
+        final_preserve_newlines = preserve_newlines
+        if final_preserve_newlines is None:
+            final_preserve_newlines = corpus_config.get("preserve_newlines")
+
+        chunking_config = _build_chunking_config(
+            chunk_size=final_chunk_size,
+            overlap=final_overlap,
+            preserve_newlines=final_preserve_newlines,
+        )
+
+        # 添加文件元数据
+        meta["original_filename"] = safe_filename
+        meta["content_type"] = file.content_type
+        meta["file_size"] = len(content)
+        if gcs_uri:
+            meta["gcs_uri"] = gcs_uri
+
+        # 调用现有的 ingest_text
+        records = await service.ingest_text(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            text=text,
+            source_uri=final_source_uri,
+            metadata=meta,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_ingest_file_completed",
+            corpus_id=str(corpus_id),
+            filename=file.filename,
+            record_count=len(records),
+            is_new_doc=is_new_doc,
+        )
+
+        result: Dict[str, Any] = {"count": len(records), "items": [r.id for r in records]}
+        if doc_record:
+            result["document_id"] = str(doc_record.id)
+            result["duplicate"] = not is_new_doc
+
+        return result
+
+    except ValueError as exc:
+        logger.warning("file_parse_error", error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "FILE_PARSE_ERROR", "message": str(exc)},
+        ) from exc
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
+
+
+# ============================================================================
+# Document Management API
+# ============================================================================
+
+
+class DocumentResponse(BaseModel):
+    """文档元信息响应模型"""
+
+    id: UUID
+    corpus_id: UUID
+    app_name: str
+    file_hash: str
+    original_filename: str
+    gcs_uri: str
+    content_type: Optional[str] = None
+    file_size: int
+    status: str
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentListResponse(BaseModel):
+    """文档列表响应模型"""
+
+    count: int
+    items: list[DocumentResponse]
+
+
+@router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
+async def list_documents(
+    corpus_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> DocumentListResponse:
+    """列出语料库中的已上传文档
+
+    Args:
+        corpus_id: 知识库 ID
+        app_name: 应用名称
+        limit: 分页大小
+        offset: 偏移量
+
+    Returns:
+        DocumentListResponse: 文档列表
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    docs, total = await storage_service.list_documents(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        limit=limit,
+        offset=offset,
+    )
+
+    return DocumentListResponse(
+        count=total,
+        items=[
+            DocumentResponse(
+                id=doc.id,
+                corpus_id=doc.corpus_id,
+                app_name=doc.app_name,
+                file_hash=doc.file_hash,
+                original_filename=doc.original_filename,
+                gcs_uri=doc.gcs_uri,
+                content_type=doc.content_type,
+                file_size=doc.file_size,
+                status=doc.status,
+                created_at=doc.created_at.isoformat() if doc.created_at else None,
+                created_by=doc.created_by,
+            )
+            for doc in docs
+        ],
+    )
+
+
+@router.get("/documents", response_model=DocumentListResponse)
+async def list_all_documents(
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> DocumentListResponse:
+    """列出所有已上传文档（跨语料库）
+
+    Args:
+        app_name: 应用名称
+        limit: 分页大小
+        offset: 偏移量
+
+    Returns:
+        DocumentListResponse: 文档列表
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    docs, total = await storage_service.list_documents(
+        corpus_id=None,
+        app_name=resolved_app,
+        limit=limit,
+        offset=offset,
+    )
+
+    return DocumentListResponse(
+        count=total,
+        items=[
+            DocumentResponse(
+                id=doc.id,
+                corpus_id=doc.corpus_id,
+                app_name=doc.app_name,
+                file_hash=doc.file_hash,
+                original_filename=doc.original_filename,
+                gcs_uri=doc.gcs_uri,
+                content_type=doc.content_type,
+                file_size=doc.file_size,
+                status=doc.status,
+                created_at=doc.created_at.isoformat() if doc.created_at else None,
+            )
+            for doc in docs
+        ],
+    )
+
+
+@router.delete("/base/{corpus_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(
+    corpus_id: UUID,
+    document_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+    hard_delete: bool = Query(default=False),
+) -> None:
+    """删除文档
+
+    Args:
+        corpus_id: 知识库 ID
+        document_id: 文档 ID
+        app_name: 应用名称
+        hard_delete: 是否同时删除 GCS 中的原始文件（默认软删除）
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    deleted = await storage_service.delete_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        soft_delete=not hard_delete,
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+
+@router.get("/base/{corpus_id}/documents/{document_id}/download")
+async def download_document(
+    corpus_id: UUID,
+    document_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+):
+    """下载文档原始文件
+
+    Args:
+        corpus_id: 知识库 ID
+        document_id: 文档 ID
+        app_name: 应用名称
+
+    Returns:
+        StreamingResponse: 文件流（带 Content-Disposition 头）
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+    from negentropy.storage.gcs_client import StorageError
+
+    storage_service = DocumentStorageService()
+
+    # 获取文档记录
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    # 下载文件内容
+    try:
+        content = await storage_service.get_document_content(document_id)
+        if content is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document content not found"},
+            )
+    except StorageError as exc:
+        logger.error("document_download_failed", doc_id=str(document_id), error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "DOWNLOAD_FAILED", "message": "Failed to download document"},
+        ) from exc
+
+    # 编码文件名以支持中文
+    encoded_filename = urllib.parse.quote(doc.original_filename)
+
+    return StreamingResponse(
+        BytesIO(content),
+        media_type=doc.content_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
+        },
+    )
 
 
 @router.post("/base/{corpus_id}/replace_source")
@@ -681,14 +1150,115 @@ async def sync_source(corpus_id: UUID, payload: SyncSourceRequest) -> Dict[str, 
 
     try:
         service = _get_service()
+
+        # 获取 corpus 配置作为基础（Single Source of Truth）
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
+        chunking_config = _build_chunking_config(
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
+        )
         records = await service.sync_source(
             corpus_id=corpus_id,
             app_name=resolved_app,
             source_uri=source_uri,
+            chunking_config=chunking_config,
         )
 
         logger.info(
             "api_sync_source_completed",
+            corpus_id=str(corpus_id),
+            source_uri=source_uri,
+            record_count=len(records),
+        )
+
+        return {"count": len(records), "items": [r.id for r in records]}
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+    except ValidationError as exc:
+        logger.warning("pydantic_validation_error", errors=exc.errors())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
+        ) from exc
+
+
+@router.post("/base/{corpus_id}/rebuild_source")
+async def rebuild_source(corpus_id: UUID, payload: RebuildSourceRequest) -> Dict[str, Any]:
+    """Rebuild a GCS source with latest corpus configuration.
+
+    从 GCS 重新下载文件并执行完整的 Ingest 流程：
+    Download -> Extract -> Delete old chunks -> Chunking -> Embedding -> Persist
+
+    Args:
+        corpus_id: 知识库 ID
+        payload: 包含 source_uri（必须是有效的 GCS URI）
+
+    Returns:
+        Dict: {"count": 新 chunks 数量, "items": [chunk_ids]}
+
+    Raises:
+        400: source_uri 不是有效的 GCS URI
+        500: 内容获取或处理失败
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    source_uri = payload.source_uri
+
+    # 验证 source_uri 是有效的 GCS URI
+    if not source_uri or not source_uri.startswith("gs://"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_SOURCE_URI",
+                "message": "source_uri must be a valid GCS URI (gs://...) for rebuild operation",
+            },
+        )
+
+    logger.info(
+        "api_rebuild_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        source_uri=source_uri,
+    )
+
+    try:
+        service = _get_service()
+
+        # 获取 corpus 配置作为基础
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        # 构建配置：请求参数 > corpus 配置 > 默认值
+        chunk_size = payload.chunk_size or corpus_config.get("chunk_size")
+        overlap = payload.overlap or corpus_config.get("overlap")
+        preserve_newlines = payload.preserve_newlines
+        if preserve_newlines is None:
+            preserve_newlines = corpus_config.get("preserve_newlines")
+
+        chunking_config = _build_chunking_config(
+            chunk_size=chunk_size,
+            overlap=overlap,
+            preserve_newlines=preserve_newlines,
+        )
+        records = await service.rebuild_source(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            source_uri=source_uri,
+            chunking_config=chunking_config,
+        )
+
+        logger.info(
+            "api_rebuild_source_completed",
             corpus_id=str(corpus_id),
             source_uri=source_uri,
             record_count=len(records),
@@ -1248,6 +1818,23 @@ async def get_graph_build_history(
 # API 调用统计
 # ============================================================================
 
+# Endpoint ID 到 PostgreSQL 正则表达式的映射
+# 使用 ~ 操作符进行精确匹配，避免 LIKE 模式的模糊匹配问题
+# 正则表达式要点：
+# - ^ 锚定字符串开头
+# - $ 锚定字符串结尾
+# - [^/]+ 匹配非斜杠字符（如 UUID）
+# operation_name 格式: "{METHOD} {path}"，例如 "POST /knowledge/base/{uuid}/search"
+ENDPOINT_PATTERNS: dict[str, list[str]] = {
+    "search": [r"^POST /knowledge/base/[^/]+/search$"],
+    "ingest": [r"^POST /knowledge/base/[^/]+/ingest$"],  # 精确匹配，不会匹配 ingest_url
+    "ingest_url": [r"^POST /knowledge/base/[^/]+/ingest_url$"],
+    "replace_source": [r"^POST /knowledge/base/[^/]+/replace_source$"],
+    "list_knowledge": [r"^GET /knowledge/base/[^/]+/knowledge$"],
+    "create_corpus": [r"^POST /knowledge/base$"],  # 精确匹配（无 UUID）
+    "delete_corpus": [r"^DELETE /knowledge/base/[^/]+$"],  # 精确匹配 UUID
+}
+
 
 class ApiStatsResponse(BaseModel):
     """API 统计响应模型"""
@@ -1262,21 +1849,24 @@ class ApiStatsResponse(BaseModel):
 async def get_api_stats(
     app_name: Optional[str] = Query(default=None),
     period_hours: int = Query(default=24, ge=1, le=720, description="统计周期（小时）"),
+    endpoint: Optional[str] = Query(default=None, description="API endpoint ID (如 search, ingest)"),
 ) -> ApiStatsResponse:
     """获取 Knowledge API 调用统计
 
     从 traces 表聚合统计 Knowledge API 的调用情况。
+    支持按单个端点过滤，或返回所有 Knowledge API 的汇总统计。
 
     Args:
         app_name: 应用名称（可选）
         period_hours: 统计周期，默认 24 小时
+        endpoint: API 端点 ID（可选），如 "search"、"ingest" 等
 
     Returns:
         ApiStatsResponse: 包含总调用数、成功数、失败数和平均延迟
     """
     from datetime import datetime, timedelta
 
-    from sqlalchemy import and_, func as sql_func, select
+    from sqlalchemy import and_, func as sql_func, or_, select
 
     from negentropy.models.observability import Trace
 
@@ -1284,8 +1874,18 @@ async def get_api_stats(
     start_time = datetime.utcnow() - timedelta(hours=period_hours)
 
     async with AsyncSessionLocal() as db:
-        # 查询符合条件 traces 的统计
-        # 过滤条件: operation_name 以 /knowledge/ 开头，且在时间范围内
+        # 构建过滤条件
+        conditions = [Trace.start_time >= start_time]
+
+        if endpoint and endpoint in ENDPOINT_PATTERNS:
+            # 按单个端点过滤，使用 PostgreSQL 正则表达式 (~) 进行精确匹配
+            patterns = ENDPOINT_PATTERNS[endpoint]
+            or_conditions = [Trace.operation_name.op("~")(p) for p in patterns]
+            conditions.append(or_(*or_conditions))
+        else:
+            # 默认：所有 Knowledge API
+            conditions.append(Trace.operation_name.op("~")(r"/knowledge/"))
+
         stmt = (
             select(
                 sql_func.count().label("total_calls"),
@@ -1293,12 +1893,7 @@ async def get_api_stats(
                 sql_func.count().filter(Trace.status_code != "OK").label("failed_count"),
                 sql_func.avg(Trace.duration_ns).label("avg_duration_ns"),
             )
-            .where(
-                and_(
-                    Trace.operation_name.like("/knowledge/%"),
-                    Trace.start_time >= start_time,
-                )
-            )
+            .where(and_(*conditions))
         )
 
         result = await db.execute(stmt)
@@ -1316,6 +1911,7 @@ async def get_api_stats(
             "API stats queried",
             app_name=resolved_app,
             period_hours=period_hours,
+            endpoint=endpoint,
             total_calls=total_calls,
             success_count=success_count,
             avg_latency_ms=avg_latency_ms,

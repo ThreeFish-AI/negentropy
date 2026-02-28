@@ -76,12 +76,18 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     runId: payload.runId || "default",
     timestamp,
     messageId: payload.id,
+    author: payload.author,
   };
 
   // 1. Text Messages
+  // 过滤掉包含工具调用（functionCall/functionResponse）的 part，
+  // 这些 part 的文本内容会通过 TOOL_CALL_* 事件单独处理，避免重复渲染
   let textParts: string[] = [];
   if (payload.content?.parts) {
-    textParts = payload.content.parts.map((p) => p.text || "").filter(Boolean);
+    textParts = payload.content.parts
+      .filter((p) => !p.functionResponse && !p.functionCall)
+      .map((p) => p.text || "")
+      .filter(Boolean);
   } else if (payload.message) {
     if (typeof payload.message.content === "string") {
       textParts = [payload.message.content];
@@ -213,7 +219,11 @@ export function adkEventsToMessages(events: AdkEventPayload[]): Message[] {
   return events.map((e) => {
     let content = "";
     if (e.content?.parts) {
-      content = e.content.parts.map((p) => p.text || "").join("");
+      // 过滤掉包含工具调用的 part，避免重复渲染
+      content = e.content.parts
+        .filter((p) => !p.functionResponse && !p.functionCall)
+        .map((p) => p.text || "")
+        .join("");
     } else if (e.message?.content) {
       if (typeof e.message.content === "string") {
         content = e.message.content;

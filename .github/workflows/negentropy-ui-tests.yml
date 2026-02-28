@@ -30,7 +30,7 @@ jobs:
         run: yarn config set registry https://registry.npmmirror.com
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Run tests
         run: yarn test

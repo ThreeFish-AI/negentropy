@@ -26,7 +26,11 @@ export default function KnowledgeApisPage() {
     let active = true;
     setStatsLoading(true);
 
-    fetch("/api/knowledge/stats")
+    // 传递当前选中的 endpoint ID 以获取该 API 的单独统计
+    const params = new URLSearchParams();
+    params.set("endpoint", selectedEndpoint.id);
+
+    fetch(`/api/knowledge/stats?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         if (active) {
@@ -34,13 +38,13 @@ export default function KnowledgeApisPage() {
         }
       })
       .catch(() => {
-        // 使用 Mock 数据
+        // 降级：显示全零数据
         if (active) {
           setStats({
-            total_calls: 1234,
-            success_count: 1198,
-            failed_count: 36,
-            avg_latency_ms: 156.5,
+            total_calls: 0,
+            success_count: 0,
+            failed_count: 0,
+            avg_latency_ms: 0,
           });
         }
       })
@@ -53,7 +57,7 @@ export default function KnowledgeApisPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedEndpoint]);  // 依赖 selectedEndpoint，切换时重新获取统计
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">

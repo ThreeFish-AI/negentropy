@@ -2,12 +2,57 @@
 Instrumentation and Observability Callbacks.
 """
 
-from typing import Any
+from typing import Any, Dict, Optional
 import json
 
 from negentropy.logging import get_logger
 from opentelemetry import trace
 from litellm.integrations.opentelemetry import OpenTelemetry
+
+
+def _normalize_model_name(model: str) -> str:
+    """Normalize model name for consistent Langfuse reporting.
+
+    Ensures GLM models always have the 'zai/' prefix for consistent naming.
+    """
+    if not model:
+        return model
+    # If already has vendor prefix, return as-is
+    if "/" in model:
+        return model
+    # Add zai prefix for GLM models
+    model_lower = model.lower()
+    if model_lower.startswith("glm"):
+        return f"zai/{model}"
+    return model
+
+
+def _calculate_custom_cost(kwargs: dict, response_obj: Any) -> Optional[float]:
+    """Calculate cost using custom pricing table.
+
+    Used as fallback when LiteLLM's built-in pricing doesn't recognize the model.
+    """
+    from negentropy.config import settings
+
+    pricing = settings.llm.model_pricing
+    if pricing is None:
+        return None
+
+    # Extract token usage
+    input_tokens = 0
+    output_tokens = 0
+    if hasattr(response_obj, "usage") and response_obj.usage is not None:
+        usage = response_obj.usage
+        input_tokens = getattr(usage, "prompt_tokens", 0) or 0
+        output_tokens = getattr(usage, "completion_tokens", 0) or 0
+
+    if input_tokens == 0 and output_tokens == 0:
+        return None
+
+    # Calculate cost (pricing is per 1M tokens)
+    input_cost = (input_tokens / 1_000_000) * pricing.get("input", 0)
+    output_cost = (output_tokens / 1_000_000) * pricing.get("output", 0)
+    return input_cost + output_cost
 
 
 class LiteLLMLoggingCallback:
@@ -107,7 +152,15 @@ class LiteLLMLoggingCallback:
             pass
 
 
-def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
+def _extract_total_cost(kwargs: dict, response_obj: Any) -> Optional[float]:
+    """Extract cost with fallback to custom pricing.
+
+    Priority:
+    1. LiteLLM's response_cost (already calculated)
+    2. LiteLLM's cost_breakdown from standard_logging_object
+    3. LiteLLM's completion_cost function
+    4. Custom pricing table (for models not in LiteLLM's pricing)
+    """
     cost = kwargs.get("response_cost")
     if cost is None:
         standard_logging = kwargs.get("standard_logging_object")
@@ -129,6 +182,10 @@ def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
         except Exception:
             cost = None
 
+    # Fallback to custom pricing if LiteLLM couldn't calculate cost
+    if cost is None and response_obj is not None:
+        cost = _calculate_custom_cost(kwargs, response_obj)
+
     try:
         return float(cost) if cost is not None else None
     except (TypeError, ValueError):
@@ -137,7 +194,9 @@ def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
 
 def patch_litellm_otel_cost() -> None:
     """
-    Monkey-patch LiteLLM OpenTelemetry set_attributes to inject cost without replacing the 'otel' callback.
+    Monkey-patch LiteLLM OpenTelemetry set_attributes to:
+    1. Normalize model name for consistent Langfuse reporting
+    2. Inject cost without replacing the 'otel' callback
     """
     if getattr(OpenTelemetry.set_attributes, "_ne_cost_patched", False):
         return
@@ -147,6 +206,13 @@ def patch_litellm_otel_cost() -> None:
     def _patched_set_attributes(self, span, kwargs, response_obj):
         original(self, span, kwargs, response_obj)
         try:
+            # Normalize model name for consistent Langfuse reporting
+            model = kwargs.get("model", "unknown")
+            normalized_model = _normalize_model_name(model)
+            if normalized_model != model:
+                self.safe_set_attribute(span, "gen_ai.request.model", normalized_model)
+
+            # Extract and inject cost
             cost = _extract_total_cost(kwargs, response_obj)
             if cost is not None:
                 self.safe_set_attribute(span, "gen_ai.usage.cost", cost)

@@ -23,7 +23,8 @@ if TYPE_CHECKING:
 
 # Initialize OpenTelemetry tracing manager (lazy initialization of OTel)
 # This creates the singleton instance but does not touch global OTel state yet.
-init_tracing()
+# enable_postgres=True enables PostgresSpanExporter to write spans to traces table
+init_tracing(enable_postgres=True)
 
 
 # 模块级单例缓存

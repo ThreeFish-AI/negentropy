@@ -37,6 +37,7 @@ dependencies = [
     "orjson>=3.11.6",               # Fast JSON serialization
     "beautifulsoup4>=4.12.3",       # HTML parsing
     "pypdf>=4.0.1",                 # PDF parsing
+    "pdfplumber>=0.11.0",           # PDF table extraction
 ]
 
 [dependency-groups]
@@ -51,7 +52,7 @@ dev = [
 # Set line length to 120 chars to accommodate modern display widths
 line-length = 120
 # Target Python 3.13+ features
-target-version = "py314"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = [

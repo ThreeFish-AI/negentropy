@@ -432,6 +432,183 @@ export async function ingestUrl(
   return handleKnowledgeError(res);
 }
 
+export async function ingestFile(
+  id: string,
+  params: {
+    app_name?: string;
+    file: File;
+    source_uri?: string;
+    metadata?: Record<string, unknown>;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  },
+): Promise<IngestResult> {
+  const formData = new FormData();
+
+  if (params.app_name) formData.set("app_name", params.app_name);
+  formData.set("file", params.file);
+  if (params.source_uri) formData.set("source_uri", params.source_uri);
+  if (params.metadata) formData.set("metadata", JSON.stringify(params.metadata));
+  if (params.chunk_size) formData.set("chunk_size", String(params.chunk_size));
+  if (params.overlap) formData.set("overlap", String(params.overlap));
+  if (params.preserve_newlines !== undefined) {
+    formData.set("preserve_newlines", String(params.preserve_newlines));
+  }
+
+  const res = await fetch(`/api/knowledge/base/${id}/ingest_file`, {
+    method: "POST",
+    body: formData, // 不设置 Content-Type，让浏览器自动处理 multipart/form-data
+  });
+  return handleKnowledgeError(res);
+}
+
+// ============================================================================
+// Document Management Types
+// ============================================================================
+
+export interface KnowledgeDocument {
+  id: string;
+  corpus_id: string;
+  app_name: string;
+  file_hash: string;
+  original_filename: string;
+  gcs_uri: string;
+  content_type: string | null;
+  file_size: number;
+  status: string;
+  created_at: string | null;
+  created_by: string | null;
+}
+
+export interface DocumentListResponse {
+  count: number;
+  items: KnowledgeDocument[];
+}
+
+// ============================================================================
+// Document Management API Functions
+// ============================================================================
+
+export async function fetchDocuments(
+  corpusId: string,
+  params?: {
+    appName?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<DocumentListResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function fetchAllDocuments(
+  params?: {
+    appName?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<DocumentListResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+
+  const res = await fetch(
+    `/api/knowledge/documents?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function deleteDocument(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+    hardDelete?: boolean;
+  },
+): Promise<void> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.hardDelete) query.set("hard_delete", "true");
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to delete document: ${res.statusText}`);
+  }
+}
+
+export async function downloadDocument(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+  },
+): Promise<void> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/download?${query.toString()}`,
+  );
+
+  if (!res.ok) {
+    let errorMessage = `Failed to download document: ${res.statusText}`;
+    try {
+      const errorData = await res.json();
+      if (errorData?.detail?.message) {
+        errorMessage = errorData.detail.message;
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+
+  // 获取文件名
+  const contentDisposition = res.headers.get("Content-Disposition");
+  let filename = "document";
+  if (contentDisposition) {
+    // Try UTF-8 encoded filename first
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''(.+?)(?:;|$)/);
+    if (utf8Match) {
+      filename = decodeURIComponent(utf8Match[1]);
+    } else {
+      // Fallback to standard filename
+      const standardMatch = contentDisposition.match(/filename="?(.+?)"?(?:;|$)/);
+      if (standardMatch) {
+        filename = standardMatch[1];
+      }
+    }
+  }
+
+  // 下载并触发浏览器保存
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  try {
+    a.click();
+  } finally {
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+}
+
 export async function replaceSource(
   id: string,
   params: {
@@ -460,9 +637,30 @@ export async function syncSource(
   params: {
     app_name?: string;
     source_uri: string;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
   },
 ): Promise<IngestResult> {
   const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+export async function rebuildSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  },
+): Promise<IngestResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/rebuild_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),

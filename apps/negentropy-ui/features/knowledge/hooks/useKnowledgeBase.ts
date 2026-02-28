@@ -25,8 +25,10 @@ import {
   deleteCorpus,
   ingestText,
   ingestUrl,
+  ingestFile as ingestFileApi,
   replaceSource,
   syncSource as syncSourceApi,
+  rebuildSource as rebuildSourceApi,
   searchKnowledge,
   KnowledgeError,
 } from "../utils/knowledge-api";
@@ -97,6 +99,13 @@ export interface UseKnowledgeBaseReturnValue {
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<IngestResult>;
+  /** 摄取文件 */
+  ingestFile: (params: {
+    file: File;
+    source_uri?: string;
+    metadata?: Record<string, unknown>;
+    chunkingConfig?: ChunkingConfig;
+  }) => Promise<IngestResult>;
   /** 替换源文本 */
   replaceSource: (params: {
     text: string;
@@ -105,7 +114,9 @@ export interface UseKnowledgeBaseReturnValue {
     chunkingConfig?: ChunkingConfig;
   }) => Promise<IngestResult>;
   /** 同步 URL 源（重新拉取并摄入） */
-  syncSource: (params: { source_uri: string }) => Promise<IngestResult>;
+  syncSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
+  /** 重建 GCS 源（重新下载并摄入） */
+  rebuildSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
   /** 搜索知识库 */
   search: (query: string, config?: SearchConfig) => Promise<SearchResults>;
 }
@@ -337,6 +348,42 @@ export function useKnowledgeBase(
     [corpus?.id, appName, onError, onIngestSuccess],
   );
 
+  // 摄取文件
+  const ingestFileHandler = useCallback(
+    async (params: {
+      file: File;
+      source_uri?: string;
+      metadata?: Record<string, unknown>;
+      chunkingConfig?: ChunkingConfig;
+    }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await ingestFileApi(corpus.id, {
+          app_name: appName,
+          file: params.file,
+          source_uri: params.source_uri,
+          metadata: params.metadata,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+        });
+        setState({ isLoading: false, error: null });
+        onIngestSuccess?.(result);
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError, onIngestSuccess],
+  );
+
   // 替换源文本
   const replaceSourceHandler = useCallback(
     async (params: {
@@ -374,7 +421,7 @@ export function useKnowledgeBase(
 
   // 同步 URL 源
   const syncSourceHandler = useCallback(
-    async (params: { source_uri: string }) => {
+    async (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => {
       if (!corpus?.id) {
         throw new Error("No corpus selected");
       }
@@ -384,6 +431,38 @@ export function useKnowledgeBase(
         const result = await syncSourceApi(corpus.id, {
           app_name: appName,
           source_uri: params.source_uri,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+        });
+        setState({ isLoading: false, error: null });
+        onIngestSuccess?.(result);
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError, onIngestSuccess],
+  );
+
+  // 重建 GCS 源
+  const rebuildSourceHandler = useCallback(
+    async (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await rebuildSourceApi(corpus.id, {
+          app_name: appName,
+          source_uri: params.source_uri,
+          chunk_size: params.chunkingConfig?.chunk_size,
+          overlap: params.chunkingConfig?.overlap,
+          preserve_newlines: params.chunkingConfig?.preserve_newlines,
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -448,8 +527,10 @@ export function useKnowledgeBase(
     deleteCorpus: deleteCorpusHandler,
     ingestText: ingestTextHandler,
     ingestUrl: ingestUrlHandler,
+    ingestFile: ingestFileHandler,
     replaceSource: replaceSourceHandler,
     syncSource: syncSourceHandler,
+    rebuildSource: rebuildSourceHandler,
     search: searchHandler,
   };
 }

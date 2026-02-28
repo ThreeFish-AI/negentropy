@@ -215,6 +215,10 @@ class KnowledgeService:
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
 
+    async def get_corpus_by_id(self, corpus_id: UUID) -> Optional[CorpusRecord]:
+        """获取指定 ID 的 Corpus"""
+        return await self._repository.get_corpus_by_id(corpus_id)
+
     async def update_corpus(self, corpus_id: UUID, spec: Dict[str, Any]) -> CorpusRecord:
         corpus = await self._repository.update_corpus(corpus_id, spec)
         if not corpus:
@@ -600,6 +604,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
+        chunking_config: Optional[ChunkingConfig] = None,
     ) -> list[KnowledgeRecord]:
         """Sync a URL source by re-fetching and re-ingesting content.
 
@@ -609,12 +614,13 @@ class KnowledgeService:
             corpus_id: 知识库 ID
             app_name: 应用名称
             source_uri: 原始 URL（必须是 HTTP/HTTPS URL）
+            chunking_config: 可选的分块配置，未提供时使用默认配置
 
         Returns:
             list[KnowledgeRecord]: 新创建的知识记录列表
         """
         tracker = None
-        config = self._chunking_config
+        config = chunking_config or self._chunking_config
 
         # 初始化 Pipeline 追踪器
         if self._pipeline_dao:
@@ -732,6 +738,223 @@ class KnowledgeService:
 
             logger.info(
                 "sync_source_completed",
+                corpus_id=str(corpus_id),
+                source_uri=source_uri,
+                deleted_count=deleted_count,
+                new_chunk_count=len(records),
+                run_id=tracker.run_id if tracker else None,
+            )
+
+            return records
+
+        except Exception as exc:
+            if tracker and tracker.current_stage:
+                await tracker.fail_stage(
+                    tracker.current_stage,
+                    {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                )
+            raise
+
+    async def rebuild_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        chunking_config: Optional[ChunkingConfig] = None,
+    ) -> list[KnowledgeRecord]:
+        """Rebuild a GCS source by re-downloading and re-ingesting content.
+
+        完整流程: Download from GCS -> Extract Text -> Delete old chunks -> Chunking -> Embedding -> Persist
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: GCS URI（必须是 gs://... 格式）
+            chunking_config: 可选的分块配置，未提供时使用默认配置
+
+        Returns:
+            list[KnowledgeRecord]: 新创建的知识记录列表
+
+        Raises:
+            ValueError: source_uri 不是有效的 GCS URI
+            KnowledgeError: 处理失败
+        """
+        tracker = None
+        config = chunking_config or self._chunking_config
+
+        # 验证 GCS URI
+        if not source_uri.startswith("gs://"):
+            raise ValueError(f"Invalid GCS URI: {source_uri}. Must start with gs://")
+
+        # 初始化 Pipeline 追踪器
+        if self._pipeline_dao:
+            tracker = PipelineTracker(
+                dao=self._pipeline_dao,
+                app_name=app_name,
+                operation="rebuild_source",
+            )
+            await tracker.start(
+                {
+                    "corpus_id": str(corpus_id),
+                    "source_uri": source_uri,
+                    "chunk_size": config.chunk_size,
+                    "overlap": config.overlap,
+                }
+            )
+
+        logger.info(
+            "rebuild_source_started",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            source_uri=source_uri,
+            run_id=tracker.run_id if tracker else None,
+        )
+
+        try:
+            # 阶段 1: Download - 从 GCS 下载文件
+            if tracker:
+                await tracker.start_stage("download")
+
+            try:
+                from negentropy.storage.service import DocumentStorageService
+                from negentropy.storage.gcs_client import StorageError
+
+                storage_service = DocumentStorageService()
+                content = await storage_service.get_document_content_by_uri(source_uri)
+
+                if content is None:
+                    raise ValueError(f"Document not found in GCS: {source_uri}")
+            except StorageError as exc:
+                from .exceptions import KnowledgeError
+
+                if tracker:
+                    await tracker.fail_stage(
+                        "download",
+                        {
+                            "type": "GCS_DOWNLOAD_FAILED",
+                            "message": str(exc),
+                        },
+                    )
+                raise KnowledgeError(
+                    code="GCS_DOWNLOAD_FAILED",
+                    message=f"Failed to download content from GCS: {exc}",
+                ) from exc
+
+            if tracker:
+                await tracker.complete_stage(
+                    "download",
+                    {
+                        "content_length": len(content) if content else 0,
+                        "source_uri": source_uri,
+                    },
+                )
+
+            # 阶段 1.5: Extract - 提取文本内容
+            if tracker:
+                await tracker.start_stage("extract")
+
+            try:
+                from .content import extract_file_content
+
+                # 从 GCS URI 提取文件名
+                filename = source_uri.split("/")[-1]
+                content_type = _guess_content_type(filename)
+
+                text = await extract_file_content(
+                    content=content,
+                    filename=filename,
+                    content_type=content_type,
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+
+                if tracker:
+                    await tracker.fail_stage(
+                        "extract",
+                        {
+                            "type": "CONTENT_EXTRACTION_FAILED",
+                            "message": str(exc),
+                        },
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_EXTRACTION_FAILED",
+                    message=f"Failed to extract content: {exc}",
+                ) from exc
+
+            if tracker:
+                await tracker.complete_stage(
+                    "extract",
+                    {
+                        "text_length": len(text) if text else 0,
+                        "source_uri": source_uri,
+                    },
+                )
+
+            if not text:
+                if tracker:
+                    await tracker.fail_stage(
+                        "extract",
+                        {
+                            "type": "NO_CONTENT",
+                            "message": "No text content extracted from file",
+                        },
+                    )
+                raise ValueError("No text content extracted from file")
+
+            # 阶段 2: Delete - 删除该 source_uri 下的旧记录
+            if tracker:
+                await tracker.start_stage("delete")
+
+            deleted_count = await self._repository.delete_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+            )
+
+            if tracker:
+                await tracker.complete_stage(
+                    "delete",
+                    {
+                        "deleted_count": deleted_count,
+                    },
+                )
+
+            logger.info(
+                "rebuild_source_old_records_deleted",
+                corpus_id=str(corpus_id),
+                source_uri=source_uri,
+                deleted_count=deleted_count,
+            )
+
+            # 准备 metadata
+            metadata = {"gcs_uri": source_uri, "rebuild": True}
+
+            # 后续阶段复用 _ingest_text_with_tracker
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=config,
+                tracker=tracker,
+            )
+
+            # 完成 Pipeline
+            if tracker:
+                await tracker.complete(
+                    {
+                        "deleted_count": deleted_count,
+                        "chunk_count": len(records),
+                    }
+                )
+
+            logger.info(
+                "rebuild_source_completed",
                 corpus_id=str(corpus_id),
                 source_uri=source_uri,
                 deleted_count=deleted_count,
@@ -1036,3 +1259,22 @@ class KnowledgeService:
             keyword_weight=keyword_weight,
             limit=limit,
         )
+
+
+def _guess_content_type(filename: str) -> Optional[str]:
+    """根据文件扩展名猜测内容类型
+
+    Args:
+        filename: 文件名
+
+    Returns:
+        MIME 类型字符串，如果无法猜测则返回 None
+    """
+    ext = filename.lower().split(".")[-1] if "." in filename else ""
+    content_types = {
+        "pdf": "application/pdf",
+        "txt": "text/plain",
+        "md": "text/markdown",
+        "markdown": "text/markdown",
+    }
+    return content_types.get(ext)

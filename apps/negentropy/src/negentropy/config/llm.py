@@ -111,6 +111,20 @@ class LlmSettings(BaseSettings):
         return f"{self.vendor.value}/{self.model_name}"
 
     @property
+    def model_pricing(self) -> Optional[Dict[str, float]]:
+        """Returns pricing for the current model, if known.
+
+        Returns pricing dict with 'input' and 'output' keys (USD per 1M tokens),
+        or None if the model is not in the pricing table.
+
+        Pricing data is loaded from config/pricing/glm_pricing.json.
+        Reference: https://open.bigmodel.cn/pricing
+        """
+        from negentropy.config.pricing import get_model_pricing_usd
+
+        return get_model_pricing_usd(self.model_name)
+
+    @property
     def embedding_full_model_name(self) -> str:
         env_model = os.getenv("NE_LLM_EMBEDDING_MODEL")
         model_name = self.embedding_model_name or env_model or self.model_name

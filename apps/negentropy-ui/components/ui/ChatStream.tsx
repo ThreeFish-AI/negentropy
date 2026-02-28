@@ -1,7 +1,22 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
-import type { Message } from "@ag-ui/core";
 import type { ChatMessage } from "@/types/common";
+
+/**
+ * 轮次分隔组件
+ * 当 runId 变化时显示视觉分隔
+ */
+function RunDivider() {
+  return (
+    <div className="flex items-center gap-2 my-4 opacity-40">
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+        新一轮
+      </span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
 
 type ChatStreamProps = {
   messages: ChatMessage[];
@@ -83,14 +98,25 @@ export function ChatStream({
             发送指令开始对话。事件流将实时展示在右侧。
           </div>
         ) : (
-          messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isSelected={message.id === selectedMessageId}
-              onSelect={onMessageSelect}
-            />
-          ))
+          messages.map((message, index) => {
+            const prevMessage = messages[index - 1];
+            // 当 runId 变化时显示分隔（只对 assistant 消息显示分隔）
+            const showDivider =
+              prevMessage?.runId &&
+              message.runId !== prevMessage.runId &&
+              message.role === "assistant";
+
+            return (
+              <div key={message.id}>
+                {showDivider && <RunDivider />}
+                <MessageBubble
+                  message={message}
+                  isSelected={message.id === selectedMessageId}
+                  onSelect={onMessageSelect}
+                />
+              </div>
+            );
+          })
         )}
       </div>
     </div>

@@ -14,32 +14,33 @@ Perception Faculty Tools - 感知系部专用工具
 
 from __future__ import annotations
 
+import asyncio
 import inspect
-import json
-import urllib.parse
-import urllib.request
+from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
+import httpx
 from google.adk.tools import ToolContext
 from sqlalchemy import select
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
+from negentropy.config.search import SearchSettings
 from negentropy.knowledge.constants import (
     DEFAULT_KEYWORD_WEIGHT,
-    DEFAULT_SEARCH_LIMIT,
     DEFAULT_SEMANTIC_WEIGHT,
 )
 from negentropy.knowledge.embedding import build_batch_embedding_fn, build_embedding_fn
 from negentropy.knowledge.service import KnowledgeService
 from negentropy.knowledge.types import SearchConfig
 from negentropy.logging import get_logger
-from negentropy.models.perception import Corpus, Knowledge
+from negentropy.models.perception import Corpus
 
 logger = get_logger("negentropy.tools.perception")
 
 _MAX_SNIPPET_CHARS = 500
 _MAX_RESULTS_LIMIT = 20
+_GOOGLE_SEARCH_URL = "https://www.googleapis.com/customsearch/v1"
 
 # 全局 KnowledgeService 单例，避免重复初始化
 _knowledge_service: KnowledgeService | None = None
@@ -57,6 +58,89 @@ def _get_knowledge_service() -> KnowledgeService:
             batch_embedding_fn=build_batch_embedding_fn(),
         )
     return _knowledge_service
+
+
+async def _call_with_retry(
+    coro_factory: Callable[[], Awaitable[Any]],
+    *,
+    max_retries: int,
+    base_backoff: float,
+    timeout: float,
+    context: str = "",
+) -> Any:
+    """带指数退避重试的异步调用
+
+    参考 embedding.py 的重试模式，实现网络请求的弹性处理。
+
+    Args:
+        coro_factory: 返回协程的工厂函数（每次重试创建新协程）
+        max_retries: 最大重试次数
+        base_backoff: 基础退避秒数
+        timeout: 单次调用超时秒数
+        context: 上下文描述（用于日志）
+
+    Returns:
+        协程返回值
+
+    Raises:
+        最后一次重试的异常
+    """
+    last_exc = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            return await asyncio.wait_for(coro_factory(), timeout=timeout)
+        except TimeoutError:
+            last_exc = TimeoutError(f"Search API timed out after {timeout}s")
+            logger.warning(
+                "search_timeout",
+                attempt=attempt,
+                max_retries=max_retries,
+                timeout=timeout,
+                context=context,
+            )
+        except httpx.HTTPStatusError as exc:
+            # 4xx 错误（配置错误）不重试
+            if exc.response.status_code < 500:
+                last_exc = exc
+                logger.error(
+                    "search_http_error",
+                    status_code=exc.response.status_code,
+                    context=context,
+                )
+                raise
+            # 5xx 错误重试
+            last_exc = exc
+            logger.warning(
+                "search_http_error_retry",
+                attempt=attempt,
+                max_retries=max_retries,
+                status_code=exc.response.status_code,
+                context=context,
+            )
+        except (httpx.NetworkError, httpx.RemoteProtocolError) as exc:
+            last_exc = exc
+            logger.warning(
+                "search_network_error",
+                attempt=attempt,
+                max_retries=max_retries,
+                error=str(exc),
+                context=context,
+            )
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(
+                "search_retry",
+                attempt=attempt,
+                max_retries=max_retries,
+                error=str(exc),
+                context=context,
+            )
+
+        if attempt < max_retries:
+            backoff = base_backoff * (2 ** (attempt - 1))
+            await asyncio.sleep(backoff)
+
+    raise last_exc
 
 
 async def search_knowledge_base(
@@ -242,52 +326,196 @@ async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolC
     }
 
 
-def search_web(query: str, max_results: int, tool_context: ToolContext) -> dict[str, Any]:
+async def search_web(
+    query: str,
+    max_results: int,
+    tool_context: ToolContext,
+) -> dict[str, Any]:
     """执行 Web 搜索获取实时信息。
+
+    使用 Google Custom Search API，内置重试机制。
 
     Args:
         query: 搜索查询
         max_results: 最大结果数
+        tool_context: 工具上下文（ADK 自动注入）
 
     Returns:
-        搜索结果
+        搜索结果字典，包含:
+        - status: "success" | "failed"
+        - query: 原始查询
+        - count: 结果数量
+        - results: 搜索结果列表
+        - source: 搜索提供商标识
     """
     if max_results <= 0:
         return {"status": "failed", "error": "max_results must be positive"}
 
     limit = min(max_results, _MAX_RESULTS_LIMIT)
-    url = "https://api.duckduckgo.com/?" + urllib.parse.urlencode(
-        {
-            "q": query,
-            "format": "json",
-            "no_html": 1,
-            "no_redirect": 1,
-        }
-    )
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Negentropy/0.1"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
+    search_config = settings.search
 
-        results = []
-        related = payload.get("RelatedTopics", []) or []
-        for item in related:
-            if "Text" in item and "FirstURL" in item:
-                results.append({"title": item["Text"], "url": item["FirstURL"]})
-            elif "Topics" in item:
-                for sub in item["Topics"]:
-                    if "Text" in sub and "FirstURL" in sub:
-                        results.append({"title": sub["Text"], "url": sub["FirstURL"]})
-            if len(results) >= limit:
-                break
+    logger.info(
+        "web_search_started",
+        query=query[:100],
+        provider=search_config.provider.value,
+        limit=limit,
+    )
+
+    # 检查配置
+    if not search_config.is_google_configured():
+        logger.error("google_search_not_configured")
+        return {
+            "status": "failed",
+            "error": (
+                "Google Search API not configured. "
+                "Please set NE_SEARCH_GOOGLE_API_KEY and NE_SEARCH_GOOGLE_CX_ID."
+            ),
+        }
+
+    try:
+        results = await _search_google(
+            query=query,
+            limit=limit,
+            config=search_config,
+        )
+
+        logger.info(
+            "web_search_completed",
+            query=query[:100],
+            result_count=len(results),
+            provider=search_config.provider.value,
+        )
 
         return {
             "status": "success",
             "query": query,
             "count": len(results),
             "results": results[:limit],
-            "source": "duckduckgo_instant_answer",
+            "source": "google_custom_search",
         }
+
     except Exception as exc:
-        logger.error("web search failed", exc_info=exc)
-        return {"status": "failed", "error": str(exc)}
+        logger.error("web_search_failed", query=query[:100], exc_info=exc)
+        return {
+            "status": "failed",
+            "error": str(exc),
+        }
+
+
+async def _search_google(
+    query: str,
+    limit: int,
+    config: SearchSettings,
+) -> list[dict[str, Any]]:
+    """使用 Google Custom Search API 搜索。
+
+    Args:
+        query: 搜索查询
+        limit: 最大结果数
+        config: 搜索配置
+
+    Returns:
+        搜索结果列表
+    """
+    async def _do_search():
+        api_key = config.google_api_key.get_secret_value()
+        params = {
+            "key": api_key,
+            "cx": config.google_cx_id,
+            "q": query,
+            "num": min(limit, 10),  # Google API 单次最多返回 10 条
+        }
+
+        async with httpx.AsyncClient(timeout=config.timeout_seconds) as client:
+            response = await client.get(_GOOGLE_SEARCH_URL, params=params)
+            response.raise_for_status()
+            return response.json()
+
+    # 使用重试机制
+    data = await _call_with_retry(
+        _do_search,
+        max_retries=config.max_retries,
+        base_backoff=config.base_backoff_seconds,
+        timeout=config.timeout_seconds,
+        context=f"google_search({query[:50]})",
+    )
+
+    # 解析结果
+    results = []
+    for item in data.get("items", []):
+        results.append({
+            "title": item.get("title", ""),
+            "url": item.get("link", ""),
+            "snippet": item.get("snippet", ""),
+        })
+
+    # 如果需要更多结果，处理分页
+    if limit > 10 and len(results) >= 10:
+        next_page = data.get("queries", {}).get("nextPage")
+        if next_page:
+            start_index = next_page[0].get("startIndex", 11)
+            remaining = limit - len(results)
+            if remaining > 0:
+                try:
+                    page_results = await _search_google_page(
+                        query=query,
+                        limit=remaining,
+                        config=config,
+                        start_index=start_index,
+                    )
+                    results.extend(page_results)
+                except Exception as exc:
+                    logger.warning("google_search_page_failed", error=str(exc))
+
+    return results[:limit]
+
+
+async def _search_google_page(
+    query: str,
+    limit: int,
+    config: SearchSettings,
+    start_index: int,
+) -> list[dict[str, Any]]:
+    """获取 Google Custom Search API 的下一页结果。
+
+    Args:
+        query: 搜索查询
+        limit: 最大结果数
+        config: 搜索配置
+        start_index: 起始索引
+
+    Returns:
+        搜索结果列表
+    """
+    async def _do_search():
+        api_key = config.google_api_key.get_secret_value()
+        params = {
+            "key": api_key,
+            "cx": config.google_cx_id,
+            "q": query,
+            "num": min(limit, 10),
+            "start": start_index,
+        }
+
+        async with httpx.AsyncClient(timeout=config.timeout_seconds) as client:
+            response = await client.get(_GOOGLE_SEARCH_URL, params=params)
+            response.raise_for_status()
+            return response.json()
+
+    data = await _call_with_retry(
+        _do_search,
+        max_retries=config.max_retries,
+        base_backoff=config.base_backoff_seconds,
+        timeout=config.timeout_seconds,
+        context=f"google_search_page({query[:50]})",
+    )
+
+    results = []
+    for item in data.get("items", []):
+        results.append({
+            "title": item.get("title", ""),
+            "url": item.get("link", ""),
+            "snippet": item.get("snippet", ""),
+        })
+
+    return results[:limit]

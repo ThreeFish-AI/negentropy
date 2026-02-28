@@ -118,3 +118,53 @@ uv run alembic current
 ```bash
 uv run alembic history
 ```
+
+## 模型开发规范 (Model Development Guidelines)
+
+### 字段定义
+
+使用 SQLAlchemy 2.0 的 `Mapped[]` 类型注解风格：
+
+```python
+from sqlalchemy import String, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
+from negentropy.models.base import Base, UUIDMixin, TimestampMixin, fk
+
+class MyModel(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "my_model"
+
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    thread_id: Mapped[UUID] = mapped_column(fk("threads", ondelete="CASCADE"))
+
+    __table_args__ = (
+        UniqueConstraint("name", name="uq_my_model_name"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+```
+
+### 外键引用
+
+使用 `fk()` 辅助函数简化外键定义：
+
+```python
+# 推荐
+thread_id: Mapped[UUID] = mapped_column(fk("threads", ondelete="CASCADE"))
+
+# 避免
+thread_id: Mapped[UUID] = mapped_column(
+    ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE")
+)
+```
+
+### 可用 Mixin
+
+| Mixin | 提供字段 |
+|-------|---------|
+| `UUIDMixin` | `id: UUID` (主键) |
+| `TimestampMixin` | `created_at`, `updated_at` |
+
+### 自定义类型
+
+| 类型 | 用途 |
+|------|------|
+| `Vector(dim)` | pgvector 向量类型，如 `Vector(1536)` |

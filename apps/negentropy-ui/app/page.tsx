@@ -30,14 +30,15 @@ import {
 import { useSessionManager } from "@/hooks/useSessionManager";
 import { useEventProcessor } from "@/hooks/useEventProcessor";
 import { useUIState } from "@/hooks/useUIState";
-import { useConfirmationTool, type ConfirmationToolArgs } from "@/hooks/useConfirmationTool";
+import {
+  useConfirmationTool,
+  type ConfirmationToolArgs,
+} from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
 import { createSessionLabel, buildAgentUrl } from "@/utils/session";
 import {
   normalizeMessageContent,
-  mapMessagesToChat,
-  mergeAdjacentAssistant,
   buildChatMessagesFromEventsWithFallback,
   ensureUniqueMessageIds,
 } from "@/utils/message";
@@ -387,14 +388,18 @@ export function HomeBody({
         );
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(payload?.error?.message || "update_session_title_failed");
+          throw new Error(
+            payload?.error?.message || "update_session_title_failed",
+          );
         }
         await loadSessions();
       } catch (error) {
         if (previousLabel !== null) {
           setSessions((prev) =>
             prev.map((session) =>
-              session.id === id ? { ...session, label: previousLabel as string } : session,
+              session.id === id
+                ? { ...session, label: previousLabel as string }
+                : session,
             ),
           );
         }
@@ -568,31 +573,9 @@ export function HomeBody({
       content: inputValue.trim(),
       createdAt: new Date(timestamp * 1000),
     };
+    // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
+    // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
     setOptimisticMessages((prev) => [...prev, newMessage]);
-    setRawEvents((prev) => {
-      const optimisticEvents: BaseEvent[] = [
-        {
-          type: EventType.TEXT_MESSAGE_START,
-          messageId,
-          role: "user",
-          timestamp,
-        } as BaseEvent,
-        {
-          type: EventType.TEXT_MESSAGE_CONTENT,
-          messageId,
-          delta: newMessage.content,
-          timestamp,
-        } as BaseEvent,
-        {
-          type: EventType.TEXT_MESSAGE_END,
-          messageId,
-          timestamp,
-        } as BaseEvent,
-      ];
-      const next = [...prev, ...optimisticEvents];
-      // Increase buffer to prevent dropping messages
-      return next.slice(-10000);
-    });
     agent.addMessage(newMessage);
     setInputValue("");
     if (sessionId) {
@@ -600,8 +583,7 @@ export function HomeBody({
     }
     const shouldPollTitle =
       !!sessionId &&
-      (!activeSession ||
-        activeSession.label === createSessionLabel(sessionId));
+      (!activeSession || activeSession.label === createSessionLabel(sessionId));
     try {
       setConnectionWithMetrics("connecting");
       await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
@@ -711,8 +693,20 @@ export function HomeBody({
     return merged;
   }, [messagesForRenderBase, optimisticMessages]);
 
-  const mappedMessages = mapMessagesToChat(mergedMessagesForRender);
-  const chatMessages = ensureUniqueMessageIds(mappedMessages);
+  // 使用事件驱动构建聊天消息：
+  // - rawEvents 中按 messageId 拼接 delta（避免流式token逐词换行）
+  // - 从事件提取 runId（支持多轮次答复 \n\n 分隔）
+  // - mergedMessagesForRender 作为 fallback 补充非流窗口中的历史消息
+  const chatMessages = useMemo(
+    () =>
+      ensureUniqueMessageIds(
+        buildChatMessagesFromEventsWithFallback(
+          rawEvents,
+          mergedMessagesForRender,
+        ),
+      ),
+    [rawEvents, mergedMessagesForRender],
+  );
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
@@ -732,7 +726,7 @@ export function HomeBody({
     return logEntries.filter((entry) => entry.timestamp <= cutoffMs);
   }, [logEntries, selectedMessageId, messageTimestamps]);
 
-  const contentWidthClass = showRightPanel ? "max-w-4xl" : "max-w-none";
+  const contentWidthClass = "max-w-4xl";
 
   return (
     <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">
@@ -824,7 +818,9 @@ export function HomeBody({
               }}
               contentClassName={contentWidthClass}
             />
-            <div className={`p-6 pt-2 shrink-0 w-full mx-auto ${contentWidthClass}`}>
+            <div
+              className={`p-6 pt-2 shrink-0 w-full mx-auto ${contentWidthClass}`}
+            >
               <Composer
                 value={inputValue}
                 onChange={setInputValue}

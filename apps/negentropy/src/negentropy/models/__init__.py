@@ -1,5 +1,5 @@
 from .action import SandboxExecution, Tool, ToolExecution
-from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector
+from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
 from .internalization import ConsolidationJob, Fact, Instruction, Memory, MemoryAuditLog
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .observability import Trace
@@ -13,6 +13,7 @@ __all__ = [
     "NEGENTROPY_SCHEMA",
     "TimestampMixin",
     "Vector",
+    "fk",
     # Pulse
     "Thread",
     "Event",

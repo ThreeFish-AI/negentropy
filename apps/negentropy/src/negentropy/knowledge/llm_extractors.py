@@ -144,12 +144,8 @@ Output as JSON with the following structure:
         self._fallback_to_regex = fallback_to_regex
 
     def _get_default_model(self) -> str:
-        """获取默认 LLM 模型"""
-        # 尝试从 settings 获取，否则使用默认值
-        try:
-            return getattr(settings.llm, "chat_model", "gpt-4o-mini")
-        except AttributeError:
-            return "gpt-4o-mini"
+        """获取默认 LLM 模型（使用统一配置）"""
+        return settings.llm.full_model_name
 
     async def extract(
         self,
@@ -422,11 +418,8 @@ Output as JSON with the following structure:
         self._fallback_to_cooccurrence = fallback_to_cooccurrence
 
     def _get_default_model(self) -> str:
-        """获取默认 LLM 模型"""
-        try:
-            return getattr(settings.llm, "chat_model", "gpt-4o-mini")
-        except AttributeError:
-            return "gpt-4o-mini"
+        """获取默认 LLM 模型（使用统一配置）"""
+        return settings.llm.full_model_name
 
     async def extract(
         self,

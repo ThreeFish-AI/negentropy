@@ -9,6 +9,7 @@ interface SourceListProps {
   onAddSource?: () => void;
   onReplaceSource?: (uri: string) => void;
   onSyncSource?: (uri: string) => void;
+  onRebuildSource?: (uri: string) => void;
 }
 
 /**
@@ -19,6 +20,14 @@ function isUrlSource(uri: string): boolean {
   return uri.startsWith("http://") || uri.startsWith("https://");
 }
 
+/**
+ * 判断是否为 GCS 类型的 Source
+ * 只有 GCS 类型的 Source 才支持 Rebuild 操作
+ */
+function isGcsSource(uri: string): boolean {
+  return uri.startsWith("gs://");
+}
+
 export function SourceList({
   sourceStats,
   selectedUri,
@@ -26,6 +35,7 @@ export function SourceList({
   onAddSource,
   onReplaceSource,
   onSyncSource,
+  onRebuildSource,
 }: SourceListProps) {
   const totalCount = Array.from(sourceStats.values()).reduce((sum, c) => sum + c, 0);
 
@@ -72,8 +82,9 @@ export function SourceList({
       {sortedSources.map(({ uri, count }) => {
         const displayUri = uri || "(无来源)";
         const key = uri ?? "__no_source__";
-        const showMenu = uri && (onReplaceSource || onSyncSource);
+        const showMenu = uri && (onReplaceSource || onSyncSource || onRebuildSource);
         const isUrl = uri ? isUrlSource(uri) : false;
+        const isGcs = uri ? isGcsSource(uri) : false;
 
         return (
           <div key={key} className="flex min-w-0 items-center gap-1">
@@ -96,8 +107,10 @@ export function SourceList({
               <SourceMenu
                 uri={uri!}
                 isUrl={isUrl}
+                isGcs={isGcs}
                 onReplace={onReplaceSource}
                 onSync={onSyncSource}
+                onRebuild={onRebuildSource}
               />
             )}
           </div>
@@ -114,13 +127,17 @@ export function SourceList({
 function SourceMenu({
   uri,
   isUrl,
+  isGcs,
   onReplace,
   onSync,
+  onRebuild,
 }: {
   uri: string;
   isUrl: boolean;
+  isGcs: boolean;
   onReplace?: (uri: string) => void;
   onSync?: (uri: string) => void;
+  onRebuild?: (uri: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -132,6 +149,11 @@ function SourceMenu({
   const handleSync = () => {
     setIsOpen(false);
     onSync?.(uri);
+  };
+
+  const handleRebuild = () => {
+    setIsOpen(false);
+    onRebuild?.(uri);
   };
 
   return (
@@ -206,6 +228,27 @@ function SourceMenu({
                   />
                 </svg>
                 Sync
+              </button>
+            )}
+            {onRebuild && isGcs && (
+              <button
+                onClick={handleRebuild}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
+              >
+                <svg
+                  className="h-3 w-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+                Rebuild
               </button>
             )}
           </div>

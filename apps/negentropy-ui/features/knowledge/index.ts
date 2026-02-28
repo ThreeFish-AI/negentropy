@@ -45,6 +45,7 @@ export {
   deleteCorpus,
   ingestText,
   ingestUrl,
+  ingestFile,
   replaceSource,
   searchKnowledge,
   fetchGraph,
@@ -52,6 +53,11 @@ export {
   fetchPipelines,
   upsertPipelines,
   fetchKnowledgeItems,
+  // Document Management
+  fetchDocuments,
+  fetchAllDocuments,
+  deleteDocument,
+  downloadDocument,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,
@@ -87,6 +93,9 @@ export type {
   PipelineUpsertResult,
   KnowledgeItem,
   KnowledgeListResponse,
+  // Document Management
+  KnowledgeDocument,
+  DocumentListResponse,
   // Graph Enhanced Types (Phase 1)
   GraphSearchMode,
   GraphBuildParams,
@@ -137,3 +146,32 @@ export type {
   FormFieldConfig,
   InteractiveFormConfig,
 } from "./utils/api-specs";
+
+// ============================================================================
+// Components
+// ============================================================================
+
+export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
+export type { PipelineRunCardProps } from "./components/PipelineRunCard";
+
+// ============================================================================
+// Utils (Pipeline Helpers)
+// ============================================================================
+
+export {
+  // 常量
+  OPERATION_LABELS,
+  TRIGGER_LABELS,
+  STAGE_ORDER,
+  STAGE_LABELS,
+  STAGE_COLORS,
+  // 工具函数
+  getPipelineStatusColor,
+  getPipelineStatusTextColor,
+  formatRelativeTime,
+  truncateRunId,
+  getStageColor,
+  formatDuration,
+  calculateStageWidth,
+  getSortedStages,
+} from "./utils/pipeline-helpers";

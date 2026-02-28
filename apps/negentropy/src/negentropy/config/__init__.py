@@ -42,6 +42,7 @@ from .environment import EnvironmentSettings, get_env_files
 from .llm import LlmSettings
 from .logging import LoggingSettings
 from .observability import ObservabilitySettings
+from .search import SearchSettings
 from .services import ServicesSettings
 
 
@@ -105,6 +106,10 @@ class Settings(BaseSettings):
     @cached_property
     def auth(self) -> AuthSettings:
         return AuthSettings(_env_file=_get_env_files())
+
+    @cached_property
+    def search(self) -> SearchSettings:
+        return SearchSettings(_env_file=_get_env_files())
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -242,4 +247,5 @@ __all__ = [
     "DatabaseSettings",
     "ServicesSettings",
     "AuthSettings",
+    "SearchSettings",
 ]
