@@ -15,6 +15,7 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
 import negentropy.db.session as db_session
+from negentropy.config import settings
 from negentropy.models.action import Tool, ToolExecution
 
 
@@ -47,7 +48,7 @@ class FrontendTool:
 
 class ToolRegistry:
     def __init__(self, app_name: str | None = None):
-        self._app_name = app_name or "default_app"
+        self._app_name = app_name or settings.app_name
         self._function_registry: dict[str, Callable] = {}
         self._frontend_tools: dict[str, FrontendTool] = {}
 
