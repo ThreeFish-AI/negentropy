@@ -194,7 +194,7 @@ export default function DocumentsPage() {
                       <div className="col-span-4 flex items-center gap-2">
                         {getFileIcon(doc.content_type)}
                         <div className="min-w-0">
-                          <p className="font-medium text-foreground truncate">
+                          <p className="font-medium text-foreground truncate" title={doc.original_filename}>
                             {doc.original_filename}
                           </p>
                           <p className="text-xs text-muted truncate">
@@ -214,7 +214,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* 所属语料库 - col-span-3 */}
-                      <div className="col-span-3 text-muted truncate text-xs">
+                      <div className="col-span-3 text-muted truncate text-xs" title={getCorpusName(doc.corpus_id)}>
                         {getCorpusName(doc.corpus_id)}
                       </div>
 
