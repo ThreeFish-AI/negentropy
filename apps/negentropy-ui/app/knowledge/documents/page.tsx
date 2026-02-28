@@ -222,7 +222,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* Created By - col-span-1 */}
-                      <div className="col-span-1 text-muted truncate text-xs" title={doc.created_by || ""}>
+                      <div className="col-span-1 text-muted truncate text-xs text-center" title={doc.created_by || ""}>
                         {displayUser(doc.created_by)}
                       </div>
 
@@ -232,7 +232,7 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* 操作 - col-span-1 */}
-                      <div className="col-span-1 flex justify-end items-center gap-2">
+                      <div className="col-span-1 flex justify-center items-center gap-2">
                         {deleteConfirm === doc.id ? (
                           <div className="flex items-center gap-2">
                             <label className="flex items-center gap-1 text-xs text-muted">
