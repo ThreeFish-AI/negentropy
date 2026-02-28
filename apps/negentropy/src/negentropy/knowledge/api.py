@@ -112,6 +112,17 @@ class RebuildSourceRequest(BaseModel):
     preserve_newlines: Optional[bool] = None
 
 
+class DeleteSourceRequest(BaseModel):
+    app_name: Optional[str] = None
+    source_uri: str
+
+
+class ArchiveSourceRequest(BaseModel):
+    app_name: Optional[str] = None
+    source_uri: str
+    archived: bool = True
+
+
 class AsyncPipelineResponse(BaseModel):
     """异步 Pipeline 响应模型"""
 
@@ -1410,6 +1421,129 @@ async def rebuild_source(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
         ) from exc
+
+
+class DeleteSourceResponse(BaseModel):
+    """删除 Source 响应模型"""
+
+    deleted_count: int
+
+
+@router.post("/base/{corpus_id}/delete_source", response_model=DeleteSourceResponse)
+async def delete_source(
+    corpus_id: UUID,
+    payload: DeleteSourceRequest,
+) -> DeleteSourceResponse:
+    """删除指定 source_uri 的所有知识块
+
+    Args:
+        corpus_id: 知识库 ID
+        payload: 删除请求，包含 source_uri
+
+    Returns:
+        DeleteSourceResponse: 删除的记录数量
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    source_uri = payload.source_uri
+
+    if not source_uri:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_SOURCE_URI", "message": "source_uri is required"},
+        )
+
+    logger.info(
+        "api_delete_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        source_uri=source_uri,
+    )
+
+    try:
+        service = _get_service()
+        deleted_count = await service.delete_source(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            source_uri=source_uri,
+        )
+
+        logger.info(
+            "api_delete_source_completed",
+            corpus_id=str(corpus_id),
+            app_name=resolved_app,
+            source_uri=source_uri,
+            deleted_count=deleted_count,
+        )
+
+        return DeleteSourceResponse(deleted_count=deleted_count)
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+
+
+class ArchiveSourceResponse(BaseModel):
+    """归档/解档 Source 响应模型"""
+
+    updated_count: int
+    archived: bool
+
+
+@router.post("/base/{corpus_id}/archive_source", response_model=ArchiveSourceResponse)
+async def archive_source(
+    corpus_id: UUID,
+    payload: ArchiveSourceRequest,
+) -> ArchiveSourceResponse:
+    """归档或解档指定 source_uri
+
+    通过更新 Knowledge 记录的 metadata 中的 archived 字段实现归档/解档。
+    归档后的 Source 仍然存在，但在默认查询中会被排除。
+
+    Args:
+        corpus_id: 知识库 ID
+        payload: 归档请求，包含 source_uri 和 archived 状态
+
+    Returns:
+        ArchiveSourceResponse: 更新的记录数量
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    source_uri = payload.source_uri
+
+    if not source_uri:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_SOURCE_URI", "message": "source_uri is required"},
+        )
+
+    logger.info(
+        "api_archive_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        source_uri=source_uri,
+        archived=payload.archived,
+    )
+
+    try:
+        service = _get_service()
+        updated_count = await service.archive_source(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            source_uri=source_uri,
+            archived=payload.archived,
+        )
+
+        logger.info(
+            "api_archive_source_completed",
+            corpus_id=str(corpus_id),
+            app_name=resolved_app,
+            source_uri=source_uri,
+            archived=payload.archived,
+            updated_count=updated_count,
+        )
+
+        return ArchiveSourceResponse(updated_count=updated_count, archived=payload.archived)
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
 
 
 @router.post("/base/{corpus_id}/search")
