@@ -996,6 +996,94 @@ class KnowledgeService:
                 )
             raise
 
+    async def delete_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+    ) -> int:
+        """删除指定 source_uri 的所有知识块
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: 来源 URI
+
+        Returns:
+            删除的记录数量
+        """
+        logger.info(
+            "delete_source_started",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            source_uri=source_uri,
+        )
+
+        deleted_count = await self._repository.delete_knowledge_by_source(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=source_uri,
+        )
+
+        logger.info(
+            "delete_source_completed",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            source_uri=source_uri,
+            deleted_count=deleted_count,
+        )
+
+        return deleted_count
+
+    async def archive_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        archived: bool = True,
+    ) -> int:
+        """归档或解档指定 source_uri
+
+        通过更新 Knowledge 记录的 metadata 中的 archived 字段实现。
+        归档后的 Source 在默认查询中会被排除。
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: 来源 URI
+            archived: True 表示归档，False 表示解档
+
+        Returns:
+            更新的记录数量
+        """
+        logger.info(
+            "archive_source_started",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            source_uri=source_uri,
+            archived=archived,
+        )
+
+        updated_count = await self._repository.archive_knowledge_by_source(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=source_uri,
+            archived=archived,
+        )
+
+        logger.info(
+            "archive_source_completed",
+            corpus_id=str(corpus_id),
+            app_name=app_name,
+            source_uri=source_uri,
+            archived=archived,
+            updated_count=updated_count,
+        )
+
+        return updated_count
+
     async def ingest_url(
         self,
         *,

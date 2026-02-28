@@ -30,8 +30,12 @@ import {
   replaceSource,
   syncSource as syncSourceApi,
   rebuildSource as rebuildSourceApi,
+  deleteSource as deleteSourceApi,
+  archiveSource as archiveSourceApi,
   searchKnowledge,
   KnowledgeError,
+  DeleteSourceResult,
+  ArchiveSourceResult,
 } from "../utils/knowledge-api";
 
 // ============================================================================
@@ -118,6 +122,10 @@ export interface UseKnowledgeBaseReturnValue {
   syncSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
   /** 重建 GCS 源（异步，重新下载并摄入） */
   rebuildSource: (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
+  /** 删除源（删除指定 source_uri 的所有知识块） */
+  deleteSource: (params: { source_uri: string }) => Promise<DeleteSourceResult>;
+  /** 归档源（设置 metadata.archived = true） */
+  archiveSource: (params: { source_uri: string; archived?: boolean }) => Promise<ArchiveSourceResult>;
   /** 搜索知识库 */
   search: (query: string, config?: SearchConfig) => Promise<SearchResults>;
 }
@@ -509,6 +517,57 @@ export function useKnowledgeBase(
     [corpus?.id, appName, onError, onSearchSuccess],
   );
 
+  // 删除源
+  const deleteSourceHandler = useCallback(
+    async (params: { source_uri: string }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await deleteSourceApi(corpus.id, {
+          app_name: appName,
+          source_uri: params.source_uri,
+        });
+        setState({ isLoading: false, error: null });
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError],
+  );
+
+  // 归档/解档源
+  const archiveSourceHandler = useCallback(
+    async (params: { source_uri: string; archived?: boolean }) => {
+      if (!corpus?.id) {
+        throw new Error("No corpus selected");
+      }
+
+      setState({ isLoading: true, error: null });
+      try {
+        const result = await archiveSourceApi(corpus.id, {
+          app_name: appName,
+          source_uri: params.source_uri,
+          archived: params.archived ?? true,
+        });
+        setState({ isLoading: false, error: null });
+        return result;
+      } catch (error) {
+        const err = error as Error;
+        setState({ isLoading: false, error: err });
+        onError?.(err as KnowledgeError);
+        throw err;
+      }
+    },
+    [corpus?.id, appName, onError],
+  );
+
   // 初始化：如果有 corpusId，加载语料库
   useEffect(() => {
     if (initialCorpusId) {
@@ -532,6 +591,8 @@ export function useKnowledgeBase(
     replaceSource: replaceSourceHandler,
     syncSource: syncSourceHandler,
     rebuildSource: rebuildSourceHandler,
+    deleteSource: deleteSourceHandler,
+    archiveSource: archiveSourceHandler,
     search: searchHandler,
   };
 }

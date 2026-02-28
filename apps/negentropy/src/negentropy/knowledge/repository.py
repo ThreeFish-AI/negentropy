@@ -200,6 +200,55 @@ class KnowledgeRepository:
             await db.commit()
             return len(items)
 
+    async def archive_knowledge_by_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        archived: bool = True,
+    ) -> int:
+        """归档或解档指定 source_uri 的所有知识块
+
+        通过更新 metadata_ JSONB 字段中的 archived 标记实现。
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: 来源 URI
+            archived: True 表示归档，False 表示解档
+
+        Returns:
+            更新的记录数量
+        """
+        async with self._session_factory() as db:
+            # 使用 PostgreSQL 的 jsonb_set 函数更新 metadata
+            # 如果 archived=True，设置 metadata.archived = true
+            # 如果 archived=False，设置 metadata.archived = false
+            archive_value = "true" if archived else "false"
+            update_stmt = text("""
+                UPDATE {schema}.knowledge
+                SET metadata_ = jsonb_set(
+                    COALESCE(metadata_, '{{}}'::jsonb),
+                    '{{archived}}',
+                    '{value}'::jsonb
+                )
+                WHERE corpus_id = :corpus_id
+                  AND app_name = :app_name
+                  AND source_uri = :source_uri
+            """.format(schema=NEGENTROPY_SCHEMA, value=archive_value))
+
+            result = await db.execute(
+                update_stmt,
+                {
+                    "corpus_id": corpus_id,
+                    "app_name": app_name,
+                    "source_uri": source_uri,
+                },
+            )
+            await db.commit()
+            return result.rowcount
+
     async def list_knowledge(
         self,
         *,

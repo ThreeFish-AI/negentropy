@@ -672,6 +672,56 @@ export async function rebuildSource(
   return handleKnowledgeError(res);
 }
 
+// ============================================================================
+// Source Management API
+// ============================================================================
+
+export interface DeleteSourceResult {
+  deleted_count: number;
+}
+
+export interface ArchiveSourceResult {
+  updated_count: number;
+  archived: boolean;
+}
+
+/**
+ * 删除指定 source_uri 的所有知识块
+ */
+export async function deleteSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+  },
+): Promise<DeleteSourceResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/delete_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 归档或解档指定 source_uri
+ */
+export async function archiveSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+    archived?: boolean;
+  },
+): Promise<ArchiveSourceResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/archive_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
 export async function updateCorpus(
   id: string,
   params: {
