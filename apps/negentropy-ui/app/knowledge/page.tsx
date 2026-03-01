@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { fetchDashboard, KnowledgeDashboard, PipelineRunList } from "@/features/knowledge";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 export default function KnowledgeDashboardPage() {
   const [data, setData] = useState<KnowledgeDashboard | null>(null);

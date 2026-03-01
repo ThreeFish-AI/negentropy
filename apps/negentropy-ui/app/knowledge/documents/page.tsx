@@ -15,7 +15,7 @@ import {
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { DocumentViewDialog } from "./_components/DocumentViewDialog";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
 function formatFileSize(bytes: number): string {

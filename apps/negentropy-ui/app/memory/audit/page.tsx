@@ -9,7 +9,7 @@ import {
   fetchAuditHistory,
 } from "@/features/memory";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 type AuditAction = "retain" | "delete" | "anonymize";
 

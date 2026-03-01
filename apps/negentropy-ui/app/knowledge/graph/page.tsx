@@ -9,7 +9,7 @@ import {
   upsertGraph,
 } from "@/features/knowledge";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 type GraphNode = { id: string; label?: string; type?: string };
 type GraphEdge = { source: string; target: string; label?: string };
