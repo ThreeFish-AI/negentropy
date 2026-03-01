@@ -87,6 +87,45 @@ async def extract_file_content(
     return text
 
 
+async def extract_file_markdown(
+    content: bytes,
+    filename: str,
+    content_type: str | None = None,
+) -> str:
+    """提取并优化文件的 Markdown 内容。
+
+    该函数复用现有提取逻辑，并统一做 Markdown 规范化，
+    作为 Documents View 的正文来源。
+    """
+    extracted = await extract_file_content(
+        content=content,
+        filename=filename,
+        content_type=content_type,
+    )
+    return optimize_markdown_content(extracted)
+
+
+def optimize_markdown_content(markdown: str) -> str:
+    """对 Markdown 内容做轻量优化，提升可读性与稳定性。"""
+    # 统一换行符并裁剪每行右侧空白
+    normalized = markdown.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.rstrip() for line in normalized.split("\n")]
+
+    # 压缩多余空行，最多保留一个空白行（段间留白）
+    compact_lines: list[str] = []
+    blank_count = 0
+    for line in lines:
+        if not line.strip():
+            blank_count += 1
+            if blank_count <= 1:
+                compact_lines.append("")
+            continue
+        blank_count = 0
+        compact_lines.append(line)
+
+    return "\n".join(compact_lines).strip()
+
+
 def _extract_text_file(content: bytes) -> str:
     """提取文本文件内容
 
