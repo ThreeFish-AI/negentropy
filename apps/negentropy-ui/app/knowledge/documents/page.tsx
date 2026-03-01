@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   KnowledgeDocument,
@@ -24,7 +24,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getFileIcon(contentType: string | null): JSX.Element {
+function getFileIcon(contentType: string | null): React.ReactElement {
   if (contentType?.includes("pdf")) {
     return (
       <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -46,7 +46,7 @@ function getFileIcon(contentType: string | null): JSX.Element {
   );
 }
 
-function truncateHash(hash: string | null): JSX.Element {
+function truncateHash(hash: string | null): React.ReactElement {
   if (!hash) return <span className="text-muted">-</span>;
   const truncated = `${hash.slice(0, 8)}...${hash.slice(-4)}`;
   return (
@@ -230,7 +230,7 @@ export default function DocumentsPage() {
 
                       {/* Created At - col-span-1 */}
                       <div className="col-span-1 text-muted text-xs text-center">
-                        {formatRelativeTime(doc.created_at)}
+                        {formatRelativeTime(doc.created_at ?? undefined)}
                       </div>
 
                       {/* 操作 - col-span-1 */}
