@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from negentropy.knowledge.service import KnowledgeService
-from negentropy.knowledge.types import ChunkingConfig, SearchConfig
+from negentropy.knowledge.types import ChunkingConfig, CorpusSpec, SearchConfig
 
 
 class TestSearchPerformance:
@@ -153,8 +153,14 @@ class TestIngestionPerformance:
 
         service = KnowledgeService(embedding_fn=mock_embedding)
 
-        # 生成测试数据
-        corpus_id = uuid4()
+        # 先创建 corpus，避免触发 knowledge.corpus_id 外键约束
+        corpus = await service.ensure_corpus(
+            CorpusSpec(
+                app_name="test",
+                name=f"perf-ingest-{uuid4()}",
+            )
+        )
+        corpus_id = corpus.id
         chunk_count = 100
         text = "word " * 100  # 约 500 字符
 
