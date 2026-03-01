@@ -486,6 +486,14 @@ export interface KnowledgeDocument {
   status: string;
   created_at: string | null;
   created_by: string | null;
+  markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
+  markdown_extracted_at?: string | null;
+  markdown_extract_error?: string | null;
+}
+
+export interface KnowledgeDocumentDetail extends KnowledgeDocument {
+  markdown_content: string | null;
+  markdown_gcs_uri: string | null;
 }
 
 export interface DocumentListResponse {
@@ -555,6 +563,23 @@ export async function deleteDocument(
   if (!res.ok) {
     throw new Error(`Failed to delete document: ${res.statusText}`);
   }
+}
+
+export async function fetchDocumentDetail(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+  },
+): Promise<KnowledgeDocumentDetail> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
 }
 
 export async function downloadDocument(

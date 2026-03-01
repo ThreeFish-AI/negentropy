@@ -738,9 +738,62 @@ async def ingest_url(
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
+async def _extract_and_store_document_markdown(
+    *,
+    document_id: UUID,
+    content: bytes,
+    filename: str,
+    content_type: Optional[str],
+) -> None:
+    """后台提取并持久化文档 Markdown 正文。"""
+    from .content import extract_file_markdown
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    await storage_service.update_markdown_extraction_status(
+        document_id=document_id,
+        status="processing",
+        error=None,
+    )
+
+    try:
+        markdown_content = await extract_file_markdown(
+            content=content,
+            filename=filename,
+            content_type=content_type,
+        )
+        markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+            document_id=document_id,
+            markdown_content=markdown_content,
+        )
+        await storage_service.save_markdown_content(
+            document_id=document_id,
+            markdown_content=markdown_content,
+            markdown_gcs_uri=markdown_gcs_uri,
+        )
+        logger.info(
+            "document_markdown_extraction_completed",
+            document_id=str(document_id),
+            markdown_size=len(markdown_content),
+            markdown_gcs_uri=markdown_gcs_uri,
+        )
+    except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
+        logger.error(
+            "document_markdown_extraction_failed",
+            document_id=str(document_id),
+            error=str(exc),
+        )
+        await storage_service.update_markdown_extraction_status(
+            document_id=document_id,
+            status="failed",
+            error=str(exc),
+        )
+
+
 @router.post("/base/{corpus_id}/ingest_file")
 async def ingest_file(
     corpus_id: UUID,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     app_name: Optional[str] = Form(default=None),
     source_uri: Optional[str] = Form(default=None),
@@ -827,6 +880,7 @@ async def ingest_file(
         doc_record = None
         is_new_doc = True
         gcs_uri = None
+        schedule_markdown_extraction = False
 
         if store_to_gcs:
             from negentropy.storage.service import DocumentStorageService
@@ -850,6 +904,10 @@ async def ingest_file(
                     doc_id=str(doc_record.id),
                     is_new=is_new_doc,
                     gcs_uri=gcs_uri,
+                )
+                schedule_markdown_extraction = (
+                    is_new_doc
+                    or doc_record.markdown_extract_status != "completed"
                 )
             except StorageError as exc:
                 logger.warning("gcs_storage_failed_proceeding_without_storage", error=str(exc))
@@ -922,6 +980,16 @@ async def ingest_file(
         if doc_record:
             result["document_id"] = str(doc_record.id)
             result["duplicate"] = not is_new_doc
+            result["markdown_extract_status"] = doc_record.markdown_extract_status
+
+            if schedule_markdown_extraction:
+                background_tasks.add_task(
+                    _extract_and_store_document_markdown,
+                    document_id=doc_record.id,
+                    content=content,
+                    filename=safe_filename,
+                    content_type=file.content_type,
+                )
 
         return result
 
@@ -960,9 +1028,19 @@ class DocumentResponse(BaseModel):
     status: str
     created_at: Optional[str] = None
     created_by: Optional[str] = None
+    markdown_extract_status: str = "pending"
+    markdown_extracted_at: Optional[str] = None
+    markdown_extract_error: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class DocumentDetailResponse(DocumentResponse):
+    """文档详情响应（含 Markdown 正文）。"""
+
+    markdown_content: Optional[str] = None
+    markdown_gcs_uri: Optional[str] = None
 
 
 class DocumentListResponse(BaseModel):
@@ -1017,6 +1095,9 @@ async def list_documents(
                 status=doc.status,
                 created_at=doc.created_at.isoformat() if doc.created_at else None,
                 created_by=doc.created_by,
+                markdown_extract_status=doc.markdown_extract_status,
+                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
+                markdown_extract_error=doc.markdown_extract_error,
             )
             for doc in docs
         ],
@@ -1065,9 +1146,59 @@ async def list_all_documents(
                 file_size=doc.file_size,
                 status=doc.status,
                 created_at=doc.created_at.isoformat() if doc.created_at else None,
+                created_by=doc.created_by,
+                markdown_extract_status=doc.markdown_extract_status,
+                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
+                markdown_extract_error=doc.markdown_extract_error,
             )
             for doc in docs
         ],
+    )
+
+
+@router.get("/base/{corpus_id}/documents/{document_id}", response_model=DocumentDetailResponse)
+async def get_document_detail(
+    corpus_id: UUID,
+    document_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+) -> DocumentDetailResponse:
+    """获取单个文档详情（含 Markdown 正文）。"""
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    markdown_content = await storage_service.get_document_markdown(document_id)
+
+    return DocumentDetailResponse(
+        id=doc.id,
+        corpus_id=doc.corpus_id,
+        app_name=doc.app_name,
+        file_hash=doc.file_hash,
+        original_filename=doc.original_filename,
+        gcs_uri=doc.gcs_uri,
+        content_type=doc.content_type,
+        file_size=doc.file_size,
+        status=doc.status,
+        created_at=doc.created_at.isoformat() if doc.created_at else None,
+        created_by=doc.created_by,
+        markdown_extract_status=doc.markdown_extract_status,
+        markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
+        markdown_extract_error=doc.markdown_extract_error,
+        markdown_content=markdown_content,
+        markdown_gcs_uri=doc.markdown_gcs_uri,
     )
 
 
