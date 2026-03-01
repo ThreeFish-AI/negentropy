@@ -517,7 +517,7 @@ flowchart LR
 
 ```json
 {
-  "app_name": "agents",
+  "app_name": "negentropy",
   "user_id": "ui",
   "session_id": "optional",
   "state": {}

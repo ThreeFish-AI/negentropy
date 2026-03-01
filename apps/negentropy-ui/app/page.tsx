@@ -56,7 +56,7 @@ import type {
 } from "@/types/common";
 
 const AGENT_ID = "negentropy";
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const EMPTY_MESSAGES: Message[] = [];
 
 export function HomeBody({

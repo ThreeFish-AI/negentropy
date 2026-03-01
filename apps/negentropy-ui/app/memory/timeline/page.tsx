@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import { useMemoryTimeline } from "@/features/memory";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 export default function MemoryTimelinePage() {
   const {
