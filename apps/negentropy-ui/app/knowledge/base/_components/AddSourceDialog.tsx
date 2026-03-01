@@ -35,9 +35,8 @@ export function AddSourceDialog({
   chunkingConfig,
   onSuccess,
 }: AddSourceDialogProps) {
-  const [mode, setMode] = useState<"text" | "url" | "file">("text");
+  const [mode, setMode] = useState<"url" | "file">("url");
   const [sourceUri, setSourceUri] = useState("");
-  const [text, setText] = useState("");
   const [url, setUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,23 +100,13 @@ export function AddSourceDialog({
   const handleIngest = async () => {
     if (!corpusId || isSubmitting) return;
 
-    if (mode === "text" && !text.trim()) return;
     if (mode === "url" && !url.trim()) return;
     if (mode === "file" && !selectedFile) return;
 
     setIsSubmitting(true);
     setError(null);
     try {
-      if (mode === "text") {
-        await onIngest({
-          text,
-          source_uri: sourceUri || undefined,
-          chunkingConfig,
-        });
-        toast.success("已开始摄入知识源", {
-          description: "可在 Pipeline 页面查看构建进度",
-        });
-      } else if (mode === "url") {
+      if (mode === "url") {
         await onIngestUrl({ url, chunkingConfig });
         toast.success("已开始从 URL 摄入知识源", {
           description: "可在 Pipeline 页面查看构建进度",
@@ -134,7 +123,6 @@ export function AddSourceDialog({
       }
       // Reset form
       setSourceUri("");
-      setText("");
       setUrl("");
       setSelectedFile(null);
       onSuccess?.();
@@ -151,7 +139,6 @@ export function AddSourceDialog({
 
   const handleClose = () => {
     setSourceUri("");
-    setText("");
     setUrl("");
     setSelectedFile(null);
     setError(null);
@@ -159,7 +146,7 @@ export function AddSourceDialog({
   };
 
   // 切换模式时重置文件选择
-  const handleModeChange = (newMode: "text" | "url" | "file") => {
+  const handleModeChange = (newMode: "url" | "file") => {
     setMode(newMode);
     setError(null);
     if (newMode !== "file") {
@@ -201,16 +188,6 @@ export function AddSourceDialog({
         {/* Mode Switcher */}
         <div className="mb-4 flex gap-4 text-xs">
           <button
-            onClick={() => handleModeChange("text")}
-            className={`pb-1 font-medium ${
-              mode === "text"
-                ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-            }`}
-          >
-            Raw Text
-          </button>
-          <button
             onClick={() => handleModeChange("url")}
             className={`pb-1 font-medium ${
               mode === "url"
@@ -228,38 +205,12 @@ export function AddSourceDialog({
                 : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
             }`}
           >
-            Import from File
+            From File
           </button>
         </div>
 
         {/* Content */}
-        {mode === "text" ? (
-          <>
-            <div className="mb-3">
-              <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                Source URI (optional)
-              </label>
-              <input
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
-                placeholder="e.g., document.pdf"
-                value={sourceUri}
-                onChange={(e) => setSourceUri(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                Content <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
-                rows={6}
-                placeholder="Paste knowledge text here..."
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-            </div>
-          </>
-        ) : mode === "url" ? (
+        {mode === "url" ? (
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
               URL <span className="text-red-500">*</span>
@@ -375,7 +326,6 @@ export function AddSourceDialog({
             disabled={
               isSubmitting ||
               !corpusId ||
-              (mode === "text" && !text.trim()) ||
               (mode === "url" && !url.trim()) ||
               (mode === "file" && !selectedFile)
             }
