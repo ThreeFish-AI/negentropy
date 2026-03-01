@@ -58,7 +58,7 @@ export default function KnowledgeDashboardPage() {
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
-        title="Knowledge Dashboard"
+        title="Dashboard"
         description="Knowledge 指标、构建与告警概览"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
