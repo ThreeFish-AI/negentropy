@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
+import { NavigationProvider } from "@/components/providers/NavigationProvider";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import "./globals.css";
@@ -36,10 +37,12 @@ export default function RootLayout({
           <ThemeProvider>
             <ToastProvider />
             <AuthProvider>
-              <div className="flex flex-col h-screen overflow-hidden">
-                <SiteHeader />
-                <main className="flex-1 overflow-hidden relative">{children}</main>
-              </div>
+              <NavigationProvider>
+                <div className="flex flex-col h-screen overflow-hidden">
+                  <SiteHeader />
+                  <main className="flex-1 overflow-hidden relative">{children}</main>
+                </div>
+              </NavigationProvider>
             </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>

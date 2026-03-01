@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useNavigation } from "@/components/providers/NavigationProvider";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Users" },
@@ -16,24 +18,21 @@ export function AdminNav({
   description?: string;
 }) {
   const pathname = usePathname();
+  const { setNavigationInfo } = useNavigation();
+
+  useEffect(() => {
+    setNavigationInfo({ moduleLabel: "Admin", pageTitle: title });
+    return () => {
+      setNavigationInfo(null);
+    };
+  }, [title, setNavigationInfo]);
 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
   return (
-    <div className="border-b border-border bg-card px-6 py-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted">Admin</span>
-            <span className="text-border-muted">/</span>
-            <span className="font-semibold text-foreground">{title}</span>
-          </div>
-          {description && (
-            <p className="mt-1 text-xs text-muted">{description}</p>
-          )}
-        </div>
-
+    <div className="border-b border-border bg-card px-6 py-2">
+      <div className="flex flex-wrap items-center justify-end gap-4">
         <nav className="flex flex-wrap items-center gap-1 bg-muted/50 p-1 rounded-full">
           {NAV_ITEMS.map((item) => (
             <Link
