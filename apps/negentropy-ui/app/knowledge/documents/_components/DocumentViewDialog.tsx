@@ -95,6 +95,7 @@ export function DocumentViewDialog({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<KnowledgeDocumentDetail | null>(null);
+  const requestAppName = document?.app_name || APP_NAME;
 
   const loadDetail = useCallback(async () => {
     if (!isOpen || !document) return;
@@ -103,7 +104,7 @@ export function DocumentViewDialog({
     setDetailError(null);
     try {
       const res = await fetchDocumentDetail(document.corpus_id, document.id, {
-        appName: APP_NAME,
+        appName: requestAppName,
       });
       setDetail(res);
     } catch (err) {
@@ -113,7 +114,7 @@ export function DocumentViewDialog({
     } finally {
       setLoadingDetail(false);
     }
-  }, [isOpen, document]);
+  }, [isOpen, document, requestAppName]);
 
   useEffect(() => {
     if (!isOpen || !document) {
@@ -124,7 +125,7 @@ export function DocumentViewDialog({
     }
 
     void loadDetail();
-  }, [isOpen, document?.id, document?.corpus_id, loadDetail]);
+  }, [isOpen, document, loadDetail]);
 
   useEffect(() => {
     if (!isOpen || !document) return;
@@ -143,7 +144,9 @@ export function DocumentViewDialog({
 
     setIsDownloading(true);
     try {
-      await downloadDocument(document.corpus_id, document.id, { appName: APP_NAME });
+      await downloadDocument(document.corpus_id, document.id, {
+        appName: requestAppName,
+      });
       toast.success(`Downloaded: ${document.original_filename}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to download document");
@@ -158,7 +161,7 @@ export function DocumentViewDialog({
     setIsRefreshingMarkdown(true);
     try {
       const result = await refreshDocumentMarkdown(document.corpus_id, document.id, {
-        appName: APP_NAME,
+        appName: requestAppName,
       });
       toast.success(result.message || "Markdown re-parse started");
       setDetail((prev) =>

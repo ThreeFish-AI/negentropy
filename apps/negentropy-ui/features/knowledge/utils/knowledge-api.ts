@@ -246,6 +246,64 @@ export interface PipelineUpsertResult {
 /**
  * 从响应中解析错误并映射到对应的异常类型
  */
+function extractKnowledgeErrorPayload(
+  errorData: unknown,
+): KnowledgeErrorResponse | null {
+  if (!errorData || typeof errorData !== "object") {
+    return null;
+  }
+
+  const normalizePayload = (
+    payload: Record<string, unknown>,
+  ): KnowledgeErrorResponse | null => {
+    const code = typeof payload.code === "string" ? payload.code : undefined;
+    const message =
+      typeof payload.message === "string"
+        ? payload.message
+        : typeof payload.detail === "string"
+          ? payload.detail
+          : undefined;
+    const details =
+      payload.details && typeof payload.details === "object"
+        ? (payload.details as Record<string, unknown>)
+        : undefined;
+
+    if (!code && !message) {
+      return null;
+    }
+
+    return {
+      code: code || "UNKNOWN_ERROR",
+      message: message || "Unknown error",
+      details,
+    };
+  };
+
+  const root = errorData as Record<string, unknown>;
+
+  const direct = normalizePayload(root);
+  if (direct) return direct;
+
+  if (root.error && typeof root.error === "object") {
+    const nested = normalizePayload(root.error as Record<string, unknown>);
+    if (nested) return nested;
+  }
+
+  if (root.detail && typeof root.detail === "object") {
+    const nested = normalizePayload(root.detail as Record<string, unknown>);
+    if (nested) return nested;
+  }
+
+  if (typeof root.detail === "string") {
+    return {
+      code: "UNKNOWN_ERROR",
+      message: root.detail,
+    };
+  }
+
+  return null;
+}
+
 async function parseKnowledgeError(res: Response): Promise<KnowledgeError> {
   let errorData: unknown;
   try {
@@ -254,9 +312,12 @@ async function parseKnowledgeError(res: Response): Promise<KnowledgeError> {
     errorData = null;
   }
 
-  const errorResponse = errorData as KnowledgeErrorResponse | null;
+  const errorResponse = extractKnowledgeErrorPayload(errorData);
   const code = errorResponse?.code || "UNKNOWN_ERROR";
-  const message = errorResponse?.message || res.statusText;
+  const message =
+    errorResponse?.message ||
+    res.statusText ||
+    `Request failed with status ${res.status}`;
   const details = errorResponse?.details;
 
   switch (code) {
@@ -595,16 +656,27 @@ export async function refreshDocumentMarkdown(
     appName?: string;
   },
 ): Promise<DocumentMarkdownRefreshResponse> {
-  const res = await fetch(
+  const payload = JSON.stringify({
+    app_name: params?.appName,
+  });
+  const requestInit: RequestInit = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+  };
+
+  let res = await fetch(
     `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh_markdown`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        app_name: params?.appName,
-      }),
-    },
+    requestInit,
   );
+  if (res.status === 404) {
+    // Backward-compatible fallback for deployments using kebab-case route naming.
+    res = await fetch(
+      `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh-markdown`,
+      requestInit,
+    );
+  }
+
   return handleKnowledgeError(res);
 }
 

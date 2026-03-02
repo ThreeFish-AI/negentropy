@@ -1252,6 +1252,11 @@ async def get_document_detail(
 
 
 @router.post(
+    "/base/{corpus_id}/documents/{document_id}/refresh-markdown",
+    response_model=DocumentMarkdownRefreshResponse,
+    include_in_schema=False,
+)
+@router.post(
     "/base/{corpus_id}/documents/{document_id}/refresh_markdown",
     response_model=DocumentMarkdownRefreshResponse,
 )
