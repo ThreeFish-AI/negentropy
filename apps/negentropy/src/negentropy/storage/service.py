@@ -403,7 +403,7 @@ class DocumentStorageService:
         if not doc:
             return None
 
-        if doc.markdown_content:
+        if doc.markdown_content and doc.markdown_content.strip():
             return doc.markdown_content
 
         if not doc.markdown_gcs_uri:
@@ -412,6 +412,13 @@ class DocumentStorageService:
         try:
             gcs_client = self._get_gcs_client()
             content = gcs_client.download(doc.markdown_gcs_uri).decode("utf-8")
+            if not content.strip():
+                logger.warning(
+                    "markdown_content_empty",
+                    document_id=str(document_id),
+                    markdown_gcs_uri=doc.markdown_gcs_uri,
+                )
+                return None
             # 最佳努力回填 PostgreSQL，避免后续重复读 GCS。
             await self.save_markdown_content(
                 document_id=document_id,
