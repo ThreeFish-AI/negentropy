@@ -22,30 +22,29 @@ export function ReplaceSourceDialog({
   onSuccess,
 }: ReplaceSourceDialogProps) {
   const [text, setText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleReplace = async () => {
-    if (!corpusId || !sourceUri || !text.trim() || isSubmitting) return;
+  const handleReplace = () => {
+    if (!corpusId || !sourceUri || !text.trim()) return;
 
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await onReplace({ text, source_uri: sourceUri });
-      toast.success("已开始替换知识源", {
-        description: "可在 Pipeline 页面查看构建进度",
-      });
-      setText("");
-      onSuccess?.();
-    } catch (err) {
+    // 保存当前值用于 API 调用
+    const currentText = text;
+    const currentSourceUri = sourceUri;
+
+    // 立即关闭模态框并重置表单
+    setText("");
+    onSuccess?.();
+
+    // 显示 Toast 提示
+    toast.success("已开始替换知识源", {
+      description: "可在 Pipeline 页面查看构建进度",
+    });
+
+    // Fire-and-forget: 不等待 API 完成
+    onReplace({ text: currentText, source_uri: currentSourceUri }).catch((err) => {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      toast.error("替换失败", {
-        description: errorMessage,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+      toast.error("替换失败", { description: errorMessage });
+    });
   };
 
   const handleClose = () => {
@@ -135,16 +134,15 @@ export function ReplaceSourceDialog({
           <button
             onClick={handleClose}
             className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             onClick={handleReplace}
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-50"
-            disabled={isSubmitting || !corpusId || !sourceUri || !text.trim()}
+            disabled={!corpusId || !sourceUri || !text.trim()}
           >
-            {isSubmitting ? "Processing..." : "Replace"}
+            Replace
           </button>
         </div>
       </div>

@@ -39,7 +39,6 @@ export function AddSourceDialog({
   const [sourceUri, setSourceUri] = useState("");
   const [url, setUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,43 +96,49 @@ export function AddSourceDialog({
     }
   };
 
-  const handleIngest = async () => {
-    if (!corpusId || isSubmitting) return;
+  const handleIngest = () => {
+    if (!corpusId) return;
 
     if (mode === "url" && !url.trim()) return;
     if (mode === "file" && !selectedFile) return;
 
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      if (mode === "url") {
-        await onIngestUrl({ url, chunkingConfig });
-        toast.success("已开始从 URL 摄入知识源", {
-          description: "可在 Pipeline 页面查看构建进度",
-        });
-      } else if (mode === "file" && onIngestFile) {
-        await onIngestFile({
-          file: selectedFile!,
-          source_uri: sourceUri || undefined,
-          chunkingConfig,
-        });
-        toast.success("已开始从文件摄入知识源", {
-          description: "可在 Pipeline 页面查看构建进度",
-        });
-      }
-      // Reset form
-      setSourceUri("");
-      setUrl("");
-      setSelectedFile(null);
-      onSuccess?.();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      toast.error("摄入失败", {
-        description: errorMessage,
+    // 保存当前值用于 API 调用
+    const currentUrl = url;
+    const currentFile = selectedFile;
+    const currentSourceUri = sourceUri;
+
+    // 立即关闭模态框并重置表单
+    setSourceUri("");
+    setUrl("");
+    setSelectedFile(null);
+    onSuccess?.();
+
+    // 显示 Toast 提示
+    if (mode === "url") {
+      toast.success("已开始从 URL 摄入知识源", {
+        description: "可在 Pipeline 页面查看构建进度",
       });
-    } finally {
-      setIsSubmitting(false);
+    } else if (mode === "file") {
+      toast.success("已开始从文件摄入知识源", {
+        description: "可在 Pipeline 页面查看构建进度",
+      });
+    }
+
+    // Fire-and-forget: 不等待 API 完成
+    if (mode === "url") {
+      onIngestUrl({ url: currentUrl, chunkingConfig }).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error("摄入失败", { description: errorMessage });
+      });
+    } else if (mode === "file" && onIngestFile && currentFile) {
+      onIngestFile({
+        file: currentFile,
+        source_uri: currentSourceUri || undefined,
+        chunkingConfig,
+      }).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error("摄入失败", { description: errorMessage });
+      });
     }
   };
 
@@ -316,7 +321,6 @@ export function AddSourceDialog({
           <button
             onClick={handleClose}
             className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            disabled={isSubmitting}
           >
             Cancel
           </button>
@@ -324,13 +328,12 @@ export function AddSourceDialog({
             onClick={handleIngest}
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
             disabled={
-              isSubmitting ||
               !corpusId ||
               (mode === "url" && !url.trim()) ||
               (mode === "file" && !selectedFile)
             }
           >
-            {isSubmitting ? "Processing..." : "Ingest"}
+            Ingest
           </button>
         </div>
       </div>
