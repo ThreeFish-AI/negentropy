@@ -204,6 +204,6 @@ def downgrade() -> None:
     op.drop_index("ix_plugin_permissions_plugin", table_name="plugin_permissions", schema="negentropy")
     op.drop_table("plugin_permissions", schema="negentropy")
 
-    # Drop enums
-    op.execute("DROP TYPE IF EXISTS negentropy.plugin_visibility")
-    op.execute("DROP TYPE IF EXISTS negentropy.plugin_permission_type")
+    # Drop enums (sa.Enum without schema= creates types in public schema)
+    op.execute("DROP TYPE IF EXISTS plugin_visibility")
+    op.execute("DROP TYPE IF EXISTS plugin_permission_type")
