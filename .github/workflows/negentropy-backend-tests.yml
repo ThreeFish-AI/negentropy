@@ -2,19 +2,33 @@ name: negentropy-backend-tests
 
 on:
   push:
+    branches:
+      - "**"
     paths:
       - "apps/negentropy/**"
       - "apps/negentropy-ui/lib/adk.ts"
       - ".github/workflows/negentropy-backend-tests.yml"
   pull_request:
+    branches:
+      - "**"
     paths:
       - "apps/negentropy/**"
       - "apps/negentropy-ui/lib/adk.ts"
       - ".github/workflows/negentropy-backend-tests.yml"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
     services:
       postgres:
@@ -52,12 +66,10 @@ jobs:
 
       - name: Install dependencies
         working-directory: apps/negentropy
-        run: uv sync
+        run: uv sync --frozen
 
       - name: Run unit tests
         run: uv run pytest tests/unit_tests/ -v
-        env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
       - name: Initialize database schema
         run: |
@@ -76,15 +88,9 @@ jobs:
           asyncio.run(init_db())
           "
           uv run alembic upgrade head
-        env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
       - name: Run integration tests
         run: uv run pytest tests/integration_tests/ -v
-        env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
       - name: Run performance tests
         run: uv run pytest tests/performance_tests/ -v
-        env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
