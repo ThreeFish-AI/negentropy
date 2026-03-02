@@ -42,6 +42,25 @@ function errorResponse(code: string, message: string, status = 500) {
   );
 }
 
+function upstreamErrorResponse(text: string, status: number) {
+  if (text) {
+    try {
+      const errorJson = JSON.parse(text);
+      if (errorJson && typeof errorJson === "object") {
+        return NextResponse.json(errorJson, { status });
+      }
+    } catch {
+      // fallthrough to generic wrapper
+    }
+  }
+
+  return errorResponse(
+    "KNOWLEDGE_UPSTREAM_ERROR",
+    text || "Upstream returned non-OK status",
+    status,
+  );
+}
+
 export async function proxyGet(request: Request, path: string) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
@@ -73,11 +92,7 @@ export async function proxyGet(request: Request, path: string) {
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      text || "Upstream returned non-OK status",
-      upstreamResponse.status,
-    );
+    return upstreamErrorResponse(text, upstreamResponse.status);
   }
 
   return NextResponse.json(JSON.parse(text));
@@ -126,11 +141,7 @@ export async function proxyPost(request: Request, path: string) {
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      text || "Upstream returned non-OK status",
-      upstreamResponse.status,
-    );
+    return upstreamErrorResponse(text, upstreamResponse.status);
   }
 
   return NextResponse.json(JSON.parse(text));
