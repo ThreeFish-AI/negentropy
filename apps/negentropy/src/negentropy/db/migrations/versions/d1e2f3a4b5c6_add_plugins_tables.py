@@ -1,7 +1,7 @@
 """Add plugins tables for MCP, Skills, SubAgents
 
-Revision ID: a1b2c3d4e5f6
-Revises: c1640a4711b5
+Revision ID: d1e2f3a4b5c6
+Revises: c3f4e5a6b7c8
 Create Date: 2026-03-02 10:00:00.000000+00:00
 
 """
@@ -13,8 +13,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "a1b2c3d4e5f6"
-down_revision: Union[str, None] = "c1640a4711b5"
+revision: str = "d1e2f3a4b5c6"
+down_revision: Union[str, None] = "c3f4e5a6b7c8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
