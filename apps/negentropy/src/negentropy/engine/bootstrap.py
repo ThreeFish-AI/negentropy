@@ -221,6 +221,7 @@ def apply_adk_patches():
         from negentropy.engine.sessions_api import router as sessions_router
         from negentropy.auth.api import router as auth_router
         from negentropy.auth.middleware import AuthMiddleware
+        from negentropy.plugins.api import router as plugins_router
 
         class TracingInitMiddleware(BaseHTTPMiddleware):
             async def dispatch(self, request: Request, call_next):
@@ -330,6 +331,9 @@ def apply_adk_patches():
         if not any(route.path.startswith("/memory") for route in app.router.routes):
             app.include_router(memory_router)
             logger.info("Memory API router mounted under /memory")
+        if not any(route.path.startswith("/plugins") for route in app.router.routes):
+            app.include_router(plugins_router)
+            logger.info("Plugins API router mounted under /plugins")
         if not any(route.path.startswith("/auth") for route in app.router.routes):
             app.include_router(auth_router)
             logger.info("Auth API router mounted under /auth")

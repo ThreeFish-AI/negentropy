@@ -4,6 +4,7 @@ from .internalization import ConsolidationJob, Fact, Instruction, Memory, Memory
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .observability import Trace
 from .perception import Corpus, Knowledge
+from .plugin import McpServer, McpTool, PluginPermission, PluginPermissionType, PluginVisibility, Skill, SubAgent
 from .pulse import AppState, Event, Message, Run, Snapshot, Thread, UserState
 from .security import Credential
 
@@ -42,4 +43,12 @@ __all__ = [
     "KnowledgePipelineRun",
     # Security
     "Credential",
+    # Plugin
+    "PluginVisibility",
+    "PluginPermissionType",
+    "PluginPermission",
+    "McpServer",
+    "McpTool",
+    "Skill",
+    "SubAgent",
 ]
