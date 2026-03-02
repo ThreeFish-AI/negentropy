@@ -762,6 +762,8 @@ async def _extract_and_store_document_markdown(
             filename=filename,
             content_type=content_type,
         )
+        if not markdown_content.strip():
+            raise ValueError("Extracted markdown content is empty")
         markdown_gcs_uri = await storage_service.upload_markdown_derivative(
             document_id=document_id,
             markdown_content=markdown_content,
@@ -788,6 +790,39 @@ async def _extract_and_store_document_markdown(
             status="failed",
             error=str(exc),
         )
+
+
+async def _extract_and_store_document_markdown_from_gcs(
+    *,
+    document_id: UUID,
+) -> None:
+    """从 GCS 重新加载原始文档并执行 Markdown 提取。"""
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(document_id=document_id)
+    if not doc:
+        logger.warning(
+            "document_markdown_refresh_skipped_document_not_found",
+            document_id=str(document_id),
+        )
+        return
+
+    content = await storage_service.get_document_content(document_id=document_id)
+    if not content:
+        await storage_service.update_markdown_extraction_status(
+            document_id=document_id,
+            status="failed",
+            error="Source document content not found in GCS",
+        )
+        return
+
+    await _extract_and_store_document_markdown(
+        document_id=document_id,
+        content=content,
+        filename=doc.original_filename,
+        content_type=doc.content_type,
+    )
 
 
 @router.post("/base/{corpus_id}/ingest_file")
@@ -1043,6 +1078,20 @@ class DocumentDetailResponse(DocumentResponse):
     markdown_gcs_uri: Optional[str] = None
 
 
+class DocumentMarkdownRefreshResponse(BaseModel):
+    """文档 Markdown 重解析响应。"""
+
+    document_id: UUID
+    status: str
+    message: str
+
+
+class DocumentMarkdownRefreshRequest(BaseModel):
+    """文档 Markdown 重解析请求。"""
+
+    app_name: Optional[str] = None
+
+
 class DocumentListResponse(BaseModel):
     """文档列表响应模型"""
 
@@ -1199,6 +1248,50 @@ async def get_document_detail(
         markdown_extract_error=doc.markdown_extract_error,
         markdown_content=markdown_content,
         markdown_gcs_uri=doc.markdown_gcs_uri,
+    )
+
+
+@router.post(
+    "/base/{corpus_id}/documents/{document_id}/refresh_markdown",
+    response_model=DocumentMarkdownRefreshResponse,
+)
+async def refresh_document_markdown(
+    corpus_id: UUID,
+    document_id: UUID,
+    payload: DocumentMarkdownRefreshRequest,
+    background_tasks: BackgroundTasks,
+) -> DocumentMarkdownRefreshResponse:
+    """从 GCS 源文档重新解析 Markdown 并刷新存储。"""
+    resolved_app = _resolve_app_name(payload.app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    await storage_service.update_markdown_extraction_status(
+        document_id=document_id,
+        status="processing",
+        error=None,
+    )
+    background_tasks.add_task(
+        _extract_and_store_document_markdown_from_gcs,
+        document_id=document_id,
+    )
+
+    return DocumentMarkdownRefreshResponse(
+        document_id=document_id,
+        status="running",
+        message="Markdown re-parse task started",
     )
 
 

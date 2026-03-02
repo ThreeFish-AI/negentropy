@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   KnowledgeDocument,
@@ -8,6 +8,7 @@ import {
   downloadDocument,
   fetchDocumentDetail,
   formatRelativeTime,
+  refreshDocumentMarkdown,
 } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -90,9 +91,29 @@ export function DocumentViewDialog({
   onClose,
 }: DocumentViewDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isRefreshingMarkdown, setIsRefreshingMarkdown] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<KnowledgeDocumentDetail | null>(null);
+
+  const loadDetail = useCallback(async () => {
+    if (!isOpen || !document) return;
+
+    setLoadingDetail(true);
+    setDetailError(null);
+    try {
+      const res = await fetchDocumentDetail(document.corpus_id, document.id, {
+        appName: APP_NAME,
+      });
+      setDetail(res);
+    } catch (err) {
+      setDetailError(
+        err instanceof Error ? err.message : "Failed to load document content",
+      );
+    } finally {
+      setLoadingDetail(false);
+    }
+  }, [isOpen, document]);
 
   useEffect(() => {
     if (!isOpen || !document) {
@@ -102,31 +123,20 @@ export function DocumentViewDialog({
       return;
     }
 
-    let cancelled = false;
-    setLoadingDetail(true);
-    setDetailError(null);
+    void loadDetail();
+  }, [isOpen, document?.id, document?.corpus_id, loadDetail]);
 
-    fetchDocumentDetail(document.corpus_id, document.id, { appName: APP_NAME })
-      .then((res) => {
-        if (!cancelled) {
-          setDetail(res);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setDetailError(err instanceof Error ? err.message : "Failed to load document content");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingDetail(false);
-        }
-      });
+  useEffect(() => {
+    if (!isOpen || !document) return;
+    if ((detail?.markdown_extract_status || "").toLowerCase() !== "processing") {
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, document?.id, document?.corpus_id]);
+    const timer = setInterval(() => {
+      void loadDetail();
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isOpen, document, detail?.markdown_extract_status, loadDetail]);
 
   const handleDownload = async () => {
     if (!document || isDownloading) return;
@@ -139,6 +149,34 @@ export function DocumentViewDialog({
       toast.error(err instanceof Error ? err.message : "Failed to download document");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleRefreshMarkdown = async () => {
+    if (!document || isRefreshingMarkdown) return;
+
+    setIsRefreshingMarkdown(true);
+    try {
+      const result = await refreshDocumentMarkdown(document.corpus_id, document.id, {
+        appName: APP_NAME,
+      });
+      toast.success(result.message || "Markdown re-parse started");
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              markdown_extract_status: "processing",
+              markdown_extract_error: null,
+            }
+          : prev,
+      );
+      await loadDetail();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to start markdown re-parse",
+      );
+    } finally {
+      setIsRefreshingMarkdown(false);
     }
   };
 
@@ -205,6 +243,10 @@ export function DocumentViewDialog({
                 <p className="text-sm text-red-600 dark:text-red-400">
                   {detail?.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
                 </p>
+              ) : (detail?.markdown_content || "").trim().length === 0 ? (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
+                </p>
               ) : (
                 <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-zinc-800 dark:text-zinc-200">
                   {detail?.markdown_content || "No markdown content available."}
@@ -262,6 +304,16 @@ export function DocumentViewDialog({
             className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
           >
             Close
+          </button>
+          <button
+            onClick={handleRefreshMarkdown}
+            disabled={isRefreshingMarkdown || !document}
+            className="flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.636 18.364A9 9 0 103.22 9.88" />
+            </svg>
+            {isRefreshingMarkdown ? "Re-Parsing..." : "Re-Parse from GCS"}
           </button>
           <button
             onClick={handleDownload}

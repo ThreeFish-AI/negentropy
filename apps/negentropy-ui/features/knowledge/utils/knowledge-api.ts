@@ -496,6 +496,12 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   markdown_gcs_uri: string | null;
 }
 
+export interface DocumentMarkdownRefreshResponse {
+  document_id: string;
+  status: string;
+  message: string;
+}
+
 export interface DocumentListResponse {
   count: number;
   items: KnowledgeDocument[];
@@ -578,6 +584,26 @@ export async function fetchDocumentDetail(
   const res = await fetch(
     `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
     { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function refreshDocumentMarkdown(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+  },
+): Promise<DocumentMarkdownRefreshResponse> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh_markdown`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        app_name: params?.appName,
+      }),
+    },
   );
   return handleKnowledgeError(res);
 }
