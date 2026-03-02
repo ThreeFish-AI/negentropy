@@ -22,6 +22,10 @@ export const mainNavConfig: MainNavItem[] = [
     href: "/memory",
   },
   {
+    title: "Plugins",
+    href: "/plugins",
+  },
+  {
     title: "Admin",
     href: "/admin",
     roles: ["admin"],
