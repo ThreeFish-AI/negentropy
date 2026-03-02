@@ -41,7 +41,7 @@ class PluginPermission(Base, UUIDMixin, TimestampMixin):
     plugin_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     permission: Mapped[PluginPermissionType] = mapped_column(
-        Enum(PluginPermissionType), nullable=False, default=PluginPermissionType.VIEW
+        Enum(PluginPermissionType, schema=NEGENTROPY_SCHEMA), nullable=False, default=PluginPermissionType.VIEW
     )
 
     __table_args__ = (
@@ -60,7 +60,7 @@ class McpServer(Base, UUIDMixin, TimestampMixin):
     # 所有权和可见性
     owner_id: Mapped[str] = mapped_column(String(255), nullable=False)
     visibility: Mapped[PluginVisibility] = mapped_column(
-        Enum(PluginVisibility), nullable=False, default=PluginVisibility.PRIVATE
+        Enum(PluginVisibility, schema=NEGENTROPY_SCHEMA), nullable=False, default=PluginVisibility.PRIVATE
     )
 
     # 基本信息
@@ -122,7 +122,7 @@ class Skill(Base, UUIDMixin, TimestampMixin):
     # 所有权和可见性
     owner_id: Mapped[str] = mapped_column(String(255), nullable=False)
     visibility: Mapped[PluginVisibility] = mapped_column(
-        Enum(PluginVisibility), nullable=False, default=PluginVisibility.PRIVATE
+        Enum(PluginVisibility, schema=NEGENTROPY_SCHEMA), nullable=False, default=PluginVisibility.PRIVATE
     )
 
     # 基本信息
@@ -158,7 +158,7 @@ class SubAgent(Base, UUIDMixin, TimestampMixin):
     # 所有权和可见性
     owner_id: Mapped[str] = mapped_column(String(255), nullable=False)
     visibility: Mapped[PluginVisibility] = mapped_column(
-        Enum(PluginVisibility), nullable=False, default=PluginVisibility.PRIVATE
+        Enum(PluginVisibility, schema=NEGENTROPY_SCHEMA), nullable=False, default=PluginVisibility.PRIVATE
     )
 
     # 基本信息
