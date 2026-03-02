@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy import Boolean, Enum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -38,7 +38,7 @@ class PluginPermission(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "plugin_permissions"
 
     plugin_type: Mapped[str] = mapped_column(String(50), nullable=False)  # mcp_server, skill, sub_agent
-    plugin_id: Mapped[UUID] = mapped_column(UUID, nullable=False)
+    plugin_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     permission: Mapped[PluginPermissionType] = mapped_column(
         Enum(PluginPermissionType), nullable=False, default=PluginPermissionType.VIEW
