@@ -6,6 +6,8 @@ including deduplication, listing, and deletion.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional, Tuple
 from uuid import UUID
 
@@ -36,6 +38,19 @@ class DocumentStorageService:
         if self._gcs is None:
             self._gcs = GCSStorageClient.get_instance()
         return self._gcs
+
+    @staticmethod
+    def _build_markdown_gcs_path(
+        *,
+        app_name: str,
+        corpus_id: UUID,
+        document_id: UUID,
+        filename: str,
+    ) -> str:
+        """构建 Markdown 衍生文件路径。"""
+        stem = Path(filename).stem or "document"
+        safe_stem = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in stem)[:120] or "document"
+        return f"knowledge/{app_name}/{corpus_id}/derived/{document_id}/{safe_stem}.md"
 
     async def check_duplicate(
         self,
@@ -126,6 +141,7 @@ class DocumentStorageService:
                 content_type=content_type,
                 file_size=len(content),
                 status="active",
+                markdown_extract_status="pending",
                 metadata_=metadata or {},
             )
             db.add(doc)
@@ -246,7 +262,14 @@ class DocumentStorageService:
             True if deleted, False if not found
         """
         async with AsyncSessionLocal() as db:
-            doc = await self.get_document(document_id, corpus_id, app_name)
+            conditions = [KnowledgeDocument.id == document_id]
+            if corpus_id:
+                conditions.append(KnowledgeDocument.corpus_id == corpus_id)
+            if app_name:
+                conditions.append(KnowledgeDocument.app_name == app_name)
+            stmt = select(KnowledgeDocument).where(*conditions)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
 
             if not doc:
                 return False
@@ -281,6 +304,83 @@ class DocumentStorageService:
 
             return True
 
+    async def update_markdown_extraction_status(
+        self,
+        *,
+        document_id: UUID,
+        status: str,
+        error: Optional[str] = None,
+    ) -> bool:
+        """更新 Markdown 提取状态。"""
+        async with AsyncSessionLocal() as db:
+            stmt = select(KnowledgeDocument).where(KnowledgeDocument.id == document_id)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                return False
+
+            doc.markdown_extract_status = status
+            doc.markdown_extract_error = error
+            if status == "completed":
+                doc.markdown_extracted_at = datetime.now(timezone.utc)
+            await db.commit()
+            return True
+
+    async def save_markdown_content(
+        self,
+        *,
+        document_id: UUID,
+        markdown_content: str,
+        markdown_gcs_uri: Optional[str] = None,
+    ) -> bool:
+        """保存 Markdown 正文与提取完成状态。"""
+        async with AsyncSessionLocal() as db:
+            stmt = select(KnowledgeDocument).where(KnowledgeDocument.id == document_id)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                return False
+
+            doc.markdown_content = markdown_content
+            doc.markdown_gcs_uri = markdown_gcs_uri
+            doc.markdown_extract_status = "completed"
+            doc.markdown_extract_error = None
+            doc.markdown_extracted_at = datetime.now(timezone.utc)
+            await db.commit()
+            return True
+
+    async def upload_markdown_derivative(
+        self,
+        *,
+        document_id: UUID,
+        markdown_content: str,
+    ) -> Optional[str]:
+        """将 Markdown 内容上传到 GCS，失败时仅记录日志并返回 None。"""
+        doc = await self.get_document(document_id=document_id)
+        if not doc:
+            return None
+
+        try:
+            gcs_client = self._get_gcs_client()
+            gcs_path = self._build_markdown_gcs_path(
+                app_name=doc.app_name,
+                corpus_id=doc.corpus_id,
+                document_id=doc.id,
+                filename=doc.original_filename,
+            )
+            return gcs_client.upload(
+                content=markdown_content.encode("utf-8"),
+                gcs_path=gcs_path,
+                content_type="text/markdown; charset=utf-8",
+            )
+        except Exception as exc:  # noqa: BLE001 - 衍生存储失败不应影响主流程
+            logger.warning(
+                "markdown_derivative_upload_failed",
+                document_id=str(document_id),
+                error=str(exc),
+            )
+            return None
+
     async def get_document_content(self, document_id: UUID) -> Optional[bytes]:
         """Download document content from GCS.
 
@@ -296,6 +396,36 @@ class DocumentStorageService:
 
         gcs_client = self._get_gcs_client()
         return gcs_client.download(doc.gcs_uri)
+
+    async def get_document_markdown(self, document_id: UUID) -> Optional[str]:
+        """读取文档 Markdown 正文（优先 PostgreSQL，缺失时回退 GCS）。"""
+        doc = await self.get_document(document_id=document_id)
+        if not doc:
+            return None
+
+        if doc.markdown_content:
+            return doc.markdown_content
+
+        if not doc.markdown_gcs_uri:
+            return None
+
+        try:
+            gcs_client = self._get_gcs_client()
+            content = gcs_client.download(doc.markdown_gcs_uri).decode("utf-8")
+            # 最佳努力回填 PostgreSQL，避免后续重复读 GCS。
+            await self.save_markdown_content(
+                document_id=document_id,
+                markdown_content=content,
+                markdown_gcs_uri=doc.markdown_gcs_uri,
+            )
+            return content
+        except Exception as exc:  # noqa: BLE001 - 读取失败由调用方决定处理
+            logger.warning(
+                "markdown_content_load_failed",
+                document_id=str(document_id),
+                error=str(exc),
+            )
+            return None
 
     async def get_document_content_by_uri(self, gcs_uri: str) -> Optional[bytes]:
         """Download document content by GCS URI directly.

@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import asyncio
 import time
+import warnings
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 
 from negentropy.knowledge.service import KnowledgeService
-from negentropy.knowledge.types import ChunkingConfig, SearchConfig
+from negentropy.knowledge.types import ChunkingConfig, CorpusSpec, SearchConfig
 
 
 class TestSearchPerformance:
@@ -85,7 +86,7 @@ class TestSearchPerformance:
 
         # 警告而非断言，因为测试环境可能不稳定
         if p95 > 100:
-            pytest.warn(f"P95 latency {p95:.2f}ms exceeds 100ms target")
+            warnings.warn(f"P95 latency {p95:.2f}ms exceeds 100ms target", UserWarning, stacklevel=1)
 
     @pytest.mark.asyncio
     async def test_keyword_search_latency(self, sample_corpus: UUID) -> None:
@@ -153,8 +154,14 @@ class TestIngestionPerformance:
 
         service = KnowledgeService(embedding_fn=mock_embedding)
 
-        # 生成测试数据
-        corpus_id = uuid4()
+        # 先创建 corpus，避免触发 knowledge.corpus_id 外键约束
+        corpus = await service.ensure_corpus(
+            CorpusSpec(
+                app_name="test",
+                name=f"perf-ingest-{uuid4()}",
+            )
+        )
+        corpus_id = corpus.id
         chunk_count = 100
         text = "word " * 100  # 约 500 字符
 
@@ -181,7 +188,11 @@ class TestIngestionPerformance:
 
         # 警告而非断言
         if throughput < 1000:
-            pytest.warn(f"Throughput {throughput:.2f} chunks/s below 1000 target")
+            warnings.warn(
+                f"Throughput {throughput:.2f} chunks/s below 1000 target",
+                UserWarning,
+                stacklevel=1,
+            )
 
 
 @pytest.mark.skip(reason="Integration test - requires database")

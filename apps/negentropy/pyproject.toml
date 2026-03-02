@@ -73,6 +73,8 @@ line-ending = "auto"
 [tool.pytest.ini_options]
 # Automatically treat async def functions as async tests (no manual @pytest.mark.asyncio needed)
 asyncio_mode = "auto"
+# Set event loop fixture scope to function to match db_engine fixture scope
+asyncio_default_fixture_loop_scope = "function"
 # Add src to pythonpath so tests can import the package directly without installation
 pythonpath = ["src"]
 # Restrict test discovery to the tests directory to avoid picking up scripts or other files

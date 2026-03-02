@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import { FactListPayload, fetchFacts, searchFacts } from "@/features/memory";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 export default function MemoryFactsPage() {
   const [userId, setUserId] = useState("");

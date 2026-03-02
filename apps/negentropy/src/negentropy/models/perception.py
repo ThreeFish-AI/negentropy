@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint, Index
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -75,6 +75,18 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     # 上传者信息
     created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    # 预处理后的 Markdown 内容与状态
+    markdown_content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    markdown_gcs_uri: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    markdown_extract_status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="pending",
+        server_default="'pending'",
+    )
+    markdown_extract_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    markdown_extracted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # 可选元数据
     metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
 
@@ -83,6 +95,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
         Index("ix_knowledge_documents_file_hash", "file_hash"),
         Index("ix_knowledge_documents_app_name", "app_name"),
         Index("ix_knowledge_documents_status", "status"),
+        Index("ix_knowledge_documents_markdown_extract_status", "markdown_extract_status"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 

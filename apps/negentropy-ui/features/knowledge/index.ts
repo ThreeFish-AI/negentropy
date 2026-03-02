@@ -58,6 +58,7 @@ export {
   // Document Management
   fetchDocuments,
   fetchAllDocuments,
+  fetchDocumentDetail,
   deleteDocument,
   downloadDocument,
   // Graph Enhanced API (Phase 1)
@@ -98,6 +99,7 @@ export type {
   KnowledgeListResponse,
   // Document Management
   KnowledgeDocument,
+  KnowledgeDocumentDetail,
   DocumentListResponse,
   // Graph Enhanced Types (Phase 1)
   GraphSearchMode,

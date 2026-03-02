@@ -15,7 +15,7 @@ import {
   deleteCorpus,
 } from "@/features/knowledge";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 type ExecutorResult = Promise<unknown>;
 

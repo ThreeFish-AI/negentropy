@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   KnowledgeDocument,
@@ -13,8 +13,9 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { DocumentViewDialog } from "./_components/DocumentViewDialog";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
 function formatFileSize(bytes: number): string {
@@ -23,7 +24,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getFileIcon(contentType: string | null): JSX.Element {
+function getFileIcon(contentType: string | null): React.ReactElement {
   if (contentType?.includes("pdf")) {
     return (
       <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -45,7 +46,7 @@ function getFileIcon(contentType: string | null): JSX.Element {
   );
 }
 
-function truncateHash(hash: string | null): JSX.Element {
+function truncateHash(hash: string | null): React.ReactElement {
   if (!hash) return <span className="text-muted">-</span>;
   const truncated = `${hash.slice(0, 8)}...${hash.slice(-4)}`;
   return (
@@ -74,6 +75,7 @@ export default function DocumentsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
+  const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
 
   // 加载语料库列表
   const loadCorpora = useCallback(async () => {
@@ -228,7 +230,7 @@ export default function DocumentsPage() {
 
                       {/* Created At - col-span-1 */}
                       <div className="col-span-1 text-muted text-xs text-center">
-                        {formatRelativeTime(doc.created_at)}
+                        {formatRelativeTime(doc.created_at ?? undefined)}
                       </div>
 
                       {/* 操作 - col-span-1 */}
@@ -262,6 +264,16 @@ export default function DocumentsPage() {
                           </div>
                         ) : (
                           <>
+                            <button
+                              onClick={() => setViewingDoc(doc)}
+                              className="rounded p-1.5 text-muted hover:text-green-600 hover:bg-green-50 transition-colors"
+                              title="View document content"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
                             <button
                               onClick={() => handleDownload(doc)}
                               disabled={downloadingIds.has(doc.id)}
@@ -322,6 +334,13 @@ export default function DocumentsPage() {
           </div>
         </main>
       </div>
+
+      {/* Document View Dialog */}
+      <DocumentViewDialog
+        isOpen={viewingDoc !== null}
+        document={viewingDoc}
+        onClose={() => setViewingDoc(null)}
+      />
     </div>
   );
 }

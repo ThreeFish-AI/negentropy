@@ -7,8 +7,8 @@ from uuid import UUID
 from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import Corpus, Knowledge
@@ -22,11 +22,27 @@ logger = get_logger("negentropy.knowledge.repository")
 
 
 class KnowledgeRepository:
-    def __init__(self, session_factory=AsyncSessionLocal):
+    def __init__(self, session_factory: Optional[async_sessionmaker] = None):
+        """
+        初始化 KnowledgeRepository。
+
+        Args:
+            session_factory: 可选的 async_sessionmaker 实例。
+                           如果为 None，将在首次使用时从 db.session 获取。
+        """
         self._session_factory = session_factory
 
+    def _get_session_factory(self) -> async_sessionmaker:
+        """获取当前的 session factory，支持运行时 patch"""
+        if self._session_factory is not None:
+            return self._session_factory
+        # 延迟导入，确保获取到被 patch 后的值
+        from negentropy.db.session import AsyncSessionLocal
+
+        return AsyncSessionLocal
+
     async def get_corpus(self, *, app_name: str, name: str) -> Optional[CorpusRecord]:
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.app_name == app_name, Corpus.name == name)
             result = await db.execute(stmt)
             corpus = result.scalar_one_or_none()
@@ -35,7 +51,7 @@ class KnowledgeRepository:
             return self._to_corpus_record(corpus)
 
     async def get_corpus_by_id(self, corpus_id: UUID) -> Optional[CorpusRecord]:
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.id == corpus_id)
             result = await db.execute(stmt)
             corpus = result.scalar_one_or_none()
@@ -44,14 +60,14 @@ class KnowledgeRepository:
             return self._to_corpus_record(corpus)
 
     async def list_corpora(self, *, app_name: str) -> list[CorpusRecord]:
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.app_name == app_name).order_by(Corpus.created_at.desc())
             result = await db.execute(stmt)
             corpora = result.scalars().all()
             return [self._to_corpus_record(corpus) for corpus in corpora]
 
     async def create_corpus(self, spec: CorpusSpec) -> CorpusRecord:
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             corpus = Corpus(
                 app_name=spec.app_name,
                 name=spec.name,
@@ -64,7 +80,7 @@ class KnowledgeRepository:
             return self._to_corpus_record(corpus)
 
     async def update_corpus(self, corpus_id: UUID, spec: Dict[str, Any]) -> Optional[CorpusRecord]:
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.id == corpus_id)
             result = await db.execute(stmt)
             corpus = result.scalar_one_or_none()
@@ -96,7 +112,7 @@ class KnowledgeRepository:
             return await self.get_corpus(app_name=spec.app_name, name=spec.name)
 
     async def delete_corpus(self, corpus_id: UUID) -> None:
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.id == corpus_id)
             result = await db.execute(stmt)
             corpus = result.scalar_one_or_none()
@@ -132,7 +148,7 @@ class KnowledgeRepository:
         ]
 
         try:
-            async with self._session_factory() as db:
+            async with self._get_session_factory()() as db:
                 # 使用 PostgreSQL INSERT ... RETURNING 子句直接获取插入结果
                 # 避免二次查询丢失 source_uri=None 的记录
                 stmt = (
@@ -185,7 +201,7 @@ class KnowledgeRepository:
         app_name: str,
         source_uri: str,
     ) -> int:
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             stmt = select(Knowledge).where(
                 Knowledge.corpus_id == corpus_id,
                 Knowledge.app_name == app_name,
@@ -199,6 +215,55 @@ class KnowledgeRepository:
                 await db.delete(item)
             await db.commit()
             return len(items)
+
+    async def archive_knowledge_by_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        archived: bool = True,
+    ) -> int:
+        """归档或解档指定 source_uri 的所有知识块
+
+        通过更新 metadata_ JSONB 字段中的 archived 标记实现。
+
+        Args:
+            corpus_id: 知识库 ID
+            app_name: 应用名称
+            source_uri: 来源 URI
+            archived: True 表示归档，False 表示解档
+
+        Returns:
+            更新的记录数量
+        """
+        async with self._session_factory() as db:
+            # 使用 PostgreSQL 的 jsonb_set 函数更新 metadata
+            # 如果 archived=True，设置 metadata.archived = true
+            # 如果 archived=False，设置 metadata.archived = false
+            archive_value = "true" if archived else "false"
+            update_stmt = text("""
+                UPDATE {schema}.knowledge
+                SET metadata_ = jsonb_set(
+                    COALESCE(metadata_, '{{}}'::jsonb),
+                    '{{archived}}',
+                    '{value}'::jsonb
+                )
+                WHERE corpus_id = :corpus_id
+                  AND app_name = :app_name
+                  AND source_uri = :source_uri
+            """.format(schema=NEGENTROPY_SCHEMA, value=archive_value))
+
+            result = await db.execute(
+                update_stmt,
+                {
+                    "corpus_id": corpus_id,
+                    "app_name": app_name,
+                    "source_uri": source_uri,
+                },
+            )
+            await db.commit()
+            return result.rowcount
 
     async def list_knowledge(
         self,
@@ -224,7 +289,7 @@ class KnowledgeRepository:
             - total_count: 符合条件的总数量（考虑 source_uri 过滤）
             - source_stats: 全局的 source_uri 统计 {uri: count}，null 来源用 "__null__" 表示
         """
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             # 基础查询条件
             base_conditions = [
                 Knowledge.corpus_id == corpus_id,
@@ -291,7 +356,7 @@ class KnowledgeRepository:
         使用 pgvector 的 cosine 距离进行向量相似度搜索。
         """
         try:
-            async with self._session_factory() as db:
+            async with self._get_session_factory()() as db:
                 distance = Knowledge.embedding.op("<=>")(query_embedding)
                 stmt = (
                     select(Knowledge, (1 - distance).label("semantic_score"))
@@ -371,7 +436,7 @@ class KnowledgeRepository:
         )
 
         try:
-            async with self._session_factory() as db:
+            async with self._get_session_factory()() as db:
                 result = await db.execute(stmt, params)
                 rows = result.mappings().all()
 
@@ -456,7 +521,7 @@ class KnowledgeRepository:
         )
 
         try:
-            async with self._session_factory() as db:
+            async with self._get_session_factory()() as db:
                 result = await db.execute(stmt, params)
                 rows = result.mappings().all()
 
@@ -595,7 +660,7 @@ class KnowledgeRepository:
         )
 
         try:
-            async with self._session_factory() as db:
+            async with self._get_session_factory()() as db:
                 result = await db.execute(stmt, params)
                 rows = result.mappings().all()
 

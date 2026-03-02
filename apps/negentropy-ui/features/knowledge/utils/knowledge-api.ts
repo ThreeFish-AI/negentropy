@@ -486,6 +486,14 @@ export interface KnowledgeDocument {
   status: string;
   created_at: string | null;
   created_by: string | null;
+  markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
+  markdown_extracted_at?: string | null;
+  markdown_extract_error?: string | null;
+}
+
+export interface KnowledgeDocumentDetail extends KnowledgeDocument {
+  markdown_content: string | null;
+  markdown_gcs_uri: string | null;
 }
 
 export interface DocumentListResponse {
@@ -555,6 +563,23 @@ export async function deleteDocument(
   if (!res.ok) {
     throw new Error(`Failed to delete document: ${res.statusText}`);
   }
+}
+
+export async function fetchDocumentDetail(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+  },
+): Promise<KnowledgeDocumentDetail> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
 }
 
 export async function downloadDocument(
@@ -665,6 +690,56 @@ export async function rebuildSource(
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/rebuild_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+// ============================================================================
+// Source Management API
+// ============================================================================
+
+export interface DeleteSourceResult {
+  deleted_count: number;
+}
+
+export interface ArchiveSourceResult {
+  updated_count: number;
+  archived: boolean;
+}
+
+/**
+ * 删除指定 source_uri 的所有知识块
+ */
+export async function deleteSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+  },
+): Promise<DeleteSourceResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/delete_source`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 归档或解档指定 source_uri
+ */
+export async function archiveSource(
+  id: string,
+  params: {
+    app_name?: string;
+    source_uri: string;
+    archived?: boolean;
+  },
+): Promise<ArchiveSourceResult> {
+  const res = await fetch(`/api/knowledge/base/${id}/archive_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),

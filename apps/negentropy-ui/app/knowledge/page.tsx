@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { fetchDashboard, KnowledgeDashboard, PipelineRunList } from "@/features/knowledge";
 
-const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "agents";
+const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 export default function KnowledgeDashboardPage() {
   const [data, setData] = useState<KnowledgeDashboard | null>(null);
@@ -58,7 +58,7 @@ export default function KnowledgeDashboardPage() {
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
-        title="Knowledge Dashboard"
+        title="Dashboard"
         description="Knowledge 指标、构建与告警概览"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">

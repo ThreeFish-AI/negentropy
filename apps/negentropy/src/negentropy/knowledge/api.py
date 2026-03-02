@@ -112,6 +112,17 @@ class RebuildSourceRequest(BaseModel):
     preserve_newlines: Optional[bool] = None
 
 
+class DeleteSourceRequest(BaseModel):
+    app_name: Optional[str] = None
+    source_uri: str
+
+
+class ArchiveSourceRequest(BaseModel):
+    app_name: Optional[str] = None
+    source_uri: str
+    archived: bool = True
+
+
 class AsyncPipelineResponse(BaseModel):
     """异步 Pipeline 响应模型"""
 
@@ -727,9 +738,62 @@ async def ingest_url(
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
+async def _extract_and_store_document_markdown(
+    *,
+    document_id: UUID,
+    content: bytes,
+    filename: str,
+    content_type: Optional[str],
+) -> None:
+    """后台提取并持久化文档 Markdown 正文。"""
+    from .content import extract_file_markdown
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    await storage_service.update_markdown_extraction_status(
+        document_id=document_id,
+        status="processing",
+        error=None,
+    )
+
+    try:
+        markdown_content = await extract_file_markdown(
+            content=content,
+            filename=filename,
+            content_type=content_type,
+        )
+        markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+            document_id=document_id,
+            markdown_content=markdown_content,
+        )
+        await storage_service.save_markdown_content(
+            document_id=document_id,
+            markdown_content=markdown_content,
+            markdown_gcs_uri=markdown_gcs_uri,
+        )
+        logger.info(
+            "document_markdown_extraction_completed",
+            document_id=str(document_id),
+            markdown_size=len(markdown_content),
+            markdown_gcs_uri=markdown_gcs_uri,
+        )
+    except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
+        logger.error(
+            "document_markdown_extraction_failed",
+            document_id=str(document_id),
+            error=str(exc),
+        )
+        await storage_service.update_markdown_extraction_status(
+            document_id=document_id,
+            status="failed",
+            error=str(exc),
+        )
+
+
 @router.post("/base/{corpus_id}/ingest_file")
 async def ingest_file(
     corpus_id: UUID,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     app_name: Optional[str] = Form(default=None),
     source_uri: Optional[str] = Form(default=None),
@@ -816,6 +880,7 @@ async def ingest_file(
         doc_record = None
         is_new_doc = True
         gcs_uri = None
+        schedule_markdown_extraction = False
 
         if store_to_gcs:
             from negentropy.storage.service import DocumentStorageService
@@ -840,6 +905,10 @@ async def ingest_file(
                     is_new=is_new_doc,
                     gcs_uri=gcs_uri,
                 )
+                schedule_markdown_extraction = (
+                    is_new_doc
+                    or doc_record.markdown_extract_status != "completed"
+                )
             except StorageError as exc:
                 logger.warning("gcs_storage_failed_proceeding_without_storage", error=str(exc))
                 # 继续处理，但不存储到 GCS
@@ -857,8 +926,12 @@ async def ingest_file(
                 detail={"code": "EMPTY_CONTENT", "message": "No text content extracted from file"},
             )
 
-        # 使用 source_uri 参数 > GCS URI > 清理后的文件名
-        final_source_uri = source_uri or gcs_uri or safe_filename
+        # GCS 存储的文件强制使用 gcs_uri 作为 source_uri（支持 Rebuild 功能）
+        # 只有非 GCS 存储时才使用用户提供的 source_uri 或文件名
+        if store_to_gcs and gcs_uri:
+            final_source_uri = gcs_uri
+        else:
+            final_source_uri = source_uri or safe_filename
 
         # 获取服务并执行摄入
         service = _get_service()
@@ -907,6 +980,16 @@ async def ingest_file(
         if doc_record:
             result["document_id"] = str(doc_record.id)
             result["duplicate"] = not is_new_doc
+            result["markdown_extract_status"] = doc_record.markdown_extract_status
+
+            if schedule_markdown_extraction:
+                background_tasks.add_task(
+                    _extract_and_store_document_markdown,
+                    document_id=doc_record.id,
+                    content=content,
+                    filename=safe_filename,
+                    content_type=file.content_type,
+                )
 
         return result
 
@@ -945,9 +1028,19 @@ class DocumentResponse(BaseModel):
     status: str
     created_at: Optional[str] = None
     created_by: Optional[str] = None
+    markdown_extract_status: str = "pending"
+    markdown_extracted_at: Optional[str] = None
+    markdown_extract_error: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class DocumentDetailResponse(DocumentResponse):
+    """文档详情响应（含 Markdown 正文）。"""
+
+    markdown_content: Optional[str] = None
+    markdown_gcs_uri: Optional[str] = None
 
 
 class DocumentListResponse(BaseModel):
@@ -1002,6 +1095,9 @@ async def list_documents(
                 status=doc.status,
                 created_at=doc.created_at.isoformat() if doc.created_at else None,
                 created_by=doc.created_by,
+                markdown_extract_status=doc.markdown_extract_status,
+                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
+                markdown_extract_error=doc.markdown_extract_error,
             )
             for doc in docs
         ],
@@ -1050,9 +1146,59 @@ async def list_all_documents(
                 file_size=doc.file_size,
                 status=doc.status,
                 created_at=doc.created_at.isoformat() if doc.created_at else None,
+                created_by=doc.created_by,
+                markdown_extract_status=doc.markdown_extract_status,
+                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
+                markdown_extract_error=doc.markdown_extract_error,
             )
             for doc in docs
         ],
+    )
+
+
+@router.get("/base/{corpus_id}/documents/{document_id}", response_model=DocumentDetailResponse)
+async def get_document_detail(
+    corpus_id: UUID,
+    document_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+) -> DocumentDetailResponse:
+    """获取单个文档详情（含 Markdown 正文）。"""
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    markdown_content = await storage_service.get_document_markdown(document_id)
+
+    return DocumentDetailResponse(
+        id=doc.id,
+        corpus_id=doc.corpus_id,
+        app_name=doc.app_name,
+        file_hash=doc.file_hash,
+        original_filename=doc.original_filename,
+        gcs_uri=doc.gcs_uri,
+        content_type=doc.content_type,
+        file_size=doc.file_size,
+        status=doc.status,
+        created_at=doc.created_at.isoformat() if doc.created_at else None,
+        created_by=doc.created_by,
+        markdown_extract_status=doc.markdown_extract_status,
+        markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
+        markdown_extract_error=doc.markdown_extract_error,
+        markdown_content=markdown_content,
+        markdown_gcs_uri=doc.markdown_gcs_uri,
     )
 
 
@@ -1410,6 +1556,129 @@ async def rebuild_source(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "VALIDATION_ERROR", "message": "Invalid request parameters", "errors": exc.errors()},
         ) from exc
+
+
+class DeleteSourceResponse(BaseModel):
+    """删除 Source 响应模型"""
+
+    deleted_count: int
+
+
+@router.post("/base/{corpus_id}/delete_source", response_model=DeleteSourceResponse)
+async def delete_source(
+    corpus_id: UUID,
+    payload: DeleteSourceRequest,
+) -> DeleteSourceResponse:
+    """删除指定 source_uri 的所有知识块
+
+    Args:
+        corpus_id: 知识库 ID
+        payload: 删除请求，包含 source_uri
+
+    Returns:
+        DeleteSourceResponse: 删除的记录数量
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    source_uri = payload.source_uri
+
+    if not source_uri:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_SOURCE_URI", "message": "source_uri is required"},
+        )
+
+    logger.info(
+        "api_delete_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        source_uri=source_uri,
+    )
+
+    try:
+        service = _get_service()
+        deleted_count = await service.delete_source(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            source_uri=source_uri,
+        )
+
+        logger.info(
+            "api_delete_source_completed",
+            corpus_id=str(corpus_id),
+            app_name=resolved_app,
+            source_uri=source_uri,
+            deleted_count=deleted_count,
+        )
+
+        return DeleteSourceResponse(deleted_count=deleted_count)
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
+
+
+class ArchiveSourceResponse(BaseModel):
+    """归档/解档 Source 响应模型"""
+
+    updated_count: int
+    archived: bool
+
+
+@router.post("/base/{corpus_id}/archive_source", response_model=ArchiveSourceResponse)
+async def archive_source(
+    corpus_id: UUID,
+    payload: ArchiveSourceRequest,
+) -> ArchiveSourceResponse:
+    """归档或解档指定 source_uri
+
+    通过更新 Knowledge 记录的 metadata 中的 archived 字段实现归档/解档。
+    归档后的 Source 仍然存在，但在默认查询中会被排除。
+
+    Args:
+        corpus_id: 知识库 ID
+        payload: 归档请求，包含 source_uri 和 archived 状态
+
+    Returns:
+        ArchiveSourceResponse: 更新的记录数量
+    """
+    resolved_app = _resolve_app_name(payload.app_name)
+    source_uri = payload.source_uri
+
+    if not source_uri:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_SOURCE_URI", "message": "source_uri is required"},
+        )
+
+    logger.info(
+        "api_archive_source_started",
+        corpus_id=str(corpus_id),
+        app_name=resolved_app,
+        source_uri=source_uri,
+        archived=payload.archived,
+    )
+
+    try:
+        service = _get_service()
+        updated_count = await service.archive_source(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            source_uri=source_uri,
+            archived=payload.archived,
+        )
+
+        logger.info(
+            "api_archive_source_completed",
+            corpus_id=str(corpus_id),
+            app_name=resolved_app,
+            source_uri=source_uri,
+            archived=payload.archived,
+            updated_count=updated_count,
+        )
+
+        return ArchiveSourceResponse(updated_count=updated_count, archived=payload.archived)
+
+    except KnowledgeError as exc:
+        raise _map_exception_to_http(exc) from exc
 
 
 @router.post("/base/{corpus_id}/search")

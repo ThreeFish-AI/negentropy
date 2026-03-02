@@ -228,7 +228,7 @@ NE_AUTH_ADMIN_EMAILS=admin@example.com
 ```
 AUTH_BASE_URL=https://<backend-host>
 NEXT_PUBLIC_AGUI_BASE_URL=https://<backend-host>
-NEXT_PUBLIC_AGUI_APP_NAME=agents
+NEXT_PUBLIC_AGUI_APP_NAME=negentropy
 ```
 
 ## 9. 安全与运维要点

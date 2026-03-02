@@ -28,6 +28,20 @@ function isGcsSource(uri: string): boolean {
   return uri.startsWith("gs://");
 }
 
+/**
+ * 获取 Source 的显示名称
+ * - GCS URI: 提取最后一部分作为文件名
+ * - URL: 保持原样
+ * - 其他: 保持原样
+ */
+function getDisplayUri(uri: string): string {
+  if (uri.startsWith("gs://")) {
+    const parts = uri.split("/");
+    return parts[parts.length - 1] || uri;
+  }
+  return uri;
+}
+
 export function SourceList({
   sourceStats,
   selectedUri,
@@ -80,7 +94,7 @@ export function SourceList({
 
       {/* 具体 Source 列表 */}
       {sortedSources.map(({ uri, count }) => {
-        const displayUri = uri || "(无来源)";
+        const displayUri = uri ? getDisplayUri(uri) : "(无来源)";
         const key = uri ?? "__no_source__";
         const showMenu = uri && (onReplaceSource || onSyncSource || onRebuildSource);
         const isUrl = uri ? isUrlSource(uri) : false;
@@ -95,7 +109,7 @@ export function SourceList({
                   : "text-muted hover:bg-muted/50 hover:text-foreground"
               }`}
               onClick={() => onSelect(uri)}
-              title={displayUri}
+              title={uri || "(无来源)"}
             >
               <span className="block truncate">{displayUri}</span>
               <span className="text-[10px] opacity-70">
