@@ -80,11 +80,12 @@ class McpServerCreateRequest(BaseModel):
     name: str
     display_name: Optional[str] = None
     description: Optional[str] = None
-    transport_type: str  # stdio, sse, websocket
+    transport_type: str  # stdio, sse, http
     command: Optional[str] = None
     args: List[str] = Field(default_factory=list)
     env: Dict[str, str] = Field(default_factory=dict)
     url: Optional[str] = None
+    headers: Dict[str, str] = Field(default_factory=dict)
     is_enabled: bool = True
     auto_start: bool = False
     config: Dict[str, Any] = Field(default_factory=dict)
@@ -98,6 +99,7 @@ class McpServerUpdateRequest(BaseModel):
     args: Optional[List[str]] = None
     env: Optional[Dict[str, str]] = None
     url: Optional[str] = None
+    headers: Optional[Dict[str, str]] = None
     is_enabled: Optional[bool] = None
     auto_start: Optional[bool] = None
     config: Optional[Dict[str, Any]] = None
@@ -116,6 +118,7 @@ class McpServerResponse(BaseModel):
     args: List[str] = Field(default_factory=list)
     env: Dict[str, str] = Field(default_factory=dict)
     url: Optional[str] = None
+    headers: Dict[str, str] = Field(default_factory=dict)
     is_enabled: bool = True
     auto_start: bool = False
     config: Dict[str, Any] = Field(default_factory=dict)
@@ -321,6 +324,7 @@ async def create_mcp_server(
             args=payload.args,
             env=payload.env,
             url=payload.url,
+            headers=payload.headers,
             is_enabled=payload.is_enabled,
             auto_start=payload.auto_start,
             config=payload.config,
@@ -419,6 +423,7 @@ def _mcp_server_to_response(server: McpServer, tool_count: int) -> McpServerResp
         args=server.args or [],
         env=server.env or {},
         url=server.url,
+        headers=server.headers or {},
         is_enabled=server.is_enabled,
         auto_start=server.auto_start,
         config=server.config or {},

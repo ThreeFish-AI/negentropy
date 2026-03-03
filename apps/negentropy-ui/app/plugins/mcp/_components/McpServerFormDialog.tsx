@@ -12,6 +12,7 @@ interface McpServer {
   args: string[];
   env: Record<string, string>;
   url: string | null;
+  headers: Record<string, string>;
   is_enabled: boolean;
   auto_start: boolean;
   config: Record<string, unknown>;
@@ -40,6 +41,7 @@ export function McpServerFormDialog({
     args: "",
     env: "",
     url: "",
+    headers: "",
     is_enabled: true,
     auto_start: false,
     visibility: "private",
@@ -58,6 +60,7 @@ export function McpServerFormDialog({
         args: Array.isArray(server.args) ? server.args.join("\n") : "",
         env: typeof server.env === "object" ? JSON.stringify(server.env, null, 2) : "{}",
         url: server.url || "",
+        headers: typeof server.headers === "object" ? JSON.stringify(server.headers, null, 2) : "{}",
         is_enabled: server.is_enabled,
         auto_start: server.auto_start,
         visibility: server.visibility,
@@ -72,6 +75,7 @@ export function McpServerFormDialog({
         args: "",
         env: "{}",
         url: "",
+        headers: "{}",
         is_enabled: true,
         auto_start: false,
         visibility: "private",
@@ -109,6 +113,11 @@ export function McpServerFormDialog({
         }
       } else {
         data.url = formData.url || null;
+        try {
+          data.headers = JSON.parse(formData.headers || "{}");
+        } catch {
+          throw new Error("Invalid JSON in headers");
+        }
       }
 
       await onSubmit(data);
@@ -189,8 +198,8 @@ export function McpServerFormDialog({
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
               >
                 <option value="stdio">STDIO</option>
+                <option value="http">HTTP (Streamable)</option>
                 <option value="sse">SSE</option>
-                <option value="websocket">WebSocket</option>
               </select>
             </div>
             <div>
@@ -249,18 +258,34 @@ export function McpServerFormDialog({
               </div>
             </>
           ) : (
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                URL *
-              </label>
-              <input
-                type="url"
-                value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                placeholder="http://localhost:8080/mcp"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  URL *
+                </label>
+                <input
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                  placeholder={formData.transport_type === "http"
+                    ? "http://localhost:8080/mcp"
+                    : "http://localhost:8080/sse"}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  Headers (JSON)
+                </label>
+                <textarea
+                  value={formData.headers}
+                  onChange={(e) => setFormData({ ...formData, headers: e.target.value })}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 font-mono"
+                  rows={3}
+                  placeholder='{"Authorization": "Bearer xxx"}'
+                />
+              </div>
+            </>
           )}
 
           <div className="flex items-center gap-4">
