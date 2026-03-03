@@ -24,32 +24,45 @@ def upgrade() -> None:
     names (snake_case) from previous migrations, and ensures the correct names
     (lowercase class names as per SQLAlchemy default) exist.
 
-    Uses EXCEPTION WHEN duplicate_object to ensure idempotency regardless of
-    the current database state.
+    Uses conditional logic to ensure idempotency regardless of the current
+    database state. Key scenarios:
+    1. Old type exists, new type doesn't exist -> RENAME
+    2. Both old and new types exist -> DROP old, keep new
+    3. Only new type exists -> No-op
+    4. Neither exists -> CREATE new
     """
 
     # ==========================================================================
     # 1. Handle plugin_visibility -> pluginvisibility
     # ==========================================================================
 
-    # Step 1: 重命名旧类型（如果存在）
     op.execute("""
         DO $$ BEGIN
+            -- Check if old type exists
             IF EXISTS (SELECT 1 FROM pg_type t
                        JOIN pg_namespace n ON t.typnamespace = n.oid
                        WHERE t.typname = 'plugin_visibility' AND n.nspname = 'negentropy')
             THEN
-                ALTER TYPE negentropy.plugin_visibility RENAME TO pluginvisibility;
+                -- Check if new type also exists
+                IF EXISTS (SELECT 1 FROM pg_type t
+                           JOIN pg_namespace n ON t.typnamespace = n.oid
+                           WHERE t.typname = 'pluginvisibility' AND n.nspname = 'negentropy')
+                THEN
+                    -- Both exist: drop old type (new type takes precedence)
+                    DROP TYPE negentropy.plugin_visibility CASCADE;
+                ELSE
+                    -- Only old exists: rename to new
+                    ALTER TYPE negentropy.plugin_visibility RENAME TO pluginvisibility;
+                END IF;
+            ELSE
+                -- Old type doesn't exist, ensure new type exists
+                IF NOT EXISTS (SELECT 1 FROM pg_type t
+                               JOIN pg_namespace n ON t.typnamespace = n.oid
+                               WHERE t.typname = 'pluginvisibility' AND n.nspname = 'negentropy')
+                THEN
+                    CREATE TYPE negentropy.pluginvisibility AS ENUM ('private', 'shared', 'public');
+                END IF;
             END IF;
-        END $$;
-    """)
-
-    # Step 2: 确保新类型存在（使用异常捕获保证幂等性）
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE negentropy.pluginvisibility AS ENUM ('private', 'shared', 'public');
-        EXCEPTION
-            WHEN duplicate_object THEN null;
         END $$;
     """)
 
@@ -57,24 +70,33 @@ def upgrade() -> None:
     # 2. Handle plugin_permission_type -> pluginpermissiontype
     # ==========================================================================
 
-    # Step 1: 重命名旧类型（如果存在）
     op.execute("""
         DO $$ BEGIN
+            -- Check if old type exists
             IF EXISTS (SELECT 1 FROM pg_type t
                        JOIN pg_namespace n ON t.typnamespace = n.oid
                        WHERE t.typname = 'plugin_permission_type' AND n.nspname = 'negentropy')
             THEN
-                ALTER TYPE negentropy.plugin_permission_type RENAME TO pluginpermissiontype;
+                -- Check if new type also exists
+                IF EXISTS (SELECT 1 FROM pg_type t
+                           JOIN pg_namespace n ON t.typnamespace = n.oid
+                           WHERE t.typname = 'pluginpermissiontype' AND n.nspname = 'negentropy')
+                THEN
+                    -- Both exist: drop old type (new type takes precedence)
+                    DROP TYPE negentropy.plugin_permission_type CASCADE;
+                ELSE
+                    -- Only old exists: rename to new
+                    ALTER TYPE negentropy.plugin_permission_type RENAME TO pluginpermissiontype;
+                END IF;
+            ELSE
+                -- Old type doesn't exist, ensure new type exists
+                IF NOT EXISTS (SELECT 1 FROM pg_type t
+                               JOIN pg_namespace n ON t.typnamespace = n.oid
+                               WHERE t.typname = 'pluginpermissiontype' AND n.nspname = 'negentropy')
+                THEN
+                    CREATE TYPE negentropy.pluginpermissiontype AS ENUM ('view', 'edit');
+                END IF;
             END IF;
-        END $$;
-    """)
-
-    # Step 2: 确保新类型存在（使用异常捕获保证幂等性）
-    op.execute("""
-        DO $$ BEGIN
-            CREATE TYPE negentropy.pluginpermissiontype AS ENUM ('view', 'edit');
-        EXCEPTION
-            WHEN duplicate_object THEN null;
         END $$;
     """)
 
