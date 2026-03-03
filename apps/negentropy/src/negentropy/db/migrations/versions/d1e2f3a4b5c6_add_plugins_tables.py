@@ -26,18 +26,20 @@ def upgrade() -> None:
     # 首先创建枚举类型
     # ==========================================================================
     # Create pluginvisibility enum (SQLAlchemy default naming: class name lowercase)
+    # Note: SQLAlchemy uses enum member names (UPPERCASE) when serializing to PostgreSQL
     op.execute("""
         DO $$ BEGIN
-            CREATE TYPE negentropy.pluginvisibility AS ENUM ('private', 'shared', 'public');
+            CREATE TYPE negentropy.pluginvisibility AS ENUM ('PRIVATE', 'SHARED', 'PUBLIC');
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
     """)
 
     # Create pluginpermissiontype enum (SQLAlchemy default naming: class name lowercase)
+    # Note: SQLAlchemy uses enum member names (UPPERCASE) when serializing to PostgreSQL
     op.execute("""
         DO $$ BEGIN
-            CREATE TYPE negentropy.pluginpermissiontype AS ENUM ('view', 'edit');
+            CREATE TYPE negentropy.pluginpermissiontype AS ENUM ('VIEW', 'EDIT');
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
@@ -54,9 +56,9 @@ def upgrade() -> None:
         sa.Column("user_id", sa.String(255), nullable=False),
         sa.Column(
             "permission",
-            postgresql.ENUM("view", "edit", name="pluginpermissiontype", schema="negentropy", create_type=False),
+            postgresql.ENUM("VIEW", "EDIT", name="pluginpermissiontype", schema="negentropy", create_type=False),
             nullable=False,
-            server_default="view",
+            server_default="VIEW",
         ),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
@@ -77,9 +79,9 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy", create_type=False),
+            postgresql.ENUM("PRIVATE", "SHARED", "PUBLIC", name="pluginvisibility", schema="negentropy", create_type=False),
             nullable=False,
-            server_default="private",
+            server_default="PRIVATE",
         ),
         # Basic info
         sa.Column("name", sa.String(255), nullable=False),
@@ -136,9 +138,9 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy", create_type=False),
+            postgresql.ENUM("PRIVATE", "SHARED", "PUBLIC", name="pluginvisibility", schema="negentropy", create_type=False),
             nullable=False,
-            server_default="private",
+            server_default="PRIVATE",
         ),
         # Basic info
         sa.Column("name", sa.String(255), nullable=False),
@@ -173,9 +175,9 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy", create_type=False),
+            postgresql.ENUM("PRIVATE", "SHARED", "PUBLIC", name="pluginvisibility", schema="negentropy", create_type=False),
             nullable=False,
-            server_default="private",
+            server_default="PRIVATE",
         ),
         # Basic info
         sa.Column("name", sa.String(255), nullable=False),

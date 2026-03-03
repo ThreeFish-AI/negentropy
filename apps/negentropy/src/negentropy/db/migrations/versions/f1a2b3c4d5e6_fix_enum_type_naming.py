@@ -60,7 +60,7 @@ def upgrade() -> None:
                                JOIN pg_namespace n ON t.typnamespace = n.oid
                                WHERE t.typname = 'pluginvisibility' AND n.nspname = 'negentropy')
                 THEN
-                    CREATE TYPE negentropy.pluginvisibility AS ENUM ('private', 'shared', 'public');
+                    CREATE TYPE negentropy.pluginvisibility AS ENUM ('PRIVATE', 'SHARED', 'PUBLIC');
                 END IF;
             END IF;
         END $$;
@@ -94,7 +94,7 @@ def upgrade() -> None:
                                JOIN pg_namespace n ON t.typnamespace = n.oid
                                WHERE t.typname = 'pluginpermissiontype' AND n.nspname = 'negentropy')
                 THEN
-                    CREATE TYPE negentropy.pluginpermissiontype AS ENUM ('view', 'edit');
+                    CREATE TYPE negentropy.pluginpermissiontype AS ENUM ('VIEW', 'EDIT');
                 END IF;
             END IF;
         END $$;
