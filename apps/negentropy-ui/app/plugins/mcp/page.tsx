@@ -112,6 +112,8 @@ export default function McpServersPage() {
     try {
       const response = await fetch(`/api/plugins/mcp/servers/${serverId}/tools`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
