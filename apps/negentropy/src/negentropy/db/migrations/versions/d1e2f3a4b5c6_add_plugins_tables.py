@@ -25,19 +25,19 @@ def upgrade() -> None:
     # ==========================================================================
     # 首先创建枚举类型
     # ==========================================================================
-    # Create plugin_visibility enum
+    # Create pluginvisibility enum (SQLAlchemy default naming: class name lowercase)
     op.execute("""
         DO $$ BEGIN
-            CREATE TYPE negentropy.plugin_visibility AS ENUM ('private', 'shared', 'public');
+            CREATE TYPE negentropy.pluginvisibility AS ENUM ('private', 'shared', 'public');
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
     """)
 
-    # Create plugin_permission_type enum
+    # Create pluginpermissiontype enum (SQLAlchemy default naming: class name lowercase)
     op.execute("""
         DO $$ BEGIN
-            CREATE TYPE negentropy.plugin_permission_type AS ENUM ('view', 'edit');
+            CREATE TYPE negentropy.pluginpermissiontype AS ENUM ('view', 'edit');
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
@@ -54,7 +54,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.String(255), nullable=False),
         sa.Column(
             "permission",
-            postgresql.ENUM("view", "edit", name="plugin_permission_type", schema="negentropy"),
+            postgresql.ENUM("view", "edit", name="pluginpermissiontype", schema="negentropy"),
             nullable=False,
             server_default="view",
         ),
@@ -77,7 +77,7 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="plugin_visibility", schema="negentropy"),
+            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy"),
             nullable=False,
             server_default="private",
         ),
@@ -136,7 +136,7 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="plugin_visibility", schema="negentropy"),
+            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy"),
             nullable=False,
             server_default="private",
         ),
@@ -173,7 +173,7 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="plugin_visibility", schema="negentropy"),
+            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy"),
             nullable=False,
             server_default="private",
         ),
@@ -225,6 +225,6 @@ def downgrade() -> None:
     op.drop_index("ix_plugin_permissions_plugin", table_name="plugin_permissions", schema="negentropy")
     op.drop_table("plugin_permissions", schema="negentropy")
 
-    # Drop enums with correct schema
-    op.execute("DROP TYPE IF EXISTS negentropy.plugin_visibility")
-    op.execute("DROP TYPE IF EXISTS negentropy.plugin_permission_type")
+    # Drop enums with correct schema (SQLAlchemy default naming)
+    op.execute("DROP TYPE IF EXISTS negentropy.pluginvisibility")
+    op.execute("DROP TYPE IF EXISTS negentropy.pluginpermissiontype")
