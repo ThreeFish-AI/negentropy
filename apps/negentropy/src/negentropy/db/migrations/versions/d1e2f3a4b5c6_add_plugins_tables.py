@@ -23,6 +23,27 @@ def upgrade() -> None:
     """Create plugins tables for MCP servers, Skills, SubAgents and permissions."""
 
     # ==========================================================================
+    # 首先创建枚举类型
+    # ==========================================================================
+    # Create plugin_visibility enum
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE negentropy.plugin_visibility AS ENUM ('private', 'shared', 'public');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
+
+    # Create plugin_permission_type enum
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE negentropy.plugin_permission_type AS ENUM ('view', 'edit');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
+
+    # ==========================================================================
     # Plugin Permissions 表 (需要先创建，因为其他表可能引用)
     # ==========================================================================
     op.create_table(
@@ -204,6 +225,6 @@ def downgrade() -> None:
     op.drop_index("ix_plugin_permissions_plugin", table_name="plugin_permissions", schema="negentropy")
     op.drop_table("plugin_permissions", schema="negentropy")
 
-    # Drop enums (sa.Enum without schema= creates types in public schema)
-    op.execute("DROP TYPE IF EXISTS plugin_visibility")
-    op.execute("DROP TYPE IF EXISTS plugin_permission_type")
+    # Drop enums with correct schema
+    op.execute("DROP TYPE IF EXISTS negentropy.plugin_visibility")
+    op.execute("DROP TYPE IF EXISTS negentropy.plugin_permission_type")
