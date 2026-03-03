@@ -17,6 +17,7 @@ interface McpServer {
   args: string[];
   env: Record<string, string>;
   url: string | null;
+  headers: Record<string, string>;
   is_enabled: boolean;
   auto_start: boolean;
   config: Record<string, unknown>;

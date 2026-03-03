@@ -69,11 +69,12 @@ class McpServer(Base, UUIDMixin, TimestampMixin):
     description: Mapped[Optional[str]] = mapped_column(Text)
 
     # 传输配置
-    transport_type: Mapped[str] = mapped_column(String(50), nullable=False)  # stdio, sse, websocket
+    transport_type: Mapped[str] = mapped_column(String(50), nullable=False)  # stdio, sse, http
     command: Mapped[Optional[str]] = mapped_column(Text)  # for stdio transport
     args: Mapped[Optional[List[str]]] = mapped_column(JSONB, server_default="[]")
     env: Mapped[Optional[Dict[str, str]]] = mapped_column(JSONB, server_default="{}")
-    url: Mapped[Optional[str]] = mapped_column(String(500))  # for sse/websocket
+    url: Mapped[Optional[str]] = mapped_column(String(500))  # for sse/http
+    headers: Mapped[Optional[Dict[str, str]]] = mapped_column(JSONB, server_default="{}")  # for sse/http
 
     # 状态和配置
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
