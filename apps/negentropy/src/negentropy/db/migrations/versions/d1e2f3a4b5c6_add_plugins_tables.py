@@ -54,7 +54,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.String(255), nullable=False),
         sa.Column(
             "permission",
-            postgresql.ENUM("view", "edit", name="pluginpermissiontype", schema="negentropy"),
+            postgresql.ENUM("view", "edit", name="pluginpermissiontype", schema="negentropy", create_type=False),
             nullable=False,
             server_default="view",
         ),
@@ -77,7 +77,7 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy"),
+            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy", create_type=False),
             nullable=False,
             server_default="private",
         ),
@@ -136,7 +136,7 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy"),
+            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy", create_type=False),
             nullable=False,
             server_default="private",
         ),
@@ -173,7 +173,7 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(255), nullable=False),
         sa.Column(
             "visibility",
-            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy"),
+            postgresql.ENUM("private", "shared", "public", name="pluginvisibility", schema="negentropy", create_type=False),
             nullable=False,
             server_default="private",
         ),
