@@ -129,6 +129,43 @@ class McpServerResponse(BaseModel):
 
 
 # =============================================================================
+# MCP Tool Models
+# =============================================================================
+
+
+class McpToolResponse(BaseModel):
+    """MCP Tool 响应模型"""
+
+    id: Optional[UUID] = None
+    name: str
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    input_schema: Dict[str, Any] = Field(default_factory=dict)
+    is_enabled: bool = True
+    call_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class McpToolUpdateRequest(BaseModel):
+    """MCP Tool 更新请求"""
+
+    display_name: Optional[str] = None
+    is_enabled: Optional[bool] = None
+
+
+class LoadToolsResponse(BaseModel):
+    """Load Tools 操作响应"""
+
+    success: bool
+    server_id: UUID
+    tools: List[McpToolResponse] = Field(default_factory=list)
+    duration_ms: int = 0
+    error: Optional[str] = None
+
+
+# =============================================================================
 # Skill Models
 # =============================================================================
 
@@ -429,6 +466,158 @@ def _mcp_server_to_response(server: McpServer, tool_count: int) -> McpServerResp
         config=server.config or {},
         tool_count=tool_count or 0,
     )
+
+
+def _mcp_tool_to_response(tool: McpTool) -> McpToolResponse:
+    """将 McpTool 模型转换为响应模型"""
+    return McpToolResponse(
+        id=tool.id,
+        name=tool.name,
+        display_name=tool.display_name,
+        description=tool.description,
+        input_schema=tool.input_schema or {},
+        is_enabled=tool.is_enabled,
+        call_count=tool.call_count or 0,
+    )
+
+
+# =============================================================================
+# MCP Tool Endpoints
+# =============================================================================
+
+
+@router.post("/mcp/servers/{server_id}/tools:load", response_model=LoadToolsResponse)
+async def load_mcp_server_tools(
+    server_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> LoadToolsResponse:
+    """
+    连接 MCP Server 并加载其 Tools 列表。
+
+    此操作会：
+    1. 连接到 MCP Server
+    2. 获取所有 Tools
+    3. 同步到数据库（新增/更新）
+    4. 返回 Tools 列表
+    """
+    from .mcp_client import McpClientService
+
+    async with AsyncSessionLocal() as db:
+        # 1. 权限检查
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "edit")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        # 2. 获取 Server 配置
+        server = await db.get(McpServer, server_id)
+        if not server:
+            raise HTTPException(status_code=404, detail="Server not found")
+
+        # 3. 调用 MCP Client Service
+        client = McpClientService()
+        result = await client.discover_tools(
+            transport_type=server.transport_type,
+            command=server.command,
+            args=server.args,
+            env=server.env,
+            url=server.url,
+            headers=server.headers,
+        )
+
+        if not result.success:
+            return LoadToolsResponse(
+                success=False,
+                server_id=server_id,
+                tools=[],
+                duration_ms=result.duration_ms,
+                error=result.error,
+            )
+
+        # 4. 同步 Tools 到数据库
+        existing_tools_result = await db.execute(select(McpTool).where(McpTool.server_id == server_id))
+        existing_tools = existing_tools_result.scalars().all()
+        existing_map = {t.name: t for t in existing_tools}
+
+        updated_tools: List[McpTool] = []
+        for tool_info in result.tools:
+            if tool_info.name in existing_map:
+                # 更新现有 Tool
+                existing = existing_map[tool_info.name]
+                existing.description = tool_info.description
+                existing.input_schema = tool_info.input_schema
+                updated_tools.append(existing)
+            else:
+                # 新增 Tool
+                new_tool = McpTool(
+                    server_id=server_id,
+                    name=tool_info.name,
+                    description=tool_info.description,
+                    input_schema=tool_info.input_schema,
+                    is_enabled=True,
+                )
+                db.add(new_tool)
+                updated_tools.append(new_tool)
+
+        await db.commit()
+
+        # 5. 刷新以获取 ID
+        for tool in updated_tools:
+            await db.refresh(tool)
+
+        logger.info(f"Loaded {len(updated_tools)} tools from MCP server {server.name}")
+
+        return LoadToolsResponse(
+            success=True,
+            server_id=server_id,
+            tools=[_mcp_tool_to_response(t) for t in updated_tools],
+            duration_ms=result.duration_ms,
+        )
+
+
+@router.get("/mcp/servers/{server_id}/tools", response_model=List[McpToolResponse])
+async def list_mcp_server_tools(
+    server_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> List[McpToolResponse]:
+    """列出指定 MCP Server 的所有 Tools"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        result = await db.execute(
+            select(McpTool).where(McpTool.server_id == server_id).order_by(McpTool.name)
+        )
+        tools = result.scalars().all()
+
+        return [_mcp_tool_to_response(t) for t in tools]
+
+
+@router.patch("/mcp/servers/{server_id}/tools/{tool_id}", response_model=McpToolResponse)
+async def update_mcp_tool(
+    server_id: UUID,
+    tool_id: UUID,
+    payload: McpToolUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> McpToolResponse:
+    """更新 Tool 配置（如 display_name, is_enabled）"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "edit")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        tool = await db.get(McpTool, tool_id)
+        if not tool or tool.server_id != server_id:
+            raise HTTPException(status_code=404, detail="Tool not found")
+
+        update_data = payload.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(tool, key, value)
+
+        await db.commit()
+        await db.refresh(tool)
+
+        return _mcp_tool_to_response(tool)
 
 
 # =============================================================================

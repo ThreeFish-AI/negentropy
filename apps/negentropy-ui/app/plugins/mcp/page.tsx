@@ -5,6 +5,16 @@ import { PluginsNav } from "@/components/ui/PluginsNav";
 import { McpServerCard } from "./_components/McpServerCard";
 import { McpServerFormDialog } from "./_components/McpServerFormDialog";
 
+interface McpTool {
+  id: string | null;
+  name: string;
+  display_name: string | null;
+  description: string | null;
+  input_schema: Record<string, unknown>;
+  is_enabled: boolean;
+  call_count: number;
+}
+
 interface McpServer {
   id: string;
   owner_id: string;
@@ -24,8 +34,22 @@ interface McpServer {
   tool_count: number;
 }
 
+interface ServerWithTools extends McpServer {
+  tools?: McpTool[];
+  loadingTools?: boolean;
+  loadError?: string | null;
+}
+
+interface LoadToolsResponse {
+  success: boolean;
+  server_id: string;
+  tools: McpTool[];
+  duration_ms: number;
+  error?: string;
+}
+
 export default function McpServersPage() {
-  const [servers, setServers] = useState<McpServer[]>([]);
+  const [servers, setServers] = useState<ServerWithTools[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,6 +98,58 @@ export default function McpServersPage() {
       fetchServers();
     } catch (err) {
       alert(err instanceof Error ? err.message : "An error occurred");
+    }
+  };
+
+  const handleLoadTools = async (serverId: string) => {
+    // 设置加载状态
+    setServers((prev) =>
+      prev.map((s) =>
+        s.id === serverId ? { ...s, loadingTools: true, loadError: null } : s
+      )
+    );
+
+    try {
+      const response = await fetch(`/api/plugins/mcp/servers/${serverId}/tools`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || errorData.error?.message || "Failed to load tools");
+      }
+
+      const data: LoadToolsResponse = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to load tools");
+      }
+
+      // 更新 tools 数据和 tool_count
+      setServers((prev) =>
+        prev.map((s) =>
+          s.id === serverId
+            ? {
+                ...s,
+                tools: data.tools,
+                loadingTools: false,
+                tool_count: data.tools.length,
+              }
+            : s
+        )
+      );
+    } catch (err) {
+      setServers((prev) =>
+        prev.map((s) =>
+          s.id === serverId
+            ? {
+                ...s,
+                loadingTools: false,
+                loadError: err instanceof Error ? err.message : "Unknown error",
+              }
+            : s
+        )
+      );
     }
   };
 
@@ -154,6 +230,10 @@ export default function McpServersPage() {
                     server={server}
                     onEdit={() => handleEdit(server)}
                     onDelete={() => handleDelete(server.id)}
+                    onLoad={() => handleLoadTools(server.id)}
+                    tools={server.tools}
+                    loadingTools={server.loadingTools}
+                    loadError={server.loadError}
                   />
                 ))}
               </div>
