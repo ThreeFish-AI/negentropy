@@ -54,6 +54,7 @@ export default function McpServersPage() {
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServer | null>(null);
+  const [hasAutoRequestedTools, setHasAutoRequestedTools] = useState(false);
 
   const fetchServers = async () => {
     try {
@@ -63,6 +64,7 @@ export default function McpServersPage() {
       }
       const data = await response.json();
       setServers(data);
+      setHasAutoRequestedTools(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -154,6 +156,26 @@ export default function McpServersPage() {
       );
     }
   };
+
+  useEffect(() => {
+    if (loading || error || hasAutoRequestedTools || servers.length === 0) {
+      return;
+    }
+
+    const enabledServerIds = servers
+      .filter((server) => server.is_enabled)
+      .map((server) => server.id);
+
+    if (enabledServerIds.length === 0) {
+      setHasAutoRequestedTools(true);
+      return;
+    }
+
+    setHasAutoRequestedTools(true);
+    enabledServerIds.forEach((serverId) => {
+      void handleLoadTools(serverId);
+    });
+  }, [loading, error, hasAutoRequestedTools, servers]);
 
   const handleDialogClose = () => {
     setDialogOpen(false);

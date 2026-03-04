@@ -504,11 +504,26 @@ export function McpServerCard({
 }: McpServerCardProps) {
   const [showTools, setShowTools] = useState(false);
   const [expandedToolName, setExpandedToolName] = useState<string | null>(null);
+  const visibleToolCount = tools.length > 0 ? tools.length : server.tool_count;
+  const showToolToggle = visibleToolCount > 0 || loadingTools;
 
   const expandedTool = useMemo(
     () => tools.find((tool) => tool.name === expandedToolName) || null,
     [expandedToolName, tools]
   );
+
+  const handleToggleTools = () => {
+    if (showTools) {
+      setShowTools(false);
+      setExpandedToolName(null);
+      return;
+    }
+
+    setShowTools(true);
+    if (tools.length === 0 && !loadingTools) {
+      onLoad();
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50/60 p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700/80 dark:from-zinc-900 dark:to-zinc-900">
@@ -544,14 +559,42 @@ export function McpServerCard({
               </svg>
               {server.transport_type}
             </span>
-            {server.tool_count > 0 && (
-              <span className="inline-flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {server.tool_count} tools
-              </span>
+            {showToolToggle && (
+              <button
+                type="button"
+                onClick={handleToggleTools}
+                className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                aria-expanded={showTools}
+                title="Toggle tools list"
+              >
+                {loadingTools ? (
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V1a11 11 0 00-8 19l2-2.4A8 8 0 014 12z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className={`h-3.5 w-3.5 transition-transform ${showTools ? "rotate-90" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
+                {loadingTools && visibleToolCount === 0 ? "Loading tools..." : `${visibleToolCount} tools`}
+              </button>
             )}
             {server.auto_start && (
               <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
@@ -611,76 +654,54 @@ export function McpServerCard({
       )}
 
       {/* Tools 展示区域 */}
-      {tools.length > 0 && (
+      {showTools && tools.length > 0 && (
         <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-          <button
-            onClick={() => {
-              if (showTools) {
-                setExpandedToolName(null);
-              }
-              setShowTools((prev) => !prev);
-            }}
-            className="flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
-          >
-            <svg
-              className={`w-4 h-4 transition-transform ${showTools ? "rotate-90" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            {tools.length} Tools Loaded
-          </button>
+          <div className="mt-3 space-y-3">
+            <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+              <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+                Hover to preview description. Click a tool to expand details.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {tools.map((tool) => {
+                  const isExpanded = expandedToolName === tool.name;
 
-          {showTools && (
-            <div className="mt-3 space-y-3">
-              <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  Hover to preview description. Click a tool to expand details.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {tools.map((tool) => {
-                    const isExpanded = expandedToolName === tool.name;
+                  return (
+                    <div key={tool.name} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedToolName((prev) =>
+                            prev === tool.name ? null : tool.name
+                          )
+                        }
+                        aria-expanded={isExpanded}
+                        title={getToolTooltipText(tool)}
+                        className={`inline-flex items-center rounded-lg border px-3 py-1.5 font-mono text-sm transition-colors ${
+                          isExpanded
+                            ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                            : "border-zinc-200 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                        }`}
+                      >
+                        {getToolLabel(tool)}
+                      </button>
 
-                    return (
-                      <div key={tool.name} className="group relative">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedToolName((prev) =>
-                              prev === tool.name ? null : tool.name
-                            )
-                          }
-                          aria-expanded={isExpanded}
-                          title={getToolTooltipText(tool)}
-                          className={`inline-flex items-center rounded-lg border px-3 py-1.5 font-mono text-sm transition-colors ${
-                            isExpanded
-                              ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
-                              : "border-zinc-200 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          {getToolLabel(tool)}
-                        </button>
-
-                        <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-zinc-200 bg-white/95 p-2 text-xs text-zinc-600 shadow-lg backdrop-blur group-hover:block group-focus-within:block dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-300">
-                          <p className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-relaxed">
-                            {getToolTooltipText(tool)}
-                          </p>
-                        </div>
+                      <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-zinc-200 bg-white/95 p-2 text-xs text-zinc-600 shadow-lg backdrop-blur group-hover:block group-focus-within:block dark:border-zinc-700 dark:bg-zinc-900/95 dark:text-zinc-300">
+                        <p className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words leading-relaxed">
+                          {getToolTooltipText(tool)}
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              {expandedTool && (
-                <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-2 dark:border-zinc-700/70 dark:bg-zinc-900/40">
-                  <ToolDetailPanel tool={expandedTool} />
-                </div>
-              )}
             </div>
-          )}
+
+            {expandedTool && (
+              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-2 dark:border-zinc-700/70 dark:bg-zinc-900/40">
+                <ToolDetailPanel tool={expandedTool} />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
