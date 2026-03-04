@@ -12,6 +12,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+import httpx
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.stdio import StdioServerParameters, stdio_client
@@ -132,15 +133,50 @@ class McpClientService:
                 error=error_msg,
                 duration_ms=duration_ms,
             )
+        except ExceptionGroup as e:
+            # anyio TaskGroup 抛出的异常组 - 提取子异常的真实错误消息
+            duration_ms = int((time.time() - start_time) * 1000)
+            error_msg = self._extract_exception_group_error(e)
+            logger.error(f"MCP 连接异常组: {error_msg}", exc_info=True)
+            return McpConnectionResult(
+                success=False,
+                error=error_msg,
+                duration_ms=duration_ms,
+            )
         except Exception as e:
             duration_ms = int((time.time() - start_time) * 1000)
-            error_msg = str(e)
+            error_msg = self._extract_error_message(e)
             logger.error(f"MCP connection failed: {error_msg}", exc_info=True)
             return McpConnectionResult(
                 success=False,
                 error=error_msg,
                 duration_ms=duration_ms,
             )
+
+    def _extract_exception_group_error(self, exc_group: ExceptionGroup) -> str:
+        """从 ExceptionGroup 中提取友好的错误消息"""
+        if not exc_group.exceptions:
+            return str(exc_group)
+
+        sub_exc = exc_group.exceptions[0]
+        return self._extract_error_message(sub_exc)
+
+    def _extract_error_message(self, exc: Exception) -> str:
+        """从异常中提取友好的错误消息"""
+        # HTTP 连接失败
+        if isinstance(exc, httpx.ConnectError):
+            return "无法连接到服务器，请检查 URL 是否正确以及服务是否已启动"
+        # HTTP 超时
+        if isinstance(exc, httpx.TimeoutException):
+            return "连接超时，服务器响应时间过长"
+        # HTTP 网络错误 (包含 ConnectError, ReadError, WriteError 等)
+        if isinstance(exc, httpx.NetworkError):
+            return f"网络连接失败: {exc}"
+        # 嵌套的 ExceptionGroup
+        if isinstance(exc, ExceptionGroup):
+            return self._extract_exception_group_error(exc)
+        # 其他异常
+        return str(exc)
 
     async def _discover_stdio(
         self,
