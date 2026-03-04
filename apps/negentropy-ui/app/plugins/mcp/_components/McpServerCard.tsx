@@ -655,8 +655,8 @@ export function McpServerCard({
 
       {/* Tools 展示区域 */}
       {showTools && tools.length > 0 && (
-        <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-          <div className="mt-3 space-y-3">
+        <div className="mt-2 border-t border-zinc-200 pt-2 dark:border-zinc-700">
+          <div className="space-y-3">
             <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
               <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
                 Hover to preview description. Click a tool to expand details.
