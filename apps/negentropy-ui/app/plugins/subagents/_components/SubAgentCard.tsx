@@ -27,10 +27,10 @@ interface SubAgentCardProps {
 
 export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="flex min-h-0 flex-1 items-start justify-between gap-3">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {agent.display_name || agent.name}
             </h3>
@@ -55,25 +55,31 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
               </span>
             )}
           </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+          <p
+            className="mb-2 line-clamp-3 text-sm text-zinc-500 dark:text-zinc-400"
+            title={agent.description || "No description"}
+          >
             {agent.description || "No description"}
           </p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
             {agent.model && (
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex max-w-full items-center gap-1 truncate" title={agent.model}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                {agent.model}
+                <span className="truncate">{agent.model}</span>
               </span>
             )}
             {"agent_class" in agent.adk_config &&
               typeof agent.adk_config["agent_class"] === "string" && (
-              <span className="inline-flex items-center gap-1">
+              <span
+                className="inline-flex max-w-full items-center gap-1 truncate"
+                title={String(agent.adk_config["agent_class"])}
+              >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                {String(agent.adk_config["agent_class"])}
+                <span className="truncate">{String(agent.adk_config["agent_class"])}</span>
               </span>
             )}
             {agent.skills && agent.skills.length > 0 && (
@@ -93,19 +99,20 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
                 {agent.tools.length} tools
               </span>
             )}
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 truncate" title={`source: ${agent.source}`}>
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              source: {agent.source}
+              <span className="truncate">source: {agent.source}</span>
             </span>
           </div>
           {agent.skills && agent.skills.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1 overflow-hidden">
               {agent.skills.slice(0, 3).map((skill) => (
                 <span
                   key={skill}
                   className="inline-flex items-center rounded bg-purple-50 px-2 py-0.5 text-xs text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
+                  title={skill}
                 >
                   {skill}
                 </span>
@@ -116,9 +123,11 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={onEdit}
+            title="Edit SubAgent"
+            aria-label={`Edit ${agent.display_name || agent.name}`}
             className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,6 +136,8 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
           </button>
           <button
             onClick={onDelete}
+            title="Delete SubAgent"
+            aria-label={`Delete ${agent.display_name || agent.name}`}
             className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
