@@ -131,194 +131,222 @@ export function SkillFormDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900 my-8">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-          {skill ? "Edit Skill" : "Add Skill"}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                placeholder="my-skill"
-                required
-                disabled={!!skill}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Display Name
-              </label>
-              <input
-                type="text"
-                value={formData.display_name}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                placeholder="My Skill"
-              />
-            </div>
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <div className="relative flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6">
+        <div className="my-3 w-full max-w-6xl rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {skill ? "Edit Skill" : "Add Skill"}
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Organize skill metadata and JSON payloads with a readable, high-density form layout.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-              rows={2}
-              placeholder="Description of this skill"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="flex max-h-[calc(100vh-4.5rem)] flex-col">
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+              {error && (
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                  {error}
+                </div>
+              )}
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Category
-              </label>
-              <input
-                type="text"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                placeholder="general"
-              />
+              <section className="space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Basic Information
+                </h3>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      placeholder="my-skill"
+                      required
+                      disabled={!!skill}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.display_name}
+                      onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      placeholder="My Skill"
+                    />
+                  </div>
+                  <div className="lg:col-span-2">
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      rows={2}
+                      placeholder="Description of this skill"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Runtime Setup
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Category
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      placeholder="general"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Version
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.version}
+                      onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      placeholder="1.0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Visibility
+                    </label>
+                    <select
+                      value={formData.visibility}
+                      onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    >
+                      <option value="private">Private</option>
+                      <option value="shared">Shared</option>
+                      <option value="public">Public</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <label className="flex w-full items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_enabled}
+                        onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
+                        className="rounded border-zinc-300 dark:border-zinc-600"
+                      />
+                      Enabled
+                    </label>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Priority
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Prompt & Requirements
+                </h3>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Prompt Template
+                  </label>
+                  <textarea
+                    value={formData.prompt_template}
+                    onChange={(e) => setFormData({ ...formData, prompt_template: e.target.value })}
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    rows={5}
+                    placeholder="Enter the skill's prompt template..."
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Required Tools (one per line)
+                  </label>
+                  <textarea
+                    value={formData.required_tools}
+                    onChange={(e) => setFormData({ ...formData, required_tools: e.target.value })}
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    rows={4}
+                    placeholder="get_file&#10;write_file"
+                  />
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  JSON Configuration
+                </h3>
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Config Schema (JSON)
+                    </label>
+                    <textarea
+                      value={formData.config_schema}
+                      onChange={(e) => setFormData({ ...formData, config_schema: e.target.value })}
+                      className="min-h-[220px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      rows={8}
+                      placeholder='{"type": "object"}'
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Default Config (JSON)
+                    </label>
+                    <textarea
+                      value={formData.default_config}
+                      onChange={(e) => setFormData({ ...formData, default_config: e.target.value })}
+                      className="min-h-[220px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      rows={8}
+                      placeholder="{}"
+                    />
+                  </div>
+                </div>
+              </section>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Version
-              </label>
-              <input
-                type="text"
-                value={formData.version}
-                onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                placeholder="1.0.0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Visibility
-              </label>
-              <select
-                value={formData.visibility}
-                onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+
+            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                <option value="private">Private</option>
-                <option value="shared">Shared</option>
-                <option value="public">Public</option>
-              </select>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                {loading ? "Saving..." : skill ? "Update" : "Create"}
+              </button>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Prompt Template
-            </label>
-            <textarea
-              value={formData.prompt_template}
-              onChange={(e) => setFormData({ ...formData, prompt_template: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-              rows={4}
-              placeholder="Enter the skill's prompt template..."
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Config Schema (JSON)
-              </label>
-              <textarea
-                value={formData.config_schema}
-                onChange={(e) => setFormData({ ...formData, config_schema: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                rows={3}
-                placeholder='{"type": "object"}'
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Default Config (JSON)
-              </label>
-              <textarea
-                value={formData.default_config}
-                onChange={(e) => setFormData({ ...formData, default_config: e.target.value })}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                rows={3}
-                placeholder='{}'
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-              Required Tools (one per line)
-            </label>
-            <textarea
-              value={formData.required_tools}
-              onChange={(e) => setFormData({ ...formData, required_tools: e.target.value })}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-              rows={2}
-              placeholder="get_file&#10;write_file"
-            />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.is_enabled}
-                onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
-                className="rounded border-zinc-300 dark:border-zinc-600"
-              />
-              <span className="text-sm text-zinc-700 dark:text-zinc-300">Enabled</span>
-            </label>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-zinc-700 dark:text-zinc-300">Priority:</label>
-              <input
-                type="number"
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                className="w-20 rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {loading ? "Saving..." : skill ? "Update" : "Create"}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
