@@ -8,6 +8,16 @@ interface DeleteSourceDialogProps {
   onConfirm: () => void;
 }
 
+function formatSourceNameForPrompt(name: string | null, maxLen = 36): string {
+  const normalized = (name ?? "").trim();
+  if (!normalized) return "-";
+  if (normalized.length <= maxLen) return normalized;
+
+  const headLen = Math.floor((maxLen - 3) / 2);
+  const tailLen = maxLen - 3 - headLen;
+  return `${normalized.slice(0, headLen)}...${normalized.slice(-tailLen)}`;
+}
+
 export function DeleteSourceDialog({
   isOpen,
   sourceName,
@@ -16,6 +26,7 @@ export function DeleteSourceDialog({
   onConfirm,
 }: DeleteSourceDialogProps) {
   if (!isOpen) return null;
+  const displaySourceName = formatSourceNameForPrompt(sourceName);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -47,8 +58,8 @@ export function DeleteSourceDialog({
 
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
           确定彻底删除来源{" "}
-          <span className="font-semibold">
-            {sourceName ?? "-"}
+          <span className="font-semibold break-all">
+            「{displaySourceName}」
           </span>{" "}
           吗？此操作会删除关联 chunks 与存储文件，且不可恢复。
         </div>
