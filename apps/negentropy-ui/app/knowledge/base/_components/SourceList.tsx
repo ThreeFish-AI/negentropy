@@ -11,7 +11,7 @@ interface SourceListProps {
   onReplaceSource?: (uri: string) => void;
   onSyncSource?: (uri: string) => void;
   onRebuildSource?: (uri: string) => void;
-  onDeleteSource?: (uri: string) => void;
+  onDeleteSource?: (payload: { uri: string; name: string }) => void;
   onArchiveSource?: (uri: string) => void;
   onUnarchiveSource?: (uri: string) => void;
 }
@@ -137,7 +137,7 @@ function SourceMenu({
   onReplace?: (uri: string) => void;
   onSync?: (uri: string) => void;
   onRebuild?: (uri: string) => void;
-  onDelete?: (uri: string) => void;
+  onDelete?: (payload: { uri: string; name: string }) => void;
   onArchive?: (uri: string) => void;
   onUnarchive?: (uri: string) => void;
 }) {
@@ -146,6 +146,14 @@ function SourceMenu({
   const closeAndRun = (fn?: (uri: string) => void) => {
     setIsOpen(false);
     fn?.(uri);
+  };
+
+  const closeAndRunDelete = () => {
+    setIsOpen(false);
+    onDelete?.({
+      uri,
+      name: getDisplayUri(uri),
+    });
   };
 
   const isFile = sourceType === "file";
@@ -207,7 +215,7 @@ function SourceMenu({
             )}
             {onDelete && (
               <button
-                onClick={() => closeAndRun(onDelete)}
+                onClick={closeAndRunDelete}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -21,6 +21,7 @@ import { ContentExplorer } from "./_components/ContentExplorer";
 import { SourceList } from "./_components/SourceList";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { ReplaceSourceDialog } from "./_components/ReplaceSourceDialog";
+import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
@@ -62,6 +63,10 @@ export default function KnowledgeBasePage() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isReplaceOpen, setIsReplaceOpen] = useState(false);
   const [replaceSourceUri, setReplaceSourceUri] = useState<string | null>(null);
+  const [isDeleteSourceOpen, setIsDeleteSourceOpen] = useState(false);
+  const [deleteSourceUri, setDeleteSourceUri] = useState<string | null>(null);
+  const [deleteSourceName, setDeleteSourceName] = useState<string | null>(null);
+  const [isDeletingSource, setIsDeletingSource] = useState(false);
 
   const kb = useKnowledgeBase({
     appName: APP_NAME,
@@ -295,25 +300,42 @@ export default function KnowledgeBasePage() {
     loadChunks();
   }, [loadChunks]);
 
-  const handleDeleteSource = useCallback(
-    async (uri: string) => {
-      if (!confirm(`确定彻底删除来源 "${uri}" 吗？此操作会删除关联 chunks 与存储文件，且不可恢复。`)) {
-        return;
-      }
-      try {
-        const result = await kb.deleteSource({ source_uri: uri });
-        const warningText = result.warnings?.length ? `（${result.warnings.length} 条告警）` : "";
-        toast.success("来源已删除", {
-          description: `删除 chunks: ${result.deleted_count ?? 0}，文档: ${result.deleted_documents ?? 0}${warningText}`,
-        });
-        await loadChunks();
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        toast.error("删除来源失败", { description: errorMessage });
-      }
+  const handleRequestDeleteSource = useCallback(
+    (payload: { uri: string; name: string }) => {
+      setDeleteSourceUri(payload.uri);
+      setDeleteSourceName(payload.name);
+      setIsDeleteSourceOpen(true);
     },
-    [kb, loadChunks],
+    [],
   );
+
+  const handleCancelDeleteSource = useCallback(() => {
+    if (isDeletingSource) return;
+    setIsDeleteSourceOpen(false);
+    setDeleteSourceUri(null);
+    setDeleteSourceName(null);
+  }, [isDeletingSource]);
+
+  const handleConfirmDeleteSource = useCallback(async () => {
+    if (!deleteSourceUri || isDeletingSource) return;
+    setIsDeletingSource(true);
+    try {
+      const result = await kb.deleteSource({ source_uri: deleteSourceUri });
+      const warningText = result.warnings?.length ? `（${result.warnings.length} 条告警）` : "";
+      toast.success("来源已删除", {
+        description: `删除 chunks: ${result.deleted_count ?? 0}，文档: ${result.deleted_documents ?? 0}${warningText}`,
+      });
+      setIsDeleteSourceOpen(false);
+      setDeleteSourceUri(null);
+      setDeleteSourceName(null);
+      await loadChunks();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      toast.error("删除来源失败", { description: errorMessage });
+    } finally {
+      setIsDeletingSource(false);
+    }
+  }, [deleteSourceUri, isDeletingSource, kb, loadChunks]);
 
   const handleArchiveSource = useCallback(
     async (uri: string, archived: boolean) => {
@@ -430,7 +452,7 @@ export default function KnowledgeBasePage() {
                             onReplaceSource={handleOpenReplace}
                             onSyncSource={handleSyncSource}
                             onRebuildSource={handleRebuildSource}
-                            onDeleteSource={handleDeleteSource}
+                            onDeleteSource={handleRequestDeleteSource}
                             onArchiveSource={(uri) => handleArchiveSource(uri, true)}
                             onUnarchiveSource={(uri) => handleArchiveSource(uri, false)}
                           />
@@ -528,6 +550,14 @@ export default function KnowledgeBasePage() {
         onClose={() => setIsReplaceOpen(false)}
         onReplace={handleReplace}
         onSuccess={handleReplaceSuccess}
+      />
+
+      <DeleteSourceDialog
+        isOpen={isDeleteSourceOpen}
+        sourceName={deleteSourceName}
+        isDeleting={isDeletingSource}
+        onClose={handleCancelDeleteSource}
+        onConfirm={handleConfirmDeleteSource}
       />
     </div>
   );
