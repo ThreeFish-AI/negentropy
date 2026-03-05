@@ -212,7 +212,7 @@ export default function McpServersPage() {
       <PluginsNav title="MCP Servers" />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
-          <div className="mx-auto max-w-4xl">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -247,18 +247,22 @@ export default function McpServersPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div
+                data-testid="mcp-grid"
+                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+              >
                 {servers.map((server) => (
-                  <McpServerCard
-                    key={server.id}
-                    server={server}
-                    onEdit={() => handleEdit(server)}
-                    onDelete={() => handleDelete(server.id)}
-                    onLoad={() => handleLoadTools(server.id)}
-                    tools={server.tools}
-                    loadingTools={server.loadingTools}
-                    loadError={server.loadError}
-                  />
+                  <div key={server.id} data-testid="mcp-grid-item">
+                    <McpServerCard
+                      server={server}
+                      onEdit={() => handleEdit(server)}
+                      onDelete={() => handleDelete(server.id)}
+                      onLoad={() => handleLoadTools(server.id)}
+                      tools={server.tools}
+                      loadingTools={server.loadingTools}
+                      loadError={server.loadError}
+                    />
+                  </div>
                 ))}
               </div>
             )}
