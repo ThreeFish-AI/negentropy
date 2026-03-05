@@ -145,7 +145,7 @@ export default function SubAgentsPage() {
       <PluginsNav title="SubAgents" />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
-          <div className="mx-auto max-w-6xl">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -208,7 +208,7 @@ export default function SubAgentsPage() {
                 className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
               >
                 {agents.map((agent) => (
-                  <div key={agent.id} className="h-[280px]" data-testid="subagent-grid-item">
+                  <div key={agent.id} className="h-[187px]" data-testid="subagent-grid-item">
                     <SubAgentCard
                       agent={agent}
                       onEdit={() => handleEdit(agent)}
