@@ -16,7 +16,7 @@ interface SourceListProps {
   onUnarchiveSource?: (uri: string) => void;
 }
 
-function getDisplayUri(uri: string): string {
+function getFallbackDisplayName(uri: string): string {
   if (uri.startsWith("gs://")) {
     const parts = uri.split("/");
     return parts[parts.length - 1] || uri;
@@ -71,7 +71,7 @@ export function SourceList({
 
       {sortedSources.map((source) => {
         const uri = source.source_uri;
-        const displayUri = uri ? getDisplayUri(uri) : "(无来源)";
+        const displayName = source.display_name || (uri ? getFallbackDisplayName(uri) : "(无来源)");
         const key = uri ?? "__no_source__";
         const showMenu = Boolean(
           uri &&
@@ -92,9 +92,9 @@ export function SourceList({
                   : "text-muted hover:bg-muted/50 hover:text-foreground"
               }`}
               onClick={() => onSelect(uri)}
-              title={uri || "(无来源)"}
+              title={displayName}
             >
-              <span className="block truncate">{displayUri}</span>
+              <span className="block truncate">{displayName}</span>
               <span className="text-[10px] opacity-70">
                 {source.count} chunk{source.count > 1 ? "s" : ""}
                 {source.archived ? " · Archived" : ""}
@@ -103,6 +103,7 @@ export function SourceList({
             {showMenu && uri && (
               <SourceMenu
                 uri={uri}
+                displayName={displayName}
                 sourceType={source.source_type}
                 archived={source.archived}
                 onReplace={onReplaceSource}
@@ -122,6 +123,7 @@ export function SourceList({
 
 function SourceMenu({
   uri,
+  displayName,
   sourceType,
   archived,
   onReplace,
@@ -132,6 +134,7 @@ function SourceMenu({
   onUnarchive,
 }: {
   uri: string;
+  displayName: string;
   sourceType: "file" | "url" | "text" | "unknown";
   archived: boolean;
   onReplace?: (uri: string) => void;
@@ -152,7 +155,7 @@ function SourceMenu({
     setIsOpen(false);
     onDelete?.({
       uri,
-      name: getDisplayUri(uri),
+      name: displayName,
     });
   };
 

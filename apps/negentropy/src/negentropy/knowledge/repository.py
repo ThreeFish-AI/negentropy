@@ -362,10 +362,12 @@ class KnowledgeRepository:
                 key = uri or "__null__"
                 archived = self._is_archived(metadata)
                 source_type = self._infer_source_type(uri, metadata)
+                display_name = self._infer_display_name(metadata)
                 existing = summary_map.get(key)
                 if existing:
                     summary_map[key] = SourceSummary(
                         source_uri=uri,
+                        display_name=existing.display_name or display_name,
                         count=existing.count + int(count or 0),
                         archived=existing.archived and archived,
                         source_type=existing.source_type if existing.source_type != "unknown" else source_type,
@@ -373,6 +375,7 @@ class KnowledgeRepository:
                 else:
                     summary_map[key] = SourceSummary(
                         source_uri=uri,
+                        display_name=display_name,
                         count=int(count or 0),
                         archived=archived,
                         source_type=source_type,
@@ -868,6 +871,11 @@ class KnowledgeRepository:
     @staticmethod
     def _is_archived(metadata: Optional[Dict[str, Any]]) -> bool:
         return bool((metadata or {}).get("archived") is True)
+
+    @staticmethod
+    def _infer_display_name(metadata: Optional[Dict[str, Any]]) -> Optional[str]:
+        raw = (metadata or {}).get("original_filename")
+        return raw if isinstance(raw, str) and raw.strip() else None
 
     @staticmethod
     def _active_filter_expr() -> Any:

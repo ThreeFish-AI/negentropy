@@ -122,6 +122,7 @@ export default function KnowledgeBasePage() {
       } else if (data.source_stats) {
         const fallback = Object.entries(data.source_stats).map(([uri, count]) => ({
           source_uri: uri === "__null__" ? null : uri,
+          display_name: null,
           count,
           archived: false,
           source_type: "unknown" as const,

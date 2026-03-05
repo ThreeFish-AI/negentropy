@@ -96,6 +96,7 @@ class SourceSummary:
     """Source 聚合摘要"""
 
     source_uri: Optional[str]
+    display_name: Optional[str]
     count: int
     archived: bool
     source_type: Literal["file", "url", "text", "unknown"]
