@@ -506,6 +506,7 @@ export function McpServerCard({
   const [expandedToolName, setExpandedToolName] = useState<string | null>(null);
   const visibleToolCount = tools.length > 0 ? tools.length : server.tool_count;
   const showToolToggle = visibleToolCount > 0 || loadingTools;
+  const summaryDescription = server.description?.trim() || "No description";
 
   const expandedTool = useMemo(
     () => tools.find((tool) => tool.name === expandedToolName) || null,
@@ -526,62 +527,99 @@ export function McpServerCard({
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50/60 p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700/80 dark:from-zinc-900 dark:to-zinc-900">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+    <div className="space-y-2">
+      <div className="flex h-[196px] flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
+            <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {server.display_name || server.name}
             </h3>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={onLoad}
+                disabled={loadingTools}
+                className="rounded-md p-2 text-zinc-400 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                title="Load Tools from Server"
+                aria-label={`Load tools for ${server.display_name || server.name}`}
+              >
+                {loadingTools ? (
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={onEdit}
+                title="Edit Server"
+                aria-label={`Edit ${server.display_name || server.name}`}
+                className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                onClick={onDelete}
+                title="Delete Server"
+                aria-label={`Delete ${server.display_name || server.name}`}
+                className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="mb-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden whitespace-nowrap">
             {server.is_enabled ? (
-              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+              <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                 Enabled
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+              <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                 Disabled
               </span>
             )}
-            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+            <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+              {server.transport_type}
+            </span>
+            <span className="inline-flex shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
               {server.visibility}
             </span>
           </div>
-          <div className="mb-2">
-            <RichTextContent
-              content={server.description}
-              emptyText="No description"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
-            <span className="inline-flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+          <p
+            className="mb-1 h-20 min-w-0 w-full overflow-hidden text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"
+            title={summaryDescription}
+          >
+            {summaryDescription}
+          </p>
+
+          <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-zinc-400 dark:text-zinc-500">
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
               </svg>
-              {server.transport_type}
+              {loadingTools && visibleToolCount === 0 ? "Loading tools..." : `${visibleToolCount} tools`}
             </span>
             {showToolToggle && (
               <button
                 type="button"
                 onClick={handleToggleTools}
-                className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                 aria-expanded={showTools}
                 title="Toggle tools list"
               >
                 {loadingTools ? (
                   <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V1a11 11 0 00-8 19l2-2.4A8 8 0 014 12z"
-                    />
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V1a11 11 0 00-8 19l2-2.4A8 8 0 014 12z" />
                   </svg>
                 ) : (
                   <svg
@@ -593,12 +631,12 @@ export function McpServerCard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 )}
-                {loadingTools && visibleToolCount === 0 ? "Loading tools..." : `${visibleToolCount} tools`}
+                Tools
               </button>
             )}
             {server.auto_start && (
-              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="inline-flex shrink-0 items-center gap-1 text-amber-600 dark:text-amber-400">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 Auto-start
@@ -606,56 +644,16 @@ export function McpServerCard({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Load 按钮 */}
-          <button
-            onClick={onLoad}
-            disabled={loadingTools}
-            className="rounded-md p-2 text-zinc-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Load Tools from Server"
-          >
-            {loadingTools ? (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            )}
-          </button>
-          {/* Edit 按钮 */}
-          <button
-            onClick={onEdit}
-            className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
-          {/* Delete 按钮 */}
-          <button
-            onClick={onDelete}
-            className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        </div>
       </div>
 
-      {/* 错误提示 */}
       {loadError && (
-        <div className="mt-3 rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+        <div className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
           {loadError}
         </div>
       )}
 
-      {/* Tools 展示区域 */}
       {showTools && tools.length > 0 && (
-        <div className="mt-2 border-t border-zinc-200 pt-2 dark:border-zinc-700">
+        <div className="border-t border-zinc-200 pt-2 dark:border-zinc-700">
           <div className="space-y-3">
             <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
               <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -670,9 +668,7 @@ export function McpServerCard({
                       <button
                         type="button"
                         onClick={() =>
-                          setExpandedToolName((prev) =>
-                            prev === tool.name ? null : tool.name
-                          )
+                          setExpandedToolName((prev) => (prev === tool.name ? null : tool.name))
                         }
                         aria-expanded={isExpanded}
                         title={getToolTooltipText(tool)}

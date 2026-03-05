@@ -116,7 +116,7 @@ export default function SkillsPage() {
       <PluginsNav title="Skills" />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
-          <div className="mx-auto max-w-4xl">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -169,14 +169,18 @@ export default function SkillsPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div
+                data-testid="skills-grid"
+                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+              >
                 {skills.map((skill) => (
-                  <SkillCard
-                    key={skill.id}
-                    skill={skill}
-                    onEdit={() => handleEdit(skill)}
-                    onDelete={() => handleDelete(skill.id)}
-                  />
+                  <div key={skill.id} className="h-[196px]" data-testid="skill-grid-item">
+                    <SkillCard
+                      skill={skill}
+                      onEdit={() => handleEdit(skill)}
+                      onDelete={() => handleDelete(skill.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
