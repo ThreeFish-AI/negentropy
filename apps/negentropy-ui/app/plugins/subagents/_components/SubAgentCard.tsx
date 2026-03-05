@@ -79,12 +79,12 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
           )}
         </div>
         <p
-          className="mb-1 min-w-0 w-full line-clamp-4 text-sm text-zinc-500 dark:text-zinc-400"
+          className="mb-1 h-20 min-w-0 w-full overflow-hidden leading-5 line-clamp-4 text-sm text-zinc-500 dark:text-zinc-400"
           title={agent.description || "No description"}
         >
           {agent.description || "No description"}
         </p>
-        <div className="flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-zinc-400 dark:text-zinc-500">
           {agent.model && (
             <span className="inline-flex min-w-0 items-center gap-1 truncate" title={agent.model}>
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
