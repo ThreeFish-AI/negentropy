@@ -417,10 +417,18 @@ export interface KnowledgeItem {
   metadata: Record<string, unknown>;
 }
 
+export interface SourceSummary {
+  source_uri: string | null;
+  count: number;
+  archived: boolean;
+  source_type: "file" | "url" | "text" | "unknown";
+}
+
 export interface KnowledgeListResponse {
   count: number;
   items: KnowledgeItem[];
   source_stats?: Record<string, number>;
+  source_summaries?: SourceSummary[];
 }
 
 export async function fetchKnowledgeItems(
@@ -428,6 +436,7 @@ export async function fetchKnowledgeItems(
   params: {
     appName?: string;
     sourceUri?: string | null;
+    includeArchived?: boolean;
     limit?: number;
     offset?: number;
   },
@@ -436,6 +445,9 @@ export async function fetchKnowledgeItems(
   if (params.appName) query.set("app_name", params.appName);
   if (params.sourceUri !== undefined) {
     query.set("source_uri", params.sourceUri ?? "__null__");
+  }
+  if (params.includeArchived !== undefined) {
+    query.set("include_archived", String(params.includeArchived));
   }
   if (params.limit !== undefined) query.set("limit", String(params.limit));
   if (params.offset !== undefined) query.set("offset", String(params.offset));
@@ -801,6 +813,9 @@ export async function rebuildSource(
 
 export interface DeleteSourceResult {
   deleted_count: number;
+  deleted_documents?: number;
+  deleted_gcs_objects?: number;
+  warnings?: string[];
 }
 
 export interface ArchiveSourceResult {

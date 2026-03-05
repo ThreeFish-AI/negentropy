@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional, Literal
 from uuid import UUID
 
-from sqlalchemy import func, select, text
+from sqlalchemy import Boolean, cast, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -15,7 +15,7 @@ from negentropy.models.perception import Corpus, Knowledge
 
 from .constants import BATCH_INSERT_SIZE, RECALL_MULTIPLIER
 from .exceptions import DatabaseError, SearchError
-from .types import CorpusRecord, CorpusSpec, KnowledgeChunk, KnowledgeMatch, KnowledgeRecord, merge_search_results
+from .types import CorpusRecord, CorpusSpec, KnowledgeChunk, KnowledgeMatch, KnowledgeRecord, SourceSummary, merge_search_results
 
 
 logger = get_logger("negentropy.knowledge.repository")
@@ -237,15 +237,15 @@ class KnowledgeRepository:
         Returns:
             更新的记录数量
         """
-        async with self._session_factory() as db:
+        async with self._get_session_factory()() as db:
             # 使用 PostgreSQL 的 jsonb_set 函数更新 metadata
             # 如果 archived=True，设置 metadata.archived = true
             # 如果 archived=False，设置 metadata.archived = false
             archive_value = "true" if archived else "false"
             update_stmt = text("""
                 UPDATE {schema}.knowledge
-                SET metadata_ = jsonb_set(
-                    COALESCE(metadata_, '{{}}'::jsonb),
+                SET metadata = jsonb_set(
+                    COALESCE(metadata, '{{}}'::jsonb),
                     '{{archived}}',
                     '{value}'::jsonb
                 )
@@ -273,7 +273,8 @@ class KnowledgeRepository:
         source_uri: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int]]:
+        include_archived: bool = False,
+    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int], list[SourceSummary]]:
         """列出知识库中的知识条目
 
         Args:
@@ -295,6 +296,8 @@ class KnowledgeRepository:
                 Knowledge.corpus_id == corpus_id,
                 Knowledge.app_name == app_name,
             ]
+            if not include_archived:
+                base_conditions.append(self._active_filter_expr())
 
             # 如果指定了 source_uri 过滤
             source_filter = None
@@ -340,7 +343,50 @@ class KnowledgeRepository:
                 uri, count = row
                 source_stats[uri or "__null__"] = count
 
-            return [self._to_knowledge_record(item) for item in items], total_count, source_stats
+            # 查询 source 摘要（包含 archived/source_type）
+            source_detail_stmt = select(
+                Knowledge.source_uri,
+                Knowledge.metadata_,
+                func.count(Knowledge.id),
+            ).where(
+                Knowledge.corpus_id == corpus_id,
+                Knowledge.app_name == app_name,
+            ).group_by(
+                Knowledge.source_uri,
+                Knowledge.metadata_,
+            )
+            source_detail_result = await db.execute(source_detail_stmt)
+            summary_map: Dict[str, SourceSummary] = {}
+            for row in source_detail_result:
+                uri, metadata, count = row
+                key = uri or "__null__"
+                archived = self._is_archived(metadata)
+                source_type = self._infer_source_type(uri, metadata)
+                existing = summary_map.get(key)
+                if existing:
+                    summary_map[key] = SourceSummary(
+                        source_uri=uri,
+                        count=existing.count + int(count or 0),
+                        archived=existing.archived and archived,
+                        source_type=existing.source_type if existing.source_type != "unknown" else source_type,
+                    )
+                else:
+                    summary_map[key] = SourceSummary(
+                        source_uri=uri,
+                        count=int(count or 0),
+                        archived=archived,
+                        source_type=source_type,
+                    )
+
+            source_summaries = sorted(
+                summary_map.values(),
+                key=lambda item: (
+                    item.source_uri is None,
+                    item.source_uri or "",
+                ),
+            )
+
+            return [self._to_knowledge_record(item) for item in items], total_count, source_stats, source_summaries
 
     async def semantic_search(
         self,
@@ -364,6 +410,7 @@ class KnowledgeRepository:
                         Knowledge.corpus_id == corpus_id,
                         Knowledge.app_name == app_name,
                         Knowledge.embedding.is_not(None),
+                        self._active_filter_expr(),
                     )
                     .order_by(distance.asc())
                     .limit(limit)
@@ -429,6 +476,7 @@ class KnowledgeRepository:
             FROM {NEGENTROPY_SCHEMA}.knowledge
             WHERE corpus_id = :corpus_id
               AND app_name = :app_name
+              AND COALESCE((metadata->>'archived')::boolean, false) = false
               AND search_vector @@ plainto_tsquery('english', :query)
             """
             + filters
@@ -527,12 +575,15 @@ class KnowledgeRepository:
 
             matches: list[KnowledgeMatch] = []
             for row in rows:
+                metadata = row.get("metadata") or {}
+                if self._is_archived(metadata):
+                    continue
                 matches.append(
                     KnowledgeMatch(
                         id=row["id"],
                         content=row["content"],
                         source_uri=row.get("source_uri"),
-                        metadata=row.get("metadata") or {},
+                        metadata=metadata,
                         semantic_score=float(row.get("semantic_score") or 0.0),
                         keyword_score=float(row.get("keyword_score") or 0.0),
                         combined_score=float(row.get("combined_score") or 0.0),
@@ -666,12 +717,15 @@ class KnowledgeRepository:
 
             matches: list[KnowledgeMatch] = []
             for row in rows:
+                metadata = row.get("metadata") or {}
+                if self._is_archived(metadata):
+                    continue
                 matches.append(
                     KnowledgeMatch(
                         id=row["id"],
                         content=row["content"],
                         source_uri=row.get("source_uri"),
-                        metadata=row.get("metadata") or {},
+                        metadata=metadata,
                         semantic_score=0.0,  # RRF 不使用原始分数
                         keyword_score=0.0,
                         combined_score=float(row.get("rrf_score") or 0.0),
@@ -795,3 +849,26 @@ class KnowledgeRepository:
             updated_at=knowledge.updated_at,
             embedding=knowledge.embedding,
         )
+    @staticmethod
+    def _infer_source_type(
+        source_uri: Optional[str],
+        metadata: Optional[Dict[str, Any]],
+    ) -> Literal["file", "url", "text", "unknown"]:
+        raw = (metadata or {}).get("source_type")
+        if raw in {"file", "url", "text", "unknown"}:
+            return raw
+        if source_uri and source_uri.startswith("gs://"):
+            return "file"
+        if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
+            return "url"
+        if source_uri:
+            return "text"
+        return "unknown"
+
+    @staticmethod
+    def _is_archived(metadata: Optional[Dict[str, Any]]) -> bool:
+        return bool((metadata or {}).get("archived") is True)
+
+    @staticmethod
+    def _active_filter_expr() -> Any:
+        return func.coalesce(cast(Knowledge.metadata_["archived"].astext, Boolean), False).is_(False)

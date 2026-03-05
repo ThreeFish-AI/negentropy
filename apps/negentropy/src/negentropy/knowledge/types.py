@@ -92,6 +92,16 @@ class KnowledgeRecord:
 
 
 @dataclass(frozen=True)
+class SourceSummary:
+    """Source 聚合摘要"""
+
+    source_uri: Optional[str]
+    count: int
+    archived: bool
+    source_type: Literal["file", "url", "text", "unknown"]
+
+
+@dataclass(frozen=True)
 class KnowledgeMatch:
     """知识匹配结果
 

@@ -30,6 +30,7 @@ from .types import (
     KnowledgeMatch,
     KnowledgeRecord,
     SearchConfig,
+    SourceSummary,
     merge_search_results,
 )
 
@@ -302,12 +303,13 @@ class KnowledgeService:
         )
 
         try:
+            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=normalized_metadata,
                 chunking_config=chunking_config or self._chunking_config,
                 tracker=tracker,
             )
@@ -385,7 +387,7 @@ class KnowledgeService:
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = metadata or {}
+            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
 
             # 后续阶段复用 _ingest_text_with_tracker
@@ -469,7 +471,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -554,7 +556,10 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
-            metadata = {"source_url": source_uri}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"source_url": source_uri},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -562,7 +567,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -679,7 +684,10 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
-            metadata = {"gcs_uri": source_uri, "rebuild": True}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"gcs_uri": source_uri, "rebuild": True},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -778,12 +786,13 @@ class KnowledgeService:
         )
 
         try:
+            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=normalized_metadata,
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -1002,8 +1011,8 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
-    ) -> int:
-        """删除指定 source_uri 的所有知识块
+    ) -> Dict[str, Any]:
+        """删除指定 source_uri 的所有知识块及其关联资产
 
         Args:
             corpus_id: 知识库 ID
@@ -1011,7 +1020,7 @@ class KnowledgeService:
             source_uri: 来源 URI
 
         Returns:
-            删除的记录数量
+            删除结果摘要
         """
         logger.info(
             "delete_source_started",
@@ -1019,6 +1028,34 @@ class KnowledgeService:
             app_name=app_name,
             source_uri=source_uri,
         )
+
+        warnings: list[str] = []
+        deleted_documents = 0
+        deleted_gcs_objects = 0
+
+        if source_uri.startswith("gs://"):
+            from negentropy.storage.gcs_client import StorageError
+            from negentropy.storage.service import DocumentStorageService
+
+            storage_service = DocumentStorageService()
+            doc = await storage_service.get_document_by_gcs_uri(
+                gcs_uri=source_uri,
+                corpus_id=corpus_id,
+                app_name=app_name,
+            )
+            if doc:
+                try:
+                    deleted = await storage_service.delete_document(
+                        document_id=doc.id,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                        soft_delete=False,
+                    )
+                    if deleted:
+                        deleted_documents = 1
+                        deleted_gcs_objects = 1 + (1 if doc.markdown_gcs_uri else 0)
+                except StorageError as exc:
+                    warnings.append(f"GCS_DELETE_FAILED: {exc}")
 
         deleted_count = await self._repository.delete_knowledge_by_source(
             corpus_id=corpus_id,
@@ -1032,9 +1069,17 @@ class KnowledgeService:
             app_name=app_name,
             source_uri=source_uri,
             deleted_count=deleted_count,
+            deleted_documents=deleted_documents,
+            deleted_gcs_objects=deleted_gcs_objects,
+            warning_count=len(warnings),
         )
 
-        return deleted_count
+        return {
+            "deleted_count": deleted_count,
+            "deleted_documents": deleted_documents,
+            "deleted_gcs_objects": deleted_gcs_objects,
+            "warnings": warnings,
+        }
 
     async def archive_source(
         self,
@@ -1163,7 +1208,7 @@ class KnowledgeService:
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = metadata or {}
+            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
 
             # 后续阶段复用 _ingest_text_with_tracker
@@ -1314,7 +1359,10 @@ class KnowledgeService:
             )
 
             # 准备 metadata（保留原始 URL 信息）
-            metadata = {"source_url": source_uri}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"source_url": source_uri},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -1531,7 +1579,10 @@ class KnowledgeService:
             )
 
             # 准备 metadata
-            metadata = {"gcs_uri": source_uri, "rebuild": True}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"gcs_uri": source_uri, "rebuild": True},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -1583,7 +1634,8 @@ class KnowledgeService:
         source_uri: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int]]:
+        include_archived: bool = False,
+    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int], list[SourceSummary]]:
         """List knowledge items in a corpus.
 
         Args:
@@ -1602,6 +1654,7 @@ class KnowledgeService:
             source_uri=source_uri,
             limit=limit,
             offset=offset,
+            include_archived=include_archived,
         )
 
     async def search(
@@ -1878,3 +1931,25 @@ def _guess_content_type(filename: str) -> Optional[str]:
         "markdown": "text/markdown",
     }
     return content_types.get(ext)
+
+
+def _infer_source_type(source_uri: Optional[str]) -> str:
+    if source_uri and source_uri.startswith("gs://"):
+        return "file"
+    if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
+        return "url"
+    if source_uri:
+        return "text"
+    return "unknown"
+
+
+def _normalize_source_metadata(
+    *,
+    source_uri: Optional[str],
+    metadata: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    normalized = dict(metadata or {})
+    source_type = normalized.get("source_type")
+    if source_type not in {"file", "url", "text", "unknown"}:
+        normalized["source_type"] = _infer_source_type(source_uri)
+    return normalized

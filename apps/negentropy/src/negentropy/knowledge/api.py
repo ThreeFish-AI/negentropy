@@ -602,6 +602,7 @@ async def list_knowledge(
     corpus_id: UUID,
     app_name: Optional[str] = Query(default=None),
     source_uri: Optional[str] = Query(default=None),
+    include_archived: bool = Query(default=False),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> Dict[str, Any]:
@@ -624,10 +625,11 @@ async def list_knowledge(
     resolved_app = _resolve_app_name(app_name)
     service = _get_service()
 
-    knowledge_items, total_count, source_stats = await service.list_knowledge(
+    knowledge_items, total_count, source_stats, source_summaries = await service.list_knowledge(
         corpus_id=corpus_id,
         app_name=resolved_app,
         source_uri=source_uri,
+        include_archived=include_archived,
         limit=limit,
         offset=offset,
     )
@@ -646,6 +648,15 @@ async def list_knowledge(
             for item in knowledge_items
         ],
         "source_stats": source_stats,
+        "source_summaries": [
+            {
+                "source_uri": summary.source_uri,
+                "count": summary.count,
+                "archived": summary.archived,
+                "source_type": summary.source_type,
+            }
+            for summary in source_summaries
+        ],
     }
 
 
@@ -990,6 +1001,7 @@ async def ingest_file(
         meta["original_filename"] = safe_filename
         meta["content_type"] = file.content_type
         meta["file_size"] = len(content)
+        meta["source_type"] = "file"
         if gcs_uri:
             meta["gcs_uri"] = gcs_uri
 
@@ -1660,6 +1672,9 @@ class DeleteSourceResponse(BaseModel):
     """删除 Source 响应模型"""
 
     deleted_count: int
+    deleted_documents: int = 0
+    deleted_gcs_objects: int = 0
+    warnings: list[str] = Field(default_factory=list)
 
 
 @router.post("/base/{corpus_id}/delete_source", response_model=DeleteSourceResponse)
@@ -1694,7 +1709,7 @@ async def delete_source(
 
     try:
         service = _get_service()
-        deleted_count = await service.delete_source(
+        result = await service.delete_source(
             corpus_id=corpus_id,
             app_name=resolved_app,
             source_uri=source_uri,
@@ -1705,10 +1720,18 @@ async def delete_source(
             corpus_id=str(corpus_id),
             app_name=resolved_app,
             source_uri=source_uri,
-            deleted_count=deleted_count,
+            deleted_count=result["deleted_count"],
+            deleted_documents=result["deleted_documents"],
+            deleted_gcs_objects=result["deleted_gcs_objects"],
+            warning_count=len(result["warnings"]),
         )
 
-        return DeleteSourceResponse(deleted_count=deleted_count)
+        return DeleteSourceResponse(
+            deleted_count=result["deleted_count"],
+            deleted_documents=result["deleted_documents"],
+            deleted_gcs_objects=result["deleted_gcs_objects"],
+            warnings=result["warnings"],
+        )
 
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
@@ -1954,7 +1977,7 @@ async def build_knowledge_graph(
     try:
         # 获取语料库中的所有知识块
         service = _get_service()
-        knowledge_items, total_count, _ = await service.list_knowledge(
+        knowledge_items, total_count, _, _ = await service.list_knowledge(
             corpus_id=corpus_id,
             app_name=resolved_app,
             limit=10000,  # 获取所有
