@@ -16,6 +16,7 @@ interface SubAgent {
   tools: string[];
   is_enabled: boolean;
   visibility: string;
+  is_builtin?: boolean;
 }
 
 interface SubAgentFormDialogProps {
@@ -138,6 +139,18 @@ export function SubAgentFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    let confirmBuiltinRename = false;
+    if (agent?.is_builtin && formData.name !== agent.name) {
+      const confirmed = confirm(
+        "Renaming a Negentropy built-in SubAgent may cause future sync to create a duplicate. Continue?",
+      );
+      if (!confirmed) {
+        return;
+      }
+      confirmBuiltinRename = true;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -190,6 +203,9 @@ export function SubAgentFormDialog({
         is_enabled: formData.is_enabled,
         visibility: formData.visibility,
       };
+      if (confirmBuiltinRename) {
+        data.confirm_builtin_rename = true;
+      }
 
       await onSubmit(data);
     } catch (err) {
@@ -205,7 +221,7 @@ export function SubAgentFormDialog({
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/55" onClick={onClose} />
       <div className="relative flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6">
-        <div className="my-3 w-full max-w-6xl rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900">
           <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {agent ? "Edit SubAgent" : "Add SubAgent"}
@@ -215,8 +231,8 @@ export function SubAgentFormDialog({
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex max-h-[calc(100vh-4.5rem)] flex-col">
-            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
               {!agent && templates.length > 0 && (
                 <section className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
                   <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -272,7 +288,6 @@ export function SubAgentFormDialog({
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       placeholder="my-subagent"
                       required
-                      disabled={!!agent}
                     />
                   </div>
                   <div>
@@ -439,7 +454,7 @@ export function SubAgentFormDialog({
               </section>
             </div>
 
-            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
               <button
                 type="button"
                 onClick={onClose}
