@@ -11,8 +11,11 @@ interface SubAgent {
   system_prompt: string | null;
   model: string | null;
   config: Record<string, unknown>;
+  adk_config: Record<string, unknown>;
   skills: string[];
   tools: string[];
+  source: string;
+  is_builtin: boolean;
   is_enabled: boolean;
 }
 
@@ -46,6 +49,11 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
             <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
               {agent.visibility}
             </span>
+            {agent.is_builtin && (
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                Negentropy Built-in
+              </span>
+            )}
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
             {agent.description || "No description"}
@@ -57,6 +65,15 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 {agent.model}
+              </span>
+            )}
+            {"agent_class" in agent.adk_config &&
+              typeof agent.adk_config["agent_class"] === "string" && (
+              <span className="inline-flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {String(agent.adk_config["agent_class"])}
               </span>
             )}
             {agent.skills && agent.skills.length > 0 && (
@@ -76,6 +93,12 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
                 {agent.tools.length} tools
               </span>
             )}
+            <span className="inline-flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              source: {agent.source}
+            </span>
           </div>
           {agent.skills && agent.skills.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from negentropy.auth.deps import get_current_user
 from negentropy.auth.rbac import has_permission
@@ -31,6 +32,7 @@ from negentropy.models.plugin import (
 )
 
 from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
+from .subagent_presets import build_negentropy_subagent_payloads
 
 logger = get_logger("negentropy.plugins.api")
 router = APIRouter(prefix="/plugins", tags=["plugins"])
@@ -232,6 +234,7 @@ class SubAgentCreateRequest(BaseModel):
     system_prompt: Optional[str] = None
     model: Optional[str] = None
     config: Dict[str, Any] = Field(default_factory=dict)
+    adk_config: Dict[str, Any] = Field(default_factory=dict)
     skills: List[str] = Field(default_factory=list)
     tools: List[str] = Field(default_factory=list)
     is_enabled: bool = True
@@ -245,6 +248,7 @@ class SubAgentUpdateRequest(BaseModel):
     system_prompt: Optional[str] = None
     model: Optional[str] = None
     config: Optional[Dict[str, Any]] = None
+    adk_config: Optional[Dict[str, Any]] = None
     skills: Optional[List[str]] = None
     tools: Optional[List[str]] = None
     is_enabled: Optional[bool] = None
@@ -262,12 +266,33 @@ class SubAgentResponse(BaseModel):
     system_prompt: Optional[str] = None
     model: Optional[str] = None
     config: Dict[str, Any] = Field(default_factory=dict)
+    adk_config: Dict[str, Any] = Field(default_factory=dict)
     skills: List[str] = Field(default_factory=list)
     tools: List[str] = Field(default_factory=list)
+    source: str = "user_defined"
+    is_builtin: bool = False
     is_enabled: bool
 
     class Config:
         from_attributes = True
+
+
+class NegentropySubAgentTemplateResponse(BaseModel):
+    name: str
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    agent_type: str
+    system_prompt: Optional[str] = None
+    model: Optional[str] = None
+    adk_config: Dict[str, Any] = Field(default_factory=dict)
+    tools: List[str] = Field(default_factory=list)
+
+
+class NegentropySubAgentSyncResponse(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+    agents: List[SubAgentResponse] = Field(default_factory=list)
 
 
 # =============================================================================
@@ -767,6 +792,134 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
 # =============================================================================
 
 
+def _json_dict(value: Any) -> Dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _build_adk_config_from_payload(
+    payload: Dict[str, Any],
+    existing_adk_config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """构建 SubAgent 的 ADK 配置（可回放）。"""
+    adk_config: Dict[str, Any] = dict(existing_adk_config or {})
+    incoming_adk = payload.get("adk_config")
+    if isinstance(incoming_adk, dict):
+        adk_config.update(incoming_adk)
+
+    # 核心字段始终由结构化列驱动，避免双写漂移
+    name = payload.get("name")
+    if isinstance(name, str) and name:
+        adk_config["name"] = name
+
+    description = payload.get("description")
+    if description is None or isinstance(description, str):
+        adk_config["description"] = description
+
+    agent_type = payload.get("agent_type")
+    if isinstance(agent_type, str) and agent_type:
+        adk_config["agent_type"] = agent_type
+
+    system_prompt = payload.get("system_prompt")
+    if system_prompt is None or isinstance(system_prompt, str):
+        adk_config["instruction"] = system_prompt
+
+    model = payload.get("model")
+    if model is None or isinstance(model, str):
+        adk_config["model"] = model
+
+    tools = payload.get("tools")
+    if isinstance(tools, list):
+        adk_config["tools"] = tools
+
+    return adk_config
+
+
+def _merge_subagent_config(
+    *,
+    current_config: Optional[Dict[str, Any]],
+    update_config: Optional[Dict[str, Any]],
+    adk_config: Dict[str, Any],
+    source: str,
+) -> Dict[str, Any]:
+    merged = dict(current_config or {})
+    if isinstance(update_config, dict):
+        merged.update(update_config)
+    merged["adk_config"] = adk_config
+    merged["source"] = source
+    return merged
+
+
+def _materialize_subagent_payload(
+    agent: Optional[SubAgent],
+    incoming: Dict[str, Any],
+) -> Dict[str, Any]:
+    """将数据库对象与变更 payload 合并为完整视图，便于构建 adk_config。"""
+    if agent is None:
+        base = {
+            "name": incoming.get("name"),
+            "display_name": incoming.get("display_name"),
+            "description": incoming.get("description"),
+            "agent_type": incoming.get("agent_type"),
+            "system_prompt": incoming.get("system_prompt"),
+            "model": incoming.get("model"),
+            "config": _json_dict(incoming.get("config")),
+            "adk_config": _json_dict(incoming.get("adk_config")),
+            "skills": incoming.get("skills") or [],
+            "tools": incoming.get("tools") or [],
+            "is_enabled": incoming.get("is_enabled", True),
+            "visibility": incoming.get("visibility", "private"),
+        }
+        return base
+
+    config = _json_dict(agent.config)
+    base = {
+        "name": agent.name,
+        "display_name": agent.display_name,
+        "description": agent.description,
+        "agent_type": agent.agent_type,
+        "system_prompt": agent.system_prompt,
+        "model": agent.model,
+        "config": config,
+        "adk_config": _json_dict(config.get("adk_config")),
+        "skills": agent.skills or [],
+        "tools": agent.tools or [],
+        "is_enabled": agent.is_enabled,
+        "visibility": agent.visibility.value,
+    }
+    base.update(incoming)
+
+    if "config" in incoming:
+        base["config"] = _json_dict(incoming["config"])
+    if "adk_config" in incoming:
+        base["adk_config"] = _json_dict(incoming["adk_config"])
+    return base
+
+
+def _resolve_subagent_source(config: Dict[str, Any]) -> str:
+    source = config.get("source")
+    if isinstance(source, str) and source:
+        return source
+    return "user_defined"
+
+
+def _extract_adk_config(agent: SubAgent) -> Dict[str, Any]:
+    config = _json_dict(agent.config)
+    adk_config = config.get("adk_config")
+    if isinstance(adk_config, dict):
+        return adk_config
+
+    # 兼容历史记录：若不存在 adk_config，则由结构化列推导最小可回放配置
+    fallback_payload = {
+        "name": agent.name,
+        "description": agent.description,
+        "agent_type": agent.agent_type,
+        "system_prompt": agent.system_prompt,
+        "model": agent.model,
+        "tools": agent.tools or [],
+    }
+    return _build_adk_config_from_payload(fallback_payload)
+
+
 @router.get("/subagents", response_model=List[SubAgentResponse])
 async def list_subagents(user: AuthUser = Depends(get_current_user)) -> List[SubAgentResponse]:
     """列出用户可见的 SubAgents"""
@@ -782,6 +935,115 @@ async def list_subagents(user: AuthUser = Depends(get_current_user)) -> List[Sub
     return [_subagent_to_response(a) for a in agents]
 
 
+@router.get("/subagents/templates/negentropy", response_model=List[NegentropySubAgentTemplateResponse])
+async def list_negentropy_subagent_templates(
+    user: AuthUser = Depends(get_current_user),
+) -> List[NegentropySubAgentTemplateResponse]:
+    """返回 Negentropy 内置 5 个 Faculty SubAgent 模板（来自代码定义）。"""
+    _ = user  # 显式依赖鉴权
+    payloads = build_negentropy_subagent_payloads()
+    return [
+        NegentropySubAgentTemplateResponse(
+            name=payload["name"],
+            display_name=payload.get("display_name"),
+            description=payload.get("description"),
+            agent_type=payload.get("agent_type", "llm_agent"),
+            system_prompt=payload.get("system_prompt"),
+            model=payload.get("model"),
+            adk_config=payload.get("adk_config", {}),
+            tools=payload.get("tools", []),
+        )
+        for payload in payloads
+    ]
+
+
+@router.post("/subagents/sync/negentropy", response_model=NegentropySubAgentSyncResponse)
+async def sync_negentropy_subagents(
+    user: AuthUser = Depends(get_current_user),
+) -> NegentropySubAgentSyncResponse:
+    """
+    将代码中的 5 个 Faculty SubAgent 同步到插件表。
+
+    幂等语义：
+    - 已存在且归属当前用户：更新为最新代码定义；
+    - 已存在但归属其他用户：跳过；
+    - 不存在：创建。
+    """
+    payloads = build_negentropy_subagent_payloads()
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    touched_agents: List[SubAgent] = []
+
+    async with AsyncSessionLocal() as db:
+        for payload in payloads:
+            existing = await db.scalar(select(SubAgent).where(SubAgent.name == payload["name"]))
+            materialized = _materialize_subagent_payload(existing, payload)
+            adk_config = _build_adk_config_from_payload(
+                materialized,
+                existing_adk_config=_json_dict(materialized.get("adk_config")),
+            )
+            merged_config = _merge_subagent_config(
+                current_config=_json_dict(existing.config) if existing else None,
+                update_config=_json_dict(materialized.get("config")),
+                adk_config=adk_config,
+                source="negentropy_builtin",
+            )
+
+            if existing:
+                if existing.owner_id != user.user_id:
+                    skipped_count += 1
+                    continue
+
+                existing.display_name = materialized.get("display_name")
+                existing.description = materialized.get("description")
+                existing.agent_type = materialized.get("agent_type")
+                existing.system_prompt = materialized.get("system_prompt")
+                existing.model = materialized.get("model")
+                existing.config = merged_config
+                existing.skills = materialized.get("skills") or []
+                existing.tools = materialized.get("tools") or []
+                existing.is_enabled = bool(materialized.get("is_enabled", True))
+                existing.visibility = PluginVisibility(materialized.get("visibility", "private"))
+                updated_count += 1
+                touched_agents.append(existing)
+                continue
+
+            new_agent = SubAgent(
+                owner_id=user.user_id,
+                visibility=PluginVisibility(materialized.get("visibility", "private")),
+                name=materialized["name"],
+                display_name=materialized.get("display_name"),
+                description=materialized.get("description"),
+                agent_type=materialized.get("agent_type", "llm_agent"),
+                system_prompt=materialized.get("system_prompt"),
+                model=materialized.get("model"),
+                config=merged_config,
+                skills=materialized.get("skills") or [],
+                tools=materialized.get("tools") or [],
+                is_enabled=bool(materialized.get("is_enabled", True)),
+            )
+            db.add(new_agent)
+            created_count += 1
+            touched_agents.append(new_agent)
+
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail=f"SubAgent sync conflict: {exc}") from exc
+
+        for agent in touched_agents:
+            await db.refresh(agent)
+
+    return NegentropySubAgentSyncResponse(
+        created=created_count,
+        updated=updated_count,
+        skipped=skipped_count,
+        agents=[_subagent_to_response(agent) for agent in touched_agents],
+    )
+
+
 @router.post("/subagents", response_model=SubAgentResponse, status_code=status.HTTP_201_CREATED)
 async def create_subagent(
     payload: SubAgentCreateRequest,
@@ -793,22 +1055,40 @@ async def create_subagent(
         if existing:
             raise HTTPException(status_code=400, detail="SubAgent name already exists")
 
+        incoming = payload.model_dump()
+        materialized = _materialize_subagent_payload(None, incoming)
+        adk_config = _build_adk_config_from_payload(
+            materialized,
+            existing_adk_config=_json_dict(materialized.get("adk_config")),
+        )
+        source = _resolve_subagent_source(_json_dict(materialized.get("config")))
+        merged_config = _merge_subagent_config(
+            current_config=None,
+            update_config=_json_dict(materialized.get("config")),
+            adk_config=adk_config,
+            source=source,
+        )
+
         agent = SubAgent(
             owner_id=user.user_id,
             visibility=PluginVisibility(payload.visibility),
             name=payload.name,
-            display_name=payload.display_name,
-            description=payload.description,
-            agent_type=payload.agent_type,
-            system_prompt=payload.system_prompt,
-            model=payload.model,
-            config=payload.config,
-            skills=payload.skills,
-            tools=payload.tools,
-            is_enabled=payload.is_enabled,
+            display_name=materialized.get("display_name"),
+            description=materialized.get("description"),
+            agent_type=materialized.get("agent_type", "llm_agent"),
+            system_prompt=materialized.get("system_prompt"),
+            model=materialized.get("model"),
+            config=merged_config,
+            skills=materialized.get("skills") or [],
+            tools=materialized.get("tools") or [],
+            is_enabled=bool(materialized.get("is_enabled", True)),
         )
         db.add(agent)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail=f"SubAgent create conflict: {exc}") from exc
         await db.refresh(agent)
 
     return _subagent_to_response(agent)
@@ -847,14 +1127,45 @@ async def update_subagent(
         if not agent:
             raise HTTPException(status_code=404, detail="SubAgent not found")
 
-        update_data = payload.model_dump(exclude_unset=True)
-        if "visibility" in update_data:
-            update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        incoming = payload.model_dump(exclude_unset=True)
+        materialized = _materialize_subagent_payload(agent, incoming)
+        adk_config = _build_adk_config_from_payload(
+            materialized,
+            existing_adk_config=_json_dict(materialized.get("adk_config")),
+        )
+        source = _resolve_subagent_source(_json_dict(materialized.get("config")))
+        merged_config = _merge_subagent_config(
+            current_config=_json_dict(agent.config),
+            update_config=_json_dict(materialized.get("config")),
+            adk_config=adk_config,
+            source=source,
+        )
 
-        for key, value in update_data.items():
-            setattr(agent, key, value)
+        if "display_name" in incoming:
+            agent.display_name = materialized.get("display_name")
+        if "description" in incoming:
+            agent.description = materialized.get("description")
+        if "agent_type" in incoming:
+            agent.agent_type = materialized.get("agent_type", agent.agent_type)
+        if "system_prompt" in incoming:
+            agent.system_prompt = materialized.get("system_prompt")
+        if "model" in incoming:
+            agent.model = materialized.get("model")
+        if "skills" in incoming:
+            agent.skills = materialized.get("skills") or []
+        if "tools" in incoming:
+            agent.tools = materialized.get("tools") or []
+        if "is_enabled" in incoming:
+            agent.is_enabled = bool(materialized.get("is_enabled"))
+        if "visibility" in incoming:
+            agent.visibility = PluginVisibility(str(materialized.get("visibility")))
+        agent.config = merged_config
 
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail=f"SubAgent update conflict: {exc}") from exc
         await db.refresh(agent)
 
     return _subagent_to_response(agent)
@@ -879,6 +1190,9 @@ async def delete_subagent(
 
 
 def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
+    config = _json_dict(agent.config)
+    source = _resolve_subagent_source(config)
+    adk_config = _extract_adk_config(agent)
     return SubAgentResponse(
         id=agent.id,
         owner_id=agent.owner_id,
@@ -889,9 +1203,12 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
         agent_type=agent.agent_type,
         system_prompt=agent.system_prompt,
         model=agent.model,
-        config=agent.config or {},
+        config=config,
+        adk_config=adk_config,
         skills=agent.skills or [],
         tools=agent.tools or [],
+        source=source,
+        is_builtin=source == "negentropy_builtin",
         is_enabled=agent.is_enabled,
     )
 

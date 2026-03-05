@@ -11,6 +11,7 @@ interface SubAgent {
   system_prompt: string | null;
   model: string | null;
   config: Record<string, unknown>;
+  adk_config?: Record<string, unknown>;
   skills: string[];
   tools: string[];
   is_enabled: boolean;
@@ -22,6 +23,17 @@ interface SubAgentFormDialogProps {
   onClose: () => void;
   onSubmit: (data: Record<string, unknown>) => Promise<void>;
   agent: SubAgent | null;
+}
+
+interface NegentropyTemplate {
+  name: string;
+  display_name: string | null;
+  description: string | null;
+  agent_type: string;
+  system_prompt: string | null;
+  model: string | null;
+  adk_config: Record<string, unknown>;
+  tools: string[];
 }
 
 export function SubAgentFormDialog({
@@ -38,6 +50,7 @@ export function SubAgentFormDialog({
     system_prompt: "",
     model: "",
     config: "{}",
+    adk_config: "{}",
     skills: "",
     tools: "",
     is_enabled: true,
@@ -45,6 +58,25 @@ export function SubAgentFormDialog({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<NegentropyTemplate[]>([]);
+  const [selectedTemplateName, setSelectedTemplateName] = useState("");
+
+  const applyTemplate = (template: NegentropyTemplate) => {
+    setFormData({
+      name: template.name,
+      display_name: template.display_name || template.name,
+      description: template.description || "",
+      agent_type: template.agent_type,
+      system_prompt: template.system_prompt || "",
+      model: template.model || "",
+      config: JSON.stringify({ source: "negentropy_builtin" }, null, 2),
+      adk_config: JSON.stringify(template.adk_config || {}, null, 2),
+      skills: "",
+      tools: (template.tools || []).join("\n"),
+      is_enabled: true,
+      visibility: "private",
+    });
+  };
 
   useEffect(() => {
     if (agent) {
@@ -56,11 +88,13 @@ export function SubAgentFormDialog({
         system_prompt: agent.system_prompt || "",
         model: agent.model || "",
         config: JSON.stringify(agent.config || {}, null, 2),
+        adk_config: JSON.stringify(agent.adk_config || (agent.config as { adk_config?: unknown })?.adk_config || {}, null, 2),
         skills: Array.isArray(agent.skills) ? agent.skills.join("\n") : "",
         tools: Array.isArray(agent.tools) ? agent.tools.join("\n") : "",
         is_enabled: agent.is_enabled,
         visibility: agent.visibility,
       });
+      setSelectedTemplateName("");
     } else {
       setFormData({
         name: "",
@@ -70,14 +104,37 @@ export function SubAgentFormDialog({
         system_prompt: "",
         model: "",
         config: "{}",
+        adk_config: "{}",
         skills: "",
         tools: "",
         is_enabled: true,
         visibility: "private",
       });
+      setSelectedTemplateName("");
     }
     setError(null);
   }, [agent, open]);
+
+  useEffect(() => {
+    if (!open || agent) return;
+    let mounted = true;
+    const fetchTemplates = async () => {
+      try {
+        const response = await fetch("/api/plugins/subagents/templates/negentropy");
+        if (!response.ok) return;
+        const data = (await response.json()) as NegentropyTemplate[];
+        if (mounted) {
+          setTemplates(data);
+        }
+      } catch {
+        // keep silent; template loading is optional
+      }
+    };
+    fetchTemplates();
+    return () => {
+      mounted = false;
+    };
+  }, [open, agent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,11 +143,32 @@ export function SubAgentFormDialog({
 
     try {
       let config = {};
+      let adkConfig = {};
       try {
         config = JSON.parse(formData.config || "{}");
       } catch {
         throw new Error("Invalid JSON in config");
       }
+      try {
+        adkConfig = JSON.parse(formData.adk_config || "{}");
+      } catch {
+        throw new Error("Invalid JSON in ADK config");
+      }
+
+      const normalizedAdkConfig =
+        adkConfig && Object.keys(adkConfig).length > 0
+          ? adkConfig
+          : {
+              agent_type: formData.agent_type,
+              name: formData.name,
+              description: formData.description || null,
+              instruction: formData.system_prompt || null,
+              model: formData.model || null,
+              tools: formData.tools
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            };
 
       const data: Record<string, unknown> = {
         name: formData.name,
@@ -100,6 +178,7 @@ export function SubAgentFormDialog({
         system_prompt: formData.system_prompt || null,
         model: formData.model || null,
         config: config,
+        adk_config: normalizedAdkConfig,
         skills: formData.skills
           .split("\n")
           .map((s) => s.trim())
@@ -131,6 +210,39 @@ export function SubAgentFormDialog({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!agent && templates.length > 0 && (
+            <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+              <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Negentropy Built-in Templates
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedTemplateName}
+                  onChange={(e) => setSelectedTemplateName(e.target.value)}
+                  className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                >
+                  <option value="">Select template</option>
+                  {templates.map((template) => (
+                    <option key={template.name} value={template.name}>
+                      {template.display_name || template.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!selectedTemplateName}
+                  onClick={() => {
+                    const target = templates.find((item) => item.name === selectedTemplateName);
+                    if (target) applyTemplate(target);
+                  }}
+                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
               {error}
@@ -190,8 +302,10 @@ export function SubAgentFormDialog({
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
               >
                 <option value="llm_agent">LLM Agent</option>
-                <option value="workflow">Workflow</option>
-                <option value="router">Router</option>
+                <option value="sequential_agent">Sequential Agent</option>
+                <option value="parallel_agent">Parallel Agent</option>
+                <option value="loop_agent">Loop Agent</option>
+                <option value="custom_agent">Custom Agent</option>
               </select>
             </div>
             <div>
@@ -273,6 +387,22 @@ export function SubAgentFormDialog({
               rows={3}
               placeholder='{"temperature": 0.7}'
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              ADK Config (JSON, full-fidelity)
+            </label>
+            <textarea
+              value={formData.adk_config}
+              onChange={(e) => setFormData({ ...formData, adk_config: e.target.value })}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              rows={8}
+              placeholder='{"agent_class":"LlmAgent","output_key":"perception_output","disallow_transfer_to_parent":true}'
+            />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Use this field to capture all ADK sub-agent capabilities. Empty value will auto-generate a minimal ADK config.
+            </p>
           </div>
 
           <div className="flex items-center gap-4">
