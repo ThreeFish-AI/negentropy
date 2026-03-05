@@ -208,7 +208,7 @@ export default function SubAgentsPage() {
                 className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
               >
                 {agents.map((agent) => (
-                  <div key={agent.id} className="h-[187px]" data-testid="subagent-grid-item">
+                  <div key={agent.id} className="h-[232px]" data-testid="subagent-grid-item">
                     <SubAgentCard
                       agent={agent}
                       onEdit={() => handleEdit(agent)}
