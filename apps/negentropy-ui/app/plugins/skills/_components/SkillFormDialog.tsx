@@ -134,7 +134,7 @@ export function SkillFormDialog({
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/55" onClick={onClose} />
       <div className="relative flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6">
-        <div className="my-3 w-full max-w-6xl rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900">
           <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {skill ? "Edit Skill" : "Add Skill"}
@@ -144,8 +144,8 @@ export function SkillFormDialog({
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex max-h-[calc(100vh-4.5rem)] flex-col">
-            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
               {error && (
                 <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
                   {error}
@@ -168,7 +168,6 @@ export function SkillFormDialog({
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       placeholder="my-skill"
                       required
-                      disabled={!!skill}
                     />
                   </div>
                   <div>
@@ -329,7 +328,7 @@ export function SkillFormDialog({
               </section>
             </div>
 
-            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex shrink-0 justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900">
               <button
                 type="button"
                 onClick={onClose}

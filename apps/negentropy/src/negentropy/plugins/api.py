@@ -95,6 +95,7 @@ class McpServerCreateRequest(BaseModel):
 
 
 class McpServerUpdateRequest(BaseModel):
+    name: Optional[str] = None
     display_name: Optional[str] = None
     description: Optional[str] = None
     command: Optional[str] = None
@@ -188,6 +189,7 @@ class SkillCreateRequest(BaseModel):
 
 
 class SkillUpdateRequest(BaseModel):
+    name: Optional[str] = None
     display_name: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -242,6 +244,7 @@ class SubAgentCreateRequest(BaseModel):
 
 
 class SubAgentUpdateRequest(BaseModel):
+    name: Optional[str] = None
     display_name: Optional[str] = None
     description: Optional[str] = None
     agent_type: Optional[str] = None
@@ -253,6 +256,7 @@ class SubAgentUpdateRequest(BaseModel):
     tools: Optional[List[str]] = None
     is_enabled: Optional[bool] = None
     visibility: Optional[str] = None
+    confirm_builtin_rename: Optional[bool] = False
 
 
 class SubAgentResponse(BaseModel):
@@ -442,6 +446,19 @@ async def update_mcp_server(
             raise HTTPException(status_code=404, detail="Server not found")
 
         update_data = payload.model_dump(exclude_unset=True)
+        if "name" in update_data:
+            new_name = str(update_data["name"] or "").strip()
+            if not new_name:
+                raise HTTPException(status_code=400, detail="Server name cannot be empty")
+            if new_name != server.name:
+                existing = await db.scalar(
+                    select(McpServer).where(
+                        and_(McpServer.name == new_name, McpServer.id != server_id)
+                    )
+                )
+                if existing:
+                    raise HTTPException(status_code=400, detail="Server name already exists")
+            update_data["name"] = new_name
         if "visibility" in update_data:
             update_data["visibility"] = PluginVisibility(update_data["visibility"])
 
@@ -738,6 +755,17 @@ async def update_skill(
             raise HTTPException(status_code=404, detail="Skill not found")
 
         update_data = payload.model_dump(exclude_unset=True)
+        if "name" in update_data:
+            new_name = str(update_data["name"] or "").strip()
+            if not new_name:
+                raise HTTPException(status_code=400, detail="Skill name cannot be empty")
+            if new_name != skill.name:
+                existing = await db.scalar(
+                    select(Skill).where(and_(Skill.name == new_name, Skill.id != skill_id))
+                )
+                if existing:
+                    raise HTTPException(status_code=400, detail="Skill name already exists")
+            update_data["name"] = new_name
         if "visibility" in update_data:
             update_data["visibility"] = PluginVisibility(update_data["visibility"])
 
@@ -1128,6 +1156,29 @@ async def update_subagent(
             raise HTTPException(status_code=404, detail="SubAgent not found")
 
         incoming = payload.model_dump(exclude_unset=True)
+        confirm_builtin_rename = bool(incoming.pop("confirm_builtin_rename", False))
+
+        if "name" in incoming:
+            new_name = str(incoming["name"] or "").strip()
+            if not new_name:
+                raise HTTPException(status_code=400, detail="SubAgent name cannot be empty")
+            if new_name != agent.name:
+                current_source = _resolve_subagent_source(_json_dict(agent.config))
+                if current_source == "negentropy_builtin" and not confirm_builtin_rename:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            "Renaming a Negentropy built-in SubAgent may cause sync to create "
+                            "a duplicate. Set confirm_builtin_rename=true to continue."
+                        ),
+                    )
+                existing = await db.scalar(
+                    select(SubAgent).where(and_(SubAgent.name == new_name, SubAgent.id != agent_id))
+                )
+                if existing:
+                    raise HTTPException(status_code=400, detail="SubAgent name already exists")
+            incoming["name"] = new_name
+
         materialized = _materialize_subagent_payload(agent, incoming)
         adk_config = _build_adk_config_from_payload(
             materialized,
@@ -1141,6 +1192,8 @@ async def update_subagent(
             source=source,
         )
 
+        if "name" in incoming:
+            agent.name = materialized.get("name", agent.name)
         if "display_name" in incoming:
             agent.display_name = materialized.get("display_name")
         if "description" in incoming:
