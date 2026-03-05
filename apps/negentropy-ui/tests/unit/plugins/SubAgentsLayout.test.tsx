@@ -57,6 +57,6 @@ describe("SubAgentsPage layout", () => {
     expect(grid).toHaveClass("xl:grid-cols-3");
 
     const item = screen.getByTestId("subagent-grid-item");
-    expect(item).toHaveClass("h-[232px]");
+    expect(item).toHaveClass("h-[196px]");
   });
 });
