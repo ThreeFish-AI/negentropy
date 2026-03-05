@@ -651,6 +651,7 @@ async def list_knowledge(
         "source_summaries": [
             {
                 "source_uri": summary.source_uri,
+                "display_name": summary.display_name,
                 "count": summary.count,
                 "archived": summary.archived,
                 "source_type": summary.source_type,
@@ -919,7 +920,9 @@ async def ingest_file(
         # 提取文本
         from .content import extract_file_content, sanitize_filename
 
-        # 清理文件名（防止路径遍历）
+        # 保留用于展示的原始文件名（仅去除路径前缀并限制长度）
+        raw_filename = (file.filename or "unknown").split("/")[-1].split("\\")[-1][:255] or "unknown"
+        # 清理文件名（用于安全相关场景）
         safe_filename = sanitize_filename(file.filename)
 
         # GCS 存储逻辑
@@ -938,7 +941,7 @@ async def ingest_file(
                     corpus_id=corpus_id,
                     app_name=resolved_app,
                     content=content,
-                    filename=safe_filename,
+                    filename=raw_filename,
                     content_type=file.content_type,
                     metadata={"source": "ingest_file"},
                 )
@@ -962,7 +965,7 @@ async def ingest_file(
         # 提取文本内容
         text = await extract_file_content(
             content=content,
-            filename=safe_filename,
+            filename=raw_filename,
             content_type=file.content_type,
         )
 
@@ -998,7 +1001,7 @@ async def ingest_file(
         )
 
         # 添加文件元数据
-        meta["original_filename"] = safe_filename
+        meta["original_filename"] = raw_filename
         meta["content_type"] = file.content_type
         meta["file_size"] = len(content)
         meta["source_type"] = "file"
@@ -1034,7 +1037,7 @@ async def ingest_file(
                     _extract_and_store_document_markdown,
                     document_id=doc_record.id,
                     content=content,
-                    filename=safe_filename,
+                    filename=raw_filename,
                     content_type=file.content_type,
                 )
 

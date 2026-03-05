@@ -419,6 +419,7 @@ export interface KnowledgeItem {
 
 export interface SourceSummary {
   source_uri: string | null;
+  display_name?: string | null;
   count: number;
   archived: boolean;
   source_type: "file" | "url" | "text" | "unknown";
