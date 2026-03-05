@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import {
@@ -11,6 +11,9 @@ import {
 } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+const RUNNING_POLL_INTERVAL_MS = 3000;
+const BOOTSTRAP_POLL_INTERVAL_MS = 1000;
+const BOOTSTRAP_POLL_MAX_TICKS = 8;
 
 type RunRecord = PipelineRunRecord;
 
@@ -110,6 +113,34 @@ const hasRunningRuns = (runs: PipelineRunRecord[] | undefined): boolean => {
   );
 };
 
+interface RunsSnapshot {
+  count: number;
+  firstRunId: string | null;
+  firstStatus: string | null;
+  firstVersion: number | null;
+}
+
+const createRunsSnapshot = (
+  runs: PipelineRunRecord[] | undefined,
+): RunsSnapshot => {
+  const first = runs?.[0];
+  return {
+    count: runs?.length ?? 0,
+    firstRunId: first?.run_id ?? null,
+    firstStatus: first?.status ?? null,
+    firstVersion: first?.version ?? null,
+  };
+};
+
+const isSameRunsSnapshot = (a: RunsSnapshot, b: RunsSnapshot): boolean => {
+  return (
+    a.count === b.count &&
+    a.firstRunId === b.firstRunId &&
+    a.firstStatus === b.firstStatus &&
+    a.firstVersion === b.firstVersion
+  );
+};
+
 // 计算 Stage 宽度（基于平方根比例，更好体现耗时差异）
 const calculateStageWidth = (
   stage: { duration_ms?: number },
@@ -148,53 +179,98 @@ export default function KnowledgePipelinesPage() {
   const [selected, setSelected] = useState<RunRecord | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [retryQueue, setRetryQueue] = useState<RunRecord[]>([]);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
+
+  const applyPayload = useCallback((data: KnowledgePipelinesPayload) => {
+    setPayload(data);
+    setError(null);
+    setSelected((prev) => {
+      if (!data.runs?.length) return null;
+      if (!prev) return data.runs[0];
+      const updated = data.runs.find((r) => r.id === prev.id);
+      return updated ?? data.runs[0];
+    });
+  }, []);
+
+  const loadPipelines = useCallback(async () => {
+    const data = await fetchPipelines(APP_NAME);
+    applyPayload(data);
+    return data;
+  }, [applyPayload]);
 
   useEffect(() => {
     let active = true;
-    fetchPipelines(APP_NAME)
-      .then((data) => {
-        if (active) {
-          setPayload(data);
-          if (data.runs?.length) {
-            setSelected(data.runs[0]);
-          }
-        }
-      })
-      .catch((err) => {
+    (async () => {
+      try {
+        const data = await fetchPipelines(APP_NAME);
+        if (!active) return;
+        applyPayload(data);
+        setHasInitialLoad(true);
+      } catch (err) {
         if (active) {
           setError(String(err));
         }
-      });
+      }
+    })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyPayload]);
+
+  // 首屏兜底轮询（避免刚跳转时因时序空窗漏掉新 Run）
+  useEffect(() => {
+    if (!hasInitialLoad) return;
+    if (hasRunningRuns(payload?.runs)) return;
+
+    let active = true;
+    let tick = 0;
+    const baseline = createRunsSnapshot(payload?.runs);
+
+    const intervalId = setInterval(async () => {
+      tick += 1;
+      try {
+        const data = await fetchPipelines(APP_NAME);
+        if (!active) return;
+
+        const nextSnapshot = createRunsSnapshot(data.runs);
+        const changed = !isSameRunsSnapshot(baseline, nextSnapshot);
+        const running = hasRunningRuns(data.runs);
+
+        if (changed || running) {
+          applyPayload(data);
+          clearInterval(intervalId);
+          return;
+        }
+      } catch (err) {
+        if (!active) return;
+        setError(String(err));
+      }
+
+      if (tick >= BOOTSTRAP_POLL_MAX_TICKS) {
+        clearInterval(intervalId);
+      }
+    }, BOOTSTRAP_POLL_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [applyPayload, hasInitialLoad, payload?.runs]);
 
   // 自动刷新 Effect（当有 running 状态时启动）
   useEffect(() => {
     if (!hasRunningRuns(payload?.runs)) return;
 
-    const intervalId = setInterval(async () => {
-      try {
-        const data = await fetchPipelines(APP_NAME);
-        setPayload(data);
-        setError(null);
-
-        // 保持选中状态，更新数据
-        setSelected((prev) => {
-          if (!prev) return data.runs?.[0] ?? null;
-          const updated = data.runs?.find((r) => r.id === prev.id);
-          return updated ?? prev;
-        });
-      } catch (err) {
+    const intervalId = setInterval(() => {
+      loadPipelines().catch((err) => {
         setError(String(err));
-      }
-    }, 3000);
+      });
+    }, RUNNING_POLL_INTERVAL_MS);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [payload?.runs]);
+  }, [loadPipelines, payload?.runs]);
 
   const runs = payload?.runs || [];
   const statusColor = (status?: string) => {
