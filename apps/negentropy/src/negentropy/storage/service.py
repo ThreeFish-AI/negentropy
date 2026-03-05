@@ -287,6 +287,8 @@ class DocumentStorageService:
                 try:
                     gcs_client = self._get_gcs_client()
                     gcs_client.delete(doc.gcs_uri)
+                    if doc.markdown_gcs_uri:
+                        gcs_client.delete(doc.markdown_gcs_uri)
                 except StorageError as exc:
                     logger.warning(
                         "gcs_delete_failed_proceeding_with_db_delete",
@@ -303,6 +305,28 @@ class DocumentStorageService:
                 )
 
             return True
+
+    async def get_document_by_gcs_uri(
+        self,
+        *,
+        gcs_uri: str,
+        corpus_id: Optional[UUID] = None,
+        app_name: Optional[str] = None,
+        include_deleted: bool = False,
+    ) -> Optional[KnowledgeDocument]:
+        """按 gcs_uri 查询文档记录。"""
+        async with AsyncSessionLocal() as db:
+            conditions = [KnowledgeDocument.gcs_uri == gcs_uri]
+            if corpus_id:
+                conditions.append(KnowledgeDocument.corpus_id == corpus_id)
+            if app_name:
+                conditions.append(KnowledgeDocument.app_name == app_name)
+            if not include_deleted:
+                conditions.append(KnowledgeDocument.status == "active")
+
+            stmt = select(KnowledgeDocument).where(*conditions)
+            result = await db.execute(stmt)
+            return result.scalar_one_or_none()
 
     async def update_markdown_extraction_status(
         self,

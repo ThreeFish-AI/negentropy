@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CorpusRecord, fetchKnowledgeItems, KnowledgeItem, useKnowledgeBase, ChunkingConfig } from "@/features/knowledge";
+import {
+  CorpusRecord,
+  fetchKnowledgeItems,
+  KnowledgeItem,
+  useKnowledgeBase,
+  ChunkingConfig,
+} from "@/features/knowledge";
+import type { SourceSummary } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 
@@ -33,7 +40,8 @@ export default function KnowledgeBasePage() {
   // Content 标签页状态
   const [selectedSourceUri, setSelectedSourceUri] = useState<string | null | undefined>(undefined);
   const [displayChunks, setDisplayChunks] = useState<KnowledgeItem[]>([]);
-  const [sourceStats, setSourceStats] = useState<Map<string | null, number>>(new Map());
+  const [sourceSummaries, setSourceSummaries] = useState<SourceSummary[]>([]);
+  const [showArchivedSources, setShowArchivedSources] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
   const [contentError, setContentError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -97,26 +105,32 @@ export default function KnowledgeBasePage() {
       const data = await fetchKnowledgeItems(selectedId, {
         appName: APP_NAME,
         sourceUri: selectedSourceUri,
+        includeArchived: showArchivedSources,
         limit: pageSize,
         offset: (page - 1) * pageSize,
       });
       setDisplayChunks(data.items);
       setTotalChunks(data.count);
 
-      // 更新全局统计（仅在 source_stats 存在时）
-      if (data.source_stats) {
-        const stats = new Map<string | null, number>();
-        Object.entries(data.source_stats).forEach(([uri, count]) => {
-          stats.set(uri === "__null__" ? null : uri, count);
-        });
-        setSourceStats(stats);
+      if (data.source_summaries) {
+        setSourceSummaries(data.source_summaries);
+      } else if (data.source_stats) {
+        const fallback = Object.entries(data.source_stats).map(([uri, count]) => ({
+          source_uri: uri === "__null__" ? null : uri,
+          count,
+          archived: false,
+          source_type: "unknown" as const,
+        }));
+        setSourceSummaries(fallback);
+      } else {
+        setSourceSummaries([]);
       }
     } catch (err) {
       setContentError(err instanceof Error ? err.message : String(err));
     } finally {
       setContentLoading(false);
     }
-  }, [selectedId, activeTab, selectedSourceUri, page, pageSize]);
+  }, [selectedId, activeTab, selectedSourceUri, showArchivedSources, page, pageSize]);
 
   // 切换 corpus 或进入 content 标签页时加载数据
   useEffect(() => {
@@ -132,7 +146,7 @@ export default function KnowledgeBasePage() {
     if (activeTab === "content" && selectedId) {
       loadChunks();
     }
-  }, [selectedSourceUri, page, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedSourceUri, showArchivedSources, page, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalPages = Math.ceil(totalChunks / pageSize);
 
@@ -281,6 +295,46 @@ export default function KnowledgeBasePage() {
     loadChunks();
   }, [loadChunks]);
 
+  const handleDeleteSource = useCallback(
+    async (uri: string) => {
+      if (!confirm(`确定彻底删除来源 "${uri}" 吗？此操作会删除关联 chunks 与存储文件，且不可恢复。`)) {
+        return;
+      }
+      try {
+        const result = await kb.deleteSource({ source_uri: uri });
+        const warningText = result.warnings?.length ? `（${result.warnings.length} 条告警）` : "";
+        toast.success("来源已删除", {
+          description: `删除 chunks: ${result.deleted_count ?? 0}，文档: ${result.deleted_documents ?? 0}${warningText}`,
+        });
+        await loadChunks();
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error("删除来源失败", { description: errorMessage });
+      }
+    },
+    [kb, loadChunks],
+  );
+
+  const handleArchiveSource = useCallback(
+    async (uri: string, archived: boolean) => {
+      try {
+        await kb.archiveSource({ source_uri: uri, archived });
+        toast.success(archived ? "来源已归档" : "来源已解档");
+        await loadChunks();
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error(archived ? "归档失败" : "解档失败", {
+          description: errorMessage,
+        });
+      }
+    },
+    [kb, loadChunks],
+  );
+
+  const visibleSources = showArchivedSources
+    ? sourceSummaries
+    : sourceSummaries.filter((item) => !item.archived);
+
   return (
     <div className="flex h-full flex-col bg-background">
       <KnowledgeNav
@@ -360,14 +414,25 @@ export default function KnowledgeBasePage() {
                           <h3 className="mb-2 text-xs font-semibold text-card-foreground">
                             Sources
                           </h3>
+                          <label className="mb-2 flex items-center gap-1.5 text-[11px] text-muted">
+                            <input
+                              type="checkbox"
+                              checked={showArchivedSources}
+                              onChange={(e) => setShowArchivedSources(e.target.checked)}
+                            />
+                            Show Archived
+                          </label>
                           <SourceList
-                            sourceStats={sourceStats}
+                            sources={visibleSources}
                             selectedUri={selectedSourceUri}
                             onSelect={handleSourceSelect}
                             onAddSource={() => setIsAddSourceOpen(true)}
                             onReplaceSource={handleOpenReplace}
                             onSyncSource={handleSyncSource}
                             onRebuildSource={handleRebuildSource}
+                            onDeleteSource={handleDeleteSource}
+                            onArchiveSource={(uri) => handleArchiveSource(uri, true)}
+                            onUnarchiveSource={(uri) => handleArchiveSource(uri, false)}
                           />
                         </div>
                       </aside>

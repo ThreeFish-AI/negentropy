@@ -97,6 +97,7 @@ export type {
   GraphUpsertResult,
   PipelineUpsertResult,
   KnowledgeItem,
+  SourceSummary,
   KnowledgeListResponse,
   // Document Management
   KnowledgeDocument,
