@@ -31,6 +31,8 @@ import {
   unarchiveDocument,
   downloadDocument,
   deleteDocument,
+  createDefaultChunkingConfig,
+  normalizeChunkingConfig,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -124,8 +126,12 @@ function ChunkingStrategyPanel({
     hierarchical: "构建父子块结构，检索子块并返回父块上下文，适合长文与手册。",
   };
 
-  const updateConfig = (patch: Partial<ChunkingConfig>) => {
-    onChange((prev) => ({ ...prev, ...patch }));
+  const setStrategy = (strategy: ChunkingStrategy) => {
+    onChange(createDefaultChunkingConfig(strategy));
+  };
+
+  const updateConfig = (nextConfig: ChunkingConfig) => {
+    onChange(nextConfig);
   };
 
   return (
@@ -146,7 +152,7 @@ function ChunkingStrategyPanel({
             <button
               key={strategy}
               type="button"
-              onClick={() => updateConfig({ strategy })}
+              onClick={() => setStrategy(strategy)}
               className={`rounded-xl border px-3 py-3 text-left ${
                 config.strategy === strategy
                   ? "border-foreground bg-foreground text-background"
@@ -166,55 +172,116 @@ function ChunkingStrategyPanel({
         )}
       </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <label className="text-xs">
-          <div className="mb-1 text-muted">Chunk Size</div>
-          <input
-            type="number"
-            value={String(config.chunk_size ?? 800)}
-            onChange={(e) =>
-              updateConfig({ chunk_size: Number(e.target.value || 0) || 800 })
-            }
-            className="w-full rounded border border-border bg-card px-2 py-2"
-          />
-        </label>
-        <label className="text-xs">
-          <div className="mb-1 text-muted">Overlap</div>
-          <input
-            type="number"
-            value={String(config.overlap ?? 100)}
-            onChange={(e) =>
-              updateConfig({ overlap: Number(e.target.value || 0) || 0 })
-            }
-            className="w-full rounded border border-border bg-card px-2 py-2"
-          />
-        </label>
-        <label className="text-xs md:col-span-2">
-          <div className="mb-1 text-muted">Separators（每行一个）</div>
-          <textarea
-            value={(config.separators || []).join("\n")}
-            onChange={(e) =>
-              updateConfig({
-                separators: e.target.value
-                  .split("\n")
-                  .map((item) => item.trim())
-                  .filter(Boolean),
-              })
-            }
-            rows={3}
-            className="w-full rounded border border-border bg-card px-2 py-2"
-          />
-        </label>
-      </div>
+      {config.strategy === "fixed" && (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Chunk Size</div>
+            <input
+              type="number"
+              value={String(config.chunk_size)}
+              onChange={(e) =>
+                updateConfig({
+                  ...config,
+                  chunk_size: Number(e.target.value || 0) || 800,
+                })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Overlap</div>
+            <input
+              type="number"
+              value={String(config.overlap)}
+              onChange={(e) =>
+                updateConfig({
+                  ...config,
+                  overlap: Number(e.target.value || 0) || 0,
+                })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+          <label className="inline-flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={config.preserve_newlines}
+              onChange={(e) =>
+                updateConfig({
+                  ...config,
+                  preserve_newlines: e.target.checked,
+                })
+              }
+            />
+            <span>保留换行</span>
+          </label>
+        </div>
+      )}
 
-      <label className="mt-3 inline-flex items-center gap-2 text-xs">
-        <input
-          type="checkbox"
-          checked={config.preserve_newlines !== false}
-          onChange={(e) => updateConfig({ preserve_newlines: e.target.checked })}
-        />
-        <span>保留换行</span>
-      </label>
+      {config.strategy === "recursive" && (
+        <div className="mt-3 space-y-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <label className="text-xs">
+              <div className="mb-1 text-muted">Chunk Size</div>
+              <input
+                type="number"
+                value={String(config.chunk_size)}
+                onChange={(e) =>
+                  updateConfig({
+                    ...config,
+                    chunk_size: Number(e.target.value || 0) || 800,
+                  })
+                }
+                className="w-full rounded border border-border bg-card px-2 py-2"
+              />
+            </label>
+            <label className="text-xs">
+              <div className="mb-1 text-muted">Overlap</div>
+              <input
+                type="number"
+                value={String(config.overlap)}
+                onChange={(e) =>
+                  updateConfig({
+                    ...config,
+                    overlap: Number(e.target.value || 0) || 0,
+                  })
+                }
+                className="w-full rounded border border-border bg-card px-2 py-2"
+              />
+            </label>
+            <label className="text-xs md:col-span-2">
+              <div className="mb-1 text-muted">Separators（每行一个）</div>
+              <textarea
+                value={config.separators.join("\n")}
+                onChange={(e) =>
+                  updateConfig({
+                    ...config,
+                    separators: e.target.value
+                      .split("\n")
+                      .map((item) => item.trim())
+                      .filter(Boolean),
+                  })
+                }
+                rows={3}
+                className="w-full rounded border border-border bg-card px-2 py-2"
+              />
+            </label>
+          </div>
+          <label className="inline-flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={config.preserve_newlines}
+              onChange={(e) =>
+                updateConfig({
+                  ...config,
+                  preserve_newlines: e.target.checked,
+                })
+              }
+            />
+            <span>保留换行</span>
+          </label>
+        </div>
+      )}
 
       {config.strategy === "semantic" && (
         <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -225,9 +292,26 @@ function ChunkingStrategyPanel({
               step="0.05"
               min="0"
               max="1"
-              value={String(config.semantic_threshold ?? 0.85)}
+              value={String(config.semantic_threshold)}
               onChange={(e) =>
-                updateConfig({ semantic_threshold: Number(e.target.value) || 0.85 })
+                updateConfig({
+                  ...config,
+                  semantic_threshold: Number(e.target.value) || 0.85,
+                })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Buffer Size</div>
+            <input
+              type="number"
+              value={String(config.semantic_buffer_size)}
+              onChange={(e) =>
+                updateConfig({
+                  ...config,
+                  semantic_buffer_size: Number(e.target.value) || 1,
+                })
               }
               className="w-full rounded border border-border bg-card px-2 py-2"
             />
@@ -236,9 +320,12 @@ function ChunkingStrategyPanel({
             <div className="mb-1 text-muted">Min Chunk Size</div>
             <input
               type="number"
-              value={String(config.min_chunk_size ?? 50)}
+              value={String(config.min_chunk_size)}
               onChange={(e) =>
-                updateConfig({ min_chunk_size: Number(e.target.value) || 50 })
+                updateConfig({
+                  ...config,
+                  min_chunk_size: Number(e.target.value) || 50,
+                })
               }
               className="w-full rounded border border-border bg-card px-2 py-2"
             />
@@ -247,9 +334,12 @@ function ChunkingStrategyPanel({
             <div className="mb-1 text-muted">Max Chunk Size</div>
             <input
               type="number"
-              value={String(config.max_chunk_size ?? 2000)}
+              value={String(config.max_chunk_size)}
               onChange={(e) =>
-                updateConfig({ max_chunk_size: Number(e.target.value) || 2000 })
+                updateConfig({
+                  ...config,
+                  max_chunk_size: Number(e.target.value) || 2000,
+                })
               }
               className="w-full rounded border border-border bg-card px-2 py-2"
             />
@@ -258,46 +348,80 @@ function ChunkingStrategyPanel({
       )}
 
       {config.strategy === "hierarchical" && (
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="mt-3 space-y-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="text-xs">
+              <div className="mb-1 text-muted">Parent Size</div>
+              <input
+                type="number"
+                value={String(config.hierarchical_parent_chunk_size)}
+                onChange={(e) =>
+                  updateConfig({
+                    ...config,
+                    hierarchical_parent_chunk_size: Number(e.target.value) || 1024,
+                  })
+                }
+                className="w-full rounded border border-border bg-card px-2 py-2"
+              />
+            </label>
+            <label className="text-xs">
+              <div className="mb-1 text-muted">Child Size</div>
+              <input
+                type="number"
+                value={String(config.hierarchical_child_chunk_size)}
+                onChange={(e) =>
+                  updateConfig({
+                    ...config,
+                    hierarchical_child_chunk_size: Number(e.target.value) || 256,
+                  })
+                }
+                className="w-full rounded border border-border bg-card px-2 py-2"
+              />
+            </label>
+            <label className="text-xs">
+              <div className="mb-1 text-muted">Child Overlap</div>
+              <input
+                type="number"
+                value={String(config.hierarchical_child_overlap)}
+                onChange={(e) =>
+                  updateConfig({
+                    ...config,
+                    hierarchical_child_overlap: Number(e.target.value) || 0,
+                  })
+                }
+                className="w-full rounded border border-border bg-card px-2 py-2"
+              />
+            </label>
+          </div>
           <label className="text-xs">
-            <div className="mb-1 text-muted">Parent Size</div>
-            <input
-              type="number"
-              value={String(config.hierarchical_parent_chunk_size ?? 1024)}
+            <div className="mb-1 text-muted">Separators（每行一个）</div>
+            <textarea
+              value={config.separators.join("\n")}
               onChange={(e) =>
                 updateConfig({
-                  hierarchical_parent_chunk_size:
-                    Number(e.target.value) || 1024,
+                  ...config,
+                  separators: e.target.value
+                    .split("\n")
+                    .map((item) => item.trim())
+                    .filter(Boolean),
                 })
               }
+              rows={3}
               className="w-full rounded border border-border bg-card px-2 py-2"
             />
           </label>
-          <label className="text-xs">
-            <div className="mb-1 text-muted">Child Size</div>
+          <label className="inline-flex items-center gap-2 text-xs">
             <input
-              type="number"
-              value={String(config.hierarchical_child_chunk_size ?? 256)}
+              type="checkbox"
+              checked={config.preserve_newlines}
               onChange={(e) =>
                 updateConfig({
-                  hierarchical_child_chunk_size: Number(e.target.value) || 256,
+                  ...config,
+                  preserve_newlines: e.target.checked,
                 })
               }
-              className="w-full rounded border border-border bg-card px-2 py-2"
             />
-          </label>
-          <label className="text-xs">
-            <div className="mb-1 text-muted">Child Overlap</div>
-            <input
-              type="number"
-              value={String(config.hierarchical_child_overlap ?? 51)}
-              onChange={(e) =>
-                updateConfig({
-                  hierarchical_child_overlap: Number(e.target.value) || 0,
-                })
-              }
-              className="w-full rounded border border-border bg-card px-2 py-2"
-            />
+            <span>保留换行</span>
           </label>
         </div>
       )}
@@ -365,7 +489,9 @@ export default function KnowledgeBasePage() {
     () => corpora.find((item) => item.id === selectedCorpusId) || null,
     [corpora, selectedCorpusId],
   );
-  const corpusChunkingConfig = selectedCorpus?.config as ChunkingConfig | undefined;
+  const corpusChunkingConfig = selectedCorpus?.config
+    ? normalizeChunkingConfig(selectedCorpus.config as Record<string, unknown>)
+    : undefined;
   const retrievedChunkCards = useMemo(
     () => retrievalResults.map((item) => buildRetrievedChunkViewModel(item)),
     [retrievalResults],
@@ -1119,34 +1245,12 @@ function CorpusSettingsPanel({
   corpus: CorpusRecord;
   onSave: (config: Record<string, unknown>) => Promise<void>;
 }) {
-  const [formConfig, setFormConfig] = useState<ChunkingConfig>({
-    strategy: (corpus.config?.strategy as ChunkingStrategy) || "recursive",
-    chunk_size: Number(corpus.config?.chunk_size || 800),
-    overlap: Number(corpus.config?.overlap || 100),
-    preserve_newlines: corpus.config?.preserve_newlines !== false,
-    separators: Array.isArray(corpus.config?.separators)
-      ? (corpus.config?.separators as string[])
-      : [],
-    semantic_threshold: Number(corpus.config?.semantic_threshold || 0.85),
-    min_chunk_size: Number(corpus.config?.min_chunk_size || 50),
-    max_chunk_size: Number(corpus.config?.max_chunk_size || 2000),
-    hierarchical_parent_chunk_size: Number(
-      corpus.config?.hierarchical_parent_chunk_size || 1024,
-    ),
-    hierarchical_child_chunk_size: Number(
-      corpus.config?.hierarchical_child_chunk_size || 256,
-    ),
-    hierarchical_child_overlap: Number(
-      corpus.config?.hierarchical_child_overlap || 51,
-    ),
-  });
+  const [formConfig, setFormConfig] = useState<ChunkingConfig>(
+    normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
+  );
 
   const handleSubmit = async () => {
-    const payload: Record<string, unknown> = {
-      ...(corpus.config || {}),
-      ...formConfig,
-    };
-    await onSave(payload);
+    await onSave(formConfig as unknown as Record<string, unknown>);
   };
 
   return (

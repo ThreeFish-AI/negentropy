@@ -43,6 +43,33 @@ DEFAULT_CHUNK_SIZE = 800
 # 默认重叠大小（与 types.py 中 ChunkingConfig 默认值对齐）
 DEFAULT_OVERLAP = 100
 
+# 默认递归分隔符（中英混排友好）
+DEFAULT_RECURSIVE_SEPARATORS = (
+    "\n\n",
+    "\n",
+    "。",
+    "！",
+    "？",
+    ". ",
+    "! ",
+    "? ",
+    "；",
+    ";",
+    " ",
+    "",
+)
+
+# 语义分块默认参数
+DEFAULT_SEMANTIC_THRESHOLD = 0.85
+DEFAULT_SEMANTIC_BUFFER_SIZE = 1
+DEFAULT_SEMANTIC_MIN_CHUNK_SIZE = 50
+DEFAULT_SEMANTIC_MAX_CHUNK_SIZE = 2000
+
+# 层次分块默认参数
+DEFAULT_HIERARCHICAL_PARENT_CHUNK_SIZE = 1024
+DEFAULT_HIERARCHICAL_CHILD_CHUNK_SIZE = 256
+DEFAULT_HIERARCHICAL_CHILD_OVERLAP = 51
+
 
 # ================================
 # 性能相关常量

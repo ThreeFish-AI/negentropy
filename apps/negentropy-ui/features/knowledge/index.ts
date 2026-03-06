@@ -86,6 +86,10 @@ export {
 export type {
   SearchMode,
   ChunkingStrategy,
+  FixedChunkingConfig,
+  RecursiveChunkingConfig,
+  SemanticChunkingConfig,
+  HierarchicalChunkingConfig,
   ChunkingConfig,
   SearchConfig,
   KnowledgeErrorResponse,
@@ -126,6 +130,11 @@ export type {
   GraphPathResult,
   GraphBuildRunRecord,
   GraphBuildHistoryResult,
+} from "./utils/knowledge-api";
+
+export {
+  createDefaultChunkingConfig,
+  normalizeChunkingConfig,
 } from "./utils/knowledge-api";
 
 // ============================================================================

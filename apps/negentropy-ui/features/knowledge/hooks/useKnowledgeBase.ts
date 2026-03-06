@@ -141,19 +141,7 @@ const DEFAULT_LOADING_STATE = {
 };
 
 function toChunkingPayload(config?: ChunkingConfig) {
-  return {
-    strategy: config?.strategy,
-    chunk_size: config?.chunk_size,
-    overlap: config?.overlap,
-    preserve_newlines: config?.preserve_newlines,
-    separators: config?.separators,
-    semantic_threshold: config?.semantic_threshold,
-    min_chunk_size: config?.min_chunk_size,
-    max_chunk_size: config?.max_chunk_size,
-    hierarchical_parent_chunk_size: config?.hierarchical_parent_chunk_size,
-    hierarchical_child_chunk_size: config?.hierarchical_child_chunk_size,
-    hierarchical_child_overlap: config?.hierarchical_child_overlap,
-  };
+  return config ? { chunking_config: config } : {};
 }
 
 /**

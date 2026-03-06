@@ -1,4 +1,5 @@
 import {
+  createDefaultChunkingConfig,
   fetchCorpus,
   fetchDocumentChunks,
   fetchDocuments,
@@ -96,13 +97,14 @@ describe("fetchCorpus", () => {
 
     await ingestText("corpus-1", {
       text: "hello",
-      strategy: "hierarchical",
-      chunk_size: 800,
-      overlap: 100,
-      semantic_threshold: 0.9,
-      hierarchical_parent_chunk_size: 1024,
-      hierarchical_child_chunk_size: 256,
-      hierarchical_child_overlap: 51,
+      chunking_config: {
+        strategy: "hierarchical",
+        preserve_newlines: true,
+        separators: ["\n\n", "\n"],
+        hierarchical_parent_chunk_size: 1024,
+        hierarchical_child_chunk_size: 256,
+        hierarchical_child_overlap: 51,
+      },
     });
 
     expect(fetchSpy).toHaveBeenCalledWith(
@@ -112,13 +114,14 @@ describe("fetchCorpus", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: "hello",
-          strategy: "hierarchical",
-          chunk_size: 800,
-          overlap: 100,
-          semantic_threshold: 0.9,
-          hierarchical_parent_chunk_size: 1024,
-          hierarchical_child_chunk_size: 256,
-          hierarchical_child_overlap: 51,
+          chunking_config: {
+            strategy: "hierarchical",
+            preserve_newlines: true,
+            separators: ["\n\n", "\n"],
+            hierarchical_parent_chunk_size: 1024,
+            hierarchical_child_chunk_size: 256,
+            hierarchical_child_overlap: 51,
+          },
         }),
       }),
     );
@@ -134,10 +137,7 @@ describe("fetchCorpus", () => {
 
     await ingestFile("corpus-1", {
       file: new File(["hello"], "a.txt", { type: "text/plain" }),
-      strategy: "hierarchical",
-      hierarchical_parent_chunk_size: 1024,
-      hierarchical_child_chunk_size: 256,
-      hierarchical_child_overlap: 51,
+      chunking_config: createDefaultChunkingConfig("hierarchical"),
     });
 
     const [, init] = fetchSpy.mock.calls[0];

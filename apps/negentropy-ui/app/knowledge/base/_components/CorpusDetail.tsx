@@ -1,12 +1,15 @@
 import { useMemo } from "react";
-import { CorpusRecord } from "@/features/knowledge";
+import { CorpusRecord, normalizeChunkingConfig } from "@/features/knowledge";
 
 interface CorpusDetailProps {
   corpus: CorpusRecord | null;
 }
 
 export function CorpusDetail({ corpus }: CorpusDetailProps) {
-  const config = useMemo(() => corpus?.config ?? {}, [corpus]);
+  const config = useMemo(
+    () => normalizeChunkingConfig((corpus?.config ?? {}) as Record<string, unknown>),
+    [corpus],
+  );
 
   if (!corpus) {
     return (
@@ -41,19 +44,52 @@ export function CorpusDetail({ corpus }: CorpusDetailProps) {
         <p>
           <span className="text-muted/70">Strategy</span>{" "}
           <span className="capitalize">
-            {String(config.strategy || "recursive")}
+            {config.strategy}
           </span>
         </p>
-        <p>
-          <span className="text-muted/70">Chunk Size</span>{" "}
-          {config.chunk_size || 800}
-        </p>
-        <p>
-          <span className="text-muted/70">Overlap</span> {config.overlap || 100}
-        </p>
+        {config.strategy === "fixed" && (
+          <>
+            <p>
+              <span className="text-muted/70">Chunk Size</span> {config.chunk_size}
+            </p>
+            <p>
+              <span className="text-muted/70">Overlap</span> {config.overlap}
+            </p>
+          </>
+        )}
+        {config.strategy === "recursive" && (
+          <>
+            <p>
+              <span className="text-muted/70">Chunk Size</span> {config.chunk_size}
+            </p>
+            <p>
+              <span className="text-muted/70">Overlap</span> {config.overlap}
+            </p>
+          </>
+        )}
+        {config.strategy === "semantic" && (
+          <>
+            <p>
+              <span className="text-muted/70">Threshold</span> {config.semantic_threshold}
+            </p>
+            <p>
+              <span className="text-muted/70">Buffer Size</span> {config.semantic_buffer_size}
+            </p>
+          </>
+        )}
+        {config.strategy === "hierarchical" && (
+          <>
+            <p>
+              <span className="text-muted/70">Parent Size</span> {config.hierarchical_parent_chunk_size}
+            </p>
+            <p>
+              <span className="text-muted/70">Child Size</span> {config.hierarchical_child_chunk_size}
+            </p>
+          </>
+        )}
         <p>
           <span className="text-muted/70">Embedding</span>{" "}
-          {config.embedding_model || "default"}
+          {(corpus?.config?.embedding_model as string | undefined) || "default"}
         </p>
       </div>
     </div>
