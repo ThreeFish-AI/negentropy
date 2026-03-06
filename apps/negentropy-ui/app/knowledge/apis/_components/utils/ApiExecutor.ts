@@ -13,6 +13,7 @@ import {
   fetchKnowledgeItems,
   createCorpus,
   deleteCorpus,
+  ChunkingConfig,
 } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -47,9 +48,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
       text: params.text as string,
       source_uri: params.source_uri as string | undefined,
       metadata: params.metadata as Record<string, unknown> | undefined,
-      chunk_size: params.chunk_size as number | undefined,
-      overlap: params.overlap as number | undefined,
-      preserve_newlines: params.preserve_newlines as boolean | undefined,
+      chunking_config: params.chunking_config as ChunkingConfig | undefined,
     });
   },
 
@@ -59,9 +58,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
       app_name: APP_NAME,
       url: params.url as string,
       metadata: params.metadata as Record<string, unknown> | undefined,
-      chunk_size: params.chunk_size as number | undefined,
-      overlap: params.overlap as number | undefined,
-      preserve_newlines: params.preserve_newlines as boolean | undefined,
+      chunking_config: params.chunking_config as ChunkingConfig | undefined,
     });
   },
 
@@ -72,9 +69,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
       text: params.text as string,
       source_uri: params.source_uri as string,
       metadata: params.metadata as Record<string, unknown> | undefined,
-      chunk_size: params.chunk_size as number | undefined,
-      overlap: params.overlap as number | undefined,
-      preserve_newlines: params.preserve_newlines as boolean | undefined,
+      chunking_config: params.chunking_config as ChunkingConfig | undefined,
     });
   },
 
@@ -93,12 +88,7 @@ const API_EXECUTORS: Record<string, ExecutorFn> = {
       app_name: APP_NAME,
       name: params.name as string,
       description: params.description as string | undefined,
-      config: params.chunk_size || params.overlap
-        ? {
-            chunk_size: params.chunk_size as number | undefined,
-            overlap: params.overlap as number | undefined,
-          }
-        : undefined,
+      config: params.config as Record<string, unknown> | undefined,
     });
   },
 

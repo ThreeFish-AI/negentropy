@@ -4,6 +4,8 @@
  * 用于生成 API 文档、参数校验和代码示例
  */
 
+import { createDefaultChunkingConfig } from "./knowledge-api";
+
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 export interface ApiParameter {
@@ -103,6 +105,9 @@ export interface ApiEndpoint {
 }
 
 const BASE_URL = "http://localhost:8000";
+const DEFAULT_CHUNKING_CONFIG = createDefaultChunkingConfig("recursive");
+const DEFAULT_CHUNKING_CONFIG_DESCRIPTION =
+  "canonical chunking 配置，按 strategy 判别。支持 fixed / recursive / semantic / hierarchical。";
 
 export const KNOWLEDGE_API_ENDPOINTS: ApiEndpoint[] = [
   {
@@ -319,17 +324,17 @@ results.items.forEach(item => {
           text: { type: "string", description: "要摄入的文本内容" },
           source_uri: { type: "string", description: "来源 URI，用于追溯" },
           metadata: { type: "object", description: "自定义元数据" },
-          chunk_size: { type: "integer", default: 800, min: 1, max: 100000 },
-          overlap: { type: "integer", default: 100 },
-          preserve_newlines: { type: "boolean", default: false },
+          chunking_config: {
+            type: "object",
+            description: DEFAULT_CHUNKING_CONFIG_DESCRIPTION,
+          },
         },
       },
       example: {
         text: "这是一段需要摄入到知识库的文本内容。系统会自动进行分块和向量化处理。",
         source_uri: "docs://example/doc1",
         metadata: { category: "tutorial", version: "1.0" },
-        chunk_size: 800,
-        overlap: 100,
+        chunking_config: DEFAULT_CHUNKING_CONFIG,
       },
     },
     responses: [
@@ -353,7 +358,13 @@ results.items.forEach(item => {
   -d '{
     "text": "这是一段需要摄入到知识库的文本内容。",
     "source_uri": "docs://example/doc1",
-    "chunk_size": 800
+    "chunking_config": {
+      "strategy": "recursive",
+      "chunk_size": 800,
+      "overlap": 100,
+      "preserve_newlines": true,
+      "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+    }
   }'`,
       python: `import requests
 
@@ -362,7 +373,13 @@ response = requests.post(
     json={
         "text": "这是一段需要摄入到知识库的文本内容。",
         "source_uri": "docs://example/doc1",
-        "chunk_size": 800
+        "chunking_config": {
+            "strategy": "recursive",
+            "chunk_size": 800,
+            "overlap": 100,
+            "preserve_newlines": True,
+            "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+        }
     }
 )
 result = response.json()
@@ -373,7 +390,13 @@ print(f"Ingested {result['count']} chunks")`,
   body: JSON.stringify({
     text: '这是一段需要摄入到知识库的文本内容。',
     source_uri: 'docs://example/doc1',
-    chunk_size: 800
+    chunking_config: {
+      strategy: 'recursive',
+      chunk_size: 800,
+      overlap: 100,
+      preserve_newlines: true,
+      separators: ['\\n\\n', '\\n', '。', '！', '？', '. ', '! ', '? ', '；', ';', ' ', '']
+    }
   })
 });
 
@@ -413,30 +436,13 @@ console.log(\`Ingested \${result.count} chunks\`);`,
           description: "自定义元数据字段",
         },
         {
-          name: "chunk_size",
-          type: "number",
-          label: "分块大小",
+          name: "chunking_config",
+          type: "json",
+          label: "Chunking Config",
           required: false,
-          defaultValue: 800,
-          min: 1,
-          max: 100000,
+          defaultValue: DEFAULT_CHUNKING_CONFIG,
           group: "advanced",
-        },
-        {
-          name: "overlap",
-          type: "number",
-          label: "重叠字符数",
-          required: false,
-          defaultValue: 100,
-          group: "advanced",
-        },
-        {
-          name: "preserve_newlines",
-          type: "checkbox",
-          label: "保留换行符",
-          required: false,
-          defaultValue: false,
-          group: "advanced",
+          description: DEFAULT_CHUNKING_CONFIG_DESCRIPTION,
         },
       ],
       submitLabel: "摄入文本",
@@ -475,14 +481,16 @@ console.log(\`Ingested \${result.count} chunks\`);`,
           app_name: { type: "string", description: "应用名称" },
           url: { type: "string", description: "要抓取的 URL" },
           metadata: { type: "object" },
-          chunk_size: { type: "integer", default: 800 },
-          overlap: { type: "integer", default: 100 },
-          preserve_newlines: { type: "boolean", default: true, description: "是否保留换行符" },
+          chunking_config: {
+            type: "object",
+            description: DEFAULT_CHUNKING_CONFIG_DESCRIPTION,
+          },
         },
       },
       example: {
         url: "https://docs.example.com/guide",
         metadata: { type: "documentation" },
+        chunking_config: DEFAULT_CHUNKING_CONFIG,
       },
     },
     responses: [
@@ -495,7 +503,14 @@ console.log(\`Ingested \${result.count} chunks\`);`,
   -H "Content-Type: application/json" \\
   -d '{
     "url": "https://docs.example.com/guide",
-    "metadata": { "type": "documentation" }
+    "metadata": { "type": "documentation" },
+    "chunking_config": {
+      "strategy": "recursive",
+      "chunk_size": 800,
+      "overlap": 100,
+      "preserve_newlines": true,
+      "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+    }
   }'`,
       python: `import requests
 
@@ -503,7 +518,14 @@ response = requests.post(
     "${BASE_URL}/knowledge/base/{corpus_id}/ingest_url",
     json={
         "url": "https://docs.example.com/guide",
-        "metadata": {"type": "documentation"}
+        "metadata": {"type": "documentation"},
+        "chunking_config": {
+            "strategy": "recursive",
+            "chunk_size": 800,
+            "overlap": 100,
+            "preserve_newlines": True,
+            "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+        }
     }
 )
 result = response.json()
@@ -513,7 +535,14 @@ print(f"Ingested from URL: {result['count']} chunks")`,
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     url: 'https://docs.example.com/guide',
-    metadata: { type: 'documentation' }
+    metadata: { type: 'documentation' },
+    chunking_config: {
+      strategy: 'recursive',
+      chunk_size: 800,
+      overlap: 100,
+      preserve_newlines: true,
+      separators: ['\\n\\n', '\\n', '。', '！', '？', '. ', '! ', '? ', '；', ';', ' ', '']
+    }
   })
 });
 
@@ -546,31 +575,13 @@ console.log(\`Ingested from URL: \${result.count} chunks\`);`,
           description: "自定义元数据字段",
         },
         {
-          name: "chunk_size",
-          type: "number",
-          label: "分块大小",
+          name: "chunking_config",
+          type: "json",
+          label: "Chunking Config",
           required: false,
-          defaultValue: 800,
-          min: 1,
-          max: 100000,
+          defaultValue: DEFAULT_CHUNKING_CONFIG,
           group: "advanced",
-        },
-        {
-          name: "overlap",
-          type: "number",
-          label: "重叠字符数",
-          required: false,
-          defaultValue: 100,
-          group: "advanced",
-        },
-        {
-          name: "preserve_newlines",
-          type: "checkbox",
-          label: "保留换行符",
-          required: false,
-          defaultValue: true,
-          group: "advanced",
-          description: "分块时是否保留换行符",
+          description: DEFAULT_CHUNKING_CONFIG_DESCRIPTION,
         },
       ],
       submitLabel: "从 URL 摄入",
@@ -602,14 +613,16 @@ console.log(\`Ingested from URL: \${result.count} chunks\`);`,
           text: { type: "string", description: "新的文本内容" },
           source_uri: { type: "string", description: "要替换的来源 URI" },
           metadata: { type: "object" },
-          chunk_size: { type: "integer", default: 800 },
-          overlap: { type: "integer", default: 100 },
-          preserve_newlines: { type: "boolean", default: true, description: "是否保留换行符" },
+          chunking_config: {
+            type: "object",
+            description: DEFAULT_CHUNKING_CONFIG_DESCRIPTION,
+          },
         },
       },
       example: {
         text: "这是更新后的文档内容。",
         source_uri: "docs://example/doc1",
+        chunking_config: DEFAULT_CHUNKING_CONFIG,
       },
     },
     responses: [
@@ -621,7 +634,14 @@ console.log(\`Ingested from URL: \${result.count} chunks\`);`,
   -H "Content-Type: application/json" \\
   -d '{
     "text": "这是更新后的文档内容。",
-    "source_uri": "docs://example/doc1"
+    "source_uri": "docs://example/doc1",
+    "chunking_config": {
+      "strategy": "recursive",
+      "chunk_size": 800,
+      "overlap": 100,
+      "preserve_newlines": true,
+      "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+    }
   }'`,
       python: `import requests
 
@@ -629,7 +649,14 @@ response = requests.post(
     "${BASE_URL}/knowledge/base/{corpus_id}/replace_source",
     json={
         "text": "这是更新后的文档内容。",
-        "source_uri": "docs://example/doc1"
+        "source_uri": "docs://example/doc1",
+        "chunking_config": {
+            "strategy": "recursive",
+            "chunk_size": 800,
+            "overlap": 100,
+            "preserve_newlines": True,
+            "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+        }
     }
 )
 result = response.json()
@@ -639,7 +666,14 @@ print(f"Replaced source: {result['count']} chunks")`,
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     text: '这是更新后的文档内容。',
-    source_uri: 'docs://example/doc1'
+    source_uri: 'docs://example/doc1',
+    chunking_config: {
+      strategy: 'recursive',
+      chunk_size: 800,
+      overlap: 100,
+      preserve_newlines: true,
+      separators: ['\\n\\n', '\\n', '。', '！', '？', '. ', '! ', '? ', '；', ';', ' ', '']
+    }
   })
 });
 
@@ -679,31 +713,13 @@ console.log(\`Replaced source: \${result.count} chunks\`);`,
           description: "自定义元数据字段",
         },
         {
-          name: "chunk_size",
-          type: "number",
-          label: "分块大小",
+          name: "chunking_config",
+          type: "json",
+          label: "Chunking Config",
           required: false,
-          defaultValue: 800,
-          min: 1,
-          max: 100000,
+          defaultValue: DEFAULT_CHUNKING_CONFIG,
           group: "advanced",
-        },
-        {
-          name: "overlap",
-          type: "number",
-          label: "重叠字符数",
-          required: false,
-          defaultValue: 100,
-          group: "advanced",
-        },
-        {
-          name: "preserve_newlines",
-          type: "checkbox",
-          label: "保留换行符",
-          required: false,
-          defaultValue: true,
-          group: "advanced",
-          description: "分块时是否保留换行符",
+          description: DEFAULT_CHUNKING_CONFIG_DESCRIPTION,
         },
       ],
       submitLabel: "替换来源",
@@ -890,21 +906,14 @@ result.items.forEach(item => {
           description: { type: "string", description: "语料库描述" },
           config: {
             type: "object",
-            properties: {
-              chunk_size: { type: "integer", default: 800 },
-              overlap: { type: "integer", default: 100 },
-              embedding_model: { type: "string", default: "text-embedding-3-small" },
-            },
+            description: "canonical corpus 配置，按 strategy 判别。",
           },
         },
       },
       example: {
         name: "产品文档",
         description: "产品相关文档和知识",
-        config: {
-          chunk_size: 800,
-          overlap: 100,
-        },
+        config: DEFAULT_CHUNKING_CONFIG,
       },
     },
     responses: [
@@ -930,7 +939,13 @@ result.items.forEach(item => {
   -d '{
     "name": "产品文档",
     "description": "产品相关文档和知识",
-    "config": { "chunk_size": 800 }
+    "config": {
+      "strategy": "recursive",
+      "chunk_size": 800,
+      "overlap": 100,
+      "preserve_newlines": true,
+      "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+    }
   }'`,
       python: `import requests
 
@@ -939,7 +954,13 @@ response = requests.post(
     json={
         "name": "产品文档",
         "description": "产品相关文档和知识",
-        "config": {"chunk_size": 800}
+        "config": {
+            "strategy": "recursive",
+            "chunk_size": 800,
+            "overlap": 100,
+            "preserve_newlines": True,
+            "separators": ["\\n\\n", "\\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""]
+        }
     }
 )
 corpus = response.json()
@@ -950,7 +971,13 @@ print(f"Created corpus: {corpus['id']}")`,
   body: JSON.stringify({
     name: '产品文档',
     description: '产品相关文档和知识',
-    config: { chunk_size: 800 }
+    config: {
+      strategy: 'recursive',
+      chunk_size: 800,
+      overlap: 100,
+      preserve_newlines: true,
+      separators: ['\\n\\n', '\\n', '。', '！', '？', '. ', '! ', '? ', '；', ';', ' ', '']
+    }
   })
 });
 
@@ -974,22 +1001,13 @@ console.log(\`Created corpus: \${corpus.id}\`);`,
           placeholder: "简要描述该语料库的内容用途...",
         },
         {
-          name: "chunk_size",
-          type: "number",
-          label: "分块大小",
+          name: "config",
+          type: "json",
+          label: "Corpus Config",
           required: false,
-          defaultValue: 800,
-          min: 1,
-          max: 100000,
+          defaultValue: DEFAULT_CHUNKING_CONFIG,
           group: "advanced",
-        },
-        {
-          name: "overlap",
-          type: "number",
-          label: "重叠字符数",
-          required: false,
-          defaultValue: 100,
-          group: "advanced",
+          description: DEFAULT_CHUNKING_CONFIG_DESCRIPTION,
         },
       ],
       submitLabel: "创建语料库",
