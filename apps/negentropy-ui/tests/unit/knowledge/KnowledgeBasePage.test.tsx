@@ -1,22 +1,28 @@
-import { act, render } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 const {
   replaceMock,
   useKnowledgeBaseMock,
   loadCorpusMock,
   loadCorporaMock,
+  deleteCorpusMock,
+  searchParamsState,
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
   loadCorpusMock: vi.fn(),
   loadCorporaMock: vi.fn(),
+  deleteCorpusMock: vi.fn(),
+  searchParamsState: {
+    value: "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents",
+  },
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
   usePathname: () => "/knowledge/base",
-  useSearchParams: () =>
-    new URLSearchParams("view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents"),
+  useSearchParams: () => new URLSearchParams(searchParamsState.value),
 }));
 
 vi.mock("sonner", () => ({
@@ -64,18 +70,29 @@ describe("KnowledgeBasePage", () => {
     replaceMock.mockReset();
     loadCorpusMock.mockReset();
     loadCorporaMock.mockReset();
+    deleteCorpusMock.mockReset();
+    searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
 
     loadCorpusMock.mockResolvedValue(undefined);
     loadCorporaMock.mockResolvedValue(undefined);
+    deleteCorpusMock.mockResolvedValue(undefined);
 
     useKnowledgeBaseMock.mockImplementation(() => ({
-      corpora: [],
+      corpora: [
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          name: "Corpus Alpha",
+          app_name: "negentropy",
+          knowledge_count: 3,
+          config: {},
+        },
+      ],
       isLoading: false,
       loadCorpora: loadCorporaMock,
       loadCorpus: loadCorpusMock,
       createCorpus: vi.fn(),
       updateCorpus: vi.fn(),
-      deleteCorpus: vi.fn(),
+      deleteCorpus: deleteCorpusMock,
       ingestUrl: vi.fn(),
       ingestFile: vi.fn(),
     }));
@@ -97,5 +114,49 @@ describe("KnowledgeBasePage", () => {
     });
 
     expect(loadCorpusMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("点击 Delete 后会在页面中央打开确认框，并可取消", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Delete Corpus" });
+    expect(within(dialog).getByText(/Corpus Alpha/)).toBeInTheDocument();
+    expect(deleteCorpusMock).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByText("Delete Corpus")).not.toBeInTheDocument();
+    expect(deleteCorpusMock).not.toHaveBeenCalled();
+  });
+
+  it("确认删除当前 Corpus 后会执行删除并跳回 overview", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog", { name: "Delete Corpus" });
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(deleteCorpusMock).toHaveBeenCalledWith("11111111-1111-1111-1111-111111111111");
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 });
