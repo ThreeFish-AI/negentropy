@@ -17,6 +17,7 @@ export function ChatStream({
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
+  const visibleNodes = nodes.filter((node) => node.visibility !== "debug-only");
 
   const onScroll = () => {
     if (!scrollRef.current) return;
@@ -29,7 +30,7 @@ export function ChatStream({
     if (isUserAtBottomRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [nodes]);
+  }, [visibleNodes]);
 
   return (
     <div
@@ -40,12 +41,12 @@ export function ChatStream({
       <div
         className={`mx-auto w-full space-y-4 px-6 py-6 ${contentClassName ?? ""}`}
       >
-        {nodes.length === 0 ? (
+        {visibleNodes.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
             发送指令开始对话。主区将以 A2UI 模块树实时展示消息、工具、活动与状态。
           </div>
         ) : (
-          nodes.map((node) => (
+          visibleNodes.map((node) => (
             <ConversationNodeRenderer
               key={node.id}
               node={node}

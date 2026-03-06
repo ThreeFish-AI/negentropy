@@ -37,6 +37,8 @@ describe("ChatStream", () => {
                 timestamp: 1002,
                 timeRange: { start: 1002, end: 1002 },
                 title: "search",
+                visibility: "chat",
+                isStructural: false,
                 payload: { args: "{\"q\":\"hello\"}", toolCallName: "search" },
                 sourceEventTypes: ["tool_call_start"],
                 relatedMessageIds: ["msg-1"],
@@ -49,6 +51,8 @@ describe("ChatStream", () => {
             timeRange: { start: 1001, end: 1001 },
             title: "助手消息",
             role: "assistant",
+            visibility: "chat",
+            isStructural: false,
             payload: { content: "你好" },
             sourceEventTypes: ["text_message_start"],
             relatedMessageIds: ["msg-1"],
@@ -59,6 +63,8 @@ describe("ChatStream", () => {
         timestamp: 1000,
         timeRange: { start: 1000, end: 1003 },
         title: "轮次 run-1",
+        visibility: "chat",
+        isStructural: false,
         payload: {},
         sourceEventTypes: ["run_started"],
         relatedMessageIds: [],
@@ -70,5 +76,48 @@ describe("ChatStream", () => {
     expect(screen.getByText("轮次 run-1")).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("你好"))).toBeInTheDocument();
     expect(screen.getAllByText("search").length).toBeGreaterThan(0);
+  });
+
+  it("不渲染 debug-only 根节点，并将技术节点折叠为摘要卡片", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "raw:1",
+        type: "raw",
+        parentId: null,
+        children: [],
+        threadId: "thread-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1000 },
+        title: "原始事件",
+        visibility: "debug-only",
+        isStructural: false,
+        payload: { data: { ignored: true } },
+        sourceEventTypes: ["raw"],
+        relatedMessageIds: [],
+      },
+      {
+        id: "activity:1",
+        type: "activity",
+        parentId: null,
+        children: [],
+        threadId: "thread-1",
+        timestamp: 1001,
+        timeRange: { start: 1001, end: 1001 },
+        title: "LOG_ACTIVITY",
+        visibility: "collapsed",
+        isStructural: false,
+        payload: { content: { status: "ok", message: "已记录" } },
+        sourceEventTypes: ["activity_snapshot"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    render(<ChatStream nodes={nodes} />);
+
+    expect(screen.queryByText("原始事件")).not.toBeInTheDocument();
+    expect(screen.getByText("LOG_ACTIVITY")).toBeInTheDocument();
+    expect(screen.getByText("状态: ok")).toBeInTheDocument();
+    expect(screen.queryByText(/ignored/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "展开详情" })).toBeInTheDocument();
   });
 });

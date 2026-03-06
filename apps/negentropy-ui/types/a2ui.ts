@@ -35,6 +35,8 @@ export interface ConversationNode {
   status?: string;
   role?: "user" | "assistant" | "system";
   summary?: string;
+  visibility: "chat" | "collapsed" | "debug-only";
+  isStructural?: boolean;
   payload: Record<string, unknown>;
   sourceEventTypes: string[];
   relatedMessageIds: string[];
