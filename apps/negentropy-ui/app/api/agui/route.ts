@@ -1,50 +1,12 @@
 import { EventEncoder } from "@ag-ui/encoder";
 import { BaseEvent, EventType } from "@ag-ui/core";
-import { AdkEventPayload, adkEventToAguiEvents } from "@/lib/adk";
+import { AdkEventPayload } from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
-
-const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
-
-type NormalizableEvent = BaseEvent & { role?: string; delta?: unknown };
-
-function jsonPointerEscape(segment: string) {
-  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
-}
-
-function toPatchOperations(delta: Record<string, unknown>) {
-  return Object.entries(delta).map(([key, value]) => ({
-    op: "add",
-    path: `/${jsonPointerEscape(key)}`,
-    value,
-  }));
-}
-
-function normalizeAguiEvent(event: BaseEvent): BaseEvent {
-  const next = { ...event } as NormalizableEvent;
-  if (
-    "role" in next &&
-    typeof next.role === "string" &&
-    !ALLOWED_ROLES.has(next.role)
-  ) {
-    next.role = "assistant";
-  }
-  if (
-    next.type === EventType.STATE_DELTA &&
-    next.delta &&
-    !Array.isArray(next.delta)
-  ) {
-    if (typeof next.delta === "object") {
-      next.delta = toPatchOperations(next.delta as Record<string, unknown>);
-    } else {
-      next.delta = [];
-    }
-  }
-  return next;
-}
+import { mapAdkPayloadToNormalizedAguiEvents } from "@/utils/agui-normalization";
 
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
@@ -218,25 +180,10 @@ export async function POST(request: Request) {
 
               try {
                 const parsed = JSON.parse(jsonText) as AdkEventPayload;
-                const events = adkEventToAguiEvents(parsed).map((event) =>
-                  normalizeAguiEvent({
-                    ...event,
-                    threadId:
-                      "threadId" in event &&
-                      typeof event.threadId === "string" &&
-                      event.threadId.trim() &&
-                      event.threadId !== "default"
-                        ? event.threadId
-                        : resolvedThreadId,
-                    runId:
-                      "runId" in event &&
-                      typeof event.runId === "string" &&
-                      event.runId.trim() &&
-                      event.runId !== "default"
-                        ? event.runId
-                        : resolvedRunId,
-                  }),
-                );
+                const events = mapAdkPayloadToNormalizedAguiEvents(parsed, {
+                  threadId: resolvedThreadId,
+                  runId: resolvedRunId,
+                });
                 for (const event of events) {
                   controller.enqueue(
                     textEncoder.encode(eventEncoder.encodeSSE(event)),

@@ -19,7 +19,6 @@ import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
 import {
   AdkEventPayload,
-  adkEventToAguiEvents,
   adkEventsToMessages,
   adkEventsToSnapshot,
 } from "@/lib/adk";
@@ -37,6 +36,7 @@ import {
   buildConversationTree,
   buildNodeTimestampIndex,
 } from "@/utils/conversation-tree";
+import { mapAdkPayloadToNormalizedAguiEvents } from "@/utils/agui-normalization";
 
 // 统一的类型定义
 import type {
@@ -444,7 +444,12 @@ export function HomeBody({
           : [];
         const messages = adkEventsToMessages(events);
         const snapshot = adkEventsToSnapshot(events);
-        const mappedEvents = events.flatMap(adkEventToAguiEvents);
+        const mappedEvents = events.flatMap((event) =>
+          mapAdkPayloadToNormalizedAguiEvents(event, {
+            threadId: id,
+            runId: event.runId || id,
+          }),
+        );
 
         setRawEvents(mappedEvents);
         setSessionMessages(messages);
@@ -482,12 +487,15 @@ export function HomeBody({
         id: crypto.randomUUID(),
         role: "user",
         content: `HITL:${payload.action} ${payload.note || ""}`.trim(),
+        createdAt: new Date(),
       });
       try {
         setConnectionWithMetrics("connecting");
         await agent.runAgent({
           runId: randomUUID(),
+          threadId: sessionId,
         });
+        await loadSessionDetail(sessionId);
         await loadSessions();
       } catch (error) {
         setConnectionWithMetrics("error");
@@ -495,7 +503,7 @@ export function HomeBody({
         console.warn("Failed to submit HITL response", error);
       }
     },
-    [agent, addLog, loadSessions, sessionId, setConnectionWithMetrics],
+    [agent, addLog, loadSessionDetail, loadSessions, sessionId, setConnectionWithMetrics],
   );
 
   useConfirmationTool(handleConfirmationFollowup);
@@ -525,6 +533,7 @@ export function HomeBody({
       id: messageId,
       role: "user",
       content: inputValue.trim(),
+      createdAt: new Date(),
     } as Message;
     // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
     // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
@@ -539,7 +548,11 @@ export function HomeBody({
       (!activeSession || activeSession.label === createSessionLabel(sessionId));
     try {
       setConnectionWithMetrics("connecting");
-      await agent.runAgent({ runId: randomUUID() });
+      await agent.runAgent({
+        runId: randomUUID(),
+        threadId: sessionId,
+      });
+      await loadSessionDetail(sessionId);
       await loadSessions();
       if (shouldPollTitle) {
         scheduleTitleRefresh();

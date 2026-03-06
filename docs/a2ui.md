@@ -212,6 +212,9 @@ classDiagram
 | Chat 树形渲染 | 已完成 | [ChatStream.tsx](../apps/negentropy-ui/components/ui/ChatStream.tsx) | 主区已切换为递归节点渲染 | 视觉细节仍可继续打磨 |
 | A2UI 自定义关联事件 | 已完成 | [adk.ts](../apps/negentropy-ui/lib/adk.ts) | 已注入 `ne.a2ui.link` / `ne.a2ui.reasoning` | 上游若提供原生父子关系，可进一步收敛 |
 | Chat 乱序与空白节点治理 | 已完成 | [conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts) | 已修复默认 `runId` 归并、空节点裁剪、fallback 消息挂靠与技术节点过滤 | 后续仍需补更多真实流量样例 |
+| Live / History 归并一致性 | 已完成 | [agui-normalization.ts](../apps/negentropy-ui/utils/agui-normalization.ts) | 实时 SSE 与历史回放已共用同一套 AG-UI 归并规则 | 后续仍需覆盖更多历史脏数据 |
+| 连续用户消息稳定排序 | 已完成 | [conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts) | 已为节点引入稳定顺序键，修复连续 user 消息倒序 | 多轮并发场景仍需继续观察 |
+| 发送后答复回拉闭环 | 已完成 | [page.tsx](../apps/negentropy-ui/app/page.tsx) | `runAgent` 完成后会回拉 session detail，补全 assistant 回复展示 | 若上游延迟较大，仍需后续评估重试策略 |
 | 单元测试补齐 | 已完成 | [tests/unit](../apps/negentropy-ui/tests/unit) | `pnpm --dir apps/negentropy-ui test` 通过，23 个测试文件全部通过 | `lint/build` 仍受整仓存量问题影响 |
 
 ## 9. 最佳实践
@@ -223,6 +226,8 @@ classDiagram
 - 新类型先走 `custom` 回退，再决定是否升级为正式组件
 - 主聊天区必须做信息分层，不能把结构性事件和调试载荷直接视作聊天消息
 - 技术类 JSON 默认展示摘要卡片，并提供显式展开入口，避免噪音淹没主对话
+- 实时流与历史回放必须复用同一套事件归并逻辑，避免 Chat 树在刷新后产生 split-brain
+- 用户本地乐观消息必须携带稳定顺序键，不能让随机 ID 或重建时机决定显示顺序
 
 ## 10. 后续建议
 

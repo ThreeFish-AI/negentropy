@@ -166,4 +166,80 @@ describe("buildConversationTree", () => {
     const tree = buildConversationTree({ events });
     expect(tree.roots).toHaveLength(0);
   });
+
+  it("按 fallback 消息原始顺序稳定保留连续用户消息", () => {
+    const fallbackMessages: Message[] = [
+      {
+        id: "msg-1",
+        role: "user",
+        content: "Hello",
+        createdAt: new Date(1000 * 1000),
+      } as Message,
+      {
+        id: "msg-2",
+        role: "user",
+        content: "Hi",
+        createdAt: new Date(1000 * 1000 + 1),
+      } as Message,
+    ];
+
+    const tree = buildConversationTree({ events: [], fallbackMessages });
+    expect(tree.roots).toHaveLength(2);
+    expect(tree.roots[0].payload.content).toBe("Hello");
+    expect(tree.roots[1].payload.content).toBe("Hi");
+  });
+
+  it("在同轮次下按 sourceOrder 保持连续用户消息顺序", () => {
+    const events: BaseEvent[] = [
+      {
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      } as BaseEvent,
+    ];
+    const fallbackMessages: Message[] = [
+      {
+        id: "msg-b",
+        role: "user",
+        content: "first",
+        createdAt: new Date(1000 * 1000),
+      } as Message,
+      {
+        id: "msg-a",
+        role: "user",
+        content: "second",
+        createdAt: new Date(1000 * 1000),
+      } as Message,
+    ];
+
+    const tree = buildConversationTree({ events, fallbackMessages });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children[0].payload.content).toBe("first");
+    expect(tree.roots[0].children[1].payload.content).toBe("second");
+  });
+
+  it("将运行错误节点保留在主聊天区", () => {
+    const events: BaseEvent[] = [
+      {
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      } as BaseEvent,
+      {
+        type: EventType.RUN_ERROR,
+        threadId: "thread-1",
+        runId: "run-1",
+        message: "failed",
+        code: "UPSTREAM_ERROR",
+        timestamp: 1001,
+      } as BaseEvent,
+    ];
+
+    const tree = buildConversationTree({ events });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children[0].type).toBe("error");
+    expect(tree.roots[0].children[0].visibility).toBe("chat");
+  });
 });

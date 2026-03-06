@@ -36,6 +36,7 @@ describe("ChatStream", () => {
                 toolCallId: "tool-1",
                 timestamp: 1002,
                 timeRange: { start: 1002, end: 1002 },
+                sourceOrder: 2,
                 title: "search",
                 visibility: "chat",
                 isStructural: false,
@@ -49,6 +50,7 @@ describe("ChatStream", () => {
             messageId: "msg-1",
             timestamp: 1001,
             timeRange: { start: 1001, end: 1001 },
+            sourceOrder: 1,
             title: "助手消息",
             role: "assistant",
             visibility: "chat",
@@ -62,6 +64,7 @@ describe("ChatStream", () => {
         runId: "run-1",
         timestamp: 1000,
         timeRange: { start: 1000, end: 1003 },
+        sourceOrder: 0,
         title: "轮次 run-1",
         visibility: "chat",
         isStructural: false,
@@ -88,6 +91,7 @@ describe("ChatStream", () => {
         threadId: "thread-1",
         timestamp: 1000,
         timeRange: { start: 1000, end: 1000 },
+        sourceOrder: 0,
         title: "原始事件",
         visibility: "debug-only",
         isStructural: false,
@@ -103,6 +107,7 @@ describe("ChatStream", () => {
         threadId: "thread-1",
         timestamp: 1001,
         timeRange: { start: 1001, end: 1001 },
+        sourceOrder: 1,
         title: "LOG_ACTIVITY",
         visibility: "collapsed",
         isStructural: false,
@@ -119,5 +124,60 @@ describe("ChatStream", () => {
     expect(screen.getByText("状态: ok")).toBeInTheDocument();
     expect(screen.queryByText(/ignored/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "展开详情" })).toBeInTheDocument();
+  });
+
+  it("在轮次进行中且暂无助手回复时展示状态提示", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "turn:pending",
+        type: "turn",
+        parentId: null,
+        children: [],
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1000 },
+        sourceOrder: 0,
+        title: "轮次 run-1",
+        status: "running",
+        visibility: "chat",
+        isStructural: false,
+        payload: {},
+        sourceEventTypes: ["run_started"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    render(<ChatStream nodes={nodes} />);
+
+    expect(screen.getByText("NE 正在生成回复...")).toBeInTheDocument();
+  });
+
+  it("直接展示错误节点而不是折叠隐藏", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "error:1",
+        type: "error",
+        parentId: null,
+        children: [],
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1000 },
+        sourceOrder: 0,
+        title: "运行错误",
+        status: "error",
+        visibility: "chat",
+        isStructural: false,
+        payload: { message: "stream failed", code: "AGUI_STREAM_ERROR" },
+        sourceEventTypes: ["run_error"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    render(<ChatStream nodes={nodes} />);
+
+    expect(screen.getByText("运行错误")).toBeInTheDocument();
+    expect(screen.getByText("stream failed")).toBeInTheDocument();
   });
 });

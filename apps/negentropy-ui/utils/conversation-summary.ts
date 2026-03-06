@@ -73,7 +73,13 @@ export function isNodePayloadEmpty(node: ConversationNode): boolean {
 export function classifyNodeVisibility(
   node: ConversationNode,
 ): "chat" | "collapsed" | "debug-only" {
-  if (node.type === "turn" || node.type === "text" || node.type === "tool-call" || node.type === "tool-result") {
+  if (
+    node.type === "turn" ||
+    node.type === "text" ||
+    node.type === "tool-call" ||
+    node.type === "tool-result" ||
+    node.type === "error"
+  ) {
     return "chat";
   }
   if (node.type === "custom") {
@@ -98,7 +104,6 @@ export function classifyNodeVisibility(
     node.type === "state-delta" ||
     node.type === "state-snapshot" ||
     node.type === "custom" ||
-    node.type === "error" ||
     node.type === "event"
   ) {
     return "collapsed";

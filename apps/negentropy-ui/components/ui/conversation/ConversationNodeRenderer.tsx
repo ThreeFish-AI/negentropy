@@ -193,6 +193,22 @@ function TurnNode({
 }) {
   const childCount = node.children.filter((child) => child.visibility !== "debug-only")
     .length;
+  const hasMeaningfulReply = node.children.some((child) =>
+    child.visibility !== "debug-only" &&
+    (child.role === "assistant" ||
+      child.type === "tool-call" ||
+      child.type === "tool-result" ||
+      child.type === "activity" ||
+      child.type === "state-delta" ||
+      child.type === "state-snapshot" ||
+      child.type === "error"),
+  );
+  const statusHint =
+    node.status === "running" && !hasMeaningfulReply
+      ? "NE 正在生成回复..."
+      : node.status === "finished" && !hasMeaningfulReply
+        ? "本轮未生成可展示回复"
+        : null;
   return (
     <div
       className={cn(
@@ -218,6 +234,11 @@ function TurnNode({
           {formatTimestamp(node.timestamp)}
         </div>
       </div>
+      {statusHint ? (
+        <div className="mt-3 rounded-2xl border border-dashed border-zinc-300/80 bg-zinc-50 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400">
+          {statusHint}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -254,7 +275,13 @@ function TechnicalNode({
   })();
 
   return (
-    <NodeCard node={node} selected={selected} onClick={() => onSelect?.(node.id)}>
+    <div
+      className={cn(
+        node.type === "error" &&
+          "rounded-2xl border border-red-200 bg-red-50/80 dark:border-red-900 dark:bg-red-950/30",
+      )}
+    >
+      <NodeCard node={node} selected={selected} onClick={() => onSelect?.(node.id)}>
       <SummaryLines lines={summary} />
       {node.type === "error" ? null : (
         <ExpandableDetails label="详情" value={detailValue} />
@@ -264,7 +291,8 @@ function TechnicalNode({
           {node.children.filter((child) => child.visibility !== "debug-only").length} 个子模块
         </div>
       ) : null}
-    </NodeCard>
+      </NodeCard>
+    </div>
   );
 }
 
