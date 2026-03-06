@@ -13,6 +13,7 @@ from negentropy.knowledge.types import (
     ChunkingConfig,
     CorpusRecord,
     CorpusSpec,
+    GraphBuildConfigModel,
     KnowledgeChunk,
     KnowledgeMatch,
     KnowledgeRecord,
@@ -135,6 +136,11 @@ class TestChunkingConfig:
         config = ChunkingConfig(chunk_size=100, overlap=50)
         assert config.overlap < config.chunk_size
 
+    def test_separators_normalized_to_hashable_tuple(self) -> None:
+        """separators 应标准化为可哈希的不可变元组"""
+        config = ChunkingConfig(separators=["###", " ", "###", "\t", "---"])
+        assert config.separators == ("###", "---")
+
 
 class TestSearchConfig:
     """SearchConfig 配置测试"""
@@ -189,6 +195,25 @@ class TestImmutability:
         config1 = ChunkingConfig(chunk_size=500, overlap=50)
         config2 = ChunkingConfig(chunk_size=500, overlap=50)
         # frozen Pydantic model 应可哈希
+        assert hash(config1) == hash(config2)
+
+
+class TestGraphBuildConfig:
+    """GraphBuildConfigModel 配置测试"""
+
+    def test_graph_build_config_hashable(self) -> None:
+        """图谱构建配置应保持可哈希"""
+        config1 = GraphBuildConfigModel(
+            entity_types=["person", "organization", "person"],
+            relation_types=["WORKS_FOR", "  ", "WORKS_FOR"],
+        )
+        config2 = GraphBuildConfigModel(
+            entity_types=("person", "organization"),
+            relation_types=("WORKS_FOR",),
+        )
+
+        assert config1.entity_types == ("person", "organization")
+        assert config1.relation_types == ("WORKS_FOR",)
         assert hash(config1) == hash(config2)
 
 
