@@ -403,10 +403,7 @@ export async function fetchCorpus(
   if (res.status === 404) {
     return null;
   }
-  if (!res.ok) {
-    throw new Error(`Failed to fetch corpus: ${res.statusText}`);
-  }
-  return res.json();
+  return handleKnowledgeError(res);
 }
 
 export interface KnowledgeItem {

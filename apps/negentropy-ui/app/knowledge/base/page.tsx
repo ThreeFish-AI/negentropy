@@ -88,7 +88,17 @@ export default function KnowledgeBasePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const kb = useKnowledgeBase({ appName: APP_NAME });
+  const {
+    corpora,
+    isLoading,
+    loadCorpora,
+    loadCorpus,
+    createCorpus,
+    updateCorpus,
+    deleteCorpus: deleteCorpusById,
+    ingestUrl,
+    ingestFile,
+  } = useKnowledgeBase({ appName: APP_NAME });
 
   const [viewMode, setViewMode] = useState<ViewMode>("overview");
   const [selectedCorpusId, setSelectedCorpusId] = useState<string | null>(null);
@@ -120,8 +130,8 @@ export default function KnowledgeBasePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedCorpus = useMemo(
-    () => kb.corpora.find((item) => item.id === selectedCorpusId) || null,
-    [kb.corpora, selectedCorpusId],
+    () => corpora.find((item) => item.id === selectedCorpusId) || null,
+    [corpora, selectedCorpusId],
   );
 
   const syncQueryState = useCallback(
@@ -140,9 +150,8 @@ export default function KnowledgeBasePage() {
   );
 
   useEffect(() => {
-    kb.loadCorpora();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void loadCorpora();
+  }, [loadCorpora]);
 
   useEffect(() => {
     const nextView = (searchParams.get("view") as ViewMode) || "overview";
@@ -158,9 +167,9 @@ export default function KnowledgeBasePage() {
 
   useEffect(() => {
     if (selectedCorpusId) {
-      kb.loadCorpus(selectedCorpusId);
+      void loadCorpus(selectedCorpusId);
     }
-  }, [kb, selectedCorpusId]);
+  }, [loadCorpus, selectedCorpusId]);
 
   const loadDocuments = useCallback(async () => {
     if (!selectedCorpusId) return;
@@ -207,7 +216,7 @@ export default function KnowledgeBasePage() {
   const handleRetrieve = async () => {
     const corpusIds = selectedRetrievalCorpusIds.length > 0
       ? selectedRetrievalCorpusIds
-      : kb.corpora.map((c) => c.id);
+      : corpora.map((c) => c.id);
     if (!query.trim() || corpusIds.length === 0) return;
 
     setRetrievalLoading(true);
@@ -252,7 +261,7 @@ export default function KnowledgeBasePage() {
   const handleDeleteCorpus = async (corpus: CorpusRecord) => {
     if (!confirm(`确定删除 Corpus \"${corpus.name}\" 吗？`)) return;
     try {
-      await kb.deleteCorpus(corpus.id);
+      await deleteCorpusById(corpus.id);
       toast.success("Corpus deleted");
       if (selectedCorpusId === corpus.id) {
         syncQueryState({ view: "overview", corpusId: null, tab: null, documentId: null });
@@ -268,12 +277,12 @@ export default function KnowledgeBasePage() {
     config?: Record<string, unknown>;
   }) => {
     if (dialogMode === "create") {
-      const created = await kb.createCorpus(params);
+      const created = await createCorpus(params);
       syncQueryState({ view: "corpus", corpusId: created.id, tab: "documents", documentId: null });
     } else if (editingCorpus) {
-      await kb.updateCorpus(editingCorpus.id, params);
+      await updateCorpus(editingCorpus.id, params);
       if (selectedCorpusId === editingCorpus.id) {
-        await kb.loadCorpus(editingCorpus.id);
+        await loadCorpus(editingCorpus.id);
       }
     }
     setIsDialogOpen(false);
@@ -284,7 +293,7 @@ export default function KnowledgeBasePage() {
     const url = window.prompt("请输入 URL");
     if (!url?.trim()) return;
     try {
-      await kb.ingestUrl({
+      await ingestUrl({
         url: url.trim(),
         as_document: true,
         chunkingConfig: selectedCorpus?.config as ChunkingConfig | undefined,
@@ -299,7 +308,7 @@ export default function KnowledgeBasePage() {
   const handleIngestFile = async (file: File) => {
     if (!selectedCorpusId) return;
     try {
-      await kb.ingestFile({
+      await ingestFile({
         file,
         source_uri: file.name,
         chunkingConfig: selectedCorpus?.config as ChunkingConfig | undefined,
@@ -362,8 +371,8 @@ export default function KnowledgeBasePage() {
   const handleSaveCorpusSettings = async (config: Record<string, unknown>) => {
     if (!selectedCorpus) return;
     try {
-      await kb.updateCorpus(selectedCorpus.id, { config });
-      await kb.loadCorpus(selectedCorpus.id);
+      await updateCorpus(selectedCorpus.id, { config });
+      await loadCorpus(selectedCorpus.id);
       toast.success("Settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save settings failed");
@@ -409,7 +418,7 @@ export default function KnowledgeBasePage() {
       <div className="mt-3">
         <div className="mb-1 text-xs text-muted">Target Corpus（可多选）</div>
         <div className="flex flex-wrap gap-2">
-          {kb.corpora.map((corpus) => {
+          {corpora.map((corpus) => {
             const checked = selectedRetrievalCorpusIds.includes(corpus.id);
             return (
               <label key={corpus.id} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs">
@@ -450,11 +459,11 @@ export default function KnowledgeBasePage() {
           Add Corpus
         </button>
       </div>
-      {kb.corpora.length === 0 ? (
+      {corpora.length === 0 ? (
         <p className="text-xs text-muted">暂无 Corpus</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {kb.corpora.map((corpus) => (
+          {corpora.map((corpus) => (
             <div
               key={corpus.id}
               className="cursor-pointer rounded-xl border border-border bg-background p-4 transition hover:border-foreground/40"
@@ -693,7 +702,7 @@ export default function KnowledgeBasePage() {
         isOpen={isDialogOpen}
         mode={dialogMode}
         initialData={editingCorpus}
-        isLoading={kb.isLoading}
+        isLoading={isLoading}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleDialogSubmit}
       />
