@@ -1,4 +1,4 @@
-name: negentropy-backend-tests
+name: Backend Test Suite
 
 on:
   push:
@@ -24,7 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  backend-tests:
+    name: Backend Test Suite
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

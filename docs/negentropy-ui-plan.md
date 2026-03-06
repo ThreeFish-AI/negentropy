@@ -181,7 +181,7 @@
 - ✅ 已完成：UI 侧埋点（事件耗时、连接重试次数、错误次数）。实现见 [apps/negentropy-ui/app/page.tsx](../apps/negentropy-ui/app/page.tsx)。
 - `session_id`/`user_id` 贯穿前后端（参见 [apps/negentropy/src/negentropy/engine/bootstrap.py](../apps/negentropy/src/negentropy/engine/bootstrap.py)）。
 - ✅ 已完成：最小回归测试（单元 + 集成）。覆盖 `lib/adk` 事件映射、核心 UI 组件（ChatStream/EventTimeline/StateSnapshot/Composer），并在 `tests/integration` mock `useAgent` 验证页面级交互流程；配置 `vitest`。实现见 [apps/negentropy-ui/tests](../apps/negentropy-ui/tests)、[apps/negentropy-ui/vitest.config.ts](../apps/negentropy-ui/vitest.config.ts)。
-- ✅ 已完成：CI 回归（GitHub Actions）在 `apps/negentropy-ui` 变更时执行 `yarn test`。实现见 [.github/workflows/negentropy-ui-tests.yml](../.github/workflows/negentropy-ui-tests.yml)。
+- ✅ 已完成：CI 回归（GitHub Actions）在 `apps/negentropy-ui` 变更时执行 `pnpm test`。实现见 [.github/workflows/negentropy-ui-tests.yml](../.github/workflows/negentropy-ui-tests.yml)。
 
 ## 10. 风险与验证（Feedback Loop）
 
