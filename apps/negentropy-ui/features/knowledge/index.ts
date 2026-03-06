@@ -170,6 +170,7 @@ export type {
 
 export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
 export type { PipelineRunCardProps } from "./components/PipelineRunCard";
+export { DocumentViewDialog } from "./components/DocumentViewDialog";
 
 // ============================================================================
 // Utils (Pipeline Helpers)

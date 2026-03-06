@@ -2,14 +2,17 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
+
+import type {
   KnowledgeDocument,
   KnowledgeDocumentDetail,
+} from "../utils/knowledge-api";
+import {
   downloadDocument,
   fetchDocumentDetail,
-  formatRelativeTime,
   refreshDocumentMarkdown,
-} from "@/features/knowledge";
+} from "../utils/knowledge-api";
+import { formatRelativeTime } from "../utils/pipeline-helpers";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -82,7 +85,7 @@ function displayUser(createdBy: string | null): string {
   if (createdBy.includes("@")) {
     return createdBy.split("@")[0];
   }
-  return createdBy.length > 20 ? createdBy.slice(0, 20) + "..." : createdBy;
+  return createdBy.length > 20 ? `${createdBy.slice(0, 20)}...` : createdBy;
 }
 
 export function DocumentViewDialog({
@@ -187,7 +190,8 @@ export function DocumentViewDialog({
 
   const viewedDoc: KnowledgeDocument = detail ?? document;
   const statusBadge = getStatusBadge(viewedDoc.status);
-  const markdownStatus = detail?.markdown_extract_status || document.markdown_extract_status || "pending";
+  const markdownStatus =
+    detail?.markdown_extract_status || document.markdown_extract_status || "pending";
   const markdownBadge = getMarkdownStatusBadge(markdownStatus);
 
   return (

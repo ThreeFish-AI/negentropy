@@ -15,6 +15,7 @@ import {
   CorpusRecord,
   ChunkingConfig,
   ChunkingStrategy,
+  DocumentViewDialog,
   DocumentChunkItem,
   KnowledgeDocument,
   KnowledgeMatch,
@@ -339,6 +340,7 @@ export default function KnowledgeBasePage() {
   const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -576,7 +578,7 @@ export default function KnowledgeBasePage() {
       } else if (action === "download") {
         await downloadDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
       } else if (action === "view") {
-        syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id });
+        setViewingDoc(doc);
         return;
       } else if (action === "delete") {
         if (!window.confirm("确定删除该文档吗？")) return;
@@ -965,6 +967,12 @@ export default function KnowledgeBasePage() {
       </div>
 
       <ChunkDetailDrawer chunk={selectedChunk} onClose={() => setSelectedChunk(null)} />
+
+      <DocumentViewDialog
+        isOpen={viewingDoc !== null}
+        document={viewingDoc}
+        onClose={() => setViewingDoc(null)}
+      />
 
       <CorpusFormDialog
         key={`${dialogMode}-${editingCorpus?.id || "new"}-${isDialogOpen ? "open" : "closed"}`}
