@@ -34,6 +34,7 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
@@ -336,6 +337,7 @@ export default function KnowledgeBasePage() {
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(undefined);
   const [isDeleteCorpusDialogOpen, setIsDeleteCorpusDialogOpen] = useState(false);
+  const [isIngestUrlDialogOpen, setIsIngestUrlDialogOpen] = useState(false);
   const [deletingCorpus, setDeletingCorpus] = useState<CorpusRecord | null>(null);
   const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
@@ -519,10 +521,13 @@ export default function KnowledgeBasePage() {
     setIsDialogOpen(false);
   };
 
-  const handleIngestUrl = async () => {
+  const handleIngestUrl = async ({
+    url,
+  }: {
+    url: string;
+    chunkingConfig?: ChunkingConfig;
+  }) => {
     if (!selectedCorpusId) return;
-    const url = window.prompt("请输入 URL");
-    if (!url?.trim()) return;
     try {
       await ingestUrl({
         url: url.trim(),
@@ -530,6 +535,7 @@ export default function KnowledgeBasePage() {
         chunkingConfig: corpusChunkingConfig,
       });
       toast.success("URL ingest started");
+      setIsIngestUrlDialogOpen(false);
       await loadDocuments();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "URL ingest failed");
@@ -848,7 +854,7 @@ export default function KnowledgeBasePage() {
                     <h2 className="text-sm font-semibold">Documents</h2>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={handleIngestUrl}
+                        onClick={() => setIsIngestUrlDialogOpen(true)}
                         className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
                       >
                         Ingest From URL
@@ -972,6 +978,19 @@ export default function KnowledgeBasePage() {
         isOpen={viewingDoc !== null}
         document={viewingDoc}
         onClose={() => setViewingDoc(null)}
+      />
+
+      <AddSourceDialog
+        isOpen={isIngestUrlDialogOpen}
+        corpusId={selectedCorpusId}
+        onClose={() => setIsIngestUrlDialogOpen(false)}
+        onIngestUrl={handleIngestUrl}
+        onIngestFile={ingestFile}
+        chunkingConfig={corpusChunkingConfig}
+        onSuccess={() => setIsIngestUrlDialogOpen(false)}
+        initialMode="url"
+        allowedModes={["url"]}
+        title="Ingest From URL"
       />
 
       <CorpusFormDialog

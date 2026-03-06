@@ -7,6 +7,8 @@ const {
   loadCorpusMock,
   loadCorporaMock,
   deleteCorpusMock,
+  ingestUrlMock,
+  ingestFileMock,
   searchParamsState,
   fetchDocumentsMock,
   fetchDocumentChunksMock,
@@ -18,6 +20,8 @@ const {
   loadCorpusMock: vi.fn(),
   loadCorporaMock: vi.fn(),
   deleteCorpusMock: vi.fn(),
+  ingestUrlMock: vi.fn(),
+  ingestFileMock: vi.fn(),
   fetchDocumentsMock: vi.fn(),
   fetchDocumentChunksMock: vi.fn(),
   searchAcrossCorporaMock: vi.fn(),
@@ -90,6 +94,8 @@ describe("KnowledgeBasePage", () => {
     loadCorpusMock.mockReset();
     loadCorporaMock.mockReset();
     deleteCorpusMock.mockReset();
+    ingestUrlMock.mockReset();
+    ingestFileMock.mockReset();
     fetchDocumentsMock.mockReset();
     fetchDocumentChunksMock.mockReset();
     searchAcrossCorporaMock.mockReset();
@@ -99,6 +105,8 @@ describe("KnowledgeBasePage", () => {
     loadCorpusMock.mockResolvedValue(undefined);
     loadCorporaMock.mockResolvedValue(undefined);
     deleteCorpusMock.mockResolvedValue(undefined);
+    ingestUrlMock.mockResolvedValue({});
+    ingestFileMock.mockResolvedValue({});
     fetchDocumentsMock.mockResolvedValue({
       items: [
         {
@@ -142,8 +150,8 @@ describe("KnowledgeBasePage", () => {
       createCorpus: vi.fn(),
       updateCorpus: vi.fn(),
       deleteCorpus: deleteCorpusMock,
-      ingestUrl: vi.fn(),
-      ingestFile: vi.fn(),
+      ingestUrl: ingestUrlMock,
+      ingestFile: ingestFileMock,
     }));
   });
 
@@ -270,6 +278,56 @@ describe("KnowledgeBasePage", () => {
       screen.queryByRole("heading", { name: "Chunking Strategy" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Save Settings")).not.toBeInTheDocument();
+  });
+
+  it("点击 Ingest From URL 后会在页面中央打开 URL 弹框，并可取消", async () => {
+    const user = userEvent.setup();
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Ingest From URL" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Ingest From URL" });
+    expect(within(dialog).getByLabelText("URL *")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "From File" })).not.toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog", { name: "Ingest From URL" })).not.toBeInTheDocument();
+    expect(ingestUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("提交 Ingest From URL 弹框后会调用 ingestUrl 并携带当前 corpus 配置", async () => {
+    const user = userEvent.setup();
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Ingest From URL" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Ingest From URL" });
+    await user.type(
+      within(dialog).getByLabelText("URL *"),
+      "https://example.com/article",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Ingest" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(ingestUrlMock).toHaveBeenCalledWith({
+      url: "https://example.com/article",
+      as_document: true,
+      chunkingConfig: {},
+    });
   });
 
   it("settings 视图显示 Settings 配置模块", async () => {
