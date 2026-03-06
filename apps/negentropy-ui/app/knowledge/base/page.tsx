@@ -325,25 +325,6 @@ export default function KnowledgeBasePage() {
 
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
-  const [documentChunkingState, setDocumentChunkingState] = useState<{
-    corpusId: string | null;
-    config: ChunkingConfig;
-  }>({
-    corpusId: null,
-    config: {
-      strategy: "recursive",
-      chunk_size: 800,
-      overlap: 100,
-      preserve_newlines: true,
-      separators: [],
-      semantic_threshold: 0.85,
-      min_chunk_size: 50,
-      max_chunk_size: 2000,
-      hierarchical_parent_chunk_size: 1024,
-      hierarchical_child_chunk_size: 256,
-      hierarchical_child_overlap: 51,
-    },
-  });
 
   const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
   const [chunksLoading, setChunksLoading] = useState(false);
@@ -365,29 +346,7 @@ export default function KnowledgeBasePage() {
     () => corpora.find((item) => item.id === selectedCorpusId) || null,
     [corpora, selectedCorpusId],
   );
-  const derivedCorpusChunkingConfig = useMemo<ChunkingConfig>(() => {
-    const config = (selectedCorpus?.config || {}) as ChunkingConfig;
-    return {
-      strategy: (config.strategy as ChunkingStrategy) || "recursive",
-      chunk_size: config.chunk_size || 800,
-      overlap: config.overlap || 100,
-      preserve_newlines: config.preserve_newlines !== false,
-      separators: Array.isArray(config.separators) ? config.separators : [],
-      semantic_threshold: config.semantic_threshold || 0.85,
-      min_chunk_size: config.min_chunk_size || 50,
-      max_chunk_size: config.max_chunk_size || 2000,
-      hierarchical_parent_chunk_size:
-        config.hierarchical_parent_chunk_size || 1024,
-      hierarchical_child_chunk_size:
-        config.hierarchical_child_chunk_size || 256,
-      hierarchical_child_overlap:
-        config.hierarchical_child_overlap || 51,
-    };
-  }, [selectedCorpus]);
-  const documentChunkingConfig =
-    documentChunkingState.corpusId === selectedCorpus?.id
-      ? documentChunkingState.config
-      : derivedCorpusChunkingConfig;
+  const corpusChunkingConfig = selectedCorpus?.config as ChunkingConfig | undefined;
 
   const syncQueryState = useCallback(
     (next: Partial<Record<"view" | "corpusId" | "tab" | "documentId", string | null>>) => {
@@ -566,7 +525,7 @@ export default function KnowledgeBasePage() {
       await ingestUrl({
         url: url.trim(),
         as_document: true,
-        chunkingConfig: documentChunkingConfig,
+        chunkingConfig: corpusChunkingConfig,
       });
       toast.success("URL ingest started");
       await loadDocuments();
@@ -581,7 +540,7 @@ export default function KnowledgeBasePage() {
       await ingestFile({
         file,
         source_uri: file.name,
-        chunkingConfig: documentChunkingConfig,
+        chunkingConfig: corpusChunkingConfig,
       });
       toast.success("File ingest started");
       await loadDocuments();
@@ -599,12 +558,12 @@ export default function KnowledgeBasePage() {
       if (action === "sync") {
         await syncDocument(selectedCorpusId, doc.id, {
           app_name: APP_NAME,
-          ...documentChunkingConfig,
+          ...corpusChunkingConfig,
         });
       } else if (action === "rebuild") {
         await rebuildDocument(selectedCorpusId, doc.id, {
           app_name: APP_NAME,
-          ...documentChunkingConfig,
+          ...corpusChunkingConfig,
         });
       } else if (action === "archive") {
         await archiveDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
@@ -637,7 +596,7 @@ export default function KnowledgeBasePage() {
     await replaceDocument(selectedCorpusId, replacingDocument.id, {
       app_name: APP_NAME,
       text: payload.text,
-      ...documentChunkingConfig,
+      ...corpusChunkingConfig,
     });
     toast.success("replace success");
     setIsReplaceDialogOpen(false);
@@ -883,24 +842,6 @@ export default function KnowledgeBasePage() {
             <main className="min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 shadow-sm">
               {corpusTab === "documents" && (
                 <div className="space-y-3">
-                  <ChunkingStrategyPanel
-                    config={documentChunkingConfig}
-                    onChange={(next) =>
-                      setDocumentChunkingState((prev) => ({
-                        corpusId: selectedCorpus?.id || null,
-                        config:
-                          typeof next === "function"
-                            ? next(
-                                prev.corpusId === selectedCorpus?.id
-                                  ? prev.config
-                                  : documentChunkingConfig,
-                              )
-                            : next,
-                      }))
-                    }
-                    title="Chunking Strategy"
-                    description="当前摄入与文档重建按字符近似控制大小；hierarchical 会检索子块并返回父块。"
-                  />
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold">Documents</h2>
                     <div className="flex items-center gap-2">
