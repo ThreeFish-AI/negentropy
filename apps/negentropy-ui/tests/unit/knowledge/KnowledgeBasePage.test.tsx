@@ -195,6 +195,35 @@ describe("KnowledgeBasePage", () => {
     );
   });
 
+  it("documents 视图不显示 Chunking Strategy 配置模块", async () => {
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(
+      screen.queryByRole("heading", { name: "Chunking Strategy" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Save Settings")).not.toBeInTheDocument();
+  });
+
+  it("settings 视图显示 Settings 配置模块", async () => {
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Settings" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save Settings" })).toBeInTheDocument();
+  });
+
   it("进入 document-chunks 视图时使用不超过后端约束的 limit=200", async () => {
     searchParamsState.value =
       "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=document-chunks&documentId=doc-1";
