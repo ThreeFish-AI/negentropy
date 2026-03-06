@@ -225,9 +225,7 @@ export default function KnowledgeBasePage() {
   }, [viewMode, corpusTab, selectedCorpusId, selectedDocumentId, loadDocumentChunks]);
 
   const handleRetrieve = async () => {
-    const corpusIds = selectedRetrievalCorpusIds.length > 0
-      ? selectedRetrievalCorpusIds
-      : corpora.map((c) => c.id);
+    const corpusIds = selectedRetrievalCorpusIds;
     if (!query.trim() || corpusIds.length === 0) return;
 
     setRetrievalLoading(true);
@@ -430,7 +428,7 @@ export default function KnowledgeBasePage() {
         />
         <button
           onClick={handleRetrieve}
-          disabled={retrievalLoading || !query.trim()}
+          disabled={retrievalLoading || !query.trim() || selectedRetrievalCorpusIds.length === 0}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           {retrievalLoading ? "Retrieving..." : "Retrieve"}
@@ -460,6 +458,11 @@ export default function KnowledgeBasePage() {
             );
           })}
         </div>
+        {selectedRetrievalCorpusIds.length === 0 && (
+          <div className="mt-2 text-[11px] text-amber-600">
+            请至少选择一个 Corpus 后再执行 Retrieve
+          </div>
+        )}
       </div>
 
       {retrievalError && (
@@ -566,7 +569,10 @@ export default function KnowledgeBasePage() {
 
             {retrievalDocked && (
               <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 px-6 py-3 backdrop-blur">
-                <div className="mx-auto max-h-[70vh] max-w-[1400px] overflow-y-auto">
+                <div
+                  data-testid="docked-retrieval-container"
+                  className="max-h-[70vh] w-full overflow-y-auto"
+                >
                   {renderRetrievalModule()}
                   <div className="mt-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
                     <button
