@@ -315,6 +315,8 @@ def chunk_text(text: str, config: ChunkingConfig) -> list[str]:
             hint="Use semantic_chunk_async() instead for semantic chunking",
         )
         return []
+    elif strategy == ChunkingStrategy.HIERARCHICAL:
+        return _hierarchical_chunk(text, config)
     elif strategy == ChunkingStrategy.RECURSIVE:
         return _recursive_chunk(text, config)
     else:  # ChunkingStrategy.FIXED
@@ -455,6 +457,37 @@ def _recursive_chunk(text: str, config: ChunkingConfig) -> list[str]:
         return chunks_with_overlap
 
     return chunks
+
+
+def _hierarchical_chunk(text: str, config: ChunkingConfig) -> list[str]:
+    """层次分块
+
+    先生成父块，再在每个父块内生成子块。
+    该函数仅返回子块文本；父子关系元数据由 service.py 补充。
+    """
+    if not text or not text.strip():
+        return []
+
+    parent_config = config.model_copy(
+        update={
+            "strategy": ChunkingStrategy.RECURSIVE,
+            "chunk_size": config.hierarchical_parent_chunk_size,
+            "overlap": 0,
+        }
+    )
+    child_config = config.model_copy(
+        update={
+            "strategy": ChunkingStrategy.RECURSIVE,
+            "chunk_size": config.hierarchical_child_chunk_size,
+            "overlap": config.hierarchical_child_overlap,
+        }
+    )
+
+    parent_chunks = _recursive_chunk(text, parent_config)
+    child_chunks: list[str] = []
+    for parent_chunk in parent_chunks:
+        child_chunks.extend(_recursive_chunk(parent_chunk, child_config))
+    return child_chunks
 
 
 async def semantic_chunk_async(

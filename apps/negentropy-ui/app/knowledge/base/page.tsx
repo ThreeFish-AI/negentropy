@@ -1,11 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   CorpusRecord,
   ChunkingConfig,
+  ChunkingStrategy,
   DocumentChunkItem,
   KnowledgeDocument,
   KnowledgeMatch,
@@ -84,6 +93,205 @@ function ChunkDetailDrawer({
   );
 }
 
+function ChunkingStrategyPanel({
+  config,
+  onChange,
+  title,
+  description,
+}: {
+  config: ChunkingConfig;
+  onChange: Dispatch<SetStateAction<ChunkingConfig>>;
+  title: string;
+  description?: string;
+}) {
+  const strategyDescriptions: Record<ChunkingStrategy, string> = {
+    fixed: "固定长度切分，简单可预测，但可能割裂句子或段落。",
+    recursive: "按段落、句子、词递归切分，适合大多数技术文档。",
+    semantic: "基于语义相似度断点切分，完整性更高，但计算成本更高。",
+    hierarchical: "构建父子块结构，检索子块并返回父块上下文，适合长文与手册。",
+  };
+
+  const updateConfig = (patch: Partial<ChunkingConfig>) => {
+    onChange((prev) => ({ ...prev, ...patch }));
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-background p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          {description && (
+            <p className="mt-1 text-xs text-muted">{description}</p>
+          )}
+        </div>
+        <div className="text-[11px] text-muted">大小单位: 字符近似值</div>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        {(["fixed", "recursive", "semantic", "hierarchical"] as const).map(
+          (strategy) => (
+            <button
+              key={strategy}
+              type="button"
+              onClick={() => updateConfig({ strategy })}
+              className={`rounded-xl border px-3 py-3 text-left ${
+                config.strategy === strategy
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border hover:bg-muted"
+              }`}
+            >
+              <div className="text-xs font-semibold capitalize">{strategy}</div>
+              <div
+                className={`mt-1 text-[11px] ${
+                  config.strategy === strategy ? "text-background/80" : "text-muted"
+                }`}
+              >
+                {strategyDescriptions[strategy]}
+              </div>
+            </button>
+          ),
+        )}
+      </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <label className="text-xs">
+          <div className="mb-1 text-muted">Chunk Size</div>
+          <input
+            type="number"
+            value={String(config.chunk_size ?? 800)}
+            onChange={(e) =>
+              updateConfig({ chunk_size: Number(e.target.value || 0) || 800 })
+            }
+            className="w-full rounded border border-border bg-card px-2 py-2"
+          />
+        </label>
+        <label className="text-xs">
+          <div className="mb-1 text-muted">Overlap</div>
+          <input
+            type="number"
+            value={String(config.overlap ?? 100)}
+            onChange={(e) =>
+              updateConfig({ overlap: Number(e.target.value || 0) || 0 })
+            }
+            className="w-full rounded border border-border bg-card px-2 py-2"
+          />
+        </label>
+        <label className="text-xs md:col-span-2">
+          <div className="mb-1 text-muted">Separators（每行一个）</div>
+          <textarea
+            value={(config.separators || []).join("\n")}
+            onChange={(e) =>
+              updateConfig({
+                separators: e.target.value
+                  .split("\n")
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              })
+            }
+            rows={3}
+            className="w-full rounded border border-border bg-card px-2 py-2"
+          />
+        </label>
+      </div>
+
+      <label className="mt-3 inline-flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={config.preserve_newlines !== false}
+          onChange={(e) => updateConfig({ preserve_newlines: e.target.checked })}
+        />
+        <span>保留换行</span>
+      </label>
+
+      {config.strategy === "semantic" && (
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Similarity Threshold</div>
+            <input
+              type="number"
+              step="0.05"
+              min="0"
+              max="1"
+              value={String(config.semantic_threshold ?? 0.85)}
+              onChange={(e) =>
+                updateConfig({ semantic_threshold: Number(e.target.value) || 0.85 })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Min Chunk Size</div>
+            <input
+              type="number"
+              value={String(config.min_chunk_size ?? 50)}
+              onChange={(e) =>
+                updateConfig({ min_chunk_size: Number(e.target.value) || 50 })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Max Chunk Size</div>
+            <input
+              type="number"
+              value={String(config.max_chunk_size ?? 2000)}
+              onChange={(e) =>
+                updateConfig({ max_chunk_size: Number(e.target.value) || 2000 })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+        </div>
+      )}
+
+      {config.strategy === "hierarchical" && (
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Parent Size</div>
+            <input
+              type="number"
+              value={String(config.hierarchical_parent_chunk_size ?? 1024)}
+              onChange={(e) =>
+                updateConfig({
+                  hierarchical_parent_chunk_size:
+                    Number(e.target.value) || 1024,
+                })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Child Size</div>
+            <input
+              type="number"
+              value={String(config.hierarchical_child_chunk_size ?? 256)}
+              onChange={(e) =>
+                updateConfig({
+                  hierarchical_child_chunk_size: Number(e.target.value) || 256,
+                })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+          <label className="text-xs">
+            <div className="mb-1 text-muted">Child Overlap</div>
+            <input
+              type="number"
+              value={String(config.hierarchical_child_overlap ?? 51)}
+              onChange={(e) =>
+                updateConfig({
+                  hierarchical_child_overlap: Number(e.target.value) || 0,
+                })
+              }
+              className="w-full rounded border border-border bg-card px-2 py-2"
+            />
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function KnowledgeBasePage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -117,6 +325,25 @@ export default function KnowledgeBasePage() {
 
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentChunkingState, setDocumentChunkingState] = useState<{
+    corpusId: string | null;
+    config: ChunkingConfig;
+  }>({
+    corpusId: null,
+    config: {
+      strategy: "recursive",
+      chunk_size: 800,
+      overlap: 100,
+      preserve_newlines: true,
+      separators: [],
+      semantic_threshold: 0.85,
+      min_chunk_size: 50,
+      max_chunk_size: 2000,
+      hierarchical_parent_chunk_size: 1024,
+      hierarchical_child_chunk_size: 256,
+      hierarchical_child_overlap: 51,
+    },
+  });
 
   const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
   const [chunksLoading, setChunksLoading] = useState(false);
@@ -138,6 +365,29 @@ export default function KnowledgeBasePage() {
     () => corpora.find((item) => item.id === selectedCorpusId) || null,
     [corpora, selectedCorpusId],
   );
+  const derivedCorpusChunkingConfig = useMemo<ChunkingConfig>(() => {
+    const config = (selectedCorpus?.config || {}) as ChunkingConfig;
+    return {
+      strategy: (config.strategy as ChunkingStrategy) || "recursive",
+      chunk_size: config.chunk_size || 800,
+      overlap: config.overlap || 100,
+      preserve_newlines: config.preserve_newlines !== false,
+      separators: Array.isArray(config.separators) ? config.separators : [],
+      semantic_threshold: config.semantic_threshold || 0.85,
+      min_chunk_size: config.min_chunk_size || 50,
+      max_chunk_size: config.max_chunk_size || 2000,
+      hierarchical_parent_chunk_size:
+        config.hierarchical_parent_chunk_size || 1024,
+      hierarchical_child_chunk_size:
+        config.hierarchical_child_chunk_size || 256,
+      hierarchical_child_overlap:
+        config.hierarchical_child_overlap || 51,
+    };
+  }, [selectedCorpus]);
+  const documentChunkingConfig =
+    documentChunkingState.corpusId === selectedCorpus?.id
+      ? documentChunkingState.config
+      : derivedCorpusChunkingConfig;
 
   const syncQueryState = useCallback(
     (next: Partial<Record<"view" | "corpusId" | "tab" | "documentId", string | null>>) => {
@@ -316,7 +566,7 @@ export default function KnowledgeBasePage() {
       await ingestUrl({
         url: url.trim(),
         as_document: true,
-        chunkingConfig: selectedCorpus?.config as ChunkingConfig | undefined,
+        chunkingConfig: documentChunkingConfig,
       });
       toast.success("URL ingest started");
       await loadDocuments();
@@ -331,7 +581,7 @@ export default function KnowledgeBasePage() {
       await ingestFile({
         file,
         source_uri: file.name,
-        chunkingConfig: selectedCorpus?.config as ChunkingConfig | undefined,
+        chunkingConfig: documentChunkingConfig,
       });
       toast.success("File ingest started");
       await loadDocuments();
@@ -347,9 +597,15 @@ export default function KnowledgeBasePage() {
     if (!selectedCorpusId) return;
     try {
       if (action === "sync") {
-        await syncDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
+        await syncDocument(selectedCorpusId, doc.id, {
+          app_name: APP_NAME,
+          ...documentChunkingConfig,
+        });
       } else if (action === "rebuild") {
-        await rebuildDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
+        await rebuildDocument(selectedCorpusId, doc.id, {
+          app_name: APP_NAME,
+          ...documentChunkingConfig,
+        });
       } else if (action === "archive") {
         await archiveDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
       } else if (action === "unarchive") {
@@ -381,6 +637,7 @@ export default function KnowledgeBasePage() {
     await replaceDocument(selectedCorpusId, replacingDocument.id, {
       app_name: APP_NAME,
       text: payload.text,
+      ...documentChunkingConfig,
     });
     toast.success("replace success");
     setIsReplaceDialogOpen(false);
@@ -557,6 +814,11 @@ export default function KnowledgeBasePage() {
                         <span>score: {(item.combined_score || 0).toFixed(4)}</span>
                         <span>corpus: {String(item.metadata?.corpus_id || "-")}</span>
                         <span>source: {item.source_uri || "-"}</span>
+                        {item.metadata?.returned_parent_chunk && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">
+                            父块返回 · 子块命中
+                          </span>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -621,6 +883,24 @@ export default function KnowledgeBasePage() {
             <main className="min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 shadow-sm">
               {corpusTab === "documents" && (
                 <div className="space-y-3">
+                  <ChunkingStrategyPanel
+                    config={documentChunkingConfig}
+                    onChange={(next) =>
+                      setDocumentChunkingState((prev) => ({
+                        corpusId: selectedCorpus?.id || null,
+                        config:
+                          typeof next === "function"
+                            ? next(
+                                prev.corpusId === selectedCorpus?.id
+                                  ? prev.config
+                                  : documentChunkingConfig,
+                              )
+                            : next,
+                      }))
+                    }
+                    title="Chunking Strategy"
+                    description="当前摄入与文档重建按字符近似控制大小；hierarchical 会检索子块并返回父块。"
+                  />
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold">Documents</h2>
                     <div className="flex items-center gap-2">
@@ -718,8 +998,11 @@ export default function KnowledgeBasePage() {
                           className="block w-full rounded-lg border border-border bg-background p-3 text-left hover:bg-muted/40"
                         >
                           <p className="line-clamp-3 text-xs">{chunk.content}</p>
-                          <div className="mt-2 text-[11px] text-muted">
+                          <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted">
                             chunk_index: {chunk.chunk_index} · source: {chunk.source_uri || "-"}
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700">
+                              role: {String(chunk.metadata?.chunk_role || "leaf")}
+                            </span>
                           </div>
                         </button>
                       ))}
@@ -743,6 +1026,7 @@ export default function KnowledgeBasePage() {
       <ChunkDetailDrawer chunk={selectedChunk} onClose={() => setSelectedChunk(null)} />
 
       <CorpusFormDialog
+        key={`${dialogMode}-${editingCorpus?.id || "new"}-${isDialogOpen ? "open" : "closed"}`}
         isOpen={isDialogOpen}
         mode={dialogMode}
         initialData={editingCorpus}
@@ -784,88 +1068,44 @@ function CorpusSettingsPanel({
   corpus: CorpusRecord;
   onSave: (config: Record<string, unknown>) => Promise<void>;
 }) {
-  const [strategy, setStrategy] = useState<string>(String(corpus.config?.strategy || "recursive"));
-  const [chunkSize, setChunkSize] = useState<string>(String(corpus.config?.chunk_size || 800));
-  const [overlap, setOverlap] = useState<string>(String(corpus.config?.overlap || 100));
-  const [preserveNewlines, setPreserveNewlines] = useState<boolean>(corpus.config?.preserve_newlines !== false);
-  const [separators, setSeparators] = useState<string>(
-    Array.isArray(corpus.config?.separators)
-      ? (corpus.config?.separators as string[]).join("\n")
-      : "",
-  );
+  const [formConfig, setFormConfig] = useState<ChunkingConfig>({
+    strategy: (corpus.config?.strategy as ChunkingStrategy) || "recursive",
+    chunk_size: Number(corpus.config?.chunk_size || 800),
+    overlap: Number(corpus.config?.overlap || 100),
+    preserve_newlines: corpus.config?.preserve_newlines !== false,
+    separators: Array.isArray(corpus.config?.separators)
+      ? (corpus.config?.separators as string[])
+      : [],
+    semantic_threshold: Number(corpus.config?.semantic_threshold || 0.85),
+    min_chunk_size: Number(corpus.config?.min_chunk_size || 50),
+    max_chunk_size: Number(corpus.config?.max_chunk_size || 2000),
+    hierarchical_parent_chunk_size: Number(
+      corpus.config?.hierarchical_parent_chunk_size || 1024,
+    ),
+    hierarchical_child_chunk_size: Number(
+      corpus.config?.hierarchical_child_chunk_size || 256,
+    ),
+    hierarchical_child_overlap: Number(
+      corpus.config?.hierarchical_child_overlap || 51,
+    ),
+  });
 
   const handleSubmit = async () => {
-    const config: Record<string, unknown> = {
+    const payload: Record<string, unknown> = {
       ...(corpus.config || {}),
-      strategy,
-      chunk_size: Number(chunkSize),
-      overlap: Number(overlap),
-      preserve_newlines: preserveNewlines,
-      separators: separators
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean),
+      ...formConfig,
     };
-    await onSave(config);
+    await onSave(payload);
   };
 
   return (
     <div className="space-y-3">
-      <h2 className="text-sm font-semibold">Settings</h2>
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="text-xs">
-          <div className="mb-1 text-muted">Chunking Strategy</div>
-          <select
-            value={strategy}
-            onChange={(e) => setStrategy(e.target.value)}
-            className="w-full rounded border border-border bg-background px-2 py-2"
-          >
-            <option value="fixed">Fixed Character Size</option>
-            <option value="recursive">Recursive Aware</option>
-            <option value="semantic">Semantic (Embedding Similarity)</option>
-          </select>
-        </label>
-
-        <label className="text-xs">
-          <div className="mb-1 text-muted">Chunk Size</div>
-          <input
-            type="number"
-            value={chunkSize}
-            onChange={(e) => setChunkSize(e.target.value)}
-            className="w-full rounded border border-border bg-background px-2 py-2"
-          />
-        </label>
-
-        <label className="text-xs">
-          <div className="mb-1 text-muted">Overlap</div>
-          <input
-            type="number"
-            value={overlap}
-            onChange={(e) => setOverlap(e.target.value)}
-            className="w-full rounded border border-border bg-background px-2 py-2"
-          />
-        </label>
-
-        <label className="inline-flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={preserveNewlines}
-            onChange={(e) => setPreserveNewlines(e.target.checked)}
-          />
-          <span>Preserve Newlines</span>
-        </label>
-      </div>
-
-      <label className="block text-xs">
-        <div className="mb-1 text-muted">Separators（每行一个）</div>
-        <textarea
-          value={separators}
-          onChange={(e) => setSeparators(e.target.value)}
-          rows={5}
-          className="w-full rounded border border-border bg-background px-2 py-2"
-          placeholder={"\\n\\n\n\\n\n. \n, "}
-        />
-      </label>
+      <ChunkingStrategyPanel
+        config={formConfig}
+        onChange={setFormConfig}
+        title="Settings"
+        description="保存后作为该 Corpus 的默认分块配置。"
+      />
 
       <div className="flex justify-end">
         <button

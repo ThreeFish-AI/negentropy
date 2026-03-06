@@ -11,7 +11,11 @@
 
 export type SearchMode = "semantic" | "keyword" | "hybrid";
 
-export type ChunkingStrategy = "fixed" | "recursive" | "semantic";
+export type ChunkingStrategy =
+  | "fixed"
+  | "recursive"
+  | "semantic"
+  | "hierarchical";
 
 export interface ChunkingConfig {
   strategy?: ChunkingStrategy;
@@ -23,6 +27,10 @@ export interface ChunkingConfig {
   semantic_threshold?: number;
   min_chunk_size?: number;
   max_chunk_size?: number;
+  // Hierarchical chunking specific
+  hierarchical_parent_chunk_size?: number;
+  hierarchical_child_chunk_size?: number;
+  hierarchical_child_overlap?: number;
 }
 
 export interface SearchConfig {
@@ -467,10 +475,17 @@ export async function ingestText(
     text: string;
     source_uri?: string;
     metadata?: Record<string, unknown>;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
     separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   },
 ): Promise<AsyncPipelineResult> {
   // 前端配置验证（对齐后端 types.py）
@@ -500,10 +515,17 @@ export async function ingestUrl(
     url: string;
     as_document?: boolean;
     metadata?: Record<string, unknown>;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
     separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/ingest_url`, {
@@ -521,10 +543,17 @@ export async function ingestFile(
     file: File;
     source_uri?: string;
     metadata?: Record<string, unknown>;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
     separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   },
 ): Promise<IngestResult> {
   const formData = new FormData();
@@ -534,12 +563,40 @@ export async function ingestFile(
   if (params.source_uri) formData.set("source_uri", params.source_uri);
   if (params.metadata) formData.set("metadata", JSON.stringify(params.metadata));
   if (params.chunk_size) formData.set("chunk_size", String(params.chunk_size));
-  if (params.overlap) formData.set("overlap", String(params.overlap));
+  if (params.overlap !== undefined) formData.set("overlap", String(params.overlap));
+  if (params.strategy) formData.set("strategy", params.strategy);
   if (params.preserve_newlines !== undefined) {
     formData.set("preserve_newlines", String(params.preserve_newlines));
   }
   if (params.separators && params.separators.length > 0) {
     formData.set("separators", JSON.stringify(params.separators));
+  }
+  if (params.semantic_threshold !== undefined) {
+    formData.set("semantic_threshold", String(params.semantic_threshold));
+  }
+  if (params.min_chunk_size !== undefined) {
+    formData.set("min_chunk_size", String(params.min_chunk_size));
+  }
+  if (params.max_chunk_size !== undefined) {
+    formData.set("max_chunk_size", String(params.max_chunk_size));
+  }
+  if (params.hierarchical_parent_chunk_size !== undefined) {
+    formData.set(
+      "hierarchical_parent_chunk_size",
+      String(params.hierarchical_parent_chunk_size),
+    );
+  }
+  if (params.hierarchical_child_chunk_size !== undefined) {
+    formData.set(
+      "hierarchical_child_chunk_size",
+      String(params.hierarchical_child_chunk_size),
+    );
+  }
+  if (params.hierarchical_child_overlap !== undefined) {
+    formData.set(
+      "hierarchical_child_overlap",
+      String(params.hierarchical_child_overlap),
+    );
   }
 
   const res = await fetch(`/api/knowledge/base/${id}/ingest_file`, {
@@ -845,9 +902,17 @@ export async function syncDocument(
   documentId: string,
   params: {
     app_name?: string;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   } = {},
 ): Promise<AsyncPipelineResult> {
   return postDocumentAction(corpusId, documentId, "sync", params) as Promise<AsyncPipelineResult>;
@@ -858,9 +923,17 @@ export async function rebuildDocument(
   documentId: string,
   params: {
     app_name?: string;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   } = {},
 ): Promise<AsyncPipelineResult> {
   return postDocumentAction(corpusId, documentId, "rebuild", params) as Promise<AsyncPipelineResult>;
@@ -872,9 +945,17 @@ export async function replaceDocument(
   params: {
     app_name?: string;
     text: string;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   },
 ): Promise<AsyncPipelineResult> {
   return postDocumentAction(corpusId, documentId, "replace", params) as Promise<AsyncPipelineResult>;
@@ -907,10 +988,17 @@ export async function replaceSource(
     text: string;
     source_uri: string;
     metadata?: Record<string, unknown>;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
     separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/replace_source`, {
@@ -926,10 +1014,17 @@ export async function syncSource(
   params: {
     app_name?: string;
     source_uri: string;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
     separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {
@@ -945,10 +1040,17 @@ export async function rebuildSource(
   params: {
     app_name?: string;
     source_uri: string;
+    strategy?: ChunkingStrategy;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
     separators?: string[];
+    semantic_threshold?: number;
+    min_chunk_size?: number;
+    max_chunk_size?: number;
+    hierarchical_parent_chunk_size?: number;
+    hierarchical_child_chunk_size?: number;
+    hierarchical_child_overlap?: number;
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/rebuild_source`, {

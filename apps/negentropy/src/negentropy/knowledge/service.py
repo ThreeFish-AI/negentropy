@@ -36,6 +36,10 @@ from .types import (
 
 logger = get_logger("negentropy.knowledge.service")
 
+CHUNK_ROLE_PARENT = "parent"
+CHUNK_ROLE_CHILD = "child"
+CHUNK_ROLE_LEAF = "leaf"
+
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
 
@@ -1711,7 +1715,12 @@ class KnowledgeService:
                     mode="keyword_fallback",
                     result_count=len(keyword_matches),
                 )
-                return keyword_matches
+                return await self._lift_hierarchical_matches(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    matches=keyword_matches,
+                    limit=config.limit,
+                )
 
             query_embedding = await self._embedding_fn(query)
             results = await self._repository.rrf_search(
@@ -1725,6 +1734,12 @@ class KnowledgeService:
 
             # L1 精排
             results = await self._reranker.rerank(query, results)
+            results = await self._lift_hierarchical_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=results,
+                limit=config.limit,
+            )
 
             logger.info(
                 "search_completed",
@@ -1774,6 +1789,12 @@ class KnowledgeService:
         if config.mode == "semantic":
             # L1 精排
             semantic_matches = await self._reranker.rerank(query, semantic_matches)
+            semantic_matches = await self._lift_hierarchical_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=semantic_matches,
+                limit=config.limit,
+            )
             logger.info(
                 "search_completed",
                 corpus_id=str(corpus_id),
@@ -1785,6 +1806,12 @@ class KnowledgeService:
         if config.mode == "keyword":
             # L1 精排
             keyword_matches = await self._reranker.rerank(query, keyword_matches)
+            keyword_matches = await self._lift_hierarchical_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=keyword_matches,
+                limit=config.limit,
+            )
             logger.info(
                 "search_completed",
                 corpus_id=str(corpus_id),
@@ -1804,6 +1831,12 @@ class KnowledgeService:
 
         # L1 精排
         results = await self._reranker.rerank(query, results)
+        results = await self._lift_hierarchical_matches(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            matches=results,
+            limit=config.limit,
+        )
 
         logger.info(
             "search_completed",
@@ -1829,6 +1862,14 @@ class KnowledgeService:
         # Determine strategy and call appropriate chunking function
         from .types import ChunkingStrategy
 
+        if chunking_config.strategy == ChunkingStrategy.HIERARCHICAL:
+            return await self._build_hierarchical_chunks(
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=chunking_config,
+            )
+
         if chunking_config.strategy == ChunkingStrategy.SEMANTIC:
             if not self._embedding_fn:
                 # Fallback to recursive if no embedding function
@@ -1852,6 +1893,84 @@ class KnowledgeService:
             )
         return chunks
 
+    async def _build_hierarchical_chunks(
+        self,
+        *,
+        text: str,
+        source_uri: Optional[str],
+        metadata: Dict[str, Any],
+        chunking_config: ChunkingConfig,
+    ) -> list[KnowledgeChunk]:
+        parent_config = chunking_config.model_copy(
+            update={
+                "strategy": ChunkingStrategy.RECURSIVE,
+                "chunk_size": chunking_config.hierarchical_parent_chunk_size,
+                "overlap": 0,
+            }
+        )
+        child_config = chunking_config.model_copy(
+            update={
+                "strategy": ChunkingStrategy.RECURSIVE,
+                "chunk_size": chunking_config.hierarchical_child_chunk_size,
+                "overlap": chunking_config.hierarchical_child_overlap,
+            }
+        )
+
+        parent_texts = chunk_text(text, parent_config)
+        chunks: list[KnowledgeChunk] = []
+        chunk_index = 0
+
+        for parent_index, parent_text in enumerate(parent_texts):
+            family_id = uuid.uuid4().hex
+            parent_metadata = {
+                **metadata,
+                "chunking_strategy": ChunkingStrategy.HIERARCHICAL.value,
+                "chunk_role": CHUNK_ROLE_PARENT,
+                "hierarchy_level": 0,
+                "chunk_family_id": family_id,
+                "parent_chunk_index": parent_index,
+                "searchable": False,
+            }
+            chunks.append(
+                KnowledgeChunk(
+                    content=parent_text,
+                    source_uri=source_uri,
+                    chunk_index=chunk_index,
+                    metadata=parent_metadata,
+                    embedding=None,
+                )
+            )
+            chunk_index += 1
+
+            child_texts = chunk_text(parent_text, child_config)
+            if not child_texts:
+                child_texts = [parent_text]
+
+            for child_index, child_text in enumerate(child_texts):
+                child_metadata = {
+                    **metadata,
+                    "chunking_strategy": ChunkingStrategy.HIERARCHICAL.value,
+                    "chunk_role": CHUNK_ROLE_CHILD,
+                    "hierarchy_level": 1,
+                    "chunk_family_id": family_id,
+                    "hierarchical_parent_id": family_id,
+                    "parent_chunk_index": parent_index,
+                    "child_chunk_index": child_index,
+                    "searchable": True,
+                }
+                chunks.append(
+                    KnowledgeChunk(
+                        content=child_text,
+                        source_uri=source_uri,
+                        chunk_index=chunk_index,
+                        metadata=child_metadata,
+                        embedding=None,
+                    )
+                )
+                chunk_index += 1
+
+        return chunks
+
     async def _attach_embeddings(self, chunks: Iterable[KnowledgeChunk]) -> list[KnowledgeChunk]:
         chunk_list = list(chunks)
 
@@ -1860,17 +1979,23 @@ class KnowledgeService:
 
         # 优先使用批量向量化（一次 API 调用完成所有 chunk）
         if self._batch_embedding_fn:
-            texts = [c.content for c in chunk_list]
-            embeddings = await self._batch_embedding_fn(texts)
+            searchable_chunks = [c for c in chunk_list if self._is_searchable_chunk(c)]
+            if not searchable_chunks:
+                return chunk_list
+            embeddings = await self._batch_embedding_fn([c.content for c in searchable_chunks])
+            embedding_by_key = {
+                (chunk.source_uri, chunk.chunk_index): emb
+                for chunk, emb in zip(searchable_chunks, embeddings)
+            }
             return [
                 KnowledgeChunk(
                     content=c.content,
                     source_uri=c.source_uri,
                     chunk_index=c.chunk_index,
                     metadata=c.metadata,
-                    embedding=emb,
+                    embedding=embedding_by_key.get((c.source_uri, c.chunk_index)),
                 )
-                for c, emb in zip(chunk_list, embeddings)
+                for c in chunk_list
             ]
 
         # 回退到逐条向量化
@@ -1879,7 +2004,9 @@ class KnowledgeService:
 
         enriched: list[KnowledgeChunk] = []
         for chunk in chunk_list:
-            embedding = await self._embedding_fn(chunk.content)
+            embedding = None
+            if self._is_searchable_chunk(chunk):
+                embedding = await self._embedding_fn(chunk.content)
             enriched.append(
                 KnowledgeChunk(
                     content=chunk.content,
@@ -1890,6 +2017,81 @@ class KnowledgeService:
                 )
             )
         return enriched
+
+    @staticmethod
+    def _is_searchable_chunk(chunk: KnowledgeChunk) -> bool:
+        return chunk.metadata.get("searchable") is not False
+
+    async def _lift_hierarchical_matches(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        matches: Iterable[KnowledgeMatch],
+        limit: int,
+    ) -> list[KnowledgeMatch]:
+        match_list = list(matches)
+        grouped: dict[tuple[Optional[str], str], list[KnowledgeMatch]] = {}
+        passthrough: list[KnowledgeMatch] = []
+
+        for match in match_list:
+            family_id = match.metadata.get("chunk_family_id")
+            role = match.metadata.get("chunk_role")
+            if role == CHUNK_ROLE_CHILD and isinstance(family_id, str) and family_id:
+                grouped.setdefault((match.source_uri, family_id), []).append(match)
+            else:
+                passthrough.append(match)
+
+        if not grouped:
+            return match_list[:limit]
+
+        lifted: list[KnowledgeMatch] = []
+        for (source_uri, family_id), child_matches in grouped.items():
+            parent_candidates = await self._repository.get_hierarchical_parent_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+                family_ids=[family_id],
+            )
+            if not parent_candidates:
+                passthrough.extend(child_matches)
+                continue
+
+            parent = parent_candidates[0]
+            best_child = max(child_matches, key=lambda item: item.combined_score)
+            matched_child_indices = [
+                item.metadata.get("child_chunk_index")
+                for item in child_matches
+                if item.metadata.get("child_chunk_index") is not None
+            ]
+            lifted.append(
+                KnowledgeMatch(
+                    id=parent.id,
+                    content=parent.content,
+                    source_uri=parent.source_uri,
+                    metadata={
+                        **parent.metadata,
+                        "matched_child_chunk_indices": matched_child_indices,
+                        "returned_parent_chunk": True,
+                    },
+                    semantic_score=best_child.semantic_score,
+                    keyword_score=best_child.keyword_score,
+                    combined_score=best_child.combined_score,
+                )
+            )
+
+        merged = passthrough + lifted
+        merged.sort(key=lambda item: item.combined_score, reverse=True)
+        deduped: list[KnowledgeMatch] = []
+        seen_ids = set()
+        for item in merged:
+            if item.id in seen_ids:
+                continue
+            deduped.append(item)
+            seen_ids.add(item.id)
+            if len(deduped) >= limit:
+                break
+        return deduped
 
     def _merge_matches(
         self,

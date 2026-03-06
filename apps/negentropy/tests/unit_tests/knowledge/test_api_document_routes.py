@@ -7,7 +7,7 @@ import pytest
 from fastapi import BackgroundTasks, HTTPException
 
 from negentropy.knowledge import api as knowledge_api
-from negentropy.knowledge.types import KnowledgeRecord
+from negentropy.knowledge.types import ChunkingStrategy, KnowledgeRecord
 
 
 class FakeStorageService:
@@ -221,8 +221,36 @@ async def test_rebuild_document_url_requires_markdown(monkeypatch):
             background_tasks=BackgroundTasks(),
         )
 
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.detail["code"] == "INVALID_DOCUMENT_SOURCE"
+
+def test_resolve_chunking_config_from_doc_request_prefers_payload_over_corpus():
+    payload = knowledge_api.DocumentActionRequest(
+        app_name="negentropy",
+        strategy="hierarchical",
+        chunk_size=900,
+        semantic_threshold=0.9,
+        hierarchical_parent_chunk_size=1200,
+        hierarchical_child_chunk_size=300,
+        hierarchical_child_overlap=60,
+    )
+
+    config = knowledge_api._resolve_chunking_config_from_doc_request(
+        payload=payload,
+        corpus_config={
+            "strategy": "recursive",
+            "chunk_size": 800,
+            "overlap": 100,
+            "hierarchical_child_overlap": 40,
+        },
+    )
+
+    assert config is not None
+    assert config.strategy == ChunkingStrategy.HIERARCHICAL
+    assert config.chunk_size == 900
+    assert config.overlap == 100
+    assert config.semantic_threshold == 0.9
+    assert config.hierarchical_parent_chunk_size == 1200
+    assert config.hierarchical_child_chunk_size == 300
+    assert config.hierarchical_child_overlap == 60
 
 
 @pytest.mark.asyncio

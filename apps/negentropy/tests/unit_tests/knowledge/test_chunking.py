@@ -186,6 +186,28 @@ class TestChunkingConfigValidation:
         with pytest.raises(ValidationError, match="chunk_size must be at least"):
             ChunkingConfig(chunk_size=-1, overlap=0)
 
+    def test_hierarchical_parent_smaller_than_child_raises(self) -> None:
+        with pytest.raises(
+            ValidationError,
+            match="hierarchical_parent_chunk_size must be >=",
+        ):
+            ChunkingConfig(
+                strategy=ChunkingStrategy.HIERARCHICAL,
+                hierarchical_parent_chunk_size=128,
+                hierarchical_child_chunk_size=256,
+            )
+
+    def test_hierarchical_child_overlap_must_be_smaller_than_child_size(self) -> None:
+        with pytest.raises(
+            ValidationError,
+            match="hierarchical_child_overlap must be less than hierarchical_child_chunk_size",
+        ):
+            ChunkingConfig(
+                strategy=ChunkingStrategy.HIERARCHICAL,
+                hierarchical_child_chunk_size=128,
+                hierarchical_child_overlap=128,
+            )
+
 
 class TestChunkingDeterminism:
     """确定性测试"""
@@ -199,6 +221,27 @@ class TestChunkingDeterminism:
         result2 = chunk_text(text, config)
 
         assert result1 == result2
+
+
+class TestHierarchicalChunking:
+    def test_hierarchical_chunk_returns_child_chunks(self) -> None:
+        text = (
+            "第一章介绍系统背景。第一章继续补充实现细节。\n\n"
+            "第二章描述检索链路。第二章继续描述父子分块。"
+        )
+        config = ChunkingConfig(
+            strategy=ChunkingStrategy.HIERARCHICAL,
+            hierarchical_parent_chunk_size=20,
+            hierarchical_child_chunk_size=10,
+            hierarchical_child_overlap=2,
+        )
+
+        result = chunk_text(text, config)
+
+        assert len(result) >= 2
+        combined = " ".join(result)
+        assert "系统背景" in combined
+        assert "父子分块" in combined
 
 
 # ================================

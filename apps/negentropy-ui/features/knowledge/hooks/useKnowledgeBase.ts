@@ -140,6 +140,22 @@ const DEFAULT_LOADING_STATE = {
   error: null as Error | null,
 };
 
+function toChunkingPayload(config?: ChunkingConfig) {
+  return {
+    strategy: config?.strategy,
+    chunk_size: config?.chunk_size,
+    overlap: config?.overlap,
+    preserve_newlines: config?.preserve_newlines,
+    separators: config?.separators,
+    semantic_threshold: config?.semantic_threshold,
+    min_chunk_size: config?.min_chunk_size,
+    max_chunk_size: config?.max_chunk_size,
+    hierarchical_parent_chunk_size: config?.hierarchical_parent_chunk_size,
+    hierarchical_child_chunk_size: config?.hierarchical_child_chunk_size,
+    hierarchical_child_overlap: config?.hierarchical_child_overlap,
+  };
+}
+
 /**
  * 知识库管理 Hook
  *
@@ -308,10 +324,7 @@ export function useKnowledgeBase(
           text: params.text,
           source_uri: params.source_uri,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
-          separators: params.chunkingConfig?.separators,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -345,10 +358,7 @@ export function useKnowledgeBase(
           url: params.url,
           as_document: params.as_document,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
-          separators: params.chunkingConfig?.separators,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -382,10 +392,7 @@ export function useKnowledgeBase(
           file: params.file,
           source_uri: params.source_uri,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
-          separators: params.chunkingConfig?.separators,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         return result;
@@ -418,10 +425,7 @@ export function useKnowledgeBase(
           text: params.text,
           source_uri: params.source_uri,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
-          separators: params.chunkingConfig?.separators,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         return result;
@@ -447,10 +451,7 @@ export function useKnowledgeBase(
         const result = await syncSourceApi(activeCorpusId, {
           app_name: appName,
           source_uri: params.source_uri,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
-          separators: params.chunkingConfig?.separators,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -477,10 +478,7 @@ export function useKnowledgeBase(
         const result = await rebuildSourceApi(activeCorpusId, {
           app_name: appName,
           source_uri: params.source_uri,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
-          separators: params.chunkingConfig?.separators,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
