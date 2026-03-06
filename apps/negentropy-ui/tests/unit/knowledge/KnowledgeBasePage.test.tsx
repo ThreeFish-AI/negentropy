@@ -529,6 +529,66 @@ describe("KnowledgeBasePage", () => {
     expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
   });
 
+  it("点击收起结果后回到默认布局并保留检索条件", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const corpusCheckbox = screen.getByRole("checkbox", { name: /Corpus Alpha/ });
+    await user.click(corpusCheckbox);
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getByText("1 Retrieved Chunks")).toBeInTheDocument();
+    expect(screen.getByTestId("docked-retrieval-container")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "收起结果" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "收起结果" }));
+
+    expect(screen.queryByTestId("docked-retrieval-container")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 Retrieved Chunks")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Corpus" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("输入检索内容")).toHaveValue("context engineering");
+    expect(screen.getByRole("checkbox", { name: /Corpus Alpha/ })).toBeChecked();
+    expect(screen.getByRole("button", { name: "hybrid" })).toHaveClass("bg-foreground");
+  });
+
+  it("点击收起结果会关闭已打开的检索结果模态框", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByText("Open"));
+    expect(screen.getByRole("dialog", { name: "Chunk Detail" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "收起结果" }));
+
+    expect(screen.queryByRole("dialog", { name: "Chunk Detail" })).not.toBeInTheDocument();
+    expect(screen.queryByText("1 Retrieved Chunks")).not.toBeInTheDocument();
+  });
+
   it("点击检索结果会打开居中 Chunk Detail 模态框，并可通过遮罩关闭", async () => {
     const user = userEvent.setup();
     searchParamsState.value = "view=overview";
