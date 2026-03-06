@@ -25,6 +25,7 @@ import {
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
+import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -124,6 +125,9 @@ export default function KnowledgeBasePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(undefined);
+  const [isDeleteCorpusDialogOpen, setIsDeleteCorpusDialogOpen] = useState(false);
+  const [deletingCorpus, setDeletingCorpus] = useState<CorpusRecord | null>(null);
+  const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
 
@@ -259,15 +263,25 @@ export default function KnowledgeBasePage() {
   };
 
   const handleDeleteCorpus = async (corpus: CorpusRecord) => {
-    if (!confirm(`确定删除 Corpus \"${corpus.name}\" 吗？`)) return;
+    setDeletingCorpus(corpus);
+    setIsDeleteCorpusDialogOpen(true);
+  };
+
+  const handleConfirmDeleteCorpus = async () => {
+    if (!deletingCorpus || isDeletingCorpus) return;
+    setIsDeletingCorpus(true);
     try {
-      await deleteCorpusById(corpus.id);
+      await deleteCorpusById(deletingCorpus.id);
       toast.success("Corpus deleted");
-      if (selectedCorpusId === corpus.id) {
+      if (selectedCorpusId === deletingCorpus.id) {
         syncQueryState({ view: "overview", corpusId: null, tab: null, documentId: null });
       }
+      setIsDeleteCorpusDialogOpen(false);
+      setDeletingCorpus(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setIsDeletingCorpus(false);
     }
   };
 
@@ -716,6 +730,18 @@ export default function KnowledgeBasePage() {
           setReplacingDocument(null);
         }}
         onSubmit={handleReplaceDocumentSubmit}
+      />
+
+      <DeleteCorpusDialog
+        isOpen={isDeleteCorpusDialogOpen}
+        corpusName={deletingCorpus?.name ?? null}
+        isDeleting={isDeletingCorpus}
+        onClose={() => {
+          if (isDeletingCorpus) return;
+          setIsDeleteCorpusDialogOpen(false);
+          setDeletingCorpus(null);
+        }}
+        onConfirm={handleConfirmDeleteCorpus}
       />
     </div>
   );
