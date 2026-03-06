@@ -1,4 +1,9 @@
-import { fetchCorpus, KnowledgeError } from "@/features/knowledge/utils/knowledge-api";
+import {
+  fetchCorpus,
+  fetchDocumentChunks,
+  fetchDocuments,
+  KnowledgeError,
+} from "@/features/knowledge/utils/knowledge-api";
 
 describe("fetchCorpus", () => {
   afterEach(() => {
@@ -34,5 +39,45 @@ describe("fetchCorpus", () => {
       code: "INVALID_CORPUS_ID",
       message: "Corpus id is not a valid UUID",
     } satisfies Partial<KnowledgeError>);
+  });
+
+  it("fetchDocuments 会把超限 limit 截断到 100", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ count: 0, items: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchDocuments("corpus-1", {
+      appName: "negentropy",
+      limit: 200,
+      offset: 0,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/knowledge/base/corpus-1/documents?app_name=negentropy&limit=100",
+      { cache: "no-store" },
+    );
+  });
+
+  it("fetchDocumentChunks 会把超限 limit 截断到 200", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ count: 0, items: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchDocumentChunks("corpus-1", "doc-1", {
+      appName: "negentropy",
+      limit: 500,
+      offset: 0,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/knowledge/base/corpus-1/documents/doc-1/chunks?app_name=negentropy&limit=200&offset=0",
+      { cache: "no-store" },
+    );
   });
 });
