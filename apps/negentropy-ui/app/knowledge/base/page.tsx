@@ -179,7 +179,7 @@ export default function KnowledgeBasePage() {
     if (!selectedCorpusId) return;
     setDocumentsLoading(true);
     try {
-      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 200, offset: 0 });
+      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 100, offset: 0 });
       setDocuments(res.items);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load documents");
@@ -200,7 +200,7 @@ export default function KnowledgeBasePage() {
     try {
       const res = await fetchDocumentChunks(selectedCorpusId, selectedDocumentId, {
         appName: APP_NAME,
-        limit: 500,
+        limit: 200,
         offset: 0,
       });
       setDocumentChunks(res.items);

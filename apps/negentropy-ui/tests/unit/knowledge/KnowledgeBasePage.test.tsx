@@ -8,12 +8,16 @@ const {
   loadCorporaMock,
   deleteCorpusMock,
   searchParamsState,
+  fetchDocumentsMock,
+  fetchDocumentChunksMock,
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
   loadCorpusMock: vi.fn(),
   loadCorporaMock: vi.fn(),
   deleteCorpusMock: vi.fn(),
+  fetchDocumentsMock: vi.fn(),
+  fetchDocumentChunksMock: vi.fn(),
   searchParamsState: {
     value: "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents",
   },
@@ -46,8 +50,8 @@ vi.mock("@/app/knowledge/base/_components/ReplaceDocumentDialog", () => ({
 
 vi.mock("@/features/knowledge", () => ({
   useKnowledgeBase: (...args: unknown[]) => useKnowledgeBaseMock(...args),
-  fetchDocuments: vi.fn().mockResolvedValue({ items: [] }),
-  fetchDocumentChunks: vi.fn().mockResolvedValue({ items: [] }),
+  fetchDocuments: (...args: unknown[]) => fetchDocumentsMock(...args),
+  fetchDocumentChunks: (...args: unknown[]) => fetchDocumentChunksMock(...args),
   searchAcrossCorpora: vi.fn().mockResolvedValue({ items: [] }),
   syncDocument: vi.fn(),
   rebuildDocument: vi.fn(),
@@ -71,11 +75,15 @@ describe("KnowledgeBasePage", () => {
     loadCorpusMock.mockReset();
     loadCorporaMock.mockReset();
     deleteCorpusMock.mockReset();
+    fetchDocumentsMock.mockReset();
+    fetchDocumentChunksMock.mockReset();
     searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
 
     loadCorpusMock.mockResolvedValue(undefined);
     loadCorporaMock.mockResolvedValue(undefined);
     deleteCorpusMock.mockResolvedValue(undefined);
+    fetchDocumentsMock.mockResolvedValue({ items: [] });
+    fetchDocumentChunksMock.mockResolvedValue({ items: [] });
 
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [
@@ -158,5 +166,35 @@ describe("KnowledgeBasePage", () => {
 
     expect(deleteCorpusMock).toHaveBeenCalledWith("11111111-1111-1111-1111-111111111111");
     expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it("进入 documents 视图时使用不超过后端约束的 limit=100", async () => {
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(fetchDocumentsMock).toHaveBeenCalledWith(
+      "11111111-1111-1111-1111-111111111111",
+      { appName: "negentropy", limit: 100, offset: 0 },
+    );
+  });
+
+  it("进入 document-chunks 视图时使用不超过后端约束的 limit=200", async () => {
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=document-chunks&documentId=doc-1";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(fetchDocumentChunksMock).toHaveBeenCalledWith(
+      "11111111-1111-1111-1111-111111111111",
+      "doc-1",
+      { appName: "negentropy", limit: 200, offset: 0 },
+    );
   });
 });

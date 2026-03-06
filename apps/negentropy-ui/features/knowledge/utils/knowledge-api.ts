@@ -605,6 +605,22 @@ export interface DocumentChunksResponse {
 // Document Management API Functions
 // ============================================================================
 
+const DOCUMENTS_PAGE_LIMIT_MAX = 100;
+const DOCUMENTS_PAGE_LIMIT_DEFAULT = 50;
+const DOCUMENT_CHUNKS_PAGE_LIMIT_MAX = 200;
+const DOCUMENT_CHUNKS_PAGE_LIMIT_DEFAULT = 50;
+
+function clampPositiveInt(
+  value: number | undefined,
+  max: number,
+  fallback: number,
+): number {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.trunc(value), max);
+}
+
 export async function fetchDocuments(
   corpusId: string,
   params?: {
@@ -614,8 +630,13 @@ export async function fetchDocuments(
   },
 ): Promise<DocumentListResponse> {
   const query = new URLSearchParams();
+  const limit = clampPositiveInt(
+    params?.limit,
+    DOCUMENTS_PAGE_LIMIT_MAX,
+    DOCUMENTS_PAGE_LIMIT_DEFAULT,
+  );
   if (params?.appName) query.set("app_name", params.appName);
-  if (params?.limit) query.set("limit", String(params.limit));
+  query.set("limit", String(limit));
   if (params?.offset) query.set("offset", String(params.offset));
 
   const res = await fetch(
@@ -783,8 +804,13 @@ export async function fetchDocumentChunks(
   },
 ): Promise<DocumentChunksResponse> {
   const query = new URLSearchParams();
+  const limit = clampPositiveInt(
+    params?.limit,
+    DOCUMENT_CHUNKS_PAGE_LIMIT_MAX,
+    DOCUMENT_CHUNKS_PAGE_LIMIT_DEFAULT,
+  );
   if (params?.appName) query.set("app_name", params.appName);
-  if (params?.limit !== undefined) query.set("limit", String(params.limit));
+  query.set("limit", String(limit));
   if (params?.offset !== undefined) query.set("offset", String(params.offset));
   if (params?.includeArchived !== undefined) {
     query.set("include_archived", String(params.includeArchived));
