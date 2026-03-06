@@ -7,6 +7,9 @@ const {
   loadCorpusMock,
   loadCorporaMock,
   deleteCorpusMock,
+  deleteDocumentMock,
+  ingestUrlMock,
+  ingestFileMock,
   searchParamsState,
   fetchDocumentsMock,
   fetchDocumentChunksMock,
@@ -18,6 +21,9 @@ const {
   loadCorpusMock: vi.fn(),
   loadCorporaMock: vi.fn(),
   deleteCorpusMock: vi.fn(),
+  deleteDocumentMock: vi.fn(),
+  ingestUrlMock: vi.fn(),
+  ingestFileMock: vi.fn(),
   fetchDocumentsMock: vi.fn(),
   fetchDocumentChunksMock: vi.fn(),
   searchAcrossCorporaMock: vi.fn(),
@@ -74,7 +80,7 @@ vi.mock("@/features/knowledge", () => ({
   archiveDocument: vi.fn(),
   unarchiveDocument: vi.fn(),
   downloadDocument: vi.fn(),
-  deleteDocument: vi.fn(),
+  deleteDocument: (...args: unknown[]) => deleteDocumentMock(...args),
 }));
 
 import KnowledgeBasePage from "@/app/knowledge/base/page";
@@ -90,6 +96,9 @@ describe("KnowledgeBasePage", () => {
     loadCorpusMock.mockReset();
     loadCorporaMock.mockReset();
     deleteCorpusMock.mockReset();
+    deleteDocumentMock.mockReset();
+    ingestUrlMock.mockReset();
+    ingestFileMock.mockReset();
     fetchDocumentsMock.mockReset();
     fetchDocumentChunksMock.mockReset();
     searchAcrossCorporaMock.mockReset();
@@ -99,6 +108,9 @@ describe("KnowledgeBasePage", () => {
     loadCorpusMock.mockResolvedValue(undefined);
     loadCorporaMock.mockResolvedValue(undefined);
     deleteCorpusMock.mockResolvedValue(undefined);
+    deleteDocumentMock.mockResolvedValue(undefined);
+    ingestUrlMock.mockResolvedValue({});
+    ingestFileMock.mockResolvedValue({});
     fetchDocumentsMock.mockResolvedValue({
       items: [
         {
@@ -142,8 +154,8 @@ describe("KnowledgeBasePage", () => {
       createCorpus: vi.fn(),
       updateCorpus: vi.fn(),
       deleteCorpus: deleteCorpusMock,
-      ingestUrl: vi.fn(),
-      ingestFile: vi.fn(),
+      ingestUrl: ingestUrlMock,
+      ingestFile: ingestFileMock,
     }));
   });
 
@@ -259,6 +271,74 @@ describe("KnowledgeBasePage", () => {
     );
   });
 
+  it("点击文档 Delete 后会打开删除确认框，并可取消", async () => {
+    const user = userEvent.setup();
+    fetchDocumentsMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: "doc-1",
+          original_filename: "example.md",
+          status: "ready",
+          file_size: 123,
+          metadata: { source_type: "file" },
+        },
+      ],
+    });
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Delete Document" });
+    expect(dialog).toHaveTextContent("example.md");
+    expect(deleteDocumentMock).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog", { name: "Delete Document" })).not.toBeInTheDocument();
+    expect(deleteDocumentMock).not.toHaveBeenCalled();
+  });
+
+  it("确认删除文档后会调用 deleteDocument", async () => {
+    const user = userEvent.setup();
+    fetchDocumentsMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: "doc-1",
+          original_filename: "example.md",
+          status: "ready",
+          file_size: 123,
+          metadata: { source_type: "file" },
+        },
+      ],
+    });
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog", { name: "Delete Document" });
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(deleteDocumentMock).toHaveBeenCalledWith(
+      "11111111-1111-1111-1111-111111111111",
+      "doc-1",
+      { appName: "negentropy" },
+    );
+    expect(screen.queryByRole("dialog", { name: "Delete Document" })).not.toBeInTheDocument();
+  });
+
   it("documents 视图不显示 Chunking Strategy 配置模块", async () => {
     render(<KnowledgeBasePage />);
 
@@ -270,6 +350,56 @@ describe("KnowledgeBasePage", () => {
       screen.queryByRole("heading", { name: "Chunking Strategy" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Save Settings")).not.toBeInTheDocument();
+  });
+
+  it("点击 Ingest From URL 后会在页面中央打开 URL 弹框，并可取消", async () => {
+    const user = userEvent.setup();
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Ingest From URL" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Ingest From URL" });
+    expect(within(dialog).getByLabelText("URL *")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "From File" })).not.toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog", { name: "Ingest From URL" })).not.toBeInTheDocument();
+    expect(ingestUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("提交 Ingest From URL 弹框后会调用 ingestUrl 并携带当前 corpus 配置", async () => {
+    const user = userEvent.setup();
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Ingest From URL" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Ingest From URL" });
+    await user.type(
+      within(dialog).getByLabelText("URL *"),
+      "https://example.com/article",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Ingest" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(ingestUrlMock).toHaveBeenCalledWith({
+      url: "https://example.com/article",
+      as_document: true,
+      chunkingConfig: {},
+    });
   });
 
   it("settings 视图显示 Settings 配置模块", async () => {

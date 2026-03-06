@@ -34,8 +34,10 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
+import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -336,8 +338,12 @@ export default function KnowledgeBasePage() {
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(undefined);
   const [isDeleteCorpusDialogOpen, setIsDeleteCorpusDialogOpen] = useState(false);
+  const [isIngestUrlDialogOpen, setIsIngestUrlDialogOpen] = useState(false);
   const [deletingCorpus, setDeletingCorpus] = useState<CorpusRecord | null>(null);
   const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
+  const [isDeleteDocumentDialogOpen, setIsDeleteDocumentDialogOpen] = useState(false);
+  const [deletingDocument, setDeletingDocument] = useState<KnowledgeDocument | null>(null);
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
   const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
@@ -519,10 +525,13 @@ export default function KnowledgeBasePage() {
     setIsDialogOpen(false);
   };
 
-  const handleIngestUrl = async () => {
+  const handleIngestUrl = async ({
+    url,
+  }: {
+    url: string;
+    chunkingConfig?: ChunkingConfig;
+  }) => {
     if (!selectedCorpusId) return;
-    const url = window.prompt("请输入 URL");
-    if (!url?.trim()) return;
     try {
       await ingestUrl({
         url: url.trim(),
@@ -530,6 +539,7 @@ export default function KnowledgeBasePage() {
         chunkingConfig: corpusChunkingConfig,
       });
       toast.success("URL ingest started");
+      setIsIngestUrlDialogOpen(false);
       await loadDocuments();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "URL ingest failed");
@@ -581,8 +591,9 @@ export default function KnowledgeBasePage() {
         setViewingDoc(doc);
         return;
       } else if (action === "delete") {
-        if (!window.confirm("确定删除该文档吗？")) return;
-        await deleteDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
+        setDeletingDocument(doc);
+        setIsDeleteDocumentDialogOpen(true);
+        return;
       }
       toast.success(`${action} success`);
       await loadDocuments();
@@ -604,6 +615,24 @@ export default function KnowledgeBasePage() {
     setIsReplaceDialogOpen(false);
     setReplacingDocument(null);
     await loadDocuments();
+  };
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!selectedCorpusId || !deletingDocument || isDeletingDocument) return;
+    setIsDeletingDocument(true);
+    try {
+      await deleteDocument(selectedCorpusId, deletingDocument.id, {
+        appName: APP_NAME,
+      });
+      toast.success("delete success");
+      setIsDeleteDocumentDialogOpen(false);
+      setDeletingDocument(null);
+      await loadDocuments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "delete failed");
+    } finally {
+      setIsDeletingDocument(false);
+    }
   };
 
   const handleSaveCorpusSettings = async (config: Record<string, unknown>) => {
@@ -848,7 +877,7 @@ export default function KnowledgeBasePage() {
                     <h2 className="text-sm font-semibold">Documents</h2>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={handleIngestUrl}
+                        onClick={() => setIsIngestUrlDialogOpen(true)}
                         className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
                       >
                         Ingest From URL
@@ -974,6 +1003,19 @@ export default function KnowledgeBasePage() {
         onClose={() => setViewingDoc(null)}
       />
 
+      <AddSourceDialog
+        isOpen={isIngestUrlDialogOpen}
+        corpusId={selectedCorpusId}
+        onClose={() => setIsIngestUrlDialogOpen(false)}
+        onIngestUrl={handleIngestUrl}
+        onIngestFile={ingestFile}
+        chunkingConfig={corpusChunkingConfig}
+        onSuccess={() => setIsIngestUrlDialogOpen(false)}
+        initialMode="url"
+        allowedModes={["url"]}
+        title="Ingest From URL"
+      />
+
       <CorpusFormDialog
         key={`${dialogMode}-${editingCorpus?.id || "new"}-${isDialogOpen ? "open" : "closed"}`}
         isOpen={isDialogOpen}
@@ -1005,6 +1047,28 @@ export default function KnowledgeBasePage() {
           setDeletingCorpus(null);
         }}
         onConfirm={handleConfirmDeleteCorpus}
+      />
+
+      <DeleteSourceDialog
+        isOpen={isDeleteDocumentDialogOpen}
+        sourceName={deletingDocument?.original_filename ?? null}
+        isDeleting={isDeletingDocument}
+        title="Delete Document"
+        message={
+          <>
+            确定删除文档{" "}
+            <span className="font-semibold break-all">
+              「{deletingDocument?.original_filename ?? "-"}」
+            </span>{" "}
+            吗？此操作会删除关联 chunks，且不可恢复。
+          </>
+        }
+        onClose={() => {
+          if (isDeletingDocument) return;
+          setIsDeleteDocumentDialogOpen(false);
+          setDeletingDocument(null);
+        }}
+        onConfirm={handleConfirmDeleteDocument}
       />
     </div>
   );
