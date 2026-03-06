@@ -34,6 +34,8 @@ class FakeRepository:
         self.deleted_sources: list[Dict[str, Any]] = []
         self.semantic_results: list[KnowledgeMatch] = []
         self.keyword_results: list[KnowledgeMatch] = []
+        self.parent_results: list[KnowledgeMatch] = []
+        self.chunk_indices: dict[UUID, int] = {}
 
     async def add_knowledge(
         self,
@@ -83,6 +85,29 @@ class FakeRepository:
         metadata_filter: Optional[Dict[str, Any]] = None,
     ) -> list[KnowledgeMatch]:
         return self.keyword_results[:limit]
+
+    async def get_search_match_metadata(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        match_ids: Iterable[UUID],
+    ) -> dict[UUID, dict[str, Any]]:
+        return {
+            item: {"chunk_index": self.chunk_indices[item]}
+            for item in match_ids
+            if item in self.chunk_indices
+        }
+
+    async def get_hierarchical_parent_matches(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: Optional[str],
+        family_ids: Iterable[str],
+    ) -> list[KnowledgeMatch]:
+        return list(self.parent_results)
 
 
 async def _embedding_fn(text: str) -> list[float]:
@@ -145,6 +170,10 @@ async def test_ingest_search_replace_source_flow():
             combined_score=0.0,
         ),
     ]
+    repo.chunk_indices = {
+        first_id: 7,
+        second_id: 11,
+    }
 
     matches = await service.search(
         corpus_id=corpus_id,
@@ -156,6 +185,9 @@ async def test_ingest_search_replace_source_flow():
     assert {m.id for m in matches} == {first_id, second_id}
     combined = {m.id: m.combined_score for m in matches}
     assert combined[first_id] > combined[second_id]
+    metadata = {m.id: m.metadata for m in matches}
+    assert metadata[first_id]["chunk_index"] == 7
+    assert metadata[second_id]["chunk_index"] == 11
 
     replaced = await service.replace_source(
         corpus_id=corpus_id,
@@ -167,3 +199,93 @@ async def test_ingest_search_replace_source_flow():
     assert replaced
     assert repo.deleted_sources
     assert repo.deleted_sources[-1]["source_uri"] == "doc://alpha"
+
+
+async def test_search_lifts_hierarchical_matches_with_child_details():
+    repo = FakeRepository()
+    service = KnowledgeService(repository=repo, embedding_fn=_embedding_fn)
+
+    corpus_id = uuid4()
+    app_name = "negentropy"
+    parent_id = uuid4()
+    first_child_id = uuid4()
+    second_child_id = uuid4()
+
+    repo.parent_results = [
+        KnowledgeMatch(
+            id=parent_id,
+            content="parent chunk content",
+            source_uri="doc://hierarchical",
+            metadata={
+                "chunk_role": "parent",
+                "chunk_family_id": "family-1",
+                "parent_chunk_index": 6,
+            },
+            semantic_score=0.0,
+            keyword_score=0.0,
+            combined_score=0.0,
+        )
+    ]
+    repo.chunk_indices = {
+        first_child_id: 13,
+        second_child_id: 8,
+    }
+    repo.keyword_results = [
+        KnowledgeMatch(
+            id=first_child_id,
+            content="first child snippet",
+            source_uri="doc://hierarchical",
+            metadata={
+                "chunk_role": "child",
+                "chunk_family_id": "family-1",
+                "child_chunk_index": 13,
+            },
+            semantic_score=0.0,
+            keyword_score=0.43,
+            combined_score=0.43,
+        ),
+        KnowledgeMatch(
+            id=second_child_id,
+            content="second child snippet",
+            source_uri="doc://hierarchical",
+            metadata={
+                "chunk_role": "child",
+                "chunk_family_id": "family-1",
+                "child_chunk_index": 8,
+            },
+            semantic_score=0.0,
+            keyword_score=0.40,
+            combined_score=0.40,
+        ),
+    ]
+
+    matches = await service.search(
+        corpus_id=corpus_id,
+        app_name=app_name,
+        query="context",
+        config=SearchConfig(mode="keyword", limit=10),
+    )
+
+    assert len(matches) == 1
+    parent_match = matches[0]
+    assert parent_match.id == parent_id
+    assert parent_match.metadata["returned_parent_chunk"] is True
+    assert parent_match.metadata["matched_child_chunk_indices"] == [13, 8]
+    assert parent_match.metadata["matched_child_chunks"] == [
+        {
+            "id": str(first_child_id),
+            "child_chunk_index": 13,
+            "content": "first child snippet",
+            "semantic_score": 0.0,
+            "keyword_score": 0.43,
+            "combined_score": 0.43,
+        },
+        {
+            "id": str(second_child_id),
+            "child_chunk_index": 8,
+            "content": "second child snippet",
+            "semantic_score": 0.0,
+            "keyword_score": 0.4,
+            "combined_score": 0.4,
+        },
+    ]

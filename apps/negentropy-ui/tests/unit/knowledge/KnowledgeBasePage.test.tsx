@@ -133,7 +133,11 @@ describe("KnowledgeBasePage", () => {
           content: "retrieved chunk content",
           source_uri: "https://example.com/doc",
           combined_score: 0.91,
-          metadata: { corpus_id: "11111111-1111-1111-1111-111111111111" },
+          metadata: {
+            corpus_id: "11111111-1111-1111-1111-111111111111",
+            chunk_index: 47,
+            original_filename: "2512.13564v1.pdf",
+          },
         },
       ],
     });
@@ -472,7 +476,10 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    expect(screen.getByText("Retrieved Chunks")).toBeInTheDocument();
+    expect(screen.getByText("1 Retrieved Chunks")).toBeInTheDocument();
+    expect(screen.getByText("Chunk-47")).toBeInTheDocument();
+    expect(screen.getByText("2512.13564v1.pdf")).toBeInTheDocument();
+    expect(screen.getByText("SCORE 0.91")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Corpus" })).toBeInTheDocument();
 
@@ -522,7 +529,7 @@ describe("KnowledgeBasePage", () => {
     expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
   });
 
-  it("点击右侧抽屉空白处会关闭 Chunk Detail", async () => {
+  it("点击检索结果会打开居中 Chunk Detail 模态框，并可通过遮罩关闭", async () => {
     const user = userEvent.setup();
     searchParamsState.value = "view=overview";
 
@@ -540,11 +547,112 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    await user.click(screen.getByText("retrieved chunk content"));
+    await user.click(screen.getByText("Open"));
     expect(screen.getByText("Chunk Detail")).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Chunk Detail" });
+    expect(within(dialog).getByText("Chunk-47")).toBeInTheDocument();
+    expect(within(dialog).getByText("2512.13564v1.pdf")).toBeInTheDocument();
+    expect(within(dialog).getByText("23 characters")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("retrieved-chunk-dialog-backdrop"));
+    expect(screen.queryByText("Chunk Detail")).not.toBeInTheDocument();
+  });
+
+  it("hierarchical 检索结果会显示 child chunks 并在模态框中展示详情", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+    searchAcrossCorporaMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: "chunk-parent-1",
+          content: "parent chunk content with enough text to preview",
+          source_uri: "https://example.com/hierarchical",
+          combined_score: 0.43,
+          metadata: {
+            corpus_id: "11111111-1111-1111-1111-111111111111",
+            original_filename: "Understanding and Using Context.pdf",
+            returned_parent_chunk: true,
+            parent_chunk_index: 6,
+            matched_child_chunk_indices: [13, 8],
+            matched_child_chunks: [
+              {
+                id: "child-13",
+                child_chunk_index: 13,
+                content: "Context is any information that can be used to characterize the",
+                combined_score: 0.43,
+              },
+              {
+                id: "child-8",
+                child_chunk_index: 8,
+                content: "specific. Context is all about the whole situation relevant and its",
+                combined_score: 0.4,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getByText("Parent-Chunk-06")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "HIT 2 CHILD CHUNKS" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "HIT 2 CHILD CHUNKS" }));
+    expect(screen.getByText("C-13")).toBeInTheDocument();
+    expect(screen.getByText("C-08")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Open"));
+
+    const dialog = screen.getByRole("dialog", { name: "Chunk Detail" });
+    expect(within(dialog).getByText("Understanding and Using Context.pdf")).toBeInTheDocument();
+    expect(within(dialog).getByText("HIT 2 CHILD CHUNKS")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Context is any information that can be used to characterize the"),
+    ).toBeInTheDocument();
+  });
+
+  it("document-chunks 视图仍使用右侧抽屉展示详情", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=document-chunks&documentId=doc-1";
+    fetchDocumentChunksMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: "doc-chunk-1",
+          content: "document chunk content",
+          source_uri: "doc://alpha",
+          chunk_index: 2,
+          metadata: { chunk_role: "leaf" },
+        },
+      ],
+    });
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByText("document chunk content"));
+
+    expect(screen.getByText("Chunk Detail")).toBeInTheDocument();
+    expect(screen.getByText("Metadata")).toBeInTheDocument();
 
     await user.click(screen.getByTestId("chunk-drawer-backdrop"));
-    expect(screen.queryByText("Chunk Detail")).not.toBeInTheDocument();
+    expect(screen.queryByText("Metadata")).not.toBeInTheDocument();
   });
 
   it("未选中任何 Corpus 时禁用 Retrieve，并且不会发起检索", async () => {
@@ -563,7 +671,7 @@ describe("KnowledgeBasePage", () => {
     expect(retrieveButton).toBeDisabled();
     expect(screen.getByText("请至少选择一个 Corpus 后再执行 Retrieve")).toBeInTheDocument();
     expect(searchAcrossCorporaMock).not.toHaveBeenCalled();
-    expect(screen.queryByText("Retrieved Chunks")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Retrieved Chunks$/)).not.toBeInTheDocument();
   });
 
   it("仅将选中的 Corpus 传给检索接口，并使用全宽停靠容器", async () => {
