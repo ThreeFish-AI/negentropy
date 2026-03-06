@@ -21,7 +21,14 @@ from typing import Any, Awaitable, Callable, Literal
 
 from negentropy.logging import get_logger
 
-from .types import ChunkingConfig, ChunkingStrategy
+from .types import (
+    ChunkingConfig,
+    ChunkingStrategy,
+    FixedChunkingConfig,
+    HierarchicalChunkingConfig,
+    RecursiveChunkingConfig,
+    SemanticChunkingConfig,
+)
 
 logger = get_logger("negentropy.knowledge.chunking")
 
@@ -45,6 +52,10 @@ _DEFAULT_MAX_ADJUSTMENT_RATIO = 0.3
 _CN_SENTENCE_DELIMITERS = ("。", "！", "？", "；", "\n")
 # 英文句子结束符
 _EN_SENTENCE_DELIMITERS = (".", "!", "?", ";", "\n")
+
+
+def _semantic_fallback_config() -> RecursiveChunkingConfig:
+    return RecursiveChunkingConfig()
 
 
 def _split_into_sentences(text: str) -> list[str]:
@@ -386,6 +397,8 @@ def _recursive_chunk(text: str, config: ChunkingConfig) -> list[str]:
     if config.separators:
         paragraphs = [text.strip()]
         for sep in config.separators:
+            if sep == "":
+                continue
             next_parts: list[str] = []
             for segment in paragraphs:
                 next_parts.extend(segment.split(sep))
@@ -468,19 +481,20 @@ def _hierarchical_chunk(text: str, config: ChunkingConfig) -> list[str]:
     if not text or not text.strip():
         return []
 
-    parent_config = config.model_copy(
-        update={
-            "strategy": ChunkingStrategy.RECURSIVE,
-            "chunk_size": config.hierarchical_parent_chunk_size,
-            "overlap": 0,
-        }
+    if not isinstance(config, HierarchicalChunkingConfig):
+        raise TypeError("hierarchical chunking requires HierarchicalChunkingConfig")
+
+    parent_config = RecursiveChunkingConfig(
+        chunk_size=config.hierarchical_parent_chunk_size,
+        overlap=0,
+        preserve_newlines=config.preserve_newlines,
+        separators=config.separators,
     )
-    child_config = config.model_copy(
-        update={
-            "strategy": ChunkingStrategy.RECURSIVE,
-            "chunk_size": config.hierarchical_child_chunk_size,
-            "overlap": config.hierarchical_child_overlap,
-        }
+    child_config = RecursiveChunkingConfig(
+        chunk_size=config.hierarchical_child_chunk_size,
+        overlap=config.hierarchical_child_overlap,
+        preserve_newlines=config.preserve_newlines,
+        separators=config.separators,
     )
 
     parent_chunks = _recursive_chunk(text, parent_config)
@@ -527,7 +541,10 @@ async def semantic_chunk_async(
             strategy=config.strategy.value,
             falling_back="recursive",
         )
-        return _recursive_chunk(text, config)
+        return _recursive_chunk(text, _semantic_fallback_config())
+
+    if not isinstance(config, SemanticChunkingConfig):
+        raise TypeError("semantic chunking requires SemanticChunkingConfig")
 
     # 1. 分割为句子
     sentences = _split_into_sentences(text)
@@ -546,14 +563,15 @@ async def semantic_chunk_async(
 
     # 2. 计算句子嵌入
     try:
-        embeddings = await _batch_embed_sentences(sentences, embedding_fn)
+        windows = _build_sentence_windows(sentences, config.semantic_buffer_size)
+        embeddings = await _batch_embed_sentences(windows, embedding_fn)
     except Exception as exc:
         logger.error("sentence_embedding_failed", exc_info=exc)
         # 回退到递归分块
-        return _recursive_chunk(text, config)
+        return _recursive_chunk(text, _semantic_fallback_config())
 
     # 3. 计算相邻句子相似度并确定分割点
-    split_indices = await _find_split_points(sentences, embeddings, config.semantic_threshold)
+    split_indices = await _find_split_points(embeddings, config.semantic_threshold)
 
     # 4. 在分割点处切分
     chunks = []
@@ -600,8 +618,19 @@ async def _batch_embed_sentences(
     return embeddings
 
 
+def _build_sentence_windows(sentences: list[str], buffer_size: int) -> list[str]:
+    if buffer_size <= 1:
+        return sentences
+
+    windows: list[str] = []
+    for index in range(len(sentences)):
+        start = max(0, index - (buffer_size - 1))
+        end = min(len(sentences), index + buffer_size)
+        windows.append(" ".join(sentences[start:end]))
+    return windows
+
+
 async def _find_split_points(
-    sentences: list[str],
     embeddings: list[list[float]],
     threshold: float,
 ) -> list[int]:
@@ -652,7 +681,7 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
 
 async def _merge_small_chunks(
     chunks: list[str],
-    config: ChunkingConfig,
+    config: SemanticChunkingConfig,
 ) -> list[str]:
     """合并小块
 
@@ -674,7 +703,7 @@ async def _merge_small_chunks(
             combined = current + " " + next_chunk
 
             # 检查合并后是否超过 chunk_size
-            if len(combined) <= config.chunk_size:
+            if len(combined) <= config.max_chunk_size:
                 current = combined
                 i += 2  # 跳过下一个块
             else:
@@ -723,3 +752,8 @@ async def _split_large_chunks(
             result.append(current.strip())
 
     return result
+    if not isinstance(config, FixedChunkingConfig):
+        raise TypeError("fixed chunking requires FixedChunkingConfig")
+
+    if not isinstance(config, RecursiveChunkingConfig):
+        raise TypeError("recursive chunking requires RecursiveChunkingConfig")

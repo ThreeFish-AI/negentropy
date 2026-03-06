@@ -11,13 +11,7 @@ from .chunking import chunk_text, semantic_chunk_async
 
 if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
-from .constants import (
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_KEYWORD_WEIGHT,
-    DEFAULT_OVERLAP,
-    DEFAULT_SEMANTIC_WEIGHT,
-    TEXT_PREVIEW_MAX_LENGTH,
-)
+from .constants import DEFAULT_KEYWORD_WEIGHT, DEFAULT_SEMANTIC_WEIGHT, TEXT_PREVIEW_MAX_LENGTH
 from .exceptions import SearchError
 from .content import fetch_content
 from .reranking import NoopReranker, Reranker
@@ -26,10 +20,14 @@ from .types import (
     ChunkingConfig,
     CorpusRecord,
     CorpusSpec,
+    HierarchicalChunkingConfig,
     KnowledgeChunk,
     KnowledgeMatch,
     KnowledgeRecord,
+    RecursiveChunkingConfig,
     SearchConfig,
+    chunking_config_summary,
+    default_chunking_config,
     SourceSummary,
     merge_search_results,
 )
@@ -213,7 +211,7 @@ class KnowledgeService:
         self._repository = repository or KnowledgeRepository()
         self._embedding_fn = embedding_fn
         self._batch_embedding_fn = batch_embedding_fn
-        self._chunking_config = chunking_config or ChunkingConfig()
+        self._chunking_config = chunking_config or default_chunking_config()
         self._reranker = reranker or NoopReranker()
         self._pipeline_dao = pipeline_dao
 
@@ -773,8 +771,7 @@ class KnowledgeService:
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
                     "text_length": len(text),
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -784,8 +781,7 @@ class KnowledgeService:
             app_name=app_name,
             text_length=len(text),
             source_uri=source_uri,
-            chunk_size=config.chunk_size,
-            overlap=config.overlap,
+            chunking_config=chunking_config_summary(config),
             run_id=tracker.run_id if tracker else None,
         )
 
@@ -937,8 +933,7 @@ class KnowledgeService:
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
                     "text_length": len(text),
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1157,8 +1152,7 @@ class KnowledgeService:
                 {
                     "corpus_id": str(corpus_id),
                     "url": url,
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1282,8 +1276,7 @@ class KnowledgeService:
                 {
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1453,8 +1446,7 @@ class KnowledgeService:
                 {
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1921,19 +1913,20 @@ class KnowledgeService:
         metadata: Dict[str, Any],
         chunking_config: ChunkingConfig,
     ) -> list[KnowledgeChunk]:
-        parent_config = chunking_config.model_copy(
-            update={
-                "strategy": ChunkingStrategy.RECURSIVE,
-                "chunk_size": chunking_config.hierarchical_parent_chunk_size,
-                "overlap": 0,
-            }
+        if not isinstance(chunking_config, HierarchicalChunkingConfig):
+            raise TypeError("hierarchical chunk builder requires HierarchicalChunkingConfig")
+
+        parent_config = RecursiveChunkingConfig(
+            chunk_size=chunking_config.hierarchical_parent_chunk_size,
+            overlap=0,
+            preserve_newlines=chunking_config.preserve_newlines,
+            separators=chunking_config.separators,
         )
-        child_config = chunking_config.model_copy(
-            update={
-                "strategy": ChunkingStrategy.RECURSIVE,
-                "chunk_size": chunking_config.hierarchical_child_chunk_size,
-                "overlap": chunking_config.hierarchical_child_overlap,
-            }
+        child_config = RecursiveChunkingConfig(
+            chunk_size=chunking_config.hierarchical_child_chunk_size,
+            overlap=chunking_config.hierarchical_child_overlap,
+            preserve_newlines=chunking_config.preserve_newlines,
+            separators=chunking_config.separators,
         )
 
         parent_texts = chunk_text(text, parent_config)

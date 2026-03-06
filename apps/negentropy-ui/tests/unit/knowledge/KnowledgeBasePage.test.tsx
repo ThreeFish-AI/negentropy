@@ -63,6 +63,52 @@ vi.mock("@/features/knowledge", () => ({
   fetchDocuments: (...args: unknown[]) => fetchDocumentsMock(...args),
   fetchDocumentChunks: (...args: unknown[]) => fetchDocumentChunksMock(...args),
   searchAcrossCorpora: (...args: unknown[]) => searchAcrossCorporaMock(...args),
+  createDefaultChunkingConfig: (strategy: string = "recursive") => {
+    if (strategy === "semantic") {
+      return {
+        strategy: "semantic",
+        semantic_threshold: 0.85,
+        semantic_buffer_size: 1,
+        min_chunk_size: 50,
+        max_chunk_size: 2000,
+      };
+    }
+    if (strategy === "hierarchical") {
+      return {
+        strategy: "hierarchical",
+        preserve_newlines: true,
+        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        hierarchical_parent_chunk_size: 1024,
+        hierarchical_child_chunk_size: 256,
+        hierarchical_child_overlap: 51,
+      };
+    }
+    if (strategy === "fixed") {
+      return {
+        strategy: "fixed",
+        chunk_size: 800,
+        overlap: 100,
+        preserve_newlines: true,
+      };
+    }
+    return {
+      strategy: "recursive",
+      chunk_size: 800,
+      overlap: 100,
+      preserve_newlines: true,
+      separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+    };
+  },
+  normalizeChunkingConfig: (config: Record<string, unknown> | null | undefined) =>
+    config?.strategy
+      ? config
+      : {
+          strategy: "recursive",
+          chunk_size: 800,
+          overlap: 100,
+          preserve_newlines: true,
+          separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        },
   DocumentViewDialog: ({
     isOpen,
     document,
@@ -421,7 +467,13 @@ describe("KnowledgeBasePage", () => {
     expect(ingestUrlMock).toHaveBeenCalledWith({
       url: "https://example.com/article",
       as_document: true,
-      chunkingConfig: {},
+      chunkingConfig: {
+        strategy: "recursive",
+        chunk_size: 800,
+        overlap: 100,
+        preserve_newlines: true,
+        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+      },
     });
   });
 
@@ -439,6 +491,34 @@ describe("KnowledgeBasePage", () => {
       screen.getByRole("heading", { name: "Settings" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeInTheDocument();
+  });
+
+  it("settings 视图中 semantic 与 hierarchical 只展示各自有效字段", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: /semantic/i }));
+
+    expect(screen.queryByText("Chunk Size")).not.toBeInTheDocument();
+    expect(screen.queryByText("Overlap")).not.toBeInTheDocument();
+    expect(screen.getByText("Buffer Size")).toBeInTheDocument();
+    expect(screen.getByText("Min Chunk Size")).toBeInTheDocument();
+    expect(screen.getByText("Max Chunk Size")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /hierarchical/i }));
+
+    expect(screen.queryByText("Chunk Size")).not.toBeInTheDocument();
+    expect(screen.queryByText("Overlap")).not.toBeInTheDocument();
+    expect(screen.getByText("Parent Size")).toBeInTheDocument();
+    expect(screen.getByText("Child Size")).toBeInTheDocument();
+    expect(screen.getByText("Child Overlap")).toBeInTheDocument();
   });
 
   it("进入 document-chunks 视图时使用不超过后端约束的 limit=200", async () => {

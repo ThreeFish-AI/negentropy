@@ -383,7 +383,6 @@ class TestSemanticChunking:
         text = "第一句。第二句。第三句。第四句。"
         config = ChunkingConfig(
             strategy=ChunkingStrategy.SEMANTIC,
-            chunk_size=100,
             semantic_threshold=0.85,
         )
 
@@ -423,7 +422,7 @@ class TestSemanticChunking:
     async def test_semantic_chunk_fallback_on_embedding_failure(self) -> None:
         """测试嵌入失败时回退到递归分块"""
         text = "第一句。第二句。第三句。"
-        config = ChunkingConfig(strategy=ChunkingStrategy.SEMANTIC, chunk_size=200)
+        config = ChunkingConfig(strategy=ChunkingStrategy.SEMANTIC)
 
         async def failing_embedding(text: str) -> list[float]:
             raise RuntimeError("Embedding failed")
@@ -468,7 +467,7 @@ class TestChunkingStrategy:
 
     def test_config_strategy_invalid_string(self) -> None:
         """测试无效策略字符串"""
-        with pytest.raises(ValidationError, match="strategy must be one of"):
+        with pytest.raises(ValueError, match="not a valid ChunkingStrategy"):
             ChunkingConfig(strategy="invalid")
 
 
@@ -484,9 +483,8 @@ class TestChunkingConfigExtended:
         """测试默认配置"""
         config = ChunkingConfig()
         assert config.strategy == ChunkingStrategy.RECURSIVE
-        assert config.semantic_threshold == 0.85
-        assert config.min_chunk_size == 50
-        assert config.max_chunk_size == 2000
+        assert config.chunk_size == 800
+        assert config.overlap == 100
 
     def test_config_custom_semantic_threshold(self) -> None:
         """测试自定义语义阈值"""

@@ -272,9 +272,6 @@ def test_resolve_chunking_config_from_doc_request_prefers_payload_over_corpus():
 
     assert config is not None
     assert config.strategy == ChunkingStrategy.HIERARCHICAL
-    assert config.chunk_size == 900
-    assert config.overlap == 100
-    assert config.semantic_threshold == 0.9
     assert config.hierarchical_parent_chunk_size == 1200
     assert config.hierarchical_child_chunk_size == 300
     assert config.hierarchical_child_overlap == 60

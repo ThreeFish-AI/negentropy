@@ -39,6 +39,13 @@ from .exceptions import (
 from .graph_service import GraphService, GraphBuildConfig, GraphQueryConfig, get_graph_service
 from .service import KnowledgeService
 from .types import ChunkingConfig, CorpusSpec, SearchConfig, GraphSearchConfig
+from .types import (
+    chunking_config_summary,
+    create_chunking_config,
+    default_chunking_config,
+    normalize_chunking_config,
+    serialize_chunking_config,
+)
 
 
 logger = get_logger("negentropy.knowledge.api")
@@ -67,90 +74,51 @@ class CorpusResponse(BaseModel):
     knowledge_count: int = 0
 
 
-class IngestRequest(BaseModel):
+class _LegacyChunkingRequest(BaseModel):
+    chunking_config: Optional[Dict[str, Any]] = None
+    strategy: Optional[str] = None
+    chunk_size: Optional[int] = None
+    overlap: Optional[int] = None
+    preserve_newlines: Optional[bool] = None
+    separators: Optional[list[str]] = None
+    semantic_threshold: Optional[float] = None
+    semantic_buffer_size: Optional[int] = None
+    min_chunk_size: Optional[int] = None
+    max_chunk_size: Optional[int] = None
+    hierarchical_parent_chunk_size: Optional[int] = None
+    hierarchical_child_chunk_size: Optional[int] = None
+    hierarchical_child_overlap: Optional[int] = None
+
+
+class IngestRequest(_LegacyChunkingRequest):
     app_name: Optional[str] = None
     text: str
     source_uri: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
 
 
-class IngestUrlRequest(BaseModel):
+class IngestUrlRequest(_LegacyChunkingRequest):
     app_name: Optional[str] = None
     url: str
     as_document: bool = False
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
 
 
-class ReplaceSourceRequest(BaseModel):
+class ReplaceSourceRequest(_LegacyChunkingRequest):
     app_name: Optional[str] = None
     text: str
     source_uri: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
 
 
-class SyncSourceRequest(BaseModel):
+class SyncSourceRequest(_LegacyChunkingRequest):
     app_name: Optional[str] = None
     source_uri: str
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
 
 
-class RebuildSourceRequest(BaseModel):
+class RebuildSourceRequest(_LegacyChunkingRequest):
     app_name: Optional[str] = None
     source_uri: str
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
 
 
 class DeleteSourceRequest(BaseModel):
@@ -373,52 +341,11 @@ def _map_exception_to_http(exc: KnowledgeError) -> HTTPException:
 
 
 def _build_chunking_config(
-    *,
-    strategy: Optional[str],
-    chunk_size: Optional[int],
-    overlap: Optional[int],
-    preserve_newlines: Optional[bool],
-    separators: Optional[list[str]] = None,
-    semantic_threshold: Optional[float] = None,
-    min_chunk_size: Optional[int] = None,
-    max_chunk_size: Optional[int] = None,
-    hierarchical_parent_chunk_size: Optional[int] = None,
-    hierarchical_child_chunk_size: Optional[int] = None,
-    hierarchical_child_overlap: Optional[int] = None,
+    payload: Optional[Dict[str, Any]],
 ) -> Optional[ChunkingConfig]:
-    """构建分块配置
-
-    使用常量而非魔法数字，遵循 Single Source of Truth 原则。
-    """
-    if (
-        strategy is None
-        and chunk_size is None
-        and overlap is None
-        and preserve_newlines is None
-        and separators is None
-        and semantic_threshold is None
-        and min_chunk_size is None
-        and max_chunk_size is None
-        and hierarchical_parent_chunk_size is None
-        and hierarchical_child_chunk_size is None
-        and hierarchical_child_overlap is None
-    ):
+    if not payload:
         return None
-    return ChunkingConfig(
-        strategy=strategy or "recursive",
-        chunk_size=chunk_size or DEFAULT_CHUNK_SIZE,
-        overlap=overlap or DEFAULT_OVERLAP,
-        preserve_newlines=True if preserve_newlines is None else preserve_newlines,
-        separators=separators or [],
-        semantic_threshold=0.85 if semantic_threshold is None else semantic_threshold,
-        min_chunk_size=50 if min_chunk_size is None else min_chunk_size,
-        max_chunk_size=2000 if max_chunk_size is None else max_chunk_size,
-        hierarchical_parent_chunk_size=1024
-        if hierarchical_parent_chunk_size is None
-        else hierarchical_parent_chunk_size,
-        hierarchical_child_chunk_size=256 if hierarchical_child_chunk_size is None else hierarchical_child_chunk_size,
-        hierarchical_child_overlap=51 if hierarchical_child_overlap is None else hierarchical_child_overlap,
-    )
+    return normalize_chunking_config(payload)
 
 
 def _infer_source_type(source_uri: Optional[str]) -> str:
@@ -439,6 +366,43 @@ def _resolve_chunking_option(
     if request_value is not None:
         return request_value
     return corpus_config.get(key)
+
+
+def _extract_legacy_chunking_payload(payload: _LegacyChunkingRequest) -> Dict[str, Any]:
+    candidate = {
+        "strategy": payload.strategy,
+        "chunk_size": payload.chunk_size,
+        "overlap": payload.overlap,
+        "preserve_newlines": payload.preserve_newlines,
+        "separators": payload.separators,
+        "semantic_threshold": payload.semantic_threshold,
+        "semantic_buffer_size": payload.semantic_buffer_size,
+        "min_chunk_size": payload.min_chunk_size,
+        "max_chunk_size": payload.max_chunk_size,
+        "hierarchical_parent_chunk_size": payload.hierarchical_parent_chunk_size,
+        "hierarchical_child_chunk_size": payload.hierarchical_child_chunk_size,
+        "hierarchical_child_overlap": payload.hierarchical_child_overlap,
+    }
+    return {key: value for key, value in candidate.items() if value is not None}
+
+
+def _resolve_chunking_config(
+    *,
+    chunking_config: Optional[Dict[str, Any]],
+    legacy_payload: Optional[Dict[str, Any]],
+    corpus_config: Dict[str, Any],
+) -> Optional[ChunkingConfig]:
+    if chunking_config:
+        return normalize_chunking_config(chunking_config)
+    if legacy_payload:
+        strategy = legacy_payload.get("strategy") or corpus_config.get("strategy") or "recursive"
+        merged = dict(corpus_config)
+        merged.update(legacy_payload)
+        merged["strategy"] = strategy
+        return normalize_chunking_config(merged)
+    if corpus_config:
+        return normalize_chunking_config(corpus_config)
+    return None
 
 
 def _normalize_source_metadata(
@@ -500,7 +464,7 @@ async def list_corpora(app_name: Optional[str] = Query(default=None)) -> list[Co
             app_name=corpus.app_name,
             name=corpus.name,
             description=corpus.description,
-            config=corpus.config or {},
+            config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
             knowledge_count=count or 0,
         )
         for corpus, count in rows
@@ -510,11 +474,12 @@ async def list_corpora(app_name: Optional[str] = Query(default=None)) -> list[Co
 @router.post("/base", response_model=CorpusResponse)
 async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
     service = _get_service()
+    normalized_config = serialize_chunking_config(normalize_chunking_config(payload.config or None))
     spec = CorpusSpec(
         app_name=_resolve_app_name(payload.app_name),
         name=payload.name,
         description=payload.description,
-        config=payload.config,
+        config=normalized_config,
     )
     corpus = await service.ensure_corpus(spec=spec)
     return CorpusResponse(
@@ -522,7 +487,7 @@ async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
         app_name=corpus.app_name,
         name=corpus.name,
         description=corpus.description,
-        config=corpus.config,
+        config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
         knowledge_count=0,
     )
 
@@ -549,7 +514,7 @@ async def get_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=No
         app_name=corpus.app_name,
         name=corpus.name,
         description=corpus.description,
-        config=corpus.config or {},
+        config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
         knowledge_count=count or 0,
     )
 
@@ -558,6 +523,8 @@ async def get_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=No
 async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> CorpusResponse:
     service = _get_service()
     update_data = payload.model_dump(exclude_unset=True)
+    if "config" in update_data:
+        update_data["config"] = serialize_chunking_config(normalize_chunking_config(update_data["config"] or None))
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -580,7 +547,7 @@ async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> Corpus
             app_name=corpus.app_name,
             name=corpus.name,
             description=corpus.description,
-            config=corpus.config or {},
+            config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
             knowledge_count=knowledge_count or 0,
         )
     except ValueError as exc:
@@ -652,43 +619,10 @@ async def ingest_text(
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
 
-        # 构建配置：请求参数 > corpus 配置 > 默认值
-        strategy = _resolve_chunking_option(payload.strategy, corpus_config, "strategy")
-        chunk_size = _resolve_chunking_option(payload.chunk_size, corpus_config, "chunk_size")
-        overlap = _resolve_chunking_option(payload.overlap, corpus_config, "overlap")
-        separators = _resolve_chunking_option(payload.separators, corpus_config, "separators")
-        preserve_newlines = _resolve_chunking_option(payload.preserve_newlines, corpus_config, "preserve_newlines")
-        semantic_threshold = _resolve_chunking_option(payload.semantic_threshold, corpus_config, "semantic_threshold")
-        min_chunk_size = _resolve_chunking_option(payload.min_chunk_size, corpus_config, "min_chunk_size")
-        max_chunk_size = _resolve_chunking_option(payload.max_chunk_size, corpus_config, "max_chunk_size")
-        hierarchical_parent_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_parent_chunk_size,
-            corpus_config,
-            "hierarchical_parent_chunk_size",
-        )
-        hierarchical_child_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_child_chunk_size,
-            corpus_config,
-            "hierarchical_child_chunk_size",
-        )
-        hierarchical_child_overlap = _resolve_chunking_option(
-            payload.hierarchical_child_overlap,
-            corpus_config,
-            "hierarchical_child_overlap",
-        )
-
-        chunking_config = _build_chunking_config(
-            strategy=strategy,
-            chunk_size=chunk_size,
-            overlap=overlap,
-            preserve_newlines=preserve_newlines,
-            separators=separators,
-            semantic_threshold=semantic_threshold,
-            min_chunk_size=min_chunk_size,
-            max_chunk_size=max_chunk_size,
-            hierarchical_parent_chunk_size=hierarchical_parent_chunk_size,
-            hierarchical_child_chunk_size=hierarchical_child_chunk_size,
-            hierarchical_child_overlap=hierarchical_child_overlap,
+        chunking_config = _resolve_chunking_config(
+            chunking_config=payload.chunking_config,
+            legacy_payload=_extract_legacy_chunking_payload(payload),
+            corpus_config=corpus_config,
         )
 
         # 创建 Pipeline 记录
@@ -699,8 +633,7 @@ async def ingest_text(
                 "corpus_id": str(corpus_id),
                 "source_uri": payload.source_uri,
                 "text_length": len(payload.text),
-                "chunk_size": chunking_config.chunk_size if chunking_config else None,
-                "overlap": chunking_config.overlap if chunking_config else None,
+                "chunking_config": chunking_config_summary(chunking_config),
             },
         )
 
@@ -829,43 +762,10 @@ async def ingest_url(
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
 
-        # 构建配置：请求参数 > corpus 配置 > 默认值
-        strategy = _resolve_chunking_option(payload.strategy, corpus_config, "strategy")
-        chunk_size = _resolve_chunking_option(payload.chunk_size, corpus_config, "chunk_size")
-        overlap = _resolve_chunking_option(payload.overlap, corpus_config, "overlap")
-        separators = _resolve_chunking_option(payload.separators, corpus_config, "separators")
-        preserve_newlines = _resolve_chunking_option(payload.preserve_newlines, corpus_config, "preserve_newlines")
-        semantic_threshold = _resolve_chunking_option(payload.semantic_threshold, corpus_config, "semantic_threshold")
-        min_chunk_size = _resolve_chunking_option(payload.min_chunk_size, corpus_config, "min_chunk_size")
-        max_chunk_size = _resolve_chunking_option(payload.max_chunk_size, corpus_config, "max_chunk_size")
-        hierarchical_parent_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_parent_chunk_size,
-            corpus_config,
-            "hierarchical_parent_chunk_size",
-        )
-        hierarchical_child_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_child_chunk_size,
-            corpus_config,
-            "hierarchical_child_chunk_size",
-        )
-        hierarchical_child_overlap = _resolve_chunking_option(
-            payload.hierarchical_child_overlap,
-            corpus_config,
-            "hierarchical_child_overlap",
-        )
-
-        chunking_config = _build_chunking_config(
-            strategy=strategy,
-            chunk_size=chunk_size,
-            overlap=overlap,
-            preserve_newlines=preserve_newlines,
-            separators=separators,
-            semantic_threshold=semantic_threshold,
-            min_chunk_size=min_chunk_size,
-            max_chunk_size=max_chunk_size,
-            hierarchical_parent_chunk_size=hierarchical_parent_chunk_size,
-            hierarchical_child_chunk_size=hierarchical_child_chunk_size,
-            hierarchical_child_overlap=hierarchical_child_overlap,
+        chunking_config = _resolve_chunking_config(
+            chunking_config=payload.chunking_config,
+            legacy_payload=_extract_legacy_chunking_payload(payload),
+            corpus_config=corpus_config,
         )
 
         # URL 文档模式: 先落库为 Document，再异步入索引
@@ -915,8 +815,7 @@ async def ingest_url(
                     "as_document": True,
                     "document_id": str(doc_record.id),
                     "duplicate_document": not is_new_doc,
-                    "chunk_size": chunking_config.chunk_size if chunking_config else None,
-                    "overlap": chunking_config.overlap if chunking_config else None,
+                    "chunking_config": chunking_config_summary(chunking_config),
                 },
             )
 
@@ -953,8 +852,7 @@ async def ingest_url(
             input_data={
                 "corpus_id": str(corpus_id),
                 "url": payload.url,
-                "chunk_size": chunking_config.chunk_size if chunking_config else None,
-                "overlap": chunking_config.overlap if chunking_config else None,
+                "chunking_config": chunking_config_summary(chunking_config),
             },
         )
 
@@ -1096,6 +994,7 @@ async def ingest_file(
     preserve_newlines: Optional[bool] = Form(default=None),
     separators: Optional[str] = Form(default=None),
     semantic_threshold: Optional[float] = Form(default=None),
+    semantic_buffer_size: Optional[int] = Form(default=None),
     min_chunk_size: Optional[int] = Form(default=None),
     max_chunk_size: Optional[int] = Form(default=None),
     hierarchical_parent_chunk_size: Optional[int] = Form(default=None),
@@ -1249,51 +1148,27 @@ async def ingest_file(
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
 
-        # 构建分块配置
-        final_strategy = _resolve_chunking_option(strategy, corpus_config, "strategy")
-        final_chunk_size = _resolve_chunking_option(chunk_size, corpus_config, "chunk_size")
-        final_overlap = _resolve_chunking_option(overlap, corpus_config, "overlap")
-        final_separators = _resolve_chunking_option(parsed_separators, corpus_config, "separators")
-        final_preserve_newlines = _resolve_chunking_option(
-            preserve_newlines,
-            corpus_config,
-            "preserve_newlines",
-        )
-        final_semantic_threshold = _resolve_chunking_option(
-            semantic_threshold,
-            corpus_config,
-            "semantic_threshold",
-        )
-        final_min_chunk_size = _resolve_chunking_option(min_chunk_size, corpus_config, "min_chunk_size")
-        final_max_chunk_size = _resolve_chunking_option(max_chunk_size, corpus_config, "max_chunk_size")
-        final_hierarchical_parent_chunk_size = _resolve_chunking_option(
-            hierarchical_parent_chunk_size,
-            corpus_config,
-            "hierarchical_parent_chunk_size",
-        )
-        final_hierarchical_child_chunk_size = _resolve_chunking_option(
-            hierarchical_child_chunk_size,
-            corpus_config,
-            "hierarchical_child_chunk_size",
-        )
-        final_hierarchical_child_overlap = _resolve_chunking_option(
-            hierarchical_child_overlap,
-            corpus_config,
-            "hierarchical_child_overlap",
-        )
-
-        chunking_config = _build_chunking_config(
-            strategy=final_strategy,
-            chunk_size=final_chunk_size,
-            overlap=final_overlap,
-            preserve_newlines=final_preserve_newlines,
-            separators=final_separators,
-            semantic_threshold=final_semantic_threshold,
-            min_chunk_size=final_min_chunk_size,
-            max_chunk_size=final_max_chunk_size,
-            hierarchical_parent_chunk_size=final_hierarchical_parent_chunk_size,
-            hierarchical_child_chunk_size=final_hierarchical_child_chunk_size,
-            hierarchical_child_overlap=final_hierarchical_child_overlap,
+        chunking_config = _resolve_chunking_config(
+            chunking_config=None,
+            legacy_payload={
+                key: value
+                for key, value in {
+                    "strategy": strategy,
+                    "chunk_size": chunk_size,
+                    "overlap": overlap,
+                    "preserve_newlines": preserve_newlines,
+                    "separators": parsed_separators,
+                    "semantic_threshold": semantic_threshold,
+                    "semantic_buffer_size": semantic_buffer_size,
+                    "min_chunk_size": min_chunk_size,
+                    "max_chunk_size": max_chunk_size,
+                    "hierarchical_parent_chunk_size": hierarchical_parent_chunk_size,
+                    "hierarchical_child_chunk_size": hierarchical_child_chunk_size,
+                    "hierarchical_child_overlap": hierarchical_child_overlap,
+                }.items()
+                if value is not None
+            },
+            corpus_config=corpus_config,
         )
 
         # 添加文件元数据
@@ -1409,19 +1284,8 @@ class DocumentChunksResponse(BaseModel):
     items: list[Dict[str, Any]]
 
 
-class DocumentActionRequest(BaseModel):
+class DocumentActionRequest(_LegacyChunkingRequest):
     app_name: Optional[str] = None
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
 
 
 class DocumentReplaceRequest(DocumentActionRequest):
@@ -1772,41 +1636,10 @@ def _resolve_chunking_config_from_doc_request(
     payload: DocumentActionRequest,
     corpus_config: Dict[str, Any],
 ) -> Optional[ChunkingConfig]:
-    strategy = _resolve_chunking_option(payload.strategy, corpus_config, "strategy")
-    chunk_size = _resolve_chunking_option(payload.chunk_size, corpus_config, "chunk_size")
-    overlap = _resolve_chunking_option(payload.overlap, corpus_config, "overlap")
-    preserve_newlines = _resolve_chunking_option(payload.preserve_newlines, corpus_config, "preserve_newlines")
-    separators = _resolve_chunking_option(payload.separators, corpus_config, "separators")
-    semantic_threshold = _resolve_chunking_option(payload.semantic_threshold, corpus_config, "semantic_threshold")
-    min_chunk_size = _resolve_chunking_option(payload.min_chunk_size, corpus_config, "min_chunk_size")
-    max_chunk_size = _resolve_chunking_option(payload.max_chunk_size, corpus_config, "max_chunk_size")
-    hierarchical_parent_chunk_size = _resolve_chunking_option(
-        payload.hierarchical_parent_chunk_size,
-        corpus_config,
-        "hierarchical_parent_chunk_size",
-    )
-    hierarchical_child_chunk_size = _resolve_chunking_option(
-        payload.hierarchical_child_chunk_size,
-        corpus_config,
-        "hierarchical_child_chunk_size",
-    )
-    hierarchical_child_overlap = _resolve_chunking_option(
-        payload.hierarchical_child_overlap,
-        corpus_config,
-        "hierarchical_child_overlap",
-    )
-    return _build_chunking_config(
-        strategy=strategy,
-        chunk_size=chunk_size,
-        overlap=overlap,
-        preserve_newlines=preserve_newlines,
-        separators=separators,
-        semantic_threshold=semantic_threshold,
-        min_chunk_size=min_chunk_size,
-        max_chunk_size=max_chunk_size,
-        hierarchical_parent_chunk_size=hierarchical_parent_chunk_size,
-        hierarchical_child_chunk_size=hierarchical_child_chunk_size,
-        hierarchical_child_overlap=hierarchical_child_overlap,
+    return _resolve_chunking_config(
+        chunking_config=payload.chunking_config,
+        legacy_payload=_extract_legacy_chunking_payload(payload),
+        corpus_config=corpus_config,
     )
 
 
@@ -1936,8 +1769,7 @@ async def sync_document(
             "source_uri": source_uri,
             "document_id": str(document_id),
             "sync_document": True,
-            "chunk_size": chunking_config.chunk_size if chunking_config else None,
-            "overlap": chunking_config.overlap if chunking_config else None,
+            "chunking_config": chunking_config_summary(chunking_config),
         },
     )
     background_tasks.add_task(
@@ -2213,18 +2045,11 @@ async def replace_source(
 
     try:
         service = _get_service()
-        chunking_config = _build_chunking_config(
-            strategy=payload.strategy,
-            chunk_size=payload.chunk_size,
-            overlap=payload.overlap,
-            preserve_newlines=payload.preserve_newlines,
-            separators=payload.separators,
-            semantic_threshold=payload.semantic_threshold,
-            min_chunk_size=payload.min_chunk_size,
-            max_chunk_size=payload.max_chunk_size,
-            hierarchical_parent_chunk_size=payload.hierarchical_parent_chunk_size,
-            hierarchical_child_chunk_size=payload.hierarchical_child_chunk_size,
-            hierarchical_child_overlap=payload.hierarchical_child_overlap,
+        corpus = await service.get_corpus_by_id(corpus_id)
+        chunking_config = _resolve_chunking_config(
+            chunking_config=payload.chunking_config,
+            legacy_payload=_extract_legacy_chunking_payload(payload),
+            corpus_config=corpus.config if corpus else {},
         )
 
         # 创建 Pipeline 记录
@@ -2235,8 +2060,7 @@ async def replace_source(
                 "corpus_id": str(corpus_id),
                 "source_uri": payload.source_uri,
                 "text_length": len(payload.text),
-                "chunk_size": chunking_config.chunk_size if chunking_config else None,
-                "overlap": chunking_config.overlap if chunking_config else None,
+                "chunking_config": chunking_config_summary(chunking_config),
             },
         )
 
@@ -2306,43 +2130,10 @@ async def sync_source(
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
 
-        # 构建配置：请求参数 > corpus 配置 > 默认值
-        strategy = _resolve_chunking_option(payload.strategy, corpus_config, "strategy")
-        chunk_size = _resolve_chunking_option(payload.chunk_size, corpus_config, "chunk_size")
-        overlap = _resolve_chunking_option(payload.overlap, corpus_config, "overlap")
-        separators = _resolve_chunking_option(payload.separators, corpus_config, "separators")
-        preserve_newlines = _resolve_chunking_option(payload.preserve_newlines, corpus_config, "preserve_newlines")
-        semantic_threshold = _resolve_chunking_option(payload.semantic_threshold, corpus_config, "semantic_threshold")
-        min_chunk_size = _resolve_chunking_option(payload.min_chunk_size, corpus_config, "min_chunk_size")
-        max_chunk_size = _resolve_chunking_option(payload.max_chunk_size, corpus_config, "max_chunk_size")
-        hierarchical_parent_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_parent_chunk_size,
-            corpus_config,
-            "hierarchical_parent_chunk_size",
-        )
-        hierarchical_child_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_child_chunk_size,
-            corpus_config,
-            "hierarchical_child_chunk_size",
-        )
-        hierarchical_child_overlap = _resolve_chunking_option(
-            payload.hierarchical_child_overlap,
-            corpus_config,
-            "hierarchical_child_overlap",
-        )
-
-        chunking_config = _build_chunking_config(
-            strategy=strategy,
-            chunk_size=chunk_size,
-            overlap=overlap,
-            preserve_newlines=preserve_newlines,
-            separators=separators,
-            semantic_threshold=semantic_threshold,
-            min_chunk_size=min_chunk_size,
-            max_chunk_size=max_chunk_size,
-            hierarchical_parent_chunk_size=hierarchical_parent_chunk_size,
-            hierarchical_child_chunk_size=hierarchical_child_chunk_size,
-            hierarchical_child_overlap=hierarchical_child_overlap,
+        chunking_config = _resolve_chunking_config(
+            chunking_config=payload.chunking_config,
+            legacy_payload=_extract_legacy_chunking_payload(payload),
+            corpus_config=corpus_config,
         )
 
         # 创建 Pipeline 记录
@@ -2352,8 +2143,7 @@ async def sync_source(
             input_data={
                 "corpus_id": str(corpus_id),
                 "source_uri": source_uri,
-                "chunk_size": chunking_config.chunk_size if chunking_config else None,
-                "overlap": chunking_config.overlap if chunking_config else None,
+                "chunking_config": chunking_config_summary(chunking_config),
             },
         )
 
@@ -2427,43 +2217,10 @@ async def rebuild_source(
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
 
-        # 构建配置：请求参数 > corpus 配置 > 默认值
-        strategy = _resolve_chunking_option(payload.strategy, corpus_config, "strategy")
-        chunk_size = _resolve_chunking_option(payload.chunk_size, corpus_config, "chunk_size")
-        overlap = _resolve_chunking_option(payload.overlap, corpus_config, "overlap")
-        separators = _resolve_chunking_option(payload.separators, corpus_config, "separators")
-        preserve_newlines = _resolve_chunking_option(payload.preserve_newlines, corpus_config, "preserve_newlines")
-        semantic_threshold = _resolve_chunking_option(payload.semantic_threshold, corpus_config, "semantic_threshold")
-        min_chunk_size = _resolve_chunking_option(payload.min_chunk_size, corpus_config, "min_chunk_size")
-        max_chunk_size = _resolve_chunking_option(payload.max_chunk_size, corpus_config, "max_chunk_size")
-        hierarchical_parent_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_parent_chunk_size,
-            corpus_config,
-            "hierarchical_parent_chunk_size",
-        )
-        hierarchical_child_chunk_size = _resolve_chunking_option(
-            payload.hierarchical_child_chunk_size,
-            corpus_config,
-            "hierarchical_child_chunk_size",
-        )
-        hierarchical_child_overlap = _resolve_chunking_option(
-            payload.hierarchical_child_overlap,
-            corpus_config,
-            "hierarchical_child_overlap",
-        )
-
-        chunking_config = _build_chunking_config(
-            strategy=strategy,
-            chunk_size=chunk_size,
-            overlap=overlap,
-            preserve_newlines=preserve_newlines,
-            separators=separators,
-            semantic_threshold=semantic_threshold,
-            min_chunk_size=min_chunk_size,
-            max_chunk_size=max_chunk_size,
-            hierarchical_parent_chunk_size=hierarchical_parent_chunk_size,
-            hierarchical_child_chunk_size=hierarchical_child_chunk_size,
-            hierarchical_child_overlap=hierarchical_child_overlap,
+        chunking_config = _resolve_chunking_config(
+            chunking_config=payload.chunking_config,
+            legacy_payload=_extract_legacy_chunking_payload(payload),
+            corpus_config=corpus_config,
         )
 
         # 创建 Pipeline 记录
@@ -2473,8 +2230,7 @@ async def rebuild_source(
             input_data={
                 "corpus_id": str(corpus_id),
                 "source_uri": source_uri,
-                "chunk_size": chunking_config.chunk_size if chunking_config else None,
-                "overlap": chunking_config.overlap if chunking_config else None,
+                "chunking_config": chunking_config_summary(chunking_config),
             },
         )
 
