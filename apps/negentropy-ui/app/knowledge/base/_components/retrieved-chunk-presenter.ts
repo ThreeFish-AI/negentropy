@@ -26,20 +26,29 @@ export interface RetrievedChunkViewModel {
 
 interface RetrievedChunkMetadata extends Record<string, unknown> {
   returned_parent_chunk?: boolean;
-  parent_chunk_index?: number;
-  chunk_index?: number;
+  parent_chunk_index?: number | string;
+  chunk_index?: number | string;
   original_filename?: string;
   matched_child_chunk_indices?: unknown[];
   matched_child_chunks?: Array<{
     id?: string;
-    child_chunk_index?: number | null;
+    child_chunk_index?: number | string | null;
     content?: string;
     combined_score?: number;
   }>;
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+function toChunkNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
 }
 
 function toRetrievedChunkMetadata(
@@ -49,10 +58,11 @@ function toRetrievedChunkMetadata(
 }
 
 function formatChunkNumber(value: number | null | undefined): string {
-  if (!isFiniteNumber(value)) {
+  const normalized = toChunkNumber(value);
+  if (normalized === null) {
     return "?";
   }
-  return String(value).padStart(2, "0");
+  return String(normalized).padStart(2, "0");
 }
 
 function basenameFromUri(sourceUri?: string): string | null {
@@ -103,7 +113,7 @@ export function buildRetrievedChunkViewModel(
           id: item.id || `${match.id}-child-${index}`,
           label: `C-${formatChunkNumber(item.child_chunk_index ?? undefined)}`,
           content: item.content || "",
-          score: isFiniteNumber(item.combined_score) ? item.combined_score : 0,
+          score: toChunkNumber(item.combined_score) ?? 0,
         }))
         .filter((item) => item.content.trim().length > 0)
     : [];

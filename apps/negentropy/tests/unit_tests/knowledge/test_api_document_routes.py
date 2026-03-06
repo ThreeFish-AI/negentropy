@@ -7,7 +7,7 @@ import pytest
 from fastapi import BackgroundTasks, HTTPException
 
 from negentropy.knowledge import api as knowledge_api
-from negentropy.knowledge.types import ChunkingStrategy, KnowledgeRecord
+from negentropy.knowledge.types import ChunkingStrategy, KnowledgeMatch, KnowledgeRecord
 
 
 class FakeStorageService:
@@ -42,6 +42,7 @@ class FakeKnowledgeService:
     def __init__(self):
         self.list_knowledge_calls = []
         self.pipeline_calls = []
+        self.search_calls = []
 
     async def list_knowledge(self, **kwargs):
         self.list_knowledge_calls.append(kwargs)
@@ -72,6 +73,32 @@ class FakeKnowledgeService:
 
     async def execute_rebuild_source_pipeline(self, **kwargs):
         _ = kwargs
+
+    async def search(self, **kwargs):
+        self.search_calls.append(kwargs)
+        return [
+            KnowledgeMatch(
+                id=uuid4(),
+                content="search chunk content",
+                source_uri="https://example.com/search",
+                metadata={
+                    "chunk_index": "47",
+                    "returned_parent_chunk": True,
+                    "parent_chunk_index": "6",
+                    "matched_child_chunks": [
+                        {
+                            "id": "child-13",
+                            "child_chunk_index": "13",
+                            "content": "child chunk content",
+                            "combined_score": 0.42,
+                        }
+                    ],
+                },
+                semantic_score=0.0,
+                keyword_score=0.42,
+                combined_score=0.42,
+            )
+        ]
 
 
 @pytest.mark.asyncio
@@ -334,3 +361,27 @@ async def test_rebuild_document_file_success(monkeypatch):
     assert result.status == "running"
     assert fake_service.pipeline_calls[-1]["operation"] == "rebuild_source"
     assert fake_service.pipeline_calls[-1]["input_data"]["source_uri"] == gcs_uri
+
+
+@pytest.mark.asyncio
+async def test_search_route_preserves_chunk_indices_in_metadata(monkeypatch):
+    corpus_id = uuid4()
+    fake_service = FakeKnowledgeService()
+
+    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+
+    result = await knowledge_api.search(
+        corpus_id=corpus_id,
+        payload=knowledge_api.SearchRequest(
+            app_name="negentropy",
+            query="context engineering",
+            mode="hybrid",
+            limit=10,
+        ),
+    )
+
+    assert result["count"] == 1
+    assert fake_service.search_calls[0]["query"] == "context engineering"
+    assert result["items"][0]["metadata"]["chunk_index"] == "47"
+    assert result["items"][0]["metadata"]["parent_chunk_index"] == "6"
+    assert result["items"][0]["metadata"]["matched_child_chunks"][0]["child_chunk_index"] == "13"

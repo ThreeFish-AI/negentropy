@@ -624,6 +624,101 @@ describe("KnowledgeBasePage", () => {
     ).toBeInTheDocument();
   });
 
+  it("字符串形式的 chunk 编号也能正确展示", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+    searchAcrossCorporaMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: "chunk-string-1",
+          content: "string indexed chunk",
+          source_uri: "https://example.com/string",
+          combined_score: 0.56,
+          metadata: {
+            corpus_id: "11111111-1111-1111-1111-111111111111",
+            chunk_index: "47",
+            original_filename: "string-indexed.pdf",
+          },
+        },
+        {
+          id: "chunk-parent-string-1",
+          content: "hierarchical string indexed chunk",
+          source_uri: "https://example.com/hierarchical-string",
+          combined_score: 0.41,
+          metadata: {
+            corpus_id: "11111111-1111-1111-1111-111111111111",
+            original_filename: "hierarchical-string.pdf",
+            returned_parent_chunk: true,
+            parent_chunk_index: "6",
+            matched_child_chunks: [
+              {
+                id: "child-string-13",
+                child_chunk_index: "13",
+                content: "child chunk with string index",
+                combined_score: 0.41,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "string indices");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getByText("Chunk-47")).toBeInTheDocument();
+    expect(screen.getByText("Parent-Chunk-06")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "HIT 1 CHILD CHUNKS" }));
+    expect(screen.getByText("C-13")).toBeInTheDocument();
+  });
+
+  it("缺失 chunk 编号时会明确降级为问号", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+    searchAcrossCorporaMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: "chunk-no-index-1",
+          content: "chunk without index",
+          source_uri: "https://example.com/no-index",
+          combined_score: 0.21,
+          metadata: {
+            corpus_id: "11111111-1111-1111-1111-111111111111",
+            original_filename: "missing-index.pdf",
+          },
+        },
+      ],
+    });
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "missing index");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getByText("Chunk-?")).toBeInTheDocument();
+  });
+
   it("document-chunks 视图仍使用右侧抽屉展示详情", async () => {
     const user = userEvent.setup();
     searchParamsState.value =
