@@ -1,4 +1,4 @@
-name: negentropy-ui-tests
+name: UI Test Suite
 
 on:
   push:
@@ -22,7 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  ui-tests:
+    name: UI Test Suite
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
