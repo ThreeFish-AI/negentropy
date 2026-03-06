@@ -1,4 +1,4 @@
-import { BaseEvent, EventType, Message } from "@ag-ui/core";
+import { BaseEvent, Message } from "@ag-ui/core";
 import {
   createTextMessageStartEvent,
   createTextMessageContentEvent,
@@ -78,6 +78,19 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     messageId: payload.id,
     author: payload.author,
   };
+  const pushLinkEvent = (childId: string, parentId: string, relation: string) => {
+    events.push(
+      createCustomEvent(common, "ne.a2ui.link", {
+        childId,
+        parentId,
+        relation,
+      }),
+    );
+  };
+  const normalizeTextRole = (
+    value: string | undefined,
+  ): "user" | "agent" | "system" =>
+    value === "user" || value === "system" ? value : "agent";
 
   // 1. Text Messages
   // 过滤掉包含工具调用（functionCall/functionResponse）的 part，
@@ -108,7 +121,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
     payload.message?.role !== "tool" &&
     !isToolResponsePart
   ) {
-    const role = payload.message?.role || payload.author || "assistant";
+    const role = normalizeTextRole(payload.message?.role || payload.author);
 
     events.push(createTextMessageStartEvent(common, role));
 
@@ -130,6 +143,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
       }
 
       events.push(createToolCallEndEvent(common, tc.id));
+      pushLinkEvent(`tool:${tc.id}`, `message:${payload.id}`, "child");
     });
   }
 
@@ -144,6 +158,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
         events.push(createToolCallArgsEvent(common, fc.id, argsString));
 
         events.push(createToolCallEndEvent(common, fc.id));
+        pushLinkEvent(`tool:${fc.id}`, `message:${payload.id}`, "child");
       }
     });
   }
@@ -152,6 +167,11 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
   if (payload.message?.role === "tool" && payload.message.tool_call_id) {
     const content = textParts.join("") || payload.delta || "";
     events.push(createToolCallResultEvent(common, payload.message.tool_call_id, content));
+    pushLinkEvent(
+      `tool-result:${payload.message.tool_call_id}`,
+      `tool:${payload.message.tool_call_id}`,
+      "child",
+    );
   }
 
   // 3b. Tool Result (Gemini/Parts Style)
@@ -163,6 +183,7 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
         const content =
           typeof result === "string" ? result : JSON.stringify(result);
         events.push(createToolCallResultEvent(common, fr.id, content));
+        pushLinkEvent(`tool-result:${fr.id}`, `tool:${fr.id}`, "child");
       }
     });
   }
@@ -196,10 +217,24 @@ export function adkEventToAguiEvents(payload: AdkEventPayload): BaseEvent[] {
   // 8. Step Started/Finished（细粒度进度）
   if (payload.actions?.stepStarted) {
     events.push(createStepStartedEvent(common, payload.actions.stepStarted.id, payload.actions.stepStarted.name));
+    events.push(
+      createCustomEvent(common, "ne.a2ui.reasoning", {
+        stepId: payload.actions.stepStarted.id,
+        phase: "started",
+        title: payload.actions.stepStarted.name,
+      }),
+    );
   }
 
   if (payload.actions?.stepFinished) {
     events.push(createStepFinishedEvent(common, payload.actions.stepFinished.id, payload.actions.stepFinished.result));
+    events.push(
+      createCustomEvent(common, "ne.a2ui.reasoning", {
+        stepId: payload.actions.stepFinished.id,
+        phase: "finished",
+        result: payload.actions.stepFinished.result,
+      }),
+    );
   }
 
   // 9. RAW/CUSTOM 事件（透传机制）

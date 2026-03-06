@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
-import type { Message } from "@ag-ui/core";
 import type { ChatMessage } from "@/types/common";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
