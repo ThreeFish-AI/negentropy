@@ -199,6 +199,25 @@ describe("KnowledgeBasePage", () => {
     expect(deleteCorpusMock).not.toHaveBeenCalled();
   });
 
+  it("点击删除确认框空白处会关闭弹框", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(screen.getByRole("dialog", { name: "Delete Corpus" })).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("overlay-backdrop"));
+
+    expect(screen.queryByRole("dialog", { name: "Delete Corpus" })).not.toBeInTheDocument();
+    expect(deleteCorpusMock).not.toHaveBeenCalled();
+  });
+
   it("确认删除当前 Corpus 后会执行删除并跳回 overview", async () => {
     const user = userEvent.setup();
     searchParamsState.value = "view=overview";
@@ -501,6 +520,31 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByRole("button", { name: "Corpus" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "收起 Corpus" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
+  });
+
+  it("点击右侧抽屉空白处会关闭 Chunk Detail", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByText("retrieved chunk content"));
+    expect(screen.getByText("Chunk Detail")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("chunk-drawer-backdrop"));
+    expect(screen.queryByText("Chunk Detail")).not.toBeInTheDocument();
   });
 
   it("未选中任何 Corpus 时禁用 Retrieve，并且不会发起检索", async () => {

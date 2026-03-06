@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { KnowledgeDocument, fetchDocumentDetail } from "@/features/knowledge";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -94,8 +95,13 @@ export function ReplaceDocumentDialog({
   if (!isOpen || !document) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="flex h-[86vh] w-full max-w-6xl flex-col rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
+    <OverlayDismissLayer
+      open={isOpen && document !== null}
+      onClose={handleClose}
+      busy={submitting}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="flex h-[86vh] w-full max-w-6xl flex-col rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900"
+    >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -168,7 +174,6 @@ export function ReplaceDocumentDialog({
             {submitting ? "Replacing..." : "Replace"}
           </button>
         </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }

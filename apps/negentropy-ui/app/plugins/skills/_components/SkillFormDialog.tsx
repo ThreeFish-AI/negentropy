@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 interface Skill {
   id: string;
@@ -131,10 +132,14 @@ export function SkillFormDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
-      <div className="relative flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6">
-        <div className="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900">
+    <OverlayDismissLayer
+      open={open}
+      onClose={onClose}
+      busy={loading}
+      backdropClassName="bg-black/55"
+      containerClassName="flex min-h-full items-start justify-center overflow-y-auto p-3 sm:p-6"
+      contentClassName="my-3 flex max-h-[calc(100vh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2rem)] dark:border-zinc-700 dark:bg-zinc-900"
+    >
           <div className="border-b border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {skill ? "Edit Skill" : "Add Skill"}
@@ -345,8 +350,6 @@ export function SkillFormDialog({
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }
