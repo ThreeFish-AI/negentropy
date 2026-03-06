@@ -10,6 +10,7 @@ const {
   searchParamsState,
   fetchDocumentsMock,
   fetchDocumentChunksMock,
+  searchAcrossCorporaMock,
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   deleteCorpusMock: vi.fn(),
   fetchDocumentsMock: vi.fn(),
   fetchDocumentChunksMock: vi.fn(),
+  searchAcrossCorporaMock: vi.fn(),
   searchParamsState: {
     value: "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents",
   },
@@ -52,7 +54,7 @@ vi.mock("@/features/knowledge", () => ({
   useKnowledgeBase: (...args: unknown[]) => useKnowledgeBaseMock(...args),
   fetchDocuments: (...args: unknown[]) => fetchDocumentsMock(...args),
   fetchDocumentChunks: (...args: unknown[]) => fetchDocumentChunksMock(...args),
-  searchAcrossCorpora: vi.fn().mockResolvedValue({ items: [] }),
+  searchAcrossCorpora: (...args: unknown[]) => searchAcrossCorporaMock(...args),
   syncDocument: vi.fn(),
   rebuildDocument: vi.fn(),
   replaceDocument: vi.fn(),
@@ -77,6 +79,7 @@ describe("KnowledgeBasePage", () => {
     deleteCorpusMock.mockReset();
     fetchDocumentsMock.mockReset();
     fetchDocumentChunksMock.mockReset();
+    searchAcrossCorporaMock.mockReset();
     searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
 
     loadCorpusMock.mockResolvedValue(undefined);
@@ -84,6 +87,17 @@ describe("KnowledgeBasePage", () => {
     deleteCorpusMock.mockResolvedValue(undefined);
     fetchDocumentsMock.mockResolvedValue({ items: [] });
     fetchDocumentChunksMock.mockResolvedValue({ items: [] });
+    searchAcrossCorporaMock.mockResolvedValue({
+      items: [
+        {
+          id: "chunk-1",
+          content: "retrieved chunk content",
+          source_uri: "https://example.com/doc",
+          combined_score: 0.91,
+          metadata: { corpus_id: "11111111-1111-1111-1111-111111111111" },
+        },
+      ],
+    });
 
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [
@@ -196,5 +210,71 @@ describe("KnowledgeBasePage", () => {
       "doc-1",
       { appName: "negentropy", limit: 200, offset: 0 },
     );
+  });
+
+  it("检索后默认隐藏 Corpus 集合，并通过底部按钮展开与收起", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getByText("Retrieved Chunks")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Corpus" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Corpus" }));
+
+    expect(screen.getByRole("button", { name: "收起 Corpus" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Corpus" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "收起 Corpus" }));
+
+    expect(screen.getByRole("button", { name: "Corpus" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
+  });
+
+  it("新的检索会重置已展开的 Corpus 面板为收起状态", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "first query");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Corpus" }));
+    expect(screen.getByRole("button", { name: "收起 Corpus" })).toBeInTheDocument();
+
+    const dockedInput = screen.getByPlaceholderText("输入检索内容");
+    await user.clear(dockedInput);
+    await user.type(dockedInput, "second query");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getByRole("button", { name: "Corpus" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "收起 Corpus" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
   });
 });

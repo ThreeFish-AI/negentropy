@@ -113,6 +113,7 @@ export default function KnowledgeBasePage() {
   const [retrievalLoading, setRetrievalLoading] = useState(false);
   const [retrievalError, setRetrievalError] = useState<string | null>(null);
   const [retrievalDocked, setRetrievalDocked] = useState(false);
+  const [isCorpusPanelExpanded, setIsCorpusPanelExpanded] = useState(false);
 
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
@@ -175,6 +176,12 @@ export default function KnowledgeBasePage() {
     }
   }, [loadCorpus, selectedCorpusId]);
 
+  useEffect(() => {
+    if (!retrievalDocked) {
+      setIsCorpusPanelExpanded(false);
+    }
+  }, [retrievalDocked]);
+
   const loadDocuments = useCallback(async () => {
     if (!selectedCorpusId) return;
     setDocumentsLoading(true);
@@ -234,6 +241,7 @@ export default function KnowledgeBasePage() {
       });
       setRetrievalResults(res.items);
       setRetrievalDocked(true);
+      setIsCorpusPanelExpanded(false);
     } catch (err) {
       setRetrievalError(err instanceof Error ? err.message : "Retrieve failed");
     } finally {
@@ -462,8 +470,8 @@ export default function KnowledgeBasePage() {
     </div>
   );
 
-  const renderCorpusCards = () => (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+  const renderCorpusCards = ({ embedded = false }: { embedded?: boolean } = {}) => (
+    <div className={embedded ? "rounded-2xl border border-border bg-card p-4" : "rounded-2xl border border-border bg-card p-4 shadow-sm"}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Corpus</h2>
         <button
@@ -554,11 +562,27 @@ export default function KnowledgeBasePage() {
             )}
 
             {!retrievalDocked && renderRetrievalModule()}
-            {renderCorpusCards()}
+            {!retrievalDocked && renderCorpusCards()}
 
             {retrievalDocked && (
               <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 px-6 py-3 backdrop-blur">
-                {renderRetrievalModule()}
+                <div className="mx-auto max-h-[70vh] max-w-[1400px] overflow-y-auto">
+                  {renderRetrievalModule()}
+                  <div className="mt-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setIsCorpusPanelExpanded((prev) => !prev)}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-semibold hover:bg-muted"
+                    >
+                      {isCorpusPanelExpanded ? "收起 Corpus" : "Corpus"}
+                    </button>
+                  </div>
+                  {isCorpusPanelExpanded && (
+                    <div className="mt-3">
+                      {renderCorpusCards({ embedded: true })}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
