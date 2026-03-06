@@ -222,8 +222,19 @@ export async function POST(request: Request) {
                   normalizeAguiEvent({
                     ...event,
                     threadId:
-                      "threadId" in event ? event.threadId : resolvedThreadId,
-                    runId: "runId" in event ? event.runId : resolvedRunId,
+                      "threadId" in event &&
+                      typeof event.threadId === "string" &&
+                      event.threadId.trim() &&
+                      event.threadId !== "default"
+                        ? event.threadId
+                        : resolvedThreadId,
+                    runId:
+                      "runId" in event &&
+                      typeof event.runId === "string" &&
+                      event.runId.trim() &&
+                      event.runId !== "default"
+                        ? event.runId
+                        : resolvedRunId,
                   }),
                 );
                 for (const event of events) {

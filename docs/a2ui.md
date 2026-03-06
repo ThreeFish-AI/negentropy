@@ -87,6 +87,22 @@ flowchart LR
 - 工具调用按 `runId` 粗粒度挂载，父子关系不稳定
 - `TEXT_MESSAGE_CONTENT` 被压扁为文本，活动/状态/原始事件无法成为一级模块
 - 主聊天区与右侧观察区职责失衡，导致真正的“交互结构”不可见
+- 纯结构性事件和空 payload 技术事件会污染主聊天区，造成空白消息块、重复 JSON 模块和错误时序
+
+### 5.1 Chat-friendly A2UI 规则
+
+为避免把“协议完整性”直接等价成“主聊天区全部直出”，Chat 页采用面向阅读的三层可见性模型：
+
+- `chat`：用户消息、助手消息、工具调用、工具结果
+- `collapsed`：活动、步骤、推理、状态、自定义业务事件，默认以摘要卡片显示
+- `debug-only`：纯结构性链接事件、原始事件、空 payload 技术事件，仅保留在调试链路
+
+对应策略：
+
+- `ne.a2ui.link` 仅用于树关系回填，不进入主聊天区
+- 空文本节点与空技术节点在树构建阶段裁剪
+- fallback 用户消息优先挂到最近轮次，避免作为裸 root 插入响应中部
+- JSON 默认走“摘要卡片 + 按需展开详情”，而不是直接作为消息气泡展示
 
 ## 6. 实施方案
 
@@ -195,7 +211,8 @@ classDiagram
 | 事件到树构建器 | 已完成 | [conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts) | 可处理文本/工具/状态/步骤 | 复杂链路仍需更多用例覆盖 |
 | Chat 树形渲染 | 已完成 | [ChatStream.tsx](../apps/negentropy-ui/components/ui/ChatStream.tsx) | 主区已切换为递归节点渲染 | 视觉细节仍可继续打磨 |
 | A2UI 自定义关联事件 | 已完成 | [adk.ts](../apps/negentropy-ui/lib/adk.ts) | 已注入 `ne.a2ui.link` / `ne.a2ui.reasoning` | 上游若提供原生父子关系，可进一步收敛 |
-| 单元测试补齐 | 进行中 | [tests/unit](../apps/negentropy-ui/tests/unit) | 待依赖安装后完整复验 | 当前本地缺少前端依赖 |
+| Chat 乱序与空白节点治理 | 已完成 | [conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts) | 已修复默认 `runId` 归并、空节点裁剪、fallback 消息挂靠与技术节点过滤 | 后续仍需补更多真实流量样例 |
+| 单元测试补齐 | 已完成 | [tests/unit](../apps/negentropy-ui/tests/unit) | `pnpm --dir apps/negentropy-ui test` 通过，23 个测试文件全部通过 | `lint/build` 仍受整仓存量问题影响 |
 
 ## 9. 最佳实践
 
@@ -204,6 +221,8 @@ classDiagram
 - 不暴露私有推理原文，仅渲染安全摘要或阶段状态
 - 主聊天区负责“交互结构”，右侧面板负责“观测镜像”
 - 新类型先走 `custom` 回退，再决定是否升级为正式组件
+- 主聊天区必须做信息分层，不能把结构性事件和调试载荷直接视作聊天消息
+- 技术类 JSON 默认展示摘要卡片，并提供显式展开入口，避免噪音淹没主对话
 
 ## 10. 后续建议
 

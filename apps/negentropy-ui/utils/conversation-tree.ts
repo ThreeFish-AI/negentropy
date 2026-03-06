@@ -5,6 +5,11 @@ import type {
   ConversationNodeType,
   ConversationTree,
 } from "@/types/a2ui";
+import {
+  buildNodeSummary,
+  classifyNodeVisibility,
+  isNodePayloadEmpty,
+} from "@/utils/conversation-summary";
 
 type MutableNode = ConversationNode;
 
@@ -20,6 +25,13 @@ type CustomPayload = {
 
 const DEFAULT_THREAD_ID = "default";
 const DEFAULT_RUN_ID = "default";
+
+function normalizeRunId(value: string | undefined, fallbackRunId?: string): string {
+  if (!value || value === DEFAULT_RUN_ID) {
+    return fallbackRunId || DEFAULT_RUN_ID;
+  }
+  return value;
+}
 
 function normalizeRole(value: unknown): "user" | "assistant" | "system" {
   if (value === "user") return "user";
@@ -66,6 +78,8 @@ function createNode(input: {
     status: input.status,
     role: input.role,
     summary: input.summary,
+    visibility: "chat",
+    isStructural: false,
     payload: input.payload || {},
     sourceEventTypes: input.sourceEventTypes || [],
     relatedMessageIds: input.relatedMessageIds || [],
@@ -104,11 +118,14 @@ function ensureTurn(
   turns: Map<string, MutableNode>,
   roots: MutableNode[],
   event: BaseEvent,
+  fallbackRunId?: string,
 ): MutableNode {
-  const runId =
+  const runId = normalizeRunId(
     "runId" in event && typeof event.runId === "string"
       ? event.runId
-      : DEFAULT_RUN_ID;
+      : undefined,
+    fallbackRunId,
+  );
   const existing = turns.get(runId);
   if (existing) {
     mergeEventMeta(existing, event);
@@ -203,14 +220,20 @@ function upsertNode(
 function attachNode(
   nodeIndex: Map<string, MutableNode>,
   roots: MutableNode[],
+  turns: Map<string, MutableNode>,
   childId: string,
   parentId: string | null,
 ) {
   const child = nodeIndex.get(childId);
   if (!child) return;
 
-  if (child.parentId && nodeIndex.has(child.parentId)) {
-    removeChild(nodeIndex.get(child.parentId)!, childId);
+  if (child.parentId) {
+    const previousParent =
+      nodeIndex.get(child.parentId) ||
+      turns.get(child.parentId.replace(/^turn:/, ""));
+    if (previousParent) {
+      removeChild(previousParent, childId);
+    }
   } else if (!child.parentId) {
     const rootIndex = roots.findIndex((node) => node.id === childId);
     if (rootIndex >= 0) {
@@ -223,7 +246,7 @@ function attachNode(
     roots.push(child);
     return;
   }
-  const parent = nodeIndex.get(parentId);
+  const parent = nodeIndex.get(parentId) || turns.get(parentId.replace(/^turn:/, ""));
   if (parent) {
     addChild(parent, child);
   } else {
@@ -236,6 +259,15 @@ function chooseParentMessageId(
   runId: string,
 ): string | null {
   return assistantByRun.get(runId) || null;
+}
+
+function getLatestTurn(turns: Map<string, MutableNode>): MutableNode | null {
+  const values = [...turns.values()];
+  if (values.length === 0) {
+    return null;
+  }
+  values.sort((a, b) => b.timeRange.start - a.timeRange.start);
+  return values[0] || null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -253,6 +285,75 @@ function getMessageTimestamp(message: Message): number {
   return createdAt instanceof Date ? createdAt.getTime() / 1000 : Date.now() / 1000;
 }
 
+function pruneNode(node: MutableNode): MutableNode | null {
+  node.children = node.children
+    .map((child) => pruneNode(child))
+    .filter((child): child is MutableNode => child !== null);
+
+  const summaryLines = buildNodeSummary(node);
+  node.summary = node.summary || summaryLines.join(" · ");
+  node.visibility = classifyNodeVisibility(node);
+  node.isStructural =
+    node.type === "custom" && String(node.payload.eventType || "") === "ne.a2ui.link";
+
+  const isEmptyTextNode =
+    node.type === "text" &&
+    String(node.payload.content || "").trim().length === 0 &&
+    node.children.length === 0;
+  const isEmptyNode =
+    node.type !== "turn" &&
+    node.type !== "text" &&
+    isNodePayloadEmpty(node) &&
+    node.children.length === 0;
+
+  if (node.type === "turn" && node.children.length === 0) {
+    return null;
+  }
+  if (node.visibility === "debug-only" && node.children.length === 0) {
+    return null;
+  }
+  if (isEmptyTextNode || isEmptyNode) {
+    return null;
+  }
+
+  return node;
+}
+
+function sortNodeChildren(node: MutableNode) {
+  const typeOrder: Record<ConversationNodeType, number> = {
+    turn: 0,
+    text: 1,
+    "tool-call": 2,
+    "tool-result": 3,
+    activity: 4,
+    reasoning: 5,
+    step: 6,
+    "state-delta": 7,
+    "state-snapshot": 8,
+    custom: 9,
+    raw: 10,
+    event: 11,
+    error: 12,
+  };
+
+  node.children.sort((a, b) => {
+    if (a.type === "text" && b.type === "text" && a.role !== b.role) {
+      return a.role === "user" ? -1 : 1;
+    }
+    const typeDiff = typeOrder[a.type] - typeOrder[b.type];
+    if (typeDiff !== 0) {
+      return typeDiff;
+    }
+    const timeDiff = a.timeRange.start - b.timeRange.start;
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  node.children.forEach(sortNodeChildren);
+}
+
 export function buildConversationTree(
   options: BuildConversationTreeOptions,
 ): ConversationTree {
@@ -264,6 +365,7 @@ export function buildConversationTree(
   const turns = new Map<string, MutableNode>();
   const assistantMessageByRun = new Map<string, string>();
   const pendingLinks: LinkInstruction[] = [];
+  let activeRunId: string | undefined;
 
   const orderedEvents = [...events].sort((a, b) => {
     const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
@@ -272,39 +374,53 @@ export function buildConversationTree(
   });
 
   orderedEvents.forEach((event) => {
-    const turn = ensureTurn(turns, roots, event);
+    const normalizedRunId = normalizeRunId(
+      "runId" in event && typeof event.runId === "string"
+        ? event.runId
+        : undefined,
+      activeRunId,
+    );
+    const normalizedEvent = {
+      ...event,
+      runId: normalizedRunId,
+    } as BaseEvent;
+    const turn = ensureTurn(turns, roots, normalizedEvent, activeRunId);
     const runId = turn.runId || DEFAULT_RUN_ID;
     const messageId =
-      "messageId" in event && typeof event.messageId === "string"
-        ? event.messageId
+      "messageId" in normalizedEvent && typeof normalizedEvent.messageId === "string"
+        ? normalizedEvent.messageId
         : undefined;
-    const eventType = String(event.type);
+    const eventType = String(normalizedEvent.type);
 
-    switch (event.type) {
+    switch (normalizedEvent.type) {
       case EventType.RUN_STARTED: {
+        activeRunId = runId;
         turn.status = "running";
         turn.title = `轮次 ${runId.slice(0, 8)}`;
-        mergeEventMeta(turn, event);
+        mergeEventMeta(turn, normalizedEvent);
         return;
       }
       case EventType.RUN_FINISHED: {
         turn.status = "finished";
-        mergeEventMeta(turn, event);
+        mergeEventMeta(turn, normalizedEvent);
+        if (activeRunId === runId) {
+          activeRunId = undefined;
+        }
         return;
       }
       case EventType.RUN_ERROR: {
         const node = upsertNode(nodeIndex, roots, turns, {
-          id: `error:${runId}:${normalizeTimestamp(event.timestamp)}`,
+          id: `error:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}`,
           type: "error",
           parentId: turn.id,
           threadId: turn.threadId,
           runId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: "运行错误",
           status: "error",
           payload: {
-            message: "message" in event ? event.message : "",
-            code: "code" in event ? event.code : "",
+            message: "message" in normalizedEvent ? normalizedEvent.message : "",
+            code: "code" in normalizedEvent ? normalizedEvent.code : "",
           },
           sourceEventTypes: [eventType],
         });
@@ -316,8 +432,8 @@ export function buildConversationTree(
       case EventType.TEXT_MESSAGE_END: {
         if (!messageId) return;
         const role =
-          event.type === EventType.TEXT_MESSAGE_START && "role" in event
-            ? normalizeRole(event.role)
+          normalizedEvent.type === EventType.TEXT_MESSAGE_START && "role" in normalizedEvent
+            ? normalizeRole(normalizedEvent.role)
             : undefined;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `message:${messageId}`,
@@ -326,7 +442,7 @@ export function buildConversationTree(
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: role === "user" ? "用户消息" : "助手消息",
           role,
           payload: {
@@ -335,13 +451,14 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: [messageId],
         });
-        mergeEventMeta(node, event);
+        mergeEventMeta(node, normalizedEvent);
         if (role) {
           node.role = role;
           node.title = role === "user" ? "用户消息" : "助手消息";
         }
-        if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
-          const delta = "delta" in event ? String(event.delta || "") : "";
+        if (normalizedEvent.type === EventType.TEXT_MESSAGE_CONTENT) {
+          const delta =
+            "delta" in normalizedEvent ? String(normalizedEvent.delta || "") : "";
           const existing = String(node.payload.content || "");
           node.payload.content =
             delta.length >= existing.length || existing.length === 0
@@ -359,8 +476,8 @@ export function buildConversationTree(
       case EventType.TOOL_CALL_ARGS:
       case EventType.TOOL_CALL_END: {
         const toolCallId =
-          "toolCallId" in event && typeof event.toolCallId === "string"
-            ? event.toolCallId
+          "toolCallId" in normalizedEvent && typeof normalizedEvent.toolCallId === "string"
+            ? normalizedEvent.toolCallId
             : undefined;
         if (!toolCallId) return;
         const parentMessageNodeId = chooseParentMessageId(
@@ -376,15 +493,15 @@ export function buildConversationTree(
           runId,
           messageId,
           toolCallId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title:
-            event.type === EventType.TOOL_CALL_START &&
-            "toolCallName" in event &&
-            typeof event.toolCallName === "string"
-              ? event.toolCallName
+            normalizedEvent.type === EventType.TOOL_CALL_START &&
+            "toolCallName" in normalizedEvent &&
+            typeof normalizedEvent.toolCallName === "string"
+              ? normalizedEvent.toolCallName
               : "工具调用",
           status:
-            event.type === EventType.TOOL_CALL_END ? "done" : "running",
+            normalizedEvent.type === EventType.TOOL_CALL_END ? "done" : "running",
           payload: {
             args: "",
           },
@@ -392,26 +509,26 @@ export function buildConversationTree(
           relatedMessageIds: messageId ? [messageId] : [],
         });
         if (
-          event.type === EventType.TOOL_CALL_START &&
-          "toolCallName" in event &&
-          typeof event.toolCallName === "string"
+          normalizedEvent.type === EventType.TOOL_CALL_START &&
+          "toolCallName" in normalizedEvent &&
+          typeof normalizedEvent.toolCallName === "string"
         ) {
-          node.title = event.toolCallName;
-          node.payload.toolCallName = event.toolCallName;
+          node.title = normalizedEvent.toolCallName;
+          node.payload.toolCallName = normalizedEvent.toolCallName;
         }
-        if (event.type === EventType.TOOL_CALL_ARGS && "delta" in event) {
+        if (normalizedEvent.type === EventType.TOOL_CALL_ARGS && "delta" in normalizedEvent) {
           node.payload.args = `${String(node.payload.args || "")}${String(
-            event.delta || "",
+            normalizedEvent.delta || "",
           )}`;
         }
         toolNodeIndex.set(toolCallId, node.id);
-        attachNode(nodeIndex, roots, node.id, parentId);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.TOOL_CALL_RESULT: {
         const toolCallId =
-          "toolCallId" in event && typeof event.toolCallId === "string"
-            ? event.toolCallId
+          "toolCallId" in normalizedEvent && typeof normalizedEvent.toolCallId === "string"
+            ? normalizedEvent.toolCallId
             : undefined;
         if (!toolCallId) return;
         const toolNodeId = toolNodeIndex.get(toolCallId);
@@ -424,33 +541,34 @@ export function buildConversationTree(
           runId,
           messageId,
           toolCallId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: "工具结果",
           status: "completed",
           payload: {
-            content: "content" in event ? event.content : "",
+            content: "content" in normalizedEvent ? normalizedEvent.content : "",
           },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        attachNode(nodeIndex, roots, node.id, parentId);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.ACTIVITY_SNAPSHOT: {
         const node = upsertNode(nodeIndex, roots, turns, {
-          id: `activity:${runId}:${normalizeTimestamp(event.timestamp)}:${messageId || "none"}`,
+          id: `activity:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "activity",
           parentId: turn.id,
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title:
-            "activityType" in event && typeof event.activityType === "string"
-              ? event.activityType
+            "activityType" in normalizedEvent &&
+            typeof normalizedEvent.activityType === "string"
+              ? normalizedEvent.activityType
               : "活动",
           payload: {
-            content: "content" in event ? event.content : {},
+            content: "content" in normalizedEvent ? normalizedEvent.content : {},
           },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
@@ -460,16 +578,16 @@ export function buildConversationTree(
       }
       case EventType.STATE_DELTA: {
         const node = upsertNode(nodeIndex, roots, turns, {
-          id: `state-delta:${runId}:${normalizeTimestamp(event.timestamp)}:${messageId || "none"}`,
+          id: `state-delta:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "state-delta",
           parentId: turn.id,
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: "状态增量",
           payload: {
-            delta: "delta" in event ? event.delta : [],
+            delta: "delta" in normalizedEvent ? normalizedEvent.delta : [],
           },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
@@ -479,16 +597,16 @@ export function buildConversationTree(
       }
       case EventType.STATE_SNAPSHOT: {
         const node = upsertNode(nodeIndex, roots, turns, {
-          id: `state-snapshot:${runId}:${normalizeTimestamp(event.timestamp)}:${messageId || "none"}`,
+          id: `state-snapshot:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "state-snapshot",
           parentId: turn.id,
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: "状态快照",
           payload: {
-            snapshot: "snapshot" in event ? event.snapshot : {},
+            snapshot: "snapshot" in normalizedEvent ? normalizedEvent.snapshot : {},
           },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
@@ -499,9 +617,9 @@ export function buildConversationTree(
       case EventType.STEP_STARTED:
       case EventType.STEP_FINISHED: {
         const stepId =
-          "stepId" in event && typeof event.stepId === "string"
-            ? event.stepId
-            : `step-${normalizeTimestamp(event.timestamp)}`;
+          "stepId" in normalizedEvent && typeof normalizedEvent.stepId === "string"
+            ? normalizedEvent.stepId
+            : `step-${normalizeTimestamp(normalizedEvent.timestamp)}`;
         const baseParentId =
           chooseParentMessageId(assistantMessageByRun, runId) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
@@ -511,24 +629,25 @@ export function buildConversationTree(
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title:
-            event.type === EventType.STEP_STARTED &&
-            "stepName" in event &&
-            typeof event.stepName === "string"
-              ? event.stepName
+            normalizedEvent.type === EventType.STEP_STARTED &&
+            "stepName" in normalizedEvent &&
+            typeof normalizedEvent.stepName === "string"
+              ? normalizedEvent.stepName
               : `步骤 ${stepId}`,
-          status: event.type === EventType.STEP_FINISHED ? "done" : "running",
+          status: normalizedEvent.type === EventType.STEP_FINISHED ? "done" : "running",
           payload: {
             result:
-              event.type === EventType.STEP_FINISHED && "result" in event
-                ? event.result
+              normalizedEvent.type === EventType.STEP_FINISHED &&
+              "result" in normalizedEvent
+                ? normalizedEvent.result
                 : undefined,
           },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        attachNode(nodeIndex, roots, node.id, baseParentId);
+        attachNode(nodeIndex, roots, turns, node.id, baseParentId);
         upsertNode(nodeIndex, roots, turns, {
           id: `reasoning:${stepId}`,
           type: "reasoning",
@@ -536,17 +655,17 @@ export function buildConversationTree(
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: "推理阶段",
           status: node.status,
           summary:
-            event.type === EventType.STEP_STARTED
+            normalizedEvent.type === EventType.STEP_STARTED
               ? `阶段开始：${node.title}`
               : `阶段完成：${node.title}`,
           payload: {
             stepId,
             phase:
-              event.type === EventType.STEP_STARTED ? "started" : "finished",
+              normalizedEvent.type === EventType.STEP_STARTED ? "started" : "finished",
           },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
@@ -556,16 +675,16 @@ export function buildConversationTree(
       }
       case EventType.RAW: {
         const node = upsertNode(nodeIndex, roots, turns, {
-          id: `raw:${runId}:${normalizeTimestamp(event.timestamp)}`,
+          id: `raw:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}`,
           type: "raw",
           parentId: turn.id,
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: "原始事件",
           payload: {
-            data: "data" in event ? event.data : {},
+            data: "data" in normalizedEvent ? normalizedEvent.data : {},
           },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
@@ -574,7 +693,7 @@ export function buildConversationTree(
         return;
       }
       case EventType.CUSTOM: {
-        const customEvent = event as BaseEvent & CustomPayload;
+        const customEvent = normalizedEvent as BaseEvent & CustomPayload;
         const eventTypeName =
           typeof customEvent.eventType === "string"
             ? customEvent.eventType
@@ -591,15 +710,19 @@ export function buildConversationTree(
               parentId: data.parentId,
             });
           }
+          return;
+        }
+        if (eventTypeName === "ne.a2ui.reasoning") {
+          return;
         }
         const node = upsertNode(nodeIndex, roots, turns, {
-          id: `custom:${runId}:${eventTypeName}:${normalizeTimestamp(event.timestamp)}`,
+          id: `custom:${runId}:${eventTypeName}:${normalizeTimestamp(normalizedEvent.timestamp)}`,
           type: "custom",
           parentId: turn.id,
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: eventTypeName,
           payload: {
             data: customEvent.data,
@@ -613,15 +736,15 @@ export function buildConversationTree(
       }
       default: {
         const node = upsertNode(nodeIndex, roots, turns, {
-          id: `event:${runId}:${eventType}:${normalizeTimestamp(event.timestamp)}`,
+          id: `event:${runId}:${eventType}:${normalizeTimestamp(normalizedEvent.timestamp)}`,
           type: "event",
           parentId: turn.id,
           threadId: turn.threadId,
           runId,
           messageId,
-          timestamp: event.timestamp,
+          timestamp: normalizedEvent.timestamp,
           title: eventType,
-          payload: { event },
+          payload: { event: normalizedEvent },
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
@@ -651,14 +774,15 @@ export function buildConversationTree(
         } as BaseEvent,
       );
     }
-    const parentId = runId ? `turn:${runId}` : null;
+    const fallbackTurn = (runId && turns.get(runId)) || getLatestTurn(turns);
+    const parentId = fallbackTurn?.id ?? null;
     const role = normalizeRole(message.role);
     const node = upsertNode(nodeIndex, roots, turns, {
       id: `message:${messageId}`,
       type: "text",
       parentId,
       threadId: DEFAULT_THREAD_ID,
-      runId,
+      runId: fallbackTurn?.runId || runId,
       messageId,
       timestamp: getMessageTimestamp(message),
       title: role === "user" ? "用户消息" : "助手消息",
@@ -673,11 +797,11 @@ export function buildConversationTree(
       relatedMessageIds: [messageId],
     });
     messageNodeIndex.set(messageId, node.id);
-    if (role === "assistant" && runId) {
-      assistantMessageByRun.set(runId, node.id);
+    if (role === "assistant" && (fallbackTurn?.runId || runId)) {
+      assistantMessageByRun.set(fallbackTurn?.runId || runId || DEFAULT_RUN_ID, node.id);
     }
     if (parentId) {
-      attachNode(nodeIndex, roots, node.id, parentId);
+      attachNode(nodeIndex, roots, turns, node.id, parentId);
     }
   });
 
@@ -685,22 +809,23 @@ export function buildConversationTree(
     if (!nodeIndex.has(link.childId) || !nodeIndex.has(link.parentId)) {
       return;
     }
-    attachNode(nodeIndex, roots, link.childId, link.parentId);
+    attachNode(nodeIndex, roots, turns, link.childId, link.parentId);
   });
 
-  const sortNodes = (nodes: MutableNode[]) => {
-    nodes.sort((a, b) => {
-      const timeDiff = a.timeRange.start - b.timeRange.start;
-      if (timeDiff !== 0) return timeDiff;
-      return a.id.localeCompare(b.id);
-    });
-    nodes.forEach((node) => sortNodes(node.children));
-  };
-
-  sortNodes(roots);
+  const prunedRoots = roots
+    .map((node) => pruneNode(node))
+    .filter((node): node is MutableNode => node !== null);
+  prunedRoots.sort((a, b) => {
+    const timeDiff = a.timeRange.start - b.timeRange.start;
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+    return a.id.localeCompare(b.id);
+  });
+  prunedRoots.forEach(sortNodeChildren);
 
   return {
-    roots,
+    roots: prunedRoots,
     nodeIndex,
     messageNodeIndex,
     toolNodeIndex,

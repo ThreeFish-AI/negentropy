@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState } from "react";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 import { MessageBubble } from "@/components/ui/MessageBubble";
 import type { ChatMessage } from "@/types/common";
 import type { ConversationNode } from "@/types/a2ui";
+import { buildNodeSummary, safeJsonParse } from "@/utils/conversation-summary";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -39,6 +40,14 @@ function DepthRail({ depth }: { depth: number }) {
   );
 }
 
+function JsonBlock({ value }: { value: unknown }) {
+  return (
+    <div className="max-h-64 overflow-auto rounded-xl border border-zinc-200/70 bg-zinc-50 p-2 text-xs dark:border-zinc-800 dark:bg-zinc-950/70">
+      <JsonViewer data={value} />
+    </div>
+  );
+}
+
 function NodeCard({
   node,
   selected,
@@ -69,10 +78,47 @@ function NodeCard({
   );
 }
 
-function JsonBlock({ value }: { value: unknown }) {
+function SummaryLines({ lines }: { lines: string[] }) {
+  if (lines.length === 0) {
+    return (
+      <div className="text-sm text-zinc-500 dark:text-zinc-400">
+        暂无可展示摘要
+      </div>
+    );
+  }
   return (
-    <div className="max-h-64 overflow-auto rounded-xl border border-zinc-200/70 bg-zinc-50 p-2 text-xs dark:border-zinc-800 dark:bg-zinc-950/70">
-      <JsonViewer data={value} />
+    <div className="space-y-1">
+      {lines.map((line) => (
+        <div key={line} className="text-sm text-zinc-700 dark:text-zinc-300">
+          {line}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExpandableDetails({
+  label,
+  value,
+}: {
+  label: string;
+  value: unknown;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="mt-3 space-y-2">
+      <button
+        type="button"
+        className="text-xs font-medium text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
+        onClick={(event) => {
+          event.stopPropagation();
+          setExpanded((current) => !current);
+        }}
+      >
+        {expanded ? `收起${label}` : `展开${label}`}
+      </button>
+      {expanded ? <JsonBlock value={value} /> : null}
     </div>
   );
 }
@@ -86,18 +132,46 @@ function TextNode({
   selected: boolean;
   onSelect?: (nodeId: string) => void;
 }) {
-  const message = useMemo<ChatMessage>(
-    () => ({
-      id: node.id,
-      role: node.role === "user" ? "user" : node.role === "system" ? "system" : "assistant",
-      content: String(node.payload.content || ""),
-      author:
-        typeof node.payload.author === "string" ? String(node.payload.author) : undefined,
-      timestamp: node.timestamp,
-      runId: node.runId,
-    }),
-    [node],
-  );
+  const parsedContent = safeJsonParse(node.payload.content);
+  const shouldRenderAsJson =
+    parsedContent !== null &&
+    typeof parsedContent === "object" &&
+    !Array.isArray(parsedContent);
+
+  const message: ChatMessage = {
+    id: node.id,
+    role:
+      node.role === "user"
+        ? "user"
+        : node.role === "system"
+          ? "system"
+          : "assistant",
+    content: String(node.payload.content || ""),
+    author:
+      typeof node.payload.author === "string"
+        ? String(node.payload.author)
+        : undefined,
+    timestamp: node.timestamp,
+    runId: node.runId,
+  };
+
+  if (shouldRenderAsJson) {
+    const summary = buildNodeSummary({
+      ...node,
+      type: "custom",
+      payload: {
+        data: parsedContent,
+        eventType: "json.message",
+      },
+    });
+
+    return (
+      <NodeCard node={node} selected={selected} onClick={() => onSelect?.(node.id)}>
+        <SummaryLines lines={summary} />
+        <ExpandableDetails label="JSON 详情" value={parsedContent} />
+      </NodeCard>
+    );
+  }
 
   return (
     <MessageBubble
@@ -117,7 +191,8 @@ function TurnNode({
   selected: boolean;
   onSelect?: (nodeId: string) => void;
 }) {
-  const childCount = node.children.length;
+  const childCount = node.children.filter((child) => child.visibility !== "debug-only")
+    .length;
   return (
     <div
       className={cn(
@@ -156,81 +231,41 @@ function TechnicalNode({
   selected: boolean;
   onSelect?: (nodeId: string) => void;
 }) {
-  const content = (() => {
+  const summary = buildNodeSummary(node);
+  const detailValue = (() => {
     switch (node.type) {
       case "tool-call":
-        return (
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {String(node.payload.toolCallName || node.title)}
-            </div>
-            <JsonBlock value={node.payload.args ? safeJson(node.payload.args) : {}} />
-          </div>
-        );
+        return safeJsonParse(node.payload.args);
       case "tool-result":
-        return <JsonBlock value={safeJson(node.payload.content)} />;
+        return safeJsonParse(node.payload.content);
       case "activity":
-        return <JsonBlock value={node.payload.content} />;
-      case "reasoning":
-        return (
-          <div className="text-sm text-zinc-700 dark:text-zinc-300">
-            {node.summary || "推理阶段更新"}
-          </div>
-        );
-      case "step":
-        return (
-          <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <div>{node.status === "done" ? "步骤已完成" : "步骤执行中"}</div>
-            {"result" in node.payload && node.payload.result !== undefined ? (
-              <JsonBlock value={node.payload.result} />
-            ) : null}
-          </div>
-        );
+        return node.payload.content;
       case "state-delta":
-        return <JsonBlock value={node.payload.delta} />;
+        return node.payload.delta;
       case "state-snapshot":
-        return <JsonBlock value={node.payload.snapshot} />;
+        return node.payload.snapshot;
       case "raw":
-        return <JsonBlock value={node.payload.data} />;
+        return node.payload.data;
       case "custom":
-        return <JsonBlock value={node.payload.data} />;
-      case "error":
-        return (
-          <div className="space-y-1 text-sm text-red-700 dark:text-red-300">
-            <div>{String(node.payload.message || "未知错误")}</div>
-            {node.payload.code ? (
-              <div className="text-xs uppercase tracking-wider text-red-500">
-                {String(node.payload.code)}
-              </div>
-            ) : null}
-          </div>
-        );
+        return node.payload.data;
       default:
-        return <JsonBlock value={node.payload} />;
+        return node.payload;
     }
   })();
 
   return (
     <NodeCard node={node} selected={selected} onClick={() => onSelect?.(node.id)}>
-      {content}
+      <SummaryLines lines={summary} />
+      {node.type === "error" ? null : (
+        <ExpandableDetails label="详情" value={detailValue} />
+      )}
       {node.children.length > 0 ? (
         <div className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-          {node.children.length} 个子模块
+          {node.children.filter((child) => child.visibility !== "debug-only").length} 个子模块
         </div>
       ) : null}
     </NodeCard>
   );
-}
-
-function safeJson(value: unknown): unknown {
-  if (typeof value !== "string") {
-    return value;
-  }
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
 }
 
 export function ConversationNodeRenderer({
@@ -239,7 +274,12 @@ export function ConversationNodeRenderer({
   selectedNodeId,
   onNodeSelect,
 }: Props) {
+  if (node.visibility === "debug-only") {
+    return null;
+  }
+
   const selected = node.id === selectedNodeId;
+  const visibleChildren = node.children.filter((child) => child.visibility !== "debug-only");
   const content = (() => {
     if (node.type === "turn") {
       return <TurnNode node={node} selected={selected} onSelect={onNodeSelect} />;
@@ -255,22 +295,9 @@ export function ConversationNodeRenderer({
       <DepthRail depth={depth} />
       <div style={{ marginLeft: `${depth * 18}px` }}>
         {content}
-        {node.type !== "turn" && node.children.length > 0 ? (
+        {visibleChildren.length > 0 ? (
           <div className="mt-3 space-y-3">
-            {node.children.map((child) => (
-              <ConversationNodeRenderer
-                key={child.id}
-                node={child}
-                depth={depth + 1}
-                selectedNodeId={selectedNodeId}
-                onNodeSelect={onNodeSelect}
-              />
-            ))}
-          </div>
-        ) : null}
-        {node.type === "turn" && node.children.length > 0 ? (
-          <div className="mt-4 space-y-3">
-            {node.children.map((child) => (
+            {visibleChildren.map((child) => (
               <ConversationNodeRenderer
                 key={child.id}
                 node={child}
