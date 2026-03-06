@@ -50,6 +50,7 @@ export {
   syncSource,
   rebuildSource,
   searchKnowledge,
+  searchAcrossCorpora,
   fetchGraph,
   upsertGraph,
   fetchPipelines,
@@ -59,9 +60,15 @@ export {
   fetchDocuments,
   fetchAllDocuments,
   fetchDocumentDetail,
+  fetchDocumentChunks,
   refreshDocumentMarkdown,
   deleteDocument,
   downloadDocument,
+  syncDocument,
+  rebuildDocument,
+  replaceDocument,
+  archiveDocument,
+  unarchiveDocument,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,
@@ -102,6 +109,8 @@ export type {
   // Document Management
   KnowledgeDocument,
   KnowledgeDocumentDetail,
+  DocumentChunkItem,
+  DocumentChunksResponse,
   DocumentMarkdownRefreshResponse,
   DocumentListResponse,
   // Graph Enhanced Types (Phase 1)

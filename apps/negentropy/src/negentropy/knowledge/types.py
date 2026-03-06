@@ -139,6 +139,7 @@ class ChunkingConfig(BaseModel):
     chunk_size: int = 800
     overlap: int = 100
     preserve_newlines: bool = True
+    separators: List[str] = []
     # 语义分块专用参数
     semantic_threshold: float = 0.85  # 相似度阈值，低于此值时切分
     min_chunk_size: int = 50  # 最小块大小（字符数）
@@ -213,6 +214,18 @@ class ChunkingConfig(BaseModel):
         if v < 100:
             raise ValueError(f"max_chunk_size must be at least 100, got {v}")
         return v
+
+    @field_validator("separators")
+    @classmethod
+    def validate_separators(cls, v: List[str]) -> List[str]:
+        """验证分隔符配置"""
+        normalized = [item for item in (s.strip() for s in v) if item]
+        # 去重并保持顺序
+        deduped: List[str] = []
+        for item in normalized:
+            if item not in deduped:
+                deduped.append(item)
+        return deduped
 
 
 class SearchConfig(BaseModel):
