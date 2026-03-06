@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, Iterable, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 from .constants import (
     MAX_OVERLAP_RATIO,
@@ -140,7 +140,7 @@ class ChunkingConfig(BaseModel):
     chunk_size: int = 800
     overlap: int = 100
     preserve_newlines: bool = True
-    separators: List[str] = []
+    separators: tuple[str, ...] = Field(default_factory=tuple)
     # 语义分块专用参数
     semantic_threshold: float = 0.85  # 相似度阈值，低于此值时切分
     min_chunk_size: int = 50  # 最小块大小（字符数）
@@ -237,7 +237,7 @@ class ChunkingConfig(BaseModel):
 
     @field_validator("separators")
     @classmethod
-    def validate_separators(cls, v: List[str]) -> List[str]:
+    def validate_separators(cls, v: List[str] | tuple[str, ...]) -> tuple[str, ...]:
         """验证分隔符配置"""
         normalized = [item for item in (s.strip() for s in v) if item]
         # 去重并保持顺序
@@ -245,7 +245,7 @@ class ChunkingConfig(BaseModel):
         for item in normalized:
             if item not in deduped:
                 deduped.append(item)
-        return deduped
+        return tuple(deduped)
 
     @model_validator(mode="after")
     def validate_chunking_relationships(self) -> "ChunkingConfig":
@@ -596,8 +596,8 @@ class GraphBuildConfigModel(BaseModel):
 
     enable_llm_extraction: bool = True
     llm_model: Optional[str] = None
-    entity_types: List[str] = field(default_factory=list)
-    relation_types: List[str] = field(default_factory=list)
+    entity_types: tuple[str, ...] = Field(default_factory=tuple)
+    relation_types: tuple[str, ...] = Field(default_factory=tuple)
     min_entity_confidence: float = 0.5
     min_relation_confidence: float = 0.5
     batch_size: int = 10
@@ -630,3 +630,13 @@ class GraphBuildConfigModel(BaseModel):
         if v > 10:
             raise ValueError(f"max_concurrency must be at most 10, got {v}")
         return v
+
+    @field_validator("entity_types", "relation_types")
+    @classmethod
+    def validate_graph_type_filters(cls, v: List[str] | tuple[str, ...]) -> tuple[str, ...]:
+        normalized = [item for item in (s.strip() for s in v) if item]
+        deduped: List[str] = []
+        for item in normalized:
+            if item not in deduped:
+                deduped.append(item)
+        return tuple(deduped)
