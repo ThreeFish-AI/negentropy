@@ -1,74 +1,21 @@
 import { useEffect, useRef } from "react";
-import { MessageBubble } from "./MessageBubble";
-import type { ChatMessage } from "@/types/common";
-
-/**
- * 轮次分隔组件
- * 当 runId 变化时显示视觉分隔
- */
-function RunDivider() {
-  return (
-    <div className="flex items-center gap-2 my-4 opacity-40">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-        新一轮
-      </span>
-      <div className="flex-1 h-px bg-border" />
-    </div>
-  );
-}
+import { ConversationNodeRenderer } from "./conversation/ConversationNodeRenderer";
+import type { ConversationNode } from "@/types/a2ui";
 
 type ChatStreamProps = {
-  messages: ChatMessage[];
-  selectedMessageId?: string | null;
-  onMessageSelect?: (messageId: string) => void;
+  nodes: ConversationNode[];
+  selectedNodeId?: string | null;
+  onNodeSelect?: (nodeId: string) => void;
   contentClassName?: string;
 };
 
 export function ChatStream({
-  messages,
-  selectedMessageId,
-  onMessageSelect,
+  nodes,
+  selectedNodeId,
+  onNodeSelect,
   contentClassName,
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Sticky scroll logic
-  useEffect(() => {
-    const element = scrollRef.current;
-    if (!element) return;
-
-    const isAtBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight < 100;
-
-    // Use requestAnimationFrame to ensure we scroll after DOM update
-    if (isAtBottom) {
-      // Ideally we want to scroll *after* rendering.
-      // But here we rely on the fact that if they were at bottom, we keep them there
-      // actually, isAtBottom needs to be checked BEFORE the update?
-      // The effect runs AFTER the update (new message rendered).
-      // So 'scrollTop' is the OLD position (mostly), but 'scrollHeight' is NEW?
-      // No, layout happens before effect.
-      // So isAtBottom will be FALSE if content grew?
-      // Correct approach:
-      // We need to use LayoutEffect or store 'wasAtBottom' in a ref before render?
-      // Or simpler: just scroll to bottom if we are *close* to bottom.
-      element.scrollTop = element.scrollHeight;
-    }
-    // Alternatively, just force scroll if it's a new message and user hasn't scrolled up far?
-    // Let's use a simpler heuristic for now: always scroll if near bottom.
-    // But since this effect runs AFTER render, the content has already expanded.
-    // So 'element.scrollTop' is effectively "scrolled up" relative to new height.
-    // So we check if (scrollHeight - scrollTop - clientHeight) is basically equal to the *added content height*?
-    // That's hard.
-
-    // Better strategy:
-    // Auto-scroll on mount.
-    // For updates: scroll ONLY if the user was at bottom *before* update.
-    // We need useLayoutEffect or a ref updated on scroll events.
-  }, [messages]);
-
-  // Let's implement robust version:
   const isUserAtBottomRef = useRef(true);
 
   const onScroll = () => {
@@ -82,7 +29,7 @@ export function ChatStream({
     if (isUserAtBottomRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [nodes]);
 
   return (
     <div
@@ -91,32 +38,22 @@ export function ChatStream({
       className="flex-1 overflow-y-auto custom-scrollbar"
     >
       <div
-        className={`mx-auto w-full px-6 py-6 space-y-4 ${contentClassName ?? ""}`}
+        className={`mx-auto w-full space-y-4 px-6 py-6 ${contentClassName ?? ""}`}
       >
-        {messages.length === 0 ? (
+        {nodes.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
-            发送指令开始对话。事件流将实时展示在右侧。
+            发送指令开始对话。主区将以 A2UI 模块树实时展示消息、工具、活动与状态。
           </div>
         ) : (
-          messages.map((message, index) => {
-            const prevMessage = messages[index - 1];
-            // 当 runId 变化时显示分隔（只对 assistant 消息显示分隔）
-            const showDivider =
-              prevMessage?.runId &&
-              message.runId !== prevMessage.runId &&
-              message.role === "assistant";
-
-            return (
-              <div key={message.id}>
-                {showDivider && <RunDivider />}
-                <MessageBubble
-                  message={message}
-                  isSelected={message.id === selectedMessageId}
-                  onSelect={onMessageSelect}
-                />
-              </div>
-            );
-          })
+          nodes.map((node) => (
+            <ConversationNodeRenderer
+              key={node.id}
+              node={node}
+              depth={0}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={onNodeSelect}
+            />
+          ))
         )}
       </div>
     </div>

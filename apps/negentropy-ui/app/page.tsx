@@ -12,13 +12,11 @@ import { BaseEvent, EventType, Message } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
-import { EventTimeline, TimelineItem } from "../components/ui/EventTimeline";
-import { SiteHeader } from "../components/layout/SiteHeader";
+import { EventTimeline } from "../components/ui/EventTimeline";
 import { useAuth } from "../components/providers/AuthProvider";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
-import { ConfirmationToolCard } from "../components/ui/ConfirmationToolCard";
 import {
   AdkEventPayload,
   adkEventToAguiEvents,
@@ -26,33 +24,25 @@ import {
   adkEventsToSnapshot,
 } from "@/lib/adk";
 
-// 提取的 Hooks
-import { useSessionManager } from "@/hooks/useSessionManager";
-import { useEventProcessor } from "@/hooks/useEventProcessor";
-import { useUIState } from "@/hooks/useUIState";
-import {
-  useConfirmationTool,
-  type ConfirmationToolArgs,
-} from "@/hooks/useConfirmationTool";
+import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
 import { createSessionLabel, buildAgentUrl } from "@/utils/session";
 import {
   normalizeMessageContent,
-  buildChatMessagesFromEventsWithFallback,
-  ensureUniqueMessageIds,
 } from "@/utils/message";
 import { buildTimelineItems } from "@/utils/timeline";
 import { buildStateSnapshotFromEvents } from "@/utils/state";
+import {
+  buildConversationTree,
+  buildNodeTimestampIndex,
+} from "@/utils/conversation-tree";
 
 // 统一的类型定义
 import type {
   ConnectionState,
   SessionRecord,
   LogEntry,
-  AuthUser,
-  AuthStatus,
-  ChatMessage,
 } from "@/types/common";
 
 const AGENT_ID = "negentropy";
@@ -62,19 +52,15 @@ const EMPTY_MESSAGES: Message[] = [];
 export function HomeBody({
   sessionId,
   userId,
-  user,
   setSessionId,
   sessions,
   setSessions,
-  onLogout,
 }: {
   sessionId: string | null;
   userId: string;
-  user: AuthUser | null;
   setSessionId: (id: string | null) => void;
   sessions: SessionRecord[];
   setSessions: React.Dispatch<React.SetStateAction<SessionRecord[]>>;
-  onLogout: () => void;
 }) {
   const { agent } = useAgent({
     agentId: AGENT_ID,
@@ -101,9 +87,7 @@ export function HomeBody({
     unknown
   > | null>(null);
   const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
-    null,
-  );
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
@@ -238,67 +222,44 @@ export function HomeBody({
     rawEvents.forEach((event) => {
       if (
         event.type === EventType.TOOL_CALL_START &&
+        "toolCallName" in event &&
         event.toolCallName === "ui.confirmation"
       ) {
-        pending.add(event.toolCallId);
+        pending.add(String(event.toolCallId));
       }
-      if (event.type === EventType.TOOL_CALL_RESULT) {
-        pending.delete(event.toolCallId);
+      if (event.type === EventType.TOOL_CALL_RESULT && "toolCallId" in event) {
+        pending.delete(String(event.toolCallId));
       }
     });
     return pending.size;
   }, [rawEvents]);
 
-  // Build message-timestamp map from raw events for filtering
-  const messageTimestamps = useMemo(() => {
-    const timestampMap = new Map<string, number>();
+  // 根据选中的节点时间范围过滤事件，右侧保持历史视图能力
+  const nodeTimestampIndex = useMemo(() => {
+    const merged = [...sessionMessages, ...optimisticMessages];
+    return buildNodeTimestampIndex(
+      buildConversationTree({
+        events: rawEvents,
+        fallbackMessages: merged,
+      }),
+    );
+  }, [optimisticMessages, rawEvents, sessionMessages]);
 
-    // Process all TEXT_MESSAGE events to build the map
-    rawEvents.forEach((event) => {
-      if (
-        event.type === EventType.TEXT_MESSAGE_START ||
-        event.type === EventType.TEXT_MESSAGE_CONTENT ||
-        event.type === EventType.TEXT_MESSAGE_END
-      ) {
-        const messageId = "messageId" in event ? event.messageId : undefined;
-        const timestamp = "timestamp" in event ? event.timestamp : undefined;
-
-        if (messageId && timestamp !== undefined) {
-          // Store the timestamp for this message
-          if (!timestampMap.has(messageId)) {
-            timestampMap.set(messageId, timestamp);
-          }
-        }
-      }
-    });
-
-    // Also backfill from sessionMessages for any messages without event timestamps
-    sessionMessages.forEach((message) => {
-      if (!timestampMap.has(message.id) && message.createdAt) {
-        timestampMap.set(message.id, message.createdAt.getTime() / 1000);
-      }
-    });
-
-    return timestampMap;
-  }, [rawEvents, sessionMessages]);
-
-  // Filter events based on selected message timestamp
   const filteredRawEvents = useMemo(() => {
-    if (!selectedMessageId) {
-      return rawEvents; // Show all events (current behavior)
+    if (!selectedNodeId) {
+      return rawEvents;
     }
 
-    const cutoffTimestamp = messageTimestamps.get(selectedMessageId);
+    const cutoffTimestamp = nodeTimestampIndex.get(selectedNodeId);
     if (cutoffTimestamp === undefined) {
-      return rawEvents; // Message not found, show all
+      return rawEvents;
     }
 
-    // Filter events to only those before/at the selected message's timestamp
     return rawEvents.filter((event) => {
       const eventTimestamp = event.timestamp || 0;
       return eventTimestamp <= cutoffTimestamp;
     });
-  }, [rawEvents, selectedMessageId, messageTimestamps]);
+  }, [nodeTimestampIndex, rawEvents, selectedNodeId]);
 
   const compactedEvents = useMemo(
     () => compactEvents(filteredRawEvents),
@@ -447,11 +408,7 @@ export function HomeBody({
       const payload = await response.json();
       if (!response.ok) {
         if (response.status === 404) {
-          addLog("warn", "session_not_found", { sessionId: id });
-          setSessions((prev) => prev.filter((session) => session.id !== id));
-          if (sessionId === id) {
-            setSessionId(null);
-          }
+          addLog("warn", "session_not_found", { context: "startNewSession" });
         }
         return;
       }
@@ -516,7 +473,6 @@ export function HomeBody({
     ],
   );
 
-  const resolvedThreadId = sessionId ?? "pending";
   const handleConfirmationFollowup = useCallback(
     async (payload: { action: string; note: string }) => {
       if (!agent || !sessionId || agent.isRunning) {
@@ -531,7 +487,6 @@ export function HomeBody({
         setConnectionWithMetrics("connecting");
         await agent.runAgent({
           runId: randomUUID(),
-          threadId: resolvedThreadId,
         });
         await loadSessions();
       } catch (error) {
@@ -540,7 +495,7 @@ export function HomeBody({
         console.warn("Failed to submit HITL response", error);
       }
     },
-    [agent, loadSessions, resolvedThreadId, sessionId],
+    [agent, addLog, loadSessions, sessionId, setConnectionWithMetrics],
   );
 
   useConfirmationTool(handleConfirmationFollowup);
@@ -548,14 +503,14 @@ export function HomeBody({
   // Escape key to return to live view
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedMessageId) {
-        setSelectedMessageId(null);
+      if (e.key === "Escape" && selectedNodeId) {
+        setSelectedNodeId(null);
         setShowRightPanel(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedMessageId]);
+  }, [selectedNodeId]);
 
   const sendInput = async () => {
     if (!agent || !sessionId || !inputValue.trim()) {
@@ -566,13 +521,11 @@ export function HomeBody({
     }
 
     const messageId = crypto.randomUUID();
-    const timestamp = Date.now() / 1000;
-    const newMessage: Message = {
+    const newMessage = {
       id: messageId,
       role: "user",
       content: inputValue.trim(),
-      createdAt: new Date(timestamp * 1000),
-    };
+    } as Message;
     // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
     // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
     setOptimisticMessages((prev) => [...prev, newMessage]);
@@ -586,7 +539,7 @@ export function HomeBody({
       (!activeSession || activeSession.label === createSessionLabel(sessionId));
     try {
       setConnectionWithMetrics("connecting");
-      await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
+      await agent.runAgent({ runId: randomUUID() });
       await loadSessions();
       if (shouldPollTitle) {
         scheduleTitleRefresh();
@@ -612,6 +565,7 @@ export function HomeBody({
       setSessionSnapshot(null);
       setRawEvents([]);
       setLoadedSessionId(null);
+      setSelectedNodeId(null);
     }
   }, []);
 
@@ -648,13 +602,11 @@ export function HomeBody({
   );
 
   const snapshotForDisplay = useMemo(() => {
-    // If no message selected, use current/live snapshot
-    if (!selectedMessageId) {
+    if (!selectedNodeId) {
       return snapshotForRender;
     }
-    // Otherwise use reconstructed historical snapshot
     return historicalSnapshot;
-  }, [selectedMessageId, snapshotForRender, historicalSnapshot]);
+  }, [selectedNodeId, snapshotForRender, historicalSnapshot]);
 
   const mergedMessagesForRender = useMemo(() => {
     const knownIds = new Set(
@@ -687,44 +639,39 @@ export function HomeBody({
       }
       const existing = merged[index];
       if (!existing.content && message.content) {
-        merged[index] = { ...existing, content: message.content };
+        merged[index] = {
+          ...existing,
+          content: normalizeMessageContent(message),
+        } as Message;
       }
     });
     return merged;
   }, [messagesForRenderBase, optimisticMessages]);
 
-  // 使用事件驱动构建聊天消息：
-  // - rawEvents 中按 messageId 拼接 delta（避免流式token逐词换行）
-  // - 从事件提取 runId（支持多轮次答复 \n\n 分隔）
-  // - mergedMessagesForRender 作为 fallback 补充非流窗口中的历史消息
-  const chatMessages = useMemo(
+  const conversationTree = useMemo(
     () =>
-      ensureUniqueMessageIds(
-        buildChatMessagesFromEventsWithFallback(
-          rawEvents,
-          mergedMessagesForRender,
-        ),
-      ),
-    [rawEvents, mergedMessagesForRender],
+      buildConversationTree({
+        events: rawEvents,
+        fallbackMessages: mergedMessagesForRender,
+      }),
+    [mergedMessagesForRender, rawEvents],
   );
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
-    if (!selectedMessageId) {
-      return logEntries; // Show all logs when no selection
+    if (!selectedNodeId) {
+      return logEntries;
     }
 
-    const cutoffTimestamp = messageTimestamps.get(selectedMessageId);
+    const cutoffTimestamp = nodeTimestampIndex.get(selectedNodeId);
     if (cutoffTimestamp === undefined) {
-      return logEntries; // Message not found, show all
+      return logEntries;
     }
 
-    // LogEntry.timestamp is in milliseconds (Date.now()), event timestamps are seconds
-    // Convert cutoff to milliseconds for comparison
     const cutoffMs = cutoffTimestamp * 1000;
 
     return logEntries.filter((entry) => entry.timestamp <= cutoffMs);
-  }, [logEntries, selectedMessageId, messageTimestamps]);
+  }, [logEntries, nodeTimestampIndex, selectedNodeId]);
 
   const contentWidthClass = "max-w-4xl";
 
@@ -801,19 +748,16 @@ export function HomeBody({
           {/* Chat Stream Area */}
           <div className="flex-1 overflow-hidden flex flex-col relative">
             <ChatStream
-              messages={chatMessages}
-              selectedMessageId={selectedMessageId}
-              onMessageSelect={(id) => {
-                // 右侧栏未打开时，点击消息不产生任何影响
+              nodes={conversationTree.roots}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={(id) => {
                 if (!showRightPanel) {
                   return;
                 }
-                if (selectedMessageId === id) {
-                  // Toggle off: just deselect
-                  setSelectedMessageId(null);
+                if (selectedNodeId === id) {
+                  setSelectedNodeId(null);
                 } else {
-                  // Select new message（右侧栏已处于打开状态）
-                  setSelectedMessageId(id);
+                  setSelectedNodeId(id);
                 }
               }}
               contentClassName={contentWidthClass}
@@ -846,7 +790,7 @@ export function HomeBody({
         >
           <div className="w-80 h-full overflow-y-auto p-6">
             {/* View mode indicator + minimal interaction hint */}
-            {selectedMessageId ? (
+            {selectedNodeId ? (
               <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:border-amber-800 dark:bg-amber-950/50">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
@@ -854,7 +798,7 @@ export function HomeBody({
                   </span>
                   <button
                     onClick={() => {
-                      setSelectedMessageId(null);
+                      setSelectedNodeId(null);
                     }}
                     className="text-xs text-amber-600 hover:text-amber-800 underline dark:text-amber-400 dark:hover:text-amber-300"
                   >
@@ -873,14 +817,14 @@ export function HomeBody({
                   </span>
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1 dark:text-zinc-400">
-                  点击任意消息进入历史视图，再次点击或点"返回实时"回到实时
+                  点击任意消息进入历史视图，再次点击或点“返回实时”回到实时
                 </p>
               </div>
             )}
 
             <StateSnapshot
               snapshot={snapshotForDisplay}
-              connection={selectedMessageId ? "idle" : connection}
+              connection={selectedNodeId ? "idle" : connection}
             />
             <EventTimeline events={timelineItems} />
             <LogBufferPanel
@@ -972,11 +916,9 @@ export default function Home() {
       <HomeBody
         sessionId={sessionId}
         userId={user.userId}
-        user={user}
         setSessionId={setSessionId}
         sessions={sessions}
         setSessions={setSessions}
-        onLogout={logout}
       />
     </CopilotKitProvider>
   );
