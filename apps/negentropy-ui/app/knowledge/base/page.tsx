@@ -1,210 +1,264 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   CorpusRecord,
-  fetchKnowledgeItems,
-  KnowledgeItem,
-  useKnowledgeBase,
   ChunkingConfig,
+  DocumentChunkItem,
+  KnowledgeDocument,
+  KnowledgeMatch,
+  SearchMode,
+  fetchDocumentChunks,
+  fetchDocuments,
+  searchAcrossCorpora,
+  useKnowledgeBase,
+  syncDocument,
+  rebuildDocument,
+  replaceDocument,
+  archiveDocument,
+  unarchiveDocument,
+  downloadDocument,
+  deleteDocument,
 } from "@/features/knowledge";
-import type { SourceSummary } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-
-import { CorpusList } from "./_components/CorpusList";
-import { CorpusDetail } from "./_components/CorpusDetail";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
-import { SearchWorkspace, SearchWorkspaceRef } from "./_components/SearchWorkspace";
-import { ContentExplorer } from "./_components/ContentExplorer";
-import { SourceList } from "./_components/SourceList";
-import { AddSourceDialog } from "./_components/AddSourceDialog";
-import { ReplaceSourceDialog } from "./_components/ReplaceSourceDialog";
-import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
-/**
- * KnowledgeBasePage
- *
- * 知识库管理主页。
- * 包含：数据源列表(CRUD)、详情展示、索引面板、搜索工作台。
- */
-export default function KnowledgeBasePage() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"search" | "content">(
-    "search",
+type ViewMode = "overview" | "corpus";
+type CorpusTab = "documents" | "settings" | "document-chunks";
+
+function CorpusStatusBadge({ corpus }: { corpus: CorpusRecord }) {
+  const hasKnowledge = corpus.knowledge_count > 0;
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        hasKnowledge
+          ? "bg-emerald-100 text-emerald-700"
+          : "bg-zinc-100 text-zinc-600"
+      }`}
+    >
+      {hasKnowledge ? "Ready" : "Empty"}
+    </span>
   );
+}
 
-  // Content 标签页状态
-  const [selectedSourceUri, setSelectedSourceUri] = useState<string | null | undefined>(undefined);
-  const [displayChunks, setDisplayChunks] = useState<KnowledgeItem[]>([]);
-  const [sourceSummaries, setSourceSummaries] = useState<SourceSummary[]>([]);
-  const [showArchivedSources, setShowArchivedSources] = useState(false);
-  const [contentLoading, setContentLoading] = useState(false);
-  const [contentError, setContentError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalChunks, setTotalChunks] = useState(0);
+function ChunkDetailDrawer({
+  chunk,
+  onClose,
+}: {
+  chunk: KnowledgeMatch | DocumentChunkItem | null;
+  onClose: () => void;
+}) {
+  if (!chunk) return null;
+  const metadata = "metadata" in chunk ? chunk.metadata : {};
+  const content = "content" in chunk ? chunk.content : "";
+  return (
+    <div className="fixed inset-y-0 right-0 z-50 w-[420px] border-l border-border bg-card p-4 shadow-2xl">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Chunk Detail</h3>
+        <button
+          onClick={onClose}
+          className="rounded border border-border px-2 py-1 text-xs hover:bg-muted"
+        >
+          Close
+        </button>
+      </div>
+      <div className="space-y-3 text-xs">
+        <div className="rounded border border-border bg-background p-3">
+          <p className="whitespace-pre-wrap break-words text-foreground">{content}</p>
+        </div>
+        <div className="rounded border border-border bg-background p-3">
+          <div className="mb-2 text-[11px] font-medium text-muted">Metadata</div>
+          <pre className="whitespace-pre-wrap break-words text-[11px] text-muted">
+            {JSON.stringify(metadata || {}, null, 2)}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  // Refs for child components
-  const searchWorkspaceRef = useRef<SearchWorkspaceRef>(null);
+export default function KnowledgeBasePage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // Dialog State
+  const kb = useKnowledgeBase({ appName: APP_NAME });
+
+  const [viewMode, setViewMode] = useState<ViewMode>("overview");
+  const [selectedCorpusId, setSelectedCorpusId] = useState<string | null>(null);
+  const [corpusTab, setCorpusTab] = useState<CorpusTab>("documents");
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+
+  const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<SearchMode>("hybrid");
+  const [selectedRetrievalCorpusIds, setSelectedRetrievalCorpusIds] = useState<string[]>([]);
+  const [retrievalResults, setRetrievalResults] = useState<KnowledgeMatch[]>([]);
+  const [retrievalLoading, setRetrievalLoading] = useState(false);
+  const [retrievalError, setRetrievalError] = useState<string | null>(null);
+  const [retrievalDocked, setRetrievalDocked] = useState(false);
+
+  const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+
+  const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
+  const [chunksLoading, setChunksLoading] = useState(false);
+
+  const [selectedChunk, setSelectedChunk] = useState<KnowledgeMatch | DocumentChunkItem | null>(null);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
-  const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(
-    undefined,
+  const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(undefined);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedCorpus = useMemo(
+    () => kb.corpora.find((item) => item.id === selectedCorpusId) || null,
+    [kb.corpora, selectedCorpusId],
   );
 
-  // Add/Replace Source Dialog State
-  const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
-  const [isReplaceOpen, setIsReplaceOpen] = useState(false);
-  const [replaceSourceUri, setReplaceSourceUri] = useState<string | null>(null);
-  const [isDeleteSourceOpen, setIsDeleteSourceOpen] = useState(false);
-  const [deleteSourceUri, setDeleteSourceUri] = useState<string | null>(null);
-  const [deleteSourceName, setDeleteSourceName] = useState<string | null>(null);
-  const [isDeletingSource, setIsDeletingSource] = useState(false);
-
-  const kb = useKnowledgeBase({
-    appName: APP_NAME,
-    corpusId: selectedId ?? undefined,
-  });
+  const syncQueryState = useCallback(
+    (next: Partial<Record<"view" | "corpusId" | "tab" | "documentId", string | null>>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(next).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+      router.replace(`${pathname}?${params.toString()}`);
+    },
+    [pathname, router, searchParams],
+  );
 
   useEffect(() => {
     kb.loadCorpora();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 当 selectedId 变化时，加载对应的 corpus 数据
   useEffect(() => {
-    if (selectedId) {
-      kb.loadCorpus(selectedId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
+    const nextView = (searchParams.get("view") as ViewMode) || "overview";
+    const nextCorpusId = searchParams.get("corpusId");
+    const nextTab = (searchParams.get("tab") as CorpusTab) || "documents";
+    const nextDocId = searchParams.get("documentId");
+
+    setViewMode(nextView);
+    setSelectedCorpusId(nextCorpusId);
+    setCorpusTab(nextTab);
+    setSelectedDocumentId(nextDocId);
+  }, [searchParams]);
 
   useEffect(() => {
-    // Auto-select first if none selected
-    if (!selectedId && kb.corpora.length > 0) {
-      setSelectedId(kb.corpora[0].id);
+    if (selectedCorpusId) {
+      kb.loadCorpus(selectedCorpusId);
     }
-    // If selected ID no longer exists (e.g. after delete), select first
-    if (
-      selectedId &&
-      kb.corpora.length > 0 &&
-      !kb.corpora.find((c) => c.id === selectedId)
-    ) {
-      setSelectedId(kb.corpora[0].id);
-    }
-  }, [kb.corpora, selectedId]);
+  }, [kb, selectedCorpusId]);
 
-  // 加载 chunks 数据（分页 + 获取全局统计）
-  const loadChunks = useCallback(async () => {
-    if (!selectedId || activeTab !== "content") return;
-    setContentLoading(true);
-    setContentError(null);
+  const loadDocuments = useCallback(async () => {
+    if (!selectedCorpusId) return;
+    setDocumentsLoading(true);
     try {
-      const data = await fetchKnowledgeItems(selectedId, {
-        appName: APP_NAME,
-        sourceUri: selectedSourceUri,
-        includeArchived: showArchivedSources,
-        limit: pageSize,
-        offset: (page - 1) * pageSize,
-      });
-      setDisplayChunks(data.items);
-      setTotalChunks(data.count);
+      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 200, offset: 0 });
+      setDocuments(res.items);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load documents");
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }, [selectedCorpusId]);
 
-      if (data.source_summaries) {
-        setSourceSummaries(data.source_summaries);
-      } else if (data.source_stats) {
-        const fallback = Object.entries(data.source_stats).map(([uri, count]) => ({
-          source_uri: uri === "__null__" ? null : uri,
-          display_name: null,
-          count,
-          archived: false,
-          source_type: "unknown" as const,
-        }));
-        setSourceSummaries(fallback);
-      } else {
-        setSourceSummaries([]);
+  useEffect(() => {
+    if (viewMode === "corpus" && corpusTab === "documents" && selectedCorpusId) {
+      loadDocuments();
+    }
+  }, [viewMode, corpusTab, selectedCorpusId, loadDocuments]);
+
+  const loadDocumentChunks = useCallback(async () => {
+    if (!selectedCorpusId || !selectedDocumentId) return;
+    setChunksLoading(true);
+    try {
+      const res = await fetchDocumentChunks(selectedCorpusId, selectedDocumentId, {
+        appName: APP_NAME,
+        limit: 500,
+        offset: 0,
+      });
+      setDocumentChunks(res.items);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load chunks");
+    } finally {
+      setChunksLoading(false);
+    }
+  }, [selectedCorpusId, selectedDocumentId]);
+
+  useEffect(() => {
+    if (viewMode === "corpus" && corpusTab === "document-chunks" && selectedCorpusId && selectedDocumentId) {
+      loadDocumentChunks();
+    }
+  }, [viewMode, corpusTab, selectedCorpusId, selectedDocumentId, loadDocumentChunks]);
+
+  const handleRetrieve = async () => {
+    const corpusIds = selectedRetrievalCorpusIds.length > 0
+      ? selectedRetrievalCorpusIds
+      : kb.corpora.map((c) => c.id);
+    if (!query.trim() || corpusIds.length === 0) return;
+
+    setRetrievalLoading(true);
+    setRetrievalError(null);
+    try {
+      const res = await searchAcrossCorpora(corpusIds, {
+        app_name: APP_NAME,
+        query,
+        mode,
+        limit: 50,
+      });
+      setRetrievalResults(res.items);
+      setRetrievalDocked(true);
+    } catch (err) {
+      setRetrievalError(err instanceof Error ? err.message : "Retrieve failed");
+    } finally {
+      setRetrievalLoading(false);
+    }
+  };
+
+  const openCorpusWorkspace = (corpusId: string, tab: CorpusTab = "documents") => {
+    syncQueryState({
+      view: "corpus",
+      corpusId,
+      tab,
+      documentId: null,
+    });
+  };
+
+  const handleCreateCorpus = () => {
+    setDialogMode("create");
+    setEditingCorpus(undefined);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditCorpus = (corpus: CorpusRecord) => {
+    setDialogMode("edit");
+    setEditingCorpus(corpus);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteCorpus = async (corpus: CorpusRecord) => {
+    if (!confirm(`确定删除 Corpus \"${corpus.name}\" 吗？`)) return;
+    try {
+      await kb.deleteCorpus(corpus.id);
+      toast.success("Corpus deleted");
+      if (selectedCorpusId === corpus.id) {
+        syncQueryState({ view: "overview", corpusId: null, tab: null, documentId: null });
       }
     } catch (err) {
-      setContentError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setContentLoading(false);
+      toast.error(err instanceof Error ? err.message : "Delete failed");
     }
-  }, [selectedId, activeTab, selectedSourceUri, showArchivedSources, page, pageSize]);
-
-  // 切换 corpus 或进入 content 标签页时加载数据
-  useEffect(() => {
-    if (activeTab === "content" && selectedId) {
-      setSelectedSourceUri(undefined);
-      setPage(1);
-      loadChunks();
-    }
-  }, [selectedId, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 分页或 source 筛选变化时重新加载
-  useEffect(() => {
-    if (activeTab === "content" && selectedId) {
-      loadChunks();
-    }
-  }, [selectedSourceUri, showArchivedSources, page, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const totalPages = Math.ceil(totalChunks / pageSize);
-
-  // 切换 source 时重置分页
-  const handleSourceSelect = useCallback((uri: string | null | undefined) => {
-    setSelectedSourceUri(uri);
-    setPage(1);
-  }, []);
-
-  // 分页控件处理
-  const handlePagePrev = useCallback(() => {
-    setPage((p) => Math.max(1, p - 1));
-  }, []);
-
-  const handlePageNext = useCallback(() => {
-    setPage((p) => Math.min(totalPages, p + 1));
-  }, [totalPages]);
-
-  const handlePageSizeChange = useCallback((newSize: number) => {
-    setPageSize(newSize);
-    setPage(1);
-  }, []);
-
-  // Clear search results when corpus changes
-  useEffect(() => {
-    if (selectedId) {
-      searchWorkspaceRef.current?.clearResults();
-    }
-  }, [selectedId]);
-
-  // Handlers for List Actions
-  const handleEditClick = (corpus: CorpusRecord) => {
-    setEditingCorpus(corpus);
-    setDialogMode("edit");
-    setIsDialogOpen(true);
   };
 
-  const handleCreateClick = () => {
-    setEditingCorpus(undefined);
-    setDialogMode("create");
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = useCallback(
-    async (id: string) => {
-      await kb.deleteCorpus(id);
-      if (selectedId === id) setSelectedId(null);
-    },
-    [kb, selectedId],
-  );
-
-  // Handler for Dialog Submit
   const handleDialogSubmit = async (params: {
     name: string;
     description?: string;
@@ -212,317 +266,411 @@ export default function KnowledgeBasePage() {
   }) => {
     if (dialogMode === "create") {
       const created = await kb.createCorpus(params);
-      setSelectedId(created.id);
-    } else if (dialogMode === "edit" && editingCorpus) {
+      syncQueryState({ view: "corpus", corpusId: created.id, tab: "documents", documentId: null });
+    } else if (editingCorpus) {
       await kb.updateCorpus(editingCorpus.id, params);
+      if (selectedCorpusId === editingCorpus.id) {
+        await kb.loadCorpus(editingCorpus.id);
+      }
     }
     setIsDialogOpen(false);
   };
 
-  const handleIngest = useCallback(
-    (params: { text: string; source_uri?: string; chunkingConfig?: ChunkingConfig }) =>
-      kb.ingestText(params),
-    [kb],
-  );
-
-  const handleReplace = useCallback(
-    (params: { text: string; source_uri: string }) => kb.replaceSource(params),
-    [kb],
-  );
-
-  const handleIngestUrl = useCallback(
-    (params: { url: string; chunkingConfig?: ChunkingConfig }) => kb.ingestUrl(params),
-    [kb],
-  );
-
-  const handleIngestFile = useCallback(
-    (params: { file: File; source_uri?: string; chunkingConfig?: ChunkingConfig }) =>
-      kb.ingestFile(params),
-    [kb],
-  );
-
-  // Add/Replace Source handlers
-  const handleOpenReplace = useCallback((uri: string) => {
-    setReplaceSourceUri(uri);
-    setIsReplaceOpen(true);
-  }, []);
-
-  // Sync Source handler
-  const handleSyncSource = useCallback(
-    async (uri: string) => {
-      try {
-        await kb.syncSource({
-          source_uri: uri,
-          chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
-        });
-        toast.success("已开始同步知识源", {
-          description: "可在 Pipeline 页面查看构建进度",
-        });
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        console.error("Sync source failed:", err);
-        toast.error("同步失败", {
-          description: errorMessage,
-        });
-      }
-    },
-    [kb],
-  );
-
-  // Rebuild Source handler
-  const handleRebuildSource = useCallback(
-    async (uri: string) => {
-      try {
-        await kb.rebuildSource({
-          source_uri: uri,
-          chunkingConfig: kb.corpus?.config as ChunkingConfig | undefined,
-        });
-        toast.success("已开始重建知识源", {
-          description: "可在 Pipeline 页面查看构建进度",
-        });
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        console.error("Rebuild source failed:", err);
-        toast.error("重建失败", {
-          description: errorMessage,
-        });
-      }
-    },
-    [kb],
-  );
-
-  const handleIngestSuccess = useCallback(() => {
-    setIsAddSourceOpen(false);
-    loadChunks();
-  }, [loadChunks]);
-
-  const handleReplaceSuccess = useCallback(() => {
-    setIsReplaceOpen(false);
-    loadChunks();
-  }, [loadChunks]);
-
-  const handleRequestDeleteSource = useCallback(
-    (payload: { uri: string; name: string }) => {
-      setDeleteSourceUri(payload.uri);
-      setDeleteSourceName(payload.name);
-      setIsDeleteSourceOpen(true);
-    },
-    [],
-  );
-
-  const handleCancelDeleteSource = useCallback(() => {
-    if (isDeletingSource) return;
-    setIsDeleteSourceOpen(false);
-    setDeleteSourceUri(null);
-    setDeleteSourceName(null);
-  }, [isDeletingSource]);
-
-  const handleConfirmDeleteSource = useCallback(async () => {
-    if (!deleteSourceUri || isDeletingSource) return;
-    setIsDeletingSource(true);
+  const handleIngestUrl = async () => {
+    if (!selectedCorpusId) return;
+    const url = window.prompt("请输入 URL");
+    if (!url?.trim()) return;
     try {
-      const result = await kb.deleteSource({ source_uri: deleteSourceUri });
-      const warningText = result.warnings?.length ? `（${result.warnings.length} 条告警）` : "";
-      toast.success("来源已删除", {
-        description: `删除 chunks: ${result.deleted_count ?? 0}，文档: ${result.deleted_documents ?? 0}${warningText}`,
+      await kb.ingestUrl({
+        url: url.trim(),
+        as_document: true,
+        chunkingConfig: selectedCorpus?.config as ChunkingConfig | undefined,
       });
-      setIsDeleteSourceOpen(false);
-      setDeleteSourceUri(null);
-      setDeleteSourceName(null);
-      await loadChunks();
+      toast.success("URL ingest started");
+      await loadDocuments();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      toast.error("删除来源失败", { description: errorMessage });
-    } finally {
-      setIsDeletingSource(false);
+      toast.error(err instanceof Error ? err.message : "URL ingest failed");
     }
-  }, [deleteSourceUri, isDeletingSource, kb, loadChunks]);
+  };
 
-  const handleArchiveSource = useCallback(
-    async (uri: string, archived: boolean) => {
-      try {
-        await kb.archiveSource({ source_uri: uri, archived });
-        toast.success(archived ? "来源已归档" : "来源已解档");
-        await loadChunks();
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        toast.error(archived ? "归档失败" : "解档失败", {
-          description: errorMessage,
-        });
+  const handleIngestFile = async (file: File) => {
+    if (!selectedCorpusId) return;
+    try {
+      await kb.ingestFile({
+        file,
+        source_uri: file.name,
+        chunkingConfig: selectedCorpus?.config as ChunkingConfig | undefined,
+      });
+      toast.success("File ingest started");
+      await loadDocuments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "File ingest failed");
+    }
+  };
+
+  const runDocumentAction = async (
+    action: "sync" | "rebuild" | "replace" | "archive" | "unarchive" | "download" | "view" | "delete",
+    doc: KnowledgeDocument,
+  ) => {
+    if (!selectedCorpusId) return;
+    try {
+      if (action === "sync") {
+        await syncDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
+      } else if (action === "rebuild") {
+        await rebuildDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
+      } else if (action === "archive") {
+        await archiveDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
+      } else if (action === "unarchive") {
+        await unarchiveDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
+      } else if (action === "replace") {
+        const text = window.prompt("请输入新的文档文本（将用于重建 chunks）");
+        if (!text?.trim()) return;
+        await replaceDocument(selectedCorpusId, doc.id, { app_name: APP_NAME, text });
+      } else if (action === "download") {
+        await downloadDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
+      } else if (action === "view") {
+        syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id });
+        return;
+      } else if (action === "delete") {
+        if (!window.confirm("确定删除该文档吗？")) return;
+        await deleteDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
       }
-    },
-    [kb, loadChunks],
+      toast.success(`${action} success`);
+      await loadDocuments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `${action} failed`);
+    }
+  };
+
+  const handleSaveCorpusSettings = async (config: Record<string, unknown>) => {
+    if (!selectedCorpus) return;
+    try {
+      await kb.updateCorpus(selectedCorpus.id, { config });
+      await kb.loadCorpus(selectedCorpus.id);
+      toast.success("Settings saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save settings failed");
+    }
+  };
+
+  const renderRetrievalModule = () => (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">Retrieval</h2>
+        <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1 text-xs">
+          {(["semantic", "keyword", "hybrid"] as const).map((item) => (
+            <button
+              key={item}
+              onClick={() => setMode(item)}
+              className={`rounded-full px-3 py-1 ${mode === item ? "bg-foreground text-background" : "text-muted hover:text-foreground"}`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleRetrieve();
+          }}
+          className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+          placeholder="输入检索内容"
+        />
+        <button
+          onClick={handleRetrieve}
+          disabled={retrievalLoading || !query.trim()}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {retrievalLoading ? "Retrieving..." : "Retrieve"}
+        </button>
+      </div>
+
+      <div className="mt-3">
+        <div className="mb-1 text-xs text-muted">Target Corpus（可多选）</div>
+        <div className="flex flex-wrap gap-2">
+          {kb.corpora.map((corpus) => {
+            const checked = selectedRetrievalCorpusIds.includes(corpus.id);
+            return (
+              <label key={corpus.id} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    setSelectedRetrievalCorpusIds((prev) =>
+                      e.target.checked
+                        ? [...prev, corpus.id]
+                        : prev.filter((id) => id !== corpus.id),
+                    );
+                  }}
+                />
+                <span>{corpus.name}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {retrievalError && (
+        <div className="mt-3 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-600">
+          {retrievalError}
+        </div>
+      )}
+    </div>
   );
 
-  const visibleSources = showArchivedSources
-    ? sourceSummaries
-    : sourceSummaries.filter((item) => !item.archived);
+  const renderCorpusCards = () => (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">Corpus</h2>
+        <button
+          onClick={handleCreateCorpus}
+          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white"
+        >
+          Add Corpus
+        </button>
+      </div>
+      {kb.corpora.length === 0 ? (
+        <p className="text-xs text-muted">暂无 Corpus</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {kb.corpora.map((corpus) => (
+            <div
+              key={corpus.id}
+              className="cursor-pointer rounded-xl border border-border bg-background p-4 transition hover:border-foreground/40"
+              onClick={() => openCorpusWorkspace(corpus.id, "documents")}
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="truncate text-base font-semibold">{corpus.name}</h3>
+                <CorpusStatusBadge corpus={corpus} />
+              </div>
+              <p className="line-clamp-2 h-10 text-xs text-muted">
+                {corpus.description || "No description"}
+              </p>
+              <div className="mt-2 text-[11px] text-muted">
+                chunks: {corpus.knowledge_count}
+              </div>
+              <div className="mt-1 text-[11px] text-muted">
+                strategy: {String((corpus.config?.strategy as string) || "recursive")}
+              </div>
+              <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => handleEditCorpus(corpus)}
+                  className="rounded border border-border px-2 py-1 text-[11px] hover:bg-muted"
+                >
+                  Settings
+                </button>
+                <button
+                  onClick={() => openCorpusWorkspace(corpus.id, "documents")}
+                  className="rounded border border-border px-2 py-1 text-[11px] hover:bg-muted"
+                >
+                  Add Documents
+                </button>
+                <button
+                  onClick={() => handleDeleteCorpus(corpus)}
+                  className="rounded border border-red-300 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <KnowledgeNav
-        title="Knowledge Base"
-        description="数据源管理、索引构建与检索配置"
-      />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-3 px-6 py-6">
-          {/* Left sidebar: Corpus + Detail */}
-          <aside className="min-h-0 min-w-0 w-[240px] shrink-0 overflow-y-auto">
-            <div className="space-y-4 pb-4 pr-2">
+      <KnowledgeNav title="Knowledge Base" description="Retrieval 与 Corpus 维护" />
+
+      <div className="relative flex-1 overflow-y-auto px-6 py-6">
+        {viewMode === "overview" ? (
+          <div className="space-y-4 pb-28">
+            {retrievalDocked && retrievalResults.length > 0 && (
               <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <h2 className="text-sm font-semibold text-card-foreground">
-                  Corpus
-                </h2>
-                <div className="mt-3">
-                  <CorpusList
-                    corpora={kb.corpora}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    onEdit={handleEditClick}
-                    onDelete={handleDelete}
-                    isLoading={kb.isLoading}
-                  />
-                </div>
-
-                <button
-                  onClick={handleCreateClick}
-                  className="mt-3 w-full rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-foreground hover:text-foreground"
-                >
-                  + 新建数据源
-                </button>
-              </div>
-
-              <CorpusDetail corpus={kb.corpus} />
-            </div>
-          </aside>
-
-          {/* Right workspace */}
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            {selectedId ? (
-              <div className="flex min-h-0 flex-1 flex-col">
-                {/* Tabs */}
-                <div className="shrink-0 flex w-fit items-center gap-1 rounded-full bg-muted/50 p-1 text-sm font-medium mb-4">
-                  {(
-                    [
-                      { key: "search", label: "Search" },
-                      { key: "content", label: "Content" },
-                    ] as const
-                  ).map((tab) => (
+                <div className="mb-2 text-sm font-semibold">Retrieved Chunks</div>
+                <div className="space-y-2">
+                  {retrievalResults.map((item) => (
                     <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`rounded-full px-4 py-1.5 text-xs transition-all ${
-                        activeTab === tab.key
-                          ? "bg-foreground text-background shadow-sm ring-1 ring-border"
-                          : "text-muted hover:text-foreground"
-                      }`}
+                      type="button"
+                      key={`${item.id}-${item.metadata?.corpus_id || "na"}`}
+                      onClick={() => setSelectedChunk(item)}
+                      className="block w-full rounded-lg border border-border bg-background p-3 text-left hover:bg-muted/40"
                     >
-                      {tab.label}
+                      <p className="line-clamp-3 text-xs text-foreground">{item.content}</p>
+                      <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted">
+                        <span>score: {(item.combined_score || 0).toFixed(4)}</span>
+                        <span>corpus: {String(item.metadata?.corpus_id || "-")}</span>
+                        <span>source: {item.source_uri || "-"}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
 
-                  {activeTab === "search" && (
-                    <SearchWorkspace
-                      ref={searchWorkspaceRef}
-                      corpusId={selectedId}
-                      appName={APP_NAME}
-                    />
-                  )}
-                  {activeTab === "content" && (
-                    <div className="flex min-h-0 flex-1 gap-4">
-                      {/* 左侧: Sources 列表 */}
-                      <aside className="shrink-0 w-[220px]">
-                        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-                          <h3 className="mb-2 text-xs font-semibold text-card-foreground">
-                            Sources
-                          </h3>
-                          <label className="mb-2 flex items-center gap-1.5 text-[11px] text-muted">
-                            <input
-                              type="checkbox"
-                              checked={showArchivedSources}
-                              onChange={(e) => setShowArchivedSources(e.target.checked)}
-                            />
-                            Show Archived
-                          </label>
-                          <SourceList
-                            sources={visibleSources}
-                            selectedUri={selectedSourceUri}
-                            onSelect={handleSourceSelect}
-                            onAddSource={() => setIsAddSourceOpen(true)}
-                            onReplaceSource={handleOpenReplace}
-                            onSyncSource={handleSyncSource}
-                            onRebuildSource={handleRebuildSource}
-                            onDeleteSource={handleRequestDeleteSource}
-                            onArchiveSource={(uri) => handleArchiveSource(uri, true)}
-                            onUnarchiveSource={(uri) => handleArchiveSource(uri, false)}
-                          />
-                        </div>
-                      </aside>
+            {!retrievalDocked && renderRetrievalModule()}
+            {renderCorpusCards()}
 
-                      {/* 右侧: Content 表格 + 分页 */}
-                      <div className="flex min-h-0 flex-1 flex-col gap-3">
-                        <ContentExplorer
-                          items={displayChunks}
-                          loading={contentLoading}
-                          error={contentError}
-                          offset={(page - 1) * pageSize}
-                        />
-                        {/* 分页控件 */}
-                        {totalChunks > 0 && (
-                          <div className="shrink-0 flex items-center justify-end gap-3">
-                            <div className="flex items-center gap-1.5">
-                              <label htmlFor="page-size" className="text-xs text-muted">
-                                Rows
-                              </label>
-                              <select
-                                id="page-size"
-                                value={pageSize}
-                                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                                className="rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground outline-none focus:border-ring"
-                              >
-                                {PAGE_SIZE_OPTIONS.map((size) => (
-                                  <option key={size} value={size}>
-                                    {size}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex items-center gap-1.5">
+            {retrievalDocked && (
+              <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 px-6 py-3 backdrop-blur">
+                {renderRetrievalModule()}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex min-h-0 gap-4 pb-10">
+            <aside className="w-[240px] shrink-0 rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <button
+                onClick={() => syncQueryState({ view: "overview", corpusId: null, tab: null, documentId: null })}
+                className="mb-3 rounded border border-border px-2 py-1 text-xs hover:bg-muted"
+              >
+                ← Back
+              </button>
+              <div className="mb-3 text-sm font-semibold">{selectedCorpus?.name || "Corpus"}</div>
+              <div className="space-y-2 text-xs">
+                <button
+                  onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "documents", documentId: null })}
+                  className={`block w-full rounded px-3 py-2 text-left ${corpusTab === "documents" ? "bg-foreground text-background" : "hover:bg-muted"}`}
+                >
+                  Documents
+                </button>
+                <button
+                  onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "settings", documentId: null })}
+                  className={`block w-full rounded px-3 py-2 text-left ${corpusTab === "settings" ? "bg-foreground text-background" : "hover:bg-muted"}`}
+                >
+                  Settings
+                </button>
+              </div>
+            </aside>
+
+            <main className="min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 shadow-sm">
+              {corpusTab === "documents" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold">Documents</h2>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleIngestUrl}
+                        className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
+                      >
+                        Ingest From URL
+                      </button>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
+                      >
+                        Ingest From File
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            void handleIngestFile(file);
+                            e.currentTarget.value = "";
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {documentsLoading ? (
+                    <p className="text-xs text-muted">Loading...</p>
+                  ) : documents.length === 0 ? (
+                    <p className="text-xs text-muted">No documents.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {documents.map((doc) => {
+                        const sourceType = String(doc.metadata?.source_type || "file");
+                        return (
+                          <div
+                            key={doc.id}
+                            className="rounded-lg border border-border bg-background p-3"
+                          >
+                            <div className="flex items-start justify-between gap-2">
                               <button
-                                onClick={handlePagePrev}
-                                disabled={page === 1 || contentLoading}
-                                className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
+                                className="min-w-0 text-left"
+                                onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
-                                Previous
+                                <p className="truncate text-sm font-medium">{doc.original_filename}</p>
+                                <p className="text-[11px] text-muted">{sourceType} · {doc.status} · {doc.file_size} bytes</p>
                               </button>
-                              <span className="text-xs text-muted">
-                                Page {page} / {totalPages || 1}
-                              </span>
-                              <button
-                                onClick={handlePageNext}
-                                disabled={page >= totalPages || contentLoading}
-                                className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
-                              >
-                                Next
-                              </button>
+                              <div className="flex flex-wrap items-center justify-end gap-1">
+                                <button onClick={() => runDocumentAction("view", doc)} className="rounded border border-border px-2 py-1 text-[11px]">View</button>
+                                <button onClick={() => runDocumentAction("download", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Download</button>
+                                <button onClick={() => runDocumentAction("replace", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Replace</button>
+                                <button onClick={() => runDocumentAction("rebuild", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Rebuild</button>
+                                {sourceType === "url" && (
+                                  <button onClick={() => runDocumentAction("sync", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Sync</button>
+                                )}
+                                <button onClick={() => runDocumentAction("archive", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Archive</button>
+                                <button onClick={() => runDocumentAction("unarchive", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Unarchive</button>
+                                <button onClick={() => runDocumentAction("delete", doc)} className="rounded border border-red-300 px-2 py-1 text-[11px] text-red-600">Delete</button>
+                              </div>
                             </div>
                           </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
                   )}
-              </div>
-              ) : (
-                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                  <p className="text-xs text-muted">
-                    请先选择或创建一个数据源以开始。
-                  </p>
                 </div>
               )}
-          </main>
-        </div>
+
+              {corpusTab === "document-chunks" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold">Document Chunks</h2>
+                    <button
+                      onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "documents", documentId: null })}
+                      className="rounded border border-border px-2 py-1 text-xs"
+                    >
+                      Back to Documents
+                    </button>
+                  </div>
+                  {chunksLoading ? (
+                    <p className="text-xs text-muted">Loading chunks...</p>
+                  ) : documentChunks.length === 0 ? (
+                    <p className="text-xs text-muted">No chunks.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {documentChunks.map((chunk) => (
+                        <button
+                          type="button"
+                          key={chunk.id}
+                          onClick={() => setSelectedChunk(chunk)}
+                          className="block w-full rounded-lg border border-border bg-background p-3 text-left hover:bg-muted/40"
+                        >
+                          <p className="line-clamp-3 text-xs">{chunk.content}</p>
+                          <div className="mt-2 text-[11px] text-muted">
+                            chunk_index: {chunk.chunk_index} · source: {chunk.source_uri || "-"}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {corpusTab === "settings" && selectedCorpus && (
+                <CorpusSettingsPanel
+                  key={selectedCorpus.id}
+                  corpus={selectedCorpus}
+                  onSave={handleSaveCorpusSettings}
+                />
+              )}
+            </main>
+          </div>
+        )}
       </div>
+
+      <ChunkDetailDrawer chunk={selectedChunk} onClose={() => setSelectedChunk(null)} />
 
       <CorpusFormDialog
         isOpen={isDialogOpen}
@@ -532,34 +680,108 @@ export default function KnowledgeBasePage() {
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleDialogSubmit}
       />
+    </div>
+  );
+}
 
-      <AddSourceDialog
-        isOpen={isAddSourceOpen}
-        corpusId={selectedId}
-        onClose={() => setIsAddSourceOpen(false)}
-        onIngest={handleIngest}
-        onIngestUrl={handleIngestUrl}
-        onIngestFile={handleIngestFile}
-        chunkingConfig={kb.corpus?.config as ChunkingConfig | undefined}
-        onSuccess={handleIngestSuccess}
-      />
+function CorpusSettingsPanel({
+  corpus,
+  onSave,
+}: {
+  corpus: CorpusRecord;
+  onSave: (config: Record<string, unknown>) => Promise<void>;
+}) {
+  const [strategy, setStrategy] = useState<string>(String(corpus.config?.strategy || "recursive"));
+  const [chunkSize, setChunkSize] = useState<string>(String(corpus.config?.chunk_size || 800));
+  const [overlap, setOverlap] = useState<string>(String(corpus.config?.overlap || 100));
+  const [preserveNewlines, setPreserveNewlines] = useState<boolean>(corpus.config?.preserve_newlines !== false);
+  const [separators, setSeparators] = useState<string>(
+    Array.isArray(corpus.config?.separators)
+      ? (corpus.config?.separators as string[]).join("\n")
+      : "",
+  );
 
-      <ReplaceSourceDialog
-        isOpen={isReplaceOpen}
-        corpusId={selectedId}
-        sourceUri={replaceSourceUri}
-        onClose={() => setIsReplaceOpen(false)}
-        onReplace={handleReplace}
-        onSuccess={handleReplaceSuccess}
-      />
+  const handleSubmit = async () => {
+    const config: Record<string, unknown> = {
+      ...(corpus.config || {}),
+      strategy,
+      chunk_size: Number(chunkSize),
+      overlap: Number(overlap),
+      preserve_newlines: preserveNewlines,
+      separators: separators
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    };
+    await onSave(config);
+  };
 
-      <DeleteSourceDialog
-        isOpen={isDeleteSourceOpen}
-        sourceName={deleteSourceName}
-        isDeleting={isDeletingSource}
-        onClose={handleCancelDeleteSource}
-        onConfirm={handleConfirmDeleteSource}
-      />
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold">Settings</h2>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="text-xs">
+          <div className="mb-1 text-muted">Chunking Strategy</div>
+          <select
+            value={strategy}
+            onChange={(e) => setStrategy(e.target.value)}
+            className="w-full rounded border border-border bg-background px-2 py-2"
+          >
+            <option value="fixed">Fixed Character Size</option>
+            <option value="recursive">Recursive Aware</option>
+            <option value="semantic">Semantic (Embedding Similarity)</option>
+          </select>
+        </label>
+
+        <label className="text-xs">
+          <div className="mb-1 text-muted">Chunk Size</div>
+          <input
+            type="number"
+            value={chunkSize}
+            onChange={(e) => setChunkSize(e.target.value)}
+            className="w-full rounded border border-border bg-background px-2 py-2"
+          />
+        </label>
+
+        <label className="text-xs">
+          <div className="mb-1 text-muted">Overlap</div>
+          <input
+            type="number"
+            value={overlap}
+            onChange={(e) => setOverlap(e.target.value)}
+            className="w-full rounded border border-border bg-background px-2 py-2"
+          />
+        </label>
+
+        <label className="inline-flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={preserveNewlines}
+            onChange={(e) => setPreserveNewlines(e.target.checked)}
+          />
+          <span>Preserve Newlines</span>
+        </label>
+      </div>
+
+      <label className="block text-xs">
+        <div className="mb-1 text-muted">Separators（每行一个）</div>
+        <textarea
+          value={separators}
+          onChange={(e) => setSeparators(e.target.value)}
+          rows={5}
+          className="w-full rounded border border-border bg-background px-2 py-2"
+          placeholder={"\\n\\n\n\\n\n. \n, "}
+        />
+      </label>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSubmit}
+          className="rounded bg-zinc-900 px-3 py-2 text-xs font-semibold text-white"
+        >
+          Save Settings
+        </button>
+      </div>
     </div>
   );
 }

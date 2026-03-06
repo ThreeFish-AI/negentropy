@@ -101,6 +101,7 @@ export interface UseKnowledgeBaseReturnValue {
   /** 摄取 URL（异步） */
   ingestUrl: (params: {
     url: string;
+    as_document?: boolean;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<AsyncPipelineResult>;
@@ -309,6 +310,7 @@ export function useKnowledgeBase(
           chunk_size: params.chunkingConfig?.chunk_size,
           overlap: params.chunkingConfig?.overlap,
           preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          separators: params.chunkingConfig?.separators,
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -327,6 +329,7 @@ export function useKnowledgeBase(
   const ingestUrlHandler = useCallback(
     async (params: {
       url: string;
+      as_document?: boolean;
       metadata?: Record<string, unknown>;
       chunkingConfig?: ChunkingConfig;
     }) => {
@@ -339,10 +342,12 @@ export function useKnowledgeBase(
         const result = await ingestUrl(corpus.id, {
           app_name: appName,
           url: params.url,
+          as_document: params.as_document,
           metadata: params.metadata,
           chunk_size: params.chunkingConfig?.chunk_size,
           overlap: params.chunkingConfig?.overlap,
           preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          separators: params.chunkingConfig?.separators,
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -379,9 +384,9 @@ export function useKnowledgeBase(
           chunk_size: params.chunkingConfig?.chunk_size,
           overlap: params.chunkingConfig?.overlap,
           preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          separators: params.chunkingConfig?.separators,
         });
         setState({ isLoading: false, error: null });
-        onIngestSuccess?.(result);
         return result;
       } catch (error) {
         const err = error as Error;
@@ -415,6 +420,7 @@ export function useKnowledgeBase(
           chunk_size: params.chunkingConfig?.chunk_size,
           overlap: params.chunkingConfig?.overlap,
           preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          separators: params.chunkingConfig?.separators,
         });
         setState({ isLoading: false, error: null });
         return result;
@@ -443,6 +449,7 @@ export function useKnowledgeBase(
           chunk_size: params.chunkingConfig?.chunk_size,
           overlap: params.chunkingConfig?.overlap,
           preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          separators: params.chunkingConfig?.separators,
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -472,6 +479,7 @@ export function useKnowledgeBase(
           chunk_size: params.chunkingConfig?.chunk_size,
           overlap: params.chunkingConfig?.overlap,
           preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          separators: params.chunkingConfig?.separators,
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);

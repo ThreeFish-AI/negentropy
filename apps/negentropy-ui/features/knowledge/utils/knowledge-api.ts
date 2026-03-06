@@ -18,6 +18,7 @@ export interface ChunkingConfig {
   chunk_size?: number;
   overlap?: number;
   preserve_newlines?: boolean;
+  separators?: string[];
   // Semantic chunking specific
   semantic_threshold?: number;
   min_chunk_size?: number;
@@ -472,6 +473,7 @@ export async function ingestText(
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
   },
 ): Promise<AsyncPipelineResult> {
   // 前端配置验证（对齐后端 types.py）
@@ -499,10 +501,12 @@ export async function ingestUrl(
   params: {
     app_name?: string;
     url: string;
+    as_document?: boolean;
     metadata?: Record<string, unknown>;
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/ingest_url`, {
@@ -523,6 +527,7 @@ export async function ingestFile(
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
   },
 ): Promise<IngestResult> {
   const formData = new FormData();
@@ -535,6 +540,9 @@ export async function ingestFile(
   if (params.overlap) formData.set("overlap", String(params.overlap));
   if (params.preserve_newlines !== undefined) {
     formData.set("preserve_newlines", String(params.preserve_newlines));
+  }
+  if (params.separators && params.separators.length > 0) {
+    formData.set("separators", JSON.stringify(params.separators));
   }
 
   const res = await fetch(`/api/knowledge/base/${id}/ingest_file`, {
@@ -563,6 +571,7 @@ export interface KnowledgeDocument {
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
   markdown_extracted_at?: string | null;
   markdown_extract_error?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface KnowledgeDocumentDetail extends KnowledgeDocument {
@@ -579,6 +588,20 @@ export interface DocumentMarkdownRefreshResponse {
 export interface DocumentListResponse {
   count: number;
   items: KnowledgeDocument[];
+}
+
+export interface DocumentChunkItem {
+  id: string;
+  content: string;
+  source_uri: string | null;
+  created_at: string | null;
+  chunk_index: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface DocumentChunksResponse {
+  count: number;
+  items: DocumentChunkItem[];
 }
 
 // ============================================================================
@@ -752,6 +775,108 @@ export async function downloadDocument(
   }
 }
 
+export async function fetchDocumentChunks(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+    limit?: number;
+    offset?: number;
+    includeArchived?: boolean;
+  },
+): Promise<DocumentChunksResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.limit !== undefined) query.set("limit", String(params.limit));
+  if (params?.offset !== undefined) query.set("offset", String(params.offset));
+  if (params?.includeArchived !== undefined) {
+    query.set("include_archived", String(params.includeArchived));
+  }
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/chunks?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+async function postDocumentAction(
+  corpusId: string,
+  documentId: string,
+  action: "sync" | "rebuild" | "replace" | "archive" | "unarchive",
+  params: Record<string, unknown>,
+): Promise<AsyncPipelineResult | ArchiveSourceResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/${action}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function syncDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  } = {},
+): Promise<AsyncPipelineResult> {
+  return postDocumentAction(corpusId, documentId, "sync", params) as Promise<AsyncPipelineResult>;
+}
+
+export async function rebuildDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  } = {},
+): Promise<AsyncPipelineResult> {
+  return postDocumentAction(corpusId, documentId, "rebuild", params) as Promise<AsyncPipelineResult>;
+}
+
+export async function replaceDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+    text: string;
+    chunk_size?: number;
+    overlap?: number;
+    preserve_newlines?: boolean;
+  },
+): Promise<AsyncPipelineResult> {
+  return postDocumentAction(corpusId, documentId, "replace", params) as Promise<AsyncPipelineResult>;
+}
+
+export async function archiveDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+  } = {},
+): Promise<ArchiveSourceResult> {
+  return postDocumentAction(corpusId, documentId, "archive", params) as Promise<ArchiveSourceResult>;
+}
+
+export async function unarchiveDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+  } = {},
+): Promise<ArchiveSourceResult> {
+  return postDocumentAction(corpusId, documentId, "unarchive", params) as Promise<ArchiveSourceResult>;
+}
+
 export async function replaceSource(
   id: string,
   params: {
@@ -762,6 +887,7 @@ export async function replaceSource(
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/replace_source`, {
@@ -780,6 +906,7 @@ export async function syncSource(
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {
@@ -798,6 +925,7 @@ export async function rebuildSource(
     chunk_size?: number;
     overlap?: number;
     preserve_newlines?: boolean;
+    separators?: string[];
   },
 ): Promise<AsyncPipelineResult> {
   const res = await fetch(`/api/knowledge/base/${id}/rebuild_source`, {
@@ -935,6 +1063,46 @@ export async function searchKnowledge(
     body: JSON.stringify(params),
   });
   return handleKnowledgeError(res);
+}
+
+export async function searchAcrossCorpora(
+  corpusIds: string[],
+  params: {
+    app_name?: string;
+    query: string;
+    mode?: SearchMode;
+    limit?: number;
+    semantic_weight?: number;
+    keyword_weight?: number;
+    metadata_filter?: Record<string, unknown>;
+  },
+): Promise<SearchResults> {
+  const settled = await Promise.allSettled(
+    corpusIds.map((corpusId) =>
+      searchKnowledge(corpusId, params).then((results) =>
+        results.items.map((item) => ({
+          ...item,
+          metadata: {
+            ...(item.metadata || {}),
+            corpus_id: corpusId,
+          },
+        })),
+      ),
+    ),
+  );
+
+  const mergedItems: KnowledgeMatch[] = [];
+  settled.forEach((item) => {
+    if (item.status === "fulfilled") {
+      mergedItems.push(...item.value);
+    }
+  });
+  mergedItems.sort((a, b) => (b.combined_score ?? 0) - (a.combined_score ?? 0));
+
+  return {
+    count: mergedItems.length,
+    items: params.limit ? mergedItems.slice(0, params.limit) : mergedItems,
+  };
 }
 
 // ============================================================================

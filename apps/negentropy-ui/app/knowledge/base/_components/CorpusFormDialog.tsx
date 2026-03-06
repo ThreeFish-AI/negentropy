@@ -33,6 +33,7 @@ export function CorpusFormDialog({
   const [chunkSize, setChunkSize] = useState<string>("800");
   const [overlap, setOverlap] = useState<string>("100");
   const [preserveNewlines, setPreserveNewlines] = useState(true);
+  const [separators, setSeparators] = useState("");
 
   // Semantic specific
   const [semanticThreshold, setSemanticThreshold] = useState<string>("0.85");
@@ -54,6 +55,11 @@ export function CorpusFormDialog({
         setSemanticThreshold(String(conf.semantic_threshold || "0.85"));
         setMinChunkSize(String(conf.min_chunk_size || "50"));
         setMaxChunkSize(String(conf.max_chunk_size || "2000"));
+        setSeparators(
+          Array.isArray(conf.separators)
+            ? (conf.separators as string[]).join("\n")
+            : "",
+        );
 
         setShowAdvanced(false);
       } else {
@@ -66,6 +72,7 @@ export function CorpusFormDialog({
         setSemanticThreshold("0.85");
         setMinChunkSize("50");
         setMaxChunkSize("2000");
+        setSeparators("");
         setShowAdvanced(false);
       }
     }
@@ -92,6 +99,11 @@ export function CorpusFormDialog({
       if (!isNaN(minSize)) config.min_chunk_size = minSize;
       if (!isNaN(maxSize)) config.max_chunk_size = maxSize;
     }
+
+    config.separators = separators
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
     await onSubmit({
       name: name.trim(),
@@ -275,6 +287,19 @@ export function CorpusFormDialog({
                     </div>
                   </div>
                 )}
+
+                <div className="border-t border-zinc-200 pt-3 dark:border-zinc-700">
+                  <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                    Separators (one per line)
+                  </label>
+                  <textarea
+                    className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                    rows={4}
+                    placeholder={"\\n\\n\\n.\\n,\\n;"}
+                    value={separators}
+                    onChange={(e) => setSeparators(e.target.value)}
+                  />
+                </div>
 
                 <div className="flex items-center pt-1">
                   <input

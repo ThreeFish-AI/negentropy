@@ -380,8 +380,16 @@ def _recursive_chunk(text: str, config: ChunkingConfig) -> list[str]:
     if not text or not text.strip():
         return []
 
-    # 首先按段落分割
-    paragraphs = re.split(r"\n\s*\n", text.strip())
+    # 首先按段落分割（支持自定义分隔符）
+    if config.separators:
+        paragraphs = [text.strip()]
+        for sep in config.separators:
+            next_parts: list[str] = []
+            for segment in paragraphs:
+                next_parts.extend(segment.split(sep))
+            paragraphs = next_parts
+    else:
+        paragraphs = re.split(r"\n\s*\n", text.strip())
     paragraphs = [p.strip() for p in paragraphs if p.strip()]
 
     if not paragraphs:
