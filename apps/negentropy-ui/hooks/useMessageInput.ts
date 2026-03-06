@@ -44,6 +44,8 @@ export interface UseMessageInputOptions {
   onLoadSessions?: () => Promise<void>;
   /** 添加日志回调 */
   onAddLog?: (level: "info" | "warn" | "error", message: string, payload?: Record<string, unknown>) => void;
+  /** 当前输入值 */
+  inputValue: string;
 }
 
 /**
@@ -82,6 +84,7 @@ export function useMessageInput(
     onUpdateSessionTime,
     onLoadSessions,
     onAddLog,
+    inputValue,
   } = options;
 
   // 发送消息
@@ -101,7 +104,7 @@ export function useMessageInput(
     const newMessage: Message = {
       id: messageId,
       role: "user",
-      content: (inputValue as string).trim(),
+      content: inputValue.trim(),
       createdAt: new Date(timestamp * 1000),
     };
 
@@ -174,7 +177,7 @@ export function useMessageInput(
   ]);
 
   return {
-    inputValue: inputValue as string,
+    inputValue,
     setInputValue,
     sendInput,
   };

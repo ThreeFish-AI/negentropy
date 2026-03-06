@@ -31,6 +31,7 @@ export interface ConversationNode {
   toolCallId?: string;
   timestamp: number;
   timeRange: NodeTimeRange;
+  sourceOrder: number;
   title: string;
   status?: string;
   role?: "user" | "assistant" | "system";
