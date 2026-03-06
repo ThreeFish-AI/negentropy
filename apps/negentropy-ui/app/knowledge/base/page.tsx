@@ -37,6 +37,7 @@ import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
+import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -340,6 +341,9 @@ export default function KnowledgeBasePage() {
   const [isIngestUrlDialogOpen, setIsIngestUrlDialogOpen] = useState(false);
   const [deletingCorpus, setDeletingCorpus] = useState<CorpusRecord | null>(null);
   const [isDeletingCorpus, setIsDeletingCorpus] = useState(false);
+  const [isDeleteDocumentDialogOpen, setIsDeleteDocumentDialogOpen] = useState(false);
+  const [deletingDocument, setDeletingDocument] = useState<KnowledgeDocument | null>(null);
+  const [isDeletingDocument, setIsDeletingDocument] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
   const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
@@ -587,8 +591,9 @@ export default function KnowledgeBasePage() {
         setViewingDoc(doc);
         return;
       } else if (action === "delete") {
-        if (!window.confirm("确定删除该文档吗？")) return;
-        await deleteDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
+        setDeletingDocument(doc);
+        setIsDeleteDocumentDialogOpen(true);
+        return;
       }
       toast.success(`${action} success`);
       await loadDocuments();
@@ -610,6 +615,24 @@ export default function KnowledgeBasePage() {
     setIsReplaceDialogOpen(false);
     setReplacingDocument(null);
     await loadDocuments();
+  };
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!selectedCorpusId || !deletingDocument || isDeletingDocument) return;
+    setIsDeletingDocument(true);
+    try {
+      await deleteDocument(selectedCorpusId, deletingDocument.id, {
+        appName: APP_NAME,
+      });
+      toast.success("delete success");
+      setIsDeleteDocumentDialogOpen(false);
+      setDeletingDocument(null);
+      await loadDocuments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "delete failed");
+    } finally {
+      setIsDeletingDocument(false);
+    }
   };
 
   const handleSaveCorpusSettings = async (config: Record<string, unknown>) => {
@@ -1024,6 +1047,28 @@ export default function KnowledgeBasePage() {
           setDeletingCorpus(null);
         }}
         onConfirm={handleConfirmDeleteCorpus}
+      />
+
+      <DeleteSourceDialog
+        isOpen={isDeleteDocumentDialogOpen}
+        sourceName={deletingDocument?.original_filename ?? null}
+        isDeleting={isDeletingDocument}
+        title="Delete Document"
+        message={
+          <>
+            确定删除文档{" "}
+            <span className="font-semibold break-all">
+              「{deletingDocument?.original_filename ?? "-"}」
+            </span>{" "}
+            吗？此操作会删除关联 chunks，且不可恢复。
+          </>
+        }
+        onClose={() => {
+          if (isDeletingDocument) return;
+          setIsDeleteDocumentDialogOpen(false);
+          setDeletingDocument(null);
+        }}
+        onConfirm={handleConfirmDeleteDocument}
       />
     </div>
   );
