@@ -222,6 +222,7 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
+    await user.click(screen.getByRole("checkbox"));
     await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
     await user.click(screen.getByRole("button", { name: "Retrieve" }));
 
@@ -254,6 +255,7 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
+    await user.click(screen.getByRole("checkbox"));
     await user.type(screen.getByPlaceholderText("输入检索内容"), "first query");
     await user.click(screen.getByRole("button", { name: "Retrieve" }));
 
@@ -276,5 +278,85 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByRole("button", { name: "Corpus" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "收起 Corpus" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Corpus" })).not.toBeInTheDocument();
+  });
+
+  it("未选中任何 Corpus 时禁用 Retrieve，并且不会发起检索", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
+
+    const retrieveButton = screen.getByRole("button", { name: "Retrieve" });
+    expect(retrieveButton).toBeDisabled();
+    expect(screen.getByText("请至少选择一个 Corpus 后再执行 Retrieve")).toBeInTheDocument();
+    expect(searchAcrossCorporaMock).not.toHaveBeenCalled();
+    expect(screen.queryByText("Retrieved Chunks")).not.toBeInTheDocument();
+  });
+
+  it("仅将选中的 Corpus 传给检索接口，并使用全宽停靠容器", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    useKnowledgeBaseMock.mockImplementation(() => ({
+      corpora: [
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          name: "Corpus Alpha",
+          app_name: "negentropy",
+          knowledge_count: 3,
+          config: {},
+        },
+        {
+          id: "22222222-2222-2222-2222-222222222222",
+          name: "Corpus Beta",
+          app_name: "negentropy",
+          knowledge_count: 5,
+          config: {},
+        },
+      ],
+      isLoading: false,
+      loadCorpora: loadCorporaMock,
+      loadCorpus: loadCorpusMock,
+      createCorpus: vi.fn(),
+      updateCorpus: vi.fn(),
+      deleteCorpus: deleteCorpusMock,
+      ingestUrl: vi.fn(),
+      ingestFile: vi.fn(),
+    }));
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const betaCheckbox = screen.getByRole("checkbox", { name: /Corpus Beta/ });
+    await user.click(betaCheckbox);
+    await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
+    await user.click(screen.getByRole("button", { name: "Retrieve" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(searchAcrossCorporaMock).toHaveBeenCalledWith(
+      ["22222222-2222-2222-2222-222222222222"],
+      {
+        app_name: "negentropy",
+        query: "context engineering",
+        mode: "hybrid",
+        limit: 50,
+      },
+    );
+
+    const dockedContainer = screen.getByTestId("docked-retrieval-container");
+    expect(dockedContainer).toHaveClass("w-full");
+    expect(dockedContainer).not.toHaveClass("max-w-[1400px]");
   });
 });
