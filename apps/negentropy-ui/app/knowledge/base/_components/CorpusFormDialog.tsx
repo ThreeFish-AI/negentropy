@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CorpusRecord, ChunkingStrategy } from "@/features/knowledge";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 interface CorpusFormDialogProps {
   isOpen: boolean;
@@ -123,8 +124,13 @@ export function CorpusFormDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900">
+    <OverlayDismissLayer
+      open={isOpen}
+      onClose={onClose}
+      busy={isLoading}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+    >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
             {mode === "create" ? "新建数据源" : "编辑数据源"}
@@ -407,7 +413,6 @@ export function CorpusFormDialog({
                 : "保存修改"}
           </button>
         </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }

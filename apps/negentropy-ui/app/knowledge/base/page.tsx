@@ -34,6 +34,7 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
@@ -71,7 +72,13 @@ function ChunkDetailDrawer({
   const metadata = "metadata" in chunk ? chunk.metadata : {};
   const content = "content" in chunk ? chunk.content : "";
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-[420px] border-l border-border bg-card p-4 shadow-2xl">
+    <OverlayDismissLayer
+      open={chunk !== null}
+      onClose={onClose}
+      containerClassName="flex min-h-full justify-end"
+      contentClassName="h-full w-[420px] border-l border-border bg-card p-4 shadow-2xl"
+      backdropTestId="chunk-drawer-backdrop"
+    >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">Chunk Detail</h3>
         <button
@@ -92,7 +99,7 @@ function ChunkDetailDrawer({
           </pre>
         </div>
       </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }
 

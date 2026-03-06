@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { IngestResult, AsyncPipelineResult, ChunkingConfig } from "@/features/knowledge";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 // 支持的文件扩展名
 const SUPPORTED_EXTENSIONS = [".txt", ".md", ".markdown", ".pdf"];
@@ -175,13 +176,19 @@ export function AddSourceDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-source-dialog-title"
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
-      >
+    <OverlayDismissLayer
+      open={isOpen}
+      onClose={handleClose}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+      contentProps={{
+        role: "dialog",
+        "aria-modal": true,
+        "aria-labelledby": "add-source-dialog-title",
+        "data-testid": "overlay-content",
+      }}
+      backdropTestId="overlay-backdrop"
+    >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2
@@ -366,7 +373,6 @@ export function AddSourceDialog({
             Ingest
           </button>
         </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }

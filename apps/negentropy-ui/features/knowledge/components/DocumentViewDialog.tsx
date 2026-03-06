@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 import type {
   KnowledgeDocument,
@@ -195,8 +196,12 @@ export function DocumentViewDialog({
   const markdownBadge = getMarkdownStatusBadge(markdownStatus);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="flex h-[86vh] w-full max-w-5xl flex-col rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900">
+    <OverlayDismissLayer
+      open={isOpen && document !== null}
+      onClose={onClose}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="flex h-[86vh] w-full max-w-5xl flex-col rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+    >
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             {getFileIcon(viewedDoc.content_type)}
@@ -333,7 +338,6 @@ export function DocumentViewDialog({
             {isDownloading ? "Downloading..." : "Download"}
           </button>
         </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }

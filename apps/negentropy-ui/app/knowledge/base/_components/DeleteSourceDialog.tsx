@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 interface DeleteSourceDialogProps {
   isOpen: boolean;
@@ -39,13 +40,18 @@ export function DeleteSourceDialog({
   const displaySourceName = formatSourceNameForPrompt(sourceName);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="delete-source-dialog-title"
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
-      >
+    <OverlayDismissLayer
+      open={isOpen}
+      onClose={onClose}
+      busy={isDeleting}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+      contentProps={{
+        role: "dialog",
+        "aria-modal": true,
+        "aria-labelledby": "delete-source-dialog-title",
+      }}
+    >
         <div className="mb-4 flex items-center justify-between">
           <h2
             id="delete-source-dialog-title"
@@ -102,7 +108,6 @@ export function DeleteSourceDialog({
             {isDeleting ? "Deleting..." : confirmLabel}
           </button>
         </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }
