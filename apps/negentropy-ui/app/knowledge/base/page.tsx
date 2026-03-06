@@ -463,6 +463,14 @@ export default function KnowledgeBasePage() {
     }
   }, [viewMode, corpusTab, selectedCorpusId, selectedDocumentId, loadDocumentChunks]);
 
+  const resetRetrievalView = useCallback(() => {
+    setRetrievalResults([]);
+    setRetrievalError(null);
+    setRetrievalDocked(false);
+    setIsCorpusPanelExpanded(false);
+    setSelectedRetrievedChunk(null);
+  }, []);
+
   const handleRetrieve = async () => {
     const corpusIds = selectedRetrievalCorpusIds;
     if (!query.trim() || corpusIds.length === 0) return;
@@ -670,18 +678,29 @@ export default function KnowledgeBasePage() {
 
   const renderRetrievalModule = () => (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">Retrieval</h2>
-        <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1 text-xs">
-          {(["semantic", "keyword", "hybrid"] as const).map((item) => (
+        <div className="flex items-center gap-2">
+          {retrievalDocked && (
             <button
-              key={item}
-              onClick={() => setMode(item)}
-              className={`rounded-full px-3 py-1 ${mode === item ? "bg-foreground text-background" : "text-muted hover:text-foreground"}`}
+              type="button"
+              onClick={resetRetrievalView}
+              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
             >
-              {item}
+              收起结果
             </button>
-          ))}
+          )}
+          <div className="flex items-center gap-1 rounded-full bg-muted/60 p-1 text-xs">
+            {(["semantic", "keyword", "hybrid"] as const).map((item) => (
+              <button
+                key={item}
+                onClick={() => setMode(item)}
+                className={`rounded-full px-3 py-1 ${mode === item ? "bg-foreground text-background" : "text-muted hover:text-foreground"}`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
