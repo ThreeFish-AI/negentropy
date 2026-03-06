@@ -876,6 +876,40 @@ class KnowledgeRepository:
                 reason=str(exc),
             ) from exc
 
+    async def get_search_match_metadata(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        match_ids: Iterable[UUID],
+    ) -> dict[UUID, dict[str, Any]]:
+        id_list = [item for item in match_ids]
+        if not id_list:
+            return {}
+
+        try:
+            async with self._get_session_factory()() as db:
+                stmt = select(Knowledge.id, Knowledge.chunk_index).where(
+                    Knowledge.corpus_id == corpus_id,
+                    Knowledge.app_name == app_name,
+                    Knowledge.id.in_(id_list),
+                )
+                result = await db.execute(stmt)
+                rows = result.all()
+
+            return {
+                row.id: {
+                    "chunk_index": row.chunk_index,
+                }
+                for row in rows
+            }
+        except Exception as exc:
+            raise SearchError(
+                corpus_id=str(corpus_id),
+                search_mode="search_match_metadata_lookup",
+                reason=str(exc),
+            ) from exc
+
     @staticmethod
     def _to_corpus_record(corpus: Corpus) -> CorpusRecord:
         return CorpusRecord(

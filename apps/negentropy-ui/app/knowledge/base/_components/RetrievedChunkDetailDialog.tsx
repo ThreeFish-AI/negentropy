@@ -1,0 +1,123 @@
+"use client";
+
+import { useEffect, useId } from "react";
+import { FileText, Grip, X } from "lucide-react";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import type { RetrievedChunkViewModel } from "./retrieved-chunk-presenter";
+
+interface RetrievedChunkDetailDialogProps {
+  chunk: RetrievedChunkViewModel | null;
+  onClose: () => void;
+}
+
+function formatScore(score: number): string {
+  return score.toFixed(2);
+}
+
+export function RetrievedChunkDetailDialog({
+  chunk,
+  onClose,
+}: RetrievedChunkDetailDialogProps) {
+  const titleId = useId();
+
+  useEffect(() => {
+    if (!chunk) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [chunk, onClose]);
+
+  if (!chunk) return null;
+
+  const isHierarchical = chunk.variant === "hierarchical";
+
+  return (
+    <OverlayDismissLayer
+      open={chunk !== null}
+      onClose={onClose}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="flex h-[82vh] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border border-border bg-card shadow-2xl"
+      backdropTestId="retrieved-chunk-dialog-backdrop"
+      contentProps={{
+        role: "dialog",
+        "aria-modal": true,
+        "aria-labelledby": titleId,
+      }}
+    >
+      <div className="flex items-start justify-between gap-4 px-5 py-5">
+        <h2 id={titleId} className="text-3xl font-semibold text-foreground">
+          Chunk Detail
+        </h2>
+        <button
+          type="button"
+          aria-label="Close chunk detail"
+          onClick={onClose}
+          className="rounded-full border border-border p-2 text-zinc-400 hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="min-h-0 flex-1 px-5 pb-5">
+        <div className={`grid h-full min-h-0 gap-5 ${isHierarchical ? "lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)]" : "grid-cols-1"}`}>
+          <section className="min-h-0 rounded-3xl bg-card px-1">
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-sm font-medium text-zinc-400">
+              <span className="inline-flex items-center gap-2">
+                <Grip className="h-3.5 w-3.5" />
+                {chunk.title}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <FileText className="h-4 w-4 text-red-500" />
+                <span title={chunk.sourceTitle}>{chunk.sourceLabel}</span>
+              </span>
+            </div>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                {chunk.characterCount} characters
+              </div>
+              <span className="rounded bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white">
+                SCORE {formatScore(chunk.score)}
+              </span>
+            </div>
+            <div className="h-[calc(100%-4.5rem)] overflow-y-auto pr-2">
+              <p className="whitespace-pre-wrap text-[16px] leading-9 text-foreground">
+                {chunk.fullContent}
+              </p>
+            </div>
+          </section>
+
+          {isHierarchical && (
+            <aside className="flex min-h-0 flex-col rounded-3xl border border-border bg-background/30 p-4">
+              <div className="mb-4 text-xl font-semibold text-foreground">
+                HIT {chunk.childHitCount} CHILD CHUNKS
+              </div>
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                {chunk.childChunks.map((childChunk) => (
+                  <div key={childChunk.id} className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white">
+                        {childChunk.label}
+                      </span>
+                      <span className="rounded bg-blue-600/85 px-2 py-1 text-[11px] font-semibold text-white">
+                        SCORE {formatScore(childChunk.score)}
+                      </span>
+                    </div>
+                    <p className="whitespace-pre-wrap break-words rounded bg-blue-500/20 px-3 py-2 text-sm text-foreground">
+                      {childChunk.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </aside>
+          )}
+        </div>
+      </div>
+    </OverlayDismissLayer>
+  );
+}

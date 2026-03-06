@@ -1709,6 +1709,11 @@ class KnowledgeService:
                     limit=config.limit,
                     metadata_filter=config.metadata_filter,
                 )
+                keyword_matches = await self._hydrate_match_metadata(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    matches=keyword_matches,
+                )
                 logger.info(
                     "search_completed",
                     corpus_id=str(corpus_id),
@@ -1730,6 +1735,11 @@ class KnowledgeService:
                 query_embedding=query_embedding,
                 limit=config.limit,
                 k=config.rrf_k,
+            )
+            results = await self._hydrate_match_metadata(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=results,
             )
 
             # L1 精排
@@ -1766,6 +1776,11 @@ class KnowledgeService:
                 limit=config.limit,
                 metadata_filter=config.metadata_filter,
             )
+            semantic_matches = await self._hydrate_match_metadata(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=semantic_matches,
+            )
             logger.debug(
                 "semantic_search_completed",
                 corpus_id=str(corpus_id),
@@ -1779,6 +1794,11 @@ class KnowledgeService:
                 query=query,
                 limit=config.limit,
                 metadata_filter=config.metadata_filter,
+            )
+            keyword_matches = await self._hydrate_match_metadata(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=keyword_matches,
             )
             logger.debug(
                 "keyword_search_completed",
@@ -2064,6 +2084,21 @@ class KnowledgeService:
                 for item in child_matches
                 if item.metadata.get("child_chunk_index") is not None
             ]
+            matched_child_chunks = [
+                {
+                    "id": str(item.id),
+                    "child_chunk_index": item.metadata.get("child_chunk_index"),
+                    "content": item.content,
+                    "semantic_score": item.semantic_score,
+                    "keyword_score": item.keyword_score,
+                    "combined_score": item.combined_score,
+                }
+                for item in sorted(
+                    child_matches,
+                    key=lambda item: item.combined_score,
+                    reverse=True,
+                )
+            ]
             lifted.append(
                 KnowledgeMatch(
                     id=parent.id,
@@ -2072,6 +2107,7 @@ class KnowledgeService:
                     metadata={
                         **parent.metadata,
                         "matched_child_chunk_indices": matched_child_indices,
+                        "matched_child_chunks": matched_child_chunks,
                         "returned_parent_chunk": True,
                     },
                     semantic_score=best_child.semantic_score,
@@ -2092,6 +2128,49 @@ class KnowledgeService:
             if len(deduped) >= limit:
                 break
         return deduped
+
+    async def _hydrate_match_metadata(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        matches: Iterable[KnowledgeMatch],
+    ) -> list[KnowledgeMatch]:
+        match_list = list(matches)
+        if not match_list:
+            return []
+
+        metadata_by_id = await self._repository.get_search_match_metadata(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            match_ids=[item.id for item in match_list],
+        )
+        if not metadata_by_id:
+            return match_list
+
+        hydrated: list[KnowledgeMatch] = []
+        for item in match_list:
+            extra_metadata = metadata_by_id.get(item.id)
+            if not extra_metadata:
+                hydrated.append(item)
+                continue
+
+            hydrated.append(
+                KnowledgeMatch(
+                    id=item.id,
+                    content=item.content,
+                    source_uri=item.source_uri,
+                    metadata={
+                        **item.metadata,
+                        **extra_metadata,
+                    },
+                    semantic_score=item.semantic_score,
+                    keyword_score=item.keyword_score,
+                    combined_score=item.combined_score,
+                )
+            )
+
+        return hydrated
 
     def _merge_matches(
         self,

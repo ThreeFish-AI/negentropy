@@ -39,7 +39,10 @@ import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
 import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
+import { RetrievedChunkCard } from "./_components/RetrievedChunkCard";
+import { RetrievedChunkDetailDialog } from "./_components/RetrievedChunkDetailDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
+import { buildRetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -65,12 +68,12 @@ function ChunkDetailDrawer({
   chunk,
   onClose,
 }: {
-  chunk: KnowledgeMatch | DocumentChunkItem | null;
+  chunk: DocumentChunkItem | null;
   onClose: () => void;
 }) {
   if (!chunk) return null;
-  const metadata = "metadata" in chunk ? chunk.metadata : {};
-  const content = "content" in chunk ? chunk.content : "";
+  const metadata = chunk.metadata;
+  const content = chunk.content;
   return (
     <OverlayDismissLayer
       open={chunk !== null}
@@ -339,7 +342,8 @@ export default function KnowledgeBasePage() {
   const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
   const [chunksLoading, setChunksLoading] = useState(false);
 
-  const [selectedChunk, setSelectedChunk] = useState<KnowledgeMatch | DocumentChunkItem | null>(null);
+  const [selectedRetrievedChunk, setSelectedRetrievedChunk] = useState<KnowledgeMatch | null>(null);
+  const [selectedDocumentChunk, setSelectedDocumentChunk] = useState<DocumentChunkItem | null>(null);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
@@ -362,6 +366,17 @@ export default function KnowledgeBasePage() {
     [corpora, selectedCorpusId],
   );
   const corpusChunkingConfig = selectedCorpus?.config as ChunkingConfig | undefined;
+  const retrievedChunkCards = useMemo(
+    () => retrievalResults.map((item) => buildRetrievedChunkViewModel(item)),
+    [retrievalResults],
+  );
+  const selectedRetrievedChunkCard = useMemo(
+    () =>
+      selectedRetrievedChunk
+        ? buildRetrievedChunkViewModel(selectedRetrievedChunk)
+        : null,
+    [selectedRetrievedChunk],
+  );
 
   const syncQueryState = useCallback(
     (next: Partial<Record<"view" | "corpusId" | "tab" | "documentId", string | null>>) => {
@@ -797,27 +812,16 @@ export default function KnowledgeBasePage() {
           <div className="space-y-4 pb-28">
             {retrievalDocked && retrievalResults.length > 0 && (
               <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <div className="mb-2 text-sm font-semibold">Retrieved Chunks</div>
+                <div className="mb-3 text-3xl font-semibold text-foreground">
+                  {retrievedChunkCards.length} Retrieved Chunks
+                </div>
                 <div className="space-y-2">
-                  {retrievalResults.map((item) => (
-                    <button
-                      type="button"
-                      key={`${item.id}-${item.metadata?.corpus_id || "na"}`}
-                      onClick={() => setSelectedChunk(item)}
-                      className="block w-full rounded-lg border border-border bg-background p-3 text-left hover:bg-muted/40"
-                    >
-                      <p className="line-clamp-3 text-xs text-foreground">{item.content}</p>
-                      <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted">
-                        <span>score: {(item.combined_score || 0).toFixed(4)}</span>
-                        <span>corpus: {String(item.metadata?.corpus_id || "-")}</span>
-                        <span>source: {item.source_uri || "-"}</span>
-                        {item.metadata?.returned_parent_chunk && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">
-                            父块返回 · 子块命中
-                          </span>
-                        )}
-                      </div>
-                    </button>
+                  {retrievedChunkCards.map((item) => (
+                    <RetrievedChunkCard
+                      key={`${item.id}-${item.raw.metadata?.corpus_id || "na"}`}
+                      chunk={item}
+                      onOpen={() => setSelectedRetrievedChunk(item.raw)}
+                    />
                   ))}
                 </div>
               </div>
@@ -973,7 +977,7 @@ export default function KnowledgeBasePage() {
                         <button
                           type="button"
                           key={chunk.id}
-                          onClick={() => setSelectedChunk(chunk)}
+                          onClick={() => setSelectedDocumentChunk(chunk)}
                           className="block w-full rounded-lg border border-border bg-background p-3 text-left hover:bg-muted/40"
                         >
                           <p className="line-clamp-3 text-xs">{chunk.content}</p>
@@ -1002,7 +1006,15 @@ export default function KnowledgeBasePage() {
         )}
       </div>
 
-      <ChunkDetailDrawer chunk={selectedChunk} onClose={() => setSelectedChunk(null)} />
+      <ChunkDetailDrawer
+        chunk={selectedDocumentChunk}
+        onClose={() => setSelectedDocumentChunk(null)}
+      />
+
+      <RetrievedChunkDetailDialog
+        chunk={selectedRetrievedChunkCard}
+        onClose={() => setSelectedRetrievedChunk(null)}
+      />
 
       <DocumentViewDialog
         isOpen={viewingDoc !== null}
