@@ -25,6 +25,7 @@ import {
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
+import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -113,6 +114,8 @@ export default function KnowledgeBasePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editingCorpus, setEditingCorpus] = useState<CorpusRecord | undefined>(undefined);
+  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
+  const [replacingDocument, setReplacingDocument] = useState<KnowledgeDocument | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -323,9 +326,9 @@ export default function KnowledgeBasePage() {
       } else if (action === "unarchive") {
         await unarchiveDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
       } else if (action === "replace") {
-        const text = window.prompt("请输入新的文档文本（将用于重建 chunks）");
-        if (!text?.trim()) return;
-        await replaceDocument(selectedCorpusId, doc.id, { app_name: APP_NAME, text });
+        setReplacingDocument(doc);
+        setIsReplaceDialogOpen(true);
+        return;
       } else if (action === "download") {
         await downloadDocument(selectedCorpusId, doc.id, { appName: APP_NAME });
       } else if (action === "view") {
@@ -340,6 +343,20 @@ export default function KnowledgeBasePage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `${action} failed`);
     }
+  };
+
+  const handleReplaceDocumentSubmit = async (payload: { text: string }) => {
+    if (!selectedCorpusId || !replacingDocument) {
+      throw new Error("No document selected");
+    }
+    await replaceDocument(selectedCorpusId, replacingDocument.id, {
+      app_name: APP_NAME,
+      text: payload.text,
+    });
+    toast.success("replace success");
+    setIsReplaceDialogOpen(false);
+    setReplacingDocument(null);
+    await loadDocuments();
   };
 
   const handleSaveCorpusSettings = async (config: Record<string, unknown>) => {
@@ -679,6 +696,17 @@ export default function KnowledgeBasePage() {
         isLoading={kb.isLoading}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleDialogSubmit}
+      />
+
+      <ReplaceDocumentDialog
+        isOpen={isReplaceDialogOpen}
+        corpusId={selectedCorpusId}
+        document={replacingDocument}
+        onClose={() => {
+          setIsReplaceDialogOpen(false);
+          setReplacingDocument(null);
+        }}
+        onSubmit={handleReplaceDocumentSubmit}
       />
     </div>
   );

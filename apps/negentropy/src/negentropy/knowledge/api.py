@@ -137,6 +137,13 @@ class AsyncPipelineResponse(BaseModel):
     message: str
 
 
+class ArchiveSourceResponse(BaseModel):
+    """归档/解档 Source 响应模型"""
+
+    updated_count: int
+    archived: bool
+
+
 class SearchRequest(BaseModel):
     app_name: Optional[str] = None
     query: str
@@ -349,6 +356,28 @@ def _build_chunking_config(
         preserve_newlines=True if preserve_newlines is None else preserve_newlines,
         separators=separators or [],
     )
+
+
+def _infer_source_type(source_uri: Optional[str]) -> str:
+    if source_uri and source_uri.startswith("gs://"):
+        return "file"
+    if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
+        return "url"
+    if source_uri:
+        return "text"
+    return "unknown"
+
+
+def _normalize_source_metadata(
+    *,
+    source_uri: Optional[str],
+    metadata: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    normalized = dict(metadata or {})
+    source_type = normalized.get("source_type")
+    if source_type not in {"file", "url", "text", "unknown"}:
+        normalized["source_type"] = _infer_source_type(source_uri)
+    return normalized
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
@@ -2302,13 +2331,6 @@ async def delete_source(
 
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
-
-
-class ArchiveSourceResponse(BaseModel):
-    """归档/解档 Source 响应模型"""
-
-    updated_count: int
-    archived: bool
 
 
 @router.post("/base/{corpus_id}/archive_source", response_model=ArchiveSourceResponse)
