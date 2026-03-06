@@ -11,6 +11,7 @@ const {
   fetchDocumentsMock,
   fetchDocumentChunksMock,
   searchAcrossCorporaMock,
+  documentViewDialogMock,
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   fetchDocumentsMock: vi.fn(),
   fetchDocumentChunksMock: vi.fn(),
   searchAcrossCorporaMock: vi.fn(),
+  documentViewDialogMock: vi.fn(),
   searchParamsState: {
     value: "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents",
   },
@@ -55,6 +57,17 @@ vi.mock("@/features/knowledge", () => ({
   fetchDocuments: (...args: unknown[]) => fetchDocumentsMock(...args),
   fetchDocumentChunks: (...args: unknown[]) => fetchDocumentChunksMock(...args),
   searchAcrossCorpora: (...args: unknown[]) => searchAcrossCorporaMock(...args),
+  DocumentViewDialog: ({
+    isOpen,
+    document,
+  }: {
+    isOpen: boolean;
+    document: { original_filename: string } | null;
+  }) => {
+    documentViewDialogMock({ isOpen, document });
+    if (!isOpen || !document) return null;
+    return <div>Viewing {document.original_filename}</div>;
+  },
   syncDocument: vi.fn(),
   rebuildDocument: vi.fn(),
   replaceDocument: vi.fn(),
@@ -80,12 +93,26 @@ describe("KnowledgeBasePage", () => {
     fetchDocumentsMock.mockReset();
     fetchDocumentChunksMock.mockReset();
     searchAcrossCorporaMock.mockReset();
+    documentViewDialogMock.mockReset();
     searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
 
     loadCorpusMock.mockResolvedValue(undefined);
     loadCorporaMock.mockResolvedValue(undefined);
     deleteCorpusMock.mockResolvedValue(undefined);
-    fetchDocumentsMock.mockResolvedValue({ items: [] });
+    fetchDocumentsMock.mockResolvedValue({
+      items: [
+        {
+          id: "doc-1",
+          corpus_id: "11111111-1111-1111-1111-111111111111",
+          original_filename: "Context Engineering.pdf",
+          content_type: "application/pdf",
+          status: "active",
+          file_size: 2371045,
+          metadata: { source_type: "file" },
+          markdown_extract_status: "completed",
+        },
+      ],
+    });
     fetchDocumentChunksMock.mockResolvedValue({ items: [] });
     searchAcrossCorporaMock.mockResolvedValue({
       items: [
@@ -192,6 +219,43 @@ describe("KnowledgeBasePage", () => {
     expect(fetchDocumentsMock).toHaveBeenCalledWith(
       "11111111-1111-1111-1111-111111111111",
       { appName: "negentropy", limit: 100, offset: 0 },
+    );
+  });
+
+  it("点击 View 会打开文档预览弹窗，而不是跳到 chunks 视图", async () => {
+    const user = userEvent.setup();
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "View" }));
+
+    expect(screen.getByText("Viewing Context Engineering.pdf")).toBeInTheDocument();
+    expect(fetchDocumentChunksMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("tab=document-chunks"),
+    );
+  });
+
+  it("点击文档标题仍然进入 document-chunks 视图", async () => {
+    const user = userEvent.setup();
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: /Context Engineering\.pdf/ }));
+
+    expect(replaceMock).toHaveBeenCalledWith(
+      expect.stringContaining("tab=document-chunks"),
+    );
+    expect(replaceMock).toHaveBeenCalledWith(
+      expect.stringContaining("documentId=doc-1"),
     );
   });
 
