@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, Iterable, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator, ValidationInfo
+from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator, model_validator
 
 from .constants import (
     MAX_OVERLAP_RATIO,
@@ -27,6 +27,7 @@ class ChunkingStrategy(Enum):
     FIXED = "fixed"  # 固定大小分块（字符级别）
     RECURSIVE = "recursive"  # 递归分块（段落 > 句子 > 词）
     SEMANTIC = "semantic"  # 语义分块（基于句子相似度）
+    HIERARCHICAL = "hierarchical"  # 层次分块（检索子块，返回父块）
 
 
 @dataclass(frozen=True)
@@ -144,6 +145,9 @@ class ChunkingConfig(BaseModel):
     semantic_threshold: float = 0.85  # 相似度阈值，低于此值时切分
     min_chunk_size: int = 50  # 最小块大小（字符数）
     max_chunk_size: int = 2000  # 最大块大小（字符数），用于滑动窗口合并
+    hierarchical_parent_chunk_size: int = 1024
+    hierarchical_child_chunk_size: int = 256
+    hierarchical_child_overlap: int = 51
 
     @field_validator("strategy", mode="before")
     @classmethod
@@ -215,6 +219,22 @@ class ChunkingConfig(BaseModel):
             raise ValueError(f"max_chunk_size must be at least 100, got {v}")
         return v
 
+    @field_validator(
+        "hierarchical_parent_chunk_size",
+        "hierarchical_child_chunk_size",
+        "hierarchical_child_overlap",
+    )
+    @classmethod
+    def validate_hierarchical_sizes(cls, v: int, info: ValidationInfo) -> int:
+        field_name = info.field_name or "hierarchical_size"
+        if "overlap" in field_name:
+            if v < 0:
+                raise ValueError(f"{field_name} must be non-negative, got {v}")
+            return v
+        if v < 1:
+            raise ValueError(f"{field_name} must be at least 1, got {v}")
+        return v
+
     @field_validator("separators")
     @classmethod
     def validate_separators(cls, v: List[str]) -> List[str]:
@@ -226,6 +246,25 @@ class ChunkingConfig(BaseModel):
             if item not in deduped:
                 deduped.append(item)
         return deduped
+
+    @model_validator(mode="after")
+    def validate_chunking_relationships(self) -> "ChunkingConfig":
+        if self.min_chunk_size > self.max_chunk_size:
+            raise ValueError(
+                f"min_chunk_size ({self.min_chunk_size}) must be <= max_chunk_size ({self.max_chunk_size})"
+            )
+
+        if self.hierarchical_parent_chunk_size < self.hierarchical_child_chunk_size:
+            raise ValueError(
+                "hierarchical_parent_chunk_size must be >= hierarchical_child_chunk_size"
+            )
+
+        if self.hierarchical_child_overlap >= self.hierarchical_child_chunk_size:
+            raise ValueError(
+                "hierarchical_child_overlap must be less than hierarchical_child_chunk_size"
+            )
+
+        return self
 
 
 class SearchConfig(BaseModel):

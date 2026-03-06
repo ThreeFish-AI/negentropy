@@ -2,6 +2,8 @@ import {
   fetchCorpus,
   fetchDocumentChunks,
   fetchDocuments,
+  ingestFile,
+  ingestText,
   KnowledgeError,
 } from "@/features/knowledge/utils/knowledge-api";
 
@@ -79,5 +81,71 @@ describe("fetchCorpus", () => {
       "/api/knowledge/base/corpus-1/documents/doc-1/chunks?app_name=negentropy&limit=200&offset=0",
       { cache: "no-store" },
     );
+  });
+
+  it("ingestText 会透传 semantic 与 hierarchical 配置", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ run_id: "run-1", status: "running", message: "ok" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await ingestText("corpus-1", {
+      text: "hello",
+      strategy: "hierarchical",
+      chunk_size: 800,
+      overlap: 100,
+      semantic_threshold: 0.9,
+      hierarchical_parent_chunk_size: 1024,
+      hierarchical_child_chunk_size: 256,
+      hierarchical_child_overlap: 51,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/knowledge/base/corpus-1/ingest",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: "hello",
+          strategy: "hierarchical",
+          chunk_size: 800,
+          overlap: 100,
+          semantic_threshold: 0.9,
+          hierarchical_parent_chunk_size: 1024,
+          hierarchical_child_chunk_size: 256,
+          hierarchical_child_overlap: 51,
+        }),
+      }),
+    );
+  });
+
+  it("ingestFile 会把层次分块字段写入 FormData", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ count: 1, items: ["chunk-1"] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await ingestFile("corpus-1", {
+      file: new File(["hello"], "a.txt", { type: "text/plain" }),
+      strategy: "hierarchical",
+      hierarchical_parent_chunk_size: 1024,
+      hierarchical_child_chunk_size: 256,
+      hierarchical_child_overlap: 51,
+    });
+
+    const [, init] = fetchSpy.mock.calls[0];
+    const formData = init?.body as FormData;
+
+    expect(formData.get("strategy")).toBe("hierarchical");
+    expect(formData.get("hierarchical_parent_chunk_size")).toBe("1024");
+    expect(formData.get("hierarchical_child_chunk_size")).toBe("256");
+    expect(formData.get("hierarchical_child_overlap")).toBe("51");
   });
 });

@@ -414,6 +414,7 @@ class KnowledgeRepository:
                         Knowledge.app_name == app_name,
                         Knowledge.embedding.is_not(None),
                         self._active_filter_expr(),
+                        self._searchable_filter_expr(),
                     )
                     .order_by(distance.asc())
                     .limit(limit)
@@ -480,6 +481,7 @@ class KnowledgeRepository:
             WHERE corpus_id = :corpus_id
               AND app_name = :app_name
               AND COALESCE((metadata->>'archived')::boolean, false) = false
+              AND COALESCE((metadata->>'searchable')::boolean, true) = true
               AND search_vector @@ plainto_tsquery('english', :query)
             """
             + filters
@@ -579,7 +581,7 @@ class KnowledgeRepository:
             matches: list[KnowledgeMatch] = []
             for row in rows:
                 metadata = row.get("metadata") or {}
-                if self._is_archived(metadata):
+                if self._is_archived(metadata) or not self._is_searchable(metadata):
                     continue
                 matches.append(
                     KnowledgeMatch(
@@ -721,7 +723,7 @@ class KnowledgeRepository:
             matches: list[KnowledgeMatch] = []
             for row in rows:
                 metadata = row.get("metadata") or {}
-                if self._is_archived(metadata):
+                if self._is_archived(metadata) or not self._is_searchable(metadata):
                     continue
                 matches.append(
                     KnowledgeMatch(
@@ -826,6 +828,54 @@ class KnowledgeRepository:
         ordered = sorted(merged, key=lambda item: item.combined_score, reverse=True)
         return ordered[:limit]
 
+    async def get_hierarchical_parent_matches(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: Optional[str],
+        family_ids: Iterable[str],
+    ) -> list[KnowledgeMatch]:
+        family_id_list = [item for item in family_ids if item]
+        if not family_id_list:
+            return []
+
+        try:
+            async with self._get_session_factory()() as db:
+                stmt = select(Knowledge).where(
+                    Knowledge.corpus_id == corpus_id,
+                    Knowledge.app_name == app_name,
+                    self._active_filter_expr(),
+                    cast(Knowledge.metadata_["chunk_role"].astext, String) == "parent",
+                    cast(Knowledge.metadata_["chunk_family_id"].astext, String).in_(family_id_list),
+                )
+                if source_uri is None:
+                    stmt = stmt.where(Knowledge.source_uri.is_(None))
+                else:
+                    stmt = stmt.where(Knowledge.source_uri == source_uri)
+
+                result = await db.execute(stmt)
+                rows = result.scalars().all()
+
+            return [
+                KnowledgeMatch(
+                    id=row.id,
+                    content=row.content,
+                    source_uri=row.source_uri,
+                    metadata=row.metadata_ or {},
+                    semantic_score=0.0,
+                    keyword_score=0.0,
+                    combined_score=0.0,
+                )
+                for row in rows
+            ]
+        except Exception as exc:
+            raise SearchError(
+                corpus_id=str(corpus_id),
+                search_mode="hierarchical_parent_lookup",
+                reason=str(exc),
+            ) from exc
+
     @staticmethod
     def _to_corpus_record(corpus: Corpus) -> CorpusRecord:
         return CorpusRecord(
@@ -873,6 +923,11 @@ class KnowledgeRepository:
         return bool((metadata or {}).get("archived") is True)
 
     @staticmethod
+    def _is_searchable(metadata: Optional[Dict[str, Any]]) -> bool:
+        value = (metadata or {}).get("searchable")
+        return value is not False
+
+    @staticmethod
     def _infer_display_name(metadata: Optional[Dict[str, Any]]) -> Optional[str]:
         raw = (metadata or {}).get("original_filename")
         return raw if isinstance(raw, str) and raw.strip() else None
@@ -880,3 +935,7 @@ class KnowledgeRepository:
     @staticmethod
     def _active_filter_expr() -> Any:
         return func.coalesce(cast(Knowledge.metadata_["archived"].astext, Boolean), False).is_(False)
+
+    @staticmethod
+    def _searchable_filter_expr() -> Any:
+        return func.coalesce(cast(Knowledge.metadata_["searchable"].astext, Boolean), True).is_(True)

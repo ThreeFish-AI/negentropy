@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CorpusRecord, ChunkingStrategy } from "@/features/knowledge";
 
 interface CorpusFormDialogProps {
@@ -16,6 +16,36 @@ interface CorpusFormDialogProps {
   }) => Promise<void>;
 }
 
+function buildInitialState(
+  mode: "create" | "edit",
+  initialData?: CorpusRecord,
+) {
+  const conf = mode === "edit" && initialData ? (initialData.config || {}) : {};
+  return {
+    name: mode === "edit" && initialData ? initialData.name : "",
+    description:
+      mode === "edit" && initialData ? initialData.description || "" : "",
+    showAdvanced: false,
+    strategy: ((conf.strategy as ChunkingStrategy) || "recursive") as ChunkingStrategy,
+    chunkSize: String(conf.chunk_size || "800"),
+    overlap: String(conf.overlap || "100"),
+    preserveNewlines: conf.preserve_newlines !== false,
+    separators: Array.isArray(conf.separators)
+      ? (conf.separators as string[]).join("\n")
+      : "",
+    semanticThreshold: String(conf.semantic_threshold || "0.85"),
+    minChunkSize: String(conf.min_chunk_size || "50"),
+    maxChunkSize: String(conf.max_chunk_size || "2000"),
+    hierarchicalParentChunkSize: String(
+      conf.hierarchical_parent_chunk_size || "1024",
+    ),
+    hierarchicalChildChunkSize: String(
+      conf.hierarchical_child_chunk_size || "256",
+    ),
+    hierarchicalChildOverlap: String(conf.hierarchical_child_overlap || "51"),
+  };
+}
+
 export function CorpusFormDialog({
   isOpen,
   mode,
@@ -24,59 +54,28 @@ export function CorpusFormDialog({
   onClose,
   onSubmit,
 }: CorpusFormDialogProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const initialState = buildInitialState(mode, initialData);
+  const [name, setName] = useState(initialState.name);
+  const [description, setDescription] = useState(initialState.description);
+  const [showAdvanced, setShowAdvanced] = useState(initialState.showAdvanced);
 
   // Chunking Config State
-  const [strategy, setStrategy] = useState<ChunkingStrategy>("recursive");
-  const [chunkSize, setChunkSize] = useState<string>("800");
-  const [overlap, setOverlap] = useState<string>("100");
-  const [preserveNewlines, setPreserveNewlines] = useState(true);
-  const [separators, setSeparators] = useState("");
+  const [strategy, setStrategy] = useState<ChunkingStrategy>(initialState.strategy);
+  const [chunkSize, setChunkSize] = useState<string>(initialState.chunkSize);
+  const [overlap, setOverlap] = useState<string>(initialState.overlap);
+  const [preserveNewlines, setPreserveNewlines] = useState(initialState.preserveNewlines);
+  const [separators, setSeparators] = useState(initialState.separators);
 
   // Semantic specific
-  const [semanticThreshold, setSemanticThreshold] = useState<string>("0.85");
-  const [minChunkSize, setMinChunkSize] = useState<string>("50");
-  const [maxChunkSize, setMaxChunkSize] = useState<string>("2000");
-
-  useEffect(() => {
-    if (isOpen) {
-      if (mode === "edit" && initialData) {
-        setName(initialData.name);
-        setDescription(initialData.description || "");
-
-        const conf = initialData.config || {};
-        setStrategy((conf.strategy as ChunkingStrategy) || "recursive");
-        setChunkSize(String(conf.chunk_size || "800"));
-        setOverlap(String(conf.overlap || "100"));
-        setPreserveNewlines(conf.preserve_newlines !== false);
-
-        setSemanticThreshold(String(conf.semantic_threshold || "0.85"));
-        setMinChunkSize(String(conf.min_chunk_size || "50"));
-        setMaxChunkSize(String(conf.max_chunk_size || "2000"));
-        setSeparators(
-          Array.isArray(conf.separators)
-            ? (conf.separators as string[]).join("\n")
-            : "",
-        );
-
-        setShowAdvanced(false);
-      } else {
-        setName("");
-        setDescription("");
-        setStrategy("recursive");
-        setChunkSize("800");
-        setOverlap("100");
-        setPreserveNewlines(true);
-        setSemanticThreshold("0.85");
-        setMinChunkSize("50");
-        setMaxChunkSize("2000");
-        setSeparators("");
-        setShowAdvanced(false);
-      }
-    }
-  }, [isOpen, mode, initialData]);
+  const [semanticThreshold, setSemanticThreshold] = useState<string>(initialState.semanticThreshold);
+  const [minChunkSize, setMinChunkSize] = useState<string>(initialState.minChunkSize);
+  const [maxChunkSize, setMaxChunkSize] = useState<string>(initialState.maxChunkSize);
+  const [hierarchicalParentChunkSize, setHierarchicalParentChunkSize] =
+    useState<string>(initialState.hierarchicalParentChunkSize);
+  const [hierarchicalChildChunkSize, setHierarchicalChildChunkSize] =
+    useState<string>(initialState.hierarchicalChildChunkSize);
+  const [hierarchicalChildOverlap, setHierarchicalChildOverlap] =
+    useState<string>(initialState.hierarchicalChildOverlap);
 
   const handleSubmit = async () => {
     if (!name.trim() || isLoading) return;
@@ -98,6 +97,15 @@ export function CorpusFormDialog({
       if (!isNaN(thresh)) config.semantic_threshold = thresh;
       if (!isNaN(minSize)) config.min_chunk_size = minSize;
       if (!isNaN(maxSize)) config.max_chunk_size = maxSize;
+    }
+
+    if (strategy === "hierarchical") {
+      const parentSize = parseInt(hierarchicalParentChunkSize, 10);
+      const childSize = parseInt(hierarchicalChildChunkSize, 10);
+      const childOverlap = parseInt(hierarchicalChildOverlap, 10);
+      if (!isNaN(parentSize)) config.hierarchical_parent_chunk_size = parentSize;
+      if (!isNaN(childSize)) config.hierarchical_child_chunk_size = childSize;
+      if (!isNaN(childOverlap)) config.hierarchical_child_overlap = childOverlap;
     }
 
     config.separators = separators
@@ -212,6 +220,9 @@ export function CorpusFormDialog({
                     <option value="semantic">
                       Semantic (Embedding Similarity)
                     </option>
+                    <option value="hierarchical">
+                      Hierarchical (Parent + Child)
+                    </option>
                   </select>
                 </div>
 
@@ -288,6 +299,50 @@ export function CorpusFormDialog({
                   </div>
                 )}
 
+                {strategy === "hierarchical" && (
+                  <div className="grid grid-cols-3 gap-3 border-t border-zinc-200 pt-3 dark:border-zinc-700">
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                        Parent Size
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                        value={hierarchicalParentChunkSize}
+                        onChange={(e) =>
+                          setHierarchicalParentChunkSize(e.target.value)
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                        Child Size
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                        value={hierarchicalChildChunkSize}
+                        onChange={(e) =>
+                          setHierarchicalChildChunkSize(e.target.value)
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                        Child Overlap
+                      </label>
+                      <input
+                        type="number"
+                        className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                        value={hierarchicalChildOverlap}
+                        onChange={(e) =>
+                          setHierarchicalChildOverlap(e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-zinc-200 pt-3 dark:border-zinc-700">
                   <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
                     Separators (one per line)
@@ -324,6 +379,8 @@ export function CorpusFormDialog({
                     "递归切分 (段落 > 句子 > 词)，保持文段结构完整。"}
                   {strategy === "semantic" &&
                     "基于 Embedding 相似度切分，确保 Chunk 语义连贯，需消耗 Token。"}
+                  {strategy === "hierarchical" &&
+                    "先构建父块再切子块，检索命中子块但返回父块，适合长文档与手册。"}
                 </div>
               </div>
             )}
