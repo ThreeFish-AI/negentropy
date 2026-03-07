@@ -293,4 +293,109 @@ describe("fetchCorpus", () => {
       },
     });
   });
+
+  it("normalizeExtractorDraftRoutes 会保留 timeout_ms 与 tool_options 等扩展字段", () => {
+    const draft = normalizeExtractorDraftRoutes({
+      extractor_routes: {
+        url: {
+          targets: [
+            {
+              server_id: "server-advanced",
+              tool_name: "fetch_structured",
+              priority: 0,
+              enabled: true,
+              timeout_ms: 15000,
+              tool_options: {
+                mode: "markdown",
+                include_images: true,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    expect(draft.url[0]).toEqual(
+      expect.objectContaining({
+        server_id: "server-advanced",
+        tool_name: "fetch_structured",
+        priority: 0,
+        enabled: true,
+        timeout_ms: 15000,
+        tool_options: {
+          mode: "markdown",
+          include_images: true,
+        },
+      }),
+    );
+  });
+
+  it("buildExtractorRoutesFromDraft 会稳定处理 url 与 file_pdf 双 route", () => {
+    const routes = buildExtractorRoutesFromDraft({
+      url: [
+        {
+          server_id: "server-url-primary",
+          tool_name: "fetch_markdown",
+          priority: 0,
+          enabled: true,
+          timeout_ms: 12000,
+          tool_options: { format: "md" },
+        },
+        createEmptyExtractorDraftTarget(1),
+      ],
+      file_pdf: [
+        {
+          server_id: "server-pdf-primary",
+          tool_name: "parse_pdf",
+          priority: 0,
+          enabled: true,
+          timeout_ms: 20000,
+          tool_options: { ocr: false },
+        },
+        {
+          server_id: "server-pdf-backup",
+          tool_name: "parse_pdf_backup",
+          priority: 1,
+          enabled: true,
+          timeout_ms: 25000,
+          tool_options: { ocr: true },
+        },
+      ],
+    });
+
+    expect(routes).toEqual({
+      url: {
+        targets: [
+          expect.objectContaining({
+            server_id: "server-url-primary",
+            tool_name: "fetch_markdown",
+            priority: 0,
+            enabled: true,
+            timeout_ms: 12000,
+            tool_options: { format: "md" },
+          }),
+        ],
+      },
+      file_pdf: {
+        targets: [
+          expect.objectContaining({
+            server_id: "server-pdf-primary",
+            tool_name: "parse_pdf",
+            priority: 0,
+            enabled: true,
+            timeout_ms: 20000,
+            tool_options: { ocr: false },
+          }),
+          expect.objectContaining({
+            server_id: "server-pdf-backup",
+            tool_name: "parse_pdf_backup",
+            priority: 1,
+            enabled: true,
+            timeout_ms: 25000,
+            tool_options: { ocr: true },
+          }),
+        ],
+      },
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createKnowledgeConfigTestExports } from "@/tests/helpers/knowledge";
 
 const {
   replaceMock,
@@ -67,120 +68,7 @@ vi.mock("@/features/knowledge", () => ({
   fetchDocuments: (...args: unknown[]) => fetchDocumentsMock(...args),
   fetchDocumentChunks: (...args: unknown[]) => fetchDocumentChunksMock(...args),
   searchAcrossCorpora: (...args: unknown[]) => searchAcrossCorporaMock(...args),
-  createDefaultChunkingConfig: (strategy: string = "recursive") => {
-    if (strategy === "semantic") {
-      return {
-        strategy: "semantic",
-        semantic_threshold: 0.85,
-        semantic_buffer_size: 1,
-        min_chunk_size: 50,
-        max_chunk_size: 2000,
-      };
-    }
-    if (strategy === "hierarchical") {
-      return {
-        strategy: "hierarchical",
-        preserve_newlines: true,
-        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
-        hierarchical_parent_chunk_size: 1024,
-        hierarchical_child_chunk_size: 256,
-        hierarchical_child_overlap: 51,
-      };
-    }
-    if (strategy === "fixed") {
-      return {
-        strategy: "fixed",
-        chunk_size: 800,
-        overlap: 100,
-        preserve_newlines: true,
-      };
-    }
-    return {
-      strategy: "recursive",
-      chunk_size: 800,
-      overlap: 100,
-      preserve_newlines: true,
-      separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
-    };
-  },
-  normalizeChunkingConfig: (config: Record<string, unknown> | null | undefined) =>
-    config?.strategy
-      ? config
-      : {
-          strategy: "recursive",
-          chunk_size: 800,
-          overlap: 100,
-          preserve_newlines: true,
-          separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
-        },
-  normalizeCorpusExtractorRoutes: (config: Record<string, unknown> | null | undefined) =>
-    (config?.extractor_routes as Record<string, unknown> | undefined) || {
-      url: { targets: [] },
-      file_pdf: { targets: [] },
-    },
-  createEmptyExtractorDraftTarget: (priority: number) => ({
-    server_id: "",
-    tool_name: "",
-    priority,
-    enabled: true,
-  }),
-  normalizeExtractorDraftRoutes: (config: Record<string, unknown> | null | undefined) => {
-    const extractorRoutes =
-      (config?.extractor_routes as Record<string, { targets?: Array<Record<string, unknown>> }> | undefined) ||
-      {};
-    const toDraftRoute = (targets?: Array<Record<string, unknown>>) =>
-      ([0, 1].map((priority) => {
-        const existing = targets?.find((item) => Number(item.priority || 0) === priority) || targets?.[priority];
-        return existing
-          ? {
-              server_id: String(existing.server_id || ""),
-              tool_name: String(existing.tool_name || ""),
-              priority,
-              enabled: existing.enabled !== false,
-            }
-          : {
-              server_id: "",
-              tool_name: "",
-              priority,
-              enabled: true,
-            };
-      })) as [
-        { server_id: string; tool_name: string; priority: number; enabled: boolean },
-        { server_id: string; tool_name: string; priority: number; enabled: boolean },
-      ];
-
-    return {
-      url: toDraftRoute(extractorRoutes.url?.targets),
-      file_pdf: toDraftRoute(extractorRoutes.file_pdf?.targets),
-    };
-  },
-  buildExtractorRoutesFromDraft: (draft: Record<string, Array<Record<string, unknown>>>) => ({
-    url: {
-      targets: (draft.url || [])
-        .filter((item) => item.server_id && item.tool_name)
-        .map((item, priority) => ({
-          ...item,
-          priority,
-          enabled: item.enabled !== false,
-        })),
-    },
-    file_pdf: {
-      targets: (draft.file_pdf || [])
-        .filter((item) => item.server_id && item.tool_name)
-        .map((item, priority) => ({
-          ...item,
-          priority,
-          enabled: item.enabled !== false,
-        })),
-    },
-  }),
-  buildCorpusConfig: (
-    chunkingConfig: Record<string, unknown>,
-    extractorRoutes: Record<string, unknown>,
-  ) => ({
-    ...chunkingConfig,
-    extractor_routes: extractorRoutes,
-  }),
+  ...createKnowledgeConfigTestExports(),
   DocumentViewDialog: ({
     isOpen,
     document,
