@@ -685,6 +685,9 @@ describe("KnowledgeBasePage", () => {
     expect(
       within(toolSelect).getByRole("option", { name: "已配置 Tool（当前不可用）" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/可用于此处的 Tool 需提供可发现的 input\/output schema/i),
+    ).toBeInTheDocument();
   });
 
   it("外部 corpus 刷新不会覆盖 settings 视图中未保存的 MCP 草稿", async () => {

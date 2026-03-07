@@ -72,6 +72,30 @@ class McpToolTarget:
     tool_options: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass(slots=True)
+class CanonicalExtractionSource:
+    source_kind: SourceKind
+    url: str | None = None
+    filename: str | None = None
+    content_type: str | None = None
+    content_base64: str | None = None
+
+
+@dataclass(slots=True)
+class CanonicalExtractionRequest:
+    source_kind: SourceKind
+    source: CanonicalExtractionSource
+    options: dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class ExtractionToolAdapter:
+    name: str
+    arguments: dict[str, Any]
+    schema_summary: dict[str, Any] = field(default_factory=dict)
+
+
 def resolve_source_kind(*, source_uri: str | None = None, filename: str | None = None, content_type: str | None = None) -> SourceKind:
     if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
         return ROUTE_URL
@@ -193,6 +217,199 @@ def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
     return assets
 
 
+def _schema_properties(schema: Any) -> dict[str, Any]:
+    if not isinstance(schema, dict):
+        return {}
+    properties = schema.get("properties")
+    return properties if isinstance(properties, dict) else {}
+
+
+def _schema_property_names(schema: Any) -> set[str]:
+    return set(_schema_properties(schema).keys())
+
+
+def _is_url_source_schema(schema: Any) -> bool:
+    properties = _schema_property_names(schema)
+    return "url" in properties or "uri" in properties
+
+
+def _is_file_source_schema(schema: Any) -> bool:
+    properties = _schema_property_names(schema)
+    return bool({"filename", "content_base64", "data_base64"} & properties)
+
+
+def _detect_batch_sources_property(*, input_schema: dict[str, Any] | None, source_kind: SourceKind) -> str | None:
+    properties = _schema_properties(input_schema)
+    preferred_keys = (
+        ("url_sources", "sources", "documents", "items")
+        if source_kind == ROUTE_URL
+        else ("pdf_sources", "sources", "documents", "items")
+    )
+    for name in preferred_keys:
+        schema = properties.get(name)
+        if not isinstance(schema, dict) or schema.get("type") != "array":
+            continue
+        item_schema = schema.get("items")
+        if source_kind == ROUTE_URL and _is_url_source_schema(item_schema):
+            return name
+        if source_kind != ROUTE_URL and _is_file_source_schema(item_schema):
+            return name
+    for name, schema in properties.items():
+        if not isinstance(schema, dict) or schema.get("type") != "array":
+            continue
+        item_schema = schema.get("items")
+        if source_kind == ROUTE_URL and _is_url_source_schema(item_schema):
+            return name
+        if source_kind != ROUTE_URL and _is_file_source_schema(item_schema):
+            return name
+    return None
+
+
+def _build_canonical_request(
+    *,
+    source_kind: SourceKind,
+    app_name: str,
+    corpus_id: UUID,
+    tool_options: dict[str, Any],
+    url: str | None,
+    content: bytes | None,
+    filename: str | None,
+    content_type: str | None,
+) -> CanonicalExtractionRequest:
+    return CanonicalExtractionRequest(
+        source_kind=source_kind,
+        source=CanonicalExtractionSource(
+            source_kind=source_kind,
+            url=url,
+            filename=filename,
+            content_type=content_type,
+            content_base64=base64.b64encode(content).decode("ascii") if content is not None else None,
+        ),
+        options=dict(tool_options),
+        context={
+            "app_name": app_name,
+            "corpus_id": str(corpus_id),
+        },
+    )
+
+
+def _filter_declared_fields(payload: dict[str, Any], schema: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(schema, dict):
+        return {}
+    allowed = _schema_property_names(schema)
+    if not allowed:
+        return {}
+    return {key: value for key, value in payload.items() if key in allowed}
+
+
+def _build_source_item(
+    *,
+    request: CanonicalExtractionRequest,
+    item_schema: dict[str, Any] | None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    allowed = _schema_property_names(item_schema) if isinstance(item_schema, dict) else set()
+    if request.source_kind == ROUTE_URL:
+        url_value = request.source.url or ""
+        if not allowed or "url" in allowed:
+            payload["url"] = url_value
+        elif "uri" in allowed:
+            payload["uri"] = url_value
+    else:
+        base64_value = request.source.content_base64 or ""
+        if not allowed or "filename" in allowed:
+            payload["filename"] = request.source.filename
+        if not allowed or "content_type" in allowed:
+            payload["content_type"] = request.source.content_type
+        if not allowed or "content_base64" in allowed:
+            payload["content_base64"] = base64_value
+        elif "data_base64" in allowed:
+            payload["data_base64"] = base64_value
+    return {key: value for key, value in payload.items() if value is not None}
+
+
+def build_tool_adapter(
+    *,
+    input_schema: dict[str, Any] | None,
+    request: CanonicalExtractionRequest,
+) -> ExtractionToolAdapter:
+    batch_property = _detect_batch_sources_property(
+        input_schema=input_schema,
+        source_kind=request.source_kind,
+    )
+    if batch_property:
+        properties = _schema_properties(input_schema)
+        item_schema = properties.get(batch_property, {}).get("items")
+        arguments = {
+            batch_property: [_build_source_item(request=request, item_schema=item_schema)],
+        }
+        option_fields = _filter_declared_fields(request.options, properties.get("options"))
+        if option_fields and "options" in properties:
+            arguments["options"] = option_fields
+        context_fields = _filter_declared_fields(request.context, properties.get("context"))
+        if context_fields and "context" in properties:
+            arguments["context"] = context_fields
+        return ExtractionToolAdapter(
+            name="batch_sources_v1",
+            arguments=arguments,
+            schema_summary={
+                "batch_property": batch_property,
+                "top_level_fields": sorted(arguments.keys()),
+            },
+        )
+
+    arguments: dict[str, Any] = {
+        "source_type": request.source_kind,
+        "options": request.options,
+        "context": request.context,
+    }
+    if request.source.url:
+        arguments["url"] = request.source.url
+    if request.source.content_base64 is not None:
+        arguments["filename"] = request.source.filename
+        arguments["content_type"] = request.source.content_type
+        arguments["content_base64"] = request.source.content_base64
+    return ExtractionToolAdapter(
+        name="canonical_flat_v1",
+        arguments=arguments,
+        schema_summary={"top_level_fields": sorted(arguments.keys())},
+    )
+
+
+def _looks_like_document_payload(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    return any(
+        key in payload
+        for key in ("markdown", "markdown_content", "text", "plain_text", "assets", "metadata")
+    )
+
+
+def _extract_document_payload(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    if _looks_like_document_payload(payload):
+        return payload
+    for key in ("result", "document", "data"):
+        candidate = payload.get(key)
+        if _looks_like_document_payload(candidate):
+            return candidate
+    for key in ("results", "items", "documents"):
+        candidates = payload.get(key)
+        if not isinstance(candidates, list):
+            continue
+        for item in candidates:
+            if not isinstance(item, dict):
+                continue
+            status = str(item.get("status") or "").lower()
+            if item.get("success") is False or status in {"failed", "error"}:
+                continue
+            direct = _extract_document_payload(item)
+            if direct:
+                return direct
+    return payload
+
+
 async def _increment_tool_call_count(*, server_id: UUID, tool_name: str) -> None:
     async with AsyncSessionLocal() as db:
         await db.execute(
@@ -289,6 +506,7 @@ class DataExtractorProvider:
                 result.trace = {
                     "provider": "mcp",
                     "source_kind": source_kind,
+                    **(result.trace if isinstance(result.trace, dict) else {}),
                     "selected_target": {"server_id": str(target.server_id), "tool_name": target.tool_name},
                     "attempts": [item.__dict__ for item in attempts],
                 }
@@ -339,6 +557,7 @@ class DataExtractorProvider:
         filename: str | None,
         content_type: str | None,
     ) -> dict[str, Any]:
+        tool: McpTool | None = None
         async with AsyncSessionLocal() as db:
             server = await db.get(McpServer, target.server_id)
             if not server or not server.is_enabled:
@@ -372,25 +591,25 @@ class DataExtractorProvider:
                     ),
                 }
 
-        arguments: dict[str, Any] = {
-            "source_type": source_kind,
-            "options": target.tool_options,
-            "context": {
-                "app_name": app_name,
-                "corpus_id": str(corpus_id),
-            },
-        }
-        if url:
-            arguments["url"] = url
-        if content is not None:
-            arguments["filename"] = filename
-            arguments["content_type"] = content_type
-            arguments["content_base64"] = base64.b64encode(content).decode("ascii")
+        request = _build_canonical_request(
+            source_kind=source_kind,
+            app_name=app_name,
+            corpus_id=corpus_id,
+            tool_options=target.tool_options,
+            url=url,
+            content=content,
+            filename=filename,
+            content_type=content_type,
+        )
+        adapter = build_tool_adapter(
+            input_schema=tool.input_schema if tool else None,
+            request=request,
+        )
 
         result = await self._client.call_tool(
             transport_type=server.transport_type,
             tool_name=target.tool_name,
-            arguments=arguments,
+            arguments=adapter.arguments,
             command=server.command,
             args=server.args,
             env=server.env,
@@ -411,7 +630,9 @@ class DataExtractorProvider:
         if not result.success:
             return {"success": False, "attempt": attempt}
 
-        payload = _parse_structured_payload(result.structured_content, result.content)
+        payload = _extract_document_payload(
+            _parse_structured_payload(result.structured_content, result.content)
+        )
         markdown = str(payload.get("markdown") or payload.get("markdown_content") or "").strip()
         plain_text = str(payload.get("text") or payload.get("plain_text") or "").strip()
         if not markdown and plain_text:
@@ -437,8 +658,15 @@ class DataExtractorProvider:
             "result": ExtractedDocumentResult(
                 plain_text=plain_text,
                 markdown_content=markdown,
-                metadata=payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {},
+                metadata={
+                    **(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}),
+                    "adapter_name": adapter.name,
+                },
                 assets=_normalize_assets(payload.get("assets")),
+                trace={
+                    "adapter_name": adapter.name,
+                    "adapter_schema_summary": adapter.schema_summary,
+                },
             ),
         }
 
