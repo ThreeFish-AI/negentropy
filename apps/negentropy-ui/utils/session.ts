@@ -13,6 +13,14 @@ export function createSessionLabel(id: string): string {
   return `Session ${id.slice(0, 8)}`;
 }
 
+export type SessionListView = "active" | "archived";
+
+export function isSessionArchived(session: {
+  state?: { metadata?: { archived?: boolean } };
+}): boolean {
+  return session.state?.metadata?.archived === true;
+}
+
 /**
  * 构建 Agent URL
  * @param sessionId 会话 ID

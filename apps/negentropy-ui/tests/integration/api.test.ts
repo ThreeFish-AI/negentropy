@@ -5,7 +5,7 @@
  * 遵循 AGENTS.md 原则：反馈闭环、循证工程
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { POST } from "@/app/api/agui/route";
 import { GET } from "@/app/api/agui/sessions/list/route";
 import { POST as createSession } from "@/app/api/agui/sessions/route";
@@ -124,6 +124,7 @@ describe("GET /api/agui/sessions/list", () => {
     delete process.env.AGUI_BASE_URL;
     delete process.env.NEXT_PUBLIC_AGUI_APP_NAME;
     delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
+    vi.restoreAllMocks();
   });
 
   it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
@@ -156,6 +157,28 @@ describe("GET /api/agui/sessions/list", () => {
 
     expect(response.status).toBe(400);
     expect(data.error.code).toBe("AGUI_BAD_REQUEST");
+  });
+
+  it("应该按 archived 参数过滤会话列表", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify([
+          { id: "active-1", state: { metadata: {} } },
+          { id: "archived-1", state: { metadata: { archived: true } } },
+        ]),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/list?app_name=negentropy&user_id=test&archived=true"
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual([{ id: "archived-1", state: { metadata: { archived: true } } }]);
   });
 });
 

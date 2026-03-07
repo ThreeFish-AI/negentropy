@@ -24,6 +24,7 @@ export type SessionRecord = {
   id: string;
   label: string;
   lastUpdateTime?: number;
+  archived?: boolean;
 };
 
 /**

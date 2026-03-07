@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils";
 export function UserNav() {
   const { user, login, logout, status } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [user?.picture]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -50,11 +55,12 @@ export function UserNav() {
             : "hover:bg-muted hover:border-border",
         )}
       >
-        {user.picture ? (
+        {user.picture && !avatarLoadFailed ? (
           <img
             src={user.picture}
             alt={user.name || "User"}
             className="h-7 w-7 rounded-full border border-border object-cover"
+            onError={() => setAvatarLoadFailed(true)}
           />
         ) : (
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">

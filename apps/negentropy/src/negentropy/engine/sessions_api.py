@@ -24,6 +24,11 @@ class SessionTitleUpdateRequest(BaseModel):
     title: Optional[str] = Field(default=None, max_length=100)
 
 
+class SessionArchiveResponse(BaseModel):
+    status: str = "ok"
+    archived: bool
+
+
 @router.patch("/apps/{app_name}/users/{user_id}/sessions/{session_id}/title")
 async def update_session_title(
     app_name: str,
@@ -72,3 +77,67 @@ async def update_session_title(
         await service.append_event(session=session, event=state_update_event)
 
     return {"status": "ok", "title": title}
+
+
+async def _update_archive_state(
+    *,
+    app_name: str,
+    user_id: str,
+    session_id: str,
+    archived: bool,
+) -> SessionArchiveResponse:
+    service = get_session_service()
+    if not hasattr(service, "archive_session"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Session backend does not support archive",
+        )
+
+    try:
+        updated = await service.archive_session(
+            app_name=app_name,
+            user_id=user_id,
+            session_id=session_id,
+            archived=archived,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    return SessionArchiveResponse(archived=archived)
+
+
+@router.post("/apps/{app_name}/users/{user_id}/sessions/{session_id}/archive", response_model=SessionArchiveResponse)
+async def archive_session(
+    app_name: str,
+    user_id: str,
+    session_id: str,
+) -> SessionArchiveResponse:
+    return await _update_archive_state(
+        app_name=app_name,
+        user_id=user_id,
+        session_id=session_id,
+        archived=True,
+    )
+
+
+@router.post(
+    "/apps/{app_name}/users/{user_id}/sessions/{session_id}/unarchive",
+    response_model=SessionArchiveResponse,
+)
+async def unarchive_session(
+    app_name: str,
+    user_id: str,
+    session_id: str,
+) -> SessionArchiveResponse:
+    return await _update_archive_state(
+        app_name=app_name,
+        user_id=user_id,
+        session_id=session_id,
+        archived=False,
+    )
