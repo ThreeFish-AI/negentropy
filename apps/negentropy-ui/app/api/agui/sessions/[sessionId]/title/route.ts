@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
+import { safeParseSessionTitleResponse } from "@/lib/agui/session-schema";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
@@ -72,20 +72,26 @@ export async function PATCH(
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return NextResponse.json(
-      {
-        error: {
-          code: AGUI_ERROR_CODES.UPSTREAM_ERROR,
-          message: text || "Upstream returned non-OK status",
-        },
-      },
-      { status: upstreamResponse.status },
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      text || "Upstream returned non-OK status"
     );
   }
 
   try {
-    return NextResponse.json(JSON.parse(text), { status: upstreamResponse.status });
+    const payload = JSON.parse(text) as unknown;
+    const parsed = safeParseSessionTitleResponse(payload);
+    if (!parsed.success) {
+      return aguiErrorResponse(
+        AGUI_ERROR_CODES.UPSTREAM_ERROR,
+        "Invalid upstream session title payload"
+      );
+    }
+    return Response.json(parsed.data, { status: upstreamResponse.status });
   } catch {
-    return NextResponse.json({ raw: text }, { status: upstreamResponse.status });
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      "Invalid upstream session title JSON"
+    );
   }
 }
