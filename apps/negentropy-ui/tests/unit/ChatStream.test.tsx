@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { ChatStream } from "../../components/ui/ChatStream";
+import { CHAT_CONTENT_RAIL_CLASS } from "../../components/ui/chat-layout";
 import type { ConversationNode } from "@/types/a2ui";
 
 vi.mock("@/components/providers/AuthProvider", () => ({
@@ -81,7 +82,7 @@ describe("ChatStream", () => {
     expect(screen.getAllByText("search").length).toBeGreaterThan(0);
   });
 
-  it("不渲染消息左侧层级竖线，且保留页面级宽度控制", () => {
+  it("使用统一内容轨道类控制主聊天区宽度与水平留白", () => {
     const nodes: ConversationNode[] = [
       {
         id: "turn:1",
@@ -142,16 +143,14 @@ describe("ChatStream", () => {
       },
     ];
 
-    const { container } = render(
-      <ChatStream nodes={nodes} contentClassName="max-w-4xl" />,
-    );
+    const { container } = render(<ChatStream nodes={nodes} />);
 
     expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
 
     const contentWrapper = container.querySelector(".space-y-4");
-    expect(contentWrapper?.className).toContain("max-w-4xl");
-    expect(contentWrapper?.className).not.toContain("px-10");
-    expect(contentWrapper?.className).not.toContain("sm:px-12");
+    CHAT_CONTENT_RAIL_CLASS.split(" ").forEach((className) => {
+      expect(contentWrapper?.className).toContain(className);
+    });
   });
 
   it("不渲染 debug-only 根节点，并将技术节点折叠为摘要卡片", () => {

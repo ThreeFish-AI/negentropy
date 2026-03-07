@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ConversationNodeRenderer } from "./conversation/ConversationNodeRenderer";
+import { CHAT_CONTENT_RAIL_CLASS } from "./chat-layout";
 import type { ConversationNode } from "@/types/a2ui";
 
 type ChatStreamProps = {
@@ -39,7 +40,7 @@ export function ChatStream({
       className="flex-1 overflow-y-auto custom-scrollbar"
     >
       <div
-        className={`mx-auto w-full space-y-4 py-6 ${contentClassName ?? ""}`}
+        className={`${CHAT_CONTENT_RAIL_CLASS} space-y-4 py-6 ${contentClassName ?? ""}`}
       >
         {visibleNodes.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">

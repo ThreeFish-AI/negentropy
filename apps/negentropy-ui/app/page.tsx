@@ -17,6 +17,7 @@ import { useAuth } from "../components/providers/AuthProvider";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
+import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
 import { AdkEventPayload } from "@/lib/adk";
 import { collectAdkEventPayloads } from "@/lib/adk";
 
@@ -843,8 +844,6 @@ export function HomeBody({
     return logEntries.filter((entry) => entry.timestamp <= cutoffMs);
   }, [logEntries, nodeTimestampIndex, selectedNodeId]);
 
-  const contentWidthClass = "max-w-4xl";
-
   return (
     <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">
       <div className="flex h-full overflow-hidden relative">
@@ -936,10 +935,9 @@ export function HomeBody({
                   setSelectedNodeId(id);
                 }
               }}
-              contentClassName={contentWidthClass}
             />
             <div
-              className={`p-6 pt-2 shrink-0 w-full mx-auto ${contentWidthClass}`}
+              className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}
             >
               <Composer
                 value={inputValue}
