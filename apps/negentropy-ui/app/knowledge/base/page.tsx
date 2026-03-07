@@ -1363,13 +1363,14 @@ function CorpusSettingsPanel({
   const [toolsByServer, setToolsByServer] = useState<Record<string, Array<{ name: string; display_name: string | null; is_enabled: boolean }>>>({});
 
   useEffect(() => {
+    // 仅在切换 corpus 时重置本地草稿，避免外部刷新覆盖未保存编辑。
     setFormConfig(
       normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
     );
     setExtractorDraftRoutes(
       createExtractorDraftRoutes((corpus.config || {}) as Record<string, unknown>),
     );
-  }, [corpus.id, corpus.config]);
+  }, [corpus.id]);
 
   useEffect(() => {
     let active = true;
