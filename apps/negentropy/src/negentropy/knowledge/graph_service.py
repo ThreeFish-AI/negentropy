@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.config import settings
 from negentropy.logging import get_logger
+from negentropy.model_names import canonicalize_model_name
 
 from .graph_repository import (
     AgeGraphRepository,
@@ -198,6 +199,7 @@ class GraphService:
             构建结果统计
         """
         build_config = config or self._config
+        normalized_llm_model = canonicalize_model_name(build_config.llm_model)
         run_id = f"build-{uuid.uuid4().hex[:8]}-{int(time.time())}"
         start_time = time.time()
 
@@ -216,11 +218,11 @@ class GraphService:
             run_id=run_id,
             extractor_config={
                 "enable_llm": build_config.enable_llm_extraction,
-                "llm_model": build_config.llm_model,
+                "llm_model": normalized_llm_model,
                 "entity_types": build_config.entity_types,
                 "relation_types": build_config.relation_types,
             },
-            model_name=build_config.llm_model,
+            model_name=normalized_llm_model,
         )
 
         try:

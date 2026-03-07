@@ -17,6 +17,8 @@ import os
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from negentropy.model_names import canonicalize_model_name, pricing_lookup_model_name
+
 
 class LlmVendor(str, Enum):
     """Supported LLM vendors."""
@@ -107,8 +109,8 @@ class LlmSettings(BaseSettings):
     def full_model_name(self) -> str:
         """Returns the LiteLLM-compatible model string (e.g. 'zai/glm-4.7')."""
         if "/" in self.model_name:
-            return self.model_name
-        return f"{self.vendor.value}/{self.model_name}"
+            return canonicalize_model_name(self.model_name) or self.model_name
+        return canonicalize_model_name(f"{self.vendor.value}/{self.model_name}") or f"{self.vendor.value}/{self.model_name}"
 
     @property
     def model_pricing(self) -> Optional[Dict[str, float]]:
@@ -122,16 +124,19 @@ class LlmSettings(BaseSettings):
         """
         from negentropy.config.pricing import get_model_pricing_usd
 
-        return get_model_pricing_usd(self.model_name)
+        lookup_name = pricing_lookup_model_name(self.model_name)
+        if lookup_name is None:
+            return None
+        return get_model_pricing_usd(lookup_name)
 
     @property
     def embedding_full_model_name(self) -> str:
         env_model = os.getenv("NE_LLM_EMBEDDING_MODEL")
         model_name = self.embedding_model_name or env_model or self.model_name
         if "/" in model_name:
-            return model_name
+            return canonicalize_model_name(model_name) or model_name
         vendor = self.embedding_vendor or self.vendor
-        return f"{vendor.value}/{model_name}"
+        return canonicalize_model_name(f"{vendor.value}/{model_name}") or f"{vendor.value}/{model_name}"
 
     def to_litellm_embedding_kwargs(self) -> Dict[str, Any]:
         kwargs: Dict[str, Any] = {}
