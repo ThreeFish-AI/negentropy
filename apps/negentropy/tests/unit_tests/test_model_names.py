@@ -18,15 +18,25 @@ def test_pricing_lookup_model_name_strips_vendor_prefix():
     assert pricing_lookup_model_name("zai/glm-5") == "glm-5"
 
 
-def test_llm_settings_uses_canonical_model_name_and_pricing():
+def test_llm_settings_uses_online_pricing_when_available(monkeypatch):
+    monkeypatch.setattr(
+        "negentropy.config.pricing.get_effective_model_pricing_usd",
+        lambda model: ({"input": 1.0, "output": 3.2}, "litellm_online_catalog"),
+    )
+
     settings = LlmSettings(vendor=LlmVendor.ZAI, model_name="glm-5")
 
     assert settings.full_model_name == "zai/glm-5"
     assert settings.embedding_full_model_name == "zai/glm-5"
-    assert settings.model_pricing is None
+    assert settings.model_pricing == {"input": 1.0, "output": 3.2}
 
 
-def test_llm_settings_keeps_local_pricing_for_non_glm5_models():
+def test_llm_settings_falls_back_to_local_pricing(monkeypatch):
+    monkeypatch.setattr(
+        "negentropy.config.pricing.get_effective_model_pricing_usd",
+        lambda model: ({"input": 0.285714, "output": 1.142857}, "local_override"),
+    )
+
     settings = LlmSettings(vendor=LlmVendor.ZAI, model_name="glm-4.7")
 
     assert settings.model_pricing == {"input": 0.285714, "output": 1.142857}

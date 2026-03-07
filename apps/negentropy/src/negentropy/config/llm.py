@@ -17,7 +17,7 @@ import os
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from negentropy.model_names import canonicalize_model_name, pricing_lookup_model_name
+from negentropy.model_names import canonicalize_model_name
 
 
 class LlmVendor(str, Enum):
@@ -119,17 +119,13 @@ class LlmSettings(BaseSettings):
         Returns pricing dict with 'input' and 'output' keys (USD per 1M tokens),
         or None if the model is not in the pricing table.
 
-        Pricing data is loaded from config/pricing/glm_pricing.json.
-        Reference: https://open.bigmodel.cn/pricing
+        Pricing data prefers LiteLLM's online catalog and falls back to
+        config/pricing/glm_pricing.json for local overrides.
         """
-        from negentropy.config.pricing import get_model_pricing_usd
+        from negentropy.config.pricing import get_effective_model_pricing_usd
 
-        lookup_name = pricing_lookup_model_name(self.model_name)
-        if lookup_name is None:
-            return None
-        if lookup_name in {"glm-5", "glm-5-code"}:
-            return None
-        return get_model_pricing_usd(lookup_name)
+        pricing, _ = get_effective_model_pricing_usd(self.full_model_name)
+        return pricing
 
     @property
     def embedding_full_model_name(self) -> str:

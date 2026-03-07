@@ -10,7 +10,7 @@ from typing import Any
 from litellm.integrations.opentelemetry import OpenTelemetry
 from opentelemetry import trace
 
-from negentropy.config.pricing import ensure_glm5_online_pricing, get_last_refresh_error, is_glm5_family_model
+from negentropy.config.pricing import get_effective_model_pricing_usd, get_last_online_catalog_error
 from negentropy.logging import get_logger
 from negentropy.model_names import canonicalize_model_name
 
@@ -21,38 +21,6 @@ def _normalize_model_name(model: str) -> str:
     Ensures GLM models always have the 'zai/' prefix for consistent naming.
     """
     return canonicalize_model_name(model) or model
-
-
-def _calculate_custom_cost(kwargs: dict, response_obj: Any) -> float | None:
-    """Calculate cost using custom pricing table.
-
-    Used as fallback when LiteLLM's built-in pricing doesn't recognize the model.
-    """
-    model = _normalize_model_name(kwargs.get("model"))
-    if is_glm5_family_model(model):
-        return None
-
-    from negentropy.config import settings
-
-    pricing = settings.llm.model_pricing
-    if pricing is None:
-        return None
-
-    # Extract token usage
-    input_tokens = 0
-    output_tokens = 0
-    if hasattr(response_obj, "usage") and response_obj.usage is not None:
-        usage = response_obj.usage
-        input_tokens = getattr(usage, "prompt_tokens", 0) or 0
-        output_tokens = getattr(usage, "completion_tokens", 0) or 0
-
-    if input_tokens == 0 and output_tokens == 0:
-        return None
-
-    # Calculate cost (pricing is per 1M tokens)
-    input_cost = (input_tokens / 1_000_000) * pricing.get("input", 0)
-    output_cost = (output_tokens / 1_000_000) * pricing.get("output", 0)
-    return input_cost + output_cost
 
 
 class LiteLLMLoggingCallback:
@@ -173,8 +141,8 @@ def _resolve_total_cost(kwargs: dict, response_obj: Any) -> tuple[float | None, 
     1. LiteLLM's response_cost (already calculated)
     2. LiteLLM's cost_breakdown from standard_logging_object
     3. LiteLLM's completion_cost function
-    4. LiteLLM 官方在线价目表刷新（仅 GLM-5 家族）
-    5. Custom pricing table (for models not in LiteLLM's pricing)
+    4. LiteLLM 官方在线价目表
+    5. 本地 override 配置
     """
     model = _normalize_model_name(kwargs.get("model"))
     cost = kwargs.get("response_cost")
@@ -202,26 +170,14 @@ def _resolve_total_cost(kwargs: dict, response_obj: Any) -> tuple[float | None, 
     if cost is not None:
         return _coerce_cost(cost), "litellm_builtin", None
 
-    if cost is None and response_obj is not None and is_glm5_family_model(model):
-        if ensure_glm5_online_pricing(model):
-            try:
-                from litellm.cost_calculator import completion_cost
-
-                cost = completion_cost(completion_response=response_obj)
-            except Exception:
-                cost = None
-            if cost is not None:
-                return _coerce_cost(cost), "litellm_online_refresh", None
-        else:
-            return None, "missing", get_last_refresh_error()
-
-    # Fallback to custom pricing if LiteLLM couldn't calculate cost
     if cost is None and response_obj is not None:
-        cost = _calculate_custom_cost(kwargs, response_obj)
-        if cost is not None:
-            return _coerce_cost(cost), "local_override", None
+        pricing, pricing_source = get_effective_model_pricing_usd(model)
+        if pricing is not None:
+            cost = _calculate_token_cost(response_obj=response_obj, pricing=pricing)
+            if cost is not None:
+                return _coerce_cost(cost), pricing_source, None
 
-    return _coerce_cost(cost), "missing", None
+    return _coerce_cost(cost), "missing", get_last_online_catalog_error()
 
 
 def _coerce_cost(cost: Any) -> float | None:
@@ -229,6 +185,22 @@ def _coerce_cost(cost: Any) -> float | None:
         return float(cost) if cost is not None else None
     except (TypeError, ValueError):
         return None
+
+
+def _calculate_token_cost(response_obj: Any, pricing: dict[str, float]) -> float | None:
+    input_tokens = 0
+    output_tokens = 0
+    if hasattr(response_obj, "usage") and response_obj.usage is not None:
+        usage = response_obj.usage
+        input_tokens = getattr(usage, "prompt_tokens", 0) or 0
+        output_tokens = getattr(usage, "completion_tokens", 0) or 0
+
+    if input_tokens == 0 and output_tokens == 0:
+        return None
+
+    input_cost = (input_tokens / 1_000_000) * pricing.get("input", 0)
+    output_cost = (output_tokens / 1_000_000) * pricing.get("output", 0)
+    return input_cost + output_cost
 
 
 def patch_litellm_otel_cost() -> None:
