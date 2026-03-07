@@ -39,9 +39,25 @@ export const aguiCreateSessionResponseSchema = z
   })
   .passthrough();
 
+export const aguiSessionArchiveResponseSchema = z
+  .object({
+    status: z.literal("ok"),
+    archived: z.boolean(),
+  })
+  .passthrough();
+
+export const aguiSessionTitleResponseSchema = z
+  .object({
+    status: z.literal("ok"),
+    title: z.string().nullable(),
+  })
+  .passthrough();
+
 export type AguiSessionSummary = z.infer<typeof aguiSessionSummarySchema>;
 export type AguiSessionDetail = z.infer<typeof aguiSessionDetailSchema>;
 export type AguiCreateSessionResponse = z.infer<typeof aguiCreateSessionResponseSchema>;
+export type AguiSessionArchiveResponse = z.infer<typeof aguiSessionArchiveResponseSchema>;
+export type AguiSessionTitleResponse = z.infer<typeof aguiSessionTitleResponseSchema>;
 
 export function safeParseSessionListResponse(input: unknown) {
   return aguiSessionListSchema.safeParse(input);
@@ -53,4 +69,12 @@ export function safeParseSessionDetailResponse(input: unknown) {
 
 export function safeParseCreateSessionResponse(input: unknown) {
   return aguiCreateSessionResponseSchema.safeParse(input);
+}
+
+export function safeParseSessionArchiveResponse(input: unknown) {
+  return aguiSessionArchiveResponseSchema.safeParse(input);
+}
+
+export function safeParseSessionTitleResponse(input: unknown) {
+  return aguiSessionTitleResponseSchema.safeParse(input);
 }
