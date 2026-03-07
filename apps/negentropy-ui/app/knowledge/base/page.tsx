@@ -887,7 +887,14 @@ export default function KnowledgeBasePage() {
       </div>
 
       <div className="mt-3">
-        <div className="mb-1 text-xs text-muted">Target Corpus（可多选）</div>
+        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+          <span className="text-muted">Target Corpus（可多选）</span>
+          {selectedRetrievalCorpusIds.length === 0 && (
+            <span className="text-[11px] text-amber-600">
+              请至少选择一个 Corpus 后再执行 Retrieve
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {corpora.map((corpus) => {
             const checked = selectedRetrievalCorpusIds.includes(corpus.id);
@@ -909,11 +916,6 @@ export default function KnowledgeBasePage() {
             );
           })}
         </div>
-        {selectedRetrievalCorpusIds.length === 0 && (
-          <div className="mt-2 text-[11px] text-amber-600">
-            请至少选择一个 Corpus 后再执行 Retrieve
-          </div>
-        )}
       </div>
 
       {retrievalError && (

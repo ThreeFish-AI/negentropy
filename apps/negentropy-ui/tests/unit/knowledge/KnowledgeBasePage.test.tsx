@@ -955,8 +955,12 @@ describe("KnowledgeBasePage", () => {
     await user.type(screen.getByPlaceholderText("输入检索内容"), "context engineering");
 
     const retrieveButton = screen.getByRole("button", { name: "Retrieve" });
+    const corpusLabelRow = screen.getByText("Target Corpus（可多选）").parentElement;
     expect(retrieveButton).toBeDisabled();
-    expect(screen.getByText("请至少选择一个 Corpus 后再执行 Retrieve")).toBeInTheDocument();
+    expect(corpusLabelRow).not.toBeNull();
+    expect(
+      within(corpusLabelRow as HTMLElement).getByText("请至少选择一个 Corpus 后再执行 Retrieve"),
+    ).toBeInTheDocument();
     expect(searchAcrossCorporaMock).not.toHaveBeenCalled();
     expect(screen.queryByText(/Retrieved Chunks$/)).not.toBeInTheDocument();
   });
