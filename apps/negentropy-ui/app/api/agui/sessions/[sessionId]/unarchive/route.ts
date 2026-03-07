@@ -1,25 +1,21 @@
-import { buildAuthHeaders } from "@/lib/sso";
 import { safeParseSessionArchiveResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
+import {
+  buildSessionUpstreamHeaders,
+  getSessionAguiBaseUrl,
+} from "@/app/api/agui/sessions/_request";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
 
-function getBaseUrl() {
-  return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
-}
-
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.INTERNAL_ERROR,
-      "AGUI_BASE_URL is not configured"
-    );
+  const baseUrl = getSessionAguiBaseUrl();
+  if (baseUrl instanceof Response) {
+    return baseUrl;
   }
 
   let body: {
@@ -54,10 +50,7 @@ export async function POST(
   try {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "POST",
-      headers: {
-        ...Object.fromEntries(buildAuthHeaders(request)),
-        "Content-Type": "application/json",
-      },
+      headers: buildSessionUpstreamHeaders(request, "json-write"),
       cache: "no-store",
     });
   } catch (error) {
