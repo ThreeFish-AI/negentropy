@@ -1,6 +1,5 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createKnowledgeConfigTestExports } from "@/tests/helpers/knowledge";
 
 const {
   replaceMock,
@@ -18,6 +17,12 @@ const {
   searchAcrossCorporaMock,
   documentViewDialogMock,
   fetchMock,
+  syncDocumentMock,
+  rebuildDocumentMock,
+  replaceDocumentFeatureMock,
+  archiveDocumentMock,
+  unarchiveDocumentMock,
+  downloadDocumentMock,
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
@@ -33,6 +38,12 @@ const {
   searchAcrossCorporaMock: vi.fn(),
   documentViewDialogMock: vi.fn(),
   fetchMock: vi.fn(),
+  syncDocumentMock: vi.fn(),
+  rebuildDocumentMock: vi.fn(),
+  replaceDocumentFeatureMock: vi.fn(),
+  archiveDocumentMock: vi.fn(),
+  unarchiveDocumentMock: vi.fn(),
+  downloadDocumentMock: vi.fn(),
   searchParamsState: {
     value: "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents",
   },
@@ -63,31 +74,46 @@ vi.mock("@/app/knowledge/base/_components/ReplaceDocumentDialog", () => ({
   ReplaceDocumentDialog: () => null,
 }));
 
-vi.mock("@/features/knowledge", () => ({
-  useKnowledgeBase: (...args: unknown[]) => useKnowledgeBaseMock(...args),
-  fetchDocuments: (...args: unknown[]) => fetchDocumentsMock(...args),
-  fetchDocumentChunks: (...args: unknown[]) => fetchDocumentChunksMock(...args),
-  searchAcrossCorpora: (...args: unknown[]) => searchAcrossCorporaMock(...args),
-  ...createKnowledgeConfigTestExports(),
-  DocumentViewDialog: ({
-    isOpen,
-    document,
-  }: {
-    isOpen: boolean;
-    document: { original_filename: string } | null;
-  }) => {
-    documentViewDialogMock({ isOpen, document });
-    if (!isOpen || !document) return null;
-    return <div>Viewing {document.original_filename}</div>;
-  },
-  syncDocument: vi.fn(),
-  rebuildDocument: vi.fn(),
-  replaceDocument: vi.fn(),
-  archiveDocument: vi.fn(),
-  unarchiveDocument: vi.fn(),
-  downloadDocument: vi.fn(),
-  deleteDocument: (...args: unknown[]) => deleteDocumentMock(...args),
-}));
+vi.mock("@/features/knowledge", async () => {
+  const { createKnowledgeFeatureTestHarness } = await import("@/tests/helpers/knowledge");
+  return createKnowledgeFeatureTestHarness(
+    {
+      searchKnowledgeMock: vi.fn(),
+      ingestTextMock: vi.fn(),
+      ingestUrlMock,
+      replaceSourceMock: vi.fn(),
+      fetchKnowledgeItemsMock: vi.fn(),
+      createCorpusMock: vi.fn(),
+      deleteCorpusMock,
+      fetchPipelinesMock: vi.fn(),
+      upsertPipelinesMock: vi.fn(),
+      fetchDocumentsMock,
+      fetchDocumentChunksMock,
+      searchAcrossCorporaMock,
+      syncDocumentMock,
+      rebuildDocumentMock,
+      replaceDocumentMock: replaceDocumentFeatureMock,
+      archiveDocumentMock,
+      unarchiveDocumentMock,
+      downloadDocumentMock,
+      deleteDocumentMock,
+    },
+    {
+      useKnowledgeBase: (...args: unknown[]) => useKnowledgeBaseMock(...args),
+      DocumentViewDialog: ({
+        isOpen,
+        document,
+      }: {
+        isOpen: boolean;
+        document: { original_filename: string } | null;
+      }) => {
+        documentViewDialogMock({ isOpen, document });
+        if (!isOpen || !document) return null;
+        return <div>Viewing {document.original_filename}</div>;
+      },
+    },
+  ).exports;
+});
 
 import KnowledgeBasePage from "@/app/knowledge/base/page";
 
@@ -111,6 +137,12 @@ describe("KnowledgeBasePage", () => {
     searchAcrossCorporaMock.mockReset();
     documentViewDialogMock.mockReset();
     fetchMock.mockReset();
+    syncDocumentMock.mockReset();
+    rebuildDocumentMock.mockReset();
+    replaceDocumentFeatureMock.mockReset();
+    archiveDocumentMock.mockReset();
+    unarchiveDocumentMock.mockReset();
+    downloadDocumentMock.mockReset();
     searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
 
     global.fetch = fetchMock;

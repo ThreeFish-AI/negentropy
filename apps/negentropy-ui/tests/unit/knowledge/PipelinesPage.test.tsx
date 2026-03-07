@@ -1,18 +1,34 @@
 import { act, render, screen } from "@testing-library/react";
 
-const { fetchPipelinesMock, upsertPipelinesMock } = vi.hoisted(() => ({
+const knowledgeMocks = vi.hoisted(() => ({
+  searchKnowledgeMock: vi.fn(),
+  ingestTextMock: vi.fn(),
+  ingestUrlMock: vi.fn(),
+  replaceSourceMock: vi.fn(),
+  fetchKnowledgeItemsMock: vi.fn(),
+  createCorpusMock: vi.fn(),
+  deleteCorpusMock: vi.fn(),
   fetchPipelinesMock: vi.fn(),
   upsertPipelinesMock: vi.fn(),
+  fetchDocumentsMock: vi.fn(),
+  fetchDocumentChunksMock: vi.fn(),
+  searchAcrossCorporaMock: vi.fn(),
+  syncDocumentMock: vi.fn(),
+  rebuildDocumentMock: vi.fn(),
+  replaceDocumentMock: vi.fn(),
+  archiveDocumentMock: vi.fn(),
+  unarchiveDocumentMock: vi.fn(),
+  downloadDocumentMock: vi.fn(),
+  deleteDocumentMock: vi.fn(),
 }));
-
 vi.mock("@/components/ui/KnowledgeNav", () => ({
   KnowledgeNav: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
-vi.mock("@/features/knowledge", () => ({
-  fetchPipelines: (...args: unknown[]) => fetchPipelinesMock(...args),
-  upsertPipelines: (...args: unknown[]) => upsertPipelinesMock(...args),
-}));
+vi.mock("@/features/knowledge", async () => {
+  const { createKnowledgeFeatureTestHarness } = await import("@/tests/helpers/knowledge");
+  return createKnowledgeFeatureTestHarness(knowledgeMocks).exports;
+});
 
 import KnowledgePipelinesPage from "@/app/knowledge/pipelines/page";
 
@@ -37,8 +53,8 @@ const makeRun = (overrides?: Partial<{ id: string; run_id: string; status: strin
 describe("KnowledgePipelinesPage polling", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    fetchPipelinesMock.mockReset();
-    upsertPipelinesMock.mockReset();
+    knowledgeMocks.fetchPipelinesMock.mockReset();
+    knowledgeMocks.upsertPipelinesMock.mockReset();
   });
 
   afterEach(() => {
@@ -46,7 +62,7 @@ describe("KnowledgePipelinesPage polling", () => {
   });
 
   it("在首屏无数据时，会通过兜底轮询自动显示新 Run", async () => {
-    fetchPipelinesMock
+    knowledgeMocks.fetchPipelinesMock
       .mockResolvedValueOnce({ runs: [], last_updated_at: "t0" })
       .mockResolvedValueOnce({ runs: [], last_updated_at: "t1" })
       .mockResolvedValueOnce({
@@ -56,7 +72,7 @@ describe("KnowledgePipelinesPage polling", () => {
 
     render(<KnowledgePipelinesPage />);
     await settle();
-    expect(fetchPipelinesMock).toHaveBeenCalledTimes(1);
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText("暂无作业")).toBeInTheDocument();
 
@@ -69,43 +85,43 @@ describe("KnowledgePipelinesPage polling", () => {
   });
 
   it("兜底轮询在达到 8 秒窗口后停止继续请求", async () => {
-    fetchPipelinesMock.mockResolvedValue({
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
       runs: [],
       last_updated_at: "t0",
     });
 
     render(<KnowledgePipelinesPage />);
     await settle();
-    expect(fetchPipelinesMock).toHaveBeenCalledTimes(1);
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(8000);
     });
     await settle();
-    expect(fetchPipelinesMock).toHaveBeenCalledTimes(9);
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(9);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
     await settle();
 
-    expect(fetchPipelinesMock).toHaveBeenCalledTimes(9);
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(9);
   });
 
   it("存在 running Run 时按 3 秒节奏轮询", async () => {
-    fetchPipelinesMock.mockResolvedValue({
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
       runs: [makeRun({ status: "running" })],
       last_updated_at: "t0",
     });
 
     render(<KnowledgePipelinesPage />);
     await settle();
-    expect(fetchPipelinesMock).toHaveBeenCalledTimes(1);
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(6000);
     });
     await settle();
-    expect(fetchPipelinesMock).toHaveBeenCalledTimes(3);
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(3);
   });
 });
