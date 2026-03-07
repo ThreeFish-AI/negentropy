@@ -30,6 +30,7 @@ import {
   normalizeMessageContent,
 } from "@/utils/message";
 import {
+  mergeOptimisticMessages,
   reconcileOptimisticMessages,
 } from "@/utils/message-merge";
 import { buildTimelineItems } from "@/utils/timeline";
@@ -99,6 +100,8 @@ export function HomeBody({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const loadedSessionIdRef = useRef<string | null>(null);
   const rawEventsRef = useRef<BaseEvent[]>([]);
+  const activeSessionIdRef = useRef<string | null>(sessionId);
+  const hydrationRequestVersionRef = useRef(0);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
@@ -112,6 +115,10 @@ export function HomeBody({
   useEffect(() => {
     rawEventsRef.current = rawEvents;
   }, [rawEvents]);
+
+  useEffect(() => {
+    activeSessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   const addLog = useCallback(
     (
@@ -560,6 +567,7 @@ export function HomeBody({
 
   const loadSessionDetail = useCallback(
     async (id: string) => {
+      const requestVersion = ++hydrationRequestVersionRef.current;
       try {
         const response = await fetch(
           `/api/agui/sessions/${encodeURIComponent(id)}?app_name=${encodeURIComponent(
@@ -568,6 +576,12 @@ export function HomeBody({
         );
         const payload = await response.json();
         if (!response.ok) {
+          return;
+        }
+        if (
+          hydrationRequestVersionRef.current !== requestVersion ||
+          activeSessionIdRef.current !== id
+        ) {
           return;
         }
         const { payloads: events, invalidCount } = collectAdkEventPayloads(payload.events);
@@ -700,6 +714,7 @@ export function HomeBody({
       return;
     }
 
+    const runId = randomUUID();
     const messageId = crypto.randomUUID();
     const createdAt = new Date();
     const newMessage = {
@@ -707,6 +722,9 @@ export function HomeBody({
       role: "user",
       content: inputValue.trim(),
       createdAt,
+      runId,
+      threadId: sessionId,
+      streaming: false,
     } as Message;
     // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
     // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
@@ -722,7 +740,7 @@ export function HomeBody({
     try {
       setConnectionWithMetrics("connecting");
       await agent.runAgent({
-        runId: randomUUID(),
+        runId,
       });
       scheduleSessionHydration(sessionId);
       await loadSessions();
@@ -781,42 +799,15 @@ export function HomeBody({
       messagesForRenderBase,
       optimisticMessages,
     );
-    const knownIds = new Set(
-      messagesForRenderBase
-        .filter((message) => normalizeMessageContent(message).trim().length > 0)
-        .map((message) => message.id),
+    return mergeOptimisticMessages(messagesForRenderBase, pendingOptimistic).map(
+      (message) =>
+        !normalizeMessageContent(message).trim().length
+          ? ({
+              ...message,
+              content: normalizeMessageContent(message),
+            } as Message)
+          : message,
     );
-
-    const validOptimistic = pendingOptimistic.filter(
-      (message) => !knownIds.has(message.id),
-    );
-
-    if (validOptimistic.length === 0) {
-      return messagesForRenderBase;
-    }
-
-    const merged = [...messagesForRenderBase];
-    const indexById = new Map<string, number>();
-    merged.forEach((message, index) => {
-      indexById.set(message.id, index);
-    });
-
-    validOptimistic.forEach((message) => {
-      const index = indexById.get(message.id);
-      if (index === undefined) {
-        merged.push(message);
-        indexById.set(message.id, merged.length - 1);
-        return;
-      }
-      const existing = merged[index];
-      if (!existing.content && message.content) {
-        merged[index] = {
-          ...existing,
-          content: normalizeMessageContent(message),
-        } as Message;
-      }
-    });
-    return merged;
   }, [messagesForRenderBase, optimisticMessages]);
 
   const conversationTree = useMemo(

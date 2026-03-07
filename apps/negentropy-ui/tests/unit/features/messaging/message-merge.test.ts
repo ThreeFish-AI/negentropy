@@ -151,4 +151,39 @@ describe("reconcileOptimisticMessages", () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("local-2");
   });
+
+  it("应该优先按 runId 和 threadId 回收被服务端确认的乐观消息", () => {
+    const base: AgUiMessage[] = [
+      createTestMessage({
+        id: "server-1",
+        role: "user",
+        content: "Hello",
+        createdAt: new Date("2026-03-07T10:00:02.000Z"),
+        runId: "run-1",
+        threadId: "thread-1",
+      }),
+    ];
+    const optimistic: AgUiMessage[] = [
+      createTestMessage({
+        id: "local-1",
+        role: "user",
+        content: "Hello",
+        createdAt: new Date("2026-03-07T10:00:01.000Z"),
+        runId: "run-1",
+        threadId: "thread-1",
+      }),
+      createTestMessage({
+        id: "local-2",
+        role: "user",
+        content: "Hello",
+        createdAt: new Date("2026-03-07T10:00:01.500Z"),
+        runId: "run-2",
+        threadId: "thread-1",
+      }),
+    ];
+
+    const result = reconcileOptimisticMessages(base, optimistic);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("local-2");
+  });
 });

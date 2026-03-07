@@ -13,6 +13,8 @@ export function createTestMessage(input: {
   createdAt?: Date;
   author?: string;
   runId?: string;
+  threadId?: string;
+  streaming?: boolean;
 }): AgUiMessage {
   return createAgUiMessage({
     ...input,

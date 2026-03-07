@@ -221,6 +221,89 @@ describe("buildConversationTree", () => {
     expect(tree.roots[0].children[1].payload.content).toBe("second");
   });
 
+  it("无 runId 的 fallback 用户消息不会错误挂到最近轮次", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-hi",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-hi",
+        messageId: "assistant-hi",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-hi",
+        messageId: "assistant-hi",
+        delta: "Hi",
+        timestamp: 1002,
+      }),
+    ];
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
+        id: "local-hello",
+        role: "user",
+        content: "Hello",
+        createdAt: new Date(1003 * 1000),
+      }),
+    ];
+
+    const tree = buildConversationTree({ events, fallbackMessages });
+
+    expect(tree.roots).toHaveLength(2);
+    expect(tree.roots[0].type).toBe("turn");
+    expect(tree.roots[1].type).toBe("text");
+    expect(tree.roots[1].payload.content).toBe("Hello");
+  });
+
+  it("fallback assistant 快照命中已有事件节点时不重复新增 bubble", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-stream",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-stream",
+        delta: "Hello",
+        timestamp: 1002,
+      }),
+    ];
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
+        id: "assistant-history",
+        role: "assistant",
+        content: "Hello",
+        createdAt: new Date(1002 * 1000),
+        runId: "run-1",
+        threadId: "thread-1",
+      }),
+    ];
+
+    const tree = buildConversationTree({ events, fallbackMessages });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children.filter((child) => child.type === "text")).toHaveLength(1);
+  });
+
   it("将运行错误节点保留在主聊天区", () => {
     const events: AgUiEvent[] = [
       createTestEvent({

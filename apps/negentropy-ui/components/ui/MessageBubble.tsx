@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/common";
@@ -48,10 +49,6 @@ function formatTimestamp(timestamp: number): string {
 function normalizeContent(content: string): string {
   return content;
 }
-
-import { useState } from "react";
-
-// ... (imports remain)
 
 function MessageActions({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
@@ -228,6 +225,7 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const content = normalizeContent(message.content);
+  const isStreaming = message.streaming === true && !isUser && content.trim().length > 0;
   const avatarPositionClass = isUser
     ? "absolute right-0 top-2 translate-x-[calc(100%+0.75rem)]"
     : "absolute left-0 top-2 -translate-x-[calc(100%+0.75rem)]";
@@ -245,9 +243,9 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "group relative flex w-full cursor-pointer",
+        "group relative flex w-full cursor-pointer rounded-[2rem] px-2 py-1 transition-colors duration-200",
         isUser ? "flex-row-reverse" : "flex-row",
-        isSelected && "bg-muted/50",
+        isSelected && "bg-[linear-gradient(90deg,rgba(245,158,11,0.10),transparent_75%)]",
       )}
       onClick={() => onSelect?.(message.id)}
     >
@@ -276,10 +274,12 @@ export function MessageBubble({
       >
         <div
           className={cn(
-            "rounded-2xl px-5 py-3 text-sm shadow-sm transition-all",
+            "rounded-[1.6rem] px-5 py-3.5 text-sm shadow-sm transition-all duration-300",
             isUser
-              ? "max-w-[85%] rounded-tr-sm bg-foreground leading-relaxed text-background"
-              : "w-full max-w-full rounded-tl-sm border border-border bg-card leading-snug text-foreground",
+              ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
+              : "w-full max-w-full rounded-tl-md border border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.9))] text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)] dark:border-zinc-800 dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(9,9,11,0.9))]",
+            isStreaming &&
+              "ring-1 ring-amber-300/70 shadow-[0_16px_46px_rgba(245,158,11,0.12)] dark:ring-amber-700/60",
           )}
         >
           <div
@@ -376,14 +376,20 @@ export function MessageBubble({
             >
               {content}
             </ReactMarkdown>
+            {isStreaming ? (
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
+                <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
+                <span>Streaming</span>
+              </div>
+            ) : null}
           </div>
         </div>
 
         {/* 元信息栏：显示作者和时间戳 */}
-        {!isUser && (message.author || message.timestamp) && (
-          <div className="flex items-center gap-2 mt-1.5 px-1">
+        {!isUser && (message.author || message.timestamp || isStreaming) && (
+          <div className="mt-2 flex items-center gap-2 px-1">
             {message.author && (
-              <span className="text-[10px] text-muted-foreground bg-muted/50 dark:bg-muted/30 px-1.5 py-0.5 rounded font-medium">
+              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
                 {message.author}
               </span>
             )}
@@ -392,6 +398,11 @@ export function MessageBubble({
                 {formatTimestamp(message.timestamp)}
               </span>
             )}
+            {isStreaming ? (
+              <span className="text-[10px] font-medium text-amber-600 dark:text-amber-300">
+                实时生成中
+              </span>
+            ) : null}
           </div>
         )}
 

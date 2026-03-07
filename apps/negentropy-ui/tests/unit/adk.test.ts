@@ -8,6 +8,7 @@ import {
   parseAdkEventPayload,
   safeParseAdkEventPayload,
 } from "../../lib/adk";
+import { getMessageStreaming, type AgUiEvent } from "../../types/agui";
 
 describe("adk event mapping", () => {
   it("maps text parts to AG-UI text events", () => {
@@ -110,6 +111,46 @@ describe("adk event mapping", () => {
     const messages = aguiEventsToMessages(events);
     expect(messages).toHaveLength(1);
     expect(messages[0].content).toBe("你好");
+    expect(getMessageStreaming(messages[0])).toBe(false);
+  });
+
+  it("treats snapshot-style repeated content as one growing assistant message", () => {
+    const messages = aguiEventsToMessages([
+      {
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1000,
+      },
+      {
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "Hel",
+        timestamp: 1001,
+      },
+      {
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "Hello",
+        timestamp: 1002,
+      },
+      {
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        timestamp: 1003,
+      },
+    ] as AgUiEvent[]);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toBe("Hello");
   });
 
   it("flushes assistant text before tool calls and starts a new segment after tool results", () => {

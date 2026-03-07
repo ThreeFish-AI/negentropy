@@ -96,6 +96,10 @@ export type ChatMessage = Pick<Message, "id" | "role"> & {
   timestamp?: number;
   /** 运行 ID，用于标识消息所属的轮次 */
   runId?: string;
+  /** 线程 ID，用于标识消息所属会话 */
+  threadId?: string;
+  /** 当前消息是否仍在流式生成中 */
+  streaming?: boolean;
   /** 关联的工具调用列表（内嵌显示在消息气泡中） */
   toolCalls?: ToolCallInfo[];
 };

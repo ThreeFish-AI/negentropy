@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EventType } from "@ag-ui/core";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 import { MessageBubble } from "@/components/ui/MessageBubble";
 import type { ChatMessage } from "@/types/common";
@@ -140,6 +141,11 @@ function TextNode({
         : undefined,
     timestamp: node.timestamp,
     runId: node.runId,
+    threadId: node.threadId,
+    streaming:
+      node.role !== "user" &&
+      node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_CONTENT) &&
+      !node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_END),
   };
 
   if (shouldRenderAsJson) {

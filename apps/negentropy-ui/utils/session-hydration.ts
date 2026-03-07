@@ -23,6 +23,7 @@ import {
   getMessageCreatedAt,
   type AgUiMessage,
 } from "@/types/agui";
+import { getMessageIdentityKey, normalizeMessageContent } from "@/utils/message";
 
 export type HydratedSessionDetail = {
   events: BaseEvent[];
@@ -143,23 +144,25 @@ export function mergeMessages(baseMessages: Message[], incomingMessages: Message
 
   [...baseMessages, ...incomingMessages].forEach((message) => {
     const timedMessage = message as AgUiMessage;
-    const existing = merged.get(message.id);
+    const key = getMessageIdentityKey(message);
+    const existing = merged.get(key);
     if (!existing) {
-      merged.set(message.id, timedMessage);
+      merged.set(key, timedMessage);
       return;
     }
 
-    const existingContent =
-      typeof existing.content === "string"
-        ? existing.content
-        : JSON.stringify(existing.content);
-    const incomingContent =
-      typeof message.content === "string"
-        ? message.content
-        : JSON.stringify(message.content);
+    const existingContent = normalizeMessageContent(existing);
+    const incomingContent = normalizeMessageContent(message);
+    const existingStreaming = existing.streaming === true;
+    const incomingStreaming = timedMessage.streaming === true;
 
-    if (incomingContent.length >= existingContent.length) {
-      merged.set(message.id, { ...existing, ...timedMessage } as AgUiMessage);
+    if (
+      incomingContent.length > existingContent.length ||
+      (incomingContent.length === existingContent.length &&
+        existingStreaming &&
+        !incomingStreaming)
+    ) {
+      merged.set(key, { ...existing, ...timedMessage } as AgUiMessage);
     }
   });
 

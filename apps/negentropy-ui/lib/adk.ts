@@ -22,7 +22,10 @@ import {
   getEventDelta,
   getEventMessageId,
   getEventRole,
+  getEventRunId,
+  getEventThreadId,
 } from "@/types/agui";
+import { accumulateTextContent } from "@/utils/message";
 import type { AdkEventPayload } from "@/lib/adk/schema";
 export {
   adkEventPayloadSchema,
@@ -93,14 +96,6 @@ function createGeneratedMessageId(
 
 function messageShouldFlushAfterPayload(payload: AdkEventPayload): boolean {
   return hasToolCalls(payload) || hasToolResults(payload);
-}
-
-function appendTextDelta(existing: string, delta: string): string {
-  if (!existing) return delta;
-  if (!delta) return existing;
-  if (delta === existing || existing.endsWith(delta)) return existing;
-  if (delta.startsWith(existing)) return delta;
-  return `${existing}${delta}`;
 }
 
 function normalizeUiMessageRole(value: string | undefined): Message["role"] {
@@ -549,6 +544,8 @@ export function adkEventsToMessages(events: AdkEventPayload[]): Message[] {
         role: normalizeUiMessageRole(e.message?.role || e.author),
         content,
         createdAt: new Date((e.timestamp || Date.now() / 1000) * 1000),
+        threadId: e.threadId,
+        runId: e.runId,
       }),
     };
   });
@@ -576,6 +573,9 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
       role: string;
       content: string;
       createdAt: Date;
+      runId?: string;
+      threadId?: string;
+      streaming: boolean;
     }
   >();
 
@@ -608,6 +608,9 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
         getEventRole(event) || "assistant",
       content: "",
       createdAt,
+      runId: getEventRunId(event),
+      threadId: getEventThreadId(event),
+      streaming: true,
     };
 
     if (
@@ -618,7 +621,7 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
     }
 
     if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
-      existing.content = appendTextDelta(
+      existing.content = accumulateTextContent(
         existing.content,
         String(getEventDelta(event) || ""),
       );
@@ -626,6 +629,12 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
 
     if (createdAt.getTime() < existing.createdAt.getTime()) {
       existing.createdAt = createdAt;
+    }
+
+    existing.runId = existing.runId || getEventRunId(event);
+    existing.threadId = existing.threadId || getEventThreadId(event);
+    if (event.type === EventType.TEXT_MESSAGE_END) {
+      existing.streaming = false;
     }
 
     messageMap.set(messageId, existing);
@@ -646,6 +655,9 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
         role: normalizeUiMessageRole(message.role),
         content: message.content,
         createdAt: message.createdAt,
+        runId: message.runId,
+        threadId: message.threadId,
+        streaming: message.streaming,
       }),
     );
 }
