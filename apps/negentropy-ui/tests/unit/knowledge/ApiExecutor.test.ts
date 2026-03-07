@@ -1,26 +1,12 @@
-const knowledgeMocks = vi.hoisted(() => ({
-  searchKnowledgeMock: vi.fn(),
-  ingestTextMock: vi.fn(),
-  ingestUrlMock: vi.fn(),
-  replaceSourceMock: vi.fn(),
-  fetchKnowledgeItemsMock: vi.fn(),
-  createCorpusMock: vi.fn(),
-  deleteCorpusMock: vi.fn(),
-  fetchPipelinesMock: vi.fn(),
-  upsertPipelinesMock: vi.fn(),
-  fetchDocumentsMock: vi.fn(),
-  fetchDocumentChunksMock: vi.fn(),
-  searchAcrossCorporaMock: vi.fn(),
-  syncDocumentMock: vi.fn(),
-  rebuildDocumentMock: vi.fn(),
-  replaceDocumentMock: vi.fn(),
-  archiveDocumentMock: vi.fn(),
-  unarchiveDocumentMock: vi.fn(),
-  downloadDocumentMock: vi.fn(),
-  deleteDocumentMock: vi.fn(),
-}));
+import type { KnowledgeFeatureMockSet } from "@/tests/helpers/knowledge";
+
+const knowledgeMocks = vi.hoisted(() => ({}) as KnowledgeFeatureMockSet);
+
 vi.mock("@/features/knowledge", async () => {
-  const { createKnowledgeFeatureTestHarness } = await import("@/tests/helpers/knowledge");
+  const { createKnowledgeFeatureMockSet, createKnowledgeFeatureTestHarness } = await import(
+    "@/tests/helpers/knowledge"
+  );
+  Object.assign(knowledgeMocks, createKnowledgeFeatureMockSet());
   return createKnowledgeFeatureTestHarness(knowledgeMocks).exports;
 });
 

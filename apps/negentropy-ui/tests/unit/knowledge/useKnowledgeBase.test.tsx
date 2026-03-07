@@ -1,24 +1,13 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type { KnowledgeApiMockSet } from "@/tests/helpers/knowledge-api";
 
-const knowledgeApiMocks = vi.hoisted(() => ({
-  fetchCorpusMock: vi.fn(),
-  fetchCorporaMock: vi.fn(),
-  createCorpusMock: vi.fn(),
-  updateCorpusMock: vi.fn(),
-  deleteCorpusMock: vi.fn(),
-  ingestTextMock: vi.fn(),
-  ingestUrlMock: vi.fn(),
-  ingestFileMock: vi.fn(),
-  replaceSourceMock: vi.fn(),
-  syncSourceMock: vi.fn(),
-  rebuildSourceMock: vi.fn(),
-  deleteSourceMock: vi.fn(),
-  archiveSourceMock: vi.fn(),
-  searchKnowledgeMock: vi.fn(),
-}));
+const knowledgeApiMocks = vi.hoisted(() => ({}) as KnowledgeApiMockSet);
 
 vi.mock("@/features/knowledge/utils/knowledge-api", async () => {
-  const { createKnowledgeApiTestHarness } = await import("@/tests/helpers/knowledge-api");
+  const { createKnowledgeApiMockSet, createKnowledgeApiTestHarness } = await import(
+    "@/tests/helpers/knowledge-api"
+  );
+  Object.assign(knowledgeApiMocks, createKnowledgeApiMockSet());
   return (await createKnowledgeApiTestHarness(knowledgeApiMocks)).exports;
 });
 
