@@ -153,6 +153,33 @@ describe("ChatStream", () => {
     expect(screen.getByText("NE 正在生成回复...")).toBeInTheDocument();
   });
 
+  it("在 HITL 阻塞时展示等待确认提示", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "turn:blocked",
+        type: "turn",
+        parentId: null,
+        children: [],
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1000 },
+        sourceOrder: 0,
+        title: "轮次 run-1",
+        status: "blocked",
+        visibility: "chat",
+        isStructural: false,
+        payload: {},
+        sourceEventTypes: ["tool_call_start"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    render(<ChatStream nodes={nodes} />);
+
+    expect(screen.getByText("等待用户确认后继续")).toBeInTheDocument();
+  });
+
   it("直接展示错误节点而不是折叠隐藏", () => {
     const nodes: ConversationNode[] = [
       {

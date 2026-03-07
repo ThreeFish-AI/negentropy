@@ -17,11 +17,7 @@ import { useAuth } from "../components/providers/AuthProvider";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
-import {
-  AdkEventPayload,
-  adkEventsToMessages,
-  adkEventsToSnapshot,
-} from "@/lib/adk";
+import { AdkEventPayload } from "@/lib/adk";
 
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
@@ -36,7 +32,13 @@ import {
   buildConversationTree,
   buildNodeTimestampIndex,
 } from "@/utils/conversation-tree";
-import { mapAdkPayloadToNormalizedAguiEvents } from "@/utils/agui-normalization";
+import {
+  deriveConnectionState,
+  deriveRunStates,
+  hydrateSessionDetail,
+  mergeEvents,
+  mergeMessages,
+} from "@/utils/session-hydration";
 
 // 统一的类型定义
 import type {
@@ -47,7 +49,6 @@ import type {
 
 const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
-const EMPTY_MESSAGES: Message[] = [];
 
 export function HomeBody({
   sessionId,
@@ -77,6 +78,7 @@ export function HomeBody({
     lastRunMs: 0,
   });
   const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const hydrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
@@ -88,11 +90,21 @@ export function HomeBody({
   > | null>(null);
   const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const loadedSessionIdRef = useRef<string | null>(null);
+  const rawEventsRef = useRef<BaseEvent[]>([]);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
     [sessions, sessionId],
   );
+
+  useEffect(() => {
+    loadedSessionIdRef.current = loadedSessionId;
+  }, [loadedSessionId]);
+
+  useEffect(() => {
+    rawEventsRef.current = rawEvents;
+  }, [rawEvents]);
 
   const addLog = useCallback(
     (
@@ -141,16 +153,6 @@ export function HomeBody({
     },
     [addLog],
   );
-
-  // ... (keeping intervening code if any, but replacing the function block to be safe)
-  // Wait, replace_file_content needs contiguous block.
-  // I will split this into two replacements if needed or just target updateCurrentSessionTime first.
-
-  // Actually, I can do it in two chunks? No, replace_file_content is single contiguous.
-  // I will use multi_replace_file_content for safety if I need to touch multiple places,
-  // or just replace updateCurrentSessionTime block first.
-
-  // use multi_replace_file_content to fix both locations.
 
   const setConnectionWithMetrics = useCallback(
     (next: ConnectionState) => {
@@ -209,7 +211,7 @@ export function HomeBody({
       },
       onEvent: ({ event }) =>
         setRawEvents((prev) => {
-          const next = [...prev, event];
+          const next = mergeEvents(prev, [event]);
           return next.slice(-10000);
         }),
     });
@@ -233,6 +235,28 @@ export function HomeBody({
     });
     return pending.size;
   }, [rawEvents]);
+
+  const derivedRunStates = useMemo(() => deriveRunStates(rawEvents), [rawEvents]);
+  const latestRunState = useMemo(
+    () => derivedRunStates[derivedRunStates.length - 1] || null,
+    [derivedRunStates],
+  );
+  const effectiveConnection = useMemo(() => {
+    const derived = deriveConnectionState(rawEvents);
+    if (derived === "blocked" || derived === "error") {
+      return derived;
+    }
+    if (connection === "connecting" || connection === "streaming") {
+      return connection;
+    }
+    if (connection === "error") {
+      return connection;
+    }
+    if (connection === "idle" && derived === "streaming") {
+      return "idle";
+    }
+    return derived;
+  }, [connection, rawEvents]);
 
   // 根据选中的节点时间范围过滤事件，右侧保持历史视图能力
   const nodeTimestampIndex = useMemo(() => {
@@ -380,7 +404,20 @@ export function HomeBody({
     titleRefreshTimersRef.current = [];
   }, []);
 
-  useEffect(() => () => clearTitleRefreshTimers(), [clearTitleRefreshTimers]);
+  const clearHydrationTimers = useCallback(() => {
+    hydrationTimersRef.current.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    hydrationTimersRef.current = [];
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearTitleRefreshTimers();
+      clearHydrationTimers();
+    },
+    [clearHydrationTimers, clearTitleRefreshTimers],
+  );
 
   const scheduleTitleRefresh = useCallback(() => {
     clearTitleRefreshTimers();
@@ -442,23 +479,31 @@ export function HomeBody({
         const events = Array.isArray(payload.events)
           ? (payload.events as AdkEventPayload[])
           : [];
-        const messages = adkEventsToMessages(events);
-        const snapshot = adkEventsToSnapshot(events);
-        const mappedEvents = events.flatMap((event) =>
-          mapAdkPayloadToNormalizedAguiEvents(event, {
-            threadId: id,
-            runId: event.runId || id,
-          }),
-        );
+        const hydrated = hydrateSessionDetail(events, id);
+        const currentLoadedSessionId = loadedSessionIdRef.current;
+        const currentRawEvents = rawEventsRef.current;
 
-        setRawEvents(mappedEvents);
-        setSessionMessages(messages);
-        setSessionSnapshot(snapshot || null);
+        setRawEvents((prev) => {
+          const shouldMerge =
+            currentLoadedSessionId === id ||
+            (sessionId === id && currentRawEvents.length > 0);
+          return shouldMerge ? mergeEvents(prev, hydrated.events) : hydrated.events;
+        });
+        setSessionMessages((prev) => {
+          const shouldMerge =
+            currentLoadedSessionId === id ||
+            (sessionId === id && currentRawEvents.length > 0);
+          return shouldMerge
+            ? mergeMessages(prev, hydrated.messages)
+            : hydrated.messages;
+        });
+        setSessionSnapshot((prev) =>
+          currentLoadedSessionId === id ||
+          (sessionId === id && currentRawEvents.length > 0)
+            ? (hydrated.snapshot ?? prev)
+            : hydrated.snapshot,
+        );
         setLoadedSessionId(id);
-        if (agent) {
-          agent.setMessages(messages);
-          agent.setState(snapshot || {});
-        }
       } catch (error) {
         setConnectionWithMetrics("error");
         addLog("error", "load_session_detail_failed", {
@@ -468,19 +513,36 @@ export function HomeBody({
       }
     },
     [
-      agent,
       userId,
       setConnectionWithMetrics,
       addLog,
       sessionId,
-      setSessionId,
-      setSessions,
     ],
+  );
+
+  const scheduleSessionHydration = useCallback(
+    (id: string) => {
+      clearHydrationTimers();
+      const delays = [0, 250, 800, 1600];
+      delays.forEach((delay) => {
+        const timer = setTimeout(() => {
+          void loadSessionDetail(id);
+        }, delay);
+        hydrationTimersRef.current.push(timer);
+      });
+    },
+    [clearHydrationTimers, loadSessionDetail],
   );
 
   const handleConfirmationFollowup = useCallback(
     async (payload: { action: string; note: string }) => {
-      if (!agent || !sessionId || agent.isRunning) {
+      if (
+        !agent ||
+        !sessionId ||
+        agent.isRunning ||
+        effectiveConnection === "streaming" ||
+        effectiveConnection === "connecting"
+      ) {
         return;
       }
       agent.addMessage({
@@ -495,7 +557,7 @@ export function HomeBody({
           runId: randomUUID(),
           threadId: sessionId,
         });
-        await loadSessionDetail(sessionId);
+        scheduleSessionHydration(sessionId);
         await loadSessions();
       } catch (error) {
         setConnectionWithMetrics("error");
@@ -503,7 +565,15 @@ export function HomeBody({
         console.warn("Failed to submit HITL response", error);
       }
     },
-    [agent, addLog, loadSessionDetail, loadSessions, sessionId, setConnectionWithMetrics],
+    [
+      agent,
+      addLog,
+      effectiveConnection,
+      loadSessions,
+      scheduleSessionHydration,
+      sessionId,
+      setConnectionWithMetrics,
+    ],
   );
 
   useConfirmationTool(handleConfirmationFollowup);
@@ -524,7 +594,12 @@ export function HomeBody({
     if (!agent || !sessionId || !inputValue.trim()) {
       return;
     }
-    if (pendingConfirmations > 0) {
+    if (
+      pendingConfirmations > 0 ||
+      effectiveConnection === "streaming" ||
+      effectiveConnection === "connecting" ||
+      effectiveConnection === "blocked"
+    ) {
       return;
     }
 
@@ -552,7 +627,7 @@ export function HomeBody({
         runId: randomUUID(),
         threadId: sessionId,
       });
-      await loadSessionDetail(sessionId);
+      scheduleSessionHydration(sessionId);
       await loadSessions();
       if (shouldPollTitle) {
         scheduleTitleRefresh();
@@ -573,6 +648,8 @@ export function HomeBody({
   const handleSessionChange = useCallback((newId: string | null) => {
     setSessionId(newId);
     if (newId) {
+      clearHydrationTimers();
+      clearTitleRefreshTimers();
       setSessionMessages([]);
       setOptimisticMessages([]);
       setSessionSnapshot(null);
@@ -580,7 +657,7 @@ export function HomeBody({
       setLoadedSessionId(null);
       setSelectedNodeId(null);
     }
-  }, []);
+  }, [clearHydrationTimers, clearTitleRefreshTimers, setSessionId]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -591,22 +668,8 @@ export function HomeBody({
   }, [sessionId, agent, loadSessionDetail]);
 
   const hasLoadedSession = loadedSessionId === sessionId;
-
-  const agentMessages = agent ? (agent.messages as Message[]) : EMPTY_MESSAGES;
-  const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
-
-  /* Removed problematic effect that caused cascading renders:
-     useEffect(() => { ... setOptimisticMessages ... }, [agentMessages])
-     Instead, we filter optimistic messages during derived state calculation.
-  */
-
-  const messagesForRenderBase =
-    hasLoadedSession && agentMessages.length > 0
-      ? agentMessages
-      : sessionMessages;
-  const snapshotForRender = hasLoadedSession
-    ? (agentSnapshot ?? sessionSnapshot)
-    : sessionSnapshot;
+  const messagesForRenderBase = hasLoadedSession ? sessionMessages : [];
+  const snapshotForRender = hasLoadedSession ? sessionSnapshot : null;
 
   // Reconstruct state snapshot from filtered events for historical viewing
   const historicalSnapshot = useMemo(
@@ -738,7 +801,9 @@ export function HomeBody({
             </button>
 
             <div className="text-xs font-medium text-zinc-400 max-w-md truncate mx-4 dark:text-zinc-500">
-              {activeSession ? activeSession.label : "Negentropy"}
+              {activeSession
+                ? `${activeSession.label}${latestRunState?.status === "blocked" ? " · 等待确认" : ""}`
+                : "Negentropy"}
             </div>
 
             <button
@@ -782,10 +847,13 @@ export function HomeBody({
                 value={inputValue}
                 onChange={setInputValue}
                 onSend={sendInput}
-                isGenerating={connection === "streaming"}
+                isGenerating={effectiveConnection === "streaming"}
+                isBlocked={effectiveConnection === "blocked"}
                 disabled={
                   !sessionId ||
-                  connection === "streaming" ||
+                  effectiveConnection === "streaming" ||
+                  effectiveConnection === "connecting" ||
+                  effectiveConnection === "blocked" ||
                   pendingConfirmations > 0
                 }
               />
@@ -837,7 +905,7 @@ export function HomeBody({
 
             <StateSnapshot
               snapshot={snapshotForDisplay}
-              connection={selectedNodeId ? "idle" : connection}
+              connection={selectedNodeId ? "idle" : effectiveConnection}
             />
             <EventTimeline events={timelineItems} />
             <LogBufferPanel

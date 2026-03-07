@@ -204,7 +204,9 @@ function TurnNode({
       child.type === "error"),
   );
   const statusHint =
-    node.status === "running" && !hasMeaningfulReply
+    node.status === "blocked"
+      ? "等待用户确认后继续"
+      : node.status === "running" && !hasMeaningfulReply
       ? "NE 正在生成回复..."
       : node.status === "finished" && !hasMeaningfulReply
         ? "本轮未生成可展示回复"
@@ -225,7 +227,13 @@ function TurnNode({
             {node.title}
           </div>
           <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            {node.status === "finished" ? "已完成" : node.status === "error" ? "异常" : "进行中"}
+            {node.status === "finished"
+              ? "已完成"
+              : node.status === "error"
+                ? "异常"
+                : node.status === "blocked"
+                  ? "等待确认"
+                  : "进行中"}
             {" · "}
             {childCount} 个子模块
           </div>

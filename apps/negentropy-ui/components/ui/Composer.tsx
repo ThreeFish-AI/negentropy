@@ -4,6 +4,7 @@ type ComposerProps = {
   onSend: () => void;
   disabled: boolean;
   isGenerating?: boolean;
+  isBlocked?: boolean;
 };
 
 export function Composer({
@@ -12,6 +13,7 @@ export function Composer({
   onSend,
   disabled,
   isGenerating,
+  isBlocked,
 }: ComposerProps) {
   return (
     <form
@@ -47,7 +49,7 @@ export function Composer({
           {isGenerating && (
             <span className="h-2 w-2 rounded-full bg-background animate-pulse" />
           )}
-          {isGenerating ? "Generating..." : "Send"}
+          {isBlocked ? "Waiting..." : isGenerating ? "Generating..." : "Send"}
         </button>
       </div>
     </form>

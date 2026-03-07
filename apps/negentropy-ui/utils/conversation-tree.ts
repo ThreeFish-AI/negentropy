@@ -376,6 +376,7 @@ export function buildConversationTree(
   const toolNodeIndex = new Map<string, string>();
   const turns = new Map<string, MutableNode>();
   const assistantMessageByRun = new Map<string, string>();
+  const pendingConfirmationCountByRun = new Map<string, number>();
   const pendingLinks: LinkInstruction[] = [];
   let activeRunId: string | undefined;
 
@@ -413,7 +414,10 @@ export function buildConversationTree(
         return;
       }
       case EventType.RUN_FINISHED: {
-        turn.status = "finished";
+        turn.status =
+          (pendingConfirmationCountByRun.get(runId) || 0) > 0
+            ? "blocked"
+            : "finished";
         mergeEventMeta(turn, normalizedEvent);
         if (activeRunId === runId) {
           activeRunId = undefined;
@@ -459,9 +463,13 @@ export function buildConversationTree(
           sourceOrder: eventIndex,
           title: role === "user" ? "用户消息" : "助手消息",
           role,
-          payload: {
-            content: "",
-          },
+          payload:
+            normalizedEvent.type === EventType.TEXT_MESSAGE_CONTENT &&
+            "delta" in normalizedEvent
+              ? {
+                  content: String(normalizedEvent.delta || ""),
+                }
+              : {},
           sourceEventTypes: [eventType],
           relatedMessageIds: [messageId],
         });
@@ -517,9 +525,7 @@ export function buildConversationTree(
               : "工具调用",
           status:
             normalizedEvent.type === EventType.TOOL_CALL_END ? "done" : "running",
-          payload: {
-            args: "",
-          },
+          payload: {},
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
@@ -530,6 +536,11 @@ export function buildConversationTree(
         ) {
           node.title = normalizedEvent.toolCallName;
           node.payload.toolCallName = normalizedEvent.toolCallName;
+          if (normalizedEvent.toolCallName === "ui.confirmation") {
+            const nextCount = (pendingConfirmationCountByRun.get(runId) || 0) + 1;
+            pendingConfirmationCountByRun.set(runId, nextCount);
+            turn.status = "blocked";
+          }
         }
         if (normalizedEvent.type === EventType.TOOL_CALL_ARGS && "delta" in normalizedEvent) {
           node.payload.args = `${String(node.payload.args || "")}${String(
@@ -566,6 +577,15 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
+        if ((pendingConfirmationCountByRun.get(runId) || 0) > 0) {
+          pendingConfirmationCountByRun.set(
+            runId,
+            Math.max(0, (pendingConfirmationCountByRun.get(runId) || 0) - 1),
+          );
+          if (turn.status === "blocked") {
+            turn.status = "running";
+          }
+        }
         attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
