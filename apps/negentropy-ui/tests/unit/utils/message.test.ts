@@ -11,7 +11,27 @@ import {
   buildChatMessagesFromEventsWithFallback,
 } from "@/utils/message";
 import type { ChatMessage } from "@/types/common";
-import { Message, BaseEvent, EventType } from "@ag-ui/core";
+import {
+  createTestMessage,
+  createTestTextMessageEvents,
+} from "@/tests/helpers/agui";
+import type { AgUiEvent, AgUiMessage } from "@/types/agui";
+
+function buildTextEvents(input: {
+  messageId: string;
+  role: "user" | "assistant" | "agent" | "system";
+  delta: string;
+  timestamp?: number;
+}): AgUiEvent[] {
+  return createTestTextMessageEvents({
+    messageId: input.messageId,
+    role: input.role === "assistant" ? "agent" : input.role,
+    delta: input.delta,
+    timestamp: input.timestamp ?? 0,
+  }).map((event) =>
+    input.timestamp === undefined ? { ...event, timestamp: undefined } : event,
+  );
+}
 
 describe("mergeAdjacentAssistant", () => {
   it("应该合并相邻的 assistant 消息（无 runId，使用 \\n\\n 分隔）", () => {
@@ -100,22 +120,12 @@ describe("mergeAdjacentAssistant", () => {
 
 describe("mapMessagesToChat", () => {
   it("应该过滤 tool 和 system 角色", () => {
-    const messages: Message[] = [
-      { id: "1", role: "user", content: "Hello", createdAt: new Date() },
-      {
-        id: "2",
-        role: "system",
-        content: "You are helpful",
-        createdAt: new Date(),
-      },
-      { id: "3", role: "tool", content: "Tool result", createdAt: new Date() },
-      {
-        id: "4",
-        role: "assistant",
-        content: "Hi there",
-        createdAt: new Date(),
-      },
-    ] as Message[];
+    const messages: AgUiMessage[] = [
+      createTestMessage({ id: "1", role: "user", content: "Hello" }),
+      createTestMessage({ id: "2", role: "system", content: "You are helpful" }),
+      createTestMessage({ id: "3", role: "tool", content: "Tool result" }),
+      createTestMessage({ id: "4", role: "assistant", content: "Hi there" }),
+    ];
     const result = mapMessagesToChat(messages);
     expect(result).toHaveLength(2);
     expect(result[0].role).toBe("user");
@@ -123,10 +133,10 @@ describe("mapMessagesToChat", () => {
   });
 
   it("应该保持所有消息的独立性（不合并）", () => {
-    const messages: Message[] = [
-      { id: "1", role: "assistant", content: "First", createdAt: new Date() },
-      { id: "2", role: "assistant", content: "Second", createdAt: new Date() },
-    ] as Message[];
+    const messages: AgUiMessage[] = [
+      createTestMessage({ id: "1", role: "assistant", content: "First" }),
+      createTestMessage({ id: "2", role: "assistant", content: "Second" }),
+    ];
     const result = mapMessagesToChat(messages);
     expect(result).toHaveLength(2);
     // 不添加分隔符，保持原样
@@ -135,24 +145,19 @@ describe("mapMessagesToChat", () => {
   });
 
   it("应该处理 agent 角色为 assistant", () => {
-    const messages: Message[] = [
-      {
-        id: "1",
-        role: "agent",
-        content: "Agent response",
-        createdAt: new Date(),
-      },
-    ] as Message[];
+    const messages: AgUiMessage[] = [
+      createTestMessage({ id: "1", role: "agent", content: "Agent response" }),
+    ];
     const result = mapMessagesToChat(messages);
     expect(result).toHaveLength(1);
     expect(result[0].role).toBe("assistant");
   });
 
   it("应该过滤空内容", () => {
-    const messages: Message[] = [
-      { id: "1", role: "assistant", content: "", createdAt: new Date() },
-      { id: "2", role: "user", content: "Hello", createdAt: new Date() },
-    ] as Message[];
+    const messages: AgUiMessage[] = [
+      createTestMessage({ id: "1", role: "assistant", content: "" }),
+      createTestMessage({ id: "2", role: "user", content: "Hello" }),
+    ];
     const result = mapMessagesToChat(messages);
     expect(result).toHaveLength(1);
     expect(result[0].role).toBe("user");
@@ -162,41 +167,9 @@ describe("mapMessagesToChat", () => {
 describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
   it("应该按 timestamp 排序消息", () => {
     // 使用不同角色来避免被 mergeAdjacentAssistant 合并
-    const events: BaseEvent[] = [
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg2",
-        role: "user",
-        timestamp: 2000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg2",
-        delta: "Content 2",
-        timestamp: 2000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg2",
-        timestamp: 2000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg1",
-        role: "user",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg1",
-        delta: "Content 1",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg1",
-        timestamp: 1000,
-      } as BaseEvent,
+    const events: AgUiEvent[] = [
+      ...buildTextEvents({ messageId: "msg2", role: "user", delta: "Content 2", timestamp: 2000 }),
+      ...buildTextEvents({ messageId: "msg1", role: "user", delta: "Content 1", timestamp: 1000 }),
     ];
     const result = buildChatMessagesFromEventsWithFallback(events, []);
     expect(result).toHaveLength(2);
@@ -206,58 +179,10 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
 
   it("应该在 timestamp 相同时使用 messageId 作为稳定排序键", () => {
     // 使用不同角色来避免被 mergeAdjacentAssistant 合并
-    const events: BaseEvent[] = [
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg_z",
-        role: "user",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg_z",
-        delta: "Z",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg_z",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg_a",
-        role: "user",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg_a",
-        delta: "A",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg_a",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg_m",
-        role: "user",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg_m",
-        delta: "M",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg_m",
-        timestamp: 1000,
-      } as BaseEvent,
+    const events: AgUiEvent[] = [
+      ...buildTextEvents({ messageId: "msg_z", role: "user", delta: "Z", timestamp: 1000 }),
+      ...buildTextEvents({ messageId: "msg_a", role: "user", delta: "A", timestamp: 1000 }),
+      ...buildTextEvents({ messageId: "msg_m", role: "user", delta: "M", timestamp: 1000 }),
     ];
     const result = buildChatMessagesFromEventsWithFallback(events, []);
     expect(result).toHaveLength(3);
@@ -269,35 +194,9 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
 
   it("应该正确处理没有 timestamp 的消息", () => {
     // 使用不同角色来避免被 mergeAdjacentAssistant 合并
-    const events: BaseEvent[] = [
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg_z",
-        role: "user",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg_z",
-        delta: "Z",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg_z",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg_a",
-        role: "user",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg_a",
-        delta: "A",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg_a",
-      } as BaseEvent,
+    const events: AgUiEvent[] = [
+      ...buildTextEvents({ messageId: "msg_z", role: "user", delta: "Z" }),
+      ...buildTextEvents({ messageId: "msg_a", role: "user", delta: "A" }),
     ];
     const result = buildChatMessagesFromEventsWithFallback(events, []);
     expect(result).toHaveLength(2);
@@ -308,38 +207,14 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
 
   it("应该优先处理有 timestamp 的消息", () => {
     // 使用不同角色来避免被 mergeAdjacentAssistant 合并
-    const events: BaseEvent[] = [
-      {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg_no_ts",
-        role: "user",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg_no_ts",
-        delta: "No TS",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg_no_ts",
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_START,
+    const events: AgUiEvent[] = [
+      ...buildTextEvents({ messageId: "msg_no_ts", role: "user", delta: "No TS" }),
+      ...buildTextEvents({
         messageId: "msg_with_ts",
         role: "user",
-        timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg_with_ts",
         delta: "With TS",
         timestamp: 1000,
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg_with_ts",
-        timestamp: 1000,
-      } as BaseEvent,
+      }),
     ];
     const result = buildChatMessagesFromEventsWithFallback(events, []);
     expect(result).toHaveLength(2);
@@ -349,24 +224,34 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
   });
 
   it("应该使用最早的 timestamp（优化后的逻辑）", () => {
-    const events: BaseEvent[] = [
+    const events: AgUiEvent[] = [
       {
-        type: EventType.TEXT_MESSAGE_START,
-        messageId: "msg1",
-        role: "assistant",
-        timestamp: 2000, // 初始 timestamp
-      } as BaseEvent,
+        ...buildTextEvents({
+          messageId: "msg1",
+          role: "assistant",
+          delta: "Hello",
+          timestamp: 2000,
+        })[0],
+        timestamp: 2000,
+      },
       {
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        messageId: "msg1",
-        delta: "Hello",
-        timestamp: 1000, // 更早的 timestamp，应该被使用
-      } as BaseEvent,
-      {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId: "msg1",
+        ...buildTextEvents({
+          messageId: "msg1",
+          role: "assistant",
+          delta: "Hello",
+          timestamp: 1000,
+        })[1],
         timestamp: 1000,
-      } as BaseEvent,
+      },
+      {
+        ...buildTextEvents({
+          messageId: "msg1",
+          role: "assistant",
+          delta: "Hello",
+          timestamp: 1000,
+        })[2],
+        timestamp: 1000,
+      },
     ];
     const result = buildChatMessagesFromEventsWithFallback(events, []);
     expect(result).toHaveLength(1);

@@ -5,6 +5,23 @@
  */
 
 import { BaseEvent, EventType } from "@ag-ui/core";
+import {
+  asAgUiEvent,
+  getCustomEventData,
+  getCustomEventType,
+  getEventActivityType,
+  getEventContent,
+  getEventDelta,
+  getEventErrorMessage,
+  getEventMessageId,
+  getEventResult,
+  getEventRunId,
+  getEventSnapshot,
+  getEventStepId,
+  getEventStepName,
+  getEventToolCallId,
+  getEventToolCallName,
+} from "@/types/agui";
 
 /**
  * 时间线项目类型
@@ -56,18 +73,13 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
   const toolIndex = new Map<string, number>();
 
   events.forEach((event) => {
-    const eventRecord = event as Record<string, unknown>;
-    const runId =
-      typeof eventRecord.runId === "string" ? eventRecord.runId : undefined;
+    const eventRecord = asAgUiEvent(event);
+    const runId = getEventRunId(event);
 
     switch (event.type) {
       case EventType.TOOL_CALL_START: {
-        const toolCallId =
-          typeof eventRecord.toolCallId === "string" ? eventRecord.toolCallId : "";
-        const toolCallName =
-          typeof eventRecord.toolCallName === "string"
-            ? eventRecord.toolCallName
-            : "";
+        const toolCallId = getEventToolCallId(event) || "";
+        const toolCallName = getEventToolCallName(event) || "";
         const item: TimelineItem = {
           id: toolCallId,
           kind: "tool",
@@ -83,10 +95,8 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
         break;
       }
       case EventType.TOOL_CALL_ARGS: {
-        const toolCallId =
-          typeof eventRecord.toolCallId === "string" ? eventRecord.toolCallId : "";
-        const delta =
-          typeof eventRecord.delta === "string" ? eventRecord.delta : "";
+        const toolCallId = getEventToolCallId(event) || "";
+        const delta = getEventDelta(event) || "";
         const index = toolIndex.get(toolCallId);
         if (index !== undefined) {
           const item = items[index];
@@ -97,10 +107,8 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
         break;
       }
       case EventType.TOOL_CALL_RESULT: {
-        const toolCallId =
-          typeof eventRecord.toolCallId === "string" ? eventRecord.toolCallId : "";
-        const content =
-          typeof eventRecord.content === "string" ? eventRecord.content : "";
+        const toolCallId = getEventToolCallId(event) || "";
+        const content = getEventContent(event) || "";
         const index = toolIndex.get(toolCallId);
         if (index !== undefined) {
           const item = items[index];
@@ -123,8 +131,7 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
         break;
       }
       case EventType.TOOL_CALL_END: {
-        const toolCallId =
-          typeof eventRecord.toolCallId === "string" ? eventRecord.toolCallId : "";
+        const toolCallId = getEventToolCallId(event) || "";
         const index = toolIndex.get(toolCallId);
         if (index !== undefined) {
           const item = items[index];
@@ -135,12 +142,9 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
         break;
       }
       case EventType.ACTIVITY_SNAPSHOT: {
-        if (eventRecord.activityType === "artifact") {
+        if (getEventActivityType(event) === "artifact") {
           items.push({
-            id:
-              typeof eventRecord.messageId === "string"
-                ? eventRecord.messageId
-                : `artifact-${items.length}`,
+            id: getEventMessageId(event) || `artifact-${items.length}`,
             kind: "artifact",
             title: "Artifact",
             content:
@@ -169,7 +173,7 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
           id: `error_${items.length}`,
           kind: "event",
           title: "Run Error",
-          content: eventRecord.message,
+          content: getEventErrorMessage(event),
           timestamp: event.timestamp,
           runId,
         });
@@ -181,7 +185,7 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
           id: `snapshot_${items.length}`,
           kind: "state",
           title: "State Snapshot",
-          content: eventRecord.snapshot,
+          content: getEventSnapshot(event),
           timestamp: event.timestamp,
           runId,
         });
@@ -196,7 +200,7 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
         items.push({
           id: `step_${String(eventRecord.stepId)}_start`,
           kind: "event",
-          title: `Step: ${String(eventRecord.stepName ?? "")}`,
+          title: `Step: ${String(getEventStepName(event) ?? "")}`,
           content: { status: "started" },
           timestamp: event.timestamp,
           runId,
@@ -205,10 +209,10 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
       }
       case EventType.STEP_FINISHED: {
         items.push({
-          id: `step_${String(eventRecord.stepId)}_finish`,
+          id: `step_${String(getEventStepId(event))}_finish`,
           kind: "event",
-          title: `Step Complete: ${String(eventRecord.stepId)}`,
-          content: eventRecord.result,
+          title: `Step Complete: ${String(getEventStepId(event))}`,
+          content: getEventResult(event),
           timestamp: event.timestamp,
           runId,
         });
@@ -222,8 +226,8 @@ export function buildTimelineItems(events: BaseEvent[]): TimelineItem[] {
           title:
             event.type === EventType.RAW
               ? "Raw Event"
-              : `Custom: ${String(eventRecord.eventType ?? "")}`,
-          content: eventRecord.data,
+              : `Custom: ${String(getCustomEventType(event) ?? "")}`,
+          content: getCustomEventData(event),
           timestamp: event.timestamp,
           runId,
         });

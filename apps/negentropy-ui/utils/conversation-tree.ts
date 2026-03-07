@@ -6,6 +6,17 @@ import type {
   ConversationTree,
 } from "@/types/a2ui";
 import {
+  asAgUiEvent,
+  getCustomEventData,
+  getCustomEventType,
+  getEventMessageId,
+  getEventRunId,
+  getEventThreadId,
+  getEventToolCallId,
+  getMessageCreatedAt,
+  getMessageRunId,
+} from "@/types/agui";
+import {
   buildNodeSummary,
   classifyNodeVisibility,
   isNodePayloadEmpty,
@@ -16,11 +27,6 @@ type MutableNode = ConversationNode;
 type LinkInstruction = {
   childId: string;
   parentId: string;
-};
-
-type CustomPayload = {
-  eventType?: string;
-  data?: unknown;
 };
 
 const DEFAULT_THREAD_ID = "default";
@@ -108,10 +114,11 @@ function mergeEventMeta(node: MutableNode, event: BaseEvent) {
   node.timestamp = Math.min(node.timestamp, timestamp);
   node.timeRange.start = Math.min(node.timeRange.start, timestamp);
   node.timeRange.end = Math.max(node.timeRange.end, timestamp);
-  if ("messageId" in event && typeof event.messageId === "string") {
-    node.messageId = event.messageId;
-    if (!node.relatedMessageIds.includes(event.messageId)) {
-      node.relatedMessageIds.push(event.messageId);
+  const messageId = getEventMessageId(event);
+  if (messageId) {
+    node.messageId = messageId;
+    if (!node.relatedMessageIds.includes(messageId)) {
+      node.relatedMessageIds.push(messageId);
     }
   }
 }
@@ -123,12 +130,7 @@ function ensureTurn(
   fallbackRunId?: string,
   sourceOrder?: number,
 ): MutableNode {
-  const runId = normalizeRunId(
-    "runId" in event && typeof event.runId === "string"
-      ? event.runId
-      : undefined,
-    fallbackRunId,
-  );
+  const runId = normalizeRunId(getEventRunId(event), fallbackRunId);
   const existing = turns.get(runId);
   if (existing) {
     mergeEventMeta(existing, event);
@@ -138,10 +140,7 @@ function ensureTurn(
   const turn = createNode({
     id: `turn:${runId}`,
     type: "turn",
-    threadId:
-      "threadId" in event && typeof event.threadId === "string"
-        ? event.threadId
-        : DEFAULT_THREAD_ID,
+    threadId: getEventThreadId(event) || DEFAULT_THREAD_ID,
     runId,
     timestamp: event.timestamp,
     sourceOrder,
@@ -289,7 +288,7 @@ function formatJson(value: unknown): string {
 }
 
 function getMessageTimestamp(message: Message): number {
-  const createdAt = (message as { createdAt?: Date }).createdAt;
+  const createdAt = getMessageCreatedAt(message);
   return createdAt instanceof Date ? createdAt.getTime() / 1000 : Date.now() / 1000;
 }
 
@@ -387,22 +386,14 @@ export function buildConversationTree(
   });
 
   orderedEvents.forEach((event, eventIndex) => {
-    const normalizedRunId = normalizeRunId(
-      "runId" in event && typeof event.runId === "string"
-        ? event.runId
-        : undefined,
-      activeRunId,
-    );
-    const normalizedEvent = {
+    const normalizedRunId = normalizeRunId(getEventRunId(event), activeRunId);
+    const normalizedEvent = asAgUiEvent({
       ...event,
       runId: normalizedRunId,
-    } as BaseEvent;
+    });
     const turn = ensureTurn(turns, roots, normalizedEvent, activeRunId, eventIndex);
     const runId = turn.runId || DEFAULT_RUN_ID;
-    const messageId =
-      "messageId" in normalizedEvent && typeof normalizedEvent.messageId === "string"
-        ? normalizedEvent.messageId
-        : undefined;
+    const messageId = getEventMessageId(normalizedEvent);
     const eventType = String(normalizedEvent.type);
 
     switch (normalizedEvent.type) {
@@ -497,10 +488,7 @@ export function buildConversationTree(
       case EventType.TOOL_CALL_START:
       case EventType.TOOL_CALL_ARGS:
       case EventType.TOOL_CALL_END: {
-        const toolCallId =
-          "toolCallId" in normalizedEvent && typeof normalizedEvent.toolCallId === "string"
-            ? normalizedEvent.toolCallId
-            : undefined;
+        const toolCallId = getEventToolCallId(normalizedEvent);
         if (!toolCallId) return;
         const parentMessageNodeId = chooseParentMessageId(
           assistantMessageByRun,
@@ -552,10 +540,7 @@ export function buildConversationTree(
         return;
       }
       case EventType.TOOL_CALL_RESULT: {
-        const toolCallId =
-          "toolCallId" in normalizedEvent && typeof normalizedEvent.toolCallId === "string"
-            ? normalizedEvent.toolCallId
-            : undefined;
+        const toolCallId = getEventToolCallId(normalizedEvent);
         if (!toolCallId) return;
         const toolNodeId = toolNodeIndex.get(toolCallId);
         const parentId = toolNodeId || turn.id;
@@ -735,13 +720,9 @@ export function buildConversationTree(
         return;
       }
       case EventType.CUSTOM: {
-        const customEvent = normalizedEvent as BaseEvent & CustomPayload;
-        const eventTypeName =
-          typeof customEvent.eventType === "string"
-            ? customEvent.eventType
-            : "custom";
+        const eventTypeName = getCustomEventType(normalizedEvent) || "custom";
         if (eventTypeName === "ne.a2ui.link") {
-          const data = asRecord(customEvent.data);
+          const data = asRecord(getCustomEventData(normalizedEvent));
           if (
             data &&
             typeof data.childId === "string" &&
@@ -768,7 +749,7 @@ export function buildConversationTree(
           sourceOrder: eventIndex,
           title: eventTypeName,
           payload: {
-            data: customEvent.data,
+            data: getCustomEventData(normalizedEvent),
             eventType: eventTypeName,
           },
           sourceEventTypes: [eventType],
@@ -802,20 +783,17 @@ export function buildConversationTree(
     if (messageNodeIndex.has(messageId)) {
       return;
     }
-    const runId =
-      typeof (message as { runId?: unknown }).runId === "string"
-        ? String((message as { runId?: unknown }).runId)
-        : undefined;
+    const runId = getMessageRunId(message);
     if (runId) {
       ensureTurn(
         turns,
         roots,
-        {
+        asAgUiEvent({
           type: EventType.RUN_STARTED,
           threadId: DEFAULT_THREAD_ID,
           runId,
           timestamp: getMessageTimestamp(message),
-        } as BaseEvent,
+        }),
         undefined,
         orderedEvents.length + fallbackIndex,
       );

@@ -5,12 +5,9 @@
  * 遵循 AGENTS.md 原则：模块化、复用驱动、单一职责
  */
 
-import { Message } from "@ag-ui/core";
+import type { Message } from "@ag-ui/core";
+import { getMessageCreatedAt, type AgUiMessage } from "@/types/agui";
 import { normalizeMessageContent } from "./message";
-
-type TimedMessage = Message & {
-  createdAt?: Date;
-};
 
 /**
  * 合并乐观消息到基础消息列表
@@ -81,7 +78,7 @@ export function reconcileOptimisticMessages(
   messagesForRenderBase: Message[],
   optimisticMessages: Message[],
 ): Message[] {
-  const canonicalByKey = new Map<string, TimedMessage[]>();
+  const canonicalByKey = new Map<string, AgUiMessage[]>();
 
   messagesForRenderBase.forEach((message) => {
     if (message.role !== "user") {
@@ -93,14 +90,14 @@ export function reconcileOptimisticMessages(
     }
     const key = `${message.role}:${content}`;
     const bucket = canonicalByKey.get(key) || [];
-    bucket.push(message as TimedMessage);
+    bucket.push(message as AgUiMessage);
     canonicalByKey.set(key, bucket);
   });
 
   canonicalByKey.forEach((bucket) => {
     bucket.sort((a, b) => {
-      const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
-      const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+      const aTime = getMessageCreatedAt(a)?.getTime() || 0;
+      const bTime = getMessageCreatedAt(b)?.getTime() || 0;
       return aTime - bTime;
     });
   });
@@ -110,7 +107,7 @@ export function reconcileOptimisticMessages(
       return true;
     }
 
-    const optimisticMessage = message as TimedMessage;
+    const optimisticMessage = message as AgUiMessage;
     const content = normalizeMessageContent(optimisticMessage).trim();
     if (!content) {
       return true;
@@ -123,12 +120,10 @@ export function reconcileOptimisticMessages(
     }
 
     const optimisticTime =
-      optimisticMessage.createdAt instanceof Date
-        ? optimisticMessage.createdAt.getTime()
-        : Date.now();
+      getMessageCreatedAt(optimisticMessage)?.getTime() || Date.now();
     const canonicalIndex = bucket.findIndex((candidate) => {
       const candidateTime =
-        candidate.createdAt instanceof Date ? candidate.createdAt.getTime() : optimisticTime;
+        getMessageCreatedAt(candidate)?.getTime() || optimisticTime;
       return candidateTime >= optimisticTime - 2000;
     });
 

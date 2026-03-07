@@ -7,15 +7,27 @@ import {
 } from "@/lib/adk";
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 import type { ConnectionState } from "@/types/common";
+import {
+  asAgUiEvent,
+  getCustomEventData,
+  getCustomEventType,
+  getEventCode,
+  getEventContent,
+  getEventDelta,
+  getEventErrorMessage,
+  getEventMessageId,
+  getEventRunId,
+  getEventThreadId,
+  getEventToolCallId,
+  getEventToolCallName,
+  getMessageCreatedAt,
+  type AgUiMessage,
+} from "@/types/agui";
 
 export type HydratedSessionDetail = {
   events: BaseEvent[];
   messages: Message[];
   snapshot: Record<string, unknown> | null;
-};
-
-type TimedMessage = Message & {
-  createdAt?: Date;
 };
 
 function normalizeTimestamp(value: unknown): number {
@@ -34,20 +46,10 @@ function fallbackThreadId(payload: AdkEventPayload, sessionId: string): string {
 
 function eventKey(event: BaseEvent): string {
   const type = String(event.type);
-  const threadId =
-    "threadId" in event && typeof event.threadId === "string"
-      ? event.threadId
-      : "";
-  const runId =
-    "runId" in event && typeof event.runId === "string" ? event.runId : "";
-  const messageId =
-    "messageId" in event && typeof event.messageId === "string"
-      ? event.messageId
-      : "";
-  const toolCallId =
-    "toolCallId" in event && typeof event.toolCallId === "string"
-      ? event.toolCallId
-      : "";
+  const threadId = getEventThreadId(event) || "";
+  const runId = getEventRunId(event) || "";
+  const messageId = getEventMessageId(event) || "";
+  const toolCallId = getEventToolCallId(event) || "";
   const timestamp = normalizeTimestamp(event.timestamp);
 
   switch (event.type) {
@@ -57,7 +59,7 @@ function eventKey(event: BaseEvent): string {
         threadId,
         runId,
         messageId,
-        "role" in event ? String(event.role || "") : "",
+        String((event as Record<string, unknown>).role || ""),
       ].join("|");
     case EventType.TEXT_MESSAGE_CONTENT:
       return [
@@ -65,7 +67,7 @@ function eventKey(event: BaseEvent): string {
         threadId,
         runId,
         messageId,
-        "delta" in event ? String(event.delta || "") : "",
+        String(getEventDelta(event) || ""),
       ].join("|");
     case EventType.TEXT_MESSAGE_END:
       return [type, threadId, runId, messageId].join("|");
@@ -75,7 +77,7 @@ function eventKey(event: BaseEvent): string {
         threadId,
         runId,
         toolCallId,
-        "toolCallName" in event ? String(event.toolCallName || "") : "",
+        String(getEventToolCallName(event) || ""),
       ].join("|");
     case EventType.TOOL_CALL_ARGS:
       return [
@@ -83,7 +85,7 @@ function eventKey(event: BaseEvent): string {
         threadId,
         runId,
         toolCallId,
-        "delta" in event ? String(event.delta || "") : "",
+        String(getEventDelta(event) || ""),
       ].join("|");
     case EventType.TOOL_CALL_END:
       return [type, threadId, runId, toolCallId].join("|");
@@ -93,7 +95,7 @@ function eventKey(event: BaseEvent): string {
         threadId,
         runId,
         toolCallId,
-        "content" in event ? String(event.content || "") : "",
+        String(getEventContent(event) || ""),
       ].join("|");
     case EventType.RUN_STARTED:
     case EventType.RUN_FINISHED:
@@ -103,16 +105,16 @@ function eventKey(event: BaseEvent): string {
         type,
         threadId,
         runId,
-        "code" in event ? String(event.code || "") : "",
-        "message" in event ? String(event.message || "") : "",
+        String(getEventCode(event) || ""),
+        String(getEventErrorMessage(event) || ""),
       ].join("|");
     case EventType.CUSTOM:
       return [
         type,
         threadId,
         runId,
-        "eventType" in event ? String(event.eventType || "") : "",
-        JSON.stringify("data" in event ? event.data : null),
+        String(getCustomEventType(event) || ""),
+        JSON.stringify(getCustomEventData(event) ?? null),
       ].join("|");
     default:
       return [type, threadId, runId, messageId, toolCallId, String(timestamp)].join(
@@ -137,10 +139,10 @@ export function mergeEvents(baseEvents: BaseEvent[], incomingEvents: BaseEvent[]
 }
 
 export function mergeMessages(baseMessages: Message[], incomingMessages: Message[]): Message[] {
-  const merged = new Map<string, TimedMessage>();
+  const merged = new Map<string, AgUiMessage>();
 
   [...baseMessages, ...incomingMessages].forEach((message) => {
-    const timedMessage = message as TimedMessage;
+    const timedMessage = message as AgUiMessage;
     const existing = merged.get(message.id);
     if (!existing) {
       merged.set(message.id, timedMessage);
@@ -157,15 +159,13 @@ export function mergeMessages(baseMessages: Message[], incomingMessages: Message
         : JSON.stringify(message.content);
 
     if (incomingContent.length >= existingContent.length) {
-      merged.set(message.id, { ...existing, ...timedMessage } as TimedMessage);
+      merged.set(message.id, { ...existing, ...timedMessage } as AgUiMessage);
     }
   });
 
   return [...merged.values()].sort((a, b) => {
-    const aTime =
-      a.createdAt instanceof Date ? a.createdAt.getTime() : Number.MAX_SAFE_INTEGER;
-    const bTime =
-      b.createdAt instanceof Date ? b.createdAt.getTime() : Number.MAX_SAFE_INTEGER;
+    const aTime = getMessageCreatedAt(a)?.getTime() || Number.MAX_SAFE_INTEGER;
+    const bTime = getMessageCreatedAt(b)?.getTime() || Number.MAX_SAFE_INTEGER;
     if (aTime !== bTime) {
       return aTime - bTime;
     }
@@ -204,9 +204,7 @@ export function hydrateSessionDetail(
         if (resolvedThreadId) {
           return resolvedThreadId;
         }
-        return "threadId" in event && typeof event.threadId === "string"
-          ? event.threadId
-          : null;
+        return getEventThreadId(event) || null;
       }, null) || sessionId;
     events.push(
       ...normalizer
@@ -234,29 +232,26 @@ export function hydrateSessionDetail(
     const hasRunStarted = ordered.some((event) => event.type === EventType.RUN_STARTED);
     const hasRunFinished = ordered.some((event) => event.type === EventType.RUN_FINISHED);
     const hasRunError = ordered.some((event) => event.type === EventType.RUN_ERROR);
-    const threadId =
-      "threadId" in first && typeof first.threadId === "string"
-        ? first.threadId
-        : sessionId;
+    const threadId = getEventThreadId(first) || sessionId;
 
     if (!hasRunStarted) {
-      ordered.unshift({
+      ordered.unshift(asAgUiEvent({
         type: EventType.RUN_STARTED,
         threadId,
         runId,
         timestamp: Math.max(0, normalizeTimestamp(first.timestamp) - 0.001),
-      } as BaseEvent);
+      }));
     }
 
     if (!hasRunFinished && !hasRunError) {
       const last = ordered[ordered.length - 1];
-      ordered.push({
+      ordered.push(asAgUiEvent({
         type: EventType.RUN_FINISHED,
         threadId,
         runId,
         result: "completed_from_history",
         timestamp: normalizeTimestamp(last.timestamp) + 0.001,
-      } as BaseEvent);
+      }));
     }
 
     return ordered;
@@ -284,7 +279,7 @@ export type DerivedRunState = {
 function isRenderableEvent(event: BaseEvent): boolean {
   switch (event.type) {
     case EventType.TEXT_MESSAGE_CONTENT:
-      return "delta" in event && String(event.delta || "").trim().length > 0;
+      return String(getEventDelta(event) || "").trim().length > 0;
     case EventType.TOOL_CALL_START:
     case EventType.TOOL_CALL_RESULT:
     case EventType.ACTIVITY_SNAPSHOT:
@@ -301,10 +296,7 @@ export function deriveRunStates(events: BaseEvent[]): DerivedRunState[] {
   const states = new Map<string, DerivedRunState>();
 
   events.forEach((event) => {
-    const runId =
-      "runId" in event && typeof event.runId === "string"
-        ? event.runId
-        : "default";
+    const runId = getEventRunId(event) || "default";
     const current = states.get(runId) || {
       runId,
       status: "streaming" as const,
@@ -329,8 +321,7 @@ export function deriveRunStates(events: BaseEvent[]): DerivedRunState[] {
 
     if (
       event.type === EventType.TOOL_CALL_START &&
-      "toolCallName" in event &&
-      event.toolCallName === "ui.confirmation"
+      getEventToolCallName(event) === "ui.confirmation"
     ) {
       current.pendingConfirmationCount += 1;
       current.status = "blocked";

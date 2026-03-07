@@ -1,10 +1,11 @@
 /**
- * AG-UI 事件类型定义
+ * AG-UI 扩展类型与事件访问工具
  *
- * 集中定义 AG-UI 协议的事件类型，避免类型定义分散
- * 参考: docs/negentropy-ui-plan.md 第 13.4.1 节
+ * 集中定义 AG-UI 协议事件、消息扩展字段与统一访问器，
+ * 避免业务代码在多个模块重复做 `in` 判断和局部交叉类型断言。
  */
 
+import type { BaseEvent, Message } from "@ag-ui/core";
 import { EventType } from "@ag-ui/core";
 
 /**
@@ -18,6 +19,35 @@ export interface BaseEventProps {
   /** 消息作者/Agent 名称（来自后端 AdkEventPayload.author） */
   author?: string;
 }
+
+export interface ExtendedMessageProps {
+  createdAt?: Date;
+  author?: string;
+  runId?: string;
+}
+
+export type AgUiMessage = Message & ExtendedMessageProps;
+
+export type AgUiEvent = BaseEvent &
+  Partial<
+    BaseEventProps & {
+      role: string;
+      toolCallId: string;
+      toolCallName: string;
+      delta: string;
+      content: string;
+      snapshot: Record<string, unknown>;
+      activityType: string;
+      stepId: string;
+      stepName: string;
+      result: unknown;
+      eventType: string;
+      data: unknown;
+      code: string;
+      message: string;
+      rawEvent: unknown;
+    }
+  >;
 
 /**
  * TEXT_MESSAGE 相关事件
@@ -140,6 +170,178 @@ export type AguiEvent =
   | StepFinishedEvent
   | RawEvent
   | CustomEvent;
+
+export function asAgUiEvent(event: BaseEvent | AgUiEvent | Record<string, unknown>): AgUiEvent {
+  return event as AgUiEvent;
+}
+
+export function asAgUiMessage(message: Message): AgUiMessage {
+  return message as AgUiMessage;
+}
+
+export function getEventThreadId(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.threadId === "string" ? record.threadId : undefined;
+}
+
+export function getEventRunId(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.runId === "string" ? record.runId : undefined;
+}
+
+export function getEventMessageId(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.messageId === "string" ? record.messageId : undefined;
+}
+
+export function getEventToolCallId(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.toolCallId === "string" ? record.toolCallId : undefined;
+}
+
+export function getEventToolCallName(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.toolCallName === "string"
+    ? record.toolCallName
+    : undefined;
+}
+
+export function getEventRole(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.role === "string" ? record.role : undefined;
+}
+
+export function getEventAuthor(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.author === "string" ? record.author : undefined;
+}
+
+export function getEventDelta(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.delta === "string" ? record.delta : undefined;
+}
+
+export function getEventContent(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.content === "string" ? record.content : undefined;
+}
+
+export function getEventActivityType(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.activityType === "string"
+    ? record.activityType
+    : undefined;
+}
+
+export function getEventSnapshot(
+  event: BaseEvent,
+): Record<string, unknown> | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.snapshot === "object" && record.snapshot !== null
+    ? record.snapshot
+    : undefined;
+}
+
+export function getEventStepId(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.stepId === "string" ? record.stepId : undefined;
+}
+
+export function getEventStepName(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.stepName === "string" ? record.stepName : undefined;
+}
+
+export function getEventResult(event: BaseEvent): unknown {
+  return asAgUiEvent(event).result;
+}
+
+export function getCustomEventType(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.eventType === "string" ? record.eventType : undefined;
+}
+
+export function getCustomEventData(event: BaseEvent): unknown {
+  return asAgUiEvent(event).data;
+}
+
+export function getEventCode(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.code === "string" ? record.code : undefined;
+}
+
+export function getEventErrorMessage(event: BaseEvent): string | undefined {
+  const record = asAgUiEvent(event);
+  return typeof record.message === "string" ? record.message : undefined;
+}
+
+export function getMessageCreatedAt(message: Message): Date | undefined {
+  const record = asAgUiMessage(message);
+  return record.createdAt instanceof Date ? record.createdAt : undefined;
+}
+
+export function getMessageAuthor(message: Message): string | undefined {
+  const record = asAgUiMessage(message);
+  return typeof record.author === "string" ? record.author : undefined;
+}
+
+export function getMessageRunId(message: Message): string | undefined {
+  const record = asAgUiMessage(message);
+  return typeof record.runId === "string" ? record.runId : undefined;
+}
+
+export function createAgUiMessage(input: {
+  id: string;
+  role: Message["role"];
+  content: Message["content"];
+  createdAt?: Date;
+  author?: string;
+  runId?: string;
+}): AgUiMessage {
+  return {
+    id: input.id,
+    role: input.role,
+    content: input.content,
+    createdAt: input.createdAt,
+    author: input.author,
+    runId: input.runId,
+  } as AgUiMessage;
+}
+
+export function createOptimisticTextEvents(input: {
+  threadId: string;
+  runId: string;
+  messageId: string;
+  role: "user" | "agent" | "system";
+  content: string;
+  timestamp: number;
+}): AgUiEvent[] {
+  return [
+    {
+      type: EventType.TEXT_MESSAGE_START,
+      threadId: input.threadId,
+      runId: input.runId,
+      messageId: input.messageId,
+      role: input.role,
+      timestamp: input.timestamp,
+    },
+    {
+      type: EventType.TEXT_MESSAGE_CONTENT,
+      threadId: input.threadId,
+      runId: input.runId,
+      messageId: input.messageId,
+      delta: input.content,
+      timestamp: input.timestamp,
+    },
+    {
+      type: EventType.TEXT_MESSAGE_END,
+      threadId: input.threadId,
+      runId: input.runId,
+      messageId: input.messageId,
+      timestamp: input.timestamp,
+    },
+  ];
+}
 
 /**
  * 类型守卫：检查是否为 BaseEventProps

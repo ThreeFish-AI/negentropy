@@ -40,7 +40,7 @@ export function UserAvatar({
         className={className}
         loading="lazy"
         referrerPolicy="no-referrer"
-        onError={() => setFailedPicture(picture)}
+        onError={() => setFailedPicture(picture ?? null)}
       />
     );
   }

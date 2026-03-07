@@ -1,8 +1,10 @@
 import { ReactNode, useState } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { EventType, type BaseEvent } from "@ag-ui/core";
+import { EventType } from "@ag-ui/core";
 import { HomeBody } from "../../app/page";
+import { createTestEvent } from "@/tests/helpers/agui";
+import type { AgUiEvent } from "@/types/agui";
 
 let mockAgent: any;
 let lastHitlConfig: any;
@@ -42,41 +44,41 @@ function Wrapper({ sessionId }: { sessionId: string | null }) {
   );
 }
 
-function emitEvent(event: BaseEvent) {
+function emitEvent(event: AgUiEvent) {
   subscriptionHandlers?.onEvent?.({ event });
 }
 
 function emitAssistantReply(sessionId: string, messageId: string, content: string) {
   const timestamp = Date.now() / 1000;
-  emitEvent({
+  emitEvent(createTestEvent({
     type: EventType.RUN_STARTED,
     threadId: sessionId,
     runId: sessionId,
     timestamp,
-  } as BaseEvent);
-  emitEvent({
+  }));
+  emitEvent(createTestEvent({
     type: EventType.TEXT_MESSAGE_START,
     threadId: sessionId,
     runId: sessionId,
     messageId,
     role: "assistant",
     timestamp: timestamp + 0.001,
-  } as BaseEvent);
-  emitEvent({
+  }));
+  emitEvent(createTestEvent({
     type: EventType.TEXT_MESSAGE_CONTENT,
     threadId: sessionId,
     runId: sessionId,
     messageId,
     delta: content,
     timestamp: timestamp + 0.002,
-  } as BaseEvent);
-  emitEvent({
+  }));
+  emitEvent(createTestEvent({
     type: EventType.TEXT_MESSAGE_END,
     threadId: sessionId,
     runId: sessionId,
     messageId,
     timestamp: timestamp + 0.003,
-  } as BaseEvent);
+  }));
 }
 
 async function waitForInitialHydration() {
