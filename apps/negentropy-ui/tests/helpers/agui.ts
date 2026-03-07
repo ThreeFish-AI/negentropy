@@ -3,7 +3,7 @@ import {
   createTextMessageContentEvent,
   createTextMessageEndEvent,
   createTextMessageStartEvent,
-} from "@/lib/adk/guards";
+} from "@/lib/agui/factories";
 import { createAgUiMessage, type AgUiEvent, type AgUiMessage } from "@/types/agui";
 
 export function createTestMessage(input: {
