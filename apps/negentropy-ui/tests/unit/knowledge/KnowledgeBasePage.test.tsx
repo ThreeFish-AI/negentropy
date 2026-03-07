@@ -277,18 +277,26 @@ describe("KnowledgeBasePage", () => {
     const description = screen.getByTestId(
       "corpus-description-11111111-1111-1111-1111-111111111111",
     );
+    const footer = screen.getByTestId("corpus-footer-11111111-1111-1111-1111-111111111111");
     const summary = screen.getByTestId("corpus-summary-11111111-1111-1111-1111-111111111111");
+    const settingsButton = within(card).getByRole("button", { name: "Settings" });
 
     expect(chunks).toHaveTextContent("chunks: 3");
     expect(within(card).getByText("Ready")).toBeInTheDocument();
     expect(description).toHaveTextContent("No description");
     expect(description.className).toContain("line-clamp-2");
     expect(card.className).toContain("h-40");
+    expect(footer.className).toContain("items-center");
     expect(summary).toHaveTextContent("strategy: recursive · size: 800 · overlap: 100");
     expect(summary).not.toHaveTextContent("chunks:");
     expect(summary.className).toContain("truncate");
+    expect(summary.className).toContain("self-center");
+    expect(settingsButton.className).toContain("transition-colors");
+    expect(settingsButton.className).toContain("hover:bg-muted");
+    expect(settingsButton.className).toContain("hover:text-foreground");
+    expect(settingsButton.className).toContain("focus-visible:ring-2");
 
-    await user.click(screen.getByRole("button", { name: "Settings" }));
+    await user.click(settingsButton);
 
     expect(replaceMock).not.toHaveBeenCalled();
   });
