@@ -6,14 +6,6 @@
     "exchange_rate_usd_cny": 7.0
   },
   "models": {
-    "glm-5": {
-      "input": 4.0,
-      "output": 18.0
-    },
-    "glm-5-code": {
-      "input": 6.0,
-      "output": 28.0
-    },
     "glm-4.7": {
       "input": 2.0,
       "output": 8.0

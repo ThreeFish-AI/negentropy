@@ -1,50 +1,23 @@
 import { EventEncoder } from "@ag-ui/encoder";
 import { BaseEvent, EventType } from "@ag-ui/core";
-import { AdkEventPayload, adkEventToAguiEvents } from "@/lib/adk";
+import {
+  AdkMessageStreamNormalizer,
+  safeParseAdkEventPayload,
+} from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
+import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 
-const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
-
-type NormalizableEvent = BaseEvent & { role?: string; delta?: unknown };
-
-function jsonPointerEscape(segment: string) {
-  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
-}
-
-function toPatchOperations(delta: Record<string, unknown>) {
-  return Object.entries(delta).map(([key, value]) => ({
-    op: "add",
-    path: `/${jsonPointerEscape(key)}`,
-    value,
-  }));
-}
-
-function normalizeAguiEvent(event: BaseEvent): BaseEvent {
-  const next = { ...event } as NormalizableEvent;
-  if (
-    "role" in next &&
-    typeof next.role === "string" &&
-    !ALLOWED_ROLES.has(next.role)
-  ) {
-    next.role = "assistant";
-  }
-  if (
-    next.type === EventType.STATE_DELTA &&
-    next.delta &&
-    !Array.isArray(next.delta)
-  ) {
-    if (typeof next.delta === "object") {
-      next.delta = toPatchOperations(next.delta as Record<string, unknown>);
-    } else {
-      next.delta = [];
-    }
-  }
-  return next;
-}
+type AguiLifecycleEvent = BaseEvent & {
+  threadId: string;
+  runId: string;
+  message?: string;
+  code?: string;
+  result?: string;
+};
 
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
@@ -184,7 +157,8 @@ export async function POST(request: Request) {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const runStart: BaseEvent = {
+      const normalizer = new AdkMessageStreamNormalizer();
+      const runStart: AguiLifecycleEvent = {
         type: EventType.RUN_STARTED,
         threadId: resolvedThreadId,
         runId: resolvedRunId,
@@ -217,22 +191,31 @@ export async function POST(request: Request) {
               }
 
               try {
-                const parsed = JSON.parse(jsonText) as AdkEventPayload;
-                const events = adkEventToAguiEvents(parsed).map((event) =>
-                  normalizeAguiEvent({
-                    ...event,
-                    threadId:
-                      "threadId" in event ? event.threadId : resolvedThreadId,
-                    runId: "runId" in event ? event.runId : resolvedRunId,
-                  }),
-                );
+                const rawPayload = JSON.parse(jsonText) as unknown;
+                const parsedResult = safeParseAdkEventPayload(rawPayload);
+                if (!parsedResult.success) {
+                  throw new Error("Invalid ADK event payload");
+                }
+                const events = normalizer
+                  .consume(parsedResult.data, {
+                    threadId: resolvedThreadId,
+                    runId: resolvedRunId,
+                  })
+                  .map((event) =>
+                    normalizeAguiEvent(
+                      resolveEventRunAndThread(event, {
+                        threadId: resolvedThreadId,
+                        runId: resolvedRunId,
+                      }),
+                    ),
+                  );
                 for (const event of events) {
                   controller.enqueue(
                     textEncoder.encode(eventEncoder.encodeSSE(event)),
                   );
                 }
               } catch (error) {
-                const errEvent: BaseEvent = {
+                const errEvent: AguiLifecycleEvent = {
                   type: EventType.RUN_ERROR,
                   threadId: resolvedThreadId,
                   runId: resolvedRunId,
@@ -249,7 +232,7 @@ export async function POST(request: Request) {
           }
         }
       } catch (error) {
-        const errEvent: BaseEvent = {
+        const errEvent: AguiLifecycleEvent = {
           type: EventType.RUN_ERROR,
           threadId: resolvedThreadId,
           runId: resolvedRunId,
@@ -261,7 +244,26 @@ export async function POST(request: Request) {
           textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
         );
       } finally {
-        const runFinish: BaseEvent = {
+        const finalEvents = normalizer.flushRun(
+          resolvedRunId,
+          resolvedThreadId,
+          Date.now() / 1000,
+        );
+        for (const event of finalEvents) {
+          controller.enqueue(
+            textEncoder.encode(
+              eventEncoder.encodeSSE(
+                normalizeAguiEvent(
+                  resolveEventRunAndThread(event, {
+                    threadId: resolvedThreadId,
+                    runId: resolvedRunId,
+                  }),
+                ),
+              ),
+            ),
+          );
+        }
+        const runFinish: AguiLifecycleEvent = {
           type: EventType.RUN_FINISHED,
           threadId: resolvedThreadId,
           runId: resolvedRunId,

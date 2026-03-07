@@ -9,6 +9,12 @@
 
 import { AGUI_ERROR_CODES, type AguiErrorCode } from "@/lib/errors";
 
+const AGUI_ERROR_CODE_VALUES = new Set<AguiErrorCode>(Object.values(AGUI_ERROR_CODES));
+
+function isAguiErrorCode(code: string | undefined): code is AguiErrorCode {
+  return !!code && AGUI_ERROR_CODE_VALUES.has(code as AguiErrorCode);
+}
+
 /**
  * 错误级别到样式的映射
  */
@@ -22,28 +28,28 @@ const ERROR_LEVEL_STYLES = {
  * 错误码到级别的映射
  */
 const ERROR_CODE_TO_LEVEL: Record<AguiErrorCode, keyof typeof ERROR_LEVEL_STYLES> = {
-  BAD_REQUEST: "warning",
-  UNAUTHORIZED: "warning",
-  FORBIDDEN: "error",
-  NOT_FOUND: "warning",
-  RATE_LIMITED: "warning",
-  UPSTREAM_TIMEOUT: "error",
-  UPSTREAM_ERROR: "error",
-  INTERNAL_ERROR: "error",
+  AGUI_BAD_REQUEST: "warning",
+  AGUI_UNAUTHORIZED: "warning",
+  AGUI_FORBIDDEN: "error",
+  AGUI_NOT_FOUND: "warning",
+  AGUI_RATE_LIMITED: "warning",
+  AGUI_UPSTREAM_TIMEOUT: "error",
+  AGUI_UPSTREAM_ERROR: "error",
+  AGUI_INTERNAL_ERROR: "error",
 };
 
 /**
  * 错误码到默认消息的映射（英文）
  */
 const ERROR_CODE_MESSAGES: Record<AguiErrorCode, string> = {
-  BAD_REQUEST: "Invalid request. Please check your input and try again.",
-  UNAUTHORIZED: "Authentication required. Please log in and try again.",
-  FORBIDDEN: "You don't have permission to perform this action.",
-  NOT_FOUND: "The requested resource was not found.",
-  RATE_LIMITED: "Too many requests. Please wait and try again later.",
-  UPSTREAM_TIMEOUT: "The service is taking too long to respond. Please try again.",
-  UPSTREAM_ERROR: "The service is currently unavailable. Please try again later.",
-  INTERNAL_ERROR: "An unexpected error occurred. Please try again.",
+  AGUI_BAD_REQUEST: "Invalid request. Please check your input and try again.",
+  AGUI_UNAUTHORIZED: "Authentication required. Please log in and try again.",
+  AGUI_FORBIDDEN: "You don't have permission to perform this action.",
+  AGUI_NOT_FOUND: "The requested resource was not found.",
+  AGUI_RATE_LIMITED: "Too many requests. Please wait and try again later.",
+  AGUI_UPSTREAM_TIMEOUT: "The service is taking too long to respond. Please try again.",
+  AGUI_UPSTREAM_ERROR: "The service is currently unavailable. Please try again later.",
+  AGUI_INTERNAL_ERROR: "An unexpected error occurred. Please try again.",
 };
 
 /**
@@ -81,17 +87,11 @@ export function ErrorMessage({
   onDismiss,
 }: ErrorMessageProps) {
   // 确定错误级别
-  const level =
-    code && code in AGUI_ERROR_CODES
-      ? ERROR_CODE_TO_LEVEL[code as AguiErrorCode]
-      : "error";
+  const level = isAguiErrorCode(code) ? ERROR_CODE_TO_LEVEL[code] : "error";
 
   // 确定显示消息
   const displayMessage =
-    message ||
-    (code && code in AGUI_ERROR_CODES
-      ? ERROR_CODE_MESSAGES[code as AguiErrorCode]
-      : "An error occurred.");
+    message || (isAguiErrorCode(code) ? ERROR_CODE_MESSAGES[code] : "An error occurred.");
 
   return (
     <div
@@ -156,16 +156,10 @@ export function InlineErrorMessage({
   traceId,
   className = "",
 }: InlineErrorMessageProps) {
-  const level =
-    code && code in AGUI_ERROR_CODES
-      ? ERROR_CODE_TO_LEVEL[code as AguiErrorCode]
-      : "error";
+  const level = isAguiErrorCode(code) ? ERROR_CODE_TO_LEVEL[code] : "error";
 
   const displayMessage =
-    message ||
-    (code && code in AGUI_ERROR_CODES
-      ? ERROR_CODE_MESSAGES[code as AguiErrorCode]
-      : "An error occurred.");
+    message || (isAguiErrorCode(code) ? ERROR_CODE_MESSAGES[code] : "An error occurred.");
 
   return (
     <div className={`text-sm ${ERROR_LEVEL_STYLES[level]} ${className} inline-flex items-center gap-1 rounded px-2 py-1`}>

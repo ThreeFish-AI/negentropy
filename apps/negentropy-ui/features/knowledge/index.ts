@@ -50,6 +50,7 @@ export {
   syncSource,
   rebuildSource,
   searchKnowledge,
+  searchAcrossCorpora,
   fetchGraph,
   upsertGraph,
   fetchPipelines,
@@ -59,8 +60,15 @@ export {
   fetchDocuments,
   fetchAllDocuments,
   fetchDocumentDetail,
+  fetchDocumentChunks,
+  refreshDocumentMarkdown,
   deleteDocument,
   downloadDocument,
+  syncDocument,
+  rebuildDocument,
+  replaceDocument,
+  archiveDocument,
+  unarchiveDocument,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,
@@ -78,11 +86,25 @@ export {
 export type {
   SearchMode,
   ChunkingStrategy,
+  FixedChunkingConfig,
+  RecursiveChunkingConfig,
+  SemanticChunkingConfig,
+  HierarchicalChunkingConfig,
   ChunkingConfig,
   SearchConfig,
   KnowledgeErrorResponse,
   KnowledgeDashboard,
   CorpusRecord,
+  ExtractorSourceKind,
+  McpExtractorTargetConfig,
+  CorpusExtractorRouteKey,
+  CorpusExtractorRouteConfig,
+  CorpusExtractorTargets,
+  CorpusExtractorRoutes,
+  NormalizedCorpusExtractorRoutes,
+  ExtractorDraftTarget,
+  ExtractorDraftRoute,
+  ExtractorDraftRoutes,
   KnowledgeMatch,
   KnowledgeGraphPayload,
   KnowledgePipelinesPayload,
@@ -96,10 +118,14 @@ export type {
   GraphUpsertResult,
   PipelineUpsertResult,
   KnowledgeItem,
+  SourceSummary,
   KnowledgeListResponse,
   // Document Management
   KnowledgeDocument,
   KnowledgeDocumentDetail,
+  DocumentChunkItem,
+  DocumentChunksResponse,
+  DocumentMarkdownRefreshResponse,
   DocumentListResponse,
   // Graph Enhanced Types (Phase 1)
   GraphSearchMode,
@@ -114,6 +140,16 @@ export type {
   GraphPathResult,
   GraphBuildRunRecord,
   GraphBuildHistoryResult,
+} from "./utils/knowledge-api";
+
+export {
+  createDefaultChunkingConfig,
+  normalizeChunkingConfig,
+  normalizeCorpusExtractorRoutes,
+  createEmptyExtractorDraftTarget,
+  normalizeExtractorDraftRoutes,
+  buildExtractorRoutesFromDraft,
+  buildCorpusConfig,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -158,6 +194,7 @@ export type {
 
 export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
 export type { PipelineRunCardProps } from "./components/PipelineRunCard";
+export { DocumentViewDialog } from "./components/DocumentViewDialog";
 
 // ============================================================================
 // Utils (Pipeline Helpers)

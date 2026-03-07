@@ -11,17 +11,304 @@
 
 export type SearchMode = "semantic" | "keyword" | "hybrid";
 
-export type ChunkingStrategy = "fixed" | "recursive" | "semantic";
+export type ChunkingStrategy =
+  | "fixed"
+  | "recursive"
+  | "semantic"
+  | "hierarchical";
 
-export interface ChunkingConfig {
-  strategy?: ChunkingStrategy;
-  chunk_size?: number;
-  overlap?: number;
-  preserve_newlines?: boolean;
-  // Semantic chunking specific
-  semantic_threshold?: number;
-  min_chunk_size?: number;
-  max_chunk_size?: number;
+export interface FixedChunkingConfig {
+  strategy: "fixed";
+  chunk_size: number;
+  overlap: number;
+  preserve_newlines: boolean;
+}
+
+export interface RecursiveChunkingConfig {
+  strategy: "recursive";
+  chunk_size: number;
+  overlap: number;
+  preserve_newlines: boolean;
+  separators: string[];
+}
+
+export interface SemanticChunkingConfig {
+  strategy: "semantic";
+  semantic_threshold: number;
+  semantic_buffer_size: number;
+  min_chunk_size: number;
+  max_chunk_size: number;
+}
+
+export interface HierarchicalChunkingConfig {
+  strategy: "hierarchical";
+  preserve_newlines: boolean;
+  separators: string[];
+  hierarchical_parent_chunk_size: number;
+  hierarchical_child_chunk_size: number;
+  hierarchical_child_overlap: number;
+}
+
+export type ChunkingConfig =
+  | FixedChunkingConfig
+  | RecursiveChunkingConfig
+  | SemanticChunkingConfig
+  | HierarchicalChunkingConfig;
+
+export function createDefaultChunkingConfig(
+  strategy: ChunkingStrategy = "recursive",
+): ChunkingConfig {
+  switch (strategy) {
+    case "fixed":
+      return {
+        strategy,
+        chunk_size: 800,
+        overlap: 100,
+        preserve_newlines: true,
+      };
+    case "semantic":
+      return {
+        strategy,
+        semantic_threshold: 0.85,
+        semantic_buffer_size: 1,
+        min_chunk_size: 50,
+        max_chunk_size: 2000,
+      };
+    case "hierarchical":
+      return {
+        strategy,
+        preserve_newlines: true,
+        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        hierarchical_parent_chunk_size: 1024,
+        hierarchical_child_chunk_size: 256,
+        hierarchical_child_overlap: 51,
+      };
+    case "recursive":
+    default:
+      return {
+        strategy: "recursive",
+        chunk_size: 800,
+        overlap: 100,
+        preserve_newlines: true,
+        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+      };
+  }
+}
+
+export function normalizeChunkingConfig(
+  config?: Record<string, unknown> | null,
+): ChunkingConfig {
+  const strategy = (config?.strategy as ChunkingStrategy | undefined) || "recursive";
+
+  switch (strategy) {
+    case "fixed": {
+      const defaults = createDefaultChunkingConfig("fixed") as FixedChunkingConfig;
+      return {
+        strategy,
+        chunk_size: Number(config?.chunk_size ?? defaults.chunk_size),
+        overlap: Number(config?.overlap ?? defaults.overlap),
+        preserve_newlines:
+          typeof config?.preserve_newlines === "boolean"
+            ? config.preserve_newlines
+            : defaults.preserve_newlines,
+      };
+    }
+    case "semantic": {
+      const defaults = createDefaultChunkingConfig("semantic") as SemanticChunkingConfig;
+      return {
+        strategy,
+        semantic_threshold: Number(config?.semantic_threshold ?? defaults.semantic_threshold),
+        semantic_buffer_size: Number(config?.semantic_buffer_size ?? defaults.semantic_buffer_size),
+        min_chunk_size: Number(config?.min_chunk_size ?? defaults.min_chunk_size),
+        max_chunk_size: Number(config?.max_chunk_size ?? defaults.max_chunk_size),
+      };
+    }
+    case "hierarchical": {
+      const defaults = createDefaultChunkingConfig("hierarchical") as HierarchicalChunkingConfig;
+      return {
+        strategy,
+        preserve_newlines:
+          typeof config?.preserve_newlines === "boolean"
+            ? config.preserve_newlines
+            : defaults.preserve_newlines,
+        separators: Array.isArray(config?.separators)
+          ? (config.separators as string[])
+          : defaults.separators,
+        hierarchical_parent_chunk_size: Number(
+          config?.hierarchical_parent_chunk_size ?? defaults.hierarchical_parent_chunk_size,
+        ),
+        hierarchical_child_chunk_size: Number(
+          config?.hierarchical_child_chunk_size ?? defaults.hierarchical_child_chunk_size,
+        ),
+        hierarchical_child_overlap: Number(
+          config?.hierarchical_child_overlap ?? defaults.hierarchical_child_overlap,
+        ),
+      };
+    }
+    case "recursive":
+    default: {
+      const defaults = createDefaultChunkingConfig("recursive") as RecursiveChunkingConfig;
+      return {
+        strategy: "recursive",
+        chunk_size: Number(config?.chunk_size ?? defaults.chunk_size),
+        overlap: Number(config?.overlap ?? defaults.overlap),
+        preserve_newlines:
+          typeof config?.preserve_newlines === "boolean"
+            ? config.preserve_newlines
+            : defaults.preserve_newlines,
+        separators: Array.isArray(config?.separators)
+          ? (config.separators as string[])
+          : defaults.separators,
+      };
+    }
+  }
+}
+
+function buildChunkingConfigFromLegacyFields(
+  params: LegacyChunkingFields,
+): ChunkingConfig | undefined {
+  const strategy = params.strategy;
+  if (!strategy) return undefined;
+
+  return normalizeChunkingConfig({
+    strategy,
+    chunk_size: params.chunk_size,
+    overlap: params.overlap,
+    preserve_newlines: params.preserve_newlines,
+    separators: params.separators,
+    semantic_threshold: params.semantic_threshold,
+    semantic_buffer_size: params.semantic_buffer_size,
+    min_chunk_size: params.min_chunk_size,
+    max_chunk_size: params.max_chunk_size,
+    hierarchical_parent_chunk_size: params.hierarchical_parent_chunk_size,
+    hierarchical_child_chunk_size: params.hierarchical_child_chunk_size,
+    hierarchical_child_overlap: params.hierarchical_child_overlap,
+  });
+}
+
+function resolveChunkingConfig(
+  params?: ChunkingRequestFields,
+): ChunkingConfig | undefined {
+  if (!params) return undefined;
+  if (params.chunking_config) {
+    return normalizeChunkingConfig(params.chunking_config as unknown as Record<string, unknown>);
+  }
+  return buildChunkingConfigFromLegacyFields(params as LegacyChunkingFields);
+}
+
+function validateChunkingConfig(config?: ChunkingConfig): void {
+  if (!config) return;
+
+  if (config.strategy === "fixed" || config.strategy === "recursive") {
+    if (config.chunk_size < 1 || config.chunk_size > 100000) {
+      throw new InvalidChunkSizeError({ chunk_size: config.chunk_size });
+    }
+    const maxOverlap = Math.floor(config.chunk_size * 0.5);
+    if (config.overlap < 0 || config.overlap > maxOverlap) {
+      throw new InvalidChunkSizeError({
+        overlap: config.overlap,
+        max_overlap: maxOverlap,
+      });
+    }
+  }
+
+  if (config.strategy === "semantic") {
+    if (config.semantic_buffer_size < 1 || config.semantic_buffer_size > 5) {
+      throw new ValidationError({
+        field: "semantic_buffer_size",
+        min: 1,
+        max: 5,
+        value: config.semantic_buffer_size,
+      });
+    }
+    if (config.min_chunk_size < 1 || config.max_chunk_size < config.min_chunk_size) {
+      throw new ValidationError({
+        field: "semantic_chunk_size_range",
+        min_chunk_size: config.min_chunk_size,
+        max_chunk_size: config.max_chunk_size,
+      });
+    }
+  }
+
+  if (config.strategy === "hierarchical") {
+    if (config.hierarchical_parent_chunk_size < config.hierarchical_child_chunk_size) {
+      throw new ValidationError({
+        field: "hierarchical_parent_chunk_size",
+        parent: config.hierarchical_parent_chunk_size,
+        child: config.hierarchical_child_chunk_size,
+      });
+    }
+    if (
+      config.hierarchical_child_overlap < 0 ||
+      config.hierarchical_child_overlap >= config.hierarchical_child_chunk_size
+    ) {
+      throw new ValidationError({
+        field: "hierarchical_child_overlap",
+        overlap: config.hierarchical_child_overlap,
+        max_overlap: config.hierarchical_child_chunk_size - 1,
+      });
+    }
+  }
+}
+
+function buildJsonChunkingPayload(params?: ChunkingRequestFields): Record<string, unknown> {
+  const config = resolveChunkingConfig(params);
+  validateChunkingConfig(config);
+  return config ? { chunking_config: config } : {};
+}
+
+function appendChunkingConfigToFormData(
+  formData: FormData,
+  params?: ChunkingRequestFields,
+): void {
+  const config = resolveChunkingConfig(params);
+  validateChunkingConfig(config);
+
+  if (!config) return;
+
+  formData.set("strategy", config.strategy);
+
+  if (config.strategy === "fixed") {
+    formData.set("chunk_size", String(config.chunk_size));
+    formData.set("overlap", String(config.overlap));
+    formData.set("preserve_newlines", String(config.preserve_newlines));
+    return;
+  }
+
+  if (config.strategy === "recursive") {
+    formData.set("chunk_size", String(config.chunk_size));
+    formData.set("overlap", String(config.overlap));
+    formData.set("preserve_newlines", String(config.preserve_newlines));
+    if (config.separators.length > 0) {
+      formData.set("separators", JSON.stringify(config.separators));
+    }
+    return;
+  }
+
+  if (config.strategy === "semantic") {
+    formData.set("semantic_threshold", String(config.semantic_threshold));
+    formData.set("semantic_buffer_size", String(config.semantic_buffer_size));
+    formData.set("min_chunk_size", String(config.min_chunk_size));
+    formData.set("max_chunk_size", String(config.max_chunk_size));
+    return;
+  }
+
+  formData.set("preserve_newlines", String(config.preserve_newlines));
+  if (config.separators.length > 0) {
+    formData.set("separators", JSON.stringify(config.separators));
+  }
+  formData.set(
+    "hierarchical_parent_chunk_size",
+    String(config.hierarchical_parent_chunk_size),
+  );
+  formData.set(
+    "hierarchical_child_chunk_size",
+    String(config.hierarchical_child_chunk_size),
+  );
+  formData.set(
+    "hierarchical_child_overlap",
+    String(config.hierarchical_child_overlap),
+  );
 }
 
 export interface SearchConfig {
@@ -125,11 +412,153 @@ export interface CorpusRecord {
   app_name: string;
   description?: string;
   knowledge_count: number;
-  config?: {
-    chunk_size?: number;
-    overlap?: number;
-    embedding_model?: string;
-    [key: string]: unknown;
+  config?: Record<string, unknown>;
+}
+
+export type ExtractorSourceKind = "url" | "file_pdf";
+
+export interface McpExtractorTargetConfig {
+  server_id: string;
+  tool_name: string;
+  priority: number;
+  enabled: boolean;
+  timeout_ms?: number;
+  tool_options?: Record<string, unknown>;
+}
+
+export interface CorpusExtractorRouteConfig {
+  targets: McpExtractorTargetConfig[];
+}
+
+export type CorpusExtractorRouteKey = "url" | "file_pdf";
+export type CorpusExtractorTargets = McpExtractorTargetConfig[];
+export type ExtractorDraftTarget = McpExtractorTargetConfig;
+export type ExtractorDraftRoute = [ExtractorDraftTarget, ExtractorDraftTarget];
+export type ExtractorDraftRoutes = Record<CorpusExtractorRouteKey, ExtractorDraftRoute>;
+
+export interface CorpusExtractorRoutes {
+  url?: CorpusExtractorRouteConfig;
+  file_pdf?: CorpusExtractorRouteConfig;
+}
+
+export type NormalizedCorpusExtractorRoutes = Record<
+  CorpusExtractorRouteKey,
+  CorpusExtractorRouteConfig
+>;
+
+export function createEmptyExtractorDraftTarget(
+  priority: number,
+): ExtractorDraftTarget {
+  return {
+    server_id: "",
+    tool_name: "",
+    priority,
+    enabled: true,
+  };
+}
+
+function createExtractorDraftRoute(
+  targets: ReadonlyArray<McpExtractorTargetConfig>,
+): ExtractorDraftRoute {
+  return [0, 1].map((priority) => {
+    const existing =
+      targets.find((item) => item.priority === priority) || targets[priority];
+    return existing
+      ? {
+          ...existing,
+          priority,
+          enabled: existing.enabled !== false,
+        }
+      : createEmptyExtractorDraftTarget(priority);
+  }) as ExtractorDraftRoute;
+}
+
+function normalizeExtractorTargets(
+  value: unknown,
+): McpExtractorTargetConfig[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (item): item is Record<string, unknown> =>
+        typeof item === "object" && item !== null,
+    )
+    .map((item) => ({
+      server_id: String(item.server_id || ""),
+      tool_name: String(item.tool_name || ""),
+      priority: Number(item.priority || 0),
+      enabled: item.enabled !== false,
+      timeout_ms:
+        item.timeout_ms === undefined ? undefined : Number(item.timeout_ms),
+      tool_options:
+        typeof item.tool_options === "object" && item.tool_options !== null
+          ? (item.tool_options as Record<string, unknown>)
+          : {},
+    }))
+    .filter((item) => item.server_id && item.tool_name)
+    .sort((a, b) => a.priority - b.priority);
+}
+
+export function normalizeCorpusExtractorRoutes(
+  config?: Record<string, unknown> | null,
+): NormalizedCorpusExtractorRoutes {
+  const raw =
+    typeof config?.extractor_routes === "object" &&
+    config.extractor_routes !== null
+      ? (config.extractor_routes as Record<string, unknown>)
+      : {};
+
+  const normalizeRoute = (route: unknown): CorpusExtractorRouteConfig => ({
+    targets: normalizeExtractorTargets(
+      typeof route === "object" && route !== null
+        ? (route as Record<string, unknown>).targets
+        : undefined,
+    ),
+  });
+
+  return {
+    url: normalizeRoute(raw.url),
+    file_pdf: normalizeRoute(raw.file_pdf),
+  };
+}
+
+export function normalizeExtractorDraftRoutes(
+  config?: Record<string, unknown> | null,
+): ExtractorDraftRoutes {
+  const normalized = normalizeCorpusExtractorRoutes(config);
+  return {
+    url: createExtractorDraftRoute(normalized.url.targets),
+    file_pdf: createExtractorDraftRoute(normalized.file_pdf.targets),
+  };
+}
+
+export function buildExtractorRoutesFromDraft(
+  draft: ExtractorDraftRoutes,
+): NormalizedCorpusExtractorRoutes {
+  const buildTargets = (targets: ExtractorDraftRoute) =>
+    targets
+      .filter((item) => item.server_id && item.tool_name)
+      .map((item, priority) => ({
+        ...item,
+        priority,
+        enabled: item.enabled !== false,
+      }));
+
+  return {
+    url: { targets: buildTargets(draft.url) },
+    file_pdf: { targets: buildTargets(draft.file_pdf) },
+  };
+}
+
+export function buildCorpusConfig(
+  chunkingConfig: ChunkingConfig,
+  extractorRoutes?: CorpusExtractorRoutes | NormalizedCorpusExtractorRoutes,
+): Record<string, unknown> {
+  return {
+    ...(chunkingConfig as unknown as Record<string, unknown>),
+    extractor_routes: {
+      url: { targets: extractorRoutes?.url?.targets || [] },
+      file_pdf: { targets: extractorRoutes?.file_pdf?.targets || [] },
+    },
   };
 }
 
@@ -217,6 +646,29 @@ export interface IngestResult {
   items: string[];
 }
 
+type LegacyChunkingFields = {
+  strategy?: ChunkingStrategy;
+  chunk_size?: number;
+  overlap?: number;
+  preserve_newlines?: boolean;
+  separators?: string[];
+  semantic_threshold?: number;
+  semantic_buffer_size?: number;
+  min_chunk_size?: number;
+  max_chunk_size?: number;
+  hierarchical_parent_chunk_size?: number;
+  hierarchical_child_chunk_size?: number;
+  hierarchical_child_overlap?: number;
+};
+
+type ChunkingRequestFields =
+  | {
+      chunking_config?: ChunkingConfig;
+    }
+  | (LegacyChunkingFields & {
+      chunking_config?: ChunkingConfig;
+    });
+
 // 异步 Pipeline 响应类型
 export interface AsyncPipelineResult {
   run_id: string;
@@ -246,6 +698,64 @@ export interface PipelineUpsertResult {
 /**
  * 从响应中解析错误并映射到对应的异常类型
  */
+function extractKnowledgeErrorPayload(
+  errorData: unknown,
+): KnowledgeErrorResponse | null {
+  if (!errorData || typeof errorData !== "object") {
+    return null;
+  }
+
+  const normalizePayload = (
+    payload: Record<string, unknown>,
+  ): KnowledgeErrorResponse | null => {
+    const code = typeof payload.code === "string" ? payload.code : undefined;
+    const message =
+      typeof payload.message === "string"
+        ? payload.message
+        : typeof payload.detail === "string"
+          ? payload.detail
+          : undefined;
+    const details =
+      payload.details && typeof payload.details === "object"
+        ? (payload.details as Record<string, unknown>)
+        : undefined;
+
+    if (!code && !message) {
+      return null;
+    }
+
+    return {
+      code: code || "UNKNOWN_ERROR",
+      message: message || "Unknown error",
+      details,
+    };
+  };
+
+  const root = errorData as Record<string, unknown>;
+
+  const direct = normalizePayload(root);
+  if (direct) return direct;
+
+  if (root.error && typeof root.error === "object") {
+    const nested = normalizePayload(root.error as Record<string, unknown>);
+    if (nested) return nested;
+  }
+
+  if (root.detail && typeof root.detail === "object") {
+    const nested = normalizePayload(root.detail as Record<string, unknown>);
+    if (nested) return nested;
+  }
+
+  if (typeof root.detail === "string") {
+    return {
+      code: "UNKNOWN_ERROR",
+      message: root.detail,
+    };
+  }
+
+  return null;
+}
+
 async function parseKnowledgeError(res: Response): Promise<KnowledgeError> {
   let errorData: unknown;
   try {
@@ -254,9 +764,12 @@ async function parseKnowledgeError(res: Response): Promise<KnowledgeError> {
     errorData = null;
   }
 
-  const errorResponse = errorData as KnowledgeErrorResponse | null;
+  const errorResponse = extractKnowledgeErrorPayload(errorData);
   const code = errorResponse?.code || "UNKNOWN_ERROR";
-  const message = errorResponse?.message || res.statusText;
+  const message =
+    errorResponse?.message ||
+    res.statusText ||
+    `Request failed with status ${res.status}`;
   const details = errorResponse?.details;
 
   switch (code) {
@@ -341,10 +854,7 @@ export async function fetchCorpus(
   if (res.status === 404) {
     return null;
   }
-  if (!res.ok) {
-    throw new Error(`Failed to fetch corpus: ${res.statusText}`);
-  }
-  return res.json();
+  return handleKnowledgeError(res);
 }
 
 export interface KnowledgeItem {
@@ -356,10 +866,19 @@ export interface KnowledgeItem {
   metadata: Record<string, unknown>;
 }
 
+export interface SourceSummary {
+  source_uri: string | null;
+  display_name?: string | null;
+  count: number;
+  archived: boolean;
+  source_type: "file" | "url" | "text" | "unknown";
+}
+
 export interface KnowledgeListResponse {
   count: number;
   items: KnowledgeItem[];
   source_stats?: Record<string, number>;
+  source_summaries?: SourceSummary[];
 }
 
 export async function fetchKnowledgeItems(
@@ -367,6 +886,7 @@ export async function fetchKnowledgeItems(
   params: {
     appName?: string;
     sourceUri?: string | null;
+    includeArchived?: boolean;
     limit?: number;
     offset?: number;
   },
@@ -375,6 +895,9 @@ export async function fetchKnowledgeItems(
   if (params.appName) query.set("app_name", params.appName);
   if (params.sourceUri !== undefined) {
     query.set("source_uri", params.sourceUri ?? "__null__");
+  }
+  if (params.includeArchived !== undefined) {
+    query.set("include_archived", String(params.includeArchived));
   }
   if (params.limit !== undefined) query.set("limit", String(params.limit));
   if (params.offset !== undefined) query.set("offset", String(params.offset));
@@ -395,27 +918,19 @@ export async function ingestText(
     text: string;
     source_uri?: string;
     metadata?: Record<string, unknown>;
-    chunk_size?: number;
-    overlap?: number;
-    preserve_newlines?: boolean;
-  },
+  } & ChunkingRequestFields,
 ): Promise<AsyncPipelineResult> {
-  // 前端配置验证（对齐后端 types.py）
-  const { chunk_size, overlap } = params;
-  if (chunk_size !== undefined && (chunk_size < 1 || chunk_size > 100000)) {
-    throw new InvalidChunkSizeError({ chunk_size });
-  }
-  if (overlap !== undefined) {
-    const maxSize = chunk_size || 800;
-    if (overlap < 0 || overlap >= maxSize) {
-      throw new InvalidChunkSizeError({ overlap, max_overlap: maxSize - 1 });
-    }
-  }
-
+  const { app_name, text, source_uri, metadata, ...chunkingParams } = params;
   const res = await fetch(`/api/knowledge/base/${id}/ingest`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      app_name,
+      text,
+      source_uri,
+      metadata,
+      ...buildJsonChunkingPayload(chunkingParams),
+    }),
   });
   return handleKnowledgeError(res);
 }
@@ -425,16 +940,21 @@ export async function ingestUrl(
   params: {
     app_name?: string;
     url: string;
+    as_document?: boolean;
     metadata?: Record<string, unknown>;
-    chunk_size?: number;
-    overlap?: number;
-    preserve_newlines?: boolean;
-  },
+  } & ChunkingRequestFields,
 ): Promise<AsyncPipelineResult> {
+  const { app_name, url, as_document, metadata, ...chunkingParams } = params;
   const res = await fetch(`/api/knowledge/base/${id}/ingest_url`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      app_name,
+      url,
+      as_document,
+      metadata,
+      ...buildJsonChunkingPayload(chunkingParams),
+    }),
   });
   return handleKnowledgeError(res);
 }
@@ -446,10 +966,7 @@ export async function ingestFile(
     file: File;
     source_uri?: string;
     metadata?: Record<string, unknown>;
-    chunk_size?: number;
-    overlap?: number;
-    preserve_newlines?: boolean;
-  },
+  } & ChunkingRequestFields,
 ): Promise<IngestResult> {
   const formData = new FormData();
 
@@ -457,11 +974,7 @@ export async function ingestFile(
   formData.set("file", params.file);
   if (params.source_uri) formData.set("source_uri", params.source_uri);
   if (params.metadata) formData.set("metadata", JSON.stringify(params.metadata));
-  if (params.chunk_size) formData.set("chunk_size", String(params.chunk_size));
-  if (params.overlap) formData.set("overlap", String(params.overlap));
-  if (params.preserve_newlines !== undefined) {
-    formData.set("preserve_newlines", String(params.preserve_newlines));
-  }
+  appendChunkingConfigToFormData(formData, params);
 
   const res = await fetch(`/api/knowledge/base/${id}/ingest_file`, {
     method: "POST",
@@ -489,6 +1002,7 @@ export interface KnowledgeDocument {
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
   markdown_extracted_at?: string | null;
   markdown_extract_error?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface KnowledgeDocumentDetail extends KnowledgeDocument {
@@ -496,14 +1010,50 @@ export interface KnowledgeDocumentDetail extends KnowledgeDocument {
   markdown_gcs_uri: string | null;
 }
 
+export interface DocumentMarkdownRefreshResponse {
+  document_id: string;
+  status: string;
+  message: string;
+}
+
 export interface DocumentListResponse {
   count: number;
   items: KnowledgeDocument[];
 }
 
+export interface DocumentChunkItem {
+  id: string;
+  content: string;
+  source_uri: string | null;
+  created_at: string | null;
+  chunk_index: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface DocumentChunksResponse {
+  count: number;
+  items: DocumentChunkItem[];
+}
+
 // ============================================================================
 // Document Management API Functions
 // ============================================================================
+
+const DOCUMENTS_PAGE_LIMIT_MAX = 100;
+const DOCUMENTS_PAGE_LIMIT_DEFAULT = 50;
+const DOCUMENT_CHUNKS_PAGE_LIMIT_MAX = 200;
+const DOCUMENT_CHUNKS_PAGE_LIMIT_DEFAULT = 50;
+
+function clampPositiveInt(
+  value: number | undefined,
+  max: number,
+  fallback: number,
+): number {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.trunc(value), max);
+}
 
 export async function fetchDocuments(
   corpusId: string,
@@ -514,8 +1064,13 @@ export async function fetchDocuments(
   },
 ): Promise<DocumentListResponse> {
   const query = new URLSearchParams();
+  const limit = clampPositiveInt(
+    params?.limit,
+    DOCUMENTS_PAGE_LIMIT_MAX,
+    DOCUMENTS_PAGE_LIMIT_DEFAULT,
+  );
   if (params?.appName) query.set("app_name", params.appName);
-  if (params?.limit) query.set("limit", String(params.limit));
+  query.set("limit", String(limit));
   if (params?.offset) query.set("offset", String(params.offset));
 
   const res = await fetch(
@@ -582,6 +1137,37 @@ export async function fetchDocumentDetail(
   return handleKnowledgeError(res);
 }
 
+export async function refreshDocumentMarkdown(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+  },
+): Promise<DocumentMarkdownRefreshResponse> {
+  const payload = JSON.stringify({
+    app_name: params?.appName,
+  });
+  const requestInit: RequestInit = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+  };
+
+  let res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh_markdown`,
+    requestInit,
+  );
+  if (res.status === 404) {
+    // Backward-compatible fallback for deployments using kebab-case route naming.
+    res = await fetch(
+      `/api/knowledge/base/${corpusId}/documents/${documentId}/refresh-markdown`,
+      requestInit,
+    );
+  }
+
+  return handleKnowledgeError(res);
+}
+
 export async function downloadDocument(
   corpusId: string,
   documentId: string,
@@ -641,6 +1227,117 @@ export async function downloadDocument(
   }
 }
 
+export async function fetchDocumentChunks(
+  corpusId: string,
+  documentId: string,
+  params?: {
+    appName?: string;
+    limit?: number;
+    offset?: number;
+    includeArchived?: boolean;
+  },
+): Promise<DocumentChunksResponse> {
+  const query = new URLSearchParams();
+  const limit = clampPositiveInt(
+    params?.limit,
+    DOCUMENT_CHUNKS_PAGE_LIMIT_MAX,
+    DOCUMENT_CHUNKS_PAGE_LIMIT_DEFAULT,
+  );
+  if (params?.appName) query.set("app_name", params.appName);
+  query.set("limit", String(limit));
+  if (params?.offset !== undefined) query.set("offset", String(params.offset));
+  if (params?.includeArchived !== undefined) {
+    query.set("include_archived", String(params.includeArchived));
+  }
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/chunks?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+async function postDocumentAction(
+  corpusId: string,
+  documentId: string,
+  action: "sync" | "rebuild" | "replace" | "archive" | "unarchive",
+  params: Record<string, unknown>,
+): Promise<AsyncPipelineResult | ArchiveSourceResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/${action}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function syncDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+  } & ChunkingRequestFields = {},
+): Promise<AsyncPipelineResult> {
+  const { app_name, ...chunkingParams } = params;
+  return postDocumentAction(corpusId, documentId, "sync", {
+    app_name,
+    ...buildJsonChunkingPayload(chunkingParams),
+  }) as Promise<AsyncPipelineResult>;
+}
+
+export async function rebuildDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+  } & ChunkingRequestFields = {},
+): Promise<AsyncPipelineResult> {
+  const { app_name, ...chunkingParams } = params;
+  return postDocumentAction(corpusId, documentId, "rebuild", {
+    app_name,
+    ...buildJsonChunkingPayload(chunkingParams),
+  }) as Promise<AsyncPipelineResult>;
+}
+
+export async function replaceDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+    text: string;
+  } & ChunkingRequestFields,
+): Promise<AsyncPipelineResult> {
+  const { app_name, text, ...chunkingParams } = params;
+  return postDocumentAction(corpusId, documentId, "replace", {
+    app_name,
+    text,
+    ...buildJsonChunkingPayload(chunkingParams),
+  }) as Promise<AsyncPipelineResult>;
+}
+
+export async function archiveDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+  } = {},
+): Promise<ArchiveSourceResult> {
+  return postDocumentAction(corpusId, documentId, "archive", params) as Promise<ArchiveSourceResult>;
+}
+
+export async function unarchiveDocument(
+  corpusId: string,
+  documentId: string,
+  params: {
+    app_name?: string;
+  } = {},
+): Promise<ArchiveSourceResult> {
+  return postDocumentAction(corpusId, documentId, "unarchive", params) as Promise<ArchiveSourceResult>;
+}
+
 export async function replaceSource(
   id: string,
   params: {
@@ -648,15 +1345,19 @@ export async function replaceSource(
     text: string;
     source_uri: string;
     metadata?: Record<string, unknown>;
-    chunk_size?: number;
-    overlap?: number;
-    preserve_newlines?: boolean;
-  },
+  } & ChunkingRequestFields,
 ): Promise<AsyncPipelineResult> {
+  const { app_name, text, source_uri, metadata, ...chunkingParams } = params;
   const res = await fetch(`/api/knowledge/base/${id}/replace_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      app_name,
+      text,
+      source_uri,
+      metadata,
+      ...buildJsonChunkingPayload(chunkingParams),
+    }),
   });
   return handleKnowledgeError(res);
 }
@@ -666,15 +1367,17 @@ export async function syncSource(
   params: {
     app_name?: string;
     source_uri: string;
-    chunk_size?: number;
-    overlap?: number;
-    preserve_newlines?: boolean;
-  },
+  } & ChunkingRequestFields,
 ): Promise<AsyncPipelineResult> {
+  const { app_name, source_uri, ...chunkingParams } = params;
   const res = await fetch(`/api/knowledge/base/${id}/sync_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      app_name,
+      source_uri,
+      ...buildJsonChunkingPayload(chunkingParams),
+    }),
   });
   return handleKnowledgeError(res);
 }
@@ -684,15 +1387,17 @@ export async function rebuildSource(
   params: {
     app_name?: string;
     source_uri: string;
-    chunk_size?: number;
-    overlap?: number;
-    preserve_newlines?: boolean;
-  },
+  } & ChunkingRequestFields,
 ): Promise<AsyncPipelineResult> {
+  const { app_name, source_uri, ...chunkingParams } = params;
   const res = await fetch(`/api/knowledge/base/${id}/rebuild_source`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      app_name,
+      source_uri,
+      ...buildJsonChunkingPayload(chunkingParams),
+    }),
   });
   return handleKnowledgeError(res);
 }
@@ -703,6 +1408,9 @@ export async function rebuildSource(
 
 export interface DeleteSourceResult {
   deleted_count: number;
+  deleted_documents?: number;
+  deleted_gcs_objects?: number;
+  warnings?: string[];
 }
 
 export interface ArchiveSourceResult {
@@ -821,6 +1529,46 @@ export async function searchKnowledge(
     body: JSON.stringify(params),
   });
   return handleKnowledgeError(res);
+}
+
+export async function searchAcrossCorpora(
+  corpusIds: string[],
+  params: {
+    app_name?: string;
+    query: string;
+    mode?: SearchMode;
+    limit?: number;
+    semantic_weight?: number;
+    keyword_weight?: number;
+    metadata_filter?: Record<string, unknown>;
+  },
+): Promise<SearchResults> {
+  const settled = await Promise.allSettled(
+    corpusIds.map((corpusId) =>
+      searchKnowledge(corpusId, params).then((results) =>
+        results.items.map((item) => ({
+          ...item,
+          metadata: {
+            ...(item.metadata || {}),
+            corpus_id: corpusId,
+          },
+        })),
+      ),
+    ),
+  );
+
+  const mergedItems: KnowledgeMatch[] = [];
+  settled.forEach((item) => {
+    if (item.status === "fulfilled") {
+      mergedItems.push(...item.value);
+    }
+  });
+  mergedItems.sort((a, b) => (b.combined_score ?? 0) - (a.combined_score ?? 0));
+
+  return {
+    count: mergedItems.length,
+    items: params.limit ? mergedItems.slice(0, params.limit) : mergedItems,
+  };
 }
 
 // ============================================================================

@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy import ForeignKey, Integer, Sequence, String, Text, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -42,7 +42,7 @@ class Event(Base, UUIDMixin):
     thread_id: Mapped[UUID] = mapped_column(
         ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
     )
-    invocation_id: Mapped[UUID] = mapped_column(nullable=False)
+    invocation_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
     author: Mapped[str] = mapped_column(String(50), nullable=False)  # 'user', 'agent', 'tool'
     event_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'message', 'tool_call', 'state_update'
     content: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")

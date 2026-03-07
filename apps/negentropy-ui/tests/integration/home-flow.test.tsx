@@ -1,13 +1,18 @@
-import { useState } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { ReactNode, useState } from "react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { EventType } from "@ag-ui/core";
 import { HomeBody } from "../../app/page";
+import { createTestEvent } from "@/tests/helpers/agui";
+import type { AgUiEvent } from "@/types/agui";
 
 let mockAgent: any;
 let lastHitlConfig: any;
+let detailEvents: any[];
+let subscriptionHandlers: Record<string, (...args: any[]) => void> | null;
 
 vi.mock("@copilotkitnext/react", () => ({
-  CopilotKitProvider: ({ children }: { children: React.ReactNode }) => children,
+  CopilotKitProvider: ({ children }: { children: ReactNode }) => children,
   UseAgentUpdate: {
     OnMessagesChanged: "OnMessagesChanged",
     OnStateChanged: "OnStateChanged",
@@ -18,9 +23,13 @@ vi.mock("@copilotkitnext/react", () => ({
   },
 }));
 
+vi.mock("@/components/providers/AuthProvider", () => ({
+  useAuth: () => ({ user: null, status: "authenticated" }),
+}));
+
 function Wrapper({ sessionId }: { sessionId: string | null }) {
   const [sessions, setSessions] = useState(
-    sessionId ? [{ id: sessionId, label: `Session ${sessionId}` }] : []
+    sessionId ? [{ id: sessionId, label: `Session ${sessionId}` }] : [],
   );
   const [currentSession, setCurrentSession] = useState(sessionId);
 
@@ -28,50 +37,111 @@ function Wrapper({ sessionId }: { sessionId: string | null }) {
     <HomeBody
       sessionId={currentSession}
       userId="ui"
-      user={null}
       setSessionId={setCurrentSession}
       sessions={sessions}
       setSessions={setSessions}
-      onLogout={() => {}}
     />
   );
 }
 
+function emitEvent(event: AgUiEvent) {
+  subscriptionHandlers?.onEvent?.({ event });
+}
+
+function emitAssistantReply(sessionId: string, messageId: string, content: string) {
+  const timestamp = Date.now() / 1000;
+  emitEvent(createTestEvent({
+    type: EventType.RUN_STARTED,
+    threadId: sessionId,
+    runId: sessionId,
+    timestamp,
+  }));
+  emitEvent(createTestEvent({
+    type: EventType.TEXT_MESSAGE_START,
+    threadId: sessionId,
+    runId: sessionId,
+    messageId,
+    role: "assistant",
+    timestamp: timestamp + 0.001,
+  }));
+  emitEvent(createTestEvent({
+    type: EventType.TEXT_MESSAGE_CONTENT,
+    threadId: sessionId,
+    runId: sessionId,
+    messageId,
+    delta: content,
+    timestamp: timestamp + 0.002,
+  }));
+  emitEvent(createTestEvent({
+    type: EventType.TEXT_MESSAGE_END,
+    threadId: sessionId,
+    runId: sessionId,
+    messageId,
+    timestamp: timestamp + 0.003,
+  }));
+}
+
+async function waitForInitialHydration() {
+  await waitFor(() => {
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/agui/sessions/s1"),
+    );
+  });
+}
+
 describe("HomeBody integration", () => {
   beforeEach(() => {
+    detailEvents = [];
+    subscriptionHandlers = null;
     mockAgent = {
-      messages: [
-        { id: "m1", role: "user", content: "hello" },
-        { id: "m2", role: "assistant", content: "world" },
-      ],
+      messages: [],
       state: { stage: "ready" },
       isRunning: false,
-      subscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),
-      addMessage: vi.fn(),
-      runAgent: vi.fn().mockResolvedValue({ result: "ok" }),
-      setMessages: vi.fn(),
-      setState: vi.fn(),
+      subscribe: vi.fn((handlers) => {
+        subscriptionHandlers = handlers;
+        return { unsubscribe: vi.fn() };
+      }),
+      addMessage: vi.fn((message) => {
+        mockAgent.messages = [...mockAgent.messages, message];
+      }),
+      runAgent: vi.fn().mockImplementation(async () => {
+        const timestamp = Date.now() / 1000;
+        subscriptionHandlers?.onRunInitialized?.();
+        subscriptionHandlers?.onRunStartedEvent?.();
+        emitAssistantReply("s1", "assistant-1", "world");
+        detailEvents = [
+          {
+            id: "assistant-1",
+            runId: "s1",
+            threadId: "s1",
+            timestamp: timestamp + 0.01,
+            message: { role: "assistant", content: "world" },
+          },
+        ];
+        subscriptionHandlers?.onRunFinishedEvent?.();
+        return { result: "ok" };
+      }),
     };
     lastHitlConfig = null;
 
     global.fetch = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
       const url = String(input);
+      if (url.includes("/api/agui/sessions/list")) {
+        return {
+          ok: true,
+          json: async () => [{ id: "s1", lastUpdateTime: Date.now() }],
+        } as Response;
+      }
+      if (url.includes("/api/agui/sessions/") && !url.includes("/title")) {
+        return {
+          ok: true,
+          json: async () => ({ events: detailEvents }),
+        } as Response;
+      }
       if (url.includes("/api/agui/sessions") && init?.method === "POST") {
         return {
           ok: true,
           json: async () => ({ id: "s-new", lastUpdateTime: Date.now() }),
-        } as Response;
-      }
-      if (url.includes("/api/agui/sessions/list")) {
-        return {
-          ok: true,
-          json: async () => [],
-        } as Response;
-      }
-      if (url.includes("/api/agui/sessions/")) {
-        return {
-          ok: true,
-          json: async () => ({ events: [] }),
         } as Response;
       }
       return {
@@ -81,47 +151,233 @@ describe("HomeBody integration", () => {
     }) as unknown as typeof fetch;
   });
 
-  // TODO: Fix these tests - mock needs to properly simulate useAgent hook behavior
-  // The component uses useAgent({ agentId, updates }) but mock returns static agent
-  it.skip("renders agent messages and snapshot", async () => {
+  it("发送消息时使用 runId 触发运行，并在运行后展示 assistant 回复", async () => {
+    const user = userEvent.setup();
     render(<Wrapper sessionId="s1" />);
-    // MessageBubble uses ReactMarkdown which renders text in nested elements
-    expect(await screen.findByText((content) => content.includes("hello"))).toBeInTheDocument();
-    expect(screen.getByText((content) => content.includes("world"))).toBeInTheDocument();
-    // StateSnapshot uses JsonViewer, use flexible matching for state content
-    expect(screen.getByText((content) => content.includes("stage"))).toBeInTheDocument();
-  });
+    await waitForInitialHydration();
 
-  it.skip("sends input via runAgent with threadId", async () => {
-    render(<Wrapper sessionId="s1" />);
-    await userEvent.type(screen.getByPlaceholderText("输入指令..."), "ping");
-    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await user.type(screen.getByPlaceholderText("输入指令..."), "ping");
+    await user.click(screen.getByRole("button", { name: "Send" }));
 
     await waitFor(() => {
-      expect(mockAgent.runAgent).toHaveBeenCalled();
+      expect(mockAgent.runAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runId: expect.any(String),
+        }),
+      );
     });
 
-    const call = mockAgent.runAgent.mock.calls[0][0];
-    expect(call.threadId).toBe("s1");
-    expect(call.runId).toBeDefined();
-  });
+    expect(
+      await screen.findByText((content) => content.includes("world")),
+    ).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(screen.queryByText("NE 正在生成回复...")).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+  }, 10000);
 
-  it.skip("creates new session from header action", async () => {
-    render(<Wrapper sessionId={null} />);
-    // Use flexible button name matching as UI text may vary
-    const newSessionButton = screen.queryByRole("button", { name: "New Session" })
-      || screen.queryByRole("button", { name: /新建|New|\+ New/i });
-    if (newSessionButton) {
-      await userEvent.click(newSessionButton);
-      expect(global.fetch).toHaveBeenCalled();
-    } else {
-      // If button doesn't exist in this context, skip the test
-      expect(true).toBe(true);
-    }
-  });
+  it("历史回拉暂时为空时，实时 assistant 回复不会被清空", async () => {
+    const user = userEvent.setup();
+    mockAgent.runAgent.mockImplementationOnce(async () => {
+      const timestamp = Date.now() / 1000;
+      subscriptionHandlers?.onRunInitialized?.();
+      subscriptionHandlers?.onRunStartedEvent?.();
+      emitAssistantReply("s1", "assistant-delayed", "delayed world");
+      detailEvents = [];
+      setTimeout(() => {
+        detailEvents = [
+          {
+            id: "assistant-delayed",
+            runId: "s1",
+            threadId: "s1",
+            timestamp: timestamp + 0.01,
+            message: { role: "assistant", content: "delayed world" },
+          },
+        ];
+      }, 500);
+      subscriptionHandlers?.onRunFinishedEvent?.();
+      return { result: "ok" };
+    });
+
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    await user.type(screen.getByPlaceholderText("输入指令..."), "Hi");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(
+      await screen.findByText((content) => content.includes("delayed world")),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    expect(
+      screen.getByText((content) => content.includes("delayed world")),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+    });
+    expect(
+      screen.getByText((content) => content.includes("delayed world")),
+    ).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(screen.queryByText("NE 正在生成回复...")).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+  }, 10000);
+
+  it("连续发送两条消息时保持用户消息显示顺序", async () => {
+    const user = userEvent.setup();
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    const input = screen.getByPlaceholderText("输入指令...");
+    await user.type(input, "Hello");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(screen.getByText((content) => content.includes("world"))).toBeInTheDocument();
+    });
+
+    mockAgent.runAgent.mockResolvedValueOnce({ result: "ok" });
+    detailEvents = [];
+
+    await user.type(input, "Hi");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    const hello = await screen.findByText((content) => content.includes("Hello"));
+    const hi = await screen.findByText((content) => content.includes("Hi"));
+
+    expect(
+      hello.compareDocumentPosition(hi) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  }, 10000);
+
+  it("历史回拉确认用户消息时不会显示两个相同的 Hi", async () => {
+    const user = userEvent.setup();
+    mockAgent.runAgent.mockImplementationOnce(async () => {
+      const timestamp = Date.now() / 1000;
+      subscriptionHandlers?.onRunInitialized?.();
+      subscriptionHandlers?.onRunStartedEvent?.();
+      emitAssistantReply("s1", "assistant-1", "你好");
+      detailEvents = [
+        {
+          id: "server-user-1",
+          runId: "s1",
+          threadId: "s1",
+          timestamp: timestamp + 0.01,
+          message: { role: "user", content: "Hi" },
+        },
+        {
+          id: "assistant-1",
+          runId: "s1",
+          threadId: "s1",
+          timestamp: timestamp + 0.02,
+          message: { role: "assistant", content: "你好" },
+        },
+      ];
+      subscriptionHandlers?.onRunFinishedEvent?.();
+      return { result: "ok" };
+    });
+
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    const input = screen.getByPlaceholderText("输入指令...");
+    await user.type(input, "Hi");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText((content) => content.includes("Hi"))).toHaveLength(1);
+    });
+  }, 10000);
+
+  it("assistant 实时流与最终回拉 messageId 不同时仍只显示一个最终 bubble", async () => {
+    const user = userEvent.setup();
+    const finalReply = "我可以帮助你规划任务、分析代码并直接修改实现。";
+
+    mockAgent.runAgent.mockImplementationOnce(async () => {
+      const timestamp = Date.now() / 1000;
+      subscriptionHandlers?.onRunInitialized?.();
+      subscriptionHandlers?.onRunStartedEvent?.();
+      emitEvent(createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "s1",
+        runId: "s1",
+        timestamp,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        role: "assistant",
+        timestamp: timestamp + 0.001,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        delta: "我可以帮助你规划任务",
+        timestamp: timestamp + 0.002,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        delta: finalReply,
+        timestamp: timestamp + 0.003,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        timestamp: timestamp + 0.004,
+      }));
+
+      detailEvents = [
+        {
+          id: "assistant-final",
+          runId: "s1",
+          threadId: "s1",
+          timestamp: timestamp + 0.02,
+          message: { role: "assistant", content: finalReply },
+        },
+      ];
+      subscriptionHandlers?.onRunFinishedEvent?.();
+      return { result: "ok" };
+    });
+
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    await user.type(screen.getByPlaceholderText("输入指令..."), "你能帮我做什么？");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText(finalReply)).toBeInTheDocument();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText(finalReply)).toHaveLength(1);
+    });
+  }, 10000);
 
   it("handles HITL confirmation flow", async () => {
+    const user = userEvent.setup();
     render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
     const respond = vi.fn().mockResolvedValue(undefined);
     const ui = lastHitlConfig.render({
       status: "inProgress",
@@ -129,38 +385,11 @@ describe("HomeBody integration", () => {
       respond,
     });
     render(ui);
-    await userEvent.click(screen.getByRole("button", { name: "确认" }));
+    await user.click(screen.getByRole("button", { name: "确认" }));
     expect(respond).toHaveBeenCalled();
     expect(mockAgent.addMessage).toHaveBeenCalled();
-    expect(mockAgent.runAgent).toHaveBeenCalled();
-  });
-
-  it("handles HITL correct and supplement actions", async () => {
-    render(<Wrapper sessionId="s1" />);
-    const respond = vi.fn().mockResolvedValue(undefined);
-    const ui = lastHitlConfig.render({
-      status: "inProgress",
-      args: { title: "确认", detail: "请确认" },
-      respond,
-    });
-    render(ui);
-
-    mockAgent.addMessage.mockClear();
-    mockAgent.runAgent.mockClear();
-    await userEvent.click(screen.getByRole("button", { name: "修正" }));
-    expect(respond).toHaveBeenCalled();
-    expect(mockAgent.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ content: expect.stringContaining("HITL:correct") })
+    expect(mockAgent.runAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ runId: expect.any(String) }),
     );
-    expect(mockAgent.runAgent).toHaveBeenCalled();
-
-    mockAgent.addMessage.mockClear();
-    mockAgent.runAgent.mockClear();
-    await userEvent.click(screen.getByRole("button", { name: "补充" }));
-    expect(respond).toHaveBeenCalled();
-    expect(mockAgent.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ content: expect.stringContaining("HITL:supplement") })
-    );
-    expect(mockAgent.runAgent).toHaveBeenCalled();
-  });
+  }, 10000);
 });

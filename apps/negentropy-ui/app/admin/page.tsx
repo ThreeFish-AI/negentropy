@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AdminNav } from "@/components/ui/AdminNav";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 interface UserItem {
   userId: string;
@@ -100,13 +101,13 @@ export default function AdminPage() {
               Current User
             </div>
             <div className="flex items-center gap-3">
-              {user?.picture && (
-                <img
-                  src={user.picture}
-                  alt=""
-                  className="h-10 w-10 rounded-full"
-                />
-              )}
+              <UserAvatar
+                picture={user?.picture}
+                name={user?.name}
+                email={user?.email}
+                className="h-10 w-10 object-cover"
+                fallbackClassName="text-sm"
+              />
               <div>
                 <div className="font-medium text-zinc-900 dark:text-zinc-100">{user?.name}</div>
                 <div className="text-sm text-zinc-500 dark:text-zinc-400">{user?.email}</div>

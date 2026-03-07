@@ -17,7 +17,7 @@ import {
   SearchConfig,
   searchKnowledge,
   KnowledgeError,
-} from "../index";
+} from "../utils/knowledge-api";
 
 // ============================================================================
 // Types

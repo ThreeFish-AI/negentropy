@@ -15,4 +15,3 @@ export type { ConfirmationCardProps, ConfirmationStatus, ConfirmationToolArgs } 
 
 // Hooks
 export { useConfirmationTool } from "@/hooks/useConfirmationTool";
-export type { ConfirmationToolArgs } from "@/hooks/useConfirmationTool";

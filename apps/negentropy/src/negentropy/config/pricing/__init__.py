@@ -1,10 +1,16 @@
 """
-GLM Model Pricing Configuration.
+Model Pricing Configuration.
 
-Provides pricing data for GLM models loaded from external JSON configuration.
-Reference: https://open.bigmodel.cn/pricing
+优先使用 LiteLLM 官方在线价目表，并在缺价时回退到本地 override 配置。
 """
 
+from .litellm_catalog import (
+    clear_online_catalog_cache,
+    get_effective_model_pricing_usd,
+    get_last_online_catalog_error,
+    get_online_model_pricing_usd,
+    load_litellm_online_cost_catalog,
+)
 from .loader import (
     clear_pricing_cache,
     get_model_pricing,
@@ -19,6 +25,11 @@ __all__ = [
     "get_model_pricing",
     "get_model_pricing_usd",
     "clear_pricing_cache",
+    "load_litellm_online_cost_catalog",
+    "get_online_model_pricing_usd",
+    "get_effective_model_pricing_usd",
+    "get_last_online_catalog_error",
+    "clear_online_catalog_cache",
     # Models
     "PricingMetadata",
     "ModelPricing",

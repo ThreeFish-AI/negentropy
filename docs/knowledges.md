@@ -159,7 +159,7 @@ flowchart LR
 **Knowledge 模块** (`negentropy.knowledge`):
 
 - [types.py](../apps/negentropy/src/negentropy/knowledge/types.py) - 领域类型（SearchMode, ChunkingConfig, SearchConfig, GraphNode/Edge 等）
-- [chunking.py](../apps/negentropy/src/negentropy/knowledge/chunking.py) - 文本分块（Fixed/Recursive/Semantic 三种策略）
+- [chunking.py](../apps/negentropy/src/negentropy/knowledge/chunking.py) - 文本分块（Fixed/Recursive/Semantic/Hierarchical 四种策略）
 - [repository.py](../apps/negentropy/src/negentropy/knowledge/repository.py) - 数据访问（CRUD + 四种检索模式），使用 `NEGENTROPY_SCHEMA` 常量
 - [service.py](../apps/negentropy/src/negentropy/knowledge/service.py) - 业务逻辑（Ingestion + Search + L1 Reranking 集成）
 - [api.py](../apps/negentropy/src/negentropy/knowledge/api.py) - REST API（Dashboard/Base CRUD/Graph/Pipelines）
@@ -238,11 +238,16 @@ KnowledgeError
 
 ### 6.5 配置验证
 
-**ChunkingConfig 验证规则**：
+**ChunkingConfig 验证规则**（按 `strategy` 判别）：
 
-- `chunk_size`: 1 ~ 100000
-- `overlap`: 0 ~ chunk_size \* 0.5
-- `preserve_newlines`: true/false
+- `fixed`: `chunk_size`, `overlap`, `preserve_newlines`
+- `recursive`: `chunk_size`, `overlap`, `separators`, `preserve_newlines`
+- `semantic`: `semantic_threshold`, `semantic_buffer_size`, `min_chunk_size`, `max_chunk_size`
+- `hierarchical`: `hierarchical_parent_chunk_size`, `hierarchical_child_chunk_size`, `hierarchical_child_overlap`, `separators`, `preserve_newlines`
+- `fixed/recursive`: `chunk_size` 范围 `1 ~ 100000`，`overlap` 范围 `0 ~ chunk_size * 0.5`
+- `semantic`: `semantic_buffer_size` 范围 `1 ~ 5`，`max_chunk_size >= min_chunk_size`
+- `hierarchical`: `hierarchical_parent_chunk_size >= hierarchical_child_chunk_size`，`hierarchical_child_overlap < hierarchical_child_chunk_size`
+- 新请求统一优先发送 `chunking_config`；服务端兼容旧的扁平字段，但写回 `corpus.config` 时只保留 canonical 结构
 
 **SearchConfig 验证规则**：
 
@@ -471,7 +476,11 @@ logger.error("database_error", details=exc.details)
 
 1. 在 Corpus 列表项右侧点击 **更多操作** (三点图标)。
 2. 选择 **编辑配置**。
-3. 修改 `Name`, `Description` 或 `Config` (Chunk Size, Overlap 等)。
+3. 修改 `Name`, `Description` 或 `Config`。
+   - `Fixed`: `Chunk Size / Overlap / 保留换行`
+   - `Recursive`: `Chunk Size / Overlap / Separators / 保留换行`
+   - `Semantic`: `Similarity Threshold / Buffer Size / Min Chunk Size / Max Chunk Size`
+   - `Hierarchical`: `Parent Size / Child Size / Child Overlap / Separators / 保留换行`
 4. 点击 **Save** 保存更改。
    - **注意**: 修改 Chunking Config 不会自动重新索引现有文档，仅对新 ingestion 生效。如需应用新配置，请重新 ingest 文档。
 

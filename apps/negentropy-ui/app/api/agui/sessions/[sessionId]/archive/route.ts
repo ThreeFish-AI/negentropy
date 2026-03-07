@@ -1,0 +1,60 @@
+import { safeParseSessionArchiveResponse } from "@/lib/agui/session-schema";
+import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
+import {
+  buildSessionArchiveUpstreamUrl,
+  parseSessionScopeBody,
+  buildSessionUpstreamHeaders,
+  getSessionAguiBaseUrl,
+} from "@/app/api/agui/sessions/_request";
+import {
+  errorResponse as aguiErrorResponse,
+  AGUI_ERROR_CODES,
+} from "@/lib/errors";
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ sessionId: string }> }
+) {
+  const baseUrl = getSessionAguiBaseUrl();
+  if (baseUrl instanceof Response) {
+    return baseUrl;
+  }
+
+  const body = await parseSessionScopeBody(request);
+  if (body instanceof Response) {
+    return body;
+  }
+
+  const { sessionId } = await params;
+  const upstreamUrl = buildSessionArchiveUpstreamUrl(baseUrl, {
+    appName: body.appName,
+    userId: body.userId,
+    sessionId,
+  });
+
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(upstreamUrl, {
+      method: "POST",
+      headers: buildSessionUpstreamHeaders(request, "json-write"),
+      cache: "no-store",
+    });
+  } catch (error) {
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      `Upstream connection failed: ${String(error)}`
+    );
+  }
+
+  const parsed = await parseSessionUpstreamJson({
+    upstreamResponse,
+    parse: safeParseSessionArchiveResponse,
+    invalidPayloadMessage: "Invalid upstream session archive payload",
+    invalidJsonMessage: "Invalid upstream session archive JSON",
+  });
+  if (parsed instanceof Response) {
+    return parsed;
+  }
+
+  return Response.json(parsed.data, { status: parsed.status });
+}

@@ -186,6 +186,28 @@ class TestChunkingConfigValidation:
         with pytest.raises(ValidationError, match="chunk_size must be at least"):
             ChunkingConfig(chunk_size=-1, overlap=0)
 
+    def test_hierarchical_parent_smaller_than_child_raises(self) -> None:
+        with pytest.raises(
+            ValidationError,
+            match="hierarchical_parent_chunk_size must be >=",
+        ):
+            ChunkingConfig(
+                strategy=ChunkingStrategy.HIERARCHICAL,
+                hierarchical_parent_chunk_size=128,
+                hierarchical_child_chunk_size=256,
+            )
+
+    def test_hierarchical_child_overlap_must_be_smaller_than_child_size(self) -> None:
+        with pytest.raises(
+            ValidationError,
+            match="hierarchical_child_overlap must be less than hierarchical_child_chunk_size",
+        ):
+            ChunkingConfig(
+                strategy=ChunkingStrategy.HIERARCHICAL,
+                hierarchical_child_chunk_size=128,
+                hierarchical_child_overlap=128,
+            )
+
 
 class TestChunkingDeterminism:
     """确定性测试"""
@@ -199,6 +221,27 @@ class TestChunkingDeterminism:
         result2 = chunk_text(text, config)
 
         assert result1 == result2
+
+
+class TestHierarchicalChunking:
+    def test_hierarchical_chunk_returns_child_chunks(self) -> None:
+        text = (
+            "第一章介绍系统背景。第一章继续补充实现细节。\n\n"
+            "第二章描述检索链路。第二章继续描述父子分块。"
+        )
+        config = ChunkingConfig(
+            strategy=ChunkingStrategy.HIERARCHICAL,
+            hierarchical_parent_chunk_size=20,
+            hierarchical_child_chunk_size=10,
+            hierarchical_child_overlap=2,
+        )
+
+        result = chunk_text(text, config)
+
+        assert len(result) >= 2
+        combined = " ".join(result)
+        assert "系统背景" in combined
+        assert "父子分块" in combined
 
 
 # ================================
@@ -340,7 +383,6 @@ class TestSemanticChunking:
         text = "第一句。第二句。第三句。第四句。"
         config = ChunkingConfig(
             strategy=ChunkingStrategy.SEMANTIC,
-            chunk_size=100,
             semantic_threshold=0.85,
         )
 
@@ -380,7 +422,7 @@ class TestSemanticChunking:
     async def test_semantic_chunk_fallback_on_embedding_failure(self) -> None:
         """测试嵌入失败时回退到递归分块"""
         text = "第一句。第二句。第三句。"
-        config = ChunkingConfig(strategy=ChunkingStrategy.SEMANTIC, chunk_size=200)
+        config = ChunkingConfig(strategy=ChunkingStrategy.SEMANTIC)
 
         async def failing_embedding(text: str) -> list[float]:
             raise RuntimeError("Embedding failed")
@@ -425,7 +467,7 @@ class TestChunkingStrategy:
 
     def test_config_strategy_invalid_string(self) -> None:
         """测试无效策略字符串"""
-        with pytest.raises(ValidationError, match="strategy must be one of"):
+        with pytest.raises(ValueError, match="not a valid ChunkingStrategy"):
             ChunkingConfig(strategy="invalid")
 
 
@@ -441,9 +483,8 @@ class TestChunkingConfigExtended:
         """测试默认配置"""
         config = ChunkingConfig()
         assert config.strategy == ChunkingStrategy.RECURSIVE
-        assert config.semantic_threshold == 0.85
-        assert config.min_chunk_size == 50
-        assert config.max_chunk_size == 2000
+        assert config.chunk_size == 800
+        assert config.overlap == 100
 
     def test_config_custom_semantic_threshold(self) -> None:
         """测试自定义语义阈值"""

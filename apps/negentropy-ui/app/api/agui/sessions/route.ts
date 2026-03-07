@@ -1,44 +1,35 @@
 import { NextResponse } from "next/server";
-import { buildAuthHeaders } from "@/lib/sso";
+import { safeParseCreateSessionResponse } from "@/lib/agui/session-schema";
+import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
+import {
+  buildSessionCreateUpstreamUrl,
+  parseSessionCreateBody,
+  buildSessionUpstreamHeaders,
+  getSessionAguiBaseUrl,
+} from "@/app/api/agui/sessions/_request";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
 
-function getBaseUrl() {
-  return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
-}
-
 export async function POST(request: Request) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return aguiErrorResponse(AGUI_ERROR_CODES.INTERNAL_ERROR, "AGUI_BASE_URL is not configured");
+  const baseUrl = getSessionAguiBaseUrl();
+  if (baseUrl instanceof Response) {
+    return baseUrl;
   }
 
-  let body: {
-    app_name?: string;
-    user_id?: string;
-    session_id?: string;
-    state?: Record<string, unknown>;
-    events?: unknown[];
-  };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch (error) {
-    return aguiErrorResponse(AGUI_ERROR_CODES.BAD_REQUEST, `Invalid JSON body: ${String(error)}`);
+  const body = await parseSessionCreateBody(request);
+  if (body instanceof Response) {
+    return body;
   }
 
-  if (!body?.app_name || !body?.user_id) {
-    return aguiErrorResponse(AGUI_ERROR_CODES.BAD_REQUEST, "app_name and user_id are required");
-  }
-
-  const upstreamUrl = new URL(
-    `/apps/${encodeURIComponent(body.app_name)}/users/${encodeURIComponent(body.user_id)}/sessions`,
-    baseUrl
-  );
+  const upstreamUrl = buildSessionCreateUpstreamUrl(baseUrl, {
+    appName: body.appName,
+    userId: body.userId,
+  });
 
   const payload = {
-    session_id: body.session_id,
+    session_id: body.sessionId,
     state: body.state,
     events: body.events,
   };
@@ -47,10 +38,7 @@ export async function POST(request: Request) {
   try {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "POST",
-      headers: {
-        ...Object.fromEntries(buildAuthHeaders(request)),
-        "Content-Type": "application/json",
-      },
+      headers: buildSessionUpstreamHeaders(request, "json-write"),
       body: JSON.stringify(payload),
       cache: "no-store",
     });
@@ -58,14 +46,15 @@ export async function POST(request: Request) {
     return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, `Upstream connection failed: ${String(error)}`);
   }
 
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, text || "Upstream returned non-OK status");
+  const parsed = await parseSessionUpstreamJson({
+    upstreamResponse,
+    parse: safeParseCreateSessionResponse,
+    invalidPayloadMessage: "Invalid upstream session create payload",
+    invalidJsonMessage: "Invalid upstream session create JSON",
+  });
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  try {
-    return NextResponse.json(JSON.parse(text), { status: upstreamResponse.status });
-  } catch {
-    return NextResponse.json({ raw: text }, { status: upstreamResponse.status });
-  }
+  return NextResponse.json(parsed.data, { status: parsed.status });
 }

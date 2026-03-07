@@ -10,7 +10,7 @@ name = "negentropy"
 version = "0.1.0"
 description = "An entropy-reducing 'cultivation' system for AI agents."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     # Database Drivers & ORM
     "asyncpg>=0.31.0",              # High-performance async PostgreSQL driver
@@ -21,6 +21,7 @@ dependencies = [
     # Core Infrastructure
     "google-adk>=1.23.0",           # Google Agent Development Kit foundation
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
+    "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
     "pydantic-settings>=2.12.0",    # Configuration management using Pydantic models
     
     # LLM & AI Services

@@ -7,6 +7,7 @@
 
 import { useMemo } from "react";
 import { BaseEvent, EventType } from "@ag-ui/core";
+import { getEventMessageId } from "@/types/agui";
 
 /**
  * useEventFilter Hook 参数
@@ -52,8 +53,12 @@ export function useEventFilter(
         event.type === EventType.TEXT_MESSAGE_CONTENT ||
         event.type === EventType.TEXT_MESSAGE_END
       ) {
-        const messageId = "messageId" in event ? event.messageId : undefined;
-        const timestamp = "timestamp" in event ? event.timestamp : undefined;
+        const messageId =
+          getEventMessageId(event);
+        const timestamp =
+          "timestamp" in event && typeof event.timestamp === "number"
+            ? event.timestamp
+            : undefined;
 
         if (messageId && timestamp !== undefined) {
           // 存储此消息的时间戳

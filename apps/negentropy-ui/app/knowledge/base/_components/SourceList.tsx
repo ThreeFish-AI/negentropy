@@ -1,40 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import type { SourceSummary } from "@/features/knowledge";
 
 interface SourceListProps {
-  sourceStats: Map<string | null, number>;
+  sources: SourceSummary[];
   selectedUri: string | null | undefined;
   onSelect: (uri: string | null | undefined) => void;
   onAddSource?: () => void;
   onReplaceSource?: (uri: string) => void;
   onSyncSource?: (uri: string) => void;
   onRebuildSource?: (uri: string) => void;
+  onDeleteSource?: (payload: { uri: string; name: string }) => void;
+  onArchiveSource?: (uri: string) => void;
+  onUnarchiveSource?: (uri: string) => void;
 }
 
-/**
- * 判断是否为 URL 类型的 Source
- * 只有 URL 类型的 Source 才支持 Sync 操作
- */
-function isUrlSource(uri: string): boolean {
-  return uri.startsWith("http://") || uri.startsWith("https://");
-}
-
-/**
- * 判断是否为 GCS 类型的 Source
- * 只有 GCS 类型的 Source 才支持 Rebuild 操作
- */
-function isGcsSource(uri: string): boolean {
-  return uri.startsWith("gs://");
-}
-
-/**
- * 获取 Source 的显示名称
- * - GCS URI: 提取最后一部分作为文件名
- * - URL: 保持原样
- * - 其他: 保持原样
- */
-function getDisplayUri(uri: string): string {
+function getFallbackDisplayName(uri: string): string {
   if (uri.startsWith("gs://")) {
     const parts = uri.split("/");
     return parts[parts.length - 1] || uri;
@@ -43,28 +25,27 @@ function getDisplayUri(uri: string): string {
 }
 
 export function SourceList({
-  sourceStats,
+  sources,
   selectedUri,
   onSelect,
   onAddSource,
   onReplaceSource,
   onSyncSource,
   onRebuildSource,
+  onDeleteSource,
+  onArchiveSource,
+  onUnarchiveSource,
 }: SourceListProps) {
-  const totalCount = Array.from(sourceStats.values()).reduce((sum, c) => sum + c, 0);
+  const totalCount = sources.reduce((sum, item) => sum + item.count, 0);
 
-  // 转换为数组并排序
-  const sortedSources = Array.from(sourceStats.entries())
-    .map(([uri, count]) => ({ uri, count }))
-    .sort((a, b) => {
-      if (a.uri === null) return 1;
-      if (b.uri === null) return -1;
-      return a.uri.localeCompare(b.uri);
-    });
+  const sortedSources = [...sources].sort((a, b) => {
+    if (a.source_uri === null) return 1;
+    if (b.source_uri === null) return -1;
+    return a.source_uri.localeCompare(b.source_uri);
+  });
 
   return (
     <div className="space-y-1">
-      {/* All Sources 选项 */}
       <button
         className={`w-full rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
           selectedUri === undefined
@@ -77,7 +58,6 @@ export function SourceList({
         <span className="ml-1.5 text-[10px] opacity-70">({totalCount})</span>
       </button>
 
-      {/* Add Source 按钮 */}
       {onAddSource && (
         <button
           onClick={onAddSource}
@@ -87,18 +67,21 @@ export function SourceList({
         </button>
       )}
 
-      {/* 分隔线 */}
-      {sortedSources.length > 0 && (
-        <div className="my-1.5 border-t border-border" />
-      )}
+      {sortedSources.length > 0 && <div className="my-1.5 border-t border-border" />}
 
-      {/* 具体 Source 列表 */}
-      {sortedSources.map(({ uri, count }) => {
-        const displayUri = uri ? getDisplayUri(uri) : "(无来源)";
+      {sortedSources.map((source) => {
+        const uri = source.source_uri;
+        const displayName = source.display_name || (uri ? getFallbackDisplayName(uri) : "(无来源)");
         const key = uri ?? "__no_source__";
-        const showMenu = uri && (onReplaceSource || onSyncSource || onRebuildSource);
-        const isUrl = uri ? isUrlSource(uri) : false;
-        const isGcs = uri ? isGcsSource(uri) : false;
+        const showMenu = Boolean(
+          uri &&
+            (onReplaceSource ||
+              onSyncSource ||
+              onRebuildSource ||
+              onDeleteSource ||
+              onArchiveSource ||
+              onUnarchiveSource),
+        );
 
         return (
           <div key={key} className="flex min-w-0 items-center gap-1">
@@ -109,22 +92,26 @@ export function SourceList({
                   : "text-muted hover:bg-muted/50 hover:text-foreground"
               }`}
               onClick={() => onSelect(uri)}
-              title={uri || "(无来源)"}
+              title={displayName}
             >
-              <span className="block truncate">{displayUri}</span>
+              <span className="block truncate">{displayName}</span>
               <span className="text-[10px] opacity-70">
-                {count} chunk{count > 1 ? "s" : ""}
+                {source.count} chunk{source.count > 1 ? "s" : ""}
+                {source.archived ? " · Archived" : ""}
               </span>
             </button>
-            {/* 操作菜单 */}
-            {showMenu && (
+            {showMenu && uri && (
               <SourceMenu
-                uri={uri!}
-                isUrl={isUrl}
-                isGcs={isGcs}
+                uri={uri}
+                displayName={displayName}
+                sourceType={source.source_type}
+                archived={source.archived}
                 onReplace={onReplaceSource}
                 onSync={onSyncSource}
                 onRebuild={onRebuildSource}
+                onDelete={onDeleteSource}
+                onArchive={onArchiveSource}
+                onUnarchive={onUnarchiveSource}
               />
             )}
           </div>
@@ -134,41 +121,46 @@ export function SourceList({
   );
 }
 
-/**
- * Source 操作下拉菜单
- * 使用原生 CSS 实现，避免引入额外依赖
- */
 function SourceMenu({
   uri,
-  isUrl,
-  isGcs,
+  displayName,
+  sourceType,
+  archived,
   onReplace,
   onSync,
   onRebuild,
+  onDelete,
+  onArchive,
+  onUnarchive,
 }: {
   uri: string;
-  isUrl: boolean;
-  isGcs: boolean;
+  displayName: string;
+  sourceType: "file" | "url" | "text" | "unknown";
+  archived: boolean;
   onReplace?: (uri: string) => void;
   onSync?: (uri: string) => void;
   onRebuild?: (uri: string) => void;
+  onDelete?: (payload: { uri: string; name: string }) => void;
+  onArchive?: (uri: string) => void;
+  onUnarchive?: (uri: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleReplace = () => {
+  const closeAndRun = (fn?: (uri: string) => void) => {
     setIsOpen(false);
-    onReplace?.(uri);
+    fn?.(uri);
   };
 
-  const handleSync = () => {
+  const closeAndRunDelete = () => {
     setIsOpen(false);
-    onSync?.(uri);
+    onDelete?.({
+      uri,
+      name: displayName,
+    });
   };
 
-  const handleRebuild = () => {
-    setIsOpen(false);
-    onRebuild?.(uri);
-  };
+  const isFile = sourceType === "file";
+  const isUrl = sourceType === "url";
 
   return (
     <div className="relative shrink-0">
@@ -177,12 +169,7 @@ function SourceMenu({
         className="rounded p-1 text-muted hover:bg-muted/50 hover:text-foreground"
         title="Source actions"
       >
-        <svg
-          className="h-3.5 w-3.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -192,77 +179,74 @@ function SourceMenu({
         </svg>
       </button>
 
-      {/* 下拉菜单 */}
       {isOpen && (
         <>
-          {/* 背景遮罩（点击关闭） */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          {/* 菜单内容 */}
-          <div className="absolute right-0 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-border bg-card p-1 shadow-lg">
-            {onReplace && (
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full z-20 mt-1 min-w-[136px] rounded-lg border border-border bg-card p-1 shadow-lg">
+            {onReplace && !isFile && (
               <button
-                onClick={handleReplace}
+                onClick={() => closeAndRun(onReplace)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
               >
-                <svg
-                  className="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.232-6.232a2.5 2.5 0 113.536 3.536L12.536 16.536a4 4 0 01-1.79 1.024L7 18l.44-3.746A4 4 0 018.464 12.464z" />
                 </svg>
                 Replace
               </button>
             )}
             {onSync && isUrl && (
               <button
-                onClick={handleSync}
+                onClick={() => closeAndRun(onSync)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
               >
-                <svg
-                  className="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Sync
               </button>
             )}
-            {onRebuild && isGcs && (
+            {onRebuild && isFile && (
               <button
-                onClick={handleRebuild}
+                onClick={() => closeAndRun(onRebuild)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
               >
-                <svg
-                  className="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Rebuild
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={closeAndRunDelete}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+                </svg>
+                Delete
+              </button>
+            )}
+            {!archived && onArchive && (
+              <button
+                onClick={() => closeAndRun(onArchive)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8l1 11h12l1-11M9 8V5a3 3 0 016 0v3" />
+                </svg>
+                Archive
+              </button>
+            )}
+            {archived && onUnarchive && (
+              <button
+                onClick={() => closeAndRun(onUnarchive)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-muted/50 hover:text-foreground"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14m-7-7v14" />
+                </svg>
+                Unarchive
               </button>
             )}
           </div>

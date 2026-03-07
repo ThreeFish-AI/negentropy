@@ -6,16 +6,15 @@ from __future__ import annotations
 
 import logging
 import sys
+from datetime import UTC, datetime
 from typing import Any
-from datetime import datetime, timezone
 
 import structlog
 from structlog.typing import EventDict, WrappedLogger
-from structlog import stdlib
 
-from .sinks import BaseSink, StdioSink, FileSink, GCloudSink, LogFormat
 from .formatters import ConsoleFormatter
 from .io import StreamToLogger
+from .sinks import BaseSink, FileSink, GCloudSink, LogFormat, StdioSink
 
 # =============================================================================
 # Global State
@@ -36,7 +35,7 @@ def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
 
 def add_timestamp(logger: WrappedLogger, method_name: str, event_dict: EventDict) -> EventDict:
     """Add ISO 8601 timestamp to log event."""
-    event_dict["timestamp"] = datetime.now(timezone.utc).isoformat()
+    event_dict.setdefault("timestamp", datetime.now(UTC).isoformat())
     return event_dict
 
 

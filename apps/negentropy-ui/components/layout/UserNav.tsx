@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/providers/AuthProvider";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -50,17 +51,12 @@ export function UserNav() {
             : "hover:bg-muted hover:border-border",
         )}
       >
-        {user.picture ? (
-          <img
-            src={user.picture}
-            alt={user.name || "User"}
-            className="h-7 w-7 rounded-full border border-border object-cover"
-          />
-        ) : (
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-            {(user.name || user.email || "?").slice(0, 1).toUpperCase()}
-          </div>
-        )}
+        <UserAvatar
+          picture={user.picture}
+          name={user.name}
+          email={user.email}
+          className="h-7 w-7 object-cover"
+        />
         <span className="text-xs font-medium text-muted-foreground hidden sm:inline-block max-w-[100px] truncate hover:text-foreground">
           {user.name || "User"}
         </span>

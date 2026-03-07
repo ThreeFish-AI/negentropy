@@ -1,69 +1,61 @@
 import { NextResponse } from "next/server";
-import { buildAuthHeaders } from "@/lib/sso";
-
-function getBaseUrl() {
-  return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
-}
-
-function errorResponse(code: string, message: string, status = 500) {
-  return NextResponse.json(
-    {
-      error: {
-        code,
-        message,
-      },
-    },
-    { status }
-  );
-}
+import { safeParseSessionDetailResponse } from "@/lib/agui/session-schema";
+import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
+import {
+  buildSessionDetailUpstreamUrl,
+  parseSessionQueryScope,
+  buildSessionUpstreamHeaders,
+  getSessionAguiBaseUrl,
+} from "@/app/api/agui/sessions/_request";
+import {
+  errorResponse as aguiErrorResponse,
+  AGUI_ERROR_CODES,
+} from "@/lib/errors";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return errorResponse("AGUI_INTERNAL_ERROR", "AGUI_BASE_URL is not configured", 500);
+  const baseUrl = getSessionAguiBaseUrl();
+  if (baseUrl instanceof Response) {
+    return baseUrl;
+  }
+
+  const scope = parseSessionQueryScope(request);
+  if (scope instanceof Response) {
+    return scope;
   }
 
   const { sessionId } = await params;
-  const { searchParams } = new URL(request.url);
-  const appName = searchParams.get("app_name");
-  const userId = searchParams.get("user_id");
-
-  if (!appName || !userId) {
-    return errorResponse("AGUI_BAD_REQUEST", "app_name and user_id are required", 400);
-  }
-
-  const upstreamUrl = new URL(
-    `/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(
-      sessionId
-    )}`,
-    baseUrl
-  );
+  const upstreamUrl = buildSessionDetailUpstreamUrl(baseUrl, {
+    appName: scope.appName,
+    userId: scope.userId,
+    sessionId,
+  });
 
   let upstreamResponse: Response;
   try {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "GET",
-      headers: {
-        ...Object.fromEntries(buildAuthHeaders(request)),
-        Accept: "application/json",
-      },
+      headers: buildSessionUpstreamHeaders(request, "json-read"),
       cache: "no-store",
     });
   } catch (error) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      `Upstream connection failed: ${String(error)}`,
+    );
   }
 
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return errorResponse("AGUI_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
+  const parsed = await parseSessionUpstreamJson({
+    upstreamResponse,
+    parse: safeParseSessionDetailResponse,
+    invalidPayloadMessage: "Invalid upstream session detail payload",
+    invalidJsonMessage: "Invalid upstream session detail JSON",
+  });
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  try {
-    return NextResponse.json(JSON.parse(text), { status: upstreamResponse.status });
-  } catch {
-    return NextResponse.json({ raw: text }, { status: upstreamResponse.status });
-  }
+  return NextResponse.json(parsed.data, { status: parsed.status });
 }

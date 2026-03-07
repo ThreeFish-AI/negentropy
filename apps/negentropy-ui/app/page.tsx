@@ -12,69 +12,65 @@ import { BaseEvent, EventType, Message } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
-import { EventTimeline, TimelineItem } from "../components/ui/EventTimeline";
-import { SiteHeader } from "../components/layout/SiteHeader";
+import { EventTimeline } from "../components/ui/EventTimeline";
 import { useAuth } from "../components/providers/AuthProvider";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
-import { ConfirmationToolCard } from "../components/ui/ConfirmationToolCard";
-import {
-  AdkEventPayload,
-  adkEventToAguiEvents,
-  adkEventsToMessages,
-  adkEventsToSnapshot,
-} from "@/lib/adk";
+import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
+import { AdkEventPayload } from "@/lib/adk";
+import { collectAdkEventPayloads } from "@/lib/adk";
 
-// 提取的 Hooks
-import { useSessionManager } from "@/hooks/useSessionManager";
-import { useEventProcessor } from "@/hooks/useEventProcessor";
-import { useUIState } from "@/hooks/useUIState";
-import {
-  useConfirmationTool,
-  type ConfirmationToolArgs,
-} from "@/hooks/useConfirmationTool";
+import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
-import { createSessionLabel, buildAgentUrl } from "@/utils/session";
+import { createSessionLabel, buildAgentUrl, toSessionRecord } from "@/utils/session";
+import type { SessionListView } from "@/utils/session";
 import {
   normalizeMessageContent,
-  buildChatMessagesFromEventsWithFallback,
-  ensureUniqueMessageIds,
 } from "@/utils/message";
+import {
+  mergeOptimisticMessages,
+  reconcileOptimisticMessages,
+} from "@/utils/message-merge";
 import { buildTimelineItems } from "@/utils/timeline";
 import { buildStateSnapshotFromEvents } from "@/utils/state";
+import {
+  buildConversationTree,
+  buildNodeTimestampIndex,
+} from "@/utils/conversation-tree";
+import {
+  deriveConnectionState,
+  deriveRunStates,
+  hasSameEventSequence,
+  hasSameMessageSequence,
+  hydrateSessionDetail,
+  mergeEvents,
+  mergeMessages,
+} from "@/utils/session-hydration";
 
 // 统一的类型定义
 import type {
   ConnectionState,
   SessionRecord,
   LogEntry,
-  AuthUser,
-  AuthStatus,
-  ChatMessage,
 } from "@/types/common";
 
 const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
-const EMPTY_MESSAGES: Message[] = [];
 
 export function HomeBody({
   sessionId,
   userId,
-  user,
   setSessionId,
   sessions,
   setSessions,
-  onLogout,
 }: {
   sessionId: string | null;
   userId: string;
-  user: AuthUser | null;
   setSessionId: (id: string | null) => void;
   sessions: SessionRecord[];
   setSessions: React.Dispatch<React.SetStateAction<SessionRecord[]>>;
-  onLogout: () => void;
 }) {
   const { agent } = useAgent({
     agentId: AGENT_ID,
@@ -83,6 +79,7 @@ export function HomeBody({
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [sessionListView, setSessionListView] = useState<SessionListView>("active");
   const metricsRef = useRef({
     runCount: 0,
     errorCount: 0,
@@ -91,6 +88,7 @@ export function HomeBody({
     lastRunMs: 0,
   });
   const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const hydrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
@@ -101,14 +99,28 @@ export function HomeBody({
     unknown
   > | null>(null);
   const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
-    null,
-  );
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const loadedSessionIdRef = useRef<string | null>(null);
+  const rawEventsRef = useRef<BaseEvent[]>([]);
+  const activeSessionIdRef = useRef<string | null>(sessionId);
+  const hydrationRequestVersionRef = useRef(0);
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
     [sessions, sessionId],
   );
+
+  useEffect(() => {
+    loadedSessionIdRef.current = loadedSessionId;
+  }, [loadedSessionId]);
+
+  useEffect(() => {
+    rawEventsRef.current = rawEvents;
+  }, [rawEvents]);
+
+  useEffect(() => {
+    activeSessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   const addLog = useCallback(
     (
@@ -157,16 +169,6 @@ export function HomeBody({
     },
     [addLog],
   );
-
-  // ... (keeping intervening code if any, but replacing the function block to be safe)
-  // Wait, replace_file_content needs contiguous block.
-  // I will split this into two replacements if needed or just target updateCurrentSessionTime first.
-
-  // Actually, I can do it in two chunks? No, replace_file_content is single contiguous.
-  // I will use multi_replace_file_content for safety if I need to touch multiple places,
-  // or just replace updateCurrentSessionTime block first.
-
-  // use multi_replace_file_content to fix both locations.
 
   const setConnectionWithMetrics = useCallback(
     (next: ConnectionState) => {
@@ -225,7 +227,7 @@ export function HomeBody({
       },
       onEvent: ({ event }) =>
         setRawEvents((prev) => {
-          const next = [...prev, event];
+          const next = mergeEvents(prev, [event]);
           return next.slice(-10000);
         }),
     });
@@ -238,67 +240,67 @@ export function HomeBody({
     rawEvents.forEach((event) => {
       if (
         event.type === EventType.TOOL_CALL_START &&
+        "toolCallName" in event &&
+        "toolCallId" in event &&
         event.toolCallName === "ui.confirmation"
       ) {
-        pending.add(event.toolCallId);
+        pending.add(String(event.toolCallId));
       }
-      if (event.type === EventType.TOOL_CALL_RESULT) {
-        pending.delete(event.toolCallId);
+      if (event.type === EventType.TOOL_CALL_RESULT && "toolCallId" in event) {
+        pending.delete(String(event.toolCallId));
       }
     });
     return pending.size;
   }, [rawEvents]);
 
-  // Build message-timestamp map from raw events for filtering
-  const messageTimestamps = useMemo(() => {
-    const timestampMap = new Map<string, number>();
+  const derivedRunStates = useMemo(() => deriveRunStates(rawEvents), [rawEvents]);
+  const latestRunState = useMemo(
+    () => derivedRunStates[derivedRunStates.length - 1] || null,
+    [derivedRunStates],
+  );
+  const effectiveConnection = useMemo(() => {
+    const derived = deriveConnectionState(rawEvents);
+    if (derived === "blocked" || derived === "error") {
+      return derived;
+    }
+    if (connection === "connecting" || connection === "streaming") {
+      return connection;
+    }
+    if (connection === "error") {
+      return connection;
+    }
+    if (connection === "idle" && derived === "streaming") {
+      return "idle";
+    }
+    return derived;
+  }, [connection, rawEvents]);
 
-    // Process all TEXT_MESSAGE events to build the map
-    rawEvents.forEach((event) => {
-      if (
-        event.type === EventType.TEXT_MESSAGE_START ||
-        event.type === EventType.TEXT_MESSAGE_CONTENT ||
-        event.type === EventType.TEXT_MESSAGE_END
-      ) {
-        const messageId = "messageId" in event ? event.messageId : undefined;
-        const timestamp = "timestamp" in event ? event.timestamp : undefined;
+  // 根据选中的节点时间范围过滤事件，右侧保持历史视图能力
+  const nodeTimestampIndex = useMemo(() => {
+    const merged = [...sessionMessages, ...optimisticMessages];
+    return buildNodeTimestampIndex(
+      buildConversationTree({
+        events: rawEvents,
+        fallbackMessages: merged,
+      }),
+    );
+  }, [optimisticMessages, rawEvents, sessionMessages]);
 
-        if (messageId && timestamp !== undefined) {
-          // Store the timestamp for this message
-          if (!timestampMap.has(messageId)) {
-            timestampMap.set(messageId, timestamp);
-          }
-        }
-      }
-    });
-
-    // Also backfill from sessionMessages for any messages without event timestamps
-    sessionMessages.forEach((message) => {
-      if (!timestampMap.has(message.id) && message.createdAt) {
-        timestampMap.set(message.id, message.createdAt.getTime() / 1000);
-      }
-    });
-
-    return timestampMap;
-  }, [rawEvents, sessionMessages]);
-
-  // Filter events based on selected message timestamp
   const filteredRawEvents = useMemo(() => {
-    if (!selectedMessageId) {
-      return rawEvents; // Show all events (current behavior)
+    if (!selectedNodeId) {
+      return rawEvents;
     }
 
-    const cutoffTimestamp = messageTimestamps.get(selectedMessageId);
+    const cutoffTimestamp = nodeTimestampIndex.get(selectedNodeId);
     if (cutoffTimestamp === undefined) {
-      return rawEvents; // Message not found, show all
+      return rawEvents;
     }
 
-    // Filter events to only those before/at the selected message's timestamp
     return rawEvents.filter((event) => {
       const eventTimestamp = event.timestamp || 0;
       return eventTimestamp <= cutoffTimestamp;
     });
-  }, [rawEvents, selectedMessageId, messageTimestamps]);
+  }, [nodeTimestampIndex, rawEvents, selectedNodeId]);
 
   const compactedEvents = useMemo(
     () => compactEvents(filteredRawEvents),
@@ -309,30 +311,44 @@ export function HomeBody({
     [compactedEvents],
   );
 
+  const clearTitleRefreshTimers = useCallback(() => {
+    titleRefreshTimersRef.current.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    titleRefreshTimersRef.current = [];
+  }, []);
+
+  const clearHydrationTimers = useCallback(() => {
+    hydrationTimersRef.current.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    hydrationTimersRef.current = [];
+  }, []);
+
+  const clearSessionState = useCallback(() => {
+    clearHydrationTimers();
+    clearTitleRefreshTimers();
+    setSessionMessages([]);
+    setOptimisticMessages([]);
+    setSessionSnapshot(null);
+    setRawEvents([]);
+    setLoadedSessionId(null);
+    setSelectedNodeId(null);
+  }, [clearHydrationTimers, clearTitleRefreshTimers]);
+
   const loadSessions = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/agui/sessions/list?app_name=${encodeURIComponent(APP_NAME)}&user_id=${encodeURIComponent(
           userId,
-        )}`,
+        )}&archived=${sessionListView === "archived" ? "true" : "false"}`,
       );
       const payload = await response.json();
       if (!response.ok || !Array.isArray(payload)) {
         return;
       }
       const nextSessions = payload
-        .map(
-          (session: {
-            id: string;
-            lastUpdateTime?: number;
-            state?: { metadata?: { title?: string } };
-          }) => ({
-            id: session.id,
-            label:
-              session.state?.metadata?.title || createSessionLabel(session.id),
-            lastUpdateTime: session.lastUpdateTime,
-          }),
-        )
+        .map(toSessionRecord)
         .sort(
           (a: SessionRecord, b: SessionRecord) =>
             (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
@@ -351,7 +367,93 @@ export function HomeBody({
       addLog("error", "load_sessions_failed", { message: String(error) });
       console.warn("Failed to load sessions", error);
     }
-  }, [addLog, userId, sessionId, updateCurrentSessionTime]);
+  }, [addLog, sessionId, sessionListView, setConnectionWithMetrics, setSessionId, setSessions, userId]);
+
+  const archiveSession = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(id)}/archive`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              app_name: APP_NAME,
+              user_id: userId,
+            }),
+          },
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error?.message || "archive_session_failed");
+        }
+
+        let nextActiveId: string | null = null;
+        setSessions((prev) => {
+          const next = prev.filter((session) => session.id !== id);
+          nextActiveId = next[0]?.id ?? null;
+          return next;
+        });
+
+        if (sessionId === id) {
+          setSessionId(nextActiveId);
+          clearSessionState();
+        }
+
+        addLog("info", "session_archived", { sessionId: id });
+      } catch (error) {
+        addLog("error", "archive_session_failed", {
+          message: String(error),
+          sessionId: id,
+        });
+      }
+    },
+    [addLog, clearSessionState, sessionId, setSessionId, setSessions, userId],
+  );
+
+  const unarchiveSession = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(id)}/unarchive`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              app_name: APP_NAME,
+              user_id: userId,
+            }),
+          },
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error?.message || "unarchive_session_failed");
+        }
+
+        let nextActiveId: string | null = null;
+        setSessions((prev) => {
+          const next = prev.filter((session) => session.id !== id);
+          nextActiveId = next[0]?.id ?? null;
+          return next;
+        });
+        if (sessionId === id) {
+          setSessionId(nextActiveId);
+          clearSessionState();
+        }
+        addLog("info", "session_unarchived", { sessionId: id });
+      } catch (error) {
+        addLog("error", "unarchive_session_failed", {
+          message: String(error),
+          sessionId: id,
+        });
+      }
+    },
+    [addLog, clearSessionState, sessionId, setSessionId, setSessions, userId],
+  );
 
   const renameSession = useCallback(
     async (id: string, title: string) => {
@@ -412,14 +514,13 @@ export function HomeBody({
     [addLog, createSessionLabel, loadSessions, setSessions, userId],
   );
 
-  const clearTitleRefreshTimers = useCallback(() => {
-    titleRefreshTimersRef.current.forEach((timer) => {
-      clearTimeout(timer);
-    });
-    titleRefreshTimersRef.current = [];
-  }, []);
-
-  useEffect(() => () => clearTitleRefreshTimers(), [clearTitleRefreshTimers]);
+  useEffect(
+    () => () => {
+      clearTitleRefreshTimers();
+      clearHydrationTimers();
+    },
+    [clearHydrationTimers, clearTitleRefreshTimers],
+  );
 
   const scheduleTitleRefresh = useCallback(() => {
     clearTitleRefreshTimers();
@@ -447,11 +548,7 @@ export function HomeBody({
       const payload = await response.json();
       if (!response.ok) {
         if (response.status === 404) {
-          addLog("warn", "session_not_found", { sessionId: id });
-          setSessions((prev) => prev.filter((session) => session.id !== id));
-          if (sessionId === id) {
-            setSessionId(null);
-          }
+          addLog("warn", "session_not_found", { context: "startNewSession" });
         }
         return;
       }
@@ -472,6 +569,7 @@ export function HomeBody({
 
   const loadSessionDetail = useCallback(
     async (id: string) => {
+      const requestVersion = ++hydrationRequestVersionRef.current;
       try {
         const response = await fetch(
           `/api/agui/sessions/${encodeURIComponent(id)}?app_name=${encodeURIComponent(
@@ -482,21 +580,46 @@ export function HomeBody({
         if (!response.ok) {
           return;
         }
-        const events = Array.isArray(payload.events)
-          ? (payload.events as AdkEventPayload[])
-          : [];
-        const messages = adkEventsToMessages(events);
-        const snapshot = adkEventsToSnapshot(events);
-        const mappedEvents = events.flatMap(adkEventToAguiEvents);
-
-        setRawEvents(mappedEvents);
-        setSessionMessages(messages);
-        setSessionSnapshot(snapshot || null);
-        setLoadedSessionId(id);
-        if (agent) {
-          agent.setMessages(messages);
-          agent.setState(snapshot || {});
+        if (
+          hydrationRequestVersionRef.current !== requestVersion ||
+          activeSessionIdRef.current !== id
+        ) {
+          return;
         }
+        const { payloads: events, invalidCount } = collectAdkEventPayloads(payload.events);
+        if (invalidCount > 0) {
+          addLog("warn", "session_detail_events_filtered", {
+            sessionId: id,
+            invalidCount,
+          });
+        }
+        const hydrated = hydrateSessionDetail(events, id);
+        const currentLoadedSessionId = loadedSessionIdRef.current;
+        const currentRawEvents = rawEventsRef.current;
+
+        setRawEvents((prev) => {
+          const shouldMerge =
+            currentLoadedSessionId === id ||
+            (sessionId === id && currentRawEvents.length > 0);
+          const next = shouldMerge ? mergeEvents(prev, hydrated.events) : hydrated.events;
+          return hasSameEventSequence(prev, next) ? prev : next;
+        });
+        setSessionMessages((prev) => {
+          const shouldMerge =
+            currentLoadedSessionId === id ||
+            (sessionId === id && currentRawEvents.length > 0);
+          const next = shouldMerge
+            ? mergeMessages(prev, hydrated.messages)
+            : hydrated.messages;
+          return hasSameMessageSequence(prev, next) ? prev : next;
+        });
+        setSessionSnapshot((prev) =>
+          currentLoadedSessionId === id ||
+          (sessionId === id && currentRawEvents.length > 0)
+            ? (hydrated.snapshot ?? prev)
+            : hydrated.snapshot,
+        );
+        setLoadedSessionId(id);
       } catch (error) {
         setConnectionWithMetrics("error");
         addLog("error", "load_session_detail_failed", {
@@ -506,33 +629,56 @@ export function HomeBody({
       }
     },
     [
-      agent,
       userId,
       setConnectionWithMetrics,
       addLog,
       sessionId,
-      setSessionId,
-      setSessions,
     ],
   );
 
-  const resolvedThreadId = sessionId ?? "pending";
+  const scheduleSessionHydration = useCallback(
+    (id: string) => {
+      clearHydrationTimers();
+      const hasLiveAssistantOutput = rawEventsRef.current.some(
+        (event) =>
+          event.type === EventType.TEXT_MESSAGE_CONTENT &&
+          "threadId" in event &&
+          event.threadId === id,
+      );
+      const delays = hasLiveAssistantOutput ? [1200, 2800] : [0, 250, 800, 1600];
+      delays.forEach((delay) => {
+        const timer = setTimeout(() => {
+          void loadSessionDetail(id);
+        }, delay);
+        hydrationTimersRef.current.push(timer);
+      });
+    },
+    [clearHydrationTimers, loadSessionDetail],
+  );
+
   const handleConfirmationFollowup = useCallback(
     async (payload: { action: string; note: string }) => {
-      if (!agent || !sessionId || agent.isRunning) {
+      if (
+        !agent ||
+        !sessionId ||
+        agent.isRunning ||
+        effectiveConnection === "streaming" ||
+        effectiveConnection === "connecting"
+      ) {
         return;
       }
-      agent.addMessage({
+      const followupMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
         content: `HITL:${payload.action} ${payload.note || ""}`.trim(),
-      });
+      };
+      agent.addMessage(followupMessage);
       try {
         setConnectionWithMetrics("connecting");
         await agent.runAgent({
           runId: randomUUID(),
-          threadId: resolvedThreadId,
         });
+        scheduleSessionHydration(sessionId);
         await loadSessions();
       } catch (error) {
         setConnectionWithMetrics("error");
@@ -540,7 +686,15 @@ export function HomeBody({
         console.warn("Failed to submit HITL response", error);
       }
     },
-    [agent, loadSessions, resolvedThreadId, sessionId],
+    [
+      agent,
+      addLog,
+      effectiveConnection,
+      loadSessions,
+      scheduleSessionHydration,
+      sessionId,
+      setConnectionWithMetrics,
+    ],
   );
 
   useConfirmationTool(handleConfirmationFollowup);
@@ -548,31 +702,40 @@ export function HomeBody({
   // Escape key to return to live view
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedMessageId) {
-        setSelectedMessageId(null);
+      if (e.key === "Escape" && selectedNodeId) {
+        setSelectedNodeId(null);
         setShowRightPanel(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedMessageId]);
+  }, [selectedNodeId]);
 
   const sendInput = async () => {
     if (!agent || !sessionId || !inputValue.trim()) {
       return;
     }
-    if (pendingConfirmations > 0) {
+    if (
+      pendingConfirmations > 0 ||
+      effectiveConnection === "streaming" ||
+      effectiveConnection === "connecting" ||
+      effectiveConnection === "blocked"
+    ) {
       return;
     }
 
+    const runId = randomUUID();
     const messageId = crypto.randomUUID();
-    const timestamp = Date.now() / 1000;
-    const newMessage: Message = {
+    const createdAt = new Date();
+    const newMessage = {
       id: messageId,
       role: "user",
       content: inputValue.trim(),
-      createdAt: new Date(timestamp * 1000),
-    };
+      createdAt,
+      runId,
+      threadId: sessionId,
+      streaming: false,
+    } as Message;
     // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
     // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
     setOptimisticMessages((prev) => [...prev, newMessage]);
@@ -586,7 +749,10 @@ export function HomeBody({
       (!activeSession || activeSession.label === createSessionLabel(sessionId));
     try {
       setConnectionWithMetrics("connecting");
-      await agent.runAgent({ runId: randomUUID(), threadId: resolvedThreadId });
+      await agent.runAgent({
+        runId,
+      });
+      scheduleSessionHydration(sessionId);
       await loadSessions();
       if (shouldPollTitle) {
         scheduleTitleRefresh();
@@ -606,13 +772,11 @@ export function HomeBody({
   /* Refactored: State clearing moved to handleSessionChange to avoid set-state-in-effect */
   const handleSessionChange = useCallback((newId: string | null) => {
     setSessionId(newId);
-    if (newId) {
-      setSessionMessages([]);
-      setOptimisticMessages([]);
-      setSessionSnapshot(null);
-      setRawEvents([]);
-      setLoadedSessionId(null);
-    }
+    clearSessionState();
+  }, [clearSessionState, setSessionId]);
+
+  const handleSessionListViewChange = useCallback((nextView: SessionListView) => {
+    setSessionListView(nextView);
   }, []);
 
   useEffect(() => {
@@ -624,22 +788,8 @@ export function HomeBody({
   }, [sessionId, agent, loadSessionDetail]);
 
   const hasLoadedSession = loadedSessionId === sessionId;
-
-  const agentMessages = agent ? (agent.messages as Message[]) : EMPTY_MESSAGES;
-  const agentSnapshot = agent ? (agent.state as Record<string, unknown>) : null;
-
-  /* Removed problematic effect that caused cascading renders:
-     useEffect(() => { ... setOptimisticMessages ... }, [agentMessages])
-     Instead, we filter optimistic messages during derived state calculation.
-  */
-
-  const messagesForRenderBase =
-    hasLoadedSession && agentMessages.length > 0
-      ? agentMessages
-      : sessionMessages;
-  const snapshotForRender = hasLoadedSession
-    ? (agentSnapshot ?? sessionSnapshot)
-    : sessionSnapshot;
+  const messagesForRenderBase = hasLoadedSession ? sessionMessages : [];
+  const snapshotForRender = hasLoadedSession ? sessionSnapshot : null;
 
   // Reconstruct state snapshot from filtered events for historical viewing
   const historicalSnapshot = useMemo(
@@ -648,85 +798,52 @@ export function HomeBody({
   );
 
   const snapshotForDisplay = useMemo(() => {
-    // If no message selected, use current/live snapshot
-    if (!selectedMessageId) {
+    if (!selectedNodeId) {
       return snapshotForRender;
     }
-    // Otherwise use reconstructed historical snapshot
     return historicalSnapshot;
-  }, [selectedMessageId, snapshotForRender, historicalSnapshot]);
+  }, [selectedNodeId, snapshotForRender, historicalSnapshot]);
 
   const mergedMessagesForRender = useMemo(() => {
-    const knownIds = new Set(
-      messagesForRenderBase
-        .filter((message) => normalizeMessageContent(message).trim().length > 0)
-        .map((message) => message.id),
+    const pendingOptimistic = reconcileOptimisticMessages(
+      messagesForRenderBase,
+      optimisticMessages,
     );
-
-    // Filter out optimistic messages that are already in the base messages
-    const validOptimistic = optimisticMessages.filter(
-      (message) => !knownIds.has(message.id),
+    return mergeOptimisticMessages(messagesForRenderBase, pendingOptimistic).map(
+      (message) =>
+        !normalizeMessageContent(message).trim().length
+          ? ({
+              ...message,
+              content: normalizeMessageContent(message),
+            } as Message)
+          : message,
     );
-
-    if (validOptimistic.length === 0) {
-      return messagesForRenderBase;
-    }
-
-    const merged = [...messagesForRenderBase];
-    const indexById = new Map<string, number>();
-    merged.forEach((message, index) => {
-      indexById.set(message.id, index);
-    });
-
-    validOptimistic.forEach((message) => {
-      const index = indexById.get(message.id);
-      if (index === undefined) {
-        merged.push(message);
-        indexById.set(message.id, merged.length - 1);
-        return;
-      }
-      const existing = merged[index];
-      if (!existing.content && message.content) {
-        merged[index] = { ...existing, content: message.content };
-      }
-    });
-    return merged;
   }, [messagesForRenderBase, optimisticMessages]);
 
-  // 使用事件驱动构建聊天消息：
-  // - rawEvents 中按 messageId 拼接 delta（避免流式token逐词换行）
-  // - 从事件提取 runId（支持多轮次答复 \n\n 分隔）
-  // - mergedMessagesForRender 作为 fallback 补充非流窗口中的历史消息
-  const chatMessages = useMemo(
+  const conversationTree = useMemo(
     () =>
-      ensureUniqueMessageIds(
-        buildChatMessagesFromEventsWithFallback(
-          rawEvents,
-          mergedMessagesForRender,
-        ),
-      ),
-    [rawEvents, mergedMessagesForRender],
+      buildConversationTree({
+        events: rawEvents,
+        fallbackMessages: mergedMessagesForRender,
+      }),
+    [mergedMessagesForRender, rawEvents],
   );
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
-    if (!selectedMessageId) {
-      return logEntries; // Show all logs when no selection
+    if (!selectedNodeId) {
+      return logEntries;
     }
 
-    const cutoffTimestamp = messageTimestamps.get(selectedMessageId);
+    const cutoffTimestamp = nodeTimestampIndex.get(selectedNodeId);
     if (cutoffTimestamp === undefined) {
-      return logEntries; // Message not found, show all
+      return logEntries;
     }
 
-    // LogEntry.timestamp is in milliseconds (Date.now()), event timestamps are seconds
-    // Convert cutoff to milliseconds for comparison
     const cutoffMs = cutoffTimestamp * 1000;
 
     return logEntries.filter((entry) => entry.timestamp <= cutoffMs);
-  }, [logEntries, selectedMessageId, messageTimestamps]);
-
-  const contentWidthClass = "max-w-4xl";
+  }, [logEntries, nodeTimestampIndex, selectedNodeId]);
 
   return (
     <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">
@@ -743,9 +860,13 @@ export function HomeBody({
             <SessionList
               sessions={sessions}
               activeId={sessionId}
+              view={sessionListView}
+              onSwitchView={handleSessionListViewChange}
               onSelect={handleSessionChange}
               onNewSession={startNewSession}
               onRename={renameSession}
+              onArchive={archiveSession}
+              onUnarchive={unarchiveSession}
             />
           </div>
         </div>
@@ -778,7 +899,9 @@ export function HomeBody({
             </button>
 
             <div className="text-xs font-medium text-zinc-400 max-w-md truncate mx-4 dark:text-zinc-500">
-              {activeSession ? activeSession.label : "Negentropy"}
+              {activeSession
+                ? `${activeSession.label}${latestRunState?.status === "blocked" ? " · 等待确认" : ""}`
+                : "Negentropy"}
             </div>
 
             <button
@@ -801,34 +924,33 @@ export function HomeBody({
           {/* Chat Stream Area */}
           <div className="flex-1 overflow-hidden flex flex-col relative">
             <ChatStream
-              messages={chatMessages}
-              selectedMessageId={selectedMessageId}
-              onMessageSelect={(id) => {
-                // 右侧栏未打开时，点击消息不产生任何影响
+              nodes={conversationTree.roots}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={(id) => {
                 if (!showRightPanel) {
                   return;
                 }
-                if (selectedMessageId === id) {
-                  // Toggle off: just deselect
-                  setSelectedMessageId(null);
+                if (selectedNodeId === id) {
+                  setSelectedNodeId(null);
                 } else {
-                  // Select new message（右侧栏已处于打开状态）
-                  setSelectedMessageId(id);
+                  setSelectedNodeId(id);
                 }
               }}
-              contentClassName={contentWidthClass}
             />
             <div
-              className={`p-6 pt-2 shrink-0 w-full mx-auto ${contentWidthClass}`}
+              className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}
             >
               <Composer
                 value={inputValue}
                 onChange={setInputValue}
                 onSend={sendInput}
-                isGenerating={connection === "streaming"}
+                isGenerating={effectiveConnection === "streaming"}
+                isBlocked={effectiveConnection === "blocked"}
                 disabled={
                   !sessionId ||
-                  connection === "streaming" ||
+                  effectiveConnection === "streaming" ||
+                  effectiveConnection === "connecting" ||
+                  effectiveConnection === "blocked" ||
                   pendingConfirmations > 0
                 }
               />
@@ -846,7 +968,7 @@ export function HomeBody({
         >
           <div className="w-80 h-full overflow-y-auto p-6">
             {/* View mode indicator + minimal interaction hint */}
-            {selectedMessageId ? (
+            {selectedNodeId ? (
               <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:border-amber-800 dark:bg-amber-950/50">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
@@ -854,7 +976,7 @@ export function HomeBody({
                   </span>
                   <button
                     onClick={() => {
-                      setSelectedMessageId(null);
+                      setSelectedNodeId(null);
                     }}
                     className="text-xs text-amber-600 hover:text-amber-800 underline dark:text-amber-400 dark:hover:text-amber-300"
                   >
@@ -873,14 +995,14 @@ export function HomeBody({
                   </span>
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1 dark:text-zinc-400">
-                  点击任意消息进入历史视图，再次点击或点"返回实时"回到实时
+                  点击任意消息进入历史视图，再次点击或点“返回实时”回到实时
                 </p>
               </div>
             )}
 
             <StateSnapshot
               snapshot={snapshotForDisplay}
-              connection={selectedMessageId ? "idle" : connection}
+              connection={selectedNodeId ? "idle" : effectiveConnection}
             />
             <EventTimeline events={timelineItems} />
             <LogBufferPanel
@@ -917,11 +1039,6 @@ export default function Home() {
       threadId: resolvedSession,
     });
   }, [sessionId, user]);
-
-  const copilotAgents = useMemo(
-    () => (agent ? { [AGENT_ID]: agent } : {}),
-    [agent],
-  );
 
   if (authStatus === "loading") {
     return (
@@ -964,6 +1081,8 @@ export default function Home() {
     );
   }
 
+  const copilotAgents = { [AGENT_ID]: agent };
+
   return (
     <CopilotKitProvider
       agents__unsafe_dev_only={copilotAgents}
@@ -972,11 +1091,9 @@ export default function Home() {
       <HomeBody
         sessionId={sessionId}
         userId={user.userId}
-        user={user}
         setSessionId={setSessionId}
         sessions={sessions}
         setSessions={setSessions}
-        onLogout={logout}
       />
     </CopilotKitProvider>
   );

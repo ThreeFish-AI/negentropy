@@ -11,29 +11,32 @@ from .chunking import chunk_text, semantic_chunk_async
 
 if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
-from .constants import (
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_KEYWORD_WEIGHT,
-    DEFAULT_OVERLAP,
-    DEFAULT_SEMANTIC_WEIGHT,
-    TEXT_PREVIEW_MAX_LENGTH,
-)
+from .constants import DEFAULT_KEYWORD_WEIGHT, DEFAULT_SEMANTIC_WEIGHT, TEXT_PREVIEW_MAX_LENGTH
 from .exceptions import SearchError
-from .content import fetch_content
+from .extraction import ROUTE_URL, extract_source, resolve_source_kind
 from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
     ChunkingConfig,
     CorpusRecord,
     CorpusSpec,
+    HierarchicalChunkingConfig,
     KnowledgeChunk,
     KnowledgeMatch,
     KnowledgeRecord,
+    RecursiveChunkingConfig,
     SearchConfig,
+    chunking_config_summary,
+    default_chunking_config,
+    SourceSummary,
     merge_search_results,
 )
 
 logger = get_logger("negentropy.knowledge.service")
+
+CHUNK_ROLE_PARENT = "parent"
+CHUNK_ROLE_CHILD = "child"
+CHUNK_ROLE_LEAF = "leaf"
 
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
@@ -208,9 +211,53 @@ class KnowledgeService:
         self._repository = repository or KnowledgeRepository()
         self._embedding_fn = embedding_fn
         self._batch_embedding_fn = batch_embedding_fn
-        self._chunking_config = chunking_config or ChunkingConfig()
+        self._chunking_config = chunking_config or default_chunking_config()
         self._reranker = reranker or NoopReranker()
         self._pipeline_dao = pipeline_dao
+
+    async def _get_corpus_config(self, corpus_id: UUID) -> dict[str, Any]:
+        corpus = await self.get_corpus_by_id(corpus_id)
+        return corpus.config if corpus and corpus.config else {}
+
+    async def _extract_url_content(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        url: str,
+        tracker: Optional[PipelineTracker] = None,
+    ) -> str:
+        result = await extract_source(
+            app_name=app_name,
+            corpus_id=corpus_id,
+            corpus_config=await self._get_corpus_config(corpus_id),
+            source_kind=ROUTE_URL,
+            url=url,
+            tracker=tracker,
+        )
+        return result.plain_text
+
+    async def _extract_file_content(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        content: bytes,
+        filename: str,
+        content_type: str | None,
+        tracker: Optional[PipelineTracker] = None,
+    ) -> str:
+        result = await extract_source(
+            app_name=app_name,
+            corpus_id=corpus_id,
+            corpus_config=await self._get_corpus_config(corpus_id),
+            source_kind=resolve_source_kind(filename=filename, content_type=content_type),
+            content=content,
+            filename=filename,
+            content_type=content_type,
+            tracker=tracker,
+        )
+        return result.plain_text
 
     # =========================================================================
     # Pipeline 创建与执行（支持异步后台任务）
@@ -302,12 +349,13 @@ class KnowledgeService:
         )
 
         try:
+            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=normalized_metadata,
                 chunking_config=chunking_config or self._chunking_config,
                 tracker=tracker,
             )
@@ -366,26 +414,25 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch
-            await tracker.start_stage("fetch")
             try:
-                text = await fetch_content(url)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=url,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                await tracker.fail_stage("fetch", {"type": "CONTENT_FETCH_FAILED", "message": str(exc)})
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            await tracker.complete_stage("fetch", {"content_length": len(text) if text else 0, "url": url})
-
             if not text:
-                await tracker.fail_stage("fetch", {"type": "NO_CONTENT", "message": "No content extracted from URL"})
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = metadata or {}
+            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
 
             # 后续阶段复用 _ingest_text_with_tracker
@@ -469,7 +516,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -527,22 +574,21 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch
-            await tracker.start_stage("fetch")
             try:
-                text = await fetch_content(source_uri)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=source_uri,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                await tracker.fail_stage("fetch", {"type": "CONTENT_FETCH_FAILED", "message": str(exc)})
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            await tracker.complete_stage("fetch", {"content_length": len(text) if text else 0, "source_uri": source_uri})
-
             if not text:
-                await tracker.fail_stage("fetch", {"type": "NO_CONTENT", "message": "No content extracted from URL"})
                 raise ValueError("No content extracted from URL")
 
             # 阶段 2: Delete
@@ -554,7 +600,10 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
-            metadata = {"source_url": source_uri}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"source_url": source_uri},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -562,7 +611,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -642,32 +691,27 @@ class KnowledgeService:
 
             await tracker.complete_stage("download", {"content_length": len(content) if content else 0, "source_uri": source_uri})
 
-            # 阶段 1.5: Extract
-            await tracker.start_stage("extract")
             try:
-                from .content import extract_file_content
-
                 filename = source_uri.split("/")[-1]
                 content_type = _guess_content_type(filename)
 
-                text = await extract_file_content(
+                text = await self._extract_file_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
                     content=content,
                     filename=filename,
                     content_type=content_type,
+                    tracker=tracker,
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                await tracker.fail_stage("extract", {"type": "CONTENT_EXTRACTION_FAILED", "message": str(exc)})
                 raise KnowledgeError(
                     code="CONTENT_EXTRACTION_FAILED",
                     message=f"Failed to extract content: {exc}",
                 ) from exc
 
-            await tracker.complete_stage("extract", {"text_length": len(text) if text else 0, "source_uri": source_uri})
-
             if not text:
-                await tracker.fail_stage("extract", {"type": "NO_CONTENT", "message": "No text content extracted from file"})
                 raise ValueError("No text content extracted from file")
 
             # 阶段 2: Delete
@@ -679,7 +723,10 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
-            metadata = {"gcs_uri": source_uri, "rebuild": True}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"gcs_uri": source_uri, "rebuild": True},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -761,8 +808,7 @@ class KnowledgeService:
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
                     "text_length": len(text),
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -772,18 +818,18 @@ class KnowledgeService:
             app_name=app_name,
             text_length=len(text),
             source_uri=source_uri,
-            chunk_size=config.chunk_size,
-            overlap=config.overlap,
+            chunking_config=chunking_config_summary(config),
             run_id=tracker.run_id if tracker else None,
         )
 
         try:
+            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=metadata,
+                metadata=normalized_metadata,
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -924,8 +970,7 @@ class KnowledgeService:
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
                     "text_length": len(text),
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1002,8 +1047,8 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
-    ) -> int:
-        """删除指定 source_uri 的所有知识块
+    ) -> Dict[str, Any]:
+        """删除指定 source_uri 的所有知识块及其关联资产
 
         Args:
             corpus_id: 知识库 ID
@@ -1011,7 +1056,7 @@ class KnowledgeService:
             source_uri: 来源 URI
 
         Returns:
-            删除的记录数量
+            删除结果摘要
         """
         logger.info(
             "delete_source_started",
@@ -1019,6 +1064,34 @@ class KnowledgeService:
             app_name=app_name,
             source_uri=source_uri,
         )
+
+        warnings: list[str] = []
+        deleted_documents = 0
+        deleted_gcs_objects = 0
+
+        if source_uri.startswith("gs://"):
+            from negentropy.storage.gcs_client import StorageError
+            from negentropy.storage.service import DocumentStorageService
+
+            storage_service = DocumentStorageService()
+            doc = await storage_service.get_document_by_gcs_uri(
+                gcs_uri=source_uri,
+                corpus_id=corpus_id,
+                app_name=app_name,
+            )
+            if doc:
+                try:
+                    deleted = await storage_service.delete_document(
+                        document_id=doc.id,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                        soft_delete=False,
+                    )
+                    if deleted:
+                        deleted_documents = 1
+                        deleted_gcs_objects = 1 + (1 if doc.markdown_gcs_uri else 0)
+                except StorageError as exc:
+                    warnings.append(f"GCS_DELETE_FAILED: {exc}")
 
         deleted_count = await self._repository.delete_knowledge_by_source(
             corpus_id=corpus_id,
@@ -1032,9 +1105,17 @@ class KnowledgeService:
             app_name=app_name,
             source_uri=source_uri,
             deleted_count=deleted_count,
+            deleted_documents=deleted_documents,
+            deleted_gcs_objects=deleted_gcs_objects,
+            warning_count=len(warnings),
         )
 
-        return deleted_count
+        return {
+            "deleted_count": deleted_count,
+            "deleted_documents": deleted_documents,
+            "deleted_gcs_objects": deleted_gcs_objects,
+            "warnings": warnings,
+        }
 
     async def archive_source(
         self,
@@ -1108,8 +1189,7 @@ class KnowledgeService:
                 {
                     "corpus_id": str(corpus_id),
                     "url": url,
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1121,49 +1201,25 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch
-            if tracker:
-                await tracker.start_stage("fetch")
-
             try:
-                text = await fetch_content(url)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=url,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "CONTENT_FETCH_FAILED",
-                            "message": str(exc),
-                        },
-                    )
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            if tracker:
-                await tracker.complete_stage(
-                    "fetch",
-                    {
-                        "content_length": len(text) if text else 0,
-                        "url": url,
-                    },
-                )
-
             if not text:
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "NO_CONTENT",
-                            "message": "No content extracted from URL",
-                        },
-                    )
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = metadata or {}
+            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
 
             # 后续阶段复用 _ingest_text_with_tracker
@@ -1233,8 +1289,7 @@ class KnowledgeService:
                 {
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1247,45 +1302,21 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch - 从原始 URL 获取最新内容
-            if tracker:
-                await tracker.start_stage("fetch")
-
             try:
-                text = await fetch_content(source_uri)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=source_uri,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "CONTENT_FETCH_FAILED",
-                            "message": str(exc),
-                        },
-                    )
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            if tracker:
-                await tracker.complete_stage(
-                    "fetch",
-                    {
-                        "content_length": len(text) if text else 0,
-                        "source_uri": source_uri,
-                    },
-                )
-
             if not text:
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "NO_CONTENT",
-                            "message": "No content extracted from URL",
-                        },
-                    )
                 raise ValueError("No content extracted from URL")
 
             # 阶段 2: Delete - 删除该 source_uri 下的旧记录
@@ -1314,7 +1345,10 @@ class KnowledgeService:
             )
 
             # 准备 metadata（保留原始 URL 信息）
-            metadata = {"source_url": source_uri}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"source_url": source_uri},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -1401,8 +1435,7 @@ class KnowledgeService:
                 {
                     "corpus_id": str(corpus_id),
                     "source_uri": source_uri,
-                    "chunk_size": config.chunk_size,
-                    "overlap": config.overlap,
+                    "chunking_config": chunking_config_summary(config),
                 }
             )
 
@@ -1453,56 +1486,28 @@ class KnowledgeService:
                     },
                 )
 
-            # 阶段 1.5: Extract - 提取文本内容
-            if tracker:
-                await tracker.start_stage("extract")
-
             try:
-                from .content import extract_file_content
-
                 # 从 GCS URI 提取文件名
                 filename = source_uri.split("/")[-1]
                 content_type = _guess_content_type(filename)
 
-                text = await extract_file_content(
+                text = await self._extract_file_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
                     content=content,
                     filename=filename,
                     content_type=content_type,
+                    tracker=tracker,
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                if tracker:
-                    await tracker.fail_stage(
-                        "extract",
-                        {
-                            "type": "CONTENT_EXTRACTION_FAILED",
-                            "message": str(exc),
-                        },
-                    )
                 raise KnowledgeError(
                     code="CONTENT_EXTRACTION_FAILED",
                     message=f"Failed to extract content: {exc}",
                 ) from exc
 
-            if tracker:
-                await tracker.complete_stage(
-                    "extract",
-                    {
-                        "text_length": len(text) if text else 0,
-                        "source_uri": source_uri,
-                    },
-                )
-
             if not text:
-                if tracker:
-                    await tracker.fail_stage(
-                        "extract",
-                        {
-                            "type": "NO_CONTENT",
-                            "message": "No text content extracted from file",
-                        },
-                    )
                 raise ValueError("No text content extracted from file")
 
             # 阶段 2: Delete - 删除该 source_uri 下的旧记录
@@ -1531,7 +1536,10 @@ class KnowledgeService:
             )
 
             # 准备 metadata
-            metadata = {"gcs_uri": source_uri, "rebuild": True}
+            metadata = _normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"gcs_uri": source_uri, "rebuild": True},
+            )
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -1583,7 +1591,8 @@ class KnowledgeService:
         source_uri: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int]]:
+        include_archived: bool = False,
+    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int], list[SourceSummary]]:
         """List knowledge items in a corpus.
 
         Args:
@@ -1602,6 +1611,7 @@ class KnowledgeService:
             source_uri=source_uri,
             limit=limit,
             offset=offset,
+            include_archived=include_archived,
         )
 
     async def search(
@@ -1652,13 +1662,23 @@ class KnowledgeService:
                     limit=config.limit,
                     metadata_filter=config.metadata_filter,
                 )
+                keyword_matches = await self._hydrate_match_metadata(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    matches=keyword_matches,
+                )
                 logger.info(
                     "search_completed",
                     corpus_id=str(corpus_id),
                     mode="keyword_fallback",
                     result_count=len(keyword_matches),
                 )
-                return keyword_matches
+                return await self._lift_hierarchical_matches(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    matches=keyword_matches,
+                    limit=config.limit,
+                )
 
             query_embedding = await self._embedding_fn(query)
             results = await self._repository.rrf_search(
@@ -1669,9 +1689,20 @@ class KnowledgeService:
                 limit=config.limit,
                 k=config.rrf_k,
             )
+            results = await self._hydrate_match_metadata(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=results,
+            )
 
             # L1 精排
             results = await self._reranker.rerank(query, results)
+            results = await self._lift_hierarchical_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=results,
+                limit=config.limit,
+            )
 
             logger.info(
                 "search_completed",
@@ -1698,6 +1729,11 @@ class KnowledgeService:
                 limit=config.limit,
                 metadata_filter=config.metadata_filter,
             )
+            semantic_matches = await self._hydrate_match_metadata(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=semantic_matches,
+            )
             logger.debug(
                 "semantic_search_completed",
                 corpus_id=str(corpus_id),
@@ -1712,6 +1748,11 @@ class KnowledgeService:
                 limit=config.limit,
                 metadata_filter=config.metadata_filter,
             )
+            keyword_matches = await self._hydrate_match_metadata(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=keyword_matches,
+            )
             logger.debug(
                 "keyword_search_completed",
                 corpus_id=str(corpus_id),
@@ -1721,6 +1762,12 @@ class KnowledgeService:
         if config.mode == "semantic":
             # L1 精排
             semantic_matches = await self._reranker.rerank(query, semantic_matches)
+            semantic_matches = await self._lift_hierarchical_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=semantic_matches,
+                limit=config.limit,
+            )
             logger.info(
                 "search_completed",
                 corpus_id=str(corpus_id),
@@ -1732,6 +1779,12 @@ class KnowledgeService:
         if config.mode == "keyword":
             # L1 精排
             keyword_matches = await self._reranker.rerank(query, keyword_matches)
+            keyword_matches = await self._lift_hierarchical_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=keyword_matches,
+                limit=config.limit,
+            )
             logger.info(
                 "search_completed",
                 corpus_id=str(corpus_id),
@@ -1751,6 +1804,12 @@ class KnowledgeService:
 
         # L1 精排
         results = await self._reranker.rerank(query, results)
+        results = await self._lift_hierarchical_matches(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            matches=results,
+            limit=config.limit,
+        )
 
         logger.info(
             "search_completed",
@@ -1776,6 +1835,14 @@ class KnowledgeService:
         # Determine strategy and call appropriate chunking function
         from .types import ChunkingStrategy
 
+        if chunking_config.strategy == ChunkingStrategy.HIERARCHICAL:
+            return await self._build_hierarchical_chunks(
+                text=text,
+                source_uri=source_uri,
+                metadata=metadata,
+                chunking_config=chunking_config,
+            )
+
         if chunking_config.strategy == ChunkingStrategy.SEMANTIC:
             if not self._embedding_fn:
                 # Fallback to recursive if no embedding function
@@ -1799,6 +1866,85 @@ class KnowledgeService:
             )
         return chunks
 
+    async def _build_hierarchical_chunks(
+        self,
+        *,
+        text: str,
+        source_uri: Optional[str],
+        metadata: Dict[str, Any],
+        chunking_config: ChunkingConfig,
+    ) -> list[KnowledgeChunk]:
+        if not isinstance(chunking_config, HierarchicalChunkingConfig):
+            raise TypeError("hierarchical chunk builder requires HierarchicalChunkingConfig")
+
+        parent_config = RecursiveChunkingConfig(
+            chunk_size=chunking_config.hierarchical_parent_chunk_size,
+            overlap=0,
+            preserve_newlines=chunking_config.preserve_newlines,
+            separators=chunking_config.separators,
+        )
+        child_config = RecursiveChunkingConfig(
+            chunk_size=chunking_config.hierarchical_child_chunk_size,
+            overlap=chunking_config.hierarchical_child_overlap,
+            preserve_newlines=chunking_config.preserve_newlines,
+            separators=chunking_config.separators,
+        )
+
+        parent_texts = chunk_text(text, parent_config)
+        chunks: list[KnowledgeChunk] = []
+        chunk_index = 0
+
+        for parent_index, parent_text in enumerate(parent_texts):
+            family_id = uuid.uuid4().hex
+            parent_metadata = {
+                **metadata,
+                "chunking_strategy": ChunkingStrategy.HIERARCHICAL.value,
+                "chunk_role": CHUNK_ROLE_PARENT,
+                "hierarchy_level": 0,
+                "chunk_family_id": family_id,
+                "parent_chunk_index": parent_index,
+                "searchable": False,
+            }
+            chunks.append(
+                KnowledgeChunk(
+                    content=parent_text,
+                    source_uri=source_uri,
+                    chunk_index=chunk_index,
+                    metadata=parent_metadata,
+                    embedding=None,
+                )
+            )
+            chunk_index += 1
+
+            child_texts = chunk_text(parent_text, child_config)
+            if not child_texts:
+                child_texts = [parent_text]
+
+            for child_index, child_text in enumerate(child_texts):
+                child_metadata = {
+                    **metadata,
+                    "chunking_strategy": ChunkingStrategy.HIERARCHICAL.value,
+                    "chunk_role": CHUNK_ROLE_CHILD,
+                    "hierarchy_level": 1,
+                    "chunk_family_id": family_id,
+                    "hierarchical_parent_id": family_id,
+                    "parent_chunk_index": parent_index,
+                    "child_chunk_index": child_index,
+                    "searchable": True,
+                }
+                chunks.append(
+                    KnowledgeChunk(
+                        content=child_text,
+                        source_uri=source_uri,
+                        chunk_index=chunk_index,
+                        metadata=child_metadata,
+                        embedding=None,
+                    )
+                )
+                chunk_index += 1
+
+        return chunks
+
     async def _attach_embeddings(self, chunks: Iterable[KnowledgeChunk]) -> list[KnowledgeChunk]:
         chunk_list = list(chunks)
 
@@ -1807,17 +1953,23 @@ class KnowledgeService:
 
         # 优先使用批量向量化（一次 API 调用完成所有 chunk）
         if self._batch_embedding_fn:
-            texts = [c.content for c in chunk_list]
-            embeddings = await self._batch_embedding_fn(texts)
+            searchable_chunks = [c for c in chunk_list if self._is_searchable_chunk(c)]
+            if not searchable_chunks:
+                return chunk_list
+            embeddings = await self._batch_embedding_fn([c.content for c in searchable_chunks])
+            embedding_by_key = {
+                (chunk.source_uri, chunk.chunk_index): emb
+                for chunk, emb in zip(searchable_chunks, embeddings)
+            }
             return [
                 KnowledgeChunk(
                     content=c.content,
                     source_uri=c.source_uri,
                     chunk_index=c.chunk_index,
                     metadata=c.metadata,
-                    embedding=emb,
+                    embedding=embedding_by_key.get((c.source_uri, c.chunk_index)),
                 )
-                for c, emb in zip(chunk_list, embeddings)
+                for c in chunk_list
             ]
 
         # 回退到逐条向量化
@@ -1826,7 +1978,9 @@ class KnowledgeService:
 
         enriched: list[KnowledgeChunk] = []
         for chunk in chunk_list:
-            embedding = await self._embedding_fn(chunk.content)
+            embedding = None
+            if self._is_searchable_chunk(chunk):
+                embedding = await self._embedding_fn(chunk.content)
             enriched.append(
                 KnowledgeChunk(
                     content=chunk.content,
@@ -1837,6 +1991,140 @@ class KnowledgeService:
                 )
             )
         return enriched
+
+    @staticmethod
+    def _is_searchable_chunk(chunk: KnowledgeChunk) -> bool:
+        return chunk.metadata.get("searchable") is not False
+
+    async def _lift_hierarchical_matches(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        matches: Iterable[KnowledgeMatch],
+        limit: int,
+    ) -> list[KnowledgeMatch]:
+        match_list = list(matches)
+        grouped: dict[tuple[Optional[str], str], list[KnowledgeMatch]] = {}
+        passthrough: list[KnowledgeMatch] = []
+
+        for match in match_list:
+            family_id = match.metadata.get("chunk_family_id")
+            role = match.metadata.get("chunk_role")
+            if role == CHUNK_ROLE_CHILD and isinstance(family_id, str) and family_id:
+                grouped.setdefault((match.source_uri, family_id), []).append(match)
+            else:
+                passthrough.append(match)
+
+        if not grouped:
+            return match_list[:limit]
+
+        lifted: list[KnowledgeMatch] = []
+        for (source_uri, family_id), child_matches in grouped.items():
+            parent_candidates = await self._repository.get_hierarchical_parent_matches(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+                family_ids=[family_id],
+            )
+            if not parent_candidates:
+                passthrough.extend(child_matches)
+                continue
+
+            parent = parent_candidates[0]
+            best_child = max(child_matches, key=lambda item: item.combined_score)
+            matched_child_indices = [
+                item.metadata.get("child_chunk_index")
+                for item in child_matches
+                if item.metadata.get("child_chunk_index") is not None
+            ]
+            matched_child_chunks = [
+                {
+                    "id": str(item.id),
+                    "child_chunk_index": item.metadata.get("child_chunk_index"),
+                    "content": item.content,
+                    "semantic_score": item.semantic_score,
+                    "keyword_score": item.keyword_score,
+                    "combined_score": item.combined_score,
+                }
+                for item in sorted(
+                    child_matches,
+                    key=lambda item: item.combined_score,
+                    reverse=True,
+                )
+            ]
+            lifted.append(
+                KnowledgeMatch(
+                    id=parent.id,
+                    content=parent.content,
+                    source_uri=parent.source_uri,
+                    metadata={
+                        **parent.metadata,
+                        "matched_child_chunk_indices": matched_child_indices,
+                        "matched_child_chunks": matched_child_chunks,
+                        "returned_parent_chunk": True,
+                    },
+                    semantic_score=best_child.semantic_score,
+                    keyword_score=best_child.keyword_score,
+                    combined_score=best_child.combined_score,
+                )
+            )
+
+        merged = passthrough + lifted
+        merged.sort(key=lambda item: item.combined_score, reverse=True)
+        deduped: list[KnowledgeMatch] = []
+        seen_ids = set()
+        for item in merged:
+            if item.id in seen_ids:
+                continue
+            deduped.append(item)
+            seen_ids.add(item.id)
+            if len(deduped) >= limit:
+                break
+        return deduped
+
+    async def _hydrate_match_metadata(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        matches: Iterable[KnowledgeMatch],
+    ) -> list[KnowledgeMatch]:
+        match_list = list(matches)
+        if not match_list:
+            return []
+
+        metadata_by_id = await self._repository.get_search_match_metadata(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            match_ids=[item.id for item in match_list],
+        )
+        if not metadata_by_id:
+            return match_list
+
+        hydrated: list[KnowledgeMatch] = []
+        for item in match_list:
+            extra_metadata = metadata_by_id.get(item.id)
+            if not extra_metadata:
+                hydrated.append(item)
+                continue
+
+            hydrated.append(
+                KnowledgeMatch(
+                    id=item.id,
+                    content=item.content,
+                    source_uri=item.source_uri,
+                    metadata={
+                        **item.metadata,
+                        **extra_metadata,
+                    },
+                    semantic_score=item.semantic_score,
+                    keyword_score=item.keyword_score,
+                    combined_score=item.combined_score,
+                )
+            )
+
+        return hydrated
 
     def _merge_matches(
         self,
@@ -1878,3 +2166,25 @@ def _guess_content_type(filename: str) -> Optional[str]:
         "markdown": "text/markdown",
     }
     return content_types.get(ext)
+
+
+def _infer_source_type(source_uri: Optional[str]) -> str:
+    if source_uri and source_uri.startswith("gs://"):
+        return "file"
+    if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
+        return "url"
+    if source_uri:
+        return "text"
+    return "unknown"
+
+
+def _normalize_source_metadata(
+    *,
+    source_uri: Optional[str],
+    metadata: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    normalized = dict(metadata or {})
+    source_type = normalized.get("source_type")
+    if source_type not in {"file", "url", "text", "unknown"}:
+        normalized["source_type"] = _infer_source_type(source_uri)
+    return normalized

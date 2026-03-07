@@ -3,12 +3,22 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Literal, Optional
+from typing import Annotated, Any, Dict, Iterable, List, Literal, Mapping, Optional, TypeAlias
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator, ValidationInfo
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationInfo, field_validator, model_validator
 
 from .constants import (
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_HIERARCHICAL_CHILD_CHUNK_SIZE,
+    DEFAULT_HIERARCHICAL_CHILD_OVERLAP,
+    DEFAULT_HIERARCHICAL_PARENT_CHUNK_SIZE,
+    DEFAULT_OVERLAP,
+    DEFAULT_RECURSIVE_SEPARATORS,
+    DEFAULT_SEMANTIC_BUFFER_SIZE,
+    DEFAULT_SEMANTIC_MAX_CHUNK_SIZE,
+    DEFAULT_SEMANTIC_MIN_CHUNK_SIZE,
+    DEFAULT_SEMANTIC_THRESHOLD,
     MAX_OVERLAP_RATIO,
     MIN_CHUNK_SIZE,
 )
@@ -27,6 +37,7 @@ class ChunkingStrategy(Enum):
     FIXED = "fixed"  # 固定大小分块（字符级别）
     RECURSIVE = "recursive"  # 递归分块（段落 > 句子 > 词）
     SEMANTIC = "semantic"  # 语义分块（基于句子相似度）
+    HIERARCHICAL = "hierarchical"  # 层次分块（检索子块，返回父块）
 
 
 @dataclass(frozen=True)
@@ -92,6 +103,17 @@ class KnowledgeRecord:
 
 
 @dataclass(frozen=True)
+class SourceSummary:
+    """Source 聚合摘要"""
+
+    source_uri: Optional[str]
+    display_name: Optional[str]
+    count: int
+    archived: bool
+    source_type: Literal["file", "url", "text", "unknown"]
+
+
+@dataclass(frozen=True)
 class KnowledgeMatch:
     """知识匹配结果
 
@@ -107,90 +129,88 @@ class KnowledgeMatch:
     combined_score: float = 0.0
 
 
-class ChunkingConfig(BaseModel):
-    """分块配置
+class _ChunkingConfigBase(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
-    控制文本如何被分割成可索引的块。
 
-    支持三种分块策略:
-    - "fixed": 固定大小分块（字符级别），简单高效
-    - "recursive": 递归分块（段落 > 句子 > 词），保持结构
-    - "semantic": 语义分块（基于句子相似度），保持语义完整性
-
-    语义分块参考文献:
-    [1] G. Kamalloo and A. K. G., "Semantic Chunking for RAG Applications," 2024.
-    [2] LlamaIndex, "Semantic Chunking," GitHub, 2024.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    strategy: ChunkingStrategy = ChunkingStrategy.RECURSIVE
-    chunk_size: int = 800
-    overlap: int = 100
-    preserve_newlines: bool = True
-    # 语义分块专用参数
-    semantic_threshold: float = 0.85  # 相似度阈值，低于此值时切分
-    min_chunk_size: int = 50  # 最小块大小（字符数）
-    max_chunk_size: int = 2000  # 最大块大小（字符数），用于滑动窗口合并
-
-    @field_validator("strategy", mode="before")
-    @classmethod
-    def validate_strategy(cls, v: ChunkingStrategy | str) -> ChunkingStrategy:
-        """验证分块策略"""
-        if isinstance(v, ChunkingStrategy):
-            return v
-        try:
-            return ChunkingStrategy(v)
-        except ValueError:
-            raise ValueError(f"strategy must be one of {[s.value for s in ChunkingStrategy]}, got {v}")
+class _ChunkingConfigWithOverlap(_ChunkingConfigBase):
+    chunk_size: int = DEFAULT_CHUNK_SIZE
+    overlap: int = DEFAULT_OVERLAP
 
     @field_validator("chunk_size")
     @classmethod
     def validate_chunk_size(cls, v: int) -> int:
-        """验证分块大小
-
-        确保 chunk_size 为正数且在合理范围内。
-        """
         if v < MIN_CHUNK_SIZE:
             raise ValueError(f"chunk_size must be at least {MIN_CHUNK_SIZE}, got {v}")
-        if v > 100000:  # 100K 字符上限
+        if v > 100000:
             raise ValueError(f"chunk_size must be at most 100000, got {v}")
         return v
 
     @field_validator("overlap")
     @classmethod
     def validate_overlap(cls, v: int, info: ValidationInfo) -> int:
-        """验证重叠大小
-
-        确保 overlap 为非负数且小于 chunk_size。
-        """
         if v < 0:
             raise ValueError(f"overlap must be non-negative, got {v}")
-
-        # 获取 chunk_size 的值（如果可用）
-        chunk_size = info.data.get("chunk_size", 800)
+        chunk_size = info.data.get("chunk_size", DEFAULT_CHUNK_SIZE)
         if v >= chunk_size:
             raise ValueError(f"overlap must be less than chunk_size ({chunk_size}), got {v}")
-
-        # 验证重叠比例
         max_overlap = int(chunk_size * MAX_OVERLAP_RATIO)
         if v > max_overlap:
             raise ValueError(f"overlap ({v}) exceeds {MAX_OVERLAP_RATIO * 100}% of chunk_size ({chunk_size})")
-
         return v
+
+
+class _ChunkingConfigWithSeparators(_ChunkingConfigBase):
+    preserve_newlines: bool = True
+    separators: tuple[str, ...] = Field(default_factory=tuple)
+
+    @field_validator("separators")
+    @classmethod
+    def validate_separators(cls, v: List[str] | tuple[str, ...]) -> tuple[str, ...]:
+        normalized = [item for item in (s.strip() for s in v) if item]
+        deduped: List[str] = []
+        for item in normalized:
+            if item not in deduped:
+                deduped.append(item)
+        return tuple(deduped)
+
+
+class FixedChunkingConfig(_ChunkingConfigWithOverlap):
+    strategy: Literal[ChunkingStrategy.FIXED] = ChunkingStrategy.FIXED
+    preserve_newlines: bool = True
+
+
+class RecursiveChunkingConfig(_ChunkingConfigWithOverlap, _ChunkingConfigWithSeparators):
+    strategy: Literal[ChunkingStrategy.RECURSIVE] = ChunkingStrategy.RECURSIVE
+    separators: tuple[str, ...] = DEFAULT_RECURSIVE_SEPARATORS
+
+
+class SemanticChunkingConfig(_ChunkingConfigBase):
+    strategy: Literal[ChunkingStrategy.SEMANTIC] = ChunkingStrategy.SEMANTIC
+    semantic_threshold: float = DEFAULT_SEMANTIC_THRESHOLD
+    semantic_buffer_size: int = DEFAULT_SEMANTIC_BUFFER_SIZE
+    min_chunk_size: int = DEFAULT_SEMANTIC_MIN_CHUNK_SIZE
+    max_chunk_size: int = DEFAULT_SEMANTIC_MAX_CHUNK_SIZE
 
     @field_validator("semantic_threshold")
     @classmethod
     def validate_semantic_threshold(cls, v: float) -> float:
-        """验证语义相似度阈值"""
         if not (0.0 <= v <= 1.0):
             raise ValueError(f"semantic_threshold must be between 0 and 1, got {v}")
+        return v
+
+    @field_validator("semantic_buffer_size")
+    @classmethod
+    def validate_semantic_buffer_size(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError(f"semantic_buffer_size must be at least 1, got {v}")
+        if v > 5:
+            raise ValueError(f"semantic_buffer_size must be at most 5, got {v}")
         return v
 
     @field_validator("min_chunk_size")
     @classmethod
     def validate_min_chunk_size(cls, v: int) -> int:
-        """验证最小块大小"""
         if v < 1:
             raise ValueError(f"min_chunk_size must be at least 1, got {v}")
         return v
@@ -198,10 +218,183 @@ class ChunkingConfig(BaseModel):
     @field_validator("max_chunk_size")
     @classmethod
     def validate_max_chunk_size(cls, v: int) -> int:
-        """验证最大块大小"""
         if v < 100:
             raise ValueError(f"max_chunk_size must be at least 100, got {v}")
         return v
+
+    @model_validator(mode="after")
+    def validate_semantic_relationships(self) -> "SemanticChunkingConfig":
+        if self.min_chunk_size > self.max_chunk_size:
+            raise ValueError(
+                f"min_chunk_size ({self.min_chunk_size}) must be <= max_chunk_size ({self.max_chunk_size})"
+            )
+        return self
+
+
+class HierarchicalChunkingConfig(_ChunkingConfigWithSeparators):
+    strategy: Literal[ChunkingStrategy.HIERARCHICAL] = ChunkingStrategy.HIERARCHICAL
+    separators: tuple[str, ...] = DEFAULT_RECURSIVE_SEPARATORS
+    hierarchical_parent_chunk_size: int = DEFAULT_HIERARCHICAL_PARENT_CHUNK_SIZE
+    hierarchical_child_chunk_size: int = DEFAULT_HIERARCHICAL_CHILD_CHUNK_SIZE
+    hierarchical_child_overlap: int = DEFAULT_HIERARCHICAL_CHILD_OVERLAP
+
+    @field_validator(
+        "hierarchical_parent_chunk_size",
+        "hierarchical_child_chunk_size",
+        "hierarchical_child_overlap",
+    )
+    @classmethod
+    def validate_hierarchical_sizes(cls, v: int, info: ValidationInfo) -> int:
+        field_name = info.field_name or "hierarchical_size"
+        if "overlap" in field_name:
+            if v < 0:
+                raise ValueError(f"{field_name} must be non-negative, got {v}")
+            return v
+        if v < 1:
+            raise ValueError(f"{field_name} must be at least 1, got {v}")
+        if v > 100000:
+            raise ValueError(f"{field_name} must be at most 100000, got {v}")
+        return v
+
+    @model_validator(mode="after")
+    def validate_hierarchical_relationships(self) -> "HierarchicalChunkingConfig":
+        if self.hierarchical_parent_chunk_size < self.hierarchical_child_chunk_size:
+            raise ValueError("hierarchical_parent_chunk_size must be >= hierarchical_child_chunk_size")
+        if self.hierarchical_child_overlap >= self.hierarchical_child_chunk_size:
+            raise ValueError("hierarchical_child_overlap must be less than hierarchical_child_chunk_size")
+        max_overlap = int(self.hierarchical_child_chunk_size * MAX_OVERLAP_RATIO)
+        if self.hierarchical_child_overlap > max_overlap:
+            raise ValueError(
+                "hierarchical_child_overlap "
+                f"({self.hierarchical_child_overlap}) exceeds {MAX_OVERLAP_RATIO * 100}% "
+                f"of hierarchical_child_chunk_size ({self.hierarchical_child_chunk_size})"
+            )
+        return self
+
+
+ChunkingConfigValue: TypeAlias = Annotated[
+    FixedChunkingConfig | RecursiveChunkingConfig | SemanticChunkingConfig | HierarchicalChunkingConfig,
+    Field(discriminator="strategy"),
+]
+
+_CHUNKING_CONFIG_ADAPTER = TypeAdapter(ChunkingConfigValue)
+
+
+def create_chunking_config(**data: Any) -> ChunkingConfigValue:
+    return _CHUNKING_CONFIG_ADAPTER.validate_python(data)
+
+
+def ChunkingConfig(**data: Any) -> ChunkingConfigValue:
+    if not data:
+        return default_chunking_config()
+    strategy = data.get("strategy")
+    if strategy is None:
+        if any(key.startswith("hierarchical_") for key in data):
+            strategy = ChunkingStrategy.HIERARCHICAL
+        elif any(key in {"semantic_threshold", "semantic_buffer_size", "min_chunk_size", "max_chunk_size"} for key in data):
+            strategy = ChunkingStrategy.SEMANTIC
+        else:
+            strategy = ChunkingStrategy.RECURSIVE
+    elif not isinstance(strategy, ChunkingStrategy):
+        strategy = ChunkingStrategy(strategy)
+
+    data["strategy"] = strategy
+    return create_chunking_config(**data)
+
+
+def default_chunking_config() -> ChunkingConfigValue:
+    return RecursiveChunkingConfig()
+
+
+def serialize_chunking_config(config: ChunkingConfigValue | None) -> Dict[str, Any]:
+    if config is None:
+        return {}
+    return config.model_dump(mode="json")
+
+
+def normalize_chunking_config(
+    raw: Mapping[str, Any] | ChunkingConfigValue | None,
+    *,
+    preserve_unknown_strategy_fields: bool = False,
+) -> ChunkingConfigValue | None:
+    if raw is None:
+        return None
+    if isinstance(
+        raw,
+        (FixedChunkingConfig, RecursiveChunkingConfig, SemanticChunkingConfig, HierarchicalChunkingConfig),
+    ):
+        return raw
+
+    payload = dict(raw)
+    strategy = payload.get("strategy", ChunkingStrategy.RECURSIVE)
+    if not isinstance(strategy, ChunkingStrategy):
+        strategy = ChunkingStrategy(strategy)
+
+    strategy_fields: dict[ChunkingStrategy, set[str]] = {
+        ChunkingStrategy.FIXED: {"strategy", "chunk_size", "overlap", "preserve_newlines"},
+        ChunkingStrategy.RECURSIVE: {"strategy", "chunk_size", "overlap", "preserve_newlines", "separators"},
+        ChunkingStrategy.SEMANTIC: {
+            "strategy",
+            "semantic_threshold",
+            "semantic_buffer_size",
+            "min_chunk_size",
+            "max_chunk_size",
+        },
+        ChunkingStrategy.HIERARCHICAL: {
+            "strategy",
+            "preserve_newlines",
+            "separators",
+            "hierarchical_parent_chunk_size",
+            "hierarchical_child_chunk_size",
+            "hierarchical_child_overlap",
+        },
+    }
+
+    if not preserve_unknown_strategy_fields:
+        payload = {key: value for key, value in payload.items() if key in strategy_fields[strategy]}
+
+    payload["strategy"] = strategy
+    return create_chunking_config(**payload)
+
+
+def chunking_config_summary(config: ChunkingConfigValue | None) -> Dict[str, Any]:
+    if config is None:
+        return {}
+
+    if isinstance(config, FixedChunkingConfig):
+        return {
+            "strategy": config.strategy.value,
+            "chunk_size": config.chunk_size,
+            "overlap": config.overlap,
+            "preserve_newlines": config.preserve_newlines,
+        }
+
+    if isinstance(config, RecursiveChunkingConfig):
+        return {
+            "strategy": config.strategy.value,
+            "chunk_size": config.chunk_size,
+            "overlap": config.overlap,
+            "preserve_newlines": config.preserve_newlines,
+            "separators": list(config.separators),
+        }
+
+    if isinstance(config, SemanticChunkingConfig):
+        return {
+            "strategy": config.strategy.value,
+            "semantic_threshold": config.semantic_threshold,
+            "semantic_buffer_size": config.semantic_buffer_size,
+            "min_chunk_size": config.min_chunk_size,
+            "max_chunk_size": config.max_chunk_size,
+        }
+
+    return {
+        "strategy": config.strategy.value,
+        "preserve_newlines": config.preserve_newlines,
+        "separators": list(config.separators),
+        "hierarchical_parent_chunk_size": config.hierarchical_parent_chunk_size,
+        "hierarchical_child_chunk_size": config.hierarchical_child_chunk_size,
+        "hierarchical_child_overlap": config.hierarchical_child_overlap,
+    }
 
 
 class SearchConfig(BaseModel):
@@ -533,8 +726,8 @@ class GraphBuildConfigModel(BaseModel):
 
     enable_llm_extraction: bool = True
     llm_model: Optional[str] = None
-    entity_types: List[str] = field(default_factory=list)
-    relation_types: List[str] = field(default_factory=list)
+    entity_types: tuple[str, ...] = Field(default_factory=tuple)
+    relation_types: tuple[str, ...] = Field(default_factory=tuple)
     min_entity_confidence: float = 0.5
     min_relation_confidence: float = 0.5
     batch_size: int = 10
@@ -567,3 +760,13 @@ class GraphBuildConfigModel(BaseModel):
         if v > 10:
             raise ValueError(f"max_concurrency must be at most 10, got {v}")
         return v
+
+    @field_validator("entity_types", "relation_types")
+    @classmethod
+    def validate_graph_type_filters(cls, v: List[str] | tuple[str, ...]) -> tuple[str, ...]:
+        normalized = [item for item in (s.strip() for s in v) if item]
+        deduped: List[str] = []
+        for item in normalized:
+            if item not in deduped:
+                deduped.append(item)
+        return tuple(deduped)

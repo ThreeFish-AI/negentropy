@@ -1,0 +1,169 @@
+import { vi, type Mock } from "vitest";
+import type {
+  CorpusExtractorRoutes,
+  McpExtractorTargetConfig,
+} from "@/features/knowledge/utils/knowledge-api";
+
+type VitestMock = Mock<(...args: unknown[]) => unknown>;
+export interface KnowledgeApiMockSet {
+  fetchCorpusMock: VitestMock;
+  fetchCorporaMock: VitestMock;
+  createCorpusMock: VitestMock;
+  updateCorpusMock: VitestMock;
+  deleteCorpusMock: VitestMock;
+  ingestTextMock: VitestMock;
+  ingestUrlMock: VitestMock;
+  ingestFileMock: VitestMock;
+  replaceSourceMock: VitestMock;
+  syncSourceMock: VitestMock;
+  rebuildSourceMock: VitestMock;
+  deleteSourceMock: VitestMock;
+  archiveSourceMock: VitestMock;
+  searchKnowledgeMock: VitestMock;
+}
+
+export interface KnowledgeApiTestHarness {
+  exports: Record<string, unknown>;
+  mocks: KnowledgeApiMockSet;
+}
+
+export async function importKnowledgeApiActual(): Promise<
+  typeof import("@/features/knowledge/utils/knowledge-api")
+> {
+  return vi.importActual<typeof import("@/features/knowledge/utils/knowledge-api")>(
+    "@/features/knowledge/utils/knowledge-api",
+  );
+}
+
+export function createKnowledgeApiMockSet(): KnowledgeApiMockSet {
+  return {
+    fetchCorpusMock: vi.fn(),
+    fetchCorporaMock: vi.fn(),
+    createCorpusMock: vi.fn(),
+    updateCorpusMock: vi.fn(),
+    deleteCorpusMock: vi.fn(),
+    ingestTextMock: vi.fn(),
+    ingestUrlMock: vi.fn(),
+    ingestFileMock: vi.fn(),
+    replaceSourceMock: vi.fn(),
+    syncSourceMock: vi.fn(),
+    rebuildSourceMock: vi.fn(),
+    deleteSourceMock: vi.fn(),
+    archiveSourceMock: vi.fn(),
+    searchKnowledgeMock: vi.fn(),
+  };
+}
+
+export function resetKnowledgeApiMocks(mocks: KnowledgeApiMockSet): void {
+  Object.values(mocks).forEach((mock) => {
+    mock.mockReset();
+  });
+}
+
+export function primeKnowledgeApiMocks(
+  mocks: KnowledgeApiMockSet,
+  overrides: Partial<Pick<KnowledgeApiMockSet, "fetchCorporaMock">> = {},
+): void {
+  const stableDefaults = {
+    fetchCorporaMock: mocks.fetchCorporaMock,
+    ...overrides,
+  };
+
+  stableDefaults.fetchCorporaMock.mockResolvedValue([]);
+}
+
+export function createKnowledgeApiExtractorRouteTarget(
+  overrides: Partial<McpExtractorTargetConfig> = {},
+): McpExtractorTargetConfig {
+  return {
+    server_id: "server-1",
+    tool_name: "fetch_markdown",
+    priority: 0,
+    enabled: true,
+    ...overrides,
+  };
+}
+
+export function createKnowledgeApiExtractorRoutes(
+  urlTargets: McpExtractorTargetConfig[] = [],
+  filePdfTargets: McpExtractorTargetConfig[] = [],
+): { extractor_routes: CorpusExtractorRoutes } {
+  return {
+    extractor_routes: {
+      url: { targets: urlTargets },
+      file_pdf: { targets: filePdfTargets },
+    },
+  };
+}
+
+export const knowledgeApiExtractorRouteFixtures = {
+  defaultUrlTarget: createKnowledgeApiExtractorRouteTarget(),
+  advancedUrlTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-advanced",
+    tool_name: "fetch_structured",
+    timeout_ms: 15000,
+    tool_options: {
+      mode: "markdown",
+      include_images: true,
+    },
+  }),
+  dualUrlPrimaryTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-url-primary",
+    timeout_ms: 12000,
+    tool_options: { format: "md" },
+  }),
+  dualPdfPrimaryTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-pdf-primary",
+    tool_name: "parse_pdf",
+    timeout_ms: 20000,
+    tool_options: { ocr: false },
+  }),
+  dualPdfBackupTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-pdf-backup",
+    tool_name: "parse_pdf_backup",
+    priority: 1,
+    timeout_ms: 25000,
+    tool_options: { ocr: true },
+  }),
+} as const;
+
+export async function createKnowledgeApiConfigTestExports() {
+  const actual = await importKnowledgeApiActual();
+  return {
+    createDefaultChunkingConfig: actual.createDefaultChunkingConfig,
+    normalizeChunkingConfig: actual.normalizeChunkingConfig,
+    normalizeCorpusExtractorRoutes: actual.normalizeCorpusExtractorRoutes,
+    createEmptyExtractorDraftTarget: actual.createEmptyExtractorDraftTarget,
+    normalizeExtractorDraftRoutes: actual.normalizeExtractorDraftRoutes,
+    buildExtractorRoutesFromDraft: actual.buildExtractorRoutesFromDraft,
+    buildCorpusConfig: actual.buildCorpusConfig,
+  };
+}
+
+export async function createKnowledgeApiTestHarness(
+  mocks: KnowledgeApiMockSet,
+  overrides: Record<string, unknown> = {},
+): Promise<KnowledgeApiTestHarness> {
+  const configExports = await createKnowledgeApiConfigTestExports();
+  return {
+    mocks,
+    exports: {
+      fetchCorpus: (...args: unknown[]) => mocks.fetchCorpusMock(...args),
+      fetchCorpora: (...args: unknown[]) => mocks.fetchCorporaMock(...args),
+      createCorpus: (...args: unknown[]) => mocks.createCorpusMock(...args),
+      updateCorpus: (...args: unknown[]) => mocks.updateCorpusMock(...args),
+      deleteCorpus: (...args: unknown[]) => mocks.deleteCorpusMock(...args),
+      ingestText: (...args: unknown[]) => mocks.ingestTextMock(...args),
+      ingestUrl: (...args: unknown[]) => mocks.ingestUrlMock(...args),
+      ingestFile: (...args: unknown[]) => mocks.ingestFileMock(...args),
+      replaceSource: (...args: unknown[]) => mocks.replaceSourceMock(...args),
+      syncSource: (...args: unknown[]) => mocks.syncSourceMock(...args),
+      rebuildSource: (...args: unknown[]) => mocks.rebuildSourceMock(...args),
+      deleteSource: (...args: unknown[]) => mocks.deleteSourceMock(...args),
+      archiveSource: (...args: unknown[]) => mocks.archiveSourceMock(...args),
+      searchKnowledge: (...args: unknown[]) => mocks.searchKnowledgeMock(...args),
+      ...configExports,
+      ...overrides,
+    },
+  };
+}

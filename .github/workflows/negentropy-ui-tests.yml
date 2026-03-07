@@ -1,18 +1,31 @@
-name: negentropy-ui-tests
+name: UI Test Suite
 
 on:
   push:
+    branches:
+      - "**"
     paths:
       - "apps/negentropy-ui/**"
       - ".github/workflows/negentropy-ui-tests.yml"
   pull_request:
+    branches:
+      - "**"
     paths:
       - "apps/negentropy-ui/**"
       - ".github/workflows/negentropy-ui-tests.yml"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  ui-typecheck:
+    name: UI Type Checks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/negentropy-ui
@@ -31,11 +44,112 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
 
-      - name: Configure npm registry
-        run: pnpm config set registry https://registry.npmmirror.com
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck app
+        run: pnpm typecheck
+
+      - name: Typecheck tests
+        run: pnpm typecheck:test
+
+  ui-unit-integration:
+    name: UI Unit And Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/negentropy-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: pnpm test
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+
+      - name: Upload UI coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-coverage
+          path: apps/negentropy-ui/coverage
+
+  ui-build-smoke:
+    name: UI Build Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/negentropy-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        run: pnpm build
+
+  ui-e2e-smoke:
+    name: UI Playwright Smoke
+    needs: [ui-typecheck, ui-unit-integration, ui-build-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/negentropy-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/negentropy-ui/playwright-report

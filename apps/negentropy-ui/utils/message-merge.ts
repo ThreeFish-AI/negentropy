@@ -5,8 +5,18 @@
  * 遵循 AGENTS.md 原则：模块化、复用驱动、单一职责
  */
 
-import { Message } from "@ag-ui/core";
-import { normalizeMessageContent } from "./message";
+import type { Message } from "@ag-ui/core";
+import {
+  getMessageCreatedAt,
+  getMessageRunId,
+  getMessageThreadId,
+  type AgUiMessage,
+} from "@/types/agui";
+import {
+  getMessageIdentityKey,
+  getMessageTimestampMs,
+  normalizeMessageContent,
+} from "./message";
 
 /**
  * 合并乐观消息到基础消息列表
@@ -30,45 +40,99 @@ export function mergeOptimisticMessages(
   messagesForRenderBase: Message[],
   optimisticMessages: Message[],
 ): Message[] {
-  // 收集已知消息 ID（仅包含有内容的消息）
-  const knownIds = new Set(
-    messagesForRenderBase
-      .filter((message) => normalizeMessageContent(message).trim().length > 0)
-      .map((message) => message.id),
-  );
+  const merged = new Map<string, Message>();
 
-  // 过滤掉已在基础消息中的乐观消息
-  const validOptimistic = optimisticMessages.filter(
-    (message) => !knownIds.has(message.id),
-  );
-
-  // 没有有效的乐观消息，直接返回基础消息
-  if (validOptimistic.length === 0) {
-    return messagesForRenderBase;
-  }
-
-  // 开始合并
-  const merged = [...messagesForRenderBase];
-  const indexById = new Map<string, number>();
-  merged.forEach((message, index) => {
-    indexById.set(message.id, index);
-  });
-
-  // 处理每个有效的乐观消息
-  validOptimistic.forEach((message) => {
-    const index = indexById.get(message.id);
-    // 消息不存在，直接添加
-    if (index === undefined) {
-      merged.push(message);
-      indexById.set(message.id, merged.length - 1);
+  [...messagesForRenderBase, ...optimisticMessages].forEach((message) => {
+    const key = getMessageIdentityKey(message);
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, message);
       return;
     }
-    // 消息已存在，进行内容合并
-    const existing = merged[index];
-    if (!existing.content && message.content) {
-      merged[index] = { ...existing, content: message.content };
+
+    const existingContent = normalizeMessageContent(existing);
+    const incomingContent = normalizeMessageContent(message);
+    if (incomingContent.length >= existingContent.length) {
+      merged.set(key, message);
     }
   });
 
-  return merged;
+  return [...merged.values()].sort((a, b) => {
+    const timeDiff = getMessageTimestampMs(a) - getMessageTimestampMs(b);
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+    return getMessageIdentityKey(a).localeCompare(getMessageIdentityKey(b));
+  });
+}
+
+export function reconcileOptimisticMessages(
+  messagesForRenderBase: Message[],
+  optimisticMessages: Message[],
+): Message[] {
+  const canonicalByKey = new Map<string, AgUiMessage[]>();
+
+  messagesForRenderBase.forEach((message) => {
+    if (message.role !== "user") {
+      return;
+    }
+    const content = normalizeMessageContent(message).trim();
+    if (!content) {
+      return;
+    }
+    const key = `${message.role}:${content}`;
+    const bucket = canonicalByKey.get(key) || [];
+    bucket.push(message as AgUiMessage);
+    canonicalByKey.set(key, bucket);
+  });
+
+  canonicalByKey.forEach((bucket) => {
+    bucket.sort((a, b) => {
+      const aTime = getMessageCreatedAt(a)?.getTime() || 0;
+      const bTime = getMessageCreatedAt(b)?.getTime() || 0;
+      return aTime - bTime;
+    });
+  });
+
+  return optimisticMessages.filter((message) => {
+    if (message.role !== "user") {
+      return true;
+    }
+
+    const optimisticMessage = message as AgUiMessage;
+    const content = normalizeMessageContent(optimisticMessage).trim();
+    if (!content) {
+      return true;
+    }
+
+    const key = `${message.role}:${content}`;
+    const bucket = canonicalByKey.get(key);
+    if (!bucket || bucket.length === 0) {
+      return true;
+    }
+
+    const optimisticTime =
+      getMessageCreatedAt(optimisticMessage)?.getTime() || Date.now();
+    const optimisticThreadId = getMessageThreadId(optimisticMessage);
+    const canonicalIndex = bucket.findIndex((candidate) => {
+      const candidateTime =
+        getMessageCreatedAt(candidate)?.getTime() || optimisticTime;
+      const sameThreadId =
+        !optimisticThreadId ||
+        !getMessageThreadId(candidate) ||
+        getMessageThreadId(candidate) === optimisticThreadId;
+      return (
+        sameThreadId &&
+        candidateTime >= optimisticTime - 2000 &&
+        candidateTime <= optimisticTime + 10000
+      );
+    });
+
+    if (canonicalIndex === -1) {
+      return true;
+    }
+
+    bucket.splice(canonicalIndex, 1);
+    return false;
+  });
 }

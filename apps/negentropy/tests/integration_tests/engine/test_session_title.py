@@ -50,3 +50,38 @@ async def test_first_user_message_triggers_title_generation(monkeypatch):
     assert target is not None
     title = (target.state.get("metadata") or {}).get("title")
     assert title == "首次标题"
+
+
+@pytest.mark.asyncio
+async def test_archive_and_unarchive_session_updates_metadata():
+    service = PostgresSessionService()
+    app_name = f"archive_app_{uuid.uuid4()}"
+    user_id = f"archive_user_{uuid.uuid4()}"
+
+    session = await service.create_session(app_name=app_name, user_id=user_id)
+
+    archived = await service.archive_session(
+        app_name=app_name,
+        user_id=user_id,
+        session_id=session.id,
+        archived=True,
+    )
+    assert archived is True
+
+    response = await service.list_sessions(app_name=app_name, user_id=user_id)
+    target = next((s for s in response.sessions if s.id == session.id), None)
+    assert target is not None
+    assert (target.state.get("metadata") or {}).get("archived") is True
+
+    restored = await service.archive_session(
+        app_name=app_name,
+        user_id=user_id,
+        session_id=session.id,
+        archived=False,
+    )
+    assert restored is True
+
+    response = await service.list_sessions(app_name=app_name, user_id=user_id)
+    target = next((s for s in response.sessions if s.id == session.id), None)
+    assert target is not None
+    assert (target.state.get("metadata") or {}).get("archived") is False

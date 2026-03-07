@@ -1,14 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+
+import type {
   KnowledgeDocument,
   KnowledgeDocumentDetail,
+} from "../utils/knowledge-api";
+import {
   downloadDocument,
   fetchDocumentDetail,
-  formatRelativeTime,
-} from "@/features/knowledge";
+  refreshDocumentMarkdown,
+} from "../utils/knowledge-api";
+import { formatRelativeTime } from "../utils/pipeline-helpers";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -81,7 +86,7 @@ function displayUser(createdBy: string | null): string {
   if (createdBy.includes("@")) {
     return createdBy.split("@")[0];
   }
-  return createdBy.length > 20 ? createdBy.slice(0, 20) + "..." : createdBy;
+  return createdBy.length > 20 ? `${createdBy.slice(0, 20)}...` : createdBy;
 }
 
 export function DocumentViewDialog({
@@ -90,9 +95,30 @@ export function DocumentViewDialog({
   onClose,
 }: DocumentViewDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isRefreshingMarkdown, setIsRefreshingMarkdown] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<KnowledgeDocumentDetail | null>(null);
+  const requestAppName = document?.app_name || APP_NAME;
+
+  const loadDetail = useCallback(async () => {
+    if (!isOpen || !document) return;
+
+    setLoadingDetail(true);
+    setDetailError(null);
+    try {
+      const res = await fetchDocumentDetail(document.corpus_id, document.id, {
+        appName: requestAppName,
+      });
+      setDetail(res);
+    } catch (err) {
+      setDetailError(
+        err instanceof Error ? err.message : "Failed to load document content",
+      );
+    } finally {
+      setLoadingDetail(false);
+    }
+  }, [isOpen, document, requestAppName]);
 
   useEffect(() => {
     if (!isOpen || !document) {
@@ -102,38 +128,29 @@ export function DocumentViewDialog({
       return;
     }
 
-    let cancelled = false;
-    setLoadingDetail(true);
-    setDetailError(null);
+    void loadDetail();
+  }, [isOpen, document, loadDetail]);
 
-    fetchDocumentDetail(document.corpus_id, document.id, { appName: APP_NAME })
-      .then((res) => {
-        if (!cancelled) {
-          setDetail(res);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setDetailError(err instanceof Error ? err.message : "Failed to load document content");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingDetail(false);
-        }
-      });
+  useEffect(() => {
+    if (!isOpen || !document) return;
+    if ((detail?.markdown_extract_status || "").toLowerCase() !== "processing") {
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, document?.id, document?.corpus_id]);
+    const timer = setInterval(() => {
+      void loadDetail();
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isOpen, document, detail?.markdown_extract_status, loadDetail]);
 
   const handleDownload = async () => {
     if (!document || isDownloading) return;
 
     setIsDownloading(true);
     try {
-      await downloadDocument(document.corpus_id, document.id, { appName: APP_NAME });
+      await downloadDocument(document.corpus_id, document.id, {
+        appName: requestAppName,
+      });
       toast.success(`Downloaded: ${document.original_filename}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to download document");
@@ -142,16 +159,49 @@ export function DocumentViewDialog({
     }
   };
 
+  const handleRefreshMarkdown = async () => {
+    if (!document || isRefreshingMarkdown) return;
+
+    setIsRefreshingMarkdown(true);
+    try {
+      const result = await refreshDocumentMarkdown(document.corpus_id, document.id, {
+        appName: requestAppName,
+      });
+      toast.success(result.message || "Markdown re-parse started");
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              markdown_extract_status: "processing",
+              markdown_extract_error: null,
+            }
+          : prev,
+      );
+      await loadDetail();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to start markdown re-parse",
+      );
+    } finally {
+      setIsRefreshingMarkdown(false);
+    }
+  };
+
   if (!isOpen || !document) return null;
 
   const viewedDoc: KnowledgeDocument = detail ?? document;
   const statusBadge = getStatusBadge(viewedDoc.status);
-  const markdownStatus = detail?.markdown_extract_status || document.markdown_extract_status || "pending";
+  const markdownStatus =
+    detail?.markdown_extract_status || document.markdown_extract_status || "pending";
   const markdownBadge = getMarkdownStatusBadge(markdownStatus);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="flex h-[86vh] w-full max-w-5xl flex-col rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900">
+    <OverlayDismissLayer
+      open={isOpen && document !== null}
+      onClose={onClose}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="flex h-[86vh] w-full max-w-5xl flex-col rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+    >
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             {getFileIcon(viewedDoc.content_type)}
@@ -204,6 +254,10 @@ export function DocumentViewDialog({
               ) : markdownStatus === "failed" ? (
                 <p className="text-sm text-red-600 dark:text-red-400">
                   {detail?.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
+                </p>
+              ) : (detail?.markdown_content || "").trim().length === 0 ? (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
                 </p>
               ) : (
                 <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-zinc-800 dark:text-zinc-200">
@@ -264,6 +318,16 @@ export function DocumentViewDialog({
             Close
           </button>
           <button
+            onClick={handleRefreshMarkdown}
+            disabled={isRefreshingMarkdown || !document}
+            className="flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.636 18.364A9 9 0 103.22 9.88" />
+            </svg>
+            {isRefreshingMarkdown ? "Re-Parsing..." : "Re-Parse from GCS"}
+          </button>
+          <button
             onClick={handleDownload}
             disabled={isDownloading}
             className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
@@ -274,7 +338,6 @@ export function DocumentViewDialog({
             {isDownloading ? "Downloading..." : "Download"}
           </button>
         </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }

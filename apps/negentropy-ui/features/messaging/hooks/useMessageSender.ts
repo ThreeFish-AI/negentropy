@@ -7,8 +7,13 @@
 
 import { useCallback } from "react";
 import { HttpAgent, randomUUID } from "@ag-ui/client";
-import { BaseEvent, EventType, Message } from "@ag-ui/core";
+import type { BaseEvent } from "@ag-ui/core";
 import type { ConnectionState } from "@/types/common";
+import {
+  createAgUiMessage,
+  createOptimisticTextEvents,
+  type AgUiMessage,
+} from "@/types/agui";
 
 /**
  * useMessageSender Hook 参数
@@ -27,7 +32,7 @@ export interface UseMessageSenderOptions {
   /** 设置原始事件回调 */
   setRawEvents: React.Dispatch<React.SetStateAction<BaseEvent[]>>;
   /** 设置乐观消息回调 */
-  setOptimisticMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setOptimisticMessages: React.Dispatch<React.SetStateAction<AgUiMessage[]>>;
   /** 设置输入值回调 */
   setInputValue: React.Dispatch<React.SetStateAction<string>>;
   /** 设置连接状态回调 */
@@ -91,35 +96,26 @@ export function useMessageSender(
 
     const messageId = crypto.randomUUID();
     const timestamp = Date.now() / 1000;
-    const newMessage: Message = {
+    const runId = randomUUID();
+    const newMessage = createAgUiMessage({
       id: messageId,
       role: "user",
       content: inputValue.trim(),
       createdAt: new Date(timestamp * 1000),
-    };
+      runId,
+    });
 
     // 乐观更新
     setOptimisticMessages((prev) => [...prev, newMessage]);
     setRawEvents((prev) => {
-      const optimisticEvents: BaseEvent[] = [
-        {
-          type: EventType.TEXT_MESSAGE_START,
-          messageId,
-          role: "user",
-          timestamp,
-        } as BaseEvent,
-        {
-          type: EventType.TEXT_MESSAGE_CONTENT,
-          messageId,
-          delta: newMessage.content,
-          timestamp,
-        } as BaseEvent,
-        {
-          type: EventType.TEXT_MESSAGE_END,
-          messageId,
-          timestamp,
-        } as BaseEvent,
-      ];
+      const optimisticEvents: BaseEvent[] = createOptimisticTextEvents({
+        threadId: resolvedThreadId,
+        runId,
+        messageId,
+        role: "user",
+        content: String(newMessage.content),
+        timestamp,
+      });
       const next = [...prev, ...optimisticEvents];
       // 增加缓冲区大小，防止丢失消息
       return next.slice(-10000);
@@ -138,8 +134,7 @@ export function useMessageSender(
     try {
       setConnection("connecting");
       await agent.runAgent({
-        runId: randomUUID(),
-        threadId: resolvedThreadId,
+        runId,
       });
       if (typeof onLoadSessions === "function") {
         await onLoadSessions();

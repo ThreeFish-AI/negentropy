@@ -1,32 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import {
   fetchPipelines,
   KnowledgePipelinesPayload,
   PipelineRunRecord,
+  PipelineStageResult,
   upsertPipelines,
 } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+const RUNNING_POLL_INTERVAL_MS = 3000;
+const BOOTSTRAP_POLL_INTERVAL_MS = 1000;
+const BOOTSTRAP_POLL_MAX_TICKS = 8;
 
 type RunRecord = PipelineRunRecord;
 
 // 阶段顺序定义（用于排序显示）
-const STAGE_ORDER = ["fetch", "delete", "chunk", "embed", "persist"];
+const STAGE_ORDER = [
+  "extract_resolve",
+  "extract_primary",
+  "extract_failover_1",
+  "extract_failover_2",
+  "extract_assets_store",
+  "extract_finalize",
+  "fetch",
+  "download",
+  "extract",
+  "delete",
+  "chunk",
+  "embed",
+  "persist",
+];
 
 // 操作类型中文名称
 const OPERATION_LABELS: Record<string, string> = {
   ingest_text: "文本摄入",
   ingest_url: "URL 摄入",
   replace_source: "替换源",
+  sync_source: "同步源",
+  rebuild_source: "重建源",
 };
 
 // 阶段名称中文名称
 const STAGE_LABELS: Record<string, string> = {
   fetch: "获取内容",
+  download: "下载源文件",
+  extract: "提取内容",
+  extract_resolve: "解析提取路由",
+  extract_primary: "主 MCP 提取",
+  extract_failover_1: "备用 MCP 提取 1",
+  extract_failover_2: "备用 MCP 提取 2",
+  extract_assets_store: "存储提取资源",
+  extract_finalize: "整理提取结果",
   delete: "删除旧记录",
   chunk: "文本分块",
   embed: "向量化",
@@ -110,6 +138,34 @@ const hasRunningRuns = (runs: PipelineRunRecord[] | undefined): boolean => {
   );
 };
 
+interface RunsSnapshot {
+  count: number;
+  firstRunId: string | null;
+  firstStatus: string | null;
+  firstVersion: number | null;
+}
+
+const createRunsSnapshot = (
+  runs: PipelineRunRecord[] | undefined,
+): RunsSnapshot => {
+  const first = runs?.[0];
+  return {
+    count: runs?.length ?? 0,
+    firstRunId: first?.run_id ?? null,
+    firstStatus: first?.status ?? null,
+    firstVersion: first?.version ?? null,
+  };
+};
+
+const isSameRunsSnapshot = (a: RunsSnapshot, b: RunsSnapshot): boolean => {
+  return (
+    a.count === b.count &&
+    a.firstRunId === b.firstRunId &&
+    a.firstStatus === b.firstStatus &&
+    a.firstVersion === b.firstVersion
+  );
+};
+
 // 计算 Stage 宽度（基于平方根比例，更好体现耗时差异）
 const calculateStageWidth = (
   stage: { duration_ms?: number },
@@ -148,53 +204,98 @@ export default function KnowledgePipelinesPage() {
   const [selected, setSelected] = useState<RunRecord | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [retryQueue, setRetryQueue] = useState<RunRecord[]>([]);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
+
+  const applyPayload = useCallback((data: KnowledgePipelinesPayload) => {
+    setPayload(data);
+    setError(null);
+    setSelected((prev) => {
+      if (!data.runs?.length) return null;
+      if (!prev) return data.runs[0];
+      const updated = data.runs.find((r) => r.id === prev.id);
+      return updated ?? data.runs[0];
+    });
+  }, []);
+
+  const loadPipelines = useCallback(async () => {
+    const data = await fetchPipelines(APP_NAME);
+    applyPayload(data);
+    return data;
+  }, [applyPayload]);
 
   useEffect(() => {
     let active = true;
-    fetchPipelines(APP_NAME)
-      .then((data) => {
-        if (active) {
-          setPayload(data);
-          if (data.runs?.length) {
-            setSelected(data.runs[0]);
-          }
-        }
-      })
-      .catch((err) => {
+    (async () => {
+      try {
+        const data = await fetchPipelines(APP_NAME);
+        if (!active) return;
+        applyPayload(data);
+        setHasInitialLoad(true);
+      } catch (err) {
         if (active) {
           setError(String(err));
         }
-      });
+      }
+    })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyPayload]);
+
+  // 首屏兜底轮询（避免刚跳转时因时序空窗漏掉新 Run）
+  useEffect(() => {
+    if (!hasInitialLoad) return;
+    if (hasRunningRuns(payload?.runs)) return;
+
+    let active = true;
+    let tick = 0;
+    const baseline = createRunsSnapshot(payload?.runs);
+
+    const intervalId = setInterval(async () => {
+      tick += 1;
+      try {
+        const data = await fetchPipelines(APP_NAME);
+        if (!active) return;
+
+        const nextSnapshot = createRunsSnapshot(data.runs);
+        const changed = !isSameRunsSnapshot(baseline, nextSnapshot);
+        const running = hasRunningRuns(data.runs);
+
+        if (changed || running) {
+          applyPayload(data);
+          clearInterval(intervalId);
+          return;
+        }
+      } catch (err) {
+        if (!active) return;
+        setError(String(err));
+      }
+
+      if (tick >= BOOTSTRAP_POLL_MAX_TICKS) {
+        clearInterval(intervalId);
+      }
+    }, BOOTSTRAP_POLL_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [applyPayload, hasInitialLoad, payload?.runs]);
 
   // 自动刷新 Effect（当有 running 状态时启动）
   useEffect(() => {
     if (!hasRunningRuns(payload?.runs)) return;
 
-    const intervalId = setInterval(async () => {
-      try {
-        const data = await fetchPipelines(APP_NAME);
-        setPayload(data);
-        setError(null);
-
-        // 保持选中状态，更新数据
-        setSelected((prev) => {
-          if (!prev) return data.runs?.[0] ?? null;
-          const updated = data.runs?.find((r) => r.id === prev.id);
-          return updated ?? prev;
-        });
-      } catch (err) {
+    const intervalId = setInterval(() => {
+      loadPipelines().catch((err) => {
         setError(String(err));
-      }
-    }, 3000);
+      });
+    }, RUNNING_POLL_INTERVAL_MS);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [payload?.runs]);
+  }, [loadPipelines, payload?.runs]);
 
   const runs = payload?.runs || [];
   const statusColor = (status?: string) => {
@@ -239,7 +340,7 @@ export default function KnowledgePipelinesPage() {
   };
 
   // 获取排序后的阶段列表
-  const getSortedStages = (stages?: Record<string, RunRecord["stages"] extends Record<string, infer T> ? T : never>) => {
+  const getSortedStages = (stages?: Record<string, PipelineStageResult>) => {
     if (!stages) return [];
     return Object.entries(stages).sort(([a], [b]) => {
       const indexA = STAGE_ORDER.indexOf(a);
@@ -325,11 +426,11 @@ export default function KnowledgePipelinesPage() {
                         {/* 阶段进度条 */}
                         {run.stages && Object.keys(run.stages).length > 0 && (
                           <div className="mt-2 flex items-center gap-1">
-                            {getSortedStages(run.stages).map(([stageName, stage]) => (
+                            {getSortedStages(run.stages as Record<string, PipelineStageResult>).map(([stageName, stage]) => (
                               <div
                                 key={stageName}
                                 className="relative group"
-                                style={{ width: calculateStageWidth(stage, run.stages!) }}
+                                style={{ width: calculateStageWidth(stage, run.stages as Record<string, PipelineStageResult>) }}
                               >
                                 <div className={`h-1.5 w-full rounded-full ${getStageColor(stageName, stage.status)}`} />
                                 {/* Hover Tooltip */}

@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Loader2, Play, ChevronRight } from "lucide-react";
 import { ApiEndpoint, InteractiveFormConfig, FormFieldConfig } from "@/features/knowledge/utils/api-specs";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { FormFieldRenderer } from "./FormFieldRenderer";
 import { executeApiCall } from "./utils/ApiExecutor";
 
@@ -193,8 +194,13 @@ export function DynamicApiForm({
 
       {/* 确认对话框 */}
       {showConfirmDialog && config.confirmDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900">
+        <OverlayDismissLayer
+          open={showConfirmDialog}
+          onClose={handleCancelConfirm}
+          busy={loading}
+          containerClassName="flex min-h-full items-center justify-center p-4"
+          contentClassName="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+        >
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {config.confirmDialog.title}
             </h3>
@@ -210,13 +216,13 @@ export function DynamicApiForm({
               </button>
               <button
                 onClick={handleConfirm}
+                disabled={loading}
                 className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700"
               >
                 确认
               </button>
             </div>
-          </div>
-        </div>
+        </OverlayDismissLayer>
       )}
     </div>
   );

@@ -12,9 +12,15 @@
  */
 
 import { useRef, useState, useCallback, useMemo } from "react";
-import { BaseEvent, compactEvents } from "@ag-ui/core";
+import { compactEvents } from "@ag-ui/client";
+import { BaseEvent, EventType } from "@ag-ui/core";
 import { buildTimelineItems } from "@/utils/timeline";
 import type { LogEntry, ConnectionState } from "@/types/common";
+import {
+  getEventMessageId,
+  getEventToolCallId,
+  getEventToolCallName,
+} from "@/types/agui";
 
 export interface UseEventProcessorOptions {
   sessionMessages?: BaseEvent[];
@@ -99,12 +105,16 @@ export function useEventProcessor(
     // 处理所有 TEXT_MESSAGE 事件以构建映射
     rawEvents.forEach((event) => {
       if (
-        event.type === "text_message_start" ||
-        event.type === "text_message_content" ||
-        event.type === "text_message_end"
+        event.type === EventType.TEXT_MESSAGE_START ||
+        event.type === EventType.TEXT_MESSAGE_CONTENT ||
+        event.type === EventType.TEXT_MESSAGE_END
       ) {
-        const messageId = "messageId" in event ? event.messageId : undefined;
-        const timestamp = "timestamp" in event ? event.timestamp : undefined;
+        const messageId =
+          getEventMessageId(event);
+        const timestamp =
+          "timestamp" in event && typeof event.timestamp === "number"
+            ? event.timestamp
+            : undefined;
 
         if (messageId && timestamp !== undefined) {
           if (!timestampMap.has(messageId)) {
@@ -151,14 +161,17 @@ export function useEventProcessor(
     const pending = new Set<string>();
     rawEvents.forEach((event) => {
       if (
-        event.type === "tool_call_start" &&
-        "toolCallName" in event &&
-        event.toolCallName === "ui.confirmation"
+        event.type === EventType.TOOL_CALL_START &&
+        getEventToolCallName(event) === "ui.confirmation" &&
+        typeof getEventToolCallId(event) === "string"
       ) {
-        pending.add(event.toolCallId);
+        pending.add(getEventToolCallId(event)!);
       }
-      if (event.type === "tool_call_result") {
-        pending.delete(event.toolCallId);
+      if (
+        event.type === EventType.TOOL_CALL_RESULT &&
+        typeof getEventToolCallId(event) === "string"
+      ) {
+        pending.delete(getEventToolCallId(event)!);
       }
     });
     return pending.size;

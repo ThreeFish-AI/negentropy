@@ -11,12 +11,15 @@ from pydantic import ValidationError
 
 from negentropy.knowledge.types import (
     ChunkingConfig,
+    ChunkingStrategy,
     CorpusRecord,
     CorpusSpec,
+    GraphBuildConfigModel,
     KnowledgeChunk,
     KnowledgeMatch,
     KnowledgeRecord,
     SearchConfig,
+    serialize_chunking_config,
 )
 from negentropy.knowledge.constants import (
     DEFAULT_CHUNK_SIZE,
@@ -135,6 +138,56 @@ class TestChunkingConfig:
         config = ChunkingConfig(chunk_size=100, overlap=50)
         assert config.overlap < config.chunk_size
 
+    def test_separators_normalized_to_hashable_tuple(self) -> None:
+        """separators 应标准化为可哈希的不可变元组"""
+        config = ChunkingConfig(separators=["###", " ", "###", "\t", "---"])
+        assert config.separators == ("###", "---")
+
+    def test_serialize_chunking_config_returns_json_safe_recursive_payload(self) -> None:
+        """序列化结果应只包含 JSON 原生类型"""
+        config = ChunkingConfig(
+            strategy=ChunkingStrategy.RECURSIVE,
+            chunk_size=500,
+            overlap=50,
+            preserve_newlines=False,
+            separators=["###", "---"],
+        )
+
+        payload = serialize_chunking_config(config)
+
+        assert payload == {
+            "strategy": "recursive",
+            "chunk_size": 500,
+            "overlap": 50,
+            "preserve_newlines": False,
+            "separators": ["###", "---"],
+        }
+        assert isinstance(payload["strategy"], str)
+
+    def test_serialize_chunking_config_returns_json_safe_hierarchical_payload(self) -> None:
+        """层级分块配置序列化后不应保留枚举或元组"""
+        config = ChunkingConfig(
+            strategy=ChunkingStrategy.HIERARCHICAL,
+            preserve_newlines=True,
+            separators=["###"],
+            hierarchical_parent_chunk_size=1500,
+            hierarchical_child_chunk_size=500,
+            hierarchical_child_overlap=150,
+        )
+
+        payload = serialize_chunking_config(config)
+
+        assert payload == {
+            "strategy": "hierarchical",
+            "preserve_newlines": True,
+            "separators": ["###"],
+            "hierarchical_parent_chunk_size": 1500,
+            "hierarchical_child_chunk_size": 500,
+            "hierarchical_child_overlap": 150,
+        }
+        assert isinstance(payload["strategy"], str)
+        assert isinstance(payload["separators"], list)
+
 
 class TestSearchConfig:
     """SearchConfig 配置测试"""
@@ -189,6 +242,25 @@ class TestImmutability:
         config1 = ChunkingConfig(chunk_size=500, overlap=50)
         config2 = ChunkingConfig(chunk_size=500, overlap=50)
         # frozen Pydantic model 应可哈希
+        assert hash(config1) == hash(config2)
+
+
+class TestGraphBuildConfig:
+    """GraphBuildConfigModel 配置测试"""
+
+    def test_graph_build_config_hashable(self) -> None:
+        """图谱构建配置应保持可哈希"""
+        config1 = GraphBuildConfigModel(
+            entity_types=["person", "organization", "person"],
+            relation_types=["WORKS_FOR", "  ", "WORKS_FOR"],
+        )
+        config2 = GraphBuildConfigModel(
+            entity_types=("person", "organization"),
+            relation_types=("WORKS_FOR",),
+        )
+
+        assert config1.entity_types == ("person", "organization")
+        assert config1.relation_types == ("WORKS_FOR",)
         assert hash(config1) == hash(config2)
 
 

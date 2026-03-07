@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CorpusRecord,
   IngestResult,
@@ -101,6 +101,7 @@ export interface UseKnowledgeBaseReturnValue {
   /** 摄取 URL（异步） */
   ingestUrl: (params: {
     url: string;
+    as_document?: boolean;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<AsyncPipelineResult>;
@@ -138,6 +139,10 @@ const DEFAULT_LOADING_STATE = {
   isLoading: false,
   error: null as Error | null,
 };
+
+function toChunkingPayload(config?: ChunkingConfig) {
+  return config ? { chunking_config: config } : {};
+}
 
 /**
  * 知识库管理 Hook
@@ -177,6 +182,7 @@ export function useKnowledgeBase(
   const [corpus, setCorpus] = useState<CorpusRecord | null>(null);
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
   const [state, setState] = useState(DEFAULT_LOADING_STATE);
+  const activeCorpusId = corpus?.id;
 
   // 加载语料库
   const loadCorpus = useCallback(
@@ -251,7 +257,7 @@ export function useKnowledgeBase(
         setCorpora((prev) =>
           prev.map((c) => (c.id === id ? { ...c, ...result } : c)),
         );
-        if (corpus?.id === id) {
+        if (activeCorpusId === id) {
           setCorpus((prev) => (prev ? { ...prev, ...result } : result));
         }
         setState({ isLoading: false, error: null });
@@ -263,7 +269,7 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, onError],
+    [activeCorpusId, onError],
   );
 
   // 删除语料库
@@ -273,7 +279,7 @@ export function useKnowledgeBase(
       try {
         await deleteCorpus(id);
         setCorpora((prev) => prev.filter((c) => c.id !== id));
-        if (corpus?.id === id) {
+        if (activeCorpusId === id) {
           setCorpus(null);
         }
         setState({ isLoading: false, error: null });
@@ -284,7 +290,7 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, onError],
+    [activeCorpusId, onError],
   );
 
   // 摄取文本
@@ -295,20 +301,18 @@ export function useKnowledgeBase(
       metadata?: Record<string, unknown>;
       chunkingConfig?: ChunkingConfig;
     }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await ingestText(corpus.id, {
+        const result = await ingestText(activeCorpusId, {
           app_name: appName,
           text: params.text,
           source_uri: params.source_uri,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -320,29 +324,29 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError, onIngestSuccess],
+    [activeCorpusId, appName, onError, onIngestSuccess],
   );
 
   // 摄取 URL
   const ingestUrlHandler = useCallback(
     async (params: {
       url: string;
+      as_document?: boolean;
       metadata?: Record<string, unknown>;
       chunkingConfig?: ChunkingConfig;
     }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await ingestUrl(corpus.id, {
+        const result = await ingestUrl(activeCorpusId, {
           app_name: appName,
           url: params.url,
+          as_document: params.as_document,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -354,7 +358,7 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError, onIngestSuccess],
+    [activeCorpusId, appName, onError, onIngestSuccess],
   );
 
   // 摄取文件
@@ -365,23 +369,20 @@ export function useKnowledgeBase(
       metadata?: Record<string, unknown>;
       chunkingConfig?: ChunkingConfig;
     }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await ingestFileApi(corpus.id, {
+        const result = await ingestFileApi(activeCorpusId, {
           app_name: appName,
           file: params.file,
           source_uri: params.source_uri,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
-        onIngestSuccess?.(result);
         return result;
       } catch (error) {
         const err = error as Error;
@@ -390,7 +391,7 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError, onIngestSuccess],
+    [activeCorpusId, appName, onError],
   );
 
   // 替换源文本
@@ -401,20 +402,18 @@ export function useKnowledgeBase(
       metadata?: Record<string, unknown>;
       chunkingConfig?: ChunkingConfig;
     }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await replaceSource(corpus.id, {
+        const result = await replaceSource(activeCorpusId, {
           app_name: appName,
           text: params.text,
           source_uri: params.source_uri,
           metadata: params.metadata,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         return result;
@@ -425,24 +424,22 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError],
+    [activeCorpusId, appName, onError],
   );
 
   // 同步 URL 源
   const syncSourceHandler = useCallback(
     async (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await syncSourceApi(corpus.id, {
+        const result = await syncSourceApi(activeCorpusId, {
           app_name: appName,
           source_uri: params.source_uri,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -454,24 +451,22 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError, onIngestSuccess],
+    [activeCorpusId, appName, onError, onIngestSuccess],
   );
 
   // 重建 GCS 源
   const rebuildSourceHandler = useCallback(
     async (params: { source_uri: string; chunkingConfig?: ChunkingConfig }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await rebuildSourceApi(corpus.id, {
+        const result = await rebuildSourceApi(activeCorpusId, {
           app_name: appName,
           source_uri: params.source_uri,
-          chunk_size: params.chunkingConfig?.chunk_size,
-          overlap: params.chunkingConfig?.overlap,
-          preserve_newlines: params.chunkingConfig?.preserve_newlines,
+          ...toChunkingPayload(params.chunkingConfig),
         });
         setState({ isLoading: false, error: null });
         onIngestSuccess?.(result);
@@ -483,19 +478,19 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError, onIngestSuccess],
+    [activeCorpusId, appName, onError, onIngestSuccess],
   );
 
   // 搜索知识库
   const searchHandler = useCallback(
     async (query: string, config?: SearchConfig) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await searchKnowledge(corpus.id, {
+        const result = await searchKnowledge(activeCorpusId, {
           app_name: appName,
           query,
           mode: config?.mode,
@@ -514,19 +509,19 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError, onSearchSuccess],
+    [activeCorpusId, appName, onError, onSearchSuccess],
   );
 
   // 删除源
   const deleteSourceHandler = useCallback(
     async (params: { source_uri: string }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await deleteSourceApi(corpus.id, {
+        const result = await deleteSourceApi(activeCorpusId, {
           app_name: appName,
           source_uri: params.source_uri,
         });
@@ -539,19 +534,19 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError],
+    [activeCorpusId, appName, onError],
   );
 
   // 归档/解档源
   const archiveSourceHandler = useCallback(
     async (params: { source_uri: string; archived?: boolean }) => {
-      if (!corpus?.id) {
+      if (!activeCorpusId) {
         throw new Error("No corpus selected");
       }
 
       setState({ isLoading: true, error: null });
       try {
-        const result = await archiveSourceApi(corpus.id, {
+        const result = await archiveSourceApi(activeCorpusId, {
           app_name: appName,
           source_uri: params.source_uri,
           archived: params.archived ?? true,
@@ -565,34 +560,58 @@ export function useKnowledgeBase(
         throw err;
       }
     },
-    [corpus?.id, appName, onError],
+    [activeCorpusId, appName, onError],
   );
 
   // 初始化：如果有 corpusId，加载语料库
   useEffect(() => {
     if (initialCorpusId) {
-      loadCorpus(initialCorpusId);
+      queueMicrotask(() => {
+        void loadCorpus(initialCorpusId);
+      });
     }
   }, [initialCorpusId, loadCorpus]);
 
-  return {
-    corpus,
-    corpora,
-    isLoading: state.isLoading,
-    error: state.error,
-    loadCorpus,
-    loadCorpora,
-    createCorpus: createCorpusHandler,
-    updateCorpus: updateCorpusHandler,
-    deleteCorpus: deleteCorpusHandler,
-    ingestText: ingestTextHandler,
-    ingestUrl: ingestUrlHandler,
-    ingestFile: ingestFileHandler,
-    replaceSource: replaceSourceHandler,
-    syncSource: syncSourceHandler,
-    rebuildSource: rebuildSourceHandler,
-    deleteSource: deleteSourceHandler,
-    archiveSource: archiveSourceHandler,
-    search: searchHandler,
-  };
+  return useMemo(
+    () => ({
+      corpus,
+      corpora,
+      isLoading: state.isLoading,
+      error: state.error,
+      loadCorpus,
+      loadCorpora,
+      createCorpus: createCorpusHandler,
+      updateCorpus: updateCorpusHandler,
+      deleteCorpus: deleteCorpusHandler,
+      ingestText: ingestTextHandler,
+      ingestUrl: ingestUrlHandler,
+      ingestFile: ingestFileHandler,
+      replaceSource: replaceSourceHandler,
+      syncSource: syncSourceHandler,
+      rebuildSource: rebuildSourceHandler,
+      deleteSource: deleteSourceHandler,
+      archiveSource: archiveSourceHandler,
+      search: searchHandler,
+    }),
+    [
+      corpus,
+      corpora,
+      state.isLoading,
+      state.error,
+      loadCorpus,
+      loadCorpora,
+      createCorpusHandler,
+      updateCorpusHandler,
+      deleteCorpusHandler,
+      ingestTextHandler,
+      ingestUrlHandler,
+      ingestFileHandler,
+      replaceSourceHandler,
+      syncSourceHandler,
+      rebuildSourceHandler,
+      deleteSourceHandler,
+      archiveSourceHandler,
+      searchHandler,
+    ],
+  );
 }

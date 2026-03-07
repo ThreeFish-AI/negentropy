@@ -1,13 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
-import type { Message } from "@ag-ui/core";
 import type { ChatMessage } from "@/types/common";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { ToolCallList } from "./ToolCallBubble";
+import { UserAvatar } from "./UserAvatar";
 
 type ChatMessageProps = {
   message: ChatMessage;
@@ -48,10 +49,6 @@ function formatTimestamp(timestamp: number): string {
 function normalizeContent(content: string): string {
   return content;
 }
-
-import { useState } from "react";
-
-// ... (imports remain)
 
 function MessageActions({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
@@ -219,6 +216,14 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
+function StreamingText({ content }: { content: string }) {
+  return (
+    <div className="whitespace-pre-wrap break-words text-sm leading-7 text-inherit">
+      {content}
+    </div>
+  );
+}
+
 export function MessageBubble({
   message,
   isSelected,
@@ -228,6 +233,10 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const content = normalizeContent(message.content);
+  const isStreaming = message.streaming === true && !isUser && content.trim().length > 0;
+  const avatarPositionClass = isUser
+    ? "absolute right-0 top-2 translate-x-[calc(100%+0.75rem)]"
+    : "absolute left-0 top-2 -translate-x-[calc(100%+0.75rem)]";
 
   if (isSystem) {
     return (
@@ -242,46 +251,43 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "flex w-full gap-4 group cursor-pointer", // Added cursor-pointer for clickability
+        "group relative flex w-full cursor-pointer rounded-[2rem] px-2 py-1 transition-colors duration-200",
         isUser ? "flex-row-reverse" : "flex-row",
-        isSelected && "bg-muted/50", // Highlight when selected
+        isSelected && "bg-[linear-gradient(90deg,rgba(245,158,11,0.10),transparent_75%)]",
       )}
       onClick={() => onSelect?.(message.id)}
     >
-      {/* Avatar */}
-      <div className="shrink-0">
+      <div className={cn("shrink-0", avatarPositionClass)}>
         {isUser ? (
-          user?.picture ? (
-            <img
-              src={user.picture}
-              alt="Me"
-              className="w-8 h-8 rounded-full border border-border"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">
-              U
-            </div>
-          )
+          <UserAvatar
+            picture={user?.picture}
+            name={user?.name}
+            email={user?.email}
+            alt="Me"
+            className="h-8 w-8 rounded-md object-cover"
+            fallbackClassName="bg-foreground text-background text-xs"
+          />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm ring-2 ring-primary/20 shrink-0 overflow-hidden">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card">
             <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
           </div>
         )}
       </div>
 
-      {/* Bubble Container */}
       <div
         className={cn(
-          "flex flex-col",
-          isUser ? "max-w-[85%]" : "w-full max-w-full",
+          "flex w-full flex-col",
+          isUser ? "items-end" : "items-start",
         )}
       >
         <div
           className={cn(
-            "rounded-2xl px-5 py-3 text-sm shadow-sm transition-all",
+            "rounded-[1.6rem] px-5 py-3.5 text-sm shadow-sm transition-all duration-300",
             isUser
-              ? "bg-foreground text-background rounded-tr-sm leading-relaxed"
-              : "bg-card text-foreground border border-border rounded-tl-sm leading-snug",
+              ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
+              : "w-full max-w-full rounded-tl-md border border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.9))] text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)] dark:border-zinc-800 dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(9,9,11,0.9))]",
+            isStreaming &&
+              "ring-1 ring-amber-300/70 shadow-[0_16px_46px_rgba(245,158,11,0.12)] dark:ring-amber-700/60",
           )}
         >
           <div
@@ -313,79 +319,65 @@ export function MessageBubble({
                 "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
           >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code({ className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  const isMermaid = match && match[1] === "mermaid";
-                  // @ts-expect-error - 'inline' is sometimes passed by react-markdown but missing in types depending on version
-                  const isInline = props.inline;
+            {isStreaming ? (
+              <StreamingText content={content} />
+            ) : (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    const isMermaid = match && match[1] === "mermaid";
+                    // @ts-expect-error - 'inline' is sometimes passed by react-markdown but missing in types depending on version
+                    const isInline = props.inline;
 
-                  if (isMermaid) {
+                    if (isMermaid) {
+                      return (
+                        <MermaidDiagram
+                          code={String(children).replace(/\n$/, "")}
+                        />
+                      );
+                    }
+
+                    if (!isInline && match) {
+                      return (
+                        <div className="relative group">
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                          <CopyButton code={String(children)} />
+                        </div>
+                      );
+                    }
+
                     return (
-                      <MermaidDiagram
-                        code={String(children).replace(/\n$/, "")}
-                      />
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
                     );
-                  }
-
-                  if (!isInline && match) {
-                    return (
-                      <div className="relative group">
-                        {/* Native code element will be rendered inside pre by default, but here we are inside code.
-                             Actually, if we are in 'code' component, we are INSIDE the 'pre' if it's a block.
-                             If we render a div here, we are inside pre.
-                             Styling might be tricky.
-                             Better approach: just use the pre style for the block, and add a copy button relative to it?
-                             React-Markdown renders 'pre' then 'code'.
-                             If we want to add a button, we ideally want to be properly positioned.
-                             Let's just return the code as is, but maybe use 'pre' override?
-                             No, 'pre' override is safer for the button placement.
-                             Let's revert to simple code return here and override PRE.
-                          */}
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                        <CopyButton code={String(children)} />
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                },
-                // Override pre to handle positioning if needed, or just handle it in code.
-                // Actually, doing it in 'code' inside 'pre' is messy because 'pre' has the background.
-                // Let's rely on MessageBubble css for pre.
-                // If I modify code to return a div, 'pre > div' is valid HTML5? No, pre should contain phrasing content (code).
-                // But for React rendering it works visually.
-                // Let's try to keeping it simple: Just add the button in 'code' and position it.
-                // The 'pre' has relative positioning?
-                pre({ children }) {
-                  // Extract code string? Children of pre is code.
-                  // It's hard to get the raw text easily from pre children if it's a React element.
-                  // So doing it in 'code' is easier for accessing text.
-                  // If we render a div inside pre, we might break the 'pre' scrolling or styling if not careful.
-                  // Let's use a simpler approach: Just add the button in 'code' and position it.
-                  // The 'pre' has relative positioning?
-                  return <pre className="relative group">{children}</pre>;
-                },
-              }}
-            >
-              {content}
-            </ReactMarkdown>
+                  },
+                  pre({ children }) {
+                    return <pre className="relative group">{children}</pre>;
+                  },
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            )}
+            {isStreaming ? (
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
+                <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
+                <span>Streaming</span>
+              </div>
+            ) : null}
           </div>
         </div>
 
         {/* 元信息栏：显示作者和时间戳 */}
-        {!isUser && (message.author || message.timestamp) && (
-          <div className="flex items-center gap-2 mt-1.5 px-1">
+        {!isUser && (message.author || message.timestamp || isStreaming) && (
+          <div className="mt-2 flex items-center gap-2 px-1">
             {message.author && (
-              <span className="text-[10px] text-muted-foreground bg-muted/50 dark:bg-muted/30 px-1.5 py-0.5 rounded font-medium">
+              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
                 {message.author}
               </span>
             )}
@@ -394,6 +386,11 @@ export function MessageBubble({
                 {formatTimestamp(message.timestamp)}
               </span>
             )}
+            {isStreaming ? (
+              <span className="text-[10px] font-medium text-amber-600 dark:text-amber-300">
+                实时生成中
+              </span>
+            ) : null}
           </div>
         )}
 

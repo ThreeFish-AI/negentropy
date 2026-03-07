@@ -24,7 +24,10 @@
 
 ### 法 (Strategy - 架构原则)
 
-- **Reuse-Driven (复用驱动)**: Composition over Construction。优先采用业界成熟方案与最佳实践；通过“拿来主义”站在巨人的肩膀上进行微创新。优先组合与集成，通过连接成熟组件构建系统，而非重复造轮子
+- **Plan Node Default (默认规划模式)**: 面对任何非琐碎任务（预估步骤 > 3 或涉及架构级决策），**必须**率先进入 Plan 模式。规划产物需明确界定：功能边界、边缘 Case 应对策略、与现有逻辑的交互锚点以及预计改动的爆炸半径。
+- **Subagent Strategy (子代理并发策略)**: 面对高复杂度命题，严禁主 Agent 单点统揽。应贯彻“算力换空间”思路，果断编排 Subagent 进行任务拆解与并行攻坚，主 Agent 的职责需严格收敛于上下文协同与最终成果的组装整合。
+- **Verification Before Done (交付前验证定式)**: 严禁在缺乏确凿运行证据的情况下标记任务为“已完成”。交付阶段**强制要求**提供客观自证材料：Diff 变更分析、测试用例覆盖、实施日志截图及核心链路边缘 Case 验证结果，并时刻以“方案是否能通过 Staff Engineer 严格审查”的视角自检。
+- **Reuse-Driven (复用驱动)**: Composition over Construction。系统变更**必须**主动参考业界经典设计模式与最佳实践。在进入实质性编码前，需率先对相关领域的成熟范式进行深度调研，并结合当前项目上下文输出充分的关联分析与方案梳理。坚决贯彻“拿来主义”，优先通过组合与集成来构建系统，防范闭门造车与重复造轮子。
 - **Boundary Management (边界管理)**: 严控模块/Agent 间的职责边界与契约，确保高内聚低耦合，防范隐式依赖穿透。
 - **Orthogonal Decomposition (正交分解)**: 坚持“正交地提取概念主体”。识别系统中独立变化的维度并进行解耦（如机制与策略分离），确保单一概念主体的变更具备局部性，避免逻辑纠缠。
 - **Feedback Loops (反馈闭环)**：构建“设计-实现-验证”的完整闭环，确保每一项工程行动都能产生可观测的反馈信号（测试、日志、监控），以验证假设并指导迭代。
@@ -42,7 +45,7 @@
   1. **Git Hygiene**: 如非显性要求，严禁调用 git commit；
   2. **Temp Management**: 临时产物（执行计划等）一律收敛至 `.temp/` 并及时清理；
   3. **Link Validity**: 确保所有引用的 URL 可访问且具备明确的上下文价值；
-  4. **Git Commit**: 在需要提交变更到 Git 时，一律使用 Claude Code 的自定义 Slash Command: `/commit-no-push` 进行 git commit 操作。
+  4. **Git Commit**: 在需要提交变更到 Git 时，一律使用 Shell 调用 Claude Code 的自定义 Slash Command: `/commit` 进行 git commit 操作（若环境中未安装 Claude Code，则直接读取 `~/.claude/commands/commit.md`，按照其中的规则进行 git commit 操作）。不要执行 Rebase。
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/yarn，**必须**统一使用 `pnpm` 进行包管理与脚本执行。

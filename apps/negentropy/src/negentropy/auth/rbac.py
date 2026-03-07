@@ -29,6 +29,9 @@ PERMISSIONS = {
     # Chat
     "chat:read": "View chat history",
     "chat:write": "Send messages",
+    # Plugins
+    "plugins:read": "View plugins (MCP, Skills, SubAgents)",
+    "plugins:write": "Create and manage own plugins",
 }
 
 # Role-permission mappings
@@ -40,11 +43,14 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "knowledge:*",
         "memory:*",
         "chat:*",
+        "plugins:*",
     ],
     "user": [
         "knowledge:read",
         "memory:read",
         "chat:*",
+        "plugins:read",
+        "plugins:write",
     ],
 }
 

@@ -1,41 +1,42 @@
-name: negentropy-backend-tests
+name: Backend Test Suite
 
 on:
   push:
+    branches:
+      - "**"
     paths:
       - "apps/negentropy/**"
       - "apps/negentropy-ui/lib/adk.ts"
       - ".github/workflows/negentropy-backend-tests.yml"
   pull_request:
+    branches:
+      - "**"
     paths:
       - "apps/negentropy/**"
       - "apps/negentropy-ui/lib/adk.ts"
       - ".github/workflows/negentropy-backend-tests.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
 jobs:
-  test:
+  backend-unit:
+    name: Backend Unit Tests
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
-
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/negentropy
-
     steps:
       - uses: actions/checkout@v4
 
@@ -51,13 +52,62 @@ jobs:
           cache-dependency-glob: apps/negentropy/uv.lock
 
       - name: Install dependencies
-        working-directory: apps/negentropy
-        run: uv sync
+        run: uv sync --frozen
 
-      - name: Run unit tests
-        run: uv run pytest tests/unit_tests/ -v
+      - name: Run unit tests with coverage
+        run: uv run pytest tests/unit_tests/ --cov=negentropy --cov-report=term-missing --cov-report=xml
+
+      - name: Upload backend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/negentropy/coverage.xml
+
+      - name: Publish summary
+        run: |
+          echo "## Backend Unit Tests" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Executed: \`uv run pytest tests/unit_tests/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Coverage artifact: \`backend-coverage\`" >> "$GITHUB_STEP_SUMMARY"
+
+  backend-integration:
+    name: Backend Integration Tests
+    needs: backend-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
         env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+    defaults:
+      run:
+        working-directory: apps/negentropy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/negentropy/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
 
       - name: Initialize database schema
         run: |
@@ -76,15 +126,73 @@ jobs:
           asyncio.run(init_db())
           "
           uv run alembic upgrade head
-        env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
 
       - name: Run integration tests
         run: uv run pytest tests/integration_tests/ -v
+
+      - name: Publish summary
+        run: |
+          echo "## Backend Integration Tests" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Executed database-backed integration suite." >> "$GITHUB_STEP_SUMMARY"
+
+  backend-performance:
+    name: Backend Performance Tests
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    needs: backend-integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
         env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+    defaults:
+      run:
+        working-directory: apps/negentropy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/negentropy/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Initialize database schema
+        run: |
+          uv run python -c "
+          import asyncio
+          from sqlalchemy import text
+          from sqlalchemy.ext.asyncio import create_async_engine
+
+          async def init_db():
+              engine = create_async_engine('postgresql+asyncpg://postgres:postgres@localhost:5432/test_db')
+              async with engine.begin() as conn:
+                  await conn.execute(text('CREATE SCHEMA IF NOT EXISTS negentropy'))
+                  await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+              await engine.dispose()
+
+          asyncio.run(init_db())
+          "
+          uv run alembic upgrade head
 
       - name: Run performance tests
         run: uv run pytest tests/performance_tests/ -v
-        env:
-          NE_DB_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db

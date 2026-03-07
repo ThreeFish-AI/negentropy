@@ -3,15 +3,7 @@ Sandbox MCP Integration
 Provides utilities to expose the sandbox as an MCP Tool.
 """
 
-try:
-    from mcp import StdioServerParameters
-except ImportError:
-    # Use a dummy class/mock if mcp is not installed yet, to allow import
-    class StdioServerParameters:
-        def __init__(self, command, args, env):
-            self.command = command
-            self.args = args
-            self.env = env
+from mcp import StdioServerParameters
 
 
 async def create_mcp_sandbox_tool():

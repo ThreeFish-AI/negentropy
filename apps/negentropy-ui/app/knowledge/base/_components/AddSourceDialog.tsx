@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { IngestResult, AsyncPipelineResult, ChunkingConfig } from "@/features/knowledge";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 // 支持的文件扩展名
 const SUPPORTED_EXTENSIONS = [".txt", ".md", ".markdown", ".pdf"];
@@ -12,11 +13,13 @@ interface AddSourceDialogProps {
   isOpen: boolean;
   corpusId: string | null;
   onClose: () => void;
-  onIngest: (params: { text: string; source_uri?: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
   onIngestUrl: (params: { url: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
   onIngestFile?: (params: { file: File; source_uri?: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
   chunkingConfig?: ChunkingConfig;
   onSuccess?: () => void;
+  initialMode?: "url" | "file";
+  allowedModes?: Array<"url" | "file">;
+  title?: string;
 }
 
 function formatFileSize(bytes: number): string {
@@ -29,17 +32,20 @@ export function AddSourceDialog({
   isOpen,
   corpusId,
   onClose,
-  onIngest,
   onIngestUrl,
   onIngestFile,
   chunkingConfig,
   onSuccess,
+  initialMode = "url",
+  allowedModes = ["url", "file"],
+  title = "Add Source",
 }: AddSourceDialogProps) {
-  const [mode, setMode] = useState<"url" | "file">("url");
+  const normalizedInitialMode =
+    allowedModes.includes(initialMode) ? initialMode : (allowedModes[0] ?? "url");
+  const [mode, setMode] = useState<"url" | "file">(normalizedInitialMode);
   const [sourceUri, setSourceUri] = useState("");
   const [url, setUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,56 +103,68 @@ export function AddSourceDialog({
     }
   };
 
-  const handleIngest = async () => {
-    if (!corpusId || isSubmitting) return;
+  const handleIngest = () => {
+    if (!corpusId) return;
 
     if (mode === "url" && !url.trim()) return;
     if (mode === "file" && !selectedFile) return;
 
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      if (mode === "url") {
-        await onIngestUrl({ url, chunkingConfig });
-        toast.success("已开始从 URL 摄入知识源", {
-          description: "可在 Pipeline 页面查看构建进度",
-        });
-      } else if (mode === "file" && onIngestFile) {
-        await onIngestFile({
-          file: selectedFile!,
-          source_uri: sourceUri || undefined,
-          chunkingConfig,
-        });
-        toast.success("已开始从文件摄入知识源", {
-          description: "可在 Pipeline 页面查看构建进度",
-        });
-      }
-      // Reset form
-      setSourceUri("");
-      setUrl("");
-      setSelectedFile(null);
-      onSuccess?.();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      toast.error("摄入失败", {
-        description: errorMessage,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    // 保存当前值用于 API 调用
+    const currentUrl = url;
+    const currentFile = selectedFile;
+    const currentSourceUri = sourceUri;
 
-  const handleClose = () => {
+    // 立即关闭模态框并重置表单
+    setMode(normalizedInitialMode);
     setSourceUri("");
     setUrl("");
     setSelectedFile(null);
     setError(null);
+    setDragActive(false);
+    onSuccess?.();
+
+    // 显示 Toast 提示
+    if (mode === "url") {
+      toast.success("已开始从 URL 摄入知识源", {
+        description: "可在 Pipeline 页面查看构建进度",
+      });
+    } else if (mode === "file") {
+      toast.success("已开始从文件摄入知识源", {
+        description: "可在 Pipeline 页面查看构建进度",
+      });
+    }
+
+    // Fire-and-forget: 不等待 API 完成
+    if (mode === "url") {
+      onIngestUrl({ url: currentUrl, chunkingConfig }).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error("摄入失败", { description: errorMessage });
+      });
+    } else if (mode === "file" && onIngestFile && currentFile) {
+      onIngestFile({
+        file: currentFile,
+        source_uri: currentSourceUri || undefined,
+        chunkingConfig,
+      }).catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        toast.error("摄入失败", { description: errorMessage });
+      });
+    }
+  };
+
+  const handleClose = () => {
+    setMode(normalizedInitialMode);
+    setSourceUri("");
+    setUrl("");
+    setSelectedFile(null);
+    setError(null);
+    setDragActive(false);
     onClose();
   };
 
   // 切换模式时重置文件选择
   const handleModeChange = (newMode: "url" | "file") => {
+    if (!allowedModes.includes(newMode)) return;
     setMode(newMode);
     setError(null);
     if (newMode !== "file") {
@@ -158,12 +176,26 @@ export function AddSourceDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900">
+    <OverlayDismissLayer
+      open={isOpen}
+      onClose={handleClose}
+      containerClassName="flex min-h-full items-center justify-center p-4"
+      contentClassName="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
+      contentProps={{
+        role: "dialog",
+        "aria-modal": true,
+        "aria-labelledby": "add-source-dialog-title",
+      }}
+      backdropTestId="overlay-backdrop"
+      contentTestId="overlay-content"
+    >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            Add Source
+          <h2
+            id="add-source-dialog-title"
+            className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+          >
+            {title}
           </h2>
           <button
             onClick={handleClose}
@@ -186,36 +218,42 @@ export function AddSourceDialog({
         </div>
 
         {/* Mode Switcher */}
-        <div className="mb-4 flex gap-4 text-xs">
-          <button
-            onClick={() => handleModeChange("url")}
-            className={`pb-1 font-medium ${
-              mode === "url"
-                ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-            }`}
-          >
-            From URL
-          </button>
-          <button
-            onClick={() => handleModeChange("file")}
-            className={`pb-1 font-medium ${
-              mode === "file"
-                ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-            }`}
-          >
-            From File
-          </button>
-        </div>
+        {allowedModes.length > 1 && (
+          <div className="mb-4 flex gap-4 text-xs">
+            <button
+              onClick={() => handleModeChange("url")}
+              className={`pb-1 font-medium ${
+                mode === "url"
+                  ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
+            >
+              From URL
+            </button>
+            <button
+              onClick={() => handleModeChange("file")}
+              className={`pb-1 font-medium ${
+                mode === "file"
+                  ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
+            >
+              From File
+            </button>
+          </div>
+        )}
 
         {/* Content */}
         {mode === "url" ? (
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            <label
+              htmlFor="add-source-url-input"
+              className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+            >
               URL <span className="text-red-500">*</span>
             </label>
             <input
+              id="add-source-url-input"
               className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
               placeholder="https://example.com/article"
               value={url}
@@ -290,10 +328,14 @@ export function AddSourceDialog({
             {/* Source URI for file */}
             {selectedFile && (
               <div className="mt-3">
-                <label className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                <label
+                  htmlFor="add-source-uri-input"
+                  className="mb-1 block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+                >
                   Source URI
                 </label>
                 <input
+                  id="add-source-uri-input"
                   className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black dark:border-zinc-700 dark:bg-zinc-800 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
                   placeholder="e.g., document.pdf"
                   value={sourceUri}
@@ -316,7 +358,6 @@ export function AddSourceDialog({
           <button
             onClick={handleClose}
             className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            disabled={isSubmitting}
           >
             Cancel
           </button>
@@ -324,16 +365,14 @@ export function AddSourceDialog({
             onClick={handleIngest}
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
             disabled={
-              isSubmitting ||
               !corpusId ||
               (mode === "url" && !url.trim()) ||
               (mode === "file" && !selectedFile)
             }
           >
-            {isSubmitting ? "Processing..." : "Ingest"}
+            Ingest
           </button>
         </div>
-      </div>
-    </div>
+    </OverlayDismissLayer>
   );
 }

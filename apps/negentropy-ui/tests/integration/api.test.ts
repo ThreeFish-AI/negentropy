@@ -5,10 +5,14 @@
  * 遵循 AGENTS.md 原则：反馈闭环、循证工程
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { POST } from "@/app/api/agui/route";
 import { GET } from "@/app/api/agui/sessions/list/route";
+import { GET as getSessionDetail } from "@/app/api/agui/sessions/[sessionId]/route";
 import { POST as createSession } from "@/app/api/agui/sessions/route";
+import { POST as archiveSession } from "@/app/api/agui/sessions/[sessionId]/archive/route";
+import { PATCH as updateSessionTitle } from "@/app/api/agui/sessions/[sessionId]/title/route";
+import { POST as unarchiveSession } from "@/app/api/agui/sessions/[sessionId]/unarchive/route";
 
 // Mock 环境变量
 const mockEnv = {
@@ -46,6 +50,7 @@ describe("POST /api/agui", () => {
     delete process.env.AGUI_BASE_URL;
     delete process.env.NEXT_PUBLIC_AGUI_APP_NAME;
     delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
+    vi.restoreAllMocks();
   });
 
   it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
@@ -111,6 +116,53 @@ describe("POST /api/agui", () => {
     expect(data.error.code).toBe("AGUI_BAD_REQUEST");
     expect(data.error.message).toContain("RunAgentInput requires a user message");
   });
+
+  it("遇到非法 ADK 事件时应跳过坏事件并继续输出后续合法事件", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"author":"assistant"}',
+              "",
+              'data: {"id":"evt-1","author":"assistant","content":{"parts":[{"text":"hello"}]}}',
+              "",
+              "",
+            ].join("\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "test" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("ADK_EVENT_PARSE_ERROR");
+    expect(body).toContain("TEXT_MESSAGE_CONTENT");
+    expect(body).toContain("hello");
+  });
 });
 
 describe("GET /api/agui/sessions/list", () => {
@@ -124,6 +176,7 @@ describe("GET /api/agui/sessions/list", () => {
     delete process.env.AGUI_BASE_URL;
     delete process.env.NEXT_PUBLIC_AGUI_APP_NAME;
     delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
+    vi.restoreAllMocks();
   });
 
   it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
@@ -156,6 +209,110 @@ describe("GET /api/agui/sessions/list", () => {
 
     expect(response.status).toBe(400);
     expect(data.error.code).toBe("AGUI_BAD_REQUEST");
+  });
+
+  it("应该按 archived 参数过滤会话列表", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify([
+          { id: "active-1", state: { metadata: {} } },
+          { id: "archived-1", state: { metadata: { archived: true } } },
+        ]),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/list?app_name=negentropy&user_id=test&archived=true"
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual([{ id: "archived-1", state: { metadata: { archived: true } } }]);
+  });
+
+  it("当上游 session list 结构非法时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify([{ lastUpdateTime: 100 }]),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/list?app_name=negentropy&user_id=test",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session list payload");
+  });
+});
+
+describe("GET /api/agui/sessions/[sessionId]", () => {
+  beforeEach(() => {
+    process.env.AGUI_BASE_URL = mockEnv.AGUI_BASE_URL;
+    process.env.NEXT_PUBLIC_AGUI_APP_NAME = mockEnv.NEXT_PUBLIC_AGUI_APP_NAME;
+    process.env.NEXT_PUBLIC_AGUI_USER_ID = mockEnv.NEXT_PUBLIC_AGUI_USER_ID;
+  });
+
+  afterEach(() => {
+    delete process.env.AGUI_BASE_URL;
+    delete process.env.NEXT_PUBLIC_AGUI_APP_NAME;
+    delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
+    vi.restoreAllMocks();
+  });
+
+  it("应该返回结构化 session detail", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          id: "s1",
+          lastUpdateTime: 100,
+          state: { metadata: { title: "Session 1" } },
+          events: [{ id: "evt-1" }],
+        }),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/s1?app_name=negentropy&user_id=test",
+    );
+
+    const response = await getSessionDetail(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe("s1");
+    expect(data.events).toHaveLength(1);
+  });
+
+  it("当上游 session detail 结构非法时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ events: {} }),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/s1?app_name=negentropy&user_id=test",
+    );
+
+    const response = await getSessionDetail(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session detail payload");
   });
 });
 
@@ -231,5 +388,268 @@ describe("POST /api/agui/sessions", () => {
 
     expect(response.status).toBe(400);
     expect(data.error.code).toBe("AGUI_BAD_REQUEST");
+  });
+
+  it("当上游创建响应结构非法时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ lastUpdateTime: 300 }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await createSession(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session create payload");
+  });
+});
+
+describe("Session mutation proxy routes", () => {
+  beforeEach(() => {
+    process.env.AGUI_BASE_URL = mockEnv.AGUI_BASE_URL;
+    process.env.NEXT_PUBLIC_AGUI_APP_NAME = mockEnv.NEXT_PUBLIC_AGUI_APP_NAME;
+    process.env.NEXT_PUBLIC_AGUI_USER_ID = mockEnv.NEXT_PUBLIC_AGUI_USER_ID;
+  });
+
+  afterEach(() => {
+    delete process.env.AGUI_BASE_URL;
+    delete process.env.NEXT_PUBLIC_AGUI_APP_NAME;
+    delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
+    vi.restoreAllMocks();
+  });
+
+  it("archive 成功时应返回结构化 ACK", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ status: "ok", archived: true }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/archive", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await archiveSession(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ status: "ok", archived: true });
+  });
+
+  it("archive 非法 payload 时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ status: "ok" }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/archive", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await archiveSession(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session archive payload");
+  });
+
+  it("archive 非法 JSON 时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "not-json",
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/archive", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await archiveSession(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session archive JSON");
+  });
+
+  it("unarchive 成功时应返回结构化 ACK", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ status: "ok", archived: false }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/unarchive", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await unarchiveSession(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ status: "ok", archived: false });
+  });
+
+  it("unarchive 非法 payload 时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ status: "ok", archived: "nope" }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/unarchive", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await unarchiveSession(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session unarchive payload");
+  });
+
+  it("unarchive 非法 JSON 时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "not-json",
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/unarchive", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await unarchiveSession(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session unarchive JSON");
+  });
+
+  it("title 成功时应返回结构化 ACK", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ status: "ok", title: "Renamed" }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/title", {
+      method: "PATCH",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+        title: "Renamed",
+      }),
+    });
+
+    const response = await updateSessionTitle(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ status: "ok", title: "Renamed" });
+  });
+
+  it("title 非法 payload 时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ status: "ok" }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/title", {
+      method: "PATCH",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+        title: "Renamed",
+      }),
+    });
+
+    const response = await updateSessionTitle(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session title payload");
+  });
+
+  it("title 非法 JSON 时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "not-json",
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions/s1/title", {
+      method: "PATCH",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+        title: "Renamed",
+      }),
+    });
+
+    const response = await updateSessionTitle(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session title JSON");
   });
 });
