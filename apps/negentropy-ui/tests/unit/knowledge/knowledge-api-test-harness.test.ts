@@ -2,6 +2,8 @@ import {
   createKnowledgeApiMockSet,
   importKnowledgeApiActual,
   createKnowledgeApiTestHarness,
+  primeKnowledgeApiMocks,
+  resetKnowledgeApiMocks,
 } from "@/tests/helpers/knowledge-api";
 
 describe("knowledge api test harness", () => {
@@ -51,5 +53,16 @@ describe("knowledge api test harness", () => {
     expect(harness.exports.createDefaultChunkingConfig).toBe(
       actual.createDefaultChunkingConfig,
     );
+  });
+
+  it("支持统一 reset 与稳定默认装配", async () => {
+    const mocks = createKnowledgeApiMockSet();
+    primeKnowledgeApiMocks(mocks);
+
+    await expect(mocks.fetchCorporaMock()).resolves.toEqual([]);
+
+    resetKnowledgeApiMocks(mocks);
+
+    expect(mocks.fetchCorporaMock).not.toHaveBeenCalled();
   });
 });

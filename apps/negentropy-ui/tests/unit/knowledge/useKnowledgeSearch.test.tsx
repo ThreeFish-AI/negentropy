@@ -12,10 +12,11 @@ vi.mock("@/features/knowledge/utils/knowledge-api", async () => {
 });
 
 import { useKnowledgeSearch } from "@/features/knowledge/hooks/useKnowledgeSearch";
+import { resetKnowledgeApiMocks } from "@/tests/helpers/knowledge-api";
 
 describe("useKnowledgeSearch", () => {
   beforeEach(() => {
-    knowledgeApiMocks.searchKnowledgeMock.mockReset();
+    resetKnowledgeApiMocks(knowledgeApiMocks);
   });
 
   it("空查询会直接返回空结果且不请求后端", async () => {
