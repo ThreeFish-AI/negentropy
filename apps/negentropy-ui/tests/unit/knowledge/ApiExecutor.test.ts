@@ -1,24 +1,28 @@
-const {
-  ingestTextMock,
-  ingestUrlMock,
-  replaceSourceMock,
-  createCorpusMock,
-} = vi.hoisted(() => ({
+const knowledgeMocks = vi.hoisted(() => ({
+  searchKnowledgeMock: vi.fn(),
   ingestTextMock: vi.fn(),
   ingestUrlMock: vi.fn(),
   replaceSourceMock: vi.fn(),
+  fetchKnowledgeItemsMock: vi.fn(),
   createCorpusMock: vi.fn(),
+  deleteCorpusMock: vi.fn(),
+  fetchPipelinesMock: vi.fn(),
+  upsertPipelinesMock: vi.fn(),
+  fetchDocumentsMock: vi.fn(),
+  fetchDocumentChunksMock: vi.fn(),
+  searchAcrossCorporaMock: vi.fn(),
+  syncDocumentMock: vi.fn(),
+  rebuildDocumentMock: vi.fn(),
+  replaceDocumentMock: vi.fn(),
+  archiveDocumentMock: vi.fn(),
+  unarchiveDocumentMock: vi.fn(),
+  downloadDocumentMock: vi.fn(),
+  deleteDocumentMock: vi.fn(),
 }));
-
-vi.mock("@/features/knowledge", () => ({
-  searchKnowledge: vi.fn(),
-  ingestText: (...args: unknown[]) => ingestTextMock(...args),
-  ingestUrl: (...args: unknown[]) => ingestUrlMock(...args),
-  replaceSource: (...args: unknown[]) => replaceSourceMock(...args),
-  fetchKnowledgeItems: vi.fn(),
-  createCorpus: (...args: unknown[]) => createCorpusMock(...args),
-  deleteCorpus: vi.fn(),
-}));
+vi.mock("@/features/knowledge", async () => {
+  const { createKnowledgeFeatureTestHarness } = await import("@/tests/helpers/knowledge");
+  return createKnowledgeFeatureTestHarness(knowledgeMocks).exports;
+});
 
 import { executeApiCall } from "@/app/knowledge/apis/_components/utils/ApiExecutor";
 import { KNOWLEDGE_API_ENDPOINTS } from "@/features/knowledge/utils/api-specs";
@@ -32,10 +36,10 @@ const getEndpoint = (id: string) => {
 describe("ApiExecutor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    ingestTextMock.mockResolvedValue({ ok: true });
-    ingestUrlMock.mockResolvedValue({ ok: true });
-    replaceSourceMock.mockResolvedValue({ ok: true });
-    createCorpusMock.mockResolvedValue({ ok: true });
+    knowledgeMocks.ingestTextMock.mockResolvedValue({ ok: true });
+    knowledgeMocks.ingestUrlMock.mockResolvedValue({ ok: true });
+    knowledgeMocks.replaceSourceMock.mockResolvedValue({ ok: true });
+    knowledgeMocks.createCorpusMock.mockResolvedValue({ ok: true });
   });
 
   it("ingest 通过 chunking_config 透传 canonical 配置", async () => {
@@ -51,7 +55,7 @@ describe("ApiExecutor", () => {
       },
     });
 
-    expect(ingestTextMock).toHaveBeenCalledWith("corpus-1", {
+    expect(knowledgeMocks.ingestTextMock).toHaveBeenCalledWith("corpus-1", {
       app_name: "negentropy",
       text: "hello",
       source_uri: undefined,
@@ -88,13 +92,13 @@ describe("ApiExecutor", () => {
       chunking_config: chunkingConfig,
     });
 
-    expect(ingestUrlMock).toHaveBeenCalledWith("corpus-1", {
+    expect(knowledgeMocks.ingestUrlMock).toHaveBeenCalledWith("corpus-1", {
       app_name: "negentropy",
       url: "https://example.com",
       metadata: undefined,
       chunking_config: chunkingConfig,
     });
-    expect(replaceSourceMock).toHaveBeenCalledWith("corpus-1", {
+    expect(knowledgeMocks.replaceSourceMock).toHaveBeenCalledWith("corpus-1", {
       app_name: "negentropy",
       text: "updated",
       source_uri: "docs://example/doc1",
@@ -116,7 +120,7 @@ describe("ApiExecutor", () => {
       },
     });
 
-    expect(createCorpusMock).toHaveBeenCalledWith({
+    expect(knowledgeMocks.createCorpusMock).toHaveBeenCalledWith({
       app_name: "negentropy",
       name: "产品文档",
       description: "desc",
