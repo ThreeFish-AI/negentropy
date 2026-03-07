@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { safeParseCreateSessionResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
+  buildSessionCreateUpstreamUrl,
   buildSessionUpstreamHeaders,
   getSessionAguiBaseUrl,
 } from "@/app/api/agui/sessions/_request";
@@ -33,10 +34,10 @@ export async function POST(request: Request) {
     return aguiErrorResponse(AGUI_ERROR_CODES.BAD_REQUEST, "app_name and user_id are required");
   }
 
-  const upstreamUrl = new URL(
-    `/apps/${encodeURIComponent(body.app_name)}/users/${encodeURIComponent(body.user_id)}/sessions`,
-    baseUrl
-  );
+  const upstreamUrl = buildSessionCreateUpstreamUrl(baseUrl, {
+    appName: body.app_name,
+    userId: body.user_id,
+  });
 
   const payload = {
     session_id: body.session_id,
