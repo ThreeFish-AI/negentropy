@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { safeParseSessionDetailResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
+  buildSessionDetailUpstreamUrl,
   buildSessionUpstreamHeaders,
   getSessionAguiBaseUrl,
 } from "@/app/api/agui/sessions/_request";
@@ -31,12 +32,11 @@ export async function GET(
     );
   }
 
-  const upstreamUrl = new URL(
-    `/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(
-      sessionId
-    )}`,
-    baseUrl
-  );
+  const upstreamUrl = buildSessionDetailUpstreamUrl(baseUrl, {
+    appName,
+    userId,
+    sessionId,
+  });
 
   let upstreamResponse: Response;
   try {

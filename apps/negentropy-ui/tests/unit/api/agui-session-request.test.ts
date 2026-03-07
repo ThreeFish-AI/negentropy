@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  buildSessionArchiveUpstreamUrl,
+  buildSessionCreateUpstreamUrl,
+  buildSessionDetailUpstreamUrl,
+  buildSessionListUpstreamUrl,
+  buildSessionTitleUpstreamUrl,
   buildSessionUpstreamHeaders,
+  buildSessionUnarchiveUpstreamUrl,
   getSessionAguiBaseUrl,
 } from "@/app/api/agui/sessions/_request";
 
@@ -62,5 +68,43 @@ describe("session request helpers", () => {
     expect(headers.get("authorization")).toBe("Bearer token");
     expect(headers.get("content-type")).toBe("application/json");
     expect(headers.get("accept")).toBeNull();
+  });
+
+  it("应构造 collection 级 session upstream URL", () => {
+    const baseUrl = "http://internal-agui/";
+    expect(
+      buildSessionListUpstreamUrl(baseUrl, {
+        appName: "negentropy app",
+        userId: "user/1",
+      }).toString(),
+    ).toBe("http://internal-agui/apps/negentropy%20app/users/user%2F1/sessions");
+    expect(
+      buildSessionCreateUpstreamUrl("http://internal-agui", {
+        appName: "negentropy app",
+        userId: "user/1",
+      }).toString(),
+    ).toBe("http://internal-agui/apps/negentropy%20app/users/user%2F1/sessions");
+  });
+
+  it("应构造 item 级 session upstream URL 及动作变体", () => {
+    const baseUrl = "http://internal-agui/";
+    const target = {
+      appName: "negentropy app",
+      userId: "user/1",
+      sessionId: "session a/b",
+    };
+
+    expect(buildSessionDetailUpstreamUrl(baseUrl, target).toString()).toBe(
+      "http://internal-agui/apps/negentropy%20app/users/user%2F1/sessions/session%20a%2Fb",
+    );
+    expect(buildSessionArchiveUpstreamUrl(baseUrl, target).toString()).toBe(
+      "http://internal-agui/apps/negentropy%20app/users/user%2F1/sessions/session%20a%2Fb/archive",
+    );
+    expect(buildSessionTitleUpstreamUrl(baseUrl, target).toString()).toBe(
+      "http://internal-agui/apps/negentropy%20app/users/user%2F1/sessions/session%20a%2Fb/title",
+    );
+    expect(buildSessionUnarchiveUpstreamUrl(baseUrl, target).toString()).toBe(
+      "http://internal-agui/apps/negentropy%20app/users/user%2F1/sessions/session%20a%2Fb/unarchive",
+    );
   });
 });
