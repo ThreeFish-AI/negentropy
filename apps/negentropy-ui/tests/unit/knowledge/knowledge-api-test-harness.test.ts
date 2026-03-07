@@ -8,6 +8,23 @@ import {
 } from "@/tests/helpers/knowledge-api";
 
 describe("knowledge api test harness", () => {
+  it("冷启动时也能完成异步装配，不会因循环依赖卡住", async () => {
+    const mocks = createKnowledgeApiMockSet();
+    const harness = await createKnowledgeApiTestHarness(mocks);
+
+    expect(harness.exports.createDefaultChunkingConfig).toBeDefined();
+    expect(harness.exports.normalizeChunkingConfig).toBeDefined();
+    expect(harness.exports.buildCorpusConfig).toBeDefined();
+
+    const fetchCorpus = harness.exports.fetchCorpus as (...args: unknown[]) => unknown;
+    fetchCorpus("cold-start-corpus", "negentropy");
+
+    expect(mocks.fetchCorpusMock).toHaveBeenCalledWith(
+      "cold-start-corpus",
+      "negentropy",
+    );
+  });
+
   it("默认复用真实配置 helper，并把 exports 与 mocks 绑定到同一组函数", async () => {
     const mocks = createKnowledgeApiMockSet();
     const harness = await createKnowledgeApiTestHarness(mocks);
