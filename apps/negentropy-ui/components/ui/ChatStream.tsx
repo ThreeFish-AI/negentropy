@@ -39,7 +39,7 @@ export function ChatStream({
       className="flex-1 overflow-y-auto custom-scrollbar"
     >
       <div
-        className={`mx-auto w-full space-y-4 px-6 py-6 ${contentClassName ?? ""}`}
+        className={`mx-auto w-full space-y-4 px-10 py-6 sm:px-12 ${contentClassName ?? ""}`}
       >
         {visibleNodes.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
