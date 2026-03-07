@@ -1385,6 +1385,10 @@ function CorpusSettingsPanel({
             <p className="mt-1 text-xs text-muted">
               为当前 Knowledge Base 分别绑定 URL 与 PDF 的主备 MCP Server / Tool。已配置类型严格依赖所选 MCP，只会在主备之间切换。
             </p>
+            <p className="mt-2 text-[11px] leading-5 text-muted">
+              可用于此处的 Tool 需提供可发现的 input/output schema，并能返回正文 Markdown 或文本；当前兼容单文档扁平协议，以及单个
+              sources 数组的 batch 协议，系统会自动把单个 URL/PDF 请求包装为对应格式。
+            </p>
           </div>
         </div>
 
