@@ -9,7 +9,10 @@ import {
   createKnowledgeBaseDocumentChunk,
   createKnowledgeBaseExtractorRoutes,
   createKnowledgeBaseHierarchicalSearchResult,
+  expectKnowledgeBaseSelectedMcpOptions,
+  expectKnowledgeBaseUnavailableMcpOptions,
   knowledgeBasePageMcpOptionFixtures,
+  knowledgeBasePageMcpSelectionFixtures,
   createKnowledgeBaseSearchResult,
   knowledgeBasePageExtractorRouteFixtures,
   knowledgeBasePageSearchParams,
@@ -516,12 +519,8 @@ describe("KnowledgeBasePage", () => {
     await act(async () => {
       await flushPromises();
     });
-
-    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue(
-      String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
-    );
-    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue(
-      String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
+    expectKnowledgeBaseSelectedMcpOptions(
+      knowledgeBasePageMcpSelectionFixtures.defaultConfigured,
     );
   });
 
@@ -546,7 +545,7 @@ describe("KnowledgeBasePage", () => {
       String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
     );
 
-    expect(serverSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultServer.id));
+    expect(serverSelect).toHaveValue(knowledgeBasePageMcpSelectionFixtures.defaultConfigured.serverValue);
     expect(toolSelect).not.toBeDisabled();
     expect(toolSelect).toHaveValue("");
 
@@ -555,7 +554,7 @@ describe("KnowledgeBasePage", () => {
       String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
     );
 
-    expect(toolSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultTool.name));
+    expect(toolSelect).toHaveValue(knowledgeBasePageMcpSelectionFixtures.defaultConfigured.toolValue);
 
     await user.click(screen.getByRole("button", { name: "Save Settings" }));
 
@@ -607,14 +606,9 @@ describe("KnowledgeBasePage", () => {
     const serverSelect = screen.getAllByLabelText("MCP Server")[0];
     const toolSelect = screen.getAllByLabelText("Tool")[0];
 
-    expect(serverSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.legacyServer.id));
-    expect(toolSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.legacyTool.name));
-    expect(
-      within(serverSelect).getByRole("option", { name: "已配置 MCP（当前不可用）" }),
-    ).toBeInTheDocument();
-    expect(
-      within(toolSelect).getByRole("option", { name: "已配置 Tool（当前不可用）" }),
-    ).toBeInTheDocument();
+    expectKnowledgeBaseUnavailableMcpOptions(
+      knowledgeBasePageMcpSelectionFixtures.legacyConfigured,
+    );
     expect(
       screen.getByText(/可用于此处的 Tool 需提供可发现的 input\/output schema/i),
     ).toBeInTheDocument();
@@ -667,8 +661,8 @@ describe("KnowledgeBasePage", () => {
       String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
     );
 
-    expect(serverSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultServer.id));
-    expect(toolSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultTool.name));
+    expect(serverSelect).toHaveValue(knowledgeBasePageMcpSelectionFixtures.defaultConfigured.serverValue);
+    expect(toolSelect).toHaveValue(knowledgeBasePageMcpSelectionFixtures.defaultConfigured.toolValue);
 
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [refreshedCorpus],
@@ -688,11 +682,8 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue(
-      String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
-    );
-    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue(
-      String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
+    expectKnowledgeBaseSelectedMcpOptions(
+      knowledgeBasePageMcpSelectionFixtures.defaultConfigured,
     );
   });
 

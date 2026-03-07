@@ -1,4 +1,6 @@
+import { expect } from "vitest";
 import { vi, type Mock } from "vitest";
+import { screen, within } from "@testing-library/react";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 type FetchMock = Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>;
@@ -246,6 +248,42 @@ export const knowledgeBasePageMcpOptionFixtures = {
     display_name: "Refresh Tool",
   }),
 } as const;
+
+export const knowledgeBasePageMcpSelectionFixtures = {
+  defaultConfigured: {
+    serverValue: String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
+    toolValue: String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
+  },
+  legacyConfigured: {
+    serverValue: String(knowledgeBasePageMcpOptionFixtures.legacyServer.id),
+    toolValue: String(knowledgeBasePageMcpOptionFixtures.legacyTool.name),
+    serverLabel: String(knowledgeBasePageMcpOptionFixtures.legacyServer.display_name),
+    toolLabel: String(knowledgeBasePageMcpOptionFixtures.legacyTool.display_name),
+  },
+} as const;
+
+export function expectKnowledgeBaseSelectedMcpOptions(selection: {
+  serverValue: string;
+  toolValue: string;
+}): void {
+  expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue(selection.serverValue);
+  expect(screen.getAllByLabelText("Tool")[0]).toHaveValue(selection.toolValue);
+}
+
+export function expectKnowledgeBaseUnavailableMcpOptions(selection: {
+  serverValue: string;
+  toolValue: string;
+  serverLabel: string;
+  toolLabel: string;
+}): void {
+  expectKnowledgeBaseSelectedMcpOptions(selection);
+
+  const serverSelect = screen.getAllByLabelText("MCP Server")[0];
+  const toolSelect = screen.getAllByLabelText("Tool")[0];
+
+  expect(within(serverSelect).getByRole("option", { name: selection.serverLabel })).toBeInTheDocument();
+  expect(within(toolSelect).getByRole("option", { name: selection.toolLabel })).toBeInTheDocument();
+}
 
 export function resetKnowledgeBasePageLocalMocks(
   mocks: KnowledgeBasePageLocalMocks,
