@@ -15,12 +15,14 @@ import {
   getEventToolCallId,
   getMessageCreatedAt,
   getMessageRunId,
+  getMessageThreadId,
 } from "@/types/agui";
 import {
   buildNodeSummary,
   classifyNodeVisibility,
   isNodePayloadEmpty,
 } from "@/utils/conversation-summary";
+import { accumulateTextContent, normalizeMessageContent } from "@/utils/message";
 
 type MutableNode = ConversationNode;
 
@@ -264,27 +266,38 @@ function attachNode(
 function chooseParentMessageId(
   assistantByRun: Map<string, string>,
   runId: string,
+  messageId?: string,
+  messageNodeIndex?: Map<string, string>,
 ): string | null {
+  if (messageId && messageNodeIndex?.has(messageId)) {
+    return messageNodeIndex.get(messageId) || null;
+  }
   return assistantByRun.get(runId) || null;
 }
 
-function getLatestTurn(turns: Map<string, MutableNode>): MutableNode | null {
-  const values = [...turns.values()];
-  if (values.length === 0) {
-    return null;
+function findFallbackTurnByTimestamp(
+  turns: Map<string, MutableNode>,
+  timestamp: number,
+): MutableNode | null {
+  const orderedTurns = [...turns.values()].sort(
+    (a, b) => a.timeRange.start - b.timeRange.start,
+  );
+
+  const containingTurn = orderedTurns.find(
+    (turn) => timestamp >= turn.timeRange.start && timestamp <= turn.timeRange.end + 0.001,
+  );
+  if (containingTurn) {
+    return containingTurn;
   }
-  values.sort((a, b) => b.timeRange.start - a.timeRange.start);
-  return values[0] || null;
+
+  const futureTurn = orderedTurns.find((turn) => timestamp <= turn.timeRange.end + 0.001);
+  return futureTurn || null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function formatJson(value: unknown): string {
-  return typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
 
 function getMessageTimestamp(message: Message): number {
@@ -344,9 +357,6 @@ function sortNodeChildren(node: MutableNode) {
   };
 
   node.children.sort((a, b) => {
-    if (a.type === "text" && b.type === "text" && a.role !== b.role) {
-      return a.role === "user" ? -1 : 1;
-    }
     const typeDiff = typeOrder[a.type] - typeOrder[b.type];
     if (typeDiff !== 0) {
       return typeDiff;
@@ -473,10 +483,7 @@ export function buildConversationTree(
           const delta =
             "delta" in normalizedEvent ? String(normalizedEvent.delta || "") : "";
           const existing = String(node.payload.content || "");
-          node.payload.content =
-            delta.length >= existing.length || existing.length === 0
-              ? delta
-              : `${existing}${delta}`;
+          node.payload.content = accumulateTextContent(existing, delta);
         }
         messageNodeIndex.set(messageId, node.id);
         if (node.role === "assistant") {
@@ -493,6 +500,8 @@ export function buildConversationTree(
         const parentMessageNodeId = chooseParentMessageId(
           assistantMessageByRun,
           runId,
+          messageId,
+          messageNodeIndex,
         );
         const parentId = parentMessageNodeId || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
@@ -645,7 +654,12 @@ export function buildConversationTree(
             ? normalizedEvent.stepId
             : `step-${normalizeTimestamp(normalizedEvent.timestamp)}`;
         const baseParentId =
-          chooseParentMessageId(assistantMessageByRun, runId) || turn.id;
+          chooseParentMessageId(
+            assistantMessageByRun,
+            runId,
+            messageId,
+            messageNodeIndex,
+          ) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `step:${stepId}`,
           type: "step",
@@ -784,39 +798,68 @@ export function buildConversationTree(
       return;
     }
     const runId = getMessageRunId(message);
-    if (runId) {
+    const threadId = getMessageThreadId(message) || DEFAULT_THREAD_ID;
+    const timestamp = getMessageTimestamp(message);
+    const role = normalizeRole(message.role);
+    const content = normalizeMessageContent(message).trim();
+    const duplicateNode = [...nodeIndex.values()].find((node) => {
+      if (node.type !== "text" || node.role !== role) {
+        return false;
+      }
+      if (String(node.payload.content || "").trim() !== content) {
+        return false;
+      }
+      const existingRunId = node.runId || undefined;
+      const runMatches =
+        existingRunId === runId ||
+        !existingRunId ||
+        !runId;
+      if (!runMatches) {
+        return false;
+      }
+      if (node.threadId !== threadId) {
+        return false;
+      }
+      return Math.abs(node.timestamp - timestamp) <= 2;
+    });
+    if (duplicateNode) {
+      if (!duplicateNode.relatedMessageIds.includes(messageId)) {
+        duplicateNode.relatedMessageIds.push(messageId);
+      }
+      return;
+    }
+
+    let fallbackTurn =
+      (runId && turns.get(runId)) || findFallbackTurnByTimestamp(turns, timestamp);
+    if (runId && !fallbackTurn) {
       ensureTurn(
         turns,
         roots,
         asAgUiEvent({
           type: EventType.RUN_STARTED,
-          threadId: DEFAULT_THREAD_ID,
+          threadId,
           runId,
-          timestamp: getMessageTimestamp(message),
+          timestamp,
         }),
         undefined,
         orderedEvents.length + fallbackIndex,
       );
+      fallbackTurn = turns.get(runId) || null;
     }
-    const fallbackTurn = (runId && turns.get(runId)) || getLatestTurn(turns);
     const parentId = fallbackTurn?.id ?? null;
-    const role = normalizeRole(message.role);
     const node = upsertNode(nodeIndex, roots, turns, {
       id: `message:${messageId}`,
       type: "text",
       parentId,
-      threadId: DEFAULT_THREAD_ID,
+      threadId,
       runId: fallbackTurn?.runId || runId,
       messageId,
-      timestamp: getMessageTimestamp(message),
+      timestamp,
       sourceOrder: orderedEvents.length + fallbackIndex,
       title: role === "user" ? "用户消息" : "助手消息",
       role,
       payload: {
-        content:
-          typeof message.content === "string"
-            ? message.content
-            : formatJson(message.content),
+        content,
       },
       sourceEventTypes: ["fallback.message"],
       relatedMessageIds: [messageId],

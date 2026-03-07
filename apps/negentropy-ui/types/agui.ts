@@ -25,6 +25,8 @@ export interface ExtendedMessageProps {
   createdAt?: Date;
   author?: string;
   runId?: string;
+  threadId?: string;
+  streaming?: boolean;
 }
 
 export type AgUiMessage = Message & ExtendedMessageProps;
@@ -291,6 +293,16 @@ export function getMessageRunId(message: Message): string | undefined {
   return typeof record.runId === "string" ? record.runId : undefined;
 }
 
+export function getMessageThreadId(message: Message): string | undefined {
+  const record = asAgUiMessage(message);
+  return typeof record.threadId === "string" ? record.threadId : undefined;
+}
+
+export function getMessageStreaming(message: Message): boolean | undefined {
+  const record = asAgUiMessage(message);
+  return typeof record.streaming === "boolean" ? record.streaming : undefined;
+}
+
 export function createAgUiMessage(input: {
   id: string;
   role: Message["role"];
@@ -298,6 +310,8 @@ export function createAgUiMessage(input: {
   createdAt?: Date;
   author?: string;
   runId?: string;
+  threadId?: string;
+  streaming?: boolean;
 }): AgUiMessage {
   return {
     id: input.id,
@@ -306,6 +320,8 @@ export function createAgUiMessage(input: {
     createdAt: input.createdAt,
     author: input.author,
     runId: input.runId,
+    threadId: input.threadId,
+    streaming: input.streaming,
   } as AgUiMessage;
 }
 

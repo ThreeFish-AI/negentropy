@@ -18,6 +18,8 @@ import {
   getMessageAuthor,
   getMessageCreatedAt,
   getMessageRunId,
+  getMessageStreaming,
+  getMessageThreadId,
   type AgUiMessage,
 } from "@/types/agui";
 
@@ -50,6 +52,54 @@ export function normalizeMessageContent(message: Message): string {
   return message.content ? JSON.stringify(message.content) : "";
 }
 
+function findOverlapSuffixPrefix(existing: string, incoming: string): number {
+  const maxOverlap = Math.min(existing.length, incoming.length);
+  for (let size = maxOverlap; size > 0; size -= 1) {
+    if (existing.slice(-size) === incoming.slice(0, size)) {
+      return size;
+    }
+  }
+  return 0;
+}
+
+export function accumulateTextContent(existing: string, incoming: string): string {
+  if (!incoming) {
+    return existing;
+  }
+  if (!existing) {
+    return incoming;
+  }
+  if (incoming === existing || existing.endsWith(incoming)) {
+    return existing;
+  }
+  if (incoming.startsWith(existing)) {
+    return incoming;
+  }
+  if (existing.startsWith(incoming)) {
+    return existing;
+  }
+
+  const overlap = findOverlapSuffixPrefix(existing, incoming);
+  if (overlap > 0) {
+    return `${existing}${incoming.slice(overlap)}`;
+  }
+  return `${existing}${incoming}`;
+}
+
+export function getMessageTimestampMs(message: Message): number {
+  return getMessageCreatedAt(message)?.getTime() || Number.MAX_SAFE_INTEGER;
+}
+
+export function getMessageIdentityKey(message: Message): string {
+  const threadId = getMessageThreadId(message) || "default-thread";
+  const runId = getMessageRunId(message) || "default-run";
+  return `${threadId}|${runId}|${message.id}`;
+}
+
+export function isMessageStreaming(message: Message): boolean {
+  return getMessageStreaming(message) === true;
+}
+
 /**
  * 将消息数组映射为聊天消息格式
  * @param messages 原始消息数组
@@ -78,6 +128,8 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
     const createdAt = getMessageCreatedAt(message);
     const timestamp = createdAt ? createdAt.getTime() / 1000 : undefined;
     const runId = getMessageRunId(message);
+    const threadId = getMessageThreadId(message);
+    const streaming = getMessageStreaming(message);
 
     // 4. 添加到结果
     chatMessages.push({
@@ -87,6 +139,8 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
       author,
       timestamp,
       runId,
+      threadId,
+      streaming,
     });
   });
   return chatMessages;
