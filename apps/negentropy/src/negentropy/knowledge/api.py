@@ -14,6 +14,7 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus, Knowledge
+from negentropy.models.plugin import McpServer, McpTool
 
 from .constants import (
     DEFAULT_CHUNK_SIZE,
@@ -417,6 +418,101 @@ def _serialize_corpus_config(config: Optional[Dict[str, Any]]) -> Dict[str, Any]
     return merge_corpus_config(config, serialize_chunking_config(normalize_chunking_config(get_chunking_config_only(config))))
 
 
+def _has_explicit_extractor_routes(config: Optional[Dict[str, Any]]) -> bool:
+    return isinstance(config, dict) and "extractor_routes" in config
+
+
+async def _resolve_default_extractor_routes() -> Dict[str, Any]:
+    default_routes = settings.knowledge.default_extractor_routes.model_dump(mode="python")
+    resolved_routes: Dict[str, Any] = {
+        "url": {"targets": []},
+        "file_pdf": {"targets": []},
+    }
+    candidates: list[tuple[str, int, Dict[str, Any]]] = []
+    server_names: set[str] = set()
+
+    for route_key in ("url", "file_pdf"):
+        route_config = default_routes.get(route_key) or {}
+        for priority, slot_key in enumerate(("primary", "secondary")):
+            target = route_config.get(slot_key)
+            if not isinstance(target, dict) or target.get("enabled") is False:
+                continue
+            server_name = str(target.get("server_name") or "").strip()
+            tool_name = str(target.get("tool_name") or "").strip()
+            if not server_name or not tool_name:
+                continue
+            server_names.add(server_name)
+            candidates.append((route_key, priority, target))
+
+    if not candidates:
+        return resolved_routes
+
+    async with AsyncSessionLocal() as db:
+        server_rows = (
+            await db.execute(
+                select(McpServer.id, McpServer.name)
+                .where(McpServer.name.in_(server_names), McpServer.is_enabled.is_(True))
+            )
+        ).all()
+        servers_by_name = {name: server_id for server_id, name in server_rows}
+
+        server_ids = [server_id for server_id, _ in server_rows]
+        enabled_tools_by_server: dict[tuple[str, str], bool] = {}
+        if server_ids:
+            tool_rows = (
+                await db.execute(
+                    select(McpTool.server_id, McpTool.name)
+                    .where(McpTool.server_id.in_(server_ids), McpTool.is_enabled.is_(True))
+                )
+            ).all()
+            enabled_tools_by_server = {
+                (str(server_id), tool_name): True for server_id, tool_name in tool_rows
+            }
+
+    for route_key, priority, target in candidates:
+        server_name = str(target["server_name"]).strip()
+        tool_name = str(target["tool_name"]).strip()
+        server_id = servers_by_name.get(server_name)
+        if not server_id:
+            logger.warning(
+                "knowledge_default_extractor_server_not_found",
+                route_key=route_key,
+                server_name=server_name,
+                tool_name=tool_name,
+            )
+            continue
+
+        if not enabled_tools_by_server.get((str(server_id), tool_name)):
+            logger.warning(
+                "knowledge_default_extractor_tool_not_found",
+                route_key=route_key,
+                server_name=server_name,
+                tool_name=tool_name,
+            )
+            continue
+
+        resolved_routes[route_key]["targets"].append(
+            {
+                "server_id": str(server_id),
+                "tool_name": tool_name,
+                "priority": priority,
+                "enabled": True,
+                **(
+                    {"timeout_ms": int(target["timeout_ms"])}
+                    if target.get("timeout_ms") is not None
+                    else {}
+                ),
+                **(
+                    {"tool_options": target["tool_options"]}
+                    if isinstance(target.get("tool_options"), dict) and target["tool_options"]
+                    else {}
+                ),
+            }
+        )
+
+    return resolved_routes
+
+
 def _normalize_source_metadata(
     *,
     source_uri: Optional[str],
@@ -486,7 +582,10 @@ async def list_corpora(app_name: Optional[str] = Query(default=None)) -> list[Co
 @router.post("/base", response_model=CorpusResponse)
 async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
     service = _get_service()
-    normalized_config = _serialize_corpus_config(payload.config or None)
+    request_config = dict(payload.config or {})
+    if not _has_explicit_extractor_routes(request_config):
+        request_config["extractor_routes"] = await _resolve_default_extractor_routes()
+    normalized_config = _serialize_corpus_config(request_config)
     spec = CorpusSpec(
         app_name=_resolve_app_name(payload.app_name),
         name=payload.name,
