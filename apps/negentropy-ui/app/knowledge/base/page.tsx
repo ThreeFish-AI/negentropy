@@ -66,6 +66,22 @@ function CorpusStatusBadge({ corpus }: { corpus: CorpusRecord }) {
   );
 }
 
+function formatCorpusConfigSummary(corpus: CorpusRecord): string {
+  const config = normalizeChunkingConfig(
+    (corpus.config ?? {}) as Record<string, unknown>,
+  );
+
+  if (config.strategy === "semantic") {
+    return `chunks: ${corpus.knowledge_count} · strategy: semantic · threshold: ${config.semantic_threshold.toFixed(2)} · buffer: ${config.semantic_buffer_size}`;
+  }
+
+  if (config.strategy === "hierarchical") {
+    return `chunks: ${corpus.knowledge_count} · strategy: hierarchical · parent: ${config.hierarchical_parent_chunk_size} · child: ${config.hierarchical_child_chunk_size}`;
+  }
+
+  return `chunks: ${corpus.knowledge_count} · strategy: ${config.strategy} · size: ${config.chunk_size} · overlap: ${config.overlap}`;
+}
+
 function ChunkDetailDrawer({
   chunk,
   onClose,
@@ -905,38 +921,35 @@ export default function KnowledgeBasePage() {
           {corpora.map((corpus) => (
             <div
               key={corpus.id}
-              className="cursor-pointer rounded-xl border border-border bg-background p-4 transition hover:border-foreground/40"
+              className="flex h-full cursor-pointer flex-col rounded-xl border border-border bg-background p-3 transition hover:border-foreground/40"
               onClick={() => openCorpusWorkspace(corpus.id, "documents")}
             >
-              <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <h3 className="truncate text-base font-semibold">{corpus.name}</h3>
                 <CorpusStatusBadge corpus={corpus} />
               </div>
-              <p className="line-clamp-2 h-10 text-xs text-muted">
+              <p className="mt-1 truncate text-xs text-muted" title={corpus.description || "No description"}>
                 {corpus.description || "No description"}
               </p>
-              <div className="mt-2 text-[11px] text-muted">
-                chunks: {corpus.knowledge_count}
+              <div
+                className="mt-2 truncate text-[11px] text-muted"
+                title={formatCorpusConfigSummary(corpus)}
+              >
+                {formatCorpusConfigSummary(corpus)}
               </div>
-              <div className="mt-1 text-[11px] text-muted">
-                strategy: {String((corpus.config?.strategy as string) || "recursive")}
-              </div>
-              <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="mt-auto flex items-center justify-end gap-2 pt-3"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   onClick={() => handleEditCorpus(corpus)}
-                  className="rounded border border-border px-2 py-1 text-[11px] hover:bg-muted"
+                  className="inline-flex h-7 items-center rounded border border-border px-2.5 text-[11px] hover:bg-muted"
                 >
                   Settings
                 </button>
                 <button
-                  onClick={() => openCorpusWorkspace(corpus.id, "documents")}
-                  className="rounded border border-border px-2 py-1 text-[11px] hover:bg-muted"
-                >
-                  Add Documents
-                </button>
-                <button
                   onClick={() => handleDeleteCorpus(corpus)}
-                  className="rounded border border-red-300 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50"
+                  className="inline-flex h-7 items-center rounded border border-red-300 px-2.5 text-[11px] text-red-600 hover:bg-red-50"
                 >
                   Delete
                 </button>
