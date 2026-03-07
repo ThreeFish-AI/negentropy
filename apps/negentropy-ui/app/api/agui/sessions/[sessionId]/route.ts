@@ -1,26 +1,22 @@
 import { NextResponse } from "next/server";
-import { buildAuthHeaders } from "@/lib/sso";
 import { safeParseSessionDetailResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
+import {
+  buildSessionUpstreamHeaders,
+  getSessionAguiBaseUrl,
+} from "@/app/api/agui/sessions/_request";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
 
-function getBaseUrl() {
-  return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
-}
-
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.INTERNAL_ERROR,
-      "AGUI_BASE_URL is not configured",
-    );
+  const baseUrl = getSessionAguiBaseUrl();
+  if (baseUrl instanceof Response) {
+    return baseUrl;
   }
 
   const { sessionId } = await params;
@@ -46,10 +42,7 @@ export async function GET(
   try {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "GET",
-      headers: {
-        ...Object.fromEntries(buildAuthHeaders(request)),
-        Accept: "application/json",
-      },
+      headers: buildSessionUpstreamHeaders(request, "json-read"),
       cache: "no-store",
     });
   } catch (error) {
