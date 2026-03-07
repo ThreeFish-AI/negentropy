@@ -8,7 +8,7 @@ from negentropy.logging import core
 from negentropy.logging.core import add_logger_name, multi_sink_renderer, rename_event_key
 from negentropy.logging.formatters import ConsoleFormatter
 from negentropy.logging.interceptors import RedirectStdLibHandler
-from negentropy.logging.io import StreamToLogger
+from negentropy.logging.io import ExternalProcessLogStream, StreamToLogger, derive_external_process_source
 from negentropy.logging.sinks import FileSink, StdioSink
 
 
@@ -132,3 +132,44 @@ def test_stream_to_logger_buffers_until_newline() -> None:
     stream.flush()
 
     assert messages[0][1] == "hello world"
+
+
+def test_external_process_log_stream_parses_prefixed_lines() -> None:
+    messages: list[tuple[int, str, dict]] = []
+
+    class _Logger:
+        def log(self, level, event=None, **kwargs):
+            messages.append((level, event, kwargs))
+
+    stream = ExternalProcessLogStream(_Logger(), source="mcp.zai-mcp-server")
+    stream.write("[2026-03-07T06:29:09.030Z] INFO: MCP Server Application initialized\n")
+
+    assert messages == [
+        (
+            logging.INFO,
+            "MCP Server Application initialized",
+            {"source": "mcp.zai-mcp-server", "timestamp": "2026-03-07T06:29:09.030Z"},
+        )
+    ]
+
+
+def test_external_process_log_stream_buffers_and_falls_back_for_plain_lines() -> None:
+    messages: list[tuple[int, str, dict]] = []
+
+    class _Logger:
+        def log(self, level, event=None, **kwargs):
+            messages.append((level, event, kwargs))
+
+    stream = ExternalProcessLogStream(_Logger(), source="mcp.npx")
+    stream.write("partial line")
+    assert messages == []
+
+    stream.write(" completed")
+    stream.flush()
+
+    assert messages == [(logging.INFO, "partial line completed", {"source": "mcp.npx"})]
+
+
+def test_derive_external_process_source_prefers_first_non_flag_arg() -> None:
+    assert derive_external_process_source("npx", ["-y", "@zilliz/zai-mcp-server"]) == "mcp.zai-mcp-server"
+    assert derive_external_process_source("uvx", ["mcp-server-fetch"]) == "mcp.mcp-server-fetch"
