@@ -15,8 +15,8 @@ import { createSessionLabel } from "@/utils/session";
 import { HttpAgent } from "@ag-ui/client";
 import { Message } from "@ag-ui/core";
 import {
-  AdkEventPayload,
   adkEventToAguiEvents,
+  collectAdkEventPayloads,
   adkEventsToMessages,
   adkEventsToSnapshot,
 } from "@/lib/adk";
@@ -141,9 +141,7 @@ export function useSessionManager(
         if (!response.ok) {
           return;
         }
-        const events = (Array.isArray(payload.events)
-          ? (payload.events as AdkEventPayload[])
-          : []) as AdkEventPayload[];
+        const { payloads: events, invalidCount } = collectAdkEventPayloads(payload.events);
         const messages = adkEventsToMessages(events);
         const snapshot = adkEventsToSnapshot(events);
         const mappedEvents = events.flatMap(adkEventToAguiEvents);
@@ -154,7 +152,11 @@ export function useSessionManager(
           agent.setState(snapshot || {});
         }
 
-        addLog?.("info", "session_detail_loaded", { sessionId: id, messageCount: messages.length });
+        addLog?.("info", "session_detail_loaded", {
+          sessionId: id,
+          messageCount: messages.length,
+          invalidEventCount: invalidCount,
+        });
       } catch (error) {
         setConnectionWithMetrics?.("error");
         addLog?.("error", "load_session_detail_failed", {

@@ -46,6 +46,7 @@ describe("POST /api/agui", () => {
     delete process.env.AGUI_BASE_URL;
     delete process.env.NEXT_PUBLIC_AGUI_APP_NAME;
     delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
+    vi.restoreAllMocks();
   });
 
   it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
@@ -110,6 +111,53 @@ describe("POST /api/agui", () => {
     expect(response.status).toBe(400);
     expect(data.error.code).toBe("AGUI_BAD_REQUEST");
     expect(data.error.message).toContain("RunAgentInput requires a user message");
+  });
+
+  it("遇到非法 ADK 事件时应跳过坏事件并继续输出后续合法事件", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"author":"assistant"}',
+              "",
+              'data: {"id":"evt-1","author":"assistant","content":{"parts":[{"text":"hello"}]}}',
+              "",
+              "",
+            ].join("\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "test" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("ADK_EVENT_PARSE_ERROR");
+    expect(body).toContain("TEXT_MESSAGE_CONTENT");
+    expect(body).toContain("hello");
   });
 });
 
