@@ -1,6 +1,7 @@
 import { BaseEvent, EventType } from "@ag-ui/core";
 import type { AdkEventPayload } from "@/lib/adk";
 import { adkEventToAguiEvents } from "@/lib/adk";
+import { asAgUiEvent, getEventRunId, getEventThreadId } from "@/types/agui";
 
 const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
 
@@ -20,7 +21,7 @@ function toPatchOperations(delta: Record<string, unknown>) {
 }
 
 export function normalizeAguiEvent(event: BaseEvent): BaseEvent {
-  const next = { ...event } as NormalizableEvent;
+  const next = { ...asAgUiEvent(event) } as NormalizableEvent;
   if (
     "role" in next &&
     typeof next.role === "string" &&
@@ -48,20 +49,18 @@ export function resolveEventRunAndThread(
 ): EventWithRunAndThread {
   return {
     ...event,
-    threadId:
-      "threadId" in event &&
-      typeof event.threadId === "string" &&
-      event.threadId.trim() &&
-      event.threadId !== "default"
-        ? event.threadId
-        : fallback.threadId,
-    runId:
-      "runId" in event &&
-      typeof event.runId === "string" &&
-      event.runId.trim() &&
-      event.runId !== "default"
-        ? event.runId
-        : fallback.runId,
+    threadId: (() => {
+      const threadId = getEventThreadId(event);
+      return threadId && threadId.trim() && threadId !== "default"
+        ? threadId
+        : fallback.threadId;
+    })(),
+    runId: (() => {
+      const runId = getEventRunId(event);
+      return runId && runId.trim() && runId !== "default"
+        ? runId
+        : fallback.runId;
+    })(),
   } as unknown as EventWithRunAndThread;
 }
 

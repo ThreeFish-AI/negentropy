@@ -16,6 +16,11 @@ import { compactEvents } from "@ag-ui/client";
 import { BaseEvent, EventType } from "@ag-ui/core";
 import { buildTimelineItems } from "@/utils/timeline";
 import type { LogEntry, ConnectionState } from "@/types/common";
+import {
+  getEventMessageId,
+  getEventToolCallId,
+  getEventToolCallName,
+} from "@/types/agui";
 
 export interface UseEventProcessorOptions {
   sessionMessages?: BaseEvent[];
@@ -105,9 +110,7 @@ export function useEventProcessor(
         event.type === EventType.TEXT_MESSAGE_END
       ) {
         const messageId =
-          "messageId" in event && typeof event.messageId === "string"
-            ? event.messageId
-            : undefined;
+          getEventMessageId(event);
         const timestamp =
           "timestamp" in event && typeof event.timestamp === "number"
             ? event.timestamp
@@ -159,19 +162,16 @@ export function useEventProcessor(
     rawEvents.forEach((event) => {
       if (
         event.type === EventType.TOOL_CALL_START &&
-        "toolCallName" in event &&
-        "toolCallId" in event &&
-        typeof event.toolCallId === "string" &&
-        event.toolCallName === "ui.confirmation"
+        getEventToolCallName(event) === "ui.confirmation" &&
+        typeof getEventToolCallId(event) === "string"
       ) {
-        pending.add(event.toolCallId);
+        pending.add(getEventToolCallId(event)!);
       }
       if (
         event.type === EventType.TOOL_CALL_RESULT &&
-        "toolCallId" in event &&
-        typeof event.toolCallId === "string"
+        typeof getEventToolCallId(event) === "string"
       ) {
-        pending.delete(event.toolCallId);
+        pending.delete(getEventToolCallId(event)!);
       }
     });
     return pending.size;

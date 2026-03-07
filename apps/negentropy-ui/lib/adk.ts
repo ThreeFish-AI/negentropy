@@ -1,4 +1,5 @@
-import { BaseEvent, EventType, Message } from "@ag-ui/core";
+import type { BaseEvent, Message } from "@ag-ui/core";
+import { EventType } from "@ag-ui/core";
 import {
   createTextMessageStartEvent,
   createTextMessageContentEvent,
@@ -16,6 +17,12 @@ import {
   createRawEvent,
   createCustomEvent,
 } from "./adk/guards";
+import {
+  createAgUiMessage,
+  getEventDelta,
+  getEventMessageId,
+  getEventRole,
+} from "@/types/agui";
 
 // ... (imports)
 
@@ -137,6 +144,12 @@ function appendTextDelta(existing: string, delta: string): string {
   if (delta === existing || existing.endsWith(delta)) return existing;
   if (delta.startsWith(existing)) return delta;
   return `${existing}${delta}`;
+}
+
+function normalizeUiMessageRole(value: string | undefined): Message["role"] {
+  return value === "user" || value === "system" || value === "tool"
+    ? value
+    : "assistant";
 }
 
 export class AdkMessageStreamNormalizer {
@@ -574,11 +587,13 @@ export function adkEventsToMessages(events: AdkEventPayload[]): Message[] {
     }
 
     return {
-      id: e.id,
-      role: e.message?.role || e.author || "assistant",
-      content,
-      createdAt: new Date((e.timestamp || Date.now() / 1000) * 1000),
-    } as unknown as Message;
+      ...createAgUiMessage({
+        id: e.id,
+        role: normalizeUiMessageRole(e.message?.role || e.author),
+        content,
+        createdAt: new Date((e.timestamp || Date.now() / 1000) * 1000),
+      }),
+    };
   });
 }
 
@@ -624,10 +639,7 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
       return;
     }
 
-    const messageId =
-      "messageId" in event && typeof event.messageId === "string"
-        ? event.messageId
-        : undefined;
+    const messageId = getEventMessageId(event);
     if (!messageId) {
       return;
     }
@@ -636,23 +648,23 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
     const existing = messageMap.get(messageId) || {
       id: messageId,
       role:
-        "role" in event && typeof event.role === "string"
-          ? event.role
-          : "assistant",
+        getEventRole(event) || "assistant",
       content: "",
       createdAt,
     };
 
     if (
       event.type === EventType.TEXT_MESSAGE_START &&
-      "role" in event &&
-      typeof event.role === "string"
+      typeof getEventRole(event) === "string"
     ) {
-      existing.role = event.role;
+      existing.role = getEventRole(event)!;
     }
 
-    if (event.type === EventType.TEXT_MESSAGE_CONTENT && "delta" in event) {
-      existing.content = appendTextDelta(existing.content, String(event.delta || ""));
+    if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
+      existing.content = appendTextDelta(
+        existing.content,
+        String(getEventDelta(event) || ""),
+      );
     }
 
     if (createdAt.getTime() < existing.createdAt.getTime()) {
@@ -671,5 +683,12 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
       }
       return a.id.localeCompare(b.id);
     })
-    .map((message) => message as unknown as Message);
+    .map((message) =>
+      createAgUiMessage({
+        id: message.id,
+        role: normalizeUiMessageRole(message.role),
+        content: message.content,
+        createdAt: message.createdAt,
+      }),
+    );
 }

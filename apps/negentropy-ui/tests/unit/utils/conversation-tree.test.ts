@@ -1,33 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { EventType, type BaseEvent, type Message } from "@ag-ui/core";
+import { EventType } from "@ag-ui/core";
 import { buildConversationTree } from "@/utils/conversation-tree";
+import { createTestEvent, createTestMessage } from "@/tests/helpers/agui";
+import type { AgUiEvent, AgUiMessage } from "@/types/agui";
 
 describe("buildConversationTree", () => {
   it("将文本、工具和结果构造成父子树", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_START,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "msg-1",
         role: "assistant",
         timestamp: 1001,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_CONTENT,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "msg-1",
         delta: "你好",
         timestamp: 1002,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TOOL_CALL_START,
         threadId: "thread-1",
         runId: "run-1",
@@ -35,8 +37,8 @@ describe("buildConversationTree", () => {
         toolCallId: "tool-1",
         toolCallName: "search",
         timestamp: 1003,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TOOL_CALL_ARGS,
         threadId: "thread-1",
         runId: "run-1",
@@ -44,8 +46,8 @@ describe("buildConversationTree", () => {
         toolCallId: "tool-1",
         delta: "{\"q\":\"hello\"}",
         timestamp: 1004,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TOOL_CALL_RESULT,
         threadId: "thread-1",
         runId: "run-1",
@@ -53,7 +55,7 @@ describe("buildConversationTree", () => {
         toolCallId: "tool-1",
         content: "{\"items\":1}",
         timestamp: 1005,
-      } as BaseEvent,
+      }),
     ];
 
     const tree = buildConversationTree({ events });
@@ -66,13 +68,13 @@ describe("buildConversationTree", () => {
   });
 
   it("在没有事件时用 fallback message 建树", () => {
-    const fallbackMessages: Message[] = [
-      {
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
         id: "msg-user",
         role: "user",
         content: "hello",
         createdAt: new Date(1000 * 1000),
-      } as Message,
+      }),
     ];
 
     const tree = buildConversationTree({ events: [], fallbackMessages });
@@ -82,45 +84,45 @@ describe("buildConversationTree", () => {
   });
 
   it("忽略结构性 link 事件并把 fallback 用户消息挂到当前轮次顶部", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_START,
         threadId: "thread-1",
         runId: "default",
         messageId: "msg-1",
         role: "assistant",
         timestamp: 1001,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_CONTENT,
         threadId: "thread-1",
         runId: "default",
         messageId: "msg-1",
         delta: "结果",
         timestamp: 1002,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.CUSTOM,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1003,
         eventType: "ne.a2ui.link",
         data: { childId: "message:msg-1", parentId: "turn:run-1" },
-      } as BaseEvent,
+      }),
     ];
-    const fallbackMessages: Message[] = [
-      {
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
         id: "msg-user",
         role: "user",
         content: "hello",
         createdAt: new Date(999 * 1000),
-      } as Message,
+      }),
     ];
 
     const tree = buildConversationTree({ events, fallbackMessages });
@@ -139,28 +141,28 @@ describe("buildConversationTree", () => {
   });
 
   it("裁剪无内容的空文本节点", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_START,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "msg-1",
         role: "assistant",
         timestamp: 1001,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_END,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "msg-1",
         timestamp: 1002,
-      } as BaseEvent,
+      }),
     ];
 
     const tree = buildConversationTree({ events });
@@ -168,19 +170,19 @@ describe("buildConversationTree", () => {
   });
 
   it("按 fallback 消息原始顺序稳定保留连续用户消息", () => {
-    const fallbackMessages: Message[] = [
-      {
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
         id: "msg-1",
         role: "user",
         content: "Hello",
         createdAt: new Date(1000 * 1000),
-      } as Message,
-      {
+      }),
+      createTestMessage({
         id: "msg-2",
         role: "user",
         content: "Hi",
         createdAt: new Date(1000 * 1000 + 1),
-      } as Message,
+      }),
     ];
 
     const tree = buildConversationTree({ events: [], fallbackMessages });
@@ -190,27 +192,27 @@ describe("buildConversationTree", () => {
   });
 
   it("在同轮次下按 sourceOrder 保持连续用户消息顺序", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
+      }),
     ];
-    const fallbackMessages: Message[] = [
-      {
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
         id: "msg-b",
         role: "user",
         content: "first",
         createdAt: new Date(1000 * 1000),
-      } as Message,
-      {
+      }),
+      createTestMessage({
         id: "msg-a",
         role: "user",
         content: "second",
         createdAt: new Date(1000 * 1000),
-      } as Message,
+      }),
     ];
 
     const tree = buildConversationTree({ events, fallbackMessages });
@@ -220,21 +222,21 @@ describe("buildConversationTree", () => {
   });
 
   it("将运行错误节点保留在主聊天区", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.RUN_ERROR,
         threadId: "thread-1",
         runId: "run-1",
         message: "failed",
         code: "UPSTREAM_ERROR",
         timestamp: 1001,
-      } as BaseEvent,
+      }),
     ];
 
     const tree = buildConversationTree({ events });
@@ -244,27 +246,27 @@ describe("buildConversationTree", () => {
   });
 
   it("confirmation 工具在运行结束后仍保持 blocked 状态", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TOOL_CALL_START,
         threadId: "thread-1",
         runId: "run-1",
         toolCallId: "tool-1",
         toolCallName: "ui.confirmation",
         timestamp: 1001,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.RUN_FINISHED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1002,
-      } as BaseEvent,
+      }),
     ];
 
     const tree = buildConversationTree({ events });
@@ -273,36 +275,36 @@ describe("buildConversationTree", () => {
   });
 
   it("文本消息在 TEXT_MESSAGE_END 后保留累计内容", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_START,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "assistant-1",
         role: "assistant",
         timestamp: 1001,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_CONTENT,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "assistant-1",
         delta: "world",
         timestamp: 1002,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TEXT_MESSAGE_END,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "assistant-1",
         timestamp: 1003,
-      } as BaseEvent,
+      }),
     ];
 
     const tree = buildConversationTree({ events });
@@ -312,36 +314,36 @@ describe("buildConversationTree", () => {
   });
 
   it("工具参数在 TOOL_CALL_END 后保留累计内容", () => {
-    const events: BaseEvent[] = [
-      {
+    const events: AgUiEvent[] = [
+      createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
         timestamp: 1000,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TOOL_CALL_START,
         threadId: "thread-1",
         runId: "run-1",
         toolCallId: "tool-1",
         toolCallName: "search",
         timestamp: 1001,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TOOL_CALL_ARGS,
         threadId: "thread-1",
         runId: "run-1",
         toolCallId: "tool-1",
         delta: "{\"q\":\"hello\"}",
         timestamp: 1002,
-      } as BaseEvent,
-      {
+      }),
+      createTestEvent({
         type: EventType.TOOL_CALL_END,
         threadId: "thread-1",
         runId: "run-1",
         toolCallId: "tool-1",
         timestamp: 1003,
-      } as BaseEvent,
+      }),
     ];
 
     const tree = buildConversationTree({ events });

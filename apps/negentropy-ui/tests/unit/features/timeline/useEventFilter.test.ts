@@ -4,48 +4,32 @@
  * 测试事件过滤功能
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useEventFilter } from "@/features/timeline/hooks/useEventFilter";
-import { BaseEvent, EventType } from "@ag-ui/core";
+import { createTestTextMessageEvents } from "@/tests/helpers/agui";
+import { getEventMessageId, type AgUiEvent } from "@/types/agui";
 
 describe("useEventFilter", () => {
-  const mockEvents: BaseEvent[] = [
-    {
-      type: EventType.TEXT_MESSAGE_START,
-      messageId: "msg1",
-      role: "user",
-      timestamp: 1000,
-    } as BaseEvent,
-    {
-      type: EventType.TEXT_MESSAGE_CONTENT,
-      messageId: "msg1",
-      delta: "Hello",
-      timestamp: 1001,
-    } as BaseEvent,
-    {
-      type: EventType.TEXT_MESSAGE_END,
-      messageId: "msg1",
-      timestamp: 1002,
-    } as BaseEvent,
-    {
-      type: EventType.TEXT_MESSAGE_START,
-      messageId: "msg2",
-      role: "agent",
-      timestamp: 2000,
-    } as BaseEvent,
-    {
-      type: EventType.TEXT_MESSAGE_CONTENT,
-      messageId: "msg2",
-      delta: "Hi",
-      timestamp: 2001,
-    } as BaseEvent,
-    {
-      type: EventType.TEXT_MESSAGE_END,
-      messageId: "msg2",
-      timestamp: 2002,
-    } as BaseEvent,
-  ];
+  const msg1Events = createTestTextMessageEvents({
+    messageId: "msg1",
+    role: "user",
+    timestamp: 1000,
+    delta: "Hello",
+  });
+  msg1Events[1] = { ...msg1Events[1], timestamp: 1001 };
+  msg1Events[2] = { ...msg1Events[2], timestamp: 1002 };
+
+  const msg2Events = createTestTextMessageEvents({
+    messageId: "msg2",
+    role: "agent",
+    timestamp: 2000,
+    delta: "Hi",
+  });
+  msg2Events[1] = { ...msg2Events[1], timestamp: 2001 };
+  msg2Events[2] = { ...msg2Events[2], timestamp: 2002 };
+
+  const mockEvents: AgUiEvent[] = [...msg1Events, ...msg2Events];
 
   it("应该返回所有事件（无选中消息）", () => {
     const { result } = renderHook(() =>
@@ -85,7 +69,7 @@ describe("useEventFilter", () => {
 
     // 应该只包含 msg1 的事件（timestamp <= 1000）
     expect(filteredEvents.length).toBeLessThanOrEqual(3);
-    expect(filteredEvents[0].messageId).toBe("msg1");
+    expect(getEventMessageId(filteredEvents[0])).toBe("msg1");
   });
 
   it("应该过滤事件（选中第二条消息）", () => {

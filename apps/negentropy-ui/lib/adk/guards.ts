@@ -5,8 +5,10 @@
  * 遵循 AGENTS.md 原则：循证工程、类型安全
  */
 
-import { BaseEvent, EventType } from "@ag-ui/core";
+import type { BaseEvent, Message } from "@ag-ui/core";
+import { EventType } from "@ag-ui/core";
 import type {
+  AgUiMessage,
   TextMessageStartEvent,
   TextMessageContentEvent,
   TextMessageEndEvent,
@@ -23,6 +25,7 @@ import type {
   RawEvent,
   CustomEvent,
 } from "@/types/agui";
+import { createAgUiMessage } from "@/types/agui";
 
 /**
  * 检查对象是否包含基础事件属性
@@ -341,6 +344,53 @@ export function createCustomEvent(
     data: eventData,
     ...props,
   };
+}
+
+export function createOptimisticTextEvents(input: {
+  threadId: string;
+  runId: string;
+  messageId: string;
+  timestamp: number;
+  role: "user" | "agent" | "system";
+  content: string;
+}): BaseEvent[] {
+  return [
+    createTextMessageStartEvent(
+      {
+        threadId: input.threadId,
+        runId: input.runId,
+        messageId: input.messageId,
+        timestamp: input.timestamp,
+      },
+      input.role,
+    ),
+    createTextMessageContentEvent(
+      {
+        threadId: input.threadId,
+        runId: input.runId,
+        messageId: input.messageId,
+        timestamp: input.timestamp,
+      },
+      input.content,
+    ),
+    createTextMessageEndEvent({
+      threadId: input.threadId,
+      runId: input.runId,
+      messageId: input.messageId,
+      timestamp: input.timestamp,
+    }),
+  ];
+}
+
+export function createMessageWithMeta(input: {
+  id: string;
+  role: Message["role"];
+  content: Message["content"];
+  createdAt?: Date;
+  author?: string;
+  runId?: string;
+}): AgUiMessage {
+  return createAgUiMessage(input);
 }
 
 /**
