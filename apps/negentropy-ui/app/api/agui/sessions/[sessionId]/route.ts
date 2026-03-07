@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
 import { safeParseSessionDetailResponse } from "@/lib/agui/session-schema";
+import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
@@ -58,28 +59,15 @@ export async function GET(
     );
   }
 
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      text || "Upstream returned non-OK status",
-    );
+  const parsed = await parseSessionUpstreamJson({
+    upstreamResponse,
+    parse: safeParseSessionDetailResponse,
+    invalidPayloadMessage: "Invalid upstream session detail payload",
+    invalidJsonMessage: "Invalid upstream session detail JSON",
+  });
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  try {
-    const payload = JSON.parse(text) as unknown;
-    const parsed = safeParseSessionDetailResponse(payload);
-    if (!parsed.success) {
-      return aguiErrorResponse(
-        AGUI_ERROR_CODES.UPSTREAM_ERROR,
-        "Invalid upstream session detail payload",
-      );
-    }
-    return NextResponse.json(parsed.data, { status: upstreamResponse.status });
-  } catch {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      "Invalid upstream session detail JSON",
-    );
-  }
+  return NextResponse.json(parsed.data, { status: parsed.status });
 }

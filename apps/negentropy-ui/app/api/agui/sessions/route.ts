@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
 import { safeParseCreateSessionResponse } from "@/lib/agui/session-schema";
+import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
@@ -59,25 +60,15 @@ export async function POST(request: Request) {
     return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, `Upstream connection failed: ${String(error)}`);
   }
 
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, text || "Upstream returned non-OK status");
+  const parsed = await parseSessionUpstreamJson({
+    upstreamResponse,
+    parse: safeParseCreateSessionResponse,
+    invalidPayloadMessage: "Invalid upstream session create payload",
+    invalidJsonMessage: "Invalid upstream session create JSON",
+  });
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  try {
-    const payload = JSON.parse(text) as unknown;
-    const parsed = safeParseCreateSessionResponse(payload);
-    if (!parsed.success) {
-      return aguiErrorResponse(
-        AGUI_ERROR_CODES.UPSTREAM_ERROR,
-        "Invalid upstream session create payload",
-      );
-    }
-    return NextResponse.json(parsed.data, { status: upstreamResponse.status });
-  } catch {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      "Invalid upstream session create JSON",
-    );
-  }
+  return NextResponse.json(parsed.data, { status: parsed.status });
 }
