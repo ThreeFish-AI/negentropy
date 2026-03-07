@@ -1,4 +1,8 @@
 import { vi, type Mock } from "vitest";
+import type {
+  CorpusExtractorRoutes,
+  McpExtractorTargetConfig,
+} from "@/features/knowledge/utils/knowledge-api";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 export interface KnowledgeApiMockSet {
@@ -67,6 +71,61 @@ export function primeKnowledgeApiMocks(
 
   stableDefaults.fetchCorporaMock.mockResolvedValue([]);
 }
+
+export function createKnowledgeApiExtractorRouteTarget(
+  overrides: Partial<McpExtractorTargetConfig> = {},
+): McpExtractorTargetConfig {
+  return {
+    server_id: "server-1",
+    tool_name: "fetch_markdown",
+    priority: 0,
+    enabled: true,
+    ...overrides,
+  };
+}
+
+export function createKnowledgeApiExtractorRoutes(
+  urlTargets: McpExtractorTargetConfig[] = [],
+  filePdfTargets: McpExtractorTargetConfig[] = [],
+): { extractor_routes: CorpusExtractorRoutes } {
+  return {
+    extractor_routes: {
+      url: { targets: urlTargets },
+      file_pdf: { targets: filePdfTargets },
+    },
+  };
+}
+
+export const knowledgeApiExtractorRouteFixtures = {
+  defaultUrlTarget: createKnowledgeApiExtractorRouteTarget(),
+  advancedUrlTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-advanced",
+    tool_name: "fetch_structured",
+    timeout_ms: 15000,
+    tool_options: {
+      mode: "markdown",
+      include_images: true,
+    },
+  }),
+  dualUrlPrimaryTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-url-primary",
+    timeout_ms: 12000,
+    tool_options: { format: "md" },
+  }),
+  dualPdfPrimaryTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-pdf-primary",
+    tool_name: "parse_pdf",
+    timeout_ms: 20000,
+    tool_options: { ocr: false },
+  }),
+  dualPdfBackupTarget: createKnowledgeApiExtractorRouteTarget({
+    server_id: "server-pdf-backup",
+    tool_name: "parse_pdf_backup",
+    priority: 1,
+    timeout_ms: 25000,
+    tool_options: { ocr: true },
+  }),
+} as const;
 
 export async function createKnowledgeApiConfigTestExports() {
   const actual = await importKnowledgeApiActual();

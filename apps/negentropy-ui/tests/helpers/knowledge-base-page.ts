@@ -175,6 +175,41 @@ export function createKnowledgeBaseExtractorRoutes(
   };
 }
 
+export function createKnowledgeBaseMcpServerOption(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "server-1",
+    name: "doc-extractor",
+    display_name: "Doc Extractor",
+    is_enabled: true,
+    ...overrides,
+  };
+}
+
+export function createKnowledgeBaseMcpToolOption(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    name: "extract_markdown",
+    display_name: "Extract Markdown",
+    is_enabled: true,
+    ...overrides,
+  };
+}
+
+export function createKnowledgeBaseMcpServerOptions(
+  ...options: Array<Record<string, unknown>>
+): Array<Record<string, unknown>> {
+  return options;
+}
+
+export function createKnowledgeBaseMcpToolOptions(
+  ...options: Array<Record<string, unknown>>
+): Array<Record<string, unknown>> {
+  return options;
+}
+
 export const knowledgeBasePageExtractorRouteFixtures = {
   defaultConfigured: createKnowledgeBaseExtractorRouteTarget(),
   legacyConfigured: createKnowledgeBaseExtractorRouteTarget({
@@ -184,6 +219,31 @@ export const knowledgeBasePageExtractorRouteFixtures = {
   refreshedConfigured: createKnowledgeBaseExtractorRouteTarget({
     server_id: "server-from-refresh",
     tool_name: "tool-from-refresh",
+  }),
+} as const;
+
+export const knowledgeBasePageMcpOptionFixtures = {
+  defaultServer: createKnowledgeBaseMcpServerOption(),
+  legacyServer: createKnowledgeBaseMcpServerOption({
+    id: "server-legacy",
+    name: "legacy-extractor",
+    display_name: "已配置 MCP（当前不可用）",
+    is_enabled: false,
+  }),
+  refreshedServer: createKnowledgeBaseMcpServerOption({
+    id: "server-from-refresh",
+    name: "refreshed-extractor",
+    display_name: "Refreshed Extractor",
+  }),
+  defaultTool: createKnowledgeBaseMcpToolOption(),
+  legacyTool: createKnowledgeBaseMcpToolOption({
+    name: "tool-legacy",
+    display_name: "已配置 Tool（当前不可用）",
+    is_enabled: false,
+  }),
+  refreshedTool: createKnowledgeBaseMcpToolOption({
+    name: "tool-from-refresh",
+    display_name: "Refresh Tool",
   }),
 } as const;
 
@@ -240,27 +300,16 @@ export function primeKnowledgeBasePageLocalMocks(
     if (url === "/api/plugins/mcp/servers") {
       return {
         ok: true,
-        json: async () => [
-          {
-            id: "server-1",
-            name: "doc-extractor",
-            display_name: "Doc Extractor",
-            is_enabled: true,
-          },
-        ],
+        json: async () =>
+          createKnowledgeBaseMcpServerOptions(knowledgeBasePageMcpOptionFixtures.defaultServer),
       } as Response;
     }
 
-    if (url === "/api/plugins/mcp/servers/server-1/tools") {
+    if (url === `/api/plugins/mcp/servers/${knowledgeBasePageMcpOptionFixtures.defaultServer.id}/tools`) {
       return {
         ok: true,
-        json: async () => [
-          {
-            name: "extract_markdown",
-            display_name: "Extract Markdown",
-            is_enabled: true,
-          },
-        ],
+        json: async () =>
+          createKnowledgeBaseMcpToolOptions(knowledgeBasePageMcpOptionFixtures.defaultTool),
       } as Response;
     }
 

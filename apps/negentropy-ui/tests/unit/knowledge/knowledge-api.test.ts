@@ -12,6 +12,11 @@ import {
   normalizeExtractorDraftRoutes,
   normalizeCorpusExtractorRoutes,
 } from "@/features/knowledge/utils/knowledge-api";
+import {
+  createKnowledgeApiExtractorRoutes,
+  createKnowledgeApiExtractorRouteTarget,
+  knowledgeApiExtractorRouteFixtures,
+} from "@/tests/helpers/knowledge-api";
 
 describe("fetchCorpus", () => {
   afterEach(() => {
@@ -155,20 +160,9 @@ describe("fetchCorpus", () => {
   });
 
   it("normalizeCorpusExtractorRoutes 与 buildCorpusConfig 会稳定保留 extractor routes 结构", () => {
-    const normalized = normalizeCorpusExtractorRoutes({
-      extractor_routes: {
-        url: {
-          targets: [
-            {
-              server_id: "server-1",
-              tool_name: "fetch_markdown",
-              priority: 0,
-              enabled: true,
-            },
-          ],
-        },
-      },
-    });
+    const normalized = normalizeCorpusExtractorRoutes(
+      createKnowledgeApiExtractorRoutes([knowledgeApiExtractorRouteFixtures.defaultUrlTarget]),
+    );
 
     expect(normalized.url.targets).toEqual([
       expect.objectContaining({
@@ -198,20 +192,9 @@ describe("fetchCorpus", () => {
   });
 
   it("normalizeExtractorDraftRoutes 会为每个 route 生成固定双槽位 draft", () => {
-    const draft = normalizeExtractorDraftRoutes({
-      extractor_routes: {
-        url: {
-          targets: [
-            {
-              server_id: "server-1",
-              tool_name: "fetch_markdown",
-              priority: 0,
-              enabled: true,
-            },
-          ],
-        },
-      },
-    });
+    const draft = normalizeExtractorDraftRoutes(
+      createKnowledgeApiExtractorRoutes([knowledgeApiExtractorRouteFixtures.defaultUrlTarget]),
+    );
 
     expect(draft.url).toEqual([
       expect.objectContaining({
@@ -253,19 +236,18 @@ describe("fetchCorpus", () => {
           enabled: true,
         },
         {
-          server_id: "server-2",
-          tool_name: "parse_pdf",
-          priority: 1,
-          enabled: true,
+          ...createKnowledgeApiExtractorRouteTarget({
+            server_id: "server-2",
+            tool_name: "parse_pdf",
+            priority: 1,
+          }),
         },
       ],
       file_pdf: [
-        {
+        createKnowledgeApiExtractorRouteTarget({
           server_id: "server-3",
           tool_name: "extract_pdf",
-          priority: 0,
-          enabled: true,
-        },
+        }),
         createEmptyExtractorDraftTarget(1),
       ],
     });
@@ -295,25 +277,9 @@ describe("fetchCorpus", () => {
   });
 
   it("normalizeExtractorDraftRoutes 会保留 timeout_ms 与 tool_options 等扩展字段", () => {
-    const draft = normalizeExtractorDraftRoutes({
-      extractor_routes: {
-        url: {
-          targets: [
-            {
-              server_id: "server-advanced",
-              tool_name: "fetch_structured",
-              priority: 0,
-              enabled: true,
-              timeout_ms: 15000,
-              tool_options: {
-                mode: "markdown",
-                include_images: true,
-              },
-            },
-          ],
-        },
-      },
-    });
+    const draft = normalizeExtractorDraftRoutes(
+      createKnowledgeApiExtractorRoutes([knowledgeApiExtractorRouteFixtures.advancedUrlTarget]),
+    );
 
     expect(draft.url[0]).toEqual(
       expect.objectContaining({
@@ -333,33 +299,12 @@ describe("fetchCorpus", () => {
   it("buildExtractorRoutesFromDraft 会稳定处理 url 与 file_pdf 双 route", () => {
     const routes = buildExtractorRoutesFromDraft({
       url: [
-        {
-          server_id: "server-url-primary",
-          tool_name: "fetch_markdown",
-          priority: 0,
-          enabled: true,
-          timeout_ms: 12000,
-          tool_options: { format: "md" },
-        },
+        knowledgeApiExtractorRouteFixtures.dualUrlPrimaryTarget,
         createEmptyExtractorDraftTarget(1),
       ],
       file_pdf: [
-        {
-          server_id: "server-pdf-primary",
-          tool_name: "parse_pdf",
-          priority: 0,
-          enabled: true,
-          timeout_ms: 20000,
-          tool_options: { ocr: false },
-        },
-        {
-          server_id: "server-pdf-backup",
-          tool_name: "parse_pdf_backup",
-          priority: 1,
-          enabled: true,
-          timeout_ms: 25000,
-          tool_options: { ocr: true },
-        },
+        knowledgeApiExtractorRouteFixtures.dualPdfPrimaryTarget,
+        knowledgeApiExtractorRouteFixtures.dualPdfBackupTarget,
       ],
     });
 

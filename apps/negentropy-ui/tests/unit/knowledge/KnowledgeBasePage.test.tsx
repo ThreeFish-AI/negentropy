@@ -9,6 +9,7 @@ import {
   createKnowledgeBaseDocumentChunk,
   createKnowledgeBaseExtractorRoutes,
   createKnowledgeBaseHierarchicalSearchResult,
+  knowledgeBasePageMcpOptionFixtures,
   createKnowledgeBaseSearchResult,
   knowledgeBasePageExtractorRouteFixtures,
   knowledgeBasePageSearchParams,
@@ -516,8 +517,12 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue("server-1");
-    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue("extract_markdown");
+    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue(
+      String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
+    );
+    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue(
+      String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
+    );
   });
 
   it("settings 视图选择 MCP Server 后不会回退为未配置，并可继续选择 Tool 后保存", async () => {
@@ -536,15 +541,21 @@ describe("KnowledgeBasePage", () => {
     expect(serverSelect).toHaveValue("");
     expect(toolSelect).toBeDisabled();
 
-    await user.selectOptions(serverSelect, "server-1");
+    await user.selectOptions(
+      serverSelect,
+      String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
+    );
 
-    expect(serverSelect).toHaveValue("server-1");
+    expect(serverSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultServer.id));
     expect(toolSelect).not.toBeDisabled();
     expect(toolSelect).toHaveValue("");
 
-    await user.selectOptions(toolSelect, "extract_markdown");
+    await user.selectOptions(
+      toolSelect,
+      String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
+    );
 
-    expect(toolSelect).toHaveValue("extract_markdown");
+    expect(toolSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultTool.name));
 
     await user.click(screen.getByRole("button", { name: "Save Settings" }));
 
@@ -596,8 +607,8 @@ describe("KnowledgeBasePage", () => {
     const serverSelect = screen.getAllByLabelText("MCP Server")[0];
     const toolSelect = screen.getAllByLabelText("Tool")[0];
 
-    expect(serverSelect).toHaveValue("server-legacy");
-    expect(toolSelect).toHaveValue("tool-legacy");
+    expect(serverSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.legacyServer.id));
+    expect(toolSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.legacyTool.name));
     expect(
       within(serverSelect).getByRole("option", { name: "已配置 MCP（当前不可用）" }),
     ).toBeInTheDocument();
@@ -647,11 +658,17 @@ describe("KnowledgeBasePage", () => {
     const serverSelect = screen.getAllByLabelText("MCP Server")[0];
     const toolSelect = screen.getAllByLabelText("Tool")[0];
 
-    await user.selectOptions(serverSelect, "server-1");
-    await user.selectOptions(toolSelect, "extract_markdown");
+    await user.selectOptions(
+      serverSelect,
+      String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
+    );
+    await user.selectOptions(
+      toolSelect,
+      String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
+    );
 
-    expect(serverSelect).toHaveValue("server-1");
-    expect(toolSelect).toHaveValue("extract_markdown");
+    expect(serverSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultServer.id));
+    expect(toolSelect).toHaveValue(String(knowledgeBasePageMcpOptionFixtures.defaultTool.name));
 
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [refreshedCorpus],
@@ -671,8 +688,12 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue("server-1");
-    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue("extract_markdown");
+    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue(
+      String(knowledgeBasePageMcpOptionFixtures.defaultServer.id),
+    );
+    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue(
+      String(knowledgeBasePageMcpOptionFixtures.defaultTool.name),
+    );
   });
 
   it("settings 视图中 semantic 与 hierarchical 只展示各自有效字段", async () => {
