@@ -12,7 +12,8 @@
  */
 
 import { useRef, useState, useCallback, useMemo } from "react";
-import { BaseEvent, compactEvents } from "@ag-ui/core";
+import { compactEvents } from "@ag-ui/client";
+import { BaseEvent, EventType } from "@ag-ui/core";
 import { buildTimelineItems } from "@/utils/timeline";
 import type { LogEntry, ConnectionState } from "@/types/common";
 
@@ -99,12 +100,18 @@ export function useEventProcessor(
     // 处理所有 TEXT_MESSAGE 事件以构建映射
     rawEvents.forEach((event) => {
       if (
-        event.type === "text_message_start" ||
-        event.type === "text_message_content" ||
-        event.type === "text_message_end"
+        event.type === EventType.TEXT_MESSAGE_START ||
+        event.type === EventType.TEXT_MESSAGE_CONTENT ||
+        event.type === EventType.TEXT_MESSAGE_END
       ) {
-        const messageId = "messageId" in event ? event.messageId : undefined;
-        const timestamp = "timestamp" in event ? event.timestamp : undefined;
+        const messageId =
+          "messageId" in event && typeof event.messageId === "string"
+            ? event.messageId
+            : undefined;
+        const timestamp =
+          "timestamp" in event && typeof event.timestamp === "number"
+            ? event.timestamp
+            : undefined;
 
         if (messageId && timestamp !== undefined) {
           if (!timestampMap.has(messageId)) {
@@ -151,13 +158,19 @@ export function useEventProcessor(
     const pending = new Set<string>();
     rawEvents.forEach((event) => {
       if (
-        event.type === "tool_call_start" &&
+        event.type === EventType.TOOL_CALL_START &&
         "toolCallName" in event &&
+        "toolCallId" in event &&
+        typeof event.toolCallId === "string" &&
         event.toolCallName === "ui.confirmation"
       ) {
         pending.add(event.toolCallId);
       }
-      if (event.type === "tool_call_result") {
+      if (
+        event.type === EventType.TOOL_CALL_RESULT &&
+        "toolCallId" in event &&
+        typeof event.toolCallId === "string"
+      ) {
         pending.delete(event.toolCallId);
       }
     });

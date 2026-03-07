@@ -12,7 +12,7 @@ describe("OverlayDismissLayer", () => {
         open
         onClose={onClose}
         backdropTestId="overlay-backdrop"
-        contentProps={{ "data-testid": "overlay-content" }}
+        contentTestId="overlay-content"
       >
         <button type="button">Inner Action</button>
       </OverlayDismissLayer>,

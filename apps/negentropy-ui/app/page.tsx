@@ -225,6 +225,7 @@ export function HomeBody({
       if (
         event.type === EventType.TOOL_CALL_START &&
         "toolCallName" in event &&
+        "toolCallId" in event &&
         event.toolCallName === "ui.confirmation"
       ) {
         pending.add(String(event.toolCallId));
@@ -545,17 +546,16 @@ export function HomeBody({
       ) {
         return;
       }
-      agent.addMessage({
+      const followupMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
         content: `HITL:${payload.action} ${payload.note || ""}`.trim(),
-        createdAt: new Date(),
-      });
+      };
+      agent.addMessage(followupMessage);
       try {
         setConnectionWithMetrics("connecting");
         await agent.runAgent({
           runId: randomUUID(),
-          threadId: sessionId,
         });
         scheduleSessionHydration(sessionId);
         await loadSessions();
@@ -608,7 +608,6 @@ export function HomeBody({
       id: messageId,
       role: "user",
       content: inputValue.trim(),
-      createdAt: new Date(),
     } as Message;
     // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
     // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
@@ -625,7 +624,6 @@ export function HomeBody({
       setConnectionWithMetrics("connecting");
       await agent.runAgent({
         runId: randomUUID(),
-        threadId: sessionId,
       });
       scheduleSessionHydration(sessionId);
       await loadSessions();
@@ -943,11 +941,6 @@ export default function Home() {
     });
   }, [sessionId, user]);
 
-  const copilotAgents = useMemo(
-    () => (agent ? { [AGENT_ID]: agent } : {}),
-    [agent],
-  );
-
   if (authStatus === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
@@ -988,6 +981,8 @@ export default function Home() {
       </div>
     );
   }
+
+  const copilotAgents = { [AGENT_ID]: agent };
 
   return (
     <CopilotKitProvider

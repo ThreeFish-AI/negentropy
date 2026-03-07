@@ -7,6 +7,7 @@ import {
   fetchPipelines,
   KnowledgePipelinesPayload,
   PipelineRunRecord,
+  PipelineStageResult,
   upsertPipelines,
 } from "@/features/knowledge";
 
@@ -315,7 +316,7 @@ export default function KnowledgePipelinesPage() {
   };
 
   // 获取排序后的阶段列表
-  const getSortedStages = (stages?: Record<string, RunRecord["stages"] extends Record<string, infer T> ? T : never>) => {
+  const getSortedStages = (stages?: Record<string, PipelineStageResult>) => {
     if (!stages) return [];
     return Object.entries(stages).sort(([a], [b]) => {
       const indexA = STAGE_ORDER.indexOf(a);
@@ -401,11 +402,11 @@ export default function KnowledgePipelinesPage() {
                         {/* 阶段进度条 */}
                         {run.stages && Object.keys(run.stages).length > 0 && (
                           <div className="mt-2 flex items-center gap-1">
-                            {getSortedStages(run.stages).map(([stageName, stage]) => (
+                            {getSortedStages(run.stages as Record<string, PipelineStageResult>).map(([stageName, stage]) => (
                               <div
                                 key={stageName}
                                 className="relative group"
-                                style={{ width: calculateStageWidth(stage, run.stages!) }}
+                                style={{ width: calculateStageWidth(stage, run.stages as Record<string, PipelineStageResult>) }}
                               >
                                 <div className={`h-1.5 w-full rounded-full ${getStageColor(stageName, stage.status)}`} />
                                 {/* Hover Tooltip */}

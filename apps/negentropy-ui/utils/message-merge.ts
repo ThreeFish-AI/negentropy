@@ -66,7 +66,7 @@ export function mergeOptimisticMessages(
     // 消息已存在，进行内容合并
     const existing = merged[index];
     if (!existing.content && message.content) {
-      merged[index] = { ...existing, content: message.content };
+      merged[index] = message;
     }
   });
 

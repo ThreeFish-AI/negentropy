@@ -147,7 +147,7 @@ describe("HomeBody integration", () => {
     }) as unknown as typeof fetch;
   });
 
-  it("发送消息时显式带 threadId，并在运行后展示 assistant 回复", async () => {
+  it("发送消息时使用 runId 触发运行，并在运行后展示 assistant 回复", async () => {
     const user = userEvent.setup();
     render(<Wrapper sessionId="s1" />);
     await waitForInitialHydration();
@@ -158,13 +158,14 @@ describe("HomeBody integration", () => {
     await waitFor(() => {
       expect(mockAgent.runAgent).toHaveBeenCalledWith(
         expect.objectContaining({
-          threadId: "s1",
           runId: expect.any(String),
         }),
       );
     });
 
-    expect(await screen.findByText((content) => content.includes("world"))).toBeInTheDocument();
+    expect(
+      await screen.findByText((content) => content.includes("world")),
+    ).toBeInTheDocument();
     await waitFor(
       () => {
         expect(screen.queryByText("NE 正在生成回复...")).not.toBeInTheDocument();
@@ -268,7 +269,7 @@ describe("HomeBody integration", () => {
     expect(respond).toHaveBeenCalled();
     expect(mockAgent.addMessage).toHaveBeenCalled();
     expect(mockAgent.runAgent).toHaveBeenCalledWith(
-      expect.objectContaining({ threadId: "s1" }),
+      expect.objectContaining({ runId: expect.any(String) }),
     );
   }, 10000);
 });

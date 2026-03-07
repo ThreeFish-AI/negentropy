@@ -8,6 +8,14 @@ import {
 } from "@/lib/errors";
 import { mapAdkPayloadToNormalizedAguiEvents } from "@/utils/agui-normalization";
 
+type AguiLifecycleEvent = BaseEvent & {
+  threadId: string;
+  runId: string;
+  message?: string;
+  code?: string;
+  result?: string;
+};
+
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 }
@@ -146,7 +154,7 @@ export async function POST(request: Request) {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const runStart: BaseEvent = {
+      const runStart: AguiLifecycleEvent = {
         type: EventType.RUN_STARTED,
         threadId: resolvedThreadId,
         runId: resolvedRunId,
@@ -190,7 +198,7 @@ export async function POST(request: Request) {
                   );
                 }
               } catch (error) {
-                const errEvent: BaseEvent = {
+                const errEvent: AguiLifecycleEvent = {
                   type: EventType.RUN_ERROR,
                   threadId: resolvedThreadId,
                   runId: resolvedRunId,
@@ -207,7 +215,7 @@ export async function POST(request: Request) {
           }
         }
       } catch (error) {
-        const errEvent: BaseEvent = {
+        const errEvent: AguiLifecycleEvent = {
           type: EventType.RUN_ERROR,
           threadId: resolvedThreadId,
           runId: resolvedRunId,
@@ -219,7 +227,7 @@ export async function POST(request: Request) {
           textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
         );
       } finally {
-        const runFinish: BaseEvent = {
+        const runFinish: AguiLifecycleEvent = {
           type: EventType.RUN_FINISHED,
           threadId: resolvedThreadId,
           runId: resolvedRunId,

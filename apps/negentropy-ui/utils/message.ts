@@ -10,6 +10,22 @@ import type { ChatMessage, ToolCallInfo } from "@/types/common";
 
 export type { ChatMessage };
 
+type ExtendedMessage = Message & {
+  createdAt?: Date;
+  author?: string;
+  runId?: string;
+};
+
+type ChatMessageEntry = {
+  id: string;
+  role: ChatMessage["role"];
+  content: string;
+  timestamp: number;
+  runId?: string;
+  author?: string;
+  toolCalls?: ToolCallInfo[];
+};
+
 /**
  * 标准化消息内容为字符串
  * @param message 消息对象
@@ -35,6 +51,7 @@ export function normalizeMessageContent(message: Message): string {
 export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
   const chatMessages: ChatMessage[] = [];
   messages.forEach((message) => {
+    const extendedMessage = message as ExtendedMessage;
     const rawRole = (message.role || "assistant").toLowerCase();
 
     // 1. 过滤技术性/隐藏角色
@@ -51,11 +68,11 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
     }
 
     // 3. 提取来源信息（Message 扩展字段）
-    const author = (message as { author?: string }).author;
-    const timestamp = message.createdAt
-      ? message.createdAt.getTime() / 1000
+    const author = extendedMessage.author;
+    const timestamp = extendedMessage.createdAt
+      ? extendedMessage.createdAt.getTime() / 1000
       : undefined;
-    const runId = (message as { runId?: string }).runId;
+    const runId = extendedMessage.runId;
 
     // 4. 添加到结果
     chatMessages.push({
@@ -197,15 +214,7 @@ export function buildChatMessagesFromEventsWithFallback(
   // 消息映射（扩展支持 toolCalls）
   const messageMap = new Map<
     string,
-    {
-      id: string;
-      role: string;
-      content: string;
-      timestamp: number;
-      runId?: string;
-      author?: string;
-      toolCalls?: ToolCallInfo[];
-    }
+    ChatMessageEntry
   >();
 
   // 工具调用收集（按 runId 分组）
@@ -235,8 +244,14 @@ export function buildChatMessagesFromEventsWithFallback(
     // 处理工具调用事件
     switch (event.type) {
       case EventType.TOOL_CALL_START: {
-        const toolCallId = "toolCallId" in event ? event.toolCallId : "";
-        const toolCallName = "toolCallName" in event ? event.toolCallName : "";
+        const toolCallId =
+          "toolCallId" in event && typeof event.toolCallId === "string"
+            ? event.toolCallId
+            : "";
+        const toolCallName =
+          "toolCallName" in event && typeof event.toolCallName === "string"
+            ? event.toolCallName
+            : "";
         const toolCall: ToolCallInfo = {
           id: toolCallId,
           name: toolCallName,
@@ -255,8 +270,12 @@ export function buildChatMessagesFromEventsWithFallback(
         break;
       }
       case EventType.TOOL_CALL_ARGS: {
-        const toolCallId = "toolCallId" in event ? event.toolCallId : "";
-        const delta = "delta" in event ? (event.delta as string) : "";
+        const toolCallId =
+          "toolCallId" in event && typeof event.toolCallId === "string"
+            ? event.toolCallId
+            : "";
+        const delta =
+          "delta" in event && typeof event.delta === "string" ? event.delta : "";
         const info = toolCallIndex.get(toolCallId);
         if (info) {
           const toolCalls = toolCallsByRunId.get(info.runId);
@@ -267,8 +286,14 @@ export function buildChatMessagesFromEventsWithFallback(
         break;
       }
       case EventType.TOOL_CALL_RESULT: {
-        const toolCallId = "toolCallId" in event ? event.toolCallId : "";
-        const content = "content" in event ? (event.content as string) : "";
+        const toolCallId =
+          "toolCallId" in event && typeof event.toolCallId === "string"
+            ? event.toolCallId
+            : "";
+        const content =
+          "content" in event && typeof event.content === "string"
+            ? event.content
+            : "";
         const info = toolCallIndex.get(toolCallId);
         if (info) {
           const toolCalls = toolCallsByRunId.get(info.runId);
@@ -280,7 +305,10 @@ export function buildChatMessagesFromEventsWithFallback(
         break;
       }
       case EventType.TOOL_CALL_END: {
-        const toolCallId = "toolCallId" in event ? event.toolCallId : "";
+        const toolCallId =
+          "toolCallId" in event && typeof event.toolCallId === "string"
+            ? event.toolCallId
+            : "";
         const info = toolCallIndex.get(toolCallId);
         if (info) {
           const toolCalls = toolCallsByRunId.get(info.runId);
@@ -298,14 +326,18 @@ export function buildChatMessagesFromEventsWithFallback(
       event.type === EventType.TEXT_MESSAGE_CONTENT ||
       event.type === EventType.TEXT_MESSAGE_END
     ) {
-      const messageId = "messageId" in event ? event.messageId : undefined;
+      const messageId =
+        "messageId" in event && typeof event.messageId === "string"
+          ? event.messageId
+          : undefined;
       if (!messageId) {
         return;
       }
 
       // 对于 TEXT_MESSAGE_CONTENT，记录最后一次的内容（用于去重）
       if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
-        const delta = "delta" in event ? (event.delta as string) : "";
+        const delta =
+          "delta" in event && typeof event.delta === "string" ? event.delta : "";
         // 如果 delta 看起来像是完整内容（比当前记录长很多或当前为空），直接替换
         const existing = lastContentByMessageId.get(messageId) || "";
         if (delta.length > existing.length || existing === "") {
@@ -321,12 +353,19 @@ export function buildChatMessagesFromEventsWithFallback(
         const fallback = fallbackById.get(messageId);
         entry = {
           id: messageId,
-          role: ("role" in event && event.role) || fallback?.role || "assistant",
+          role: ((("role" in event &&
+            typeof event.role === "string" &&
+            event.role) ||
+            fallback?.role ||
+            "assistant") as ChatMessage["role"]),
           content: "",
           timestamp:
             "timestamp" in event && event.timestamp ? event.timestamp : 0,
           runId: eventRunId,
-          author: "author" in event && event.author ? event.author : undefined,
+          author:
+            "author" in event && typeof event.author === "string"
+              ? event.author
+              : undefined,
         };
         messageMap.set(messageId, entry);
       }
@@ -351,7 +390,7 @@ export function buildChatMessagesFromEventsWithFallback(
   // 将工具调用关联到对应 runId 的消息
   toolCallsByRunId.forEach((toolCalls, runId) => {
     // 找到该 runId 对应的第一个消息
-    let targetEntry: { id: string; role: string; content: string; timestamp: number; runId?: string; author?: string; toolCalls?: ToolCallInfo[] } | undefined;
+    let targetEntry: ChatMessageEntry | undefined;
     messageMap.forEach((entry) => {
       if (entry.runId === runId && !targetEntry) {
         targetEntry = entry;
@@ -379,14 +418,15 @@ export function buildChatMessagesFromEventsWithFallback(
   // 添加缺失的回退消息（保留不在流窗口中的历史）
   // 使用内容相似度检查防止 ID 不同但内容相同的重复
   fallbackMessages.forEach((fallback) => {
+    const extendedFallback = fallback as ExtendedMessage;
     const fallbackContent = normalizeMessageContent(fallback);
 
     // 检查是否有 ID 匹配的消息
     if (messageMap.has(fallback.id)) {
       // 回填时间戳
       const entry = messageMap.get(fallback.id)!;
-      if (entry.timestamp === 0 && fallback.createdAt) {
-        entry.timestamp = fallback.createdAt.getTime() / 1000;
+      if (entry.timestamp === 0 && extendedFallback.createdAt) {
+        entry.timestamp = extendedFallback.createdAt.getTime() / 1000;
       }
       return;
     }
@@ -402,16 +442,16 @@ export function buildChatMessagesFromEventsWithFallback(
     }
 
     // 添加新的 fallback 消息
-    const timestamp = fallback.createdAt
-      ? fallback.createdAt.getTime() / 1000
+    const timestamp = extendedFallback.createdAt
+      ? extendedFallback.createdAt.getTime() / 1000
       : 0;
     messageMap.set(fallback.id, {
       id: fallback.id,
-      role: fallback.role,
+      role: fallback.role as ChatMessage["role"],
       content: fallbackContent,
       timestamp,
-      runId: (fallback as { runId?: string }).runId,
-      author: (fallback as { author?: string }).author,
+      runId: extendedFallback.runId,
+      author: extendedFallback.author,
     });
   });
 
@@ -421,7 +461,7 @@ export function buildChatMessagesFromEventsWithFallback(
         const fallback = fallbackById.get(entry.id);
         if (fallback) {
           entry.content = normalizeMessageContent(fallback);
-          entry.role = fallback.role;
+          entry.role = fallback.role as ChatMessage["role"];
         }
       }
       return entry;

@@ -1,6 +1,6 @@
 "use client";
 
-import type { HTMLAttributes, ReactNode } from "react";
+import type { ComponentPropsWithoutRef, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface OverlayDismissLayerProps {
@@ -12,8 +12,9 @@ interface OverlayDismissLayerProps {
   backdropClassName?: string;
   containerClassName?: string;
   contentClassName?: string;
-  contentProps?: HTMLAttributes<HTMLDivElement>;
+  contentProps?: ComponentPropsWithoutRef<"div">;
   backdropTestId?: string;
+  contentTestId?: string;
   children: ReactNode;
 }
 
@@ -28,6 +29,7 @@ export function OverlayDismissLayer({
   contentClassName,
   contentProps,
   backdropTestId,
+  contentTestId,
   children,
 }: OverlayDismissLayerProps) {
   if (!open) return null;
@@ -56,6 +58,7 @@ export function OverlayDismissLayer({
       />
       <div className={cn("relative", containerClassName)}>
         <div
+          data-testid={contentTestId}
           {...restContentProps}
           className={cn(contentClassName, contentPropsClassName)}
           onClick={handleContentClick}

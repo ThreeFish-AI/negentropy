@@ -83,6 +83,7 @@ export function useAgentSubscription(
     lastRunStartedAt: 0,
     lastRunMs: 0,
   });
+  const previousConnectionRef = useRef<ConnectionState>("idle");
 
   // 默认的连接状态更新函数
   const defaultSetConnection = useCallback(() => {
@@ -120,13 +121,15 @@ export function useAgentSubscription(
 
   // 设置连接状态并记录重连指标
   const setConnectionWithMetricsWithReconnect = useCallback(
-    (next: ConnectionState, prev: ConnectionState) => {
+    (next: ConnectionState) => {
+      const prev = previousConnectionRef.current;
       if (prev === "error" && next === "connecting") {
         metricsRef.current.reconnectCount += 1;
         reportMetric("reconnect", {
           count: metricsRef.current.reconnectCount,
         });
       }
+      previousConnectionRef.current = next;
       if (typeof onConnectionChange === "function") {
         onConnectionChange(next);
       }
@@ -189,7 +192,7 @@ export function useAgentSubscription(
           onConnectionChange("error");
         }
       },
-      onEvent: ({ event }) => {
+      onEvent: ({ event }: { event: BaseEvent }) => {
         if (typeof onRawEvent === "function") {
           onRawEvent(event);
         }

@@ -95,7 +95,6 @@ export function useMessageSender(
       id: messageId,
       role: "user",
       content: inputValue.trim(),
-      createdAt: new Date(timestamp * 1000),
     };
 
     // 乐观更新
@@ -139,7 +138,6 @@ export function useMessageSender(
       setConnection("connecting");
       await agent.runAgent({
         runId: randomUUID(),
-        threadId: resolvedThreadId,
       });
       if (typeof onLoadSessions === "function") {
         await onLoadSessions();

@@ -57,7 +57,7 @@ function toRetrievedChunkMetadata(
   return (metadata || {}) as RetrievedChunkMetadata;
 }
 
-function formatChunkNumber(value: number | null | undefined): string {
+function formatChunkNumber(value: unknown): string {
   const normalized = toChunkNumber(value);
   if (normalized === null) {
     return "?";

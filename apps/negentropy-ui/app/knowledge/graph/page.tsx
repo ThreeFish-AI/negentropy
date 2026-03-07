@@ -157,7 +157,7 @@ export default function KnowledgeGraphPage() {
       if (!active || !simulationRef.current) return;
       const svg = select(svgRef.current);
       const g = svg.select("g.graph-layer");
-      g.selectAll("circle")
+      g.selectAll<SVGCircleElement, GraphNodePos>("circle")
         .data(layout, (d: GraphNodePos) => d.id)
         .call(
           drag<SVGCircleElement, GraphNodePos>()

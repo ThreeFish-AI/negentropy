@@ -5,6 +5,7 @@ import { adkEventToAguiEvents } from "@/lib/adk";
 const ALLOWED_ROLES = new Set(["assistant", "user", "system", "developer"]);
 
 type NormalizableEvent = BaseEvent & { role?: string; delta?: unknown };
+type EventWithRunAndThread = BaseEvent & { runId: string; threadId: string };
 
 function jsonPointerEscape(segment: string) {
   return segment.replace(/~/g, "~0").replace(/\//g, "~1");
@@ -44,7 +45,7 @@ export function normalizeAguiEvent(event: BaseEvent): BaseEvent {
 export function resolveEventRunAndThread(
   event: BaseEvent,
   fallback: { runId: string; threadId: string },
-): BaseEvent {
+): EventWithRunAndThread {
   return {
     ...event,
     threadId:
@@ -61,7 +62,7 @@ export function resolveEventRunAndThread(
       event.runId !== "default"
         ? event.runId
         : fallback.runId,
-  };
+  } as unknown as EventWithRunAndThread;
 }
 
 export function mapAdkPayloadToNormalizedAguiEvents(

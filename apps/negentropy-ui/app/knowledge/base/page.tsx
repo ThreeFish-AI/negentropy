@@ -703,9 +703,11 @@ export default function KnowledgeBasePage() {
     url: string;
     chunkingConfig?: ChunkingConfig;
   }) => {
-    if (!selectedCorpusId) return;
+    if (!selectedCorpusId) {
+      throw new Error("Corpus is required before ingesting URL sources");
+    }
     try {
-      await ingestUrl({
+      const result = await ingestUrl({
         url: url.trim(),
         as_document: true,
         chunkingConfig: corpusChunkingConfig,
@@ -713,23 +715,37 @@ export default function KnowledgeBasePage() {
       toast.success("URL ingest started");
       setIsIngestUrlDialogOpen(false);
       await loadDocuments();
+      return result;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "URL ingest failed");
+      throw err;
     }
   };
 
-  const handleIngestFile = async (file: File) => {
-    if (!selectedCorpusId) return;
+  const handleIngestFile = async ({
+    file,
+    source_uri,
+    chunkingConfig,
+  }: {
+    file: File;
+    source_uri?: string;
+    chunkingConfig?: ChunkingConfig;
+  }) => {
+    if (!selectedCorpusId) {
+      throw new Error("Corpus is required before ingesting file sources");
+    }
     try {
-      await ingestFile({
+      const result = await ingestFile({
         file,
-        source_uri: file.name,
-        chunkingConfig: corpusChunkingConfig,
+        source_uri: source_uri || file.name,
+        chunkingConfig: chunkingConfig ?? corpusChunkingConfig,
       });
       toast.success("File ingest started");
       await loadDocuments();
+      return result;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "File ingest failed");
+      throw err;
     }
   };
 
@@ -1064,7 +1080,7 @@ export default function KnowledgeBasePage() {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            void handleIngestFile(file);
+                            void handleIngestFile({ file, source_uri: file.name });
                             e.currentTarget.value = "";
                           }
                         }}
