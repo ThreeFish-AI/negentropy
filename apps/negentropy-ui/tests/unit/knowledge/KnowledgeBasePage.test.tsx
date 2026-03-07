@@ -2,6 +2,12 @@ import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { KnowledgeFeatureMockSet } from "@/tests/helpers/knowledge";
 import { resetKnowledgeFeatureMocks } from "@/tests/helpers/knowledge";
+import {
+  buildKnowledgeBaseHookState,
+  primeKnowledgeBasePageLocalMocks,
+  resetKnowledgeBasePageLocalMocks,
+  type KnowledgeBasePageLocalMocks,
+} from "@/tests/helpers/knowledge-base-page";
 
 const {
   replaceMock,
@@ -49,6 +55,29 @@ const knowledgeMocks = vi.hoisted(() => ({}) as KnowledgeFeatureMockSet);
 const loadCorpusMock = vi.fn();
 const loadCorporaMock = vi.fn();
 const updateCorpusMock = vi.fn();
+const localMocks: KnowledgeBasePageLocalMocks = {
+  replaceMock,
+  useKnowledgeBaseMock,
+  loadCorpusMock,
+  loadCorporaMock,
+  updateCorpusMock,
+  deleteCorpusMock,
+  deleteDocumentMock,
+  ingestUrlMock,
+  ingestFileMock,
+  fetchDocumentsMock,
+  fetchDocumentChunksMock,
+  searchAcrossCorporaMock,
+  documentViewDialogMock,
+  fetchMock,
+  syncDocumentMock,
+  rebuildDocumentMock,
+  replaceDocumentFeatureMock,
+  archiveDocumentMock,
+  unarchiveDocumentMock,
+  downloadDocumentMock,
+  searchParamsState,
+};
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
@@ -120,116 +149,9 @@ const flushPromises = async () => {
 describe("KnowledgeBasePage", () => {
   beforeEach(() => {
     resetKnowledgeFeatureMocks(knowledgeMocks);
-    replaceMock.mockReset();
-    loadCorpusMock.mockReset();
-    loadCorporaMock.mockReset();
-    updateCorpusMock.mockReset();
-    ingestFileMock.mockReset();
-    documentViewDialogMock.mockReset();
-    fetchMock.mockReset();
-    searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
-
-    global.fetch = fetchMock;
-
-    loadCorpusMock.mockResolvedValue(undefined);
-    loadCorporaMock.mockResolvedValue(undefined);
-    updateCorpusMock.mockResolvedValue({
-      id: "11111111-1111-1111-1111-111111111111",
-      name: "Corpus Alpha",
-      app_name: "negentropy",
-      knowledge_count: 3,
-      config: {},
-    });
-    deleteCorpusMock.mockResolvedValue(undefined);
-    deleteDocumentMock.mockResolvedValue(undefined);
-    ingestUrlMock.mockResolvedValue({});
-    ingestFileMock.mockResolvedValue({});
-    fetchDocumentsMock.mockResolvedValue({
-      items: [
-        {
-          id: "doc-1",
-          corpus_id: "11111111-1111-1111-1111-111111111111",
-          original_filename: "Context Engineering.pdf",
-          content_type: "application/pdf",
-          status: "active",
-          file_size: 2371045,
-          metadata: { source_type: "file" },
-          markdown_extract_status: "completed",
-        },
-      ],
-    });
-    fetchDocumentChunksMock.mockResolvedValue({ items: [] });
-    searchAcrossCorporaMock.mockResolvedValue({
-      items: [
-        {
-          id: "chunk-1",
-          content: "retrieved chunk content",
-          source_uri: "https://example.com/doc",
-          combined_score: 0.91,
-          metadata: {
-            corpus_id: "11111111-1111-1111-1111-111111111111",
-            chunk_index: 47,
-            original_filename: "2512.13564v1.pdf",
-          },
-        },
-      ],
-    });
-
-    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url === "/api/plugins/mcp/servers") {
-        return {
-          ok: true,
-          json: async () => [
-            {
-              id: "server-1",
-              name: "doc-extractor",
-              display_name: "Doc Extractor",
-              is_enabled: true,
-            },
-          ],
-        } as Response;
-      }
-
-      if (url === "/api/plugins/mcp/servers/server-1/tools") {
-        return {
-          ok: true,
-          json: async () => [
-            {
-              name: "extract_markdown",
-              display_name: "Extract Markdown",
-              is_enabled: true,
-            },
-          ],
-        } as Response;
-      }
-
-      return {
-        ok: false,
-        status: 404,
-        json: async () => ({ detail: "not found" }),
-      } as Response;
-    });
-
-    useKnowledgeBaseMock.mockImplementation(() => ({
-      corpora: [
-        {
-          id: "11111111-1111-1111-1111-111111111111",
-          name: "Corpus Alpha",
-          app_name: "negentropy",
-          knowledge_count: 3,
-          config: {},
-        },
-      ],
-      isLoading: false,
-      loadCorpora: loadCorporaMock,
-      loadCorpus: loadCorpusMock,
-      createCorpus: vi.fn(),
-      updateCorpus: updateCorpusMock,
-      deleteCorpus: deleteCorpusMock,
-      ingestUrl: ingestUrlMock,
-      ingestFile: ingestFileMock,
-    }));
+    resetKnowledgeBasePageLocalMocks(localMocks);
+    primeKnowledgeBasePageLocalMocks(localMocks);
+    useKnowledgeBaseMock.mockImplementation(() => buildKnowledgeBaseHookState(localMocks));
   });
 
   it("重新渲染时不会因为 hook 返回新对象而重复触发 loadCorpus", async () => {
