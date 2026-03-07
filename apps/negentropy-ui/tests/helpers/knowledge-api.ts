@@ -1,13 +1,3 @@
-import {
-  buildCorpusConfig,
-  buildExtractorRoutesFromDraft,
-  createDefaultChunkingConfig,
-  createEmptyExtractorDraftTarget,
-  normalizeChunkingConfig,
-  normalizeCorpusExtractorRoutes,
-  normalizeExtractorDraftRoutes,
-} from "@/features/knowledge/utils/knowledge-api";
-
 export interface KnowledgeApiMockSet {
   fetchCorpusMock: ReturnType<typeof vi.fn>;
   fetchCorporaMock: ReturnType<typeof vi.fn>;
@@ -30,6 +20,12 @@ export interface KnowledgeApiTestHarness {
   mocks: KnowledgeApiMockSet;
 }
 
+export async function importKnowledgeApiActual() {
+  return vi.importActual<typeof import("@/features/knowledge/utils/knowledge-api")>(
+    "@/features/knowledge/utils/knowledge-api",
+  );
+}
+
 export function createKnowledgeApiMockSet(): KnowledgeApiMockSet {
   return {
     fetchCorpusMock: vi.fn(),
@@ -49,22 +45,24 @@ export function createKnowledgeApiMockSet(): KnowledgeApiMockSet {
   };
 }
 
-export function createKnowledgeApiConfigTestExports() {
+export async function createKnowledgeApiConfigTestExports() {
+  const actual = await importKnowledgeApiActual();
   return {
-    createDefaultChunkingConfig,
-    normalizeChunkingConfig,
-    normalizeCorpusExtractorRoutes,
-    createEmptyExtractorDraftTarget,
-    normalizeExtractorDraftRoutes,
-    buildExtractorRoutesFromDraft,
-    buildCorpusConfig,
+    createDefaultChunkingConfig: actual.createDefaultChunkingConfig,
+    normalizeChunkingConfig: actual.normalizeChunkingConfig,
+    normalizeCorpusExtractorRoutes: actual.normalizeCorpusExtractorRoutes,
+    createEmptyExtractorDraftTarget: actual.createEmptyExtractorDraftTarget,
+    normalizeExtractorDraftRoutes: actual.normalizeExtractorDraftRoutes,
+    buildExtractorRoutesFromDraft: actual.buildExtractorRoutesFromDraft,
+    buildCorpusConfig: actual.buildCorpusConfig,
   };
 }
 
-export function createKnowledgeApiTestHarness(
+export async function createKnowledgeApiTestHarness(
   mocks: KnowledgeApiMockSet,
   overrides: Record<string, unknown> = {},
-): KnowledgeApiTestHarness {
+): Promise<KnowledgeApiTestHarness> {
+  const configExports = await createKnowledgeApiConfigTestExports();
   return {
     mocks,
     exports: {
@@ -82,7 +80,7 @@ export function createKnowledgeApiTestHarness(
       deleteSource: (...args: unknown[]) => mocks.deleteSourceMock(...args),
       archiveSource: (...args: unknown[]) => mocks.archiveSourceMock(...args),
       searchKnowledge: (...args: unknown[]) => mocks.searchKnowledgeMock(...args),
-      ...createKnowledgeApiConfigTestExports(),
+      ...configExports,
       ...overrides,
     },
   };

@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 
 const knowledgeApiMocks = vi.hoisted(() => ({
   fetchCorpusMock: vi.fn(),
@@ -19,7 +19,7 @@ const knowledgeApiMocks = vi.hoisted(() => ({
 
 vi.mock("@/features/knowledge/utils/knowledge-api", async () => {
   const { createKnowledgeApiTestHarness } = await import("@/tests/helpers/knowledge-api");
-  return createKnowledgeApiTestHarness(knowledgeApiMocks).exports;
+  return (await createKnowledgeApiTestHarness(knowledgeApiMocks)).exports;
 });
 
 import { useKnowledgeSearch } from "@/features/knowledge/hooks/useKnowledgeSearch";
@@ -36,6 +36,10 @@ describe("useKnowledgeSearch", () => {
 
     await act(async () => {
       await expect(result.current.search("   ")).resolves.toEqual({ count: 0, items: [] });
+    });
+
+    await waitFor(() => {
+      expect(result.current.results).toEqual({ count: 0, items: [] });
     });
 
     expect(result.current.results).toEqual({ count: 0, items: [] });
@@ -60,6 +64,11 @@ describe("useKnowledgeSearch", () => {
 
     await act(async () => {
       await result.current.search("hello", { semantic_weight: 0.9 });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSearching).toBe(false);
+      expect(result.current.results).toEqual({ count: 1, items: [{ id: "m1" }] });
     });
 
     expect(knowledgeApiMocks.searchKnowledgeMock).toHaveBeenCalledWith(
@@ -88,6 +97,11 @@ describe("useKnowledgeSearch", () => {
 
     await act(async () => {
       await expect(result.current.search("hello")).rejects.toThrow("search failed");
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSearching).toBe(false);
+      expect(result.current.error).toBe(error);
     });
 
     expect(result.current.error).toBe(error);
