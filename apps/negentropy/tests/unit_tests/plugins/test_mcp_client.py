@@ -23,8 +23,31 @@ async def test_discover_stdio_uses_logged_stdio_client(monkeypatch: pytest.Monke
     class _Tool:
         def __init__(self) -> None:
             self.name = "demo"
+            self.title = "Demo Tool"
             self.description = "demo tool"
             self.inputSchema = {"type": "object"}
+            self.outputSchema = {"type": "object", "properties": {"ok": {"type": "boolean"}}}
+            self.icons = [type("_Icon", (), {"model_dump": lambda self, mode="json": {"src": "https://example.com/icon.png"}})()]
+            self.annotations = type(
+                "_Annotations",
+                (),
+                {
+                    "model_dump": lambda self, mode="json": {
+                        "title": "Annotated Demo",
+                        "readOnlyHint": True,
+                    }
+                },
+            )()
+            self.execution = type(
+                "_Execution",
+                (),
+                {
+                    "model_dump": lambda self, mode="json": {
+                        "taskSupport": "optional",
+                    }
+                },
+            )()
+            self.meta = {"source": "spec"}
 
     class _ToolsResult:
         tools = [_Tool()]
@@ -56,6 +79,12 @@ async def test_discover_stdio_uses_logged_stdio_client(monkeypatch: pytest.Monke
     assert result.success is True
     assert captured["initialized"] is True
     assert captured["errlog"].source == "mcp.zai-mcp-server"
+    assert result.tools[0].title == "Demo Tool"
+    assert result.tools[0].output_schema == {"type": "object", "properties": {"ok": {"type": "boolean"}}}
+    assert result.tools[0].icons == [{"src": "https://example.com/icon.png"}]
+    assert result.tools[0].annotations == {"title": "Annotated Demo", "readOnlyHint": True}
+    assert result.tools[0].execution == {"taskSupport": "optional"}
+    assert result.tools[0].meta == {"source": "spec"}
 
 
 @pytest.mark.asyncio

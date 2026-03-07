@@ -141,9 +141,15 @@ class McpToolResponse(BaseModel):
 
     id: Optional[UUID] = None
     name: str
+    title: Optional[str] = None
     display_name: Optional[str] = None
     description: Optional[str] = None
     input_schema: Dict[str, Any] = Field(default_factory=dict)
+    output_schema: Dict[str, Any] = Field(default_factory=dict)
+    icons: List[Dict[str, Any]] = Field(default_factory=list)
+    annotations: Dict[str, Any] = Field(default_factory=dict)
+    execution: Dict[str, Any] = Field(default_factory=dict)
+    meta: Dict[str, Any] = Field(default_factory=dict)
     is_enabled: bool = True
     call_count: int = 0
 
@@ -515,9 +521,15 @@ def _mcp_tool_to_response(tool: McpTool) -> McpToolResponse:
     return McpToolResponse(
         id=tool.id,
         name=tool.name,
+        title=tool.title,
         display_name=tool.display_name,
         description=tool.description,
         input_schema=tool.input_schema or {},
+        output_schema=tool.output_schema or {},
+        icons=tool.icons or [],
+        annotations=tool.annotations or {},
+        execution=tool.execution or {},
+        meta=tool.meta or {},
         is_enabled=tool.is_enabled,
         call_count=tool.call_count or 0,
     )
@@ -585,16 +597,28 @@ async def load_mcp_server_tools(
             if tool_info.name in existing_map:
                 # 更新现有 Tool
                 existing = existing_map[tool_info.name]
+                existing.title = tool_info.title
                 existing.description = tool_info.description
                 existing.input_schema = tool_info.input_schema
+                existing.output_schema = tool_info.output_schema
+                existing.icons = tool_info.icons
+                existing.annotations = tool_info.annotations
+                existing.execution = tool_info.execution
+                existing.meta = tool_info.meta
                 updated_tools.append(existing)
             else:
                 # 新增 Tool
                 new_tool = McpTool(
                     server_id=server_id,
                     name=tool_info.name,
+                    title=tool_info.title,
                     description=tool_info.description,
                     input_schema=tool_info.input_schema,
+                    output_schema=tool_info.output_schema,
+                    icons=tool_info.icons,
+                    annotations=tool_info.annotations,
+                    execution=tool_info.execution,
+                    meta=tool_info.meta,
                     is_enabled=True,
                 )
                 db.add(new_tool)

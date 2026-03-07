@@ -99,9 +99,15 @@ class McpTool(Base, UUIDMixin, TimestampMixin):
 
     server_id: Mapped[UUID] = mapped_column(fk("mcp_servers", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(String(255))
     display_name: Mapped[Optional[str]] = mapped_column(String(255))
     description: Mapped[Optional[str]] = mapped_column(Text)
     input_schema: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    output_schema: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    icons: Mapped[List[Dict[str, Any]]] = mapped_column(JSONB, nullable=False, server_default="[]")
+    annotations: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    execution: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    meta: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     call_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
