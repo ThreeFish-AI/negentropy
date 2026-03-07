@@ -228,6 +228,9 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const content = normalizeContent(message.content);
+  const avatarPositionClass = isUser
+    ? "absolute right-0 top-2 translate-x-[calc(100%+0.75rem)]"
+    : "absolute left-0 top-2 -translate-x-[calc(100%+0.75rem)]";
 
   if (isSystem) {
     return (
@@ -242,43 +245,41 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "flex w-full gap-4 group cursor-pointer", // Added cursor-pointer for clickability
+        "group relative flex w-full cursor-pointer",
         isUser ? "flex-row-reverse" : "flex-row",
-        isSelected && "bg-muted/50", // Highlight when selected
+        isSelected && "bg-muted/50",
       )}
       onClick={() => onSelect?.(message.id)}
     >
-      {/* Avatar */}
-      <div className="shrink-0">
+      <div className={cn("shrink-0", avatarPositionClass)}>
         {isUser ? (
           <UserAvatar
             picture={user?.picture}
             name={user?.name}
             email={user?.email}
             alt="Me"
-            className="h-8 w-8 border border-border object-cover"
+            className="h-8 w-8 rounded-md object-cover"
             fallbackClassName="bg-foreground text-background text-xs"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm ring-2 ring-primary/20 shrink-0 overflow-hidden">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card">
             <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
           </div>
         )}
       </div>
 
-      {/* Bubble Container */}
       <div
         className={cn(
-          "flex flex-col",
-          isUser ? "max-w-[85%]" : "w-full max-w-full",
+          "flex w-full flex-col",
+          isUser ? "items-end" : "items-start",
         )}
       >
         <div
           className={cn(
             "rounded-2xl px-5 py-3 text-sm shadow-sm transition-all",
             isUser
-              ? "bg-foreground text-background rounded-tr-sm leading-relaxed"
-              : "bg-card text-foreground border border-border rounded-tl-sm leading-snug",
+              ? "max-w-[85%] rounded-tr-sm bg-foreground leading-relaxed text-background"
+              : "w-full max-w-full rounded-tl-sm border border-border bg-card leading-snug text-foreground",
           )}
         >
           <div

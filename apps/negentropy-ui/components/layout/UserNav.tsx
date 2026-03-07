@@ -55,7 +55,7 @@ export function UserNav() {
           picture={user.picture}
           name={user.name}
           email={user.email}
-          className="h-7 w-7 border border-border object-cover"
+          className="h-7 w-7 object-cover"
         />
         <span className="text-xs font-medium text-muted-foreground hidden sm:inline-block max-w-[100px] truncate hover:text-foreground">
           {user.name || "User"}
