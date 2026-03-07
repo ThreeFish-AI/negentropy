@@ -654,6 +654,146 @@ describe("KnowledgeBasePage", () => {
     );
   });
 
+  it("settings 视图会保留当前不可用的已配置 MCP Server 与 Tool 回显", async () => {
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+
+    useKnowledgeBaseMock.mockImplementation(() => ({
+      corpora: [
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          name: "Corpus Alpha",
+          app_name: "negentropy",
+          knowledge_count: 3,
+          config: {
+            extractor_routes: {
+              url: {
+                targets: [
+                  {
+                    server_id: "server-legacy",
+                    tool_name: "tool-legacy",
+                    priority: 0,
+                    enabled: true,
+                  },
+                ],
+              },
+              file_pdf: { targets: [] },
+            },
+          },
+        },
+      ],
+      isLoading: false,
+      loadCorpora: loadCorporaMock,
+      loadCorpus: loadCorpusMock,
+      createCorpus: vi.fn(),
+      updateCorpus: updateCorpusMock,
+      deleteCorpus: deleteCorpusMock,
+      ingestUrl: ingestUrlMock,
+      ingestFile: ingestFileMock,
+    }));
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const serverSelect = screen.getAllByLabelText("MCP Server")[0];
+    const toolSelect = screen.getAllByLabelText("Tool")[0];
+
+    expect(serverSelect).toHaveValue("server-legacy");
+    expect(toolSelect).toHaveValue("tool-legacy");
+    expect(
+      within(serverSelect).getByRole("option", { name: "已配置 MCP（当前不可用）" }),
+    ).toBeInTheDocument();
+    expect(
+      within(toolSelect).getByRole("option", { name: "已配置 Tool（当前不可用）" }),
+    ).toBeInTheDocument();
+  });
+
+  it("外部 corpus 刷新不会覆盖 settings 视图中未保存的 MCP 草稿", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+
+    const baseCorpus = {
+      id: "11111111-1111-1111-1111-111111111111",
+      name: "Corpus Alpha",
+      app_name: "negentropy",
+      knowledge_count: 3,
+      config: {},
+    };
+    const refreshedCorpus = {
+      ...baseCorpus,
+      config: {
+        strategy: "fixed",
+        chunk_size: 1024,
+        overlap: 50,
+        extractor_routes: {
+          url: {
+            targets: [
+              {
+                server_id: "server-from-refresh",
+                tool_name: "tool-from-refresh",
+                priority: 0,
+                enabled: true,
+              },
+            ],
+          },
+          file_pdf: { targets: [] },
+        },
+      },
+    };
+
+    useKnowledgeBaseMock.mockImplementation(() => ({
+      corpora: [baseCorpus],
+      isLoading: false,
+      loadCorpora: loadCorporaMock,
+      loadCorpus: loadCorpusMock,
+      createCorpus: vi.fn(),
+      updateCorpus: updateCorpusMock,
+      deleteCorpus: deleteCorpusMock,
+      ingestUrl: ingestUrlMock,
+      ingestFile: ingestFileMock,
+    }));
+
+    const { rerender } = render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const serverSelect = screen.getAllByLabelText("MCP Server")[0];
+    const toolSelect = screen.getAllByLabelText("Tool")[0];
+
+    await user.selectOptions(serverSelect, "server-1");
+    await user.selectOptions(toolSelect, "extract_markdown");
+
+    expect(serverSelect).toHaveValue("server-1");
+    expect(toolSelect).toHaveValue("extract_markdown");
+
+    useKnowledgeBaseMock.mockImplementation(() => ({
+      corpora: [refreshedCorpus],
+      isLoading: false,
+      loadCorpora: loadCorporaMock,
+      loadCorpus: loadCorpusMock,
+      createCorpus: vi.fn(),
+      updateCorpus: updateCorpusMock,
+      deleteCorpus: deleteCorpusMock,
+      ingestUrl: ingestUrlMock,
+      ingestFile: ingestFileMock,
+    }));
+
+    rerender(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue("server-1");
+    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue("extract_markdown");
+  });
+
   it("settings 视图中 semantic 与 hierarchical 只展示各自有效字段", async () => {
     const user = userEvent.setup();
     searchParamsState.value =
