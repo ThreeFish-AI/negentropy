@@ -1,153 +1,222 @@
 "use strict";
+
 /**
- * ADK 事件类型守卫
+ * ADK 兼容入口
  *
- * 提供类型安全的运行时检查，替代 `as unknown as` 类型断言
- * 遵循 AGENTS.md 原则：循证工程、类型安全
+ * 该文件用于避免历史 `.js` 导入命中旧实现。
+ * 新代码应优先使用 `@/lib/agui/schema` 与 `@/lib/agui/factories`。
  */
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
+
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.hasBaseEventProps = hasBaseEventProps;
-exports.createTextMessageStartEvent = createTextMessageStartEvent;
+exports.asBaseEvent = asBaseEvent;
+exports.createActivitySnapshotEvent = createActivitySnapshotEvent;
+exports.createCustomEvent = createCustomEvent;
+exports.createMessageWithMeta = createMessageWithMeta;
+exports.createMessagesSnapshotEvent = createMessagesSnapshotEvent;
+exports.createOptimisticTextEvents = createOptimisticTextEvents;
+exports.createRawEvent = createRawEvent;
+exports.createStateDeltaEvent = createStateDeltaEvent;
+exports.createStateSnapshotEvent = createStateSnapshotEvent;
+exports.createStepFinishedEvent = createStepFinishedEvent;
+exports.createStepStartedEvent = createStepStartedEvent;
 exports.createTextMessageContentEvent = createTextMessageContentEvent;
 exports.createTextMessageEndEvent = createTextMessageEndEvent;
-exports.createToolCallStartEvent = createToolCallStartEvent;
+exports.createTextMessageStartEvent = createTextMessageStartEvent;
 exports.createToolCallArgsEvent = createToolCallArgsEvent;
 exports.createToolCallEndEvent = createToolCallEndEvent;
 exports.createToolCallResultEvent = createToolCallResultEvent;
-exports.createStateDeltaEvent = createStateDeltaEvent;
-exports.createStateSnapshotEvent = createStateSnapshotEvent;
-exports.createActivitySnapshotEvent = createActivitySnapshotEvent;
-exports.createMessagesSnapshotEvent = createMessagesSnapshotEvent;
-exports.createStepStartedEvent = createStepStartedEvent;
-exports.createStepFinishedEvent = createStepFinishedEvent;
-exports.createRawEvent = createRawEvent;
-exports.createCustomEvent = createCustomEvent;
-exports.asBaseEvent = asBaseEvent;
-var core_1 = require("@ag-ui/core");
-/**
- * 检查对象是否包含基础事件属性
- */
+exports.createToolCallStartEvent = createToolCallStartEvent;
+exports.hasBaseEventProps = hasBaseEventProps;
+
+const { EventType } = require("@ag-ui/core");
+const { z } = require("zod");
+
+const baseEventPropsSchema = z
+  .object({
+    threadId: z.string(),
+    runId: z.string(),
+    timestamp: z.number().finite(),
+    messageId: z.string().optional(),
+    author: z.string().optional(),
+  })
+  .passthrough();
+
+const baseEventSchema = baseEventPropsSchema
+  .extend({
+    type: z.nativeEnum(EventType),
+  })
+  .passthrough();
+
 function hasBaseEventProps(obj) {
-    if (typeof obj !== "object" || obj === null) {
-        return false;
-    }
-    var props = obj;
-    return (typeof props.threadId === "string" &&
-        typeof props.runId === "string" &&
-        typeof props.timestamp === "number" &&
-        (props.messageId === undefined || typeof props.messageId === "string"));
+  return baseEventPropsSchema.safeParse(obj).success;
 }
-/**
- * 创建 TEXT_MESSAGE_START 事件
- */
+
 function createTextMessageStartEvent(props, role) {
-    return __assign({ type: core_1.EventType.TEXT_MESSAGE_START, role: role }, props);
+  return {
+    type: EventType.TEXT_MESSAGE_START,
+    role,
+    ...props,
+  };
 }
-/**
- * 创建 TEXT_MESSAGE_CONTENT 事件
- */
+
 function createTextMessageContentEvent(props, delta) {
-    return __assign({ type: core_1.EventType.TEXT_MESSAGE_CONTENT, delta: delta }, props);
+  return {
+    type: EventType.TEXT_MESSAGE_CONTENT,
+    delta,
+    ...props,
+  };
 }
-/**
- * 创建 TEXT_MESSAGE_END 事件
- */
+
 function createTextMessageEndEvent(props) {
-    return __assign({ type: core_1.EventType.TEXT_MESSAGE_END }, props);
+  return {
+    type: EventType.TEXT_MESSAGE_END,
+    ...props,
+  };
 }
-/**
- * 创建 TOOL_CALL_START 事件
- */
+
 function createToolCallStartEvent(props, toolCallId, toolCallName) {
-    return __assign({ type: core_1.EventType.TOOL_CALL_START, toolCallId: toolCallId, toolCallName: toolCallName }, props);
+  return {
+    type: EventType.TOOL_CALL_START,
+    toolCallId,
+    toolCallName,
+    ...props,
+  };
 }
-/**
- * 创建 TOOL_CALL_ARGS 事件
- */
+
 function createToolCallArgsEvent(props, toolCallId, delta) {
-    return __assign({ type: core_1.EventType.TOOL_CALL_ARGS, toolCallId: toolCallId, delta: delta }, props);
+  return {
+    type: EventType.TOOL_CALL_ARGS,
+    toolCallId,
+    delta,
+    ...props,
+  };
 }
-/**
- * 创建 TOOL_CALL_END 事件
- */
+
 function createToolCallEndEvent(props, toolCallId) {
-    return __assign({ type: core_1.EventType.TOOL_CALL_END, toolCallId: toolCallId }, props);
+  return {
+    type: EventType.TOOL_CALL_END,
+    toolCallId,
+    ...props,
+  };
 }
-/**
- * 创建 TOOL_CALL_RESULT 事件
- */
+
 function createToolCallResultEvent(props, toolCallId, content) {
-    return __assign({ type: core_1.EventType.TOOL_CALL_RESULT, toolCallId: toolCallId, content: content }, props);
+  return {
+    type: EventType.TOOL_CALL_RESULT,
+    toolCallId,
+    content,
+    ...props,
+  };
 }
-/**
- * 创建 STATE_DELTA 事件
- */
+
 function createStateDeltaEvent(props, delta) {
-    return __assign({ type: core_1.EventType.STATE_DELTA, delta: delta }, props);
+  return {
+    type: EventType.STATE_DELTA,
+    delta,
+    ...props,
+  };
 }
-/**
- * 创建 STATE_SNAPSHOT 事件
- */
+
 function createStateSnapshotEvent(props, snapshot) {
-    return __assign({ type: core_1.EventType.STATE_SNAPSHOT, snapshot: snapshot }, props);
+  return {
+    type: EventType.STATE_SNAPSHOT,
+    snapshot,
+    ...props,
+  };
 }
-/**
- * 创建 ACTIVITY_SNAPSHOT 事件
- */
+
 function createActivitySnapshotEvent(props, activityType, content) {
-    return __assign({ type: core_1.EventType.ACTIVITY_SNAPSHOT, activityType: activityType, content: content }, props);
+  return {
+    type: EventType.ACTIVITY_SNAPSHOT,
+    activityType,
+    content,
+    ...props,
+  };
 }
-/**
- * 创建 MESSAGES_SNAPSHOT 事件
- */
+
 function createMessagesSnapshotEvent(props, messages) {
-    return __assign({ type: core_1.EventType.MESSAGES_SNAPSHOT, messages: messages }, props);
+  return {
+    type: EventType.MESSAGES_SNAPSHOT,
+    messages,
+    ...props,
+  };
 }
-/**
- * 创建 STEP_STARTED 事件
- */
+
 function createStepStartedEvent(props, stepId, stepName) {
-    return __assign({ type: core_1.EventType.STEP_STARTED, stepId: stepId, stepName: stepName }, props);
+  return {
+    type: EventType.STEP_STARTED,
+    stepId,
+    stepName,
+    ...props,
+  };
 }
-/**
- * 创建 STEP_FINISHED 事件
- */
+
 function createStepFinishedEvent(props, stepId, result) {
-    return __assign({ type: core_1.EventType.STEP_FINISHED, stepId: stepId, result: result }, props);
+  return {
+    type: EventType.STEP_FINISHED,
+    stepId,
+    result,
+    ...props,
+  };
 }
-/**
- * 创建 RAW 事件
- */
+
 function createRawEvent(props, data) {
-    return __assign({ type: core_1.EventType.RAW, data: data }, props);
+  return {
+    type: EventType.RAW,
+    data,
+    ...props,
+  };
 }
-/**
- * 创建 CUSTOM 事件
- */
+
 function createCustomEvent(props, eventType, eventData) {
-    return __assign({ type: core_1.EventType.CUSTOM, eventType: eventType, data: eventData }, props);
+  return {
+    type: EventType.CUSTOM,
+    eventType,
+    data: eventData,
+    ...props,
+  };
 }
-/**
- * 类型守卫：安全地将未知类型转换为 BaseEvent
- *
- * 注意：这仅用于已知的、受信任的事件结构
- * 对于不受信任的输入，应使用 Zod 验证
- */
+
+function createOptimisticTextEvents(input) {
+  return [
+    createTextMessageStartEvent(
+      {
+        threadId: input.threadId,
+        runId: input.runId,
+        messageId: input.messageId,
+        timestamp: input.timestamp,
+      },
+      input.role,
+    ),
+    createTextMessageContentEvent(
+      {
+        threadId: input.threadId,
+        runId: input.runId,
+        messageId: input.messageId,
+        timestamp: input.timestamp,
+      },
+      input.content,
+    ),
+    createTextMessageEndEvent({
+      threadId: input.threadId,
+      runId: input.runId,
+      messageId: input.messageId,
+      timestamp: input.timestamp,
+    }),
+  ];
+}
+
+function createMessageWithMeta(input) {
+  return {
+    id: input.id,
+    role: input.role,
+    content: input.content,
+    createdAt: input.createdAt,
+    author: input.author,
+    runId: input.runId,
+  };
+}
+
 function asBaseEvent(event) {
-    if (!hasBaseEventProps(event)) {
-        throw new Error("Invalid event: missing base properties");
-    }
-    // 扩展检查可以在这里添加
-    return event;
+  return baseEventSchema.parse(event);
 }

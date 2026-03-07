@@ -7,6 +7,7 @@
 
 import type { BaseEvent, Message } from "@ag-ui/core";
 import { EventType } from "@ag-ui/core";
+import { safeParseBaseEventProps } from "@/lib/agui/schema";
 
 /**
  * 基础事件属性
@@ -347,15 +348,7 @@ export function createOptimisticTextEvents(input: {
  * 类型守卫：检查是否为 BaseEventProps
  */
 export function isBaseEventProps(obj: unknown): obj is BaseEventProps {
-  if (typeof obj !== "object" || obj === null) {
-    return false;
-  }
-  const props = obj as Partial<BaseEventProps>;
-  return (
-    typeof props.threadId === "string" &&
-    typeof props.runId === "string" &&
-    typeof props.timestamp === "number"
-  );
+  return safeParseBaseEventProps(obj).success;
 }
 
 /**
