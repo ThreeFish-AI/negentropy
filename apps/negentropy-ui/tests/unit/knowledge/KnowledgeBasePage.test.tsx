@@ -7,8 +7,10 @@ import {
   createKnowledgeBaseCorpus,
   createKnowledgeBaseDocument,
   createKnowledgeBaseDocumentChunk,
+  createKnowledgeBaseExtractorRoutes,
   createKnowledgeBaseHierarchicalSearchResult,
   createKnowledgeBaseSearchResult,
+  knowledgeBasePageExtractorRouteFixtures,
   knowledgeBasePageSearchParams,
   primeKnowledgeBasePageLocalMocks,
   resetKnowledgeBasePageLocalMocks,
@@ -492,19 +494,9 @@ describe("KnowledgeBasePage", () => {
       corpora: [
         createKnowledgeBaseCorpus({
           config: {
-            extractor_routes: {
-              url: {
-                targets: [
-                  {
-                    server_id: "server-1",
-                    tool_name: "extract_markdown",
-                    priority: 0,
-                    enabled: true,
-                  },
-                ],
-              },
-              file_pdf: { targets: [] },
-            },
+            extractor_routes: createKnowledgeBaseExtractorRoutes([
+              knowledgeBasePageExtractorRouteFixtures.defaultConfigured,
+            ]),
           },
         }),
       ],
@@ -564,19 +556,9 @@ describe("KnowledgeBasePage", () => {
       "11111111-1111-1111-1111-111111111111",
       {
         config: expect.objectContaining({
-          extractor_routes: {
-            url: {
-              targets: [
-                {
-                  server_id: "server-1",
-                  tool_name: "extract_markdown",
-                  priority: 0,
-                  enabled: true,
-                },
-              ],
-            },
-            file_pdf: { targets: [] },
-          },
+          extractor_routes: createKnowledgeBaseExtractorRoutes([
+            knowledgeBasePageExtractorRouteFixtures.defaultConfigured,
+          ]),
         }),
       },
     );
@@ -589,19 +571,9 @@ describe("KnowledgeBasePage", () => {
       corpora: [
         createKnowledgeBaseCorpus({
           config: {
-            extractor_routes: {
-              url: {
-                targets: [
-                  {
-                    server_id: "server-legacy",
-                    tool_name: "tool-legacy",
-                    priority: 0,
-                    enabled: true,
-                  },
-                ],
-              },
-              file_pdf: { targets: [] },
-            },
+            extractor_routes: createKnowledgeBaseExtractorRoutes([
+              knowledgeBasePageExtractorRouteFixtures.legacyConfigured,
+            ]),
           },
         }),
       ],
@@ -648,19 +620,9 @@ describe("KnowledgeBasePage", () => {
         strategy: "fixed",
         chunk_size: 1024,
         overlap: 50,
-        extractor_routes: {
-          url: {
-            targets: [
-              {
-                server_id: "server-from-refresh",
-                tool_name: "tool-from-refresh",
-                priority: 0,
-                enabled: true,
-              },
-            ],
-          },
-          file_pdf: { targets: [] },
-        },
+        extractor_routes: createKnowledgeBaseExtractorRoutes([
+          knowledgeBasePageExtractorRouteFixtures.refreshedConfigured,
+        ]),
       },
     };
 

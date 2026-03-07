@@ -152,6 +152,41 @@ export function createKnowledgeBaseDocumentChunk(
   };
 }
 
+export function createKnowledgeBaseExtractorRouteTarget(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    server_id: "server-1",
+    tool_name: "extract_markdown",
+    priority: 0,
+    enabled: true,
+    ...overrides,
+  };
+}
+
+export function createKnowledgeBaseExtractorRoutes(
+  urlTargets: Array<Record<string, unknown>> = [],
+): Record<string, unknown> {
+  return {
+    url: {
+      targets: urlTargets,
+    },
+    file_pdf: { targets: [] },
+  };
+}
+
+export const knowledgeBasePageExtractorRouteFixtures = {
+  defaultConfigured: createKnowledgeBaseExtractorRouteTarget(),
+  legacyConfigured: createKnowledgeBaseExtractorRouteTarget({
+    server_id: "server-legacy",
+    tool_name: "tool-legacy",
+  }),
+  refreshedConfigured: createKnowledgeBaseExtractorRouteTarget({
+    server_id: "server-from-refresh",
+    tool_name: "tool-from-refresh",
+  }),
+} as const;
+
 export function resetKnowledgeBasePageLocalMocks(
   mocks: KnowledgeBasePageLocalMocks,
 ): void {
