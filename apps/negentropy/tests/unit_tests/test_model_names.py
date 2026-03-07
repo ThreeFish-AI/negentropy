@@ -23,4 +23,10 @@ def test_llm_settings_uses_canonical_model_name_and_pricing():
 
     assert settings.full_model_name == "zai/glm-5"
     assert settings.embedding_full_model_name == "zai/glm-5"
-    assert settings.model_pricing == {"input": 0.571429, "output": 2.571429}
+    assert settings.model_pricing is None
+
+
+def test_llm_settings_keeps_local_pricing_for_non_glm5_models():
+    settings = LlmSettings(vendor=LlmVendor.ZAI, model_name="glm-4.7")
+
+    assert settings.model_pricing == {"input": 0.285714, "output": 1.142857}

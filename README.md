@@ -35,6 +35,11 @@ cd negentropy
 
 详见 [docs/project-initialization.md](./docs/project-initialization.md)
 
+## 💸 LLM 成本统计
+
+- `zai/glm-5` 与 `zai/glm-5-code` 的成本统计使用 LiteLLM 官方在线价目表，不再在仓库内维护本地价格副本。
+- 本地 `apps/negentropy/src/negentropy/config/pricing/glm_pricing.json` 仅保留 LiteLLM 尚未覆盖模型的价格 override。
+
 ## ℹ️ Getting Help
 
 如果您在使用过程中遇到任何问题，请通过 [GitHub Issues](https://github.com/ThreeFish-AI/negentropy/issues) 寻求帮助。

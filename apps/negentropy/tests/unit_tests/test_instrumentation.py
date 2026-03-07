@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from litellm.integrations.opentelemetry import OpenTelemetry
 
-from negentropy.instrumentation import patch_litellm_otel_cost
+from negentropy.instrumentation import _resolve_total_cost, patch_litellm_otel_cost
 
 
 class _FakeSpan:
@@ -42,3 +44,28 @@ def test_patch_litellm_otel_cost_normalizes_request_and_response_model(monkeypat
         assert span.attributes["gen_ai.usage.cost"] == 0.12
     finally:
         monkeypatch.setattr(OpenTelemetry, "set_attributes", original)
+
+
+def test_resolve_total_cost_refreshes_glm5_online_pricing(monkeypatch):
+    calls = {"count": 0}
+
+    def _fake_completion_cost(*, completion_response):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise ValueError("missing local price")
+        return 0.42
+
+    monkeypatch.setattr("litellm.cost_calculator.completion_cost", _fake_completion_cost)
+    monkeypatch.setattr("negentropy.instrumentation.ensure_glm5_online_pricing", lambda model: True)
+
+    response_obj = SimpleNamespace(
+        usage=SimpleNamespace(prompt_tokens=120, completion_tokens=80),
+        model="zai/glm-5",
+    )
+
+    cost, pricing_source, refresh_error = _resolve_total_cost({"model": "zai/glm-5"}, response_obj)
+
+    assert cost == 0.42
+    assert pricing_source == "litellm_online_refresh"
+    assert refresh_error is None
+    assert calls["count"] == 2

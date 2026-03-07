@@ -2,13 +2,17 @@
 Instrumentation and Observability Callbacks.
 """
 
-from typing import Any, Dict, Optional
-import json
+from __future__ import annotations
 
+import json
+from typing import Any
+
+from litellm.integrations.opentelemetry import OpenTelemetry
+from opentelemetry import trace
+
+from negentropy.config.pricing import ensure_glm5_online_pricing, get_last_refresh_error, is_glm5_family_model
 from negentropy.logging import get_logger
 from negentropy.model_names import canonicalize_model_name
-from opentelemetry import trace
-from litellm.integrations.opentelemetry import OpenTelemetry
 
 
 def _normalize_model_name(model: str) -> str:
@@ -19,11 +23,15 @@ def _normalize_model_name(model: str) -> str:
     return canonicalize_model_name(model) or model
 
 
-def _calculate_custom_cost(kwargs: dict, response_obj: Any) -> Optional[float]:
+def _calculate_custom_cost(kwargs: dict, response_obj: Any) -> float | None:
     """Calculate cost using custom pricing table.
 
     Used as fallback when LiteLLM's built-in pricing doesn't recognize the model.
     """
+    model = _normalize_model_name(kwargs.get("model"))
+    if is_glm5_family_model(model):
+        return None
+
     from negentropy.config import settings
 
     pricing = settings.llm.model_pricing
@@ -94,15 +102,22 @@ class LiteLLMLoggingCallback:
                 output_tokens = getattr(usage, "completion_tokens", 0)
 
             # Calculate cost
-            cost = self._get_model_cost({"response_obj": response_obj, "model": model})
+            resolved_kwargs = dict(kwargs)
+            resolved_kwargs["model"] = model
+            resolved_kwargs["response_obj"] = response_obj
+            total_cost, pricing_source, pricing_refresh_error = _resolve_total_cost(
+                resolved_kwargs,
+                response_obj,
+            )
+            if total_cost is not None:
+                cost = total_cost
+            else:
+                cost = self._get_model_cost({"response_obj": response_obj, "model": model})
 
             # Inject cost into current OTEL span without changing LiteLLM's OTEL callback
             try:
                 span = trace.get_current_span()
                 if span and span.is_recording():
-                    total_cost = _extract_total_cost(kwargs, response_obj)
-                    if total_cost is None:
-                        total_cost = cost
                     if total_cost is not None:
                         span.set_attribute("gen_ai.usage.cost", float(total_cost))
                         span.set_attribute(
@@ -122,6 +137,8 @@ class LiteLLMLoggingCallback:
                 output_tokens=output_tokens,
                 cost_usd=f"{cost:.6f}",
                 latency_ms=f"{latency_ms:.0f}",
+                pricing_source=pricing_source,
+                pricing_refresh_error=pricing_refresh_error,
             )
         except Exception:
             pass  # Fail safe
@@ -144,15 +161,22 @@ class LiteLLMLoggingCallback:
             pass
 
 
-def _extract_total_cost(kwargs: dict, response_obj: Any) -> Optional[float]:
+def _extract_total_cost(kwargs: dict, response_obj: Any) -> float | None:
+    cost, _, _ = _resolve_total_cost(kwargs, response_obj)
+    return cost
+
+
+def _resolve_total_cost(kwargs: dict, response_obj: Any) -> tuple[float | None, str, str | None]:
     """Extract cost with fallback to custom pricing.
 
     Priority:
     1. LiteLLM's response_cost (already calculated)
     2. LiteLLM's cost_breakdown from standard_logging_object
     3. LiteLLM's completion_cost function
-    4. Custom pricing table (for models not in LiteLLM's pricing)
+    4. LiteLLM 官方在线价目表刷新（仅 GLM-5 家族）
+    5. Custom pricing table (for models not in LiteLLM's pricing)
     """
+    model = _normalize_model_name(kwargs.get("model"))
     cost = kwargs.get("response_cost")
     if cost is None:
         standard_logging = kwargs.get("standard_logging_object")
@@ -165,6 +189,8 @@ def _extract_total_cost(kwargs: dict, response_obj: Any) -> Optional[float]:
             if cost_breakdown is None:
                 cost_breakdown = getattr(standard_logging, "cost_breakdown", None)
         cost = (cost_breakdown or {}).get("total_cost")
+    if cost is not None:
+        return _coerce_cost(cost), "litellm_builtin", None
 
     if cost is None and response_obj is not None:
         try:
@@ -173,11 +199,32 @@ def _extract_total_cost(kwargs: dict, response_obj: Any) -> Optional[float]:
             cost = completion_cost(completion_response=response_obj)
         except Exception:
             cost = None
+    if cost is not None:
+        return _coerce_cost(cost), "litellm_builtin", None
+
+    if cost is None and response_obj is not None and is_glm5_family_model(model):
+        if ensure_glm5_online_pricing(model):
+            try:
+                from litellm.cost_calculator import completion_cost
+
+                cost = completion_cost(completion_response=response_obj)
+            except Exception:
+                cost = None
+            if cost is not None:
+                return _coerce_cost(cost), "litellm_online_refresh", None
+        else:
+            return None, "missing", get_last_refresh_error()
 
     # Fallback to custom pricing if LiteLLM couldn't calculate cost
     if cost is None and response_obj is not None:
         cost = _calculate_custom_cost(kwargs, response_obj)
+        if cost is not None:
+            return _coerce_cost(cost), "local_override", None
 
+    return _coerce_cost(cost), "missing", None
+
+
+def _coerce_cost(cost: Any) -> float | None:
     try:
         return float(cost) if cost is not None else None
     except (TypeError, ValueError):

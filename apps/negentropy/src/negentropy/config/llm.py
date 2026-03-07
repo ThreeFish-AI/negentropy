@@ -127,6 +127,8 @@ class LlmSettings(BaseSettings):
         lookup_name = pricing_lookup_model_name(self.model_name)
         if lookup_name is None:
             return None
+        if lookup_name in {"glm-5", "glm-5-code"}:
+            return None
         return get_model_pricing_usd(lookup_name)
 
     @property
