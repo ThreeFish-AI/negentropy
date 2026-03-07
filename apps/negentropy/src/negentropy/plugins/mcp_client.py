@@ -9,14 +9,17 @@ from __future__ import annotations
 
 import asyncio
 import time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
+import anyio
 import httpx
 from mcp import ClientSession
+from mcp.client import stdio as mcp_stdio
 from mcp.client.sse import sse_client
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
 from mcp.client.streamable_http import streamablehttp_client
 
 from negentropy.logging import get_logger
@@ -27,6 +30,124 @@ stderr_logger = get_logger("stderr")
 
 # 连接超时时间（秒）
 DEFAULT_TIMEOUT_SECONDS = 30
+
+
+@asynccontextmanager
+async def logged_stdio_client(
+    server: StdioServerParameters,
+    errlog: ExternalProcessLogStream,
+):
+    """
+    Spawn stdio MCP servers with stderr piped, then forward stderr lines
+    into the project's unified logging pipeline.
+    """
+    read_stream_writer, read_stream = anyio.create_memory_object_stream(0)
+    write_stream, write_stream_reader = anyio.create_memory_object_stream(0)
+
+    try:
+        command = mcp_stdio._get_executable_command(server.command)
+        process = await anyio.open_process(
+            [command, *server.args],
+            env=(
+                {**mcp_stdio.get_default_environment(), **server.env}
+                if server.env is not None
+                else mcp_stdio.get_default_environment()
+            ),
+            stderr=-1,
+            cwd=server.cwd,
+            start_new_session=True,
+        )
+    except OSError:
+        await read_stream.aclose()
+        await write_stream.aclose()
+        await read_stream_writer.aclose()
+        await write_stream_reader.aclose()
+        raise
+
+    async def stdout_reader() -> None:
+        assert process.stdout, "Opened process is missing stdout"
+
+        try:
+            async with read_stream_writer:
+                buffer = ""
+                async for chunk in mcp_stdio.TextReceiveStream(
+                    process.stdout,
+                    encoding=server.encoding,
+                    errors=server.encoding_error_handler,
+                ):
+                    lines = (buffer + chunk).split("\n")
+                    buffer = lines.pop()
+
+                    for line in lines:
+                        try:
+                            message = mcp_stdio.types.JSONRPCMessage.model_validate_json(line)
+                        except Exception as exc:  # pragma: no cover
+                            logger.exception("Failed to parse JSONRPC message from server")
+                            await read_stream_writer.send(exc)
+                            continue
+
+                        await read_stream_writer.send(mcp_stdio.SessionMessage(message))
+        except anyio.ClosedResourceError:  # pragma: no cover
+            await anyio.lowlevel.checkpoint()
+
+    async def stderr_reader() -> None:
+        assert process.stderr, "Opened process is missing stderr"
+
+        try:
+            async for chunk in mcp_stdio.TextReceiveStream(
+                process.stderr,
+                encoding=server.encoding,
+                errors=server.encoding_error_handler,
+            ):
+                errlog.write(chunk)
+        except anyio.ClosedResourceError:  # pragma: no cover
+            await anyio.lowlevel.checkpoint()
+        finally:
+            errlog.flush()
+
+    async def stdin_writer() -> None:
+        assert process.stdin, "Opened process is missing stdin"
+
+        try:
+            async with write_stream_reader:
+                async for session_message in write_stream_reader:
+                    payload = session_message.message.model_dump_json(by_alias=True, exclude_none=True)
+                    await process.stdin.send(
+                        (payload + "\n").encode(
+                            encoding=server.encoding,
+                            errors=server.encoding_error_handler,
+                        )
+                    )
+        except anyio.ClosedResourceError:  # pragma: no cover
+            await anyio.lowlevel.checkpoint()
+
+    async with (
+        anyio.create_task_group() as tg,
+        process,
+    ):
+        tg.start_soon(stdout_reader)
+        tg.start_soon(stderr_reader)
+        tg.start_soon(stdin_writer)
+        try:
+            yield read_stream, write_stream
+        finally:
+            if process.stdin:  # pragma: no branch
+                try:
+                    await process.stdin.aclose()
+                except Exception:  # pragma: no cover
+                    pass
+
+            try:
+                with anyio.fail_after(mcp_stdio.PROCESS_TERMINATION_TIMEOUT):
+                    await process.wait()
+            except TimeoutError:
+                await mcp_stdio._terminate_process_tree(process)
+            except ProcessLookupError:  # pragma: no cover
+                pass
+            await read_stream.aclose()
+            await write_stream.aclose()
+            await read_stream_writer.aclose()
+            await write_stream_reader.aclose()
 
 
 @dataclass
@@ -284,7 +405,10 @@ class McpClientService:
         )
 
         async with asyncio.timeout(self.timeout_seconds):
-            async with stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (read, write):
+            async with logged_stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (
+                read,
+                write,
+            ):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     tools_result = await session.list_tools()
@@ -313,7 +437,10 @@ class McpClientService:
     ) -> McpToolCallResult:
         server_params = StdioServerParameters(command=command, args=args, env=env)
         async with asyncio.timeout(timeout_seconds):
-            async with stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (read, write):
+            async with logged_stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (
+                read,
+                write,
+            ):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(
