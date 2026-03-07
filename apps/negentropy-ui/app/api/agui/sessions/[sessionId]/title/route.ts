@@ -2,6 +2,7 @@ import { safeParseSessionTitleResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
   buildSessionTitleUpstreamUrl,
+  parseSessionTitleBody,
   buildSessionUpstreamHeaders,
   getSessionAguiBaseUrl,
 } from "@/app/api/agui/sessions/_request";
@@ -19,31 +20,15 @@ export async function PATCH(
     return baseUrl;
   }
 
-  let body: {
-    app_name?: string;
-    user_id?: string;
-    title?: string | null;
-  };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch (error) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.BAD_REQUEST,
-      `Invalid JSON body: ${String(error)}`
-    );
-  }
-
-  if (!body?.app_name || !body?.user_id) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.BAD_REQUEST,
-      "app_name and user_id are required"
-    );
+  const body = await parseSessionTitleBody(request);
+  if (body instanceof Response) {
+    return body;
   }
 
   const { sessionId } = await params;
   const upstreamUrl = buildSessionTitleUpstreamUrl(baseUrl, {
-    appName: body.app_name,
-    userId: body.user_id,
+    appName: body.appName,
+    userId: body.userId,
     sessionId,
   });
 
@@ -53,7 +38,7 @@ export async function PATCH(
       method: "PATCH",
       headers: buildSessionUpstreamHeaders(request, "json-write"),
       body: JSON.stringify({
-        title: body.title ?? null,
+        title: body.title,
       }),
       cache: "no-store",
     });

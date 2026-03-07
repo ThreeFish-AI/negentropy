@@ -3,6 +3,7 @@ import { safeParseSessionDetailResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
   buildSessionDetailUpstreamUrl,
+  parseSessionQueryScope,
   buildSessionUpstreamHeaders,
   getSessionAguiBaseUrl,
 } from "@/app/api/agui/sessions/_request";
@@ -20,21 +21,15 @@ export async function GET(
     return baseUrl;
   }
 
-  const { sessionId } = await params;
-  const { searchParams } = new URL(request.url);
-  const appName = searchParams.get("app_name");
-  const userId = searchParams.get("user_id");
-
-  if (!appName || !userId) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.BAD_REQUEST,
-      "app_name and user_id are required",
-    );
+  const scope = parseSessionQueryScope(request);
+  if (scope instanceof Response) {
+    return scope;
   }
 
+  const { sessionId } = await params;
   const upstreamUrl = buildSessionDetailUpstreamUrl(baseUrl, {
-    appName,
-    userId,
+    appName: scope.appName,
+    userId: scope.userId,
     sessionId,
   });
 

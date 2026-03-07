@@ -39,6 +39,20 @@ interface SessionTarget extends SessionScope {
   sessionId: string;
 }
 
+interface SessionListQuery extends SessionScope {
+  archived?: boolean;
+}
+
+interface SessionCreateBody extends SessionScope {
+  sessionId?: string;
+  state?: Record<string, unknown>;
+  events?: unknown[];
+}
+
+interface SessionTitleBody extends SessionScope {
+  title: string | null;
+}
+
 function buildSessionCollectionPath({ appName, userId }: SessionScope): string {
   return `/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions`;
 }
@@ -69,4 +83,123 @@ export function buildSessionTitleUpstreamUrl(baseUrl: string, target: SessionTar
 
 export function buildSessionUnarchiveUpstreamUrl(baseUrl: string, target: SessionTarget): URL {
   return new URL(`${buildSessionItemPath(target)}/unarchive`, baseUrl);
+}
+
+function missingScopeResponse(): Response {
+  return aguiErrorResponse(
+    AGUI_ERROR_CODES.BAD_REQUEST,
+    "app_name and user_id are required",
+  );
+}
+
+function invalidJsonBodyResponse(error: unknown): Response {
+  return aguiErrorResponse(
+    AGUI_ERROR_CODES.BAD_REQUEST,
+    `Invalid JSON body: ${String(error)}`,
+  );
+}
+
+export function parseSessionQueryScope(request: Request): Response | SessionScope {
+  const { searchParams } = new URL(request.url);
+  const appName = searchParams.get("app_name");
+  const userId = searchParams.get("user_id");
+
+  if (!appName || !userId) {
+    return missingScopeResponse();
+  }
+
+  return { appName, userId };
+}
+
+export function parseSessionListQuery(request: Request): Response | SessionListQuery {
+  const scope = parseSessionQueryScope(request);
+  if (scope instanceof Response) {
+    return scope;
+  }
+
+  const archived = new URL(request.url).searchParams.get("archived");
+  return {
+    ...scope,
+    archived: archived === "true" ? true : archived === "false" ? false : undefined,
+  };
+}
+
+export async function parseSessionScopeBody(
+  request: Request,
+): Promise<Response | SessionScope> {
+  let body: {
+    app_name?: string;
+    user_id?: string;
+  };
+
+  try {
+    body = (await request.json()) as typeof body;
+  } catch (error) {
+    return invalidJsonBodyResponse(error);
+  }
+
+  if (!body?.app_name || !body?.user_id) {
+    return missingScopeResponse();
+  }
+
+  return {
+    appName: body.app_name,
+    userId: body.user_id,
+  };
+}
+
+export async function parseSessionCreateBody(
+  request: Request,
+): Promise<Response | SessionCreateBody> {
+  let body: {
+    app_name?: string;
+    user_id?: string;
+    session_id?: string;
+    state?: Record<string, unknown>;
+    events?: unknown[];
+  };
+
+  try {
+    body = (await request.json()) as typeof body;
+  } catch (error) {
+    return invalidJsonBodyResponse(error);
+  }
+
+  if (!body?.app_name || !body?.user_id) {
+    return missingScopeResponse();
+  }
+
+  return {
+    appName: body.app_name,
+    userId: body.user_id,
+    sessionId: body.session_id,
+    state: body.state,
+    events: body.events,
+  };
+}
+
+export async function parseSessionTitleBody(
+  request: Request,
+): Promise<Response | SessionTitleBody> {
+  let body: {
+    app_name?: string;
+    user_id?: string;
+    title?: string | null;
+  };
+
+  try {
+    body = (await request.json()) as typeof body;
+  } catch (error) {
+    return invalidJsonBodyResponse(error);
+  }
+
+  if (!body?.app_name || !body?.user_id) {
+    return missingScopeResponse();
+  }
+
+  return {
+    appName: body.app_name,
+    userId: body.user_id,
+    title: body.title ?? null,
+  };
 }
