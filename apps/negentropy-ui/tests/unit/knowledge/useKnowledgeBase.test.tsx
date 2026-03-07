@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 
 const knowledgeApiMocks = vi.hoisted(() => ({
   fetchCorpusMock: vi.fn(),
@@ -19,7 +19,7 @@ const knowledgeApiMocks = vi.hoisted(() => ({
 
 vi.mock("@/features/knowledge/utils/knowledge-api", async () => {
   const { createKnowledgeApiTestHarness } = await import("@/tests/helpers/knowledge-api");
-  return createKnowledgeApiTestHarness(knowledgeApiMocks).exports;
+  return (await createKnowledgeApiTestHarness(knowledgeApiMocks)).exports;
 });
 
 import { useKnowledgeBase } from "@/features/knowledge/hooks/useKnowledgeBase";
@@ -60,7 +60,13 @@ describe("useKnowledgeBase", () => {
 
     const { result } = renderHook(() => useKnowledgeBase({ appName: "negentropy" }));
 
-    await result.current.loadCorpora();
+    await act(async () => {
+      await result.current.loadCorpora();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
 
     expect(knowledgeApiMocks.fetchCorporaMock).toHaveBeenCalledWith("negentropy");
     expect(result.current.corpora).toEqual([
