@@ -23,6 +23,7 @@ import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
 import { createSessionLabel, buildAgentUrl } from "@/utils/session";
+import type { SessionListView } from "@/utils/session";
 import {
   normalizeMessageContent,
 } from "@/utils/message";
@@ -70,6 +71,7 @@ export function HomeBody({
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [sessionListView, setSessionListView] = useState<SessionListView>("active");
   const metricsRef = useRef({
     runCount: 0,
     errorCount: 0,
@@ -295,12 +297,37 @@ export function HomeBody({
     [compactedEvents],
   );
 
+  const clearTitleRefreshTimers = useCallback(() => {
+    titleRefreshTimersRef.current.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    titleRefreshTimersRef.current = [];
+  }, []);
+
+  const clearHydrationTimers = useCallback(() => {
+    hydrationTimersRef.current.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    hydrationTimersRef.current = [];
+  }, []);
+
+  const clearSessionState = useCallback(() => {
+    clearHydrationTimers();
+    clearTitleRefreshTimers();
+    setSessionMessages([]);
+    setOptimisticMessages([]);
+    setSessionSnapshot(null);
+    setRawEvents([]);
+    setLoadedSessionId(null);
+    setSelectedNodeId(null);
+  }, [clearHydrationTimers, clearTitleRefreshTimers]);
+
   const loadSessions = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/agui/sessions/list?app_name=${encodeURIComponent(APP_NAME)}&user_id=${encodeURIComponent(
           userId,
-        )}`,
+        )}&archived=${sessionListView === "archived" ? "true" : "false"}`,
       );
       const payload = await response.json();
       if (!response.ok || !Array.isArray(payload)) {
@@ -311,12 +338,13 @@ export function HomeBody({
           (session: {
             id: string;
             lastUpdateTime?: number;
-            state?: { metadata?: { title?: string } };
+            state?: { metadata?: { title?: string; archived?: boolean } };
           }) => ({
             id: session.id,
             label:
               session.state?.metadata?.title || createSessionLabel(session.id),
             lastUpdateTime: session.lastUpdateTime,
+            archived: session.state?.metadata?.archived === true,
           }),
         )
         .sort(
@@ -337,7 +365,93 @@ export function HomeBody({
       addLog("error", "load_sessions_failed", { message: String(error) });
       console.warn("Failed to load sessions", error);
     }
-  }, [addLog, userId, sessionId, updateCurrentSessionTime]);
+  }, [addLog, sessionId, sessionListView, setConnectionWithMetrics, setSessionId, setSessions, userId]);
+
+  const archiveSession = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(id)}/archive`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              app_name: APP_NAME,
+              user_id: userId,
+            }),
+          },
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error?.message || "archive_session_failed");
+        }
+
+        let nextActiveId: string | null = null;
+        setSessions((prev) => {
+          const next = prev.filter((session) => session.id !== id);
+          nextActiveId = next[0]?.id ?? null;
+          return next;
+        });
+
+        if (sessionId === id) {
+          setSessionId(nextActiveId);
+          clearSessionState();
+        }
+
+        addLog("info", "session_archived", { sessionId: id });
+      } catch (error) {
+        addLog("error", "archive_session_failed", {
+          message: String(error),
+          sessionId: id,
+        });
+      }
+    },
+    [addLog, clearSessionState, sessionId, setSessionId, setSessions, userId],
+  );
+
+  const unarchiveSession = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(
+          `/api/agui/sessions/${encodeURIComponent(id)}/unarchive`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              app_name: APP_NAME,
+              user_id: userId,
+            }),
+          },
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error?.message || "unarchive_session_failed");
+        }
+
+        let nextActiveId: string | null = null;
+        setSessions((prev) => {
+          const next = prev.filter((session) => session.id !== id);
+          nextActiveId = next[0]?.id ?? null;
+          return next;
+        });
+        if (sessionId === id) {
+          setSessionId(nextActiveId);
+          clearSessionState();
+        }
+        addLog("info", "session_unarchived", { sessionId: id });
+      } catch (error) {
+        addLog("error", "unarchive_session_failed", {
+          message: String(error),
+          sessionId: id,
+        });
+      }
+    },
+    [addLog, clearSessionState, sessionId, setSessionId, setSessions, userId],
+  );
 
   const renameSession = useCallback(
     async (id: string, title: string) => {
@@ -397,20 +511,6 @@ export function HomeBody({
     },
     [addLog, createSessionLabel, loadSessions, setSessions, userId],
   );
-
-  const clearTitleRefreshTimers = useCallback(() => {
-    titleRefreshTimersRef.current.forEach((timer) => {
-      clearTimeout(timer);
-    });
-    titleRefreshTimersRef.current = [];
-  }, []);
-
-  const clearHydrationTimers = useCallback(() => {
-    hydrationTimersRef.current.forEach((timer) => {
-      clearTimeout(timer);
-    });
-    hydrationTimersRef.current = [];
-  }, []);
 
   useEffect(
     () => () => {
@@ -645,17 +745,12 @@ export function HomeBody({
   /* Refactored: State clearing moved to handleSessionChange to avoid set-state-in-effect */
   const handleSessionChange = useCallback((newId: string | null) => {
     setSessionId(newId);
-    if (newId) {
-      clearHydrationTimers();
-      clearTitleRefreshTimers();
-      setSessionMessages([]);
-      setOptimisticMessages([]);
-      setSessionSnapshot(null);
-      setRawEvents([]);
-      setLoadedSessionId(null);
-      setSelectedNodeId(null);
-    }
-  }, [clearHydrationTimers, clearTitleRefreshTimers, setSessionId]);
+    clearSessionState();
+  }, [clearSessionState, setSessionId]);
+
+  const handleSessionListViewChange = useCallback((nextView: SessionListView) => {
+    setSessionListView(nextView);
+  }, []);
 
   useEffect(() => {
     if (!sessionId) {
@@ -764,9 +859,13 @@ export function HomeBody({
             <SessionList
               sessions={sessions}
               activeId={sessionId}
+              view={sessionListView}
+              onSwitchView={handleSessionListViewChange}
               onSelect={handleSessionChange}
               onNewSession={startNewSession}
               onRename={renameSession}
+              onArchive={archiveSession}
+              onUnarchive={unarchiveSession}
             />
           </div>
         </div>

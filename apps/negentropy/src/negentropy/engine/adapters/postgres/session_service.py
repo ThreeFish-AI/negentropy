@@ -19,7 +19,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ADK 官方类型
@@ -187,17 +187,13 @@ class PostgresSessionService(BaseSessionService):
         return ListSessionsResponse(sessions=sessions)
 
     async def delete_session(self, *, app_name: str, user_id: str, session_id: str) -> None:
-        """删除会话"""
-        self._validate_session_id(session_id)
-        async with db_session.AsyncSessionLocal() as db:
-            await db.execute(
-                delete(self.Thread).where(
-                    self.Thread.id == uuid.UUID(session_id),
-                    self.Thread.app_name == app_name,
-                    self.Thread.user_id == user_id,
-                )
-            )
-            await db.commit()
+        """保留基类接口兼容性，实际执行归档。"""
+        await self.archive_session(
+            app_name=app_name,
+            user_id=user_id,
+            session_id=session_id,
+            archived=True,
+        )
 
     async def append_event(self, session: Session, event: ADKEvent) -> ADKEvent:
         """
@@ -383,6 +379,47 @@ class PostgresSessionService(BaseSessionService):
                 current_metadata["title"] = title
             else:
                 current_metadata.pop("title", None)
+
+            await db.execute(
+                update(self.Thread)
+                .where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
+                )
+                .values(
+                    metadata_=current_metadata,
+                    updated_at=datetime.now(timezone.utc),
+                )
+            )
+            await db.commit()
+        return True
+
+    async def archive_session(
+        self,
+        *,
+        app_name: str,
+        user_id: str,
+        session_id: str,
+        archived: bool,
+    ) -> bool:
+        """更新会话归档状态 (metadata.archived)。"""
+        self._validate_session_id(session_id)
+
+        async with db_session.AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(self.Thread).where(
+                    self.Thread.id == uuid.UUID(session_id),
+                    self.Thread.app_name == app_name,
+                    self.Thread.user_id == user_id,
+                )
+            )
+            thread = result.scalar_one_or_none()
+            if not thread:
+                return False
+
+            current_metadata = dict(thread.metadata_ or {})
+            current_metadata["archived"] = archived
 
             await db.execute(
                 update(self.Thread)

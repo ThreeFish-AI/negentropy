@@ -18,6 +18,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const appName = searchParams.get("app_name");
   const userId = searchParams.get("user_id");
+  const archived = searchParams.get("archived");
 
   if (!appName || !userId) {
     return aguiErrorResponse(AGUI_ERROR_CODES.BAD_REQUEST, "app_name and user_id are required");
@@ -48,7 +49,22 @@ export async function GET(request: Request) {
   }
 
   try {
-    return NextResponse.json(JSON.parse(text), { status: upstreamResponse.status });
+    const payload = JSON.parse(text);
+    if (!Array.isArray(payload)) {
+      return NextResponse.json(payload, { status: upstreamResponse.status });
+    }
+
+    if (archived !== "true" && archived !== "false") {
+      return NextResponse.json(payload, { status: upstreamResponse.status });
+    }
+
+    const includeArchived = archived === "true";
+    const filtered = payload.filter((session) => {
+      const isArchived = session?.state?.metadata?.archived === true;
+      return includeArchived ? isArchived : !isArchived;
+    });
+
+    return NextResponse.json(filtered, { status: upstreamResponse.status });
   } catch {
     return NextResponse.json({ raw: text }, { status: upstreamResponse.status });
   }
