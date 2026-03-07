@@ -14,7 +14,9 @@ import { toast } from "sonner";
 import {
   buildCorpusConfig,
   CorpusRecord,
-  CorpusExtractorRoutes,
+  CorpusExtractorRouteKey,
+  CorpusExtractorTargets,
+  NormalizedCorpusExtractorRoutes,
   ChunkingConfig,
   ChunkingStrategy,
   DocumentViewDialog,
@@ -1297,7 +1299,7 @@ function CorpusSettingsPanel({
   const [formConfig, setFormConfig] = useState<ChunkingConfig>(
     normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
   );
-  const [extractorRoutes, setExtractorRoutes] = useState<CorpusExtractorRoutes>(
+  const [extractorRoutes, setExtractorRoutes] = useState<NormalizedCorpusExtractorRoutes>(
     normalizeCorpusExtractorRoutes((corpus.config || {}) as Record<string, unknown>),
   );
   const [servers, setServers] = useState<Array<{ id: string; name: string; display_name: string | null; is_enabled: boolean }>>([]);
@@ -1352,7 +1354,10 @@ function CorpusSettingsPanel({
     await onSave(buildCorpusConfig(formConfig, extractorRoutes));
   };
 
-  const updateRouteTargets = (routeKey: keyof CorpusExtractorRoutes, targets: CorpusExtractorRoutes[keyof CorpusExtractorRoutes]["targets"]) => {
+  const updateRouteTargets = (
+    routeKey: CorpusExtractorRouteKey,
+    targets: CorpusExtractorTargets,
+  ) => {
     setExtractorRoutes((prev) => ({
       ...prev,
       [routeKey]: { targets },
@@ -1382,7 +1387,7 @@ function CorpusSettingsPanel({
           ["url", "URL 文档", "页面抓取、正文抽取、Markdown 化"],
           ["file_pdf", "PDF 文档", "PDF 解析、Markdown 转换、图片提取"],
         ] as const).map(([routeKey, title, description]) => {
-          const targets = extractorRoutes[routeKey]?.targets || [];
+          const targets = extractorRoutes[routeKey].targets;
           return (
             <div key={routeKey} className="mt-4 rounded-xl border border-border p-3">
               <div className="mb-3">

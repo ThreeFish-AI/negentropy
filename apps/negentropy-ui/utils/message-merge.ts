@@ -110,7 +110,8 @@ export function reconcileOptimisticMessages(
       return true;
     }
 
-    const content = normalizeMessageContent(message).trim();
+    const optimisticMessage = message as TimedMessage;
+    const content = normalizeMessageContent(optimisticMessage).trim();
     if (!content) {
       return true;
     }
@@ -122,7 +123,9 @@ export function reconcileOptimisticMessages(
     }
 
     const optimisticTime =
-      message.createdAt instanceof Date ? message.createdAt.getTime() : Date.now();
+      optimisticMessage.createdAt instanceof Date
+        ? optimisticMessage.createdAt.getTime()
+        : Date.now();
     const canonicalIndex = bucket.findIndex((candidate) => {
       const candidateTime =
         candidate.createdAt instanceof Date ? candidate.createdAt.getTime() : optimisticTime;

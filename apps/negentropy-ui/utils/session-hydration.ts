@@ -14,6 +14,10 @@ export type HydratedSessionDetail = {
   snapshot: Record<string, unknown> | null;
 };
 
+type TimedMessage = Message & {
+  createdAt?: Date;
+};
+
 function normalizeTimestamp(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value)
     ? value
@@ -133,12 +137,13 @@ export function mergeEvents(baseEvents: BaseEvent[], incomingEvents: BaseEvent[]
 }
 
 export function mergeMessages(baseMessages: Message[], incomingMessages: Message[]): Message[] {
-  const merged = new Map<string, Message>();
+  const merged = new Map<string, TimedMessage>();
 
   [...baseMessages, ...incomingMessages].forEach((message) => {
+    const timedMessage = message as TimedMessage;
     const existing = merged.get(message.id);
     if (!existing) {
-      merged.set(message.id, message);
+      merged.set(message.id, timedMessage);
       return;
     }
 
@@ -152,7 +157,7 @@ export function mergeMessages(baseMessages: Message[], incomingMessages: Message
         : JSON.stringify(message.content);
 
     if (incomingContent.length >= existingContent.length) {
-      merged.set(message.id, { ...existing, ...message });
+      merged.set(message.id, { ...existing, ...timedMessage } as TimedMessage);
     }
   });
 
@@ -195,9 +200,14 @@ export function hydrateSessionDetail(
       return;
     }
     const threadId =
-      events.find(
-        (event) => "threadId" in event && typeof event.threadId === "string",
-      )?.threadId || sessionId;
+      events.reduce<string | null>((resolvedThreadId, event) => {
+        if (resolvedThreadId) {
+          return resolvedThreadId;
+        }
+        return "threadId" in event && typeof event.threadId === "string"
+          ? event.threadId
+          : null;
+      }, null) || sessionId;
     events.push(
       ...normalizer
         .flushRun(runId, threadId, normalizeTimestamp(events[events.length - 1]?.timestamp) + 0.001)

@@ -430,10 +430,18 @@ export interface CorpusExtractorRouteConfig {
   targets: McpExtractorTargetConfig[];
 }
 
+export type CorpusExtractorRouteKey = "url" | "file_pdf";
+export type CorpusExtractorTargets = McpExtractorTargetConfig[];
+
 export interface CorpusExtractorRoutes {
   url?: CorpusExtractorRouteConfig;
   file_pdf?: CorpusExtractorRouteConfig;
 }
+
+export type NormalizedCorpusExtractorRoutes = Record<
+  CorpusExtractorRouteKey,
+  CorpusExtractorRouteConfig
+>;
 
 function normalizeExtractorTargets(
   value: unknown,
@@ -462,7 +470,7 @@ function normalizeExtractorTargets(
 
 export function normalizeCorpusExtractorRoutes(
   config?: Record<string, unknown> | null,
-): CorpusExtractorRoutes {
+): NormalizedCorpusExtractorRoutes {
   const raw =
     typeof config?.extractor_routes === "object" &&
     config.extractor_routes !== null
@@ -485,7 +493,7 @@ export function normalizeCorpusExtractorRoutes(
 
 export function buildCorpusConfig(
   chunkingConfig: ChunkingConfig,
-  extractorRoutes?: CorpusExtractorRoutes,
+  extractorRoutes?: CorpusExtractorRoutes | NormalizedCorpusExtractorRoutes,
 ): Record<string, unknown> {
   return {
     ...(chunkingConfig as unknown as Record<string, unknown>),
