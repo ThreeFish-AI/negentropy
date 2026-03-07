@@ -1,3 +1,4 @@
+import { vi, type Mock } from "vitest";
 import {
   buildCorpusConfig,
   buildExtractorRoutesFromDraft,
@@ -8,26 +9,28 @@ import {
   normalizeExtractorDraftRoutes,
 } from "@/features/knowledge/utils/knowledge-api";
 
+type VitestMock = Mock<(...args: unknown[]) => unknown>;
+
 export interface KnowledgeFeatureMockSet {
-  searchKnowledgeMock: ReturnType<typeof vi.fn>;
-  ingestTextMock: ReturnType<typeof vi.fn>;
-  ingestUrlMock: ReturnType<typeof vi.fn>;
-  replaceSourceMock: ReturnType<typeof vi.fn>;
-  fetchKnowledgeItemsMock: ReturnType<typeof vi.fn>;
-  createCorpusMock: ReturnType<typeof vi.fn>;
-  deleteCorpusMock: ReturnType<typeof vi.fn>;
-  fetchPipelinesMock: ReturnType<typeof vi.fn>;
-  upsertPipelinesMock: ReturnType<typeof vi.fn>;
-  fetchDocumentsMock: ReturnType<typeof vi.fn>;
-  fetchDocumentChunksMock: ReturnType<typeof vi.fn>;
-  searchAcrossCorporaMock: ReturnType<typeof vi.fn>;
-  syncDocumentMock: ReturnType<typeof vi.fn>;
-  rebuildDocumentMock: ReturnType<typeof vi.fn>;
-  replaceDocumentMock: ReturnType<typeof vi.fn>;
-  archiveDocumentMock: ReturnType<typeof vi.fn>;
-  unarchiveDocumentMock: ReturnType<typeof vi.fn>;
-  downloadDocumentMock: ReturnType<typeof vi.fn>;
-  deleteDocumentMock: ReturnType<typeof vi.fn>;
+  searchKnowledgeMock: VitestMock;
+  ingestTextMock: VitestMock;
+  ingestUrlMock: VitestMock;
+  replaceSourceMock: VitestMock;
+  fetchKnowledgeItemsMock: VitestMock;
+  createCorpusMock: VitestMock;
+  deleteCorpusMock: VitestMock;
+  fetchPipelinesMock: VitestMock;
+  upsertPipelinesMock: VitestMock;
+  fetchDocumentsMock: VitestMock;
+  fetchDocumentChunksMock: VitestMock;
+  searchAcrossCorporaMock: VitestMock;
+  syncDocumentMock: VitestMock;
+  rebuildDocumentMock: VitestMock;
+  replaceDocumentMock: VitestMock;
+  archiveDocumentMock: VitestMock;
+  unarchiveDocumentMock: VitestMock;
+  downloadDocumentMock: VitestMock;
+  deleteDocumentMock: VitestMock;
 }
 
 export interface KnowledgeFeatureTestHarness {
