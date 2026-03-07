@@ -15,7 +15,7 @@ import {
   buildCorpusConfig,
   CorpusRecord,
   CorpusExtractorRouteKey,
-  CorpusExtractorTargets,
+  McpExtractorTargetConfig,
   NormalizedCorpusExtractorRoutes,
   ChunkingConfig,
   ChunkingStrategy,
@@ -55,6 +55,61 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 type ViewMode = "overview" | "corpus";
 type CorpusTab = "documents" | "settings" | "document-chunks";
+type ExtractorDraftTarget = McpExtractorTargetConfig;
+type ExtractorDraftRoute = [ExtractorDraftTarget, ExtractorDraftTarget];
+type ExtractorDraftRoutes = Record<CorpusExtractorRouteKey, ExtractorDraftRoute>;
+
+function createEmptyExtractorTarget(priority: number): ExtractorDraftTarget {
+  return {
+    server_id: "",
+    tool_name: "",
+    priority,
+    enabled: true,
+  };
+}
+
+function createExtractorDraftTargets(
+  targets: ReadonlyArray<McpExtractorTargetConfig>,
+): ExtractorDraftRoute {
+  return [0, 1].map((priority) => {
+    const existing = targets.find((item) => item.priority === priority) || targets[priority];
+    return existing
+      ? {
+          ...existing,
+          priority,
+          enabled: existing.enabled !== false,
+        }
+      : createEmptyExtractorTarget(priority);
+  }) as ExtractorDraftRoute;
+}
+
+function createExtractorDraftRoutes(
+  config?: Record<string, unknown> | null,
+): ExtractorDraftRoutes {
+  const normalized = normalizeCorpusExtractorRoutes(config);
+  return {
+    url: createExtractorDraftTargets(normalized.url.targets),
+    file_pdf: createExtractorDraftTargets(normalized.file_pdf.targets),
+  };
+}
+
+function buildExtractorRoutesFromDraft(
+  draft: ExtractorDraftRoutes,
+): NormalizedCorpusExtractorRoutes {
+  const buildTargets = (targets: ExtractorDraftRoute) =>
+    targets
+      .filter((item) => item.server_id && item.tool_name)
+      .map((item, priority) => ({
+        ...item,
+        priority,
+        enabled: item.enabled !== false,
+      }));
+
+  return {
+    url: { targets: buildTargets(draft.url) },
+    file_pdf: { targets: buildTargets(draft.file_pdf) },
+  };
+}
 
 function CorpusStatusBadge({ corpus }: { corpus: CorpusRecord }) {
   const hasKnowledge = corpus.knowledge_count > 0;
@@ -1301,11 +1356,20 @@ function CorpusSettingsPanel({
   const [formConfig, setFormConfig] = useState<ChunkingConfig>(
     normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
   );
-  const [extractorRoutes, setExtractorRoutes] = useState<NormalizedCorpusExtractorRoutes>(
-    normalizeCorpusExtractorRoutes((corpus.config || {}) as Record<string, unknown>),
+  const [extractorDraftRoutes, setExtractorDraftRoutes] = useState<ExtractorDraftRoutes>(
+    createExtractorDraftRoutes((corpus.config || {}) as Record<string, unknown>),
   );
   const [servers, setServers] = useState<Array<{ id: string; name: string; display_name: string | null; is_enabled: boolean }>>([]);
   const [toolsByServer, setToolsByServer] = useState<Record<string, Array<{ name: string; display_name: string | null; is_enabled: boolean }>>>({});
+
+  useEffect(() => {
+    setFormConfig(
+      normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
+    );
+    setExtractorDraftRoutes(
+      createExtractorDraftRoutes((corpus.config || {}) as Record<string, unknown>),
+    );
+  }, [corpus.id, corpus.config]);
 
   useEffect(() => {
     let active = true;
@@ -1353,17 +1417,9 @@ function CorpusSettingsPanel({
   }, []);
 
   const handleSubmit = async () => {
-    await onSave(buildCorpusConfig(formConfig, extractorRoutes));
-  };
-
-  const updateRouteTargets = (
-    routeKey: CorpusExtractorRouteKey,
-    targets: CorpusExtractorTargets,
-  ) => {
-    setExtractorRoutes((prev) => ({
-      ...prev,
-      [routeKey]: { targets },
-    }));
+    await onSave(
+      buildCorpusConfig(formConfig, buildExtractorRoutesFromDraft(extractorDraftRoutes)),
+    );
   };
 
   return (
@@ -1371,14 +1427,14 @@ function CorpusSettingsPanel({
       <ChunkingStrategyPanel
         config={formConfig}
         onChange={setFormConfig}
-        title="Settings"
+        title="Chunking Settings"
         description="保存后作为该 Corpus 的默认分块配置。"
       />
 
       <div className="rounded-2xl border border-border bg-background p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold">Data Extractor MCP</h3>
+            <h3 className="text-sm font-semibold">Document Extraction Settings</h3>
             <p className="mt-1 text-xs text-muted">
               为当前 Knowledge Base 分别绑定 URL 与 PDF 的主备 MCP Server / Tool。已配置类型严格依赖所选 MCP，只会在主备之间切换。
             </p>
@@ -1389,7 +1445,7 @@ function CorpusSettingsPanel({
           ["url", "URL 文档", "页面抓取、正文抽取、Markdown 化"],
           ["file_pdf", "PDF 文档", "PDF 解析、Markdown 转换、图片提取"],
         ] as const).map(([routeKey, title, description]) => {
-          const targets = extractorRoutes[routeKey].targets;
+          const targets = extractorDraftRoutes[routeKey];
           return (
             <div key={routeKey} className="mt-4 rounded-xl border border-border p-3">
               <div className="mb-3">
@@ -1400,32 +1456,63 @@ function CorpusSettingsPanel({
                 {[0, 1].map((index) => {
                   const target = targets[index];
                   const selectedServerId = target?.server_id || "";
-                  const toolOptions = selectedServerId ? (toolsByServer[selectedServerId] || []) : [];
+                  const toolOptions = selectedServerId
+                    ? (toolsByServer[selectedServerId] || [])
+                    : [];
+                  const selectedServer =
+                    servers.find((server) => server.id === selectedServerId) || null;
+                  const hasSelectedTool = toolOptions.some(
+                    (tool) => tool.name === target.tool_name,
+                  );
 
-                  const nextTargets = [...targets];
-                  const nextTarget = target || {
-                    server_id: "",
-                    tool_name: "",
-                    priority: index,
-                    enabled: true,
-                  };
+                  const serverOptions = selectedServerId && !selectedServer
+                    ? [
+                        {
+                          id: selectedServerId,
+                          name: selectedServerId,
+                          display_name: "已配置 MCP（当前不可用）",
+                          is_enabled: false,
+                        },
+                        ...servers,
+                      ]
+                    : servers;
+                  const visibleToolOptions =
+                    target.tool_name && !hasSelectedTool
+                      ? [
+                          {
+                            name: target.tool_name,
+                            display_name: "已配置 Tool（当前不可用）",
+                            is_enabled: false,
+                          },
+                          ...toolOptions,
+                        ]
+                      : toolOptions;
 
-                  const setTarget = (patch: Record<string, unknown>) => {
-                    nextTargets[index] = {
-                      ...nextTarget,
-                      ...patch,
-                      priority: index,
-                      enabled: true,
-                    };
-                    updateRouteTargets(
-                      routeKey,
-                      nextTargets.filter((item) => item.server_id && item.tool_name),
-                    );
+                  const setTarget = (patch: Partial<ExtractorDraftTarget>) => {
+                    setExtractorDraftRoutes((prev) => {
+                      const nextRoute = [...prev[routeKey]] as ExtractorDraftRoute;
+                      nextRoute[index] = {
+                        ...nextRoute[index],
+                        ...patch,
+                        priority: index,
+                        enabled: true,
+                      };
+                      return {
+                        ...prev,
+                        [routeKey]: nextRoute,
+                      };
+                    });
                   };
 
                   const clearTarget = () => {
-                    nextTargets.splice(index, 1);
-                    updateRouteTargets(routeKey, nextTargets);
+                    setExtractorDraftRoutes((prev) => {
+                      const nextRoute = [...prev[routeKey]] as ExtractorDraftRoute;
+                      nextRoute[index] = createEmptyExtractorTarget(index);
+                      return {
+                        ...prev,
+                        [routeKey]: nextRoute,
+                      };
+                    });
                   };
 
                   return (
@@ -1443,7 +1530,7 @@ function CorpusSettingsPanel({
                           className="w-full rounded border border-border bg-background px-2 py-2"
                         >
                           <option value="">未配置</option>
-                          {servers.map((server) => (
+                          {serverOptions.map((server) => (
                             <option key={server.id} value={server.id}>
                               {server.display_name || server.name}
                             </option>
@@ -1459,7 +1546,7 @@ function CorpusSettingsPanel({
                           className="w-full rounded border border-border bg-background px-2 py-2 disabled:opacity-50"
                         >
                           <option value="">未配置</option>
-                          {toolOptions.map((tool) => (
+                          {visibleToolOptions.map((tool) => (
                             <option key={tool.name} value={tool.name}>
                               {tool.display_name || tool.name}
                             </option>
