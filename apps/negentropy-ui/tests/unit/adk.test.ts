@@ -8,7 +8,7 @@ import {
   parseAdkEventPayload,
   safeParseAdkEventPayload,
 } from "../../lib/adk";
-import { getMessageStreaming, type AgUiEvent } from "../../types/agui";
+import { getEventMessageId, getMessageStreaming, type AgUiEvent } from "../../types/agui";
 
 describe("adk event mapping", () => {
   it("maps text parts to AG-UI text events", () => {
@@ -195,7 +195,7 @@ describe("adk event mapping", () => {
 
     const textStartIds = events
       .filter((event) => event.type === EventType.TEXT_MESSAGE_START)
-      .map((event) => String(event.messageId));
+      .map((event) => String(getEventMessageId(event)));
     expect(textStartIds).toEqual(["chunk-1", "chunk-2"]);
     expect(events.some((event) => event.type === EventType.TOOL_CALL_START)).toBe(true);
   });

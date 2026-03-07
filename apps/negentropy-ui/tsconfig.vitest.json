@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "node"]
+  },
+  "include": [
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "next-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "tests/e2e/**"
+  ]
+}
