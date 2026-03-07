@@ -39,6 +39,7 @@ from .app import AppSettings
 from .auth import AuthSettings
 from .database import DatabaseSettings
 from .environment import EnvironmentSettings, get_env_files
+from .knowledge import KnowledgeSettings
 from .llm import LlmSettings
 from .logging import LoggingSettings
 from .observability import ObservabilitySettings
@@ -110,6 +111,10 @@ class Settings(BaseSettings):
     @cached_property
     def search(self) -> SearchSettings:
         return SearchSettings(_env_file=_get_env_files())
+
+    @cached_property
+    def knowledge(self) -> KnowledgeSettings:
+        return KnowledgeSettings(_env_file=_get_env_files())
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -241,6 +246,7 @@ __all__ = [
     "settings",
     "AppSettings",
     "EnvironmentSettings",
+    "KnowledgeSettings",
     "LlmSettings",
     "LoggingSettings",
     "ObservabilitySettings",

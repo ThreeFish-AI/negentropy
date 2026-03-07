@@ -572,7 +572,58 @@ describe("KnowledgeBasePage", () => {
     expect(
       screen.getByRole("heading", { name: "Document Extraction Settings" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("通过 MCP Tools 为当前 Corpus 注入 URL、PDF 等源文档解释器。"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeInTheDocument();
+  });
+
+  it("settings 视图会回显新建 corpus 由后端注入的默认 extraction routes", async () => {
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+
+    useKnowledgeBaseMock.mockImplementation(() => ({
+      corpora: [
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          name: "Corpus Alpha",
+          app_name: "negentropy",
+          knowledge_count: 3,
+          config: {
+            extractor_routes: {
+              url: {
+                targets: [
+                  {
+                    server_id: "server-1",
+                    tool_name: "extract_markdown",
+                    priority: 0,
+                    enabled: true,
+                  },
+                ],
+              },
+              file_pdf: { targets: [] },
+            },
+          },
+        },
+      ],
+      isLoading: false,
+      loadCorpora: loadCorporaMock,
+      loadCorpus: loadCorpusMock,
+      createCorpus: vi.fn(),
+      updateCorpus: updateCorpusMock,
+      deleteCorpus: deleteCorpusMock,
+      ingestUrl: ingestUrlMock,
+      ingestFile: ingestFileMock,
+    }));
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.getAllByLabelText("MCP Server")[0]).toHaveValue("server-1");
+    expect(screen.getAllByLabelText("Tool")[0]).toHaveValue("extract_markdown");
   });
 
   it("settings 视图选择 MCP Server 后不会回退为未配置，并可继续选择 Tool 后保存", async () => {
