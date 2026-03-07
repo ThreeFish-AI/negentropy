@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
 import { safeParseSessionListResponse } from "@/lib/agui/session-schema";
+import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
@@ -44,37 +45,26 @@ export async function GET(request: Request) {
     return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, `Upstream connection failed: ${String(error)}`);
   }
 
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return aguiErrorResponse(AGUI_ERROR_CODES.UPSTREAM_ERROR, text || "Upstream returned non-OK status");
+  const parsed = await parseSessionUpstreamJson({
+    upstreamResponse,
+    parse: safeParseSessionListResponse,
+    invalidPayloadMessage: "Invalid upstream session list payload",
+    invalidJsonMessage: "Invalid upstream session list JSON",
+  });
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  try {
-    const payload = JSON.parse(text) as unknown;
-    const parsed = safeParseSessionListResponse(payload);
-    if (!parsed.success) {
-      return aguiErrorResponse(
-        AGUI_ERROR_CODES.UPSTREAM_ERROR,
-        "Invalid upstream session list payload",
-      );
-    }
-    const sessions = parsed.data;
-
-    if (archived !== "true" && archived !== "false") {
-      return NextResponse.json(sessions, { status: upstreamResponse.status });
-    }
-
-    const includeArchived = archived === "true";
-    const filtered = sessions.filter((session) => {
-      const isArchived = session?.state?.metadata?.archived === true;
-      return includeArchived ? isArchived : !isArchived;
-    });
-
-    return NextResponse.json(filtered, { status: upstreamResponse.status });
-  } catch {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      "Invalid upstream session list JSON",
-    );
+  const sessions = parsed.data;
+  if (archived !== "true" && archived !== "false") {
+    return NextResponse.json(sessions, { status: parsed.status });
   }
+
+  const includeArchived = archived === "true";
+  const filtered = sessions.filter((session) => {
+    const isArchived = session?.state?.metadata?.archived === true;
+    return includeArchived ? isArchived : !isArchived;
+  });
+
+  return NextResponse.json(filtered, { status: parsed.status });
 }

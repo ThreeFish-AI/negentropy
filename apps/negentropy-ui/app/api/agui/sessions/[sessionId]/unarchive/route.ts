@@ -1,5 +1,6 @@
 import { buildAuthHeaders } from "@/lib/sso";
 import { safeParseSessionArchiveResponse } from "@/lib/agui/session-schema";
+import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
@@ -66,28 +67,15 @@ export async function POST(
     );
   }
 
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      text || "Upstream returned non-OK status"
-    );
+  const parsed = await parseSessionUpstreamJson({
+    upstreamResponse,
+    parse: safeParseSessionArchiveResponse,
+    invalidPayloadMessage: "Invalid upstream session unarchive payload",
+    invalidJsonMessage: "Invalid upstream session unarchive JSON",
+  });
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  try {
-    const payload = JSON.parse(text) as unknown;
-    const parsed = safeParseSessionArchiveResponse(payload);
-    if (!parsed.success) {
-      return aguiErrorResponse(
-        AGUI_ERROR_CODES.UPSTREAM_ERROR,
-        "Invalid upstream session unarchive payload"
-      );
-    }
-    return Response.json(parsed.data, { status: upstreamResponse.status });
-  } catch {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      "Invalid upstream session unarchive JSON"
-    );
-  }
+  return Response.json(parsed.data, { status: parsed.status });
 }
