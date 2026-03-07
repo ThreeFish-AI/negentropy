@@ -11,7 +11,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { createSessionLabel } from "@/utils/session";
+import { createSessionLabel, toSessionRecord } from "@/utils/session";
 import { HttpAgent } from "@ag-ui/client";
 import { Message } from "@ag-ui/core";
 import {
@@ -71,17 +71,7 @@ export function useSessionManager(
         return;
       }
       const nextSessions = payload
-        .map(
-          (session: {
-            id: string;
-            lastUpdateTime?: number;
-            state?: { metadata?: { title?: string } };
-          }) => ({
-            id: session.id,
-            label: session.state?.metadata?.title || createSessionLabel(session.id),
-            lastUpdateTime: session.lastUpdateTime,
-          })
-        )
+        .map(toSessionRecord)
         .sort(
           (a: SessionRecord, b: SessionRecord) =>
             (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0)

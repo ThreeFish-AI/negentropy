@@ -1,3 +1,6 @@
+import type { AguiSessionSummary } from "@/lib/agui/session-schema";
+import type { SessionRecord } from "@/types/common";
+
 /**
  * 会话相关工具函数
  *
@@ -19,6 +22,15 @@ export function isSessionArchived(session: {
   state?: { metadata?: { archived?: boolean } };
 }): boolean {
   return session.state?.metadata?.archived === true;
+}
+
+export function toSessionRecord(session: AguiSessionSummary): SessionRecord {
+  return {
+    id: session.id,
+    label: session.state?.metadata?.title || createSessionLabel(session.id),
+    lastUpdateTime: session.lastUpdateTime,
+    archived: session.state?.metadata?.archived === true,
+  };
 }
 
 /**

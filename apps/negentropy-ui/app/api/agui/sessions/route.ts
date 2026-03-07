@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
+import { safeParseCreateSessionResponse } from "@/lib/agui/session-schema";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
@@ -64,8 +65,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    return NextResponse.json(JSON.parse(text), { status: upstreamResponse.status });
+    const payload = JSON.parse(text) as unknown;
+    const parsed = safeParseCreateSessionResponse(payload);
+    if (!parsed.success) {
+      return aguiErrorResponse(
+        AGUI_ERROR_CODES.UPSTREAM_ERROR,
+        "Invalid upstream session create payload",
+      );
+    }
+    return NextResponse.json(parsed.data, { status: upstreamResponse.status });
   } catch {
-    return NextResponse.json({ raw: text }, { status: upstreamResponse.status });
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      "Invalid upstream session create JSON",
+    );
   }
 }
