@@ -272,9 +272,21 @@ describe("KnowledgeBasePage", () => {
     });
 
     expect(screen.queryByRole("button", { name: "Add Documents" })).not.toBeInTheDocument();
-    expect(
-      screen.getByText("chunks: 3 · strategy: recursive · size: 800 · overlap: 100"),
-    ).toBeInTheDocument();
+    const card = screen.getByTestId("corpus-card-11111111-1111-1111-1111-111111111111");
+    const chunks = screen.getByTestId("corpus-chunks-11111111-1111-1111-1111-111111111111");
+    const description = screen.getByTestId(
+      "corpus-description-11111111-1111-1111-1111-111111111111",
+    );
+    const summary = screen.getByTestId("corpus-summary-11111111-1111-1111-1111-111111111111");
+
+    expect(chunks).toHaveTextContent("chunks: 3");
+    expect(within(card).getByText("Ready")).toBeInTheDocument();
+    expect(description).toHaveTextContent("No description");
+    expect(description.className).toContain("line-clamp-2");
+    expect(card.className).toContain("h-40");
+    expect(summary).toHaveTextContent("strategy: recursive · size: 800 · overlap: 100");
+    expect(summary).not.toHaveTextContent("chunks:");
+    expect(summary.className).toContain("truncate");
 
     await user.click(screen.getByRole("button", { name: "Settings" }));
 
