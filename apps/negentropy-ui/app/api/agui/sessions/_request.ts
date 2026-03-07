@@ -29,3 +29,44 @@ export function buildSessionUpstreamHeaders(
 
   return headers;
 }
+
+interface SessionScope {
+  appName: string;
+  userId: string;
+}
+
+interface SessionTarget extends SessionScope {
+  sessionId: string;
+}
+
+function buildSessionCollectionPath({ appName, userId }: SessionScope): string {
+  return `/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions`;
+}
+
+function buildSessionItemPath({ appName, userId, sessionId }: SessionTarget): string {
+  return `${buildSessionCollectionPath({ appName, userId })}/${encodeURIComponent(sessionId)}`;
+}
+
+export function buildSessionListUpstreamUrl(baseUrl: string, scope: SessionScope): URL {
+  return new URL(buildSessionCollectionPath(scope), baseUrl);
+}
+
+export function buildSessionCreateUpstreamUrl(baseUrl: string, scope: SessionScope): URL {
+  return new URL(buildSessionCollectionPath(scope), baseUrl);
+}
+
+export function buildSessionDetailUpstreamUrl(baseUrl: string, target: SessionTarget): URL {
+  return new URL(buildSessionItemPath(target), baseUrl);
+}
+
+export function buildSessionArchiveUpstreamUrl(baseUrl: string, target: SessionTarget): URL {
+  return new URL(`${buildSessionItemPath(target)}/archive`, baseUrl);
+}
+
+export function buildSessionTitleUpstreamUrl(baseUrl: string, target: SessionTarget): URL {
+  return new URL(`${buildSessionItemPath(target)}/title`, baseUrl);
+}
+
+export function buildSessionUnarchiveUpstreamUrl(baseUrl: string, target: SessionTarget): URL {
+  return new URL(`${buildSessionItemPath(target)}/unarchive`, baseUrl);
+}

@@ -1,6 +1,7 @@
 import { safeParseSessionArchiveResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
+  buildSessionUnarchiveUpstreamUrl,
   buildSessionUpstreamHeaders,
   getSessionAguiBaseUrl,
 } from "@/app/api/agui/sessions/_request";
@@ -39,12 +40,11 @@ export async function POST(
   }
 
   const { sessionId } = await params;
-  const upstreamUrl = new URL(
-    `/apps/${encodeURIComponent(body.app_name)}/users/${encodeURIComponent(
-      body.user_id
-    )}/sessions/${encodeURIComponent(sessionId)}/unarchive`,
-    baseUrl
-  );
+  const upstreamUrl = buildSessionUnarchiveUpstreamUrl(baseUrl, {
+    appName: body.app_name,
+    userId: body.user_id,
+    sessionId,
+  });
 
   let upstreamResponse: Response;
   try {
