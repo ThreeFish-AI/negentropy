@@ -49,6 +49,108 @@ export interface KnowledgeBaseHookState {
 
 const DEFAULT_SEARCH_PARAMS =
   "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
+const DEFAULT_CORPUS_ID = "11111111-1111-1111-1111-111111111111";
+const DEFAULT_APP_NAME = "negentropy";
+
+export const knowledgeBasePageSearchParams = {
+  overview: "view=overview",
+  settings: `view=corpus&corpusId=${DEFAULT_CORPUS_ID}&tab=settings`,
+  documents: DEFAULT_SEARCH_PARAMS,
+  documentChunks: (documentId = "doc-1") =>
+    `view=corpus&corpusId=${DEFAULT_CORPUS_ID}&tab=document-chunks&documentId=${documentId}`,
+} as const;
+
+export function createKnowledgeBaseCorpus(
+  overrides: Partial<KnowledgeBaseHookState["corpora"][number]> = {},
+): KnowledgeBaseHookState["corpora"][number] {
+  return {
+    id: DEFAULT_CORPUS_ID,
+    name: "Corpus Alpha",
+    app_name: DEFAULT_APP_NAME,
+    knowledge_count: 3,
+    config: {},
+    ...overrides,
+  };
+}
+
+export function createKnowledgeBaseDocument(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "doc-1",
+    corpus_id: DEFAULT_CORPUS_ID,
+    original_filename: "Context Engineering.pdf",
+    content_type: "application/pdf",
+    status: "active",
+    file_size: 2371045,
+    metadata: { source_type: "file" },
+    markdown_extract_status: "completed",
+    ...overrides,
+  };
+}
+
+export function createKnowledgeBaseSearchResult(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "chunk-1",
+    content: "retrieved chunk content",
+    source_uri: "https://example.com/doc",
+    combined_score: 0.91,
+    metadata: {
+      corpus_id: DEFAULT_CORPUS_ID,
+      chunk_index: 47,
+      original_filename: "2512.13564v1.pdf",
+    },
+    ...overrides,
+  };
+}
+
+export function createKnowledgeBaseHierarchicalSearchResult(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "chunk-parent-1",
+    content: "parent chunk content with enough text to preview",
+    source_uri: "https://example.com/hierarchical",
+    combined_score: 0.43,
+    metadata: {
+      corpus_id: DEFAULT_CORPUS_ID,
+      original_filename: "Understanding and Using Context.pdf",
+      returned_parent_chunk: true,
+      parent_chunk_index: 6,
+      matched_child_chunk_indices: [13, 8],
+      matched_child_chunks: [
+        {
+          id: "child-13",
+          child_chunk_index: 13,
+          content: "Context is any information that can be used to characterize the",
+          combined_score: 0.43,
+        },
+        {
+          id: "child-8",
+          child_chunk_index: 8,
+          content: "specific. Context is all about the whole situation relevant and its",
+          combined_score: 0.4,
+        },
+      ],
+    },
+    ...overrides,
+  };
+}
+
+export function createKnowledgeBaseDocumentChunk(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "doc-chunk-1",
+    content: "document chunk content",
+    source_uri: "doc://alpha",
+    chunk_index: 2,
+    metadata: { chunk_role: "leaf" },
+    ...overrides,
+  };
+}
 
 export function resetKnowledgeBasePageLocalMocks(
   mocks: KnowledgeBasePageLocalMocks,
@@ -84,45 +186,18 @@ export function primeKnowledgeBasePageLocalMocks(
   mocks.loadCorpusMock.mockResolvedValue(undefined);
   mocks.loadCorporaMock.mockResolvedValue(undefined);
   mocks.updateCorpusMock.mockResolvedValue({
-    id: "11111111-1111-1111-1111-111111111111",
-    name: "Corpus Alpha",
-    app_name: "negentropy",
-    knowledge_count: 3,
-    config: {},
+    ...createKnowledgeBaseCorpus(),
   });
   mocks.deleteCorpusMock.mockResolvedValue(undefined);
   mocks.deleteDocumentMock.mockResolvedValue(undefined);
   mocks.ingestUrlMock.mockResolvedValue({});
   mocks.ingestFileMock.mockResolvedValue({});
   mocks.fetchDocumentsMock.mockResolvedValue({
-    items: [
-      {
-        id: "doc-1",
-        corpus_id: "11111111-1111-1111-1111-111111111111",
-        original_filename: "Context Engineering.pdf",
-        content_type: "application/pdf",
-        status: "active",
-        file_size: 2371045,
-        metadata: { source_type: "file" },
-        markdown_extract_status: "completed",
-      },
-    ],
+    items: [createKnowledgeBaseDocument()],
   });
   mocks.fetchDocumentChunksMock.mockResolvedValue({ items: [] });
   mocks.searchAcrossCorporaMock.mockResolvedValue({
-    items: [
-      {
-        id: "chunk-1",
-        content: "retrieved chunk content",
-        source_uri: "https://example.com/doc",
-        combined_score: 0.91,
-        metadata: {
-          corpus_id: "11111111-1111-1111-1111-111111111111",
-          chunk_index: 47,
-          original_filename: "2512.13564v1.pdf",
-        },
-      },
-    ],
+    items: [createKnowledgeBaseSearchResult()],
   });
 
   mocks.fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
@@ -168,13 +243,7 @@ export function buildKnowledgeBaseHookState(
 ): KnowledgeBaseHookState {
   return {
     corpora: [
-      {
-        id: "11111111-1111-1111-1111-111111111111",
-        name: "Corpus Alpha",
-        app_name: "negentropy",
-        knowledge_count: 3,
-        config: {},
-      },
+      createKnowledgeBaseCorpus(),
     ],
     isLoading: false,
     loadCorpora: mocks.loadCorporaMock,
