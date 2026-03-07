@@ -304,6 +304,51 @@ describe("buildConversationTree", () => {
     expect(tree.roots[0].children.filter((child) => child.type === "text")).toHaveLength(1);
   });
 
+  it("同一轮次中不同 messageId 的 assistant 最终快照会收敛到同一个节点", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live",
+        delta: "我可以帮助你规划任务",
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final",
+        delta: "我可以帮助你规划任务、分析代码并执行修改。",
+        timestamp: 1003,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children.filter((child) => child.type === "text")).toHaveLength(1);
+    expect(tree.roots[0].children[0].payload.content).toBe(
+      "我可以帮助你规划任务、分析代码并执行修改。",
+    );
+    expect(tree.roots[0].children[0].relatedMessageIds).toEqual(
+      expect.arrayContaining(["assistant-live", "assistant-final"]),
+    );
+  });
+
   it("将运行错误节点保留在主聊天区", () => {
     const events: AgUiEvent[] = [
       createTestEvent({

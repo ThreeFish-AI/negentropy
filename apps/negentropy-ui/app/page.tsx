@@ -42,6 +42,8 @@ import {
 import {
   deriveConnectionState,
   deriveRunStates,
+  hasSameEventSequence,
+  hasSameMessageSequence,
   hydrateSessionDetail,
   mergeEvents,
   mergeMessages,
@@ -599,15 +601,17 @@ export function HomeBody({
           const shouldMerge =
             currentLoadedSessionId === id ||
             (sessionId === id && currentRawEvents.length > 0);
-          return shouldMerge ? mergeEvents(prev, hydrated.events) : hydrated.events;
+          const next = shouldMerge ? mergeEvents(prev, hydrated.events) : hydrated.events;
+          return hasSameEventSequence(prev, next) ? prev : next;
         });
         setSessionMessages((prev) => {
           const shouldMerge =
             currentLoadedSessionId === id ||
             (sessionId === id && currentRawEvents.length > 0);
-          return shouldMerge
+          const next = shouldMerge
             ? mergeMessages(prev, hydrated.messages)
             : hydrated.messages;
+          return hasSameMessageSequence(prev, next) ? prev : next;
         });
         setSessionSnapshot((prev) =>
           currentLoadedSessionId === id ||
@@ -635,7 +639,13 @@ export function HomeBody({
   const scheduleSessionHydration = useCallback(
     (id: string) => {
       clearHydrationTimers();
-      const delays = [0, 250, 800, 1600];
+      const hasLiveAssistantOutput = rawEventsRef.current.some(
+        (event) =>
+          event.type === EventType.TEXT_MESSAGE_CONTENT &&
+          "threadId" in event &&
+          event.threadId === id,
+      );
+      const delays = hasLiveAssistantOutput ? [1200, 2800] : [0, 250, 800, 1600];
       delays.forEach((delay) => {
         const timer = setTimeout(() => {
           void loadSessionDetail(id);

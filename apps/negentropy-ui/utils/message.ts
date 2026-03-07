@@ -157,7 +157,7 @@ export function mapMessagesToChat(messages: Message[]): ChatMessage[] {
  * @param content2 第二个内容
  * @returns 是否相似
  */
-function isContentSimilar(content1: string, content2: string): boolean {
+export function isContentSimilar(content1: string, content2: string): boolean {
   // 空内容不相似
   if (!content1.trim() || !content2.trim()) return false;
 
@@ -198,6 +198,38 @@ function isContentSimilar(content1: string, content2: string): boolean {
   const jaccardSimilarity = intersection.size / union.size;
 
   return jaccardSimilarity > 0.7;
+}
+
+export function isEquivalentMessageContent(
+  content1: string,
+  content2: string,
+): boolean {
+  const normalized1 = content1.trim();
+  const normalized2 = content2.trim();
+
+  if (!normalized1 || !normalized2) {
+    return false;
+  }
+  if (normalized1 === normalized2) {
+    return true;
+  }
+  if (
+    (normalized1.startsWith(normalized2) || normalized2.startsWith(normalized1)) &&
+    Math.min(normalized1.length, normalized2.length) >= 6
+  ) {
+    return true;
+  }
+
+  const shorter = Math.min(normalized1.length, normalized2.length);
+  const longer = Math.max(normalized1.length, normalized2.length);
+  if (
+    shorter / longer >= 0.8 &&
+    (normalized1.includes(normalized2) || normalized2.includes(normalized1))
+  ) {
+    return true;
+  }
+
+  return isContentSimilar(normalized1, normalized2);
 }
 
 /**
