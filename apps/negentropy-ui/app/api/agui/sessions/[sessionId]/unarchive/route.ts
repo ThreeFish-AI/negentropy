@@ -2,6 +2,7 @@ import { safeParseSessionArchiveResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
 import {
   buildSessionUnarchiveUpstreamUrl,
+  parseSessionScopeBody,
   buildSessionUpstreamHeaders,
   getSessionAguiBaseUrl,
 } from "@/app/api/agui/sessions/_request";
@@ -19,30 +20,15 @@ export async function POST(
     return baseUrl;
   }
 
-  let body: {
-    app_name?: string;
-    user_id?: string;
-  };
-  try {
-    body = (await request.json()) as typeof body;
-  } catch (error) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.BAD_REQUEST,
-      `Invalid JSON body: ${String(error)}`
-    );
-  }
-
-  if (!body?.app_name || !body?.user_id) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.BAD_REQUEST,
-      "app_name and user_id are required"
-    );
+  const body = await parseSessionScopeBody(request);
+  if (body instanceof Response) {
+    return body;
   }
 
   const { sessionId } = await params;
   const upstreamUrl = buildSessionUnarchiveUpstreamUrl(baseUrl, {
-    appName: body.app_name,
-    userId: body.user_id,
+    appName: body.appName,
+    userId: body.userId,
     sessionId,
   });
 
