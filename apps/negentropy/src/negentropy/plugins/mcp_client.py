@@ -8,9 +8,9 @@ MCP Client Service Module.
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
 import time
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 
 import httpx
@@ -20,8 +20,10 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamablehttp_client
 
 from negentropy.logging import get_logger
+from negentropy.logging.io import ExternalProcessLogStream, derive_external_process_source
 
 logger = get_logger("negentropy.plugins.mcp_client")
+stderr_logger = get_logger("stderr")
 
 # 连接超时时间（秒）
 DEFAULT_TIMEOUT_SECONDS = 30
@@ -282,7 +284,7 @@ class McpClientService:
         )
 
         async with asyncio.timeout(self.timeout_seconds):
-            async with stdio_client(server_params) as (read, write):
+            async with stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     tools_result = await session.list_tools()
@@ -311,7 +313,7 @@ class McpClientService:
     ) -> McpToolCallResult:
         server_params = StdioServerParameters(command=command, args=args, env=env)
         async with asyncio.timeout(timeout_seconds):
-            async with stdio_client(server_params) as (read, write):
+            async with stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     result = await session.call_tool(
@@ -322,9 +324,18 @@ class McpClientService:
                     return McpToolCallResult(
                         success=not bool(result.isError),
                         content=list(result.content or []),
-                        structured_content=result.structuredContent if isinstance(result.structuredContent, dict) else None,
+                        structured_content=(
+                            result.structuredContent if isinstance(result.structuredContent, dict) else None
+                        ),
                         error=_extract_call_error(result),
                     )
+
+    @staticmethod
+    def _build_stdio_errlog(command: str, args: list[str]) -> ExternalProcessLogStream:
+        return ExternalProcessLogStream(
+            stderr_logger,
+            source=derive_external_process_source(command, args),
+        )
 
     async def _discover_sse(
         self,
@@ -371,7 +382,9 @@ class McpClientService:
                     return McpToolCallResult(
                         success=not bool(result.isError),
                         content=list(result.content or []),
-                        structured_content=result.structuredContent if isinstance(result.structuredContent, dict) else None,
+                        structured_content=(
+                            result.structuredContent if isinstance(result.structuredContent, dict) else None
+                        ),
                         error=_extract_call_error(result),
                     )
 
@@ -420,7 +433,9 @@ class McpClientService:
                     return McpToolCallResult(
                         success=not bool(result.isError),
                         content=list(result.content or []),
-                        structured_content=result.structuredContent if isinstance(result.structuredContent, dict) else None,
+                        structured_content=(
+                            result.structuredContent if isinstance(result.structuredContent, dict) else None
+                        ),
                         error=_extract_call_error(result),
                     )
 

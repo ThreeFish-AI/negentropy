@@ -2,8 +2,14 @@
 I/O redirection utilities.
 """
 
-from typing import Any
+from __future__ import annotations
+
 import inspect
+import logging
+import os
+import re
+from typing import Any
+
 import structlog
 
 
@@ -82,3 +88,86 @@ class StreamToLogger:
     @property
     def encoding(self) -> str:
         return getattr(self.original_stream, "encoding", "utf-8")
+
+
+class ExternalProcessLogStream:
+    """Adapt external process stderr writes into the unified logging pipeline."""
+
+    _PREFIX_PATTERN = re.compile(
+        r"^\[(?P<timestamp>[^\]]+)\]\s+(?P<level>[A-Z]+):\s*(?P<message>.*)$"
+    )
+    _LEVELS = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARN": logging.WARNING,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "FATAL": logging.CRITICAL,
+        "CRITICAL": logging.CRITICAL,
+    }
+
+    def __init__(
+        self,
+        logger: structlog.stdlib.BoundLogger,
+        *,
+        source: str,
+        default_level: int = logging.INFO,
+        encoding: str = "utf-8",
+    ) -> None:
+        self.logger = logger
+        self.source = source
+        self.default_level = default_level
+        self._encoding = encoding
+        self._linebuf = ""
+
+    def write(self, buf: str | bytes) -> int:
+        if isinstance(buf, bytes):
+            buf = buf.decode(self._encoding, errors="replace")
+
+        self._linebuf += buf
+        while "\n" in self._linebuf:
+            line, self._linebuf = self._linebuf.split("\n", 1)
+            self._emit_line(line.rstrip("\r"))
+
+        return len(buf)
+
+    def flush(self) -> None:
+        if self._linebuf:
+            self._emit_line(self._linebuf.rstrip("\r"))
+            self._linebuf = ""
+
+    def isatty(self) -> bool:
+        return False
+
+    @property
+    def encoding(self) -> str:
+        return self._encoding
+
+    def _emit_line(self, line: str) -> None:
+        if not line:
+            return
+
+        match = self._PREFIX_PATTERN.match(line)
+        event: dict[str, Any] = {"source": self.source}
+        level = self.default_level
+        message = line
+
+        if match:
+            message = match.group("message")
+            level = self._LEVELS.get(match.group("level"), self.default_level)
+            timestamp = match.group("timestamp")
+            if timestamp:
+                event["timestamp"] = timestamp
+
+        self.logger.log(level, event=message, **event)
+
+
+def derive_external_process_source(command: str, args: list[str] | None = None) -> str:
+    """Generate a stable source label for external process log streams."""
+
+    candidates = [arg for arg in (args or []) if arg and not arg.startswith("-")]
+    raw_label = candidates[0] if candidates else command
+    normalized = os.path.basename(raw_label.rstrip("/")) or command
+    if normalized.startswith("@") and "/" in raw_label:
+        normalized = raw_label.split("/")[-1]
+    return f"mcp.{normalized}"
