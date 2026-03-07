@@ -16,6 +16,7 @@ vi.mock("@/features/knowledge", async () => {
 });
 
 import KnowledgePipelinesPage from "@/app/knowledge/pipelines/page";
+import { resetKnowledgeFeatureMocks } from "@/tests/helpers/knowledge";
 
 const flushPromises = async () => {
   await Promise.resolve();
@@ -38,8 +39,7 @@ const makeRun = (overrides?: Partial<{ id: string; run_id: string; status: strin
 describe("KnowledgePipelinesPage polling", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    knowledgeMocks.fetchPipelinesMock.mockReset();
-    knowledgeMocks.upsertPipelinesMock.mockReset();
+    resetKnowledgeFeatureMocks(knowledgeMocks);
   });
 
   afterEach(() => {

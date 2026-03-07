@@ -4,6 +4,8 @@ import {
 } from "@/features/knowledge/utils/knowledge-api";
 import {
   createKnowledgeFeatureMockSet,
+  primeKnowledgeFeatureMocks,
+  resetKnowledgeFeatureMocks,
   createKnowledgeFeatureTestHarness,
 } from "@/tests/helpers/knowledge";
 
@@ -37,5 +39,18 @@ describe("knowledge test harness", () => {
     expect(harness.exports.createDefaultChunkingConfig).toBe(
       createDefaultChunkingConfig,
     );
+  });
+
+  it("支持统一 reset 与稳定默认装配", async () => {
+    const mocks = createKnowledgeFeatureMockSet();
+    primeKnowledgeFeatureMocks(mocks);
+
+    await expect(mocks.ingestTextMock()).resolves.toEqual({ ok: true });
+    await expect(mocks.createCorpusMock()).resolves.toEqual({ ok: true });
+
+    resetKnowledgeFeatureMocks(mocks);
+
+    expect(mocks.ingestTextMock).not.toHaveBeenCalled();
+    expect(mocks.createCorpusMock).not.toHaveBeenCalled();
   });
 });

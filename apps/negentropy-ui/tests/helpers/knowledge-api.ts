@@ -50,6 +50,24 @@ export function createKnowledgeApiMockSet(): KnowledgeApiMockSet {
   };
 }
 
+export function resetKnowledgeApiMocks(mocks: KnowledgeApiMockSet): void {
+  Object.values(mocks).forEach((mock) => {
+    mock.mockReset();
+  });
+}
+
+export function primeKnowledgeApiMocks(
+  mocks: KnowledgeApiMockSet,
+  overrides: Partial<Pick<KnowledgeApiMockSet, "fetchCorporaMock">> = {},
+): void {
+  const stableDefaults = {
+    fetchCorporaMock: mocks.fetchCorporaMock,
+    ...overrides,
+  };
+
+  stableDefaults.fetchCorporaMock.mockResolvedValue([]);
+}
+
 export async function createKnowledgeApiConfigTestExports() {
   const actual = await importKnowledgeApiActual();
   return {

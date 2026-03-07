@@ -12,6 +12,7 @@ vi.mock("@/features/knowledge", async () => {
 
 import { executeApiCall } from "@/app/knowledge/apis/_components/utils/ApiExecutor";
 import { KNOWLEDGE_API_ENDPOINTS } from "@/features/knowledge/utils/api-specs";
+import { primeKnowledgeFeatureMocks, resetKnowledgeFeatureMocks } from "@/tests/helpers/knowledge";
 
 const getEndpoint = (id: string) => {
   const endpoint = KNOWLEDGE_API_ENDPOINTS.find((item) => item.id === id);
@@ -21,11 +22,8 @@ const getEndpoint = (id: string) => {
 
 describe("ApiExecutor", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    knowledgeMocks.ingestTextMock.mockResolvedValue({ ok: true });
-    knowledgeMocks.ingestUrlMock.mockResolvedValue({ ok: true });
-    knowledgeMocks.replaceSourceMock.mockResolvedValue({ ok: true });
-    knowledgeMocks.createCorpusMock.mockResolvedValue({ ok: true });
+    resetKnowledgeFeatureMocks(knowledgeMocks);
+    primeKnowledgeFeatureMocks(knowledgeMocks);
   });
 
   it("ingest 通过 chunking_config 透传 canonical 配置", async () => {
