@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { POST } from "@/app/api/agui/route";
 import { GET } from "@/app/api/agui/sessions/list/route";
+import { GET as getSessionDetail } from "@/app/api/agui/sessions/[sessionId]/route";
 import { POST as createSession } from "@/app/api/agui/sessions/route";
 
 // Mock 环境变量
@@ -228,6 +229,88 @@ describe("GET /api/agui/sessions/list", () => {
     expect(response.status).toBe(200);
     expect(data).toEqual([{ id: "archived-1", state: { metadata: { archived: true } } }]);
   });
+
+  it("当上游 session list 结构非法时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify([{ lastUpdateTime: 100 }]),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/list?app_name=negentropy&user_id=test",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session list payload");
+  });
+});
+
+describe("GET /api/agui/sessions/[sessionId]", () => {
+  beforeEach(() => {
+    process.env.AGUI_BASE_URL = mockEnv.AGUI_BASE_URL;
+    process.env.NEXT_PUBLIC_AGUI_APP_NAME = mockEnv.NEXT_PUBLIC_AGUI_APP_NAME;
+    process.env.NEXT_PUBLIC_AGUI_USER_ID = mockEnv.NEXT_PUBLIC_AGUI_USER_ID;
+  });
+
+  afterEach(() => {
+    delete process.env.AGUI_BASE_URL;
+    delete process.env.NEXT_PUBLIC_AGUI_APP_NAME;
+    delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
+    vi.restoreAllMocks();
+  });
+
+  it("应该返回结构化 session detail", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          id: "s1",
+          lastUpdateTime: 100,
+          state: { metadata: { title: "Session 1" } },
+          events: [{ id: "evt-1" }],
+        }),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/s1?app_name=negentropy&user_id=test",
+    );
+
+    const response = await getSessionDetail(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.id).toBe("s1");
+    expect(data.events).toHaveLength(1);
+  });
+
+  it("当上游 session detail 结构非法时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ events: {} }),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/s1?app_name=negentropy&user_id=test",
+    );
+
+    const response = await getSessionDetail(request, {
+      params: Promise.resolve({ sessionId: "s1" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session detail payload");
+  });
 });
 
 describe("POST /api/agui/sessions", () => {
@@ -302,5 +385,28 @@ describe("POST /api/agui/sessions", () => {
 
     expect(response.status).toBe(400);
     expect(data.error.code).toBe("AGUI_BAD_REQUEST");
+  });
+
+  it("当上游创建响应结构非法时应返回结构化错误", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ lastUpdateTime: 300 }),
+    } as Response);
+
+    const request = createMockRequest("http://localhost:3000/api/agui/sessions", {
+      method: "POST",
+      body: JSON.stringify({
+        app_name: "negentropy",
+        user_id: "test",
+      }),
+    });
+
+    const response = await createSession(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(data.error.code).toBe("AGUI_UPSTREAM_ERROR");
+    expect(data.error.message).toContain("Invalid upstream session create payload");
   });
 });

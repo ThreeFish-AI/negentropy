@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
+import { safeParseSessionListResponse } from "@/lib/agui/session-schema";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
@@ -49,23 +50,31 @@ export async function GET(request: Request) {
   }
 
   try {
-    const payload = JSON.parse(text);
-    if (!Array.isArray(payload)) {
-      return NextResponse.json(payload, { status: upstreamResponse.status });
+    const payload = JSON.parse(text) as unknown;
+    const parsed = safeParseSessionListResponse(payload);
+    if (!parsed.success) {
+      return aguiErrorResponse(
+        AGUI_ERROR_CODES.UPSTREAM_ERROR,
+        "Invalid upstream session list payload",
+      );
     }
+    const sessions = parsed.data;
 
     if (archived !== "true" && archived !== "false") {
-      return NextResponse.json(payload, { status: upstreamResponse.status });
+      return NextResponse.json(sessions, { status: upstreamResponse.status });
     }
 
     const includeArchived = archived === "true";
-    const filtered = payload.filter((session) => {
+    const filtered = sessions.filter((session) => {
       const isArchived = session?.state?.metadata?.archived === true;
       return includeArchived ? isArchived : !isArchived;
     });
 
     return NextResponse.json(filtered, { status: upstreamResponse.status });
   } catch {
-    return NextResponse.json({ raw: text }, { status: upstreamResponse.status });
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.UPSTREAM_ERROR,
+      "Invalid upstream session list JSON",
+    );
   }
 }

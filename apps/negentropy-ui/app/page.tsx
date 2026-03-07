@@ -23,7 +23,7 @@ import { collectAdkEventPayloads } from "@/lib/adk";
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
-import { createSessionLabel, buildAgentUrl } from "@/utils/session";
+import { createSessionLabel, buildAgentUrl, toSessionRecord } from "@/utils/session";
 import type { SessionListView } from "@/utils/session";
 import {
   normalizeMessageContent,
@@ -338,19 +338,7 @@ export function HomeBody({
         return;
       }
       const nextSessions = payload
-        .map(
-          (session: {
-            id: string;
-            lastUpdateTime?: number;
-            state?: { metadata?: { title?: string; archived?: boolean } };
-          }) => ({
-            id: session.id,
-            label:
-              session.state?.metadata?.title || createSessionLabel(session.id),
-            lastUpdateTime: session.lastUpdateTime,
-            archived: session.state?.metadata?.archived === true,
-          }),
-        )
+        .map(toSessionRecord)
         .sort(
           (a: SessionRecord, b: SessionRecord) =>
             (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
