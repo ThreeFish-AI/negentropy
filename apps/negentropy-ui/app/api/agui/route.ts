@@ -1,6 +1,9 @@
 import { EventEncoder } from "@ag-ui/encoder";
 import { BaseEvent, EventType } from "@ag-ui/core";
-import { AdkEventPayload, AdkMessageStreamNormalizer } from "@/lib/adk";
+import {
+  AdkMessageStreamNormalizer,
+  safeParseAdkEventPayload,
+} from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
   errorResponse as aguiErrorResponse,
@@ -188,9 +191,13 @@ export async function POST(request: Request) {
               }
 
               try {
-                const parsed = JSON.parse(jsonText) as AdkEventPayload;
+                const rawPayload = JSON.parse(jsonText) as unknown;
+                const parsedResult = safeParseAdkEventPayload(rawPayload);
+                if (!parsedResult.success) {
+                  throw new Error("Invalid ADK event payload");
+                }
                 const events = normalizer
-                  .consume(parsed, {
+                  .consume(parsedResult.data, {
                     threadId: resolvedThreadId,
                     runId: resolvedRunId,
                   })

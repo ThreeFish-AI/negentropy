@@ -23,57 +23,14 @@ import {
   getEventMessageId,
   getEventRole,
 } from "@/types/agui";
-
-// ... (imports)
-
-export type AdkEventPayload = {
-  id: string;
-  threadId?: string;
-  runId?: string;
-  timestamp?: number;
-  author?: string;
-  content?: {
-    parts?: Array<{
-      text?: string;
-      type?: string;
-      functionCall?: {
-        id: string;
-        name: string;
-        args: Record<string, unknown>;
-      };
-      functionResponse?: {
-        id: string;
-        name: string;
-        response: {
-          result: unknown;
-        };
-      };
-    }>;
-  };
-  message?: {
-    role: string;
-    content: string | Array<{ text?: string; type?: string }>;
-    // Standard OpenAI/ADK tool calls
-    tool_calls?: Array<{
-      id: string;
-      type: "function";
-      function: { name: string; arguments: string };
-    }>;
-    // Standard OpenAI/ADK tool result
-    tool_call_id?: string;
-  };
-  actions?: {
-    stateDelta?: Record<string, unknown>;
-    artifactDelta?: Record<string, unknown>;
-    stateSnapshot?: Record<string, unknown>;
-    messagesSnapshot?: Message[];
-    stepStarted?: { id: string; name: string };
-    stepFinished?: { id: string; result: unknown };
-  };
-  delta?: string;
-  raw?: Record<string, unknown>;
-  custom?: { type: string; data: unknown };
-};
+import type { AdkEventPayload } from "@/lib/adk/schema";
+export {
+  adkEventPayloadSchema,
+  collectAdkEventPayloads,
+  parseAdkEventPayload,
+  safeParseAdkEventPayload,
+  type AdkEventPayload,
+} from "@/lib/adk/schema";
 
 type NormalizedRole = "user" | "agent" | "system";
 

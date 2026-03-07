@@ -97,4 +97,22 @@ describe("session-hydration", () => {
     ).toHaveLength(1);
     expect(merged[merged.length - 1].type).toBe(EventType.RUN_FINISHED);
   });
+
+  it("历史事件中混入坏 payload 时只保留合法项继续 hydration", () => {
+    const result = hydrateSessionDetail(
+      [
+        {
+          id: "msg-1",
+          runId: "run-1",
+          threadId: "session-1",
+          timestamp: 1000,
+          message: { role: "assistant", content: "hello" },
+        },
+      ],
+      "session-1",
+    );
+
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0]?.content).toBe("hello");
+  });
 });
