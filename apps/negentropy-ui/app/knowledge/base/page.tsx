@@ -12,20 +12,22 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
+  buildExtractorRoutesFromDraft,
   buildCorpusConfig,
   CorpusRecord,
-  CorpusExtractorRouteKey,
-  McpExtractorTargetConfig,
-  NormalizedCorpusExtractorRoutes,
   ChunkingConfig,
   ChunkingStrategy,
   DocumentViewDialog,
   DocumentChunkItem,
+  ExtractorDraftRoutes,
+  ExtractorDraftTarget,
   KnowledgeDocument,
   KnowledgeMatch,
   SearchMode,
+  createEmptyExtractorDraftTarget,
   fetchDocumentChunks,
   fetchDocuments,
+  normalizeExtractorDraftRoutes,
   searchAcrossCorpora,
   useKnowledgeBase,
   syncDocument,
@@ -36,7 +38,6 @@ import {
   downloadDocument,
   deleteDocument,
   createDefaultChunkingConfig,
-  normalizeCorpusExtractorRoutes,
   normalizeChunkingConfig,
 } from "@/features/knowledge";
 
@@ -55,61 +56,6 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 type ViewMode = "overview" | "corpus";
 type CorpusTab = "documents" | "settings" | "document-chunks";
-type ExtractorDraftTarget = McpExtractorTargetConfig;
-type ExtractorDraftRoute = [ExtractorDraftTarget, ExtractorDraftTarget];
-type ExtractorDraftRoutes = Record<CorpusExtractorRouteKey, ExtractorDraftRoute>;
-
-function createEmptyExtractorTarget(priority: number): ExtractorDraftTarget {
-  return {
-    server_id: "",
-    tool_name: "",
-    priority,
-    enabled: true,
-  };
-}
-
-function createExtractorDraftTargets(
-  targets: ReadonlyArray<McpExtractorTargetConfig>,
-): ExtractorDraftRoute {
-  return [0, 1].map((priority) => {
-    const existing = targets.find((item) => item.priority === priority) || targets[priority];
-    return existing
-      ? {
-          ...existing,
-          priority,
-          enabled: existing.enabled !== false,
-        }
-      : createEmptyExtractorTarget(priority);
-  }) as ExtractorDraftRoute;
-}
-
-function createExtractorDraftRoutes(
-  config?: Record<string, unknown> | null,
-): ExtractorDraftRoutes {
-  const normalized = normalizeCorpusExtractorRoutes(config);
-  return {
-    url: createExtractorDraftTargets(normalized.url.targets),
-    file_pdf: createExtractorDraftTargets(normalized.file_pdf.targets),
-  };
-}
-
-function buildExtractorRoutesFromDraft(
-  draft: ExtractorDraftRoutes,
-): NormalizedCorpusExtractorRoutes {
-  const buildTargets = (targets: ExtractorDraftRoute) =>
-    targets
-      .filter((item) => item.server_id && item.tool_name)
-      .map((item, priority) => ({
-        ...item,
-        priority,
-        enabled: item.enabled !== false,
-      }));
-
-  return {
-    url: { targets: buildTargets(draft.url) },
-    file_pdf: { targets: buildTargets(draft.file_pdf) },
-  };
-}
 
 function CorpusStatusBadge({ corpus }: { corpus: CorpusRecord }) {
   const hasKnowledge = corpus.knowledge_count > 0;
@@ -1357,7 +1303,7 @@ function CorpusSettingsPanel({
     normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
   );
   const [extractorDraftRoutes, setExtractorDraftRoutes] = useState<ExtractorDraftRoutes>(
-    createExtractorDraftRoutes((corpus.config || {}) as Record<string, unknown>),
+    normalizeExtractorDraftRoutes((corpus.config || {}) as Record<string, unknown>),
   );
   const [servers, setServers] = useState<Array<{ id: string; name: string; display_name: string | null; is_enabled: boolean }>>([]);
   const [toolsByServer, setToolsByServer] = useState<Record<string, Array<{ name: string; display_name: string | null; is_enabled: boolean }>>>({});
@@ -1368,7 +1314,7 @@ function CorpusSettingsPanel({
       normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
     );
     setExtractorDraftRoutes(
-      createExtractorDraftRoutes((corpus.config || {}) as Record<string, unknown>),
+      normalizeExtractorDraftRoutes((corpus.config || {}) as Record<string, unknown>),
     );
   }, [corpus.id]);
 
@@ -1491,7 +1437,7 @@ function CorpusSettingsPanel({
 
                   const setTarget = (patch: Partial<ExtractorDraftTarget>) => {
                     setExtractorDraftRoutes((prev) => {
-                      const nextRoute = [...prev[routeKey]] as ExtractorDraftRoute;
+                      const nextRoute = [...prev[routeKey]] as typeof prev[typeof routeKey];
                       nextRoute[index] = {
                         ...nextRoute[index],
                         ...patch,
@@ -1507,8 +1453,8 @@ function CorpusSettingsPanel({
 
                   const clearTarget = () => {
                     setExtractorDraftRoutes((prev) => {
-                      const nextRoute = [...prev[routeKey]] as ExtractorDraftRoute;
-                      nextRoute[index] = createEmptyExtractorTarget(index);
+                      const nextRoute = [...prev[routeKey]] as typeof prev[typeof routeKey];
+                      nextRoute[index] = createEmptyExtractorDraftTarget(index);
                       return {
                         ...prev,
                         [routeKey]: nextRoute,

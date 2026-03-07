@@ -102,6 +102,9 @@ export type {
   CorpusExtractorTargets,
   CorpusExtractorRoutes,
   NormalizedCorpusExtractorRoutes,
+  ExtractorDraftTarget,
+  ExtractorDraftRoute,
+  ExtractorDraftRoutes,
   KnowledgeMatch,
   KnowledgeGraphPayload,
   KnowledgePipelinesPayload,
@@ -143,6 +146,9 @@ export {
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
   normalizeCorpusExtractorRoutes,
+  createEmptyExtractorDraftTarget,
+  normalizeExtractorDraftRoutes,
+  buildExtractorRoutesFromDraft,
   buildCorpusConfig,
 } from "./utils/knowledge-api";
 
