@@ -1,25 +1,21 @@
-import { buildAuthHeaders } from "@/lib/sso";
 import { safeParseSessionTitleResponse } from "@/lib/agui/session-schema";
 import { parseSessionUpstreamJson } from "@/app/api/agui/sessions/_response";
+import {
+  buildSessionUpstreamHeaders,
+  getSessionAguiBaseUrl,
+} from "@/app/api/agui/sessions/_request";
 import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
 
-function getBaseUrl() {
-  return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
-}
-
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.INTERNAL_ERROR,
-      "AGUI_BASE_URL is not configured"
-    );
+  const baseUrl = getSessionAguiBaseUrl();
+  if (baseUrl instanceof Response) {
+    return baseUrl;
   }
 
   let body: {
@@ -55,10 +51,7 @@ export async function PATCH(
   try {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "PATCH",
-      headers: {
-        ...Object.fromEntries(buildAuthHeaders(request)),
-        "Content-Type": "application/json",
-      },
+      headers: buildSessionUpstreamHeaders(request, "json-write"),
       body: JSON.stringify({
         title: body.title ?? null,
       }),
