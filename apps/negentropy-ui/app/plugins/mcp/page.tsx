@@ -8,9 +8,15 @@ import { McpServerFormDialog } from "./_components/McpServerFormDialog";
 interface McpTool {
   id: string | null;
   name: string;
+  title: string | null;
   display_name: string | null;
   description: string | null;
   input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  icons: Array<Record<string, unknown>>;
+  annotations: Record<string, unknown>;
+  execution: Record<string, unknown>;
+  meta: Record<string, unknown>;
   is_enabled: boolean;
   call_count: number;
 }

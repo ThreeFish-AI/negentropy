@@ -39,6 +39,7 @@ interface SchemaFieldRow {
 }
 
 interface JsonSchemaNode {
+  $schema?: string;
   type?: string | string[];
   description?: string;
   default?: unknown;
@@ -58,6 +59,24 @@ interface JsonSchemaNode {
   oneOf?: JsonSchemaNode[];
   anyOf?: JsonSchemaNode[];
   allOf?: JsonSchemaNode[];
+}
+
+interface McpToolIcon {
+  src?: string;
+  mimeType?: string;
+  sizes?: string;
+}
+
+interface McpToolAnnotations {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+}
+
+interface McpToolExecution {
+  taskSupport?: "forbidden" | "optional" | "required" | string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -312,7 +331,23 @@ function RichTextContent({
   );
 }
 
-function InputSchemaSection({ schema }: { schema: Record<string, unknown> }) {
+function getSchemaDialectLabel(schema: Record<string, unknown>): string {
+  const schemaNode = getSchemaNode(schema);
+  if (!schemaNode || typeof schemaNode.$schema !== "string" || schemaNode.$schema.trim().length === 0) {
+    return "JSON Schema 2020-12";
+  }
+
+  const parts = schemaNode.$schema.split("/");
+  return parts[parts.length - 1] || schemaNode.$schema;
+}
+
+function SchemaSection({
+  title,
+  schema,
+}: {
+  title: string;
+  schema: Record<string, unknown>;
+}) {
   const rows = useMemo(() => collectSchemaRows(schema), [schema]);
 
   if (Object.keys(schema).length === 0) {
@@ -325,13 +360,16 @@ function InputSchemaSection({ schema }: { schema: Record<string, unknown> }) {
     <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
         <span className="font-medium text-zinc-700 dark:text-zinc-300">
-          Input Schema
+          {title}
         </span>
         {rows.length > 0 && (
           <span className="inline-flex items-center rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
             {rows.length} fields
           </span>
         )}
+        <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+          {getSchemaDialectLabel(schema)}
+        </span>
         {requiredCount > 0 && (
           <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
             {requiredCount} required
@@ -406,8 +444,37 @@ function InputSchemaSection({ schema }: { schema: Record<string, unknown> }) {
   );
 }
 
+function isSafeIconSrc(src: string): boolean {
+  if (src.startsWith("https://") || src.startsWith("http://")) {
+    return true;
+  }
+  return /^data:image\/(png|jpeg|jpg|gif|webp|avif);base64,/i.test(src);
+}
+
+function getPrimaryIcon(tool: McpTool): McpToolIcon | null {
+  for (const candidate of tool.icons) {
+    if (!isRecord(candidate)) {
+      continue;
+    }
+    const icon = candidate as McpToolIcon;
+    if (typeof icon.src === "string" && icon.src.length > 0 && isSafeIconSrc(icon.src)) {
+      return icon;
+    }
+  }
+  return null;
+}
+
+function getToolAnnotations(tool: McpTool): McpToolAnnotations {
+  return isRecord(tool.annotations) ? (tool.annotations as McpToolAnnotations) : {};
+}
+
+function getToolExecution(tool: McpTool): McpToolExecution {
+  return isRecord(tool.execution) ? (tool.execution as McpToolExecution) : {};
+}
+
 function getToolLabel(tool: McpTool): string {
-  return tool.display_name || tool.name;
+  const annotations = getToolAnnotations(tool);
+  return tool.title || annotations.title || tool.display_name || tool.name;
 }
 
 function getToolTooltipText(tool: McpTool): string {
@@ -415,19 +482,83 @@ function getToolTooltipText(tool: McpTool): string {
   return text && text.length > 0 ? text : "No description";
 }
 
+function getBehaviorBadges(tool: McpTool): Array<{ label: string; tone: string }> {
+  const annotations = getToolAnnotations(tool);
+  const badges: Array<{ label: string; tone: string }> = [];
+
+  if (annotations.readOnlyHint) {
+    badges.push({
+      label: "Read Only Hint",
+      tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    });
+  }
+  if (annotations.destructiveHint) {
+    badges.push({
+      label: "Destructive Hint",
+      tone: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+    });
+  }
+  if (annotations.idempotentHint) {
+    badges.push({
+      label: "Idempotent Hint",
+      tone: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+    });
+  }
+  if (annotations.openWorldHint) {
+    badges.push({
+      label: "Open World Hint",
+      tone: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    });
+  }
+
+  return badges;
+}
+
 function ToolDetailPanel({ tool }: { tool: McpTool }) {
+  const primaryIcon = getPrimaryIcon(tool);
+  const annotations = getToolAnnotations(tool);
+  const behaviorBadges = getBehaviorBadges(tool);
+  const execution = getToolExecution(tool);
+
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h4 className="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            {getToolLabel(tool)}
-          </h4>
-          {tool.display_name && (
-            <p className="mt-0.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-              {tool.name}
-            </p>
+        <div className="flex items-start gap-3">
+          {primaryIcon ? (
+            // MCP icons come from dynamic server metadata, so Next/Image remote allowlists are not viable here.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={primaryIcon.src}
+              alt=""
+              aria-hidden="true"
+              className="mt-0.5 h-9 w-9 rounded-lg border border-zinc-200 bg-white object-contain p-1 dark:border-zinc-700 dark:bg-zinc-950"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+              {getToolLabel(tool).slice(0, 1).toUpperCase()}
+            </div>
           )}
+          <div>
+            <h4 className="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              {getToolLabel(tool)}
+            </h4>
+            {(tool.title || annotations.title || tool.display_name) && (
+              <p className="mt-0.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                {tool.name}
+              </p>
+            )}
+            {(tool.title || annotations.title) && tool.display_name && (
+              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                Local display name: {tool.display_name}
+              </p>
+            )}
+            {primaryIcon?.mimeType && (
+              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                Icon: {primaryIcon.mimeType}
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {tool.is_enabled ? (
@@ -449,7 +580,54 @@ function ToolDetailPanel({ tool }: { tool: McpTool }) {
         <RichTextContent content={tool.description} emptyText="No description" />
       </div>
 
-      <InputSchemaSection schema={tool.input_schema} />
+      {(behaviorBadges.length > 0 || execution.taskSupport) && (
+        <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              Tool Metadata
+            </span>
+            <span className="inline-flex items-center rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+              Hints
+            </span>
+          </div>
+          {behaviorBadges.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {behaviorBadges.map((badge) => (
+                <span
+                  key={badge.label}
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${badge.tone}`}
+                >
+                  {badge.label}
+                </span>
+              ))}
+            </div>
+          )}
+          {execution.taskSupport && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                Task support
+              </span>
+              <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[11px] text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                {execution.taskSupport}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <SchemaSection title="Input Schema" schema={tool.input_schema} />
+      <SchemaSection title="Output Schema" schema={tool.output_schema} />
+
+      {Object.keys(tool.meta).length > 0 && (
+        <details className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+          <summary className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100">
+            Advanced Metadata
+          </summary>
+          <div className="mt-2 rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
+            <JsonViewer data={tool.meta} />
+          </div>
+        </details>
+      )}
     </div>
   );
 }
@@ -476,9 +654,15 @@ interface McpServer {
 interface McpTool {
   id: string | null;
   name: string;
+  title: string | null;
   display_name: string | null;
   description: string | null;
   input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  icons: Array<Record<string, unknown>>;
+  annotations: Record<string, unknown>;
+  execution: Record<string, unknown>;
+  meta: Record<string, unknown>;
   is_enabled: boolean;
   call_count: number;
 }
@@ -614,6 +798,7 @@ export function McpServerCard({
                 onClick={handleToggleTools}
                 className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                 aria-expanded={showTools}
+                aria-label={`Toggle tools list for ${server.display_name || server.name}`}
                 title="Toggle tools list"
               >
                 {loadingTools ? (

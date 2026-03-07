@@ -155,8 +155,14 @@ class McpToolInfo:
     """MCP Tool 元信息"""
 
     name: str
+    title: str | None = None
     description: str | None = None
     input_schema: dict[str, Any] = field(default_factory=dict)
+    output_schema: dict[str, Any] = field(default_factory=dict)
+    icons: list[dict[str, Any]] = field(default_factory=list)
+    annotations: dict[str, Any] = field(default_factory=dict)
+    execution: dict[str, Any] = field(default_factory=dict)
+    meta: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -416,8 +422,14 @@ class McpClientService:
                     tools = [
                         McpToolInfo(
                             name=t.name,
+                            title=t.title,
                             description=t.description,
                             input_schema=t.inputSchema or {},
+                            output_schema=t.outputSchema or {},
+                            icons=[icon.model_dump(mode="json") for icon in (t.icons or [])],
+                            annotations=t.annotations.model_dump(mode="json") if t.annotations else {},
+                            execution=t.execution.model_dump(mode="json") if t.execution else {},
+                            meta=t.meta or {},
                         )
                         for t in tools_result.tools
                     ]
@@ -479,8 +491,14 @@ class McpClientService:
                     tools = [
                         McpToolInfo(
                             name=t.name,
+                            title=t.title,
                             description=t.description,
                             input_schema=t.inputSchema or {},
+                            output_schema=t.outputSchema or {},
+                            icons=[icon.model_dump(mode="json") for icon in (t.icons or [])],
+                            annotations=t.annotations.model_dump(mode="json") if t.annotations else {},
+                            execution=t.execution.model_dump(mode="json") if t.execution else {},
+                            meta=t.meta or {},
                         )
                         for t in tools_result.tools
                     ]
@@ -530,8 +548,14 @@ class McpClientService:
                     tools = [
                         McpToolInfo(
                             name=t.name,
+                            title=t.title,
                             description=t.description,
                             input_schema=t.inputSchema or {},
+                            output_schema=t.outputSchema or {},
+                            icons=[icon.model_dump(mode="json") for icon in (t.icons or [])],
+                            annotations=t.annotations.model_dump(mode="json") if t.annotations else {},
+                            execution=t.execution.model_dump(mode="json") if t.execution else {},
+                            meta=t.meta or {},
                         )
                         for t in tools_result.tools
                     ]
