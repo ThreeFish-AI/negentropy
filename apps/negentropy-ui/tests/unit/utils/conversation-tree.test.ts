@@ -242,4 +242,111 @@ describe("buildConversationTree", () => {
     expect(tree.roots[0].children[0].type).toBe("error");
     expect(tree.roots[0].children[0].visibility).toBe("chat");
   });
+
+  it("confirmation 工具在运行结束后仍保持 blocked 状态", () => {
+    const events: BaseEvent[] = [
+      {
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      } as BaseEvent,
+      {
+        type: EventType.TOOL_CALL_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        toolCallId: "tool-1",
+        toolCallName: "ui.confirmation",
+        timestamp: 1001,
+      } as BaseEvent,
+      {
+        type: EventType.RUN_FINISHED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1002,
+      } as BaseEvent,
+    ];
+
+    const tree = buildConversationTree({ events });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].status).toBe("blocked");
+  });
+
+  it("文本消息在 TEXT_MESSAGE_END 后保留累计内容", () => {
+    const events: BaseEvent[] = [
+      {
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      } as BaseEvent,
+      {
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1001,
+      } as BaseEvent,
+      {
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "world",
+        timestamp: 1002,
+      } as BaseEvent,
+      {
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        timestamp: 1003,
+      } as BaseEvent,
+    ];
+
+    const tree = buildConversationTree({ events });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children).toHaveLength(1);
+    expect(tree.roots[0].children[0].payload.content).toBe("world");
+  });
+
+  it("工具参数在 TOOL_CALL_END 后保留累计内容", () => {
+    const events: BaseEvent[] = [
+      {
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      } as BaseEvent,
+      {
+        type: EventType.TOOL_CALL_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        toolCallId: "tool-1",
+        toolCallName: "search",
+        timestamp: 1001,
+      } as BaseEvent,
+      {
+        type: EventType.TOOL_CALL_ARGS,
+        threadId: "thread-1",
+        runId: "run-1",
+        toolCallId: "tool-1",
+        delta: "{\"q\":\"hello\"}",
+        timestamp: 1002,
+      } as BaseEvent,
+      {
+        type: EventType.TOOL_CALL_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        toolCallId: "tool-1",
+        timestamp: 1003,
+      } as BaseEvent,
+    ];
+
+    const tree = buildConversationTree({ events });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children).toHaveLength(1);
+    expect(tree.roots[0].children[0].payload.args).toBe("{\"q\":\"hello\"}");
+  });
 });

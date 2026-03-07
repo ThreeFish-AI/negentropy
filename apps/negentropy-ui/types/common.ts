@@ -10,7 +10,12 @@ import type { Message } from "@ag-ui/core";
 /**
  * 连接状态类型
  */
-export type ConnectionState = "idle" | "connecting" | "streaming" | "error";
+export type ConnectionState =
+  | "idle"
+  | "connecting"
+  | "streaming"
+  | "blocked"
+  | "error";
 
 /**
  * 会话记录类型
