@@ -1,41 +1,34 @@
 import { renderHook } from "@testing-library/react";
 
-const { fetchCorpusMock, fetchCorporaMock } = vi.hoisted(() => ({
+const knowledgeApiMocks = vi.hoisted(() => ({
   fetchCorpusMock: vi.fn(),
   fetchCorporaMock: vi.fn(),
+  createCorpusMock: vi.fn(),
+  updateCorpusMock: vi.fn(),
+  deleteCorpusMock: vi.fn(),
+  ingestTextMock: vi.fn(),
+  ingestUrlMock: vi.fn(),
+  ingestFileMock: vi.fn(),
+  replaceSourceMock: vi.fn(),
+  syncSourceMock: vi.fn(),
+  rebuildSourceMock: vi.fn(),
+  deleteSourceMock: vi.fn(),
+  archiveSourceMock: vi.fn(),
+  searchKnowledgeMock: vi.fn(),
 }));
 
 vi.mock("@/features/knowledge/utils/knowledge-api", async () => {
-  const actual = await vi.importActual<typeof import("@/features/knowledge/utils/knowledge-api")>(
-    "@/features/knowledge/utils/knowledge-api",
-  );
-
-  return {
-    ...actual,
-    fetchCorpus: (...args: unknown[]) => fetchCorpusMock(...args),
-    fetchCorpora: (...args: unknown[]) => fetchCorporaMock(...args),
-    createCorpus: vi.fn(),
-    updateCorpus: vi.fn(),
-    deleteCorpus: vi.fn(),
-    ingestText: vi.fn(),
-    ingestUrl: vi.fn(),
-    ingestFile: vi.fn(),
-    replaceSource: vi.fn(),
-    syncSource: vi.fn(),
-    rebuildSource: vi.fn(),
-    deleteSource: vi.fn(),
-    archiveSource: vi.fn(),
-    searchKnowledge: vi.fn(),
-  };
+  const { createKnowledgeApiTestHarness } = await import("@/tests/helpers/knowledge-api");
+  return createKnowledgeApiTestHarness(knowledgeApiMocks).exports;
 });
 
 import { useKnowledgeBase } from "@/features/knowledge/hooks/useKnowledgeBase";
 
 describe("useKnowledgeBase", () => {
   beforeEach(() => {
-    fetchCorpusMock.mockReset();
-    fetchCorporaMock.mockReset();
-    fetchCorporaMock.mockResolvedValue([]);
+    knowledgeApiMocks.fetchCorpusMock.mockReset();
+    knowledgeApiMocks.fetchCorporaMock.mockReset();
+    knowledgeApiMocks.fetchCorporaMock.mockResolvedValue([]);
   });
 
   it("在相同输入下保持返回对象和 loadCorpus 引用稳定", () => {
@@ -53,5 +46,30 @@ describe("useKnowledgeBase", () => {
 
     expect(result.current).toBe(initialValue);
     expect(result.current.loadCorpus).toBe(initialLoadCorpus);
+  });
+
+  it("loadCorpora 成功时会刷新 corpora 列表并恢复 loading 状态", async () => {
+    knowledgeApiMocks.fetchCorporaMock.mockResolvedValueOnce([
+      {
+        id: "corpus-1",
+        app_name: "negentropy",
+        name: "Corpus One",
+        knowledge_count: 2,
+      },
+    ]);
+
+    const { result } = renderHook(() => useKnowledgeBase({ appName: "negentropy" }));
+
+    await result.current.loadCorpora();
+
+    expect(knowledgeApiMocks.fetchCorporaMock).toHaveBeenCalledWith("negentropy");
+    expect(result.current.corpora).toEqual([
+      expect.objectContaining({
+        id: "corpus-1",
+        name: "Corpus One",
+      }),
+    ]);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 });

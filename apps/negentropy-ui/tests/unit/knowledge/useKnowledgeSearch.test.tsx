@@ -1,20 +1,32 @@
 import { renderHook, act } from "@testing-library/react";
-import { vi } from "vitest";
+
+const knowledgeApiMocks = vi.hoisted(() => ({
+  fetchCorpusMock: vi.fn(),
+  fetchCorporaMock: vi.fn(),
+  createCorpusMock: vi.fn(),
+  updateCorpusMock: vi.fn(),
+  deleteCorpusMock: vi.fn(),
+  ingestTextMock: vi.fn(),
+  ingestUrlMock: vi.fn(),
+  ingestFileMock: vi.fn(),
+  replaceSourceMock: vi.fn(),
+  syncSourceMock: vi.fn(),
+  rebuildSourceMock: vi.fn(),
+  deleteSourceMock: vi.fn(),
+  archiveSourceMock: vi.fn(),
+  searchKnowledgeMock: vi.fn(),
+}));
 
 vi.mock("@/features/knowledge/utils/knowledge-api", async () => {
-  const actual = await vi.importActual<object>("@/features/knowledge/utils/knowledge-api");
-  return {
-    ...actual,
-    searchKnowledge: vi.fn(),
-  };
+  const { createKnowledgeApiTestHarness } = await import("@/tests/helpers/knowledge-api");
+  return createKnowledgeApiTestHarness(knowledgeApiMocks).exports;
 });
 
 import { useKnowledgeSearch } from "@/features/knowledge/hooks/useKnowledgeSearch";
-import { searchKnowledge } from "@/features/knowledge/utils/knowledge-api";
 
 describe("useKnowledgeSearch", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    knowledgeApiMocks.searchKnowledgeMock.mockReset();
   });
 
   it("空查询会直接返回空结果且不请求后端", async () => {
@@ -27,12 +39,15 @@ describe("useKnowledgeSearch", () => {
     });
 
     expect(result.current.results).toEqual({ count: 0, items: [] });
-    expect(searchKnowledge).not.toHaveBeenCalled();
+    expect(knowledgeApiMocks.searchKnowledgeMock).not.toHaveBeenCalled();
   });
 
   it("search 会合并默认配置并透传成功结果", async () => {
     const onSuccess = vi.fn();
-    vi.mocked(searchKnowledge).mockResolvedValue({ count: 1, items: [{ id: "m1" }] } as never);
+    knowledgeApiMocks.searchKnowledgeMock.mockResolvedValue({
+      count: 1,
+      items: [{ id: "m1" }],
+    } as never);
 
     const { result } = renderHook(() =>
       useKnowledgeSearch({
@@ -47,7 +62,7 @@ describe("useKnowledgeSearch", () => {
       await result.current.search("hello", { semantic_weight: 0.9 });
     });
 
-    expect(searchKnowledge).toHaveBeenCalledWith(
+    expect(knowledgeApiMocks.searchKnowledgeMock).toHaveBeenCalledWith(
       "c1",
       expect.objectContaining({
         app_name: "negentropy",
@@ -65,7 +80,7 @@ describe("useKnowledgeSearch", () => {
   it("search 失败时会暴露错误并回调 onError", async () => {
     const error = new Error("search failed");
     const onError = vi.fn();
-    vi.mocked(searchKnowledge).mockRejectedValue(error);
+    knowledgeApiMocks.searchKnowledgeMock.mockRejectedValue(error);
 
     const { result } = renderHook(() =>
       useKnowledgeSearch({ corpusId: "c1", onError }),
