@@ -118,6 +118,62 @@ vi.mock("@/features/knowledge", () => ({
       url: { targets: [] },
       file_pdf: { targets: [] },
     },
+  createEmptyExtractorDraftTarget: (priority: number) => ({
+    server_id: "",
+    tool_name: "",
+    priority,
+    enabled: true,
+  }),
+  normalizeExtractorDraftRoutes: (config: Record<string, unknown> | null | undefined) => {
+    const extractorRoutes =
+      (config?.extractor_routes as Record<string, { targets?: Array<Record<string, unknown>> }> | undefined) ||
+      {};
+    const toDraftRoute = (targets?: Array<Record<string, unknown>>) =>
+      ([0, 1].map((priority) => {
+        const existing = targets?.find((item) => Number(item.priority || 0) === priority) || targets?.[priority];
+        return existing
+          ? {
+              server_id: String(existing.server_id || ""),
+              tool_name: String(existing.tool_name || ""),
+              priority,
+              enabled: existing.enabled !== false,
+            }
+          : {
+              server_id: "",
+              tool_name: "",
+              priority,
+              enabled: true,
+            };
+      })) as [
+        { server_id: string; tool_name: string; priority: number; enabled: boolean },
+        { server_id: string; tool_name: string; priority: number; enabled: boolean },
+      ];
+
+    return {
+      url: toDraftRoute(extractorRoutes.url?.targets),
+      file_pdf: toDraftRoute(extractorRoutes.file_pdf?.targets),
+    };
+  },
+  buildExtractorRoutesFromDraft: (draft: Record<string, Array<Record<string, unknown>>>) => ({
+    url: {
+      targets: (draft.url || [])
+        .filter((item) => item.server_id && item.tool_name)
+        .map((item, priority) => ({
+          ...item,
+          priority,
+          enabled: item.enabled !== false,
+        })),
+    },
+    file_pdf: {
+      targets: (draft.file_pdf || [])
+        .filter((item) => item.server_id && item.tool_name)
+        .map((item, priority) => ({
+          ...item,
+          priority,
+          enabled: item.enabled !== false,
+        })),
+    },
+  }),
   buildCorpusConfig: (
     chunkingConfig: Record<string, unknown>,
     extractorRoutes: Record<string, unknown>,

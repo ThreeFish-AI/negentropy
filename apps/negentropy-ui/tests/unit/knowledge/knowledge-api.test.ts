@@ -1,5 +1,7 @@
 import {
+  buildExtractorRoutesFromDraft,
   buildCorpusConfig,
+  createEmptyExtractorDraftTarget,
   createDefaultChunkingConfig,
   fetchCorpus,
   fetchDocumentChunks,
@@ -7,6 +9,7 @@ import {
   ingestFile,
   ingestText,
   KnowledgeError,
+  normalizeExtractorDraftRoutes,
   normalizeCorpusExtractorRoutes,
 } from "@/features/knowledge/utils/knowledge-api";
 
@@ -190,6 +193,103 @@ describe("fetchCorpus", () => {
           ],
         },
         file_pdf: { targets: [] },
+      },
+    });
+  });
+
+  it("normalizeExtractorDraftRoutes 会为每个 route 生成固定双槽位 draft", () => {
+    const draft = normalizeExtractorDraftRoutes({
+      extractor_routes: {
+        url: {
+          targets: [
+            {
+              server_id: "server-1",
+              tool_name: "fetch_markdown",
+              priority: 0,
+              enabled: true,
+            },
+          ],
+        },
+      },
+    });
+
+    expect(draft.url).toEqual([
+      expect.objectContaining({
+        server_id: "server-1",
+        tool_name: "fetch_markdown",
+        priority: 0,
+        enabled: true,
+      }),
+      expect.objectContaining({
+        server_id: "",
+        tool_name: "",
+        priority: 1,
+        enabled: true,
+      }),
+    ]);
+    expect(draft.file_pdf).toEqual([
+      expect.objectContaining({
+        server_id: "",
+        tool_name: "",
+        priority: 0,
+        enabled: true,
+      }),
+      expect.objectContaining({
+        server_id: "",
+        tool_name: "",
+        priority: 1,
+        enabled: true,
+      }),
+    ]);
+  });
+
+  it("buildExtractorRoutesFromDraft 会过滤不完整槽位并重排 priority", () => {
+    const routes = buildExtractorRoutesFromDraft({
+      url: [
+        {
+          server_id: "",
+          tool_name: "",
+          priority: 0,
+          enabled: true,
+        },
+        {
+          server_id: "server-2",
+          tool_name: "parse_pdf",
+          priority: 1,
+          enabled: true,
+        },
+      ],
+      file_pdf: [
+        {
+          server_id: "server-3",
+          tool_name: "extract_pdf",
+          priority: 0,
+          enabled: true,
+        },
+        createEmptyExtractorDraftTarget(1),
+      ],
+    });
+
+    expect(routes).toEqual({
+      url: {
+        targets: [
+          expect.objectContaining({
+            server_id: "server-2",
+            tool_name: "parse_pdf",
+            priority: 0,
+            enabled: true,
+          }),
+        ],
+      },
+      file_pdf: {
+        targets: [
+          expect.objectContaining({
+            server_id: "server-3",
+            tool_name: "extract_pdf",
+            priority: 0,
+            enabled: true,
+          }),
+        ],
       },
     });
   });

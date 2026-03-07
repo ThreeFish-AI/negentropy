@@ -432,6 +432,9 @@ export interface CorpusExtractorRouteConfig {
 
 export type CorpusExtractorRouteKey = "url" | "file_pdf";
 export type CorpusExtractorTargets = McpExtractorTargetConfig[];
+export type ExtractorDraftTarget = McpExtractorTargetConfig;
+export type ExtractorDraftRoute = [ExtractorDraftTarget, ExtractorDraftTarget];
+export type ExtractorDraftRoutes = Record<CorpusExtractorRouteKey, ExtractorDraftRoute>;
 
 export interface CorpusExtractorRoutes {
   url?: CorpusExtractorRouteConfig;
@@ -442,6 +445,33 @@ export type NormalizedCorpusExtractorRoutes = Record<
   CorpusExtractorRouteKey,
   CorpusExtractorRouteConfig
 >;
+
+export function createEmptyExtractorDraftTarget(
+  priority: number,
+): ExtractorDraftTarget {
+  return {
+    server_id: "",
+    tool_name: "",
+    priority,
+    enabled: true,
+  };
+}
+
+function createExtractorDraftRoute(
+  targets: ReadonlyArray<McpExtractorTargetConfig>,
+): ExtractorDraftRoute {
+  return [0, 1].map((priority) => {
+    const existing =
+      targets.find((item) => item.priority === priority) || targets[priority];
+    return existing
+      ? {
+          ...existing,
+          priority,
+          enabled: existing.enabled !== false,
+        }
+      : createEmptyExtractorDraftTarget(priority);
+  }) as ExtractorDraftRoute;
+}
 
 function normalizeExtractorTargets(
   value: unknown,
@@ -488,6 +518,34 @@ export function normalizeCorpusExtractorRoutes(
   return {
     url: normalizeRoute(raw.url),
     file_pdf: normalizeRoute(raw.file_pdf),
+  };
+}
+
+export function normalizeExtractorDraftRoutes(
+  config?: Record<string, unknown> | null,
+): ExtractorDraftRoutes {
+  const normalized = normalizeCorpusExtractorRoutes(config);
+  return {
+    url: createExtractorDraftRoute(normalized.url.targets),
+    file_pdf: createExtractorDraftRoute(normalized.file_pdf.targets),
+  };
+}
+
+export function buildExtractorRoutesFromDraft(
+  draft: ExtractorDraftRoutes,
+): NormalizedCorpusExtractorRoutes {
+  const buildTargets = (targets: ExtractorDraftRoute) =>
+    targets
+      .filter((item) => item.server_id && item.tool_name)
+      .map((item, priority) => ({
+        ...item,
+        priority,
+        enabled: item.enabled !== false,
+      }));
+
+  return {
+    url: { targets: buildTargets(draft.url) },
+    file_pdf: { targets: buildTargets(draft.file_pdf) },
   };
 }
 
