@@ -1,6 +1,7 @@
 import { vi, type Mock } from "vitest";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
+type FetchMock = Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>;
 
 export interface KnowledgeBasePageLocalMocks {
   replaceMock: VitestMock;
@@ -16,7 +17,7 @@ export interface KnowledgeBasePageLocalMocks {
   fetchDocumentChunksMock: VitestMock;
   searchAcrossCorporaMock: VitestMock;
   documentViewDialogMock: VitestMock;
-  fetchMock: VitestMock;
+  fetchMock: FetchMock;
   syncDocumentMock: VitestMock;
   rebuildDocumentMock: VitestMock;
   replaceDocumentFeatureMock: VitestMock;
