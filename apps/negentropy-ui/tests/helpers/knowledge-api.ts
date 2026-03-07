@@ -1,13 +1,4 @@
 import { vi, type Mock } from "vitest";
-import {
-  buildCorpusConfig,
-  buildExtractorRoutesFromDraft,
-  createDefaultChunkingConfig,
-  createEmptyExtractorDraftTarget,
-  normalizeChunkingConfig,
-  normalizeCorpusExtractorRoutes,
-  normalizeExtractorDraftRoutes,
-} from "@/features/knowledge/utils/knowledge-api";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 export interface KnowledgeApiMockSet {
@@ -32,7 +23,9 @@ export interface KnowledgeApiTestHarness {
   mocks: KnowledgeApiMockSet;
 }
 
-export async function importKnowledgeApiActual() {
+export async function importKnowledgeApiActual(): Promise<
+  typeof import("@/features/knowledge/utils/knowledge-api")
+> {
   return vi.importActual<typeof import("@/features/knowledge/utils/knowledge-api")>(
     "@/features/knowledge/utils/knowledge-api",
   );
