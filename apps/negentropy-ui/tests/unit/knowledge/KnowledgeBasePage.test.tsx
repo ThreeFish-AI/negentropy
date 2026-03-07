@@ -6,6 +6,7 @@ const {
   useKnowledgeBaseMock,
   loadCorpusMock,
   loadCorporaMock,
+  updateCorpusMock,
   deleteCorpusMock,
   deleteDocumentMock,
   ingestUrlMock,
@@ -15,11 +16,13 @@ const {
   fetchDocumentChunksMock,
   searchAcrossCorporaMock,
   documentViewDialogMock,
+  fetchMock,
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
   loadCorpusMock: vi.fn(),
   loadCorporaMock: vi.fn(),
+  updateCorpusMock: vi.fn(),
   deleteCorpusMock: vi.fn(),
   deleteDocumentMock: vi.fn(),
   ingestUrlMock: vi.fn(),
@@ -28,6 +31,7 @@ const {
   fetchDocumentChunksMock: vi.fn(),
   searchAcrossCorporaMock: vi.fn(),
   documentViewDialogMock: vi.fn(),
+  fetchMock: vi.fn(),
   searchParamsState: {
     value: "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents",
   },
@@ -153,6 +157,7 @@ describe("KnowledgeBasePage", () => {
     replaceMock.mockReset();
     loadCorpusMock.mockReset();
     loadCorporaMock.mockReset();
+    updateCorpusMock.mockReset();
     deleteCorpusMock.mockReset();
     deleteDocumentMock.mockReset();
     ingestUrlMock.mockReset();
@@ -161,10 +166,20 @@ describe("KnowledgeBasePage", () => {
     fetchDocumentChunksMock.mockReset();
     searchAcrossCorporaMock.mockReset();
     documentViewDialogMock.mockReset();
+    fetchMock.mockReset();
     searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
+
+    global.fetch = fetchMock;
 
     loadCorpusMock.mockResolvedValue(undefined);
     loadCorporaMock.mockResolvedValue(undefined);
+    updateCorpusMock.mockResolvedValue({
+      id: "11111111-1111-1111-1111-111111111111",
+      name: "Corpus Alpha",
+      app_name: "negentropy",
+      knowledge_count: 3,
+      config: {},
+    });
     deleteCorpusMock.mockResolvedValue(undefined);
     deleteDocumentMock.mockResolvedValue(undefined);
     ingestUrlMock.mockResolvedValue({});
@@ -200,6 +215,42 @@ describe("KnowledgeBasePage", () => {
       ],
     });
 
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/plugins/mcp/servers") {
+        return {
+          ok: true,
+          json: async () => [
+            {
+              id: "server-1",
+              name: "doc-extractor",
+              display_name: "Doc Extractor",
+              is_enabled: true,
+            },
+          ],
+        } as Response;
+      }
+
+      if (url === "/api/plugins/mcp/servers/server-1/tools") {
+        return {
+          ok: true,
+          json: async () => [
+            {
+              name: "extract_markdown",
+              display_name: "Extract Markdown",
+              is_enabled: true,
+            },
+          ],
+        } as Response;
+      }
+
+      return {
+        ok: false,
+        status: 404,
+        json: async () => ({ detail: "not found" }),
+      } as Response;
+    });
+
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [
         {
@@ -214,7 +265,7 @@ describe("KnowledgeBasePage", () => {
       loadCorpora: loadCorporaMock,
       loadCorpus: loadCorpusMock,
       createCorpus: vi.fn(),
-      updateCorpus: vi.fn(),
+      updateCorpus: updateCorpusMock,
       deleteCorpus: deleteCorpusMock,
       ingestUrl: ingestUrlMock,
       ingestFile: ingestFileMock,
@@ -540,9 +591,67 @@ describe("KnowledgeBasePage", () => {
     });
 
     expect(
-      screen.getByRole("heading", { name: "Settings" }),
+      screen.getByRole("heading", { name: "Chunking Settings" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Document Extraction Settings" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeInTheDocument();
+  });
+
+  it("settings 视图选择 MCP Server 后不会回退为未配置，并可继续选择 Tool 后保存", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value =
+      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const serverSelect = screen.getAllByLabelText("MCP Server")[0];
+    const toolSelect = screen.getAllByLabelText("Tool")[0];
+
+    expect(serverSelect).toHaveValue("");
+    expect(toolSelect).toBeDisabled();
+
+    await user.selectOptions(serverSelect, "server-1");
+
+    expect(serverSelect).toHaveValue("server-1");
+    expect(toolSelect).not.toBeDisabled();
+    expect(toolSelect).toHaveValue("");
+
+    await user.selectOptions(toolSelect, "extract_markdown");
+
+    expect(toolSelect).toHaveValue("extract_markdown");
+
+    await user.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(updateCorpusMock).toHaveBeenCalledWith(
+      "11111111-1111-1111-1111-111111111111",
+      {
+        config: expect.objectContaining({
+          extractor_routes: {
+            url: {
+              targets: [
+                {
+                  server_id: "server-1",
+                  tool_name: "extract_markdown",
+                  priority: 0,
+                  enabled: true,
+                },
+              ],
+            },
+            file_pdf: { targets: [] },
+          },
+        }),
+      },
+    );
   });
 
   it("settings 视图中 semantic 与 hierarchical 只展示各自有效字段", async () => {
@@ -990,7 +1099,7 @@ describe("KnowledgeBasePage", () => {
       loadCorpora: loadCorporaMock,
       loadCorpus: loadCorpusMock,
       createCorpus: vi.fn(),
-      updateCorpus: vi.fn(),
+      updateCorpus: updateCorpusMock,
       deleteCorpus: deleteCorpusMock,
       ingestUrl: vi.fn(),
       ingestFile: vi.fn(),
