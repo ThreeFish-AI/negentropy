@@ -1,6 +1,7 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { KnowledgeFeatureMockSet } from "@/tests/helpers/knowledge";
+import { resetKnowledgeFeatureMocks } from "@/tests/helpers/knowledge";
 
 const {
   replaceMock,
@@ -118,25 +119,14 @@ const flushPromises = async () => {
 
 describe("KnowledgeBasePage", () => {
   beforeEach(() => {
+    resetKnowledgeFeatureMocks(knowledgeMocks);
     replaceMock.mockReset();
     loadCorpusMock.mockReset();
     loadCorporaMock.mockReset();
     updateCorpusMock.mockReset();
-    deleteCorpusMock.mockReset();
-    deleteDocumentMock.mockReset();
-    ingestUrlMock.mockReset();
     ingestFileMock.mockReset();
-    fetchDocumentsMock.mockReset();
-    fetchDocumentChunksMock.mockReset();
-    searchAcrossCorporaMock.mockReset();
     documentViewDialogMock.mockReset();
     fetchMock.mockReset();
-    syncDocumentMock.mockReset();
-    rebuildDocumentMock.mockReset();
-    replaceDocumentFeatureMock.mockReset();
-    archiveDocumentMock.mockReset();
-    unarchiveDocumentMock.mockReset();
-    downloadDocumentMock.mockReset();
     searchParamsState.value = "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents";
 
     global.fetch = fetchMock;

@@ -62,6 +62,34 @@ export function createKnowledgeFeatureMockSet(): KnowledgeFeatureMockSet {
   };
 }
 
+export function resetKnowledgeFeatureMocks(mocks: KnowledgeFeatureMockSet): void {
+  Object.values(mocks).forEach((mock) => {
+    mock.mockReset();
+  });
+}
+
+export function primeKnowledgeFeatureMocks(
+  mocks: KnowledgeFeatureMockSet,
+  overrides: Partial<
+    Pick<
+      KnowledgeFeatureMockSet,
+      "ingestTextMock" | "ingestUrlMock" | "replaceSourceMock" | "createCorpusMock"
+    >
+  > = {},
+): void {
+  const stableSuccessMocks = {
+    ingestTextMock: mocks.ingestTextMock,
+    ingestUrlMock: mocks.ingestUrlMock,
+    replaceSourceMock: mocks.replaceSourceMock,
+    createCorpusMock: mocks.createCorpusMock,
+    ...overrides,
+  };
+
+  Object.values(stableSuccessMocks).forEach((mock) => {
+    mock.mockResolvedValue({ ok: true });
+  });
+}
+
 export function createKnowledgeConfigTestExports() {
   return {
     createDefaultChunkingConfig,

@@ -12,12 +12,12 @@ vi.mock("@/features/knowledge/utils/knowledge-api", async () => {
 });
 
 import { useKnowledgeBase } from "@/features/knowledge/hooks/useKnowledgeBase";
+import { primeKnowledgeApiMocks, resetKnowledgeApiMocks } from "@/tests/helpers/knowledge-api";
 
 describe("useKnowledgeBase", () => {
   beforeEach(() => {
-    knowledgeApiMocks.fetchCorpusMock.mockReset();
-    knowledgeApiMocks.fetchCorporaMock.mockReset();
-    knowledgeApiMocks.fetchCorporaMock.mockResolvedValue([]);
+    resetKnowledgeApiMocks(knowledgeApiMocks);
+    primeKnowledgeApiMocks(knowledgeApiMocks);
   });
 
   it("在相同输入下保持返回对象和 loadCorpus 引用稳定", () => {
