@@ -19,6 +19,7 @@ from negentropy.agents.faculties import (
     internalization_agent,
     perception_agent,
 )
+from negentropy.model_names import canonicalize_model_name
 
 
 NEGENTROPY_SUBAGENT_ORDER = [
@@ -61,9 +62,9 @@ def _model_name(model: Any) -> Optional[str]:
         return None
     model_name = getattr(model, "model", None)
     if isinstance(model_name, str) and model_name:
-        return model_name
+        return canonicalize_model_name(model_name)
     as_text = str(model)
-    return as_text or None
+    return canonicalize_model_name(as_text) or None
 
 
 def _to_json_compatible(value: Any) -> Any:

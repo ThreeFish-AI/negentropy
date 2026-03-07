@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 import json
 
 from negentropy.logging import get_logger
+from negentropy.model_names import canonicalize_model_name
 from opentelemetry import trace
 from litellm.integrations.opentelemetry import OpenTelemetry
 
@@ -15,16 +16,7 @@ def _normalize_model_name(model: str) -> str:
 
     Ensures GLM models always have the 'zai/' prefix for consistent naming.
     """
-    if not model:
-        return model
-    # If already has vendor prefix, return as-is
-    if "/" in model:
-        return model
-    # Add zai prefix for GLM models
-    model_lower = model.lower()
-    if model_lower.startswith("glm"):
-        return f"zai/{model}"
-    return model
+    return canonicalize_model_name(model) or model
 
 
 def _calculate_custom_cost(kwargs: dict, response_obj: Any) -> Optional[float]:
@@ -91,7 +83,7 @@ class LiteLLMLoggingCallback:
         """Log successful LLM interaction."""
         self._ensure_tracing()
         try:
-            model = kwargs.get("model", "unknown")
+            model = _normalize_model_name(kwargs.get("model", "unknown"))
             input_tokens = 0
             output_tokens = 0
 
@@ -137,7 +129,7 @@ class LiteLLMLoggingCallback:
     def log_failure_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
         """Log failed LLM interaction."""
         try:
-            model = kwargs.get("model", "unknown")
+            model = _normalize_model_name(kwargs.get("model", "unknown"))
             exception = kwargs.get("exception", "unknown error")
 
             latency_ms = (end_time - start_time).total_seconds() * 1000
@@ -209,8 +201,15 @@ def patch_litellm_otel_cost() -> None:
             # Normalize model name for consistent Langfuse reporting
             model = kwargs.get("model", "unknown")
             normalized_model = _normalize_model_name(model)
+            response_model = None
+            if response_obj is not None and hasattr(response_obj, "get"):
+                response_model = response_obj.get("model")
+            normalized_response_model = _normalize_model_name(response_model) if response_model else None
+
             if normalized_model != model:
                 self.safe_set_attribute(span, "gen_ai.request.model", normalized_model)
+            if normalized_response_model and normalized_response_model != response_model:
+                self.safe_set_attribute(span, "gen_ai.response.model", normalized_response_model)
 
             # Extract and inject cost
             cost = _extract_total_cost(kwargs, response_obj)

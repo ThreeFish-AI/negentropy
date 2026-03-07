@@ -7,6 +7,7 @@ from negentropy.agents.faculties import (
     internalization_agent,
     perception_agent,
 )
+from negentropy.model_names import canonicalize_model_name
 from negentropy.plugins.subagent_presets import (
     NEGENTROPY_SUBAGENT_NAMES,
     build_negentropy_subagent_payloads,
@@ -35,6 +36,9 @@ def test_builtin_payload_matches_faculty_definition():
         assert payload["system_prompt"] == faculty.instruction
         assert payload["agent_type"] == "llm_agent"
         assert payload["tools"] == _tool_names(faculty)
+        expected_model = canonicalize_model_name(getattr(faculty.model, "model", str(faculty.model)))
+        assert payload["model"] == expected_model
         assert payload["adk_config"]["name"] == faculty.name
         assert payload["adk_config"]["instruction"] == faculty.instruction
         assert payload["adk_config"]["tools"] == _tool_names(faculty)
+        assert payload["adk_config"]["model"] == expected_model
