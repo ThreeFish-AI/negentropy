@@ -4,6 +4,12 @@ import type { KnowledgeFeatureMockSet } from "@/tests/helpers/knowledge";
 import { resetKnowledgeFeatureMocks } from "@/tests/helpers/knowledge";
 import {
   buildKnowledgeBaseHookState,
+  createKnowledgeBaseCorpus,
+  createKnowledgeBaseDocument,
+  createKnowledgeBaseDocumentChunk,
+  createKnowledgeBaseHierarchicalSearchResult,
+  createKnowledgeBaseSearchResult,
+  knowledgeBasePageSearchParams,
   primeKnowledgeBasePageLocalMocks,
   resetKnowledgeBasePageLocalMocks,
   type KnowledgeBasePageLocalMocks,
@@ -174,7 +180,7 @@ describe("KnowledgeBasePage", () => {
 
   it("点击 Delete 后会在页面中央打开确认框，并可取消", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -196,7 +202,7 @@ describe("KnowledgeBasePage", () => {
 
   it("overview Corpus 卡片收敛展示 canonical 摘要并移除 Add Documents", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -236,7 +242,7 @@ describe("KnowledgeBasePage", () => {
 
   it("点击删除确认框空白处会关闭弹框", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -255,7 +261,7 @@ describe("KnowledgeBasePage", () => {
 
   it("确认删除当前 Corpus 后会执行删除并跳回 overview", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -329,13 +335,11 @@ describe("KnowledgeBasePage", () => {
     const user = userEvent.setup();
     fetchDocumentsMock.mockResolvedValueOnce({
       items: [
-        {
-          id: "doc-1",
+        createKnowledgeBaseDocument({
           original_filename: "example.md",
           status: "ready",
           file_size: 123,
-          metadata: { source_type: "file" },
-        },
+        }),
       ],
     });
 
@@ -361,13 +365,11 @@ describe("KnowledgeBasePage", () => {
     const user = userEvent.setup();
     fetchDocumentsMock.mockResolvedValueOnce({
       items: [
-        {
-          id: "doc-1",
+        createKnowledgeBaseDocument({
           original_filename: "example.md",
           status: "ready",
           file_size: 123,
-          metadata: { source_type: "file" },
-        },
+        }),
       ],
     });
 
@@ -463,8 +465,7 @@ describe("KnowledgeBasePage", () => {
   });
 
   it("settings 视图显示 Settings 配置模块", async () => {
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+    searchParamsState.value = knowledgeBasePageSearchParams.settings;
 
     render(<KnowledgeBasePage />);
 
@@ -485,16 +486,11 @@ describe("KnowledgeBasePage", () => {
   });
 
   it("settings 视图会回显新建 corpus 由后端注入的默认 extraction routes", async () => {
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+    searchParamsState.value = knowledgeBasePageSearchParams.settings;
 
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [
-        {
-          id: "11111111-1111-1111-1111-111111111111",
-          name: "Corpus Alpha",
-          app_name: "negentropy",
-          knowledge_count: 3,
+        createKnowledgeBaseCorpus({
           config: {
             extractor_routes: {
               url: {
@@ -510,7 +506,7 @@ describe("KnowledgeBasePage", () => {
               file_pdf: { targets: [] },
             },
           },
-        },
+        }),
       ],
       isLoading: false,
       loadCorpora: loadCorporaMock,
@@ -534,8 +530,7 @@ describe("KnowledgeBasePage", () => {
 
   it("settings 视图选择 MCP Server 后不会回退为未配置，并可继续选择 Tool 后保存", async () => {
     const user = userEvent.setup();
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+    searchParamsState.value = knowledgeBasePageSearchParams.settings;
 
     render(<KnowledgeBasePage />);
 
@@ -588,16 +583,11 @@ describe("KnowledgeBasePage", () => {
   });
 
   it("settings 视图会保留当前不可用的已配置 MCP Server 与 Tool 回显", async () => {
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+    searchParamsState.value = knowledgeBasePageSearchParams.settings;
 
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [
-        {
-          id: "11111111-1111-1111-1111-111111111111",
-          name: "Corpus Alpha",
-          app_name: "negentropy",
-          knowledge_count: 3,
+        createKnowledgeBaseCorpus({
           config: {
             extractor_routes: {
               url: {
@@ -613,7 +603,7 @@ describe("KnowledgeBasePage", () => {
               file_pdf: { targets: [] },
             },
           },
-        },
+        }),
       ],
       isLoading: false,
       loadCorpora: loadCorporaMock,
@@ -649,16 +639,9 @@ describe("KnowledgeBasePage", () => {
 
   it("外部 corpus 刷新不会覆盖 settings 视图中未保存的 MCP 草稿", async () => {
     const user = userEvent.setup();
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+    searchParamsState.value = knowledgeBasePageSearchParams.settings;
 
-    const baseCorpus = {
-      id: "11111111-1111-1111-1111-111111111111",
-      name: "Corpus Alpha",
-      app_name: "negentropy",
-      knowledge_count: 3,
-      config: {},
-    };
+    const baseCorpus = createKnowledgeBaseCorpus();
     const refreshedCorpus = {
       ...baseCorpus,
       config: {
@@ -732,8 +715,7 @@ describe("KnowledgeBasePage", () => {
 
   it("settings 视图中 semantic 与 hierarchical 只展示各自有效字段", async () => {
     const user = userEvent.setup();
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=settings";
+    searchParamsState.value = knowledgeBasePageSearchParams.settings;
 
     render(<KnowledgeBasePage />);
 
@@ -759,8 +741,7 @@ describe("KnowledgeBasePage", () => {
   });
 
   it("进入 document-chunks 视图时使用不超过后端约束的 limit=200", async () => {
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=document-chunks&documentId=doc-1";
+    searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
 
     render(<KnowledgeBasePage />);
 
@@ -777,7 +758,7 @@ describe("KnowledgeBasePage", () => {
 
   it("检索后默认隐藏 Corpus 集合，并通过底部按钮展开与收起", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -813,7 +794,7 @@ describe("KnowledgeBasePage", () => {
 
   it("新的检索会重置已展开的 Corpus 面板为收起状态", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -848,7 +829,7 @@ describe("KnowledgeBasePage", () => {
 
   it("点击收起结果后回到默认布局并保留检索条件", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -881,7 +862,7 @@ describe("KnowledgeBasePage", () => {
 
   it("点击收起结果会关闭已打开的检索结果模态框", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -908,7 +889,7 @@ describe("KnowledgeBasePage", () => {
 
   it("点击检索结果会打开居中 Chunk Detail 模态框，并可通过遮罩关闭", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -939,35 +920,7 @@ describe("KnowledgeBasePage", () => {
     const user = userEvent.setup();
     searchParamsState.value = "view=overview";
     searchAcrossCorporaMock.mockResolvedValueOnce({
-      items: [
-        {
-          id: "chunk-parent-1",
-          content: "parent chunk content with enough text to preview",
-          source_uri: "https://example.com/hierarchical",
-          combined_score: 0.43,
-          metadata: {
-            corpus_id: "11111111-1111-1111-1111-111111111111",
-            original_filename: "Understanding and Using Context.pdf",
-            returned_parent_chunk: true,
-            parent_chunk_index: 6,
-            matched_child_chunk_indices: [13, 8],
-            matched_child_chunks: [
-              {
-                id: "child-13",
-                child_chunk_index: 13,
-                content: "Context is any information that can be used to characterize the",
-                combined_score: 0.43,
-              },
-              {
-                id: "child-8",
-                child_chunk_index: 8,
-                content: "specific. Context is all about the whole situation relevant and its",
-                combined_score: 0.4,
-              },
-            ],
-          },
-        },
-      ],
+      items: [createKnowledgeBaseHierarchicalSearchResult()],
     });
 
     render(<KnowledgeBasePage />);
@@ -1003,10 +956,10 @@ describe("KnowledgeBasePage", () => {
 
   it("字符串形式的 chunk 编号也能正确展示", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
     searchAcrossCorporaMock.mockResolvedValueOnce({
       items: [
-        {
+        createKnowledgeBaseSearchResult({
           id: "chunk-string-1",
           content: "string indexed chunk",
           source_uri: "https://example.com/string",
@@ -1016,7 +969,7 @@ describe("KnowledgeBasePage", () => {
             chunk_index: "47",
             original_filename: "string-indexed.pdf",
           },
-        },
+        }),
         {
           id: "chunk-parent-string-1",
           content: "hierarchical string indexed chunk",
@@ -1063,10 +1016,10 @@ describe("KnowledgeBasePage", () => {
 
   it("缺失 chunk 编号时会明确降级为问号", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
     searchAcrossCorporaMock.mockResolvedValueOnce({
       items: [
-        {
+        createKnowledgeBaseSearchResult({
           id: "chunk-no-index-1",
           content: "chunk without index",
           source_uri: "https://example.com/no-index",
@@ -1075,7 +1028,7 @@ describe("KnowledgeBasePage", () => {
             corpus_id: "11111111-1111-1111-1111-111111111111",
             original_filename: "missing-index.pdf",
           },
-        },
+        }),
       ],
     });
 
@@ -1098,18 +1051,9 @@ describe("KnowledgeBasePage", () => {
 
   it("document-chunks 视图仍使用右侧抽屉展示详情", async () => {
     const user = userEvent.setup();
-    searchParamsState.value =
-      "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=document-chunks&documentId=doc-1";
+    searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
     fetchDocumentChunksMock.mockResolvedValueOnce({
-      items: [
-        {
-          id: "doc-chunk-1",
-          content: "document chunk content",
-          source_uri: "doc://alpha",
-          chunk_index: 2,
-          metadata: { chunk_role: "leaf" },
-        },
-      ],
+      items: [createKnowledgeBaseDocumentChunk()],
     });
 
     render(<KnowledgeBasePage />);
@@ -1129,7 +1073,7 @@ describe("KnowledgeBasePage", () => {
 
   it("未选中任何 Corpus 时禁用 Retrieve，并且不会发起检索", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     render(<KnowledgeBasePage />);
 
@@ -1152,17 +1096,11 @@ describe("KnowledgeBasePage", () => {
 
   it("仅将选中的 Corpus 传给检索接口，并使用全宽停靠容器", async () => {
     const user = userEvent.setup();
-    searchParamsState.value = "view=overview";
+    searchParamsState.value = knowledgeBasePageSearchParams.overview;
 
     useKnowledgeBaseMock.mockImplementation(() => ({
       corpora: [
-        {
-          id: "11111111-1111-1111-1111-111111111111",
-          name: "Corpus Alpha",
-          app_name: "negentropy",
-          knowledge_count: 3,
-          config: {},
-        },
+        createKnowledgeBaseCorpus(),
         {
           id: "22222222-2222-2222-2222-222222222222",
           name: "Corpus Beta",
