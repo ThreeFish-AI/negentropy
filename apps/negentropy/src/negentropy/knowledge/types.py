@@ -309,7 +309,7 @@ def default_chunking_config() -> ChunkingConfigValue:
 def serialize_chunking_config(config: ChunkingConfigValue | None) -> Dict[str, Any]:
     if config is None:
         return {}
-    return config.model_dump(mode="python")
+    return config.model_dump(mode="json")
 
 
 def normalize_chunking_config(

@@ -38,11 +38,25 @@ class FakeStorageService:
         return self.markdown
 
 
+class FakeScalarSession:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def scalar(self, stmt):
+        _ = stmt
+        return 0
+
+
 class FakeKnowledgeService:
     def __init__(self):
         self.list_knowledge_calls = []
         self.pipeline_calls = []
         self.search_calls = []
+        self.ensure_corpus_calls = []
+        self.update_corpus_calls = []
 
     async def list_knowledge(self, **kwargs):
         self.list_knowledge_calls.append(kwargs)
@@ -67,6 +81,26 @@ class FakeKnowledgeService:
     async def create_pipeline(self, **kwargs):
         self.pipeline_calls.append(kwargs)
         return "run-test-001"
+
+    async def ensure_corpus(self, spec):
+        self.ensure_corpus_calls.append(spec)
+        return SimpleNamespace(
+            id=uuid4(),
+            app_name=spec.app_name,
+            name=spec.name,
+            description=spec.description,
+            config=spec.config,
+        )
+
+    async def update_corpus(self, corpus_id, spec):
+        self.update_corpus_calls.append({"corpus_id": corpus_id, "spec": spec})
+        return SimpleNamespace(
+            id=corpus_id,
+            app_name="negentropy",
+            name=spec.get("name", "updated-corpus"),
+            description=spec.get("description"),
+            config=spec.get("config", {}),
+        )
 
     async def execute_replace_source_pipeline(self, **kwargs):
         _ = kwargs
@@ -129,6 +163,65 @@ async def test_list_document_chunks_success(monkeypatch):
     assert len(result.items) == 1
     assert result.items[0]["source_uri"] == "https://example.com/a"
     assert fake_service.list_knowledge_calls[0]["source_uri"] == "https://example.com/a"
+
+
+@pytest.mark.asyncio
+async def test_create_corpus_serializes_chunking_strategy_to_string(monkeypatch):
+    fake_service = FakeKnowledgeService()
+
+    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+
+    result = await knowledge_api.create_corpus(
+        knowledge_api.CorpusCreateRequest(
+            app_name="negentropy",
+            name="docs",
+            description="Knowledge base",
+            config={
+                "strategy": "hierarchical",
+                "preserve_newlines": True,
+                "separators": ["###"],
+                "hierarchical_parent_chunk_size": 1500,
+                "hierarchical_child_chunk_size": 500,
+                "hierarchical_child_overlap": 150,
+            },
+        )
+    )
+
+    spec = fake_service.ensure_corpus_calls[0]
+    assert spec.config["strategy"] == "hierarchical"
+    assert isinstance(spec.config["strategy"], str)
+    assert spec.config["separators"] == ["###"]
+    assert result.config["strategy"] == "hierarchical"
+
+
+@pytest.mark.asyncio
+async def test_update_corpus_serializes_chunking_strategy_to_string(monkeypatch):
+    corpus_id = uuid4()
+    fake_service = FakeKnowledgeService()
+
+    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", lambda: FakeScalarSession())
+
+    result = await knowledge_api.update_corpus(
+        corpus_id=corpus_id,
+        payload=knowledge_api.CorpusUpdateRequest(
+            config={
+                "strategy": "hierarchical",
+                "preserve_newlines": True,
+                "separators": ["###"],
+                "hierarchical_parent_chunk_size": 1500,
+                "hierarchical_child_chunk_size": 500,
+                "hierarchical_child_overlap": 150,
+            }
+        ),
+    )
+
+    update_call = fake_service.update_corpus_calls[0]
+    assert update_call["corpus_id"] == corpus_id
+    assert update_call["spec"]["config"]["strategy"] == "hierarchical"
+    assert isinstance(update_call["spec"]["config"]["strategy"], str)
+    assert update_call["spec"]["config"]["separators"] == ["###"]
+    assert result.config["strategy"] == "hierarchical"
 
 
 @pytest.mark.asyncio
