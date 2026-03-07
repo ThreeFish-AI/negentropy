@@ -27,19 +27,6 @@ function formatTimestamp(timestamp?: number): string {
   });
 }
 
-function DepthRail({ depth }: { depth: number }) {
-  if (depth <= 0) {
-    return null;
-  }
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute bottom-0 left-0 top-0 border-l border-zinc-200/80 dark:border-zinc-800"
-      style={{ left: `${depth * 18 - 10}px` }}
-    />
-  );
-}
-
 function JsonBlock({ value }: { value: unknown }) {
   return (
     <div className="max-h-64 overflow-auto rounded-xl border border-zinc-200/70 bg-zinc-50 p-2 text-xs dark:border-zinc-800 dark:bg-zinc-950/70">
@@ -328,7 +315,6 @@ export function ConversationNodeRenderer({
 
   return (
     <div className="relative">
-      <DepthRail depth={depth} />
       <div style={{ marginLeft: `${depth * 18}px` }}>
         {content}
         {visibleChildren.length > 0 ? (

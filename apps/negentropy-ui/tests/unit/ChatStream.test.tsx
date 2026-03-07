@@ -81,6 +81,79 @@ describe("ChatStream", () => {
     expect(screen.getAllByText("search").length).toBeGreaterThan(0);
   });
 
+  it("不渲染消息左侧层级竖线，且保留页面级宽度控制", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "turn:1",
+        type: "turn",
+        parentId: null,
+        children: [
+          {
+            id: "message:1",
+            type: "text",
+            parentId: "turn:1",
+            children: [
+              {
+                id: "message:2",
+                type: "text",
+                parentId: "message:1",
+                children: [],
+                threadId: "thread-1",
+                runId: "run-1",
+                messageId: "msg-2",
+                timestamp: 1002,
+                timeRange: { start: 1002, end: 1002 },
+                sourceOrder: 2,
+                title: "继续回复",
+                role: "assistant",
+                visibility: "chat",
+                isStructural: false,
+                payload: { content: "继续说明" },
+                sourceEventTypes: ["text_message_content"],
+                relatedMessageIds: ["msg-2"],
+              },
+            ],
+            threadId: "thread-1",
+            runId: "run-1",
+            messageId: "msg-1",
+            timestamp: 1001,
+            timeRange: { start: 1001, end: 1001 },
+            sourceOrder: 1,
+            title: "助手消息",
+            role: "assistant",
+            visibility: "chat",
+            isStructural: false,
+            payload: { content: "你好" },
+            sourceEventTypes: ["text_message_start"],
+            relatedMessageIds: ["msg-1"],
+          },
+        ],
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1003 },
+        sourceOrder: 0,
+        title: "轮次 run-1",
+        visibility: "chat",
+        isStructural: false,
+        payload: {},
+        sourceEventTypes: ["run_started"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    const { container } = render(
+      <ChatStream nodes={nodes} contentClassName="max-w-4xl" />,
+    );
+
+    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+
+    const contentWrapper = container.querySelector(".space-y-4");
+    expect(contentWrapper?.className).toContain("max-w-4xl");
+    expect(contentWrapper?.className).not.toContain("px-10");
+    expect(contentWrapper?.className).not.toContain("sm:px-12");
+  });
+
   it("不渲染 debug-only 根节点，并将技术节点折叠为摘要卡片", () => {
     const nodes: ConversationNode[] = [
       {
