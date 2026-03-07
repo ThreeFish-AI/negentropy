@@ -1,4 +1,5 @@
 import {
+  buildCorpusConfig,
   createDefaultChunkingConfig,
   fetchCorpus,
   fetchDocumentChunks,
@@ -6,6 +7,7 @@ import {
   ingestFile,
   ingestText,
   KnowledgeError,
+  normalizeCorpusExtractorRoutes,
 } from "@/features/knowledge/utils/knowledge-api";
 
 describe("fetchCorpus", () => {
@@ -147,5 +149,48 @@ describe("fetchCorpus", () => {
     expect(formData.get("hierarchical_parent_chunk_size")).toBe("1024");
     expect(formData.get("hierarchical_child_chunk_size")).toBe("256");
     expect(formData.get("hierarchical_child_overlap")).toBe("51");
+  });
+
+  it("normalizeCorpusExtractorRoutes 与 buildCorpusConfig 会稳定保留 extractor routes 结构", () => {
+    const normalized = normalizeCorpusExtractorRoutes({
+      extractor_routes: {
+        url: {
+          targets: [
+            {
+              server_id: "server-1",
+              tool_name: "fetch_markdown",
+              priority: 0,
+              enabled: true,
+            },
+          ],
+        },
+      },
+    });
+
+    expect(normalized.url.targets).toEqual([
+      expect.objectContaining({
+        server_id: "server-1",
+        tool_name: "fetch_markdown",
+        priority: 0,
+        enabled: true,
+      }),
+    ]);
+    expect(normalized.file_pdf.targets).toEqual([]);
+
+    expect(
+      buildCorpusConfig(createDefaultChunkingConfig(), normalized),
+    ).toMatchObject({
+      extractor_routes: {
+        url: {
+          targets: [
+            expect.objectContaining({
+              server_id: "server-1",
+              tool_name: "fetch_markdown",
+            }),
+          ],
+        },
+        file_pdf: { targets: [] },
+      },
+    });
   });
 });
