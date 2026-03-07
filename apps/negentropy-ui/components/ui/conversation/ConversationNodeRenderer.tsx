@@ -303,6 +303,11 @@ export function ConversationNodeRenderer({
 
   const selected = node.id === selectedNodeId;
   const visibleChildren = node.children.filter((child) => child.visibility !== "debug-only");
+  const shouldOffset = node.type !== "turn" && node.type !== "text";
+  const offsetStyle =
+    shouldOffset && depth > 0
+      ? { marginLeft: `${Math.min(depth, 3) * 18}px` }
+      : undefined;
   const content = (() => {
     if (node.type === "turn") {
       return <TurnNode node={node} selected={selected} onSelect={onNodeSelect} />;
@@ -315,7 +320,7 @@ export function ConversationNodeRenderer({
 
   return (
     <div className="relative">
-      <div style={{ marginLeft: `${depth * 18}px` }}>
+      <div style={offsetStyle}>
         {content}
         {visibleChildren.length > 0 ? (
           <div className="mt-3 space-y-3">
