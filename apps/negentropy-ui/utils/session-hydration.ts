@@ -1,7 +1,11 @@
 import { type BaseEvent, EventType, type Message } from "@ag-ui/core";
 import type { AdkEventPayload } from "@/lib/adk";
-import { adkEventsToMessages, adkEventsToSnapshot } from "@/lib/adk";
-import { mapAdkPayloadToNormalizedAguiEvents } from "@/utils/agui-normalization";
+import {
+  AdkMessageStreamNormalizer,
+  adkEventsToSnapshot,
+  aguiEventsToMessages,
+} from "@/lib/adk";
+import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 import type { ConnectionState } from "@/types/common";
 
 export type HydratedSessionDetail = {
@@ -169,17 +173,38 @@ export function hydrateSessionDetail(
   sessionId: string,
 ): HydratedSessionDetail {
   const runBuckets = new Map<string, BaseEvent[]>();
+  const runNormalizers = new Map<string, AdkMessageStreamNormalizer>();
 
   payloads.forEach((payload) => {
     const runId = fallbackRunId(payload, sessionId);
     const threadId = fallbackThreadId(payload, sessionId);
-    const events = mapAdkPayloadToNormalizedAguiEvents(payload, {
-      threadId,
-      runId,
-    });
+    const normalizer =
+      runNormalizers.get(runId) || new AdkMessageStreamNormalizer();
+    runNormalizers.set(runId, normalizer);
+    const events = normalizer.consume(payload, { threadId, runId }).map((event) =>
+      normalizeAguiEvent(resolveEventRunAndThread(event, { threadId, runId })),
+    );
     const bucket = runBuckets.get(runId) || [];
     bucket.push(...events);
     runBuckets.set(runId, bucket);
+  });
+
+  runBuckets.forEach((events, runId) => {
+    const normalizer = runNormalizers.get(runId);
+    if (!normalizer) {
+      return;
+    }
+    const threadId =
+      events.find(
+        (event) => "threadId" in event && typeof event.threadId === "string",
+      )?.threadId || sessionId;
+    events.push(
+      ...normalizer
+        .flushRun(runId, threadId, normalizeTimestamp(events[events.length - 1]?.timestamp) + 0.001)
+        .map((event) =>
+          normalizeAguiEvent(resolveEventRunAndThread(event, { threadId, runId })),
+        ),
+    );
   });
 
   const normalizedEvents = [...runBuckets.entries()].flatMap(([runId, events]) => {
@@ -227,7 +252,7 @@ export function hydrateSessionDetail(
     return ordered;
   });
 
-  const messages = adkEventsToMessages(payloads);
+  const messages = aguiEventsToMessages(normalizedEvents);
   const snapshot = adkEventsToSnapshot(payloads) || null;
 
   return {
