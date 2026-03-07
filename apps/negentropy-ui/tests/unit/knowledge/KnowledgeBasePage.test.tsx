@@ -1,12 +1,10 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { KnowledgeFeatureMockSet } from "@/tests/helpers/knowledge";
 
 const {
   replaceMock,
   useKnowledgeBaseMock,
-  loadCorpusMock,
-  loadCorporaMock,
-  updateCorpusMock,
   deleteCorpusMock,
   deleteDocumentMock,
   ingestUrlMock,
@@ -26,9 +24,6 @@ const {
 } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   useKnowledgeBaseMock: vi.fn(),
-  loadCorpusMock: vi.fn(),
-  loadCorporaMock: vi.fn(),
-  updateCorpusMock: vi.fn(),
   deleteCorpusMock: vi.fn(),
   deleteDocumentMock: vi.fn(),
   ingestUrlMock: vi.fn(),
@@ -48,6 +43,11 @@ const {
     value: "view=corpus&corpusId=11111111-1111-1111-1111-111111111111&tab=documents",
   },
 }));
+
+const knowledgeMocks = vi.hoisted(() => ({}) as KnowledgeFeatureMockSet);
+const loadCorpusMock = vi.fn();
+const loadCorporaMock = vi.fn();
+const updateCorpusMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
@@ -75,30 +75,24 @@ vi.mock("@/app/knowledge/base/_components/ReplaceDocumentDialog", () => ({
 }));
 
 vi.mock("@/features/knowledge", async () => {
-  const { createKnowledgeFeatureTestHarness } = await import("@/tests/helpers/knowledge");
-  return createKnowledgeFeatureTestHarness(
-    {
-      searchKnowledgeMock: vi.fn(),
-      ingestTextMock: vi.fn(),
-      ingestUrlMock,
-      replaceSourceMock: vi.fn(),
-      fetchKnowledgeItemsMock: vi.fn(),
-      createCorpusMock: vi.fn(),
-      deleteCorpusMock,
-      fetchPipelinesMock: vi.fn(),
-      upsertPipelinesMock: vi.fn(),
-      fetchDocumentsMock,
-      fetchDocumentChunksMock,
-      searchAcrossCorporaMock,
-      syncDocumentMock,
-      rebuildDocumentMock,
-      replaceDocumentMock: replaceDocumentFeatureMock,
-      archiveDocumentMock,
-      unarchiveDocumentMock,
-      downloadDocumentMock,
-      deleteDocumentMock,
-    },
-    {
+  const { createKnowledgeFeatureMockSet, createKnowledgeFeatureTestHarness } = await import(
+    "@/tests/helpers/knowledge"
+  );
+  Object.assign(knowledgeMocks, createKnowledgeFeatureMockSet());
+  knowledgeMocks.ingestUrlMock = ingestUrlMock;
+  knowledgeMocks.deleteCorpusMock = deleteCorpusMock;
+  knowledgeMocks.fetchDocumentsMock = fetchDocumentsMock;
+  knowledgeMocks.fetchDocumentChunksMock = fetchDocumentChunksMock;
+  knowledgeMocks.searchAcrossCorporaMock = searchAcrossCorporaMock;
+  knowledgeMocks.syncDocumentMock = syncDocumentMock;
+  knowledgeMocks.rebuildDocumentMock = rebuildDocumentMock;
+  knowledgeMocks.replaceDocumentMock = replaceDocumentFeatureMock;
+  knowledgeMocks.archiveDocumentMock = archiveDocumentMock;
+  knowledgeMocks.unarchiveDocumentMock = unarchiveDocumentMock;
+  knowledgeMocks.downloadDocumentMock = downloadDocumentMock;
+  knowledgeMocks.deleteDocumentMock = deleteDocumentMock;
+
+  return createKnowledgeFeatureTestHarness(knowledgeMocks, {
       useKnowledgeBase: (...args: unknown[]) => useKnowledgeBaseMock(...args),
       DocumentViewDialog: ({
         isOpen,
