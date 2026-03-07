@@ -249,6 +249,26 @@ describe("KnowledgeBasePage", () => {
     expect(deleteCorpusMock).not.toHaveBeenCalled();
   });
 
+  it("overview Corpus 卡片收敛展示 canonical 摘要并移除 Add Documents", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = "view=overview";
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(screen.queryByRole("button", { name: "Add Documents" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("chunks: 3 · strategy: recursive · size: 800 · overlap: 100"),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
   it("点击删除确认框空白处会关闭弹框", async () => {
     const user = userEvent.setup();
     searchParamsState.value = "view=overview";
