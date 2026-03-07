@@ -27,6 +27,9 @@ import type { SessionListView } from "@/utils/session";
 import {
   normalizeMessageContent,
 } from "@/utils/message";
+import {
+  reconcileOptimisticMessages,
+} from "@/utils/message-merge";
 import { buildTimelineItems } from "@/utils/timeline";
 import { buildStateSnapshotFromEvents } from "@/utils/state";
 import {
@@ -704,10 +707,12 @@ export function HomeBody({
     }
 
     const messageId = crypto.randomUUID();
+    const createdAt = new Date();
     const newMessage = {
       id: messageId,
       role: "user",
       content: inputValue.trim(),
+      createdAt,
     } as Message;
     // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
     // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
@@ -778,14 +783,17 @@ export function HomeBody({
   }, [selectedNodeId, snapshotForRender, historicalSnapshot]);
 
   const mergedMessagesForRender = useMemo(() => {
+    const pendingOptimistic = reconcileOptimisticMessages(
+      messagesForRenderBase,
+      optimisticMessages,
+    );
     const knownIds = new Set(
       messagesForRenderBase
         .filter((message) => normalizeMessageContent(message).trim().length > 0)
         .map((message) => message.id),
     );
 
-    // Filter out optimistic messages that are already in the base messages
-    const validOptimistic = optimisticMessages.filter(
+    const validOptimistic = pendingOptimistic.filter(
       (message) => !knownIds.has(message.id),
     );
 

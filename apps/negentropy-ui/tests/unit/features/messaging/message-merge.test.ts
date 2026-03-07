@@ -5,7 +5,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { mergeOptimisticMessages } from "@/utils/message-merge";
+import {
+  mergeOptimisticMessages,
+  reconcileOptimisticMessages,
+} from "@/utils/message-merge";
 import type { Message } from "@ag-ui/core";
 
 describe("mergeOptimisticMessages", () => {
@@ -97,5 +100,58 @@ describe("mergeOptimisticMessages", () => {
     expect(result[0].id).toBe("1");
     expect(result[1].id).toBe("2");
     expect(result[2].id).toBe("3");
+  });
+});
+
+describe("reconcileOptimisticMessages", () => {
+  it("应该在服务端确认后回收同内容的乐观用户消息", () => {
+    const base: Message[] = [
+      {
+        id: "server-1",
+        role: "user",
+        content: "Hi",
+        createdAt: new Date("2026-03-07T10:00:02.000Z"),
+      },
+    ];
+    const optimistic: Message[] = [
+      {
+        id: "local-1",
+        role: "user",
+        content: "Hi",
+        createdAt: new Date("2026-03-07T10:00:01.000Z"),
+      },
+    ];
+
+    expect(reconcileOptimisticMessages(base, optimistic)).toEqual([]);
+  });
+
+  it("应该在仅有一次确认时保留剩余的重复乐观消息", () => {
+    const base: Message[] = [
+      {
+        id: "server-1",
+        role: "user",
+        content: "Hi",
+        createdAt: new Date("2026-03-07T10:00:02.000Z"),
+      },
+    ];
+    const optimistic: Message[] = [
+      {
+        id: "local-1",
+        role: "user",
+        content: "Hi",
+        createdAt: new Date("2026-03-07T10:00:01.000Z"),
+      },
+      {
+        id: "local-2",
+        role: "user",
+        content: "Hi",
+        createdAt: new Date("2026-03-07T10:00:03.000Z"),
+      },
+    ];
+
+    const result = reconcileOptimisticMessages(base, optimistic);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("local-2");
   });
 });

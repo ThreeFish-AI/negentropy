@@ -47,11 +47,12 @@ function emitEvent(event: BaseEvent) {
 }
 
 function emitAssistantReply(sessionId: string, messageId: string, content: string) {
+  const timestamp = Date.now() / 1000;
   emitEvent({
     type: EventType.RUN_STARTED,
     threadId: sessionId,
     runId: sessionId,
-    timestamp: 1001,
+    timestamp,
   } as BaseEvent);
   emitEvent({
     type: EventType.TEXT_MESSAGE_START,
@@ -59,7 +60,7 @@ function emitAssistantReply(sessionId: string, messageId: string, content: strin
     runId: sessionId,
     messageId,
     role: "assistant",
-    timestamp: 1002,
+    timestamp: timestamp + 0.001,
   } as BaseEvent);
   emitEvent({
     type: EventType.TEXT_MESSAGE_CONTENT,
@@ -67,14 +68,14 @@ function emitAssistantReply(sessionId: string, messageId: string, content: strin
     runId: sessionId,
     messageId,
     delta: content,
-    timestamp: 1003,
+    timestamp: timestamp + 0.002,
   } as BaseEvent);
   emitEvent({
     type: EventType.TEXT_MESSAGE_END,
     threadId: sessionId,
     runId: sessionId,
     messageId,
-    timestamp: 1004,
+    timestamp: timestamp + 0.003,
   } as BaseEvent);
 }
 
@@ -102,6 +103,7 @@ describe("HomeBody integration", () => {
         mockAgent.messages = [...mockAgent.messages, message];
       }),
       runAgent: vi.fn().mockImplementation(async () => {
+        const timestamp = Date.now() / 1000;
         subscriptionHandlers?.onRunInitialized?.();
         subscriptionHandlers?.onRunStartedEvent?.();
         emitAssistantReply("s1", "assistant-1", "world");
@@ -110,7 +112,7 @@ describe("HomeBody integration", () => {
             id: "assistant-1",
             runId: "s1",
             threadId: "s1",
-            timestamp: 1004,
+            timestamp: timestamp + 0.01,
             message: { role: "assistant", content: "world" },
           },
         ];
@@ -177,6 +179,7 @@ describe("HomeBody integration", () => {
   it("历史回拉暂时为空时，实时 assistant 回复不会被清空", async () => {
     const user = userEvent.setup();
     mockAgent.runAgent.mockImplementationOnce(async () => {
+      const timestamp = Date.now() / 1000;
       subscriptionHandlers?.onRunInitialized?.();
       subscriptionHandlers?.onRunStartedEvent?.();
       emitAssistantReply("s1", "assistant-delayed", "delayed world");
@@ -187,7 +190,7 @@ describe("HomeBody integration", () => {
             id: "assistant-delayed",
             runId: "s1",
             threadId: "s1",
-            timestamp: 1004,
+            timestamp: timestamp + 0.01,
             message: { role: "assistant", content: "delayed world" },
           },
         ];
@@ -252,6 +255,45 @@ describe("HomeBody integration", () => {
     expect(
       hello.compareDocumentPosition(hi) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  }, 10000);
+
+  it("历史回拉确认用户消息时不会显示两个相同的 Hi", async () => {
+    const user = userEvent.setup();
+    mockAgent.runAgent.mockImplementationOnce(async () => {
+      const timestamp = Date.now() / 1000;
+      subscriptionHandlers?.onRunInitialized?.();
+      subscriptionHandlers?.onRunStartedEvent?.();
+      emitAssistantReply("s1", "assistant-1", "你好");
+      detailEvents = [
+        {
+          id: "server-user-1",
+          runId: "s1",
+          threadId: "s1",
+          timestamp: timestamp + 0.01,
+          message: { role: "user", content: "Hi" },
+        },
+        {
+          id: "assistant-1",
+          runId: "s1",
+          threadId: "s1",
+          timestamp: timestamp + 0.02,
+          message: { role: "assistant", content: "你好" },
+        },
+      ];
+      subscriptionHandlers?.onRunFinishedEvent?.();
+      return { result: "ok" };
+    });
+
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    const input = screen.getByPlaceholderText("输入指令...");
+    await user.type(input, "Hi");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText((content) => content.includes("Hi"))).toHaveLength(1);
+    });
   }, 10000);
 
   it("handles HITL confirmation flow", async () => {

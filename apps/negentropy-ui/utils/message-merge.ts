@@ -8,6 +8,10 @@
 import { Message } from "@ag-ui/core";
 import { normalizeMessageContent } from "./message";
 
+type TimedMessage = Message & {
+  createdAt?: Date;
+};
+
 /**
  * 合并乐观消息到基础消息列表
  *
@@ -71,4 +75,65 @@ export function mergeOptimisticMessages(
   });
 
   return merged;
+}
+
+export function reconcileOptimisticMessages(
+  messagesForRenderBase: Message[],
+  optimisticMessages: Message[],
+): Message[] {
+  const canonicalByKey = new Map<string, TimedMessage[]>();
+
+  messagesForRenderBase.forEach((message) => {
+    if (message.role !== "user") {
+      return;
+    }
+    const content = normalizeMessageContent(message).trim();
+    if (!content) {
+      return;
+    }
+    const key = `${message.role}:${content}`;
+    const bucket = canonicalByKey.get(key) || [];
+    bucket.push(message as TimedMessage);
+    canonicalByKey.set(key, bucket);
+  });
+
+  canonicalByKey.forEach((bucket) => {
+    bucket.sort((a, b) => {
+      const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+      const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+      return aTime - bTime;
+    });
+  });
+
+  return optimisticMessages.filter((message) => {
+    if (message.role !== "user") {
+      return true;
+    }
+
+    const content = normalizeMessageContent(message).trim();
+    if (!content) {
+      return true;
+    }
+
+    const key = `${message.role}:${content}`;
+    const bucket = canonicalByKey.get(key);
+    if (!bucket || bucket.length === 0) {
+      return true;
+    }
+
+    const optimisticTime =
+      message.createdAt instanceof Date ? message.createdAt.getTime() : Date.now();
+    const canonicalIndex = bucket.findIndex((candidate) => {
+      const candidateTime =
+        candidate.createdAt instanceof Date ? candidate.createdAt.getTime() : optimisticTime;
+      return candidateTime >= optimisticTime - 2000;
+    });
+
+    if (canonicalIndex === -1) {
+      return true;
+    }
+
+    bucket.splice(canonicalIndex, 1);
+    return false;
+  });
 }
