@@ -139,6 +139,22 @@ export function mergeEvents(baseEvents: BaseEvent[], incomingEvents: BaseEvent[]
   });
 }
 
+export function hasSameEventSequence(left: BaseEvent[], right: BaseEvent[]): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    if (eventKey(left[index]!) !== eventKey(right[index]!)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function mergeMessages(baseMessages: Message[], incomingMessages: Message[]): Message[] {
   const merged = new Map<string, AgUiMessage>();
 
@@ -174,6 +190,31 @@ export function mergeMessages(baseMessages: Message[], incomingMessages: Message
     }
     return a.id.localeCompare(b.id);
   });
+}
+
+export function hasSameMessageSequence(left: Message[], right: Message[]): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftMessage = left[index] as AgUiMessage;
+    const rightMessage = right[index] as AgUiMessage;
+    if (getMessageIdentityKey(leftMessage) !== getMessageIdentityKey(rightMessage)) {
+      return false;
+    }
+    if (normalizeMessageContent(leftMessage) !== normalizeMessageContent(rightMessage)) {
+      return false;
+    }
+    if ((leftMessage.streaming === true) !== (rightMessage.streaming === true)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export function hydrateSessionDetail(

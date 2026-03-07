@@ -298,6 +298,82 @@ describe("HomeBody integration", () => {
     });
   }, 10000);
 
+  it("assistant 实时流与最终回拉 messageId 不同时仍只显示一个最终 bubble", async () => {
+    const user = userEvent.setup();
+    const finalReply = "我可以帮助你规划任务、分析代码并直接修改实现。";
+
+    mockAgent.runAgent.mockImplementationOnce(async () => {
+      const timestamp = Date.now() / 1000;
+      subscriptionHandlers?.onRunInitialized?.();
+      subscriptionHandlers?.onRunStartedEvent?.();
+      emitEvent(createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "s1",
+        runId: "s1",
+        timestamp,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        role: "assistant",
+        timestamp: timestamp + 0.001,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        delta: "我可以帮助你规划任务",
+        timestamp: timestamp + 0.002,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        delta: finalReply,
+        timestamp: timestamp + 0.003,
+      }));
+      emitEvent(createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "s1",
+        runId: "s1",
+        messageId: "assistant-live",
+        timestamp: timestamp + 0.004,
+      }));
+
+      detailEvents = [
+        {
+          id: "assistant-final",
+          runId: "s1",
+          threadId: "s1",
+          timestamp: timestamp + 0.02,
+          message: { role: "assistant", content: finalReply },
+        },
+      ];
+      subscriptionHandlers?.onRunFinishedEvent?.();
+      return { result: "ok" };
+    });
+
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    await user.type(screen.getByPlaceholderText("输入指令..."), "你能帮我做什么？");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText(finalReply)).toBeInTheDocument();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText(finalReply)).toHaveLength(1);
+    });
+  }, 10000);
+
   it("handles HITL confirmation flow", async () => {
     const user = userEvent.setup();
     render(<Wrapper sessionId="s1" />);

@@ -49,4 +49,29 @@ describe("MessageBubble", () => {
     expect(avatarRail?.className).toContain("left-0");
     expect(avatarRail?.className).toContain("-translate-x-[calc(100%+0.75rem)]");
   });
+
+  it("流式回复在结束前按纯文本稳定渲染并显示状态", () => {
+    render(
+      <MessageBubble
+        message={{
+          id: "a-stream",
+          role: "assistant",
+          content: "**加粗**\n- 列表项",
+          streaming: true,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText((content, element) => {
+        return (
+          element?.tagName === "DIV" &&
+          content.includes("**加粗**") &&
+          content.includes("- 列表项")
+        );
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Streaming")).toBeInTheDocument();
+    expect(screen.getByText("实时生成中")).toBeInTheDocument();
+  });
 });

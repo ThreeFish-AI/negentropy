@@ -216,6 +216,14 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
+function StreamingText({ content }: { content: string }) {
+  return (
+    <div className="whitespace-pre-wrap break-words text-sm leading-7 text-inherit">
+      {content}
+    </div>
+  );
+}
+
 export function MessageBubble({
   message,
   isSelected,
@@ -311,71 +319,51 @@ export function MessageBubble({
                 "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
           >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code({ className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  const isMermaid = match && match[1] === "mermaid";
-                  // @ts-expect-error - 'inline' is sometimes passed by react-markdown but missing in types depending on version
-                  const isInline = props.inline;
+            {isStreaming ? (
+              <StreamingText content={content} />
+            ) : (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    const isMermaid = match && match[1] === "mermaid";
+                    // @ts-expect-error - 'inline' is sometimes passed by react-markdown but missing in types depending on version
+                    const isInline = props.inline;
 
-                  if (isMermaid) {
+                    if (isMermaid) {
+                      return (
+                        <MermaidDiagram
+                          code={String(children).replace(/\n$/, "")}
+                        />
+                      );
+                    }
+
+                    if (!isInline && match) {
+                      return (
+                        <div className="relative group">
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                          <CopyButton code={String(children)} />
+                        </div>
+                      );
+                    }
+
                     return (
-                      <MermaidDiagram
-                        code={String(children).replace(/\n$/, "")}
-                      />
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
                     );
-                  }
-
-                  if (!isInline && match) {
-                    return (
-                      <div className="relative group">
-                        {/* Native code element will be rendered inside pre by default, but here we are inside code.
-                             Actually, if we are in 'code' component, we are INSIDE the 'pre' if it's a block.
-                             If we render a div here, we are inside pre.
-                             Styling might be tricky.
-                             Better approach: just use the pre style for the block, and add a copy button relative to it?
-                             React-Markdown renders 'pre' then 'code'.
-                             If we want to add a button, we ideally want to be properly positioned.
-                             Let's just return the code as is, but maybe use 'pre' override?
-                             No, 'pre' override is safer for the button placement.
-                             Let's revert to simple code return here and override PRE.
-                          */}
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                        <CopyButton code={String(children)} />
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                },
-                // Override pre to handle positioning if needed, or just handle it in code.
-                // Actually, doing it in 'code' inside 'pre' is messy because 'pre' has the background.
-                // Let's rely on MessageBubble css for pre.
-                // If I modify code to return a div, 'pre > div' is valid HTML5? No, pre should contain phrasing content (code).
-                // But for React rendering it works visually.
-                // Let's try to keeping it simple: Just add the button in 'code' and position it.
-                // The 'pre' has relative positioning?
-                pre({ children }) {
-                  // Extract code string? Children of pre is code.
-                  // It's hard to get the raw text easily from pre children if it's a React element.
-                  // So doing it in 'code' is easier for accessing text.
-                  // If we render a div inside pre, we might break the 'pre' scrolling or styling if not careful.
-                  // Let's use a simpler approach: Just add the button in 'code' and position it.
-                  // The 'pre' has relative positioning?
-                  return <pre className="relative group">{children}</pre>;
-                },
-              }}
-            >
-              {content}
-            </ReactMarkdown>
+                  },
+                  pre({ children }) {
+                    return <pre className="relative group">{children}</pre>;
+                  },
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            )}
             {isStreaming ? (
               <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
