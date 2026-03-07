@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { ToolCallList } from "./ToolCallBubble";
+import { UserAvatar } from "./UserAvatar";
 
 type ChatMessageProps = {
   message: ChatMessage;
@@ -250,17 +251,14 @@ export function MessageBubble({
       {/* Avatar */}
       <div className="shrink-0">
         {isUser ? (
-          user?.picture ? (
-            <img
-              src={user.picture}
-              alt="Me"
-              className="w-8 h-8 rounded-full border border-border"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">
-              U
-            </div>
-          )
+          <UserAvatar
+            picture={user?.picture}
+            name={user?.name}
+            email={user?.email}
+            alt="Me"
+            className="h-8 w-8 border border-border object-cover"
+            fallbackClassName="bg-foreground text-background text-xs"
+          />
         ) : (
           <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm ring-2 ring-primary/20 shrink-0 overflow-hidden">
             <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
