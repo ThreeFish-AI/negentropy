@@ -72,10 +72,14 @@ export async function PATCH(
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.UPSTREAM_ERROR,
-      text || "Upstream returned non-OK status",
-      upstreamResponse.status
+    return NextResponse.json(
+      {
+        error: {
+          code: AGUI_ERROR_CODES.UPSTREAM_ERROR,
+          message: text || "Upstream returned non-OK status",
+        },
+      },
+      { status: upstreamResponse.status },
     );
   }
 

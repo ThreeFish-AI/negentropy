@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
 import { getAuthBaseUrl } from "../../../_config";
 
 export async function PATCH(
-  request: Request,
-  context: { params: { user_id: string } },
+  request: NextRequest,
+  context: { params: Promise<{ user_id: string }> },
 ) {
   const baseUrl = getAuthBaseUrl();
   if (!baseUrl) {
@@ -14,7 +14,8 @@ export async function PATCH(
     );
   }
 
-  const userId = encodeURIComponent(context.params.user_id);
+  const { user_id } = await context.params;
+  const userId = encodeURIComponent(user_id);
   const upstreamUrl = new URL(`/auth/users/${userId}/roles`, baseUrl);
   const body = await request.text();
   const headers = buildAuthHeaders(request);

@@ -354,5 +354,5 @@ export function asBaseEvent(event: unknown): BaseEvent {
     throw new Error("Invalid event: missing base properties");
   }
   // 扩展检查可以在这里添加
-  return event as BaseEvent;
+  return event as unknown as BaseEvent;
 }

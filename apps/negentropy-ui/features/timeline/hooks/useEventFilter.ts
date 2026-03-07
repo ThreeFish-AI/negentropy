@@ -52,8 +52,14 @@ export function useEventFilter(
         event.type === EventType.TEXT_MESSAGE_CONTENT ||
         event.type === EventType.TEXT_MESSAGE_END
       ) {
-        const messageId = "messageId" in event ? event.messageId : undefined;
-        const timestamp = "timestamp" in event ? event.timestamp : undefined;
+        const messageId =
+          "messageId" in event && typeof event.messageId === "string"
+            ? event.messageId
+            : undefined;
+        const timestamp =
+          "timestamp" in event && typeof event.timestamp === "number"
+            ? event.timestamp
+            : undefined;
 
         if (messageId && timestamp !== undefined) {
           // 存储此消息的时间戳

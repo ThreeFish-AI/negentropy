@@ -185,9 +185,9 @@ export function AddSourceDialog({
         role: "dialog",
         "aria-modal": true,
         "aria-labelledby": "add-source-dialog-title",
-        "data-testid": "overlay-content",
       }}
       backdropTestId="overlay-backdrop"
+      contentTestId="overlay-content"
     >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
