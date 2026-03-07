@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import urllib.parse
 from io import BytesIO
 from typing import Any, Dict, Optional
 from uuid import UUID
@@ -24,6 +23,15 @@ from .constants import (
     DEFAULT_SEMANTIC_WEIGHT,
 )
 from .embedding import build_batch_embedding_fn, build_embedding_fn
+from .extraction import (
+    ROUTE_URL,
+    build_url_document_filename,
+    extract_source,
+    get_chunking_config_only,
+    merge_corpus_config,
+    persist_extracted_assets,
+    resolve_source_kind,
+)
 from .dao import KnowledgeRunDao
 from .exceptions import (
     CorpusNotFound,
@@ -401,8 +409,12 @@ def _resolve_chunking_config(
         merged["strategy"] = strategy
         return normalize_chunking_config(merged)
     if corpus_config:
-        return normalize_chunking_config(corpus_config)
+        return normalize_chunking_config(get_chunking_config_only(corpus_config))
     return None
+
+
+def _serialize_corpus_config(config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    return merge_corpus_config(config, serialize_chunking_config(normalize_chunking_config(get_chunking_config_only(config))))
 
 
 def _normalize_source_metadata(
@@ -464,7 +476,7 @@ async def list_corpora(app_name: Optional[str] = Query(default=None)) -> list[Co
             app_name=corpus.app_name,
             name=corpus.name,
             description=corpus.description,
-            config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
+            config=_serialize_corpus_config(corpus.config or None),
             knowledge_count=count or 0,
         )
         for corpus, count in rows
@@ -474,7 +486,7 @@ async def list_corpora(app_name: Optional[str] = Query(default=None)) -> list[Co
 @router.post("/base", response_model=CorpusResponse)
 async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
     service = _get_service()
-    normalized_config = serialize_chunking_config(normalize_chunking_config(payload.config or None))
+    normalized_config = _serialize_corpus_config(payload.config or None)
     spec = CorpusSpec(
         app_name=_resolve_app_name(payload.app_name),
         name=payload.name,
@@ -487,7 +499,7 @@ async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
         app_name=corpus.app_name,
         name=corpus.name,
         description=corpus.description,
-        config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
+        config=_serialize_corpus_config(corpus.config or None),
         knowledge_count=0,
     )
 
@@ -514,7 +526,7 @@ async def get_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=No
         app_name=corpus.app_name,
         name=corpus.name,
         description=corpus.description,
-        config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
+        config=_serialize_corpus_config(corpus.config or None),
         knowledge_count=count or 0,
     )
 
@@ -524,7 +536,7 @@ async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> Corpus
     service = _get_service()
     update_data = payload.model_dump(exclude_unset=True)
     if "config" in update_data:
-        update_data["config"] = serialize_chunking_config(normalize_chunking_config(update_data["config"] or None))
+        update_data["config"] = _serialize_corpus_config(update_data["config"] or None)
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -547,7 +559,7 @@ async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> Corpus
             app_name=corpus.app_name,
             name=corpus.name,
             description=corpus.description,
-            config=serialize_chunking_config(normalize_chunking_config(corpus.config or None)),
+            config=_serialize_corpus_config(corpus.config or None),
             knowledge_count=knowledge_count or 0,
         )
     except ValueError as exc:
@@ -771,19 +783,22 @@ async def ingest_url(
         # URL 文档模式: 先落库为 Document，再异步入索引
         if payload.as_document:
             from negentropy.storage.service import DocumentStorageService
-            from .content import fetch_content, optimize_markdown_content, sanitize_filename
 
-            markdown_text = optimize_markdown_content(await fetch_content(payload.url))
+            extraction_result = await extract_source(
+                app_name=resolved_app,
+                corpus_id=corpus_id,
+                corpus_config=corpus_config,
+                source_kind=ROUTE_URL,
+                url=payload.url,
+            )
+            markdown_text = extraction_result.markdown_content
             if not markdown_text:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail={"code": "EMPTY_CONTENT", "message": "No content extracted from URL"},
                 )
 
-            parsed = urllib.parse.urlparse(payload.url)
-            raw_name = sanitize_filename(parsed.path.split("/")[-1] or parsed.netloc or "url_document")
-            if "." not in raw_name:
-                raw_name = f"{raw_name}.md"
+            raw_name = build_url_document_filename(payload.url)
             markdown_bytes = markdown_text.encode("utf-8")
 
             storage_service = DocumentStorageService()
@@ -800,11 +815,18 @@ async def ingest_url(
                 markdown_content=markdown_text,
                 markdown_gcs_uri=doc_record.gcs_uri,
             )
+            stored_assets = await persist_extracted_assets(
+                document_id=doc_record.id,
+                assets=extraction_result.assets,
+            )
 
             meta = _normalize_source_metadata(source_uri=payload.url, metadata=payload.metadata)
             meta["source_type"] = "url"
             meta["origin_url"] = payload.url
             meta["document_id"] = str(doc_record.id)
+            meta["extractor_trace"] = extraction_result.trace
+            if stored_assets:
+                meta["extracted_assets"] = stored_assets
 
             run_id = await service.create_pipeline(
                 app_name=resolved_app,
@@ -824,7 +846,7 @@ async def ingest_url(
                 run_id=run_id,
                 corpus_id=corpus_id,
                 app_name=resolved_app,
-                text=markdown_text,
+                text=extraction_result.plain_text,
                 source_uri=payload.url,
                 metadata=meta,
                 chunking_config=chunking_config,
@@ -1079,7 +1101,7 @@ async def ingest_file(
                 parsed_separators = [item.strip() for item in separators.split(",") if item.strip()]
 
         # 提取文本
-        from .content import extract_file_content, sanitize_filename
+        from .content import sanitize_filename
 
         # 保留用于展示的原始文件名（仅去除路径前缀并限制长度）
         raw_filename = (file.filename or "unknown").split("/")[-1].split("\\")[-1][:255] or "unknown"
@@ -1090,7 +1112,6 @@ async def ingest_file(
         doc_record = None
         is_new_doc = True
         gcs_uri = None
-        schedule_markdown_extraction = False
 
         if store_to_gcs:
             from negentropy.storage.service import DocumentStorageService
@@ -1115,20 +1136,25 @@ async def ingest_file(
                     is_new=is_new_doc,
                     gcs_uri=gcs_uri,
                 )
-                schedule_markdown_extraction = (
-                    is_new_doc
-                    or doc_record.markdown_extract_status != "completed"
-                )
             except StorageError as exc:
                 logger.warning("gcs_storage_failed_proceeding_without_storage", error=str(exc))
                 # 继续处理，但不存储到 GCS
 
-        # 提取文本内容
-        text = await extract_file_content(
+        service = _get_service()
+        corpus = await service.get_corpus_by_id(corpus_id)
+        corpus_config = corpus.config if corpus else {}
+
+        source_kind = resolve_source_kind(filename=raw_filename, content_type=file.content_type)
+        extraction_result = await extract_source(
+            app_name=resolved_app,
+            corpus_id=corpus_id,
+            corpus_config=corpus_config,
+            source_kind=source_kind,
             content=content,
             filename=raw_filename,
             content_type=file.content_type,
         )
+        text = extraction_result.plain_text
 
         if not text.strip():
             raise HTTPException(
@@ -1142,11 +1168,6 @@ async def ingest_file(
             final_source_uri = gcs_uri
         else:
             final_source_uri = source_uri or safe_filename
-
-        # 获取服务并执行摄入
-        service = _get_service()
-        corpus = await service.get_corpus_by_id(corpus_id)
-        corpus_config = corpus.config if corpus else {}
 
         chunking_config = _resolve_chunking_config(
             chunking_config=None,
@@ -1178,6 +1199,9 @@ async def ingest_file(
         meta["source_type"] = "file"
         if gcs_uri:
             meta["gcs_uri"] = gcs_uri
+        meta["extractor_trace"] = extraction_result.trace
+        if doc_record:
+            meta["document_id"] = str(doc_record.id)
 
         # 调用现有的 ingest_text
         records = await service.ingest_text(
@@ -1203,14 +1227,21 @@ async def ingest_file(
             result["duplicate"] = not is_new_doc
             result["markdown_extract_status"] = doc_record.markdown_extract_status
 
-            if schedule_markdown_extraction:
-                background_tasks.add_task(
-                    _extract_and_store_document_markdown,
-                    document_id=doc_record.id,
-                    content=content,
-                    filename=raw_filename,
-                    content_type=file.content_type,
-                )
+            markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+                document_id=doc_record.id,
+                markdown_content=extraction_result.markdown_content,
+            )
+            await storage_service.save_markdown_content(
+                document_id=doc_record.id,
+                markdown_content=extraction_result.markdown_content,
+                markdown_gcs_uri=markdown_gcs_uri,
+            )
+            stored_assets = await persist_extracted_assets(
+                document_id=doc_record.id,
+                assets=extraction_result.assets,
+            )
+            if stored_assets:
+                result["extracted_assets"] = stored_assets
 
         return result
 
@@ -1708,7 +1739,6 @@ async def sync_document(
 ) -> AsyncPipelineResponse:
     resolved_app = _resolve_app_name(payload.app_name)
     from negentropy.storage.service import DocumentStorageService
-    from .content import fetch_content, optimize_markdown_content
 
     storage_service = DocumentStorageService()
     doc = await storage_service.get_document(
@@ -1734,7 +1764,16 @@ async def sync_document(
             detail={"code": "INVALID_DOCUMENT_SOURCE", "message": "Document source_uri not available"},
         )
 
-    markdown_text = optimize_markdown_content(await fetch_content(source_uri))
+    service = _get_service()
+    corpus = await service.get_corpus_by_id(corpus_id)
+    extraction_result = await extract_source(
+        app_name=resolved_app,
+        corpus_id=corpus_id,
+        corpus_config=corpus.config if corpus else {},
+        source_kind=ROUTE_URL,
+        url=source_uri,
+    )
+    markdown_text = extraction_result.markdown_content
     if not markdown_text:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1750,9 +1789,10 @@ async def sync_document(
         markdown_content=markdown_text,
         markdown_gcs_uri=markdown_gcs_uri,
     )
-
-    service = _get_service()
-    corpus = await service.get_corpus_by_id(corpus_id)
+    stored_assets = await persist_extracted_assets(
+        document_id=document_id,
+        assets=extraction_result.assets,
+    )
     chunking_config = _resolve_chunking_config_from_doc_request(
         payload=payload,
         corpus_config=corpus.config if corpus else {},
@@ -1761,6 +1801,9 @@ async def sync_document(
         source_uri=source_uri,
         metadata={"source_type": "url", "origin_url": source_uri, "document_id": str(document_id)},
     )
+    metadata["extractor_trace"] = extraction_result.trace
+    if stored_assets:
+        metadata["extracted_assets"] = stored_assets
     run_id = await service.create_pipeline(
         app_name=resolved_app,
         operation="replace_source",
@@ -1777,7 +1820,7 @@ async def sync_document(
         run_id=run_id,
         corpus_id=corpus_id,
         app_name=resolved_app,
-        text=markdown_text,
+        text=extraction_result.plain_text,
         source_uri=source_uri,
         metadata=metadata,
         chunking_config=chunking_config,

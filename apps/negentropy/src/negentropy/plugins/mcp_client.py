@@ -8,6 +8,7 @@ MCP Client Service Module.
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -45,11 +46,100 @@ class McpConnectionResult:
     duration_ms: int = 0
 
 
+@dataclass
+class McpToolCallResult:
+    """MCP Tool 调用结果"""
+
+    success: bool
+    content: list[Any] = field(default_factory=list)
+    structured_content: dict[str, Any] | None = None
+    error: str | None = None
+    duration_ms: int = 0
+
+
 class McpClientService:
     """MCP Server 连接与 Tool 发现服务"""
 
     def __init__(self, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS):
         self.timeout_seconds = timeout_seconds
+
+    async def call_tool(
+        self,
+        *,
+        transport_type: str,
+        tool_name: str,
+        arguments: dict[str, Any] | None = None,
+        command: str | None = None,
+        args: list[str] | None = None,
+        env: dict[str, str] | None = None,
+        url: str | None = None,
+        headers: dict[str, str] | None = None,
+        timeout_seconds: float | None = None,
+    ) -> McpToolCallResult:
+        start_time = time.time()
+        effective_timeout = timeout_seconds or self.timeout_seconds
+
+        try:
+            if transport_type == "stdio":
+                if not command:
+                    return McpToolCallResult(success=False, error="Command is required for stdio transport")
+                result = await self._call_tool_stdio(
+                    command=command,
+                    args=args or [],
+                    env=env or {},
+                    tool_name=tool_name,
+                    arguments=arguments or {},
+                    timeout_seconds=effective_timeout,
+                )
+            elif transport_type == "sse":
+                if not url:
+                    return McpToolCallResult(success=False, error="URL is required for sse transport")
+                result = await self._call_tool_sse(
+                    url=url,
+                    headers=headers or {},
+                    tool_name=tool_name,
+                    arguments=arguments or {},
+                    timeout_seconds=effective_timeout,
+                )
+            elif transport_type == "http":
+                if not url:
+                    return McpToolCallResult(success=False, error="URL is required for http transport")
+                result = await self._call_tool_http(
+                    url=url,
+                    headers=headers or {},
+                    tool_name=tool_name,
+                    arguments=arguments or {},
+                    timeout_seconds=effective_timeout,
+                )
+            else:
+                return McpToolCallResult(success=False, error=f"Unsupported transport type: {transport_type}")
+
+            result.duration_ms = int((time.time() - start_time) * 1000)
+            return result
+        except TimeoutError:
+            return McpToolCallResult(
+                success=False,
+                error=f"Connection timeout after {effective_timeout}s",
+                duration_ms=int((time.time() - start_time) * 1000),
+            )
+        except FileNotFoundError as exc:
+            return McpToolCallResult(
+                success=False,
+                error=f"Command not found: {exc.filename}",
+                duration_ms=int((time.time() - start_time) * 1000),
+            )
+        except ExceptionGroup as exc:
+            return McpToolCallResult(
+                success=False,
+                error=self._extract_exception_group_error(exc),
+                duration_ms=int((time.time() - start_time) * 1000),
+            )
+        except Exception as exc:
+            return McpToolCallResult(
+                success=False,
+                error=self._extract_error_message(exc),
+                duration_ms=int((time.time() - start_time) * 1000),
+            )
 
     async def discover_tools(
         self,
@@ -209,6 +299,33 @@ class McpClientService:
                     logger.info(f"Discovered {len(tools)} tools via stdio from {command}")
                     return McpConnectionResult(success=True, tools=tools)
 
+    async def _call_tool_stdio(
+        self,
+        *,
+        command: str,
+        args: list[str],
+        env: dict[str, str],
+        tool_name: str,
+        arguments: dict[str, Any],
+        timeout_seconds: float,
+    ) -> McpToolCallResult:
+        server_params = StdioServerParameters(command=command, args=args, env=env)
+        async with asyncio.timeout(timeout_seconds):
+            async with stdio_client(server_params) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(
+                        tool_name,
+                        arguments=arguments,
+                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
+                    return McpToolCallResult(
+                        success=not bool(result.isError),
+                        content=list(result.content or []),
+                        structured_content=result.structuredContent if isinstance(result.structuredContent, dict) else None,
+                        error=_extract_call_error(result),
+                    )
+
     async def _discover_sse(
         self,
         url: str,
@@ -233,6 +350,31 @@ class McpClientService:
                     logger.info(f"Discovered {len(tools)} tools via sse from {url}")
                     return McpConnectionResult(success=True, tools=tools)
 
+    async def _call_tool_sse(
+        self,
+        *,
+        url: str,
+        headers: dict[str, str],
+        tool_name: str,
+        arguments: dict[str, Any],
+        timeout_seconds: float,
+    ) -> McpToolCallResult:
+        async with asyncio.timeout(timeout_seconds):
+            async with sse_client(url, headers=headers) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(
+                        tool_name,
+                        arguments=arguments,
+                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
+                    return McpToolCallResult(
+                        success=not bool(result.isError),
+                        content=list(result.content or []),
+                        structured_content=result.structuredContent if isinstance(result.structuredContent, dict) else None,
+                        error=_extract_call_error(result),
+                    )
+
     async def _discover_http(
         self,
         url: str,
@@ -256,3 +398,39 @@ class McpClientService:
 
                     logger.info(f"Discovered {len(tools)} tools via http from {url}")
                     return McpConnectionResult(success=True, tools=tools)
+
+    async def _call_tool_http(
+        self,
+        *,
+        url: str,
+        headers: dict[str, str],
+        tool_name: str,
+        arguments: dict[str, Any],
+        timeout_seconds: float,
+    ) -> McpToolCallResult:
+        async with asyncio.timeout(timeout_seconds):
+            async with streamablehttp_client(url, headers=headers) as (read, write, _session_id):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    result = await session.call_tool(
+                        tool_name,
+                        arguments=arguments,
+                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
+                    return McpToolCallResult(
+                        success=not bool(result.isError),
+                        content=list(result.content or []),
+                        structured_content=result.structuredContent if isinstance(result.structuredContent, dict) else None,
+                        error=_extract_call_error(result),
+                    )
+
+
+def _extract_call_error(result: Any) -> str | None:
+    if not getattr(result, "isError", None):
+        return None
+    content = getattr(result, "content", None) or []
+    parts: list[str] = []
+    for item in content:
+        if getattr(item, "type", None) == "text" and getattr(item, "text", None):
+            parts.append(item.text)
+    return "\n".join(parts).strip() or "MCP tool returned an error"

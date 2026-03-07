@@ -52,6 +52,17 @@ class DocumentStorageService:
         safe_stem = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in stem)[:120] or "document"
         return f"knowledge/{app_name}/{corpus_id}/derived/{document_id}/{safe_stem}.md"
 
+    @staticmethod
+    def _build_asset_gcs_path(
+        *,
+        app_name: str,
+        corpus_id: UUID,
+        document_id: UUID,
+        filename: str,
+    ) -> str:
+        safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in filename)[:180] or "asset"
+        return f"knowledge/{app_name}/{corpus_id}/derived/{document_id}/assets/{safe_name}"
+
     async def check_duplicate(
         self,
         corpus_id: UUID,
@@ -401,6 +412,41 @@ class DocumentStorageService:
             logger.warning(
                 "markdown_derivative_upload_failed",
                 document_id=str(document_id),
+                error=str(exc),
+            )
+            return None
+
+    async def upload_extraction_asset(
+        self,
+        *,
+        document_id: UUID,
+        filename: str,
+        content: bytes,
+        content_type: str,
+    ) -> Optional[str]:
+        """上传 Data Extractor 生成的衍生资源。"""
+        doc = await self.get_document(document_id=document_id)
+        if not doc:
+            return None
+
+        try:
+            gcs_client = self._get_gcs_client()
+            gcs_path = self._build_asset_gcs_path(
+                app_name=doc.app_name,
+                corpus_id=doc.corpus_id,
+                document_id=doc.id,
+                filename=filename,
+            )
+            return gcs_client.upload(
+                content=content,
+                gcs_path=gcs_path,
+                content_type=content_type,
+            )
+        except Exception as exc:  # noqa: BLE001 - 衍生存储失败不应影响主流程
+            logger.warning(
+                "extraction_asset_upload_failed",
+                document_id=str(document_id),
+                filename=filename,
                 error=str(exc),
             )
             return None

@@ -186,6 +186,7 @@ async def test_sync_document_success(monkeypatch):
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
     monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
     monkeypatch.setattr("negentropy.knowledge.content.fetch_content", fake_fetch_content)
+    monkeypatch.setattr("negentropy.knowledge.extraction.fetch_content", fake_fetch_content)
 
     result = await knowledge_api.sync_document(
         corpus_id=corpus_id,

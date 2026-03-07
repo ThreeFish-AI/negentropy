@@ -109,6 +109,18 @@ vi.mock("@/features/knowledge", () => ({
           preserve_newlines: true,
           separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
         },
+  normalizeCorpusExtractorRoutes: (config: Record<string, unknown> | null | undefined) =>
+    (config?.extractor_routes as Record<string, unknown> | undefined) || {
+      url: { targets: [] },
+      file_pdf: { targets: [] },
+    },
+  buildCorpusConfig: (
+    chunkingConfig: Record<string, unknown>,
+    extractorRoutes: Record<string, unknown>,
+  ) => ({
+    ...chunkingConfig,
+    extractor_routes: extractorRoutes,
+  }),
   DocumentViewDialog: ({
     isOpen,
     document,

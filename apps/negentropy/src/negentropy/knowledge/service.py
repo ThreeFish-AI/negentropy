@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
 from .constants import DEFAULT_KEYWORD_WEIGHT, DEFAULT_SEMANTIC_WEIGHT, TEXT_PREVIEW_MAX_LENGTH
 from .exceptions import SearchError
-from .content import fetch_content
+from .extraction import ROUTE_URL, extract_source, resolve_source_kind
 from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
@@ -215,6 +215,50 @@ class KnowledgeService:
         self._reranker = reranker or NoopReranker()
         self._pipeline_dao = pipeline_dao
 
+    async def _get_corpus_config(self, corpus_id: UUID) -> dict[str, Any]:
+        corpus = await self.get_corpus_by_id(corpus_id)
+        return corpus.config if corpus and corpus.config else {}
+
+    async def _extract_url_content(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        url: str,
+        tracker: Optional[PipelineTracker] = None,
+    ) -> str:
+        result = await extract_source(
+            app_name=app_name,
+            corpus_id=corpus_id,
+            corpus_config=await self._get_corpus_config(corpus_id),
+            source_kind=ROUTE_URL,
+            url=url,
+            tracker=tracker,
+        )
+        return result.plain_text
+
+    async def _extract_file_content(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        content: bytes,
+        filename: str,
+        content_type: str | None,
+        tracker: Optional[PipelineTracker] = None,
+    ) -> str:
+        result = await extract_source(
+            app_name=app_name,
+            corpus_id=corpus_id,
+            corpus_config=await self._get_corpus_config(corpus_id),
+            source_kind=resolve_source_kind(filename=filename, content_type=content_type),
+            content=content,
+            filename=filename,
+            content_type=content_type,
+            tracker=tracker,
+        )
+        return result.plain_text
+
     # =========================================================================
     # Pipeline 创建与执行（支持异步后台任务）
     # =========================================================================
@@ -370,22 +414,21 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch
-            await tracker.start_stage("fetch")
             try:
-                text = await fetch_content(url)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=url,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                await tracker.fail_stage("fetch", {"type": "CONTENT_FETCH_FAILED", "message": str(exc)})
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            await tracker.complete_stage("fetch", {"content_length": len(text) if text else 0, "url": url})
-
             if not text:
-                await tracker.fail_stage("fetch", {"type": "NO_CONTENT", "message": "No content extracted from URL"})
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
@@ -531,22 +574,21 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch
-            await tracker.start_stage("fetch")
             try:
-                text = await fetch_content(source_uri)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=source_uri,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                await tracker.fail_stage("fetch", {"type": "CONTENT_FETCH_FAILED", "message": str(exc)})
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            await tracker.complete_stage("fetch", {"content_length": len(text) if text else 0, "source_uri": source_uri})
-
             if not text:
-                await tracker.fail_stage("fetch", {"type": "NO_CONTENT", "message": "No content extracted from URL"})
                 raise ValueError("No content extracted from URL")
 
             # 阶段 2: Delete
@@ -649,32 +691,27 @@ class KnowledgeService:
 
             await tracker.complete_stage("download", {"content_length": len(content) if content else 0, "source_uri": source_uri})
 
-            # 阶段 1.5: Extract
-            await tracker.start_stage("extract")
             try:
-                from .content import extract_file_content
-
                 filename = source_uri.split("/")[-1]
                 content_type = _guess_content_type(filename)
 
-                text = await extract_file_content(
+                text = await self._extract_file_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
                     content=content,
                     filename=filename,
                     content_type=content_type,
+                    tracker=tracker,
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                await tracker.fail_stage("extract", {"type": "CONTENT_EXTRACTION_FAILED", "message": str(exc)})
                 raise KnowledgeError(
                     code="CONTENT_EXTRACTION_FAILED",
                     message=f"Failed to extract content: {exc}",
                 ) from exc
 
-            await tracker.complete_stage("extract", {"text_length": len(text) if text else 0, "source_uri": source_uri})
-
             if not text:
-                await tracker.fail_stage("extract", {"type": "NO_CONTENT", "message": "No text content extracted from file"})
                 raise ValueError("No text content extracted from file")
 
             # 阶段 2: Delete
@@ -1164,45 +1201,21 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch
-            if tracker:
-                await tracker.start_stage("fetch")
-
             try:
-                text = await fetch_content(url)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=url,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "CONTENT_FETCH_FAILED",
-                            "message": str(exc),
-                        },
-                    )
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            if tracker:
-                await tracker.complete_stage(
-                    "fetch",
-                    {
-                        "content_length": len(text) if text else 0,
-                        "url": url,
-                    },
-                )
-
             if not text:
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "NO_CONTENT",
-                            "message": "No content extracted from URL",
-                        },
-                    )
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
@@ -1289,45 +1302,21 @@ class KnowledgeService:
         )
 
         try:
-            # 阶段 1: Fetch - 从原始 URL 获取最新内容
-            if tracker:
-                await tracker.start_stage("fetch")
-
             try:
-                text = await fetch_content(source_uri)
+                text = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=source_uri,
+                    tracker=tracker,
+                )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "CONTENT_FETCH_FAILED",
-                            "message": str(exc),
-                        },
-                    )
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
-            if tracker:
-                await tracker.complete_stage(
-                    "fetch",
-                    {
-                        "content_length": len(text) if text else 0,
-                        "source_uri": source_uri,
-                    },
-                )
-
             if not text:
-                if tracker:
-                    await tracker.fail_stage(
-                        "fetch",
-                        {
-                            "type": "NO_CONTENT",
-                            "message": "No content extracted from URL",
-                        },
-                    )
                 raise ValueError("No content extracted from URL")
 
             # 阶段 2: Delete - 删除该 source_uri 下的旧记录
@@ -1497,56 +1486,28 @@ class KnowledgeService:
                     },
                 )
 
-            # 阶段 1.5: Extract - 提取文本内容
-            if tracker:
-                await tracker.start_stage("extract")
-
             try:
-                from .content import extract_file_content
-
                 # 从 GCS URI 提取文件名
                 filename = source_uri.split("/")[-1]
                 content_type = _guess_content_type(filename)
 
-                text = await extract_file_content(
+                text = await self._extract_file_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
                     content=content,
                     filename=filename,
                     content_type=content_type,
+                    tracker=tracker,
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
-                if tracker:
-                    await tracker.fail_stage(
-                        "extract",
-                        {
-                            "type": "CONTENT_EXTRACTION_FAILED",
-                            "message": str(exc),
-                        },
-                    )
                 raise KnowledgeError(
                     code="CONTENT_EXTRACTION_FAILED",
                     message=f"Failed to extract content: {exc}",
                 ) from exc
 
-            if tracker:
-                await tracker.complete_stage(
-                    "extract",
-                    {
-                        "text_length": len(text) if text else 0,
-                        "source_uri": source_uri,
-                    },
-                )
-
             if not text:
-                if tracker:
-                    await tracker.fail_stage(
-                        "extract",
-                        {
-                            "type": "NO_CONTENT",
-                            "message": "No text content extracted from file",
-                        },
-                    )
                 raise ValueError("No text content extracted from file")
 
             # 阶段 2: Delete - 删除该 source_uri 下的旧记录
