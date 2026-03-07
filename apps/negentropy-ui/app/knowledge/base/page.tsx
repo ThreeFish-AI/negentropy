@@ -965,12 +965,12 @@ export default function KnowledgeBasePage() {
               </p>
               <div
                 data-testid={`corpus-footer-${corpus.id}`}
-                className="mt-auto flex items-end justify-between gap-3 pt-3"
+                className="mt-auto flex items-center justify-between gap-3 pt-3"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div
                   data-testid={`corpus-summary-${corpus.id}`}
-                  className="min-w-0 flex-1 truncate text-[11px] text-muted"
+                  className="min-w-0 flex-1 self-center truncate text-[11px] leading-5 text-muted"
                   title={formatCorpusConfigSummary(corpus)}
                 >
                   {formatCorpusConfigSummary(corpus)}
@@ -978,7 +978,7 @@ export default function KnowledgeBasePage() {
                 <div className="flex shrink-0 items-center justify-end gap-2">
                   <button
                     onClick={() => handleEditCorpus(corpus)}
-                    className="inline-flex h-7 items-center rounded border border-border px-2.5 text-[11px] hover:bg-muted"
+                    className="inline-flex h-7 items-center rounded border border-border px-2.5 text-[11px] text-muted transition-colors hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
                   >
                     Settings
                   </button>
