@@ -75,14 +75,14 @@ function formatCorpusConfigSummary(corpus: CorpusRecord): string {
   );
 
   if (config.strategy === "semantic") {
-    return `chunks: ${corpus.knowledge_count} · strategy: semantic · threshold: ${config.semantic_threshold.toFixed(2)} · buffer: ${config.semantic_buffer_size}`;
+    return `strategy: semantic · threshold: ${config.semantic_threshold.toFixed(2)} · buffer: ${config.semantic_buffer_size}`;
   }
 
   if (config.strategy === "hierarchical") {
-    return `chunks: ${corpus.knowledge_count} · strategy: hierarchical · parent: ${config.hierarchical_parent_chunk_size} · child: ${config.hierarchical_child_chunk_size}`;
+    return `strategy: hierarchical · parent: ${config.hierarchical_parent_chunk_size} · child: ${config.hierarchical_child_chunk_size}`;
   }
 
-  return `chunks: ${corpus.knowledge_count} · strategy: ${config.strategy} · size: ${config.chunk_size} · overlap: ${config.overlap}`;
+  return `strategy: ${config.strategy} · size: ${config.chunk_size} · overlap: ${config.overlap}`;
 }
 
 function ChunkDetailDrawer({
@@ -940,38 +940,55 @@ export default function KnowledgeBasePage() {
           {corpora.map((corpus) => (
             <div
               key={corpus.id}
-              className="flex h-full cursor-pointer flex-col rounded-xl border border-border bg-background p-3 transition hover:border-foreground/40"
+              data-testid={`corpus-card-${corpus.id}`}
+              className="flex h-40 cursor-pointer flex-col rounded-xl border border-border bg-background p-3 transition hover:border-foreground/40"
               onClick={() => openCorpusWorkspace(corpus.id, "documents")}
             >
               <div className="flex items-center justify-between gap-2">
-                <h3 className="truncate text-base font-semibold">{corpus.name}</h3>
-                <CorpusStatusBadge corpus={corpus} />
+                <h3 className="min-w-0 flex-1 truncate text-base font-semibold">{corpus.name}</h3>
+                <div className="flex shrink-0 items-center justify-end gap-2">
+                  <span
+                    data-testid={`corpus-chunks-${corpus.id}`}
+                    className="text-[11px] font-medium text-muted"
+                  >
+                    chunks: {corpus.knowledge_count}
+                  </span>
+                  <CorpusStatusBadge corpus={corpus} />
+                </div>
               </div>
-              <p className="mt-1 truncate text-xs text-muted" title={corpus.description || "No description"}>
+              <p
+                data-testid={`corpus-description-${corpus.id}`}
+                className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-muted"
+                title={corpus.description || "No description"}
+              >
                 {corpus.description || "No description"}
               </p>
               <div
-                className="mt-2 truncate text-[11px] text-muted"
-                title={formatCorpusConfigSummary(corpus)}
-              >
-                {formatCorpusConfigSummary(corpus)}
-              </div>
-              <div
-                className="mt-auto flex items-center justify-end gap-2 pt-3"
+                data-testid={`corpus-footer-${corpus.id}`}
+                className="mt-auto flex items-end justify-between gap-3 pt-3"
                 onClick={(e) => e.stopPropagation()}
               >
-                <button
-                  onClick={() => handleEditCorpus(corpus)}
-                  className="inline-flex h-7 items-center rounded border border-border px-2.5 text-[11px] hover:bg-muted"
+                <div
+                  data-testid={`corpus-summary-${corpus.id}`}
+                  className="min-w-0 flex-1 truncate text-[11px] text-muted"
+                  title={formatCorpusConfigSummary(corpus)}
                 >
-                  Settings
-                </button>
-                <button
-                  onClick={() => handleDeleteCorpus(corpus)}
-                  className="inline-flex h-7 items-center rounded border border-red-300 px-2.5 text-[11px] text-red-600 hover:bg-red-50"
-                >
-                  Delete
-                </button>
+                  {formatCorpusConfigSummary(corpus)}
+                </div>
+                <div className="flex shrink-0 items-center justify-end gap-2">
+                  <button
+                    onClick={() => handleEditCorpus(corpus)}
+                    className="inline-flex h-7 items-center rounded border border-border px-2.5 text-[11px] hover:bg-muted"
+                  >
+                    Settings
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCorpus(corpus)}
+                    className="inline-flex h-7 items-center rounded border border-red-300 px-2.5 text-[11px] text-red-600 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
