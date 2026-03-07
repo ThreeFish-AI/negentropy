@@ -4,6 +4,9 @@ import {
   adkEventToAguiEvents,
   adkEventsToMessages,
   aguiEventsToMessages,
+  collectAdkEventPayloads,
+  parseAdkEventPayload,
+  safeParseAdkEventPayload,
 } from "../../lib/adk";
 
 describe("adk event mapping", () => {
@@ -154,5 +157,47 @@ describe("adk event mapping", () => {
       .map((event) => String(event.messageId));
     expect(textStartIds).toEqual(["chunk-1", "chunk-2"]);
     expect(events.some((event) => event.type === EventType.TOOL_CALL_START)).toBe(true);
+  });
+
+  it("parses valid ADK event payloads through the shared validator", () => {
+    const payload = parseAdkEventPayload({
+      id: "evt_6",
+      author: "assistant",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "ok" }],
+      },
+    });
+
+    expect(payload.id).toBe("evt_6");
+    expect(payload.message?.role).toBe("assistant");
+  });
+
+  it("rejects malformed ADK event payloads", () => {
+    const result = safeParseAdkEventPayload({
+      author: "assistant",
+      message: {
+        role: "assistant",
+        content: "ok",
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("collects valid ADK payloads and drops invalid entries", () => {
+    const result = collectAdkEventPayloads([
+      {
+        id: "evt_7",
+        author: "assistant",
+        content: { parts: [{ text: "ok" }] },
+      },
+      {
+        author: "assistant",
+      },
+    ]);
+
+    expect(result.payloads).toHaveLength(1);
+    expect(result.invalidCount).toBe(1);
   });
 });

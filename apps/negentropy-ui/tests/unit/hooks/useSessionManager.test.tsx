@@ -7,6 +7,10 @@ vi.mock("@/lib/adk", () => ({
   adkEventToAguiEvents: vi.fn(() => []),
   adkEventsToMessages: vi.fn(() => [{ id: "m1", role: "assistant", content: "hello" }]),
   adkEventsToSnapshot: vi.fn(() => ({ ready: true })),
+  collectAdkEventPayloads: vi.fn((input: unknown) => ({
+    payloads: Array.isArray(input) ? input : [],
+    invalidCount: 0,
+  })),
 }));
 
 describe("useSessionManager", () => {

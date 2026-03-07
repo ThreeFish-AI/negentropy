@@ -18,6 +18,7 @@ import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
 import { AdkEventPayload } from "@/lib/adk";
+import { collectAdkEventPayloads } from "@/lib/adk";
 
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
@@ -580,9 +581,13 @@ export function HomeBody({
         if (!response.ok) {
           return;
         }
-        const events = Array.isArray(payload.events)
-          ? (payload.events as AdkEventPayload[])
-          : [];
+        const { payloads: events, invalidCount } = collectAdkEventPayloads(payload.events);
+        if (invalidCount > 0) {
+          addLog("warn", "session_detail_events_filtered", {
+            sessionId: id,
+            invalidCount,
+          });
+        }
         const hydrated = hydrateSessionDetail(events, id);
         const currentLoadedSessionId = loadedSessionIdRef.current;
         const currentRawEvents = rawEventsRef.current;
