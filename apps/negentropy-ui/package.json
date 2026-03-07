@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:chat-smoke": "playwright test -g \"聊天流式回复在 hydration 后不重复显示最终 bubble\""
   },
   "dependencies": {
     "@ag-ui/client": "0.0.42",
