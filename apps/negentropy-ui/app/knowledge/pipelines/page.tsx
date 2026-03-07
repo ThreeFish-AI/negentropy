@@ -19,18 +19,42 @@ const BOOTSTRAP_POLL_MAX_TICKS = 8;
 type RunRecord = PipelineRunRecord;
 
 // 阶段顺序定义（用于排序显示）
-const STAGE_ORDER = ["fetch", "delete", "chunk", "embed", "persist"];
+const STAGE_ORDER = [
+  "extract_resolve",
+  "extract_primary",
+  "extract_failover_1",
+  "extract_failover_2",
+  "extract_assets_store",
+  "extract_finalize",
+  "fetch",
+  "download",
+  "extract",
+  "delete",
+  "chunk",
+  "embed",
+  "persist",
+];
 
 // 操作类型中文名称
 const OPERATION_LABELS: Record<string, string> = {
   ingest_text: "文本摄入",
   ingest_url: "URL 摄入",
   replace_source: "替换源",
+  sync_source: "同步源",
+  rebuild_source: "重建源",
 };
 
 // 阶段名称中文名称
 const STAGE_LABELS: Record<string, string> = {
   fetch: "获取内容",
+  download: "下载源文件",
+  extract: "提取内容",
+  extract_resolve: "解析提取路由",
+  extract_primary: "主 MCP 提取",
+  extract_failover_1: "备用 MCP 提取 1",
+  extract_failover_2: "备用 MCP 提取 2",
+  extract_assets_store: "存储提取资源",
+  extract_finalize: "整理提取结果",
   delete: "删除旧记录",
   chunk: "文本分块",
   embed: "向量化",

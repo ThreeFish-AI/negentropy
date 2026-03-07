@@ -12,7 +12,9 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
+  buildCorpusConfig,
   CorpusRecord,
+  CorpusExtractorRoutes,
   ChunkingConfig,
   ChunkingStrategy,
   DocumentViewDialog,
@@ -32,6 +34,7 @@ import {
   downloadDocument,
   deleteDocument,
   createDefaultChunkingConfig,
+  normalizeCorpusExtractorRoutes,
   normalizeChunkingConfig,
 } from "@/features/knowledge";
 
@@ -1277,9 +1280,66 @@ function CorpusSettingsPanel({
   const [formConfig, setFormConfig] = useState<ChunkingConfig>(
     normalizeChunkingConfig((corpus.config || {}) as Record<string, unknown>),
   );
+  const [extractorRoutes, setExtractorRoutes] = useState<CorpusExtractorRoutes>(
+    normalizeCorpusExtractorRoutes((corpus.config || {}) as Record<string, unknown>),
+  );
+  const [servers, setServers] = useState<Array<{ id: string; name: string; display_name: string | null; is_enabled: boolean }>>([]);
+  const [toolsByServer, setToolsByServer] = useState<Record<string, Array<{ name: string; display_name: string | null; is_enabled: boolean }>>>({});
+
+  useEffect(() => {
+    let active = true;
+
+    const loadServers = async () => {
+      const response = await fetch("/api/plugins/mcp/servers");
+      if (!response.ok) {
+        throw new Error("Failed to load MCP servers");
+      }
+      const data = (await response.json()) as Array<{
+        id: string;
+        name: string;
+        display_name: string | null;
+        is_enabled: boolean;
+      }>;
+      if (!active) return;
+      const enabledServers = data.filter((item) => item.is_enabled);
+      setServers(enabledServers);
+
+      const toolEntries = await Promise.all(
+        enabledServers.map(async (server) => {
+          const toolsResponse = await fetch(`/api/plugins/mcp/servers/${server.id}/tools`);
+          if (!toolsResponse.ok) {
+            return [server.id, []] as const;
+          }
+          const tools = (await toolsResponse.json()) as Array<{
+            name: string;
+            display_name: string | null;
+            is_enabled: boolean;
+          }>;
+          return [server.id, tools.filter((item) => item.is_enabled)] as const;
+        }),
+      );
+      if (!active) return;
+      setToolsByServer(Object.fromEntries(toolEntries));
+    };
+
+    void loadServers().catch((err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to load MCP servers");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = async () => {
-    await onSave(formConfig as unknown as Record<string, unknown>);
+    await onSave(buildCorpusConfig(formConfig, extractorRoutes));
+  };
+
+  const updateRouteTargets = (routeKey: keyof CorpusExtractorRoutes, targets: CorpusExtractorRoutes[keyof CorpusExtractorRoutes]["targets"]) => {
+    setExtractorRoutes((prev) => ({
+      ...prev,
+      [routeKey]: { targets },
+    }));
   };
 
   return (
@@ -1290,6 +1350,115 @@ function CorpusSettingsPanel({
         title="Settings"
         description="保存后作为该 Corpus 的默认分块配置。"
       />
+
+      <div className="rounded-2xl border border-border bg-background p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold">Data Extractor MCP</h3>
+            <p className="mt-1 text-xs text-muted">
+              为当前 Knowledge Base 分别绑定 URL 与 PDF 的主备 MCP Server / Tool。已配置类型严格依赖所选 MCP，只会在主备之间切换。
+            </p>
+          </div>
+        </div>
+
+        {([
+          ["url", "URL 文档", "页面抓取、正文抽取、Markdown 化"],
+          ["file_pdf", "PDF 文档", "PDF 解析、Markdown 转换、图片提取"],
+        ] as const).map(([routeKey, title, description]) => {
+          const targets = extractorRoutes[routeKey]?.targets || [];
+          return (
+            <div key={routeKey} className="mt-4 rounded-xl border border-border p-3">
+              <div className="mb-3">
+                <div className="text-xs font-semibold">{title}</div>
+                <div className="text-[11px] text-muted">{description}</div>
+              </div>
+              <div className="space-y-3">
+                {[0, 1].map((index) => {
+                  const target = targets[index];
+                  const selectedServerId = target?.server_id || "";
+                  const toolOptions = selectedServerId ? (toolsByServer[selectedServerId] || []) : [];
+
+                  const nextTargets = [...targets];
+                  const nextTarget = target || {
+                    server_id: "",
+                    tool_name: "",
+                    priority: index,
+                    enabled: true,
+                  };
+
+                  const setTarget = (patch: Record<string, unknown>) => {
+                    nextTargets[index] = {
+                      ...nextTarget,
+                      ...patch,
+                      priority: index,
+                      enabled: true,
+                    };
+                    updateRouteTargets(
+                      routeKey,
+                      nextTargets.filter((item) => item.server_id && item.tool_name),
+                    );
+                  };
+
+                  const clearTarget = () => {
+                    nextTargets.splice(index, 1);
+                    updateRouteTargets(routeKey, nextTargets);
+                  };
+
+                  return (
+                    <div key={`${routeKey}-${index}`} className="grid gap-3 rounded-lg border border-border bg-card p-3 md:grid-cols-[120px_1fr_1fr_auto]">
+                      <div className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                        {index === 0 ? "主用" : "备用"}
+                      </div>
+                      <label className="text-xs">
+                        <div className="mb-1 text-muted">MCP Server</div>
+                        <select
+                          value={selectedServerId}
+                          onChange={(e) =>
+                            setTarget({ server_id: e.target.value, tool_name: "" })
+                          }
+                          className="w-full rounded border border-border bg-background px-2 py-2"
+                        >
+                          <option value="">未配置</option>
+                          {servers.map((server) => (
+                            <option key={server.id} value={server.id}>
+                              {server.display_name || server.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs">
+                        <div className="mb-1 text-muted">Tool</div>
+                        <select
+                          value={target?.tool_name || ""}
+                          onChange={(e) => setTarget({ tool_name: e.target.value })}
+                          disabled={!selectedServerId}
+                          className="w-full rounded border border-border bg-background px-2 py-2 disabled:opacity-50"
+                        >
+                          <option value="">未配置</option>
+                          {toolOptions.map((tool) => (
+                            <option key={tool.name} value={tool.name}>
+                              {tool.display_name || tool.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={clearTarget}
+                          className="rounded border border-border px-3 py-2 text-[11px] hover:bg-muted"
+                        >
+                          清空
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <div className="flex justify-end">
         <button

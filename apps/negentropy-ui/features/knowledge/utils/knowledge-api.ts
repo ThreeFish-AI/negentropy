@@ -415,6 +415,87 @@ export interface CorpusRecord {
   config?: Record<string, unknown>;
 }
 
+export type ExtractorSourceKind = "url" | "file_pdf";
+
+export interface McpExtractorTargetConfig {
+  server_id: string;
+  tool_name: string;
+  priority: number;
+  enabled: boolean;
+  timeout_ms?: number;
+  tool_options?: Record<string, unknown>;
+}
+
+export interface CorpusExtractorRouteConfig {
+  targets: McpExtractorTargetConfig[];
+}
+
+export interface CorpusExtractorRoutes {
+  url?: CorpusExtractorRouteConfig;
+  file_pdf?: CorpusExtractorRouteConfig;
+}
+
+function normalizeExtractorTargets(
+  value: unknown,
+): McpExtractorTargetConfig[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (item): item is Record<string, unknown> =>
+        typeof item === "object" && item !== null,
+    )
+    .map((item) => ({
+      server_id: String(item.server_id || ""),
+      tool_name: String(item.tool_name || ""),
+      priority: Number(item.priority || 0),
+      enabled: item.enabled !== false,
+      timeout_ms:
+        item.timeout_ms === undefined ? undefined : Number(item.timeout_ms),
+      tool_options:
+        typeof item.tool_options === "object" && item.tool_options !== null
+          ? (item.tool_options as Record<string, unknown>)
+          : {},
+    }))
+    .filter((item) => item.server_id && item.tool_name)
+    .sort((a, b) => a.priority - b.priority);
+}
+
+export function normalizeCorpusExtractorRoutes(
+  config?: Record<string, unknown> | null,
+): CorpusExtractorRoutes {
+  const raw =
+    typeof config?.extractor_routes === "object" &&
+    config.extractor_routes !== null
+      ? (config.extractor_routes as Record<string, unknown>)
+      : {};
+
+  const normalizeRoute = (route: unknown): CorpusExtractorRouteConfig => ({
+    targets: normalizeExtractorTargets(
+      typeof route === "object" && route !== null
+        ? (route as Record<string, unknown>).targets
+        : undefined,
+    ),
+  });
+
+  return {
+    url: normalizeRoute(raw.url),
+    file_pdf: normalizeRoute(raw.file_pdf),
+  };
+}
+
+export function buildCorpusConfig(
+  chunkingConfig: ChunkingConfig,
+  extractorRoutes?: CorpusExtractorRoutes,
+): Record<string, unknown> {
+  return {
+    ...(chunkingConfig as unknown as Record<string, unknown>),
+    extractor_routes: {
+      url: { targets: extractorRoutes?.url?.targets || [] },
+      file_pdf: { targets: extractorRoutes?.file_pdf?.targets || [] },
+    },
+  };
+}
+
 export interface KnowledgeMatch {
   id: string;
   content: string;

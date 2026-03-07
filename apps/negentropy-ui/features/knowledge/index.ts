@@ -95,6 +95,10 @@ export type {
   KnowledgeErrorResponse,
   KnowledgeDashboard,
   CorpusRecord,
+  ExtractorSourceKind,
+  McpExtractorTargetConfig,
+  CorpusExtractorRouteConfig,
+  CorpusExtractorRoutes,
   KnowledgeMatch,
   KnowledgeGraphPayload,
   KnowledgePipelinesPayload,
@@ -135,6 +139,8 @@ export type {
 export {
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
+  normalizeCorpusExtractorRoutes,
+  buildCorpusConfig,
 } from "./utils/knowledge-api";
 
 // ============================================================================
