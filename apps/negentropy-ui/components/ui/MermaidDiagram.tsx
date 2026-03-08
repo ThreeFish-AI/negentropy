@@ -29,6 +29,7 @@ function normalizeMermaidCode(raw: string): string {
 }
 
 export function MermaidDiagram({ code }: MermaidDiagramProps) {
+  const normalizedCode = normalizeMermaidCode(code);
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [id] = useState(
@@ -39,11 +40,8 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 
   useEffect(() => {
     let isMounted = true;
-    const normalizedCode = normalizeMermaidCode(code);
 
     if (!normalizedCode) {
-      setSvg("");
-      setError(null);
       return () => {
         isMounted = false;
       };
@@ -89,7 +87,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
     return () => {
       isMounted = false;
     };
-  }, [code]);
+  }, [normalizedCode]);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -99,6 +97,10 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
       console.error("Failed to copy code", err);
     }
   };
+
+  if (!normalizedCode) {
+    return null;
+  }
 
   if (error) {
     return (

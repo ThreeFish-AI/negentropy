@@ -29,12 +29,17 @@ export default function MemoryAutomationPage() {
   const isAdmin = Boolean(user?.roles?.includes("admin"));
   const isSchedulerReadonly = snapshot ? !snapshot.capabilities.pg_cron_available : false;
 
-  const load = async () => {
-    setError(null);
+  const fetchAutomationData = async () => {
     const [nextSnapshot, nextLogs] = await Promise.all([
       fetchMemoryAutomation(APP_NAME),
       fetchMemoryAutomationLogs(APP_NAME, 10),
     ]);
+    return { nextSnapshot, nextLogs };
+  };
+
+  const load = async () => {
+    setError(null);
+    const { nextSnapshot, nextLogs } = await fetchAutomationData();
     setSnapshot(nextSnapshot);
     setForm(nextSnapshot.config);
     setLogs(nextLogs.items);
@@ -42,9 +47,28 @@ export default function MemoryAutomationPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    load().catch((err) => {
-      setError(err instanceof Error ? err.message : String(err));
-    });
+
+    let active = true;
+
+    const run = async () => {
+      try {
+        const { nextSnapshot, nextLogs } = await fetchAutomationData();
+        if (!active) return;
+        setError(null);
+        setSnapshot(nextSnapshot);
+        setForm(nextSnapshot.config);
+        setLogs(nextLogs.items);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    };
+
+    void run();
+
+    return () => {
+      active = false;
+    };
   }, [isAdmin]);
 
   const updateField = (
