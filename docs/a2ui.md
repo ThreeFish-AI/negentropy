@@ -80,9 +80,9 @@ flowchart TD
 
   subgraph ReadModel["A2UI Read Model"]
     D[normalizeAguiEvent]
-    E[Session Projection]
+    E[Session Projection Feature]
     F[Message Ledger]
-    J[buildConversationTree]
+    J[ConversationTree Projection]
     K[ConversationNode Tree]
   end
 
@@ -105,6 +105,7 @@ flowchart TD
 - 传输入口：[route.ts](../apps/negentropy-ui/app/api/agui/route.ts)
 - ADK 到 AGUI 归一化：[adk.ts](../apps/negentropy-ui/lib/adk.ts)
 - Session Projection / Message Ledger：[message-ledger.ts](../apps/negentropy-ui/utils/message-ledger.ts)
+- Session Projection Hook：[useSessionProjection.ts](../apps/negentropy-ui/features/session/hooks/useSessionProjection.ts)
 - 事件到树构建：[conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts)
 - Chat 主区渲染：[ChatStream.tsx](../apps/negentropy-ui/components/ui/ChatStream.tsx)
 - 递归节点渲染：[ConversationNodeRenderer.tsx](../apps/negentropy-ui/components/ui/conversation/ConversationNodeRenderer.tsx)
@@ -119,6 +120,8 @@ flowchart TD
 - `conversationTree`、timeline、state 面板都属于从 session projection 派生出的 surface projection。
 
 这样做的目标是把“协议输入”“消息事实”“页面结构”三层职责拆开，避免聊天主区、历史回放与技术面板各自维护不同事实源。
+
+当前实现进一步把这套 projection orchestration 从页面组件中抽离到 `features/session`，页面只消费 session feature 暴露的 projection 与 action，不再直接持有 reducer 和投影拼装逻辑。
 
 ### 3.3 Canonical Role 约定
 

@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CopilotKitProvider,
   UseAgentUpdate,
   useAgent,
 } from "@copilotkitnext/react";
-import { HttpAgent, compactEvents, randomUUID } from "@ag-ui/client";
-import { BaseEvent, EventType, Message } from "@ag-ui/core";
+import { HttpAgent, randomUUID } from "@ag-ui/client";
+import { EventType, Message } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
@@ -20,6 +20,7 @@ import { StateSnapshot } from "../components/ui/StateSnapshot";
 import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
 import { AdkEventPayload } from "@/lib/adk";
 import { collectAdkEventPayloads } from "@/lib/adk";
+import { useSessionProjection } from "@/features/session/hooks/useSessionProjection";
 
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
@@ -27,30 +28,8 @@ import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 import { createSessionLabel, buildAgentUrl, toSessionRecord } from "@/utils/session";
 import type { SessionListView } from "@/utils/session";
 import {
-  normalizeMessageContent,
-} from "@/utils/message";
-import {
-  mergeOptimisticMessages,
-  reconcileOptimisticMessages,
-} from "@/utils/message-merge";
-import { buildTimelineItems } from "@/utils/timeline";
-import { buildStateSnapshotFromEvents } from "@/utils/state";
-import {
-  buildConversationTree,
-  buildNodeTimestampIndex,
-} from "@/utils/conversation-tree";
-import {
-  buildMessageLedger,
-  ledgerEntriesToMessages,
-  mergeMessageLedger,
-} from "@/utils/message-ledger";
-import {
   deriveConnectionState,
-  deriveRunStates,
-  hasSameEventSequence,
   hydrateSessionDetail,
-  mergeEvents,
-  type HydratedSessionDetail,
 } from "@/utils/session-hydration";
 
 // 统一的类型定义
@@ -58,77 +37,10 @@ import type {
   ConnectionState,
   SessionRecord,
   LogEntry,
-  SessionProjectionState,
 } from "@/types/common";
 
 const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
-
-const EMPTY_SESSION_PROJECTION: SessionProjectionState = {
-  loadedSessionId: null,
-  rawEvents: [],
-  messageLedger: [],
-  snapshot: null,
-};
-
-type SessionProjectionAction =
-  | {
-      type: "reset";
-    }
-  | {
-      type: "append_realtime_events";
-      events: BaseEvent[];
-    }
-  | {
-      type: "hydrate_session";
-      sessionId: string;
-      detail: HydratedSessionDetail;
-      shouldMerge: boolean;
-    };
-
-function sessionProjectionReducer(
-  state: SessionProjectionState,
-  action: SessionProjectionAction,
-): SessionProjectionState {
-  switch (action.type) {
-    case "reset":
-      return EMPTY_SESSION_PROJECTION;
-    case "append_realtime_events": {
-      const nextRawEvents = mergeEvents(state.rawEvents, action.events).slice(-10000);
-      if (hasSameEventSequence(state.rawEvents, nextRawEvents)) {
-        return state;
-      }
-      return {
-        ...state,
-        rawEvents: nextRawEvents,
-        messageLedger: buildMessageLedger({ events: nextRawEvents }),
-      };
-    }
-    case "hydrate_session": {
-      if (!action.shouldMerge) {
-        return {
-          loadedSessionId: action.sessionId,
-          rawEvents: action.detail.events,
-          messageLedger: action.detail.messageLedger,
-          snapshot: action.detail.snapshot,
-        };
-      }
-
-      const nextRawEvents = mergeEvents(state.rawEvents, action.detail.events);
-      return {
-        loadedSessionId: action.sessionId,
-        rawEvents: nextRawEvents,
-        messageLedger: mergeMessageLedger(
-          state.messageLedger,
-          action.detail.messageLedger,
-        ),
-        snapshot: action.detail.snapshot ?? state.snapshot,
-      };
-    }
-    default:
-      return state;
-  }
-}
 
 export function HomeBody({
   sessionId,
@@ -162,30 +74,33 @@ export function HomeBody({
   const hydrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [sessionProjection, dispatchSessionProjection] = useReducer(
-    sessionProjectionReducer,
-    EMPTY_SESSION_PROJECTION,
-  );
-  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const loadedSessionIdRef = useRef<string | null>(sessionProjection.loadedSessionId);
-  const rawEventsRef = useRef<BaseEvent[]>(sessionProjection.rawEvents);
   const activeSessionIdRef = useRef<string | null>(sessionId);
   const hydrationRequestVersionRef = useRef(0);
-  const rawEvents = sessionProjection.rawEvents;
+  const {
+    rawEvents,
+    snapshotForDisplay,
+    conversationTree,
+    nodeTimestampIndex,
+    filteredRawEvents,
+    timelineItems,
+    pendingConfirmations,
+    latestRunState,
+    loadedSessionIdRef,
+    rawEventsRef,
+    appendRealtimeEvent,
+    appendOptimisticMessage,
+    clearSessionProjection,
+    applyHydratedSession,
+  } = useSessionProjection({
+    sessionId,
+    selectedNodeId,
+  });
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
     [sessions, sessionId],
   );
-
-  useEffect(() => {
-    loadedSessionIdRef.current = sessionProjection.loadedSessionId;
-  }, [sessionProjection.loadedSessionId]);
-
-  useEffect(() => {
-    rawEventsRef.current = sessionProjection.rawEvents;
-  }, [sessionProjection.rawEvents]);
 
   useEffect(() => {
     activeSessionIdRef.current = sessionId;
@@ -294,39 +209,12 @@ export function HomeBody({
         });
         setConnectionWithMetrics("error");
       },
-      onEvent: ({ event }) =>
-        dispatchSessionProjection({
-          type: "append_realtime_events",
-          events: [event],
-        }),
+      onEvent: ({ event }) => appendRealtimeEvent(event),
     });
 
     return () => subscription.unsubscribe();
-  }, [agent, reportMetric, setConnectionWithMetrics]);
+  }, [agent, appendRealtimeEvent, reportMetric, setConnectionWithMetrics]);
 
-  const pendingConfirmations = useMemo(() => {
-    const pending = new Set<string>();
-    rawEvents.forEach((event) => {
-      if (
-        event.type === EventType.TOOL_CALL_START &&
-        "toolCallName" in event &&
-        "toolCallId" in event &&
-        event.toolCallName === "ui.confirmation"
-      ) {
-        pending.add(String(event.toolCallId));
-      }
-      if (event.type === EventType.TOOL_CALL_RESULT && "toolCallId" in event) {
-        pending.delete(String(event.toolCallId));
-      }
-    });
-    return pending.size;
-  }, [rawEvents]);
-
-  const derivedRunStates = useMemo(() => deriveRunStates(rawEvents), [rawEvents]);
-  const latestRunState = useMemo(
-    () => derivedRunStates[derivedRunStates.length - 1] || null,
-    [derivedRunStates],
-  );
   const effectiveConnection = useMemo(() => {
     const derived = deriveConnectionState(rawEvents);
     if (derived === "blocked" || derived === "error") {
@@ -343,79 +231,6 @@ export function HomeBody({
     }
     return derived;
   }, [connection, rawEvents]);
-
-  const hasLoadedSession = sessionProjection.loadedSessionId === sessionId;
-  const confirmedMessageLedger = hasLoadedSession
-    ? sessionProjection.messageLedger
-    : [];
-  const snapshotForRender = hasLoadedSession ? sessionProjection.snapshot : null;
-  const messagesForRenderBase = useMemo(
-    () => ledgerEntriesToMessages(confirmedMessageLedger),
-    [confirmedMessageLedger],
-  );
-  const mergedMessagesForRender = useMemo(() => {
-    const pendingOptimistic = reconcileOptimisticMessages(
-      messagesForRenderBase,
-      optimisticMessages,
-    );
-    return mergeOptimisticMessages(messagesForRenderBase, pendingOptimistic).map(
-      (message) =>
-        !normalizeMessageContent(message).trim().length
-          ? ({
-              ...message,
-              content: normalizeMessageContent(message),
-            } as Message)
-          : message,
-    );
-  }, [messagesForRenderBase, optimisticMessages]);
-  const optimisticMessageLedger = useMemo(
-    () =>
-      buildMessageLedger({
-        events: [],
-        fallbackMessages: optimisticMessages,
-      }),
-    [optimisticMessages],
-  );
-  const renderMessageLedger = useMemo(
-    () => mergeMessageLedger(confirmedMessageLedger, optimisticMessageLedger),
-    [confirmedMessageLedger, optimisticMessageLedger],
-  );
-
-  // 根据选中的节点时间范围过滤事件，右侧保持历史视图能力
-  const nodeTimestampIndex = useMemo(() => {
-    return buildNodeTimestampIndex(
-      buildConversationTree({
-        events: rawEvents,
-        fallbackMessages: mergedMessagesForRender,
-        messageLedger: renderMessageLedger,
-      }),
-    );
-  }, [mergedMessagesForRender, rawEvents, renderMessageLedger]);
-
-  const filteredRawEvents = useMemo(() => {
-    if (!selectedNodeId) {
-      return rawEvents;
-    }
-
-    const cutoffTimestamp = nodeTimestampIndex.get(selectedNodeId);
-    if (cutoffTimestamp === undefined) {
-      return rawEvents;
-    }
-
-    return rawEvents.filter((event) => {
-      const eventTimestamp = event.timestamp || 0;
-      return eventTimestamp <= cutoffTimestamp;
-    });
-  }, [nodeTimestampIndex, rawEvents, selectedNodeId]);
-
-  const compactedEvents = useMemo(
-    () => compactEvents(filteredRawEvents),
-    [filteredRawEvents],
-  );
-  const timelineItems = useMemo(
-    () => buildTimelineItems(compactedEvents),
-    [compactedEvents],
-  );
 
   const clearTitleRefreshTimers = useCallback(() => {
     titleRefreshTimersRef.current.forEach((timer) => {
@@ -434,10 +249,9 @@ export function HomeBody({
   const clearSessionState = useCallback(() => {
     clearHydrationTimers();
     clearTitleRefreshTimers();
-    setOptimisticMessages([]);
-    dispatchSessionProjection({ type: "reset" });
+    clearSessionProjection();
     setSelectedNodeId(null);
-  }, [clearHydrationTimers, clearTitleRefreshTimers]);
+  }, [clearHydrationTimers, clearSessionProjection, clearTitleRefreshTimers]);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -697,17 +511,10 @@ export function HomeBody({
           });
         }
         const hydrated = hydrateSessionDetail(events, id);
-        const currentLoadedSessionId = loadedSessionIdRef.current;
-        const currentRawEvents = rawEventsRef.current;
-        const shouldMerge =
-          currentLoadedSessionId === id ||
-          (sessionId === id && currentRawEvents.length > 0);
-
-        dispatchSessionProjection({
-          type: "hydrate_session",
+        applyHydratedSession({
           sessionId: id,
           detail: hydrated,
-          shouldMerge,
+          activeSessionId: sessionId,
         });
       } catch (error) {
         setConnectionWithMetrics("error");
@@ -718,6 +525,7 @@ export function HomeBody({
       }
     },
     [
+      applyHydratedSession,
       userId,
       setConnectionWithMetrics,
       addLog,
@@ -825,9 +633,8 @@ export function HomeBody({
       threadId: sessionId,
       streaming: false,
     } as Message;
-    // 仅使用 optimisticMessages 进行乐观更新，不再向 rawEvents 添加乐观事件
-    // 避免消息在 buildChatMessagesFromEventsWithFallback 中重复
-    setOptimisticMessages((prev) => [...prev, newMessage]);
+    // optimistic message 交给 session projection hook 管理，页面不再直接编排 render projection
+    appendOptimisticMessage(newMessage);
     agent.addMessage(newMessage);
     setInputValue("");
     if (sessionId) {
@@ -875,29 +682,6 @@ export function HomeBody({
     // Only fetch data in effect
     loadSessionDetail(sessionId);
   }, [sessionId, agent, loadSessionDetail]);
-
-  // Reconstruct state snapshot from filtered events for historical viewing
-  const historicalSnapshot = useMemo(
-    () => buildStateSnapshotFromEvents(filteredRawEvents),
-    [filteredRawEvents],
-  );
-
-  const snapshotForDisplay = useMemo(() => {
-    if (!selectedNodeId) {
-      return snapshotForRender;
-    }
-    return historicalSnapshot;
-  }, [selectedNodeId, snapshotForRender, historicalSnapshot]);
-
-  const conversationTree = useMemo(
-    () =>
-      buildConversationTree({
-        events: rawEvents,
-        fallbackMessages: mergedMessagesForRender,
-        messageLedger: renderMessageLedger,
-      }),
-    [mergedMessagesForRender, rawEvents, renderMessageLedger],
-  );
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
