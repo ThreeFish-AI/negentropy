@@ -8,6 +8,16 @@ import {
   normalizeCorpusExtractorRoutes,
   normalizeExtractorDraftRoutes,
 } from "@/features/knowledge/utils/knowledge-api";
+import {
+  calculateStageWidth,
+  formatDuration,
+  getPipelineStatusColor,
+  getSortedStages,
+  getStageColor,
+  OPERATION_LABELS,
+  STAGE_LABELS,
+} from "@/features/knowledge/utils/pipeline-helpers";
+import { PipelineStatusBadge } from "@/features/knowledge/components/PipelineStatusBadge";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 
@@ -99,6 +109,14 @@ export function createKnowledgeConfigTestExports() {
     normalizeExtractorDraftRoutes,
     buildExtractorRoutesFromDraft,
     buildCorpusConfig,
+    OPERATION_LABELS,
+    STAGE_LABELS,
+    getPipelineStatusColor,
+    getStageColor,
+    formatDuration,
+    calculateStageWidth,
+    getSortedStages,
+    PipelineStatusBadge,
   };
 }
 

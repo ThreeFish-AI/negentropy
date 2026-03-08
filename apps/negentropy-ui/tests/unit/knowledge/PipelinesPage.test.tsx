@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import type { KnowledgeFeatureMockSet } from "@/tests/helpers/knowledge";
 
 const knowledgeMocks = vi.hoisted(() => ({}) as KnowledgeFeatureMockSet);
@@ -204,5 +204,49 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(screen.getAllByText("重建源").length).toBeGreaterThan(0);
     expect(screen.getByText("开始 2026-03-08T10:00:00Z")).toBeInTheDocument();
     expect(screen.getByText("结束 2026-03-08T10:02:00Z")).toBeInTheDocument();
+  });
+
+  it("Runs 列表状态标签复用 Dashboard 的共享状态样式", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        makeRun({
+          id: "run-running-id",
+          run_id: "run-running",
+          status: "running",
+        }),
+        makeRun({
+          id: "run-completed-id",
+          run_id: "run-completed",
+          status: "completed",
+        }),
+        makeRun({
+          id: "run-failed-id",
+          run_id: "run-failed",
+          status: "failed",
+        }),
+      ],
+      last_updated_at: "t0",
+    });
+
+    const { container } = render(<KnowledgePipelinesPage />);
+    await settle();
+
+    const runningBadge = screen.getByLabelText("状态: running");
+    expect(runningBadge.className).toContain("inline-flex");
+    expect(runningBadge.querySelector("span")?.className).toContain("animate-pulse");
+    expect(within(runningBadge).getByText("running").className).toContain("text-amber-600");
+
+    const completedBadge = screen.getByLabelText("状态: completed");
+    expect(completedBadge.className).toContain("inline-flex");
+    expect(within(completedBadge).getByText("completed").className).toContain("text-emerald-600");
+
+    const failedBadge = screen.getByLabelText("状态: failed");
+    expect(failedBadge.className).toContain("inline-flex");
+    expect(within(failedBadge).getByText("failed").className).toContain("text-rose-600");
+
+    const selectedRunButton = Array.from(container.querySelectorAll("button")).find((element) =>
+      element.textContent?.includes("run-running")
+    );
+    expect(selectedRunButton?.className).toContain("bg-zinc-900");
   });
 });
