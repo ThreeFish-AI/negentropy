@@ -15,7 +15,6 @@ const NAV_ITEMS = [
 
 export function MemoryNav({
   title,
-  description,
 }: {
   title: string;
   description?: string;

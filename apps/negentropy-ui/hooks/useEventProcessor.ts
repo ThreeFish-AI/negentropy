@@ -11,11 +11,11 @@
  * - 消息时间戳管理
  */
 
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { compactEvents } from "@ag-ui/client";
 import { BaseEvent, EventType } from "@ag-ui/core";
 import { buildTimelineItems } from "@/utils/timeline";
-import type { LogEntry, ConnectionState } from "@/types/common";
+import type { LogEntry } from "@/types/common";
 import {
   getEventMessageId,
   getEventToolCallId,
@@ -43,16 +43,7 @@ export interface UseEventProcessorReturnValue {
 export function useEventProcessor(
   options: UseEventProcessorOptions = {}
 ): UseEventProcessorReturnValue {
-  const { sessionMessages = [] } = options;
-
-  // 运行时指标追踪
-  const metricsRef = useRef({
-    runCount: 0,
-    errorCount: 0,
-    reconnectCount: 0,
-    lastRunStartedAt: 0,
-    lastRunMs: 0,
-  });
+  void options;
 
   // 日志条目
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);

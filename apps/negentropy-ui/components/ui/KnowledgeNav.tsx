@@ -16,7 +16,6 @@ const NAV_ITEMS = [
 
 export function KnowledgeNav({
   title,
-  description,
 }: {
   title: string;
   description?: string;

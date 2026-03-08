@@ -163,7 +163,14 @@ test("Knowledge Runs 状态标签在 Dashboard 与 Pipelines 页面视觉一致"
         corpus_count: 2,
         knowledge_count: 8,
         last_build_at: "2026-03-08T10:05:00Z",
-        pipeline_runs: sharedRuns.map(({ id, started_at, completed_at, duration_ms, error, ...run }) => run),
+        pipeline_runs: sharedRuns.map((run) => ({
+          run_id: run.run_id,
+          status: run.status,
+          version: run.version,
+          operation: run.operation,
+          trigger: run.trigger,
+          updated_at: run.updated_at,
+        })),
         alerts: [],
       }),
     });

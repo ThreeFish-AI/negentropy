@@ -37,7 +37,7 @@ export default function MemoryAuditPage() {
   >([]);
 
   const users = payload?.users || [];
-  const timeline = payload?.timeline || [];
+  const timeline = useMemo(() => payload?.timeline || [], [payload?.timeline]);
 
   // D1: 选中用户后自动加载历史审计记录
   useEffect(() => {

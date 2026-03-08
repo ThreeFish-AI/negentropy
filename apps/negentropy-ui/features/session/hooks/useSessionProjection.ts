@@ -93,9 +93,10 @@ export function useSessionProjection(
 
   const rawEvents = sessionProjection.rawEvents;
   const hasLoadedSession = sessionProjection.loadedSessionId === sessionId;
-  const confirmedMessageLedger = hasLoadedSession
-    ? sessionProjection.messageLedger
-    : [];
+  const confirmedMessageLedger = useMemo(
+    () => (hasLoadedSession ? sessionProjection.messageLedger : []),
+    [hasLoadedSession, sessionProjection.messageLedger],
+  );
   const snapshotForRender = hasLoadedSession ? sessionProjection.snapshot : null;
 
   const messagesForRenderBase = useMemo(

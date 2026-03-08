@@ -156,7 +156,6 @@ export type InlineErrorMessageProps = Omit<
 export function InlineErrorMessage({
   code,
   message,
-  traceId,
   className = "",
 }: InlineErrorMessageProps) {
   const level = isAguiErrorCode(code) ? ERROR_CODE_TO_LEVEL[code] : "error";

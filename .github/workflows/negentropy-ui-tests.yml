@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ui-legacy-import-guard:
-    name: UI Legacy Import Guard
+  ui-lint:
+    name: UI Lint
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -47,8 +47,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Block legacy session manager imports
-        run: pnpm lint:legacy-session-imports
+      - name: Lint app
+        run: pnpm lint
 
   ui-typecheck:
     name: UI Type Checks
@@ -145,7 +145,7 @@ jobs:
 
   ui-e2e-smoke:
     name: UI Playwright Smoke
-    needs: [ui-legacy-import-guard, ui-typecheck, ui-unit-integration, ui-build-smoke]
+    needs: [ui-lint, ui-typecheck, ui-unit-integration, ui-build-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:

@@ -11,9 +11,7 @@
 import { useState, useCallback } from "react";
 import { createSessionLabel, toSessionRecord } from "@/utils/session";
 import { HttpAgent } from "@ag-ui/client";
-import { Message } from "@ag-ui/core";
 import {
-  adkEventToAguiEvents,
   collectAdkEventPayloads,
   adkEventsToMessages,
   adkEventsToSnapshot,
@@ -141,8 +139,6 @@ export function useSessionManager(
         const { payloads: events, invalidCount } = collectAdkEventPayloads(payload.events);
         const messages = adkEventsToMessages(events);
         const snapshot = adkEventsToSnapshot(events);
-        const mappedEvents = events.flatMap(adkEventToAguiEvents);
-
         setLoadedSessionId(id);
         if (agent) {
           agent.setMessages(messages);

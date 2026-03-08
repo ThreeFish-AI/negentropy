@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { MainNav } from "./MainNav";
 import { UserNav } from "./UserNav";
@@ -16,9 +17,11 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
         {/* Brand + Location */}
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-0">
-            <img
+            <Image
               src="/logo.svg"
               alt="Negentropy"
+              width={48}
+              height={24}
               className="h-6 w-12 object-contain"
             />
             <span className="text-sm font-bold tracking-[0.1em] text-black dark:text-white">

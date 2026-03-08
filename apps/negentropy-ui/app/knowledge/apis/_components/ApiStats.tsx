@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, CheckCircle, XCircle, Zap } from "lucide-react";
+import { Activity, CheckCircle, Zap } from "lucide-react";
 
 interface ApiStatsData {
   total_calls: number;
