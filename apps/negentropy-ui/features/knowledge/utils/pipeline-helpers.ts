@@ -35,13 +35,35 @@ export const TRIGGER_LABELS: Record<string, string> = {
 /**
  * 阶段顺序定义（用于排序显示）
  */
-export const STAGE_ORDER = ["fetch", "delete", "chunk", "embed", "persist"];
+export const STAGE_ORDER = [
+  "extract_resolve",
+  "extract_primary",
+  "extract_failover_1",
+  "extract_failover_2",
+  "extract_assets_store",
+  "extract_finalize",
+  "fetch",
+  "download",
+  "extract",
+  "delete",
+  "chunk",
+  "embed",
+  "persist",
+];
 
 /**
  * 阶段名称中文标签
  */
 export const STAGE_LABELS: Record<string, string> = {
   fetch: "获取内容",
+  download: "下载源文件",
+  extract: "提取内容",
+  extract_resolve: "解析提取路由",
+  extract_primary: "主 MCP 提取",
+  extract_failover_1: "备用 MCP 提取 1",
+  extract_failover_2: "备用 MCP 提取 2",
+  extract_assets_store: "存储提取资源",
+  extract_finalize: "整理提取结果",
   delete: "删除旧记录",
   chunk: "文本分块",
   embed: "向量化",
@@ -60,6 +82,54 @@ export const STAGE_COLORS: Record<
     completed: "bg-sky-500",
     failed: "bg-sky-700",
     skipped: "bg-sky-300 dark:bg-sky-600",
+  },
+  download: {
+    running: "bg-cyan-400",
+    completed: "bg-cyan-500",
+    failed: "bg-cyan-700",
+    skipped: "bg-cyan-300 dark:bg-cyan-600",
+  },
+  extract: {
+    running: "bg-indigo-400",
+    completed: "bg-indigo-500",
+    failed: "bg-indigo-700",
+    skipped: "bg-indigo-300 dark:bg-indigo-600",
+  },
+  extract_resolve: {
+    running: "bg-blue-400",
+    completed: "bg-blue-500",
+    failed: "bg-blue-700",
+    skipped: "bg-blue-300 dark:bg-blue-600",
+  },
+  extract_primary: {
+    running: "bg-fuchsia-400",
+    completed: "bg-fuchsia-500",
+    failed: "bg-fuchsia-700",
+    skipped: "bg-fuchsia-300 dark:bg-fuchsia-600",
+  },
+  extract_failover_1: {
+    running: "bg-pink-400",
+    completed: "bg-pink-500",
+    failed: "bg-pink-700",
+    skipped: "bg-pink-300 dark:bg-pink-600",
+  },
+  extract_failover_2: {
+    running: "bg-purple-400",
+    completed: "bg-purple-500",
+    failed: "bg-purple-700",
+    skipped: "bg-purple-300 dark:bg-purple-600",
+  },
+  extract_assets_store: {
+    running: "bg-teal-400",
+    completed: "bg-teal-500",
+    failed: "bg-teal-700",
+    skipped: "bg-teal-300 dark:bg-teal-600",
+  },
+  extract_finalize: {
+    running: "bg-lime-400",
+    completed: "bg-lime-500",
+    failed: "bg-lime-700",
+    skipped: "bg-lime-300 dark:bg-lime-600",
   },
   delete: {
     running: "bg-rose-400",
