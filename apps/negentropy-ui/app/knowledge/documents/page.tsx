@@ -14,6 +14,7 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
@@ -314,7 +315,7 @@ export default function DocumentsPage() {
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1 || loading}
-                    className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
+                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
                   >
                     Previous
                   </button>
@@ -324,7 +325,7 @@ export default function DocumentsPage() {
                   <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page >= totalPages || loading}
-                    className="rounded border border-border bg-background px-2 py-1 text-xs disabled:opacity-50 hover:bg-muted/50"
+                    className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
                   >
                     Next
                   </button>

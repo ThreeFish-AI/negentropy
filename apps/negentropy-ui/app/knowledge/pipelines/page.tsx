@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
   fetchPipelines,
   KnowledgePipelinesPayload,
@@ -370,7 +371,7 @@ export default function KnowledgePipelinesPage() {
                   <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
                     <span>{payload?.last_updated_at || "-"}</span>
                     <button
-                      className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
+                      className={outlineButtonClassName("neutral", "rounded-full px-3 py-1 text-[11px]")}
                       onClick={async () => {
                         if (!selected) return;
                         setSaveStatus("saving");

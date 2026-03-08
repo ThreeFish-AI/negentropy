@@ -43,6 +43,7 @@ import {
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
 import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
@@ -110,7 +111,7 @@ function ChunkDetailDrawer({
         <h3 className="text-sm font-semibold">Chunk Detail</h3>
         <button
           onClick={onClose}
-          className="rounded border border-border px-2 py-1 text-xs hover:bg-muted"
+          className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
         >
           Close
         </button>
@@ -849,7 +850,10 @@ export default function KnowledgeBasePage() {
             <button
               type="button"
               onClick={resetRetrievalView}
-              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+              className={outlineButtonClassName(
+                "neutral",
+                "rounded-lg px-3 py-1.5 text-xs font-semibold",
+              )}
             >
               收起结果
             </button>
@@ -983,13 +987,19 @@ export default function KnowledgeBasePage() {
                 <div className="flex shrink-0 items-center justify-end gap-2">
                   <button
                     onClick={() => handleEditCorpus(corpus)}
-                    className="inline-flex h-7 items-center rounded border border-border px-2.5 text-[11px] text-muted transition-colors hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+                    className={outlineButtonClassName(
+                      "neutral",
+                      "inline-flex h-7 items-center rounded px-2.5 text-[11px]",
+                    )}
                   >
                     Settings
                   </button>
                   <button
                     onClick={() => handleDeleteCorpus(corpus)}
-                    className="inline-flex h-7 items-center rounded border border-red-300 px-2.5 text-[11px] text-red-600 hover:bg-red-50"
+                    className={outlineButtonClassName(
+                      "danger",
+                      "inline-flex h-7 items-center rounded px-2.5 text-[11px]",
+                    )}
                   >
                     Delete
                   </button>
@@ -1041,7 +1051,10 @@ export default function KnowledgeBasePage() {
                       <button
                         type="button"
                         onClick={() => setIsCorpusPanelExpanded((prev) => !prev)}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm font-semibold hover:bg-muted"
+                        className={outlineButtonClassName(
+                          "neutral",
+                          "w-full rounded-lg px-4 py-3 text-sm font-semibold",
+                        )}
                       >
                         {isCorpusPanelExpanded ? "收起 Corpus" : "Corpus"}
                       </button>
@@ -1065,7 +1078,7 @@ export default function KnowledgeBasePage() {
               >
                 <button
                   onClick={() => syncQueryState({ view: "overview", corpusId: null, tab: null, documentId: null })}
-                  className="mb-3 rounded border border-border px-2 py-1 text-xs hover:bg-muted"
+                  className={outlineButtonClassName("neutral", "mb-3 rounded px-2 py-1 text-xs")}
                 >
                   ← Back
                 </button>
@@ -1098,13 +1111,13 @@ export default function KnowledgeBasePage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setIsIngestUrlDialogOpen(true)}
-                        className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
+                        className={outlineButtonClassName("neutral", "rounded px-3 py-1.5 text-xs")}
                       >
                         Ingest From URL
                       </button>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
+                        className={outlineButtonClassName("neutral", "rounded px-3 py-1.5 text-xs")}
                       >
                         Ingest From File
                       </button>
@@ -1145,16 +1158,16 @@ export default function KnowledgeBasePage() {
                                 <p className="text-[11px] text-muted">{sourceType} · {doc.status} · {doc.file_size} bytes</p>
                               </button>
                               <div className="flex flex-wrap items-center justify-end gap-1">
-                                <button onClick={() => runDocumentAction("view", doc)} className="rounded border border-border px-2 py-1 text-[11px]">View</button>
-                                <button onClick={() => runDocumentAction("download", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Download</button>
-                                <button onClick={() => runDocumentAction("replace", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Replace</button>
-                                <button onClick={() => runDocumentAction("rebuild", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Rebuild</button>
+                                <button onClick={() => runDocumentAction("view", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>View</button>
+                                <button onClick={() => runDocumentAction("download", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Download</button>
+                                <button onClick={() => runDocumentAction("replace", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Replace</button>
+                                <button onClick={() => runDocumentAction("rebuild", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Rebuild</button>
                                 {sourceType === "url" && (
-                                  <button onClick={() => runDocumentAction("sync", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Sync</button>
+                                  <button onClick={() => runDocumentAction("sync", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Sync</button>
                                 )}
-                                <button onClick={() => runDocumentAction("archive", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Archive</button>
-                                <button onClick={() => runDocumentAction("unarchive", doc)} className="rounded border border-border px-2 py-1 text-[11px]">Unarchive</button>
-                                <button onClick={() => runDocumentAction("delete", doc)} className="rounded border border-red-300 px-2 py-1 text-[11px] text-red-600">Delete</button>
+                                <button onClick={() => runDocumentAction("archive", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Archive</button>
+                                <button onClick={() => runDocumentAction("unarchive", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>Unarchive</button>
+                                <button onClick={() => runDocumentAction("delete", doc)} className={outlineButtonClassName("danger", "rounded px-2 py-1 text-[11px]")}>Delete</button>
                               </div>
                             </div>
                           </div>
@@ -1171,7 +1184,7 @@ export default function KnowledgeBasePage() {
                     <h2 className="text-sm font-semibold">Document Chunks</h2>
                     <button
                       onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "documents", documentId: null })}
-                      className="rounded border border-border px-2 py-1 text-xs"
+                      className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
                     >
                       Back to Documents
                     </button>
@@ -1187,7 +1200,10 @@ export default function KnowledgeBasePage() {
                           type="button"
                           key={chunk.id}
                           onClick={() => setSelectedDocumentChunk(chunk)}
-                          className="block w-full rounded-lg border border-border bg-background p-3 text-left hover:bg-muted/40"
+                          className={outlineButtonClassName(
+                            "neutral",
+                            "block w-full rounded-lg p-3 text-left hover:bg-muted/40",
+                          )}
                         >
                           <p className="line-clamp-3 text-xs">{chunk.content}</p>
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted">
@@ -1520,7 +1536,7 @@ function CorpusSettingsPanel({
                         <button
                           type="button"
                           onClick={clearTarget}
-                          className="rounded border border-border px-3 py-2 text-[11px] hover:bg-muted"
+                          className={outlineButtonClassName("neutral", "rounded px-3 py-2 text-[11px]")}
                         >
                           清空
                         </button>
