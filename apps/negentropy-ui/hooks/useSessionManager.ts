@@ -1,13 +1,11 @@
 /**
  * 会话管理 Hook
  *
- * 从 app/page.tsx HomeBody 组件提取的会话管理逻辑
+ * 兼容旧调用面的遗留入口。
  *
- * 职责：
- * - 会话列表管理
- * - 会话创建
- * - 会话详情加载
- * - 当前会话追踪
+ * @deprecated 已被 `useSessionListService` 与 `useSessionService` 取代。
+ * 新代码不要再依赖该 hook；会话列表能力请改用 `features/session/hooks/useSessionListService.ts`，
+ * 会话详情与聊天投影能力请改用 `features/session/hooks/useSessionService.ts`。
  */
 
 import { useState, useCallback } from "react";
@@ -22,6 +20,9 @@ import {
 } from "@/lib/adk";
 import type { SessionRecord, ConnectionState } from "@/types/common";
 
+/**
+ * @deprecated 已被 `UseSessionListServiceOptions` / `UseSessionServiceOptions` 取代。
+ */
 export interface UseSessionManagerOptions {
   userId: string;
   appName: string;
@@ -31,6 +32,9 @@ export interface UseSessionManagerOptions {
   onSessionLoaded?: (sessionId: string) => void;
 }
 
+/**
+ * @deprecated 已被 `UseSessionListServiceReturnValue` / `UseSessionServiceReturnValue` 取代。
+ */
 export interface UseSessionManagerReturnValue {
   sessions: SessionRecord[];
   loadedSessionId: string | null;
@@ -41,6 +45,9 @@ export interface UseSessionManagerReturnValue {
   setSessions: React.Dispatch<React.SetStateAction<SessionRecord[]>>;
 }
 
+/**
+ * @deprecated 已被 `useSessionListService` 与 `useSessionService` 取代。
+ */
 export function useSessionManager(
   options: UseSessionManagerOptions
 ): UseSessionManagerReturnValue {

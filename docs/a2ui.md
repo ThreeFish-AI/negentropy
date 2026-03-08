@@ -139,6 +139,11 @@ flowchart TD
 - `useSessionProjection`：负责 confirmed projection、optimistic overlay 与 render projection 派生。
 - 页面组件：只负责 UI 容器、输入交互和面板编排，不再直接持有 session hydration 定时器、list fetch 逻辑或请求版本控制。
 
+遗留兼容入口：
+
+- `useSessionManager` 仅为兼容旧调用面暂时保留，已不代表当前 session feature 的推荐架构边界。
+- 新增能力、回归测试与文档描述一律以 `useSessionListService + useSessionService + useSessionProjection` 为准。
+
 ### 3.3 Canonical Role 约定
 
 本项目内部统一使用 canonical role：
