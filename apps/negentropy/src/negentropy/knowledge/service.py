@@ -42,7 +42,7 @@ EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
 
 # Pipeline 操作类型
-PipelineOperation = str  # "ingest_text" | "ingest_url" | "replace_source"
+PipelineOperation = str  # "ingest_text" | "ingest_url" | "replace_source" | "sync_source" | "rebuild_source"
 
 # Pipeline 阶段状态
 PipelineStageStatus = str  # "pending" | "running" | "completed" | "failed" | "skipped"
@@ -84,6 +84,33 @@ class PipelineTracker:
     def current_stage(self) -> Optional[str]:
         return self._current_stage
 
+    @staticmethod
+    def _calculate_duration_ms(started_at: Optional[str], completed_at: str) -> Optional[int]:
+        if not started_at:
+            return None
+        try:
+            start_dt = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+            return int((end_dt - start_dt).total_seconds() * 1000)
+        except (ValueError, TypeError):
+            return None
+
+    async def resume(self) -> None:
+        """从已有持久化记录恢复上下文，避免后台执行覆盖 create_pipeline 初始载荷。"""
+        record = await self._dao.get_pipeline_run(self._app_name, self._run_id)
+        if not record:
+            return
+
+        payload = record.payload or {}
+        self._started_at = payload.get("started_at")
+        self._completed_at = payload.get("completed_at")
+        self._duration_ms = payload.get("duration_ms")
+        self._stages = dict(payload.get("stages") or {})
+        self._input = dict(payload.get("input") or {})
+        self._output = payload.get("output")
+        self._error = payload.get("error")
+        self._status = record.status
+
     async def start(self, input_data: Dict[str, Any]) -> None:
         """开始 Pipeline 执行"""
         self._started_at = datetime.now(timezone.utc).isoformat()
@@ -110,20 +137,11 @@ class PipelineTracker:
         stage_data = self._stages.get(stage, {})
         started_at = stage_data.get("started_at")
 
-        duration_ms = None
-        if started_at:
-            try:
-                start_dt = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
-                end_dt = datetime.fromisoformat(now.replace("Z", "+00:00"))
-                duration_ms = int((end_dt - start_dt).total_seconds() * 1000)
-            except (ValueError, TypeError):
-                pass
-
         self._stages[stage] = {
             "status": "completed",
             "started_at": started_at,
             "completed_at": now,
-            "duration_ms": duration_ms,
+            "duration_ms": self._calculate_duration_ms(started_at, now),
             "output": output,
         }
         self._current_stage = None
@@ -135,17 +153,33 @@ class PipelineTracker:
         error: Dict[str, Any],
     ) -> None:
         """阶段执行失败"""
-        now = datetime.now(timezone.utc).isoformat()
-        stage_data = self._stages.get(stage, {})
+        await self.fail(error, stage=stage)
 
-        self._stages[stage] = {
-            "status": "failed",
-            "started_at": stage_data.get("started_at"),
-            "completed_at": now,
-            "error": error,
-        }
+    async def fail(
+        self,
+        error: Dict[str, Any],
+        *,
+        stage: Optional[str] = None,
+    ) -> None:
+        """统一写入失败终态，确保 run 与 stage 的结束信息同时落盘。"""
+        now = datetime.now(timezone.utc).isoformat()
+        target_stage = stage or self._current_stage
+
+        if target_stage:
+            stage_data = self._stages.get(target_stage, {})
+            stage_started_at = stage_data.get("started_at")
+            self._stages[target_stage] = {
+                "status": "failed",
+                "started_at": stage_started_at,
+                "completed_at": now,
+                "duration_ms": self._calculate_duration_ms(stage_started_at, now),
+                "error": error,
+            }
+
         self._status = "failed"
         self._error = error
+        self._completed_at = now
+        self._duration_ms = self._calculate_duration_ms(self._started_at, now)
         self._current_stage = None
         await self._persist()
 
@@ -162,15 +196,7 @@ class PipelineTracker:
         now = datetime.now(timezone.utc).isoformat()
         self._status = "completed"
         self._output = output
-
-        if self._started_at:
-            try:
-                start_dt = datetime.fromisoformat(self._started_at.replace("Z", "+00:00"))
-                end_dt = datetime.fromisoformat(now.replace("Z", "+00:00"))
-                self._duration_ms = int((end_dt - start_dt).total_seconds() * 1000)
-            except (ValueError, TypeError):
-                pass
-
+        self._duration_ms = self._calculate_duration_ms(self._started_at, now)
         self._completed_at = now
         await self._persist()
 
@@ -214,6 +240,25 @@ class KnowledgeService:
         self._chunking_config = chunking_config or default_chunking_config()
         self._reranker = reranker or NoopReranker()
         self._pipeline_dao = pipeline_dao
+
+    async def _resume_async_pipeline_tracker(self, tracker: PipelineTracker) -> PipelineTracker:
+        await tracker.resume()
+        tracker._status = "running"
+        tracker._completed_at = None
+        tracker._duration_ms = None
+        tracker._error = None
+        return tracker
+
+    @staticmethod
+    async def _fail_pipeline_execution(tracker: Optional[PipelineTracker], exc: Exception) -> None:
+        if not tracker:
+            return
+        await tracker.fail(
+            {
+                "type": type(exc).__name__,
+                "message": str(exc),
+            }
+        )
 
     async def _get_corpus_config(self, corpus_id: UUID) -> dict[str, Any]:
         corpus = await self.get_corpus_by_id(corpus_id)
@@ -338,8 +383,7 @@ class KnowledgeService:
             operation="ingest_text",
             run_id=run_id,
         )
-        # 恢复 tracker 状态（已由 create_pipeline 初始化）
-        tracker._status = "running"
+        await self._resume_async_pipeline_tracker(tracker)
 
         logger.info(
             "pipeline_execution_started",
@@ -371,16 +415,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {"type": type(exc).__name__, "message": str(exc)},
-                )
-            else:
-                # 如果没有当前阶段，直接标记整个 Pipeline 失败
-                tracker._status = "failed"
-                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
-                await tracker._persist()
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def execute_ingest_url_pipeline(
@@ -403,7 +438,7 @@ class KnowledgeService:
             operation="ingest_url",
             run_id=run_id,
         )
-        tracker._status = "running"
+        await self._resume_async_pipeline_tracker(tracker)
 
         logger.info(
             "pipeline_execution_started",
@@ -457,15 +492,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {"type": type(exc).__name__, "message": str(exc)},
-                )
-            else:
-                tracker._status = "failed"
-                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
-                await tracker._persist()
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def execute_replace_source_pipeline(
@@ -489,7 +516,7 @@ class KnowledgeService:
             operation="replace_source",
             run_id=run_id,
         )
-        tracker._status = "running"
+        await self._resume_async_pipeline_tracker(tracker)
         config = chunking_config or self._chunking_config
 
         logger.info(
@@ -532,15 +559,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {"type": type(exc).__name__, "message": str(exc)},
-                )
-            else:
-                tracker._status = "failed"
-                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
-                await tracker._persist()
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def execute_sync_source_pipeline(
@@ -562,7 +581,7 @@ class KnowledgeService:
             operation="sync_source",
             run_id=run_id,
         )
-        tracker._status = "running"
+        await self._resume_async_pipeline_tracker(tracker)
         config = chunking_config or self._chunking_config
 
         logger.info(
@@ -627,15 +646,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {"type": type(exc).__name__, "message": str(exc)},
-                )
-            else:
-                tracker._status = "failed"
-                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
-                await tracker._persist()
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def execute_rebuild_source_pipeline(
@@ -657,7 +668,7 @@ class KnowledgeService:
             operation="rebuild_source",
             run_id=run_id,
         )
-        tracker._status = "running"
+        await self._resume_async_pipeline_tracker(tracker)
         config = chunking_config or self._chunking_config
 
         logger.info(
@@ -682,8 +693,6 @@ class KnowledgeService:
                     raise ValueError(f"Document not found in GCS: {source_uri}")
             except StorageError as exc:
                 from .exceptions import KnowledgeError
-
-                await tracker.fail_stage("download", {"type": "GCS_DOWNLOAD_FAILED", "message": str(exc)})
                 raise KnowledgeError(
                     code="GCS_DOWNLOAD_FAILED",
                     message=f"Failed to download content from GCS: {exc}",
@@ -750,15 +759,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {"type": type(exc).__name__, "message": str(exc)},
-                )
-            else:
-                tracker._status = "failed"
-                tracker._error = {"type": type(exc).__name__, "message": str(exc)}
-                await tracker._persist()
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
@@ -844,14 +845,7 @@ class KnowledgeService:
 
             return records
         except Exception as exc:
-            if tracker and tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    },
-                )
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def _ingest_text_with_tracker(
@@ -1031,14 +1025,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker and tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    },
-                )
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def delete_source(
@@ -1244,14 +1231,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker and tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    },
-                )
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def sync_source(
@@ -1382,14 +1362,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker and tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    },
-                )
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def rebuild_source(
@@ -1464,14 +1437,6 @@ class KnowledgeService:
             except StorageError as exc:
                 from .exceptions import KnowledgeError
 
-                if tracker:
-                    await tracker.fail_stage(
-                        "download",
-                        {
-                            "type": "GCS_DOWNLOAD_FAILED",
-                            "message": str(exc),
-                        },
-                    )
                 raise KnowledgeError(
                     code="GCS_DOWNLOAD_FAILED",
                     message=f"Failed to download content from GCS: {exc}",
@@ -1573,14 +1538,7 @@ class KnowledgeService:
             return records
 
         except Exception as exc:
-            if tracker and tracker.current_stage:
-                await tracker.fail_stage(
-                    tracker.current_stage,
-                    {
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    },
-                )
+            await self._fail_pipeline_execution(tracker, exc)
             raise
 
     async def list_knowledge(

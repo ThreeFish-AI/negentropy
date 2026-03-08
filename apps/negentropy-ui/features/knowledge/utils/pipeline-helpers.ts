@@ -19,6 +19,8 @@ export const OPERATION_LABELS: Record<string, string> = {
   ingest_text: "文本摄入",
   ingest_url: "URL 摄入",
   replace_source: "替换源",
+  sync_source: "同步源",
+  rebuild_source: "重建源",
 };
 
 /**
