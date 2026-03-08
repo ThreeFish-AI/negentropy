@@ -249,4 +249,145 @@ describe("KnowledgePipelinesPage polling", () => {
     );
     expect(selectedRunButton?.className).toContain("bg-zinc-900");
   });
+
+  it("多 Stage 失败时，详情页 Errors 区域会同时展示所有阶段异常", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-multi-error-id",
+            run_id: "run-multi-error",
+            status: "failed",
+          }),
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "primary extractor failed",
+                tool_name: "extract_primary",
+              },
+            },
+            extract_failover_1: {
+              status: "failed",
+              duration_ms: 800,
+              error: {
+                message: "backup extractor failed",
+                tool_name: "extract_failover_1",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getByText("Errors")).toBeInTheDocument();
+    expect(screen.getAllByText("主 MCP 提取").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("备用 MCP 提取 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("primary extractor failed").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("backup extractor failed").length).toBeGreaterThan(0);
+  });
+
+  it("顶层错误与阶段错误重复时，Errors 区域不会重复展示运行级错误", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-dedup-id",
+            run_id: "run-dedup",
+            status: "failed",
+          }),
+          error: {
+            message: "backup extractor failed",
+          },
+          stages: {
+            extract_failover_1: {
+              status: "failed",
+              duration_ms: 800,
+              error: {
+                message: "backup extractor failed",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.queryByText("运行级错误")).not.toBeInTheDocument();
+    expect(screen.getAllByText("backup extractor failed")).toHaveLength(2);
+  });
+
+  it("顶层错误与阶段错误不同步时，会同时展示运行级和阶段级错误", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-run-and-stage-error-id",
+            run_id: "run-run-and-stage-error",
+            status: "failed",
+          }),
+          error: {
+            message: "pipeline terminated after retries",
+          },
+          stages: {
+            extract_failover_1: {
+              status: "failed",
+              duration_ms: 800,
+              error: {
+                message: "backup extractor failed",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getByText("运行级错误")).toBeInTheDocument();
+    expect(screen.getAllByText("pipeline terminated after retries").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("备用 MCP 提取 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("backup extractor failed").length).toBeGreaterThan(0);
+  });
+
+  it("即使缺少顶层 error，也会基于 stages 渲染 Errors 区域", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-stage-only-error-id",
+            run_id: "run-stage-only-error",
+            status: "failed",
+          }),
+          stages: {
+            persist: {
+              status: "failed",
+              duration_ms: 50,
+              error: {
+                detail: "persist detail error",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getByText("Errors")).toBeInTheDocument();
+    expect(screen.getAllByText("持久化").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("persist detail error").length).toBeGreaterThan(0);
+  });
 });

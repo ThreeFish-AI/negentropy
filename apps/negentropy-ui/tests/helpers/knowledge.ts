@@ -9,11 +9,14 @@ import {
   normalizeExtractorDraftRoutes,
 } from "@/features/knowledge/utils/knowledge-api";
 import {
+  buildPipelineErrorDetails,
   calculateStageWidth,
   formatDuration,
+  getFailedStages,
   getPipelineStatusColor,
   getSortedStages,
   getStageColor,
+  getStageErrorMessage,
   OPERATION_LABELS,
   STAGE_LABELS,
 } from "@/features/knowledge/utils/pipeline-helpers";
@@ -113,6 +116,9 @@ export function createKnowledgeConfigTestExports() {
     STAGE_LABELS,
     getPipelineStatusColor,
     getStageColor,
+    getStageErrorMessage,
+    getFailedStages,
+    buildPipelineErrorDetails,
     formatDuration,
     calculateStageWidth,
     getSortedStages,
