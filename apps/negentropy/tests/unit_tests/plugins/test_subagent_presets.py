@@ -48,3 +48,11 @@ def test_builtin_payload_matches_faculty_definition():
         assert "output_schema" in adk_config
         assert "generate_content_config" in adk_config
         assert "planner" in adk_config
+
+
+def test_builtin_payloads_are_serialized_without_name_error_regression():
+    payloads = build_negentropy_subagent_payloads()
+
+    assert payloads
+    for payload in payloads:
+        assert isinstance(payload["adk_config"], dict)
