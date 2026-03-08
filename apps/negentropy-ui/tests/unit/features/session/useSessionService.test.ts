@@ -246,4 +246,34 @@ describe("useSessionService", () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
+
+  it("loadSessionDetail 失败时会记录错误并设置连接状态", async () => {
+    const setConnectionWithMetrics = vi.fn();
+    const addLog = vi.fn();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(global, "fetch").mockRejectedValue(new Error("detail failed"));
+
+    const { result } = renderHook(() =>
+      useSessionService({
+        sessionId: "s1",
+        selectedNodeId: null,
+        userId: "u1",
+        appName: "negentropy",
+        addLog,
+        setConnectionWithMetrics,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.loadSessionDetail("s1");
+    });
+
+    expect(setConnectionWithMetrics).toHaveBeenCalledWith("error");
+    expect(addLog).toHaveBeenCalledWith(
+      "error",
+      "load_session_detail_failed",
+      expect.objectContaining({ message: expect.stringContaining("detail failed") }),
+    );
+    warnSpy.mockRestore();
+  });
 });

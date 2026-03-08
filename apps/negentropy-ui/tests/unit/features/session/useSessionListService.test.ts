@@ -100,4 +100,33 @@ describe("useSessionListService", () => {
       );
     });
   });
+
+  it("loadSessions 失败时会记录错误并设置连接状态", async () => {
+    const setConnectionWithMetrics = vi.fn();
+    const addLog = vi.fn();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(global, "fetch").mockRejectedValue(new Error("network down"));
+
+    renderHook(() =>
+      useSessionListService({
+        sessionId: null,
+        userId: "u1",
+        appName: "negentropy",
+        setSessionId: vi.fn(),
+        addLog,
+        setConnectionWithMetrics,
+        onClearActiveSession: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(setConnectionWithMetrics).toHaveBeenCalledWith("error");
+    });
+    expect(addLog).toHaveBeenCalledWith(
+      "error",
+      "load_sessions_failed",
+      expect.objectContaining({ message: expect.stringContaining("network down") }),
+    );
+    warnSpy.mockRestore();
+  });
 });
