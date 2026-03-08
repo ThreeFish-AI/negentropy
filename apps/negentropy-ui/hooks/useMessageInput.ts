@@ -160,6 +160,7 @@ export function useMessageInput(
     agent,
     sessionId,
     connection,
+    inputValue,
     pendingConfirmations,
     resolvedThreadId,
     setOptimisticMessages,

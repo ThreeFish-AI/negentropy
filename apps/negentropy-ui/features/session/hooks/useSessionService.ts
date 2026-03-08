@@ -64,8 +64,6 @@ export function useSessionService(
   const hydrationRequestVersionRef = useRef(0);
   const hydrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  activeSessionIdRef.current = sessionId;
-
   const clearHydrationTimers = useCallback(() => {
     hydrationTimersRef.current.forEach((timer) => {
       clearTimeout(timer);
@@ -79,6 +77,10 @@ export function useSessionService(
     },
     [clearHydrationTimers],
   );
+
+  useEffect(() => {
+    activeSessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   const loadSessionDetail = useCallback(
     async (id: string) => {

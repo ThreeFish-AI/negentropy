@@ -24,7 +24,6 @@ export default function KnowledgeApisPage() {
 
   useEffect(() => {
     let active = true;
-    setStatsLoading(true);
 
     // 传递当前选中的 endpoint ID 以获取该 API 的单独统计
     const params = new URLSearchParams();
@@ -58,6 +57,12 @@ export default function KnowledgeApisPage() {
       active = false;
     };
   }, [selectedEndpoint]);  // 依赖 selectedEndpoint，切换时重新获取统计
+
+  const handleSelectEndpoint = (endpoint: ApiEndpoint) => {
+    setSelectedEndpoint(endpoint);
+    setStats(null);
+    setStatsLoading(true);
+  };
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -100,7 +105,7 @@ export default function KnowledgeApisPage() {
                       key={endpoint.id}
                       endpoint={endpoint}
                       isSelected={selectedEndpoint.id === endpoint.id}
-                      onClick={() => setSelectedEndpoint(endpoint)}
+                      onClick={() => handleSelectEndpoint(endpoint)}
                     />
                   ))}
                 </div>

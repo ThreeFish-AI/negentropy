@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import {
@@ -40,20 +40,29 @@ export default function MemoryAuditPage() {
   const timeline = payload?.timeline || [];
 
   // D1: 选中用户后自动加载历史审计记录
-  const loadAuditHistory = useCallback(async () => {
-    if (!selectedUserId) return;
-    try {
-      const data = await fetchAuditHistory(selectedUserId, APP_NAME);
-      setAuditHistory(data.items);
-    } catch (err) {
-      // 审计历史加载失败不阻塞主功能
-      console.error("Failed to load audit history:", err);
-    }
-  }, [selectedUserId]);
-
   useEffect(() => {
-    loadAuditHistory();
-  }, [loadAuditHistory]);
+    if (!selectedUserId) return;
+
+    let active = true;
+
+    const run = async () => {
+      try {
+        const data = await fetchAuditHistory(selectedUserId, APP_NAME);
+        if (active) {
+          setAuditHistory(data.items);
+        }
+      } catch (err) {
+        // 审计历史加载失败不阻塞主功能
+        console.error("Failed to load audit history:", err);
+      }
+    };
+
+    void run();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedUserId]);
 
   const filteredTimeline = useMemo(() => {
     if (!selectedUserId) return timeline;
