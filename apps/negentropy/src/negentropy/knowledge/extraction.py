@@ -220,27 +220,14 @@ def _result_text_from_content_items(content_items: list[Any]) -> str:
     return "\n".join(text_chunks).strip()
 
 
-def _parse_structured_payload(payload: Any, content_items: list[Any]) -> dict[str, Any]:
-    if isinstance(payload, dict):
-        return payload
-
-    if isinstance(payload, str):
-        try:
-            parsed = json.loads(payload)
-            if isinstance(parsed, dict):
-                return parsed
-        except json.JSONDecodeError:
-            return {}
-
-    fallback_text = _result_text_from_content_items(content_items)
-    if fallback_text:
-        try:
-            parsed = json.loads(fallback_text)
-            if isinstance(parsed, dict):
-                return parsed
-        except json.JSONDecodeError:
-            return {}
-    return {}
+def _json_candidate_from_text(text: str) -> Any:
+    raw = text.strip()
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
 
 
 def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
@@ -1026,19 +1013,29 @@ def _looks_like_document_payload(payload: Any) -> bool:
         return False
     return any(
         key in payload
-        for key in ("markdown", "markdown_content", "text", "plain_text", "assets", "metadata")
+        for key in ("markdown", "markdown_content", "text", "plain_text", "content", "assets", "metadata")
     )
 
 
-def _extract_document_payload(payload: Any) -> dict[str, Any]:
+def _normalize_document_payload(payload: Any) -> dict[str, Any]:
+    if isinstance(payload, list):
+        for item in payload:
+            normalized = _normalize_document_payload(item)
+            if normalized:
+                return normalized
+        return {}
+
     if not isinstance(payload, dict):
         return {}
+
     if _looks_like_document_payload(payload):
         return payload
+
     for key in ("result", "document", "data"):
-        candidate = payload.get(key)
-        if _looks_like_document_payload(candidate):
-            return candidate
+        normalized = _normalize_document_payload(payload.get(key))
+        if normalized:
+            return normalized
+
     for key in ("results", "items", "documents"):
         candidates = payload.get(key)
         if not isinstance(candidates, list):
@@ -1049,10 +1046,53 @@ def _extract_document_payload(payload: Any) -> dict[str, Any]:
             status = str(item.get("status") or "").lower()
             if item.get("success") is False or status in {"failed", "error"}:
                 continue
-            direct = _extract_document_payload(item)
-            if direct:
-                return direct
-    return payload
+            normalized = _normalize_document_payload(item)
+            if normalized:
+                return normalized
+
+    return {}
+
+
+def _normalize_document_result(
+    *,
+    structured_content: Any,
+    content_items: list[Any],
+) -> tuple[dict[str, Any], str | None]:
+    normalized = _normalize_document_payload(structured_content)
+    if normalized:
+        return normalized, None
+
+    fallback_text = _result_text_from_content_items(content_items)
+    if not fallback_text:
+        return {}, "structured_content_missing_and_text_unusable"
+
+    parsed = _json_candidate_from_text(fallback_text)
+    normalized = _normalize_document_payload(parsed)
+    if normalized:
+        return normalized, None
+
+    return {"markdown_content": fallback_text, "plain_text": fallback_text}, None
+
+
+def _payload_text_fields(payload: dict[str, Any]) -> tuple[str, str]:
+    markdown = str(
+        payload.get("markdown")
+        or payload.get("markdown_content")
+        or ""
+    ).strip()
+    plain_text = str(
+        payload.get("text")
+        or payload.get("plain_text")
+        or payload.get("content")
+        or ""
+    ).strip()
+
+    if not markdown and plain_text:
+        markdown = optimize_markdown_content(plain_text)
+    if not plain_text and markdown:
+        plain_text = markdown
+
+    return markdown, plain_text
 
 
 async def _increment_tool_call_count(*, server_id: UUID, tool_name: str) -> None:
@@ -1432,15 +1472,11 @@ class DataExtractorProvider:
             duration_ms=result.duration_ms,
             error=None,
         )
-        payload = _extract_document_payload(
-            _parse_structured_payload(result.structured_content, result.content)
+        payload, normalization_error = _normalize_document_result(
+            structured_content=result.structured_content,
+            content_items=result.content,
         )
-        markdown = str(payload.get("markdown") or payload.get("markdown_content") or "").strip()
-        plain_text = str(payload.get("text") or payload.get("plain_text") or "").strip()
-        if not markdown and plain_text:
-            markdown = optimize_markdown_content(plain_text)
-        if not plain_text and markdown:
-            plain_text = markdown
+        markdown, plain_text = _payload_text_fields(payload)
         if not plain_text:
             return {
                 "success": False,
@@ -1450,7 +1486,7 @@ class DataExtractorProvider:
                     tool_name=attempt.tool_name,
                     status="failed",
                     duration_ms=attempt.duration_ms,
-                    error="Extractor returned empty content",
+                    error=normalization_error or "document_payload_recognized_but_empty",
                 ),
             }
 
@@ -1470,6 +1506,7 @@ class DataExtractorProvider:
                     "adapter_schema_summary": plan.diagnostics,
                     "adapter_attempts": invocation_trace,
                     "contract_shape": contract.schema_shape,
+                    "normalization_error": normalization_error,
                     "llm_fallback_used": any(item.get("reasoning_source") == "llm" for item in invocation_trace),
                 },
             ),

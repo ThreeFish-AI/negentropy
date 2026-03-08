@@ -427,6 +427,257 @@ async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batc
     assert extracted.trace["llm_fallback_used"] is False
 
 
+@pytest.mark.asyncio
+async def test_data_extractor_provider_normalizes_list_structured_content(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(
+                is_enabled=True,
+                input_schema={"type": "object", "properties": {"pdf_sources": {"type": "array"}}},
+            )
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content=[
+                    {
+                        "result": {
+                            "markdown_content": "# List Title",
+                        }
+                    }
+                ],
+                content=[],
+                error=None,
+                duration_ms=18,
+            )
+
+    async def fake_increment_tool_call_count(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr("negentropy.knowledge.extraction._increment_tool_call_count", fake_increment_tool_call_count)
+
+    async def fake_llm_plan(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction._build_llm_invocation_plan", fake_llm_plan)
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="batch_convert_pdfs_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    extracted = result["result"]
+    assert extracted.markdown_content == "# List Title"
+    assert extracted.plain_text == "# List Title"
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_normalizes_json_text_content_when_structured_content_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+
+    class FakeTextItem:
+        type = "text"
+        text = '{"result": {"markdown_content": "# JSON Title", "plain_text": "JSON Title"}}'
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(is_enabled=True, input_schema={"type": "object"})
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content=None,
+                content=[FakeTextItem()],
+                error=None,
+                duration_ms=13,
+            )
+
+    async def fake_increment_tool_call_count(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr("negentropy.knowledge.extraction._increment_tool_call_count", fake_increment_tool_call_count)
+
+    async def fake_llm_plan(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction._build_llm_invocation_plan", fake_llm_plan)
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    extracted = result["result"]
+    assert extracted.markdown_content == "# JSON Title"
+    assert extracted.plain_text == "JSON Title"
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_uses_plain_text_content_when_json_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+
+    class FakeTextItem:
+        type = "text"
+        text = "# Plain Markdown"
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(is_enabled=True, input_schema={"type": "object"})
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content=None,
+                content=[FakeTextItem()],
+                error=None,
+                duration_ms=13,
+            )
+
+    async def fake_increment_tool_call_count(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr("negentropy.knowledge.extraction._increment_tool_call_count", fake_increment_tool_call_count)
+
+    async def fake_llm_plan(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction._build_llm_invocation_plan", fake_llm_plan)
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    extracted = result["result"]
+    assert extracted.markdown_content == "# Plain Markdown"
+    assert extracted.plain_text == "# Plain Markdown"
+
+
 def test_extraction_attempt_slots_dataclass_is_json_serialized_in_trace() -> None:
     attempt = ExtractionAttempt(
         server_id="server-1",

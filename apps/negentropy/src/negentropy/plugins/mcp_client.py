@@ -181,7 +181,7 @@ class McpToolCallResult:
 
     success: bool
     content: list[Any] = field(default_factory=list)
-    structured_content: dict[str, Any] | None = None
+    structured_content: Any | None = None
     error: str | None = None
     duration_ms: int = 0
 
@@ -463,9 +463,7 @@ class McpClientService:
                     return McpToolCallResult(
                         success=not bool(result.isError),
                         content=list(result.content or []),
-                        structured_content=(
-                            result.structuredContent if isinstance(result.structuredContent, dict) else None
-                        ),
+                        structured_content=getattr(result, "structuredContent", None),
                         error=_extract_call_error(result),
                     )
 
@@ -527,9 +525,7 @@ class McpClientService:
                     return McpToolCallResult(
                         success=not bool(result.isError),
                         content=list(result.content or []),
-                        structured_content=(
-                            result.structuredContent if isinstance(result.structuredContent, dict) else None
-                        ),
+                        structured_content=getattr(result, "structuredContent", None),
                         error=_extract_call_error(result),
                     )
 
@@ -584,9 +580,7 @@ class McpClientService:
                     return McpToolCallResult(
                         success=not bool(result.isError),
                         content=list(result.content or []),
-                        structured_content=(
-                            result.structuredContent if isinstance(result.structuredContent, dict) else None
-                        ),
+                        structured_content=getattr(result, "structuredContent", None),
                         error=_extract_call_error(result),
                     )
 
