@@ -8,7 +8,7 @@ import {
   useAgent,
 } from "@copilotkitnext/react";
 import { HttpAgent, randomUUID } from "@ag-ui/client";
-import { Message } from "@ag-ui/core";
+import { Message, type BaseEvent } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
@@ -21,6 +21,7 @@ import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
 import { useSessionListService } from "@/features/session/hooks/useSessionListService";
 import { useSessionService } from "@/features/session/hooks/useSessionService";
 
+import { useAgentSubscription } from "@/hooks/useAgentSubscription";
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
@@ -52,16 +53,15 @@ export function HomeBody({
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(false);
-  const metricsRef = useRef({
-    runCount: 0,
-    errorCount: 0,
-    reconnectCount: 0,
-    lastRunStartedAt: 0,
-    lastRunMs: 0,
-  });
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const rawEventHandlerRef = useRef<((event: BaseEvent) => void) | undefined>(
+    undefined,
+  );
+  const updateSessionTimeRef = useRef<
+    ((currentSessionId: string) => void) | undefined
+  >(undefined);
 
   const addLog = useCallback(
     (
@@ -88,28 +88,20 @@ export function HomeBody({
 
   const reportMetric = useCallback(
     (name: string, payload: Record<string, unknown>) => {
-      if (process.env.NODE_ENV !== "production") {
-        console.debug(`[metrics] ${name}`, payload);
-      }
       addLog("info", name, payload);
     },
     [addLog],
   );
 
-  const setConnectionWithMetrics = useCallback(
-    (next: ConnectionState) => {
-      setConnection((prev) => {
-        if (prev === "error" && next === "connecting") {
-          metricsRef.current.reconnectCount += 1;
-          reportMetric("reconnect", {
-            count: metricsRef.current.reconnectCount,
-          });
-        }
-        return next;
-      });
-    },
-    [reportMetric],
-  );
+  const { setConnectionWithMetrics } = useAgentSubscription({
+    agent,
+    sessionId,
+    onRawEvent: (event) => rawEventHandlerRef.current?.(event),
+    onConnectionChange: setConnection,
+    onMetricReport: reportMetric,
+    onUpdateSessionTime: (currentSessionId) =>
+      updateSessionTimeRef.current?.(currentSessionId),
+  });
 
   const {
     rawEvents,
@@ -159,58 +151,11 @@ export function HomeBody({
     setConnectionWithMetrics,
     onClearActiveSession: resetActiveSessionView,
   });
-  useEffect(() => {
-    if (!agent) {
-      return;
-    }
-    const subscription = agent.subscribe({
-      onRunInitialized: () => setConnectionWithMetrics("connecting"),
-      onRunStartedEvent: () => {
-        metricsRef.current.runCount += 1;
-        metricsRef.current.lastRunStartedAt = performance.now();
-        reportMetric("run_started", { runCount: metricsRef.current.runCount });
-        setConnectionWithMetrics("streaming");
-      },
-      onRunFinishedEvent: () => {
-        if (metricsRef.current.lastRunStartedAt) {
-          metricsRef.current.lastRunMs =
-            performance.now() - metricsRef.current.lastRunStartedAt;
-          metricsRef.current.lastRunStartedAt = 0;
-          reportMetric("run_finished", {
-            lastRunMs: metricsRef.current.lastRunMs,
-          });
-        }
-        setConnectionWithMetrics("idle");
-        if (sessionId) {
-          updateCurrentSessionTime(sessionId);
-        }
-      },
-      onRunErrorEvent: () => {
-        metricsRef.current.errorCount += 1;
-        reportMetric("run_error", {
-          errorCount: metricsRef.current.errorCount,
-        });
-        setConnectionWithMetrics("error");
-      },
-      onRunFailed: () => {
-        metricsRef.current.errorCount += 1;
-        reportMetric("run_failed", {
-          errorCount: metricsRef.current.errorCount,
-        });
-        setConnectionWithMetrics("error");
-      },
-      onEvent: ({ event }) => appendRealtimeEvent(event),
-    });
 
-    return () => subscription.unsubscribe();
-  }, [
-    agent,
-    appendRealtimeEvent,
-    reportMetric,
-    sessionId,
-    setConnectionWithMetrics,
-    updateCurrentSessionTime,
-  ]);
+  useEffect(() => {
+    rawEventHandlerRef.current = appendRealtimeEvent;
+    updateSessionTimeRef.current = updateCurrentSessionTime;
+  }, [appendRealtimeEvent, updateCurrentSessionTime]);
 
   const effectiveConnection = useMemo(() => {
     const derived = deriveConnectionState(rawEvents);
