@@ -605,7 +605,9 @@ export type PipelineStageStatus =
 export type PipelineOperation =
   | "ingest_text"
   | "ingest_url"
-  | "replace_source";
+  | "replace_source"
+  | "sync_source"
+  | "rebuild_source";
 
 // Pipeline 阶段结果
 export interface PipelineStageResult {

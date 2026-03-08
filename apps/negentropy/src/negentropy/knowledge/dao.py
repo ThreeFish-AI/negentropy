@@ -20,6 +20,15 @@ class KnowledgeRunDao:
     def __init__(self, session_factory=AsyncSessionLocal):
         self._session_factory = session_factory
 
+    async def get_pipeline_run(self, app_name: str, run_id: str) -> Optional[KnowledgePipelineRun]:
+        async with self._session_factory() as db:
+            stmt = select(KnowledgePipelineRun).where(
+                KnowledgePipelineRun.app_name == app_name,
+                KnowledgePipelineRun.run_id == run_id,
+            )
+            result = await db.execute(stmt)
+            return result.scalar_one_or_none()
+
     async def get_latest_graph(self, app_name: str) -> Optional[KnowledgeGraphRun]:
         async with self._session_factory() as db:
             stmt = (

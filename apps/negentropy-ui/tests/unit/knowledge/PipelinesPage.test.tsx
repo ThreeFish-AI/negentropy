@@ -29,11 +29,26 @@ const settle = async () => {
   });
 };
 
-const makeRun = (overrides?: Partial<{ id: string; run_id: string; status: string; version: number }>) => ({
+const makeRun = (
+  overrides?: Partial<{
+    id: string;
+    run_id: string;
+    status: string;
+    version: number;
+    operation: string;
+    started_at: string;
+    completed_at: string;
+    duration_ms: number;
+  }>
+) => ({
   id: overrides?.id ?? "run-1-id",
   run_id: overrides?.run_id ?? "run-1",
   status: overrides?.status ?? "completed",
   version: overrides?.version ?? 1,
+  operation: overrides?.operation,
+  started_at: overrides?.started_at,
+  completed_at: overrides?.completed_at,
+  duration_ms: overrides?.duration_ms,
 });
 
 describe("KnowledgePipelinesPage polling", () => {
@@ -165,5 +180,29 @@ describe("KnowledgePipelinesPage polling", () => {
 
     expect(screen.getAllByText(/run-id-with-a-very-long-identifier/).length).toBeGreaterThan(0);
     expect(screen.getByText(/https:\/\/example\.com/)).toBeInTheDocument();
+  });
+
+  it("失败的重建源 Run 会在 Timeline 中显示开始与结束时间", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        makeRun({
+          id: "run-failed-id",
+          run_id: "run-failed",
+          status: "failed",
+          operation: "rebuild_source",
+          started_at: "2026-03-08T10:00:00Z",
+          completed_at: "2026-03-08T10:02:00Z",
+          duration_ms: 120000,
+        }),
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getAllByText("重建源").length).toBeGreaterThan(0);
+    expect(screen.getByText("开始 2026-03-08T10:00:00Z")).toBeInTheDocument();
+    expect(screen.getByText("结束 2026-03-08T10:02:00Z")).toBeInTheDocument();
   });
 });
