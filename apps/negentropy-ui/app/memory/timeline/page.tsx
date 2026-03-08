@@ -23,7 +23,7 @@ export default function MemoryTimelinePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const users = payload?.users || [];
-  const timeline = payload?.timeline || [];
+  const timeline = useMemo(() => payload?.timeline || [], [payload?.timeline]);
   const policies = payload?.policies || {};
 
   const filteredTimeline = useMemo(() => {

@@ -14,7 +14,6 @@ const NAV_ITEMS = [
 
 export function PluginsNav({
   title,
-  description,
 }: {
   title: string;
   description?: string;

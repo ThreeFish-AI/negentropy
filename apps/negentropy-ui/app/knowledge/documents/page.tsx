@@ -17,8 +17,6 @@ import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
-
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -72,7 +70,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize] = useState(20);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());

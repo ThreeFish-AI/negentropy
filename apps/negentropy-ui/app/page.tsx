@@ -203,7 +203,14 @@ export function HomeBody({
     });
 
     return () => subscription.unsubscribe();
-  }, [agent, appendRealtimeEvent, reportMetric, setConnectionWithMetrics]);
+  }, [
+    agent,
+    appendRealtimeEvent,
+    reportMetric,
+    sessionId,
+    setConnectionWithMetrics,
+    updateCurrentSessionTime,
+  ]);
 
   const effectiveConnection = useMemo(() => {
     const derived = deriveConnectionState(rawEvents);

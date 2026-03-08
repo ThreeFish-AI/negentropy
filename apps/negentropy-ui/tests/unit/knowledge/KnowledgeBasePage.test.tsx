@@ -621,9 +621,6 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    const serverSelect = screen.getAllByLabelText("MCP Server")[0];
-    const toolSelect = screen.getAllByLabelText("Tool")[0];
-
     expectKnowledgeBaseUnavailableMcpOptions(
       knowledgeBasePageMcpSelectionFixtures.legacyConfigured,
     );

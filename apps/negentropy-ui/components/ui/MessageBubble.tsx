@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
@@ -269,7 +270,13 @@ export function MessageBubble({
           />
         ) : (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card">
-            <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
+            <Image
+              src="/logo.svg"
+              alt="AI"
+              width={20}
+              height={20}
+              className="h-5 w-5 object-contain"
+            />
           </div>
         )}
       </div>

@@ -12,7 +12,6 @@ const NAV_ITEMS = [
 
 export function AdminNav({
   title,
-  description,
 }: {
   title: string;
   description?: string;

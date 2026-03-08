@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "lint:legacy-session-imports": "node ./scripts/check-no-legacy-session-manager-imports.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.vitest.json --noEmit",
     "test": "vitest run",

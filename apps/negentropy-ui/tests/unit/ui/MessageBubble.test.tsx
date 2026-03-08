@@ -23,9 +23,9 @@ describe("MessageBubble", () => {
 
     const avatar = screen.getByRole("img", { name: "Me" });
     expect(avatar.className).not.toContain("border");
-    expect(avatar.className).toContain("rounded-md");
+    expect(avatar.parentElement?.className).toContain("rounded-md");
 
-    const avatarRail = avatar.parentElement;
+    const avatarRail = avatar.parentElement?.parentElement;
     expect(avatarRail?.className).toContain("absolute");
     expect(avatarRail?.className).toContain("right-0");
     expect(avatarRail?.className).toContain("translate-x-[calc(100%+0.75rem)]");

@@ -8,7 +8,6 @@
 import type { Message } from "@ag-ui/core";
 import {
   getMessageCreatedAt,
-  getMessageRunId,
   getMessageThreadId,
   type AgUiMessage,
 } from "@/types/agui";
