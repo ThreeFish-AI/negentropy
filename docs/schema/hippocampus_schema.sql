@@ -3,6 +3,13 @@
 -- Version: 1.0
 -- Target: PostgreSQL 16+ with pgvector
 -- Prerequisite: Phase 1 agent_schema.sql 已部署
+-- Status: 历史原型 / 研究草案
+--
+-- 说明：
+-- 1. 本文件用于保留仿生记忆机制的早期 DDL 原型与研究上下文。
+-- 2. 当前 PostgreSQL 版 Memory Automation 的初始化、受管函数、受管任务、
+--    降级行为与运维入口，以 docs/memory.md 和服务端实现为准。
+-- 3. 不应依据本文件手工创建、重建或维护当前运行时的 Automation 对象。
 -- ============================================
 
 -- ============================================
@@ -249,4 +256,3 @@ BEGIN
     RETURN job_count;
 END;
 $$ LANGUAGE plpgsql;
-
