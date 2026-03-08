@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { Archive, ArchiveRestore, ChevronLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 import type { SessionListView } from "@/utils/session";
 
 type SessionItem = {
@@ -68,7 +69,10 @@ export function SessionList({
           {view === "active" ? (
             <>
               <button
-                className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold text-text-secondary transition-colors hover:bg-muted"
+                className={outlineButtonClassName(
+                  "neutral",
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
+                )}
                 onClick={() => onSwitchView("archived")}
                 type="button"
               >
@@ -87,7 +91,10 @@ export function SessionList({
             </>
           ) : (
             <button
-              className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold text-text-secondary transition-colors hover:bg-muted"
+              className={outlineButtonClassName(
+                "neutral",
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
+              )}
               onClick={() => onSwitchView("active")}
               type="button"
             >

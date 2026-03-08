@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 
 import type {
   KnowledgeDocument,
@@ -320,7 +321,10 @@ export function DocumentViewDialog({
           <button
             onClick={handleRefreshMarkdown}
             disabled={isRefreshingMarkdown || !document}
-            className="flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className={outlineButtonClassName(
+              "neutral",
+              "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm",
+            )}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.636 18.364A9 9 0 103.22 9.88" />

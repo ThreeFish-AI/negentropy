@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminNav } from "@/components/ui/AdminNav";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 
 type RoleMap = Record<string, string[]>;
 type PermissionMap = Record<string, string>;
@@ -262,7 +263,7 @@ export default function RoleManagementPage() {
             <button
               type="button"
               onClick={load}
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100"
+              className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
               disabled={loading}
             >
               {loading ? "Refreshing..." : "Refresh"}
@@ -271,7 +272,7 @@ export default function RoleManagementPage() {
               <button
                 type="button"
                 onClick={resetAll}
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100"
+                className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
               >
                 Reset All
               </button>
@@ -330,7 +331,7 @@ export default function RoleManagementPage() {
                         <button
                           type="button"
                           onClick={() => resetRole(role)}
-                          className="rounded-full border border-zinc-200 px-3 py-1 text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100"
+                          className={outlineButtonClassName("neutral", "rounded-full px-3 py-1")}
                           disabled={!dirty}
                         >
                           Reset

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { PluginsNav } from "@/components/ui/PluginsNav";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { SubAgentCard } from "./_components/SubAgentCard";
 import { SubAgentFormDialog } from "./_components/SubAgentFormDialog";
 
@@ -159,7 +160,10 @@ export default function SubAgentsPage() {
                 <button
                   onClick={handleSyncNegentropy}
                   disabled={syncing}
-                  className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  className={outlineButtonClassName(
+                    "neutral",
+                    "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium",
+                  )}
                 >
                   {syncing ? "Syncing..." : "Sync Negentropy 5"}
                 </button>
