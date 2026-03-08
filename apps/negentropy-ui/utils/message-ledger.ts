@@ -15,7 +15,12 @@ import {
   type CanonicalMessageRole,
 } from "@/types/agui";
 import type { MessageLedgerEntry } from "@/types/common";
-import { accumulateTextContent, getMessageIdentityKey, normalizeMessageContent } from "@/utils/message";
+import {
+  accumulateTextContent,
+  getMessageIdentityKey,
+  isEquivalentMessageContent,
+  normalizeMessageContent,
+} from "@/utils/message";
 import { resolveMessageRole, shouldReplaceResolvedRole } from "@/utils/message-role-resolver";
 
 type SnapshotMessage = {
@@ -33,6 +38,62 @@ const DEFAULT_RUN_ID = "default-run";
 
 function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" | "runId">): string {
   return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
+}
+
+function isSemanticEquivalentEntry(
+  left: Pick<
+    MessageLedgerEntry,
+    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt"
+  >,
+  right: Pick<
+    MessageLedgerEntry,
+    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt"
+  >,
+): boolean {
+  if (left.threadId !== right.threadId) {
+    return false;
+  }
+  if ((left.runId || DEFAULT_RUN_ID) !== (right.runId || DEFAULT_RUN_ID)) {
+    return false;
+  }
+  if (left.resolvedRole !== right.resolvedRole) {
+    return false;
+  }
+
+  const leftContent = left.content.trim();
+  const rightContent = right.content.trim();
+  if (!leftContent || !rightContent) {
+    return false;
+  }
+
+  const maxWindowMs =
+    left.resolvedRole === "assistant" || left.resolvedRole === "developer"
+      ? 30_000
+      : 10_000;
+  if (
+    Math.abs(left.createdAt.getTime() - right.createdAt.getTime()) > maxWindowMs
+  ) {
+    return false;
+  }
+
+  return left.resolvedRole === "assistant" || left.resolvedRole === "developer"
+    ? isEquivalentMessageContent(leftContent, rightContent)
+    : leftContent === rightContent;
+}
+
+function findSemanticLedgerKey(
+  entries: Map<string, MessageLedgerEntry>,
+  candidate: Pick<
+    MessageLedgerEntry,
+    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt"
+  >,
+): string | null {
+  for (const [key, entry] of entries.entries()) {
+    if (isSemanticEquivalentEntry(entry, candidate)) {
+      return key;
+    }
+  }
+  return null;
 }
 
 function normalizeTimestamp(value: unknown): Date {
@@ -278,7 +339,9 @@ export function mergeMessageLedger(
   const merged = new Map<string, MessageLedgerEntry>();
 
   [...baseEntries, ...incomingEntries].forEach((entry) => {
-    const key = getLedgerIdentityKey(entry);
+    const semanticKey =
+      entry.content.trim().length > 0 ? findSemanticLedgerKey(merged, entry) : null;
+    const key = semanticKey || getLedgerIdentityKey(entry);
     const existing = merged.get(key);
     if (!existing) {
       merged.set(key, {
@@ -303,6 +366,9 @@ export function mergeMessageLedger(
     existing.runId = existing.runId || entry.runId;
     existing.author = existing.author || entry.author;
     existing.streaming = existing.streaming && entry.streaming;
+    if (!existing.relatedMessageIds.includes(entry.id)) {
+      existing.relatedMessageIds.push(entry.id);
+    }
     entry.sourceEventTypes.forEach((eventType) => {
       if (!existing.sourceEventTypes.includes(eventType)) {
         existing.sourceEventTypes.push(eventType);

@@ -143,9 +143,11 @@ function TextNode({
     runId: node.runId,
     threadId: node.threadId,
     streaming:
-      node.role !== "user" &&
-      node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_CONTENT) &&
-      !node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_END),
+      typeof node.payload.streaming === "boolean"
+        ? node.payload.streaming
+        : node.role !== "user" &&
+          node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_CONTENT) &&
+          !node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_END),
   };
 
   if (shouldRenderAsJson) {
