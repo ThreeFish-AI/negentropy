@@ -1,7 +1,7 @@
 """add memory automation configs
 
 Revision ID: 9c7f8e6d5b4a
-Revises: bd9c65e1bf99
+Revises: c6f8d9e1a2b3
 Create Date: 2026-03-08 12:00:00.000000
 """
 
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "9c7f8e6d5b4a"
-down_revision: Union[str, Sequence[str], None] = "bd9c65e1bf99"
+down_revision: Union[str, Sequence[str], None] = "c6f8d9e1a2b3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
