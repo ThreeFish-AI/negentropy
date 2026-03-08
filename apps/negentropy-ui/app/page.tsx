@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import {
   CopilotKitProvider,
@@ -39,15 +39,18 @@ import {
   buildConversationTree,
   buildNodeTimestampIndex,
 } from "@/utils/conversation-tree";
-import { buildMessageLedger } from "@/utils/message-ledger";
+import {
+  buildMessageLedger,
+  ledgerEntriesToMessages,
+  mergeMessageLedger,
+} from "@/utils/message-ledger";
 import {
   deriveConnectionState,
   deriveRunStates,
   hasSameEventSequence,
-  hasSameMessageSequence,
   hydrateSessionDetail,
   mergeEvents,
-  mergeMessages,
+  type HydratedSessionDetail,
 } from "@/utils/session-hydration";
 
 // 统一的类型定义
@@ -55,10 +58,77 @@ import type {
   ConnectionState,
   SessionRecord,
   LogEntry,
+  SessionProjectionState,
 } from "@/types/common";
 
 const AGENT_ID = "negentropy";
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
+
+const EMPTY_SESSION_PROJECTION: SessionProjectionState = {
+  loadedSessionId: null,
+  rawEvents: [],
+  messageLedger: [],
+  snapshot: null,
+};
+
+type SessionProjectionAction =
+  | {
+      type: "reset";
+    }
+  | {
+      type: "append_realtime_events";
+      events: BaseEvent[];
+    }
+  | {
+      type: "hydrate_session";
+      sessionId: string;
+      detail: HydratedSessionDetail;
+      shouldMerge: boolean;
+    };
+
+function sessionProjectionReducer(
+  state: SessionProjectionState,
+  action: SessionProjectionAction,
+): SessionProjectionState {
+  switch (action.type) {
+    case "reset":
+      return EMPTY_SESSION_PROJECTION;
+    case "append_realtime_events": {
+      const nextRawEvents = mergeEvents(state.rawEvents, action.events).slice(-10000);
+      if (hasSameEventSequence(state.rawEvents, nextRawEvents)) {
+        return state;
+      }
+      return {
+        ...state,
+        rawEvents: nextRawEvents,
+        messageLedger: buildMessageLedger({ events: nextRawEvents }),
+      };
+    }
+    case "hydrate_session": {
+      if (!action.shouldMerge) {
+        return {
+          loadedSessionId: action.sessionId,
+          rawEvents: action.detail.events,
+          messageLedger: action.detail.messageLedger,
+          snapshot: action.detail.snapshot,
+        };
+      }
+
+      const nextRawEvents = mergeEvents(state.rawEvents, action.detail.events);
+      return {
+        loadedSessionId: action.sessionId,
+        rawEvents: nextRawEvents,
+        messageLedger: mergeMessageLedger(
+          state.messageLedger,
+          action.detail.messageLedger,
+        ),
+        snapshot: action.detail.snapshot ?? state.snapshot,
+      };
+    }
+    default:
+      return state;
+  }
+}
 
 export function HomeBody({
   sessionId,
@@ -92,19 +162,17 @@ export function HomeBody({
   const hydrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [rawEvents, setRawEvents] = useState<BaseEvent[]>([]);
-  const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
+  const [sessionProjection, dispatchSessionProjection] = useReducer(
+    sessionProjectionReducer,
+    EMPTY_SESSION_PROJECTION,
+  );
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
-  const [sessionSnapshot, setSessionSnapshot] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
-  const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const loadedSessionIdRef = useRef<string | null>(null);
-  const rawEventsRef = useRef<BaseEvent[]>([]);
+  const loadedSessionIdRef = useRef<string | null>(sessionProjection.loadedSessionId);
+  const rawEventsRef = useRef<BaseEvent[]>(sessionProjection.rawEvents);
   const activeSessionIdRef = useRef<string | null>(sessionId);
   const hydrationRequestVersionRef = useRef(0);
+  const rawEvents = sessionProjection.rawEvents;
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === sessionId) || null,
@@ -112,12 +180,12 @@ export function HomeBody({
   );
 
   useEffect(() => {
-    loadedSessionIdRef.current = loadedSessionId;
-  }, [loadedSessionId]);
+    loadedSessionIdRef.current = sessionProjection.loadedSessionId;
+  }, [sessionProjection.loadedSessionId]);
 
   useEffect(() => {
-    rawEventsRef.current = rawEvents;
-  }, [rawEvents]);
+    rawEventsRef.current = sessionProjection.rawEvents;
+  }, [sessionProjection.rawEvents]);
 
   useEffect(() => {
     activeSessionIdRef.current = sessionId;
@@ -227,9 +295,9 @@ export function HomeBody({
         setConnectionWithMetrics("error");
       },
       onEvent: ({ event }) =>
-        setRawEvents((prev) => {
-          const next = mergeEvents(prev, [event]);
-          return next.slice(-10000);
+        dispatchSessionProjection({
+          type: "append_realtime_events",
+          events: [event],
         }),
     });
 
@@ -276,21 +344,53 @@ export function HomeBody({
     return derived;
   }, [connection, rawEvents]);
 
+  const hasLoadedSession = sessionProjection.loadedSessionId === sessionId;
+  const confirmedMessageLedger = hasLoadedSession
+    ? sessionProjection.messageLedger
+    : [];
+  const snapshotForRender = hasLoadedSession ? sessionProjection.snapshot : null;
+  const messagesForRenderBase = useMemo(
+    () => ledgerEntriesToMessages(confirmedMessageLedger),
+    [confirmedMessageLedger],
+  );
+  const mergedMessagesForRender = useMemo(() => {
+    const pendingOptimistic = reconcileOptimisticMessages(
+      messagesForRenderBase,
+      optimisticMessages,
+    );
+    return mergeOptimisticMessages(messagesForRenderBase, pendingOptimistic).map(
+      (message) =>
+        !normalizeMessageContent(message).trim().length
+          ? ({
+              ...message,
+              content: normalizeMessageContent(message),
+            } as Message)
+          : message,
+    );
+  }, [messagesForRenderBase, optimisticMessages]);
+  const optimisticMessageLedger = useMemo(
+    () =>
+      buildMessageLedger({
+        events: [],
+        fallbackMessages: optimisticMessages,
+      }),
+    [optimisticMessages],
+  );
+  const renderMessageLedger = useMemo(
+    () => mergeMessageLedger(confirmedMessageLedger, optimisticMessageLedger),
+    [confirmedMessageLedger, optimisticMessageLedger],
+  );
+
   // 根据选中的节点时间范围过滤事件，右侧保持历史视图能力
   const nodeTimestampIndex = useMemo(() => {
-    const merged = [...sessionMessages, ...optimisticMessages];
-    const messageLedger = buildMessageLedger({
-      events: rawEvents,
-      fallbackMessages: merged,
-    });
     return buildNodeTimestampIndex(
       buildConversationTree({
         events: rawEvents,
-        fallbackMessages: merged,
-        messageLedger,
+        fallbackMessages: mergedMessagesForRender,
+        messageLedger: renderMessageLedger,
       }),
     );
-  }, [optimisticMessages, rawEvents, sessionMessages]);
+  }, [mergedMessagesForRender, rawEvents, renderMessageLedger]);
 
   const filteredRawEvents = useMemo(() => {
     if (!selectedNodeId) {
@@ -334,11 +434,8 @@ export function HomeBody({
   const clearSessionState = useCallback(() => {
     clearHydrationTimers();
     clearTitleRefreshTimers();
-    setSessionMessages([]);
     setOptimisticMessages([]);
-    setSessionSnapshot(null);
-    setRawEvents([]);
-    setLoadedSessionId(null);
+    dispatchSessionProjection({ type: "reset" });
     setSelectedNodeId(null);
   }, [clearHydrationTimers, clearTitleRefreshTimers]);
 
@@ -602,30 +699,16 @@ export function HomeBody({
         const hydrated = hydrateSessionDetail(events, id);
         const currentLoadedSessionId = loadedSessionIdRef.current;
         const currentRawEvents = rawEventsRef.current;
-
-        setRawEvents((prev) => {
-          const shouldMerge =
-            currentLoadedSessionId === id ||
-            (sessionId === id && currentRawEvents.length > 0);
-          const next = shouldMerge ? mergeEvents(prev, hydrated.events) : hydrated.events;
-          return hasSameEventSequence(prev, next) ? prev : next;
-        });
-        setSessionMessages((prev) => {
-          const shouldMerge =
-            currentLoadedSessionId === id ||
-            (sessionId === id && currentRawEvents.length > 0);
-          const next = shouldMerge
-            ? mergeMessages(prev, hydrated.messages)
-            : hydrated.messages;
-          return hasSameMessageSequence(prev, next) ? prev : next;
-        });
-        setSessionSnapshot((prev) =>
+        const shouldMerge =
           currentLoadedSessionId === id ||
-          (sessionId === id && currentRawEvents.length > 0)
-            ? (hydrated.snapshot ?? prev)
-            : hydrated.snapshot,
-        );
-        setLoadedSessionId(id);
+          (sessionId === id && currentRawEvents.length > 0);
+
+        dispatchSessionProjection({
+          type: "hydrate_session",
+          sessionId: id,
+          detail: hydrated,
+          shouldMerge,
+        });
       } catch (error) {
         setConnectionWithMetrics("error");
         addLog("error", "load_session_detail_failed", {
@@ -793,10 +876,6 @@ export function HomeBody({
     loadSessionDetail(sessionId);
   }, [sessionId, agent, loadSessionDetail]);
 
-  const hasLoadedSession = loadedSessionId === sessionId;
-  const messagesForRenderBase = hasLoadedSession ? sessionMessages : [];
-  const snapshotForRender = hasLoadedSession ? sessionSnapshot : null;
-
   // Reconstruct state snapshot from filtered events for historical viewing
   const historicalSnapshot = useMemo(
     () => buildStateSnapshotFromEvents(filteredRawEvents),
@@ -810,39 +889,14 @@ export function HomeBody({
     return historicalSnapshot;
   }, [selectedNodeId, snapshotForRender, historicalSnapshot]);
 
-  const mergedMessagesForRender = useMemo(() => {
-    const pendingOptimistic = reconcileOptimisticMessages(
-      messagesForRenderBase,
-      optimisticMessages,
-    );
-    return mergeOptimisticMessages(messagesForRenderBase, pendingOptimistic).map(
-      (message) =>
-        !normalizeMessageContent(message).trim().length
-          ? ({
-              ...message,
-              content: normalizeMessageContent(message),
-            } as Message)
-          : message,
-    );
-  }, [messagesForRenderBase, optimisticMessages]);
-
-  const messageLedger = useMemo(
-    () =>
-      buildMessageLedger({
-        events: rawEvents,
-        fallbackMessages: mergedMessagesForRender,
-      }),
-    [mergedMessagesForRender, rawEvents],
-  );
-
   const conversationTree = useMemo(
     () =>
       buildConversationTree({
         events: rawEvents,
         fallbackMessages: mergedMessagesForRender,
-        messageLedger,
+        messageLedger: renderMessageLedger,
       }),
-    [messageLedger, mergedMessagesForRender, rawEvents],
+    [mergedMessagesForRender, rawEvents, renderMessageLedger],
   );
 
   // Filter log entries based on selected message timestamp
