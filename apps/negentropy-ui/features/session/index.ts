@@ -15,3 +15,4 @@ export { SessionList } from "@/components/ui/SessionList";
 // Hooks (re-export from hooks/ for now)
 export { useSessionManager } from "@/hooks/useSessionManager";
 export { useSessionProjection } from "@/features/session/hooks/useSessionProjection";
+export { useSessionService } from "@/features/session/hooks/useSessionService";

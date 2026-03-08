@@ -78,12 +78,16 @@ flowchart TD
     C[AGUI Events]
   end
 
-  subgraph ReadModel["A2UI Read Model"]
+  subgraph Application["Session Application Service"]
     D[normalizeAguiEvent]
-    E[Session Projection Feature]
+    E[useSessionService]
+  end
+
+  subgraph ReadModel["A2UI Read Model"]
     F[Message Ledger]
     J[ConversationTree Projection]
     K[ConversationNode Tree]
+    L[useSessionProjection]
   end
 
   subgraph Presentation["Chat-first Presentation"]
@@ -93,17 +97,19 @@ flowchart TD
   end
 
   A --> B --> C --> D --> E
-  E --> F
-  E --> J
+  E --> L
+  L --> F
+  L --> J
   F --> G
   J --> K --> H
-  C --> I
+  L --> I
 ```
 
 对应代码锚点：
 
 - 传输入口：[route.ts](../apps/negentropy-ui/app/api/agui/route.ts)
 - ADK 到 AGUI 归一化：[adk.ts](../apps/negentropy-ui/lib/adk.ts)
+- Session Application Service：[useSessionService.ts](../apps/negentropy-ui/features/session/hooks/useSessionService.ts)
 - Session Projection / Message Ledger：[message-ledger.ts](../apps/negentropy-ui/utils/message-ledger.ts)
 - Session Projection Hook：[useSessionProjection.ts](../apps/negentropy-ui/features/session/hooks/useSessionProjection.ts)
 - 事件到树构建：[conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts)
@@ -122,6 +128,12 @@ flowchart TD
 这样做的目标是把“协议输入”“消息事实”“页面结构”三层职责拆开，避免聊天主区、历史回放与技术面板各自维护不同事实源。
 
 当前实现进一步把这套 projection orchestration 从页面组件中抽离到 `features/session`，页面只消费 session feature 暴露的 projection 与 action，不再直接持有 reducer 和投影拼装逻辑。
+
+当前的推荐边界为：
+
+- `useSessionService`：负责 session detail 拉取、hydration 调度、竞态保护与 projection 更新协调。
+- `useSessionProjection`：负责 confirmed projection、optimistic overlay 与 render projection 派生。
+- 页面组件：只负责 UI 容器、输入交互和面板编排，不再直接持有 session hydration 定时器或请求版本控制。
 
 ### 3.3 Canonical Role 约定
 

@@ -8,7 +8,7 @@ import {
   useAgent,
 } from "@copilotkitnext/react";
 import { HttpAgent, randomUUID } from "@ag-ui/client";
-import { EventType, Message } from "@ag-ui/core";
+import { Message } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
@@ -18,19 +18,14 @@ import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
 import { StateSnapshot } from "../components/ui/StateSnapshot";
 import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
-import { AdkEventPayload } from "@/lib/adk";
-import { collectAdkEventPayloads } from "@/lib/adk";
-import { useSessionProjection } from "@/features/session/hooks/useSessionProjection";
+import { useSessionService } from "@/features/session/hooks/useSessionService";
 
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
 import { createSessionLabel, buildAgentUrl, toSessionRecord } from "@/utils/session";
 import type { SessionListView } from "@/utils/session";
-import {
-  deriveConnectionState,
-  hydrateSessionDetail,
-} from "@/utils/session-hydration";
+import { deriveConnectionState } from "@/utils/session-hydration";
 
 // 统一的类型定义
 import type {
@@ -71,40 +66,9 @@ export function HomeBody({
     lastRunMs: 0,
   });
   const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const hydrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const activeSessionIdRef = useRef<string | null>(sessionId);
-  const hydrationRequestVersionRef = useRef(0);
-  const {
-    rawEvents,
-    snapshotForDisplay,
-    conversationTree,
-    nodeTimestampIndex,
-    filteredRawEvents,
-    timelineItems,
-    pendingConfirmations,
-    latestRunState,
-    loadedSessionIdRef,
-    rawEventsRef,
-    appendRealtimeEvent,
-    appendOptimisticMessage,
-    clearSessionProjection,
-    applyHydratedSession,
-  } = useSessionProjection({
-    sessionId,
-    selectedNodeId,
-  });
-
-  const activeSession = useMemo(
-    () => sessions.find((session) => session.id === sessionId) || null,
-    [sessions, sessionId],
-  );
-
-  useEffect(() => {
-    activeSessionIdRef.current = sessionId;
-  }, [sessionId]);
 
   const addLog = useCallback(
     (
@@ -127,21 +91,6 @@ export function HomeBody({
       });
     },
     [],
-  );
-
-  const updateCurrentSessionTime = useCallback(
-    (id: string) => {
-      setSessions((prev) => {
-        const target = prev.find((s) => s.id === id);
-        if (!target) return prev;
-        const others = prev.filter((s) => s.id !== id);
-        const updated = { ...target, lastUpdateTime: Date.now() };
-        return [updated, ...others].sort(
-          (a, b) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
-        );
-      });
-    },
-    [setSessions],
   );
 
   const reportMetric = useCallback(
@@ -168,6 +117,49 @@ export function HomeBody({
     },
     [reportMetric],
   );
+
+  const {
+    rawEvents,
+    snapshotForDisplay,
+    conversationTree,
+    nodeTimestampIndex,
+    timelineItems,
+    pendingConfirmations,
+    latestRunState,
+    appendRealtimeEvent,
+    appendOptimisticMessage,
+    clearSessionServiceState,
+    loadSessionDetail,
+    scheduleSessionHydration,
+  } = useSessionService({
+    sessionId,
+    selectedNodeId,
+    userId,
+    appName: APP_NAME,
+    addLog,
+    setConnectionWithMetrics,
+  });
+
+  const activeSession = useMemo(
+    () => sessions.find((session) => session.id === sessionId) || null,
+    [sessions, sessionId],
+  );
+
+  const updateCurrentSessionTime = useCallback(
+    (id: string) => {
+      setSessions((prev) => {
+        const target = prev.find((s) => s.id === id);
+        if (!target) return prev;
+        const others = prev.filter((s) => s.id !== id);
+        const updated = { ...target, lastUpdateTime: Date.now() };
+        return [updated, ...others].sort(
+          (a, b) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
+        );
+      });
+    },
+    [setSessions],
+  );
+
 
   useEffect(() => {
     if (!agent) {
@@ -239,19 +231,11 @@ export function HomeBody({
     titleRefreshTimersRef.current = [];
   }, []);
 
-  const clearHydrationTimers = useCallback(() => {
-    hydrationTimersRef.current.forEach((timer) => {
-      clearTimeout(timer);
-    });
-    hydrationTimersRef.current = [];
-  }, []);
-
   const clearSessionState = useCallback(() => {
-    clearHydrationTimers();
     clearTitleRefreshTimers();
-    clearSessionProjection();
+    clearSessionServiceState();
     setSelectedNodeId(null);
-  }, [clearHydrationTimers, clearSessionProjection, clearTitleRefreshTimers]);
+  }, [clearSessionServiceState, clearTitleRefreshTimers]);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -434,9 +418,8 @@ export function HomeBody({
   useEffect(
     () => () => {
       clearTitleRefreshTimers();
-      clearHydrationTimers();
     },
-    [clearHydrationTimers, clearTitleRefreshTimers],
+    [clearTitleRefreshTimers],
   );
 
   const scheduleTitleRefresh = useCallback(() => {
@@ -483,75 +466,6 @@ export function HomeBody({
       console.warn("Failed to create session", error);
     }
   };
-
-  const loadSessionDetail = useCallback(
-    async (id: string) => {
-      const requestVersion = ++hydrationRequestVersionRef.current;
-      try {
-        const response = await fetch(
-          `/api/agui/sessions/${encodeURIComponent(id)}?app_name=${encodeURIComponent(
-            APP_NAME,
-          )}&user_id=${encodeURIComponent(userId)}`,
-        );
-        const payload = await response.json();
-        if (!response.ok) {
-          return;
-        }
-        if (
-          hydrationRequestVersionRef.current !== requestVersion ||
-          activeSessionIdRef.current !== id
-        ) {
-          return;
-        }
-        const { payloads: events, invalidCount } = collectAdkEventPayloads(payload.events);
-        if (invalidCount > 0) {
-          addLog("warn", "session_detail_events_filtered", {
-            sessionId: id,
-            invalidCount,
-          });
-        }
-        const hydrated = hydrateSessionDetail(events, id);
-        applyHydratedSession({
-          sessionId: id,
-          detail: hydrated,
-          activeSessionId: sessionId,
-        });
-      } catch (error) {
-        setConnectionWithMetrics("error");
-        addLog("error", "load_session_detail_failed", {
-          message: String(error),
-        });
-        console.warn("Failed to load session detail", error);
-      }
-    },
-    [
-      applyHydratedSession,
-      userId,
-      setConnectionWithMetrics,
-      addLog,
-      sessionId,
-    ],
-  );
-
-  const scheduleSessionHydration = useCallback(
-    (id: string) => {
-      clearHydrationTimers();
-      const hasLiveAssistantOutput = rawEventsRef.current.some(
-        (event) =>
-          event.type === EventType.TEXT_MESSAGE_CONTENT &&
-          "threadId" in event &&
-          event.threadId === id,
-      );
-      const delays = hasLiveAssistantOutput ? [1200, 2800] : [0, 250, 800, 1600];
-      delays.forEach((delay) => {
-        const timer = setTimeout(() => {
-          void loadSessionDetail(id);
-        }, delay);
-        hydrationTimersRef.current.push(timer);
-      });
-    },
-    [clearHydrationTimers, loadSessionDetail],
-  );
 
   const handleConfirmationFollowup = useCallback(
     async (payload: { action: string; note: string }) => {
@@ -679,9 +593,8 @@ export function HomeBody({
     if (!sessionId) {
       return;
     }
-    // Only fetch data in effect
-    loadSessionDetail(sessionId);
-  }, [sessionId, agent, loadSessionDetail]);
+    void loadSessionDetail(sessionId);
+  }, [sessionId, loadSessionDetail]);
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
