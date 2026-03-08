@@ -51,6 +51,16 @@ function normalizeRunId(value: string | undefined, fallbackRunId?: string): stri
   return value;
 }
 
+function isRunCompatible(left?: string, right?: string): boolean {
+  if (!left || !right) {
+    return true;
+  }
+  if (left === right) {
+    return true;
+  }
+  return left === DEFAULT_RUN_ID || right === DEFAULT_RUN_ID;
+}
+
 function normalizeRole(value: unknown): CanonicalMessageRole {
   return normalizeCompatibleMessageRole(
     typeof value === "string" ? value : undefined,
@@ -181,6 +191,18 @@ function upsertNode(
     if (input.parentId !== undefined) {
       existing.parentId = input.parentId;
     }
+    if (input.threadId && !existing.threadId) {
+      existing.threadId = input.threadId;
+    }
+    if (input.runId && (!existing.runId || existing.runId === DEFAULT_RUN_ID)) {
+      existing.runId = input.runId;
+    }
+    if (input.messageId && !existing.messageId) {
+      existing.messageId = input.messageId;
+    }
+    if (input.toolCallId && !existing.toolCallId) {
+      existing.toolCallId = input.toolCallId;
+    }
     if (input.status) {
       existing.status = input.status;
     }
@@ -308,6 +330,10 @@ function findFallbackTurnByTimestamp(
   return futureTurn || null;
 }
 
+function hasTechnicalChildren(node: MutableNode): boolean {
+  return node.children.some((child) => child.type !== "text");
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null
     ? (value as Record<string, unknown>)
@@ -340,10 +366,13 @@ function findMatchingTextNodeId(
     if (node.type !== "text" || node.role !== input.role) {
       continue;
     }
+    if (hasTechnicalChildren(node)) {
+      continue;
+    }
     if (node.threadId !== input.threadId) {
       continue;
     }
-    if (input.runId && node.runId && node.runId !== input.runId) {
+    if (!isRunCompatible(node.runId, input.runId)) {
       continue;
     }
     if (Math.abs(node.timeRange.end - input.timestamp) > timeWindowSeconds) {
@@ -357,7 +386,9 @@ function findMatchingTextNodeId(
 
     const isMatch =
       input.role === "assistant"
-        ? isEquivalentMessageContent(existingContent, normalizedContent)
+        ? (existingContent.startsWith(normalizedContent) ||
+            normalizedContent.startsWith(existingContent)) &&
+          isEquivalentMessageContent(existingContent, normalizedContent)
         : existingContent === normalizedContent;
     if (isMatch) {
       return node.id;
@@ -365,18 +396,6 @@ function findMatchingTextNodeId(
   }
 
   return null;
-}
-
-function isTextNodeStreaming(node: MutableNode): boolean {
-  const payloadStreaming = node.payload.streaming;
-  if (typeof payloadStreaming === "boolean") {
-    return payloadStreaming;
-  }
-  return (
-    node.role !== "user" &&
-    node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_CONTENT) &&
-    !node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_END)
-  );
 }
 
 function finalizeTextNodeFromCanonicalMessage(
@@ -470,10 +489,6 @@ function sortNodeChildren(node: MutableNode) {
   };
 
   node.children.sort((a, b) => {
-    const typeDiff = typeOrder[a.type] - typeOrder[b.type];
-    if (typeDiff !== 0) {
-      return typeDiff;
-    }
     const timeDiff = a.timeRange.start - b.timeRange.start;
     if (timeDiff !== 0) {
       return timeDiff;
@@ -482,10 +497,63 @@ function sortNodeChildren(node: MutableNode) {
     if (sourceOrderDiff !== 0) {
       return sourceOrderDiff;
     }
+    const typeDiff = typeOrder[a.type] - typeOrder[b.type];
+    if (typeDiff !== 0) {
+      return typeDiff;
+    }
     return a.id.localeCompare(b.id);
   });
 
   node.children.forEach(sortNodeChildren);
+}
+
+function findSubsumingTextNode(
+  turn: MutableNode,
+  candidate: MutableNode,
+): MutableNode | null {
+  const candidateContent = String(candidate.payload.content || "").trim();
+  if (!candidateContent) {
+    return null;
+  }
+
+  return (
+    turn.children.find((child) => {
+      if (child.type !== "text" || child.role !== candidate.role) {
+        return false;
+      }
+      const childContent = String(child.payload.content || "").trim();
+      if (!childContent.startsWith(candidateContent)) {
+        return false;
+      }
+      return isEquivalentMessageContent(childContent, candidateContent);
+    }) || null
+  );
+}
+
+function collapseDefaultTurnDuplicates(roots: MutableNode[]): MutableNode[] {
+  const concreteTurns = roots.filter(
+    (node) => node.type === "turn" && node.runId && node.runId !== DEFAULT_RUN_ID,
+  );
+
+  return roots.filter((node) => {
+    if (node.type !== "turn" || node.runId !== DEFAULT_RUN_ID) {
+      return true;
+    }
+    if (node.children.length === 0) {
+      return false;
+    }
+
+    return !node.children.every((child) => {
+      if (child.type !== "text" || child.role !== "assistant") {
+        return false;
+      }
+      return concreteTurns.some(
+        (turn) =>
+          Math.abs(turn.timeRange.start - node.timeRange.start) <= 30 &&
+          Boolean(findSubsumingTextNode(turn, child)),
+      );
+    });
+  });
 }
 
 export function buildConversationTree(
@@ -762,10 +830,17 @@ export function buildConversationTree(
         return;
       }
       case EventType.ACTIVITY_SNAPSHOT: {
+        const parentId =
+          chooseParentMessageId(
+            assistantMessageByRun,
+            runId,
+            messageId,
+            messageNodeIndex,
+          ) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `activity:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "activity",
-          parentId: turn.id,
+          parentId,
           threadId: turn.threadId,
           runId,
           messageId,
@@ -782,14 +857,21 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(turn, node);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.STATE_DELTA: {
+        const parentId =
+          chooseParentMessageId(
+            assistantMessageByRun,
+            runId,
+            messageId,
+            messageNodeIndex,
+          ) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `state-delta:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "state-delta",
-          parentId: turn.id,
+          parentId,
           threadId: turn.threadId,
           runId,
           messageId,
@@ -802,14 +884,21 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(turn, node);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.STATE_SNAPSHOT: {
+        const parentId =
+          chooseParentMessageId(
+            assistantMessageByRun,
+            runId,
+            messageId,
+            messageNodeIndex,
+          ) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `state-snapshot:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "state-snapshot",
-          parentId: turn.id,
+          parentId,
           threadId: turn.threadId,
           runId,
           messageId,
@@ -822,7 +911,7 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(turn, node);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.STEP_STARTED:
@@ -1023,15 +1112,21 @@ export function buildConversationTree(
       if (node.type !== "text" || node.role !== role) {
         return false;
       }
+      if (hasTechnicalChildren(node)) {
+        return false;
+      }
       const existingContent = String(node.payload.content || "").trim();
       const contentMatches =
         role === "assistant"
-          ? isEquivalentMessageContent(existingContent, content)
+          ? (existingContent.startsWith(content) || content.startsWith(existingContent)) &&
+            isEquivalentMessageContent(existingContent, content)
           : existingContent === content;
       if (!contentMatches) return false;
       const existingRunId = node.runId || undefined;
       const runMatches =
         existingRunId === runId ||
+        existingRunId === DEFAULT_RUN_ID ||
+        runId === DEFAULT_RUN_ID ||
         !existingRunId ||
         !runId;
       if (!runMatches) {
@@ -1114,9 +1209,11 @@ export function buildConversationTree(
     attachNode(nodeIndex, roots, turns, link.childId, link.parentId);
   });
 
-  const prunedRoots = roots
+  const prunedRoots = collapseDefaultTurnDuplicates(
+    roots
     .map((node) => pruneNode(node))
-    .filter((node): node is MutableNode => node !== null);
+    .filter((node): node is MutableNode => node !== null),
+  );
   prunedRoots.sort((a, b) => {
     const timeDiff = a.timeRange.start - b.timeRange.start;
     if (timeDiff !== 0) {

@@ -217,11 +217,71 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
-function StreamingText({ content }: { content: string }) {
+function normalizeMarkdownContent(content: string, streaming: boolean): string {
+  const normalized = content.replace(/\r\n/g, "\n");
+  if (!streaming) {
+    return normalized;
+  }
+
+  const fenceMatches = normalized.match(/```/g);
+  if ((fenceMatches?.length || 0) % 2 === 1) {
+    return `${normalized}\n\`\`\``;
+  }
+
+  return normalized;
+}
+
+function MarkdownContent({
+  content,
+  isStreaming,
+}: {
+  content: string;
+  isStreaming: boolean;
+}) {
+  const normalizedContent = normalizeMarkdownContent(content, isStreaming);
+
   return (
-    <div className="whitespace-pre-wrap break-words text-sm leading-7 text-inherit">
-      {content}
-    </div>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        code({ className, children, ...props }) {
+          const match = /language-(\w+)/.exec(className || "");
+          const isMermaid = match && match[1] === "mermaid";
+          // @ts-expect-error - 'inline' is sometimes passed by react-markdown but missing in types depending on version
+          const isInline = props.inline;
+
+          if (isMermaid) {
+            return (
+              <MermaidDiagram
+                code={String(children).replace(/\n$/, "")}
+              />
+            );
+          }
+
+          if (!isInline && match) {
+            return (
+              <div className="relative group">
+                <code className={className} {...props}>
+                  {children}
+                </code>
+                <CopyButton code={String(children)} />
+              </div>
+            );
+          }
+
+          return (
+            <code className={className} {...props}>
+              {children}
+            </code>
+          );
+        },
+        pre({ children }) {
+          return <pre className="relative group">{children}</pre>;
+        },
+      }}
+    >
+      {normalizedContent}
+    </ReactMarkdown>
   );
 }
 
@@ -326,51 +386,10 @@ export function MessageBubble({
                 "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
           >
-            {isStreaming ? (
-              <StreamingText content={content} />
-            ) : (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ className, children, ...props }) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    const isMermaid = match && match[1] === "mermaid";
-                    // @ts-expect-error - 'inline' is sometimes passed by react-markdown but missing in types depending on version
-                    const isInline = props.inline;
-
-                    if (isMermaid) {
-                      return (
-                        <MermaidDiagram
-                          code={String(children).replace(/\n$/, "")}
-                        />
-                      );
-                    }
-
-                    if (!isInline && match) {
-                      return (
-                        <div className="relative group">
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                          <CopyButton code={String(children)} />
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  pre({ children }) {
-                    return <pre className="relative group">{children}</pre>;
-                  },
-                }}
-              >
-                {content}
-              </ReactMarkdown>
-            )}
+            <MarkdownContent
+              content={content}
+              isStreaming={isStreaming}
+            />
             {isStreaming ? (
               <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
