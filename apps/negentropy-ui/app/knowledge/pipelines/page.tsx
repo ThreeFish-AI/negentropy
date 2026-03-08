@@ -5,9 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
+  buildPipelineErrorDetails,
   calculateStageWidth,
   fetchPipelines,
   formatDuration,
+  getStageErrorMessage,
   getPipelineStatusColor,
   getSortedStages,
   getStageColor,
@@ -172,6 +174,7 @@ export default function KnowledgePipelinesPage() {
   }, [loadPipelines, payload?.runs]);
 
   const runs = payload?.runs || [];
+  const selectedErrorDetails = selected ? buildPipelineErrorDetails(selected) : [];
   const detailJsonClassName =
     "mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800";
   const errorJsonClassName =
@@ -334,9 +337,7 @@ export default function KnowledgePipelinesPage() {
                               )}
                               {stage.error && (
                                 <span className="truncate max-w-[120px] text-rose-500">
-                                  {typeof stage.error === "object" && stage.error !== null && "message" in stage.error
-                                    ? String((stage.error as { message?: unknown }).message)
-                                    : JSON.stringify(stage.error)}
+                                  {getStageErrorMessage(stage.error)}
                                 </span>
                               )}
                               {stage.output && (
@@ -370,13 +371,35 @@ export default function KnowledgePipelinesPage() {
                       </pre>
                     </div>
 
-                    {/* Error */}
-                    {selected.error && Object.keys(selected.error as Record<string, unknown>).length > 0 && (
+                    {/* Errors */}
+                    {selectedErrorDetails.length > 0 && (
                       <div className="min-w-0">
-                        <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Error</p>
-                        <pre className={errorJsonClassName}>
-                          {JSON.stringify(selected.error, null, 2)}
-                        </pre>
+                        <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Errors</p>
+                        <div className="mt-2 space-y-3">
+                          {selectedErrorDetails.map((detail) => (
+                            <div
+                              key={detail.key}
+                              className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900/40 dark:bg-rose-950/20"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                                  {detail.title}
+                                </p>
+                                <span className="text-[10px] text-rose-500 dark:text-rose-400">
+                                  {detail.scope === "stage"
+                                    ? `${detail.status || "failed"}${detail.durationMs ? ` · ${formatDuration(detail.durationMs)}` : ""}`
+                                    : "failed"}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[11px] text-rose-700 dark:text-rose-300">
+                                {detail.message}
+                              </p>
+                              <pre className={errorJsonClassName}>
+                                {JSON.stringify(detail.error, null, 2)}
+                              </pre>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

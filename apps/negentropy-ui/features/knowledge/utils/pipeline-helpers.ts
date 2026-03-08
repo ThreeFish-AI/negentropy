@@ -6,7 +6,7 @@
  * - Reuse-Driven: 供 Dashboard 和 Pipelines 页面复用
  */
 
-import type { PipelineStageResult } from "./knowledge-api";
+import type { PipelineRunRecord, PipelineStageResult } from "./knowledge-api";
 
 // ============================================================================
 // 常量定义
@@ -365,4 +365,111 @@ export const formatRelativeTime = (dateStr?: string): string => {
 export const truncateRunId = (runId: string, length = 8): string => {
   if (!runId) return "-";
   return runId.length > length ? `${runId.slice(0, length)}...` : runId;
+};
+
+export interface FailedStageDetail {
+  stageName: string;
+  label: string;
+  status: string;
+  durationMs?: number;
+  error: Record<string, unknown>;
+  message: string;
+}
+
+export interface PipelineErrorDetail {
+  scope: "run" | "stage";
+  key: string;
+  title: string;
+  message: string;
+  error: Record<string, unknown>;
+  stageName?: string;
+  durationMs?: number;
+  status?: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const getStageErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (!isRecord(error)) {
+    return "Unknown error";
+  }
+
+  const message = error.message;
+  if (typeof message === "string" && message.trim()) {
+    return message;
+  }
+
+  const detail = error.detail;
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  const type = error.type;
+  if (typeof type === "string" && type.trim()) {
+    return type;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown error";
+  }
+};
+
+export const getFailedStages = (
+  stages?: Record<string, PipelineStageResult>
+): FailedStageDetail[] =>
+  getSortedStages(stages)
+    .filter(([, stage]) => {
+      const status = (stage.status || "").toLowerCase();
+      return (status === "failed" || status === "error") && isRecord(stage.error);
+    })
+    .map(([stageName, stage]) => ({
+      stageName,
+      label: STAGE_LABELS[stageName] || stageName,
+      status: stage.status,
+      durationMs: stage.duration_ms,
+      error: stage.error as Record<string, unknown>,
+      message: getStageErrorMessage(stage.error),
+    }));
+
+export const buildPipelineErrorDetails = (
+  run: Pick<PipelineRunRecord, "error" | "stages">
+): PipelineErrorDetail[] => {
+  const stageErrors = getFailedStages(run.stages);
+  const stageMessages = new Set(stageErrors.map((item) => item.message));
+  const details: PipelineErrorDetail[] = [];
+
+  if (isRecord(run.error)) {
+    const runMessage = getStageErrorMessage(run.error);
+    if (!stageMessages.has(runMessage)) {
+      details.push({
+        scope: "run",
+        key: "run",
+        title: "运行级错误",
+        message: runMessage,
+        error: run.error,
+      });
+    }
+  }
+
+  details.push(
+    ...stageErrors.map((item) => ({
+      scope: "stage" as const,
+      key: item.stageName,
+      title: item.label,
+      message: item.message,
+      error: item.error,
+      stageName: item.stageName,
+      durationMs: item.durationMs,
+      status: item.status,
+    }))
+  );
+
+  return details;
 };

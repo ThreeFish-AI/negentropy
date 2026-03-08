@@ -10,6 +10,7 @@ import {
   TRIGGER_LABELS,
   STAGE_LABELS,
   getStageColor,
+  getStageErrorMessage,
   formatDuration,
   calculateStageWidth,
   getSortedStages,
@@ -141,9 +142,7 @@ export function PipelineRunCard({
                 </div>
                 {stage.status === "failed" && stage.error && (
                   <div className="mt-0.5 max-w-[150px] truncate text-rose-400">
-                    {typeof stage.error === "object" && stage.error !== null && "message" in stage.error
-                      ? String((stage.error as { message?: unknown }).message)
-                      : "Error"}
+                    {getStageErrorMessage(stage.error)}
                   </div>
                 )}
                 {stage.status === "skipped" && stage.reason && (
