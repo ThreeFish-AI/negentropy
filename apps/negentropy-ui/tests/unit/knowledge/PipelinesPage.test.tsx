@@ -109,4 +109,61 @@ describe("KnowledgePipelinesPage polling", () => {
     await settle();
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(3);
   });
+
+  it("桌面端使用固定双栏 grid，并为长内容提供收敛样式", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-long-id",
+            run_id: "run-id-with-a-very-long-identifier-that-should-not-expand-the-layout",
+          }),
+          input: {
+            source: "https://example.com/" + "segment/".repeat(20),
+          },
+          output: {
+            message: "value-".repeat(30),
+          },
+          error: {
+            detail: "error-".repeat(30),
+          },
+          stages: {
+            extract_primary: {
+              status: "completed",
+              duration_ms: 1234,
+            },
+            persist: {
+              status: "failed",
+              duration_ms: 5678,
+              error: {
+                message: "stage-error-message-".repeat(10),
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    const { container } = render(<KnowledgePipelinesPage />);
+    await settle();
+
+    const layout = Array.from(container.querySelectorAll("div")).find((element) =>
+      element.className.includes("lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]")
+    );
+    expect(layout).toBeTruthy();
+    expect(layout?.className).toContain("grid-cols-1");
+
+    const runsSection = screen.getByRole("heading", { name: "Runs" }).closest("section");
+    expect(runsSection?.className).toContain("min-w-0");
+    expect(runsSection?.className).toContain("overflow-hidden");
+
+    const detailHeading = screen.getByRole("heading", { name: "Run Detail" });
+    const detailPanel = detailHeading.parentElement?.querySelector("pre");
+    expect(detailPanel?.className).toContain("whitespace-pre-wrap");
+    expect(detailPanel?.className).toContain("break-words");
+
+    expect(screen.getAllByText(/run-id-with-a-very-long-identifier/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/https:\/\/example\.com/)).toBeInTheDocument();
+  });
 });

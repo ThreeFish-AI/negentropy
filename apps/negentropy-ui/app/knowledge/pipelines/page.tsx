@@ -339,6 +339,11 @@ export default function KnowledgePipelinesPage() {
     return "-";
   };
 
+  const detailJsonClassName =
+    "mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800";
+  const errorJsonClassName =
+    "mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-rose-50 p-3 text-[11px] text-rose-700 dark:bg-rose-900/20 dark:text-rose-400";
+
   // 获取排序后的阶段列表
   const getSortedStages = (stages?: Record<string, PipelineStageResult>) => {
     if (!stages) return [];
@@ -356,8 +361,8 @@ export default function KnowledgePipelinesPage() {
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav title="Pipelines" description="作业运行与错误定位" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
-          <div className="min-h-0 min-w-0 flex-[2.2] overflow-y-auto">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
+          <section className="min-h-0 min-w-0 overflow-hidden overflow-y-auto">
             <div className="pb-4 pr-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center justify-between">
@@ -403,39 +408,39 @@ export default function KnowledgePipelinesPage() {
                     {runs.map((run) => (
                       <button
                         key={run.id}
-                        className={`w-full rounded-lg border px-3 py-2 text-left ${
+                        className={`w-full min-w-0 overflow-hidden rounded-lg border px-3 py-2 text-left ${
                           selected?.id === run.id
                             ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                             : "border-zinc-200 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
                         }`}
                         onClick={() => setSelected(run)}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className={`h-2 w-2 rounded-full ${statusColor(run.status)}`} />
-                            <span className="text-xs font-semibold">{run.run_id || run.id}</span>
+                        <div className="flex min-w-0 items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className={`h-2 w-2 shrink-0 rounded-full ${statusColor(run.status)}`} />
+                            <span className="truncate text-xs font-semibold">{run.run_id || run.id}</span>
                           </div>
-                          <span className="text-[11px] opacity-70">{run.status || "unknown"}</span>
+                          <span className="shrink-0 text-[11px] opacity-70">{run.status || "unknown"}</span>
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-[11px] opacity-70">
-                          <span>
+                        <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-[11px] opacity-70">
+                          <span className="truncate">
                             {run.operation ? OPERATION_LABELS[run.operation] || run.operation : (run.trigger || "manual")}
                           </span>
-                          <span>{formatDuration(run.duration_ms, run.started_at, run.completed_at)}</span>
+                          <span className="shrink-0">{formatDuration(run.duration_ms, run.started_at, run.completed_at)}</span>
                         </div>
                         {/* 阶段进度条 */}
                         {run.stages && Object.keys(run.stages).length > 0 && (
-                          <div className="mt-2 flex items-center gap-1">
+                          <div className="mt-2 flex min-w-0 items-center gap-1 overflow-hidden">
                             {getSortedStages(run.stages as Record<string, PipelineStageResult>).map(([stageName, stage]) => (
                               <div
                                 key={stageName}
-                                className="relative group"
+                                className="group relative min-w-0"
                                 style={{ width: calculateStageWidth(stage, run.stages as Record<string, PipelineStageResult>) }}
                               >
                                 <div className={`h-1.5 w-full rounded-full ${getStageColor(stageName, stage.status)}`} />
                                 {/* Hover Tooltip */}
                                 <div
-                                  className="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md
+                                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md
                                   bg-zinc-800 px-2 py-1.5 text-[11px] text-white opacity-0 shadow-lg
                                   transition-opacity duration-150 group-hover:opacity-100
                                   dark:bg-zinc-700 dark:text-zinc-100"
@@ -466,13 +471,13 @@ export default function KnowledgePipelinesPage() {
                 )}
               </div>
             </div>
-          </div>
-          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          </section>
+          <aside className="min-h-0 min-w-0 overflow-hidden overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Run Detail</h2>
                 {selected ? (
-                  <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
+                  <div className="mt-3 min-w-0 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
                     {/* 基本信息 */}
                     <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
                       <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Info</p>
@@ -494,16 +499,16 @@ export default function KnowledgePipelinesPage() {
                         <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Stages</p>
                         <div className="mt-2 space-y-2">
                           {getSortedStages(selected.stages).map(([stageName, stage]) => (
-                            <div key={stageName} className="flex items-center gap-2 text-[11px]">
-                              <span className={`h-2 w-2 rounded-full ${statusColor(stage.status)}`} />
-                              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                            <div key={stageName} className="flex min-w-0 items-center gap-2 text-[11px]">
+                              <span className={`h-2 w-2 shrink-0 rounded-full ${statusColor(stage.status)}`} />
+                              <span className="min-w-0 truncate font-medium text-zinc-700 dark:text-zinc-300">
                                 {STAGE_LABELS[stageName] || stageName}
                               </span>
-                              <span className="text-zinc-400">
+                              <span className="shrink-0 text-zinc-400">
                                 {stage.duration_ms ? `${stage.duration_ms}ms` : "-"}
                               </span>
                               {stage.status === "skipped" && stage.reason && (
-                                <span className="text-zinc-400 italic">({stage.reason})</span>
+                                <span className="truncate text-zinc-400 italic">({stage.reason})</span>
                               )}
                               {stage.error && (
                                 <span className="truncate max-w-[120px] text-rose-500">
@@ -528,26 +533,26 @@ export default function KnowledgePipelinesPage() {
                     )}
 
                     {/* Input */}
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Input</p>
-                      <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
+                      <pre className={detailJsonClassName}>
                         {JSON.stringify(selected.input ?? {}, null, 2)}
                       </pre>
                     </div>
 
                     {/* Output */}
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Output</p>
-                      <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] dark:bg-zinc-800">
+                      <pre className={detailJsonClassName}>
                         {JSON.stringify(selected.output ?? {}, null, 2)}
                       </pre>
                     </div>
 
                     {/* Error */}
                     {selected.error && Object.keys(selected.error as Record<string, unknown>).length > 0 && (
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Error</p>
-                        <pre className="mt-2 max-h-24 overflow-auto rounded-lg bg-rose-50 p-3 text-[11px] text-rose-700 dark:bg-rose-900/20 dark:text-rose-400">
+                        <pre className={errorJsonClassName}>
                           {JSON.stringify(selected.error, null, 2)}
                         </pre>
                       </div>
@@ -562,13 +567,13 @@ export default function KnowledgePipelinesPage() {
                 {runs.length ? (
                   <div className="mt-3 space-y-3">
                     {runs.map((run) => (
-                      <div key={run.id} className="flex gap-3 text-xs text-zinc-600 dark:text-zinc-400">
-                        <div className="flex flex-col items-center">
+                      <div key={run.id} className="flex min-w-0 gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+                        <div className="flex shrink-0 flex-col items-center">
                           <span className={`h-2 w-2 rounded-full ${statusColor(run.status)}`} />
                           <span className="h-full w-px bg-zinc-200 dark:bg-zinc-700" />
                         </div>
-                        <div>
-                          <p className="text-zinc-900 dark:text-zinc-100">{run.run_id || run.id}</p>
+                        <div className="min-w-0">
+                          <p className="truncate text-zinc-900 dark:text-zinc-100">{run.run_id || run.id}</p>
                           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                             {run.operation ? OPERATION_LABELS[run.operation] || run.operation : (run.trigger || "manual")} · {formatDuration(run.duration_ms, run.started_at, run.completed_at)}
                           </p>
