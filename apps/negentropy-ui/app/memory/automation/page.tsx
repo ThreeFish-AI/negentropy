@@ -27,6 +27,7 @@ export default function MemoryAutomationPage() {
   const [isPending, startTransition] = useTransition();
 
   const isAdmin = Boolean(user?.roles?.includes("admin"));
+  const isSchedulerReadonly = snapshot ? !snapshot.capabilities.pg_cron_available : false;
 
   const load = async () => {
     setError(null);
@@ -162,6 +163,11 @@ export default function MemoryAutomationPage() {
                 {snapshot?.capabilities.degraded_reasons?.length ? (
                   <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-[11px] text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                     {snapshot.capabilities.degraded_reasons.join(" / ")}
+                  </div>
+                ) : null}
+                {isSchedulerReadonly ? (
+                  <div className="mt-4 rounded-2xl border border-border bg-muted/40 p-3 text-[11px] text-muted">
+                    当前 `pg_cron` 不可用，调度相关操作已降级为只读；配置和函数状态仍可查看与保存。
                   </div>
                 ) : null}
               </div>
@@ -373,21 +379,21 @@ export default function MemoryAutomationPage() {
                           <button
                             className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
                             onClick={() => handleJobAction(job.job_key, job.enabled ? "disable" : "enable")}
-                            disabled={isPending || !snapshot.capabilities.pg_cron_installed}
+                            disabled={isPending || isSchedulerReadonly}
                           >
                             {job.enabled ? "停用" : "启用"}
                           </button>
                           <button
                             className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
                             onClick={() => handleJobAction(job.job_key, "reconcile")}
-                            disabled={isPending}
+                            disabled={isPending || isSchedulerReadonly}
                           >
                             重建
                           </button>
                           <button
                             className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
                             onClick={() => handleRun(job.job_key)}
-                            disabled={isPending}
+                            disabled={isPending || isSchedulerReadonly}
                           >
                             手动触发
                           </button>

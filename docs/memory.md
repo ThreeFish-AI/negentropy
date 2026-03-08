@@ -70,19 +70,41 @@ flowchart TD
 - `POST /memory/automation/jobs/{job_key}/reconcile`
 - `POST /memory/automation/jobs/{job_key}/run`
 
-## 6. 实施记录
+## 6. 配置到运行时的映射
+
+- `retention.decay_lambda`：映射到 `calculate_retention_score()` 与 `cleanup_low_value_memories()` 的默认衰减参数。
+- `retention.low_retention_threshold` / `retention.min_age_days`：映射到 `cleanup_low_value_memories()` 的默认清理阈值与最小保留天数。
+- `context_assembler.max_tokens` / `memory_ratio` / `history_ratio`：映射到 `get_context_window()` 的默认参数，控制记忆与历史的预算切分。
+- `consolidation.lookback_interval`：映射到 `trigger_maintenance_consolidation()` 的默认时间窗口。
+- `retention.auto_cleanup_enabled` / `consolidation.enabled` 与各自 `schedule`：映射到受管 `pg_cron` 任务是否启用及其 cron 表达式。
+
+## 7. 降级矩阵
+
+| 场景 | 配置查看 | 函数状态 | 调度任务查看 | 调度动作 | 执行日志 |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| `pg_cron` 已安装且可访问 | 可用 | 可用 | 可用 | 可用 | 可用 |
+| `pg_cron` 未安装 | 可用 | 可用 | 降级 | 只读禁用 | 空列表 |
+| `pg_cron` 已安装但 `cron.job` 不可访问 | 可用 | 可用 | 降级 | 只读禁用 | 降级 |
+| `pg_cron` 已安装但 `cron.job_run_details` 不可访问 | 可用 | 可用 | 可用 | 可用 | 空列表 + 降级告警 |
+
+说明：
+
+- “降级”表示 snapshot 仍然返回，但 `health.status` 为 `degraded`，并在 `degraded_reasons` 中给出原因。
+- 调度相关动作包括 `enable / disable / reconcile / run`，在调度能力不可用时统一进入只读。
+
+## 8. 实施记录
 
 - 新增 Memory Automation service，封装配置持久化、函数 reconcile、`pg_cron` 任务管理与日志读取。
 - 新增 `memory_automation_configs` 表，保存后端托管配置。
 - 新增 `/memory/automation` 页面与 API 代理，管理员可对白盒化过程执行受控运维动作。
 - 将 `/memory` 现有 `policies` 摘要改为从 automation 配置派生，避免双源。
 
-## 7. 验证清单
+## 9. 验证清单
 
 - Memory 主导航出现 `Automation` 二级入口。
 - 管理员可查看配置、函数、任务与日志。
-- 保存配置后自动 reconcile 预定义函数与任务。
-- `pg_cron` 未安装时页面进入降级只读态。
+- 保存配置后自动 reconcile 预定义函数，并在调度可用时同步 reconcile 预定义任务。
+- `pg_cron` 未安装或不可访问时页面进入降级只读态，但配置与函数状态仍可查看。
 - 现有 Dashboard / Timeline / Facts / Audit 行为不回归。
 
 ## 参考文献

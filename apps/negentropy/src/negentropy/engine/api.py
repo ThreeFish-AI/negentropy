@@ -47,6 +47,7 @@ from .factories.memory import (
     get_memory_governance_service,
     get_memory_service,
 )
+from .adapters.postgres.memory_automation_service import MemoryAutomationUnavailableError
 
 logger = get_logger("negentropy.engine.api")
 router = APIRouter(prefix="/memory", tags=["memory"])
@@ -614,6 +615,8 @@ async def enable_memory_automation_job(
     service = get_memory_automation_service()
     try:
         snapshot = await service.enable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MemoryAutomationSnapshotResponse.model_validate(snapshot)
@@ -629,6 +632,8 @@ async def disable_memory_automation_job(
     service = get_memory_automation_service()
     try:
         snapshot = await service.disable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MemoryAutomationSnapshotResponse.model_validate(snapshot)
@@ -644,6 +649,8 @@ async def reconcile_memory_automation_job(
     service = get_memory_automation_service()
     try:
         snapshot = await service.reconcile_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MemoryAutomationSnapshotResponse.model_validate(snapshot)
@@ -659,6 +666,8 @@ async def run_memory_automation_job(
     service = get_memory_automation_service()
     try:
         result = await service.run_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     result["snapshot"] = MemoryAutomationSnapshotResponse.model_validate(result["snapshot"])
