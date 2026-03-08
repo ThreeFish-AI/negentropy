@@ -12,7 +12,7 @@
 // Components (re-export from ui/ for now)
 export { SessionList } from "@/components/ui/SessionList";
 
-// Hooks (re-export from hooks/ for now)
-export { useSessionManager } from "@/hooks/useSessionManager";
+// Hooks
 export { useSessionProjection } from "@/features/session/hooks/useSessionProjection";
 export { useSessionService } from "@/features/session/hooks/useSessionService";
+export { useSessionListService } from "@/features/session/hooks/useSessionListService";

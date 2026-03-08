@@ -28,9 +28,6 @@ vi.mock("@/components/providers/AuthProvider", () => ({
 }));
 
 function Wrapper({ sessionId }: { sessionId: string | null }) {
-  const [sessions, setSessions] = useState(
-    sessionId ? [{ id: sessionId, label: `Session ${sessionId}` }] : [],
-  );
   const [currentSession, setCurrentSession] = useState(sessionId);
 
   return (
@@ -38,8 +35,6 @@ function Wrapper({ sessionId }: { sessionId: string | null }) {
       sessionId={currentSession}
       userId="ui"
       setSessionId={setCurrentSession}
-      sessions={sessions}
-      setSessions={setSessions}
     />
   );
 }

@@ -5,6 +5,22 @@ import { collectAdkEventPayloads } from "@/lib/adk";
 import { useSessionProjection, type UseSessionProjectionReturnValue } from "@/features/session/hooks/useSessionProjection";
 import { hydrateSessionDetail } from "@/utils/session-hydration";
 
+type SessionProjectionPublicApi = Pick<
+  UseSessionProjectionReturnValue,
+  | "sessionProjection"
+  | "rawEvents"
+  | "snapshotForDisplay"
+  | "confirmedMessageLedger"
+  | "messagesForRenderBase"
+  | "conversationTree"
+  | "nodeTimestampIndex"
+  | "timelineItems"
+  | "pendingConfirmations"
+  | "latestRunState"
+  | "appendRealtimeEvent"
+  | "appendOptimisticMessage"
+>;
+
 export interface UseSessionServiceOptions {
   sessionId: string | null;
   selectedNodeId: string | null;
@@ -18,7 +34,7 @@ export interface UseSessionServiceOptions {
   setConnectionWithMetrics: (state: ConnectionState) => void;
 }
 
-export interface UseSessionServiceReturnValue extends UseSessionProjectionReturnValue {
+export interface UseSessionServiceReturnValue extends SessionProjectionPublicApi {
   loadSessionDetail: (id: string) => Promise<void>;
   scheduleSessionHydration: (id: string) => void;
   clearSessionServiceState: () => void;
@@ -140,7 +156,18 @@ export function useSessionService(
   }, [clearHydrationTimers, clearSessionProjection]);
 
   return {
-    ...projection,
+    sessionProjection: projection.sessionProjection,
+    rawEvents: projection.rawEvents,
+    snapshotForDisplay: projection.snapshotForDisplay,
+    confirmedMessageLedger: projection.confirmedMessageLedger,
+    messagesForRenderBase: projection.messagesForRenderBase,
+    conversationTree: projection.conversationTree,
+    nodeTimestampIndex: projection.nodeTimestampIndex,
+    timelineItems: projection.timelineItems,
+    pendingConfirmations: projection.pendingConfirmations,
+    latestRunState: projection.latestRunState,
+    appendRealtimeEvent: projection.appendRealtimeEvent,
+    appendOptimisticMessage: projection.appendOptimisticMessage,
     loadSessionDetail,
     scheduleSessionHydration,
     clearSessionServiceState,
