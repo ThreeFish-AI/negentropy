@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * ADK 兼容入口
  *
@@ -7,29 +5,8 @@
  * 新代码应优先使用 `@/lib/agui/schema` 与 `@/lib/agui/factories`。
  */
 
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.asBaseEvent = asBaseEvent;
-exports.createActivitySnapshotEvent = createActivitySnapshotEvent;
-exports.createCustomEvent = createCustomEvent;
-exports.createMessageWithMeta = createMessageWithMeta;
-exports.createMessagesSnapshotEvent = createMessagesSnapshotEvent;
-exports.createOptimisticTextEvents = createOptimisticTextEvents;
-exports.createRawEvent = createRawEvent;
-exports.createStateDeltaEvent = createStateDeltaEvent;
-exports.createStateSnapshotEvent = createStateSnapshotEvent;
-exports.createStepFinishedEvent = createStepFinishedEvent;
-exports.createStepStartedEvent = createStepStartedEvent;
-exports.createTextMessageContentEvent = createTextMessageContentEvent;
-exports.createTextMessageEndEvent = createTextMessageEndEvent;
-exports.createTextMessageStartEvent = createTextMessageStartEvent;
-exports.createToolCallArgsEvent = createToolCallArgsEvent;
-exports.createToolCallEndEvent = createToolCallEndEvent;
-exports.createToolCallResultEvent = createToolCallResultEvent;
-exports.createToolCallStartEvent = createToolCallStartEvent;
-exports.hasBaseEventProps = hasBaseEventProps;
-
-const { EventType } = require("@ag-ui/core");
-const { z } = require("zod");
+import { EventType } from "@ag-ui/core";
+import { z } from "zod";
 
 const baseEventPropsSchema = z
   .object({
@@ -47,11 +24,11 @@ const baseEventSchema = baseEventPropsSchema
   })
   .passthrough();
 
-function hasBaseEventProps(obj) {
+export function hasBaseEventProps(obj) {
   return baseEventPropsSchema.safeParse(obj).success;
 }
 
-function createTextMessageStartEvent(props, role) {
+export function createTextMessageStartEvent(props, role) {
   return {
     type: EventType.TEXT_MESSAGE_START,
     role,
@@ -59,7 +36,7 @@ function createTextMessageStartEvent(props, role) {
   };
 }
 
-function createTextMessageContentEvent(props, delta) {
+export function createTextMessageContentEvent(props, delta) {
   return {
     type: EventType.TEXT_MESSAGE_CONTENT,
     delta,
@@ -67,14 +44,14 @@ function createTextMessageContentEvent(props, delta) {
   };
 }
 
-function createTextMessageEndEvent(props) {
+export function createTextMessageEndEvent(props) {
   return {
     type: EventType.TEXT_MESSAGE_END,
     ...props,
   };
 }
 
-function createToolCallStartEvent(props, toolCallId, toolCallName) {
+export function createToolCallStartEvent(props, toolCallId, toolCallName) {
   return {
     type: EventType.TOOL_CALL_START,
     toolCallId,
@@ -83,7 +60,7 @@ function createToolCallStartEvent(props, toolCallId, toolCallName) {
   };
 }
 
-function createToolCallArgsEvent(props, toolCallId, delta) {
+export function createToolCallArgsEvent(props, toolCallId, delta) {
   return {
     type: EventType.TOOL_CALL_ARGS,
     toolCallId,
@@ -92,7 +69,7 @@ function createToolCallArgsEvent(props, toolCallId, delta) {
   };
 }
 
-function createToolCallEndEvent(props, toolCallId) {
+export function createToolCallEndEvent(props, toolCallId) {
   return {
     type: EventType.TOOL_CALL_END,
     toolCallId,
@@ -100,7 +77,7 @@ function createToolCallEndEvent(props, toolCallId) {
   };
 }
 
-function createToolCallResultEvent(props, toolCallId, content) {
+export function createToolCallResultEvent(props, toolCallId, content) {
   return {
     type: EventType.TOOL_CALL_RESULT,
     toolCallId,
@@ -109,7 +86,7 @@ function createToolCallResultEvent(props, toolCallId, content) {
   };
 }
 
-function createStateDeltaEvent(props, delta) {
+export function createStateDeltaEvent(props, delta) {
   return {
     type: EventType.STATE_DELTA,
     delta,
@@ -117,7 +94,7 @@ function createStateDeltaEvent(props, delta) {
   };
 }
 
-function createStateSnapshotEvent(props, snapshot) {
+export function createStateSnapshotEvent(props, snapshot) {
   return {
     type: EventType.STATE_SNAPSHOT,
     snapshot,
@@ -125,7 +102,7 @@ function createStateSnapshotEvent(props, snapshot) {
   };
 }
 
-function createActivitySnapshotEvent(props, activityType, content) {
+export function createActivitySnapshotEvent(props, activityType, content) {
   return {
     type: EventType.ACTIVITY_SNAPSHOT,
     activityType,
@@ -134,7 +111,7 @@ function createActivitySnapshotEvent(props, activityType, content) {
   };
 }
 
-function createMessagesSnapshotEvent(props, messages) {
+export function createMessagesSnapshotEvent(props, messages) {
   return {
     type: EventType.MESSAGES_SNAPSHOT,
     messages,
@@ -142,7 +119,7 @@ function createMessagesSnapshotEvent(props, messages) {
   };
 }
 
-function createStepStartedEvent(props, stepId, stepName) {
+export function createStepStartedEvent(props, stepId, stepName) {
   return {
     type: EventType.STEP_STARTED,
     stepId,
@@ -151,7 +128,7 @@ function createStepStartedEvent(props, stepId, stepName) {
   };
 }
 
-function createStepFinishedEvent(props, stepId, result) {
+export function createStepFinishedEvent(props, stepId, result) {
   return {
     type: EventType.STEP_FINISHED,
     stepId,
@@ -160,7 +137,7 @@ function createStepFinishedEvent(props, stepId, result) {
   };
 }
 
-function createRawEvent(props, data) {
+export function createRawEvent(props, data) {
   return {
     type: EventType.RAW,
     data,
@@ -168,7 +145,7 @@ function createRawEvent(props, data) {
   };
 }
 
-function createCustomEvent(props, eventType, eventData) {
+export function createCustomEvent(props, eventType, eventData) {
   return {
     type: EventType.CUSTOM,
     eventType,
@@ -177,7 +154,7 @@ function createCustomEvent(props, eventType, eventData) {
   };
 }
 
-function createOptimisticTextEvents(input) {
+export function createOptimisticTextEvents(input) {
   return [
     createTextMessageStartEvent(
       {
@@ -206,7 +183,7 @@ function createOptimisticTextEvents(input) {
   ];
 }
 
-function createMessageWithMeta(input) {
+export function createMessageWithMeta(input) {
   return {
     id: input.id,
     role: input.role,
@@ -217,6 +194,6 @@ function createMessageWithMeta(input) {
   };
 }
 
-function asBaseEvent(event) {
+export function asBaseEvent(event) {
   return baseEventSchema.parse(event);
 }

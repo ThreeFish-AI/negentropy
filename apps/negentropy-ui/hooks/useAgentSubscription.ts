@@ -31,7 +31,7 @@ export interface AgentMetrics {
  */
 export interface UseAgentSubscriptionOptions {
   /** Agent 实例 */
-  agent: any;
+  agent: AgentLike | null;
   /** 当前会话 ID */
   sessionId?: string | null;
   /** 原始事件回调 */
@@ -55,6 +55,21 @@ export interface UseAgentSubscriptionReturnValue {
 }
 
 const DEFAULT_EVENT_BUFFER_SIZE = 10000;
+
+type AgentSubscriptionHandlers = {
+  onRunInitialized?: () => void;
+  onRunStartedEvent?: () => void;
+  onRunFinishedEvent?: () => void;
+  onRunErrorEvent?: () => void;
+  onRunFailed?: () => void;
+  onEvent?: (payload: { event: BaseEvent }) => void;
+};
+
+type AgentLike = {
+  subscribe: (handlers: AgentSubscriptionHandlers) => {
+    unsubscribe: () => void;
+  };
+};
 
 /**
  * Agent 事件订阅 Hook

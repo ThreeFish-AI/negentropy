@@ -6,10 +6,54 @@ import { HomeBody } from "../../app/page";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 
-let mockAgent: any;
-let lastHitlConfig: any;
-let detailEvents: any[];
-let subscriptionHandlers: Record<string, (...args: any[]) => void> | null;
+type MockAgent = {
+  messages: unknown[];
+  state: { stage: string };
+  isRunning: boolean;
+  subscribe: ReturnType<typeof vi.fn>;
+  addMessage: ReturnType<typeof vi.fn>;
+  runAgent: ReturnType<typeof vi.fn>;
+};
+
+type HitlRenderPayload = {
+  status: string;
+  args: {
+    title: string;
+    detail: string;
+  };
+  respond: () => Promise<void>;
+};
+
+type HitlConfig = {
+  render: (payload: HitlRenderPayload) => ReactNode;
+};
+
+type SessionEventPayload = {
+  id: string;
+  runId: string;
+  threadId: string;
+  timestamp: number;
+  message?: {
+    role?: string;
+    content?: string;
+  };
+  author?: string;
+  content?: {
+    parts: Array<{ text: string }>;
+  };
+};
+
+type SubscriptionHandlers = {
+  onEvent?: (payload: { event: AgUiEvent }) => void;
+  onRunInitialized?: () => void;
+  onRunStartedEvent?: () => void;
+  onRunFinishedEvent?: () => void;
+};
+
+let mockAgent: MockAgent;
+let lastHitlConfig: HitlConfig;
+let detailEvents: SessionEventPayload[];
+let subscriptionHandlers: SubscriptionHandlers | null;
 
 vi.mock("@copilotkitnext/react", () => ({
   CopilotKitProvider: ({ children }: { children: ReactNode }) => children,
@@ -18,7 +62,7 @@ vi.mock("@copilotkitnext/react", () => ({
     OnStateChanged: "OnStateChanged",
   },
   useAgent: () => ({ agent: mockAgent }),
-  useHumanInTheLoop: (config: any) => {
+  useHumanInTheLoop: (config: HitlConfig) => {
     lastHitlConfig = config;
   },
 }));
