@@ -5,7 +5,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
-from negentropy.serialization import to_json_compatible
+import pytest
+
+from negentropy.serialization import to_json_compatible, to_json_compatible_strict
 
 
 @dataclass(slots=True)
@@ -53,3 +55,27 @@ def test_to_json_compatible_prefers_model_dump_then_to_dict_then_dict() -> None:
     assert to_json_compatible(ToDictOnly()) == {"source": "to_dict"}
     assert to_json_compatible(DictOnly()) == {"source": "dict"}
     assert "namespace" in to_json_compatible(SimpleNamespace(example=1)).lower()
+
+
+def test_to_json_compatible_strict_supports_slots_dataclass_and_common_runtime_types() -> None:
+    identifier = uuid4()
+    payload = {
+        "id": identifier,
+        "path": Path("/tmp/example.pdf"),
+        "config": ParentPayload(name="demo", child=ChildPayload(count=3)),
+    }
+
+    result = to_json_compatible_strict(payload, label="payload")
+
+    assert result == {
+        "id": str(identifier),
+        "path": "/tmp/example.pdf",
+        "config": {"name": "demo", "child": {"count": 3}},
+    }
+
+
+def test_to_json_compatible_strict_raises_with_path_for_unknown_object() -> None:
+    payload = {"options": {"opaque": SimpleNamespace(example=1)}}
+
+    with pytest.raises(TypeError, match="payload.options.opaque"):
+        to_json_compatible_strict(payload, label="payload")

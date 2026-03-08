@@ -262,6 +262,51 @@ async def test_build_llm_invocation_plan_returns_none_when_serialization_fails(m
 
 
 @pytest.mark.asyncio
+async def test_build_llm_invocation_plan_skips_llm_when_prompt_payload_is_not_json_safe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    llm_called = False
+
+    async def fake_acompletion(**kwargs):  # type: ignore[no-untyped-def]
+        nonlocal llm_called
+        llm_called = True
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))])
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
+
+    request = CanonicalExtractionRequest(
+        source_kind=ROUTE_FILE_PDF,
+        source=CanonicalExtractionSource(source_kind=ROUTE_FILE_PDF, filename="report.pdf"),
+        options={"opaque": SimpleNamespace(example=1)},
+    )
+    contract = normalize_tool_contract(
+        input_schema={
+            "type": "object",
+            "properties": {
+                "pdf_source": {"type": "string"},
+                "options": {
+                    "type": "object",
+                    "properties": {"opaque": {"type": "string"}},
+                },
+            },
+        },
+        source_kind=ROUTE_FILE_PDF,
+    )
+
+    plan = await _build_llm_invocation_plan(
+        tool_name="convert_pdf_to_markdown",
+        tool_description="single pdf",
+        input_schema=contract.root_schema,
+        contract=contract,
+        request=request,
+        source_candidates=[],
+    )
+
+    assert plan is None
+    assert llm_called is False
+
+
+@pytest.mark.asyncio
 async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batch_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

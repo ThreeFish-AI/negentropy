@@ -18,7 +18,7 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool
-from negentropy.serialization import to_json_compatible
+from negentropy.serialization import to_json_compatible, to_json_compatible_strict
 from negentropy.storage.service import DocumentStorageService
 
 from .content import (
@@ -909,17 +909,24 @@ async def _build_llm_invocation_plan(
         return None
 
     try:
-        candidate_payload = to_json_compatible(_serialize_source_candidates(source_candidates))
-        canonical_request_payload = to_json_compatible(request)
-        contract_payload = to_json_compatible(
+        candidate_payload = to_json_compatible_strict(
+            _serialize_source_candidates(source_candidates),
+            label="source_candidates",
+        )
+        canonical_request_payload = to_json_compatible_strict(
+            request,
+            label="canonical_request",
+        )
+        contract_payload = to_json_compatible_strict(
             {
                 "mode": contract.mode,
                 "source_value_type": contract.source_value_type,
                 "batch_property": contract.batch_property,
                 "source_property": contract.source_property,
-            }
+            },
+            label="contract",
         )
-        input_schema_payload = to_json_compatible(input_schema)
+        input_schema_payload = to_json_compatible_strict(input_schema, label="input_schema")
         validation_error_payload = validation_error.raw_error if validation_error else ""
 
         if contract.mode in {"batch", "nested_single"} and contract.source_value_type in {"string", "object"}:
@@ -952,7 +959,7 @@ async def _build_llm_invocation_plan(
                 f"validation_error: {validation_error_payload}\n"
             )
     except Exception as exc:
-        logger.warning("extractor_llm_plan_failed", tool_name=tool_name, error=str(exc))
+        logger.warning("extractor_llm_plan_payload_unsafe", tool_name=tool_name, error=str(exc))
         return None
 
     try:
