@@ -1,7 +1,7 @@
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from types import SimpleNamespace
 
 from negentropy.knowledge.extraction import (
     ROUTE_FILE_PDF,
@@ -9,6 +9,7 @@ from negentropy.knowledge.extraction import (
     DataExtractorProvider,
     build_tool_adapter,
     extract_source,
+    normalize_tool_contract,
     resolve_source_kind,
     resolve_targets,
 )
@@ -105,7 +106,7 @@ def test_build_tool_adapter_wraps_pdf_request_into_batch_sources_schema() -> Non
         ),
     )
 
-    assert request.name == "batch_sources_v1"
+    assert request.name == "batch_sources_v2"
     assert request.arguments == {
         "pdf_sources": [
             {
@@ -116,6 +117,34 @@ def test_build_tool_adapter_wraps_pdf_request_into_batch_sources_schema() -> Non
         ],
         "options": {"ocr": True},
     }
+
+
+def test_normalize_tool_contract_supports_ref_wrapped_batch_schema() -> None:
+    contract = normalize_tool_contract(
+        input_schema={
+            "type": "object",
+            "properties": {
+                "pdf_sources": {
+                    "type": "array",
+                    "items": {"$ref": "#/$defs/PdfSource"},
+                }
+            },
+            "$defs": {
+                "PdfSource": {
+                    "type": "object",
+                    "properties": {
+                        "filename": {"type": "string"},
+                        "data_base64": {"type": "string"},
+                    },
+                }
+            },
+        },
+        source_kind=ROUTE_FILE_PDF,
+    )
+
+    assert contract.mode == "batch"
+    assert contract.batch_property == "pdf_sources"
+    assert contract.source_fields == {"filename", "data_base64"}
 
 
 @pytest.mark.asyncio
@@ -232,4 +261,119 @@ async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batc
     assert extracted.markdown_content == "# Title"
     assert extracted.plain_text == "Title"
     assert extracted.metadata["provider"] == "batch"
-    assert extracted.metadata["adapter_name"] == "batch_sources_v1"
+    assert extracted.metadata["adapter_name"] == "batch_sources_v2"
+    assert extracted.trace["llm_fallback_used"] is False
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_retries_after_validation_error_with_batch_wrapper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+    call_arguments: list[dict[str, object]] = []
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(
+                is_enabled=True,
+                description="Convert PDFs to markdown",
+                input_schema={"type": "object"},
+            )
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            self.calls += 1
+            call_arguments.append(kwargs["arguments"])
+            if self.calls == 1:
+                return SimpleNamespace(
+                    success=False,
+                    structured_content=None,
+                    content=[],
+                    error=(
+                        "7 validation errors for call[batch_convert_pdfs_to_markdown]\n"
+                        "pdf_sources\n  Missing required argument\n"
+                        "source_type\n  Unexpected keyword argument\n"
+                        "content_base64\n  Unexpected keyword argument\n"
+                    ),
+                    duration_ms=12,
+                )
+            return SimpleNamespace(
+                success=True,
+                structured_content={
+                    "result": {
+                        "markdown_content": "# Retried",
+                        "plain_text": "Retried",
+                    }
+                },
+                content=[],
+                error=None,
+                duration_ms=20,
+            )
+
+    async def fake_increment_tool_call_count(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._increment_tool_call_count",
+        fake_increment_tool_call_count,
+    )
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="batch_convert_pdfs_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    assert call_arguments[0]["source_type"] == ROUTE_FILE_PDF
+    assert call_arguments[1] == {
+        "pdf_sources": [
+            {
+                "filename": "report.pdf",
+                "content_type": "application/pdf",
+                "content_base64": "JVBERi0xLjU=",
+            }
+        ]
+    }
+    extracted = result["result"]
+    assert extracted.metadata["adapter_name"] == "batch_sources_retry_v1"
+    assert extracted.trace["adapter_attempts"][0]["success"] is False
+    assert extracted.trace["adapter_attempts"][1]["reasoning_source"] == "validation_retry"
