@@ -248,6 +248,42 @@ describe("session-hydration", () => {
     );
   });
 
+  it("合并 message ledger 时不会把两个独立 assistant 完成消息错误折叠为一条", () => {
+    const merged = mergeMessageLedger(
+      [
+        {
+          id: "assistant-a",
+          threadId: "session-1",
+          runId: "run-1",
+          resolvedRole: "assistant",
+          resolutionSource: "explicit_role",
+          content: "第一段结论",
+          createdAt: new Date("2026-03-08T00:00:02.000Z"),
+          streaming: false,
+          sourceEventTypes: ["TEXT_MESSAGE_END"],
+          relatedMessageIds: ["assistant-a"],
+        },
+      ],
+      [
+        {
+          id: "assistant-b",
+          threadId: "session-1",
+          runId: "run-1",
+          resolvedRole: "assistant",
+          resolutionSource: "snapshot_role",
+          content: "第二段结论",
+          createdAt: new Date("2026-03-08T00:00:03.000Z"),
+          streaming: false,
+          sourceEventTypes: ["MESSAGES_SNAPSHOT"],
+          relatedMessageIds: ["assistant-b"],
+        },
+      ],
+    );
+
+    expect(merged).toHaveLength(2);
+    expect(merged.map((entry) => entry.id)).toEqual(["assistant-a", "assistant-b"]);
+  });
+
   it("将 message ledger 派生为按时间排序的聊天消息", () => {
     const messages = ledgerEntriesToMessages([
       {

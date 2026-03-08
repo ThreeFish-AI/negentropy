@@ -398,6 +398,120 @@ describe("buildConversationTree", () => {
     );
   });
 
+  it("技术节点会按真实时序保留在主消息之间，而不是被类型排序打乱", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "先分析问题",
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.ACTIVITY_SNAPSHOT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        activityType: "research",
+        content: "running",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-2",
+        role: "assistant",
+        timestamp: 1004,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-2",
+        delta: "再给出结论",
+        timestamp: 1005,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const rootChildren = tree.roots[0].children;
+
+    expect(rootChildren.map((child) => child.type)).toEqual(["text", "text"]);
+    expect(rootChildren[0]?.children[0]?.type).toBe("activity");
+    expect(rootChildren[0]?.payload.content).toBe("先分析问题");
+    expect(rootChildren[1]?.payload.content).toBe("再给出结论");
+  });
+
+  it("带技术子节点的前一段 assistant 文本不会与后一段答复错误收敛", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live",
+        delta: "先查询资料",
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live",
+        toolCallId: "tool-1",
+        toolCallName: "search",
+        timestamp: 1003,
+      }),
+    ];
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
+        id: "assistant-final",
+        role: "assistant",
+        content: "查询完成，给出结论。",
+        createdAt: new Date(1004 * 1000),
+        runId: "run-1",
+        threadId: "thread-1",
+        streaming: false,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events, fallbackMessages });
+    const textChildren = tree.roots[0].children.filter((child) => child.type === "text");
+
+    expect(textChildren).toHaveLength(2);
+    expect(textChildren[0]?.payload.content).toBe("先查询资料");
+    expect(textChildren[1]?.payload.content).toBe("查询完成，给出结论。");
+  });
+
   it("将运行错误节点保留在主聊天区", () => {
     const events: AgUiEvent[] = [
       createTestEvent({

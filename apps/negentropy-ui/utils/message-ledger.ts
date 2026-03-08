@@ -40,14 +40,21 @@ function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" 
   return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
 }
 
+function hasSnapshotLikeSource(entry: Pick<MessageLedgerEntry, "sourceEventTypes">): boolean {
+  return entry.sourceEventTypes.some(
+    (eventType) =>
+      eventType === String(EventType.MESSAGES_SNAPSHOT) || eventType === "fallback.message",
+  );
+}
+
 function isSemanticEquivalentEntry(
   left: Pick<
     MessageLedgerEntry,
-    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt"
+    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt" | "streaming" | "sourceEventTypes"
   >,
   right: Pick<
     MessageLedgerEntry,
-    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt"
+    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt" | "streaming" | "sourceEventTypes"
   >,
 ): boolean {
   if (left.threadId !== right.threadId) {
@@ -59,33 +66,44 @@ function isSemanticEquivalentEntry(
   if (left.resolvedRole !== right.resolvedRole) {
     return false;
   }
+  if (left.resolvedRole !== "assistant" && left.resolvedRole !== "developer") {
+    return false;
+  }
+  if (!hasSnapshotLikeSource(left) && !hasSnapshotLikeSource(right)) {
+    return false;
+  }
 
   const leftContent = left.content.trim();
   const rightContent = right.content.trim();
   if (!leftContent || !rightContent) {
     return false;
   }
+  if (
+    !leftContent.startsWith(rightContent) &&
+    !rightContent.startsWith(leftContent)
+  ) {
+    return false;
+  }
 
-  const maxWindowMs =
-    left.resolvedRole === "assistant" || left.resolvedRole === "developer"
-      ? 30_000
-      : 10_000;
+  const maxWindowMs = 8_000;
   if (
     Math.abs(left.createdAt.getTime() - right.createdAt.getTime()) > maxWindowMs
   ) {
     return false;
   }
 
-  return left.resolvedRole === "assistant" || left.resolvedRole === "developer"
-    ? isEquivalentMessageContent(leftContent, rightContent)
-    : leftContent === rightContent;
+  if (!left.streaming && !right.streaming && leftContent !== rightContent) {
+    return false;
+  }
+
+  return isEquivalentMessageContent(leftContent, rightContent);
 }
 
 function findSemanticLedgerKey(
   entries: Map<string, MessageLedgerEntry>,
   candidate: Pick<
     MessageLedgerEntry,
-    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt"
+    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt" | "streaming" | "sourceEventTypes"
   >,
 ): string | null {
   for (const [key, entry] of entries.entries()) {

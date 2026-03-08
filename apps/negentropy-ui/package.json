@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:chat-smoke": "playwright test -g \"聊天流式回复在 hydration 后不重复显示最终 bubble\""
+    "test:e2e:chat-smoke": "playwright test -g \"聊天流式 Markdown 回复在 hydration 后无需刷新即可稳定收敛\""
   },
   "dependencies": {
     "@ag-ui/client": "0.0.42",

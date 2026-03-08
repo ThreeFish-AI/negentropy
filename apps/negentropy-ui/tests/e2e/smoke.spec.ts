@@ -267,11 +267,11 @@ test("Knowledge Runs 状态标签在 Dashboard 与 Pipelines 页面视觉一致"
   }
 });
 
-test("聊天流式回复在 hydration 后不重复显示最终 bubble", async ({ page }) => {
+test("聊天流式 Markdown 回复在 hydration 后无需刷新即可稳定收敛", async ({ page }) => {
   const sessionId = "pw-chat-1";
   const runId = "pw-run-1";
-  const partialReply = "我可以帮助你规划任务";
-  const finalReply = "我可以帮助你规划任务、分析代码并直接修改实现。";
+  const partialReply = "## 分析\n\n- 正在收集上下文";
+  const finalReply = "## 分析\n\n- 正在收集上下文\n\n已完成归纳。";
   const createdAt = Date.now();
   let sessionCreated = false;
   let detailFetchAfterRun = 0;
@@ -400,11 +400,21 @@ test("聊天流式回复在 hydration 后不重复显示最终 bubble", async ({
   await page.getByPlaceholder("输入指令...").fill("你能帮我做什么？");
   await page.getByRole("button", { name: "Send" }).click();
 
-  await expect(page.getByText(partialReply, { exact: true })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 2, name: "分析" })).toHaveCount(1);
+  await expect(page.getByRole("list")).toHaveCount(1);
+  await expect(page.getByText("正在收集上下文", { exact: true })).toHaveCount(1);
 
   await page.waitForTimeout(1600);
 
-  await expect(page.getByText(finalReply, { exact: true })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 2, name: "分析" })).toHaveCount(1);
+  await expect(page.getByText("正在收集上下文", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("已完成归纳。", { exact: true })).toHaveCount(1);
   await expect(page.getByText("你能帮我做什么？", { exact: true })).toHaveCount(1);
   await expect(page.getByText("Streaming")).toHaveCount(0);
+
+  await page.reload();
+
+  await expect(page.getByRole("heading", { level: 2, name: "分析" })).toHaveCount(1);
+  await expect(page.getByText("正在收集上下文", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("已完成归纳。", { exact: true })).toHaveCount(1);
 });
