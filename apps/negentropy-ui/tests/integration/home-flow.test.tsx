@@ -374,6 +374,41 @@ describe("HomeBody integration", () => {
     });
   }, 10000);
 
+  it("历史回放仅通过 protocol author 标记用户消息时，Chat 主区仍显示用户输入", async () => {
+    detailEvents = [
+      {
+        id: "history-user-1",
+        runId: "s1",
+        threadId: "s1",
+        timestamp: 1000,
+        author: "user",
+        content: { parts: [{ text: "Hi" }] },
+      },
+      {
+        id: "history-assistant-1",
+        runId: "s1",
+        threadId: "s1",
+        timestamp: 1001,
+        author: "assistant",
+        content: { parts: [{ text: "Hello from history" }] },
+      },
+    ];
+
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    const hi = await screen.findByText((content) => content.includes("Hi"));
+    const reply = await screen.findByText((content) =>
+      content.includes("Hello from history"),
+    );
+
+    expect(hi).toBeInTheDocument();
+    expect(reply).toBeInTheDocument();
+    expect(
+      hi.compareDocumentPosition(reply) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  }, 10000);
+
   it("handles HITL confirmation flow", async () => {
     const user = userEvent.setup();
     render(<Wrapper sessionId="s1" />);

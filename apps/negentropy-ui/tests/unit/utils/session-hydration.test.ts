@@ -115,4 +115,44 @@ describe("session-hydration", () => {
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0]?.content).toBe("hello");
   });
+
+  it("将仅通过 protocol author 表达的历史用户消息保留到 message ledger", () => {
+    const result = hydrateSessionDetail(
+      [
+        {
+          id: "user-msg",
+          runId: "run-1",
+          threadId: "session-1",
+          timestamp: 1000,
+          author: "user",
+          content: { parts: [{ text: "Hi" }] },
+        },
+        {
+          id: "assistant-msg",
+          runId: "run-1",
+          threadId: "session-1",
+          timestamp: 1001,
+          author: "assistant",
+          content: { parts: [{ text: "Hello there" }] },
+        },
+      ],
+      "session-1",
+    );
+
+    expect(result.messageLedger).toHaveLength(2);
+    expect(result.messageLedger[0]).toMatchObject({
+      id: "user-msg",
+      resolvedRole: "user",
+      content: "Hi",
+    });
+    expect(result.messageLedger[1]).toMatchObject({
+      id: "assistant-msg",
+      resolvedRole: "assistant",
+      content: "Hello there",
+    });
+    expect(result.messages.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+  });
 });

@@ -7,6 +7,7 @@ import {
 } from "@/lib/adk";
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 import type { ConnectionState } from "@/types/common";
+import type { MessageLedgerEntry } from "@/types/common";
 import {
   asAgUiEvent,
   getCustomEventData,
@@ -24,10 +25,13 @@ import {
   type AgUiMessage,
 } from "@/types/agui";
 import { getMessageIdentityKey, normalizeMessageContent } from "@/utils/message";
+import { buildMessageLedger } from "@/utils/message-ledger";
+import { createAgUiMessage } from "@/types/agui";
 
 export type HydratedSessionDetail = {
   events: BaseEvent[];
   messages: Message[];
+  messageLedger: MessageLedgerEntry[];
   snapshot: Record<string, unknown> | null;
 };
 
@@ -301,12 +305,33 @@ export function hydrateSessionDetail(
     return ordered;
   });
 
-  const messages = aguiEventsToMessages(normalizedEvents);
+  const messageLedger = buildMessageLedger({ events: normalizedEvents });
+  const messages =
+    messageLedger.length > 0
+      ? messageLedger.map((entry) =>
+          createAgUiMessage({
+            id: entry.id,
+            role:
+              entry.resolvedRole === "user" ||
+              entry.resolvedRole === "system" ||
+              entry.resolvedRole === "tool"
+                ? entry.resolvedRole
+                : "assistant",
+            content: entry.content,
+            createdAt: entry.createdAt,
+            runId: entry.runId,
+            threadId: entry.threadId,
+            author: entry.author,
+            streaming: entry.streaming,
+          }),
+        )
+      : aguiEventsToMessages(normalizedEvents);
   const snapshot = adkEventsToSnapshot(payloads) || null;
 
   return {
     events: mergeEvents([], normalizedEvents),
     messages,
+    messageLedger,
     snapshot,
   };
 }

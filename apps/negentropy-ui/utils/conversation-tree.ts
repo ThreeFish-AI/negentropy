@@ -19,6 +19,8 @@ import {
   normalizeCompatibleMessageRole,
   type CanonicalMessageRole,
 } from "@/types/agui";
+import { createAgUiMessage } from "@/types/agui";
+import type { MessageLedgerEntry } from "@/types/common";
 import {
   buildNodeSummary,
   classifyNodeVisibility,
@@ -29,22 +31,13 @@ import {
   isEquivalentMessageContent,
   normalizeMessageContent,
 } from "@/utils/message";
+import { buildMessageLedger } from "@/utils/message-ledger";
 
 type MutableNode = ConversationNode;
 
 type LinkInstruction = {
   childId: string;
   parentId: string;
-};
-
-type MessageSnapshotEntry = {
-  id: string;
-  role: CanonicalMessageRole;
-  content: string;
-  threadId: string;
-  runId?: string;
-  timestamp: number;
-  author?: string;
 };
 
 const DEFAULT_THREAD_ID = "default";
@@ -325,78 +318,6 @@ function getMessageTimestamp(message: Message): number {
   return createdAt instanceof Date ? createdAt.getTime() / 1000 : Date.now() / 1000;
 }
 
-function extractMessagesSnapshotEntries(
-  snapshot: unknown,
-  fallback: {
-    threadId: string;
-    runId: string;
-    timestamp: number;
-  },
-): MessageSnapshotEntry[] {
-  if (!Array.isArray(snapshot)) {
-    return [];
-  }
-
-  return snapshot.flatMap((entry, index) => {
-    if (typeof entry !== "object" || entry === null) {
-      return [];
-    }
-
-    const record = entry as Record<string, unknown>;
-    const id = typeof record.id === "string" ? record.id : undefined;
-    if (!id) {
-      return [];
-    }
-
-    const rawContent = record.content;
-    const content =
-      typeof rawContent === "string"
-        ? rawContent
-        : Array.isArray(rawContent)
-          ? rawContent
-              .map((part) =>
-                typeof part === "string" ? part : JSON.stringify(part),
-              )
-              .join("")
-          : rawContent
-            ? JSON.stringify(rawContent)
-            : "";
-    const trimmedContent = content.trim();
-    if (!trimmedContent) {
-      return [];
-    }
-
-    return [
-      {
-        id,
-        role: normalizeRole(record.role),
-        content: trimmedContent,
-        threadId:
-          typeof record.threadId === "string" && record.threadId.trim()
-            ? record.threadId
-            : fallback.threadId,
-        runId:
-          typeof record.runId === "string" && record.runId.trim()
-            ? record.runId
-            : fallback.runId,
-        timestamp:
-          typeof record.createdAt === "string" || record.createdAt instanceof Date
-            ? (() => {
-                const parsed = new Date(record.createdAt).getTime() / 1000;
-                return Number.isFinite(parsed)
-                  ? parsed
-                  : fallback.timestamp + index * 0.0001;
-              })()
-            : typeof record.timestamp === "number"
-              ? record.timestamp
-              : fallback.timestamp + index * 0.0001,
-        author:
-          typeof record.author === "string" ? record.author : undefined,
-      },
-    ];
-  });
-}
-
 function findMatchingTextNodeId(
   nodeIndex: Map<string, MutableNode>,
   input: {
@@ -518,7 +439,14 @@ function sortNodeChildren(node: MutableNode) {
 export function buildConversationTree(
   options: BuildConversationTreeOptions,
 ): ConversationTree {
-  const { events, fallbackMessages = [] } = options;
+  const { events, fallbackMessages = [], messageLedger = [] } = options;
+  const effectiveMessageLedger =
+    messageLedger.length > 0
+      ? messageLedger
+      : buildMessageLedger({
+          events,
+          fallbackMessages,
+        });
   const roots: MutableNode[] = [];
   const nodeIndex = new Map<string, MutableNode>();
   const messageNodeIndex = new Map<string, string>();
@@ -537,8 +465,13 @@ export function buildConversationTree(
   >();
   const pendingConfirmationCountByRun = new Map<string, number>();
   const pendingLinks: LinkInstruction[] = [];
-  const snapshotMessagesById = new Map<string, MessageSnapshotEntry>();
+  const ledgerByMessageId = new Map<string, MessageLedgerEntry>();
   let activeRunId: string | undefined;
+
+  effectiveMessageLedger.forEach((entry) => {
+    ledgerByMessageId.set(entry.id, entry);
+    messageRoleById.set(entry.id, entry.resolvedRole);
+  });
 
   const orderedEvents = [...events].sort((a, b) => {
     const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
@@ -604,7 +537,7 @@ export function buildConversationTree(
           normalizedEvent.type === EventType.TEXT_MESSAGE_START && "role" in normalizedEvent
             ? normalizeRole(normalizedEvent.role)
             : (messageRoleById.get(messageId) ||
-                snapshotMessagesById.get(messageId)?.role ||
+                ledgerByMessageId.get(messageId)?.resolvedRole ||
                 "assistant");
         if (normalizedEvent.type === EventType.TEXT_MESSAGE_START && role) {
           messageRoleById.set(messageId, role);
@@ -771,20 +704,6 @@ export function buildConversationTree(
         return;
       }
       case EventType.MESSAGES_SNAPSHOT: {
-        const snapshotMessages =
-          "messages" in normalizedEvent
-            ? extractMessagesSnapshotEntries(normalizedEvent.messages, {
-                threadId: turn.threadId,
-                runId,
-                timestamp: normalizeTimestamp(normalizedEvent.timestamp),
-              })
-            : [];
-        snapshotMessages.forEach((message) => {
-          snapshotMessagesById.set(message.id, message);
-          if (!messageRoleById.has(message.id)) {
-            messageRoleById.set(message.id, message.role);
-          }
-        });
         return;
       }
       case EventType.ACTIVITY_SNAPSHOT: {
@@ -998,18 +917,24 @@ export function buildConversationTree(
 
   const mergedFallbackMessages = [
     ...fallbackMessages,
-    ...[...snapshotMessagesById.values()]
-      .filter((snapshotMessage) => !fallbackMessages.some((message) => message.id === snapshotMessage.id))
-      .map((snapshotMessage) =>
-        ({
-          id: snapshotMessage.id,
-          role: snapshotMessage.role,
-          content: snapshotMessage.content,
-          createdAt: new Date(snapshotMessage.timestamp * 1000),
-          author: snapshotMessage.author,
-          runId: snapshotMessage.runId,
-          threadId: snapshotMessage.threadId,
-        }) as Message,
+    ...effectiveMessageLedger
+      .filter((entry) => !fallbackMessages.some((message) => message.id === entry.id))
+      .map((entry) =>
+        createAgUiMessage({
+          id: entry.id,
+          role:
+            entry.resolvedRole === "user" ||
+            entry.resolvedRole === "system" ||
+            entry.resolvedRole === "tool"
+              ? entry.resolvedRole
+              : "assistant",
+          content: entry.content,
+          createdAt: entry.createdAt,
+          author: entry.author,
+          runId: entry.runId,
+          threadId: entry.threadId,
+          streaming: entry.streaming,
+        }),
       ),
   ];
 
@@ -1018,16 +943,16 @@ export function buildConversationTree(
     if (messageNodeIndex.has(messageId)) {
       const existingNodeId = messageNodeIndex.get(messageId);
       const existingNode = existingNodeId ? nodeIndex.get(existingNodeId) : null;
-      const snapshotMessage = snapshotMessagesById.get(messageId);
+      const snapshotMessage = ledgerByMessageId.get(messageId);
       if (
         existingNode &&
         snapshotMessage &&
         existingNode.type === "text" &&
-        existingNode.role !== snapshotMessage.role
+        existingNode.role !== snapshotMessage.resolvedRole
       ) {
-        existingNode.role = snapshotMessage.role;
+        existingNode.role = snapshotMessage.resolvedRole;
         existingNode.title =
-          snapshotMessage.role === "user" ? "用户消息" : "助手消息";
+          snapshotMessage.resolvedRole === "user" ? "用户消息" : "助手消息";
       }
       return;
     }
