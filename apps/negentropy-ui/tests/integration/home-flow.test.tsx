@@ -51,7 +51,7 @@ type SubscriptionHandlers = {
 };
 
 let mockAgent: MockAgent;
-let lastHitlConfig: HitlConfig;
+let lastHitlConfig: HitlConfig | null;
 let detailEvents: SessionEventPayload[];
 let subscriptionHandlers: SubscriptionHandlers | null;
 
@@ -118,6 +118,11 @@ function emitAssistantReply(sessionId: string, messageId: string, content: strin
     messageId,
     timestamp: timestamp + 0.003,
   }));
+}
+
+function expectHitlConfig(): HitlConfig {
+  expect(lastHitlConfig).not.toBeNull();
+  return lastHitlConfig as HitlConfig;
 }
 
 async function waitForInitialHydration() {
@@ -453,7 +458,7 @@ describe("HomeBody integration", () => {
     render(<Wrapper sessionId="s1" />);
     await waitForInitialHydration();
     const respond = vi.fn().mockResolvedValue(undefined);
-    const ui = lastHitlConfig.render({
+    const ui = expectHitlConfig().render({
       status: "inProgress",
       args: { title: "确认", detail: "请确认" },
       respond,

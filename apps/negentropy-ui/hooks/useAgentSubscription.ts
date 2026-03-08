@@ -63,10 +63,14 @@ type AgentSubscriptionHandlers = {
   onEvent?: (payload: { event: BaseEvent }) => void;
 };
 
-type AgentLike = {
-  subscribe: (handlers: AgentSubscriptionHandlers) => {
-    unsubscribe: () => void;
-  };
+export type AgentSubscription = {
+  unsubscribe: () => void;
+};
+
+export type AgentSubscriptionHandlersLike = AgentSubscriptionHandlers;
+
+export type AgentLike = {
+  subscribe: (handlers: AgentSubscriptionHandlers) => AgentSubscription;
 };
 
 /**

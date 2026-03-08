@@ -1,7 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EventType } from "@ag-ui/core";
-import { useAgentSubscription } from "@/hooks/useAgentSubscription";
+import {
+  useAgentSubscription,
+  type AgentLike,
+  type AgentSubscriptionHandlersLike,
+} from "@/hooks/useAgentSubscription";
 
 describe("useAgentSubscription", () => {
   beforeEach(() => {
@@ -9,14 +13,10 @@ describe("useAgentSubscription", () => {
   });
 
   it("会订阅 agent 事件并在关键生命周期回调中推进连接状态", () => {
-    let handlers:
-      | Parameters<
-          Parameters<typeof useAgentSubscription>[0]["agent"]["subscribe"]
-        >[0]
-      | undefined;
+    let handlers: AgentSubscriptionHandlersLike | undefined;
 
     const unsubscribe = vi.fn();
-    const agent = {
+    const agent: AgentLike = {
       subscribe: vi.fn((nextHandlers) => {
         handlers = nextHandlers;
         return { unsubscribe };
