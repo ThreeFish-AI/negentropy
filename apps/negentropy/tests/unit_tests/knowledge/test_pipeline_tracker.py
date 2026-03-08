@@ -107,3 +107,54 @@ async def test_async_rebuild_pipeline_failure_persists_input_and_terminal_timest
     assert payload["stages"]["download"]["status"] == "completed"
     assert payload["stages"]["delete"]["status"] == "failed"
     assert payload["stages"]["delete"]["completed_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_async_rebuild_pipeline_accepts_mcp_extracted_markdown_payload(monkeypatch):
+    class SuccessfulRepository:
+        async def delete_knowledge_by_source(self, *, corpus_id, app_name, source_uri):
+            _ = (corpus_id, app_name, source_uri)
+            return 1
+
+        async def add_knowledge(self, *, corpus_id, app_name, chunks):
+            _ = (corpus_id, app_name)
+            return list(chunks)
+
+    dao = FakePipelineDao()
+    service = KnowledgeService(repository=SuccessfulRepository(), pipeline_dao=dao)
+    corpus_id = uuid4()
+    app_name = "negentropy"
+    source_uri = "gs://bucket/doc.md"
+
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
+
+    async def fake_extract_file_content(**kwargs):
+        _ = kwargs
+        return "# Extracted Markdown"
+
+    async def fake_ingest_text_with_tracker(**kwargs):
+        _ = kwargs
+        return []
+
+    monkeypatch.setattr(service, "_extract_file_content", fake_extract_file_content)
+    monkeypatch.setattr(service, "_ingest_text_with_tracker", fake_ingest_text_with_tracker)
+
+    run_id = await service.create_pipeline(
+        app_name=app_name,
+        operation="rebuild_source",
+        input_data={
+            "corpus_id": str(corpus_id),
+            "source_uri": source_uri,
+        },
+    )
+
+    await service.execute_rebuild_source_pipeline(
+        run_id=run_id,
+        corpus_id=corpus_id,
+        app_name=app_name,
+        source_uri=source_uri,
+    )
+
+    record = dao.records[(app_name, run_id)]
+    assert record.status == "completed"
+    assert record.payload["stages"]["download"]["status"] == "completed"

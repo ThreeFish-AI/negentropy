@@ -135,6 +135,50 @@ async def test_call_tool_stdio_passes_structured_errlog(monkeypatch: pytest.Monk
     assert captured["initialized"] is True
     assert captured["tool_name"] == "fetch"
     assert captured["errlog"].source == "mcp.mcp-server-fetch"
+    assert result.structured_content == {"ok": True}
+
+
+@pytest.mark.asyncio
+async def test_call_tool_stdio_preserves_non_dict_structured_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    @asynccontextmanager
+    async def fake_logged_stdio_client(server_params, errlog):
+        _ = (server_params, errlog)
+        yield object(), object()
+
+    class _Result:
+        isError = False
+        content = []
+        structuredContent = [{"result": {"markdown_content": "# Title"}}]
+
+    class _Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def initialize(self) -> None:
+            return None
+
+        async def call_tool(self, tool_name, arguments, read_timeout_seconds):
+            _ = (tool_name, arguments, read_timeout_seconds)
+            return _Result()
+
+    monkeypatch.setattr("negentropy.plugins.mcp_client.logged_stdio_client", fake_logged_stdio_client)
+    monkeypatch.setattr("negentropy.plugins.mcp_client.ClientSession", lambda read, write: _Session())
+
+    service = McpClientService(timeout_seconds=5)
+    result = await service.call_tool(
+        transport_type="stdio",
+        command="uvx",
+        args=["mcp-server-fetch"],
+        env={},
+        tool_name="fetch",
+        arguments={"url": "https://example.com"},
+    )
+
+    assert result.success is True
+    assert result.structured_content == [{"result": {"markdown_content": "# Title"}}]
 
 
 @pytest.mark.asyncio
