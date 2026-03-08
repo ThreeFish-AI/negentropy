@@ -23,7 +23,7 @@ export const baseEventSchema = baseEventPropsSchema
 
 const textMessageStartEventSchema = baseEventPropsSchema.extend({
   type: z.literal(EventType.TEXT_MESSAGE_START),
-  role: z.enum(["user", "agent", "system"]),
+  role: z.enum(["user", "assistant", "agent", "system", "developer", "tool"]),
 });
 
 const textMessageContentEventSchema = baseEventPropsSchema.extend({

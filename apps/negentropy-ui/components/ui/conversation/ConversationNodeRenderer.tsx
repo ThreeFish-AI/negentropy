@@ -207,19 +207,20 @@ function TurnNode({
   return (
     <div
       className={cn(
-        "rounded-[28px] border px-4 py-3",
+        "rounded-2xl border border-dashed px-4 py-2.5",
         selected
-          ? "border-amber-300 bg-white dark:border-amber-700 dark:bg-zinc-900"
-          : "border-zinc-200/80 bg-zinc-100/60 dark:border-zinc-800 dark:bg-zinc-900/50",
+          ? "border-amber-300 bg-amber-50/70 dark:border-amber-700 dark:bg-amber-950/20"
+          : "border-zinc-200/80 bg-zinc-100/55 dark:border-zinc-800 dark:bg-zinc-900/35",
       )}
       onClick={() => onSelect?.(node.id)}
     >
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+        <div className="flex min-w-0 items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+          <span className="font-semibold uppercase tracking-[0.18em]">
             {node.title}
-          </div>
-          <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>
             {node.status === "finished"
               ? "已完成"
               : node.status === "error"
@@ -227,16 +228,16 @@ function TurnNode({
                 : node.status === "blocked"
                   ? "等待确认"
                   : "进行中"}
-            {" · "}
-            {childCount} 个子模块
-          </div>
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>{childCount} 个子模块</span>
         </div>
-        <div className="text-[10px] text-zinc-400 dark:text-zinc-500">
+        <div className="shrink-0 text-[10px] text-zinc-400 dark:text-zinc-500">
           {formatTimestamp(node.timestamp)}
         </div>
       </div>
       {statusHint ? (
-        <div className="mt-3 rounded-2xl border border-dashed border-zinc-300/80 bg-zinc-50 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400">
+        <div className="mt-2 rounded-xl border border-zinc-200/80 bg-white/75 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
           {statusHint}
         </div>
       ) : null}

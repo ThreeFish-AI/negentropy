@@ -44,7 +44,7 @@ export function ChatStream({
       >
         {visibleNodes.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
-            发送指令开始对话。主区将以 A2UI 模块树实时展示消息、工具、活动与状态。
+            发送指令开始对话。主区会优先展示聊天消息，并在答复下附带工具、状态与活动摘要。
           </div>
         ) : (
           visibleNodes.map((node) => (

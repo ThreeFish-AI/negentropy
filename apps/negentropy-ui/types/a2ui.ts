@@ -1,4 +1,5 @@
 import type { BaseEvent, Message } from "@ag-ui/core";
+import type { CanonicalMessageRole } from "@/types/agui";
 
 export type ConversationNodeType =
   | "turn"
@@ -34,7 +35,7 @@ export interface ConversationNode {
   sourceOrder: number;
   title: string;
   status?: string;
-  role?: "user" | "assistant" | "system";
+  role?: CanonicalMessageRole;
   summary?: string;
   visibility: "chat" | "collapsed" | "debug-only";
   isStructural?: boolean;

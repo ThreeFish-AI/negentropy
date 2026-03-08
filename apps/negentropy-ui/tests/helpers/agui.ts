@@ -4,7 +4,12 @@ import {
   createTextMessageEndEvent,
   createTextMessageStartEvent,
 } from "@/lib/agui/factories";
-import { createAgUiMessage, type AgUiEvent, type AgUiMessage } from "@/types/agui";
+import {
+  createAgUiMessage,
+  type AgUiEvent,
+  type AgUiMessage,
+  type CompatibleEventMessageRole,
+} from "@/types/agui";
 
 export function createTestMessage(input: {
   id: string;
@@ -30,7 +35,7 @@ export function createTestTextMessageEvents(input: {
   threadId?: string;
   runId?: string;
   messageId: string;
-  role: "user" | "agent" | "system";
+  role: CompatibleEventMessageRole;
   timestamp: number;
   delta: string;
 }): AgUiEvent[] {
