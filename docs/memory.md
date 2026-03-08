@@ -72,6 +72,7 @@ flowchart TD
 - 仿生记忆依赖表已存在：`memories`、`events`、`threads`、`consolidation_jobs`。
 - 已安装 `vector` 扩展，支持 `memories.embedding` 的向量检索。
 - 应用连接用户可读取 `pg_extension`，以便后端探测系统能力。
+- 应用连接用户需可在 `negentropy` schema 中执行受管函数的 `CREATE OR REPLACE FUNCTION`。
 
 ### 5.2 完全可用
 
@@ -80,6 +81,7 @@ flowchart TD
 - 已安装 `pg_cron` 扩展。
 - 应用连接用户可访问 `cron.job`，用于查看、启停、重建受管任务。
 - 应用连接用户可访问 `cron.job_run_details`，用于展示 `Recent Logs`。
+- 应用连接用户可执行 `cron.schedule` 与 `cron.unschedule`，用于创建、更新与移除受管任务。
 
 说明：
 
@@ -146,6 +148,11 @@ ORDER BY table_name;
 这意味着初始化主路径应以控制面为准，而不是人工先手写完整 SQL。
 
 这一顺序对应“配置为事实源、数据库对象为受管派生物”的控制面模式，可降低函数定义和调度命令被人工漂移改坏的概率<sup>[[2]](#ref2)</sup><sup>[[5]](#ref5)</sup>。
+
+如果“保存并同步”失败，应优先检查两类权限：
+
+- `negentropy` schema 中受管函数的创建或替换权限。
+- `cron.schedule` / `cron.unschedule` 的执行权限，而不只是 `pg_cron` 是否已安装。
 
 ## 7. 系统能力与状态判断
 
@@ -363,6 +370,7 @@ SELECT negentropy.trigger_maintenance_consolidation('1 hour'::interval);
   - 若未安装，页面仍可使用配置与函数控制面，但调度保持只读。
 - `pg_cron_unavailable`
   - 优先检查应用连接用户是否可访问 `cron.job`。
+  - 如果 `cron.job` 可读但启用、重建仍失败，再检查 `cron.schedule` / `cron.unschedule` 的执行权限。
   - 若扩展已安装但权限不足，`Managed Jobs` 会显示降级态。
 - `pg_cron_logs_unavailable`
   - 检查 `cron.job_run_details` 是否存在且可读。
@@ -390,7 +398,6 @@ SELECT negentropy.trigger_maintenance_consolidation('1 hour'::interval);
 ## 16. 相关文档
 
 - Memory 与 Knowledge 的职责边界：[`knowledges.md`](./knowledges.md)
-- 仿生记忆 DDL 原型：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
 
 ## 参考文献
 
