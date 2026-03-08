@@ -55,6 +55,7 @@ export type AgUiEvent = BaseEvent &
       result: unknown;
       eventType: string;
       data: unknown;
+      messages: unknown[];
       code: string;
       message: string;
       rawEvent: unknown;
