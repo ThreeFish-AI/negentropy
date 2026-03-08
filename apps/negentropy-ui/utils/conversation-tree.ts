@@ -16,6 +16,8 @@ import {
   getMessageCreatedAt,
   getMessageRunId,
   getMessageThreadId,
+  normalizeCompatibleMessageRole,
+  type CanonicalMessageRole,
 } from "@/types/agui";
 import {
   buildNodeSummary,
@@ -35,6 +37,16 @@ type LinkInstruction = {
   parentId: string;
 };
 
+type MessageSnapshotEntry = {
+  id: string;
+  role: CanonicalMessageRole;
+  content: string;
+  threadId: string;
+  runId?: string;
+  timestamp: number;
+  author?: string;
+};
+
 const DEFAULT_THREAD_ID = "default";
 const DEFAULT_RUN_ID = "default";
 
@@ -45,10 +57,14 @@ function normalizeRunId(value: string | undefined, fallbackRunId?: string): stri
   return value;
 }
 
-function normalizeRole(value: unknown): "user" | "assistant" | "system" {
-  if (value === "user") return "user";
-  if (value === "system") return "system";
-  return "assistant";
+function normalizeRole(value: unknown): CanonicalMessageRole {
+  return normalizeCompatibleMessageRole(
+    typeof value === "string" ? value : undefined,
+  );
+}
+
+function isAssistantLikeRole(role: CanonicalMessageRole): boolean {
+  return role === "assistant" || role === "developer";
 }
 
 function normalizeTimestamp(value: unknown): number {
@@ -69,7 +85,7 @@ function createNode(input: {
   sourceOrder?: number;
   title: string;
   status?: string;
-  role?: "user" | "assistant" | "system";
+  role?: CanonicalMessageRole;
   summary?: string;
   payload?: Record<string, unknown>;
   sourceEventTypes?: string[];
@@ -309,6 +325,78 @@ function getMessageTimestamp(message: Message): number {
   return createdAt instanceof Date ? createdAt.getTime() / 1000 : Date.now() / 1000;
 }
 
+function extractMessagesSnapshotEntries(
+  snapshot: unknown,
+  fallback: {
+    threadId: string;
+    runId: string;
+    timestamp: number;
+  },
+): MessageSnapshotEntry[] {
+  if (!Array.isArray(snapshot)) {
+    return [];
+  }
+
+  return snapshot.flatMap((entry, index) => {
+    if (typeof entry !== "object" || entry === null) {
+      return [];
+    }
+
+    const record = entry as Record<string, unknown>;
+    const id = typeof record.id === "string" ? record.id : undefined;
+    if (!id) {
+      return [];
+    }
+
+    const rawContent = record.content;
+    const content =
+      typeof rawContent === "string"
+        ? rawContent
+        : Array.isArray(rawContent)
+          ? rawContent
+              .map((part) =>
+                typeof part === "string" ? part : JSON.stringify(part),
+              )
+              .join("")
+          : rawContent
+            ? JSON.stringify(rawContent)
+            : "";
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      return [];
+    }
+
+    return [
+      {
+        id,
+        role: normalizeRole(record.role),
+        content: trimmedContent,
+        threadId:
+          typeof record.threadId === "string" && record.threadId.trim()
+            ? record.threadId
+            : fallback.threadId,
+        runId:
+          typeof record.runId === "string" && record.runId.trim()
+            ? record.runId
+            : fallback.runId,
+        timestamp:
+          typeof record.createdAt === "string" || record.createdAt instanceof Date
+            ? (() => {
+                const parsed = new Date(record.createdAt).getTime() / 1000;
+                return Number.isFinite(parsed)
+                  ? parsed
+                  : fallback.timestamp + index * 0.0001;
+              })()
+            : typeof record.timestamp === "number"
+              ? record.timestamp
+              : fallback.timestamp + index * 0.0001,
+        author:
+          typeof record.author === "string" ? record.author : undefined,
+      },
+    ];
+  });
+}
+
 function findMatchingTextNodeId(
   nodeIndex: Map<string, MutableNode>,
   input: {
@@ -437,7 +525,7 @@ export function buildConversationTree(
   const toolNodeIndex = new Map<string, string>();
   const turns = new Map<string, MutableNode>();
   const assistantMessageByRun = new Map<string, string>();
-  const messageRoleById = new Map<string, "user" | "assistant" | "system">();
+  const messageRoleById = new Map<string, CanonicalMessageRole>();
   const messageMetaById = new Map<
     string,
     {
@@ -449,6 +537,7 @@ export function buildConversationTree(
   >();
   const pendingConfirmationCountByRun = new Map<string, number>();
   const pendingLinks: LinkInstruction[] = [];
+  const snapshotMessagesById = new Map<string, MessageSnapshotEntry>();
   let activeRunId: string | undefined;
 
   const orderedEvents = [...events].sort((a, b) => {
@@ -514,7 +603,9 @@ export function buildConversationTree(
         const role =
           normalizedEvent.type === EventType.TEXT_MESSAGE_START && "role" in normalizedEvent
             ? normalizeRole(normalizedEvent.role)
-            : (messageRoleById.get(messageId) ?? "assistant");
+            : (messageRoleById.get(messageId) ||
+                snapshotMessagesById.get(messageId)?.role ||
+                "assistant");
         if (normalizedEvent.type === EventType.TEXT_MESSAGE_START && role) {
           messageRoleById.set(messageId, role);
           messageMetaById.set(messageId, {
@@ -540,11 +631,14 @@ export function buildConversationTree(
             : "";
         const existingNodeId = messageNodeIndex.get(messageId);
         const matchedNodeId =
-          !existingNodeId && role === "assistant" && delta
+          !existingNodeId && isAssistantLikeRole(role) && delta
             ? findMatchingTextNodeId(nodeIndex, {
                 threadId: meta.threadId,
                 runId: meta.runId,
-                role,
+                role:
+                  role === "developer" || role === "tool"
+                    ? "assistant"
+                    : role,
                 content: delta,
                 timestamp: normalizeTimestamp(normalizedEvent.timestamp),
               })
@@ -579,7 +673,7 @@ export function buildConversationTree(
         if (matchedNodeId && matchedNodeId !== `message:${messageId}`) {
           node.messageId = node.messageId || messageId;
         }
-        if (node.role === "assistant") {
+        if (node.role && isAssistantLikeRole(node.role)) {
           assistantMessageByRun.set(meta.runId, node.id);
         }
         attachNode(nodeIndex, roots, turns, node.id, turn.id);
@@ -674,6 +768,23 @@ export function buildConversationTree(
           }
         }
         attachNode(nodeIndex, roots, turns, node.id, parentId);
+        return;
+      }
+      case EventType.MESSAGES_SNAPSHOT: {
+        const snapshotMessages =
+          "messages" in normalizedEvent
+            ? extractMessagesSnapshotEntries(normalizedEvent.messages, {
+                threadId: turn.threadId,
+                runId,
+                timestamp: normalizeTimestamp(normalizedEvent.timestamp),
+              })
+            : [];
+        snapshotMessages.forEach((message) => {
+          snapshotMessagesById.set(message.id, message);
+          if (!messageRoleById.has(message.id)) {
+            messageRoleById.set(message.id, message.role);
+          }
+        });
         return;
       }
       case EventType.ACTIVITY_SNAPSHOT: {
@@ -885,9 +996,39 @@ export function buildConversationTree(
     }
   });
 
-  fallbackMessages.forEach((message, fallbackIndex) => {
+  const mergedFallbackMessages = [
+    ...fallbackMessages,
+    ...[...snapshotMessagesById.values()]
+      .filter((snapshotMessage) => !fallbackMessages.some((message) => message.id === snapshotMessage.id))
+      .map((snapshotMessage) =>
+        ({
+          id: snapshotMessage.id,
+          role: snapshotMessage.role,
+          content: snapshotMessage.content,
+          createdAt: new Date(snapshotMessage.timestamp * 1000),
+          author: snapshotMessage.author,
+          runId: snapshotMessage.runId,
+          threadId: snapshotMessage.threadId,
+        }) as Message,
+      ),
+  ];
+
+  mergedFallbackMessages.forEach((message, fallbackIndex) => {
     const messageId = message.id;
     if (messageNodeIndex.has(messageId)) {
+      const existingNodeId = messageNodeIndex.get(messageId);
+      const existingNode = existingNodeId ? nodeIndex.get(existingNodeId) : null;
+      const snapshotMessage = snapshotMessagesById.get(messageId);
+      if (
+        existingNode &&
+        snapshotMessage &&
+        existingNode.type === "text" &&
+        existingNode.role !== snapshotMessage.role
+      ) {
+        existingNode.role = snapshotMessage.role;
+        existingNode.title =
+          snapshotMessage.role === "user" ? "用户消息" : "助手消息";
+      }
       return;
     }
     const runId = getMessageRunId(message);

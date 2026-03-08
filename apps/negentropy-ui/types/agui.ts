@@ -30,6 +30,15 @@ export interface ExtendedMessageProps {
 }
 
 export type AgUiMessage = Message & ExtendedMessageProps;
+export type CanonicalMessageRole =
+  | "user"
+  | "assistant"
+  | "system"
+  | "developer"
+  | "tool";
+export type CompatibleEventMessageRole =
+  | CanonicalMessageRole
+  | "agent";
 
 export type AgUiEvent = BaseEvent &
   Partial<
@@ -57,7 +66,7 @@ export type AgUiEvent = BaseEvent &
  */
 export interface TextMessageStartEvent extends BaseEventProps {
   type: EventType.TEXT_MESSAGE_START;
-  role: "user" | "agent" | "system";
+  role: CompatibleEventMessageRole;
 }
 
 export interface TextMessageContentEvent extends BaseEventProps {
@@ -325,11 +334,29 @@ export function createAgUiMessage(input: {
   } as AgUiMessage;
 }
 
+export function normalizeCompatibleMessageRole(
+  role: string | undefined | null,
+): CanonicalMessageRole {
+  if (role === "user") {
+    return "user";
+  }
+  if (role === "system") {
+    return "system";
+  }
+  if (role === "developer") {
+    return "developer";
+  }
+  if (role === "tool") {
+    return "tool";
+  }
+  return "assistant";
+}
+
 export function createOptimisticTextEvents(input: {
   threadId: string;
   runId: string;
   messageId: string;
-  role: "user" | "agent" | "system";
+  role: CompatibleEventMessageRole;
   content: string;
   timestamp: number;
 }): AgUiEvent[] {

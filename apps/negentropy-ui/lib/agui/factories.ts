@@ -4,6 +4,7 @@ import type {
   ActivitySnapshotEvent,
   AgUiMessage,
   BaseEventProps,
+  CompatibleEventMessageRole,
   CustomEvent,
   MessagesSnapshotEvent,
   RawEvent,
@@ -25,7 +26,7 @@ type RequiredMessageEventProps = BaseEventProps & { messageId: string };
 
 export function createTextMessageStartEvent(
   props: RequiredMessageEventProps,
-  role: "user" | "agent" | "system",
+  role: CompatibleEventMessageRole,
 ): TextMessageStartEvent {
   return {
     type: EventType.TEXT_MESSAGE_START,

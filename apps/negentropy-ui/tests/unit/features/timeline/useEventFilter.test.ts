@@ -22,7 +22,7 @@ describe("useEventFilter", () => {
 
   const msg2Events = createTestTextMessageEvents({
     messageId: "msg2",
-    role: "agent",
+    role: "assistant",
     timestamp: 2000,
     delta: "Hi",
   });

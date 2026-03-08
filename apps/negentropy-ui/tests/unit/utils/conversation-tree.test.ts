@@ -479,4 +479,91 @@ describe("buildConversationTree", () => {
     expect(tree.roots[0].children).toHaveLength(1);
     expect(tree.roots[0].children[0].payload.args).toBe("{\"q\":\"hello\"}");
   });
+
+  it("优先使用 messages snapshot 纠正历史用户消息角色", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "msg-user",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "msg-user",
+        delta: "Hi",
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.MESSAGES_SNAPSHOT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "snapshot-1",
+        timestamp: 1003,
+        messages: [
+          {
+            id: "msg-user",
+            role: "user",
+            content: "Hi",
+            threadId: "thread-1",
+            runId: "run-1",
+            createdAt: "1970-01-01T00:16:41.000Z",
+          },
+        ],
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children).toHaveLength(1);
+    expect(tree.roots[0].children[0].type).toBe("text");
+    expect(tree.roots[0].children[0].role).toBe("user");
+    expect(tree.roots[0].children[0].title).toBe("用户消息");
+  });
+
+  it("messages snapshot 可补入缺失的历史用户消息", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.MESSAGES_SNAPSHOT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "snapshot-1",
+        timestamp: 1001,
+        messages: [
+          {
+            id: "msg-user",
+            role: "user",
+            content: "Need help",
+            threadId: "thread-1",
+            runId: "run-1",
+            createdAt: "1970-01-01T00:16:41.000Z",
+          },
+        ],
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children).toHaveLength(1);
+    expect(tree.roots[0].children[0].payload.content).toBe("Need help");
+    expect(tree.roots[0].children[0].role).toBe("user");
+  });
 });

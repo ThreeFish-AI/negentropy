@@ -25,7 +25,7 @@ function buildTextEvents(input: {
 }): AgUiEvent[] {
   return createTestTextMessageEvents({
     messageId: input.messageId,
-    role: input.role === "assistant" ? "agent" : input.role,
+    role: input.role,
     delta: input.delta,
     timestamp: input.timestamp ?? 0,
   }).map((event) =>
