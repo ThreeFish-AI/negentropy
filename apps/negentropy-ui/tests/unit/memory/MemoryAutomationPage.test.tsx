@@ -56,7 +56,14 @@ describe("MemoryAutomationPage", () => {
         },
       },
       processes: [],
-      functions: [],
+      functions: [
+        {
+          name: "get_context_window",
+          status: "managed",
+          definition:
+            "CREATE OR REPLACE FUNCTION get_context_window() RETURNS text AS $$ SELECT repeat('x', 4000); $$ LANGUAGE sql;",
+        },
+      ],
       jobs: [
         {
           job_key: "cleanup_memories",
@@ -89,5 +96,31 @@ describe("MemoryAutomationPage", () => {
     expect(screen.getByRole("button", { name: "停用" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "重建" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "手动触发" })).toBeDisabled();
+  });
+
+  it("桌面端使用固定比例三栏布局，长函数定义仅在卡片内滚动", async () => {
+    const { container } = render(<MemoryAutomationPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/get_context_window/)).toBeInTheDocument();
+    });
+
+    const layout = container.querySelector(
+      ".lg\\:grid-cols-\\[minmax\\(0\\,1fr\\)_minmax\\(0\\,1\\.6fr\\)_minmax\\(0\\,1fr\\)\\]",
+    );
+    expect(layout).not.toBeNull();
+
+    const functionsHeading = screen.getByRole("heading", { name: "Functions" });
+    const functionsPanel = functionsHeading.closest("div.rounded-3xl");
+    expect(functionsPanel?.className).toContain("bg-card");
+
+    const details = screen.getByText(/get_context_window/).closest("details");
+    expect(details?.className).toContain("min-w-0");
+    expect(details?.className).toContain("overflow-hidden");
+
+    const definition = screen.getByText(/CREATE OR REPLACE FUNCTION get_context_window/);
+    expect(definition.tagName).toBe("PRE");
+    expect(definition.className).toContain("overflow-auto");
+    expect(definition.className).toContain("min-w-0");
   });
 });

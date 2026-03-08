@@ -165,8 +165,8 @@ export default function MemoryAutomationPage() {
     <div className="flex h-full flex-col bg-background">
       <MemoryNav title="Automation" description="仿生记忆自动化控制面" />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
-          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-hidden px-6 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)]">
+          <aside className="min-h-0 min-w-0 overflow-hidden overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
               <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-sm font-semibold text-foreground">系统能力</h2>
@@ -215,7 +215,7 @@ export default function MemoryAutomationPage() {
             </div>
           </aside>
 
-          <main className="min-h-0 min-w-0 flex-[1.6] overflow-y-auto">
+          <main className="min-h-0 min-w-0 overflow-hidden overflow-y-auto">
             <div className="space-y-6 pb-4 pr-2">
               <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
@@ -433,17 +433,17 @@ export default function MemoryAutomationPage() {
             </div>
           </main>
 
-          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <aside className="min-h-0 min-w-0 overflow-hidden overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
               <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-sm font-semibold text-foreground">Functions</h2>
                 <div className="mt-4 space-y-3">
                   {snapshot?.functions.map((fn) => (
-                    <details key={fn.name} className="rounded-2xl border border-border p-3">
+                    <details key={fn.name} className="min-w-0 overflow-hidden rounded-2xl border border-border p-3">
                       <summary className="cursor-pointer text-xs font-semibold text-foreground">
                         {fn.name} · {fn.status}
                       </summary>
-                      <pre className="mt-3 max-h-64 overflow-auto rounded-xl bg-muted/40 p-3 text-[11px] text-muted">
+                      <pre className="mt-3 max-h-64 min-w-0 overflow-auto rounded-xl bg-muted/40 p-3 text-[11px] text-muted">
                         {fn.definition}
                       </pre>
                     </details>
