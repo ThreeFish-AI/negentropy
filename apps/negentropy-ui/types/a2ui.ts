@@ -1,5 +1,6 @@
 import type { BaseEvent, Message } from "@ag-ui/core";
 import type { CanonicalMessageRole } from "@/types/agui";
+import type { MessageLedgerEntry } from "@/types/common";
 
 export type ConversationNodeType =
   | "turn"
@@ -54,4 +55,5 @@ export interface ConversationTree {
 export interface BuildConversationTreeOptions {
   events: BaseEvent[];
   fallbackMessages?: Message[];
+  messageLedger?: MessageLedgerEntry[];
 }

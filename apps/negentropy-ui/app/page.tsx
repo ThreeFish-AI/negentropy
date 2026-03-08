@@ -39,6 +39,7 @@ import {
   buildConversationTree,
   buildNodeTimestampIndex,
 } from "@/utils/conversation-tree";
+import { buildMessageLedger } from "@/utils/message-ledger";
 import {
   deriveConnectionState,
   deriveRunStates,
@@ -278,10 +279,15 @@ export function HomeBody({
   // 根据选中的节点时间范围过滤事件，右侧保持历史视图能力
   const nodeTimestampIndex = useMemo(() => {
     const merged = [...sessionMessages, ...optimisticMessages];
+    const messageLedger = buildMessageLedger({
+      events: rawEvents,
+      fallbackMessages: merged,
+    });
     return buildNodeTimestampIndex(
       buildConversationTree({
         events: rawEvents,
         fallbackMessages: merged,
+        messageLedger,
       }),
     );
   }, [optimisticMessages, rawEvents, sessionMessages]);
@@ -820,13 +826,23 @@ export function HomeBody({
     );
   }, [messagesForRenderBase, optimisticMessages]);
 
+  const messageLedger = useMemo(
+    () =>
+      buildMessageLedger({
+        events: rawEvents,
+        fallbackMessages: mergedMessagesForRender,
+      }),
+    [mergedMessagesForRender, rawEvents],
+  );
+
   const conversationTree = useMemo(
     () =>
       buildConversationTree({
         events: rawEvents,
         fallbackMessages: mergedMessagesForRender,
+        messageLedger,
       }),
-    [mergedMessagesForRender, rawEvents],
+    [messageLedger, mergedMessagesForRender, rawEvents],
   );
 
   // Filter log entries based on selected message timestamp

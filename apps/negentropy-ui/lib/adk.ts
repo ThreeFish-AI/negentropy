@@ -24,10 +24,10 @@ import {
   getEventRole,
   getEventRunId,
   getEventThreadId,
-  normalizeCompatibleMessageRole,
   type CanonicalMessageRole,
 } from "@/types/agui";
 import { accumulateTextContent } from "@/utils/message";
+import { resolveMessageRole } from "@/utils/message-role-resolver";
 import type { AdkEventPayload } from "@/lib/adk/schema";
 export {
   adkEventPayloadSchema,
@@ -44,7 +44,9 @@ type StreamMessageState = {
 };
 
 function normalizeTextRole(value: string | undefined): NormalizedRole {
-  const normalized = normalizeCompatibleMessageRole(value);
+  const normalized = resolveMessageRole({
+    explicitRole: value,
+  }).resolvedRole;
   if (normalized === "tool") {
     return "assistant";
   }
@@ -52,25 +54,14 @@ function normalizeTextRole(value: string | undefined): NormalizedRole {
 }
 
 function getPayloadRole(payload: AdkEventPayload): NormalizedRole {
-  if (payload.message?.role) {
-    return normalizeTextRole(payload.message.role);
-  }
-  if (hasToolResults(payload) || payload.message?.role === "tool") {
-    return "assistant";
-  }
-  if (hasToolCalls(payload)) {
-    return "assistant";
-  }
-  if (
-    payload.author === "assistant" ||
-    payload.author === "agent" ||
-    payload.author === "system" ||
-    payload.author === "developer" ||
-    payload.author === "tool"
-  ) {
-    return normalizeTextRole(payload.author);
-  }
-  return "assistant";
+  return normalizeTextRole(
+    resolveMessageRole({
+      explicitRole: payload.message?.role,
+      author: payload.author,
+      hasToolCall: hasToolCalls(payload),
+      hasToolResult: hasToolResults(payload),
+    }).resolvedRole,
+  );
 }
 
 function extractTextParts(payload: AdkEventPayload): string[] {
@@ -130,7 +121,7 @@ function messageShouldFlushAfterPayload(payload: AdkEventPayload): boolean {
 }
 
 function normalizeUiMessageRole(value: string | undefined): Message["role"] {
-  const role = normalizeCompatibleMessageRole(value);
+  const role = resolveMessageRole({ explicitRole: value }).resolvedRole;
   if (role === "user" || role === "system" || role === "tool") {
     return role;
   }
@@ -574,7 +565,14 @@ export function adkEventsToMessages(events: AdkEventPayload[]): Message[] {
     return {
       ...createAgUiMessage({
         id: e.id,
-        role: normalizeUiMessageRole(e.message?.role),
+        role: normalizeUiMessageRole(
+          resolveMessageRole({
+            explicitRole: e.message?.role,
+            author: e.author,
+            hasToolCall: hasToolCalls(e),
+            hasToolResult: hasToolResults(e),
+          }).resolvedRole,
+        ),
         content,
         createdAt: new Date((e.timestamp || Date.now() / 1000) * 1000),
         threadId: e.threadId,
