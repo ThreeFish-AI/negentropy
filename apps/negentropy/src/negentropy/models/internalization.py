@@ -94,6 +94,14 @@ class Instruction(Base, UUIDMixin):
     )
 
 
+class MemoryAutomationConfig(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "memory_automation_configs"
+
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    config: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    updated_by: Mapped[Optional[str]] = mapped_column(String(255))
+
+
 class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
     """
     Memory Audit Log Model
