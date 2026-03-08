@@ -50,6 +50,11 @@ export {
   searchFacts,
   submitAudit,
   fetchAuditHistory,
+  fetchMemoryAutomation,
+  fetchMemoryAutomationLogs,
+  updateMemoryAutomationConfig,
+  triggerMemoryAutomationJobAction,
+  runMemoryAutomationJob,
 } from "./utils/memory-api";
 
 // ============================================================================
@@ -66,4 +71,11 @@ export type {
   AuditRecord,
   AuditResponse,
   AuditHistoryPayload,
+  MemoryAutomationFunction,
+  MemoryAutomationJob,
+  MemoryAutomationProcess,
+  MemoryAutomationSnapshot,
+  MemoryAutomationLog,
+  MemoryAutomationLogsPayload,
+  MemoryAutomationRunResponse,
 } from "./utils/memory-api";

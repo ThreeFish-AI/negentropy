@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/memory/timeline", label: "Timeline" },
   { href: "/memory/facts", label: "Facts" },
   { href: "/memory/audit", label: "Audit" },
+  { href: "/memory/automation", label: "Automation" },
 ];
 
 export function MemoryNav({

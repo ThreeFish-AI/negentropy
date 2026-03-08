@@ -18,6 +18,7 @@ from negentropy.config import settings
 
 if TYPE_CHECKING:
     from negentropy.engine.adapters.postgres.fact_service import FactService
+    from negentropy.engine.adapters.postgres.memory_automation_service import MemoryAutomationService
     from negentropy.engine.governance.memory import MemoryGovernanceService
 
 # 类型别名：embedding 函数签名
@@ -165,6 +166,7 @@ def reset_memory_governance_service() -> None:
 # ============================================================================
 
 _fact_service_instance: Optional["FactService"] = None
+_memory_automation_service_instance: Optional["MemoryAutomationService"] = None
 
 
 def get_fact_service(embedding_fn: Optional[EmbeddingFn] = None) -> "FactService":
@@ -196,6 +198,22 @@ def reset_fact_service() -> None:
     _fact_service_instance = None
 
 
+def get_memory_automation_service() -> "MemoryAutomationService":
+    global _memory_automation_service_instance
+
+    if _memory_automation_service_instance is None:
+        from negentropy.engine.adapters.postgres.memory_automation_service import MemoryAutomationService
+
+        _memory_automation_service_instance = MemoryAutomationService()
+
+    return _memory_automation_service_instance
+
+
+def reset_memory_automation_service() -> None:
+    global _memory_automation_service_instance
+    _memory_automation_service_instance = None
+
+
 __all__ = [
     "MemoryBackend",
     "EmbeddingFn",
@@ -210,4 +228,6 @@ __all__ = [
     # Fact Service
     "get_fact_service",
     "reset_fact_service",
+    "get_memory_automation_service",
+    "reset_memory_automation_service",
 ]
