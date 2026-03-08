@@ -205,6 +205,49 @@ describe("session-hydration", () => {
     ]);
   });
 
+  it("合并 message ledger 时会将不同 messageId 的同一 assistant 最终答复收敛为一条事实", () => {
+    const merged = mergeMessageLedger(
+      [
+        {
+          id: "assistant-live",
+          threadId: "session-1",
+          runId: "run-1",
+          resolvedRole: "assistant",
+          resolutionSource: "explicit_role",
+          content: "我可以帮助你规划任务",
+          createdAt: new Date("2026-03-08T00:00:02.000Z"),
+          streaming: true,
+          sourceEventTypes: ["TEXT_MESSAGE_CONTENT"],
+          relatedMessageIds: ["assistant-live"],
+        },
+      ],
+      [
+        {
+          id: "assistant-final",
+          threadId: "session-1",
+          runId: "run-1",
+          resolvedRole: "assistant",
+          resolutionSource: "snapshot_role",
+          content: "我可以帮助你规划任务、分析代码并直接修改实现。",
+          createdAt: new Date("2026-03-08T00:00:03.000Z"),
+          streaming: false,
+          sourceEventTypes: ["MESSAGES_SNAPSHOT"],
+          relatedMessageIds: ["assistant-final"],
+        },
+      ],
+    );
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({
+      resolvedRole: "assistant",
+      content: "我可以帮助你规划任务、分析代码并直接修改实现。",
+      streaming: false,
+    });
+    expect(merged[0]?.relatedMessageIds).toEqual(
+      expect.arrayContaining(["assistant-live", "assistant-final"]),
+    );
+  });
+
   it("将 message ledger 派生为按时间排序的聊天消息", () => {
     const messages = ledgerEntriesToMessages([
       {

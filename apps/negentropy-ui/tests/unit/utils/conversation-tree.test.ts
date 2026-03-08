@@ -304,6 +304,55 @@ describe("buildConversationTree", () => {
     expect(tree.roots[0].children.filter((child) => child.type === "text")).toHaveLength(1);
   });
 
+  it("fallback assistant 最终快照命中实时流节点时会把节点收敛为完成态", () => {
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live",
+        delta: "我可以帮助你规划任务",
+        timestamp: 1002,
+      }),
+    ];
+    const fallbackMessages: AgUiMessage[] = [
+      createTestMessage({
+        id: "assistant-final",
+        role: "assistant",
+        content: "我可以帮助你规划任务、分析代码并直接修改实现。",
+        createdAt: new Date(1003 * 1000),
+        runId: "run-1",
+        threadId: "thread-1",
+        streaming: false,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events, fallbackMessages });
+    expect(tree.roots).toHaveLength(1);
+    expect(tree.roots[0].children.filter((child) => child.type === "text")).toHaveLength(1);
+    expect(tree.roots[0].children[0]?.payload.content).toBe(
+      "我可以帮助你规划任务、分析代码并直接修改实现。",
+    );
+    expect(tree.roots[0].children[0]?.payload.streaming).toBe(false);
+    expect(tree.roots[0].children[0]?.relatedMessageIds).toEqual(
+      expect.arrayContaining(["assistant-live", "assistant-final"]),
+    );
+  });
+
   it("同一轮次中不同 messageId 的 assistant 最终快照会收敛到同一个节点", () => {
     const events: AgUiEvent[] = [
       createTestEvent({

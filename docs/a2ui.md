@@ -204,6 +204,8 @@ flowchart TD
 - 文本流靠 `TEXT_MESSAGE_START / CONTENT / END` 收敛。
 - 乐观用户消息与历史确认消息通过统一 identity key 去重。
 - `messagesSnapshot` 用于修正历史角色缺失或补足消息列表。
+- 当实时 assistant 流与历史回放使用不同 `messageId` 但语义上属于同一答复时，canonical message 必须在 `Message Ledger` 层收敛为一条消息事实；`ConversationTree` 只能复用该事实，不得再次生成第二条主消息。
+- 命中同一 canonical message 的 hydration / snapshot 只能升级既有节点内容与完成态，不能把 streaming 中间态和最终态并排展示。
 - 树构建是读模型重建，不是事实源本身。
 
 ## 4. Chat 页落地方式

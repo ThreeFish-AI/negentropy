@@ -156,6 +156,77 @@ describe("session-projection", () => {
     expect(ledgerEntriesToMessages(next.messageLedger)[0]?.role).toBe("user");
   });
 
+  it("applyHydratedSession 在不同 messageId 但同一 assistant 答复下只保留一条 ledger", () => {
+    const base = {
+      loadedSessionId: "s1",
+      rawEvents: [
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "s1",
+          runId: "run-1",
+          messageId: "assistant-live",
+          delta: "我可以帮助你规划任务",
+          timestamp: 1000,
+        }),
+      ],
+      messageLedger: [
+        {
+          id: "assistant-live",
+          threadId: "s1",
+          runId: "run-1",
+          resolvedRole: "assistant" as const,
+          resolutionSource: "explicit_role" as const,
+          content: "我可以帮助你规划任务",
+          createdAt: new Date("2026-03-08T00:00:01.000Z"),
+          streaming: true,
+          sourceEventTypes: ["TEXT_MESSAGE_CONTENT"],
+          relatedMessageIds: ["assistant-live"],
+        },
+      ],
+      snapshot: null,
+    };
+
+    const next = applyHydratedSession(base, {
+      sessionId: "s1",
+      shouldMerge: true,
+      detail: {
+        events: [
+          createTestEvent({
+            type: EventType.RUN_FINISHED,
+            threadId: "s1",
+            runId: "run-1",
+            timestamp: 1001,
+          }),
+        ],
+        messages: [],
+        messageLedger: [
+          {
+            id: "assistant-final",
+            threadId: "s1",
+            runId: "run-1",
+            resolvedRole: "assistant" as const,
+            resolutionSource: "snapshot_role" as const,
+            content: "我可以帮助你规划任务、分析代码并直接修改实现。",
+            createdAt: new Date("2026-03-08T00:00:02.000Z"),
+            streaming: false,
+            sourceEventTypes: ["MESSAGES_SNAPSHOT"],
+            relatedMessageIds: ["assistant-final"],
+          },
+        ],
+        snapshot: { stage: "done" },
+      },
+    });
+
+    expect(next.messageLedger).toHaveLength(1);
+    expect(next.messageLedger[0]).toMatchObject({
+      content: "我可以帮助你规划任务、分析代码并直接修改实现。",
+      streaming: false,
+    });
+    expect(next.messageLedger[0]?.relatedMessageIds).toEqual(
+      expect.arrayContaining(["assistant-live", "assistant-final"]),
+    );
+  });
+
   it("shouldMergeHydratedProjection 正确判断 session 合并条件", () => {
     expect(
       shouldMergeHydratedProjection({

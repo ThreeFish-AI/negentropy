@@ -14,6 +14,7 @@ import {
   getEventThreadId,
   getEventToolCallId,
   getMessageCreatedAt,
+  getMessageStreaming,
   getMessageRunId,
   getMessageThreadId,
   normalizeCompatibleMessageRole,
@@ -366,6 +367,57 @@ function findMatchingTextNodeId(
   return null;
 }
 
+function isTextNodeStreaming(node: MutableNode): boolean {
+  const payloadStreaming = node.payload.streaming;
+  if (typeof payloadStreaming === "boolean") {
+    return payloadStreaming;
+  }
+  return (
+    node.role !== "user" &&
+    node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_CONTENT) &&
+    !node.sourceEventTypes.includes(EventType.TEXT_MESSAGE_END)
+  );
+}
+
+function finalizeTextNodeFromCanonicalMessage(
+  node: MutableNode,
+  message: {
+    content: string;
+    streaming: boolean;
+    resolvedRole: CanonicalMessageRole;
+    sourceEventTypes?: string[];
+    relatedMessageIds?: string[];
+  },
+) {
+  const nextContent = message.content.trim();
+  if (nextContent) {
+    const existingContent = String(node.payload.content || "");
+    node.payload.content =
+      nextContent.length >= existingContent.trim().length
+        ? nextContent
+        : accumulateTextContent(existingContent, nextContent);
+  }
+  node.payload.streaming =
+    typeof node.payload.streaming === "boolean"
+      ? node.payload.streaming && message.streaming
+      : message.streaming;
+  node.role = message.resolvedRole;
+  node.title = message.resolvedRole === "user" ? "用户消息" : "助手消息";
+  if (!message.streaming && !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END))) {
+    node.sourceEventTypes.push(String(EventType.TEXT_MESSAGE_END));
+  }
+  (message.sourceEventTypes || []).forEach((eventType) => {
+    if (!node.sourceEventTypes.includes(eventType)) {
+      node.sourceEventTypes.push(eventType);
+    }
+  });
+  (message.relatedMessageIds || []).forEach((messageId) => {
+    if (!node.relatedMessageIds.includes(messageId)) {
+      node.relatedMessageIds.push(messageId);
+    }
+  });
+}
+
 function pruneNode(node: MutableNode): MutableNode | null {
   node.children = node.children
     .map((child) => pruneNode(child))
@@ -588,7 +640,7 @@ export function buildConversationTree(
           sourceOrder: meta.sourceOrder,
           title: role === "user" ? "用户消息" : "助手消息",
           role,
-          payload: delta ? { content: delta } : {},
+          payload: delta ? { content: delta, streaming: true } : { streaming: true },
           sourceEventTypes: [eventType],
           relatedMessageIds: [messageId],
         });
@@ -602,6 +654,9 @@ export function buildConversationTree(
           const existing = String(node.payload.content || "");
           node.payload.content = accumulateTextContent(existing, delta);
         }
+        node.payload.streaming =
+          ledgerByMessageId.get(messageId)?.streaming ??
+          !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END));
         messageNodeIndex.set(messageId, node.id);
         if (matchedNodeId && matchedNodeId !== `message:${messageId}`) {
           node.messageId = node.messageId || messageId;
@@ -947,12 +1002,15 @@ export function buildConversationTree(
       if (
         existingNode &&
         snapshotMessage &&
-        existingNode.type === "text" &&
-        existingNode.role !== snapshotMessage.resolvedRole
+        existingNode.type === "text"
       ) {
-        existingNode.role = snapshotMessage.resolvedRole;
-        existingNode.title =
-          snapshotMessage.resolvedRole === "user" ? "用户消息" : "助手消息";
+        finalizeTextNodeFromCanonicalMessage(existingNode, {
+          content: snapshotMessage.content,
+          streaming: snapshotMessage.streaming,
+          resolvedRole: snapshotMessage.resolvedRole,
+          sourceEventTypes: snapshotMessage.sourceEventTypes,
+          relatedMessageIds: snapshotMessage.relatedMessageIds,
+        });
       }
       return;
     }
@@ -986,9 +1044,21 @@ export function buildConversationTree(
       return Math.abs(node.timestamp - timestamp) <= timeWindow;
     });
     if (duplicateNode) {
+      const snapshotMessage = ledgerByMessageId.get(messageId);
+      finalizeTextNodeFromCanonicalMessage(duplicateNode, {
+        content: snapshotMessage?.content || content,
+        streaming: snapshotMessage?.streaming ?? (getMessageStreaming(message) === true),
+        resolvedRole: snapshotMessage?.resolvedRole || role,
+        sourceEventTypes: snapshotMessage?.sourceEventTypes || ["fallback.message"],
+        relatedMessageIds: [
+          ...(snapshotMessage?.relatedMessageIds || []),
+          messageId,
+        ],
+      });
       if (!duplicateNode.relatedMessageIds.includes(messageId)) {
         duplicateNode.relatedMessageIds.push(messageId);
       }
+      messageNodeIndex.set(messageId, duplicateNode.id);
       return;
     }
 
@@ -1023,6 +1093,7 @@ export function buildConversationTree(
       role,
       payload: {
         content,
+        streaming: getMessageStreaming(message) === true,
       },
       sourceEventTypes: ["fallback.message"],
       relatedMessageIds: [messageId],

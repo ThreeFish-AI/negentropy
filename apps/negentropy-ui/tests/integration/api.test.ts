@@ -163,6 +163,54 @@ describe("POST /api/agui", () => {
     expect(body).toContain("TEXT_MESSAGE_CONTENT");
     expect(body).toContain("hello");
   });
+
+  it("应将不同 payload id 的 assistant 文本块归并为单条 streaming 生命周期", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"id":"chunk-1","runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"text":"我可以帮助你规划任务"}]},"timestamp":1000}',
+              "",
+              'data: {"id":"chunk-2","runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"text":"我可以帮助你规划任务、分析代码并直接修改实现。"}]},"timestamp":1001}',
+              "",
+              "",
+            ].join("\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "你能帮我做什么？" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect((body.match(/TEXT_MESSAGE_START/g) || [])).toHaveLength(1);
+    expect((body.match(/chunk-2/g) || [])).toHaveLength(0);
+    expect(body).toContain("chunk-1");
+    expect(body).toContain("我可以帮助你规划任务、分析代码并直接修改实现。");
+  });
 });
 
 describe("GET /api/agui/sessions/list", () => {
