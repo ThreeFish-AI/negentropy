@@ -239,7 +239,7 @@ export default function KnowledgePipelinesPage() {
                           <div className="flex min-w-0 items-center gap-3">
                             <span className="truncate text-xs font-semibold">{run.run_id || run.id}</span>
                           </div>
-                          <PipelineStatusBadge status={run.status} className="shrink-0" />
+                          <PipelineStatusBadge status={run.status} />
                         </div>
                         <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-[11px] opacity-70">
                           <span className="truncate">

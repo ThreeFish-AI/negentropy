@@ -17,6 +17,26 @@ async function mockAuthenticatedUser(page: Parameters<typeof test>[0]["page"]) {
   });
 }
 
+async function getStatusBadgeSnapshot(
+  page: Parameters<typeof test>[0]["page"],
+  label: string,
+) {
+  const badge = page.getByLabel(label);
+  const dot = badge.locator("span").nth(0);
+  const text = badge.locator("span").nth(1);
+
+  await expect(badge).toBeVisible();
+  await expect(dot).toBeVisible();
+  await expect(text).toBeVisible();
+
+  return {
+    badgeClassName: await badge.evaluate((node) => node.className),
+    dotClassName: await dot.evaluate((node) => node.className),
+    textClassName: await text.evaluate((node) => node.className),
+    textContent: await text.textContent(),
+  };
+}
+
 test("首页在认证成功时展示聊天输入框", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
@@ -91,6 +111,110 @@ test("Knowledge Base 页面可完成基础检索烟测", async ({ page }) => {
 
   await expect(page.getByText("Retrieved Chunks")).toBeVisible();
   await expect(page.getByText("Entropy-reducing retrieval result")).toBeVisible();
+});
+
+test("Knowledge Runs 状态标签在 Dashboard 与 Pipelines 页面视觉一致", async ({ page }, testInfo) => {
+  await mockAuthenticatedUser(page);
+
+  const sharedRuns = [
+    {
+      id: "run-running-id",
+      run_id: "run-running",
+      status: "running",
+      version: 3,
+      operation: "sync_source",
+      trigger: "ui",
+      updated_at: "2026-03-08T10:01:00Z",
+      started_at: "2026-03-08T10:00:00Z",
+      duration_ms: 2400,
+    },
+    {
+      id: "run-completed-id",
+      run_id: "run-completed",
+      status: "completed",
+      version: 2,
+      operation: "rebuild_source",
+      trigger: "api",
+      updated_at: "2026-03-08T09:45:00Z",
+      started_at: "2026-03-08T09:40:00Z",
+      completed_at: "2026-03-08T09:41:00Z",
+      duration_ms: 60000,
+    },
+    {
+      id: "run-failed-id",
+      run_id: "run-failed",
+      status: "failed",
+      version: 1,
+      operation: "ingest_url",
+      trigger: "ui",
+      updated_at: "2026-03-08T09:30:00Z",
+      started_at: "2026-03-08T09:29:00Z",
+      completed_at: "2026-03-08T09:29:30Z",
+      duration_ms: 30000,
+      error: { message: "mock failure" },
+    },
+  ];
+
+  await page.route("**/api/knowledge/dashboard?app_name=negentropy", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        corpus_count: 2,
+        knowledge_count: 8,
+        last_build_at: "2026-03-08T10:05:00Z",
+        pipeline_runs: sharedRuns.map(({ id, started_at, completed_at, duration_ms, error, ...run }) => run),
+        alerts: [],
+      }),
+    });
+  });
+
+  await page.route("**/api/knowledge/pipelines?app_name=negentropy", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        last_updated_at: "2026-03-08T10:05:00Z",
+        runs: sharedRuns,
+      }),
+    });
+  });
+
+  await page.goto("/knowledge");
+  await expect(page.getByRole("heading", { name: "Pipeline Runs" })).toBeVisible();
+
+  const dashboardRunning = await getStatusBadgeSnapshot(page, "状态: running");
+  const dashboardCompleted = await getStatusBadgeSnapshot(page, "状态: completed");
+  const dashboardFailed = await getStatusBadgeSnapshot(page, "状态: failed");
+
+  await page.locator("main").first().screenshot({
+    path: testInfo.outputPath("knowledge-dashboard-runs.png"),
+  });
+
+  await page.goto("/knowledge/pipelines");
+  await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /run-running/i }),
+  ).toHaveClass(/bg-zinc-900/);
+
+  const pipelinesRunning = await getStatusBadgeSnapshot(page, "状态: running");
+  const pipelinesCompleted = await getStatusBadgeSnapshot(page, "状态: completed");
+  const pipelinesFailed = await getStatusBadgeSnapshot(page, "状态: failed");
+
+  await page.locator("main").first().screenshot({
+    path: testInfo.outputPath("knowledge-pipelines-runs.png"),
+  });
+
+  expect(pipelinesRunning).toEqual(dashboardRunning);
+  expect(pipelinesCompleted).toEqual(dashboardCompleted);
+  expect(pipelinesFailed).toEqual(dashboardFailed);
+
+  expect(dashboardRunning.badgeClassName).toContain("inline-flex");
+  expect(dashboardRunning.badgeClassName).toContain("gap-2");
+  expect(dashboardRunning.dotClassName).toContain("animate-pulse");
+  expect(dashboardRunning.textClassName).toContain("text-amber-600");
+  expect(dashboardCompleted.textClassName).toContain("text-emerald-600");
+  expect(dashboardFailed.textClassName).toContain("text-rose-600");
 });
 
 test("聊天流式回复在 hydration 后不重复显示最终 bubble", async ({ page }) => {
