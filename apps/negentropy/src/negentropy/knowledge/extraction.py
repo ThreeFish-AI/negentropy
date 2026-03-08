@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import re
+import tempfile
 import urllib.parse
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -103,6 +105,7 @@ class ExtractionToolAdapter:
 class NormalizedToolContract:
     mode: Literal["batch", "nested_single", "flat", "unknown"]
     schema_shape: str
+    source_value_type: Literal["object", "string", "unknown"] = "unknown"
     root_schema: dict[str, Any] | None = None
     object_schema: dict[str, Any] | None = None
     batch_property: str | None = None
@@ -124,7 +127,16 @@ class AdaptiveToolInvocationPlan:
 class ValidationErrorSummary:
     missing_fields: list[str] = field(default_factory=list)
     unexpected_fields: list[str] = field(default_factory=list)
+    string_item_fields: list[str] = field(default_factory=list)
     raw_error: str = ""
+
+
+@dataclass(slots=True)
+class SourceCandidate:
+    kind: Literal["inline_object", "local_path", "url", "base64_string"]
+    value: Any
+    description: str
+    preferred: bool = False
 
 
 def resolve_source_kind(
@@ -278,6 +290,10 @@ def _is_file_source_schema(schema: Any) -> bool:
     return bool({"filename", "content_base64", "data_base64"} & properties)
 
 
+def _is_string_schema(schema: Any) -> bool:
+    return isinstance(schema, dict) and schema.get("type") == "string"
+
+
 def _schema_path(schema: dict[str, Any], ref: str) -> dict[str, Any] | None:
     if not ref.startswith("#/"):
         return None
@@ -367,6 +383,17 @@ def normalize_tool_contract(
             schema = properties.get(name)
             if not isinstance(schema, dict) or schema.get("type") != "array":
                 continue
+            if _is_string_schema(schema.get("items")):
+                return NormalizedToolContract(
+                    mode="batch",
+                    schema_shape="scalar.array",
+                    source_value_type="string",
+                    root_schema=input_schema,
+                    object_schema=variant,
+                    batch_property=name,
+                    item_schema=schema.get("items"),
+                    top_level_fields=set(properties.keys()),
+                )
             item_schema = _expand_schema_variants(schema.get("items"), root_schema=input_schema)
             selected_item_schema = next(
                 (item for item in item_schema if _matches_source_schema(item, source_kind)),
@@ -376,6 +403,7 @@ def normalize_tool_contract(
                 return NormalizedToolContract(
                     mode="batch",
                     schema_shape="object.array",
+                    source_value_type="object",
                     root_schema=input_schema,
                     object_schema=variant,
                     batch_property=name,
@@ -388,6 +416,17 @@ def normalize_tool_contract(
             schema = properties.get(name)
             if not isinstance(schema, dict):
                 continue
+            if _is_string_schema(schema):
+                return NormalizedToolContract(
+                    mode="nested_single",
+                    schema_shape="scalar.value",
+                    source_value_type="string",
+                    root_schema=input_schema,
+                    object_schema=variant,
+                    source_property=name,
+                    item_schema=schema,
+                    top_level_fields=set(properties.keys()),
+                )
             nested_variants = _expand_schema_variants(schema, root_schema=input_schema)
             selected_variant = next(
                 (item for item in nested_variants if _matches_source_schema(item, source_kind)),
@@ -397,6 +436,7 @@ def normalize_tool_contract(
                 return NormalizedToolContract(
                     mode="nested_single",
                     schema_shape="object.object",
+                    source_value_type="object",
                     root_schema=input_schema,
                     object_schema=variant,
                     source_property=name,
@@ -409,6 +449,7 @@ def normalize_tool_contract(
             return NormalizedToolContract(
                 mode="flat",
                 schema_shape="object.flat",
+                source_value_type="object",
                 root_schema=input_schema,
                 object_schema=variant,
                 top_level_fields=set(properties.keys()),
@@ -481,6 +522,78 @@ def _build_source_item(
     return {key: value for key, value in payload.items() if value is not None}
 
 
+def _build_inline_source_payload(request: CanonicalExtractionRequest) -> dict[str, Any]:
+    return _build_source_item(request=request, item_schema=None)
+
+
+def _select_string_source_candidate(
+    *,
+    source_candidates: list[SourceCandidate],
+    preferred_kind: str | None = None,
+) -> str | None:
+    ordered_candidates = sorted(
+        source_candidates,
+        key=lambda item: (0 if item.preferred else 1, item.kind),
+    )
+    if preferred_kind:
+        preferred = next((item for item in ordered_candidates if item.kind == preferred_kind), None)
+        if preferred and isinstance(preferred.value, str):
+            return preferred.value
+    for candidate in ordered_candidates:
+        if isinstance(candidate.value, str):
+            return candidate.value
+    return None
+
+
+def _build_arguments_from_contract(
+    *,
+    contract: NormalizedToolContract,
+    request: CanonicalExtractionRequest,
+    source_candidates: list[SourceCandidate],
+    include_options: bool,
+    include_context: bool,
+    selected_source_kind: str | None = None,
+) -> dict[str, Any]:
+    arguments: dict[str, Any]
+    top_properties = _schema_properties(contract.object_schema)
+    if contract.mode == "batch" and contract.batch_property:
+        if contract.source_value_type == "string":
+            source_value = _select_string_source_candidate(
+                source_candidates=source_candidates,
+                preferred_kind=selected_source_kind,
+            )
+            arguments = {contract.batch_property: [source_value] if source_value else []}
+        else:
+            arguments = {
+                contract.batch_property: [_build_source_item(request=request, item_schema=contract.item_schema)],
+            }
+    elif contract.mode == "nested_single" and contract.source_property:
+        if contract.source_value_type == "string":
+            source_value = _select_string_source_candidate(
+                source_candidates=source_candidates,
+                preferred_kind=selected_source_kind,
+            )
+            arguments = {contract.source_property: source_value}
+        else:
+            arguments = {
+                contract.source_property: _build_source_item(request=request, item_schema=contract.item_schema),
+            }
+    elif contract.mode == "flat":
+        arguments = _build_flat_payload(request=request, allowed_fields=contract.source_fields)
+    else:
+        arguments = _build_flat_payload(request=request, allowed_fields=set())
+
+    if include_options:
+        option_fields = _filter_declared_fields(request.options, top_properties.get("options"))
+        if option_fields and "options" in top_properties:
+            arguments["options"] = option_fields
+    if include_context:
+        context_fields = _filter_declared_fields(request.context, top_properties.get("context"))
+        if context_fields and "context" in top_properties:
+            arguments["context"] = context_fields
+    return {key: value for key, value in arguments.items() if value is not None}
+
+
 def _build_flat_payload(
     *,
     request: CanonicalExtractionRequest,
@@ -522,36 +635,17 @@ def _build_plan_from_contract(
     diagnostics: dict[str, Any] | None = None,
 ) -> AdaptiveToolInvocationPlan:
     diagnostics = dict(diagnostics or {})
-    arguments: dict[str, Any]
-    if contract.mode == "batch" and contract.batch_property:
-        arguments = {
-            contract.batch_property: [_build_source_item(request=request, item_schema=contract.item_schema)],
-        }
-        top_properties = _schema_properties(contract.object_schema)
-        option_fields = _filter_declared_fields(request.options, top_properties.get("options"))
-        if option_fields and "options" in top_properties:
-            arguments["options"] = option_fields
-        context_fields = _filter_declared_fields(request.context, top_properties.get("context"))
-        if context_fields and "context" in top_properties:
-            arguments["context"] = context_fields
-    elif contract.mode == "nested_single" and contract.source_property:
-        arguments = {
-            contract.source_property: _build_source_item(request=request, item_schema=contract.item_schema),
-        }
-        top_properties = _schema_properties(contract.object_schema)
-        option_fields = _filter_declared_fields(request.options, top_properties.get("options"))
-        if option_fields and "options" in top_properties:
-            arguments["options"] = option_fields
-        context_fields = _filter_declared_fields(request.context, top_properties.get("context"))
-        if context_fields and "context" in top_properties:
-            arguments["context"] = context_fields
-    elif contract.mode == "flat":
-        arguments = _build_flat_payload(request=request, allowed_fields=contract.source_fields)
-    else:
-        arguments = _build_flat_payload(request=request, allowed_fields=set())
+    arguments = _build_arguments_from_contract(
+        contract=contract,
+        request=request,
+        source_candidates=[],
+        include_options=True,
+        include_context=True,
+    )
 
     diagnostics.setdefault("contract_mode", contract.mode)
     diagnostics.setdefault("schema_shape", contract.schema_shape)
+    diagnostics.setdefault("source_value_type", contract.source_value_type)
     if contract.batch_property:
         diagnostics.setdefault("batch_property", contract.batch_property)
     if contract.source_property:
@@ -606,6 +700,7 @@ def _is_validation_error(error: str | None) -> bool:
             "missing required argument",
             "unexpected keyword argument",
             "field required",
+            "input should be a valid string",
         )
     )
 
@@ -614,11 +709,84 @@ def _summarize_validation_error(error: str | None) -> ValidationErrorSummary:
     raw = str(error or "")
     missing = re.findall(r"\n([A-Za-z0-9_]+)\n\s+Missing required argument", raw)
     unexpected = re.findall(r"\n([A-Za-z0-9_]+)\n\s+Unexpected keyword argument", raw)
+    string_items = re.findall(r"\n([A-Za-z0-9_]+\.\d+)\n\s+Input should be a valid string", raw)
     return ValidationErrorSummary(
         missing_fields=missing,
         unexpected_fields=unexpected,
+        string_item_fields=string_items,
         raw_error=raw,
     )
+
+
+def _ensure_temp_dir() -> Path:
+    temp_dir = Path(".temp") / "mcp_sources"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    return temp_dir
+
+
+def _prepare_source_candidates(
+    *,
+    request: CanonicalExtractionRequest,
+    content: bytes | None,
+) -> tuple[list[SourceCandidate], list[Path]]:
+    candidates: list[SourceCandidate] = []
+    cleanup_paths: list[Path] = []
+    if request.source_kind == ROUTE_URL and request.source.url:
+        candidates.append(
+            SourceCandidate(
+                kind="url",
+                value=request.source.url,
+                description="原始 URL 源",
+                preferred=True,
+            )
+        )
+        return candidates, cleanup_paths
+
+    inline_payload = _build_inline_source_payload(request)
+    if inline_payload:
+        candidates.append(
+            SourceCandidate(
+                kind="inline_object",
+                value=inline_payload,
+                description="内联文件对象，包含文件名、类型和 base64 内容",
+            )
+        )
+
+    if content is not None:
+        suffix = Path(request.source.filename or "source.bin").suffix or ".bin"
+        fd, temp_path_str = tempfile.mkstemp(prefix="mcp-source-", suffix=suffix, dir=_ensure_temp_dir())
+        temp_path = Path(temp_path_str)
+        os.close(fd)
+        with temp_path.open("wb") as handle:
+            handle.write(content)
+        cleanup_paths.append(temp_path)
+        candidates.append(
+            SourceCandidate(
+                kind="local_path",
+                value=str(temp_path.resolve()),
+                description="本地临时文件绝对路径",
+                preferred=True,
+            )
+        )
+
+    if request.source.content_base64:
+        candidates.append(
+            SourceCandidate(
+                kind="base64_string",
+                value=request.source.content_base64,
+                description="纯 base64 字符串",
+            )
+        )
+
+    return candidates, cleanup_paths
+
+
+def _cleanup_temp_paths(paths: list[Path]) -> None:
+    for path in paths:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            logger.warning("extractor_temp_file_cleanup_failed", path=str(path))
 
 
 def _source_fields_for_kind(source_kind: SourceKind) -> set[str]:
@@ -631,6 +799,18 @@ def _build_retry_contract_from_error(
     request: CanonicalExtractionRequest,
     validation_error: ValidationErrorSummary,
 ) -> NormalizedToolContract | None:
+    for field_name in validation_error.string_item_fields:
+        container_name = field_name.split(".", 1)[0]
+        if container_name in _preferred_batch_keys(request.source_kind) or container_name.endswith("_sources"):
+            return NormalizedToolContract(
+                mode="batch",
+                schema_shape="validation_retry.scalar_array",
+                source_value_type="string",
+                root_schema=input_schema,
+                batch_property=container_name,
+                item_schema={"type": "string"},
+            )
+
     missing = validation_error.missing_fields
     if not missing:
         return None
@@ -641,6 +821,7 @@ def _build_retry_contract_from_error(
             return NormalizedToolContract(
                 mode="batch",
                 schema_shape="validation_retry.batch",
+                source_value_type="object",
                 root_schema=input_schema,
                 batch_property=field_name,
                 item_schema={"type": "object", "properties": {name: {"type": "string"} for name in source_fields}},
@@ -650,6 +831,7 @@ def _build_retry_contract_from_error(
             return NormalizedToolContract(
                 mode="nested_single",
                 schema_shape="validation_retry.nested",
+                source_value_type="object",
                 root_schema=input_schema,
                 source_property=field_name,
                 item_schema={"type": "object", "properties": {name: {"type": "string"} for name in source_fields}},
@@ -685,48 +867,131 @@ def _sanitize_payload_by_schema(
     return payload
 
 
-async def _build_llm_retry_plan(
+def _default_adapter_name(contract: NormalizedToolContract, *, retry: bool = False) -> str:
+    suffix = "_retry_v1" if retry else "_v1"
+    if contract.mode == "batch" and contract.source_value_type == "string":
+        return f"batch_string_sources{suffix}"
+    if contract.mode == "batch":
+        return f"batch_sources{suffix.replace('_v1', '_v2') if not retry else suffix}"
+    if contract.mode == "nested_single" and contract.source_value_type == "string":
+        return f"single_string_source{suffix}"
+    if contract.mode == "nested_single":
+        return f"nested_single{suffix.replace('_v1', '_v2') if not retry else suffix}"
+    return f"canonical_flat{suffix.replace('_v1', '_v2') if not retry else suffix}"
+
+
+def _serialize_source_candidates(source_candidates: list[SourceCandidate]) -> list[dict[str, Any]]:
+    serialized: list[dict[str, Any]] = []
+    for candidate in source_candidates:
+        serialized.append(
+            {
+                "kind": candidate.kind,
+                "value": candidate.value,
+                "description": candidate.description,
+                "preferred": candidate.preferred,
+            }
+        )
+    return serialized
+
+
+async def _build_llm_invocation_plan(
     *,
     tool_name: str,
     tool_description: str | None,
     input_schema: dict[str, Any] | None,
+    contract: NormalizedToolContract,
     request: CanonicalExtractionRequest,
-    validation_error: ValidationErrorSummary,
+    source_candidates: list[SourceCandidate],
+    validation_error: ValidationErrorSummary | None = None,
 ) -> AdaptiveToolInvocationPlan | None:
     if not isinstance(input_schema, dict):
         return None
 
+    candidate_payload = _serialize_source_candidates(source_candidates)
     canonical_request_payload = {
         "source": request.source.__dict__,
         "options": request.options,
         "context": request.context,
     }
-    prompt = (
-        "You are adapting arguments for an MCP tool call.\n"
-        "Return only a JSON object containing valid tool arguments.\n"
-        "Do not include explanations.\n\n"
-        f"tool_name: {tool_name}\n"
-        f"tool_description: {tool_description or ''}\n"
-        f"source_kind: {request.source_kind}\n"
-        f"canonical_request: {json.dumps(canonical_request_payload, ensure_ascii=False)}\n"
-        f"input_schema: {json.dumps(input_schema, ensure_ascii=False)}\n"
-        f"validation_error: {validation_error.raw_error}\n"
-    )
+    contract_payload = {
+        "mode": contract.mode,
+        "source_value_type": contract.source_value_type,
+        "batch_property": contract.batch_property,
+        "source_property": contract.source_property,
+    }
+    if contract.mode in {"batch", "nested_single"} and contract.source_value_type in {"string", "object"}:
+        prompt = (
+            "You are planning arguments for an MCP tool call.\n"
+            "You must return JSON only.\n"
+            "Choose one source candidate kind and whether options/context should be included.\n"
+            "Do not invent field names. Respect the provided input_schema and contract.\n\n"
+            f"tool_name: {tool_name}\n"
+            f"tool_description: {tool_description or ''}\n"
+            f"contract: {json.dumps(contract_payload, ensure_ascii=False)}\n"
+            f"source_candidates: {json.dumps(candidate_payload, ensure_ascii=False)}\n"
+            f"canonical_request: {json.dumps(canonical_request_payload, ensure_ascii=False)}\n"
+            f"input_schema: {json.dumps(input_schema, ensure_ascii=False)}\n"
+            f"validation_error: {validation_error.raw_error if validation_error else ''}\n"
+            "Return JSON with keys: source_candidate_kind, include_options, include_context.\n"
+        )
+    else:
+        # Unknown/flat contracts still ask LLM to produce raw arguments, then sanitize locally.
+        prompt = (
+            "You are adapting arguments for an MCP tool call.\n"
+            "Return only a JSON object containing valid tool arguments.\n"
+            "Do not include explanations.\n\n"
+            f"tool_name: {tool_name}\n"
+            f"tool_description: {tool_description or ''}\n"
+            f"source_kind: {request.source_kind}\n"
+            f"source_candidates: {json.dumps(candidate_payload, ensure_ascii=False)}\n"
+            f"canonical_request: {json.dumps(canonical_request_payload, ensure_ascii=False)}\n"
+            f"input_schema: {json.dumps(input_schema, ensure_ascii=False)}\n"
+            f"validation_error: {validation_error.raw_error if validation_error else ''}\n"
+        )
 
-    response = await litellm.acompletion(
-        model=settings.llm.full_model_name,
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"},
-        **settings.llm.to_litellm_kwargs(),
-    )
+    try:
+        response = await litellm.acompletion(
+            model=settings.llm.full_model_name,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            **settings.llm.to_litellm_kwargs(),
+        )
+    except Exception as exc:
+        logger.warning("extractor_llm_plan_failed", tool_name=tool_name, error=str(exc))
+        return None
     content = response.choices[0].message.content or "{}"
     try:
         payload = json.loads(content)
     except json.JSONDecodeError:
-        logger.warning("extractor_llm_retry_invalid_json", tool_name=tool_name)
+        logger.warning("extractor_llm_plan_invalid_json", tool_name=tool_name)
         return None
     if not isinstance(payload, dict):
         return None
+    if contract.mode in {"batch", "nested_single"} and contract.source_value_type in {"string", "object"}:
+        selected_source_kind = payload.get("source_candidate_kind")
+        include_options = bool(payload.get("include_options", False))
+        include_context = bool(payload.get("include_context", False))
+        arguments = _build_arguments_from_contract(
+            contract=contract,
+            request=request,
+            source_candidates=source_candidates,
+            include_options=include_options,
+            include_context=include_context,
+            selected_source_kind=selected_source_kind if isinstance(selected_source_kind, str) else None,
+        )
+        return AdaptiveToolInvocationPlan(
+            adapter_name=_default_adapter_name(contract),
+            arguments=arguments,
+            reasoning_source="llm",
+            diagnostics={
+                "contract_mode": contract.mode,
+                "schema_shape": contract.schema_shape,
+                "source_value_type": contract.source_value_type,
+                "selected_source_kind": selected_source_kind,
+                "include_options": include_options,
+                "include_context": include_context,
+            },
+        )
     sanitized = _sanitize_payload_by_schema(payload, input_schema, root_schema=input_schema)
     if not isinstance(sanitized, dict) or not sanitized:
         return None
@@ -735,8 +1000,9 @@ async def _build_llm_retry_plan(
         arguments=sanitized,
         reasoning_source="llm",
         diagnostics={
-            "contract_mode": "llm",
-            "schema_shape": "llm_retry",
+            "contract_mode": contract.mode,
+            "schema_shape": contract.schema_shape,
+            "source_value_type": contract.source_value_type,
             "top_level_fields": sorted(sanitized.keys()),
         },
     )
@@ -784,6 +1050,10 @@ async def _increment_tool_call_count(*, server_id: UUID, tool_name: str) -> None
             .values(call_count=McpTool.call_count + 1)
         )
         await db.commit()
+
+
+def _tool_has_usable_schema(tool: McpTool | None) -> bool:
+    return bool(tool and isinstance(tool.input_schema, dict) and tool.input_schema)
 
 
 class LegacyExtractionProvider:
@@ -927,6 +1197,7 @@ class DataExtractorProvider:
         content_type: str | None,
     ) -> dict[str, Any]:
         tool: McpTool | None = None
+        discovered_tool: Any | None = None
         async with AsyncSessionLocal() as db:
             server = await db.get(McpServer, target.server_id)
             if not server or not server.is_enabled:
@@ -960,6 +1231,9 @@ class DataExtractorProvider:
                     ),
                 }
 
+        if not _tool_has_usable_schema(tool):
+            discovered_tool = await self._discover_tool_definition(server=server, tool_name=target.tool_name)
+
         request = _build_canonical_request(
             source_kind=source_kind,
             app_name=app_name,
@@ -970,115 +1244,143 @@ class DataExtractorProvider:
             filename=filename,
             content_type=content_type,
         )
+        input_schema = (
+            discovered_tool.input_schema
+            if discovered_tool and isinstance(discovered_tool.input_schema, dict)
+            else tool.input_schema
+            if tool
+            else None
+        )
+        tool_description = (
+            discovered_tool.description
+            if discovered_tool and isinstance(discovered_tool.description, str)
+            else getattr(tool, "description", None)
+            if tool
+            else None
+        )
         contract = normalize_tool_contract(
-            input_schema=tool.input_schema if tool else None,
+            input_schema=input_schema,
             source_kind=source_kind,
         )
-        plans: list[AdaptiveToolInvocationPlan] = [
-            _build_plan_from_contract(
-                contract=contract,
-                request=request,
-                adapter_name=(
-                    "batch_sources_v2"
-                    if contract.mode == "batch"
-                    else "nested_single_v2"
-                    if contract.mode == "nested_single"
-                    else "canonical_flat_v2"
-                ),
-                reasoning_source="schema",
-                diagnostics={"top_level_fields": sorted(contract.top_level_fields)},
-            )
-        ]
+        source_candidates, cleanup_paths = _prepare_source_candidates(request=request, content=content)
         invocation_trace: list[dict[str, Any]] = []
+        validation_error: ValidationErrorSummary | None = None
 
-        for index, plan in enumerate(plans):
-            result = await self._call_tool_with_plan(
-                server=server,
-                target=target,
-                plan=plan,
-            )
-            await _increment_tool_call_count(server_id=target.server_id, tool_name=target.tool_name)
-            invocation_trace.append(
-                {
-                    "attempt": index + 1,
-                    "adapter_name": plan.adapter_name,
-                    "reasoning_source": plan.reasoning_source,
-                    "diagnostics": plan.diagnostics,
-                    "success": result.success,
-                    "error": result.error,
-                    "duration_ms": result.duration_ms,
-                }
-            )
-            if result.success:
-                return self._build_success_result(
-                    target=target,
-                    server=server,
-                    result=result,
-                    plan=plan,
-                    invocation_trace=invocation_trace,
+        try:
+            for index in range(2):
+                plan = await _build_llm_invocation_plan(
+                    tool_name=target.tool_name,
+                    tool_description=tool_description,
+                    input_schema=input_schema,
                     contract=contract,
+                    request=request,
+                    source_candidates=source_candidates,
+                    validation_error=validation_error,
                 )
+                if plan is None:
+                    if index == 0:
+                        plan = _build_plan_from_contract(
+                            contract=contract,
+                            request=request,
+                            adapter_name=_default_adapter_name(contract),
+                            reasoning_source="schema",
+                            diagnostics={"top_level_fields": sorted(contract.top_level_fields)},
+                        )
+                    elif validation_error:
+                        retry_contract = _build_retry_contract_from_error(
+                            input_schema=input_schema,
+                            request=request,
+                            validation_error=validation_error,
+                        )
+                        if retry_contract:
+                            plan = _build_plan_from_contract(
+                                contract=retry_contract,
+                                request=request,
+                                adapter_name=_default_adapter_name(retry_contract, retry=True),
+                                reasoning_source="validation_retry",
+                                diagnostics={
+                                    "retry_reason": "validation_error",
+                                    "validation_error_summary": {
+                                        "missing_fields": validation_error.missing_fields,
+                                        "unexpected_fields": validation_error.unexpected_fields,
+                                        "string_item_fields": validation_error.string_item_fields,
+                                    },
+                                },
+                            )
+                        else:
+                            break
+                    else:
+                        break
 
-            if index > 0 or not _is_validation_error(result.error):
-                break
-
-            validation_error = _summarize_validation_error(result.error)
-            retry_contract = _build_retry_contract_from_error(
-                input_schema=tool.input_schema if tool else None,
-                request=request,
-                validation_error=validation_error,
-            )
-            if retry_contract:
-                plans.append(
-                    _build_plan_from_contract(
-                        contract=retry_contract,
-                        request=request,
-                        adapter_name=(
-                            "batch_sources_retry_v1"
-                            if retry_contract.mode == "batch"
-                            else "nested_single_retry_v1"
-                        ),
-                        reasoning_source="validation_retry",
-                        diagnostics={
-                            "retry_reason": "validation_error",
-                            "validation_error_summary": {
-                                "missing_fields": validation_error.missing_fields,
-                                "unexpected_fields": validation_error.unexpected_fields,
-                            },
-                        },
-                    )
+                result = await self._call_tool_with_plan(
+                    server=server,
+                    target=target,
+                    plan=plan,
                 )
-                continue
-
-            llm_plan = await _build_llm_retry_plan(
-                tool_name=target.tool_name,
-                tool_description=tool.description if tool else None,
-                input_schema=tool.input_schema if tool else None,
-                request=request,
-                validation_error=validation_error,
-            )
-            if llm_plan:
-                llm_plan.diagnostics.setdefault(
-                    "validation_error_summary",
+                await _increment_tool_call_count(server_id=target.server_id, tool_name=target.tool_name)
+                invocation_trace.append(
                     {
-                        "missing_fields": validation_error.missing_fields,
-                        "unexpected_fields": validation_error.unexpected_fields,
-                    },
+                        "attempt": index + 1,
+                        "adapter_name": plan.adapter_name,
+                        "reasoning_source": plan.reasoning_source,
+                        "diagnostics": plan.diagnostics,
+                        "success": result.success,
+                        "error": result.error,
+                        "duration_ms": result.duration_ms,
+                    }
                 )
-                plans.append(llm_plan)
+                if result.success:
+                    return self._build_success_result(
+                        target=target,
+                        server=server,
+                        result=result,
+                        plan=plan,
+                        invocation_trace=invocation_trace,
+                        contract=contract,
+                    )
 
-        last_result = invocation_trace[-1] if invocation_trace else None
-        return {
-            "success": False,
-            "attempt": ExtractionAttempt(
-                server_id=str(target.server_id),
+                if not _is_validation_error(result.error):
+                    break
+                validation_error = _summarize_validation_error(result.error)
+
+            last_result = invocation_trace[-1] if invocation_trace else None
+            return {
+                "success": False,
+                "attempt": ExtractionAttempt(
+                    server_id=str(target.server_id),
+                    server_name=server.name,
+                    tool_name=target.tool_name,
+                    status="failed",
+                    duration_ms=int(last_result["duration_ms"]) if last_result else 0,
+                    error=str(last_result["error"]) if last_result else "MCP invocation failed",
+                ),
+            }
+        finally:
+            _cleanup_temp_paths(cleanup_paths)
+
+    async def _discover_tool_definition(
+        self,
+        *,
+        server: McpServer,
+        tool_name: str,
+    ) -> Any | None:
+        discovered = await self._client.discover_tools(
+            transport_type=server.transport_type,
+            command=server.command,
+            args=server.args,
+            env=server.env,
+            url=server.url,
+            headers=server.headers,
+        )
+        if not discovered.success:
+            logger.warning(
+                "extractor_tool_discovery_failed",
                 server_name=server.name,
-                tool_name=target.tool_name,
-                status="failed",
-                duration_ms=int(last_result["duration_ms"]) if last_result else 0,
-                error=str(last_result["error"]) if last_result else "MCP invocation failed",
-            ),
-        }
+                tool_name=tool_name,
+                error=discovered.error,
+            )
+            return None
+        return next((item for item in discovered.tools if item.name == tool_name), None)
 
     async def _call_tool_with_plan(
         self,
