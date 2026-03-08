@@ -80,8 +80,10 @@ flowchart TD
 
   subgraph ReadModel["A2UI Read Model"]
     D[normalizeAguiEvent]
-    E[buildConversationTree]
-    F[ConversationNode Tree]
+    E[Session Projection]
+    F[Message Ledger]
+    J[buildConversationTree]
+    K[ConversationNode Tree]
   end
 
   subgraph Presentation["Chat-first Presentation"]
@@ -90,9 +92,11 @@ flowchart TD
     I[Timeline / State / Logs]
   end
 
-  A --> B --> C --> D --> E --> F
+  A --> B --> C --> D --> E
+  E --> F
+  E --> J
   F --> G
-  F --> H
+  J --> K --> H
   C --> I
 ```
 
@@ -100,11 +104,23 @@ flowchart TD
 
 - 传输入口：[route.ts](../apps/negentropy-ui/app/api/agui/route.ts)
 - ADK 到 AGUI 归一化：[adk.ts](../apps/negentropy-ui/lib/adk.ts)
+- Session Projection / Message Ledger：[message-ledger.ts](../apps/negentropy-ui/utils/message-ledger.ts)
 - 事件到树构建：[conversation-tree.ts](../apps/negentropy-ui/utils/conversation-tree.ts)
 - Chat 主区渲染：[ChatStream.tsx](../apps/negentropy-ui/components/ui/ChatStream.tsx)
 - 递归节点渲染：[ConversationNodeRenderer.tsx](../apps/negentropy-ui/components/ui/conversation/ConversationNodeRenderer.tsx)
 
-### 3.2 Canonical Role 约定
+### 3.2 Session Projection 约定
+
+本项目当前把 `Message Ledger` 前移为 session 级显式状态，而不是在页面渲染期临时从 `rawEvents` 全量重建。
+
+- `rawEvents`：保留 AGUI 事件事实源。
+- `messageLedger`：保留聊天消息事实与角色纠偏结果。
+- `snapshot`：保留状态快照事实。
+- `conversationTree`、timeline、state 面板都属于从 session projection 派生出的 surface projection。
+
+这样做的目标是把“协议输入”“消息事实”“页面结构”三层职责拆开，避免聊天主区、历史回放与技术面板各自维护不同事实源。
+
+### 3.3 Canonical Role 约定
 
 本项目内部统一使用 canonical role：
 

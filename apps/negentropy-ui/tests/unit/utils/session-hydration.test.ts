@@ -6,6 +6,10 @@ import {
   hydrateSessionDetail,
   mergeEvents,
 } from "@/utils/session-hydration";
+import {
+  ledgerEntriesToMessages,
+  mergeMessageLedger,
+} from "@/utils/message-ledger";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 
@@ -151,6 +155,89 @@ describe("session-hydration", () => {
       content: "Hello there",
     });
     expect(result.messages.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+  });
+
+  it("合并 message ledger 时保留更强角色来源与更完整内容", () => {
+    const merged = mergeMessageLedger(
+      [
+        {
+          id: "msg-1",
+          threadId: "session-1",
+          runId: "run-1",
+          resolvedRole: "assistant",
+          resolutionSource: "fallback_assistant",
+          content: "He",
+          createdAt: new Date("2026-03-08T00:00:02.000Z"),
+          streaming: true,
+          sourceEventTypes: ["TEXT_MESSAGE_START"],
+          relatedMessageIds: ["msg-1"],
+        },
+      ],
+      [
+        {
+          id: "msg-1",
+          threadId: "session-1",
+          runId: "run-1",
+          resolvedRole: "user",
+          resolutionSource: "snapshot_role",
+          content: "Hello",
+          createdAt: new Date("2026-03-08T00:00:01.000Z"),
+          streaming: false,
+          sourceEventTypes: ["MESSAGES_SNAPSHOT"],
+          relatedMessageIds: ["msg-1"],
+        },
+      ],
+    );
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({
+      resolvedRole: "user",
+      resolutionSource: "snapshot_role",
+      content: "Hello",
+      streaming: false,
+    });
+    expect(merged[0]?.sourceEventTypes).toEqual([
+      "TEXT_MESSAGE_START",
+      "MESSAGES_SNAPSHOT",
+    ]);
+  });
+
+  it("将 message ledger 派生为按时间排序的聊天消息", () => {
+    const messages = ledgerEntriesToMessages([
+      {
+        id: "assistant-msg",
+        threadId: "session-1",
+        runId: "run-1",
+        resolvedRole: "assistant",
+        resolutionSource: "explicit_role",
+        content: "World",
+        createdAt: new Date("2026-03-08T00:00:02.000Z"),
+        streaming: false,
+        sourceEventTypes: ["TEXT_MESSAGE_END"],
+        relatedMessageIds: ["assistant-msg"],
+      },
+      {
+        id: "user-msg",
+        threadId: "session-1",
+        runId: "run-1",
+        resolvedRole: "user",
+        resolutionSource: "explicit_role",
+        content: "Hello",
+        createdAt: new Date("2026-03-08T00:00:01.000Z"),
+        streaming: false,
+        sourceEventTypes: ["TEXT_MESSAGE_END"],
+        relatedMessageIds: ["user-msg"],
+      },
+    ]);
+
+    expect(messages.map((message) => message.id)).toEqual([
+      "user-msg",
+      "assistant-msg",
+    ]);
+    expect(messages.map((message) => message.role)).toEqual([
       "user",
       "assistant",
     ]);

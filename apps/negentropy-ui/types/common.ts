@@ -125,3 +125,10 @@ export type MessageLedgerEntry = {
   sourceEventTypes: string[];
   relatedMessageIds: string[];
 };
+
+export type SessionProjectionState = {
+  loadedSessionId: string | null;
+  rawEvents: import("@ag-ui/core").BaseEvent[];
+  messageLedger: MessageLedgerEntry[];
+  snapshot: Record<string, unknown> | null;
+};

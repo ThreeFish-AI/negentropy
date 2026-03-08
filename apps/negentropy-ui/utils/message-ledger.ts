@@ -1,5 +1,6 @@
 import { EventType, type BaseEvent, type Message } from "@ag-ui/core";
 import {
+  createAgUiMessage,
   getEventAuthor,
   getEventDelta,
   getEventMessageId,
@@ -28,6 +29,11 @@ type SnapshotMessage = {
 };
 
 const DEFAULT_THREAD_ID = "default";
+const DEFAULT_RUN_ID = "default-run";
+
+function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" | "runId">): string {
+  return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
+}
 
 function normalizeTimestamp(value: unknown): Date {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -186,7 +192,7 @@ export function buildMessageLedger(input: {
 
     const threadId = getEventThreadId(event) || DEFAULT_THREAD_ID;
     const runId = getEventRunId(event);
-    const key = `${threadId}|${runId || "default-run"}|${messageId}`;
+    const key = `${threadId}|${runId || DEFAULT_RUN_ID}|${messageId}`;
     const existing = entries.get(key);
     const snapshotMessage = snapshotMessageById.get(messageId);
     const resolved = snapshotMessage
@@ -263,4 +269,85 @@ export function buildMessageLedger(input: {
       }
       return a.id.localeCompare(b.id);
     });
+}
+
+export function mergeMessageLedger(
+  baseEntries: MessageLedgerEntry[],
+  incomingEntries: MessageLedgerEntry[],
+): MessageLedgerEntry[] {
+  const merged = new Map<string, MessageLedgerEntry>();
+
+  [...baseEntries, ...incomingEntries].forEach((entry) => {
+    const key = getLedgerIdentityKey(entry);
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, {
+        ...entry,
+        sourceEventTypes: [...entry.sourceEventTypes],
+        relatedMessageIds: [...entry.relatedMessageIds],
+      });
+      return;
+    }
+
+    if (shouldReplaceResolvedRole(existing.resolutionSource, entry.resolutionSource)) {
+      existing.resolvedRole = entry.resolvedRole;
+      existing.resolutionSource = entry.resolutionSource;
+    }
+    if (entry.content.length > existing.content.length) {
+      existing.content = entry.content;
+    }
+    if (entry.createdAt.getTime() < existing.createdAt.getTime()) {
+      existing.createdAt = entry.createdAt;
+    }
+    existing.threadId = existing.threadId || entry.threadId;
+    existing.runId = existing.runId || entry.runId;
+    existing.author = existing.author || entry.author;
+    existing.streaming = existing.streaming && entry.streaming;
+    entry.sourceEventTypes.forEach((eventType) => {
+      if (!existing.sourceEventTypes.includes(eventType)) {
+        existing.sourceEventTypes.push(eventType);
+      }
+    });
+    entry.relatedMessageIds.forEach((messageId) => {
+      if (!existing.relatedMessageIds.includes(messageId)) {
+        existing.relatedMessageIds.push(messageId);
+      }
+    });
+  });
+
+  return [...merged.values()].sort((a, b) => {
+    const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+    return a.id.localeCompare(b.id);
+  });
+}
+
+export function ledgerEntriesToMessages(entries: MessageLedgerEntry[]): Message[] {
+  return [...entries]
+    .sort((a, b) => {
+      const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
+      if (timeDiff !== 0) {
+        return timeDiff;
+      }
+      return a.id.localeCompare(b.id);
+    })
+    .map((entry) =>
+    createAgUiMessage({
+      id: entry.id,
+      role:
+        entry.resolvedRole === "user" ||
+        entry.resolvedRole === "system" ||
+        entry.resolvedRole === "tool"
+          ? entry.resolvedRole
+          : "assistant",
+      content: entry.content,
+      createdAt: entry.createdAt,
+      runId: entry.runId,
+      threadId: entry.threadId,
+      author: entry.author,
+      streaming: entry.streaming,
+    }),
+  );
 }
