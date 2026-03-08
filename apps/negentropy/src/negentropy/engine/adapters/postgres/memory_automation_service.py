@@ -36,12 +36,37 @@ DEFAULT_AUTOMATION_CONFIG: dict[str, Any] = {
     },
 }
 
-FUNCTION_DEFINITIONS: dict[str, str] = {
-    "calculate_retention_score": f"""
+class MemoryAutomationUnavailableError(RuntimeError):
+    """Raised when automation runtime capabilities are not available."""
+
+
+def _format_float(value: float) -> str:
+    return f"{value:.6f}".rstrip("0").rstrip(".")
+
+
+def _escape_sql_literal(value: str) -> str:
+    return value.replace("'", "''")
+
+
+def _build_function_definitions(config: dict[str, Any]) -> dict[str, str]:
+    retention = config["retention"]
+    consolidation = config["consolidation"]
+    context = config["context_assembler"]
+
+    decay_lambda = _format_float(retention["decay_lambda"])
+    low_retention_threshold = _format_float(retention["low_retention_threshold"])
+    min_age_days = int(retention["min_age_days"])
+    max_tokens = int(context["max_tokens"])
+    memory_ratio = _format_float(context["memory_ratio"])
+    history_ratio = _format_float(context["history_ratio"])
+    lookback_interval = _escape_sql_literal(str(consolidation["lookback_interval"]))
+
+    return {
+        "calculate_retention_score": f"""
 CREATE OR REPLACE FUNCTION {NEGENTROPY_SCHEMA}.calculate_retention_score(
     p_access_count INTEGER,
     p_last_accessed_at TIMESTAMP WITH TIME ZONE,
-    p_decay_rate FLOAT DEFAULT 0.1
+    p_decay_rate FLOAT DEFAULT {decay_lambda}
 )
 RETURNS FLOAT AS $$
 DECLARE
@@ -56,11 +81,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 """.strip(),
-    "cleanup_low_value_memories": f"""
+        "cleanup_low_value_memories": f"""
 CREATE OR REPLACE FUNCTION {NEGENTROPY_SCHEMA}.cleanup_low_value_memories(
-    p_threshold FLOAT DEFAULT 0.1,
-    p_min_age_days INTEGER DEFAULT 7,
-    p_decay_rate FLOAT DEFAULT 0.1
+    p_threshold FLOAT DEFAULT {low_retention_threshold},
+    p_min_age_days INTEGER DEFAULT {min_age_days},
+    p_decay_rate FLOAT DEFAULT {decay_lambda}
 )
 RETURNS INTEGER AS $$
 DECLARE
@@ -82,15 +107,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 """.strip(),
-    "get_context_window": f"""
+        "get_context_window": f"""
 CREATE OR REPLACE FUNCTION {NEGENTROPY_SCHEMA}.get_context_window(
     p_user_id VARCHAR(255),
     p_app_name VARCHAR(255),
     p_query TEXT,
     p_query_embedding vector(1536),
-    p_max_tokens INTEGER DEFAULT 4000,
-    p_memory_ratio FLOAT DEFAULT 0.3,
-    p_history_ratio FLOAT DEFAULT 0.5
+    p_max_tokens INTEGER DEFAULT {max_tokens},
+    p_memory_ratio FLOAT DEFAULT {memory_ratio},
+    p_history_ratio FLOAT DEFAULT {history_ratio}
 )
 RETURNS TABLE (
     context_type VARCHAR(50),
@@ -126,9 +151,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 """.strip(),
-    "trigger_maintenance_consolidation": f"""
+        "trigger_maintenance_consolidation": f"""
 CREATE OR REPLACE FUNCTION {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(
-    p_interval INTERVAL DEFAULT '1 hour'
+    p_interval INTERVAL DEFAULT '{lookback_interval}'
 )
 RETURNS INTEGER AS $$
 DECLARE
@@ -153,7 +178,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 """.strip(),
-}
+    }
 
 
 @dataclass(frozen=True)
@@ -181,15 +206,23 @@ class MemoryAutomationService:
     async def get_snapshot(self, *, app_name: str) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
         capabilities = await self._get_capabilities()
-        functions = await self._get_function_states()
+        functions = await self._get_function_states(config=config)
         jobs = await self._get_job_states(config=config, capabilities=capabilities)
         logs = await self.get_logs(limit=10)
 
         degraded_reasons: list[str] = []
         if not capabilities["pg_cron_installed"]:
             degraded_reasons.append("pg_cron_not_installed")
+        elif not capabilities["pg_cron_available"]:
+            degraded_reasons.append("pg_cron_unavailable")
+        if not capabilities.get("pg_cron_logs_accessible", True):
+            degraded_reasons.append("pg_cron_logs_unavailable")
         if any(item["status"] == "missing" for item in functions):
             degraded_reasons.append("function_missing")
+        if any(item["status"] == "drifted" for item in functions):
+            degraded_reasons.append("function_drifted")
+        if any(item["status"] in {"drifted", "missing", "degraded"} for item in jobs):
+            degraded_reasons.append("job_drifted")
 
         return {
             "capabilities": {
@@ -208,7 +241,8 @@ class MemoryAutomationService:
         }
 
     async def get_logs(self, *, limit: int = 20) -> list[dict[str, Any]]:
-        if not await self._is_pg_cron_installed():
+        capabilities = await self._get_capabilities()
+        if not capabilities["pg_cron_installed"] or not capabilities.get("pg_cron_logs_accessible", False):
             return []
 
         sql = text(
@@ -259,7 +293,7 @@ class MemoryAutomationService:
                 entity.updated_by = updated_by
             await db.commit()
 
-        await self.reconcile_all(app_name=app_name)
+        await self.reconcile_all(app_name=app_name, config=merged)
         return merged
 
     async def enable_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
@@ -275,23 +309,25 @@ class MemoryAutomationService:
         return await self.get_snapshot(app_name=app_name)
 
     async def reconcile_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
-        await self._reconcile_functions()
-        if await self._is_pg_cron_installed():
-            config = await self.get_effective_config(app_name=app_name)
-            await self._reconcile_single_job(job_key=job_key, config=config)
+        config = await self.get_effective_config(app_name=app_name)
+        await self._reconcile_functions(config=config)
+        await self._ensure_scheduler_available(job_key=job_key)
+        await self._reconcile_single_job(job_key=job_key, config=config)
         return await self.get_snapshot(app_name=app_name)
 
-    async def reconcile_all(self, *, app_name: str) -> None:
-        await self._reconcile_functions()
-        if not await self._is_pg_cron_installed():
+    async def reconcile_all(self, *, app_name: str, config: dict[str, Any] | None = None) -> None:
+        effective_config = config or await self.get_effective_config(app_name=app_name)
+        await self._reconcile_functions(config=effective_config)
+        capabilities = await self._get_capabilities()
+        if not capabilities["pg_cron_available"]:
             return
-        config = await self.get_effective_config(app_name=app_name)
         for job_key in JOB_TEMPLATES:
-            await self._reconcile_single_job(job_key=job_key, config=config)
+            await self._reconcile_single_job(job_key=job_key, config=effective_config)
 
     async def run_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
-        await self._reconcile_functions()
+        await self._reconcile_functions(config=config)
+        await self._ensure_scheduler_available(job_key=job_key)
         template = self._get_job_template(job_key)
         sql = self._build_manual_run_sql(job_key=job_key, config=config)
         async with AsyncSessionLocal() as db:
@@ -328,9 +364,10 @@ class MemoryAutomationService:
             entity = result.scalar_one_or_none()
         return entity.config if entity and entity.config else {}
 
-    async def _reconcile_functions(self) -> None:
+    async def _reconcile_functions(self, *, config: dict[str, Any]) -> None:
+        function_definitions = _build_function_definitions(config)
         async with AsyncSessionLocal() as db:
-            for sql in FUNCTION_DEFINITIONS.values():
+            for sql in function_definitions.values():
                 await db.execute(text(sql))
             await db.commit()
 
@@ -376,12 +413,21 @@ class MemoryAutomationService:
 
     async def _get_capabilities(self) -> dict[str, Any]:
         installed = await self._is_pg_cron_installed()
+        scheduler_accessible = False
+        logs_accessible = False
+
+        if installed:
+            scheduler_accessible = await self._probe_pg_cron_table("cron.job")
+            logs_accessible = await self._probe_pg_cron_table("cron.job_run_details")
+
         return {
             "pg_cron_installed": installed,
-            "pg_cron_available": installed,
+            "pg_cron_available": installed and scheduler_accessible,
+            "pg_cron_logs_accessible": installed and logs_accessible,
         }
 
-    async def _get_function_states(self) -> list[dict[str, Any]]:
+    async def _get_function_states(self, *, config: dict[str, Any]) -> list[dict[str, Any]]:
+        function_definitions = _build_function_definitions(config)
         async with AsyncSessionLocal() as db:
             result = await db.execute(
                 text(
@@ -397,11 +443,11 @@ class MemoryAutomationService:
             rows = {
                 row["name"]: row["definition"]
                 for row in result.mappings().all()
-                if row["name"] in FUNCTION_DEFINITIONS
+                if row["name"] in function_definitions
             }
 
         states = []
-        for name, expected in FUNCTION_DEFINITIONS.items():
+        for name, expected in function_definitions.items():
             definition = rows.get(name)
             normalized_expected = self._normalize_sql(expected)
             normalized_actual = self._normalize_sql(definition or "")
@@ -424,6 +470,21 @@ class MemoryAutomationService:
     async def _get_job_states(self, *, config: dict[str, Any], capabilities: dict[str, Any]) -> list[dict[str, Any]]:
         cron_rows: dict[str, dict[str, Any]] = {}
         if capabilities["pg_cron_installed"]:
+            if not capabilities["pg_cron_available"]:
+                return [
+                    {
+                        "job_key": job_key,
+                        "process_label": template.process_label,
+                        "function_name": template.function_name,
+                        "enabled": self._build_job_runtime(job_key=job_key, config=config)[0],
+                        "status": "degraded" if self._build_job_runtime(job_key=job_key, config=config)[0] else "disabled",
+                        "job_id": None,
+                        "schedule": self._build_job_runtime(job_key=job_key, config=config)[1],
+                        "command": self._build_job_runtime(job_key=job_key, config=config)[2],
+                        "active": False,
+                    }
+                    for job_key, template in JOB_TEMPLATES.items()
+                ]
             async with AsyncSessionLocal() as db:
                 result = await db.execute(
                     text(
@@ -474,6 +535,22 @@ class MemoryAutomationService:
                 text("SELECT 1 FROM pg_extension WHERE extname = 'pg_cron' LIMIT 1")
             )
             return result.scalar() == 1
+
+    async def _probe_pg_cron_table(self, table_name: str) -> bool:
+        try:
+            async with AsyncSessionLocal() as db:
+                await db.execute(text(f"SELECT 1 FROM {table_name} LIMIT 1"))
+                return True
+        except Exception as exc:
+            logger.warning("memory_automation_pg_cron_probe_failed", table=table_name, error=str(exc))
+            return False
+
+    async def _ensure_scheduler_available(self, *, job_key: JobKey) -> None:
+        capabilities = await self._get_capabilities()
+        if not capabilities["pg_cron_available"]:
+            raise MemoryAutomationUnavailableError(
+                f"Scheduler job '{job_key}' is unavailable because pg_cron is not installed or not accessible"
+            )
 
     def _build_processes(
         self,

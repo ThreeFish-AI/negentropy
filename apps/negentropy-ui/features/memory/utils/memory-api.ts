@@ -117,6 +117,7 @@ export interface MemoryAutomationSnapshot {
   capabilities: {
     pg_cron_installed: boolean;
     pg_cron_available: boolean;
+    pg_cron_logs_accessible?: boolean;
     management_mode: string;
     degraded_reasons: string[];
   };
