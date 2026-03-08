@@ -18,6 +18,7 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool
+from negentropy.serialization import to_json_compatible
 from negentropy.storage.service import DocumentStorageService
 
 from .content import (
@@ -907,47 +908,52 @@ async def _build_llm_invocation_plan(
     if not isinstance(input_schema, dict):
         return None
 
-    candidate_payload = _serialize_source_candidates(source_candidates)
-    canonical_request_payload = {
-        "source": request.source.__dict__,
-        "options": request.options,
-        "context": request.context,
-    }
-    contract_payload = {
-        "mode": contract.mode,
-        "source_value_type": contract.source_value_type,
-        "batch_property": contract.batch_property,
-        "source_property": contract.source_property,
-    }
-    if contract.mode in {"batch", "nested_single"} and contract.source_value_type in {"string", "object"}:
-        prompt = (
-            "You are planning arguments for an MCP tool call.\n"
-            "You must return JSON only.\n"
-            "Choose one source candidate kind and whether options/context should be included.\n"
-            "Do not invent field names. Respect the provided input_schema and contract.\n\n"
-            f"tool_name: {tool_name}\n"
-            f"tool_description: {tool_description or ''}\n"
-            f"contract: {json.dumps(contract_payload, ensure_ascii=False)}\n"
-            f"source_candidates: {json.dumps(candidate_payload, ensure_ascii=False)}\n"
-            f"canonical_request: {json.dumps(canonical_request_payload, ensure_ascii=False)}\n"
-            f"input_schema: {json.dumps(input_schema, ensure_ascii=False)}\n"
-            f"validation_error: {validation_error.raw_error if validation_error else ''}\n"
-            "Return JSON with keys: source_candidate_kind, include_options, include_context.\n"
+    try:
+        candidate_payload = to_json_compatible(_serialize_source_candidates(source_candidates))
+        canonical_request_payload = to_json_compatible(request)
+        contract_payload = to_json_compatible(
+            {
+                "mode": contract.mode,
+                "source_value_type": contract.source_value_type,
+                "batch_property": contract.batch_property,
+                "source_property": contract.source_property,
+            }
         )
-    else:
-        # Unknown/flat contracts still ask LLM to produce raw arguments, then sanitize locally.
-        prompt = (
-            "You are adapting arguments for an MCP tool call.\n"
-            "Return only a JSON object containing valid tool arguments.\n"
-            "Do not include explanations.\n\n"
-            f"tool_name: {tool_name}\n"
-            f"tool_description: {tool_description or ''}\n"
-            f"source_kind: {request.source_kind}\n"
-            f"source_candidates: {json.dumps(candidate_payload, ensure_ascii=False)}\n"
-            f"canonical_request: {json.dumps(canonical_request_payload, ensure_ascii=False)}\n"
-            f"input_schema: {json.dumps(input_schema, ensure_ascii=False)}\n"
-            f"validation_error: {validation_error.raw_error if validation_error else ''}\n"
-        )
+        input_schema_payload = to_json_compatible(input_schema)
+        validation_error_payload = validation_error.raw_error if validation_error else ""
+
+        if contract.mode in {"batch", "nested_single"} and contract.source_value_type in {"string", "object"}:
+            prompt = (
+                "You are planning arguments for an MCP tool call.\n"
+                "You must return JSON only.\n"
+                "Choose one source candidate kind and whether options/context should be included.\n"
+                "Do not invent field names. Respect the provided input_schema and contract.\n\n"
+                f"tool_name: {tool_name}\n"
+                f"tool_description: {tool_description or ''}\n"
+                f"contract: {json.dumps(contract_payload, ensure_ascii=False)}\n"
+                f"source_candidates: {json.dumps(candidate_payload, ensure_ascii=False)}\n"
+                f"canonical_request: {json.dumps(canonical_request_payload, ensure_ascii=False)}\n"
+                f"input_schema: {json.dumps(input_schema_payload, ensure_ascii=False)}\n"
+                f"validation_error: {validation_error_payload}\n"
+                "Return JSON with keys: source_candidate_kind, include_options, include_context.\n"
+            )
+        else:
+            # Unknown/flat contracts still ask LLM to produce raw arguments, then sanitize locally.
+            prompt = (
+                "You are adapting arguments for an MCP tool call.\n"
+                "Return only a JSON object containing valid tool arguments.\n"
+                "Do not include explanations.\n\n"
+                f"tool_name: {tool_name}\n"
+                f"tool_description: {tool_description or ''}\n"
+                f"source_kind: {request.source_kind}\n"
+                f"source_candidates: {json.dumps(candidate_payload, ensure_ascii=False)}\n"
+                f"canonical_request: {json.dumps(canonical_request_payload, ensure_ascii=False)}\n"
+                f"input_schema: {json.dumps(input_schema_payload, ensure_ascii=False)}\n"
+                f"validation_error: {validation_error_payload}\n"
+            )
+    except Exception as exc:
+        logger.warning("extractor_llm_plan_failed", tool_name=tool_name, error=str(exc))
+        return None
 
     try:
         response = await litellm.acompletion(
@@ -1147,7 +1153,7 @@ class DataExtractorProvider:
                     "source_kind": source_kind,
                     **(result.trace if isinstance(result.trace, dict) else {}),
                     "selected_target": {"server_id": str(target.server_id), "tool_name": target.tool_name},
-                    "attempts": [item.__dict__ for item in attempts],
+                    "attempts": to_json_compatible(attempts),
                 }
                 if tracker:
                     await tracker.complete_stage(

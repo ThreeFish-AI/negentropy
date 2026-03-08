@@ -20,6 +20,7 @@ from negentropy.agents.faculties import (
     perception_agent,
 )
 from negentropy.model_names import canonicalize_model_name
+from negentropy.serialization import to_json_compatible
 
 
 NEGENTROPY_SUBAGENT_ORDER = [
@@ -65,22 +66,6 @@ def _model_name(model: Any) -> Optional[str]:
         return canonicalize_model_name(model_name)
     as_text = str(model)
     return canonicalize_model_name(as_text) or None
-
-
-def _to_json_compatible(value: Any) -> Any:
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, dict):
-        return {str(k): _to_json_compatible(v) for k, v in value.items()}
-    if isinstance(value, list | tuple | set):
-        return [_to_json_compatible(v) for v in value]
-    model_dump = getattr(value, "model_dump", None)
-    if callable(model_dump):
-        return _to_json_compatible(model_dump())
-    to_dict = getattr(value, "dict", None)
-    if callable(to_dict):
-        return _to_json_compatible(to_dict())
-    return str(value)
 
 
 def _agent_type(agent: BaseAgent) -> str:

@@ -7,7 +7,11 @@ from negentropy.knowledge.extraction import (
     ROUTE_FILE_PDF,
     ROUTE_URL,
     AdaptiveToolInvocationPlan,
+    CanonicalExtractionRequest,
+    CanonicalExtractionSource,
     DataExtractorProvider,
+    ExtractionAttempt,
+    _build_llm_invocation_plan,
     build_tool_adapter,
     extract_source,
     normalize_tool_contract,
@@ -168,6 +172,96 @@ def test_normalize_tool_contract_supports_string_batch_schema() -> None:
 
 
 @pytest.mark.asyncio
+async def test_build_llm_invocation_plan_supports_slots_dataclass_request(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured_messages: list[dict[str, object]] = []
+
+    async def fake_acompletion(**kwargs):  # type: ignore[no-untyped-def]
+        captured_messages.extend(kwargs["messages"])
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content='{"source_candidate_kind":"local_path","include_options":true,"include_context":true}'
+                    )
+                )
+            ]
+        )
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
+
+    request = CanonicalExtractionRequest(
+        source_kind=ROUTE_FILE_PDF,
+        source=CanonicalExtractionSource(
+            source_kind=ROUTE_FILE_PDF,
+            filename="report.pdf",
+            content_type="application/pdf",
+            content_base64="cGRm",
+        ),
+        options={"ocr": True},
+        context={"app_name": "negentropy", "corpus_id": "cid"},
+    )
+    contract = normalize_tool_contract(
+        input_schema={
+            "type": "object",
+            "properties": {
+                "pdf_source": {"type": "string"},
+                "options": {"type": "object", "properties": {"ocr": {"type": "boolean"}}},
+                "context": {
+                    "type": "object",
+                    "properties": {"app_name": {"type": "string"}, "corpus_id": {"type": "string"}},
+                },
+            },
+        },
+        source_kind=ROUTE_FILE_PDF,
+    )
+
+    plan = await _build_llm_invocation_plan(
+        tool_name="convert_pdf_to_markdown",
+        tool_description="single pdf",
+        input_schema=contract.root_schema,
+        contract=contract,
+        request=request,
+        source_candidates=[],
+    )
+
+    assert plan is not None
+    assert plan.reasoning_source == "llm"
+    assert plan.arguments == {
+        "options": {"ocr": True},
+        "context": {"app_name": "negentropy", "corpus_id": "cid"},
+    }
+    assert '"filename": "report.pdf"' in str(captured_messages[0]["content"])
+
+
+@pytest.mark.asyncio
+async def test_build_llm_invocation_plan_returns_none_when_serialization_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction.to_json_compatible",
+        lambda value: (_ for _ in ()).throw(RuntimeError("serialize failed")),
+    )
+
+    request = CanonicalExtractionRequest(
+        source_kind=ROUTE_FILE_PDF,
+        source=CanonicalExtractionSource(source_kind=ROUTE_FILE_PDF, filename="report.pdf"),
+    )
+    contract = normalize_tool_contract(
+        input_schema={"type": "object", "properties": {"pdf_source": {"type": "string"}}},
+        source_kind=ROUTE_FILE_PDF,
+    )
+
+    plan = await _build_llm_invocation_plan(
+        tool_name="convert_pdf_to_markdown",
+        tool_description="single pdf",
+        input_schema=contract.root_schema,
+        contract=contract,
+        request=request,
+        source_candidates=[],
+    )
+
+    assert plan is None
+
+
+@pytest.mark.asyncio
 async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batch_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -286,6 +380,29 @@ async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batc
     assert extracted.metadata["provider"] == "batch"
     assert extracted.metadata["adapter_name"] == "batch_sources_v2"
     assert extracted.trace["llm_fallback_used"] is False
+
+
+def test_extraction_attempt_slots_dataclass_is_json_serialized_in_trace() -> None:
+    attempt = ExtractionAttempt(
+        server_id="server-1",
+        server_name="extractor",
+        tool_name="convert_pdf_to_markdown",
+        status="completed",
+        duration_ms=12,
+    )
+
+    from negentropy.serialization import to_json_compatible
+
+    assert to_json_compatible([attempt]) == [
+        {
+            "server_id": "server-1",
+            "server_name": "extractor",
+            "tool_name": "convert_pdf_to_markdown",
+            "status": "completed",
+            "duration_ms": 12,
+            "error": None,
+        }
+    ]
 
 
 @pytest.mark.asyncio
