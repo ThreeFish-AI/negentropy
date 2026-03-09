@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import { IngestResult } from "@/features/knowledge";
+import { AsyncPipelineResult } from "@/features/knowledge";
 
 interface IngestPanelProps {
   corpusId: string | null;
   onIngest: (params: {
     text: string;
     source_uri?: string;
-  }) => Promise<IngestResult>;
-  onIngestUrl: (params: { url: string }) => Promise<IngestResult>;
+  }) => Promise<AsyncPipelineResult>;
+  onIngestUrl: (params: { url: string }) => Promise<AsyncPipelineResult>;
   onReplace: (params: {
     text: string;
     source_uri: string;
-  }) => Promise<IngestResult>;
+  }) => Promise<AsyncPipelineResult>;
 }
 
 export function IngestPanel({
@@ -43,7 +43,7 @@ export function IngestPanel({
     setIsSubmitting(true);
     setError(null);
     try {
-      let result: IngestResult;
+      let result: AsyncPipelineResult;
       if (mode === "text") {
         result = await onIngest({
           text,
@@ -52,7 +52,7 @@ export function IngestPanel({
       } else {
         result = await onIngestUrl({ url });
       }
-      setSuccessMsg(`已摄入 ${result.count ?? 0} 个分块`);
+      setSuccessMsg(`已启动构建，Run ID: ${result.run_id}`);
       // Clear inputs on success
       if (mode === "text") setText("");
       if (mode === "url") setUrl("");
@@ -73,7 +73,7 @@ export function IngestPanel({
     setError(null);
     try {
       const result = await onReplace({ text, source_uri: sourceUri });
-      setSuccessMsg(`已替换，共 ${result.count ?? 0} 个分块`);
+      setSuccessMsg(`已启动替换构建，Run ID: ${result.run_id}`);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {

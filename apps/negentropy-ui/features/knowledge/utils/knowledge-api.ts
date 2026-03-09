@@ -605,6 +605,7 @@ export type PipelineStageStatus =
 export type PipelineOperation =
   | "ingest_text"
   | "ingest_url"
+  | "ingest_file"
   | "replace_source"
   | "sync_source"
   | "rebuild_source";
@@ -983,7 +984,7 @@ export async function ingestFile(
     source_uri?: string;
     metadata?: Record<string, unknown>;
   } & ChunkingRequestFields,
-): Promise<IngestResult> {
+): Promise<AsyncPipelineResult> {
   const formData = new FormData();
 
   if (params.app_name) formData.set("app_name", params.app_name);

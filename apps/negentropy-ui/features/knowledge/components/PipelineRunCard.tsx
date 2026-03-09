@@ -23,7 +23,7 @@ export interface PipelineRunCardProps {
   version: number;
   updated_at?: string;
   /** 操作类型 */
-  operation?: "ingest_text" | "ingest_url" | "replace_source";
+  operation?: "ingest_text" | "ingest_url" | "ingest_file" | "replace_source";
   /** 触发方式 */
   trigger?: "api" | "ui" | "schedule";
   /** 运行时长（毫秒） */

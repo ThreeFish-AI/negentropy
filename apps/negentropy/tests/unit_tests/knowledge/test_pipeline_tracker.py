@@ -59,6 +59,14 @@ class FakeStorageService:
         _ = source_uri
         return b"hello world"
 
+    async def upload_markdown_derivative(self, *, document_id, markdown_content: str):
+        _ = (document_id, markdown_content)
+        return "gs://derived/markdown.md"
+
+    async def save_markdown_content(self, *, document_id, markdown_content: str, markdown_gcs_uri=None):
+        _ = (document_id, markdown_content, markdown_gcs_uri)
+        return True
+
 
 @pytest.mark.asyncio
 async def test_pipeline_tracker_normalizes_empty_output_payloads() -> None:
@@ -113,6 +121,38 @@ async def test_pipeline_tracker_resume_normalizes_legacy_null_output_payloads() 
     assert record.payload["input"] == {}
     assert record.payload["output"] == {}
     assert record.payload["stages"]["extract"]["output"] == {}
+
+
+@pytest.mark.asyncio
+async def test_pipeline_tracker_emits_run_and_stage_logs(monkeypatch) -> None:
+    dao = FakePipelineDao()
+    tracker = PipelineTracker(
+        dao=dao,
+        app_name="negentropy",
+        operation="ingest_text",
+        run_id="run-logs",
+    )
+    events: list[tuple[str, dict]] = []
+
+    class FakeLogger:
+        def info(self, event: str, **kwargs):
+            events.append((event, kwargs))
+
+        def warning(self, event: str, **kwargs):
+            events.append((event, kwargs))
+
+    monkeypatch.setattr("negentropy.knowledge.service.logger", FakeLogger())
+
+    await tracker.start({"corpus_id": "corpus-1", "source_uri": "memory://doc"})
+    await tracker.start_stage("chunk")
+    await tracker.complete_stage("chunk", {"chunk_count": 2})
+    await tracker.complete({"chunk_count": 2})
+
+    event_names = [event for event, _ in events]
+    assert "pipeline_run_started" in event_names
+    assert "pipeline_stage_started" in event_names
+    assert "pipeline_stage_completed" in event_names
+    assert "pipeline_run_completed" in event_names
 
 
 @pytest.mark.asyncio
@@ -266,5 +306,62 @@ async def test_async_rebuild_pipeline_does_not_delete_existing_source_when_extra
 
     record = dao.records[(app_name, run_id)]
     assert repository.delete_called is False
+    assert record.status == "failed"
+    assert record.payload["stages"]["extract_gate"]["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_async_ingest_file_pipeline_marks_run_failed_when_extracted_document_is_empty(monkeypatch):
+    class GuardRepository:
+        async def add_knowledge(self, *, corpus_id, app_name, chunks):
+            _ = (corpus_id, app_name, chunks)
+            raise AssertionError("add_knowledge should not be called")
+
+    dao = FakePipelineDao()
+    service = KnowledgeService(repository=GuardRepository(), pipeline_dao=dao)
+    corpus_id = uuid4()
+    app_name = "negentropy"
+    source_uri = "gs://bucket/context-engineering.pdf"
+    document_id = uuid4()
+
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
+
+    async def fake_extract_file_document(**kwargs):
+        _ = kwargs
+        return ExtractedDocumentResult(
+            plain_text="",
+            markdown_content="",
+            trace={
+                "provider": "mcp",
+                "attempts": [{"tool_name": "convert_pdf_to_markdown", "failure_category": "tool_execution_failed"}],
+            },
+        )
+
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
+
+    run_id = await service.create_pipeline(
+        app_name=app_name,
+        operation="ingest_file",
+        input_data={
+            "corpus_id": str(corpus_id),
+            "source_uri": source_uri,
+            "document_id": str(document_id),
+        },
+    )
+
+    with pytest.raises(Exception, match="Failed to extract content"):
+        await service.execute_ingest_file_pipeline(
+            run_id=run_id,
+            corpus_id=corpus_id,
+            app_name=app_name,
+            content=b"%PDF-1.4",
+            filename="Context Engineering.pdf",
+            content_type="application/pdf",
+            source_uri=source_uri,
+            metadata={"document_id": str(document_id)},
+            document_id=document_id,
+        )
+
+    record = dao.records[(app_name, run_id)]
     assert record.status == "failed"
     assert record.payload["stages"]["extract_gate"]["status"] == "failed"

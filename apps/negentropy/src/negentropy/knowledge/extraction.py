@@ -1259,40 +1259,70 @@ def _looks_like_document_payload(payload: Any) -> bool:
     )
 
 
-def _normalize_document_payload(payload: Any) -> dict[str, Any]:
+def _looks_like_tool_execution_envelope(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    return any(
+        key in payload
+        for key in ("success", "results", "items", "documents", "successful_count", "failed_count", "total_pdfs")
+    )
+
+
+def _normalize_document_payload(payload: Any) -> tuple[dict[str, Any], str | None]:
     if isinstance(payload, list):
+        last_reason: str | None = None
         for item in payload:
-            normalized = _normalize_document_payload(item)
+            normalized, reason = _normalize_document_payload(item)
             if normalized:
-                return normalized
-        return {}
+                return normalized, None
+            last_reason = last_reason or reason
+        return {}, last_reason
 
     if not isinstance(payload, dict):
-        return {}
+        return {}, None
 
     if _looks_like_document_payload(payload):
-        return payload
+        return payload, None
 
+    if payload.get("success") is False:
+        return {}, "tool_execution_failed"
+
+    nested_reason: str | None = None
     for key in ("result", "document", "data"):
-        normalized = _normalize_document_payload(payload.get(key))
+        normalized, reason = _normalize_document_payload(payload.get(key))
         if normalized:
-            return normalized
+            return normalized, None
+        nested_reason = nested_reason or reason
 
+    saw_successful_candidate = False
+    saw_candidate_list = False
     for key in ("results", "items", "documents"):
         candidates = payload.get(key)
         if not isinstance(candidates, list):
             continue
+        saw_candidate_list = True
         for item in candidates:
             if not isinstance(item, dict):
                 continue
             status = str(item.get("status") or "").lower()
             if item.get("success") is False or status in {"failed", "error"}:
                 continue
-            normalized = _normalize_document_payload(item)
+            saw_successful_candidate = True
+            normalized, reason = _normalize_document_payload(item)
             if normalized:
-                return normalized
+                return normalized, None
+            if reason not in {None, "tool_execution_failed", "no_successful_documents"}:
+                nested_reason = nested_reason or reason
 
-    return {}
+    successful_count = payload.get("successful_count")
+    if isinstance(successful_count, int) and successful_count <= 0:
+        return {}, "no_successful_documents"
+    if saw_candidate_list and not saw_successful_candidate:
+        return {}, "no_successful_documents"
+    if _looks_like_tool_execution_envelope(payload):
+        return {}, "empty_payload"
+
+    return {}, nested_reason
 
 
 def _normalize_document_result(
@@ -1300,18 +1330,22 @@ def _normalize_document_result(
     structured_content: Any,
     content_items: list[Any],
 ) -> tuple[dict[str, Any], str | None]:
-    normalized = _normalize_document_payload(structured_content)
+    normalized, reason = _normalize_document_payload(structured_content)
     if normalized:
         return normalized, None
+    if reason:
+        return {}, reason
 
     fallback_text = _result_text_from_content_items(content_items)
     if not fallback_text:
         return {}, "structured_content_missing_and_text_unusable"
 
     parsed = _json_candidate_from_text(fallback_text)
-    normalized = _normalize_document_payload(parsed)
+    normalized, reason = _normalize_document_payload(parsed)
     if normalized:
         return normalized, None
+    if reason:
+        return {}, reason
 
     return {"markdown_content": fallback_text, "plain_text": fallback_text}, None
 
@@ -1763,11 +1797,19 @@ class DataExtractorProvider:
         )
         markdown, plain_text = _payload_text_fields(payload)
         if not plain_text:
-            failure_category = (
-                "unrecognized_payload"
-                if normalization_error == "structured_content_missing_and_text_unusable"
-                else "empty_payload"
-            )
+            failure_category_map = {
+                "structured_content_missing_and_text_unusable": "unrecognized_payload",
+                "tool_execution_failed": "tool_execution_failed",
+                "no_successful_documents": "no_successful_documents",
+                "empty_payload": "empty_payload",
+            }
+            failure_category = failure_category_map.get(normalization_error or "", "empty_payload")
+            diagnostic_summary_map = {
+                "structured_content_missing_and_text_unusable": "MCP 返回既无结构化文档结果，也无可用正文文本。",
+                "tool_execution_failed": "MCP 工具返回失败响应，未产出可用文档内容。",
+                "no_successful_documents": "MCP 批处理调用未返回任何成功文档结果。",
+                "empty_payload": "MCP 调用成功，但文档载荷为空或缺少正文内容。",
+            }
             return {
                 "success": False,
                 "attempt": ExtractionAttempt(
@@ -1778,6 +1820,7 @@ class DataExtractorProvider:
                     duration_ms=attempt.duration_ms,
                     error=normalization_error or "document_payload_recognized_but_empty",
                     failure_category=failure_category,
+                    diagnostic_summary=diagnostic_summary_map.get(normalization_error or "", None),
                     diagnostics={
                         "adapter_name": plan.adapter_name,
                         "contract_shape": contract.schema_shape,

@@ -14,7 +14,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CorpusRecord,
-  IngestResult,
   AsyncPipelineResult,
   SearchResults,
   ChunkingConfig,
@@ -105,13 +104,13 @@ export interface UseKnowledgeBaseReturnValue {
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
   }) => Promise<AsyncPipelineResult>;
-  /** 摄取文件（同步，因为涉及文件上传） */
+  /** 摄取文件（异步） */
   ingestFile: (params: {
     file: File;
     source_uri?: string;
     metadata?: Record<string, unknown>;
     chunkingConfig?: ChunkingConfig;
-  }) => Promise<IngestResult>;
+  }) => Promise<AsyncPipelineResult>;
   /** 替换源文本（异步） */
   replaceSource: (params: {
     text: string;

@@ -94,6 +94,7 @@ class FakeKnowledgeService:
         self.ensure_corpus_calls = []
         self.update_corpus_calls = []
         self.ingest_text_calls = []
+        self.ingest_file_pipeline_calls = []
 
     async def list_knowledge(self, **kwargs):
         self.list_knowledge_calls.append(kwargs)
@@ -187,6 +188,9 @@ class FakeKnowledgeService:
                 embedding=None,
             )
         ]
+
+    async def execute_ingest_file_pipeline(self, **kwargs):
+        self.ingest_file_pipeline_calls.append(kwargs)
 
 
 @pytest.mark.asyncio
@@ -824,24 +828,8 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
     fake_storage = FakeStorageService(doc=fake_doc)
     fake_service = FakeKnowledgeService()
 
-    async def fake_extract_source(**kwargs):
-        _ = kwargs
-        return SimpleNamespace(
-            plain_text="第一章介绍上下文工程。\n\n第二章说明层级分块与检索。",
-            markdown_content="# Context Engineering\n\ncontent",
-            trace={"route": "file_pdf", "tool": "convert_pdf_to_markdown"},
-            assets=[],
-            metadata={},
-        )
-
-    async def fake_persist_extracted_assets(**kwargs):
-        _ = kwargs
-        return []
-
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
     monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
-    monkeypatch.setattr(knowledge_api, "extract_source", fake_extract_source)
-    monkeypatch.setattr(knowledge_api, "persist_extracted_assets", fake_persist_extracted_assets)
 
     result = await knowledge_api.ingest_file(
         corpus_id=corpus_id,
@@ -869,20 +857,60 @@ async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkey
         store_to_gcs=True,
     )
 
-    assert result["count"] == 1
-    assert result["document_id"] == str(document_id)
+    assert result.run_id == "run-test-001"
+    assert result.status == "running"
     assert fake_storage.upload_and_store_calls
-    assert fake_service.ingest_text_calls
+    assert fake_service.pipeline_calls
 
-    ingest_call = fake_service.ingest_text_calls[0]
-    chunking_config = ingest_call["chunking_config"]
+    pipeline_call = fake_service.pipeline_calls[0]
+    assert pipeline_call["operation"] == "ingest_file"
+    assert pipeline_call["input_data"]["document_id"] == str(document_id)
+    chunking_config = pipeline_call["input_data"]["chunking_config"]
+    assert chunking_config["strategy"] == "hierarchical"
+    assert pipeline_call["input_data"]["duplicate_document"] is False
+
+    assert not fake_service.ingest_text_calls
+
+    background_call = fake_service.ingest_file_pipeline_calls[0] if fake_service.ingest_file_pipeline_calls else None
+    assert background_call is None
+
+    queued_chunking_config = knowledge_api._resolve_chunking_config(
+        chunking_config=None,
+        legacy_payload={
+            "strategy": "hierarchical",
+            "hierarchical_parent_chunk_size": 1200,
+            "hierarchical_child_chunk_size": 300,
+            "hierarchical_child_overlap": 60,
+        },
+        corpus_config={},
+    )
+    assert queued_chunking_config.strategy == ChunkingStrategy.HIERARCHICAL
+
+    background_tasks = BackgroundTasks()
+    background_tasks.add_task(
+        fake_service.execute_ingest_file_pipeline,
+        run_id=result.run_id,
+        corpus_id=corpus_id,
+        app_name="negentropy",
+        content=b"%PDF-1.4 mock content",
+        filename="Context Engineering.pdf",
+        content_type=None,
+        source_uri=fake_doc.gcs_uri,
+        metadata={"document_id": str(document_id)},
+        chunking_config=queued_chunking_config,
+        document_id=document_id,
+    )
+    for task in background_tasks.tasks:
+        await task()
+
+    queued_call = fake_service.ingest_file_pipeline_calls[0]
+    chunking_config = queued_call["chunking_config"]
     assert chunking_config.strategy == ChunkingStrategy.HIERARCHICAL
     assert chunking_config.hierarchical_parent_chunk_size == 1200
     assert chunking_config.hierarchical_child_chunk_size == 300
     assert chunking_config.hierarchical_child_overlap == 60
-    assert ingest_call["source_uri"] == fake_doc.gcs_uri
-    assert ingest_call["metadata"]["document_id"] == str(document_id)
-    assert ingest_call["metadata"]["extractor_trace"]["route"] == "file_pdf"
+    assert queued_call["source_uri"] == fake_doc.gcs_uri
+    assert queued_call["metadata"]["document_id"] == str(document_id)
 
 
 @pytest.mark.asyncio
