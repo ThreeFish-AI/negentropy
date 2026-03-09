@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
 from .constants import DEFAULT_KEYWORD_WEIGHT, DEFAULT_SEMANTIC_WEIGHT, TEXT_PREVIEW_MAX_LENGTH
 from .exceptions import SearchError
-from .extraction import ROUTE_URL, extract_source, resolve_source_kind
+from .extraction import ExtractedDocumentResult, ROUTE_URL, extract_source, resolve_source_kind
 from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
@@ -292,6 +292,26 @@ class KnowledgeService:
         content_type: str | None,
         tracker: Optional[PipelineTracker] = None,
     ) -> str:
+        result = await self._extract_file_document(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            content=content,
+            filename=filename,
+            content_type=content_type,
+            tracker=tracker,
+        )
+        return result.plain_text
+
+    async def _extract_file_document(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        content: bytes,
+        filename: str,
+        content_type: str | None,
+        tracker: Optional[PipelineTracker] = None,
+    ) -> ExtractedDocumentResult:
         result = await extract_source(
             app_name=app_name,
             corpus_id=corpus_id,
@@ -302,7 +322,24 @@ class KnowledgeService:
             content_type=content_type,
             tracker=tracker,
         )
-        return result.plain_text
+        return result
+
+    @staticmethod
+    def _validate_extracted_document(
+        result: ExtractedDocumentResult,
+        *,
+        source_uri: str,
+    ) -> str:
+        plain_text = (result.plain_text or "").strip()
+        markdown = (result.markdown_content or "").strip()
+        if not plain_text:
+            diagnostics = {
+                "source_uri": source_uri,
+                "trace": result.trace,
+                "metadata": result.metadata,
+            }
+            raise ValueError(f"Extractor produced empty document after normalization: {diagnostics}")
+        return plain_text or markdown
 
     # =========================================================================
     # Pipeline 创建与执行（支持异步后台任务）
@@ -704,13 +741,23 @@ class KnowledgeService:
                 filename = source_uri.split("/")[-1]
                 content_type = _guess_content_type(filename)
 
-                text = await self._extract_file_content(
+                extracted = await self._extract_file_document(
                     corpus_id=corpus_id,
                     app_name=app_name,
                     content=content,
                     filename=filename,
                     content_type=content_type,
                     tracker=tracker,
+                )
+                await tracker.start_stage("extract_gate")
+                text = self._validate_extracted_document(extracted, source_uri=source_uri)
+                await tracker.complete_stage(
+                    "extract_gate",
+                    {
+                        "plain_text_length": len(extracted.plain_text),
+                        "markdown_length": len(extracted.markdown_content),
+                        "trace": extracted.trace,
+                    },
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
@@ -719,9 +766,6 @@ class KnowledgeService:
                     code="CONTENT_EXTRACTION_FAILED",
                     message=f"Failed to extract content: {exc}",
                 ) from exc
-
-            if not text:
-                raise ValueError("No text content extracted from file")
 
             # 阶段 2: Delete
             await tracker.start_stage("delete")
@@ -1456,7 +1500,7 @@ class KnowledgeService:
                 filename = source_uri.split("/")[-1]
                 content_type = _guess_content_type(filename)
 
-                text = await self._extract_file_content(
+                extracted = await self._extract_file_document(
                     corpus_id=corpus_id,
                     app_name=app_name,
                     content=content,
@@ -1464,6 +1508,18 @@ class KnowledgeService:
                     content_type=content_type,
                     tracker=tracker,
                 )
+                if tracker:
+                    await tracker.start_stage("extract_gate")
+                text = self._validate_extracted_document(extracted, source_uri=source_uri)
+                if tracker:
+                    await tracker.complete_stage(
+                        "extract_gate",
+                        {
+                            "plain_text_length": len(extracted.plain_text),
+                            "markdown_length": len(extracted.markdown_content),
+                            "trace": extracted.trace,
+                        },
+                    )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
 
@@ -1471,9 +1527,6 @@ class KnowledgeService:
                     code="CONTENT_EXTRACTION_FAILED",
                     message=f"Failed to extract content: {exc}",
                 ) from exc
-
-            if not text:
-                raise ValueError("No text content extracted from file")
 
             # 阶段 2: Delete - 删除该 source_uri 下的旧记录
             if tracker:

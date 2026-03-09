@@ -37,6 +37,8 @@ EXTRACTOR_ROUTES_KEY = "extractor_routes"
 ROUTE_URL = "url"
 ROUTE_FILE_PDF = "file_pdf"
 ROUTE_FILE_GENERIC = "file_generic"
+MAX_LLM_PLANNING_PAYLOAD_CHARS = 16_000
+MAX_LLM_VALIDATION_ERROR_CHARS = 1_500
 
 
 @dataclass(slots=True)
@@ -57,6 +59,8 @@ class ExtractionAttempt:
     status: str
     duration_ms: int
     error: str | None = None
+    failure_category: str | None = None
+    diagnostics: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -138,6 +142,12 @@ class SourceCandidate:
     value: Any
     description: str
     preferred: bool = False
+
+
+class ExtractorExecutionError(ValueError):
+    def __init__(self, message: str, *, attempts: list[ExtractionAttempt]) -> None:
+        super().__init__(message)
+        self.attempts = attempts
 
 
 def resolve_source_kind(
@@ -777,6 +787,73 @@ def _cleanup_temp_paths(paths: list[Path]) -> None:
             logger.warning("extractor_temp_file_cleanup_failed", path=str(path))
 
 
+def _truncate_text(value: str, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return f"{value[:limit]}...<truncated:{len(value) - limit}>"
+
+
+def _canonical_request_for_llm(request: CanonicalExtractionRequest) -> dict[str, Any]:
+    source_payload: dict[str, Any] = {
+        "source_kind": request.source.source_kind,
+        "url": request.source.url,
+        "filename": request.source.filename,
+        "content_type": request.source.content_type,
+    }
+    if request.source.content_base64:
+        source_payload["content_base64_length"] = len(request.source.content_base64)
+    return {
+        "source_kind": request.source_kind,
+        "source": source_payload,
+        "options": request.options,
+        "context": request.context,
+    }
+
+
+def _summarize_candidate_value(candidate: SourceCandidate) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "kind": candidate.kind,
+        "description": candidate.description,
+        "preferred": candidate.preferred,
+    }
+    if candidate.kind == "inline_object" and isinstance(candidate.value, dict):
+        payload["field_names"] = sorted(candidate.value.keys())
+        content_value = candidate.value.get("content_base64") or candidate.value.get("data_base64")
+        if isinstance(content_value, str):
+            payload["content_base64_length"] = len(content_value)
+        if isinstance(candidate.value.get("filename"), str):
+            payload["filename"] = candidate.value["filename"]
+        if isinstance(candidate.value.get("content_type"), str):
+            payload["content_type"] = candidate.value["content_type"]
+        return payload
+    if candidate.kind == "local_path" and isinstance(candidate.value, str):
+        path = Path(candidate.value)
+        payload["path_preview"] = str(path.name)
+        payload["suffix"] = path.suffix
+        return payload
+    if candidate.kind == "base64_string" and isinstance(candidate.value, str):
+        payload["base64_length"] = len(candidate.value)
+        return payload
+    if candidate.kind == "url" and isinstance(candidate.value, str):
+        payload["url_preview"] = _truncate_text(candidate.value, 240)
+        return payload
+    if isinstance(candidate.value, str):
+        payload["value_preview"] = _truncate_text(candidate.value, 240)
+    return payload
+
+
+def _build_attempt_message(attempt: ExtractionAttempt) -> str:
+    category = f"[{attempt.failure_category}] " if attempt.failure_category else ""
+    return f"{attempt.server_name}/{attempt.tool_name}: {category}{attempt.error or 'unknown error'}"
+
+
+def _build_aggregated_extraction_error(attempts: list[ExtractionAttempt]) -> str:
+    if not attempts:
+        return "All extractor MCP targets failed"
+    details = "; ".join(_build_attempt_message(attempt) for attempt in attempts)
+    return f"All extractor MCP targets failed: {details}"
+
+
 def _source_fields_for_kind(source_kind: SourceKind) -> set[str]:
     return {"url", "uri"} if source_kind == ROUTE_URL else {"filename", "content_type", "content_base64", "data_base64"}
 
@@ -869,17 +946,7 @@ def _default_adapter_name(contract: NormalizedToolContract, *, retry: bool = Fal
 
 
 def _serialize_source_candidates(source_candidates: list[SourceCandidate]) -> list[dict[str, Any]]:
-    serialized: list[dict[str, Any]] = []
-    for candidate in source_candidates:
-        serialized.append(
-            {
-                "kind": candidate.kind,
-                "value": candidate.value,
-                "description": candidate.description,
-                "preferred": candidate.preferred,
-            }
-        )
-    return serialized
+    return [_summarize_candidate_value(candidate) for candidate in source_candidates]
 
 
 async def _build_llm_invocation_plan(
@@ -894,6 +961,8 @@ async def _build_llm_invocation_plan(
 ) -> AdaptiveToolInvocationPlan | None:
     if not isinstance(input_schema, dict):
         return None
+    if request.source_kind != ROUTE_URL and contract.source_value_type != "string":
+        return None
 
     try:
         candidate_payload = to_json_compatible_strict(
@@ -901,7 +970,7 @@ async def _build_llm_invocation_plan(
             label="source_candidates",
         )
         canonical_request_payload = to_json_compatible_strict(
-            request,
+            _canonical_request_for_llm(request),
             label="canonical_request",
         )
         contract_payload = to_json_compatible_strict(
@@ -914,7 +983,29 @@ async def _build_llm_invocation_plan(
             label="contract",
         )
         input_schema_payload = to_json_compatible_strict(input_schema, label="input_schema")
-        validation_error_payload = validation_error.raw_error if validation_error else ""
+        validation_error_payload = (
+            _truncate_text(validation_error.raw_error, MAX_LLM_VALIDATION_ERROR_CHARS)
+            if validation_error
+            else ""
+        )
+        planning_payload_size = sum(
+            len(json.dumps(item, ensure_ascii=False))
+            for item in (
+                candidate_payload,
+                canonical_request_payload,
+                contract_payload,
+                input_schema_payload,
+                validation_error_payload,
+            )
+        )
+        if planning_payload_size > MAX_LLM_PLANNING_PAYLOAD_CHARS:
+            logger.info(
+                "extractor_llm_plan_skipped_payload_budget",
+                tool_name=tool_name,
+                payload_chars=planning_payload_size,
+                payload_limit=MAX_LLM_PLANNING_PAYLOAD_CHARS,
+            )
+            return None
 
         if contract.mode in {"batch", "nested_single"} and contract.source_value_type in {"string", "object"}:
             prompt = (
@@ -1174,7 +1265,6 @@ class DataExtractorProvider:
             )
 
         attempts: list[ExtractionAttempt] = []
-        last_error: str | None = None
 
         for index, target in enumerate(targets):
             stage_name = "extract_primary" if index == 0 else f"extract_failover_{index}"
@@ -1224,18 +1314,22 @@ class DataExtractorProvider:
                     )
                 return result
 
-            last_error = attempt["attempt"].error
             if tracker:
                 await tracker.fail_stage(
                     stage_name,
                     {
                         "server_id": str(target.server_id),
                         "tool_name": target.tool_name,
-                        "message": last_error,
+                        "message": attempt["attempt"].error,
+                        "failure_category": attempt["attempt"].failure_category,
+                        "diagnostics": attempt["attempt"].diagnostics,
                     },
                 )
 
-        raise ValueError(last_error or "All extractor MCP targets failed")
+        raise ExtractorExecutionError(
+            _build_aggregated_extraction_error(attempts),
+            attempts=attempts,
+        )
 
     async def _invoke_target(
         self,
@@ -1264,6 +1358,7 @@ class DataExtractorProvider:
                         status="failed",
                         duration_ms=0,
                         error=error,
+                        failure_category="tool_unavailable",
                     ),
                 }
 
@@ -1281,6 +1376,7 @@ class DataExtractorProvider:
                         status="failed",
                         duration_ms=0,
                         error=error,
+                        failure_category="tool_disabled",
                     ),
                 }
 
@@ -1379,6 +1475,7 @@ class DataExtractorProvider:
                         "diagnostics": plan.diagnostics,
                         "success": result.success,
                         "error": result.error,
+                        "failure_category": None if result.success else ("validation_error" if _is_validation_error(result.error) else "tool_error"),
                         "duration_ms": result.duration_ms,
                     }
                 )
@@ -1406,6 +1503,8 @@ class DataExtractorProvider:
                     status="failed",
                     duration_ms=int(last_result["duration_ms"]) if last_result else 0,
                     error=str(last_result["error"]) if last_result else "MCP invocation failed",
+                    failure_category=str(last_result["failure_category"]) if last_result else "tool_error",
+                    diagnostics={"adapter_attempts": invocation_trace},
                 ),
             }
         finally:
@@ -1478,6 +1577,11 @@ class DataExtractorProvider:
         )
         markdown, plain_text = _payload_text_fields(payload)
         if not plain_text:
+            failure_category = (
+                "unrecognized_payload"
+                if normalization_error == "structured_content_missing_and_text_unusable"
+                else "empty_payload"
+            )
             return {
                 "success": False,
                 "attempt": ExtractionAttempt(
@@ -1487,6 +1591,12 @@ class DataExtractorProvider:
                     status="failed",
                     duration_ms=attempt.duration_ms,
                     error=normalization_error or "document_payload_recognized_but_empty",
+                    failure_category=failure_category,
+                    diagnostics={
+                        "adapter_name": plan.adapter_name,
+                        "contract_shape": contract.schema_shape,
+                        "normalized_payload_shape": sorted(payload.keys()) if isinstance(payload, dict) else [],
+                    },
                 ),
             }
 
@@ -1507,6 +1617,7 @@ class DataExtractorProvider:
                     "adapter_attempts": invocation_trace,
                     "contract_shape": contract.schema_shape,
                     "normalization_error": normalization_error,
+                    "normalized_payload_shape": sorted(payload.keys()) if isinstance(payload, dict) else [],
                     "llm_fallback_used": any(item.get("reasoning_source") == "llm" for item in invocation_trace),
                 },
             ),

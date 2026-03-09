@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from negentropy.knowledge.dao import UpsertResult
+from negentropy.knowledge.extraction import ExtractedDocumentResult
 from negentropy.knowledge.service import KnowledgeService
 
 
@@ -69,11 +70,11 @@ async def test_async_rebuild_pipeline_failure_persists_input_and_terminal_timest
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
 
-    async def fake_extract_file_content(**kwargs):
+    async def fake_extract_file_document(**kwargs):
         _ = kwargs
-        return "plain text"
+        return ExtractedDocumentResult(plain_text="plain text", markdown_content="plain text")
 
-    monkeypatch.setattr(service, "_extract_file_content", fake_extract_file_content)
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
 
     run_id = await service.create_pipeline(
         app_name=app_name,
@@ -128,15 +129,15 @@ async def test_async_rebuild_pipeline_accepts_mcp_extracted_markdown_payload(mon
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
 
-    async def fake_extract_file_content(**kwargs):
+    async def fake_extract_file_document(**kwargs):
         _ = kwargs
-        return "# Extracted Markdown"
+        return ExtractedDocumentResult(plain_text="# Extracted Markdown", markdown_content="# Extracted Markdown")
 
     async def fake_ingest_text_with_tracker(**kwargs):
         _ = kwargs
         return []
 
-    monkeypatch.setattr(service, "_extract_file_content", fake_extract_file_content)
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
     monkeypatch.setattr(service, "_ingest_text_with_tracker", fake_ingest_text_with_tracker)
 
     run_id = await service.create_pipeline(
@@ -158,3 +159,57 @@ async def test_async_rebuild_pipeline_accepts_mcp_extracted_markdown_payload(mon
     record = dao.records[(app_name, run_id)]
     assert record.status == "completed"
     assert record.payload["stages"]["download"]["status"] == "completed"
+    assert record.payload["stages"]["extract_gate"]["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_async_rebuild_pipeline_does_not_delete_existing_source_when_extracted_document_is_empty(monkeypatch):
+    class GuardRepository:
+        def __init__(self) -> None:
+            self.delete_called = False
+
+        async def delete_knowledge_by_source(self, *, corpus_id, app_name, source_uri):
+            _ = (corpus_id, app_name, source_uri)
+            self.delete_called = True
+            return 1
+
+    repository = GuardRepository()
+    dao = FakePipelineDao()
+    service = KnowledgeService(repository=repository, pipeline_dao=dao)
+    corpus_id = uuid4()
+    app_name = "negentropy"
+    source_uri = "gs://bucket/doc.pdf"
+
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
+
+    async def fake_extract_file_document(**kwargs):
+        _ = kwargs
+        return ExtractedDocumentResult(
+            plain_text="",
+            markdown_content="",
+            trace={"provider": "mcp", "attempts": [{"tool_name": "convert_pdf_to_markdown", "failure_category": "empty_payload"}]},
+        )
+
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
+
+    run_id = await service.create_pipeline(
+        app_name=app_name,
+        operation="rebuild_source",
+        input_data={
+            "corpus_id": str(corpus_id),
+            "source_uri": source_uri,
+        },
+    )
+
+    with pytest.raises(Exception, match="Failed to extract content"):
+        await service.execute_rebuild_source_pipeline(
+            run_id=run_id,
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=source_uri,
+        )
+
+    record = dao.records[(app_name, run_id)]
+    assert repository.delete_called is False
+    assert record.status == "failed"
+    assert record.payload["stages"]["extract_gate"]["status"] == "failed"
