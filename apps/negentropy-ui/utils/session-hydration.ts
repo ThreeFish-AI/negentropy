@@ -304,7 +304,10 @@ export function hydrateSessionDetail(
     return ordered;
   });
 
-  const messageLedger = buildMessageLedger({ events: normalizedEvents });
+  const messageLedger = buildMessageLedger({ events: normalizedEvents }).map((entry) => ({
+    ...entry,
+    origin: "fallback" as const,
+  }));
   const messages =
     messageLedger.length > 0
       ? ledgerEntriesToMessages(messageLedger)
