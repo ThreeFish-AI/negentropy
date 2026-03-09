@@ -60,6 +60,7 @@ class ExtractionAttempt:
     duration_ms: int
     error: str | None = None
     failure_category: str | None = None
+    diagnostic_summary: str | None = None
     diagnostics: dict[str, Any] = field(default_factory=dict)
 
 
@@ -151,6 +152,14 @@ class ToolCapabilityProfile:
     accepts_object_source: bool
     supports_batch: bool
     schema_confidence: Literal["high", "medium", "low"]
+
+
+@dataclass(slots=True)
+class ToolContractReadiness:
+    compatible: bool
+    failure_category: str | None = None
+    diagnostic_summary: str | None = None
+    diagnostics: dict[str, Any] = field(default_factory=dict)
 
 
 class ExtractorExecutionError(ValueError):
@@ -287,6 +296,15 @@ def _schema_property_names(schema: Any) -> set[str]:
     return set(_schema_properties(schema).keys())
 
 
+def _schema_required_fields(schema: Any) -> set[str]:
+    if not isinstance(schema, dict):
+        return set()
+    required = schema.get("required")
+    if not isinstance(required, list):
+        return set()
+    return {str(item) for item in required if isinstance(item, str)}
+
+
 def _is_url_source_schema(schema: Any) -> bool:
     properties = _schema_property_names(schema)
     return "url" in properties or "uri" in properties
@@ -370,6 +388,106 @@ def _matches_source_schema(schema: Any, source_kind: SourceKind) -> bool:
     if source_kind == ROUTE_URL:
         return _is_url_source_schema(schema)
     return _is_file_source_schema(schema)
+
+
+def _recognized_contract_fields(source_kind: SourceKind) -> set[str]:
+    return {
+        *_preferred_batch_keys(source_kind),
+        *_preferred_source_keys(source_kind),
+        "url",
+        "uri",
+        "filename",
+        "content_type",
+        "content_base64",
+        "data_base64",
+        "options",
+        "context",
+        "source_type",
+    }
+
+
+def _evaluate_unknown_contract_readiness(
+    *,
+    input_schema: dict[str, Any] | None,
+    contract: NormalizedToolContract,
+    capability: ToolCapabilityProfile,
+    source_kind: SourceKind,
+) -> ToolContractReadiness:
+    if contract.mode != "unknown" or not isinstance(input_schema, dict):
+        return ToolContractReadiness(compatible=True)
+
+    variants = _expand_schema_variants(input_schema, root_schema=input_schema)
+    if not variants:
+        return ToolContractReadiness(compatible=True)
+
+    recognized_fields = _recognized_contract_fields(source_kind)
+    branch_failures: list[dict[str, Any]] = []
+
+    for variant in variants:
+        declared_fields = sorted(_schema_property_names(variant))
+        required_fields = sorted(_schema_required_fields(variant))
+        if not declared_fields:
+            return ToolContractReadiness(compatible=True)
+
+        recognized_declared = [field for field in declared_fields if field in recognized_fields]
+        unsupported_required = [field for field in required_fields if field not in recognized_fields]
+
+        if recognized_declared and not unsupported_required:
+            return ToolContractReadiness(compatible=True)
+
+        branch_failures.append(
+            {
+                "declared_schema_fields": declared_fields,
+                "required_fields": required_fields,
+                "recognized_declared_fields": recognized_declared,
+                "unsupported_required_fields": unsupported_required,
+            }
+        )
+
+    any_recognized_declared = any(item["recognized_declared_fields"] for item in branch_failures)
+    unsupported_required = sorted(
+        {
+            field
+            for item in branch_failures
+            for field in item["unsupported_required_fields"]
+        }
+    )
+
+    if unsupported_required:
+        failure_category = "low_confidence_contract" if any_recognized_declared else "unsupported_contract"
+        diagnostic_summary = (
+            "契约为 unknown，要求额外必填字段 "
+            f"{', '.join(unsupported_required)}，当前提取源无法构造最小调用参数"
+        )
+    elif any_recognized_declared:
+        failure_category = "low_confidence_contract"
+        diagnostic_summary = "契约存在候选文档字段，但未找到可安全构造的最小调用参数分支"
+    else:
+        failure_category = (
+            "low_confidence_contract"
+            if capability.schema_confidence == "low"
+            else "unsupported_contract"
+        )
+        diagnostic_summary = "契约未声明可识别的文档 source 字段，无法判定为可兼容的提取工具"
+
+    return ToolContractReadiness(
+        compatible=False,
+        failure_category=failure_category,
+        diagnostic_summary=diagnostic_summary,
+        diagnostics={
+            "contract_mode": contract.mode,
+            "schema_shape": contract.schema_shape,
+            "branches": branch_failures,
+            "recognized_contract_fields": sorted(recognized_fields),
+            "capability": {
+                "has_declared_schema": capability.has_declared_schema,
+                "accepts_string_source": capability.accepts_string_source,
+                "accepts_object_source": capability.accepts_object_source,
+                "supports_batch": capability.supports_batch,
+                "schema_confidence": capability.schema_confidence,
+            },
+        },
+    )
 
 
 def normalize_tool_contract(
@@ -1355,6 +1473,7 @@ class DataExtractorProvider:
                         "tool_name": target.tool_name,
                         "message": attempt["attempt"].error,
                         "failure_category": attempt["attempt"].failure_category,
+                        "diagnostic_summary": attempt["attempt"].diagnostic_summary,
                         "diagnostics": attempt["attempt"].diagnostics,
                     },
                 )
@@ -1448,30 +1567,18 @@ class DataExtractorProvider:
             input_schema=input_schema,
             contract=contract,
         )
-        declared_schema_fields = sorted(_schema_property_names(input_schema)) if isinstance(input_schema, dict) else []
-        recognized_contract_fields = {
-            *_preferred_batch_keys(source_kind),
-            *_preferred_source_keys(source_kind),
-            "url",
-            "uri",
-            "filename",
-            "content_type",
-            "content_base64",
-            "data_base64",
-            "options",
-            "context",
-            "source_type",
-        }
         source_candidates, cleanup_paths = _prepare_source_candidates(request=request, content=content)
         invocation_trace: list[dict[str, Any]] = []
         validation_error: ValidationErrorSummary | None = None
 
         try:
-            if (
-                contract.mode == "unknown"
-                and declared_schema_fields
-                and not any(field in recognized_contract_fields for field in declared_schema_fields)
-            ):
+            readiness = _evaluate_unknown_contract_readiness(
+                input_schema=input_schema,
+                contract=contract,
+                capability=capability,
+                source_kind=source_kind,
+            )
+            if not readiness.compatible:
                 return {
                     "success": False,
                     "attempt": ExtractionAttempt(
@@ -1481,23 +1588,9 @@ class DataExtractorProvider:
                         status="failed",
                         duration_ms=0,
                         error="Tool input schema could not be normalized for document extraction",
-                        failure_category=(
-                            "low_confidence_contract"
-                            if capability.schema_confidence == "low"
-                            else "unsupported_contract"
-                        ),
-                        diagnostics={
-                            "contract_mode": contract.mode,
-                            "schema_shape": contract.schema_shape,
-                            "declared_schema_fields": declared_schema_fields,
-                            "capability": {
-                                "has_declared_schema": capability.has_declared_schema,
-                                "accepts_string_source": capability.accepts_string_source,
-                                "accepts_object_source": capability.accepts_object_source,
-                                "supports_batch": capability.supports_batch,
-                                "schema_confidence": capability.schema_confidence,
-                            },
-                        },
+                        failure_category=readiness.failure_category,
+                        diagnostic_summary=readiness.diagnostic_summary,
+                        diagnostics=readiness.diagnostics,
                     ),
                 }
             for index in range(2):

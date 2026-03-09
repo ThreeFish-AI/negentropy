@@ -383,6 +383,7 @@ export interface FailedStageDetail {
   error: Record<string, unknown>;
   message: string;
   failureCategory?: string;
+  diagnosticSummary?: string;
 }
 
 export interface PipelineErrorDetail {
@@ -393,6 +394,7 @@ export interface PipelineErrorDetail {
   error: Record<string, unknown>;
   failureCategory?: string;
   failureLabel?: string;
+  diagnosticSummary?: string;
   stageName?: string;
   durationMs?: number;
   status?: string;
@@ -459,6 +461,25 @@ export const getStageErrorSummary = (error: unknown): string => {
   return failureLabel ? `${failureLabel} · ${message}` : message;
 };
 
+export const getDiagnosticSummary = (error: unknown): string | null => {
+  if (!isRecord(error)) {
+    return null;
+  }
+  const direct = error.diagnostic_summary;
+  if (typeof direct === "string" && direct.trim()) {
+    return direct;
+  }
+  const diagnostics = error.diagnostics;
+  if (!isRecord(diagnostics)) {
+    return null;
+  }
+  const nested = diagnostics.summary;
+  return typeof nested === "string" && nested.trim() ? nested : null;
+};
+
+const shouldShowDiagnosticSummary = (failureCategory: string | undefined): boolean =>
+  failureCategory === "unsupported_contract" || failureCategory === "low_confidence_contract";
+
 export const getFailedStages = (
   stages?: Record<string, PipelineStageResult>
 ): FailedStageDetail[] =>
@@ -478,6 +499,7 @@ export const getFailedStages = (
         isRecord(stage.error) && typeof stage.error.failure_category === "string"
           ? stage.error.failure_category
           : undefined,
+      diagnosticSummary: getDiagnosticSummary(stage.error),
     }));
 
 export const buildPipelineErrorDetails = (
@@ -499,6 +521,12 @@ export const buildPipelineErrorDetails = (
         failureCategory:
           typeof run.error.failure_category === "string" ? run.error.failure_category : undefined,
         failureLabel: getFailureCategoryLabel(run.error.failure_category),
+        diagnosticSummary:
+          shouldShowDiagnosticSummary(
+            typeof run.error.failure_category === "string" ? run.error.failure_category : undefined
+          )
+            ? getDiagnosticSummary(run.error)
+            : undefined,
       });
     }
   }
@@ -512,6 +540,9 @@ export const buildPipelineErrorDetails = (
       error: item.error,
       failureCategory: item.failureCategory,
       failureLabel: getFailureCategoryLabel(item.failureCategory),
+      diagnosticSummary: shouldShowDiagnosticSummary(item.failureCategory)
+        ? item.diagnosticSummary
+        : undefined,
       stageName: item.stageName,
       durationMs: item.durationMs,
       status: item.status,

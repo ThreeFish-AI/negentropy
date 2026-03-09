@@ -393,6 +393,11 @@ export default function KnowledgePipelinesPage() {
                                       {detail.failureLabel}
                                     </p>
                                   )}
+                                  {detail.diagnosticSummary && (
+                                    <p className="mt-0.5 line-clamp-2 text-[10px] text-rose-600 dark:text-rose-300">
+                                      {detail.diagnosticSummary}
+                                    </p>
+                                  )}
                                 </div>
                                 <span className="text-[10px] text-rose-500 dark:text-rose-400">
                                   {detail.scope === "stage"

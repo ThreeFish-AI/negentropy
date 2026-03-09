@@ -428,5 +428,42 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(
       screen.getAllByText("Extractor produced empty document after normalization").length
     ).toBeGreaterThan(0);
+    expect(screen.queryByText(/无法构造最小调用参数/)).not.toBeInTheDocument();
+  });
+
+  it("契约类失败会在 Errors 区展示受控诊断摘要", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-contract-summary-id",
+            run_id: "run-contract-summary",
+            status: "failed",
+            operation: "rebuild_source",
+          }),
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 18,
+              error: {
+                message: "Tool input schema could not be normalized for document extraction",
+                failure_category: "low_confidence_contract",
+                diagnostic_summary:
+                  "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getByText("Tool 契约置信度不足")).toBeInTheDocument();
+    expect(
+      screen.getByText("契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数")
+    ).toBeInTheDocument();
   });
 });
