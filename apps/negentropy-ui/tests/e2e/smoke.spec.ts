@@ -425,3 +425,219 @@ test("聊天流式 Markdown 表格与换行在 hydration 后无需刷新即可�
   await expect(page.getByText("第一段结论。", { exact: true })).toHaveCount(1);
   await expect(page.getByText("第二段结论。", { exact: true })).toHaveCount(1);
 });
+
+test("聊天中的并行搜索过程会按正文位置内联展示并在 hydration 后保持稳定", async ({ page }) => {
+  await mockAuthenticatedUser(page);
+
+  const createdAt = Date.now();
+  const sessionId = "pw-search-inline";
+  const runId = "run-inline-search";
+  let sessionCreated = false;
+  let detailFetchAfterRun = 0;
+
+  await page.route("**/api/agui/sessions/list**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        sessionCreated
+          ? [{ id: sessionId, lastUpdateTime: createdAt }]
+          : [],
+      ),
+    });
+  });
+
+  await page.route("**/api/agui/sessions", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+
+    sessionCreated = true;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: sessionId,
+        lastUpdateTime: createdAt,
+      }),
+    });
+  });
+
+  await page.route(`**/api/agui/sessions/${sessionId}**`, async (route) => {
+    if (route.request().url().includes("/title")) {
+      await route.continue();
+      return;
+    }
+
+    const events =
+      detailFetchAfterRun > 0
+        ? [
+            {
+              id: "assistant-1",
+              author: "assistant",
+              threadId: sessionId,
+              runId,
+              timestamp: createdAt / 1000 + 0.001,
+              content: {
+                parts: [{ text: "好的，我将使用 Google Search 获取 AfterShip 的信息。" }],
+              },
+            },
+            {
+              id: "tool-batch",
+              author: "assistant",
+              threadId: sessionId,
+              runId,
+              timestamp: createdAt / 1000 + 0.008,
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: "call-1",
+                      name: "google_search",
+                      args: { q: "AfterShip company" },
+                    },
+                  },
+                  {
+                    functionCall: {
+                      id: "call-2",
+                      name: "web_search",
+                      args: { q: "AfterShip tracking api" },
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              id: "tool-results",
+              author: "assistant",
+              threadId: sessionId,
+              runId,
+              timestamp: createdAt / 1000 + 0.009,
+              content: {
+                parts: [
+                  {
+                    functionResponse: {
+                      id: "call-1",
+                      name: "google_search",
+                      response: {
+                        result: { items: [{ title: "AfterShip 官网" }] },
+                      },
+                    },
+                  },
+                  {
+                    functionResponse: {
+                      id: "call-2",
+                      name: "web_search",
+                      response: {
+                        result: { items: [{ title: "AfterShip Tracking API" }] },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              id: "assistant-2",
+              author: "assistant",
+              threadId: sessionId,
+              runId,
+              timestamp: createdAt / 1000 + 0.01,
+              content: {
+                parts: [{ text: "## AfterShip 信息摘要\n\n- 物流体验平台\n- 提供 Tracking API" }],
+              },
+            },
+          ]
+        : [];
+
+    if (sessionCreated) {
+      detailFetchAfterRun += 1;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: sessionId,
+        lastUpdateTime: createdAt,
+        events,
+      }),
+    });
+  });
+
+  await page.route(`**/api/agui?**session_id=${sessionId}**`, async (route) => {
+    const body = [
+      {
+        type: "RUN_STARTED",
+        threadId: sessionId,
+        runId,
+        timestamp: createdAt / 1000,
+      },
+      {
+        type: "TEXT_MESSAGE_START",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-live",
+        role: "assistant",
+        timestamp: createdAt / 1000 + 0.001,
+      },
+      {
+        type: "TEXT_MESSAGE_CONTENT",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-live",
+        delta: "好的，我将使用 Google Search 获取 AfterShip 的信息。",
+        timestamp: createdAt / 1000 + 0.002,
+      },
+      {
+        type: "TEXT_MESSAGE_END",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-live",
+        timestamp: createdAt / 1000 + 0.003,
+      },
+      {
+        type: "RUN_FINISHED",
+        threadId: sessionId,
+        runId,
+        timestamp: createdAt / 1000 + 0.004,
+      },
+    ]
+      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+      .join("");
+
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body,
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "+ New" }).click();
+  await expect(page.getByText("Session pw-searc").first()).toBeVisible();
+  await page.getByPlaceholder("输入指令...").fill("AfterShip 是什么？");
+  await page.getByRole("button", { name: "Send" }).click();
+
+  const firstMessage = page.getByText("好的，我将使用 Google Search 获取 AfterShip 的信息。");
+  const toolGroup = page.getByText("工具并行执行");
+  const summaryHeading = page.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" });
+
+  await expect(firstMessage).toBeVisible();
+  await expect(toolGroup).toBeVisible();
+  await expect(summaryHeading).toBeVisible();
+  await expect(page.getByText("已完成，2 个工具")).toBeVisible();
+
+  const orderHandle = await page.locator("main").nth(1).evaluate((node) => node.textContent || "");
+  expect(orderHandle.indexOf("好的，我将使用 Google Search 获取 AfterShip 的信息。")).toBeLessThan(
+    orderHandle.indexOf("工具并行执行"),
+  );
+  expect(orderHandle.indexOf("工具并行执行")).toBeLessThan(
+    orderHandle.indexOf("AfterShip 信息摘要"),
+  );
+
+  await page.reload();
+
+  await expect(page.getByText("工具并行执行")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" })).toBeVisible();
+});

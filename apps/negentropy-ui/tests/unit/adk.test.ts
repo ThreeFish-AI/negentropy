@@ -228,6 +228,72 @@ describe("adk event mapping", () => {
     expect(events.some((event) => event.type === EventType.TOOL_CALL_START)).toBe(true);
   });
 
+  it("maps parallel tool calls and tool results without mixing toolCallId", () => {
+    const normalizer = new AdkMessageStreamNormalizer();
+    const events = [
+      ...normalizer.consume({
+        id: "tool-batch",
+        runId: "run-1",
+        threadId: "thread-1",
+        author: "assistant",
+        content: {
+          parts: [
+            {
+              functionCall: {
+                id: "call-1",
+                name: "google_search",
+                args: { q: "AfterShip" },
+              },
+            },
+            {
+              functionCall: {
+                id: "call-2",
+                name: "web_search",
+                args: { q: "tracking api" },
+              },
+            },
+          ],
+        },
+        timestamp: 1000,
+      }),
+      ...normalizer.consume({
+        id: "tool-result-batch",
+        runId: "run-1",
+        threadId: "thread-1",
+        author: "assistant",
+        content: {
+          parts: [
+            {
+              functionResponse: {
+                id: "call-1",
+                name: "google_search",
+                response: { result: { items: [{ title: "AfterShip" }] } },
+              },
+            },
+            {
+              functionResponse: {
+                id: "call-2",
+                name: "web_search",
+                response: { result: { items: [{ title: "Tracking API" }] } },
+              },
+            },
+          ],
+        },
+        timestamp: 1001,
+      }),
+    ];
+
+    const toolStarts = events.filter((event) => event.type === EventType.TOOL_CALL_START);
+    const toolResults = events.filter((event) => event.type === EventType.TOOL_CALL_RESULT);
+
+    expect(toolStarts.map((event) => String(event.toolCallId))).toEqual(["call-1", "call-2"]);
+    expect(toolResults.map((event) => String(event.toolCallId))).toEqual(["call-1", "call-2"]);
+    expect(toolResults.map((event) => String(event.content))).toEqual([
+      JSON.stringify({ items: [{ title: "AfterShip" }] }),
+      JSON.stringify({ items: [{ title: "Tracking API" }] }),
+    ]);
+  });
+
   it("parses valid ADK event payloads through the shared validator", () => {
     const payload = parseAdkEventPayload({
       id: "evt_6",

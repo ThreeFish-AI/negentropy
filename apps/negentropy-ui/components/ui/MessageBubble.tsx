@@ -9,7 +9,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getStreamingMarkdownSegments } from "@/utils/streaming-markdown";
 import { MermaidDiagram } from "./MermaidDiagram";
-import { ToolCallList } from "./ToolCallBubble";
 import { UserAvatar } from "./UserAvatar";
 
 type ChatMessageProps = {
@@ -427,11 +426,6 @@ export function MessageBubble({
               </span>
             ) : null}
           </div>
-        )}
-
-        {/* 工具调用列表（内嵌在消息气泡中显示） */}
-        {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
-          <ToolCallList toolCalls={message.toolCalls} />
         )}
 
         {!isUser && <MessageActions content={content} />}
