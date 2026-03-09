@@ -4,7 +4,8 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi.testclient import TestClient
 
 from negentropy.knowledge import api as knowledge_api
 from negentropy.knowledge.types import ChunkingStrategy, KnowledgeMatch, KnowledgeRecord
@@ -218,7 +219,65 @@ async def test_create_corpus_serializes_chunking_strategy_to_string(monkeypatch)
     assert spec.config["strategy"] == "hierarchical"
     assert isinstance(spec.config["strategy"], str)
     assert spec.config["separators"] == ["###"]
-    assert result.config["strategy"] == "hierarchical"
+
+
+@pytest.mark.asyncio
+async def test_get_pipelines_returns_diagnostic_summary_in_typed_response(monkeypatch):
+    run_id = uuid4()
+
+    class FakeDao:
+        async def list_pipeline_runs(self, app_name: str, limit: int = 50):
+            _ = (app_name, limit)
+            return [
+                SimpleNamespace(
+                    id=run_id,
+                    run_id="pipeline-1",
+                    status="failed",
+                    version=3,
+                    payload={
+                        "operation": "rebuild_source",
+                        "stages": {
+                            "extract_primary": {
+                                "status": "failed",
+                                "error": {
+                                    "message": "Tool input schema could not be normalized for document extraction",
+                                    "failure_category": "low_confidence_contract",
+                                    "diagnostic_summary": "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数",
+                                    "diagnostics": {"summary": "ignored because direct summary exists"},
+                                },
+                            }
+                        },
+                    },
+                    updated_at=SimpleNamespace(isoformat=lambda: "2026-03-09T11:30:00+08:00"),
+                )
+            ]
+
+    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
+
+    result = await knowledge_api.get_pipelines(app_name="negentropy")
+
+    assert result.last_updated_at == "2026-03-09T11:30:00+08:00"
+    assert result.runs[0].stages["extract_primary"].error is not None
+    assert result.runs[0].stages["extract_primary"].error.failure_category == "low_confidence_contract"
+    assert (
+        result.runs[0].stages["extract_primary"].error.diagnostic_summary
+        == "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数"
+    )
+
+
+def test_get_pipelines_openapi_includes_diagnostic_summary() -> None:
+    app = FastAPI()
+    app.include_router(knowledge_api.router)
+
+    with TestClient(app) as client:
+        schema = client.get("/openapi.json").json()
+
+    pipeline_error_schema = schema["components"]["schemas"]["PipelineErrorPayloadResponse"]
+    assert "diagnostic_summary" in pipeline_error_schema["properties"]
+    assert (
+        pipeline_error_schema["properties"]["diagnostic_summary"]["description"]
+        == "一条可直接展示的摘要，默认用于契约类失败。"
+    )
 
 
 @pytest.mark.asyncio

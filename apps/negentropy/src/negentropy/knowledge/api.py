@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import func, select
 
 from negentropy.config import settings
@@ -196,6 +196,62 @@ class PipelinesUpsertRequest(BaseModel):
     payload: Dict[str, Any] = Field(default_factory=dict)
     idempotency_key: Optional[str] = None
     expected_version: Optional[int] = None
+
+
+class PipelineErrorPayloadResponse(BaseModel):
+    """Pipeline 错误对象。
+
+    `failure_category` 用于稳定失败分类；`diagnostic_summary` 用于一条可直接展示的摘要；
+    `diagnostics` 保留完整结构化诊断信息，供明细排障使用。
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    failure_category: Optional[str] = Field(default=None, description="稳定失败分类。")
+    diagnostic_summary: Optional[str] = Field(
+        default=None,
+        description="一条可直接展示的摘要，默认用于契约类失败。",
+    )
+    diagnostics: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="结构化详细诊断信息，供明细排障使用。",
+    )
+
+
+class PipelineStageResultResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    status: str
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    duration_ms: Optional[int] = None
+    error: Optional[PipelineErrorPayloadResponse] = None
+    output: Dict[str, Any] = Field(default_factory=dict)
+    reason: Optional[str] = None
+
+
+class PipelineRunRecordResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    run_id: str
+    status: str
+    version: Optional[int] = None
+    operation: Optional[str] = None
+    trigger: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    duration_ms: Optional[int] = None
+    duration: Optional[str] = None
+    input: Dict[str, Any] = Field(default_factory=dict)
+    output: Dict[str, Any] = Field(default_factory=dict)
+    stages: Dict[str, PipelineStageResultResponse] = Field(default_factory=dict)
+    error: Optional[PipelineErrorPayloadResponse] = None
+
+
+class KnowledgePipelinesResponse(BaseModel):
+    runs: list[PipelineRunRecordResponse] = Field(default_factory=list)
+    last_updated_at: Optional[str] = None
 
 
 # Graph API Request/Response Models
@@ -2640,24 +2696,24 @@ async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
     return {"status": result.status, "graph": result.record}
 
 
-@router.get("/pipelines")
-async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+@router.get("/pipelines", response_model=KnowledgePipelinesResponse)
+async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> KnowledgePipelinesResponse:
     resolved_app = _resolve_app_name(app_name)
     dao = _get_dao()
     runs = await dao.list_pipeline_runs(resolved_app, limit=50)
-    return {
-        "runs": [
-            {
-                "id": str(run.id),
-                "run_id": run.run_id,
-                "status": run.status,
-                "version": run.version,
+    return KnowledgePipelinesResponse(
+        runs=[
+            PipelineRunRecordResponse(
+                id=str(run.id),
+                run_id=run.run_id,
+                status=run.status,
+                version=run.version,
                 **(run.payload or {}),
-            }
+            )
             for run in runs
         ],
-        "last_updated_at": runs[0].updated_at.isoformat() if runs else None,
-    }
+        last_updated_at=runs[0].updated_at.isoformat() if runs else None,
+    )
 
 
 @router.post("/pipelines")
