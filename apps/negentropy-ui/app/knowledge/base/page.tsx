@@ -55,6 +55,7 @@ import { RetrievedChunkCard } from "./_components/RetrievedChunkCard";
 import { RetrievedChunkDetailDialog } from "./_components/RetrievedChunkDetailDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 import { buildRetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
+import type { RetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -104,6 +105,41 @@ function formatDateTime(value?: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--";
   return date.toLocaleString("zh-CN");
+}
+
+function formatChunkLabel(chunk: DocumentChunkItem): string {
+  const prefix = chunk.chunk_role === "parent" ? "Parent" : "Chunk";
+  return `${prefix}-${String(chunk.chunk_index).padStart(2, "0")}`;
+}
+
+function toDocumentChunkCardViewModel(chunk: DocumentChunkItem): RetrievedChunkViewModel {
+  return {
+    id: chunk.id,
+    variant: chunk.child_chunks.length > 0 ? "hierarchical" : "standard",
+    title: formatChunkLabel(chunk),
+    characterCount: chunk.character_count,
+    preview: chunk.content,
+    fullContent: chunk.content,
+    sourceLabel: chunk.source_uri || "-",
+    sourceTitle: chunk.source_uri || "-",
+    score: 0,
+    childHitCount: chunk.child_chunks.length,
+    childChunks: chunk.child_chunks
+      .filter((child) => child.content.trim().length > 0)
+      .map((child) => ({
+        id: child.id,
+        label: `C-${String(child.child_chunk_index ?? child.chunk_index).padStart(2, "0")}`,
+        content: child.content,
+        score: 0,
+      })),
+    raw: {
+      id: chunk.id,
+      content: chunk.content,
+      source_uri: chunk.source_uri,
+      combined_score: 0,
+      metadata: chunk.metadata,
+    } as KnowledgeMatch,
+  };
 }
 
 function DocumentMetadataPanel({
@@ -597,7 +633,6 @@ export default function KnowledgeBasePage() {
   const [documentChunkPage, setDocumentChunkPage] = useState(1);
   const [documentChunkPageSize, setDocumentChunkPageSize] = useState(10);
   const [chunksLoading, setChunksLoading] = useState(false);
-  const [expandedChunkFamilies, setExpandedChunkFamilies] = useState<Record<string, boolean>>({});
 
   const [selectedRetrievedChunk, setSelectedRetrievedChunk] = useState<KnowledgeMatch | null>(null);
   const [selectedDocumentChunk, setSelectedDocumentChunk] = useState<DocumentChunkItem | null>(null);
@@ -1311,7 +1346,9 @@ export default function KnowledgeBasePage() {
 
             <main
               data-testid="corpus-content-scroll"
-              className="min-w-0 flex-1 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-sm"
+              className={`min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 shadow-sm ${
+                corpusTab === "document-chunks" ? "overflow-hidden" : "overflow-y-auto"
+              }`}
             >
               {corpusTab === "documents" && (
                 <div className="space-y-3 pb-10">
@@ -1388,8 +1425,8 @@ export default function KnowledgeBasePage() {
               )}
 
               {corpusTab === "document-chunks" && (
-                <div className="grid gap-4 pb-10 xl:grid-cols-[minmax(0,1fr)_360px]">
-                  <section className="flex min-h-[760px] flex-col rounded-2xl border border-border bg-card">
+                <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+                  <section className="flex min-h-0 flex-col rounded-2xl border border-border bg-card">
                     <div className="flex items-center justify-between border-b border-border px-5 py-4">
                       <div>
                         <h2 className="text-lg font-semibold">Document Chunks</h2>
@@ -1405,79 +1442,53 @@ export default function KnowledgeBasePage() {
                       </button>
                     </div>
 
-                    <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                    <div
+                      data-testid="document-chunks-queue"
+                      className="flex-1 min-h-0 space-y-3 overflow-y-auto px-4 py-4"
+                    >
                       {chunksLoading ? (
                         <p className="text-xs text-muted">Loading chunks...</p>
                       ) : documentChunks.length === 0 ? (
                         <p className="text-xs text-muted">No chunks.</p>
                       ) : (
                         documentChunks.map((chunk) => {
-                          const familyKey = chunk.chunk_family_id || chunk.id;
-                          const expanded = Boolean(expandedChunkFamilies[familyKey]);
+                          const cardModel = toDocumentChunkCardViewModel(chunk);
                           return (
-                            <div
+                            <RetrievedChunkCard
                               key={chunk.id}
-                              className={`rounded-2xl border p-4 ${
+                              chunk={cardModel}
+                              onOpen={() => void handleSelectDocumentChunk(chunk)}
+                              hideFooter
+                              hideScores
+                              onChildChunkOpen={(childChunkId) => {
+                                const childChunk = chunk.child_chunks.find((child) => child.id === childChunkId);
+                                if (childChunk) {
+                                  void handleSelectDocumentChunk(childChunk);
+                                }
+                              }}
+                              className={
                                 selectedDocumentChunk?.id === chunk.id
                                   ? "border-blue-500 bg-blue-500/5"
-                                  : "border-border bg-background"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => void handleSelectDocumentChunk(chunk)}
-                                className="block w-full text-left"
-                              >
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                                      {chunk.chunk_role === "parent" ? "Parent" : "Chunk"}-{String(chunk.chunk_index).padStart(2, "0")} · {chunk.character_count} characters · {chunk.display_retrieval_count} Retrieval count
-                                    </p>
-                                    <p className="mt-2 line-clamp-2 text-base">{chunk.content}</p>
-                                  </div>
+                                  : "bg-background"
+                              }
+                              badges={(
+                                <>
+                                  <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
+                                  <span className="shrink-0 rounded bg-zinc-900 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white dark:bg-zinc-100 dark:text-zinc-900">
+                                    Retrieval Count {chunk.display_retrieval_count}
+                                  </span>
                                   <span
-                                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-                                      chunk.is_enabled ? "bg-emerald-500/15 text-emerald-400" : "bg-zinc-500/15 text-zinc-400"
+                                    className={`shrink-0 rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+                                      chunk.is_enabled
+                                        ? "bg-emerald-500/15 text-emerald-500"
+                                        : "bg-zinc-500/15 text-zinc-500"
                                     }`}
                                   >
                                     {chunk.is_enabled ? "Enabled" : "Disabled"}
                                   </span>
-                                </div>
-                              </button>
-                              {chunk.child_chunks.length > 0 && (
-                                <div className="mt-4">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setExpandedChunkFamilies((current) => ({
-                                        ...current,
-                                        [familyKey]: !expanded,
-                                      }))
-                                    }
-                                    className="text-sm font-semibold text-muted"
-                                  >
-                                    {expanded ? "v" : ">"} {chunk.child_chunks.length} Child Chunks
-                                  </button>
-                                  {expanded && (
-                                    <div className="mt-3 space-y-2 border-l border-blue-500/40 pl-3">
-                                      {chunk.child_chunks.map((child) => (
-                                        <button
-                                          key={child.id}
-                                          type="button"
-                                          onClick={() => void handleSelectDocumentChunk(child)}
-                                          className="block w-full rounded-xl bg-muted/40 px-3 py-2 text-left text-sm hover:bg-muted"
-                                        >
-                                          <span className="mr-2 text-xs text-muted">
-                                            C-{child.child_chunk_index ?? child.chunk_index}
-                                          </span>
-                                          <span className="line-clamp-1">{child.content}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
+                                </>
                               )}
-                            </div>
+                            />
                           );
                         })
                       )}
@@ -1526,25 +1537,27 @@ export default function KnowledgeBasePage() {
                     </div>
                   </section>
 
-                  {selectedDocumentChunk ? (
-                    <EditChunkPanel
-                      chunk={selectedDocumentChunk}
-                      draftContent={chunkDraftContent}
-                      draftEnabled={chunkDraftEnabled}
-                      onDraftContentChange={setChunkDraftContent}
-                      onDraftEnabledChange={setChunkDraftEnabled}
-                      onCancel={() => {
-                        setSelectedDocumentChunk(null);
-                        setChunkDraftContent("");
-                        setChunkDraftEnabled(true);
-                      }}
-                      onSave={() => void handleSaveDocumentChunk()}
-                      onRegenerate={() => void handleRegenerateDocumentChunkFamily()}
-                      pending={chunkActionPending}
-                    />
-                  ) : (
-                    <DocumentMetadataPanel metadata={documentChunksMetadata} />
-                  )}
+                  <div className="min-h-0">
+                    {selectedDocumentChunk ? (
+                      <EditChunkPanel
+                        chunk={selectedDocumentChunk}
+                        draftContent={chunkDraftContent}
+                        draftEnabled={chunkDraftEnabled}
+                        onDraftContentChange={setChunkDraftContent}
+                        onDraftEnabledChange={setChunkDraftEnabled}
+                        onCancel={() => {
+                          setSelectedDocumentChunk(null);
+                          setChunkDraftContent("");
+                          setChunkDraftEnabled(true);
+                        }}
+                        onSave={() => void handleSaveDocumentChunk()}
+                        onRegenerate={() => void handleRegenerateDocumentChunkFamily()}
+                        pending={chunkActionPending}
+                      />
+                    ) : (
+                      <DocumentMetadataPanel metadata={documentChunksMetadata} />
+                    )}
+                  </div>
                 </div>
               )}
 
