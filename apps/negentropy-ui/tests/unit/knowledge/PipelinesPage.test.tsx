@@ -320,7 +320,7 @@ describe("KnowledgePipelinesPage polling", () => {
       last_updated_at: "t0",
     });
 
-    const { container } = render(<KnowledgePipelinesPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     const stagesSection = screen.getByText("Stages").parentElement;
