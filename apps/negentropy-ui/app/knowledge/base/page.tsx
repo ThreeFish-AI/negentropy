@@ -46,7 +46,6 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
@@ -91,48 +90,6 @@ function formatCorpusConfigSummary(corpus: CorpusRecord): string {
   }
 
   return `strategy: ${config.strategy} · size: ${config.chunk_size} · overlap: ${config.overlap}`;
-}
-
-function ChunkDetailDrawer({
-  chunk,
-  onClose,
-}: {
-  chunk: DocumentChunkItem | null;
-  onClose: () => void;
-}) {
-  if (!chunk) return null;
-  const metadata = chunk.metadata;
-  const content = chunk.content;
-  return (
-    <OverlayDismissLayer
-      open={chunk !== null}
-      onClose={onClose}
-      containerClassName="flex min-h-full justify-end"
-      contentClassName="h-full w-[420px] border-l border-border bg-card p-4 shadow-2xl"
-      backdropTestId="chunk-drawer-backdrop"
-    >
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Chunk Detail</h3>
-        <button
-          onClick={onClose}
-          className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
-        >
-          Close
-        </button>
-      </div>
-      <div className="space-y-3 text-xs">
-        <div className="rounded border border-border bg-background p-3">
-          <p className="whitespace-pre-wrap break-words text-foreground">{content}</p>
-        </div>
-        <div className="rounded border border-border bg-background p-3">
-          <div className="mb-2 text-[11px] font-medium text-muted">Metadata</div>
-          <pre className="whitespace-pre-wrap break-words text-[11px] text-muted">
-            {JSON.stringify(metadata || {}, null, 2)}
-          </pre>
-        </div>
-      </div>
-    </OverlayDismissLayer>
-  );
 }
 
 function formatFileSize(size?: number | null): string {
