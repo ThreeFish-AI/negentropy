@@ -463,7 +463,7 @@ describe("KnowledgePipelinesPage polling", () => {
 
     expect(screen.getByText("Tool 契约置信度不足")).toBeInTheDocument();
     expect(
-      screen.getByText("契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数")
-    ).toBeInTheDocument();
+      screen.getAllByText("契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数")
+    ).toHaveLength(1);
   });
 });
