@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 import { buildAvatarProxyUrl } from "@/lib/avatar";
@@ -34,14 +35,17 @@ export function UserAvatar({
 
   if (avatarSrc) {
     return (
-      <img
-        src={avatarSrc}
-        alt={avatarAlt}
-        className={className}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={() => setFailedPicture(picture ?? null)}
-      />
+      <div className={cn("relative overflow-hidden rounded-full", className)}>
+        <Image
+          src={avatarSrc}
+          alt={avatarAlt}
+          fill
+          sizes="32px"
+          className="object-cover"
+          referrerPolicy="no-referrer"
+          onError={() => setFailedPicture(picture ?? null)}
+        />
+      </div>
     );
   }
 

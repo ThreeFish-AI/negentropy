@@ -74,6 +74,34 @@ describe("adk event mapping", () => {
     expect(messages[1].content).toBe("pong");
   });
 
+  it("将仅通过 protocol author 标记的历史用户消息解析为 user", () => {
+    const payload = {
+      id: "evt-author-user",
+      runId: "run-1",
+      threadId: "thread-1",
+      author: "user",
+      content: { parts: [{ text: "Hi" }] },
+      timestamp: 1000,
+    };
+
+    const events = adkEventToAguiEvents(payload);
+    const startEvent = events.find(
+      (event) => event.type === EventType.TEXT_MESSAGE_START,
+    );
+
+    expect(startEvent).toMatchObject({
+      type: EventType.TEXT_MESSAGE_START,
+      role: "user",
+    });
+
+    const messages = adkEventsToMessages([payload]);
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({
+      role: "user",
+      content: "Hi",
+    });
+  });
+
   it("groups assistant text chunks with changing payload ids into one AG-UI message lifecycle", () => {
     const normalizer = new AdkMessageStreamNormalizer();
     const events = [

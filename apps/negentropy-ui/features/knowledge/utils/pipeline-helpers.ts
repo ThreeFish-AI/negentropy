@@ -6,7 +6,7 @@
  * - Reuse-Driven: 供 Dashboard 和 Pipelines 页面复用
  */
 
-import type { PipelineStageResult } from "./knowledge-api";
+import type { PipelineRunRecord, PipelineStageResult } from "./knowledge-api";
 
 // ============================================================================
 // 常量定义
@@ -19,6 +19,8 @@ export const OPERATION_LABELS: Record<string, string> = {
   ingest_text: "文本摄入",
   ingest_url: "URL 摄入",
   replace_source: "替换源",
+  sync_source: "同步源",
+  rebuild_source: "重建源",
 };
 
 /**
@@ -33,13 +35,35 @@ export const TRIGGER_LABELS: Record<string, string> = {
 /**
  * 阶段顺序定义（用于排序显示）
  */
-export const STAGE_ORDER = ["fetch", "delete", "chunk", "embed", "persist"];
+export const STAGE_ORDER = [
+  "extract_resolve",
+  "extract_primary",
+  "extract_failover_1",
+  "extract_failover_2",
+  "extract_assets_store",
+  "extract_finalize",
+  "fetch",
+  "download",
+  "extract",
+  "delete",
+  "chunk",
+  "embed",
+  "persist",
+];
 
 /**
  * 阶段名称中文标签
  */
 export const STAGE_LABELS: Record<string, string> = {
   fetch: "获取内容",
+  download: "下载源文件",
+  extract: "提取内容",
+  extract_resolve: "解析提取路由",
+  extract_primary: "主 MCP 提取",
+  extract_failover_1: "备用 MCP 提取 1",
+  extract_failover_2: "备用 MCP 提取 2",
+  extract_assets_store: "存储提取资源",
+  extract_finalize: "整理提取结果",
   delete: "删除旧记录",
   chunk: "文本分块",
   embed: "向量化",
@@ -58,6 +82,54 @@ export const STAGE_COLORS: Record<
     completed: "bg-sky-500",
     failed: "bg-sky-700",
     skipped: "bg-sky-300 dark:bg-sky-600",
+  },
+  download: {
+    running: "bg-cyan-400",
+    completed: "bg-cyan-500",
+    failed: "bg-cyan-700",
+    skipped: "bg-cyan-300 dark:bg-cyan-600",
+  },
+  extract: {
+    running: "bg-indigo-400",
+    completed: "bg-indigo-500",
+    failed: "bg-indigo-700",
+    skipped: "bg-indigo-300 dark:bg-indigo-600",
+  },
+  extract_resolve: {
+    running: "bg-blue-400",
+    completed: "bg-blue-500",
+    failed: "bg-blue-700",
+    skipped: "bg-blue-300 dark:bg-blue-600",
+  },
+  extract_primary: {
+    running: "bg-fuchsia-400",
+    completed: "bg-fuchsia-500",
+    failed: "bg-fuchsia-700",
+    skipped: "bg-fuchsia-300 dark:bg-fuchsia-600",
+  },
+  extract_failover_1: {
+    running: "bg-pink-400",
+    completed: "bg-pink-500",
+    failed: "bg-pink-700",
+    skipped: "bg-pink-300 dark:bg-pink-600",
+  },
+  extract_failover_2: {
+    running: "bg-purple-400",
+    completed: "bg-purple-500",
+    failed: "bg-purple-700",
+    skipped: "bg-purple-300 dark:bg-purple-600",
+  },
+  extract_assets_store: {
+    running: "bg-teal-400",
+    completed: "bg-teal-500",
+    failed: "bg-teal-700",
+    skipped: "bg-teal-300 dark:bg-teal-600",
+  },
+  extract_finalize: {
+    running: "bg-lime-400",
+    completed: "bg-lime-500",
+    failed: "bg-lime-700",
+    skipped: "bg-lime-300 dark:bg-lime-600",
   },
   delete: {
     running: "bg-rose-400",
@@ -293,4 +365,111 @@ export const formatRelativeTime = (dateStr?: string): string => {
 export const truncateRunId = (runId: string, length = 8): string => {
   if (!runId) return "-";
   return runId.length > length ? `${runId.slice(0, length)}...` : runId;
+};
+
+export interface FailedStageDetail {
+  stageName: string;
+  label: string;
+  status: string;
+  durationMs?: number;
+  error: Record<string, unknown>;
+  message: string;
+}
+
+export interface PipelineErrorDetail {
+  scope: "run" | "stage";
+  key: string;
+  title: string;
+  message: string;
+  error: Record<string, unknown>;
+  stageName?: string;
+  durationMs?: number;
+  status?: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const getStageErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (!isRecord(error)) {
+    return "Unknown error";
+  }
+
+  const message = error.message;
+  if (typeof message === "string" && message.trim()) {
+    return message;
+  }
+
+  const detail = error.detail;
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  const type = error.type;
+  if (typeof type === "string" && type.trim()) {
+    return type;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Unknown error";
+  }
+};
+
+export const getFailedStages = (
+  stages?: Record<string, PipelineStageResult>
+): FailedStageDetail[] =>
+  getSortedStages(stages)
+    .filter(([, stage]) => {
+      const status = (stage.status || "").toLowerCase();
+      return (status === "failed" || status === "error") && isRecord(stage.error);
+    })
+    .map(([stageName, stage]) => ({
+      stageName,
+      label: STAGE_LABELS[stageName] || stageName,
+      status: stage.status,
+      durationMs: stage.duration_ms,
+      error: stage.error as Record<string, unknown>,
+      message: getStageErrorMessage(stage.error),
+    }));
+
+export const buildPipelineErrorDetails = (
+  run: Pick<PipelineRunRecord, "error" | "stages">
+): PipelineErrorDetail[] => {
+  const stageErrors = getFailedStages(run.stages);
+  const stageMessages = new Set(stageErrors.map((item) => item.message));
+  const details: PipelineErrorDetail[] = [];
+
+  if (isRecord(run.error)) {
+    const runMessage = getStageErrorMessage(run.error);
+    if (!stageMessages.has(runMessage)) {
+      details.push({
+        scope: "run",
+        key: "run",
+        title: "运行级错误",
+        message: runMessage,
+        error: run.error,
+      });
+    }
+  }
+
+  details.push(
+    ...stageErrors.map((item) => ({
+      scope: "stage" as const,
+      key: item.stageName,
+      title: item.label,
+      message: item.message,
+      error: item.error,
+      stageName: item.stageName,
+      durationMs: item.durationMs,
+      status: item.status,
+    }))
+  );
+
+  return details;
 };

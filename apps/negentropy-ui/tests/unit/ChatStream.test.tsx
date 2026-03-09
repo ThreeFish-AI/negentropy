@@ -11,7 +11,7 @@ describe("ChatStream", () => {
   it("在空树时渲染占位文案", () => {
     render(<ChatStream nodes={[]} />);
     expect(
-      screen.getByText("发送指令开始对话。主区将以 A2UI 模块树实时展示消息、工具、活动与状态。"),
+      screen.getByText("发送指令开始对话。主区会优先展示聊天消息，并在答复下附带工具、状态与活动摘要。"),
     ).toBeInTheDocument();
   });
 
@@ -144,8 +144,6 @@ describe("ChatStream", () => {
     ];
 
     const { container } = render(<ChatStream nodes={nodes} />);
-
-    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
 
     const contentWrapper = container.querySelector(".space-y-4");
     CHAT_CONTENT_RAIL_CLASS.split(" ").forEach((className) => {

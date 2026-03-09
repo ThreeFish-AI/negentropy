@@ -30,10 +30,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
+from negentropy.auth.deps import get_current_user
+from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -41,9 +43,11 @@ from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
 
 from .factories.memory import (
     get_fact_service,
+    get_memory_automation_service,
     get_memory_governance_service,
     get_memory_service,
 )
+from .adapters.postgres.memory_automation_service import MemoryAutomationUnavailableError
 
 logger = get_logger("negentropy.engine.api")
 router = APIRouter(prefix="/memory", tags=["memory"])
@@ -140,6 +144,85 @@ class MemoryDashboardResponse(BaseModel):
     recent_audit_count: int
 
 
+class MemoryAutomationFunctionResponse(BaseModel):
+    name: str
+    schema: str
+    status: str
+    definition: str
+    managed: bool = True
+
+
+class MemoryAutomationJobResponse(BaseModel):
+    job_key: str
+    process_label: str
+    function_name: str
+    enabled: bool
+    status: str
+    job_id: Optional[int] = None
+    schedule: str
+    command: str
+    active: bool = False
+
+
+class MemoryAutomationProcessResponse(BaseModel):
+    key: str
+    label: str
+    description: str
+    config: Dict[str, Any] = Field(default_factory=dict)
+    job: Optional[MemoryAutomationJobResponse] = None
+    functions: List[MemoryAutomationFunctionResponse] = Field(default_factory=list)
+
+
+class MemoryAutomationCapabilitiesResponse(BaseModel):
+    pg_cron_installed: bool
+    pg_cron_available: bool
+    management_mode: str
+    degraded_reasons: List[str] = Field(default_factory=list)
+
+
+class MemoryAutomationHealthResponse(BaseModel):
+    status: str
+    recent_log_count: int
+
+
+class MemoryAutomationSnapshotResponse(BaseModel):
+    capabilities: MemoryAutomationCapabilitiesResponse
+    config: Dict[str, Any]
+    processes: List[MemoryAutomationProcessResponse]
+    functions: List[MemoryAutomationFunctionResponse]
+    jobs: List[MemoryAutomationJobResponse]
+    health: MemoryAutomationHealthResponse
+
+
+class MemoryAutomationLogItemResponse(BaseModel):
+    job_id: Optional[int] = None
+    run_id: Optional[int] = None
+    database: Optional[str] = None
+    username: Optional[str] = None
+    command: Optional[str] = None
+    status: Optional[str] = None
+    return_message: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+
+
+class MemoryAutomationLogsResponse(BaseModel):
+    count: int
+    items: List[MemoryAutomationLogItemResponse] = Field(default_factory=list)
+
+
+class MemoryAutomationConfigUpdateRequest(BaseModel):
+    app_name: Optional[str] = None
+    config: Dict[str, Any]
+
+
+class MemoryAutomationRunResponse(BaseModel):
+    job_key: str
+    process_label: str
+    result: Optional[int] = None
+    snapshot: MemoryAutomationSnapshotResponse
+
+
 # ============================================================================
 # Helpers
 # ============================================================================
@@ -151,6 +234,12 @@ def _resolve_app_name(app_name: Optional[str]) -> str:
 
 def _iso(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat() if dt else None
+
+
+def _require_admin(user: AuthUser) -> AuthUser:
+    if "admin" not in user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+    return user
 
 
 # ============================================================================
@@ -242,6 +331,7 @@ async def list_memories(
     返回用户列表、记忆时间线和当前治理策略。
     """
     resolved_app = _resolve_app_name(app_name)
+    automation = get_memory_automation_service()
 
     async with AsyncSessionLocal() as db:
         # 获取用户列表
@@ -282,13 +372,7 @@ async def list_memories(
         for m in memories
     ]
 
-    # 治理策略（可配置化，当前返回默认值）
-    policies = {
-        "decay_lambda": 0.1,
-        "low_retention_threshold": 0.1,
-        "auto_cleanup_enabled": False,
-        "cleanup_cron": "0 2 * * *",
-    }
+    policies = await automation.list_policy_summary(app_name=resolved_app)
 
     return MemoryListResponse(
         users=users,
@@ -475,3 +559,116 @@ async def get_audit_history(
             for r in records
         ],
     }
+
+
+@router.get("/automation", response_model=MemoryAutomationSnapshotResponse)
+async def get_memory_automation_snapshot(
+    app_name: Optional[str] = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> MemoryAutomationSnapshotResponse:
+    _require_admin(user)
+    service = get_memory_automation_service()
+    snapshot = await service.get_snapshot(app_name=_resolve_app_name(app_name))
+    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
+
+
+@router.get("/automation/logs", response_model=MemoryAutomationLogsResponse)
+async def get_memory_automation_logs(
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    user: AuthUser = Depends(get_current_user),
+) -> MemoryAutomationLogsResponse:
+    _require_admin(user)
+    service = get_memory_automation_service()
+    _ = _resolve_app_name(app_name)
+    items = await service.get_logs(limit=limit)
+    return MemoryAutomationLogsResponse(count=len(items), items=items)
+
+
+@router.post("/automation/config", response_model=MemoryAutomationSnapshotResponse)
+async def update_memory_automation_config(
+    payload: MemoryAutomationConfigUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> MemoryAutomationSnapshotResponse:
+    _require_admin(user)
+    service = get_memory_automation_service()
+    resolved_app = _resolve_app_name(payload.app_name)
+    try:
+        await service.update_config(
+            app_name=resolved_app,
+            config=payload.config,
+            updated_by=user.user_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    snapshot = await service.get_snapshot(app_name=resolved_app)
+    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
+
+
+@router.post("/automation/jobs/{job_key}/enable", response_model=MemoryAutomationSnapshotResponse)
+async def enable_memory_automation_job(
+    job_key: str,
+    app_name: Optional[str] = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> MemoryAutomationSnapshotResponse:
+    _require_admin(user)
+    service = get_memory_automation_service()
+    try:
+        snapshot = await service.enable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
+
+
+@router.post("/automation/jobs/{job_key}/disable", response_model=MemoryAutomationSnapshotResponse)
+async def disable_memory_automation_job(
+    job_key: str,
+    app_name: Optional[str] = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> MemoryAutomationSnapshotResponse:
+    _require_admin(user)
+    service = get_memory_automation_service()
+    try:
+        snapshot = await service.disable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
+
+
+@router.post("/automation/jobs/{job_key}/reconcile", response_model=MemoryAutomationSnapshotResponse)
+async def reconcile_memory_automation_job(
+    job_key: str,
+    app_name: Optional[str] = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> MemoryAutomationSnapshotResponse:
+    _require_admin(user)
+    service = get_memory_automation_service()
+    try:
+        snapshot = await service.reconcile_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return MemoryAutomationSnapshotResponse.model_validate(snapshot)
+
+
+@router.post("/automation/jobs/{job_key}/run", response_model=MemoryAutomationRunResponse)
+async def run_memory_automation_job(
+    job_key: str,
+    app_name: Optional[str] = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> MemoryAutomationRunResponse:
+    _require_admin(user)
+    service = get_memory_automation_service()
+    try:
+        result = await service.run_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
+    except MemoryAutomationUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    result["snapshot"] = MemoryAutomationSnapshotResponse.model_validate(result["snapshot"])
+    return MemoryAutomationRunResponse.model_validate(result)

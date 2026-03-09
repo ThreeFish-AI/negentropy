@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PluginsNav } from "@/components/ui/PluginsNav";
 import { SkillCard } from "./_components/SkillCard";
 import { SkillFormDialog } from "./_components/SkillFormDialog";
@@ -30,7 +30,7 @@ export default function SkillsPage() {
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
 
-  const fetchSkills = async () => {
+  const fetchSkills = useCallback(async () => {
     try {
       const url = categoryFilter
         ? `/api/plugins/skills?category=${encodeURIComponent(categoryFilter)}`
@@ -46,11 +46,11 @@ export default function SkillsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryFilter]);
 
   useEffect(() => {
-    fetchSkills();
-  }, [categoryFilter]);
+    void fetchSkills();
+  }, [fetchSkills]);
 
   const handleCreate = () => {
     setEditingSkill(null);

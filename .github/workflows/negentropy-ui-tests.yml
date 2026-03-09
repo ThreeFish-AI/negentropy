@@ -22,6 +22,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  ui-lint:
+    name: UI Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/negentropy-ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint app
+        run: pnpm lint
+
   ui-typecheck:
     name: UI Type Checks
     runs-on: ubuntu-latest
@@ -117,7 +145,7 @@ jobs:
 
   ui-e2e-smoke:
     name: UI Playwright Smoke
-    needs: [ui-typecheck, ui-unit-integration, ui-build-smoke]
+    needs: [ui-lint, ui-typecheck, ui-unit-integration, ui-build-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:

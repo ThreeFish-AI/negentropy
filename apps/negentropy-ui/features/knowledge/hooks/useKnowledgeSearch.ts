@@ -97,7 +97,6 @@ export function useKnowledgeSearch(
     defaultConfig = DEFAULT_SEARCH_CONFIG,
     onError,
     onSuccess,
-    debounceMs = 300,
   } = options;
 
   // 状态管理

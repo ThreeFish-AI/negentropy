@@ -31,7 +31,7 @@ export interface AgentMetrics {
  */
 export interface UseAgentSubscriptionOptions {
   /** Agent 实例 */
-  agent: any;
+  agent: AgentLike | null;
   /** 当前会话 ID */
   sessionId?: string | null;
   /** 原始事件回调 */
@@ -54,7 +54,24 @@ export interface UseAgentSubscriptionReturnValue {
   setConnectionWithMetrics: (state: ConnectionState) => void;
 }
 
-const DEFAULT_EVENT_BUFFER_SIZE = 10000;
+type AgentSubscriptionHandlers = {
+  onRunInitialized?: () => void;
+  onRunStartedEvent?: () => void;
+  onRunFinishedEvent?: () => void;
+  onRunErrorEvent?: () => void;
+  onRunFailed?: () => void;
+  onEvent?: (payload: { event: BaseEvent }) => void;
+};
+
+export type AgentSubscription = {
+  unsubscribe: () => void;
+};
+
+export type AgentSubscriptionHandlersLike = AgentSubscriptionHandlers;
+
+export type AgentLike = {
+  subscribe: (handlers: AgentSubscriptionHandlers) => AgentSubscription;
+};
 
 /**
  * Agent 事件订阅 Hook
@@ -85,27 +102,6 @@ export function useAgentSubscription(
   });
   const previousConnectionRef = useRef<ConnectionState>("idle");
 
-  // 默认的连接状态更新函数
-  const defaultSetConnection = useCallback(() => {
-    // 空实现，由调用方通过 onConnectionChange 提供
-  }, []);
-
-  const setConnection = onConnectionChange || defaultSetConnection;
-
-  // 设置连接状态并记录指标
-  const setConnectionWithMetrics = useCallback(
-    (next: ConnectionState) => {
-      setConnection(next);
-      if (typeof onMetricReport === "function") {
-        if (setConnection === defaultSetConnection) return; // 没有回调时不处理
-
-        // 检查是否从错误恢复到连接中（重连场景）
-        // 这里需要访问之前的 connection 状态，简化处理由调用方负责
-      }
-    },
-    [setConnection, onMetricReport],
-  );
-
   // 报告指标的函数
   const reportMetric = useCallback(
     (name: string, payload: Record<string, unknown>) => {
@@ -120,7 +116,7 @@ export function useAgentSubscription(
   );
 
   // 设置连接状态并记录重连指标
-  const setConnectionWithMetricsWithReconnect = useCallback(
+  const setConnectionWithMetrics = useCallback(
     (next: ConnectionState) => {
       const prev = previousConnectionRef.current;
       if (prev === "error" && next === "connecting") {
@@ -211,6 +207,6 @@ export function useAgentSubscription(
 
   return {
     metricsRef,
-    setConnectionWithMetrics: setConnectionWithMetricsWithReconnect,
+    setConnectionWithMetrics,
   };
 }

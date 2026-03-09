@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 
 interface SubAgent {
   id: string;
@@ -263,7 +264,10 @@ export function SubAgentFormDialog({
                         const target = templates.find((item) => item.name === selectedTemplateName);
                         if (target) applyTemplate(target);
                       }}
-                      className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                      className={outlineButtonClassName(
+                        "neutral",
+                        "rounded-md px-3 py-2 text-sm font-medium",
+                      )}
                     >
                       Apply
                     </button>

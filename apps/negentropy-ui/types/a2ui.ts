@@ -1,4 +1,6 @@
 import type { BaseEvent, Message } from "@ag-ui/core";
+import type { CanonicalMessageRole } from "@/types/agui";
+import type { MessageLedgerEntry } from "@/types/common";
 
 export type ConversationNodeType =
   | "turn"
@@ -34,7 +36,7 @@ export interface ConversationNode {
   sourceOrder: number;
   title: string;
   status?: string;
-  role?: "user" | "assistant" | "system";
+  role?: CanonicalMessageRole;
   summary?: string;
   visibility: "chat" | "collapsed" | "debug-only";
   isStructural?: boolean;
@@ -53,4 +55,5 @@ export interface ConversationTree {
 export interface BuildConversationTreeOptions {
   events: BaseEvent[];
   fallbackMessages?: Message[];
+  messageLedger?: MessageLedgerEntry[];
 }

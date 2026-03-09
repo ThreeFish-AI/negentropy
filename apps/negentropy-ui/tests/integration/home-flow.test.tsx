@@ -6,10 +6,54 @@ import { HomeBody } from "../../app/page";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 
-let mockAgent: any;
-let lastHitlConfig: any;
-let detailEvents: any[];
-let subscriptionHandlers: Record<string, (...args: any[]) => void> | null;
+type MockAgent = {
+  messages: unknown[];
+  state: { stage: string };
+  isRunning: boolean;
+  subscribe: ReturnType<typeof vi.fn>;
+  addMessage: ReturnType<typeof vi.fn>;
+  runAgent: ReturnType<typeof vi.fn>;
+};
+
+type HitlRenderPayload = {
+  status: string;
+  args: {
+    title: string;
+    detail: string;
+  };
+  respond: () => Promise<void>;
+};
+
+type HitlConfig = {
+  render: (payload: HitlRenderPayload) => ReactNode;
+};
+
+type SessionEventPayload = {
+  id: string;
+  runId: string;
+  threadId: string;
+  timestamp: number;
+  message?: {
+    role?: string;
+    content?: string;
+  };
+  author?: string;
+  content?: {
+    parts: Array<{ text: string }>;
+  };
+};
+
+type SubscriptionHandlers = {
+  onEvent?: (payload: { event: AgUiEvent }) => void;
+  onRunInitialized?: () => void;
+  onRunStartedEvent?: () => void;
+  onRunFinishedEvent?: () => void;
+};
+
+let mockAgent: MockAgent;
+let lastHitlConfig: HitlConfig | null;
+let detailEvents: SessionEventPayload[];
+let subscriptionHandlers: SubscriptionHandlers | null;
 
 vi.mock("@copilotkitnext/react", () => ({
   CopilotKitProvider: ({ children }: { children: ReactNode }) => children,
@@ -18,7 +62,7 @@ vi.mock("@copilotkitnext/react", () => ({
     OnStateChanged: "OnStateChanged",
   },
   useAgent: () => ({ agent: mockAgent }),
-  useHumanInTheLoop: (config: any) => {
+  useHumanInTheLoop: (config: HitlConfig) => {
     lastHitlConfig = config;
   },
 }));
@@ -28,9 +72,6 @@ vi.mock("@/components/providers/AuthProvider", () => ({
 }));
 
 function Wrapper({ sessionId }: { sessionId: string | null }) {
-  const [sessions, setSessions] = useState(
-    sessionId ? [{ id: sessionId, label: `Session ${sessionId}` }] : [],
-  );
   const [currentSession, setCurrentSession] = useState(sessionId);
 
   return (
@@ -38,8 +79,6 @@ function Wrapper({ sessionId }: { sessionId: string | null }) {
       sessionId={currentSession}
       userId="ui"
       setSessionId={setCurrentSession}
-      sessions={sessions}
-      setSessions={setSessions}
     />
   );
 }
@@ -79,6 +118,11 @@ function emitAssistantReply(sessionId: string, messageId: string, content: strin
     messageId,
     timestamp: timestamp + 0.003,
   }));
+}
+
+function expectHitlConfig(): HitlConfig {
+  expect(lastHitlConfig).not.toBeNull();
+  return lastHitlConfig as HitlConfig;
 }
 
 async function waitForInitialHydration() {
@@ -374,12 +418,47 @@ describe("HomeBody integration", () => {
     });
   }, 10000);
 
+  it("历史回放仅通过 protocol author 标记用户消息时，Chat 主区仍显示用户输入", async () => {
+    detailEvents = [
+      {
+        id: "history-user-1",
+        runId: "s1",
+        threadId: "s1",
+        timestamp: 1000,
+        author: "user",
+        content: { parts: [{ text: "Hi" }] },
+      },
+      {
+        id: "history-assistant-1",
+        runId: "s1",
+        threadId: "s1",
+        timestamp: 1001,
+        author: "assistant",
+        content: { parts: [{ text: "Hello from history" }] },
+      },
+    ];
+
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    const hi = await screen.findByText((content) => content.includes("Hi"));
+    const reply = await screen.findByText((content) =>
+      content.includes("Hello from history"),
+    );
+
+    expect(hi).toBeInTheDocument();
+    expect(reply).toBeInTheDocument();
+    expect(
+      hi.compareDocumentPosition(reply) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  }, 10000);
+
   it("handles HITL confirmation flow", async () => {
     const user = userEvent.setup();
     render(<Wrapper sessionId="s1" />);
     await waitForInitialHydration();
     const respond = vi.fn().mockResolvedValue(undefined);
-    const ui = lastHitlConfig.render({
+    const ui = expectHitlConfig().render({
       status: "inProgress",
       args: { title: "确认", detail: "请确认" },
       respond,

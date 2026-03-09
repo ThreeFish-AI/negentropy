@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import type { PipelineStageResult } from "../utils/knowledge-api";
+import { PipelineStatusBadge } from "./PipelineStatusBadge";
 import {
-  getPipelineStatusColor,
-  getPipelineStatusTextColor,
   formatRelativeTime,
   truncateRunId,
   OPERATION_LABELS,
   TRIGGER_LABELS,
   STAGE_LABELS,
   getStageColor,
+  getStageErrorMessage,
   formatDuration,
   calculateStageWidth,
   getSortedStages,
@@ -77,27 +77,14 @@ export function PipelineRunCard({
                  dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:border-zinc-500
                  dark:hover:bg-zinc-800"
     >
-      {/* 第一行：状态指示器 + Run ID + 状态标签 */}
+      {/* 第一行：Run ID + 共享状态标签 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {/* 状态指示灯 */}
-          <span
-            className={`h-2 w-2 shrink-0 rounded-full ${getPipelineStatusColor(status)}`}
-            title={status}
-            role="status"
-            aria-label={`状态: ${status}`}
-          />
-          {/* Run ID */}
           <span className="font-mono text-xs font-medium text-zinc-700 dark:text-zinc-300">
             {truncateRunId(run_id)}
           </span>
         </div>
-        {/* 状态标签 */}
-        <span
-          className={`text-[11px] font-medium uppercase ${getPipelineStatusTextColor(status)}`}
-        >
-          {status}
-        </span>
+        <PipelineStatusBadge status={status} />
       </div>
 
       {/* 第二行：操作类型 + 触发方式 + 时长 + 版本 */}
@@ -155,9 +142,7 @@ export function PipelineRunCard({
                 </div>
                 {stage.status === "failed" && stage.error && (
                   <div className="mt-0.5 max-w-[150px] truncate text-rose-400">
-                    {typeof stage.error === "object" && stage.error !== null && "message" in stage.error
-                      ? String((stage.error as { message?: unknown }).message)
-                      : "Error"}
+                    {getStageErrorMessage(stage.error)}
                   </div>
                 )}
                 {stage.status === "skipped" && stage.reason && (

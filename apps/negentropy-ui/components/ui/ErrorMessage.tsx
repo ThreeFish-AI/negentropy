@@ -148,12 +148,14 @@ export function ErrorMessage({
 /**
  * 内联错误消息组件（更紧凑的版本）
  */
-export interface InlineErrorMessageProps extends Omit<ErrorMessageProps, "showCode" | "dismissible" | "onDismiss"> {}
+export type InlineErrorMessageProps = Omit<
+  ErrorMessageProps,
+  "showCode" | "dismissible" | "onDismiss"
+>;
 
 export function InlineErrorMessage({
   code,
   message,
-  traceId,
   className = "",
 }: InlineErrorMessageProps) {
   const level = isAguiErrorCode(code) ? ERROR_CODE_TO_LEVEL[code] : "error";

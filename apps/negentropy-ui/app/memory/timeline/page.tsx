@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { useMemoryTimeline } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -22,7 +23,7 @@ export default function MemoryTimelinePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const users = payload?.users || [];
-  const timeline = payload?.timeline || [];
+  const timeline = useMemo(() => payload?.timeline || [], [payload?.timeline]);
   const policies = payload?.policies || {};
 
   const filteredTimeline = useMemo(() => {
@@ -135,7 +136,7 @@ export default function MemoryTimelinePage() {
                       onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     />
                     <button
-                      className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
+                      className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
                       onClick={handleSearch}
                       disabled={!searchQuery.trim()}
                     >
@@ -143,7 +144,7 @@ export default function MemoryTimelinePage() {
                     </button>
                     {searchResult && (
                       <button
-                        className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:border-zinc-900 hover:text-zinc-900 transition-colors dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-200"
+                        className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
                         onClick={handleClearSearch}
                       >
                         Clear

@@ -20,6 +20,7 @@ from negentropy.agents.faculties import (
     perception_agent,
 )
 from negentropy.model_names import canonicalize_model_name
+from negentropy.serialization import to_json_compatible
 
 
 NEGENTROPY_SUBAGENT_ORDER = [
@@ -67,22 +68,6 @@ def _model_name(model: Any) -> Optional[str]:
     return canonicalize_model_name(as_text) or None
 
 
-def _to_json_compatible(value: Any) -> Any:
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, dict):
-        return {str(k): _to_json_compatible(v) for k, v in value.items()}
-    if isinstance(value, list | tuple | set):
-        return [_to_json_compatible(v) for v in value]
-    model_dump = getattr(value, "model_dump", None)
-    if callable(model_dump):
-        return _to_json_compatible(model_dump())
-    to_dict = getattr(value, "dict", None)
-    if callable(to_dict):
-        return _to_json_compatible(to_dict())
-    return str(value)
-
-
 def _agent_type(agent: BaseAgent) -> str:
     if isinstance(agent, LlmAgent):
         return "llm_agent"
@@ -114,13 +99,13 @@ def serialize_adk_config(agent: BaseAgent) -> Dict[str, Any]:
                 "model": _model_name(agent.model),
                 "tools": [_tool_name(tool) for tool in (agent.tools or [])],
                 "output_key": agent.output_key,
-                "include_contents": _to_json_compatible(agent.include_contents),
+                "include_contents": to_json_compatible(agent.include_contents),
                 "disallow_transfer_to_parent": agent.disallow_transfer_to_parent,
                 "disallow_transfer_to_peers": agent.disallow_transfer_to_peers,
-                "input_schema": _to_json_compatible(agent.input_schema),
-                "output_schema": _to_json_compatible(agent.output_schema),
-                "generate_content_config": _to_json_compatible(agent.generate_content_config),
-                "planner": _to_json_compatible(getattr(agent, "planner", None)),
+                "input_schema": to_json_compatible(agent.input_schema),
+                "output_schema": to_json_compatible(agent.output_schema),
+                "generate_content_config": to_json_compatible(agent.generate_content_config),
+                "planner": to_json_compatible(getattr(agent, "planner", None)),
                 "before_model_callback": _callable_name(getattr(agent, "before_model_callback", None)),
                 "after_model_callback": _callable_name(getattr(agent, "after_model_callback", None)),
                 "before_tool_callback": _callable_name(getattr(agent, "before_tool_callback", None)),

@@ -194,6 +194,7 @@ export type {
 
 export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
 export type { PipelineRunCardProps } from "./components/PipelineRunCard";
+export { PipelineStatusBadge } from "./components/PipelineStatusBadge";
 export { DocumentViewDialog } from "./components/DocumentViewDialog";
 
 // ============================================================================
@@ -213,6 +214,9 @@ export {
   formatRelativeTime,
   truncateRunId,
   getStageColor,
+  getStageErrorMessage,
+  getFailedStages,
+  buildPipelineErrorDetails,
   formatDuration,
   calculateStageWidth,
   getSortedStages,

@@ -14,9 +14,14 @@ import {
   getEventThreadId,
   getEventToolCallId,
   getMessageCreatedAt,
+  getMessageStreaming,
   getMessageRunId,
   getMessageThreadId,
+  normalizeCompatibleMessageRole,
+  type CanonicalMessageRole,
 } from "@/types/agui";
+import { createAgUiMessage } from "@/types/agui";
+import type { MessageLedgerEntry } from "@/types/common";
 import {
   buildNodeSummary,
   classifyNodeVisibility,
@@ -27,6 +32,7 @@ import {
   isEquivalentMessageContent,
   normalizeMessageContent,
 } from "@/utils/message";
+import { buildMessageLedger } from "@/utils/message-ledger";
 
 type MutableNode = ConversationNode;
 
@@ -45,10 +51,24 @@ function normalizeRunId(value: string | undefined, fallbackRunId?: string): stri
   return value;
 }
 
-function normalizeRole(value: unknown): "user" | "assistant" | "system" {
-  if (value === "user") return "user";
-  if (value === "system") return "system";
-  return "assistant";
+function isRunCompatible(left?: string, right?: string): boolean {
+  if (!left || !right) {
+    return true;
+  }
+  if (left === right) {
+    return true;
+  }
+  return left === DEFAULT_RUN_ID || right === DEFAULT_RUN_ID;
+}
+
+function normalizeRole(value: unknown): CanonicalMessageRole {
+  return normalizeCompatibleMessageRole(
+    typeof value === "string" ? value : undefined,
+  );
+}
+
+function isAssistantLikeRole(role: CanonicalMessageRole): boolean {
+  return role === "assistant" || role === "developer";
 }
 
 function normalizeTimestamp(value: unknown): number {
@@ -69,7 +89,7 @@ function createNode(input: {
   sourceOrder?: number;
   title: string;
   status?: string;
-  role?: "user" | "assistant" | "system";
+  role?: CanonicalMessageRole;
   summary?: string;
   payload?: Record<string, unknown>;
   sourceEventTypes?: string[];
@@ -170,6 +190,18 @@ function upsertNode(
   if (existing) {
     if (input.parentId !== undefined) {
       existing.parentId = input.parentId;
+    }
+    if (input.threadId && !existing.threadId) {
+      existing.threadId = input.threadId;
+    }
+    if (input.runId && (!existing.runId || existing.runId === DEFAULT_RUN_ID)) {
+      existing.runId = input.runId;
+    }
+    if (input.messageId && !existing.messageId) {
+      existing.messageId = input.messageId;
+    }
+    if (input.toolCallId && !existing.toolCallId) {
+      existing.toolCallId = input.toolCallId;
     }
     if (input.status) {
       existing.status = input.status;
@@ -298,6 +330,10 @@ function findFallbackTurnByTimestamp(
   return futureTurn || null;
 }
 
+function hasTechnicalChildren(node: MutableNode): boolean {
+  return node.children.some((child) => child.type !== "text");
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null
     ? (value as Record<string, unknown>)
@@ -330,10 +366,13 @@ function findMatchingTextNodeId(
     if (node.type !== "text" || node.role !== input.role) {
       continue;
     }
+    if (hasTechnicalChildren(node)) {
+      continue;
+    }
     if (node.threadId !== input.threadId) {
       continue;
     }
-    if (input.runId && node.runId && node.runId !== input.runId) {
+    if (!isRunCompatible(node.runId, input.runId)) {
       continue;
     }
     if (Math.abs(node.timeRange.end - input.timestamp) > timeWindowSeconds) {
@@ -347,7 +386,9 @@ function findMatchingTextNodeId(
 
     const isMatch =
       input.role === "assistant"
-        ? isEquivalentMessageContent(existingContent, normalizedContent)
+        ? (existingContent.startsWith(normalizedContent) ||
+            normalizedContent.startsWith(existingContent)) &&
+          isEquivalentMessageContent(existingContent, normalizedContent)
         : existingContent === normalizedContent;
     if (isMatch) {
       return node.id;
@@ -355,6 +396,45 @@ function findMatchingTextNodeId(
   }
 
   return null;
+}
+
+function finalizeTextNodeFromCanonicalMessage(
+  node: MutableNode,
+  message: {
+    content: string;
+    streaming: boolean;
+    resolvedRole: CanonicalMessageRole;
+    sourceEventTypes?: string[];
+    relatedMessageIds?: string[];
+  },
+) {
+  const nextContent = message.content.trim();
+  if (nextContent) {
+    const existingContent = String(node.payload.content || "");
+    node.payload.content =
+      nextContent.length >= existingContent.trim().length
+        ? nextContent
+        : accumulateTextContent(existingContent, nextContent);
+  }
+  node.payload.streaming =
+    typeof node.payload.streaming === "boolean"
+      ? node.payload.streaming && message.streaming
+      : message.streaming;
+  node.role = message.resolvedRole;
+  node.title = message.resolvedRole === "user" ? "用户消息" : "助手消息";
+  if (!message.streaming && !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END))) {
+    node.sourceEventTypes.push(String(EventType.TEXT_MESSAGE_END));
+  }
+  (message.sourceEventTypes || []).forEach((eventType) => {
+    if (!node.sourceEventTypes.includes(eventType)) {
+      node.sourceEventTypes.push(eventType);
+    }
+  });
+  (message.relatedMessageIds || []).forEach((messageId) => {
+    if (!node.relatedMessageIds.includes(messageId)) {
+      node.relatedMessageIds.push(messageId);
+    }
+  });
 }
 
 function pruneNode(node: MutableNode): MutableNode | null {
@@ -409,10 +489,6 @@ function sortNodeChildren(node: MutableNode) {
   };
 
   node.children.sort((a, b) => {
-    const typeDiff = typeOrder[a.type] - typeOrder[b.type];
-    if (typeDiff !== 0) {
-      return typeDiff;
-    }
     const timeDiff = a.timeRange.start - b.timeRange.start;
     if (timeDiff !== 0) {
       return timeDiff;
@@ -421,23 +497,83 @@ function sortNodeChildren(node: MutableNode) {
     if (sourceOrderDiff !== 0) {
       return sourceOrderDiff;
     }
+    const typeDiff = typeOrder[a.type] - typeOrder[b.type];
+    if (typeDiff !== 0) {
+      return typeDiff;
+    }
     return a.id.localeCompare(b.id);
   });
 
   node.children.forEach(sortNodeChildren);
 }
 
+function findSubsumingTextNode(
+  turn: MutableNode,
+  candidate: MutableNode,
+): MutableNode | null {
+  const candidateContent = String(candidate.payload.content || "").trim();
+  if (!candidateContent) {
+    return null;
+  }
+
+  return (
+    turn.children.find((child) => {
+      if (child.type !== "text" || child.role !== candidate.role) {
+        return false;
+      }
+      const childContent = String(child.payload.content || "").trim();
+      if (!childContent.startsWith(candidateContent)) {
+        return false;
+      }
+      return isEquivalentMessageContent(childContent, candidateContent);
+    }) || null
+  );
+}
+
+function collapseDefaultTurnDuplicates(roots: MutableNode[]): MutableNode[] {
+  const concreteTurns = roots.filter(
+    (node) => node.type === "turn" && node.runId && node.runId !== DEFAULT_RUN_ID,
+  );
+
+  return roots.filter((node) => {
+    if (node.type !== "turn" || node.runId !== DEFAULT_RUN_ID) {
+      return true;
+    }
+    if (node.children.length === 0) {
+      return false;
+    }
+
+    return !node.children.every((child) => {
+      if (child.type !== "text" || child.role !== "assistant") {
+        return false;
+      }
+      return concreteTurns.some(
+        (turn) =>
+          Math.abs(turn.timeRange.start - node.timeRange.start) <= 30 &&
+          Boolean(findSubsumingTextNode(turn, child)),
+      );
+    });
+  });
+}
+
 export function buildConversationTree(
   options: BuildConversationTreeOptions,
 ): ConversationTree {
-  const { events, fallbackMessages = [] } = options;
+  const { events, fallbackMessages = [], messageLedger = [] } = options;
+  const effectiveMessageLedger =
+    messageLedger.length > 0
+      ? messageLedger
+      : buildMessageLedger({
+          events,
+          fallbackMessages,
+        });
   const roots: MutableNode[] = [];
   const nodeIndex = new Map<string, MutableNode>();
   const messageNodeIndex = new Map<string, string>();
   const toolNodeIndex = new Map<string, string>();
   const turns = new Map<string, MutableNode>();
   const assistantMessageByRun = new Map<string, string>();
-  const messageRoleById = new Map<string, "user" | "assistant" | "system">();
+  const messageRoleById = new Map<string, CanonicalMessageRole>();
   const messageMetaById = new Map<
     string,
     {
@@ -449,7 +585,13 @@ export function buildConversationTree(
   >();
   const pendingConfirmationCountByRun = new Map<string, number>();
   const pendingLinks: LinkInstruction[] = [];
+  const ledgerByMessageId = new Map<string, MessageLedgerEntry>();
   let activeRunId: string | undefined;
+
+  effectiveMessageLedger.forEach((entry) => {
+    ledgerByMessageId.set(entry.id, entry);
+    messageRoleById.set(entry.id, entry.resolvedRole);
+  });
 
   const orderedEvents = [...events].sort((a, b) => {
     const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
@@ -514,7 +656,9 @@ export function buildConversationTree(
         const role =
           normalizedEvent.type === EventType.TEXT_MESSAGE_START && "role" in normalizedEvent
             ? normalizeRole(normalizedEvent.role)
-            : (messageRoleById.get(messageId) ?? "assistant");
+            : (messageRoleById.get(messageId) ||
+                ledgerByMessageId.get(messageId)?.resolvedRole ||
+                "assistant");
         if (normalizedEvent.type === EventType.TEXT_MESSAGE_START && role) {
           messageRoleById.set(messageId, role);
           messageMetaById.set(messageId, {
@@ -540,11 +684,14 @@ export function buildConversationTree(
             : "";
         const existingNodeId = messageNodeIndex.get(messageId);
         const matchedNodeId =
-          !existingNodeId && role === "assistant" && delta
+          !existingNodeId && isAssistantLikeRole(role) && delta
             ? findMatchingTextNodeId(nodeIndex, {
                 threadId: meta.threadId,
                 runId: meta.runId,
-                role,
+                role:
+                  role === "developer" || role === "tool"
+                    ? "assistant"
+                    : role,
                 content: delta,
                 timestamp: normalizeTimestamp(normalizedEvent.timestamp),
               })
@@ -561,7 +708,7 @@ export function buildConversationTree(
           sourceOrder: meta.sourceOrder,
           title: role === "user" ? "用户消息" : "助手消息",
           role,
-          payload: delta ? { content: delta } : {},
+          payload: delta ? { content: delta, streaming: true } : { streaming: true },
           sourceEventTypes: [eventType],
           relatedMessageIds: [messageId],
         });
@@ -575,11 +722,14 @@ export function buildConversationTree(
           const existing = String(node.payload.content || "");
           node.payload.content = accumulateTextContent(existing, delta);
         }
+        node.payload.streaming =
+          ledgerByMessageId.get(messageId)?.streaming ??
+          !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END));
         messageNodeIndex.set(messageId, node.id);
         if (matchedNodeId && matchedNodeId !== `message:${messageId}`) {
           node.messageId = node.messageId || messageId;
         }
-        if (node.role === "assistant") {
+        if (node.role && isAssistantLikeRole(node.role)) {
           assistantMessageByRun.set(meta.runId, node.id);
         }
         attachNode(nodeIndex, roots, turns, node.id, turn.id);
@@ -676,11 +826,21 @@ export function buildConversationTree(
         attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
+      case EventType.MESSAGES_SNAPSHOT: {
+        return;
+      }
       case EventType.ACTIVITY_SNAPSHOT: {
+        const parentId =
+          chooseParentMessageId(
+            assistantMessageByRun,
+            runId,
+            messageId,
+            messageNodeIndex,
+          ) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `activity:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "activity",
-          parentId: turn.id,
+          parentId,
           threadId: turn.threadId,
           runId,
           messageId,
@@ -697,14 +857,21 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(turn, node);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.STATE_DELTA: {
+        const parentId =
+          chooseParentMessageId(
+            assistantMessageByRun,
+            runId,
+            messageId,
+            messageNodeIndex,
+          ) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `state-delta:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "state-delta",
-          parentId: turn.id,
+          parentId,
           threadId: turn.threadId,
           runId,
           messageId,
@@ -717,14 +884,21 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(turn, node);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.STATE_SNAPSHOT: {
+        const parentId =
+          chooseParentMessageId(
+            assistantMessageByRun,
+            runId,
+            messageId,
+            messageNodeIndex,
+          ) || turn.id;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `state-snapshot:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}:${messageId || "none"}`,
           type: "state-snapshot",
-          parentId: turn.id,
+          parentId,
           threadId: turn.threadId,
           runId,
           messageId,
@@ -737,7 +911,7 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(turn, node);
+        attachNode(nodeIndex, roots, turns, node.id, parentId);
         return;
       }
       case EventType.STEP_STARTED:
@@ -885,9 +1059,48 @@ export function buildConversationTree(
     }
   });
 
-  fallbackMessages.forEach((message, fallbackIndex) => {
+  const mergedFallbackMessages = [
+    ...fallbackMessages,
+    ...effectiveMessageLedger
+      .filter((entry) => !fallbackMessages.some((message) => message.id === entry.id))
+      .map((entry) =>
+        createAgUiMessage({
+          id: entry.id,
+          role:
+            entry.resolvedRole === "user" ||
+            entry.resolvedRole === "system" ||
+            entry.resolvedRole === "tool"
+              ? entry.resolvedRole
+              : "assistant",
+          content: entry.content,
+          createdAt: entry.createdAt,
+          author: entry.author,
+          runId: entry.runId,
+          threadId: entry.threadId,
+          streaming: entry.streaming,
+        }),
+      ),
+  ];
+
+  mergedFallbackMessages.forEach((message, fallbackIndex) => {
     const messageId = message.id;
     if (messageNodeIndex.has(messageId)) {
+      const existingNodeId = messageNodeIndex.get(messageId);
+      const existingNode = existingNodeId ? nodeIndex.get(existingNodeId) : null;
+      const snapshotMessage = ledgerByMessageId.get(messageId);
+      if (
+        existingNode &&
+        snapshotMessage &&
+        existingNode.type === "text"
+      ) {
+        finalizeTextNodeFromCanonicalMessage(existingNode, {
+          content: snapshotMessage.content,
+          streaming: snapshotMessage.streaming,
+          resolvedRole: snapshotMessage.resolvedRole,
+          sourceEventTypes: snapshotMessage.sourceEventTypes,
+          relatedMessageIds: snapshotMessage.relatedMessageIds,
+        });
+      }
       return;
     }
     const runId = getMessageRunId(message);
@@ -899,15 +1112,21 @@ export function buildConversationTree(
       if (node.type !== "text" || node.role !== role) {
         return false;
       }
+      if (hasTechnicalChildren(node)) {
+        return false;
+      }
       const existingContent = String(node.payload.content || "").trim();
       const contentMatches =
         role === "assistant"
-          ? isEquivalentMessageContent(existingContent, content)
+          ? (existingContent.startsWith(content) || content.startsWith(existingContent)) &&
+            isEquivalentMessageContent(existingContent, content)
           : existingContent === content;
       if (!contentMatches) return false;
       const existingRunId = node.runId || undefined;
       const runMatches =
         existingRunId === runId ||
+        existingRunId === DEFAULT_RUN_ID ||
+        runId === DEFAULT_RUN_ID ||
         !existingRunId ||
         !runId;
       if (!runMatches) {
@@ -920,9 +1139,21 @@ export function buildConversationTree(
       return Math.abs(node.timestamp - timestamp) <= timeWindow;
     });
     if (duplicateNode) {
+      const snapshotMessage = ledgerByMessageId.get(messageId);
+      finalizeTextNodeFromCanonicalMessage(duplicateNode, {
+        content: snapshotMessage?.content || content,
+        streaming: snapshotMessage?.streaming ?? (getMessageStreaming(message) === true),
+        resolvedRole: snapshotMessage?.resolvedRole || role,
+        sourceEventTypes: snapshotMessage?.sourceEventTypes || ["fallback.message"],
+        relatedMessageIds: [
+          ...(snapshotMessage?.relatedMessageIds || []),
+          messageId,
+        ],
+      });
       if (!duplicateNode.relatedMessageIds.includes(messageId)) {
         duplicateNode.relatedMessageIds.push(messageId);
       }
+      messageNodeIndex.set(messageId, duplicateNode.id);
       return;
     }
 
@@ -957,6 +1188,7 @@ export function buildConversationTree(
       role,
       payload: {
         content,
+        streaming: getMessageStreaming(message) === true,
       },
       sourceEventTypes: ["fallback.message"],
       relatedMessageIds: [messageId],
@@ -977,9 +1209,11 @@ export function buildConversationTree(
     attachNode(nodeIndex, roots, turns, link.childId, link.parentId);
   });
 
-  const prunedRoots = roots
+  const prunedRoots = collapseDefaultTurnDuplicates(
+    roots
     .map((node) => pruneNode(node))
-    .filter((node): node is MutableNode => node !== null);
+    .filter((node): node is MutableNode => node !== null),
+  );
   prunedRoots.sort((a, b) => {
     const timeDiff = a.timeRange.start - b.timeRange.start;
     if (timeDiff !== 0) {

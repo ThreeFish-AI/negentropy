@@ -6,6 +6,7 @@
 
 - **底层存储模型**：[apps/negentropy/src/negentropy/models/perception.py](../apps/negentropy/src/negentropy/models/perception.py)（`Corpus` / `Knowledge`）。
 - **Memory 模型**：[apps/negentropy/src/negentropy/models/internalization.py](../apps/negentropy/src/negentropy/models/internalization.py)（`Memory` / `Fact` / `MemoryAuditLog`）。
+- **Memory 专项文档**：[memory.md](./memory.md)（Memory Automation 控制面、实施过程与验收记录）。
 - **数据库权威定义**：[docs/schema/perception_schema.sql](./schema/perception_schema.sql)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
 - **前端扩展约束**：[docs/negentropy-ui-plan.md](./negentropy-ui-plan.md) 的「11. 未来扩展：知识库/知识图谱/用户记忆管理」。
 - **调研文档**：[034-knowledge-base.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/034-knowledge-base.md)、[035-knowledge-base-platform.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/035-knowledge-base-platform.md)。
@@ -530,71 +531,17 @@ logger.error("database_error", details=exc.details)
   - `Failed`: 执行失败（红色），点击可查看 Error Stack Trace。
 - **Alerts**: 系统自动捕获的异常（如 Embedding API Rate Limit, DB Connection Timeout）。
 
-## 12. Memory System User Guide (记忆系统指南)
+## 12. Memory System Guide (摘要)
 
-面向 User ID 的长期记忆审计与动态干预面板，包含 Episodic Memory (Timeline) 与 Semantic Memory (Facts) 双重视图。
+Memory 运行时能力分为两层：
 
-### 12.1 Dashboard (记忆概览)
+- **User Memory 面板**：Dashboard / Timeline / Facts / Audit，用于用户长期记忆的查看、审计与治理。
+- **Memory Automation 控制面**：用于仿生记忆自动化过程的配置、受管函数、调度任务与降级状态管理。
+
+为避免文档双源，Memory Automation 的设计、接口、降级矩阵与实施记录统一以 [memory.md](./memory.md) 为准；本文件仅保留 Knowledge 与 Memory 的边界说明。
 
 > [!NOTE]
-> **Admin Access**: 管理员 (`admin` 角色) 可查看任意用户的 Memory Dashboard 以进行审计与合规检查。普通用户仅能查看自己的数据。
-
-#### 12.1.1 功能特性 (Features)
-
-- **Metrics**: 全局统计，包括 User Count, Memory Count, Fact Count 及平均 Retention Score。
-- **Retention Alert**: "Low Retention" 指标，识别即将遗忘的关键记忆，便于人工干预。
-- **User Filtering**: 支持按 `User ID` 筛选，查看特定用户的完整记忆轨迹。
-
-#### 12.1.2 操作步骤 (Operation Steps)
-
-1. 进入 **Memory System** -> **Dashboard**。
-2. 观察顶部 **Metrics Cards** 了解系统整体记忆健康度。
-3. 在搜索栏输入目标 `User ID` 并回车，面板数据将刷新为该用户的专属视图。
-
-### 12.2 Memory Audit (行为审计)
-
-#### 12.2.1 功能特性 (Features)
-
-- **Audit Queue**: 待审列表，优先展示低置信度或低 Retention Score 的记忆片段。
-- **Governance Actions**: 符合 GDPR 的治理操作：
-  - **Retain**: 确认保留（提升 Retention Score 至 1.0）。
-  - **Delete**: 物理删除 Memory + 关联 Fact。
-  - **Anonymize**: 匿名化处理（保留统计价值但移除 PII）。
-
-#### 12.2.2 操作步骤 (Operation Steps)
-
-1. 切换至 **Audit** 标签页。
-2. 选中一条待审记忆（Memory Item）。
-3. 阅读 Content 与 Context。
-4. 点击底部操作按钮 (**Retain** / **Delete** / **Anonymize**)。
-5. 系统自动生成 `MemoryAuditLog` 记录操作。
-
-### 12.3 Facts Management (事实管理)
-
-#### 12.3.1 功能特性 (Features)
-
-- **Semantic View**: 查看从对话中提取的结构化事实（如 User Preferences, Biographical Info）。
-- **Validity Period**: 每个 Fact 包含 `valid_from` 与 `valid_until`，支持时效性管理。
-
-#### 12.3.2 操作步骤 (Operation Steps)
-
-1. 切换至 **Facts** 标签页。
-2. 浏览 Key-Value 列表。
-3. 如发现错误事实，点击 **Edit** 修正 Value 或 **Delete** 移除。
-4. 修改立即生效，并同步影响下游 Agent 的 Context。
-
-### 12.4 Timeline (时间轴视图)
-
-#### 12.4.1 功能特性 (Features)
-
-- **Chronological View**: 按时间倒序展示用户的交互 Memory 片段。
-- **Access Tracking**: 显示每次记忆的 `Access Count` 与 `Last Accessed` 时间，直观展示遗忘曲线效果。
-
-#### 12.4.2 操作步骤 (Operation Steps)
-
-1. 切换至 **Timeline** 标签页。
-2. 滚动浏览用户的历史记忆流。
-3. 悬停在某条 Memory 上，查看其 Embedding 维度信息或原始来源。
+> 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力是否可写取决于 `pg_cron` 是否可安装且可访问，详见 [memory.md](./memory.md)。
 
 ## 13. 测试覆盖
 

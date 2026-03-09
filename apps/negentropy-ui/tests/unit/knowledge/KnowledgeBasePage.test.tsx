@@ -300,6 +300,22 @@ describe("KnowledgeBasePage", () => {
     );
   });
 
+  it("corpus 详情视图使用左侧满高栏与右侧独立滚动区", async () => {
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const sidebar = screen.getByTestId("corpus-sidebar");
+    const contentScroll = screen.getByTestId("corpus-content-scroll");
+
+    expect(sidebar.className).toContain("h-full");
+    expect(sidebar.className).toContain("flex-col");
+    expect(contentScroll.className).toContain("overflow-y-auto");
+    expect(contentScroll.className).toContain("flex-1");
+  });
+
   it("点击 View 会打开文档预览弹窗，而不是跳到 chunks 视图", async () => {
     const user = userEvent.setup();
 
@@ -489,6 +505,8 @@ describe("KnowledgeBasePage", () => {
       screen.getByText("通过 MCP Tools 为当前 Corpus 注入 URL、PDF 等源文档解释器。"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeInTheDocument();
+    expect(screen.getByTestId("corpus-sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("corpus-content-scroll").className).toContain("overflow-y-auto");
   });
 
   it("settings 视图会回显新建 corpus 由后端注入的默认 extraction routes", async () => {
@@ -602,9 +620,6 @@ describe("KnowledgeBasePage", () => {
     await act(async () => {
       await flushPromises();
     });
-
-    const serverSelect = screen.getAllByLabelText("MCP Server")[0];
-    const toolSelect = screen.getAllByLabelText("Tool")[0];
 
     expectKnowledgeBaseUnavailableMcpOptions(
       knowledgeBasePageMcpSelectionFixtures.legacyConfigured,
@@ -728,6 +743,8 @@ describe("KnowledgeBasePage", () => {
       "doc-1",
       { appName: "negentropy", limit: 200, offset: 0 },
     );
+    expect(screen.getByTestId("corpus-sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("corpus-content-scroll").className).toContain("overflow-y-auto");
   });
 
   it("检索后默认隐藏 Corpus 集合，并通过底部按钮展开与收起", async () => {

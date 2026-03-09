@@ -24,8 +24,10 @@ import {
   getEventRole,
   getEventRunId,
   getEventThreadId,
+  type CanonicalMessageRole,
 } from "@/types/agui";
 import { accumulateTextContent } from "@/utils/message";
+import { resolveMessageRole } from "@/utils/message-role-resolver";
 import type { AdkEventPayload } from "@/lib/adk/schema";
 export {
   adkEventPayloadSchema,
@@ -35,18 +37,31 @@ export {
   type AdkEventPayload,
 } from "@/lib/adk/schema";
 
-type NormalizedRole = "user" | "agent" | "system";
+type NormalizedRole = Exclude<CanonicalMessageRole, "tool">;
 
 type StreamMessageState = {
   messageId: string;
 };
 
 function normalizeTextRole(value: string | undefined): NormalizedRole {
-  return value === "user" || value === "system" ? value : "agent";
+  const normalized = resolveMessageRole({
+    explicitRole: value,
+  }).resolvedRole;
+  if (normalized === "tool") {
+    return "assistant";
+  }
+  return normalized;
 }
 
 function getPayloadRole(payload: AdkEventPayload): NormalizedRole {
-  return normalizeTextRole(payload.message?.role || payload.author);
+  return normalizeTextRole(
+    resolveMessageRole({
+      explicitRole: payload.message?.role,
+      author: payload.author,
+      hasToolCall: hasToolCalls(payload),
+      hasToolResult: hasToolResults(payload),
+    }).resolvedRole,
+  );
 }
 
 function extractTextParts(payload: AdkEventPayload): string[] {
@@ -90,7 +105,14 @@ function createGeneratedMessageId(
   runId: string,
   index: number,
 ): string {
-  const prefix = role === "user" ? "user" : role === "system" ? "system" : "assistant";
+  const prefix =
+    role === "user"
+      ? "user"
+      : role === "system"
+        ? "system"
+        : role === "developer"
+          ? "developer"
+          : "assistant";
   return `${prefix}:${runId}:${index}`;
 }
 
@@ -99,9 +121,11 @@ function messageShouldFlushAfterPayload(payload: AdkEventPayload): boolean {
 }
 
 function normalizeUiMessageRole(value: string | undefined): Message["role"] {
-  return value === "user" || value === "system" || value === "tool"
-    ? value
-    : "assistant";
+  const role = resolveMessageRole({ explicitRole: value }).resolvedRole;
+  if (role === "user" || role === "system" || role === "tool") {
+    return role;
+  }
+  return "assistant";
 }
 
 export class AdkMessageStreamNormalizer {
@@ -165,12 +189,12 @@ export class AdkMessageStreamNormalizer {
     const text = extractTextParts(payload).join("");
     const isToolResponsePart = payload.content?.parts?.some((p) => p.functionResponse);
 
-    if (role !== "agent" || messageShouldFlushAfterPayload(payload)) {
+    if (role !== "assistant" || messageShouldFlushAfterPayload(payload)) {
       this.flushAssistantMessage(events, common);
     }
 
     if (text.trim().length > 0 && payload.message?.role !== "tool" && !isToolResponsePart) {
-      if (role === "agent") {
+      if (role !== "user" && role !== "system" && role !== "developer") {
         let openMessage = this.openAssistantMessages.get(common.runId);
         if (!openMessage) {
           openMessage = {
@@ -482,7 +506,7 @@ export class AdkMessageStreamNormalizer {
       );
     }
 
-    if (role === "agent" && messageShouldFlushAfterPayload(payload)) {
+    if (role === "assistant" && messageShouldFlushAfterPayload(payload)) {
       this.flushAssistantMessage(events, common);
     }
 
@@ -541,7 +565,14 @@ export function adkEventsToMessages(events: AdkEventPayload[]): Message[] {
     return {
       ...createAgUiMessage({
         id: e.id,
-        role: normalizeUiMessageRole(e.message?.role || e.author),
+        role: normalizeUiMessageRole(
+          resolveMessageRole({
+            explicitRole: e.message?.role,
+            author: e.author,
+            hasToolCall: hasToolCalls(e),
+            hasToolResult: hasToolResults(e),
+          }).resolvedRole,
+        ),
         content,
         createdAt: new Date((e.timestamp || Date.now() / 1000) * 1000),
         threadId: e.threadId,
@@ -604,8 +635,7 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
     const createdAt = new Date((event.timestamp || Date.now() / 1000) * 1000);
     const existing = messageMap.get(messageId) || {
       id: messageId,
-      role:
-        getEventRole(event) || "assistant",
+      role: normalizeUiMessageRole(getEventRole(event)),
       content: "",
       createdAt,
       runId: getEventRunId(event),
@@ -617,7 +647,7 @@ export function aguiEventsToMessages(events: BaseEvent[]): Message[] {
       event.type === EventType.TEXT_MESSAGE_START &&
       typeof getEventRole(event) === "string"
     ) {
-      existing.role = getEventRole(event)!;
+      existing.role = normalizeUiMessageRole(getEventRole(event));
     }
 
     if (event.type === EventType.TEXT_MESSAGE_CONTENT) {

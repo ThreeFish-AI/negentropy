@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
+import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { fetchMemoryDashboard, MemoryDashboard } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -83,7 +84,7 @@ export default function MemoryDashboardPage() {
               </button>
               {activeUserId && (
                 <button
-                  className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:border-foreground hover:text-foreground transition-colors"
+                  className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
                   onClick={handleClearFilter}
                 >
                   Clear
@@ -91,7 +92,7 @@ export default function MemoryDashboardPage() {
               )}
               <div className="flex-1" />
               <button
-                className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:border-foreground hover:text-foreground transition-colors"
+                className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
                 onClick={loadDashboard}
                 disabled={isLoading}
               >

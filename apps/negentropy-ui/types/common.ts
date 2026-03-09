@@ -6,6 +6,7 @@
  */
 
 import type { Message } from "@ag-ui/core";
+import type { CanonicalMessageRole } from "@/types/agui";
 
 /**
  * 连接状态类型
@@ -102,4 +103,32 @@ export type ChatMessage = Pick<Message, "id" | "role"> & {
   streaming?: boolean;
   /** 关联的工具调用列表（内嵌显示在消息气泡中） */
   toolCalls?: ToolCallInfo[];
+};
+
+export type RoleResolutionSource =
+  | "explicit_role"
+  | "snapshot_role"
+  | "protocol_author"
+  | "tool_inference"
+  | "fallback_assistant";
+
+export type MessageLedgerEntry = {
+  id: string;
+  threadId: string;
+  runId?: string;
+  resolvedRole: CanonicalMessageRole;
+  resolutionSource: RoleResolutionSource;
+  content: string;
+  createdAt: Date;
+  streaming: boolean;
+  author?: string;
+  sourceEventTypes: string[];
+  relatedMessageIds: string[];
+};
+
+export type SessionProjectionState = {
+  loadedSessionId: string | null;
+  rawEvents: import("@ag-ui/core").BaseEvent[];
+  messageLedger: MessageLedgerEntry[];
+  snapshot: Record<string, unknown> | null;
 };
