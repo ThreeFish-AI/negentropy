@@ -461,9 +461,9 @@ export const getStageErrorSummary = (error: unknown): string => {
   return failureLabel ? `${failureLabel} · ${message}` : message;
 };
 
-export const getDiagnosticSummary = (error: unknown): string | null => {
+export const getDiagnosticSummary = (error: unknown): string | undefined => {
   if (!isRecord(error)) {
-    return null;
+    return undefined;
   }
   const direct = error.diagnostic_summary;
   if (typeof direct === "string" && direct.trim()) {
@@ -471,15 +471,14 @@ export const getDiagnosticSummary = (error: unknown): string | null => {
   }
   const diagnostics = error.diagnostics;
   if (!isRecord(diagnostics)) {
-    return null;
+    return undefined;
   }
   const nested = diagnostics.summary;
-  return typeof nested === "string" && nested.trim() ? nested : null;
+  return typeof nested === "string" && nested.trim() ? nested : undefined;
 };
 
 const shouldShowDiagnosticSummary = (failureCategory: string | undefined): boolean =>
   failureCategory === "unsupported_contract" || failureCategory === "low_confidence_contract";
-
 export const getFailedStages = (
   stages?: Record<string, PipelineStageResult>
 ): FailedStageDetail[] =>
