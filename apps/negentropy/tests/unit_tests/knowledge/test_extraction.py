@@ -753,6 +753,7 @@ def test_extraction_attempt_slots_dataclass_is_json_serialized_in_trace() -> Non
             "duration_ms": 12,
             "error": None,
             "failure_category": None,
+            "diagnostic_summary": None,
             "diagnostics": {},
         }
     ]
@@ -1153,6 +1154,75 @@ async def test_data_extractor_provider_marks_unknown_contract_as_unsupported_for
     attempt = result["attempt"]
     assert attempt.failure_category == "unsupported_contract"
     assert attempt.diagnostics["capability"]["schema_confidence"] == "medium"
+    assert "未声明可识别的文档 source 字段" in attempt.diagnostic_summary
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_marks_unknown_contract_with_extra_required_fields_as_low_confidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(
+                is_enabled=True,
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "pdf_sources": {"type": "array"},
+                        "opaque": {"type": "integer"},
+                    },
+                    "required": ["pdf_sources", "opaque"],
+                },
+            )
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+
+    provider = DataExtractorProvider()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is False
+    attempt = result["attempt"]
+    assert attempt.failure_category == "low_confidence_contract"
+    assert "opaque" in attempt.diagnostic_summary
+    assert attempt.diagnostics["branches"][0]["unsupported_required_fields"] == ["opaque"]
 
 
 @pytest.mark.asyncio

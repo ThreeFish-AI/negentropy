@@ -617,6 +617,7 @@ export interface PipelineStageResult {
   duration_ms?: number;
   error?: Record<string, unknown> & {
     failure_category?: string;
+    diagnostic_summary?: string;
     diagnostics?: Record<string, unknown>;
   };
   output?: Record<string, unknown>;
@@ -637,7 +638,11 @@ export interface PipelineRunRecord {
   input?: Record<string, unknown>;
   output?: Record<string, unknown>;
   stages?: Record<string, PipelineStageResult>;
-  error?: Record<string, unknown>;
+  error?: Record<string, unknown> & {
+    failure_category?: string;
+    diagnostic_summary?: string;
+    diagnostics?: Record<string, unknown>;
+  };
   version?: number;
 }
 
