@@ -670,6 +670,25 @@ def _select_string_source_candidate(
     return None
 
 
+def _select_string_source_candidate_kind(
+    *,
+    source_candidates: list[SourceCandidate],
+    preferred_kind: str | None = None,
+) -> str | None:
+    ordered_candidates = sorted(
+        source_candidates,
+        key=lambda item: (0 if item.preferred else 1, item.kind),
+    )
+    if preferred_kind:
+        preferred = next((item for item in ordered_candidates if item.kind == preferred_kind), None)
+        if preferred and isinstance(preferred.value, str):
+            return preferred.kind
+    for candidate in ordered_candidates:
+        if isinstance(candidate.value, str):
+            return candidate.kind
+    return None
+
+
 def _build_arguments_from_contract(
     *,
     contract: NormalizedToolContract,
@@ -757,20 +776,35 @@ def _build_plan_from_contract(
     request: CanonicalExtractionRequest,
     adapter_name: str,
     reasoning_source: Literal["schema", "validation_retry"],
+    source_candidates: list[SourceCandidate] | None = None,
     diagnostics: dict[str, Any] | None = None,
 ) -> AdaptiveToolInvocationPlan:
     diagnostics = dict(diagnostics or {})
+    selected_source_kind: str | None = None
+    if contract.source_value_type == "string":
+        candidates = source_candidates or []
+        preferred_kind = "url" if request.source_kind == ROUTE_URL else "local_path"
+        selected_source_kind = _select_string_source_candidate_kind(
+            source_candidates=candidates,
+            preferred_kind=preferred_kind,
+        )
+        if selected_source_kind is None:
+            selected_source_kind = _select_string_source_candidate_kind(source_candidates=candidates)
+
     arguments = _build_arguments_from_contract(
         contract=contract,
         request=request,
-        source_candidates=[],
+        source_candidates=source_candidates or [],
         include_options=True,
         include_context=True,
+        selected_source_kind=selected_source_kind,
     )
 
     diagnostics.setdefault("contract_mode", contract.mode)
     diagnostics.setdefault("schema_shape", contract.schema_shape)
     diagnostics.setdefault("source_value_type", contract.source_value_type)
+    if selected_source_kind is not None:
+        diagnostics.setdefault("selected_source_kind", selected_source_kind)
     if contract.batch_property:
         diagnostics.setdefault("batch_property", contract.batch_property)
     if contract.source_property:
@@ -803,6 +837,7 @@ def build_tool_adapter(
             else "canonical_flat_v2"
         ),
         reasoning_source="schema",
+        source_candidates=[],
         diagnostics={
             "top_level_fields": sorted(contract.top_level_fields),
         },
@@ -1013,6 +1048,7 @@ def _build_retry_contract_from_error(
     *,
     input_schema: dict[str, Any] | None,
     request: CanonicalExtractionRequest,
+    original_contract: NormalizedToolContract,
     validation_error: ValidationErrorSummary,
 ) -> NormalizedToolContract | None:
     for field_name in validation_error.string_item_fields:
@@ -1034,6 +1070,19 @@ def _build_retry_contract_from_error(
     source_fields = _source_fields_for_kind(request.source_kind)
     for field_name in missing:
         if field_name in _preferred_batch_keys(request.source_kind) or field_name.endswith("_sources"):
+            if (
+                original_contract.mode == "batch"
+                and original_contract.source_value_type == "string"
+                and original_contract.batch_property == field_name
+            ):
+                return NormalizedToolContract(
+                    mode="batch",
+                    schema_shape="validation_retry.scalar_array",
+                    source_value_type="string",
+                    root_schema=input_schema,
+                    batch_property=field_name,
+                    item_schema={"type": "string"},
+                )
             return NormalizedToolContract(
                 mode="batch",
                 schema_shape="validation_retry.batch",
@@ -1044,6 +1093,19 @@ def _build_retry_contract_from_error(
                 source_fields=source_fields,
             )
         if field_name in _preferred_source_keys(request.source_kind) or field_name.endswith("_source"):
+            if (
+                original_contract.mode == "nested_single"
+                and original_contract.source_value_type == "string"
+                and original_contract.source_property == field_name
+            ):
+                return NormalizedToolContract(
+                    mode="nested_single",
+                    schema_shape="validation_retry.scalar_value",
+                    source_value_type="string",
+                    root_schema=input_schema,
+                    source_property=field_name,
+                    item_schema={"type": "string"},
+                )
             return NormalizedToolContract(
                 mode="nested_single",
                 schema_shape="validation_retry.nested",
@@ -1610,6 +1672,7 @@ class DataExtractorProvider:
                             request=request,
                             adapter_name=_default_adapter_name(contract),
                             reasoning_source="schema",
+                            source_candidates=source_candidates,
                             diagnostics={
                                 "top_level_fields": sorted(contract.top_level_fields),
                                 "capability": {
@@ -1625,6 +1688,7 @@ class DataExtractorProvider:
                         retry_contract = _build_retry_contract_from_error(
                             input_schema=input_schema,
                             request=request,
+                            original_contract=contract,
                             validation_error=validation_error,
                         )
                         if retry_contract:
@@ -1633,6 +1697,7 @@ class DataExtractorProvider:
                                 request=request,
                                 adapter_name=_default_adapter_name(retry_contract, retry=True),
                                 reasoning_source="validation_retry",
+                                source_candidates=source_candidates,
                                 diagnostics={
                                     "retry_reason": "validation_error",
                                     "validation_error_summary": {
@@ -1646,6 +1711,30 @@ class DataExtractorProvider:
                             break
                     else:
                         break
+
+                if plan.reasoning_source != "llm" and contract.source_value_type == "string":
+                    selected_string_source = _select_string_source_candidate(source_candidates=source_candidates)
+                    if not selected_string_source:
+                        return {
+                            "success": False,
+                            "attempt": ExtractionAttempt(
+                                server_id=str(target.server_id),
+                                server_name=server.name,
+                                tool_name=target.tool_name,
+                                status="failed",
+                                duration_ms=0,
+                                error="No usable string source candidate available for MCP tool invocation",
+                                failure_category="low_confidence_contract",
+                                diagnostic_summary="契约要求 string source，但当前提取源无法构造可用的字符串候选参数",
+                                diagnostics={
+                                    "adapter_attempts": invocation_trace,
+                                    "contract_mode": contract.mode,
+                                    "schema_shape": contract.schema_shape,
+                                    "source_value_type": contract.source_value_type,
+                                    "source_candidates": _serialize_source_candidates(source_candidates),
+                                },
+                            ),
+                        }
 
                 result = await self._call_tool_with_plan(
                     server=server,
