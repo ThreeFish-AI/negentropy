@@ -609,17 +609,27 @@ export type PipelineOperation =
   | "sync_source"
   | "rebuild_source";
 
+/**
+ * Pipeline 错误对象。
+ *
+ * 约定：
+ * - `failure_category` 用于稳定的失败分类。
+ * - `diagnostic_summary` 仅承载可直接展示的一句话摘要，默认面向契约类失败。
+ * - `diagnostics` 保留完整的结构化诊断信息，供明细排障使用。
+ */
+export interface PipelineErrorPayload extends Record<string, unknown> {
+  failure_category?: string;
+  diagnostic_summary?: string;
+  diagnostics?: Record<string, unknown>;
+}
+
 // Pipeline 阶段结果
 export interface PipelineStageResult {
   status: PipelineStageStatus;
   started_at?: string;
   completed_at?: string;
   duration_ms?: number;
-  error?: Record<string, unknown> & {
-    failure_category?: string;
-    diagnostic_summary?: string;
-    diagnostics?: Record<string, unknown>;
-  };
+  error?: PipelineErrorPayload;
   output?: Record<string, unknown>;
   reason?: string; // for skipped status
 }
@@ -638,11 +648,7 @@ export interface PipelineRunRecord {
   input?: Record<string, unknown>;
   output?: Record<string, unknown>;
   stages?: Record<string, PipelineStageResult>;
-  error?: Record<string, unknown> & {
-    failure_category?: string;
-    diagnostic_summary?: string;
-    diagnostics?: Record<string, unknown>;
-  };
+  error?: PipelineErrorPayload;
   version?: number;
 }
 
