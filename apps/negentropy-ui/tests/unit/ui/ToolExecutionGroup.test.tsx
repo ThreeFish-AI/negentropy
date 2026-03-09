@@ -134,4 +134,61 @@ describe("ToolExecutionGroup", () => {
 
     expect(screen.getByText("Parameters")).toBeInTheDocument();
   });
+
+  it("当 block identity 保持稳定且用户未手动操作时，会跟随新的 defaultExpanded", () => {
+    const { rerender } = render(
+      <ToolExecutionGroup
+        block={createBlock({
+          id: "tool-group:msg-2:tool-1:tool-2",
+          defaultExpanded: false,
+          status: "completed",
+        })}
+      />,
+    );
+
+    expect(screen.queryByText("Parameters")).not.toBeInTheDocument();
+
+    rerender(
+      <ToolExecutionGroup
+        block={createBlock({
+          id: "tool-group:msg-2:tool-1:tool-2",
+          defaultExpanded: true,
+          status: "running",
+          summary: "执行中，2 个工具",
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("Parameters")).toHaveLength(2);
+  });
+
+  it("当 block identity 变化时，会按新 block 的 defaultExpanded 重新初始化", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ToolExecutionGroup
+        block={createBlock({
+          id: "tool-group:msg-3:tool-1:tool-2",
+          defaultExpanded: true,
+          status: "running",
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Google Search 并行执行/ }));
+    expect(screen.queryByText("Parameters")).not.toBeInTheDocument();
+
+    rerender(
+      <ToolExecutionGroup
+        block={createBlock({
+          id: "tool-group:msg-4:tool-1:tool-2",
+          defaultExpanded: true,
+          status: "running",
+          summary: "执行中，2 个工具（新块）",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("执行中，2 个工具（新块）")).toBeInTheDocument();
+    expect(screen.getAllByText("Parameters")).toHaveLength(2);
+  });
 });

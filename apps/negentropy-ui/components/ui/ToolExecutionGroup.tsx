@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ToolExecutionEntry, ToolGroupDisplayBlock } from "@/types/a2ui";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 import { cn } from "@/lib/utils";
@@ -44,14 +44,8 @@ function ToolExecutionCard({
   defaultExpanded: boolean;
   onSelect?: (nodeId: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const [manualToggle, setManualToggle] = useState(false);
-
-  useEffect(() => {
-    if (!manualToggle) {
-      setExpanded(defaultExpanded);
-    }
-  }, [defaultExpanded, manualToggle]);
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
+  const expanded = manualExpanded ?? defaultExpanded;
 
   const args = parseJson(tool.args);
   const result = parseJson(tool.result);
@@ -71,8 +65,7 @@ function ToolExecutionCard({
         type="button"
         className="flex w-full items-start justify-between gap-3 text-left"
         onClick={() => {
-          setManualToggle(true);
-          setExpanded((current) => !current);
+          setManualExpanded((current) => !(current ?? defaultExpanded));
           onSelect?.(tool.nodeId);
         }}
       >
@@ -135,7 +128,7 @@ function ToolExecutionCard({
   );
 }
 
-export function ToolExecutionGroup({
+function ToolExecutionGroupBody({
   block,
   isSelected,
   onSelect,
@@ -146,18 +139,8 @@ export function ToolExecutionGroup({
   onSelect?: (nodeId: string) => void;
   variant?: "standalone" | "embedded";
 }) {
-  const [expanded, setExpanded] = useState(block.defaultExpanded);
-  const [manualToggle, setManualToggle] = useState(false);
-
-  useEffect(() => {
-    setManualToggle(false);
-  }, [block.id]);
-
-  useEffect(() => {
-    if (!manualToggle) {
-      setExpanded(block.defaultExpanded);
-    }
-  }, [block.defaultExpanded, manualToggle]);
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
+  const expanded = manualExpanded ?? block.defaultExpanded;
 
   return (
     <section
@@ -178,8 +161,7 @@ export function ToolExecutionGroup({
         type="button"
         className="flex w-full items-start justify-between gap-4 text-left"
         onClick={() => {
-          setManualToggle(true);
-          setExpanded((current) => !current);
+          setManualExpanded((current) => !(current ?? block.defaultExpanded));
           onSelect?.(block.nodeId);
         }}
       >
@@ -225,4 +207,13 @@ export function ToolExecutionGroup({
       ) : null}
     </section>
   );
+}
+
+export function ToolExecutionGroup(props: {
+  block: ToolGroupDisplayBlock;
+  isSelected?: boolean;
+  onSelect?: (nodeId: string) => void;
+  variant?: "standalone" | "embedded";
+}) {
+  return <ToolExecutionGroupBody key={props.block.id} {...props} />;
 }
