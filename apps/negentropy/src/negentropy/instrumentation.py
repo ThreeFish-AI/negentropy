@@ -24,7 +24,18 @@ def _normalize_model_name(model: str) -> str:
 
 
 def _is_writable_span(span: Any) -> bool:
-    return span is not None and hasattr(span, "is_recording") and bool(span.is_recording())
+    """Return whether an OpenTelemetry span can still accept mutations."""
+    if span is None:
+        return False
+
+    is_recording = getattr(span, "is_recording", None)
+    if callable(is_recording):
+        try:
+            return bool(is_recording())
+        except Exception:
+            return False
+
+    return False
 
 
 def _safe_set_span_attribute(span: Any, key: str, value: Any) -> None:
@@ -218,14 +229,15 @@ def patch_litellm_otel_cost() -> None:
     Monkey-patch LiteLLM OpenTelemetry set_attributes to:
     1. Normalize model name for consistent Langfuse reporting
     2. Inject cost without replacing the 'otel' callback
+    3. Guard ended spans in LiteLLM's success path
     """
-    if getattr(OpenTelemetry.set_attributes, "_ne_cost_patched", False):
-        return
-
-    original = OpenTelemetry.set_attributes
+    original_set_attributes = OpenTelemetry.set_attributes
 
     def _patched_set_attributes(self, span, kwargs, response_obj):
-        original(self, span, kwargs, response_obj)
+        if not _is_writable_span(span):
+            return
+
+        original_set_attributes(self, span, kwargs, response_obj)
         try:
             # Normalize model name for consistent Langfuse reporting
             model = kwargs.get("model", "unknown")
@@ -234,6 +246,9 @@ def patch_litellm_otel_cost() -> None:
             if response_obj is not None and hasattr(response_obj, "get"):
                 response_model = response_obj.get("model")
             normalized_response_model = _normalize_model_name(response_model) if response_model else None
+
+            if not _is_writable_span(span):
+                return
 
             if normalized_model != model:
                 _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
@@ -252,5 +267,64 @@ def patch_litellm_otel_cost() -> None:
         except Exception:
             pass
 
-    _patched_set_attributes._ne_cost_patched = True  # type: ignore[attr-defined]
-    OpenTelemetry.set_attributes = _patched_set_attributes  # type: ignore[assignment]
+    if not getattr(OpenTelemetry.set_attributes, "_ne_cost_patched", False):
+        _patched_set_attributes._ne_cost_patched = True  # type: ignore[attr-defined]
+        OpenTelemetry.set_attributes = _patched_set_attributes  # type: ignore[assignment]
+
+    if getattr(OpenTelemetry._handle_success, "_ne_span_guard_patched", False):
+        return
+
+    original_handle_success = OpenTelemetry._handle_success
+    handle_success_globals = original_handle_success.__globals__
+    get_secret_bool = handle_success_globals["get_secret_bool"]
+    proxy_span_name = handle_success_globals["LITELLM_PROXY_REQUEST_SPAN_NAME"]
+
+    def _patched_handle_success(self, kwargs, response_obj, start_time, end_time):
+        from opentelemetry.trace import Status, StatusCode
+
+        handle_success_globals["verbose_logger"].debug(
+            "OpenTelemetry Logger: Logging kwargs: %s, OTEL config settings=%s",
+            kwargs,
+            self.config,
+        )
+        ctx, parent_span = self._get_span_context(kwargs)
+
+        should_create_primary_span = parent_span is None or get_secret_bool(
+            "USE_OTEL_LITELLM_REQUEST_SPAN"
+        )
+
+        if should_create_primary_span:
+            span = self._start_primary_span(kwargs, response_obj, start_time, end_time, ctx)
+            self._maybe_log_raw_request(kwargs, response_obj, start_time, end_time, span)
+            if (
+                parent_span is not None
+                and parent_span.name == proxy_span_name
+                and _is_writable_span(parent_span)
+            ):
+                self.set_attributes(parent_span, kwargs, response_obj)
+        else:
+            span = None
+            if _is_writable_span(parent_span):
+                parent_span.set_status(Status(StatusCode.OK))
+                self.set_attributes(parent_span, kwargs, response_obj)
+                self._maybe_log_raw_request(
+                    kwargs, response_obj, start_time, end_time, parent_span
+                )
+
+        self._create_guardrail_span(kwargs=kwargs, context=ctx)
+        self._record_metrics(kwargs, response_obj, start_time, end_time)
+
+        if self.config.enable_events:
+            log_span = span if _is_writable_span(span) else parent_span
+            if _is_writable_span(log_span):
+                self._emit_semantic_logs(kwargs, response_obj, log_span)
+
+        if (
+            parent_span is not None
+            and parent_span.name == proxy_span_name
+            and _is_writable_span(parent_span)
+        ):
+            parent_span.end(end_time=self._to_ns(end_time))
+
+    _patched_handle_success._ne_span_guard_patched = True  # type: ignore[attr-defined]
+    OpenTelemetry._handle_success = _patched_handle_success  # type: ignore[assignment]
