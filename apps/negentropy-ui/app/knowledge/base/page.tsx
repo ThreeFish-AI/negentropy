@@ -168,14 +168,11 @@ function DocumentMetadataPanel({
       <h4 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">{title}</h4>
       <dl className="mt-3 space-y-2.5">
         {items.map(([label, value]) => (
-          <div
-            key={label}
-            className="rounded-xl border border-border/80 bg-background/70 px-3 py-2.5 shadow-sm shadow-zinc-950/0"
-          >
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+          <div key={label} className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)] items-start gap-x-4 gap-y-1">
+            <dt className="break-words text-sm font-semibold text-zinc-500 dark:text-zinc-400">
               {label}
             </dt>
-            <dd className="mt-1 break-words text-sm font-medium leading-6 text-foreground">
+            <dd className="break-words text-sm font-medium leading-6 text-foreground">
               {String(value)}
             </dd>
           </div>
@@ -1475,7 +1472,7 @@ export default function KnowledgeBasePage() {
                               badges={(
                                 <>
                                   <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
-                                  <span className="shrink-0 rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-zinc-100 dark:text-zinc-900">
+                                  <span className="shrink-0 text-zinc-600 dark:text-zinc-400">
                                     Retrieval Count {chunk.display_retrieval_count}
                                   </span>
                                   <span
