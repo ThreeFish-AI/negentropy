@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, Optional, Literal
+from typing import Any, Dict, Iterable, Optional, Literal, Sequence
 from uuid import UUID
 
-from sqlalchemy import Boolean, cast, func, select, text
+from sqlalchemy import Boolean, String, cast, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -142,6 +142,9 @@ class KnowledgeRepository:
                 "embedding": chunk.embedding,
                 "source_uri": chunk.source_uri,
                 "chunk_index": chunk.chunk_index,
+                "character_count": len(chunk.content),
+                "retrieval_count": 0,
+                "is_enabled": True,
                 "metadata_": chunk.metadata or {},
             }
             for chunk in chunk_list
@@ -161,6 +164,9 @@ class KnowledgeRepository:
                         Knowledge.content,
                         Knowledge.source_uri,
                         Knowledge.chunk_index,
+                        Knowledge.character_count,
+                        Knowledge.retrieval_count,
+                        Knowledge.is_enabled,
                         Knowledge.metadata_,
                         Knowledge.embedding,
                         Knowledge.created_at,
@@ -179,6 +185,9 @@ class KnowledgeRepository:
                         content=row.content,
                         source_uri=row.source_uri,
                         chunk_index=row.chunk_index,
+                        character_count=row.character_count,
+                        retrieval_count=row.retrieval_count,
+                        is_enabled=row.is_enabled,
                         metadata=row.metadata_ or {},
                         embedding=row.embedding,
                         created_at=row.created_at,
@@ -207,6 +216,33 @@ class KnowledgeRepository:
                 Knowledge.app_name == app_name,
                 Knowledge.source_uri == source_uri,
             )
+            result = await db.execute(stmt)
+            items = result.scalars().all()
+            if not items:
+                return 0
+            for item in items:
+                await db.delete(item)
+            await db.commit()
+            return len(items)
+
+    async def delete_knowledge_by_family(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: Optional[str],
+        family_id: str,
+    ) -> int:
+        async with self._get_session_factory()() as db:
+            stmt = select(Knowledge).where(
+                Knowledge.corpus_id == corpus_id,
+                Knowledge.app_name == app_name,
+                cast(Knowledge.metadata_["chunk_family_id"].astext, String) == family_id,
+            )
+            if source_uri is None:
+                stmt = stmt.where(Knowledge.source_uri.is_(None))
+            else:
+                stmt = stmt.where(Knowledge.source_uri == source_uri)
             result = await db.execute(stmt)
             items = result.scalars().all()
             if not items:
@@ -264,6 +300,127 @@ class KnowledgeRepository:
             )
             await db.commit()
             return result.rowcount
+
+    async def get_knowledge_by_id(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        knowledge_id: UUID,
+    ) -> Optional[KnowledgeRecord]:
+        async with self._get_session_factory()() as db:
+            stmt = select(Knowledge).where(
+                Knowledge.id == knowledge_id,
+                Knowledge.corpus_id == corpus_id,
+                Knowledge.app_name == app_name,
+            )
+            result = await db.execute(stmt)
+            item = result.scalar_one_or_none()
+            return self._to_knowledge_record(item) if item else None
+
+    async def list_knowledge_by_family(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        family_id: str,
+        source_uri: Optional[str],
+    ) -> list[KnowledgeRecord]:
+        async with self._get_session_factory()() as db:
+            stmt = (
+                select(Knowledge)
+                .where(
+                    Knowledge.corpus_id == corpus_id,
+                    Knowledge.app_name == app_name,
+                    cast(Knowledge.metadata_["chunk_family_id"].astext, String) == family_id,
+                )
+                .order_by(Knowledge.chunk_index.asc())
+            )
+            if source_uri is None:
+                stmt = stmt.where(Knowledge.source_uri.is_(None))
+            else:
+                stmt = stmt.where(Knowledge.source_uri == source_uri)
+            result = await db.execute(stmt)
+            return [self._to_knowledge_record(item) for item in result.scalars().all()]
+
+    async def update_knowledge_chunk(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        knowledge_id: UUID,
+        content: Optional[str] = None,
+        is_enabled: Optional[bool] = None,
+    ) -> Optional[KnowledgeRecord]:
+        async with self._get_session_factory()() as db:
+            stmt = select(Knowledge).where(
+                Knowledge.id == knowledge_id,
+                Knowledge.corpus_id == corpus_id,
+                Knowledge.app_name == app_name,
+            )
+            result = await db.execute(stmt)
+            item = result.scalar_one_or_none()
+            if not item:
+                return None
+            if content is not None:
+                item.content = content
+                item.character_count = len(content)
+                if item.metadata_ is not None:
+                    item.metadata_ = {**item.metadata_}
+            if is_enabled is not None:
+                item.is_enabled = is_enabled
+            await db.commit()
+            await db.refresh(item)
+            return self._to_knowledge_record(item)
+
+    async def update_family_enabled_state(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        family_id: str,
+        source_uri: Optional[str],
+        is_enabled: bool,
+    ) -> int:
+        async with self._get_session_factory()() as db:
+            stmt = (
+                update(Knowledge)
+                .where(
+                    Knowledge.corpus_id == corpus_id,
+                    Knowledge.app_name == app_name,
+                    cast(Knowledge.metadata_["chunk_family_id"].astext, String) == family_id,
+                )
+                .values(is_enabled=is_enabled)
+            )
+            if source_uri is None:
+                stmt = stmt.where(Knowledge.source_uri.is_(None))
+            else:
+                stmt = stmt.where(Knowledge.source_uri == source_uri)
+            result = await db.execute(stmt)
+            await db.commit()
+            return int(result.rowcount or 0)
+
+    async def increment_retrieval_counts(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        knowledge_ids: Sequence[UUID],
+    ) -> None:
+        if not knowledge_ids:
+            return
+        async with self._get_session_factory()() as db:
+            stmt = (
+                update(Knowledge)
+                .where(
+                    Knowledge.corpus_id == corpus_id,
+                    Knowledge.app_name == app_name,
+                    Knowledge.id.in_(list(knowledge_ids)),
+                )
+                .values(retrieval_count=Knowledge.retrieval_count + 1)
+            )
+            await db.execute(stmt)
+            await db.commit()
 
     async def list_knowledge(
         self,
@@ -414,6 +571,7 @@ class KnowledgeRepository:
                         Knowledge.app_name == app_name,
                         Knowledge.embedding.is_not(None),
                         self._active_filter_expr(),
+                        self._enabled_filter_expr(),
                         self._searchable_filter_expr(),
                     )
                     .order_by(distance.asc())
@@ -429,14 +587,16 @@ class KnowledgeRepository:
             matches: list[KnowledgeMatch] = []
             for knowledge, score in rows:
                 matches.append(
-                    KnowledgeMatch(
-                        id=knowledge.id,
-                        content=knowledge.content,
-                        source_uri=knowledge.source_uri,
-                        metadata=knowledge.metadata_ or {},
-                        semantic_score=float(score or 0.0),
-                        keyword_score=0.0,
-                        combined_score=float(score or 0.0),
+                        KnowledgeMatch(
+                            id=knowledge.id,
+                            content=knowledge.content,
+                            source_uri=knowledge.source_uri,
+                            metadata=knowledge.metadata_ or {},
+                            retrieval_count=knowledge.retrieval_count,
+                            is_enabled=knowledge.is_enabled,
+                            semantic_score=float(score or 0.0),
+                            keyword_score=0.0,
+                            combined_score=float(score or 0.0),
                     )
                 )
             return matches
@@ -475,12 +635,13 @@ class KnowledgeRepository:
 
         stmt = text(
             f"""
-            SELECT id, content, source_uri, metadata,
+            SELECT id, content, source_uri, metadata, retrieval_count, is_enabled,
                    ts_rank_cd(search_vector, plainto_tsquery('english', :query))::REAL AS keyword_score
             FROM {NEGENTROPY_SCHEMA}.knowledge
             WHERE corpus_id = :corpus_id
               AND app_name = :app_name
               AND COALESCE((metadata->>'archived')::boolean, false) = false
+              AND is_enabled = true
               AND COALESCE((metadata->>'searchable')::boolean, true) = true
               AND search_vector @@ plainto_tsquery('english', :query)
             """
@@ -501,6 +662,8 @@ class KnowledgeRepository:
                         content=row["content"],
                         source_uri=row.get("source_uri"),
                         metadata=row.get("metadata") or {},
+                        retrieval_count=int(row.get("retrieval_count") or 0),
+                        is_enabled=bool(row.get("is_enabled", True)),
                         semantic_score=0.0,
                         keyword_score=float(row.get("keyword_score") or 0.0),
                         combined_score=float(row.get("keyword_score") or 0.0),
@@ -819,6 +982,8 @@ class KnowledgeRepository:
                         content=detail.content,
                         source_uri=detail.source_uri,
                         metadata=detail.metadata,
+                        retrieval_count=detail.retrieval_count,
+                        is_enabled=detail.is_enabled,
                         semantic_score=0.0,
                         keyword_score=0.0,
                         combined_score=rrf_score,
@@ -863,6 +1028,8 @@ class KnowledgeRepository:
                     content=row.content,
                     source_uri=row.source_uri,
                     metadata=row.metadata_ or {},
+                    retrieval_count=row.retrieval_count,
+                    is_enabled=row.is_enabled,
                     semantic_score=0.0,
                     keyword_score=0.0,
                     combined_score=0.0,
@@ -889,7 +1056,12 @@ class KnowledgeRepository:
 
         try:
             async with self._get_session_factory()() as db:
-                stmt = select(Knowledge.id, Knowledge.chunk_index).where(
+                stmt = select(
+                    Knowledge.id,
+                    Knowledge.chunk_index,
+                    Knowledge.retrieval_count,
+                    Knowledge.is_enabled,
+                ).where(
                     Knowledge.corpus_id == corpus_id,
                     Knowledge.app_name == app_name,
                     Knowledge.id.in_(id_list),
@@ -900,6 +1072,8 @@ class KnowledgeRepository:
             return {
                 row.id: {
                     "chunk_index": row.chunk_index,
+                    "retrieval_count": row.retrieval_count,
+                    "is_enabled": row.is_enabled,
                 }
                 for row in rows
             }
@@ -931,6 +1105,9 @@ class KnowledgeRepository:
             content=knowledge.content,
             source_uri=knowledge.source_uri,
             chunk_index=knowledge.chunk_index,
+            character_count=knowledge.character_count,
+            retrieval_count=knowledge.retrieval_count,
+            is_enabled=knowledge.is_enabled,
             metadata=knowledge.metadata_ or {},
             created_at=knowledge.created_at,
             updated_at=knowledge.updated_at,
@@ -973,3 +1150,7 @@ class KnowledgeRepository:
     @staticmethod
     def _searchable_filter_expr() -> Any:
         return func.coalesce(cast(Knowledge.metadata_["searchable"].astext, Boolean), True).is_(True)
+
+    @staticmethod
+    def _enabled_filter_expr() -> Any:
+        return Knowledge.is_enabled.is_(True)

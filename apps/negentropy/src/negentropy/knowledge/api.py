@@ -1514,7 +1514,89 @@ class DocumentMarkdownRefreshRequest(BaseModel):
 
 class DocumentChunksResponse(BaseModel):
     count: int
+    page: int = 1
+    page_size: int = 50
+    document_metadata: Dict[str, Any] = Field(default_factory=dict)
     items: list[Dict[str, Any]]
+
+
+class DocumentChunkDetailResponse(BaseModel):
+    item: Dict[str, Any]
+    document_metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DocumentChunkUpdateRequest(BaseModel):
+    app_name: Optional[str] = None
+    content: Optional[str] = None
+    is_enabled: Optional[bool] = None
+
+
+def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[KnowledgeRecord]) -> Dict[str, Any]:
+    metadata = item.metadata or {}
+    family_id = metadata.get("chunk_family_id")
+    child_chunks = []
+    if metadata.get("chunk_role") == "parent" and isinstance(family_id, str) and family_id:
+        child_chunks = [
+            {
+                "id": str(candidate.id),
+                "chunk_index": candidate.chunk_index,
+                "character_count": candidate.character_count,
+                "retrieval_count": candidate.retrieval_count,
+                "display_retrieval_count": candidate.retrieval_count,
+                "is_enabled": candidate.is_enabled,
+                "content": candidate.content,
+                "chunk_role": candidate.metadata.get("chunk_role", "leaf"),
+                "parent_chunk_index": candidate.metadata.get("parent_chunk_index"),
+                "child_chunk_index": candidate.metadata.get("child_chunk_index"),
+                "chunk_family_id": candidate.metadata.get("chunk_family_id"),
+                "metadata": candidate.metadata,
+            }
+            for candidate in siblings
+            if candidate.metadata.get("chunk_role") == "child"
+            and candidate.metadata.get("chunk_family_id") == family_id
+        ]
+
+    display_retrieval_count = item.retrieval_count
+    if metadata.get("chunk_role") == "parent":
+        display_retrieval_count = sum(child["retrieval_count"] for child in child_chunks)
+
+    return {
+        "id": str(item.id),
+        "content": item.content,
+        "source_uri": item.source_uri,
+        "created_at": item.created_at.isoformat() if item.created_at else None,
+        "updated_at": item.updated_at.isoformat() if item.updated_at else None,
+        "chunk_index": item.chunk_index,
+        "character_count": item.character_count,
+        "retrieval_count": item.retrieval_count,
+        "display_retrieval_count": display_retrieval_count,
+        "is_enabled": item.is_enabled,
+        "chunk_role": metadata.get("chunk_role", "leaf"),
+        "parent_chunk_index": metadata.get("parent_chunk_index"),
+        "child_chunk_index": metadata.get("child_chunk_index"),
+        "chunk_family_id": metadata.get("chunk_family_id"),
+        "metadata": metadata,
+        "child_chunks": child_chunks,
+    }
+
+
+def _build_document_chunk_metadata(doc: Any, items: list[KnowledgeRecord]) -> Dict[str, Any]:
+    chunk_stats = ((doc.metadata_ or {}).get("chunk_stats") or {}) if doc else {}
+    total_retrieval_count = sum(item.retrieval_count for item in items)
+    return {
+        "original_filename": getattr(doc, "original_filename", None),
+        "file_size": getattr(doc, "file_size", None),
+        "upload_date": doc.created_at.isoformat() if getattr(doc, "created_at", None) else None,
+        "last_update_date": doc.updated_at.isoformat() if getattr(doc, "updated_at", None) else None,
+        "source": (doc.metadata_ or {}).get("source_type", "file") if doc else "file",
+        "chunk_specification": chunk_stats.get("chunk_specification"),
+        "chunk_length": chunk_stats.get("chunk_length"),
+        "avg_paragraph_length": chunk_stats.get("avg_paragraph_length"),
+        "paragraph_count": chunk_stats.get("paragraph_count", len(items)),
+        "retrieval_count": total_retrieval_count,
+        "embedding_time_ms": chunk_stats.get("embedding_time_ms"),
+        "embedded_tokens": chunk_stats.get("embedded_tokens"),
+    }
 
 
 class DocumentActionRequest(_LegacyChunkingRequest):
@@ -1916,19 +1998,163 @@ async def list_document_chunks(
         limit=limit,
         offset=offset,
     )
+    serialized = [_serialize_document_chunk_item(item, items) for item in items]
     return DocumentChunksResponse(
         count=total_count,
-        items=[
-            {
-                "id": str(item.id),
-                "content": item.content,
-                "source_uri": item.source_uri,
-                "created_at": item.created_at.isoformat() if item.created_at else None,
-                "chunk_index": item.chunk_index,
-                "metadata": item.metadata,
-            }
-            for item in items
-        ],
+        page=(offset // limit) + 1,
+        page_size=limit,
+        document_metadata=_build_document_chunk_metadata(doc, items),
+        items=serialized,
+    )
+
+
+@router.get(
+    "/base/{corpus_id}/documents/{document_id}/chunks/{chunk_id}",
+    response_model=DocumentChunkDetailResponse,
+)
+async def get_document_chunk_detail(
+    corpus_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+) -> DocumentChunkDetailResponse:
+    resolved_app = _resolve_app_name(app_name)
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    service = _get_service()
+    item = await service.get_knowledge_chunk(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        knowledge_id=chunk_id,
+    )
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CHUNK_NOT_FOUND", "message": "Chunk not found"},
+        )
+
+    siblings = [item]
+    family_id = item.metadata.get("chunk_family_id")
+    if isinstance(family_id, str) and family_id:
+        siblings = await service._repository.list_knowledge_by_family(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            family_id=family_id,
+            source_uri=item.source_uri,
+        )
+
+    return DocumentChunkDetailResponse(
+        item=_serialize_document_chunk_item(item, siblings),
+        document_metadata=_build_document_chunk_metadata(doc, siblings),
+    )
+
+
+@router.patch(
+    "/base/{corpus_id}/documents/{document_id}/chunks/{chunk_id}",
+    response_model=DocumentChunkDetailResponse,
+)
+async def update_document_chunk(
+    corpus_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    payload: DocumentChunkUpdateRequest,
+) -> DocumentChunkDetailResponse:
+    resolved_app = _resolve_app_name(payload.app_name)
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    service = _get_service()
+    item = await service.update_knowledge_chunk(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        knowledge_id=chunk_id,
+        content=payload.content,
+        is_enabled=payload.is_enabled,
+    )
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CHUNK_NOT_FOUND", "message": "Chunk not found"},
+        )
+    siblings = [item]
+    family_id = item.metadata.get("chunk_family_id")
+    if isinstance(family_id, str) and family_id:
+        siblings = await service._repository.list_knowledge_by_family(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            family_id=family_id,
+            source_uri=item.source_uri,
+        )
+    return DocumentChunkDetailResponse(
+        item=_serialize_document_chunk_item(item, siblings),
+        document_metadata=_build_document_chunk_metadata(doc, siblings),
+    )
+
+
+@router.post(
+    "/base/{corpus_id}/documents/{document_id}/chunks/{chunk_id}/regenerate-family",
+    response_model=DocumentChunkDetailResponse,
+)
+async def regenerate_document_chunk_family(
+    corpus_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    payload: DocumentChunkUpdateRequest,
+) -> DocumentChunkDetailResponse:
+    resolved_app = _resolve_app_name(payload.app_name)
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+    service = _get_service()
+    records = await service.regenerate_knowledge_family(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        knowledge_id=chunk_id,
+        content=payload.content or "",
+        is_enabled=payload.is_enabled,
+    )
+    if not records:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CHUNK_NOT_FOUND", "message": "Chunk not found"},
+        )
+    selected = next((item for item in records if str(item.id) == str(chunk_id)), records[0])
+    return DocumentChunkDetailResponse(
+        item=_serialize_document_chunk_item(selected, records),
+        document_metadata=_build_document_chunk_metadata(doc, records),
     )
 
 

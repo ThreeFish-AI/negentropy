@@ -31,6 +31,9 @@ const {
   searchParamsState,
   fetchDocumentsMock,
   fetchDocumentChunksMock,
+  fetchDocumentChunkDetailMock,
+  updateDocumentChunkMock,
+  regenerateDocumentChunkFamilyMock,
   searchAcrossCorporaMock,
   documentViewDialogMock,
   fetchMock,
@@ -49,6 +52,9 @@ const {
   ingestFileMock: vi.fn(),
   fetchDocumentsMock: vi.fn(),
   fetchDocumentChunksMock: vi.fn(),
+  fetchDocumentChunkDetailMock: vi.fn(),
+  updateDocumentChunkMock: vi.fn(),
+  regenerateDocumentChunkFamilyMock: vi.fn(),
   searchAcrossCorporaMock: vi.fn(),
   documentViewDialogMock: vi.fn(),
   fetchMock: vi.fn(),
@@ -79,6 +85,9 @@ const localMocks: KnowledgeBasePageLocalMocks = {
   ingestFileMock,
   fetchDocumentsMock,
   fetchDocumentChunksMock,
+  fetchDocumentChunkDetailMock,
+  updateDocumentChunkMock,
+  regenerateDocumentChunkFamilyMock,
   searchAcrossCorporaMock,
   documentViewDialogMock,
   fetchMock,
@@ -125,6 +134,9 @@ vi.mock("@/features/knowledge", async () => {
   knowledgeMocks.deleteCorpusMock = deleteCorpusMock;
   knowledgeMocks.fetchDocumentsMock = fetchDocumentsMock;
   knowledgeMocks.fetchDocumentChunksMock = fetchDocumentChunksMock;
+  knowledgeMocks.fetchDocumentChunkDetailMock = fetchDocumentChunkDetailMock;
+  knowledgeMocks.updateDocumentChunkMock = updateDocumentChunkMock;
+  knowledgeMocks.regenerateDocumentChunkFamilyMock = regenerateDocumentChunkFamilyMock;
   knowledgeMocks.searchAcrossCorporaMock = searchAcrossCorporaMock;
   knowledgeMocks.syncDocumentMock = syncDocumentMock;
   knowledgeMocks.rebuildDocumentMock = rebuildDocumentMock;
@@ -729,8 +741,17 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByText("Child Overlap")).toBeInTheDocument();
   });
 
-  it("进入 document-chunks 视图时使用不超过后端约束的 limit=200", async () => {
+  it("进入 document-chunks 视图时默认按分页大小 10 拉取并展示三栏布局", async () => {
     searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
+    fetchDocumentChunksMock.mockResolvedValueOnce({
+      count: 1,
+      page: 1,
+      page_size: 10,
+      document_metadata: {
+        original_filename: "Context Engineering.pdf",
+      },
+      items: [createKnowledgeBaseDocumentChunk()],
+    });
 
     render(<KnowledgeBasePage />);
 
@@ -741,10 +762,13 @@ describe("KnowledgeBasePage", () => {
     expect(fetchDocumentChunksMock).toHaveBeenCalledWith(
       "11111111-1111-1111-1111-111111111111",
       "doc-1",
-      { appName: "negentropy", limit: 200, offset: 0 },
+      { appName: "negentropy", limit: 10, offset: 0 },
     );
     expect(screen.getByTestId("corpus-sidebar")).toBeInTheDocument();
     expect(screen.getByTestId("corpus-content-scroll").className).toContain("overflow-y-auto");
+    expect(screen.getByText("Document Chunks")).toBeInTheDocument();
+    expect(screen.getByText("Document Metadata")).toBeInTheDocument();
+    expect(screen.getByText("1 Chunks")).toBeInTheDocument();
   });
 
   it("检索后默认隐藏 Corpus 集合，并通过底部按钮展开与收起", async () => {
@@ -1040,10 +1064,14 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByText("Chunk-?")).toBeInTheDocument();
   });
 
-  it("document-chunks 视图仍使用右侧抽屉展示详情", async () => {
+  it("document-chunks 视图点击卡片后在右栏展示 Edit Chunk", async () => {
     const user = userEvent.setup();
     searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
     fetchDocumentChunksMock.mockResolvedValueOnce({
+      count: 1,
+      page: 1,
+      page_size: 10,
+      document_metadata: {},
       items: [createKnowledgeBaseDocumentChunk()],
     });
 
@@ -1055,11 +1083,10 @@ describe("KnowledgeBasePage", () => {
 
     await user.click(screen.getByText("document chunk content"));
 
-    expect(screen.getByText("Chunk Detail")).toBeInTheDocument();
-    expect(screen.getByText("Metadata")).toBeInTheDocument();
-
-    await user.click(screen.getByTestId("chunk-drawer-backdrop"));
-    expect(screen.queryByText("Metadata")).not.toBeInTheDocument();
+    expect(fetchDocumentChunkDetailMock).toHaveBeenCalled();
+    expect(await screen.findByText("Edit Chunk")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save & Regenerate Child Chunks" })).toBeInTheDocument();
   });
 
   it("未选中任何 Corpus 时禁用 Retrieve，并且不会发起检索", async () => {

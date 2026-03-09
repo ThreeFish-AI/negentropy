@@ -994,6 +994,14 @@ class KnowledgeService:
             run_id=tracker.run_id if tracker else None,
         )
 
+        await self._sync_document_chunk_stats(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=source_uri,
+            records=records,
+            chunking_config=config,
+        )
+
         return records
 
     async def replace_source(
@@ -1639,6 +1647,165 @@ class KnowledgeService:
             include_archived=include_archived,
         )
 
+    async def get_knowledge_chunk(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        knowledge_id: UUID,
+    ) -> Optional[KnowledgeRecord]:
+        return await self._repository.get_knowledge_by_id(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            knowledge_id=knowledge_id,
+        )
+
+    async def update_knowledge_chunk(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        knowledge_id: UUID,
+        content: Optional[str] = None,
+        is_enabled: Optional[bool] = None,
+    ) -> Optional[KnowledgeRecord]:
+        current = await self.get_knowledge_chunk(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            knowledge_id=knowledge_id,
+        )
+        if not current:
+            return None
+
+        family_id = current.metadata.get("chunk_family_id")
+        if is_enabled is not None and isinstance(family_id, str) and family_id:
+            await self._repository.update_family_enabled_state(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                family_id=family_id,
+                source_uri=current.source_uri,
+                is_enabled=is_enabled,
+            )
+
+        updated = await self._repository.update_knowledge_chunk(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            knowledge_id=knowledge_id,
+            content=content,
+            is_enabled=is_enabled,
+        )
+        return updated
+
+    async def regenerate_knowledge_family(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        knowledge_id: UUID,
+        content: str,
+        is_enabled: Optional[bool] = None,
+    ) -> list[KnowledgeRecord]:
+        current = await self.get_knowledge_chunk(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            knowledge_id=knowledge_id,
+        )
+        if not current:
+            return []
+
+        family_id = current.metadata.get("chunk_family_id")
+        if not isinstance(family_id, str) or not family_id:
+            updated = await self.update_knowledge_chunk(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                knowledge_id=knowledge_id,
+                content=content,
+                is_enabled=is_enabled,
+            )
+            return [updated] if updated else []
+
+        family_records = await self._repository.list_knowledge_by_family(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            family_id=family_id,
+            source_uri=current.source_uri,
+        )
+        family_enabled = is_enabled if is_enabled is not None else all(item.is_enabled for item in family_records)
+        parent_record = next(
+            (item for item in family_records if item.metadata.get("chunk_role") == CHUNK_ROLE_PARENT),
+            None,
+        )
+        base_text = content if current.metadata.get("chunk_role") == CHUNK_ROLE_CHILD else content
+        if current.metadata.get("chunk_role") != CHUNK_ROLE_CHILD and parent_record is not None:
+            base_text = content
+
+        corpus = await self._repository.get_corpus_by_id(corpus_id)
+        config = default_chunking_config()
+        if corpus:
+            try:
+                from .types import normalize_chunking_config
+
+                config = normalize_chunking_config(corpus.config or {})
+            except Exception:
+                config = default_chunking_config()
+
+        metadata = {
+            **current.metadata,
+            "chunk_family_id": family_id,
+        }
+        await self._repository.delete_knowledge_by_family(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=current.source_uri,
+            family_id=family_id,
+        )
+        chunks = await self._build_chunks(
+            base_text,
+            source_uri=current.source_uri,
+            metadata=metadata,
+            chunking_config=config,
+        )
+        chunks = [
+            KnowledgeChunk(
+                content=item.content,
+                source_uri=item.source_uri,
+                chunk_index=item.chunk_index,
+                metadata={
+                    **item.metadata,
+                    "chunk_family_id": family_id,
+                },
+                embedding=item.embedding,
+            )
+            for item in await self._attach_embeddings(chunks)
+        ]
+        records = await self._repository.add_knowledge(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            chunks=chunks,
+        )
+        if not family_enabled:
+            await self._repository.update_family_enabled_state(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                family_id=family_id,
+                source_uri=current.source_uri,
+                is_enabled=False,
+            )
+            records = await self._repository.list_knowledge_by_family(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                family_id=family_id,
+                source_uri=current.source_uri,
+            )
+        await self._sync_document_chunk_stats(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=current.source_uri,
+            records=records,
+            chunking_config=config,
+        )
+        return records
+
     async def search(
         self,
         *,
@@ -1698,11 +1865,16 @@ class KnowledgeService:
                     mode="keyword_fallback",
                     result_count=len(keyword_matches),
                 )
-                return await self._lift_hierarchical_matches(
+                keyword_matches = await self._lift_hierarchical_matches(
                     corpus_id=corpus_id,
                     app_name=app_name,
                     matches=keyword_matches,
                     limit=config.limit,
+                )
+                return await self._record_match_retrievals(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    matches=keyword_matches,
                 )
 
             query_embedding = await self._embedding_fn(query)
@@ -1736,7 +1908,11 @@ class KnowledgeService:
                 rrf_k=config.rrf_k,
                 result_count=len(results),
             )
-            return results
+            return await self._record_match_retrievals(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=results,
+            )
 
         # 其他模式: semantic, keyword, hybrid
         query_embedding = None
@@ -1799,7 +1975,11 @@ class KnowledgeService:
                 mode="semantic",
                 result_count=len(semantic_matches),
             )
-            return semantic_matches
+            return await self._record_match_retrievals(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=semantic_matches,
+            )
 
         if config.mode == "keyword":
             # L1 精排
@@ -1816,7 +1996,11 @@ class KnowledgeService:
                 mode="keyword",
                 result_count=len(keyword_matches),
             )
-            return keyword_matches
+            return await self._record_match_retrievals(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                matches=keyword_matches,
+            )
 
         # Hybrid 模式
         results = self._merge_matches(
@@ -1845,7 +2029,11 @@ class KnowledgeService:
             merged_count=len(results),
         )
 
-        return results
+        return await self._record_match_retrievals(
+            corpus_id=corpus_id,
+            app_name=app_name,
+            matches=results,
+        )
 
     async def _build_chunks(
         self,
@@ -2143,6 +2331,8 @@ class KnowledgeService:
                         **item.metadata,
                         **extra_metadata,
                     },
+                    retrieval_count=int(extra_metadata.get("retrieval_count", item.retrieval_count)),
+                    is_enabled=bool(extra_metadata.get("is_enabled", item.is_enabled)),
                     semantic_score=item.semantic_score,
                     keyword_score=item.keyword_score,
                     combined_score=item.combined_score,
@@ -2150,6 +2340,87 @@ class KnowledgeService:
             )
 
         return hydrated
+
+    async def _record_match_retrievals(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        matches: Iterable[KnowledgeMatch],
+    ) -> list[KnowledgeMatch]:
+        match_list = list(matches)
+        child_ids = [
+            item.id
+            for item in match_list
+            if item.metadata.get("chunk_role") == CHUNK_ROLE_CHILD
+        ]
+        target_ids = child_ids or [item.id for item in match_list]
+        increment_retrieval_counts = getattr(self._repository, "increment_retrieval_counts", None)
+        if callable(increment_retrieval_counts):
+            await increment_retrieval_counts(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                knowledge_ids=target_ids,
+            )
+        return [
+            KnowledgeMatch(
+                id=item.id,
+                content=item.content,
+                source_uri=item.source_uri,
+                metadata=item.metadata,
+                retrieval_count=item.retrieval_count + (0 if child_ids and item.id not in child_ids else 1),
+                is_enabled=item.is_enabled,
+                semantic_score=item.semantic_score,
+                keyword_score=item.keyword_score,
+                combined_score=item.combined_score,
+            )
+            for item in match_list
+        ]
+
+    async def _sync_document_chunk_stats(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: Optional[str],
+        records: Iterable[KnowledgeRecord],
+        chunking_config: ChunkingConfig,
+    ) -> None:
+        if not source_uri:
+            return
+
+        from negentropy.storage.service import DocumentStorageService
+
+        record_list = list(records)
+        if not record_list:
+            return
+
+        storage_service = DocumentStorageService()
+        document = await storage_service.get_document_by_source_uri(
+            source_uri=source_uri,
+            corpus_id=corpus_id,
+            app_name=app_name,
+        )
+        if not document:
+            return
+
+        total_characters = sum(item.character_count for item in record_list)
+        avg_length = int(total_characters / len(record_list)) if record_list else 0
+        metadata_patch = {
+            "chunk_stats": {
+                "chunk_specification": getattr(chunking_config.strategy, "value", str(chunking_config.strategy)),
+                "chunk_length": avg_length,
+                "avg_paragraph_length": avg_length,
+                "paragraph_count": len(record_list),
+                "embedding_time_ms": None,
+                "embedded_tokens": int(total_characters / 4),
+                "last_chunked_at": datetime.now(timezone.utc).isoformat(),
+            }
+        }
+        await storage_service.update_document_metadata(
+            document_id=document.id,
+            metadata_patch=metadata_patch,
+        )
 
     def _merge_matches(
         self,

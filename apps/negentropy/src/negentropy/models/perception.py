@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, Index
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -40,6 +40,9 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
     search_vector: Mapped[Optional[Any]] = mapped_column(TSVECTOR)
     source_uri: Mapped[Optional[str]] = mapped_column(Text)
     chunk_index: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    character_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    retrieval_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
 
     # Knowledge Graph entity fields
