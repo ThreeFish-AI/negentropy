@@ -432,7 +432,6 @@ describe("KnowledgePipelinesPage polling", () => {
       screen.getAllByText("Extractor produced empty document after normalization").length
     ).toBeGreaterThan(0);
   });
-
   it("failure_category 存在时，阶段摘要与错误详情会展示归一化标签", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
       runs: [
