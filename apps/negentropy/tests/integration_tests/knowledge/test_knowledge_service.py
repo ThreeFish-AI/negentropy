@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from negentropy.knowledge.service import KnowledgeService
 from negentropy.knowledge.types import (
     ChunkingConfig,
+    ChunkingStrategy,
     KnowledgeChunk,
     KnowledgeMatch,
     KnowledgeRecord,
@@ -289,3 +290,58 @@ async def test_search_lifts_hierarchical_matches_with_child_details():
             "combined_score": 0.4,
         },
     ]
+
+
+async def test_ingest_text_with_hierarchical_chunking_preserves_parent_child_metadata(monkeypatch):
+    repo = FakeRepository()
+    service = KnowledgeService(repository=repo, embedding_fn=_embedding_fn)
+
+    class FakeDocumentStorageService:
+        async def get_document_by_source_uri(self, *, source_uri, corpus_id, app_name):
+            _ = (source_uri, corpus_id, app_name)
+            return None
+
+    monkeypatch.setattr(
+        "negentropy.storage.service.DocumentStorageService",
+        lambda: FakeDocumentStorageService(),
+    )
+
+    corpus_id = uuid4()
+    app_name = "negentropy"
+    text = (
+        "第一章介绍上下文工程的基础概念，并说明为什么需要稳定的知识索引。\n\n"
+        "第二章描述摄入链路、父子分块以及检索时返回父块的行为。"
+    )
+
+    records = await service.ingest_text(
+        corpus_id=corpus_id,
+        app_name=app_name,
+        text=text,
+        source_uri="gs://knowledge/context-engineering.pdf",
+        metadata={"source_type": "file", "original_filename": "context-engineering.pdf"},
+        chunking_config=ChunkingConfig(
+            strategy=ChunkingStrategy.HIERARCHICAL,
+            hierarchical_parent_chunk_size=36,
+            hierarchical_child_chunk_size=18,
+            hierarchical_child_overlap=4,
+        ),
+    )
+
+    assert records
+    assert repo.added
+
+    parent_chunks = [chunk for chunk in repo.added if chunk.metadata.get("chunk_role") == "parent"]
+    child_chunks = [chunk for chunk in repo.added if chunk.metadata.get("chunk_role") == "child"]
+
+    assert parent_chunks
+    assert child_chunks
+    assert all(chunk.metadata["chunking_strategy"] == "hierarchical" for chunk in repo.added)
+    assert all(chunk.metadata["hierarchy_level"] == 0 for chunk in parent_chunks)
+    assert all(chunk.metadata["hierarchy_level"] == 1 for chunk in child_chunks)
+    assert all(chunk.metadata["searchable"] is False for chunk in parent_chunks)
+    assert all(chunk.metadata["searchable"] is True for chunk in child_chunks)
+
+    parent_family_ids = {chunk.metadata["chunk_family_id"] for chunk in parent_chunks}
+    child_family_ids = {chunk.metadata["chunk_family_id"] for chunk in child_chunks}
+    assert child_family_ids.issubset(parent_family_ids)
+    assert all(chunk.metadata["hierarchical_parent_id"] == chunk.metadata["chunk_family_id"] for chunk in child_chunks)
