@@ -741,7 +741,7 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByText("Child Overlap")).toBeInTheDocument();
   });
 
-  it("进入 document-chunks 视图时默认按分页大小 10 拉取并展示三栏布局", async () => {
+  it("进入 document-chunks 视图时默认按分页大小 10 拉取，并仅保留左侧主导航", async () => {
     searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
     fetchDocumentChunksMock.mockResolvedValueOnce({
       count: 1,
@@ -764,11 +764,16 @@ describe("KnowledgeBasePage", () => {
       "doc-1",
       { appName: "negentropy", limit: 10, offset: 0 },
     );
-    expect(screen.getByTestId("corpus-sidebar")).toBeInTheDocument();
+    const sidebar = screen.getByTestId("corpus-sidebar");
+    expect(sidebar).toBeInTheDocument();
     expect(screen.getByTestId("corpus-content-scroll").className).toContain("overflow-y-auto");
     expect(screen.getByText("Document Chunks")).toBeInTheDocument();
     expect(screen.getByText("Document Metadata")).toBeInTheDocument();
     expect(screen.getByText("1 Chunks")).toBeInTheDocument();
+    expect(within(sidebar).getByRole("button", { name: "Documents" })).toBeInTheDocument();
+    expect(within(sidebar).getByRole("button", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Documents" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Settings" })).toHaveLength(1);
   });
 
   it("检索后默认隐藏 Corpus 集合，并通过底部按钮展开与收起", async () => {

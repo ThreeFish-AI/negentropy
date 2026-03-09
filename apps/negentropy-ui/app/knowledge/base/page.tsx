@@ -106,40 +106,6 @@ function formatDateTime(value?: string | null): string {
   return date.toLocaleString("zh-CN");
 }
 
-function ChunkSideNav({
-  currentTab,
-  onChange,
-}: {
-  currentTab: CorpusTab;
-  onChange: (tab: CorpusTab) => void;
-}) {
-  const items: Array<{ id: CorpusTab; label: string }> = [
-    { id: "documents", label: "Documents" },
-    { id: "settings", label: "Settings" },
-  ];
-
-  return (
-    <aside className="rounded-2xl border border-border bg-card p-3">
-      <div className="space-y-1">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onChange(item.id)}
-            className={`flex w-full items-center rounded-xl px-3 py-2 text-sm ${
-              currentTab === item.id
-                ? "bg-foreground text-background"
-                : "text-muted transition-colors hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-    </aside>
-  );
-}
-
 function DocumentMetadataPanel({
   metadata,
 }: {
@@ -1422,19 +1388,7 @@ export default function KnowledgeBasePage() {
               )}
 
               {corpusTab === "document-chunks" && (
-                <div className="grid gap-4 pb-10 xl:grid-cols-[180px_minmax(0,1fr)_360px]">
-                  <ChunkSideNav
-                    currentTab="documents"
-                    onChange={(tab) =>
-                      syncQueryState({
-                        view: "corpus",
-                        corpusId: selectedCorpusId,
-                        tab,
-                        documentId: tab === "documents" ? null : selectedDocumentId,
-                      })
-                    }
-                  />
-
+                <div className="grid gap-4 pb-10 xl:grid-cols-[minmax(0,1fr)_360px]">
                   <section className="flex min-h-[760px] flex-col rounded-2xl border border-border bg-card">
                     <div className="flex items-center justify-between border-b border-border px-5 py-4">
                       <div>
