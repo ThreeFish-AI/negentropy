@@ -374,6 +374,7 @@ export interface FailedStageDetail {
   durationMs?: number;
   error: Record<string, unknown>;
   message: string;
+  failureCategory?: string;
 }
 
 export interface PipelineErrorDetail {
@@ -382,6 +383,8 @@ export interface PipelineErrorDetail {
   title: string;
   message: string;
   error: Record<string, unknown>;
+  failureCategory?: string;
+  failureLabel?: string;
   stageName?: string;
   durationMs?: number;
   status?: string;
@@ -389,6 +392,24 @@ export interface PipelineErrorDetail {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const FAILURE_CATEGORY_LABELS: Record<string, string> = {
+  validation_error: "参数校验失败",
+  tool_error: "MCP 调用失败",
+  empty_payload: "提取结果为空",
+  unrecognized_payload: "结果结构无法识别",
+  tool_unavailable: "MCP 服务不可用",
+  tool_disabled: "MCP Tool 已禁用",
+  unsupported_contract: "Tool 契约不受支持",
+  low_confidence_contract: "Tool 契约置信度不足",
+};
+
+export const getFailureCategoryLabel = (category: unknown): string | undefined => {
+  if (typeof category !== "string" || !category.trim()) {
+    return undefined;
+  }
+  return FAILURE_CATEGORY_LABELS[category] || category;
+};
 
 export const getStageErrorMessage = (error: unknown): string => {
   if (typeof error === "string") {
@@ -421,6 +442,15 @@ export const getStageErrorMessage = (error: unknown): string => {
   }
 };
 
+export const getStageErrorSummary = (error: unknown): string => {
+  if (!isRecord(error)) {
+    return getStageErrorMessage(error);
+  }
+  const failureLabel = getFailureCategoryLabel(error.failure_category);
+  const message = getStageErrorMessage(error);
+  return failureLabel ? `${failureLabel} · ${message}` : message;
+};
+
 export const getFailedStages = (
   stages?: Record<string, PipelineStageResult>
 ): FailedStageDetail[] =>
@@ -436,6 +466,10 @@ export const getFailedStages = (
       durationMs: stage.duration_ms,
       error: stage.error as Record<string, unknown>,
       message: getStageErrorMessage(stage.error),
+      failureCategory:
+        isRecord(stage.error) && typeof stage.error.failure_category === "string"
+          ? stage.error.failure_category
+          : undefined,
     }));
 
 export const buildPipelineErrorDetails = (
@@ -454,6 +488,9 @@ export const buildPipelineErrorDetails = (
         title: "运行级错误",
         message: runMessage,
         error: run.error,
+        failureCategory:
+          typeof run.error.failure_category === "string" ? run.error.failure_category : undefined,
+        failureLabel: getFailureCategoryLabel(run.error.failure_category),
       });
     }
   }
@@ -465,6 +502,8 @@ export const buildPipelineErrorDetails = (
       title: item.label,
       message: item.message,
       error: item.error,
+      failureCategory: item.failureCategory,
+      failureLabel: getFailureCategoryLabel(item.failureCategory),
       stageName: item.stageName,
       durationMs: item.durationMs,
       status: item.status,
