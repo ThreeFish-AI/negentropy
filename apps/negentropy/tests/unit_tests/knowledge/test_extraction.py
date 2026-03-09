@@ -877,6 +877,101 @@ async def test_data_extractor_provider_retries_after_validation_error_with_batch
 
 
 @pytest.mark.asyncio
+async def test_data_extractor_provider_uses_schema_string_source_for_single_pdf_without_llm(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+    call_arguments: list[dict[str, object]] = []
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="data-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(
+                is_enabled=True,
+                description="single pdf",
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "pdf_source": {"type": "string"},
+                        "include_metadata": {"type": "boolean"},
+                    },
+                    "required": ["pdf_source"],
+                },
+            )
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            call_arguments.append(kwargs["arguments"])
+            return SimpleNamespace(
+                success=True,
+                structured_content={"result": {"markdown_content": "# PDF", "plain_text": "PDF"}},
+                content=[],
+                error=None,
+                duration_ms=9,
+            )
+
+    async def fake_increment_tool_call_count(**_: object) -> None:
+        return None
+
+    async def fake_llm_plan(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._increment_tool_call_count",
+        fake_increment_tool_call_count,
+    )
+    monkeypatch.setattr("negentropy.knowledge.extraction._build_llm_invocation_plan", fake_llm_plan)
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    assert len(call_arguments) == 1
+    assert isinstance(call_arguments[0]["pdf_source"], str)
+    assert call_arguments[0]["pdf_source"].endswith(".pdf")
+    assert result["result"].metadata["adapter_name"] == "single_string_source_v1"
+    assert result["result"].trace["llm_fallback_used"] is False
+    assert result["result"].trace["adapter_schema_summary"]["selected_source_kind"] == "local_path"
+
+
+@pytest.mark.asyncio
 async def test_data_extractor_provider_uses_llm_selected_string_source_for_single_pdf(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -984,6 +1079,201 @@ async def test_data_extractor_provider_uses_llm_selected_string_source_for_singl
     assert call_arguments == [{"pdf_source": "/tmp/fake.pdf"}]
     assert result["result"].metadata["adapter_name"] == "single_string_source_v1"
     assert result["result"].trace["llm_fallback_used"] is True
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_keeps_string_contract_on_missing_single_source_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+    call_arguments: list[dict[str, object]] = []
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(
+                is_enabled=True,
+                description="single pdf",
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "pdf_source": {"type": "string"},
+                    },
+                    "required": ["pdf_source"],
+                },
+            )
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            self.calls += 1
+            call_arguments.append(kwargs["arguments"])
+            if self.calls == 1:
+                return SimpleNamespace(
+                    success=False,
+                    structured_content=None,
+                    content=[],
+                    error=(
+                        "1 validation error for call[convert_pdf_to_markdown]\n"
+                        "pdf_source\n  Missing required argument\n"
+                    ),
+                    duration_ms=8,
+                )
+            return SimpleNamespace(
+                success=True,
+                structured_content={"result": {"markdown_content": "# PDF", "plain_text": "PDF"}},
+                content=[],
+                error=None,
+                duration_ms=10,
+            )
+
+    async def fake_increment_tool_call_count(**_: object) -> None:
+        return None
+
+    async def fake_llm_plan(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr("negentropy.knowledge.extraction._increment_tool_call_count", fake_increment_tool_call_count)
+    monkeypatch.setattr("negentropy.knowledge.extraction._build_llm_invocation_plan", fake_llm_plan)
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    assert len(call_arguments) == 2
+    assert all(isinstance(item["pdf_source"], str) for item in call_arguments)
+    assert result["result"].metadata["adapter_name"] == "single_string_source_retry_v1"
+    assert result["result"].trace["adapter_attempts"][1]["reasoning_source"] == "validation_retry"
+    assert result["result"].trace["adapter_attempts"][1]["diagnostics"]["schema_shape"] == "validation_retry.scalar_value"
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_fails_fast_when_single_string_source_has_no_candidate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+    call_count = 0
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(
+                is_enabled=True,
+                description="single pdf",
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "pdf_source": {"type": "string"},
+                    },
+                    "required": ["pdf_source"],
+                },
+            )
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            nonlocal call_count
+            call_count += 1
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content={"result": {"markdown_content": "# should not happen", "plain_text": "bad"}},
+                content=[],
+                error=None,
+                duration_ms=1,
+            )
+
+    async def fake_increment_tool_call_count(**_: object) -> None:
+        return None
+
+    async def fake_llm_plan(**_: object) -> None:
+        return None
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr("negentropy.knowledge.extraction._increment_tool_call_count", fake_increment_tool_call_count)
+    monkeypatch.setattr("negentropy.knowledge.extraction._build_llm_invocation_plan", fake_llm_plan)
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=None,
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is False
+    assert call_count == 0
+    assert result["attempt"].failure_category == "low_confidence_contract"
+    assert "string source" in result["attempt"].diagnostic_summary
 
 
 @pytest.mark.asyncio
