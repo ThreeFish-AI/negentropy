@@ -4,6 +4,13 @@ import {
   AdkMessageStreamNormalizer,
   collectAdkEventPayloads,
 } from "@/lib/adk";
+import {
+  AGUI_NDJSON_CONTENT_TYPE,
+  createAguiEventFrame,
+  createTransportErrorFrame,
+  encodeNdjsonFrame,
+  parseSseStream,
+} from "@/lib/agui/stream";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
   errorResponse as aguiErrorResponse,
@@ -55,6 +62,24 @@ function buildRunPayload(input: Record<string, unknown>) {
     typeof lastUser?.content === "string" ? lastUser?.content.trim() : "";
 
   return content;
+}
+
+function requestAcceptsNdjson(request: Request): boolean {
+  const accept = request.headers.get("accept") ?? "";
+  return accept.includes(AGUI_NDJSON_CONTENT_TYPE);
+}
+
+function normalizeEvent(
+  event: BaseEvent,
+  threadId: string,
+  runId: string,
+): BaseEvent {
+  return normalizeAguiEvent(
+    resolveEventRunAndThread(event, {
+      threadId,
+      runId,
+    }),
+  );
 }
 
 export async function POST(request: Request) {
@@ -141,7 +166,7 @@ export async function POST(request: Request) {
     try {
       detail = (await upstreamResponse.text()) || detail;
     } catch {
-      // 读取失败时保留默认消息
+      // ignore
     }
     return aguiErrorResponse(
       AGUI_ERROR_CODES.UPSTREAM_ERROR,
@@ -149,106 +174,118 @@ export async function POST(request: Request) {
     );
   }
 
-  const accept = request.headers.get("accept") ?? "text/event-stream";
-  const eventEncoder = new EventEncoder({ accept });
-  const textDecoder = new TextDecoder();
+  const acceptsNdjson = requestAcceptsNdjson(request);
+  const eventEncoder = acceptsNdjson
+    ? null
+    : new EventEncoder({ accept: request.headers.get("accept") ?? "text/event-stream" });
   const textEncoder = new TextEncoder();
-  const upstreamReader = upstreamResponse.body.getReader();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const normalizer = new AdkMessageStreamNormalizer();
-      const runStart: AguiLifecycleEvent = {
+      let sequence = 0;
+      let terminalEventEmitted = false;
+
+      const enqueueEvent = (event: BaseEvent) => {
+        sequence += 1;
+        if (acceptsNdjson) {
+          const frame = createAguiEventFrame({
+            sessionId,
+            threadId: resolvedThreadId,
+            runId: resolvedRunId,
+            seq: sequence,
+            event,
+          });
+          controller.enqueue(textEncoder.encode(encodeNdjsonFrame(frame)));
+          return;
+        }
+        controller.enqueue(
+          textEncoder.encode(eventEncoder!.encodeSSE(event)),
+        );
+      };
+
+      const enqueueTransportError = (code: string, message: string, terminal = true) => {
+        sequence += 1;
+        if (acceptsNdjson) {
+          terminalEventEmitted = terminal;
+          controller.enqueue(
+            textEncoder.encode(
+              encodeNdjsonFrame(
+                createTransportErrorFrame({
+                  sessionId,
+                  threadId: resolvedThreadId,
+                  runId: resolvedRunId,
+                  seq: sequence,
+                  code,
+                  message,
+                  terminal,
+                }),
+              ),
+            ),
+          );
+          return;
+        }
+        terminalEventEmitted = terminal;
+        enqueueEvent({
+          type: EventType.RUN_ERROR,
+          threadId: resolvedThreadId,
+          runId: resolvedRunId,
+          timestamp: Date.now() / 1000,
+          code,
+          message,
+        } as BaseEvent);
+      };
+
+      enqueueEvent({
         type: EventType.RUN_STARTED,
         threadId: resolvedThreadId,
         runId: resolvedRunId,
         timestamp: Date.now() / 1000,
-      };
-      controller.enqueue(textEncoder.encode(eventEncoder.encodeSSE(runStart)));
+      } as BaseEvent);
 
-      let buffer = "";
       try {
-        while (true) {
-          const { value, done } = await upstreamReader.read();
-          if (done) {
-            break;
+        for await (const sseEvent of parseSseStream(upstreamResponse.body!)) {
+          const jsonText = sseEvent.data.trim();
+          if (!jsonText) {
+            continue;
           }
-          buffer += textDecoder.decode(value, { stream: true });
 
-          let boundary = buffer.indexOf("\n\n");
-          while (boundary !== -1) {
-            const chunk = buffer.slice(0, boundary).trim();
-            buffer = buffer.slice(boundary + 2);
-            const lines = chunk.split("\n");
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith("data:")) {
-                continue;
-              }
-              const jsonText = trimmed.replace(/^data:\s*/, "");
-              if (!jsonText) {
-                continue;
-              }
-
-              try {
-                const rawPayload = JSON.parse(jsonText) as unknown;
-                const { payloads, invalidCount } = collectAdkEventPayloads(rawPayload);
-                if (payloads.length === 0) {
-                  throw new Error("Invalid ADK event payload");
-                }
-                if (invalidCount > 0) {
-                  console.warn("Dropped invalid ADK payload fragments", {
-                    invalidCount,
-                  });
-                }
-                for (const payload of payloads) {
-                  const events = normalizer
-                    .consume(payload, {
-                      threadId: resolvedThreadId,
-                      runId: resolvedRunId,
-                    })
-                    .map((event) =>
-                      normalizeAguiEvent(
-                        resolveEventRunAndThread(event, {
-                          threadId: resolvedThreadId,
-                          runId: resolvedRunId,
-                        }),
-                      ),
-                    );
-                  for (const event of events) {
-                    controller.enqueue(
-                      textEncoder.encode(eventEncoder.encodeSSE(event)),
-                    );
-                  }
-                }
-              } catch (error) {
-                const errEvent: AguiLifecycleEvent = {
-                  type: EventType.RUN_ERROR,
+          try {
+            const rawPayload = JSON.parse(jsonText) as unknown;
+            const { payloads, invalidCount } = collectAdkEventPayloads(rawPayload);
+            if (payloads.length === 0) {
+              throw new Error("Invalid ADK event payload");
+            }
+            if (invalidCount > 0) {
+              console.warn("Dropped invalid ADK payload fragments", {
+                invalidCount,
+              });
+            }
+            for (const payload of payloads) {
+              const events = normalizer
+                .consume(payload, {
                   threadId: resolvedThreadId,
                   runId: resolvedRunId,
-                  message: `Failed to parse ADK event: ${String(error)}`,
-                  code: "ADK_EVENT_PARSE_ERROR",
-                  timestamp: Date.now() / 1000,
-                };
-                controller.enqueue(
-                  textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
+                })
+                .map((event) =>
+                  normalizeEvent(event, resolvedThreadId, resolvedRunId),
                 );
+              for (const event of events) {
+                enqueueEvent(event);
               }
             }
-            boundary = buffer.indexOf("\n\n");
+          } catch (error) {
+            enqueueTransportError(
+              "ADK_EVENT_PARSE_ERROR",
+              `Failed to parse ADK event: ${String(error)}`,
+              false,
+            );
           }
         }
       } catch (error) {
-        const errEvent: AguiLifecycleEvent = {
-          type: EventType.RUN_ERROR,
-          threadId: resolvedThreadId,
-          runId: resolvedRunId,
-          message: `Upstream stream error: ${String(error)}`,
-          code: "ADK_STREAM_ERROR",
-          timestamp: Date.now() / 1000,
-        };
-        controller.enqueue(
-          textEncoder.encode(eventEncoder.encodeSSE(errEvent)),
+        enqueueTransportError(
+          "ADK_STREAM_ERROR",
+          `Upstream stream error: ${String(error)}`,
         );
       } finally {
         const finalEvents = normalizer.flushRun(
@@ -257,29 +294,17 @@ export async function POST(request: Request) {
           Date.now() / 1000,
         );
         for (const event of finalEvents) {
-          controller.enqueue(
-            textEncoder.encode(
-              eventEncoder.encodeSSE(
-                normalizeAguiEvent(
-                  resolveEventRunAndThread(event, {
-                    threadId: resolvedThreadId,
-                    runId: resolvedRunId,
-                  }),
-                ),
-              ),
-            ),
-          );
+          enqueueEvent(normalizeEvent(event, resolvedThreadId, resolvedRunId));
         }
-        const runFinish: AguiLifecycleEvent = {
-          type: EventType.RUN_FINISHED,
-          threadId: resolvedThreadId,
-          runId: resolvedRunId,
-          timestamp: Date.now() / 1000,
-          result: "ok",
-        };
-        controller.enqueue(
-          textEncoder.encode(eventEncoder.encodeSSE(runFinish)),
-        );
+        if (!terminalEventEmitted) {
+          enqueueEvent({
+            type: EventType.RUN_FINISHED,
+            threadId: resolvedThreadId,
+            runId: resolvedRunId,
+            timestamp: Date.now() / 1000,
+            result: "ok",
+          } as BaseEvent);
+        }
         controller.close();
       }
     },
@@ -288,7 +313,9 @@ export async function POST(request: Request) {
   const responseHeaders = new Headers({
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
-    "Content-Type": eventEncoder.getContentType(),
+    "Content-Type": acceptsNdjson
+      ? AGUI_NDJSON_CONTENT_TYPE
+      : eventEncoder!.getContentType(),
   });
 
   return new Response(stream, {
