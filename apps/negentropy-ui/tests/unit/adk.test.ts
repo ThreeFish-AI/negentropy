@@ -323,10 +323,6 @@ describe("adk event mapping", () => {
   it("rejects malformed ADK event payloads", () => {
     const result = safeParseAdkEventPayload({
       author: "assistant",
-      message: {
-        role: "assistant",
-        content: "ok",
-      },
     });
 
     expect(result.success).toBe(false);
@@ -346,5 +342,46 @@ describe("adk event mapping", () => {
 
     expect(result.payloads).toHaveLength(1);
     expect(result.invalidCount).toBe(1);
+  });
+
+  it("展开 event envelope 并继承外层 runId/threadId", () => {
+    const result = collectAdkEventPayloads({
+      id: "env-1",
+      runId: "run-env",
+      threadId: "thread-env",
+      event: {
+        author: "assistant",
+        content: { parts: [{ text: "来自 envelope 的文本" }] },
+      },
+    });
+
+    expect(result.invalidCount).toBe(0);
+    expect(result.payloads).toHaveLength(1);
+    expect(result.payloads[0]).toMatchObject({
+      runId: "run-env",
+      threadId: "thread-env",
+      author: "assistant",
+    });
+    expect(result.payloads[0]?.content?.parts?.[0]?.text).toBe(
+      "来自 envelope 的文本",
+    );
+  });
+
+  it("将 typed step envelope 映射为 actions.stepStarted", () => {
+    const payload = parseAdkEventPayload({
+      id: "env-step",
+      runId: "run-step",
+      threadId: "thread-step",
+      type: "step_started",
+      data: {
+        id: "step-1",
+        name: "Google Search",
+      },
+    });
+
+    expect(payload.actions?.stepStarted).toMatchObject({
+      id: "step-1",
+      name: "Google Search",
+    });
   });
 });

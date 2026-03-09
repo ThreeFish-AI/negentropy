@@ -2,7 +2,7 @@ import { EventEncoder } from "@ag-ui/encoder";
 import { BaseEvent, EventType } from "@ag-ui/core";
 import {
   AdkMessageStreamNormalizer,
-  safeParseAdkEventPayload,
+  collectAdkEventPayloads,
 } from "@/lib/adk";
 import { buildAuthHeaders } from "@/lib/sso";
 import {
@@ -192,27 +192,34 @@ export async function POST(request: Request) {
 
               try {
                 const rawPayload = JSON.parse(jsonText) as unknown;
-                const parsedResult = safeParseAdkEventPayload(rawPayload);
-                if (!parsedResult.success) {
+                const { payloads, invalidCount } = collectAdkEventPayloads(rawPayload);
+                if (payloads.length === 0) {
                   throw new Error("Invalid ADK event payload");
                 }
-                const events = normalizer
-                  .consume(parsedResult.data, {
-                    threadId: resolvedThreadId,
-                    runId: resolvedRunId,
-                  })
-                  .map((event) =>
-                    normalizeAguiEvent(
-                      resolveEventRunAndThread(event, {
-                        threadId: resolvedThreadId,
-                        runId: resolvedRunId,
-                      }),
-                    ),
-                  );
-                for (const event of events) {
-                  controller.enqueue(
-                    textEncoder.encode(eventEncoder.encodeSSE(event)),
-                  );
+                if (invalidCount > 0) {
+                  console.warn("Dropped invalid ADK payload fragments", {
+                    invalidCount,
+                  });
+                }
+                for (const payload of payloads) {
+                  const events = normalizer
+                    .consume(payload, {
+                      threadId: resolvedThreadId,
+                      runId: resolvedRunId,
+                    })
+                    .map((event) =>
+                      normalizeAguiEvent(
+                        resolveEventRunAndThread(event, {
+                          threadId: resolvedThreadId,
+                          runId: resolvedRunId,
+                        }),
+                      ),
+                    );
+                  for (const event of events) {
+                    controller.enqueue(
+                      textEncoder.encode(eventEncoder.encodeSSE(event)),
+                    );
+                  }
                 }
               } catch (error) {
                 const errEvent: AguiLifecycleEvent = {

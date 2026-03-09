@@ -117,7 +117,7 @@ describe("POST /api/agui", () => {
     expect(data.error.message).toContain("RunAgentInput requires a user message");
   });
 
-  it("遇到非法 ADK 事件时应跳过坏事件并继续输出后续合法事件", async () => {
+  it("遇到整条非法 ADK 事件时应发出错误事件并继续输出后续合法事件", async () => {
     const upstreamStream = new ReadableStream<Uint8Array>({
       start(controller) {
         const encoder = new TextEncoder();
@@ -265,6 +265,55 @@ describe("POST /api/agui", () => {
     expect(body).toContain("AfterShip");
     expect(body).toContain("Tracking");
     expect(body).toContain("## 摘要");
+  });
+
+  it("应兼容 event envelope 与 typed step 事件", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"id":"env-1","runId":"run-1","threadId":"session-1","event":{"author":"assistant","content":{"parts":[{"text":"先进行搜索"}]}}}',
+              "",
+              'data: {"id":"env-step","runId":"run-1","threadId":"session-1","type":"step_started","data":{"id":"step-1","name":"Google Search"}}',
+              "",
+              'data: {"id":"env-tool","runId":"run-1","threadId":"session-1","payload":{"author":"assistant","content":{"parts":[{"functionCall":{"id":"call-1","name":"google_search","args":{"q":"AfterShip"}}}]}}}',
+              "",
+              "",
+            ].join("\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "AfterShip 是什么？" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("先进行搜索");
+    expect(body).toContain("STEP_STARTED");
+    expect(body).toContain("\"toolCallId\":\"call-1\"");
   });
 });
 

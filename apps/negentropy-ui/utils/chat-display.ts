@@ -1,8 +1,13 @@
 import { EventType } from "@ag-ui/core";
 import type {
+  AssistantReplyDisplayBlock,
+  AssistantReplyDisplaySegment,
   ChatDisplayBlock,
   ConversationNode,
   ConversationTree,
+  ReplyErrorDisplaySegment,
+  ReplyTextDisplaySegment,
+  ReplyToolGroupDisplaySegment,
   ToolExecutionEntry,
   ToolGroupDisplayBlock,
 } from "@/types/a2ui";
@@ -11,10 +16,11 @@ import { buildNodeSummary, safeJsonParse } from "@/utils/conversation-summary";
 
 const displayBlockTypeOrder: Record<ChatDisplayBlock["kind"], number> = {
   message: 0,
-  "tool-group": 1,
-  error: 2,
-  "turn-status": 3,
-  summary: 4,
+  "assistant-reply": 1,
+  "tool-group": 2,
+  error: 3,
+  "turn-status": 4,
+  summary: 5,
 };
 
 function formatToolName(name: string): string {
@@ -179,6 +185,19 @@ function createToolGroupBlock(input: {
   };
 }
 
+function createReplyToolGroupSegment(input: {
+  turnId: string;
+  anchorNodeId?: string;
+  anchorMessageId?: string;
+  nodes: ConversationNode[];
+}): ReplyToolGroupDisplaySegment {
+  const block = createToolGroupBlock(input);
+  return {
+    ...block,
+    segmentId: `reply-segment:${block.id}`,
+  };
+}
+
 function createMessageBlock(node: ConversationNode): ChatDisplayBlock {
   const message: ChatMessage = {
     id: node.messageId || node.id,
@@ -213,9 +232,45 @@ function createMessageBlock(node: ConversationNode): ChatDisplayBlock {
   };
 }
 
+function createReplyTextSegment(node: ConversationNode): ReplyTextDisplaySegment | null {
+  const content = String(node.payload.content || "");
+  if (!content.trim()) {
+    return null;
+  }
+  return {
+    id: `reply-text:${node.id}`,
+    kind: "text",
+    nodeId: node.id,
+    timestamp: node.timeRange.start,
+    sourceOrder: node.sourceOrder,
+    content,
+    streaming:
+      typeof node.payload.streaming === "boolean"
+        ? node.payload.streaming
+        : node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_CONTENT)) &&
+          !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END)),
+  };
+}
+
 function createErrorBlock(node: ConversationNode): ChatDisplayBlock {
   return {
     id: `display-error:${node.id}`,
+    kind: "error",
+    nodeId: node.id,
+    timestamp: node.timeRange.start,
+    sourceOrder: node.sourceOrder,
+    title: node.title,
+    message: String(node.payload.message || "运行失败"),
+    code:
+      typeof node.payload.code === "string"
+        ? String(node.payload.code)
+        : undefined,
+  };
+}
+
+function createReplyErrorSegment(node: ConversationNode): ReplyErrorDisplaySegment {
+  return {
+    id: `reply-error:${node.id}`,
     kind: "error",
     nodeId: node.id,
     timestamp: node.timeRange.start,
@@ -241,6 +296,77 @@ function createSummaryBlock(node: ConversationNode): ChatDisplayBlock {
   };
 }
 
+type ReplyBuilder = {
+  turnId: string;
+  anchorNodeId: string;
+  anchorMessageId?: string;
+  threadId: string;
+  runId?: string;
+  author?: string;
+  timestamp: number;
+  sourceOrder: number;
+  segments: AssistantReplyDisplaySegment[];
+  textParts: string[];
+};
+
+function createReplyBuilder(node: ConversationNode, turnId: string): ReplyBuilder {
+  return {
+    turnId,
+    anchorNodeId: node.id,
+    anchorMessageId: node.messageId,
+    threadId: node.threadId,
+    runId: node.runId,
+    author:
+      typeof node.payload.author === "string"
+        ? String(node.payload.author)
+        : undefined,
+    timestamp: node.timeRange.start,
+    sourceOrder: node.sourceOrder,
+    segments: [],
+    textParts: [],
+  };
+}
+
+function appendReplySegment(builder: ReplyBuilder, segment: AssistantReplyDisplaySegment) {
+  builder.segments.push(segment);
+  builder.timestamp = Math.min(builder.timestamp, segment.timestamp);
+  builder.sourceOrder = Math.min(builder.sourceOrder, segment.sourceOrder);
+  if (segment.kind === "text" && segment.content.trim()) {
+    builder.textParts.push(segment.content);
+  }
+}
+
+function buildAssistantReplyBlock(builder: ReplyBuilder): AssistantReplyDisplayBlock {
+  const streaming = builder.segments.some(
+    (segment) =>
+      segment.kind === "text"
+        ? segment.streaming
+        : segment.kind === "tool-group"
+          ? segment.status === "running"
+          : false,
+  );
+  const messageId =
+    builder.anchorMessageId || `assistant-reply:${builder.turnId}:${builder.anchorNodeId}`;
+  return {
+    id: `assistant-reply:${builder.turnId}:${messageId}`,
+    kind: "assistant-reply",
+    nodeId: builder.anchorNodeId,
+    timestamp: builder.timestamp,
+    sourceOrder: builder.sourceOrder,
+    message: {
+      id: messageId,
+      role: "assistant",
+      content: builder.textParts.join("\n\n"),
+      author: builder.author,
+      timestamp: builder.timestamp,
+      runId: builder.runId,
+      threadId: builder.threadId,
+      streaming,
+    },
+    segments: builder.segments,
+  };
+}
+
 function pushGroupedTools(
   blocks: ChatDisplayBlock[],
   input: {
@@ -256,13 +382,30 @@ function pushGroupedTools(
   blocks.push(createToolGroupBlock(input));
 }
 
-function walkTextNode(
+function pushGroupedToolsToReply(
+  builder: ReplyBuilder,
+  input: {
+    turnId: string;
+    anchorNodeId?: string;
+    anchorMessageId?: string;
+    nodes: ConversationNode[];
+  },
+) {
+  if (input.nodes.length === 0) {
+    return;
+  }
+  appendReplySegment(builder, createReplyToolGroupSegment(input));
+}
+
+function collectAssistantSegmentsFromTextNode(
   node: ConversationNode,
   turnId: string,
-  blocks: ChatDisplayBlock[],
+  builder: ReplyBuilder,
 ) {
-  blocks.push(createMessageBlock(node));
-
+  const selfSegment = createReplyTextSegment(node);
+  if (selfSegment) {
+    appendReplySegment(builder, selfSegment);
+  }
   let pendingToolNodes: ConversationNode[] = [];
 
   node.children.forEach((child) => {
@@ -274,29 +417,31 @@ function walkTextNode(
       return;
     }
     if (child.type === "text") {
-      pushGroupedTools(blocks, {
+      pushGroupedToolsToReply(builder, {
         turnId,
         anchorNodeId: node.id,
         anchorMessageId: node.messageId,
         nodes: pendingToolNodes,
       });
       pendingToolNodes = [];
-      walkTextNode(child, turnId, blocks);
+      if (child.role === "assistant" || child.role === "developer") {
+        collectAssistantSegmentsFromTextNode(child, turnId, builder);
+      }
       return;
     }
     if (child.type === "error") {
-      pushGroupedTools(blocks, {
+      pushGroupedToolsToReply(builder, {
         turnId,
         anchorNodeId: node.id,
         anchorMessageId: node.messageId,
         nodes: pendingToolNodes,
       });
       pendingToolNodes = [];
-      blocks.push(createErrorBlock(child));
+      appendReplySegment(builder, createReplyErrorSegment(child));
     }
   });
 
-  pushGroupedTools(blocks, {
+  pushGroupedToolsToReply(builder, {
     turnId,
     anchorNodeId: node.id,
     anchorMessageId: node.messageId,
@@ -307,6 +452,39 @@ function walkTextNode(
 function walkTurnNode(node: ConversationNode, blocks: ChatDisplayBlock[]) {
   let pendingToolNodes: ConversationNode[] = [];
   let hasDisplayContent = false;
+  let replyBuilder: ReplyBuilder | null = null;
+
+  const flushReply = () => {
+    if (!replyBuilder || replyBuilder.segments.length === 0) {
+      replyBuilder = null;
+      return;
+    }
+    blocks.push(buildAssistantReplyBlock(replyBuilder));
+    replyBuilder = null;
+  };
+
+  const flushPendingTools = (nextAnchorNode?: ConversationNode) => {
+    if (pendingToolNodes.length === 0) {
+      return;
+    }
+    if (replyBuilder) {
+      pushGroupedToolsToReply(replyBuilder, {
+        turnId: node.id,
+        anchorNodeId: nextAnchorNode?.id || replyBuilder.anchorNodeId,
+        anchorMessageId:
+          nextAnchorNode?.messageId || replyBuilder.anchorMessageId,
+        nodes: pendingToolNodes,
+      });
+    } else {
+      pushGroupedTools(blocks, {
+        turnId: node.id,
+        anchorNodeId: nextAnchorNode?.id,
+        anchorMessageId: nextAnchorNode?.messageId,
+        nodes: pendingToolNodes,
+      });
+    }
+    pendingToolNodes = [];
+  };
 
   node.children.forEach((child) => {
     if (child.visibility === "debug-only") {
@@ -318,30 +496,33 @@ function walkTurnNode(node: ConversationNode, blocks: ChatDisplayBlock[]) {
       return;
     }
     if (child.type === "text") {
-      pushGroupedTools(blocks, {
-        turnId: node.id,
-        nodes: pendingToolNodes,
-      });
-      pendingToolNodes = [];
       hasDisplayContent = true;
-      walkTextNode(child, node.id, blocks);
+      if (child.role === "assistant" || child.role === "developer") {
+        if (!replyBuilder) {
+          replyBuilder = createReplyBuilder(child, node.id);
+        }
+        flushPendingTools(child);
+        collectAssistantSegmentsFromTextNode(child, node.id, replyBuilder);
+        return;
+      }
+      flushPendingTools();
+      flushReply();
+      blocks.push(createMessageBlock(child));
       return;
     }
     if (child.type === "error") {
-      pushGroupedTools(blocks, {
-        turnId: node.id,
-        nodes: pendingToolNodes,
-      });
-      pendingToolNodes = [];
       hasDisplayContent = true;
-      blocks.push(createErrorBlock(child));
+      flushPendingTools();
+      if (replyBuilder) {
+        appendReplySegment(replyBuilder, createReplyErrorSegment(child));
+      } else {
+        blocks.push(createErrorBlock(child));
+      }
     }
   });
 
-  pushGroupedTools(blocks, {
-    turnId: node.id,
-    nodes: pendingToolNodes,
-  });
+  flushPendingTools();
+  flushReply();
 
   if (!hasDisplayContent || node.status === "blocked") {
     blocks.push({
@@ -383,7 +564,13 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
       return;
     }
     if (root.type === "text") {
-      walkTextNode(root, root.id, blocks);
+      if (root.role === "assistant" || root.role === "developer") {
+        const builder = createReplyBuilder(root, root.id);
+        collectAssistantSegmentsFromTextNode(root, root.id, builder);
+        blocks.push(buildAssistantReplyBlock(builder));
+      } else {
+        blocks.push(createMessageBlock(root));
+      }
       return;
     }
     if (root.type === "error") {

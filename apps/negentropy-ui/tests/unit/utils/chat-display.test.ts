@@ -7,7 +7,7 @@ import type { AgUiEvent } from "@/types/agui";
 import type { ConversationTree } from "@/types/a2ui";
 
 describe("buildChatDisplayBlocks", () => {
-  it("将正文、工具过程、后续正文投影为分离的展示块", () => {
+  it("将正文、工具过程、后续正文投影为同一 assistant 回复内的分段", () => {
     const events: AgUiEvent[] = [
       createTestEvent({
         type: EventType.RUN_STARTED,
@@ -79,20 +79,26 @@ describe("buildChatDisplayBlocks", () => {
     const tree = buildConversationTree({ events });
     const blocks = buildChatDisplayBlocks(tree);
 
-    expect(blocks.map((block) => block.kind)).toEqual([
-      "message",
-      "tool-group",
-      "message",
-    ]);
-    expect(blocks[0]?.kind === "message" ? blocks[0].message.content : "").toContain(
-      "Web 搜索",
-    );
-    expect(blocks[1]?.kind === "tool-group" ? blocks[1].tools[0]?.name : "").toBe(
-      "Google Search",
-    );
-    expect(blocks[2]?.kind === "message" ? blocks[2].message.content : "").toContain(
-      "AfterShip",
-    );
+    expect(blocks.map((block) => block.kind)).toEqual(["assistant-reply"]);
+    expect(blocks[0]?.kind).toBe("assistant-reply");
+    if (blocks[0]?.kind === "assistant-reply") {
+      expect(blocks[0].segments.map((segment) => segment.kind)).toEqual([
+        "text",
+        "tool-group",
+        "text",
+      ]);
+      expect(blocks[0].segments[0]?.kind === "text" ? blocks[0].segments[0].content : "").toContain(
+        "Web 搜索",
+      );
+      expect(
+        blocks[0].segments[1]?.kind === "tool-group"
+          ? blocks[0].segments[1].tools[0]?.name
+          : "",
+      ).toBe("Google Search");
+      expect(blocks[0].segments[2]?.kind === "text" ? blocks[0].segments[2].content : "").toContain(
+        "AfterShip",
+      );
+    }
   });
 
   it("将同一锚点下的并行工具合并为单个工具组", () => {
@@ -141,13 +147,17 @@ describe("buildChatDisplayBlocks", () => {
 
     const tree = buildConversationTree({ events });
     const blocks = buildChatDisplayBlocks(tree);
-    const toolGroup = blocks.find((block) => block.kind === "tool-group");
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
 
-    expect(toolGroup?.kind).toBe("tool-group");
-    if (toolGroup?.kind === "tool-group") {
-      expect(toolGroup.parallel).toBe(true);
-      expect(toolGroup.defaultExpanded).toBe(true);
-      expect(toolGroup.tools).toHaveLength(2);
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const toolGroup = reply.segments.find((segment) => segment.kind === "tool-group");
+      expect(toolGroup?.kind).toBe("tool-group");
+      if (toolGroup?.kind === "tool-group") {
+        expect(toolGroup.parallel).toBe(true);
+        expect(toolGroup.defaultExpanded).toBe(true);
+        expect(toolGroup.tools).toHaveLength(2);
+      }
     }
   });
 
@@ -275,10 +285,21 @@ describe("buildChatDisplayBlocks", () => {
     const blocks = buildChatDisplayBlocks(tree);
 
     expect(blocks.map((block) => block.id)).toEqual([
-      "display-message:message:b",
-      "tool-group:msg-1:tool-1",
-      "display-message:message:a",
+      "assistant-reply:turn:1:msg-1",
     ]);
+    expect(blocks[0]?.kind).toBe("assistant-reply");
+    if (blocks[0]?.kind === "assistant-reply") {
+      expect(blocks[0].segments.map((segment) => segment.kind)).toEqual([
+        "text",
+        "tool-group",
+        "text",
+      ]);
+      expect(
+        blocks[0].segments[1]?.kind === "tool-group"
+          ? blocks[0].segments[1].id
+          : "",
+      ).toBe("tool-group:msg-1:tool-1");
+    }
   });
 
   it("工具失败时显示失败摘要并默认展开", () => {

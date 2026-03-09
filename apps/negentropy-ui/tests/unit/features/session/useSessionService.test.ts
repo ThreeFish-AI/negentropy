@@ -204,6 +204,46 @@ describe("useSessionService", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(5);
   });
 
+  it("run terminal hydration 在终态 detail 连续稳定后会提前收敛", async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      createDetailResponse([
+        {
+          id: "msg-1",
+          runId: "run-1",
+          threadId: "s1",
+          timestamp: 1000,
+          content: { parts: [{ text: "最终摘要" }] },
+          author: "assistant",
+        },
+      ]),
+    );
+
+    const { result } = renderHook(() =>
+      useSessionService({
+        sessionId: "s1",
+        selectedNodeId: null,
+        userId: "u1",
+        appName: "negentropy",
+        addLog: vi.fn(),
+        setConnectionWithMetrics: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.scheduleSessionHydration("s1", {
+        reason: "run_terminal",
+        runId: "run-1",
+      });
+    });
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("scheduleSessionHydration 在已有实时 assistant 输出时使用短队列", async () => {
     vi.useFakeTimers();
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
@@ -277,7 +317,7 @@ describe("useSessionService", () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(5);
+    expect(fetchSpy).toHaveBeenCalledTimes(7);
   });
 
   it("loadSessionDetail 失败时会记录错误并设置连接状态", async () => {

@@ -159,7 +159,13 @@ export function HomeBody({
         sessionId &&
         (event.type === EventType.RUN_FINISHED || event.type === EventType.RUN_ERROR)
       ) {
-        scheduleSessionHydration(sessionId, { reason: "run_terminal" });
+        scheduleSessionHydration(sessionId, {
+          reason: "run_terminal",
+          runId:
+            "runId" in event && typeof event.runId === "string"
+              ? event.runId
+              : undefined,
+        });
       }
     };
     updateSessionTimeRef.current = updateCurrentSessionTime;
