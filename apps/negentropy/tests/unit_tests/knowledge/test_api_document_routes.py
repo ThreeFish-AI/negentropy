@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from io import BytesIO
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, UploadFile
 from fastapi.testclient import TestClient
 
 from negentropy.knowledge import api as knowledge_api
@@ -18,6 +19,7 @@ class FakeStorageService:
         self.saved_markdown: str | None = None
         self.saved_markdown_gcs_uri: str | None = None
         self.uploaded_markdown: str | None = None
+        self.upload_and_store_calls: list[dict[str, object]] = []
 
     async def get_document(self, *, document_id, corpus_id=None, app_name=None):
         _ = (document_id, corpus_id, app_name)
@@ -37,6 +39,16 @@ class FakeStorageService:
     async def get_document_markdown(self, document_id):
         _ = document_id
         return self.markdown
+
+    async def upload_and_store(self, **kwargs):
+        self.upload_and_store_calls.append(kwargs)
+        if self.doc is None:
+            self.doc = SimpleNamespace(
+                id=uuid4(),
+                gcs_uri="gs://negentropy/knowledge/test.pdf",
+                markdown_extract_status="pending",
+            )
+        return self.doc, True
 
 
 class FakeScalarSession:
@@ -81,6 +93,7 @@ class FakeKnowledgeService:
         self.search_calls = []
         self.ensure_corpus_calls = []
         self.update_corpus_calls = []
+        self.ingest_text_calls = []
 
     async def list_knowledge(self, **kwargs):
         self.list_knowledge_calls.append(kwargs)
@@ -155,6 +168,23 @@ class FakeKnowledgeService:
                 semantic_score=0.0,
                 keyword_score=0.42,
                 combined_score=0.42,
+            )
+        ]
+
+    async def ingest_text(self, **kwargs):
+        self.ingest_text_calls.append(kwargs)
+        return [
+            KnowledgeRecord(
+                id=uuid4(),
+                corpus_id=kwargs["corpus_id"],
+                app_name=kwargs["app_name"],
+                content="chunk content",
+                source_uri=kwargs.get("source_uri"),
+                chunk_index=0,
+                metadata=kwargs.get("metadata", {}),
+                created_at=None,
+                updated_at=None,
+                embedding=None,
             )
         ]
 
@@ -780,6 +810,79 @@ async def test_rebuild_document_file_success(monkeypatch):
     assert result.status == "running"
     assert fake_service.pipeline_calls[-1]["operation"] == "rebuild_source"
     assert fake_service.pipeline_calls[-1]["input_data"]["source_uri"] == gcs_uri
+
+
+@pytest.mark.asyncio
+async def test_ingest_file_passes_hierarchical_chunking_config_to_service(monkeypatch):
+    corpus_id = uuid4()
+    document_id = uuid4()
+    fake_doc = SimpleNamespace(
+        id=document_id,
+        gcs_uri="gs://negentropy/knowledge/context-engineering.pdf",
+        markdown_extract_status="pending",
+    )
+    fake_storage = FakeStorageService(doc=fake_doc)
+    fake_service = FakeKnowledgeService()
+
+    async def fake_extract_source(**kwargs):
+        _ = kwargs
+        return SimpleNamespace(
+            plain_text="第一章介绍上下文工程。\n\n第二章说明层级分块与检索。",
+            markdown_content="# Context Engineering\n\ncontent",
+            trace={"route": "file_pdf", "tool": "convert_pdf_to_markdown"},
+            assets=[],
+            metadata={},
+        )
+
+    async def fake_persist_extracted_assets(**kwargs):
+        _ = kwargs
+        return []
+
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
+    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(knowledge_api, "extract_source", fake_extract_source)
+    monkeypatch.setattr(knowledge_api, "persist_extracted_assets", fake_persist_extracted_assets)
+
+    result = await knowledge_api.ingest_file(
+        corpus_id=corpus_id,
+        background_tasks=BackgroundTasks(),
+        file=UploadFile(
+            file=BytesIO(b"%PDF-1.4 mock content"),
+            filename="Context Engineering.pdf",
+            headers=None,
+        ),
+        app_name="negentropy",
+        source_uri=None,
+        metadata=None,
+        strategy="hierarchical",
+        chunk_size=None,
+        overlap=None,
+        preserve_newlines=None,
+        separators=None,
+        semantic_threshold=None,
+        semantic_buffer_size=None,
+        min_chunk_size=None,
+        max_chunk_size=None,
+        hierarchical_parent_chunk_size=1200,
+        hierarchical_child_chunk_size=300,
+        hierarchical_child_overlap=60,
+        store_to_gcs=True,
+    )
+
+    assert result["count"] == 1
+    assert result["document_id"] == str(document_id)
+    assert fake_storage.upload_and_store_calls
+    assert fake_service.ingest_text_calls
+
+    ingest_call = fake_service.ingest_text_calls[0]
+    chunking_config = ingest_call["chunking_config"]
+    assert chunking_config.strategy == ChunkingStrategy.HIERARCHICAL
+    assert chunking_config.hierarchical_parent_chunk_size == 1200
+    assert chunking_config.hierarchical_child_chunk_size == 300
+    assert chunking_config.hierarchical_child_overlap == 60
+    assert ingest_call["source_uri"] == fake_doc.gcs_uri
+    assert ingest_call["metadata"]["document_id"] == str(document_id)
+    assert ingest_call["metadata"]["extractor_trace"]["route"] == "file_pdf"
 
 
 @pytest.mark.asyncio

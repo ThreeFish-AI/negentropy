@@ -18,6 +18,7 @@ from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
     ChunkingConfig,
+    ChunkingStrategy,
     CorpusRecord,
     CorpusSpec,
     HierarchicalChunkingConfig,
@@ -2044,9 +2045,6 @@ class KnowledgeService:
         chunking_config: ChunkingConfig,
     ) -> Iterable[KnowledgeChunk]:
         metadata = metadata or {}
-
-        # Determine strategy and call appropriate chunking function
-        from .types import ChunkingStrategy
 
         if chunking_config.strategy == ChunkingStrategy.HIERARCHICAL:
             return await self._build_hierarchical_chunks(
