@@ -76,6 +76,20 @@ class PipelineTracker:
         self._status = "pending"
         self._current_stage: Optional[str] = None
 
+    @staticmethod
+    def _normalize_dict_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        return dict(payload or {})
+
+    @classmethod
+    def _normalize_stages_payload(cls, stages: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        normalized: Dict[str, Dict[str, Any]] = {}
+        for stage_name, stage_payload in stages.items():
+            stage_data = dict(stage_payload or {})
+            if "output" in stage_data:
+                stage_data["output"] = cls._normalize_dict_payload(stage_data.get("output"))
+            normalized[stage_name] = stage_data
+        return normalized
+
     @property
     def run_id(self) -> str:
         return self._run_id
@@ -105,9 +119,9 @@ class PipelineTracker:
         self._started_at = payload.get("started_at")
         self._completed_at = payload.get("completed_at")
         self._duration_ms = payload.get("duration_ms")
-        self._stages = dict(payload.get("stages") or {})
-        self._input = dict(payload.get("input") or {})
-        self._output = payload.get("output")
+        self._stages = self._normalize_stages_payload(dict(payload.get("stages") or {}))
+        self._input = self._normalize_dict_payload(payload.get("input"))
+        self._output = self._normalize_dict_payload(payload.get("output"))
         self._error = payload.get("error")
         self._status = record.status
 
@@ -142,7 +156,7 @@ class PipelineTracker:
             "started_at": started_at,
             "completed_at": now,
             "duration_ms": self._calculate_duration_ms(started_at, now),
-            "output": output,
+            "output": self._normalize_dict_payload(output),
         }
         self._current_stage = None
         await self._persist()
@@ -195,7 +209,7 @@ class PipelineTracker:
         """完成 Pipeline 执行"""
         now = datetime.now(timezone.utc).isoformat()
         self._status = "completed"
-        self._output = output
+        self._output = self._normalize_dict_payload(output)
         self._duration_ms = self._calculate_duration_ms(self._started_at, now)
         self._completed_at = now
         await self._persist()
@@ -205,12 +219,12 @@ class PipelineTracker:
         payload = {
             "operation": self._operation,
             "trigger": "api",
-            "input": self._input,
+            "input": self._normalize_dict_payload(self._input),
             "started_at": self._started_at,
             "completed_at": self._completed_at,
             "duration_ms": self._duration_ms,
-            "stages": self._stages,
-            "output": self._output,
+            "stages": self._normalize_stages_payload(self._stages),
+            "output": self._normalize_dict_payload(self._output),
             "error": self._error,
         }
 
