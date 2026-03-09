@@ -538,7 +538,6 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(screen.queryByText("Tool 契约不受支持")).not.toBeInTheDocument();
     expect(screen.getAllByText("extractor failed without category").length).toBeGreaterThan(0);
   });
-
   it("failure_category 存在时，阶段摘要与错误详情会展示归一化标签", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
       runs: [
