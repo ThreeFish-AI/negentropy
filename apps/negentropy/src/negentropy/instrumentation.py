@@ -23,6 +23,16 @@ def _normalize_model_name(model: str) -> str:
     return canonicalize_model_name(model) or model
 
 
+def _is_writable_span(span: Any) -> bool:
+    return span is not None and hasattr(span, "is_recording") and bool(span.is_recording())
+
+
+def _safe_set_span_attribute(span: Any, key: str, value: Any) -> None:
+    if not _is_writable_span(span):
+        return
+    span.set_attribute(key, value)
+
+
 class LiteLLMLoggingCallback:
     """Callback to log interaction metrics (token usage, cost, latency) via structlog."""
 
@@ -85,13 +95,13 @@ class LiteLLMLoggingCallback:
             # Inject cost into current OTEL span without changing LiteLLM's OTEL callback
             try:
                 span = trace.get_current_span()
-                if span and span.is_recording():
-                    if total_cost is not None:
-                        span.set_attribute("gen_ai.usage.cost", float(total_cost))
-                        span.set_attribute(
-                            "langfuse.observation.cost_details",
-                            json.dumps({"total": float(total_cost)}),
-                        )
+                if total_cost is not None:
+                    _safe_set_span_attribute(span, "gen_ai.usage.cost", float(total_cost))
+                    _safe_set_span_attribute(
+                        span,
+                        "langfuse.observation.cost_details",
+                        json.dumps({"total": float(total_cost)}),
+                    )
             except Exception:
                 pass
 
@@ -226,15 +236,15 @@ def patch_litellm_otel_cost() -> None:
             normalized_response_model = _normalize_model_name(response_model) if response_model else None
 
             if normalized_model != model:
-                self.safe_set_attribute(span, "gen_ai.request.model", normalized_model)
+                _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
             if normalized_response_model and normalized_response_model != response_model:
-                self.safe_set_attribute(span, "gen_ai.response.model", normalized_response_model)
+                _safe_set_span_attribute(span, "gen_ai.response.model", normalized_response_model)
 
             # Extract and inject cost
             cost = _extract_total_cost(kwargs, response_obj)
             if cost is not None:
-                self.safe_set_attribute(span, "gen_ai.usage.cost", cost)
-                self.safe_set_attribute(
+                _safe_set_span_attribute(span, "gen_ai.usage.cost", cost)
+                _safe_set_span_attribute(
                     span,
                     "langfuse.observation.cost_details",
                     json.dumps({"total": cost}),

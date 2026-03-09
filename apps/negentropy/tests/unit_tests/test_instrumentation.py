@@ -5,12 +5,19 @@ from types import SimpleNamespace
 import pytest
 from litellm.integrations.opentelemetry import OpenTelemetry
 
-from negentropy.instrumentation import _resolve_total_cost, patch_litellm_otel_cost
+from negentropy.instrumentation import LiteLLMLoggingCallback, _resolve_total_cost, patch_litellm_otel_cost
 
 
 class _FakeSpan:
-    def __init__(self) -> None:
+    def __init__(self, *, recording: bool = True) -> None:
         self.attributes: dict[str, object] = {}
+        self.recording = recording
+
+    def is_recording(self) -> bool:
+        return self.recording
+
+    def set_attribute(self, key: str, value: object) -> None:
+        self.attributes[key] = value
 
 
 class _FakeOpenTelemetryCallback:
@@ -67,3 +74,57 @@ def test_resolve_total_cost_uses_unified_online_catalog(monkeypatch):
     assert cost == pytest.approx(0.000376)
     assert pricing_source == "litellm_online_catalog"
     assert refresh_error is None
+
+
+def test_patch_litellm_otel_cost_skips_non_recording_span(monkeypatch):
+    original = OpenTelemetry.set_attributes
+
+    def _original_set_attributes(self, span, kwargs, response_obj):
+        _ = (self, span, kwargs, response_obj)
+
+    monkeypatch.setattr(OpenTelemetry, "set_attributes", _original_set_attributes)
+
+    try:
+        patch_litellm_otel_cost()
+
+        span = _FakeSpan(recording=False)
+        callback = _FakeOpenTelemetryCallback()
+        kwargs = {"model": "zai/glm-5", "response_cost": 0.12}
+        response_obj = {"model": "glm-5"}
+
+        OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
+
+        assert span.attributes == {}
+    finally:
+        monkeypatch.setattr(OpenTelemetry, "set_attributes", original)
+
+
+def test_log_success_event_skips_non_recording_current_span(monkeypatch):
+    callback = LiteLLMLoggingCallback()
+    span = _FakeSpan(recording=False)
+
+    monkeypatch.setattr("negentropy.instrumentation.trace.get_current_span", lambda: span)
+    monkeypatch.setattr(callback, "_ensure_tracing", lambda: None)
+
+    class _FakeLogger:
+        def info(self, *args, **kwargs):
+            return None
+
+    callback._logger = _FakeLogger()
+
+    response_obj = SimpleNamespace(
+        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=20),
+        model="zai/glm-5",
+    )
+    kwargs = {"model": "zai/glm-5", "response_cost": 0.12}
+
+    from datetime import datetime, timezone
+
+    callback.log_success_event(
+        kwargs,
+        response_obj,
+        datetime.now(timezone.utc),
+        datetime.now(timezone.utc),
+    )
+
+    assert span.attributes == {}
