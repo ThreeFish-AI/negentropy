@@ -77,6 +77,7 @@ export interface ChatMessageDisplayBlock {
   kind: "message";
   nodeId: string;
   timestamp: number;
+  sourceOrder: number;
   message: ChatMessage;
 }
 
@@ -86,6 +87,7 @@ export interface ToolGroupDisplayBlock {
   nodeId: string;
   anchorNodeId?: string;
   timestamp: number;
+  sourceOrder: number;
   parallel: boolean;
   defaultExpanded: boolean;
   status: ToolCallStatus;
@@ -99,6 +101,7 @@ export interface TurnStatusDisplayBlock {
   kind: "turn-status";
   nodeId: string;
   timestamp: number;
+  sourceOrder: number;
   status: "running" | "finished" | "blocked" | "error";
   title: string;
   detail?: string;
@@ -109,6 +112,7 @@ export interface ErrorDisplayBlock {
   kind: "error";
   nodeId: string;
   timestamp: number;
+  sourceOrder: number;
   title: string;
   message: string;
   code?: string;
@@ -119,6 +123,7 @@ export interface SummaryDisplayBlock {
   kind: "summary";
   nodeId: string;
   timestamp: number;
+  sourceOrder: number;
   title: string;
   lines: string[];
 }

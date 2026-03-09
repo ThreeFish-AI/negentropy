@@ -622,22 +622,48 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
   const firstMessage = page.getByText("好的，我将使用 Google Search 获取 AfterShip 的信息。");
   const toolGroup = page.getByText("工具并行执行");
   const summaryHeading = page.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" });
+  const toolGroupButton = page.getByRole("button", { name: /工具并行执行/ });
+  const googleSearchCard = page.getByRole("button", { name: /Google Search/ }).last();
+  const webSearchCard = page.getByRole("button", { name: /Web Search/ }).last();
 
   await expect(firstMessage).toBeVisible();
   await expect(toolGroup).toBeVisible();
   await expect(summaryHeading).toBeVisible();
   await expect(page.getByText("已完成，2 个工具")).toBeVisible();
+  await expect(page.getByText("Parameters")).toHaveCount(0);
 
-  const orderHandle = await page.locator("main").nth(1).evaluate((node) => node.textContent || "");
-  expect(orderHandle.indexOf("好的，我将使用 Google Search 获取 AfterShip 的信息。")).toBeLessThan(
-    orderHandle.indexOf("工具并行执行"),
-  );
-  expect(orderHandle.indexOf("工具并行执行")).toBeLessThan(
-    orderHandle.indexOf("AfterShip 信息摘要"),
-  );
+  const getMainText = async () =>
+    page.locator("main").nth(1).evaluate((node) => node.textContent || "");
+  const assertInlineOrder = async () => {
+    const text = await getMainText();
+    expect(text.indexOf("好的，我将使用 Google Search 获取 AfterShip 的信息。")).toBeLessThan(
+      text.indexOf("工具并行执行"),
+    );
+    expect(text.indexOf("工具并行执行")).toBeLessThan(
+      text.indexOf("AfterShip 信息摘要"),
+    );
+  };
+
+  await assertInlineOrder();
+
+  await toolGroupButton.click();
+  await expect(googleSearchCard).toBeVisible();
+  await expect(webSearchCard).toBeVisible();
+  await googleSearchCard.click();
+  await webSearchCard.click();
+  await expect(page.getByText("Parameters")).toHaveCount(2);
 
   await page.reload();
 
+  await assertInlineOrder();
   await expect(page.getByText("工具并行执行")).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" })).toBeVisible();
+  await expect(page.getByText("Parameters")).toHaveCount(0);
+
+  await toolGroupButton.click();
+  await expect(googleSearchCard).toBeVisible();
+  await expect(webSearchCard).toBeVisible();
+  await googleSearchCard.click();
+  await webSearchCard.click();
+  await expect(page.getByText("Parameters")).toHaveCount(2);
 });

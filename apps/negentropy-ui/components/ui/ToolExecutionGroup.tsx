@@ -156,7 +156,12 @@ export function ToolExecutionGroup({
   return (
     <section
       className={cn(
-        "rounded-[1.8rem] border border-zinc-200/80 bg-[linear-gradient(180deg,rgba(250,250,250,0.96),rgba(244,244,245,0.9))] px-4 py-3 shadow-[0_16px_40px_rgba(24,24,27,0.04)] dark:border-zinc-800 dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(9,9,11,0.9))]",
+        "rounded-[1.8rem] border px-4 py-3 shadow-[0_16px_40px_rgba(24,24,27,0.04)]",
+        block.status === "error"
+          ? "border-red-200/90 bg-[linear-gradient(180deg,rgba(254,242,242,0.98),rgba(254,226,226,0.86))] dark:border-red-900/80 dark:bg-[linear-gradient(180deg,rgba(69,10,10,0.8),rgba(24,24,27,0.92))]"
+          : block.status === "running"
+            ? "border-sky-200/90 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(239,246,255,0.88))] dark:border-sky-900/70 dark:bg-[linear-gradient(180deg,rgba(8,47,73,0.72),rgba(24,24,27,0.92))]"
+            : "border-zinc-200/80 bg-[linear-gradient(180deg,rgba(250,250,250,0.96),rgba(244,244,245,0.9))] dark:border-zinc-800 dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(9,9,11,0.9))]",
         isSelected &&
           "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
       )}
@@ -178,6 +183,11 @@ export function ToolExecutionGroup({
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               {block.title}
             </span>
+            {block.status === "error" ? (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-700 dark:bg-red-950/70 dark:text-red-200">
+                Error
+              </span>
+            ) : null}
           </div>
           <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
             {block.summary}
