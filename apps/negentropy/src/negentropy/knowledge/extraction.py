@@ -144,6 +144,15 @@ class SourceCandidate:
     preferred: bool = False
 
 
+@dataclass(slots=True)
+class ToolCapabilityProfile:
+    has_declared_schema: bool
+    accepts_string_source: bool
+    accepts_object_source: bool
+    supports_batch: bool
+    schema_confidence: Literal["high", "medium", "low"]
+
+
 class ExtractorExecutionError(ValueError):
     def __init__(self, message: str, *, attempts: list[ExtractionAttempt]) -> None:
         super().__init__(message)
@@ -854,6 +863,30 @@ def _build_aggregated_extraction_error(attempts: list[ExtractionAttempt]) -> str
     return f"All extractor MCP targets failed: {details}"
 
 
+def _infer_tool_capability_profile(
+    *,
+    input_schema: dict[str, Any] | None,
+    contract: NormalizedToolContract,
+) -> ToolCapabilityProfile:
+    has_declared_schema = isinstance(input_schema, dict) and bool(input_schema)
+    accepts_string_source = contract.source_value_type == "string"
+    accepts_object_source = contract.source_value_type == "object" or contract.mode == "flat"
+    supports_batch = contract.mode == "batch"
+    if contract.mode in {"batch", "nested_single", "flat"} and has_declared_schema:
+        schema_confidence: Literal["high", "medium", "low"] = "high"
+    elif has_declared_schema:
+        schema_confidence = "medium"
+    else:
+        schema_confidence = "low"
+    return ToolCapabilityProfile(
+        has_declared_schema=has_declared_schema,
+        accepts_string_source=accepts_string_source,
+        accepts_object_source=accepts_object_source,
+        supports_batch=supports_batch,
+        schema_confidence=schema_confidence,
+    )
+
+
 def _source_fields_for_kind(source_kind: SourceKind) -> set[str]:
     return {"url", "uri"} if source_kind == ROUTE_URL else {"filename", "content_type", "content_base64", "data_base64"}
 
@@ -1411,11 +1444,62 @@ class DataExtractorProvider:
             input_schema=input_schema,
             source_kind=source_kind,
         )
+        capability = _infer_tool_capability_profile(
+            input_schema=input_schema,
+            contract=contract,
+        )
+        declared_schema_fields = sorted(_schema_property_names(input_schema)) if isinstance(input_schema, dict) else []
+        recognized_contract_fields = {
+            *_preferred_batch_keys(source_kind),
+            *_preferred_source_keys(source_kind),
+            "url",
+            "uri",
+            "filename",
+            "content_type",
+            "content_base64",
+            "data_base64",
+            "options",
+            "context",
+            "source_type",
+        }
         source_candidates, cleanup_paths = _prepare_source_candidates(request=request, content=content)
         invocation_trace: list[dict[str, Any]] = []
         validation_error: ValidationErrorSummary | None = None
 
         try:
+            if (
+                contract.mode == "unknown"
+                and declared_schema_fields
+                and not any(field in recognized_contract_fields for field in declared_schema_fields)
+            ):
+                return {
+                    "success": False,
+                    "attempt": ExtractionAttempt(
+                        server_id=str(target.server_id),
+                        server_name=server.name,
+                        tool_name=target.tool_name,
+                        status="failed",
+                        duration_ms=0,
+                        error="Tool input schema could not be normalized for document extraction",
+                        failure_category=(
+                            "low_confidence_contract"
+                            if capability.schema_confidence == "low"
+                            else "unsupported_contract"
+                        ),
+                        diagnostics={
+                            "contract_mode": contract.mode,
+                            "schema_shape": contract.schema_shape,
+                            "declared_schema_fields": declared_schema_fields,
+                            "capability": {
+                                "has_declared_schema": capability.has_declared_schema,
+                                "accepts_string_source": capability.accepts_string_source,
+                                "accepts_object_source": capability.accepts_object_source,
+                                "supports_batch": capability.supports_batch,
+                                "schema_confidence": capability.schema_confidence,
+                            },
+                        },
+                    ),
+                }
             for index in range(2):
                 plan = await _build_llm_invocation_plan(
                     tool_name=target.tool_name,
@@ -1433,7 +1517,16 @@ class DataExtractorProvider:
                             request=request,
                             adapter_name=_default_adapter_name(contract),
                             reasoning_source="schema",
-                            diagnostics={"top_level_fields": sorted(contract.top_level_fields)},
+                            diagnostics={
+                                "top_level_fields": sorted(contract.top_level_fields),
+                                "capability": {
+                                    "has_declared_schema": capability.has_declared_schema,
+                                    "accepts_string_source": capability.accepts_string_source,
+                                    "accepts_object_source": capability.accepts_object_source,
+                                    "supports_batch": capability.supports_batch,
+                                    "schema_confidence": capability.schema_confidence,
+                                },
+                            },
                         )
                     elif validation_error:
                         retry_contract = _build_retry_contract_from_error(

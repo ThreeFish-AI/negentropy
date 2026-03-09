@@ -615,7 +615,10 @@ export interface PipelineStageResult {
   started_at?: string;
   completed_at?: string;
   duration_ms?: number;
-  error?: Record<string, unknown>;
+  error?: Record<string, unknown> & {
+    failure_category?: string;
+    diagnostics?: Record<string, unknown>;
+  };
   output?: Record<string, unknown>;
   reason?: string; // for skipped status
 }

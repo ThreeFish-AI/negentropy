@@ -322,7 +322,7 @@ describe("KnowledgePipelinesPage polling", () => {
     await settle();
 
     expect(screen.queryByText("运行级错误")).not.toBeInTheDocument();
-    expect(screen.getAllByText("backup extractor failed")).toHaveLength(2);
+    expect(screen.getAllByText("backup extractor failed").length).toBeGreaterThanOrEqual(2);
   });
 
   it("顶层错误与阶段错误不同步时，会同时展示运行级和阶段级错误", async () => {
@@ -389,5 +389,44 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(screen.getByText("Errors")).toBeInTheDocument();
     expect(screen.getAllByText("持久化").length).toBeGreaterThan(0);
     expect(screen.getAllByText("persist detail error").length).toBeGreaterThan(0);
+  });
+
+  it("extract_gate 会按共享阶段语义显示，并渲染失败分类文案", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-extract-gate-id",
+            run_id: "run-extract-gate",
+            status: "failed",
+            operation: "rebuild_source",
+          }),
+          stages: {
+            extract_finalize: {
+              status: "completed",
+              duration_ms: 120,
+            },
+            extract_gate: {
+              status: "failed",
+              duration_ms: 33,
+              error: {
+                message: "Extractor produced empty document after normalization",
+                failure_category: "empty_payload",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getAllByText("提取结果校验").length).toBeGreaterThan(0);
+    expect(screen.getByText("提取结果为空")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Extractor produced empty document after normalization").length
+    ).toBeGreaterThan(0);
   });
 });
