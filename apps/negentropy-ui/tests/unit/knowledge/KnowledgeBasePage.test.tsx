@@ -766,10 +766,14 @@ describe("KnowledgeBasePage", () => {
     );
     const sidebar = screen.getByTestId("corpus-sidebar");
     expect(sidebar).toBeInTheDocument();
-    expect(screen.getByTestId("corpus-content-scroll").className).toContain("overflow-y-auto");
+    expect(screen.getByTestId("corpus-content-scroll").className).toContain("overflow-hidden");
+    expect(screen.getByTestId("document-chunks-queue").className).toContain("overflow-y-auto");
     expect(screen.getByText("Document Chunks")).toBeInTheDocument();
     expect(screen.getByText("Document Metadata")).toBeInTheDocument();
     expect(screen.getByText("1 Chunks")).toBeInTheDocument();
+    expect(screen.getByText("Retrieval Count 0")).toBeInTheDocument();
+    expect(screen.queryByText("Open")).not.toBeInTheDocument();
+    expect(screen.queryByText("doc://alpha")).not.toBeInTheDocument();
     expect(within(sidebar).getByRole("button", { name: "Documents" })).toBeInTheDocument();
     expect(within(sidebar).getByRole("button", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Documents" })).toHaveLength(1);
@@ -1092,6 +1096,55 @@ describe("KnowledgeBasePage", () => {
     expect(await screen.findByText("Edit Chunk")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save & Regenerate Child Chunks" })).toBeInTheDocument();
+  });
+
+  it("document-chunks 视图可展开并点击子 chunk 进入右栏编辑", async () => {
+    const user = userEvent.setup();
+    searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
+    fetchDocumentChunksMock.mockResolvedValueOnce({
+      count: 1,
+      page: 1,
+      page_size: 10,
+      document_metadata: {},
+      items: [
+        createKnowledgeBaseDocumentChunk({
+          id: "parent-1",
+          chunk_role: "parent",
+          child_chunks: [
+            createKnowledgeBaseDocumentChunk({
+              id: "child-1",
+              child_chunk_index: 3,
+              chunk_index: 3,
+              content: "child chunk content",
+            }),
+          ],
+        }),
+      ],
+    });
+    fetchDocumentChunkDetailMock.mockResolvedValueOnce({
+      item: createKnowledgeBaseDocumentChunk({
+        id: "child-1",
+        content: "child chunk content",
+      }),
+      document_metadata: {},
+    });
+
+    render(<KnowledgeBasePage />);
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await user.click(screen.getByRole("button", { name: "HIT 1 CHILD CHUNKS" }));
+    await user.click(screen.getAllByRole("button", { name: /C-03.*child chunk content/i }).at(-1)!);
+
+    expect(fetchDocumentChunkDetailMock).toHaveBeenCalledWith(
+      "11111111-1111-1111-1111-111111111111",
+      "doc-1",
+      "child-1",
+      { appName: "negentropy" },
+    );
+    expect(await screen.findByText("Edit Chunk")).toBeInTheDocument();
   });
 
   it("未选中任何 Corpus 时禁用 Retrieve，并且不会发起检索", async () => {
