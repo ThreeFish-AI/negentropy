@@ -772,9 +772,10 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByText("Document Metadata")).toBeInTheDocument();
     expect(screen.getByText("1 Chunks")).toBeInTheDocument();
     expect(screen.getByText("Retrieval Count 0")).toBeInTheDocument();
-    expect(screen.getByText("Retrieval Count 0").className).toContain("text-[10px]");
+    expect(screen.getByText("Retrieval Count 0").className).toContain("text-zinc-600");
+    expect(screen.getByText("Retrieval Count 0").className).not.toContain("rounded");
     expect(screen.getByText("Original filename").tagName).toBe("DT");
-    expect(screen.getByText("Original filename").className).toContain("uppercase");
+    expect(screen.getByText("Original filename").className).toContain("text-sm");
     expect(screen.getByText("Context Engineering.pdf").tagName).toBe("DD");
     expect(screen.getByText("Context Engineering.pdf").className).toContain("font-medium");
     expect(screen.queryByText("Open")).not.toBeInTheDocument();

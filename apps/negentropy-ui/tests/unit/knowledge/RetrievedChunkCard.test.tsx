@@ -64,6 +64,7 @@ describe("RetrievedChunkCard", () => {
     );
 
     expect(screen.getByText("Retrieval Count 7")).toBeInTheDocument();
+    expect(screen.getByText("Retrieval Count 7").className).not.toContain("rounded");
     expect(screen.queryByText("Context Engineering.pdf")).not.toBeInTheDocument();
     expect(screen.queryByText("Open")).not.toBeInTheDocument();
     expect(screen.queryByText("SCORE 0.91")).not.toBeInTheDocument();
