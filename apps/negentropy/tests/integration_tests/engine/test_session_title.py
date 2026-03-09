@@ -85,3 +85,59 @@ async def test_archive_and_unarchive_session_updates_metadata():
     target = next((s for s in response.sessions if s.id == session.id), None)
     assert target is not None
     assert (target.state.get("metadata") or {}).get("archived") is False
+
+
+@pytest.mark.asyncio
+async def test_get_session_preserves_event_sequence_for_tool_interleaving():
+    service = PostgresSessionService()
+    app_name = f"event_order_app_{uuid.uuid4()}"
+    user_id = f"event_order_user_{uuid.uuid4()}"
+
+    session = await service.create_session(app_name=app_name, user_id=user_id)
+
+    events = [
+      ADKEvent(
+        id=str(uuid.uuid4()),
+        author="assistant",
+        content={"parts": [{"text": "好的，我将搜索 AfterShip。"}]},
+      ),
+      ADKEvent(
+        id=str(uuid.uuid4()),
+        author="assistant",
+        content={
+          "parts": [
+            {
+              "functionCall": {
+                "id": "call-1",
+                "name": "google_search",
+                "args": {"q": "AfterShip"},
+              }
+            }
+          ]
+        },
+      ),
+      ADKEvent(
+        id=str(uuid.uuid4()),
+        author="assistant",
+        content={"parts": [{"text": "## AfterShip 信息摘要"}]},
+      ),
+    ]
+
+    for event in events:
+      await service.append_event(session, event)
+
+    fetched = await service.get_session(
+        app_name=app_name,
+        user_id=user_id,
+        session_id=session.id,
+    )
+
+    assert fetched is not None
+    assert len(fetched.events) == 3
+    assert [str(event.id) for event in fetched.events] == [str(event.id) for event in events]
+    assert fetched.events[0].content.parts[0].text == "好的，我将搜索 AfterShip。"
+    assert fetched.events[1].author == "assistant"
+    assert fetched.events[1].content is not None
+    assert len(fetched.events[1].content.parts) == 1
+    assert fetched.events[1].content.parts[0].text is None
+    assert fetched.events[2].content.parts[0].text == "## AfterShip 信息摘要"
