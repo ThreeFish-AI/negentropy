@@ -139,10 +139,12 @@ export function ToolExecutionGroup({
   block,
   isSelected,
   onSelect,
+  variant = "standalone",
 }: {
   block: ToolGroupDisplayBlock;
   isSelected?: boolean;
   onSelect?: (nodeId: string) => void;
+  variant?: "standalone" | "embedded";
 }) {
   const [expanded, setExpanded] = useState(block.defaultExpanded);
   const [manualToggle, setManualToggle] = useState(false);
@@ -160,7 +162,9 @@ export function ToolExecutionGroup({
   return (
     <section
       className={cn(
-        "rounded-[1.8rem] border px-4 py-3 shadow-[0_16px_40px_rgba(24,24,27,0.04)]",
+        variant === "embedded"
+          ? "rounded-[1.5rem] border px-4 py-3 shadow-[0_8px_24px_rgba(24,24,27,0.04)]"
+          : "rounded-[1.8rem] border px-4 py-3 shadow-[0_16px_40px_rgba(24,24,27,0.04)]",
         block.status === "error"
           ? "border-red-200/90 bg-[linear-gradient(180deg,rgba(254,242,242,0.98),rgba(254,226,226,0.86))] dark:border-red-900/80 dark:bg-[linear-gradient(180deg,rgba(69,10,10,0.8),rgba(24,24,27,0.92))]"
           : block.status === "running"

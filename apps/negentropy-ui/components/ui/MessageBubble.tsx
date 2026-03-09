@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/common";
@@ -15,6 +15,8 @@ type ChatMessageProps = {
   message: ChatMessage;
   isSelected?: boolean;
   onSelect?: (messageId: string) => void;
+  body?: ReactNode;
+  actionContent?: string;
 };
 
 /**
@@ -217,7 +219,7 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
-function MarkdownContent({
+export function MarkdownContent({
   content,
   isStreaming,
 }: {
@@ -291,6 +293,8 @@ export function MessageBubble({
   message,
   isSelected,
   onSelect,
+  body,
+  actionContent,
 }: ChatMessageProps) {
   const { user } = useAuth();
   const isUser = message.role === "user";
@@ -394,10 +398,12 @@ export function MessageBubble({
                 "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
           >
-            <MarkdownContent
-              content={content}
-              isStreaming={isStreaming}
-            />
+            {body || (
+              <MarkdownContent
+                content={content}
+                isStreaming={isStreaming}
+              />
+            )}
             {isStreaming ? (
               <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
@@ -428,7 +434,7 @@ export function MessageBubble({
           </div>
         )}
 
-        {!isUser && <MessageActions content={content} />}
+        {!isUser && <MessageActions content={actionContent || content} />}
       </div>
     </div>
   );

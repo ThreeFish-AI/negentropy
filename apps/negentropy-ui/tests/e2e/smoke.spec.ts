@@ -436,77 +436,85 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
   let detailFetchAfterRun = 0;
   const detailEvents = [
     {
-      id: "assistant-1",
-      author: "assistant",
+      id: "assistant-1-envelope",
       threadId: sessionId,
       runId,
       timestamp: createdAt / 1000 + 0.001,
-      content: {
-        parts: [{ text: "好的，我将使用 Google Search 获取 AfterShip 的信息。" }],
+      event: {
+        author: "assistant",
+        content: {
+          parts: [{ text: "好的，我将使用 Google Search 获取 AfterShip 的信息。" }],
+        },
       },
     },
     {
-      id: "tool-batch",
-      author: "assistant",
+      id: "tool-batch-envelope",
       threadId: sessionId,
       runId,
       timestamp: createdAt / 1000 + 0.008,
-      content: {
-        parts: [
-          {
-            functionCall: {
-              id: "call-1",
-              name: "google_search",
-              args: { q: "AfterShip company" },
+      payload: {
+        author: "assistant",
+        content: {
+          parts: [
+            {
+              functionCall: {
+                id: "call-1",
+                name: "google_search",
+                args: { q: "AfterShip company" },
+              },
             },
-          },
-          {
-            functionCall: {
-              id: "call-2",
-              name: "web_search",
-              args: { q: "AfterShip tracking api" },
+            {
+              functionCall: {
+                id: "call-2",
+                name: "web_search",
+                args: { q: "AfterShip tracking api" },
+              },
             },
-          },
-        ],
+          ],
+        },
       },
     },
     {
-      id: "tool-results",
-      author: "assistant",
+      id: "tool-results-envelope",
       threadId: sessionId,
       runId,
       timestamp: createdAt / 1000 + 0.009,
-      content: {
-        parts: [
-          {
-            functionResponse: {
-              id: "call-1",
-              name: "google_search",
-              response: {
-                result: { items: [{ title: "AfterShip 官网" }] },
+      payload: {
+        author: "assistant",
+        content: {
+          parts: [
+            {
+              functionResponse: {
+                id: "call-1",
+                name: "google_search",
+                response: {
+                  result: { items: [{ title: "AfterShip 官网" }] },
+                },
               },
             },
-          },
-          {
-            functionResponse: {
-              id: "call-2",
-              name: "web_search",
-              response: {
-                result: { items: [{ title: "AfterShip Tracking API" }] },
+            {
+              functionResponse: {
+                id: "call-2",
+                name: "web_search",
+                response: {
+                  result: { items: [{ title: "AfterShip Tracking API" }] },
+                },
               },
             },
-          },
-        ],
+          ],
+        },
       },
     },
     {
-      id: "assistant-2",
-      author: "assistant",
+      id: "assistant-2-envelope",
       threadId: sessionId,
       runId,
       timestamp: createdAt / 1000 + 0.01,
-      content: {
-        parts: [{ text: "## AfterShip 信息摘要\n\n- 物流体验平台\n- 提供 Tracking API" }],
+      event: {
+        author: "assistant",
+        content: {
+          parts: [{ text: "## AfterShip 信息摘要\n\n- 物流体验平台\n- 提供 Tracking API" }],
+        },
       },
     },
   ];

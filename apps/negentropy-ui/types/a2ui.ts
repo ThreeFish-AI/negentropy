@@ -81,6 +81,16 @@ export interface ChatMessageDisplayBlock {
   message: ChatMessage;
 }
 
+export interface ReplyTextDisplaySegment {
+  id: string;
+  kind: "text";
+  nodeId: string;
+  timestamp: number;
+  sourceOrder: number;
+  content: string;
+  streaming: boolean;
+}
+
 export interface ToolGroupDisplayBlock {
   id: string;
   kind: "tool-group";
@@ -95,6 +105,36 @@ export interface ToolGroupDisplayBlock {
   title: string;
   summary: string;
   tools: ToolExecutionEntry[];
+}
+
+export interface ReplyToolGroupDisplaySegment extends ToolGroupDisplayBlock {
+  segmentId: string;
+}
+
+export interface ReplyErrorDisplaySegment {
+  id: string;
+  kind: "error";
+  nodeId: string;
+  timestamp: number;
+  sourceOrder: number;
+  title: string;
+  message: string;
+  code?: string;
+}
+
+export type AssistantReplyDisplaySegment =
+  | ReplyTextDisplaySegment
+  | ReplyToolGroupDisplaySegment
+  | ReplyErrorDisplaySegment;
+
+export interface AssistantReplyDisplayBlock {
+  id: string;
+  kind: "assistant-reply";
+  nodeId: string;
+  timestamp: number;
+  sourceOrder: number;
+  message: ChatMessage;
+  segments: AssistantReplyDisplaySegment[];
 }
 
 export interface TurnStatusDisplayBlock {
@@ -131,6 +171,7 @@ export interface SummaryDisplayBlock {
 
 export type ChatDisplayBlock =
   | ChatMessageDisplayBlock
+  | AssistantReplyDisplayBlock
   | ToolGroupDisplayBlock
   | TurnStatusDisplayBlock
   | ErrorDisplayBlock

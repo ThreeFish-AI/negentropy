@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { AssistantReplyBubble } from "./AssistantReplyBubble";
 import { MessageBubble } from "./MessageBubble";
 import { ToolExecutionGroup } from "./ToolExecutionGroup";
 import { CHAT_CONTENT_RAIL_CLASS } from "./chat-layout";
@@ -63,6 +64,13 @@ export function ChatStream({
                 message={block.message}
                 isSelected={selectedNodeId === block.nodeId}
                 onSelect={() => onNodeSelect?.(block.nodeId)}
+              />
+            ) : block.kind === "assistant-reply" ? (
+              <AssistantReplyBubble
+                key={block.id}
+                block={block}
+                isSelected={selectedNodeId === block.nodeId}
+                onSelect={onNodeSelect}
               />
             ) : block.kind === "tool-group" ? (
               <ToolExecutionGroup
