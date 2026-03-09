@@ -147,7 +147,7 @@ function DocumentMetadataPanel({
 }: {
   metadata: DocumentChunksMetadata;
 }) {
-  const stats = [
+  const stats: Array<[string, string | number]> = [
     ["Chunks specification", metadata.chunk_specification ?? "--"],
     ["Chunks length", metadata.chunk_length ?? "--"],
     ["Avg. paragraph length", metadata.avg_paragraph_length ?? "--"],
@@ -156,13 +156,33 @@ function DocumentMetadataPanel({
     ["Embedding time", metadata.embedding_time_ms ? `${metadata.embedding_time_ms} ms` : "--"],
     ["Embedded spend", metadata.embedded_tokens ? `${metadata.embedded_tokens} tokens` : "--"],
   ];
-  const docInfo = [
+  const docInfo: Array<[string, string | number]> = [
     ["Original filename", metadata.original_filename ?? "--"],
     ["Original file size", formatFileSize(metadata.file_size)],
     ["Upload date", formatDateTime(metadata.upload_date)],
     ["Last update date", formatDateTime(metadata.last_update_date)],
     ["Source", metadata.source ?? "--"],
   ];
+  const renderFieldGroup = (title: string, items: Array<[string, string | number]>) => (
+    <div>
+      <h4 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">{title}</h4>
+      <dl className="mt-3 space-y-2.5">
+        {items.map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-xl border border-border/80 bg-background/70 px-3 py-2.5 shadow-sm shadow-zinc-950/0"
+          >
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+              {label}
+            </dt>
+            <dd className="mt-1 break-words text-sm font-medium leading-6 text-foreground">
+              {String(value)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
 
   return (
     <section className="h-full rounded-2xl border border-border bg-card p-5">
@@ -171,28 +191,8 @@ function DocumentMetadataPanel({
         Metadata serves as a critical filter that enhances the accuracy and relevance of information retrieval.
       </p>
       <div className="mt-6 space-y-6">
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Document Information</h4>
-          <div className="mt-3 space-y-3">
-            {docInfo.map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-3 text-sm">
-                <span className="text-muted">{label}</span>
-                <span className="text-right">{String(value)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Technical Parameters</h4>
-          <div className="mt-3 space-y-3">
-            {stats.map(([label, value]) => (
-              <div key={label} className="flex items-start justify-between gap-3 text-sm">
-                <span className="text-muted">{label}</span>
-                <span className="text-right">{String(value)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {renderFieldGroup("Document Information", docInfo)}
+        {renderFieldGroup("Technical Parameters", stats)}
       </div>
     </section>
   );
@@ -1458,6 +1458,7 @@ export default function KnowledgeBasePage() {
                               key={chunk.id}
                               chunk={cardModel}
                               onOpen={() => void handleSelectDocumentChunk(chunk)}
+                              density="compact"
                               hideFooter
                               hideScores
                               onChildChunkOpen={(childChunkId) => {
@@ -1474,11 +1475,11 @@ export default function KnowledgeBasePage() {
                               badges={(
                                 <>
                                   <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
-                                  <span className="shrink-0 rounded bg-zinc-900 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white dark:bg-zinc-100 dark:text-zinc-900">
+                                  <span className="shrink-0 rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-zinc-100 dark:text-zinc-900">
                                     Retrieval Count {chunk.display_retrieval_count}
                                   </span>
                                   <span
-                                    className={`shrink-0 rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+                                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                                       chunk.is_enabled
                                         ? "bg-emerald-500/15 text-emerald-500"
                                         : "bg-zinc-500/15 text-zinc-500"
