@@ -38,6 +38,9 @@ export interface KnowledgeFeatureMockSet {
   upsertPipelinesMock: VitestMock;
   fetchDocumentsMock: VitestMock;
   fetchDocumentChunksMock: VitestMock;
+  fetchDocumentChunkDetailMock: VitestMock;
+  updateDocumentChunkMock: VitestMock;
+  regenerateDocumentChunkFamilyMock: VitestMock;
   searchAcrossCorporaMock: VitestMock;
   syncDocumentMock: VitestMock;
   rebuildDocumentMock: VitestMock;
@@ -66,6 +69,9 @@ export function createKnowledgeFeatureMockSet(): KnowledgeFeatureMockSet {
     upsertPipelinesMock: vi.fn(),
     fetchDocumentsMock: vi.fn(),
     fetchDocumentChunksMock: vi.fn(),
+    fetchDocumentChunkDetailMock: vi.fn(),
+    updateDocumentChunkMock: vi.fn(),
+    regenerateDocumentChunkFamilyMock: vi.fn(),
     searchAcrossCorporaMock: vi.fn(),
     syncDocumentMock: vi.fn(),
     rebuildDocumentMock: vi.fn(),
@@ -148,6 +154,10 @@ export function createKnowledgeFeatureTestHarness(
       upsertPipelines: (...args: unknown[]) => mocks.upsertPipelinesMock(...args),
       fetchDocuments: (...args: unknown[]) => mocks.fetchDocumentsMock(...args),
       fetchDocumentChunks: (...args: unknown[]) => mocks.fetchDocumentChunksMock(...args),
+      fetchDocumentChunkDetail: (...args: unknown[]) => mocks.fetchDocumentChunkDetailMock(...args),
+      updateDocumentChunk: (...args: unknown[]) => mocks.updateDocumentChunkMock(...args),
+      regenerateDocumentChunkFamily: (...args: unknown[]) =>
+        mocks.regenerateDocumentChunkFamilyMock(...args),
       searchAcrossCorpora: (...args: unknown[]) => mocks.searchAcrossCorporaMock(...args),
       syncDocument: (...args: unknown[]) => mocks.syncDocumentMock(...args),
       rebuildDocument: (...args: unknown[]) => mocks.rebuildDocumentMock(...args),

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import or_, select, func
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
@@ -339,6 +339,29 @@ class DocumentStorageService:
             result = await db.execute(stmt)
             return result.scalar_one_or_none()
 
+    async def get_document_by_source_uri(
+        self,
+        *,
+        source_uri: str,
+        corpus_id: Optional[UUID] = None,
+        app_name: Optional[str] = None,
+    ) -> Optional[KnowledgeDocument]:
+        async with AsyncSessionLocal() as db:
+            conditions = [
+                or_(
+                    KnowledgeDocument.gcs_uri == source_uri,
+                    KnowledgeDocument.metadata_["origin_url"].astext == source_uri,
+                )
+            ]
+            if corpus_id:
+                conditions.append(KnowledgeDocument.corpus_id == corpus_id)
+            if app_name:
+                conditions.append(KnowledgeDocument.app_name == app_name)
+            conditions.append(KnowledgeDocument.status == "active")
+            stmt = select(KnowledgeDocument).where(*conditions)
+            result = await db.execute(stmt)
+            return result.scalar_one_or_none()
+
     async def update_markdown_extraction_status(
         self,
         *,
@@ -381,6 +404,26 @@ class DocumentStorageService:
             doc.markdown_extract_status = "completed"
             doc.markdown_extract_error = None
             doc.markdown_extracted_at = datetime.now(timezone.utc)
+            await db.commit()
+            return True
+
+    async def update_document_metadata(
+        self,
+        *,
+        document_id: UUID,
+        metadata_patch: dict,
+    ) -> bool:
+        """合并更新文档 metadata。"""
+        async with AsyncSessionLocal() as db:
+            stmt = select(KnowledgeDocument).where(KnowledgeDocument.id == document_id)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                return False
+
+            current = dict(doc.metadata_ or {})
+            current.update(metadata_patch)
+            doc.metadata_ = current
             await db.commit()
             return True
 
