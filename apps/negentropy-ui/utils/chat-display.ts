@@ -114,6 +114,21 @@ function createToolEntry(toolNode: ConversationNode): ToolExecutionEntry {
   };
 }
 
+function getToolGroupStableId(input: {
+  turnId: string;
+  anchorNodeId?: string;
+  anchorMessageId?: string;
+  nodes: ConversationNode[];
+}): string {
+  const toolIds = input.nodes
+    .map((node) => node.toolCallId || node.id)
+    .sort()
+    .join(":");
+  const anchorIdentity =
+    input.anchorMessageId || input.anchorNodeId || input.turnId;
+  return `tool-group:${anchorIdentity}:${toolIds}`;
+}
+
 function getGroupStatus(tools: ToolExecutionEntry[]): ToolCallStatus {
   if (tools.some((tool) => tool.status === "error")) {
     return "error";
@@ -130,6 +145,7 @@ function getGroupStatus(tools: ToolExecutionEntry[]): ToolCallStatus {
 function createToolGroupBlock(input: {
   turnId: string;
   anchorNodeId?: string;
+  anchorMessageId?: string;
   nodes: ConversationNode[];
 }): ToolGroupDisplayBlock {
   const tools = input.nodes.map(createToolEntry);
@@ -137,10 +153,11 @@ function createToolGroupBlock(input: {
   const parallel = tools.length > 1;
   const toolNames = [...new Set(tools.map((tool) => tool.name))];
   return {
-    id: `tool-group:${input.anchorNodeId || input.turnId}:${input.nodes.map((node) => node.id).join(":")}`,
+    id: getToolGroupStableId(input),
     kind: "tool-group",
     nodeId: input.nodes[0]?.id || input.turnId,
     anchorNodeId: input.anchorNodeId,
+    anchorMessageId: input.anchorMessageId,
     timestamp: Math.min(...input.nodes.map((node) => node.timeRange.start)),
     sourceOrder: Math.min(...input.nodes.map((node) => node.sourceOrder)),
     parallel,
@@ -229,6 +246,7 @@ function pushGroupedTools(
   input: {
     turnId: string;
     anchorNodeId?: string;
+    anchorMessageId?: string;
     nodes: ConversationNode[];
   },
 ) {
@@ -259,6 +277,7 @@ function walkTextNode(
       pushGroupedTools(blocks, {
         turnId,
         anchorNodeId: node.id,
+        anchorMessageId: node.messageId,
         nodes: pendingToolNodes,
       });
       pendingToolNodes = [];
@@ -269,6 +288,7 @@ function walkTextNode(
       pushGroupedTools(blocks, {
         turnId,
         anchorNodeId: node.id,
+        anchorMessageId: node.messageId,
         nodes: pendingToolNodes,
       });
       pendingToolNodes = [];
@@ -279,6 +299,7 @@ function walkTextNode(
   pushGroupedTools(blocks, {
     turnId,
     anchorNodeId: node.id,
+    anchorMessageId: node.messageId,
     nodes: pendingToolNodes,
   });
 }

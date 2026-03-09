@@ -86,6 +86,7 @@ export interface ToolGroupDisplayBlock {
   kind: "tool-group";
   nodeId: string;
   anchorNodeId?: string;
+  anchorMessageId?: string;
   timestamp: number;
   sourceOrder: number;
   parallel: boolean;

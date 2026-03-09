@@ -286,9 +286,21 @@ describe("adk event mapping", () => {
     const toolStarts = events.filter((event) => event.type === EventType.TOOL_CALL_START);
     const toolResults = events.filter((event) => event.type === EventType.TOOL_CALL_RESULT);
 
-    expect(toolStarts.map((event) => String(event.toolCallId))).toEqual(["call-1", "call-2"]);
-    expect(toolResults.map((event) => String(event.toolCallId))).toEqual(["call-1", "call-2"]);
-    expect(toolResults.map((event) => String(event.content))).toEqual([
+    expect(
+      toolStarts.map((event) =>
+        "toolCallId" in event ? String(event.toolCallId) : "",
+      ),
+    ).toEqual(["call-1", "call-2"]);
+    expect(
+      toolResults.map((event) =>
+        "toolCallId" in event ? String(event.toolCallId) : "",
+      ),
+    ).toEqual(["call-1", "call-2"]);
+    expect(
+      toolResults.map((event) =>
+        "content" in event ? String(event.content) : "",
+      ),
+    ).toEqual([
       JSON.stringify({ items: [{ title: "AfterShip" }] }),
       JSON.stringify({ items: [{ title: "Tracking API" }] }),
     ]);

@@ -98,4 +98,40 @@ describe("ToolExecutionGroup", () => {
     expect(screen.getByText("Error")).toBeInTheDocument();
     expect(screen.getAllByText("Parameters")).toHaveLength(2);
   });
+
+  it("当 block identity 保持稳定时，hydration 不会重置用户手动展开状态", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ToolExecutionGroup
+        block={createBlock({
+          id: "tool-group:msg-1:tool-1:tool-2",
+          defaultExpanded: false,
+          status: "completed",
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Google Search 并行执行/ }));
+    expect(screen.queryAllByText("Parameters")).toHaveLength(0);
+
+    await user.click(
+      screen.getAllByText((content, element) => {
+        return content.includes("Google Search") && element?.tagName.toLowerCase() === "span";
+      })[1].closest("button")!,
+    );
+    expect(screen.getByText("Parameters")).toBeInTheDocument();
+
+    rerender(
+      <ToolExecutionGroup
+        block={createBlock({
+          id: "tool-group:msg-1:tool-1:tool-2",
+          defaultExpanded: false,
+          status: "completed",
+          summary: "已完成，2 个工具",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Parameters")).toBeInTheDocument();
+  });
 });

@@ -148,6 +148,10 @@ export function ToolExecutionGroup({
   const [manualToggle, setManualToggle] = useState(false);
 
   useEffect(() => {
+    setManualToggle(false);
+  }, [block.id]);
+
+  useEffect(() => {
     if (!manualToggle) {
       setExpanded(block.defaultExpanded);
     }

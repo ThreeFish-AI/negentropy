@@ -36,7 +36,12 @@ export interface UseSessionServiceOptions {
 
 export interface UseSessionServiceReturnValue extends SessionProjectionPublicApi {
   loadSessionDetail: (id: string) => Promise<void>;
-  scheduleSessionHydration: (id: string) => void;
+  scheduleSessionHydration: (
+    id: string,
+    options?: {
+      reason?: "default" | "run_terminal";
+    },
+  ) => void;
   clearSessionServiceState: () => void;
 }
 
@@ -133,15 +138,27 @@ export function useSessionService(
   );
 
   const scheduleSessionHydration = useCallback(
-    (id: string) => {
+    (
+      id: string,
+      options?: {
+        reason?: "default" | "run_terminal";
+      },
+    ) => {
       clearHydrationTimers();
-      const hasLiveAssistantOutput = rawEventsRef.current.some(
+      const hasLiveRenderableOutput = rawEventsRef.current.some(
         (event) =>
-          event.type === EventType.TEXT_MESSAGE_CONTENT &&
+          (event.type === EventType.TEXT_MESSAGE_CONTENT ||
+            event.type === EventType.TOOL_CALL_START ||
+            event.type === EventType.TOOL_CALL_RESULT) &&
           "threadId" in event &&
           event.threadId === id,
       );
-      const delays = hasLiveAssistantOutput ? [1200, 2800] : [0, 250, 800, 1600];
+      const delays =
+        options?.reason === "run_terminal"
+          ? [0, 400, 1200, 2600, 5000]
+          : hasLiveRenderableOutput
+            ? [200, 900, 2200, 4500]
+            : [0, 300, 1000, 2200, 4500];
       delays.forEach((delay) => {
         const timer = setTimeout(() => {
           void loadSessionDetail(id);

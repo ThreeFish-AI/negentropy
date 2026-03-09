@@ -428,7 +428,9 @@ export function mergeMessageLedger(
     existing.streaming = existing.streaming && entry.streaming;
     existing.lifecycle =
       existing.lifecycle === "closed" || entry.lifecycle === "closed" ? "closed" : "open";
-    if (existing.origin !== entry.origin && entry.origin !== "realtime") {
+    if (existing.origin === "realtime" || entry.origin === "realtime") {
+      existing.origin = "realtime";
+    } else if (existing.origin !== entry.origin) {
       existing.origin = entry.origin;
     }
     if (!existing.relatedMessageIds.includes(entry.id)) {
