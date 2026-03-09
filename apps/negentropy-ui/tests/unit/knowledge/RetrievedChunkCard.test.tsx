@@ -69,6 +69,21 @@ describe("RetrievedChunkCard", () => {
     expect(screen.queryByText("SCORE 0.91")).not.toBeInTheDocument();
   });
 
+  it("compact 变体会收敛字号但保持交互不变", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+
+    render(<RetrievedChunkCard chunk={createChunk()} onOpen={onOpen} density="compact" />);
+
+    expect(screen.getByText("parent chunk preview").className).toContain("text-sm");
+    expect(screen.getByText("SCORE 0.91").className).toContain("text-[10px]");
+    expect(screen.getByText("Open").closest("button")?.className).toContain("text-xs");
+
+    await user.click(screen.getByText("Open"));
+
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
   it("提供子 chunk 打开回调时，子项保持可点击", async () => {
     const user = userEvent.setup();
     const onChildChunkOpen = vi.fn();
