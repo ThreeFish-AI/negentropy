@@ -54,6 +54,20 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Verify Alembic graph has a single head
+        run: |
+          uv run python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+
+          config = Config("alembic.ini")
+          script = ScriptDirectory.from_config(config)
+          heads = script.get_heads()
+          if len(heads) != 1:
+              raise SystemExit(f"Expected a single Alembic head, got: {heads}")
+          print(f"Alembic head: {heads[0]}")
+          PY
+
       - name: Run unit tests with coverage
         run: uv run pytest tests/unit_tests/ --cov=negentropy --cov-report=term-missing --cov-report=xml
 
