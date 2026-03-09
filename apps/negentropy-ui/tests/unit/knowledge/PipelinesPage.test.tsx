@@ -250,6 +250,96 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(selectedRunButton?.className).toContain("bg-zinc-900");
   });
 
+  it("Runs 阶段条复用共享 tooltip 内容，且不再被按钮容器裁剪", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-stage-tooltip-id",
+            run_id: "run-stage-tooltip",
+            status: "failed",
+          }),
+          stages: {
+            fetch: {
+              status: "completed",
+              duration_ms: 1200,
+            },
+            persist: {
+              status: "failed",
+              duration_ms: 2300,
+              error: {
+                message: "persist crashed due to invalid payload",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    const { container } = render(<KnowledgePipelinesPage />);
+    await settle();
+
+    const selectedRunButton = Array.from(container.querySelectorAll("button")).find((element) =>
+      element.textContent?.includes("run-stage-tooltip")
+    );
+    expect(selectedRunButton).toBeTruthy();
+    expect(selectedRunButton?.className).not.toContain("overflow-hidden");
+
+    const tooltips = within(selectedRunButton as HTMLElement).getAllByRole("tooltip");
+    expect(tooltips.length).toBe(2);
+    expect(within(selectedRunButton as HTMLElement).getByText("获取内容")).toBeInTheDocument();
+    expect(within(selectedRunButton as HTMLElement).getByText("completed · 1s")).toBeInTheDocument();
+    expect(within(selectedRunButton as HTMLElement).getAllByText("持久化").length).toBeGreaterThan(0);
+    expect(
+      within(selectedRunButton as HTMLElement).getByText("persist crashed due to invalid payload")
+    ).toBeInTheDocument();
+  });
+
+  it("详情区 Stages 使用与 Runs 一致的阶段颜色映射", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-stage-colors-id",
+            run_id: "run-stage-colors",
+            status: "failed",
+          }),
+          stages: {
+            fetch: {
+              status: "completed",
+              duration_ms: 100,
+            },
+            persist: {
+              status: "failed",
+              duration_ms: 200,
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    const { container } = render(<KnowledgePipelinesPage />);
+    await settle();
+
+    const stagesSection = screen.getByText("Stages").parentElement;
+    expect(stagesSection).not.toBeNull();
+
+    const fetchRow = within(stagesSection as HTMLElement).getByText("获取内容").closest("div");
+    const persistRow = within(stagesSection as HTMLElement).getByText("持久化").closest("div");
+    const stageDots = Array.from(
+      (stagesSection as HTMLElement).querySelectorAll("span.h-2.w-2.rounded-full")
+    );
+
+    expect(fetchRow).toBeTruthy();
+    expect(persistRow).toBeTruthy();
+    expect(stageDots[0]?.className).toContain("bg-sky-500");
+    expect(stageDots[1]?.className).toContain("bg-emerald-700");
+    expect(within(stagesSection as HTMLElement).getByText("completed")).toBeInTheDocument();
+    expect(within(stagesSection as HTMLElement).getByText("failed")).toBeInTheDocument();
+  });
+
   it("多 Stage 失败时，详情页 Errors 区域会同时展示所有阶段异常", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
       runs: [

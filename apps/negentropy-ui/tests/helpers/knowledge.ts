@@ -23,6 +23,7 @@ import {
   STAGE_LABELS,
 } from "@/features/knowledge/utils/pipeline-helpers";
 import { PipelineStatusBadge } from "@/features/knowledge/components/PipelineStatusBadge";
+import { PipelineStagesBar } from "@/features/knowledge/components/PipelineStagesBar";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 
@@ -127,6 +128,7 @@ export function createKnowledgeConfigTestExports() {
     calculateStageWidth,
     getSortedStages,
     PipelineStatusBadge,
+    PipelineStagesBar,
   };
 }
 
