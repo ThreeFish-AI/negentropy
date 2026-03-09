@@ -414,9 +414,9 @@ export const FAILURE_CATEGORY_LABELS: Record<string, string> = {
   low_confidence_contract: "Tool 契约置信度不足",
 };
 
-export const getFailureCategoryLabel = (category: unknown): string | null => {
+export const getFailureCategoryLabel = (category: unknown): string | undefined => {
   if (typeof category !== "string" || !category.trim()) {
-    return null;
+    return undefined;
   }
   return FAILURE_CATEGORY_LABELS[category] || category;
 };
