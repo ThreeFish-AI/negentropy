@@ -538,4 +538,74 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(screen.queryByText("Tool 契约不受支持")).not.toBeInTheDocument();
     expect(screen.getAllByText("extractor failed without category").length).toBeGreaterThan(0);
   });
+
+  it("failure_category 存在时，阶段摘要与错误详情会展示归一化标签", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-failure-category-id",
+            run_id: "run-failure-category",
+            status: "failed",
+          }),
+          error: {
+            message: "payload shape is invalid",
+            failure_category: "unsupported_contract",
+          },
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "payload shape is invalid",
+                failure_category: "unsupported_contract",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getAllByText("Tool 契约不受支持").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tool 契约不受支持 · payload shape is invalid").length).toBeGreaterThan(0);
+  });
+
+  it("failure_category 缺失或为空时，不渲染空标签占位", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-empty-failure-category-id",
+            run_id: "run-empty-failure-category",
+            status: "failed",
+          }),
+          error: {
+            message: "extractor failed without category",
+            failure_category: "   ",
+          },
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "extractor failed without category",
+                failure_category: "   ",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.queryByText("Tool 契约不受支持")).not.toBeInTheDocument();
+    expect(screen.getAllByText("extractor failed without category").length).toBeGreaterThan(0);
+  });
 });
