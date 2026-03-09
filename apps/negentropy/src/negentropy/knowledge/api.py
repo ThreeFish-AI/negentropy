@@ -219,6 +219,7 @@ class PipelineErrorPayloadResponse(BaseModel):
 
 
 class PipelineStageResultResponse(BaseModel):
+    # Pipeline 运行态 payload 仍处于演进期，允许透传未显式建模的增量字段。
     model_config = ConfigDict(extra="allow")
 
     status: str
@@ -231,6 +232,7 @@ class PipelineStageResultResponse(BaseModel):
 
 
 class PipelineRunRecordResponse(BaseModel):
+    # Pipeline run 顶层字段继续保持向后兼容，后续若 payload 收敛可再逐步收紧。
     model_config = ConfigDict(extra="allow")
 
     id: str
@@ -252,6 +254,26 @@ class PipelineRunRecordResponse(BaseModel):
 class KnowledgePipelinesResponse(BaseModel):
     runs: list[PipelineRunRecordResponse] = Field(default_factory=list)
     last_updated_at: Optional[str] = None
+
+
+class PipelineUpsertRecordResponse(BaseModel):
+    """Pipeline upsert 结果中的记录快照。"""
+
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    run_id: str
+    status: str
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    version: Optional[int] = None
+    updated_at: Optional[str] = None
+
+
+class PipelineUpsertResponse(BaseModel):
+    """Pipeline upsert 响应。"""
+
+    status: str
+    pipeline: PipelineUpsertRecordResponse
 
 
 # Graph API Request/Response Models
@@ -2716,8 +2738,8 @@ async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> Knowle
     )
 
 
-@router.post("/pipelines")
-async def upsert_pipelines(payload: PipelinesUpsertRequest) -> Dict[str, Any]:
+@router.post("/pipelines", response_model=PipelineUpsertResponse)
+async def upsert_pipelines(payload: PipelinesUpsertRequest) -> PipelineUpsertResponse:
     resolved_app = _resolve_app_name(payload.app_name)
     dao = _get_dao()
     result = await dao.upsert_pipeline_run(
@@ -2730,7 +2752,10 @@ async def upsert_pipelines(payload: PipelinesUpsertRequest) -> Dict[str, Any]:
     )
     if result.status == "conflict":
         raise HTTPException(status_code=409, detail="Pipeline run version conflict")
-    return {"status": result.status, "pipeline": result.record}
+    return PipelineUpsertResponse(
+        status=result.status,
+        pipeline=PipelineUpsertRecordResponse(**result.record),
+    )
 
 
 # ============================================================================

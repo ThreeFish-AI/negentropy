@@ -281,6 +281,70 @@ def test_get_pipelines_openapi_includes_diagnostic_summary() -> None:
 
 
 @pytest.mark.asyncio
+async def test_upsert_pipelines_returns_typed_response(monkeypatch):
+    class FakeDao:
+        async def upsert_pipeline_run(
+            self,
+            *,
+            app_name: str,
+            run_id: str,
+            status: str,
+            payload: dict,
+            idempotency_key,
+            expected_version,
+        ):
+            _ = (app_name, run_id, status, payload, idempotency_key, expected_version)
+            return SimpleNamespace(
+                status="updated",
+                record={
+                    "id": str(uuid4()),
+                    "run_id": "pipeline-2",
+                    "status": "failed",
+                    "payload": {
+                        "stages": {
+                            "extract_primary": {
+                                "status": "failed",
+                                "error": {
+                                    "failure_category": "low_confidence_contract",
+                                    "diagnostic_summary": "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数",
+                                },
+                            }
+                        }
+                    },
+                    "version": 2,
+                    "updated_at": "2026-03-09T11:40:00+08:00",
+                },
+            )
+
+    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
+
+    result = await knowledge_api.upsert_pipelines(
+        knowledge_api.PipelinesUpsertRequest(
+            app_name="negentropy",
+            run_id="pipeline-2",
+            status="failed",
+            payload={},
+        )
+    )
+
+    assert result.status == "updated"
+    assert result.pipeline.run_id == "pipeline-2"
+    assert result.pipeline.payload["stages"]["extract_primary"]["error"]["diagnostic_summary"].startswith("契约为 unknown")
+
+
+def test_upsert_pipelines_openapi_uses_explicit_response_model() -> None:
+    app = FastAPI()
+    app.include_router(knowledge_api.router)
+
+    with TestClient(app) as client:
+        schema = client.get("/openapi.json").json()
+
+    post_operation = schema["paths"]["/knowledge/pipelines"]["post"]
+    response_schema = post_operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema["$ref"] == "#/components/schemas/PipelineUpsertResponse"
+
+
+@pytest.mark.asyncio
 async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatch):
     fake_service = FakeKnowledgeService()
     server_id = uuid4()
