@@ -9,7 +9,7 @@ import {
   calculateStageWidth,
   fetchPipelines,
   formatDuration,
-  getStageErrorMessage,
+  getStageErrorSummary,
   getPipelineStatusColor,
   getSortedStages,
   getStageColor,
@@ -275,7 +275,9 @@ export default function KnowledgePipelinesPage() {
                                     {stage.duration_ms ? ` · ${formatDuration(stage.duration_ms)}` : ""}
                                   </div>
                                   {stage.status === "failed" && stage.error && (
-                                    <div className="mt-0.5 max-w-[150px] truncate text-rose-400">Error</div>
+                                    <div className="mt-0.5 max-w-[180px] truncate text-rose-400">
+                                      {getStageErrorSummary(stage.error)}
+                                    </div>
                                   )}
                                   {stage.status === "skipped" && stage.reason && (
                                     <div className="mt-0.5 max-w-[150px] truncate italic text-zinc-400">
@@ -337,7 +339,7 @@ export default function KnowledgePipelinesPage() {
                               )}
                               {stage.error && (
                                 <span className="truncate max-w-[120px] text-rose-500">
-                                  {getStageErrorMessage(stage.error)}
+                                  {getStageErrorSummary(stage.error)}
                                 </span>
                               )}
                               {stage.output && (
@@ -382,9 +384,16 @@ export default function KnowledgePipelinesPage() {
                               className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900/40 dark:bg-rose-950/20"
                             >
                               <div className="flex items-center justify-between gap-3">
-                                <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
-                                  {detail.title}
-                                </p>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                                    {detail.title}
+                                  </p>
+                                  {detail.failureLabel && (
+                                    <p className="mt-0.5 truncate text-[10px] text-rose-500 dark:text-rose-400">
+                                      {detail.failureLabel}
+                                    </p>
+                                  )}
+                                </div>
                                 <span className="text-[10px] text-rose-500 dark:text-rose-400">
                                   {detail.scope === "stage"
                                     ? `${detail.status || "failed"}${detail.durationMs ? ` · ${formatDuration(detail.durationMs)}` : ""}`

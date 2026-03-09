@@ -208,6 +208,7 @@ export {
   STAGE_ORDER,
   STAGE_LABELS,
   STAGE_COLORS,
+  FAILURE_CATEGORY_LABELS,
   // 工具函数
   getPipelineStatusColor,
   getPipelineStatusTextColor,
@@ -215,6 +216,8 @@ export {
   truncateRunId,
   getStageColor,
   getStageErrorMessage,
+  getStageErrorSummary,
+  getFailureCategoryLabel,
   getFailedStages,
   buildPipelineErrorDetails,
   formatDuration,

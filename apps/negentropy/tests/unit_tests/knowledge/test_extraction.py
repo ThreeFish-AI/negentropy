@@ -1096,6 +1096,66 @@ async def test_data_extractor_provider_failovers_when_primary_returns_empty_payl
 
 
 @pytest.mark.asyncio
+async def test_data_extractor_provider_marks_unknown_contract_as_unsupported_for_failover(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server_id = uuid4()
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):  # type: ignore[no-untyped-def]
+            _ = (model, key)
+            return SimpleNamespace(
+                id=server_id,
+                name="pdf-extractor",
+                is_enabled=True,
+                transport_type="http",
+                command=None,
+                args=[],
+                env={},
+                url="https://example.com/mcp",
+                headers={},
+            )
+
+        async def scalar(self, stmt):  # type: ignore[no-untyped-def]
+            _ = stmt
+            return SimpleNamespace(
+                is_enabled=True,
+                input_schema={"type": "object", "properties": {"opaque": {"type": "integer"}}},
+            )
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.AsyncSessionLocal", lambda: FakeSession())
+
+    provider = DataExtractorProvider()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is False
+    attempt = result["attempt"]
+    assert attempt.failure_category == "unsupported_contract"
+    assert attempt.diagnostics["capability"]["schema_confidence"] == "medium"
+
+
+@pytest.mark.asyncio
 async def test_data_extractor_provider_retries_with_string_batch_contract_after_string_type_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
