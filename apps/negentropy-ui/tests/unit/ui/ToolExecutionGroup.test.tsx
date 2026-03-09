@@ -10,6 +10,7 @@ function createBlock(overrides: Partial<ToolGroupDisplayBlock> = {}): ToolGroupD
     kind: "tool-group",
     nodeId: "tool:1",
     timestamp: 1000,
+    sourceOrder: 1,
     parallel: true,
     defaultExpanded: true,
     status: "running",
@@ -80,5 +81,21 @@ describe("ToolExecutionGroup", () => {
 
     await user.click(screen.getByRole("button", { name: /Google Search 并行执行/ }));
     expect(onSelect).toHaveBeenCalledWith("tool:1");
+  });
+
+  it("错误态会显示失败摘要并默认展开", () => {
+    render(
+      <ToolExecutionGroup
+        block={createBlock({
+          defaultExpanded: true,
+          status: "error",
+          summary: "执行失败，2 个工具",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("执行失败，2 个工具")).toBeInTheDocument();
+    expect(screen.getByText("Error")).toBeInTheDocument();
+    expect(screen.getAllByText("Parameters")).toHaveLength(2);
   });
 });

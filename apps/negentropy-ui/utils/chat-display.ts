@@ -9,6 +9,14 @@ import type {
 import type { ChatMessage, ToolCallStatus } from "@/types/common";
 import { buildNodeSummary, safeJsonParse } from "@/utils/conversation-summary";
 
+const displayBlockTypeOrder: Record<ChatDisplayBlock["kind"], number> = {
+  message: 0,
+  "tool-group": 1,
+  error: 2,
+  "turn-status": 3,
+  summary: 4,
+};
+
 function formatToolName(name: string): string {
   const toolNameMap: Record<string, string> = {
     google_search: "Google Search",
@@ -134,8 +142,9 @@ function createToolGroupBlock(input: {
     nodeId: input.nodes[0]?.id || input.turnId,
     anchorNodeId: input.anchorNodeId,
     timestamp: Math.min(...input.nodes.map((node) => node.timeRange.start)),
+    sourceOrder: Math.min(...input.nodes.map((node) => node.sourceOrder)),
     parallel,
-    defaultExpanded: status === "running",
+    defaultExpanded: status === "running" || status === "error",
     status,
     title:
       toolNames.length === 1
@@ -146,7 +155,9 @@ function createToolGroupBlock(input: {
     summary:
       status === "running"
         ? `执行中，${tools.length} 个工具`
-        : `已完成，${tools.length} 个工具`,
+        : status === "error"
+          ? `执行失败，${tools.length} 个工具`
+          : `已完成，${tools.length} 个工具`,
     tools,
   };
 }
@@ -180,6 +191,7 @@ function createMessageBlock(node: ConversationNode): ChatDisplayBlock {
     kind: "message",
     nodeId: node.id,
     timestamp: node.timeRange.start,
+    sourceOrder: node.sourceOrder,
     message,
   };
 }
@@ -190,6 +202,7 @@ function createErrorBlock(node: ConversationNode): ChatDisplayBlock {
     kind: "error",
     nodeId: node.id,
     timestamp: node.timeRange.start,
+    sourceOrder: node.sourceOrder,
     title: node.title,
     message: String(node.payload.message || "运行失败"),
     code:
@@ -205,6 +218,7 @@ function createSummaryBlock(node: ConversationNode): ChatDisplayBlock {
     kind: "summary",
     nodeId: node.id,
     timestamp: node.timeRange.start,
+    sourceOrder: node.sourceOrder,
     title: node.title,
     lines: buildNodeSummary(node),
   };
@@ -314,6 +328,7 @@ function walkTurnNode(node: ConversationNode, blocks: ChatDisplayBlock[]) {
       kind: "turn-status",
       nodeId: node.id,
       timestamp: node.timeRange.start,
+      sourceOrder: node.sourceOrder,
       status:
         node.status === "blocked"
           ? "blocked"
@@ -369,6 +384,13 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
   blocks.sort((left, right) => {
     if (left.timestamp !== right.timestamp) {
       return left.timestamp - right.timestamp;
+    }
+    if (left.sourceOrder !== right.sourceOrder) {
+      return left.sourceOrder - right.sourceOrder;
+    }
+    const typeDiff = displayBlockTypeOrder[left.kind] - displayBlockTypeOrder[right.kind];
+    if (typeDiff !== 0) {
+      return typeDiff;
     }
     return left.id.localeCompare(right.id);
   });
