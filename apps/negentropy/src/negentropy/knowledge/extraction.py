@@ -1205,7 +1205,12 @@ async def _build_llm_invocation_plan(
     try:
         payload = json.loads(content)
     except json.JSONDecodeError:
-        logger.warning("extractor_llm_plan_invalid_json", tool_name=tool_name)
+        logger.info(
+            "extractor_llm_plan_invalid_json",
+            tool_name=tool_name,
+            fallback_strategy="schema_or_default_contract",
+            reason="invalid_json",
+        )
         return None
     if not isinstance(payload, dict):
         return None

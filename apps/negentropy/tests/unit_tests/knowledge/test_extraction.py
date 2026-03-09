@@ -317,6 +317,57 @@ async def test_build_llm_invocation_plan_returns_none_when_serialization_fails(m
 
 
 @pytest.mark.asyncio
+async def test_build_llm_invocation_plan_logs_info_when_json_is_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
+    events: list[tuple[str, dict[str, object]]] = []
+
+    class FakeLogger:
+        def info(self, event: str, **kwargs):
+            events.append((event, kwargs))
+
+        def warning(self, event: str, **kwargs):
+            raise AssertionError(f"unexpected warning: {event} {kwargs}")
+
+    async def fake_acompletion(**kwargs):  # type: ignore[no-untyped-def]
+        _ = kwargs
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="{not-json"))]
+        )
+
+    monkeypatch.setattr("negentropy.knowledge.extraction.logger", FakeLogger())
+    monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
+
+    request = CanonicalExtractionRequest(
+        source_kind=ROUTE_FILE_PDF,
+        source=CanonicalExtractionSource(source_kind=ROUTE_FILE_PDF, filename="report.pdf"),
+    )
+    contract = normalize_tool_contract(
+        input_schema={"type": "object", "properties": {"pdf_source": {"type": "string"}}},
+        source_kind=ROUTE_FILE_PDF,
+    )
+
+    plan = await _build_llm_invocation_plan(
+        tool_name="convert_pdf_to_markdown",
+        tool_description="single pdf",
+        input_schema=contract.root_schema,
+        contract=contract,
+        request=request,
+        source_candidates=[],
+    )
+
+    assert plan is None
+    assert events == [
+        (
+            "extractor_llm_plan_invalid_json",
+            {
+                "tool_name": "convert_pdf_to_markdown",
+                "fallback_strategy": "schema_or_default_contract",
+                "reason": "invalid_json",
+            },
+        )
+    ]
+
+
+@pytest.mark.asyncio
 async def test_build_llm_invocation_plan_skips_llm_when_prompt_payload_is_not_json_safe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
