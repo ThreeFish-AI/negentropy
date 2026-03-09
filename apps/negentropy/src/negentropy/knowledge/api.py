@@ -301,6 +301,31 @@ class GraphBuildResponse(BaseModel):
     error_message: Optional[str] = None
 
 
+def _normalize_pipeline_stage_payloads(
+    stages: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    normalized: Dict[str, Any] = {}
+    for stage_name, stage_payload in (stages or {}).items():
+        stage_data = dict(stage_payload or {})
+        if "output" in stage_data and stage_data.get("output") is None:
+            stage_data["output"] = {}
+        normalized[stage_name] = stage_data
+    return normalized
+
+
+def _normalize_pipeline_run_payload(
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    normalized = dict(payload or {})
+    if normalized.get("input") is None:
+        normalized["input"] = {}
+    if normalized.get("output") is None:
+        normalized["output"] = {}
+    if "stages" in normalized or payload:
+        normalized["stages"] = _normalize_pipeline_stage_payloads(normalized.get("stages"))
+    return normalized
+
+
 class GraphSearchRequest(BaseModel):
     """图谱检索请求"""
 
@@ -2730,7 +2755,7 @@ async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> Knowle
                 run_id=run.run_id,
                 status=run.status,
                 version=run.version,
-                **(run.payload or {}),
+                **_normalize_pipeline_run_payload(run.payload),
             )
             for run in runs
         ],

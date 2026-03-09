@@ -7,7 +7,7 @@ import pytest
 
 from negentropy.knowledge.dao import UpsertResult
 from negentropy.knowledge.extraction import ExtractedDocumentResult
-from negentropy.knowledge.service import KnowledgeService
+from negentropy.knowledge.service import KnowledgeService, PipelineTracker
 
 
 @dataclass
@@ -58,6 +58,61 @@ class FakeStorageService:
     async def get_document_content_by_uri(self, source_uri: str):
         _ = source_uri
         return b"hello world"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_tracker_normalizes_empty_output_payloads() -> None:
+    dao = FakePipelineDao()
+    tracker = PipelineTracker(
+        dao=dao,
+        app_name="negentropy",
+        operation="ingest_text",
+        run_id="run-normalized",
+    )
+
+    await tracker.start({"source_uri": "memory://doc"})
+    await tracker.start_stage("extract")
+    await tracker.complete_stage("extract")
+    await tracker.complete()
+
+    record = dao.records[("negentropy", "run-normalized")]
+    assert record.payload["input"] == {"source_uri": "memory://doc"}
+    assert record.payload["output"] == {}
+    assert record.payload["stages"]["extract"]["output"] == {}
+
+
+@pytest.mark.asyncio
+async def test_pipeline_tracker_resume_normalizes_legacy_null_output_payloads() -> None:
+    dao = FakePipelineDao()
+    dao.records[("negentropy", "run-legacy")] = FakePipelineRun(
+        app_name="negentropy",
+        run_id="run-legacy",
+        status="running",
+        payload={
+            "input": None,
+            "output": None,
+            "stages": {
+                "extract": {
+                    "status": "completed",
+                    "output": None,
+                }
+            },
+        },
+    )
+    tracker = PipelineTracker(
+        dao=dao,
+        app_name="negentropy",
+        operation="ingest_text",
+        run_id="run-legacy",
+    )
+
+    await tracker.resume()
+    await tracker.complete()
+
+    record = dao.records[("negentropy", "run-legacy")]
+    assert record.payload["input"] == {}
+    assert record.payload["output"] == {}
+    assert record.payload["stages"]["extract"]["output"] == {}
 
 
 @pytest.mark.asyncio

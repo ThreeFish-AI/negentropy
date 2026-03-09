@@ -265,6 +265,43 @@ async def test_get_pipelines_returns_diagnostic_summary_in_typed_response(monkey
     )
 
 
+@pytest.mark.asyncio
+async def test_get_pipelines_normalizes_null_output_payloads(monkeypatch):
+    run_id = uuid4()
+
+    class FakeDao:
+        async def list_pipeline_runs(self, app_name: str, limit: int = 50):
+            _ = (app_name, limit)
+            return [
+                SimpleNamespace(
+                    id=run_id,
+                    run_id="pipeline-null-output",
+                    status="completed",
+                    version=1,
+                    payload={
+                        "input": None,
+                        "output": None,
+                        "stages": {
+                            "extract_primary": {
+                                "status": "completed",
+                                "output": None,
+                            }
+                        },
+                    },
+                    updated_at=SimpleNamespace(isoformat=lambda: "2026-03-09T16:30:00+08:00"),
+                )
+            ]
+
+    monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
+
+    result = await knowledge_api.get_pipelines(app_name="negentropy")
+
+    assert result.last_updated_at == "2026-03-09T16:30:00+08:00"
+    assert result.runs[0].input == {}
+    assert result.runs[0].output == {}
+    assert result.runs[0].stages["extract_primary"].output == {}
+
+
 def test_get_pipelines_openapi_includes_diagnostic_summary() -> None:
     app = FastAPI()
     app.include_router(knowledge_api.router)
