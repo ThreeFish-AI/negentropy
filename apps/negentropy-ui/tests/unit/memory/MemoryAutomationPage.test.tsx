@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import MemoryAutomationPage from "@/app/memory/automation/page";
@@ -101,10 +101,6 @@ describe("MemoryAutomationPage", () => {
   it("桌面端使用固定比例三栏布局，长函数定义仅在卡片内滚动", async () => {
     const { container } = render(<MemoryAutomationPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/get_context_window/)).toBeInTheDocument();
-    });
-
     const layout = container.querySelector(
       ".lg\\:grid-cols-\\[minmax\\(0\\,1fr\\)_minmax\\(0\\,1\\.6fr\\)_minmax\\(0\\,1fr\\)\\]",
     );
@@ -114,11 +110,15 @@ describe("MemoryAutomationPage", () => {
     const functionsPanel = functionsHeading.closest("div.rounded-3xl");
     expect(functionsPanel?.className).toContain("bg-card");
 
-    const details = screen.getByText(/get_context_window/).closest("details");
+    const functionSummary = await within(functionsPanel as HTMLElement).findByText((_, element) => {
+      return element?.tagName === "SUMMARY" && element.textContent?.includes("get_context_window · managed") === true;
+    });
+
+    const details = functionSummary.closest("details");
     expect(details?.className).toContain("min-w-0");
     expect(details?.className).toContain("overflow-hidden");
 
-    const definition = screen.getByText(/CREATE OR REPLACE FUNCTION get_context_window/);
+    const definition = within(details as HTMLElement).getByText(/CREATE OR REPLACE FUNCTION get_context_window/);
     expect(definition.tagName).toBe("PRE");
     expect(definition.className).toContain("overflow-auto");
     expect(definition.className).toContain("min-w-0");
