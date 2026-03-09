@@ -8,7 +8,7 @@ import {
   useAgent,
 } from "@copilotkitnext/react";
 import { HttpAgent, randomUUID } from "@ag-ui/client";
-import { Message, type BaseEvent } from "@ag-ui/core";
+import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
@@ -153,9 +153,22 @@ export function HomeBody({
   });
 
   useEffect(() => {
-    rawEventHandlerRef.current = appendRealtimeEvent;
+    rawEventHandlerRef.current = (event) => {
+      appendRealtimeEvent(event);
+      if (
+        sessionId &&
+        (event.type === EventType.RUN_FINISHED || event.type === EventType.RUN_ERROR)
+      ) {
+        scheduleSessionHydration(sessionId, { reason: "run_terminal" });
+      }
+    };
     updateSessionTimeRef.current = updateCurrentSessionTime;
-  }, [appendRealtimeEvent, updateCurrentSessionTime]);
+  }, [
+    appendRealtimeEvent,
+    scheduleSessionHydration,
+    sessionId,
+    updateCurrentSessionTime,
+  ]);
 
   const effectiveConnection = useMemo(() => {
     const derived = deriveConnectionState(rawEvents);

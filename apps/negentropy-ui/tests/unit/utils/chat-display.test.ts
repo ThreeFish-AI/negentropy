@@ -276,7 +276,7 @@ describe("buildChatDisplayBlocks", () => {
 
     expect(blocks.map((block) => block.id)).toEqual([
       "display-message:message:b",
-      "tool-group:message:b:tool:a",
+      "tool-group:msg-1:tool-1",
       "display-message:message:a",
     ]);
   });

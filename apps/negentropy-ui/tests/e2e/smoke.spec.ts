@@ -434,6 +434,82 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
   const runId = "run-inline-search";
   let sessionCreated = false;
   let detailFetchAfterRun = 0;
+  const detailEvents = [
+    {
+      id: "assistant-1",
+      author: "assistant",
+      threadId: sessionId,
+      runId,
+      timestamp: createdAt / 1000 + 0.001,
+      content: {
+        parts: [{ text: "好的，我将使用 Google Search 获取 AfterShip 的信息。" }],
+      },
+    },
+    {
+      id: "tool-batch",
+      author: "assistant",
+      threadId: sessionId,
+      runId,
+      timestamp: createdAt / 1000 + 0.008,
+      content: {
+        parts: [
+          {
+            functionCall: {
+              id: "call-1",
+              name: "google_search",
+              args: { q: "AfterShip company" },
+            },
+          },
+          {
+            functionCall: {
+              id: "call-2",
+              name: "web_search",
+              args: { q: "AfterShip tracking api" },
+            },
+          },
+        ],
+      },
+    },
+    {
+      id: "tool-results",
+      author: "assistant",
+      threadId: sessionId,
+      runId,
+      timestamp: createdAt / 1000 + 0.009,
+      content: {
+        parts: [
+          {
+            functionResponse: {
+              id: "call-1",
+              name: "google_search",
+              response: {
+                result: { items: [{ title: "AfterShip 官网" }] },
+              },
+            },
+          },
+          {
+            functionResponse: {
+              id: "call-2",
+              name: "web_search",
+              response: {
+                result: { items: [{ title: "AfterShip Tracking API" }] },
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      id: "assistant-2",
+      author: "assistant",
+      threadId: sessionId,
+      runId,
+      timestamp: createdAt / 1000 + 0.01,
+      content: {
+        parts: [{ text: "## AfterShip 信息摘要\n\n- 物流体验平台\n- 提供 Tracking API" }],
+      },
+    },
+  ];
 
   await page.route("**/api/agui/sessions/list**", async (route) => {
     await route.fulfill({
@@ -470,85 +546,7 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
       return;
     }
 
-    const events =
-      detailFetchAfterRun > 0
-        ? [
-            {
-              id: "assistant-1",
-              author: "assistant",
-              threadId: sessionId,
-              runId,
-              timestamp: createdAt / 1000 + 0.001,
-              content: {
-                parts: [{ text: "好的，我将使用 Google Search 获取 AfterShip 的信息。" }],
-              },
-            },
-            {
-              id: "tool-batch",
-              author: "assistant",
-              threadId: sessionId,
-              runId,
-              timestamp: createdAt / 1000 + 0.008,
-              content: {
-                parts: [
-                  {
-                    functionCall: {
-                      id: "call-1",
-                      name: "google_search",
-                      args: { q: "AfterShip company" },
-                    },
-                  },
-                  {
-                    functionCall: {
-                      id: "call-2",
-                      name: "web_search",
-                      args: { q: "AfterShip tracking api" },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              id: "tool-results",
-              author: "assistant",
-              threadId: sessionId,
-              runId,
-              timestamp: createdAt / 1000 + 0.009,
-              content: {
-                parts: [
-                  {
-                    functionResponse: {
-                      id: "call-1",
-                      name: "google_search",
-                      response: {
-                        result: { items: [{ title: "AfterShip 官网" }] },
-                      },
-                    },
-                  },
-                  {
-                    functionResponse: {
-                      id: "call-2",
-                      name: "web_search",
-                      response: {
-                        result: { items: [{ title: "AfterShip Tracking API" }] },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              id: "assistant-2",
-              author: "assistant",
-              threadId: sessionId,
-              runId,
-              timestamp: createdAt / 1000 + 0.01,
-              content: {
-                parts: [{ text: "## AfterShip 信息摘要\n\n- 物流体验平台\n- 提供 Tracking API" }],
-              },
-            },
-          ]
-        : [];
+    const events = detailFetchAfterRun >= 3 ? detailEvents : [];
 
     if (sessionCreated) {
       detailFetchAfterRun += 1;
@@ -628,7 +626,7 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
 
   await expect(firstMessage).toBeVisible();
   await expect(toolGroup).toBeVisible();
-  await expect(summaryHeading).toBeVisible();
+  await expect(summaryHeading).toBeVisible({ timeout: 7000 });
   await expect(page.getByText("已完成，2 个工具")).toBeVisible();
   await expect(page.getByText("Parameters")).toHaveCount(0);
 
