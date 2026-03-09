@@ -346,50 +346,95 @@ test("聊天流式 Markdown 表格与换行在 hydration 后无需刷新即可�
   });
 
   await page.route(`**/api/agui?**session_id=${sessionId}**`, async (route) => {
-    const sseBody = [
+    const ndjsonBody = [
       {
-        type: "RUN_STARTED",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        timestamp: createdAt / 1000,
+        cursor: `${runId}:1`,
+        resumeToken: `${runId}:1`,
+        event: {
+          type: "RUN_STARTED",
+          threadId: sessionId,
+          runId,
+          timestamp: createdAt / 1000,
+        },
       },
       {
-        type: "TEXT_MESSAGE_START",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        messageId: "assistant-live",
-        role: "assistant",
-        timestamp: createdAt / 1000 + 0.001,
+        cursor: `${runId}:2`,
+        resumeToken: `${runId}:2`,
+        event: {
+          type: "TEXT_MESSAGE_START",
+          threadId: sessionId,
+          runId,
+          messageId: "assistant-live",
+          role: "assistant",
+          timestamp: createdAt / 1000 + 0.001,
+        },
       },
       {
-        type: "TEXT_MESSAGE_CONTENT",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        messageId: "assistant-live",
-        delta: partialReply,
-        timestamp: createdAt / 1000 + 0.002,
+        cursor: `${runId}:3`,
+        resumeToken: `${runId}:3`,
+        event: {
+          type: "TEXT_MESSAGE_CONTENT",
+          threadId: sessionId,
+          runId,
+          messageId: "assistant-live",
+          delta: partialReply,
+          timestamp: createdAt / 1000 + 0.002,
+        },
       },
       {
-        type: "TEXT_MESSAGE_END",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        messageId: "assistant-live",
-        timestamp: createdAt / 1000 + 0.003,
+        cursor: `${runId}:4`,
+        resumeToken: `${runId}:4`,
+        event: {
+          type: "TEXT_MESSAGE_END",
+          threadId: sessionId,
+          runId,
+          messageId: "assistant-live",
+          timestamp: createdAt / 1000 + 0.003,
+        },
       },
       {
-        type: "RUN_FINISHED",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        timestamp: createdAt / 1000 + 0.004,
+        cursor: `${runId}:5`,
+        resumeToken: `${runId}:5`,
+        event: {
+          type: "RUN_FINISHED",
+          threadId: sessionId,
+          runId,
+          timestamp: createdAt / 1000 + 0.004,
+        },
       },
     ]
-      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
-      .join("");
+      .map((event) => JSON.stringify(event))
+      .join("\n");
 
     await route.fulfill({
       status: 200,
-      contentType: "text/event-stream",
-      body: sseBody,
+      contentType: "application/x-ndjson",
+      body: ndjsonBody,
     });
   });
 
@@ -574,47 +619,92 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
   await page.route(`**/api/agui?**session_id=${sessionId}**`, async (route) => {
     const body = [
       {
-        type: "RUN_STARTED",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        timestamp: createdAt / 1000,
+        cursor: `${runId}:1`,
+        resumeToken: `${runId}:1`,
+        event: {
+          type: "RUN_STARTED",
+          threadId: sessionId,
+          runId,
+          timestamp: createdAt / 1000,
+        },
       },
       {
-        type: "TEXT_MESSAGE_START",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        messageId: "assistant-live",
-        role: "assistant",
-        timestamp: createdAt / 1000 + 0.001,
+        cursor: `${runId}:2`,
+        resumeToken: `${runId}:2`,
+        event: {
+          type: "TEXT_MESSAGE_START",
+          threadId: sessionId,
+          runId,
+          messageId: "assistant-live",
+          role: "assistant",
+          timestamp: createdAt / 1000 + 0.001,
+        },
       },
       {
-        type: "TEXT_MESSAGE_CONTENT",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        messageId: "assistant-live",
-        delta: "好的，我将使用 Google Search 获取 AfterShip 的信息。",
-        timestamp: createdAt / 1000 + 0.002,
+        cursor: `${runId}:3`,
+        resumeToken: `${runId}:3`,
+        event: {
+          type: "TEXT_MESSAGE_CONTENT",
+          threadId: sessionId,
+          runId,
+          messageId: "assistant-live",
+          delta: "好的，我将使用 Google Search 获取 AfterShip 的信息。",
+          timestamp: createdAt / 1000 + 0.002,
+        },
       },
       {
-        type: "TEXT_MESSAGE_END",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        messageId: "assistant-live",
-        timestamp: createdAt / 1000 + 0.003,
+        cursor: `${runId}:4`,
+        resumeToken: `${runId}:4`,
+        event: {
+          type: "TEXT_MESSAGE_END",
+          threadId: sessionId,
+          runId,
+          messageId: "assistant-live",
+          timestamp: createdAt / 1000 + 0.003,
+        },
       },
       {
-        type: "RUN_FINISHED",
+        protocol: "negentropy.ndjson.v1",
+        kind: "agui_event",
+        sessionId,
         threadId: sessionId,
         runId,
-        timestamp: createdAt / 1000 + 0.004,
+        cursor: `${runId}:5`,
+        resumeToken: `${runId}:5`,
+        event: {
+          type: "RUN_FINISHED",
+          threadId: sessionId,
+          runId,
+          timestamp: createdAt / 1000 + 0.004,
+        },
       },
     ]
-      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
-      .join("");
+      .map((event) => JSON.stringify(event))
+      .join("\n");
 
     await route.fulfill({
       status: 200,
-      contentType: "text/event-stream",
+      contentType: "application/x-ndjson",
       body,
     });
   });
