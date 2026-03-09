@@ -1204,7 +1204,7 @@ async def _extract_and_store_document_markdown_from_gcs(
     )
 
 
-@router.post("/base/{corpus_id}/ingest_file")
+@router.post("/base/{corpus_id}/ingest_file", response_model=AsyncPipelineResponse)
 async def ingest_file(
     corpus_id: UUID,
     background_tasks: BackgroundTasks,
@@ -1225,7 +1225,7 @@ async def ingest_file(
     hierarchical_child_chunk_size: Optional[int] = Form(default=None),
     hierarchical_child_overlap: Optional[int] = Form(default=None),
     store_to_gcs: bool = Form(default=True),
-) -> Dict[str, Any]:
+) -> AsyncPipelineResponse:
     """从上传文件导入内容到知识库
 
     支持格式: .txt, .md, .markdown, .pdf
@@ -1302,7 +1302,6 @@ async def ingest_file(
             except json.JSONDecodeError:
                 parsed_separators = [item.strip() for item in separators.split(",") if item.strip()]
 
-        # 提取文本
         from .content import sanitize_filename
 
         # 保留用于展示的原始文件名（仅去除路径前缀并限制长度）
@@ -1314,6 +1313,7 @@ async def ingest_file(
         doc_record = None
         is_new_doc = True
         gcs_uri = None
+        storage_service = None
 
         if store_to_gcs:
             from negentropy.storage.service import DocumentStorageService
@@ -1345,24 +1345,6 @@ async def ingest_file(
         service = _get_service()
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
-
-        source_kind = resolve_source_kind(filename=raw_filename, content_type=file.content_type)
-        extraction_result = await extract_source(
-            app_name=resolved_app,
-            corpus_id=corpus_id,
-            corpus_config=corpus_config,
-            source_kind=source_kind,
-            content=content,
-            filename=raw_filename,
-            content_type=file.content_type,
-        )
-        text = extraction_result.plain_text
-
-        if not text.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "EMPTY_CONTENT", "message": "No text content extracted from file"},
-            )
 
         # GCS 存储的文件强制使用 gcs_uri 作为 source_uri（支持 Rebuild 功能）
         # 只有非 GCS 存储时才使用用户提供的 source_uri 或文件名
@@ -1401,51 +1383,56 @@ async def ingest_file(
         meta["source_type"] = "file"
         if gcs_uri:
             meta["gcs_uri"] = gcs_uri
-        meta["extractor_trace"] = extraction_result.trace
         if doc_record:
             meta["document_id"] = str(doc_record.id)
 
-        # 调用现有的 ingest_text
-        records = await service.ingest_text(
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="ingest_file",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "source_uri": final_source_uri,
+                "filename": raw_filename,
+                "content_type": file.content_type,
+                "file_size": len(content),
+                "document_id": str(doc_record.id) if doc_record else None,
+                "duplicate_document": (not is_new_doc) if doc_record else False,
+                "chunking_config": chunking_config_summary(chunking_config),
+            },
+        )
+
+        background_tasks.add_task(
+            service.execute_ingest_file_pipeline,
+            run_id=run_id,
             corpus_id=corpus_id,
             app_name=resolved_app,
-            text=text,
+            content=content,
+            filename=raw_filename,
+            content_type=file.content_type,
             source_uri=final_source_uri,
             metadata=meta,
             chunking_config=chunking_config,
+            document_id=doc_record.id if doc_record else None,
         )
 
         logger.info(
-            "api_ingest_file_completed",
+            "api_ingest_file_queued",
             corpus_id=str(corpus_id),
             filename=file.filename,
-            record_count=len(records),
-            is_new_doc=is_new_doc,
+            run_id=run_id,
+            document_id=str(doc_record.id) if doc_record else None,
+            duplicate_document=(not is_new_doc) if doc_record else False,
         )
 
-        result: Dict[str, Any] = {"count": len(records), "items": [r.id for r in records]}
-        if doc_record:
-            result["document_id"] = str(doc_record.id)
-            result["duplicate"] = not is_new_doc
-            result["markdown_extract_status"] = doc_record.markdown_extract_status
-
-            markdown_gcs_uri = await storage_service.upload_markdown_derivative(
-                document_id=doc_record.id,
-                markdown_content=extraction_result.markdown_content,
-            )
-            await storage_service.save_markdown_content(
-                document_id=doc_record.id,
-                markdown_content=extraction_result.markdown_content,
-                markdown_gcs_uri=markdown_gcs_uri,
-            )
-            stored_assets = await persist_extracted_assets(
-                document_id=doc_record.id,
-                assets=extraction_result.assets,
-            )
-            if stored_assets:
-                result["extracted_assets"] = stored_assets
-
-        return result
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message=(
+                f"File ingest task started (document_id={doc_record.id}). Check Pipeline page for progress."
+                if doc_record
+                else "File ingest task started. Check Pipeline page for progress."
+            ),
+        )
 
     except ValueError as exc:
         logger.warning("file_parse_error", error=str(exc))

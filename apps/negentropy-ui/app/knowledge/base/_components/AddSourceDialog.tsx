@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { IngestResult, AsyncPipelineResult, ChunkingConfig } from "@/features/knowledge";
+import { AsyncPipelineResult, ChunkingConfig } from "@/features/knowledge";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 // 支持的文件扩展名
@@ -14,7 +14,11 @@ interface AddSourceDialogProps {
   corpusId: string | null;
   onClose: () => void;
   onIngestUrl: (params: { url: string; chunkingConfig?: ChunkingConfig }) => Promise<AsyncPipelineResult>;
-  onIngestFile?: (params: { file: File; source_uri?: string; chunkingConfig?: ChunkingConfig }) => Promise<IngestResult>;
+  onIngestFile?: (params: {
+    file: File;
+    source_uri?: string;
+    chunkingConfig?: ChunkingConfig;
+  }) => Promise<AsyncPipelineResult>;
   chunkingConfig?: ChunkingConfig;
   onSuccess?: () => void;
   initialMode?: "url" | "file";

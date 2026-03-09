@@ -139,15 +139,21 @@ describe("fetchCorpus", () => {
 
   it("ingestFile 会把层次分块字段写入 FormData", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ count: 1, items: ["chunk-1"] }), {
+      new Response(JSON.stringify({ run_id: "run-file-1", status: "running", message: "queued" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
     );
 
-    await ingestFile("corpus-1", {
+    await expect(
+      ingestFile("corpus-1", {
       file: new File(["hello"], "a.txt", { type: "text/plain" }),
       chunking_config: createDefaultChunkingConfig("hierarchical"),
+      }),
+    ).resolves.toEqual({
+      run_id: "run-file-1",
+      status: "running",
+      message: "queued",
     });
 
     const [, init] = fetchSpy.mock.calls[0];

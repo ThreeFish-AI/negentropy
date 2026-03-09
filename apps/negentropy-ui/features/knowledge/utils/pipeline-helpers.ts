@@ -18,6 +18,7 @@ import type { PipelineRunRecord, PipelineStageResult } from "./knowledge-api";
 export const OPERATION_LABELS: Record<string, string> = {
   ingest_text: "文本摄入",
   ingest_url: "URL 摄入",
+  ingest_file: "文件摄入",
   replace_source: "替换源",
   sync_source: "同步源",
   rebuild_source: "重建源",
@@ -41,6 +42,7 @@ export const STAGE_ORDER = [
   "extract_failover_1",
   "extract_failover_2",
   "extract_assets_store",
+  "markdown_store",
   "extract_finalize",
   "extract_gate",
   "fetch",
@@ -64,6 +66,7 @@ export const STAGE_LABELS: Record<string, string> = {
   extract_failover_1: "备用 MCP 提取 1",
   extract_failover_2: "备用 MCP 提取 2",
   extract_assets_store: "存储提取资源",
+  markdown_store: "存储 Markdown",
   extract_finalize: "整理提取结果",
   extract_gate: "提取结果校验",
   delete: "删除旧记录",
@@ -126,6 +129,12 @@ export const STAGE_COLORS: Record<
     completed: "bg-teal-500",
     failed: "bg-teal-700",
     skipped: "bg-teal-300 dark:bg-teal-600",
+  },
+  markdown_store: {
+    running: "bg-emerald-400",
+    completed: "bg-emerald-500",
+    failed: "bg-emerald-700",
+    skipped: "bg-emerald-300 dark:bg-emerald-600",
   },
   extract_finalize: {
     running: "bg-lime-400",

@@ -77,6 +77,32 @@ class PipelineTracker:
         self._status = "pending"
         self._current_stage: Optional[str] = None
 
+    def _log_context(self) -> Dict[str, Any]:
+        return {
+            "run_id": self._run_id,
+            "operation": self._operation,
+            "app_name": self._app_name,
+            "corpus_id": self._input.get("corpus_id"),
+        }
+
+    def _log_stage_event(
+        self,
+        event: str,
+        *,
+        level: str = "info",
+        stage: Optional[str] = None,
+        status: Optional[str] = None,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        log_payload: Dict[str, Any] = {
+            **self._log_context(),
+            "stage": stage,
+            "status": status,
+        }
+        if payload:
+            log_payload.update(payload)
+        getattr(logger, level)(event, **log_payload)
+
     @staticmethod
     def _normalize_dict_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         return dict(payload or {})
@@ -132,6 +158,11 @@ class PipelineTracker:
         self._input = input_data
         self._status = "running"
         await self._persist()
+        self._log_stage_event(
+            "pipeline_run_started",
+            status=self._status,
+            payload={"input": self._normalize_dict_payload(input_data)},
+        )
 
     async def start_stage(self, stage: str) -> None:
         """开始阶段执行"""
@@ -141,6 +172,7 @@ class PipelineTracker:
             "started_at": datetime.now(timezone.utc).isoformat(),
         }
         await self._persist()
+        self._log_stage_event("pipeline_stage_started", stage=stage, status="running")
 
     async def complete_stage(
         self,
@@ -161,6 +193,15 @@ class PipelineTracker:
         }
         self._current_stage = None
         await self._persist()
+        self._log_stage_event(
+            "pipeline_stage_completed",
+            stage=stage,
+            status="completed",
+            payload={
+                "duration_ms": self._stages[stage].get("duration_ms"),
+                "output": self._stages[stage].get("output"),
+            },
+        )
 
     async def fail_stage(
         self,
@@ -197,6 +238,25 @@ class PipelineTracker:
         self._duration_ms = self._calculate_duration_ms(self._started_at, now)
         self._current_stage = None
         await self._persist()
+        self._log_stage_event(
+            "pipeline_stage_failed",
+            level="warning",
+            stage=target_stage,
+            status="failed",
+            payload={
+                "duration_ms": self._stages.get(target_stage, {}).get("duration_ms") if target_stage else None,
+                "error": error,
+            },
+        )
+        self._log_stage_event(
+            "pipeline_run_failed",
+            level="warning",
+            status=self._status,
+            payload={
+                "duration_ms": self._duration_ms,
+                "error": error,
+            },
+        )
 
     async def skip_stage(self, stage: str, reason: Optional[str] = None) -> None:
         """跳过阶段执行"""
@@ -205,6 +265,12 @@ class PipelineTracker:
             "reason": reason,
         }
         await self._persist()
+        self._log_stage_event(
+            "pipeline_stage_skipped",
+            stage=stage,
+            status="skipped",
+            payload={"reason": reason},
+        )
 
     async def complete(self, output: Optional[Dict[str, Any]] = None) -> None:
         """完成 Pipeline 执行"""
@@ -214,6 +280,14 @@ class PipelineTracker:
         self._duration_ms = self._calculate_duration_ms(self._started_at, now)
         self._completed_at = now
         await self._persist()
+        self._log_stage_event(
+            "pipeline_run_completed",
+            status=self._status,
+            payload={
+                "duration_ms": self._duration_ms,
+                "output": self._output,
+            },
+        )
 
     async def _persist(self) -> None:
         """持久化 Pipeline 状态"""
@@ -543,6 +617,129 @@ class KnowledgeService:
 
             return records
 
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
+            raise
+
+    async def execute_ingest_file_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        content: bytes,
+        filename: str,
+        content_type: str | None,
+        source_uri: str | None,
+        metadata: Optional[Dict[str, Any]] = None,
+        chunking_config: Optional[ChunkingConfig] = None,
+        document_id: UUID | None = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 ingest_file Pipeline（后台任务）"""
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="ingest_file",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+        config = chunking_config or self._chunking_config
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="ingest_file",
+            source_uri=source_uri,
+            filename=filename,
+            document_id=str(document_id) if document_id else None,
+        )
+
+        try:
+            try:
+                extracted = await self._extract_file_document(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    content=content,
+                    filename=filename,
+                    content_type=content_type,
+                    tracker=tracker,
+                )
+                await tracker.start_stage("extract_gate")
+                text = self._validate_extracted_document(extracted, source_uri=source_uri or filename)
+                await tracker.complete_stage(
+                    "extract_gate",
+                    {
+                        "plain_text_length": len(extracted.plain_text),
+                        "markdown_length": len(extracted.markdown_content),
+                        "trace": extracted.trace,
+                    },
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+
+                raise KnowledgeError(
+                    code="CONTENT_EXTRACTION_FAILED",
+                    message=f"Failed to extract content: {exc}",
+                ) from exc
+
+            if document_id:
+                from .extraction import persist_extracted_assets
+                from negentropy.storage.service import DocumentStorageService
+
+                storage_service = DocumentStorageService()
+                await tracker.start_stage("markdown_store")
+                markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+                    document_id=document_id,
+                    markdown_content=extracted.markdown_content,
+                )
+                await storage_service.save_markdown_content(
+                    document_id=document_id,
+                    markdown_content=extracted.markdown_content,
+                    markdown_gcs_uri=markdown_gcs_uri,
+                )
+                await tracker.complete_stage(
+                    "markdown_store",
+                    {
+                        "document_id": str(document_id),
+                        "markdown_gcs_uri": markdown_gcs_uri,
+                        "markdown_length": len(extracted.markdown_content),
+                    },
+                )
+                await persist_extracted_assets(
+                    document_id=document_id,
+                    assets=extracted.assets,
+                    tracker=tracker,
+                )
+
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
+                chunking_config=config,
+                tracker=tracker,
+            )
+            await tracker.complete(
+                {
+                    "chunk_count": len(records),
+                    "document_id": str(document_id) if document_id else None,
+                }
+            )
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+                operation="ingest_file",
+            )
+
+            return records
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             raise
