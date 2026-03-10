@@ -114,11 +114,28 @@ function isSemanticEquivalentEntry(
 
   const realtimeEntry = left.origin === "realtime" ? left : right;
   const historicalEntry = realtimeEntry === left ? right : left;
-  if (realtimeEntry.lifecycle === "closed" && historicalEntry.content.trim() !== realtimeEntry.content.trim()) {
+  const realtimeContent = realtimeEntry.content.trim();
+  const historicalContent = historicalEntry.content.trim();
+  const historicalCompletesClosedRealtime =
+    realtimeEntry.lifecycle === "closed" &&
+    historicalEntry.lifecycle === "closed" &&
+    historicalEntry.streaming === false &&
+    historicalContent.length > realtimeContent.length &&
+    historicalContent.startsWith(realtimeContent);
+  if (
+    realtimeEntry.lifecycle === "closed" &&
+    historicalContent !== realtimeContent &&
+    !historicalCompletesClosedRealtime
+  ) {
     return false;
   }
 
-  if (!left.streaming && !right.streaming && leftContent !== rightContent) {
+  if (
+    !left.streaming &&
+    !right.streaming &&
+    leftContent !== rightContent &&
+    !historicalCompletesClosedRealtime
+  ) {
     return false;
   }
 
