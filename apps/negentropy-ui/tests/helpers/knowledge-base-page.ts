@@ -17,6 +17,9 @@ export interface KnowledgeBasePageLocalMocks {
   ingestFileMock: VitestMock;
   fetchDocumentsMock: VitestMock;
   fetchDocumentChunksMock: VitestMock;
+  fetchDocumentChunkDetailMock: VitestMock;
+  updateDocumentChunkMock: VitestMock;
+  regenerateDocumentChunkFamilyMock: VitestMock;
   searchAcrossCorporaMock: VitestMock;
   documentViewDialogMock: VitestMock;
   fetchMock: FetchMock;
@@ -148,7 +151,14 @@ export function createKnowledgeBaseDocumentChunk(
     id: "doc-chunk-1",
     content: "document chunk content",
     source_uri: "doc://alpha",
+    created_at: "2026-03-09T10:00:00Z",
     chunk_index: 2,
+    character_count: 24,
+    retrieval_count: 0,
+    display_retrieval_count: 0,
+    is_enabled: true,
+    chunk_role: "leaf",
+    child_chunks: [],
     metadata: { chunk_role: "leaf" },
     ...overrides,
   };
@@ -299,6 +309,9 @@ export function resetKnowledgeBasePageLocalMocks(
   mocks.ingestFileMock.mockReset();
   mocks.fetchDocumentsMock.mockReset();
   mocks.fetchDocumentChunksMock.mockReset();
+  mocks.fetchDocumentChunkDetailMock.mockReset();
+  mocks.updateDocumentChunkMock.mockReset();
+  mocks.regenerateDocumentChunkFamilyMock.mockReset();
   mocks.searchAcrossCorporaMock.mockReset();
   mocks.documentViewDialogMock.mockReset();
   mocks.fetchMock.mockReset();
@@ -328,7 +341,25 @@ export function primeKnowledgeBasePageLocalMocks(
   mocks.fetchDocumentsMock.mockResolvedValue({
     items: [createKnowledgeBaseDocument()],
   });
-  mocks.fetchDocumentChunksMock.mockResolvedValue({ items: [] });
+  mocks.fetchDocumentChunksMock.mockResolvedValue({
+    count: 0,
+    page: 1,
+    page_size: 10,
+    document_metadata: {},
+    items: [],
+  });
+  mocks.fetchDocumentChunkDetailMock.mockResolvedValue({
+    item: createKnowledgeBaseDocumentChunk(),
+    document_metadata: {},
+  });
+  mocks.updateDocumentChunkMock.mockResolvedValue({
+    item: createKnowledgeBaseDocumentChunk(),
+    document_metadata: {},
+  });
+  mocks.regenerateDocumentChunkFamilyMock.mockResolvedValue({
+    item: createKnowledgeBaseDocumentChunk(),
+    document_metadata: {},
+  });
   mocks.searchAcrossCorporaMock.mockResolvedValue({
     items: [createKnowledgeBaseSearchResult()],
   });

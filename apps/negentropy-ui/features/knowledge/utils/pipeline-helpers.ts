@@ -18,6 +18,7 @@ import type { PipelineRunRecord, PipelineStageResult } from "./knowledge-api";
 export const OPERATION_LABELS: Record<string, string> = {
   ingest_text: "文本摄入",
   ingest_url: "URL 摄入",
+  ingest_file: "文件摄入",
   replace_source: "替换源",
   sync_source: "同步源",
   rebuild_source: "重建源",
@@ -41,7 +42,9 @@ export const STAGE_ORDER = [
   "extract_failover_1",
   "extract_failover_2",
   "extract_assets_store",
+  "markdown_store",
   "extract_finalize",
+  "extract_gate",
   "fetch",
   "download",
   "extract",
@@ -63,7 +66,9 @@ export const STAGE_LABELS: Record<string, string> = {
   extract_failover_1: "备用 MCP 提取 1",
   extract_failover_2: "备用 MCP 提取 2",
   extract_assets_store: "存储提取资源",
+  markdown_store: "存储 Markdown",
   extract_finalize: "整理提取结果",
+  extract_gate: "提取结果校验",
   delete: "删除旧记录",
   chunk: "文本分块",
   embed: "向量化",
@@ -125,11 +130,23 @@ export const STAGE_COLORS: Record<
     failed: "bg-teal-700",
     skipped: "bg-teal-300 dark:bg-teal-600",
   },
+  markdown_store: {
+    running: "bg-emerald-400",
+    completed: "bg-emerald-500",
+    failed: "bg-emerald-700",
+    skipped: "bg-emerald-300 dark:bg-emerald-600",
+  },
   extract_finalize: {
     running: "bg-lime-400",
     completed: "bg-lime-500",
     failed: "bg-lime-700",
     skipped: "bg-lime-300 dark:bg-lime-600",
+  },
+  extract_gate: {
+    running: "bg-orange-400",
+    completed: "bg-orange-500",
+    failed: "bg-orange-700",
+    skipped: "bg-orange-300 dark:bg-orange-600",
   },
   delete: {
     running: "bg-rose-400",
@@ -374,6 +391,8 @@ export interface FailedStageDetail {
   durationMs?: number;
   error: Record<string, unknown>;
   message: string;
+  failureCategory?: string;
+  diagnosticSummary?: string;
 }
 
 export interface PipelineErrorDetail {
@@ -382,6 +401,9 @@ export interface PipelineErrorDetail {
   title: string;
   message: string;
   error: Record<string, unknown>;
+  failureCategory?: string;
+  failureLabel?: string;
+  diagnosticSummary?: string;
   stageName?: string;
   durationMs?: number;
   status?: string;
@@ -389,6 +411,24 @@ export interface PipelineErrorDetail {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const FAILURE_CATEGORY_LABELS: Record<string, string> = {
+  validation_error: "参数校验失败",
+  tool_error: "MCP 调用失败",
+  empty_payload: "提取结果为空",
+  unrecognized_payload: "结果结构无法识别",
+  tool_unavailable: "MCP 服务不可用",
+  tool_disabled: "MCP Tool 已禁用",
+  unsupported_contract: "Tool 契约不受支持",
+  low_confidence_contract: "Tool 契约置信度不足",
+};
+
+export const getFailureCategoryLabel = (category: unknown): string | undefined => {
+  if (typeof category !== "string" || !category.trim()) {
+    return undefined;
+  }
+  return FAILURE_CATEGORY_LABELS[category] || category;
+};
 
 export const getStageErrorMessage = (error: unknown): string => {
   if (typeof error === "string") {
@@ -421,6 +461,33 @@ export const getStageErrorMessage = (error: unknown): string => {
   }
 };
 
+export const getStageErrorSummary = (error: unknown): string => {
+  if (!isRecord(error)) {
+    return getStageErrorMessage(error);
+  }
+  const failureLabel = getFailureCategoryLabel(error.failure_category);
+  const message = getStageErrorMessage(error);
+  return failureLabel ? `${failureLabel} · ${message}` : message;
+};
+
+export const getDiagnosticSummary = (error: unknown): string | undefined => {
+  if (!isRecord(error)) {
+    return undefined;
+  }
+  const direct = error.diagnostic_summary;
+  if (typeof direct === "string" && direct.trim()) {
+    return direct;
+  }
+  const diagnostics = error.diagnostics;
+  if (!isRecord(diagnostics)) {
+    return undefined;
+  }
+  const nested = diagnostics.summary;
+  return typeof nested === "string" && nested.trim() ? nested : undefined;
+};
+
+const shouldShowDiagnosticSummary = (failureCategory: string | undefined): boolean =>
+  failureCategory === "unsupported_contract" || failureCategory === "low_confidence_contract";
 export const getFailedStages = (
   stages?: Record<string, PipelineStageResult>
 ): FailedStageDetail[] =>
@@ -436,6 +503,11 @@ export const getFailedStages = (
       durationMs: stage.duration_ms,
       error: stage.error as Record<string, unknown>,
       message: getStageErrorMessage(stage.error),
+      failureCategory:
+        isRecord(stage.error) && typeof stage.error.failure_category === "string"
+          ? stage.error.failure_category
+          : undefined,
+      diagnosticSummary: getDiagnosticSummary(stage.error),
     }));
 
 export const buildPipelineErrorDetails = (
@@ -454,6 +526,15 @@ export const buildPipelineErrorDetails = (
         title: "运行级错误",
         message: runMessage,
         error: run.error,
+        failureCategory:
+          typeof run.error.failure_category === "string" ? run.error.failure_category : undefined,
+        failureLabel: getFailureCategoryLabel(run.error.failure_category),
+        diagnosticSummary:
+          shouldShowDiagnosticSummary(
+            typeof run.error.failure_category === "string" ? run.error.failure_category : undefined
+          )
+            ? getDiagnosticSummary(run.error)
+            : undefined,
       });
     }
   }
@@ -465,6 +546,11 @@ export const buildPipelineErrorDetails = (
       title: item.label,
       message: item.message,
       error: item.error,
+      failureCategory: item.failureCategory,
+      failureLabel: getFailureCategoryLabel(item.failureCategory),
+      diagnosticSummary: shouldShowDiagnosticSummary(item.failureCategory)
+        ? item.diagnosticSummary
+        : undefined,
       stageName: item.stageName,
       durationMs: item.durationMs,
       status: item.status,

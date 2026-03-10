@@ -84,4 +84,38 @@ describe("MessageBubble", () => {
     expect(screen.getByText("const answer = 42;")).toBeInTheDocument();
     expect(screen.getByText("const answer = 42;").closest("pre")).not.toBeNull();
   });
+
+  it("流式回复中的未闭合表格尾部会降级为安全文本，完成后恢复为表格", () => {
+    const { rerender, container } = render(
+      <MessageBubble
+        message={{
+          id: "a-table-stream",
+          role: "assistant",
+          content: "## 结果\n\n| 项目 | 说明 |\n| --- | --- |\n| A | 首行",
+          streaming: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 2, name: "结果" })).toBeInTheDocument();
+    expect(container.querySelector("table")).toBeNull();
+    expect(
+      screen.getByText((value) => value.includes("| 项目 | 说明 |") && value.includes("| A | 首行")),
+    ).toBeInTheDocument();
+
+    rerender(
+      <MessageBubble
+        message={{
+          id: "a-table-stream",
+          role: "assistant",
+          content: "## 结果\n\n| 项目 | 说明 |\n| --- | --- |\n| A | 首行 |\n| B | 次行 |",
+          streaming: false,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "项目" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "次行" })).toBeInTheDocument();
+  });
 });

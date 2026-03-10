@@ -1,20 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/common";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { getStreamingMarkdownSegments } from "@/utils/streaming-markdown";
 import { MermaidDiagram } from "./MermaidDiagram";
-import { ToolCallList } from "./ToolCallBubble";
 import { UserAvatar } from "./UserAvatar";
 
 type ChatMessageProps = {
   message: ChatMessage;
   isSelected?: boolean;
   onSelect?: (messageId: string) => void;
+  body?: ReactNode;
+  actionContent?: string;
 };
 
 /**
@@ -217,30 +219,15 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
-function normalizeMarkdownContent(content: string, streaming: boolean): string {
-  const normalized = content.replace(/\r\n/g, "\n");
-  if (!streaming) {
-    return normalized;
-  }
-
-  const fenceMatches = normalized.match(/```/g);
-  if ((fenceMatches?.length || 0) % 2 === 1) {
-    return `${normalized}\n\`\`\``;
-  }
-
-  return normalized;
-}
-
-function MarkdownContent({
+export function MarkdownContent({
   content,
   isStreaming,
 }: {
   content: string;
   isStreaming: boolean;
 }) {
-  const normalizedContent = normalizeMarkdownContent(content, isStreaming);
-
-  return (
+  const segments = getStreamingMarkdownSegments(content, isStreaming);
+  const renderMarkdown = (value: string) => (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
@@ -280,8 +267,25 @@ function MarkdownContent({
         },
       }}
     >
-      {normalizedContent}
+      {value}
     </ReactMarkdown>
+  );
+
+  return (
+    <div className="space-y-2">
+      {segments.map((segment, index) =>
+        segment.kind === "markdown" ? (
+          <div key={`${segment.kind}-${index}`}>{renderMarkdown(segment.content)}</div>
+        ) : (
+          <div
+            key={`${segment.kind}-${index}`}
+            className="whitespace-pre-wrap break-words rounded-lg border border-dashed border-amber-300/70 bg-amber-50/60 px-3 py-2 text-sm leading-6 text-zinc-700 dark:border-amber-700/60 dark:bg-amber-950/20 dark:text-zinc-200"
+          >
+            {segment.content}
+          </div>
+        ),
+      )}
+    </div>
   );
 }
 
@@ -289,6 +293,8 @@ export function MessageBubble({
   message,
   isSelected,
   onSelect,
+  body,
+  actionContent,
 }: ChatMessageProps) {
   const { user } = useAuth();
   const isUser = message.role === "user";
@@ -359,13 +365,17 @@ export function MessageBubble({
         >
           <div
             className={cn(
-              "space-y-2 overflow-hidden break-words whitespace-normal",
-              "[&>p]:leading-snug [&>p]:mb-2 [&>p:last-child]:mb-0",
-              "[&>ul]:list-disc [&>ul]:pl-4 [&>ul]:space-y-1",
-              "[&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:space-y-1",
+              "overflow-hidden break-words whitespace-normal",
+              "[&_p]:leading-6 [&_p]:my-0",
+              "[&_p+*]:mt-3",
+              "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1",
+              "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1",
               "[&_li]:leading-snug",
-              "[&>h1]:text-base [&>h1]:font-bold [&>h1]:mb-2",
-              "[&>h2]:text-sm [&>h2]:font-bold [&>h2]:mb-2",
+              "[&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-2",
+              "[&_h2]:text-sm [&_h2]:font-bold [&_h2]:mb-2",
+              "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-2",
+              "[&_h1+*]:mt-2 [&_h2+*]:mt-2 [&_h3+*]:mt-2",
+              "[&_br]:leading-6",
               "[&_code]:font-mono [&_code]:text-[0.9em]",
               !isUser &&
                 "[&_code]:bg-muted [&_code]:text-accent-foreground [&_code]:px-1 [&_code]:rounded",
@@ -378,6 +388,8 @@ export function MessageBubble({
               isUser && "[&_a]:text-background hover:[&_a]:text-background/80",
               // Table styles
               "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm",
+              "[&_thead]:bg-muted/40",
+              "[&_tbody_tr:nth-child(even)]:bg-muted/15",
               "[&_th]:border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_th]:text-left",
               "[&_td]:border [&_td]:px-3 [&_td]:py-2",
               !isUser &&
@@ -386,10 +398,12 @@ export function MessageBubble({
                 "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
           >
-            <MarkdownContent
-              content={content}
-              isStreaming={isStreaming}
-            />
+            {body || (
+              <MarkdownContent
+                content={content}
+                isStreaming={isStreaming}
+              />
+            )}
             {isStreaming ? (
               <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
@@ -420,12 +434,7 @@ export function MessageBubble({
           </div>
         )}
 
-        {/* 工具调用列表（内嵌在消息气泡中显示） */}
-        {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
-          <ToolCallList toolCalls={message.toolCalls} />
-        )}
-
-        {!isUser && <MessageActions content={content} />}
+        {!isUser && <MessageActions content={actionContent || content} />}
       </div>
     </div>
   );

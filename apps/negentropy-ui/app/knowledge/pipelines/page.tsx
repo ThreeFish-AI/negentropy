@@ -6,16 +6,16 @@ import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
   buildPipelineErrorDetails,
-  calculateStageWidth,
   fetchPipelines,
   formatDuration,
-  getStageErrorMessage,
   getPipelineStatusColor,
   getSortedStages,
   getStageColor,
+  getStageErrorSummary,
   KnowledgePipelinesPayload,
   PipelineStatusBadge,
   PipelineRunRecord,
+  PipelineStagesBar,
   upsertPipelines,
   STAGE_LABELS,
 } from "@/features/knowledge";
@@ -231,7 +231,7 @@ export default function KnowledgePipelinesPage() {
                     {runs.map((run) => (
                       <button
                         key={run.id}
-                        className={`w-full min-w-0 overflow-hidden rounded-lg border px-3 py-2 text-left ${
+                        className={`w-full min-w-0 rounded-lg border px-3 py-2 text-left ${
                           selected?.id === run.id
                             ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                             : "border-zinc-200 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
@@ -252,41 +252,12 @@ export default function KnowledgePipelinesPage() {
                         </div>
                         {/* 阶段进度条 */}
                         {run.stages && Object.keys(run.stages).length > 0 && (
-                          <div className="mt-2 flex min-w-0 items-center gap-1 overflow-hidden">
-                            {(() => {
-                              const stages = run.stages;
-                              return getSortedStages(stages).map(([stageName, stage]) => (
-                              <div
-                                key={stageName}
-                                className="group relative min-w-0"
-                                style={{ width: calculateStageWidth(stage, stages) }}
-                              >
-                                <div className={`h-1.5 w-full rounded-full ${getStageColor(stageName, stage.status)}`} />
-                                {/* Hover Tooltip */}
-                                <div
-                                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md
-                                  bg-zinc-800 px-2 py-1.5 text-[11px] text-white opacity-0 shadow-lg
-                                  transition-opacity duration-150 group-hover:opacity-100
-                                  dark:bg-zinc-700 dark:text-zinc-100"
-                                >
-                                  <div className="font-medium">{STAGE_LABELS[stageName] || stageName}</div>
-                                  <div className="text-zinc-300 dark:text-zinc-400">
-                                    {stage.status}
-                                    {stage.duration_ms ? ` · ${formatDuration(stage.duration_ms)}` : ""}
-                                  </div>
-                                  {stage.status === "failed" && stage.error && (
-                                    <div className="mt-0.5 max-w-[150px] truncate text-rose-400">Error</div>
-                                  )}
-                                  {stage.status === "skipped" && stage.reason && (
-                                    <div className="mt-0.5 max-w-[150px] truncate italic text-zinc-400">
-                                      {stage.reason}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              ));
-                            })()}
-                          </div>
+                          <PipelineStagesBar
+                            stages={run.stages}
+                            className="mt-2 min-w-0 overflow-visible"
+                            gapClassName="gap-1"
+                            segmentClassName="min-w-0"
+                          />
                         )}
                       </button>
                     ))}
@@ -325,9 +296,12 @@ export default function KnowledgePipelinesPage() {
                         <div className="mt-2 space-y-2">
                           {getSortedStages(selected.stages).map(([stageName, stage]) => (
                             <div key={stageName} className="flex min-w-0 items-center gap-2 text-[11px]">
-                              <span className={`h-2 w-2 shrink-0 rounded-full ${getPipelineStatusColor(stage.status)}`} />
+                              <span className={`h-2 w-2 shrink-0 rounded-full ${getStageColor(stageName, stage.status)}`} />
                               <span className="min-w-0 truncate font-medium text-zinc-700 dark:text-zinc-300">
                                 {STAGE_LABELS[stageName] || stageName}
+                              </span>
+                              <span className="shrink-0 uppercase text-zinc-400">
+                                {stage.status || "unknown"}
                               </span>
                               <span className="shrink-0 text-zinc-400">
                                 {stage.duration_ms ? `${stage.duration_ms}ms` : "-"}
@@ -337,7 +311,7 @@ export default function KnowledgePipelinesPage() {
                               )}
                               {stage.error && (
                                 <span className="truncate max-w-[120px] text-rose-500">
-                                  {getStageErrorMessage(stage.error)}
+                                  {getStageErrorSummary(stage.error)}
                                 </span>
                               )}
                               {stage.output && (
@@ -382,9 +356,21 @@ export default function KnowledgePipelinesPage() {
                               className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900/40 dark:bg-rose-950/20"
                             >
                               <div className="flex items-center justify-between gap-3">
-                                <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
-                                  {detail.title}
-                                </p>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
+                                    {detail.title}
+                                  </p>
+                                  {detail.failureLabel && (
+                                    <p className="mt-0.5 truncate text-[10px] text-rose-500 dark:text-rose-400">
+                                      {detail.failureLabel}
+                                    </p>
+                                  )}
+                                  {detail.diagnosticSummary && (
+                                    <p className="mt-0.5 line-clamp-2 text-[10px] text-rose-600 dark:text-rose-300">
+                                      {detail.diagnosticSummary}
+                                    </p>
+                                  )}
+                                </div>
                                 <span className="text-[10px] text-rose-500 dark:text-rose-400">
                                   {detail.scope === "stage"
                                     ? `${detail.status || "failed"}${detail.durationMs ? ` · ${formatDuration(detail.durationMs)}` : ""}`

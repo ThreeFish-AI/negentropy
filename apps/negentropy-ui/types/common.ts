@@ -121,6 +121,8 @@ export type MessageLedgerEntry = {
   content: string;
   createdAt: Date;
   streaming: boolean;
+  lifecycle: "open" | "closed";
+  origin: "realtime" | "snapshot" | "fallback";
   author?: string;
   sourceEventTypes: string[];
   relatedMessageIds: string[];

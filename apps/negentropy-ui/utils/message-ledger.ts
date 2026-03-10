@@ -11,6 +11,7 @@ import {
   getMessageAuthor,
   getMessageCreatedAt,
   getMessageRunId,
+  getMessageStreaming,
   getMessageThreadId,
   type CanonicalMessageRole,
 } from "@/types/agui";
@@ -40,21 +41,28 @@ function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" 
   return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
 }
 
-function hasSnapshotLikeSource(entry: Pick<MessageLedgerEntry, "sourceEventTypes">): boolean {
-  return entry.sourceEventTypes.some(
-    (eventType) =>
-      eventType === String(EventType.MESSAGES_SNAPSHOT) || eventType === "fallback.message",
-  );
-}
-
 function isSemanticEquivalentEntry(
   left: Pick<
     MessageLedgerEntry,
-    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt" | "streaming" | "sourceEventTypes"
+    | "threadId"
+    | "runId"
+    | "resolvedRole"
+    | "content"
+    | "createdAt"
+    | "streaming"
+    | "origin"
+    | "lifecycle"
   >,
   right: Pick<
     MessageLedgerEntry,
-    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt" | "streaming" | "sourceEventTypes"
+    | "threadId"
+    | "runId"
+    | "resolvedRole"
+    | "content"
+    | "createdAt"
+    | "streaming"
+    | "origin"
+    | "lifecycle"
   >,
 ): boolean {
   if (left.threadId !== right.threadId) {
@@ -69,7 +77,10 @@ function isSemanticEquivalentEntry(
   if (left.resolvedRole !== "assistant" && left.resolvedRole !== "developer") {
     return false;
   }
-  if (!hasSnapshotLikeSource(left) && !hasSnapshotLikeSource(right)) {
+  const origins = new Set([left.origin, right.origin]);
+  const hasRealtime = origins.has("realtime");
+  const hasHistorical = origins.has("snapshot") || origins.has("fallback");
+  if (!hasRealtime || !hasHistorical) {
     return false;
   }
 
@@ -82,13 +93,28 @@ function isSemanticEquivalentEntry(
     !leftContent.startsWith(rightContent) &&
     !rightContent.startsWith(leftContent)
   ) {
-    return false;
+      return false;
   }
 
   const maxWindowMs = 8_000;
   if (
     Math.abs(left.createdAt.getTime() - right.createdAt.getTime()) > maxWindowMs
   ) {
+    return false;
+  }
+
+  if (
+    left.lifecycle === "closed" &&
+    right.lifecycle === "closed" &&
+    left.origin !== "realtime" &&
+    right.origin !== "realtime"
+  ) {
+    return false;
+  }
+
+  const realtimeEntry = left.origin === "realtime" ? left : right;
+  const historicalEntry = realtimeEntry === left ? right : left;
+  if (realtimeEntry.lifecycle === "closed" && historicalEntry.content.trim() !== realtimeEntry.content.trim()) {
     return false;
   }
 
@@ -103,7 +129,14 @@ function findSemanticLedgerKey(
   entries: Map<string, MessageLedgerEntry>,
   candidate: Pick<
     MessageLedgerEntry,
-    "threadId" | "runId" | "resolvedRole" | "content" | "createdAt" | "streaming" | "sourceEventTypes"
+    | "threadId"
+    | "runId"
+    | "resolvedRole"
+    | "content"
+    | "createdAt"
+    | "streaming"
+    | "origin"
+    | "lifecycle"
   >,
 ): string | null {
   for (const [key, entry] of entries.entries()) {
@@ -233,6 +266,11 @@ export function buildMessageLedger(input: {
     existing.runId = existing.runId || next.runId;
     existing.author = existing.author || next.author;
     existing.streaming = existing.streaming && next.streaming;
+    existing.lifecycle =
+      existing.lifecycle === "closed" || next.lifecycle === "closed" ? "closed" : "open";
+    if (existing.origin !== next.origin && next.origin !== "realtime") {
+      existing.origin = next.origin;
+    }
     (next.sourceEventTypes || []).forEach((eventType) => {
       if (!existing.sourceEventTypes.includes(eventType)) {
         existing.sourceEventTypes.push(eventType);
@@ -298,6 +336,8 @@ export function buildMessageLedger(input: {
       content: nextContent,
       createdAt: normalizeTimestamp(event.timestamp),
       streaming: event.type !== EventType.TEXT_MESSAGE_END,
+      lifecycle: event.type === EventType.TEXT_MESSAGE_END ? "closed" : "open",
+      origin: "realtime",
       author: getEventAuthor(event),
       sourceEventTypes: [String(event.type)],
       relatedMessageIds: [messageId],
@@ -332,9 +372,11 @@ export function buildMessageLedger(input: {
       resolutionSource: resolved.resolutionSource,
       content: normalizeMessageContent(message),
       createdAt: getMessageCreatedAt(message) || new Date(),
-      streaming: false,
+      streaming: getMessageStreaming(message) === true,
+      lifecycle: getMessageStreaming(message) === true ? "open" : "closed",
+      origin: snapshotMessageById.has(message.id) ? "snapshot" : "fallback",
       author: getMessageAuthor(message),
-      sourceEventTypes: ["fallback.message"],
+      sourceEventTypes: [snapshotMessageById.has(message.id) ? String(EventType.MESSAGES_SNAPSHOT) : "fallback.message"],
       relatedMessageIds: [message.id],
     });
   });
@@ -384,6 +426,13 @@ export function mergeMessageLedger(
     existing.runId = existing.runId || entry.runId;
     existing.author = existing.author || entry.author;
     existing.streaming = existing.streaming && entry.streaming;
+    existing.lifecycle =
+      existing.lifecycle === "closed" || entry.lifecycle === "closed" ? "closed" : "open";
+    if (existing.origin === "realtime" || entry.origin === "realtime") {
+      existing.origin = "realtime";
+    } else if (existing.origin !== entry.origin) {
+      existing.origin = entry.origin;
+    }
     if (!existing.relatedMessageIds.includes(entry.id)) {
       existing.relatedMessageIds.push(entry.id);
     }

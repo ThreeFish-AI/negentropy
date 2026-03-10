@@ -605,9 +605,24 @@ export type PipelineStageStatus =
 export type PipelineOperation =
   | "ingest_text"
   | "ingest_url"
+  | "ingest_file"
   | "replace_source"
   | "sync_source"
   | "rebuild_source";
+
+/**
+ * Pipeline 错误对象。
+ *
+ * 约定：
+ * - `failure_category` 用于稳定的失败分类。
+ * - `diagnostic_summary` 仅承载可直接展示的一句话摘要，默认面向契约类失败。
+ * - `diagnostics` 保留完整的结构化诊断信息，供明细排障使用。
+ */
+export interface PipelineErrorPayload extends Record<string, unknown> {
+  failure_category?: string;
+  diagnostic_summary?: string;
+  diagnostics?: Record<string, unknown>;
+}
 
 // Pipeline 阶段结果
 export interface PipelineStageResult {
@@ -615,7 +630,7 @@ export interface PipelineStageResult {
   started_at?: string;
   completed_at?: string;
   duration_ms?: number;
-  error?: Record<string, unknown>;
+  error?: PipelineErrorPayload;
   output?: Record<string, unknown>;
   reason?: string; // for skipped status
 }
@@ -634,7 +649,7 @@ export interface PipelineRunRecord {
   input?: Record<string, unknown>;
   output?: Record<string, unknown>;
   stages?: Record<string, PipelineStageResult>;
-  error?: Record<string, unknown>;
+  error?: PipelineErrorPayload;
   version?: number;
 }
 
@@ -969,7 +984,7 @@ export async function ingestFile(
     source_uri?: string;
     metadata?: Record<string, unknown>;
   } & ChunkingRequestFields,
-): Promise<IngestResult> {
+): Promise<AsyncPipelineResult> {
   const formData = new FormData();
 
   if (params.app_name) formData.set("app_name", params.app_name);
@@ -1028,13 +1043,46 @@ export interface DocumentChunkItem {
   content: string;
   source_uri: string | null;
   created_at: string | null;
+  updated_at?: string | null;
   chunk_index: number;
+  character_count: number;
+  retrieval_count: number;
+  display_retrieval_count: number;
+  is_enabled: boolean;
+  chunk_role: "parent" | "child" | "leaf" | string;
+  parent_chunk_index?: number | null;
+  child_chunk_index?: number | null;
+  chunk_family_id?: string | null;
+  child_chunks: DocumentChunkItem[];
   metadata: Record<string, unknown>;
+}
+
+export interface DocumentChunksMetadata {
+  original_filename?: string | null;
+  file_size?: number | null;
+  upload_date?: string | null;
+  last_update_date?: string | null;
+  source?: string | null;
+  chunk_specification?: string | null;
+  chunk_length?: number | null;
+  avg_paragraph_length?: number | null;
+  paragraph_count?: number | null;
+  retrieval_count?: number | null;
+  embedding_time_ms?: number | null;
+  embedded_tokens?: number | null;
 }
 
 export interface DocumentChunksResponse {
   count: number;
+  page: number;
+  page_size: number;
+  document_metadata: DocumentChunksMetadata;
   items: DocumentChunkItem[];
+}
+
+export interface DocumentChunkDetailResponse {
+  item: DocumentChunkItem;
+  document_metadata: DocumentChunksMetadata;
 }
 
 // ============================================================================
@@ -1255,6 +1303,63 @@ export async function fetchDocumentChunks(
   const res = await fetch(
     `/api/knowledge/base/${corpusId}/documents/${documentId}/chunks?${query.toString()}`,
     { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function fetchDocumentChunkDetail(
+  corpusId: string,
+  documentId: string,
+  chunkId: string,
+  params?: { appName?: string },
+): Promise<DocumentChunkDetailResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/chunks/${chunkId}?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function updateDocumentChunk(
+  corpusId: string,
+  documentId: string,
+  chunkId: string,
+  params: { appName?: string; content?: string; is_enabled?: boolean },
+): Promise<DocumentChunkDetailResponse> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/chunks/${chunkId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        app_name: params.appName,
+        content: params.content,
+        is_enabled: params.is_enabled,
+      }),
+    },
+  );
+  return handleKnowledgeError(res);
+}
+
+export async function regenerateDocumentChunkFamily(
+  corpusId: string,
+  documentId: string,
+  chunkId: string,
+  params: { appName?: string; content?: string; is_enabled?: boolean },
+): Promise<DocumentChunkDetailResponse> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/documents/${documentId}/chunks/${chunkId}/regenerate-family`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        app_name: params.appName,
+        content: params.content,
+        is_enabled: params.is_enabled,
+      }),
+    },
   );
   return handleKnowledgeError(res);
 }

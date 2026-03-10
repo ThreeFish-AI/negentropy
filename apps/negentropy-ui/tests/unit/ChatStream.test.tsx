@@ -11,7 +11,7 @@ describe("ChatStream", () => {
   it("在空树时渲染占位文案", () => {
     render(<ChatStream nodes={[]} />);
     expect(
-      screen.getByText("发送指令开始对话。主区会优先展示聊天消息，并在答复下附带工具、状态与活动摘要。"),
+      screen.getByText("发送指令开始对话。主区会按正文顺序展示消息，并把工具过程穿插在对应位置。"),
     ).toBeInTheDocument();
   });
 
@@ -77,9 +77,9 @@ describe("ChatStream", () => {
 
     render(<ChatStream nodes={nodes} />);
 
-    expect(screen.getByText("轮次 run-1")).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("你好"))).toBeInTheDocument();
-    expect(screen.getAllByText("search").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Search").length).toBeGreaterThan(0);
+    expect(screen.getByText("执行中，1 个工具")).toBeInTheDocument();
   });
 
   it("使用统一内容轨道类控制主聊天区宽度与水平留白", () => {
@@ -193,7 +193,6 @@ describe("ChatStream", () => {
     expect(screen.getByText("LOG_ACTIVITY")).toBeInTheDocument();
     expect(screen.getByText("状态: ok")).toBeInTheDocument();
     expect(screen.queryByText(/ignored/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "展开详情" })).toBeInTheDocument();
   });
 
   it("在轮次进行中且暂无助手回复时展示状态提示", () => {
@@ -276,5 +275,269 @@ describe("ChatStream", () => {
 
     expect(screen.getByText("运行错误")).toBeInTheDocument();
     expect(screen.getByText("stream failed")).toBeInTheDocument();
+  });
+
+  it("将工具过程插入两段正文之间，而不是附着到末尾", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "turn:1",
+        type: "turn",
+        parentId: null,
+        children: [
+          {
+            id: "message:1",
+            type: "text",
+            parentId: "turn:1",
+            children: [
+              {
+                id: "tool:1",
+                type: "tool-call",
+                parentId: "message:1",
+                children: [
+                  {
+                    id: "tool-result:1",
+                    type: "tool-result",
+                    parentId: "tool:1",
+                    children: [],
+                    threadId: "thread-1",
+                    runId: "run-1",
+                    toolCallId: "tool-1",
+                    timestamp: 1003,
+                    timeRange: { start: 1003, end: 1003 },
+                    sourceOrder: 3,
+                    title: "工具结果",
+                    visibility: "chat",
+                    isStructural: false,
+                    payload: { content: "{\"items\":[1]}" },
+                    sourceEventTypes: ["tool_call_result"],
+                    relatedMessageIds: ["msg-1"],
+                  },
+                ],
+                threadId: "thread-1",
+                runId: "run-1",
+                toolCallId: "tool-1",
+                timestamp: 1002,
+                timeRange: { start: 1002, end: 1003 },
+                sourceOrder: 2,
+                title: "google_search",
+                visibility: "chat",
+                isStructural: false,
+                payload: { args: "{\"q\":\"AfterShip\"}", toolCallName: "google_search" },
+                sourceEventTypes: ["tool_call_start", "tool_call_result"],
+                relatedMessageIds: ["msg-1"],
+              },
+              {
+                id: "message:2",
+                type: "text",
+                parentId: "message:1",
+                children: [],
+                threadId: "thread-1",
+                runId: "run-1",
+                messageId: "msg-2",
+                timestamp: 1004,
+                timeRange: { start: 1004, end: 1004 },
+                sourceOrder: 4,
+                title: "助手消息",
+                role: "assistant",
+                visibility: "chat",
+                isStructural: false,
+                payload: { content: "## AfterShip 信息摘要", streaming: false },
+                sourceEventTypes: ["text_message_start", "text_message_end"],
+                relatedMessageIds: ["msg-2"],
+              },
+            ],
+            threadId: "thread-1",
+            runId: "run-1",
+            messageId: "msg-1",
+            timestamp: 1001,
+            timeRange: { start: 1001, end: 1004 },
+            sourceOrder: 1,
+            title: "助手消息",
+            role: "assistant",
+            visibility: "chat",
+            isStructural: false,
+            payload: { content: "好的，我将使用 Web 搜索获取相关信息。", streaming: false },
+            sourceEventTypes: ["text_message_start", "text_message_end"],
+            relatedMessageIds: ["msg-1"],
+          },
+        ],
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1004 },
+        sourceOrder: 0,
+        title: "轮次 run-1",
+        visibility: "chat",
+        isStructural: false,
+        payload: {},
+        sourceEventTypes: ["run_started"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    render(<ChatStream nodes={nodes} />);
+
+    const firstText = screen.getByText("好的，我将使用 Web 搜索获取相关信息。");
+    const toolTitle = screen.getByText("已完成，1 个工具");
+    const secondText = screen.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" });
+
+    expect(firstText.compareDocumentPosition(toolTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(toolTitle.compareDocumentPosition(secondText) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("同时间戳场景仍按 sourceOrder 保持正文与工具组顺序", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "turn:1",
+        type: "turn",
+        parentId: null,
+        children: [
+          {
+            id: "message:z",
+            type: "text",
+            parentId: "turn:1",
+            children: [
+              {
+                id: "tool:a",
+                type: "tool-call",
+                parentId: "message:z",
+                children: [],
+                threadId: "thread-1",
+                runId: "run-1",
+                toolCallId: "tool-1",
+                timestamp: 1001,
+                timeRange: { start: 1001, end: 1001 },
+                sourceOrder: 2,
+                title: "google_search",
+                visibility: "chat",
+                isStructural: false,
+                payload: { args: "{\"q\":\"AfterShip\"}", toolCallName: "google_search" },
+                sourceEventTypes: ["tool_call_start"],
+                relatedMessageIds: ["msg-1"],
+              },
+              {
+                id: "message:a",
+                type: "text",
+                parentId: "message:z",
+                children: [],
+                threadId: "thread-1",
+                runId: "run-1",
+                messageId: "msg-2",
+                timestamp: 1001,
+                timeRange: { start: 1001, end: 1001 },
+                sourceOrder: 3,
+                title: "助手消息",
+                role: "assistant",
+                visibility: "chat",
+                isStructural: false,
+                payload: { content: "## AfterShip 信息摘要", streaming: false },
+                sourceEventTypes: ["text_message_start", "text_message_end"],
+                relatedMessageIds: ["msg-2"],
+              },
+            ],
+            threadId: "thread-1",
+            runId: "run-1",
+            messageId: "msg-1",
+            timestamp: 1001,
+            timeRange: { start: 1001, end: 1001 },
+            sourceOrder: 1,
+            title: "助手消息",
+            role: "assistant",
+            visibility: "chat",
+            isStructural: false,
+            payload: { content: "第一段说明", streaming: false },
+            sourceEventTypes: ["text_message_start", "text_message_end"],
+            relatedMessageIds: ["msg-1"],
+          },
+        ],
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1001 },
+        sourceOrder: 0,
+        title: "轮次 run-1",
+        visibility: "chat",
+        isStructural: false,
+        payload: {},
+        sourceEventTypes: ["run_started"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    render(<ChatStream nodes={nodes} />);
+
+    const firstText = screen.getByText("第一段说明");
+    const toolTitle = screen.getByText("执行中，1 个工具");
+    const secondText = screen.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" });
+
+    expect(firstText.compareDocumentPosition(toolTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(toolTitle.compareDocumentPosition(secondText) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("工具失败时显示失败摘要而不是已完成", () => {
+    const nodes: ConversationNode[] = [
+      {
+        id: "turn:1",
+        type: "turn",
+        parentId: null,
+        children: [
+          {
+            id: "tool:error",
+            type: "tool-call",
+            parentId: "turn:1",
+            children: [
+              {
+                id: "tool-result:error",
+                type: "tool-result",
+                parentId: "tool:error",
+                children: [],
+                threadId: "thread-1",
+                runId: "run-1",
+                toolCallId: "tool-1",
+                timestamp: 1002,
+                timeRange: { start: 1002, end: 1002 },
+                sourceOrder: 2,
+                title: "工具结果",
+                status: "error",
+                visibility: "chat",
+                isStructural: false,
+                payload: { content: "{\"error\":\"boom\"}" },
+                sourceEventTypes: ["tool_call_result"],
+                relatedMessageIds: [],
+              },
+            ],
+            threadId: "thread-1",
+            runId: "run-1",
+            toolCallId: "tool-1",
+            timestamp: 1001,
+            timeRange: { start: 1001, end: 1002 },
+            sourceOrder: 1,
+            title: "google_search",
+            status: "error",
+            visibility: "chat",
+            isStructural: false,
+            payload: { args: "{\"q\":\"AfterShip\"}", toolCallName: "google_search" },
+            sourceEventTypes: ["tool_call_start", "tool_call_result"],
+            relatedMessageIds: [],
+          },
+        ],
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+        timeRange: { start: 1000, end: 1002 },
+        sourceOrder: 0,
+        title: "轮次 run-1",
+        visibility: "chat",
+        isStructural: false,
+        payload: {},
+        sourceEventTypes: ["run_started"],
+        relatedMessageIds: [],
+      },
+    ];
+
+    render(<ChatStream nodes={nodes} />);
+
+    expect(screen.getByText("执行失败，1 个工具")).toBeInTheDocument();
+    expect(screen.queryByText("已完成，1 个工具")).not.toBeInTheDocument();
   });
 });

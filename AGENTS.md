@@ -49,6 +49,7 @@
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/yarn，**必须**统一使用 `pnpm` 进行包管理与脚本执行。
+- **Database Management**: 谨慎操作，数据迁移、测试等操作严禁将现有数据删除。
 
 ## Documentation Standards (文档规范)
 

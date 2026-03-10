@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { POST } from "@/app/api/agui/route";
 import { GET } from "@/app/api/agui/sessions/list/route";
 import { GET as getSessionDetail } from "@/app/api/agui/sessions/[sessionId]/route";
+import { GET as getRunStream } from "@/app/api/agui/runs/[runId]/stream/route";
 import { POST as createSession } from "@/app/api/agui/sessions/route";
 import { POST as archiveSession } from "@/app/api/agui/sessions/[sessionId]/archive/route";
 import { PATCH as updateSessionTitle } from "@/app/api/agui/sessions/[sessionId]/title/route";
@@ -117,7 +118,7 @@ describe("POST /api/agui", () => {
     expect(data.error.message).toContain("RunAgentInput requires a user message");
   });
 
-  it("遇到非法 ADK 事件时应跳过坏事件并继续输出后续合法事件", async () => {
+  it("遇到整条非法 ADK 事件时应发出错误事件并继续输出后续合法事件", async () => {
     const upstreamStream = new ReadableStream<Uint8Array>({
       start(controller) {
         const encoder = new TextEncoder();
@@ -210,6 +211,260 @@ describe("POST /api/agui", () => {
     expect((body.match(/chunk-2/g) || [])).toHaveLength(0);
     expect(body).toContain("chunk-1");
     expect(body).toContain("我可以帮助你规划任务、分析代码并直接修改实现。");
+  });
+
+  it("应输出并行工具调用与结果，且不同 toolCallId 不串线", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"id":"assistant-1","runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"text":"好的，我将使用 Google Search。"}]},"timestamp":1000}',
+              "",
+              'data: {"id":"tool-batch","runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"functionCall":{"id":"call-1","name":"google_search","args":{"q":"AfterShip"}}},{"functionCall":{"id":"call-2","name":"web_search","args":{"q":"AfterShip tracking"}}}]},"timestamp":1001}',
+              "",
+              'data: {"id":"tool-result-batch","runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"functionResponse":{"id":"call-1","name":"google_search","response":{"result":{"items":[{"title":"AfterShip"}]}}}},{"functionResponse":{"id":"call-2","name":"web_search","response":{"result":{"items":[{"title":"Tracking"}]}}}}]},"timestamp":1002}',
+              "",
+              'data: {"id":"assistant-2","runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"text":"## 摘要"}]},"timestamp":1003}',
+              "",
+              "",
+            ].join("\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "AfterShip 是什么？" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect((body.match(/TOOL_CALL_START/g) || [])).toHaveLength(2);
+    expect((body.match(/TOOL_CALL_RESULT/g) || [])).toHaveLength(2);
+    expect(body).toContain("\"toolCallId\":\"call-1\"");
+    expect(body).toContain("\"toolCallId\":\"call-2\"");
+    expect(body).toContain("AfterShip");
+    expect(body).toContain("Tracking");
+    expect(body).toContain("## 摘要");
+  });
+
+  it("应兼容 event envelope 与 typed step 事件", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"id":"env-1","runId":"run-1","threadId":"session-1","event":{"author":"assistant","content":{"parts":[{"text":"先进行搜索"}]}}}',
+              "",
+              'data: {"id":"env-step","runId":"run-1","threadId":"session-1","type":"step_started","data":{"id":"step-1","name":"Google Search"}}',
+              "",
+              'data: {"id":"env-tool","runId":"run-1","threadId":"session-1","payload":{"author":"assistant","content":{"parts":[{"functionCall":{"id":"call-1","name":"google_search","args":{"q":"AfterShip"}}}]}}}',
+              "",
+              "",
+            ].join("\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "AfterShip 是什么？" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("先进行搜索");
+    expect(body).toContain("STEP_STARTED");
+    expect(body).toContain("\"toolCallId\":\"call-1\"");
+  });
+
+  it("应在 Accept 为 NDJSON 时输出带 cursor 的 JSONL 帧", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"id":"evt-1","runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"text":"hello"}]}}',
+              "",
+              "",
+            ].join("\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/x-ndjson",
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "hello" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+    expect(body).toContain("\"protocol\":\"negentropy.ndjson.v1\"");
+    expect(body).toContain("\"kind\":\"agui_event\"");
+    expect(body).toContain("\"cursor\":\"");
+    expect(body).toContain("\"type\":\"RUN_FINISHED\"");
+  });
+
+  it("应解析 CRLF 和多行 data 的 SSE 事件", async () => {
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            [
+              'data: {"id":"evt-1",',
+              'data: "runId":"run-1","threadId":"session-1","author":"assistant","content":{"parts":[{"text":"hello crlf"}]}}',
+              "\r",
+              "",
+            ].join("\r\n"),
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(upstreamStream, {
+        status: 200,
+        headers: {
+          "content-type": "text/event-stream",
+        },
+      }),
+    );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "hello" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("hello crlf");
+    expect(body).toContain("RUN_FINISHED");
+  });
+});
+
+describe("GET /api/agui/runs/[runId]/stream", () => {
+  beforeEach(() => {
+    process.env.AGUI_BASE_URL = mockEnv.AGUI_BASE_URL;
+  });
+
+  afterEach(() => {
+    delete process.env.AGUI_BASE_URL;
+    vi.restoreAllMocks();
+  });
+
+  it("应按 cursor 回放指定 run 的后续事件", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          id: "session-1",
+          lastUpdateTime: 100,
+          state: { metadata: {} },
+          events: [
+            {
+              id: "evt-1",
+              runId: "run-1",
+              threadId: "session-1",
+              author: "assistant",
+              content: { parts: [{ text: "resume text" }] },
+              timestamp: 1000,
+            },
+          ],
+        }),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/runs/run-1/stream?app_name=negentropy&user_id=test&session_id=session-1&cursor=run-1:1&resume_token=run-1:1",
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/x-ndjson",
+        },
+      },
+    );
+
+    const response = await getRunStream(request, {
+      params: Promise.resolve({ runId: "run-1" }),
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+    expect(body).toContain("resume text");
+    expect(body).toContain("\"type\":\"RUN_FINISHED\"");
   });
 });
 

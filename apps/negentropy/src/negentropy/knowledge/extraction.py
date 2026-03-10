@@ -37,6 +37,8 @@ EXTRACTOR_ROUTES_KEY = "extractor_routes"
 ROUTE_URL = "url"
 ROUTE_FILE_PDF = "file_pdf"
 ROUTE_FILE_GENERIC = "file_generic"
+MAX_LLM_PLANNING_PAYLOAD_CHARS = 16_000
+MAX_LLM_VALIDATION_ERROR_CHARS = 1_500
 
 
 @dataclass(slots=True)
@@ -57,6 +59,9 @@ class ExtractionAttempt:
     status: str
     duration_ms: int
     error: str | None = None
+    failure_category: str | None = None
+    diagnostic_summary: str | None = None
+    diagnostics: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -138,6 +143,29 @@ class SourceCandidate:
     value: Any
     description: str
     preferred: bool = False
+
+
+@dataclass(slots=True)
+class ToolCapabilityProfile:
+    has_declared_schema: bool
+    accepts_string_source: bool
+    accepts_object_source: bool
+    supports_batch: bool
+    schema_confidence: Literal["high", "medium", "low"]
+
+
+@dataclass(slots=True)
+class ToolContractReadiness:
+    compatible: bool
+    failure_category: str | None = None
+    diagnostic_summary: str | None = None
+    diagnostics: dict[str, Any] = field(default_factory=dict)
+
+
+class ExtractorExecutionError(ValueError):
+    def __init__(self, message: str, *, attempts: list[ExtractionAttempt]) -> None:
+        super().__init__(message)
+        self.attempts = attempts
 
 
 def resolve_source_kind(
@@ -268,6 +296,15 @@ def _schema_property_names(schema: Any) -> set[str]:
     return set(_schema_properties(schema).keys())
 
 
+def _schema_required_fields(schema: Any) -> set[str]:
+    if not isinstance(schema, dict):
+        return set()
+    required = schema.get("required")
+    if not isinstance(required, list):
+        return set()
+    return {str(item) for item in required if isinstance(item, str)}
+
+
 def _is_url_source_schema(schema: Any) -> bool:
     properties = _schema_property_names(schema)
     return "url" in properties or "uri" in properties
@@ -351,6 +388,106 @@ def _matches_source_schema(schema: Any, source_kind: SourceKind) -> bool:
     if source_kind == ROUTE_URL:
         return _is_url_source_schema(schema)
     return _is_file_source_schema(schema)
+
+
+def _recognized_contract_fields(source_kind: SourceKind) -> set[str]:
+    return {
+        *_preferred_batch_keys(source_kind),
+        *_preferred_source_keys(source_kind),
+        "url",
+        "uri",
+        "filename",
+        "content_type",
+        "content_base64",
+        "data_base64",
+        "options",
+        "context",
+        "source_type",
+    }
+
+
+def _evaluate_unknown_contract_readiness(
+    *,
+    input_schema: dict[str, Any] | None,
+    contract: NormalizedToolContract,
+    capability: ToolCapabilityProfile,
+    source_kind: SourceKind,
+) -> ToolContractReadiness:
+    if contract.mode != "unknown" or not isinstance(input_schema, dict):
+        return ToolContractReadiness(compatible=True)
+
+    variants = _expand_schema_variants(input_schema, root_schema=input_schema)
+    if not variants:
+        return ToolContractReadiness(compatible=True)
+
+    recognized_fields = _recognized_contract_fields(source_kind)
+    branch_failures: list[dict[str, Any]] = []
+
+    for variant in variants:
+        declared_fields = sorted(_schema_property_names(variant))
+        required_fields = sorted(_schema_required_fields(variant))
+        if not declared_fields:
+            return ToolContractReadiness(compatible=True)
+
+        recognized_declared = [field for field in declared_fields if field in recognized_fields]
+        unsupported_required = [field for field in required_fields if field not in recognized_fields]
+
+        if recognized_declared and not unsupported_required:
+            return ToolContractReadiness(compatible=True)
+
+        branch_failures.append(
+            {
+                "declared_schema_fields": declared_fields,
+                "required_fields": required_fields,
+                "recognized_declared_fields": recognized_declared,
+                "unsupported_required_fields": unsupported_required,
+            }
+        )
+
+    any_recognized_declared = any(item["recognized_declared_fields"] for item in branch_failures)
+    unsupported_required = sorted(
+        {
+            field
+            for item in branch_failures
+            for field in item["unsupported_required_fields"]
+        }
+    )
+
+    if unsupported_required:
+        failure_category = "low_confidence_contract" if any_recognized_declared else "unsupported_contract"
+        diagnostic_summary = (
+            "契约为 unknown，要求额外必填字段 "
+            f"{', '.join(unsupported_required)}，当前提取源无法构造最小调用参数"
+        )
+    elif any_recognized_declared:
+        failure_category = "low_confidence_contract"
+        diagnostic_summary = "契约存在候选文档字段，但未找到可安全构造的最小调用参数分支"
+    else:
+        failure_category = (
+            "low_confidence_contract"
+            if capability.schema_confidence == "low"
+            else "unsupported_contract"
+        )
+        diagnostic_summary = "契约未声明可识别的文档 source 字段，无法判定为可兼容的提取工具"
+
+    return ToolContractReadiness(
+        compatible=False,
+        failure_category=failure_category,
+        diagnostic_summary=diagnostic_summary,
+        diagnostics={
+            "contract_mode": contract.mode,
+            "schema_shape": contract.schema_shape,
+            "branches": branch_failures,
+            "recognized_contract_fields": sorted(recognized_fields),
+            "capability": {
+                "has_declared_schema": capability.has_declared_schema,
+                "accepts_string_source": capability.accepts_string_source,
+                "accepts_object_source": capability.accepts_object_source,
+                "supports_batch": capability.supports_batch,
+                "schema_confidence": capability.schema_confidence,
+            },
+        },
+    )
 
 
 def normalize_tool_contract(
@@ -533,6 +670,25 @@ def _select_string_source_candidate(
     return None
 
 
+def _select_string_source_candidate_kind(
+    *,
+    source_candidates: list[SourceCandidate],
+    preferred_kind: str | None = None,
+) -> str | None:
+    ordered_candidates = sorted(
+        source_candidates,
+        key=lambda item: (0 if item.preferred else 1, item.kind),
+    )
+    if preferred_kind:
+        preferred = next((item for item in ordered_candidates if item.kind == preferred_kind), None)
+        if preferred and isinstance(preferred.value, str):
+            return preferred.kind
+    for candidate in ordered_candidates:
+        if isinstance(candidate.value, str):
+            return candidate.kind
+    return None
+
+
 def _build_arguments_from_contract(
     *,
     contract: NormalizedToolContract,
@@ -620,20 +776,35 @@ def _build_plan_from_contract(
     request: CanonicalExtractionRequest,
     adapter_name: str,
     reasoning_source: Literal["schema", "validation_retry"],
+    source_candidates: list[SourceCandidate] | None = None,
     diagnostics: dict[str, Any] | None = None,
 ) -> AdaptiveToolInvocationPlan:
     diagnostics = dict(diagnostics or {})
+    selected_source_kind: str | None = None
+    if contract.source_value_type == "string":
+        candidates = source_candidates or []
+        preferred_kind = "url" if request.source_kind == ROUTE_URL else "local_path"
+        selected_source_kind = _select_string_source_candidate_kind(
+            source_candidates=candidates,
+            preferred_kind=preferred_kind,
+        )
+        if selected_source_kind is None:
+            selected_source_kind = _select_string_source_candidate_kind(source_candidates=candidates)
+
     arguments = _build_arguments_from_contract(
         contract=contract,
         request=request,
-        source_candidates=[],
+        source_candidates=source_candidates or [],
         include_options=True,
         include_context=True,
+        selected_source_kind=selected_source_kind,
     )
 
     diagnostics.setdefault("contract_mode", contract.mode)
     diagnostics.setdefault("schema_shape", contract.schema_shape)
     diagnostics.setdefault("source_value_type", contract.source_value_type)
+    if selected_source_kind is not None:
+        diagnostics.setdefault("selected_source_kind", selected_source_kind)
     if contract.batch_property:
         diagnostics.setdefault("batch_property", contract.batch_property)
     if contract.source_property:
@@ -666,6 +837,7 @@ def build_tool_adapter(
             else "canonical_flat_v2"
         ),
         reasoning_source="schema",
+        source_candidates=[],
         diagnostics={
             "top_level_fields": sorted(contract.top_level_fields),
         },
@@ -777,6 +949,97 @@ def _cleanup_temp_paths(paths: list[Path]) -> None:
             logger.warning("extractor_temp_file_cleanup_failed", path=str(path))
 
 
+def _truncate_text(value: str, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return f"{value[:limit]}...<truncated:{len(value) - limit}>"
+
+
+def _canonical_request_for_llm(request: CanonicalExtractionRequest) -> dict[str, Any]:
+    source_payload: dict[str, Any] = {
+        "source_kind": request.source.source_kind,
+        "url": request.source.url,
+        "filename": request.source.filename,
+        "content_type": request.source.content_type,
+    }
+    if request.source.content_base64:
+        source_payload["content_base64_length"] = len(request.source.content_base64)
+    return {
+        "source_kind": request.source_kind,
+        "source": source_payload,
+        "options": request.options,
+        "context": request.context,
+    }
+
+
+def _summarize_candidate_value(candidate: SourceCandidate) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "kind": candidate.kind,
+        "description": candidate.description,
+        "preferred": candidate.preferred,
+    }
+    if candidate.kind == "inline_object" and isinstance(candidate.value, dict):
+        payload["field_names"] = sorted(candidate.value.keys())
+        content_value = candidate.value.get("content_base64") or candidate.value.get("data_base64")
+        if isinstance(content_value, str):
+            payload["content_base64_length"] = len(content_value)
+        if isinstance(candidate.value.get("filename"), str):
+            payload["filename"] = candidate.value["filename"]
+        if isinstance(candidate.value.get("content_type"), str):
+            payload["content_type"] = candidate.value["content_type"]
+        return payload
+    if candidate.kind == "local_path" and isinstance(candidate.value, str):
+        path = Path(candidate.value)
+        payload["path_preview"] = str(path.name)
+        payload["suffix"] = path.suffix
+        return payload
+    if candidate.kind == "base64_string" and isinstance(candidate.value, str):
+        payload["base64_length"] = len(candidate.value)
+        return payload
+    if candidate.kind == "url" and isinstance(candidate.value, str):
+        payload["url_preview"] = _truncate_text(candidate.value, 240)
+        return payload
+    if isinstance(candidate.value, str):
+        payload["value_preview"] = _truncate_text(candidate.value, 240)
+    return payload
+
+
+def _build_attempt_message(attempt: ExtractionAttempt) -> str:
+    category = f"[{attempt.failure_category}] " if attempt.failure_category else ""
+    return f"{attempt.server_name}/{attempt.tool_name}: {category}{attempt.error or 'unknown error'}"
+
+
+def _build_aggregated_extraction_error(attempts: list[ExtractionAttempt]) -> str:
+    if not attempts:
+        return "All extractor MCP targets failed"
+    details = "; ".join(_build_attempt_message(attempt) for attempt in attempts)
+    return f"All extractor MCP targets failed: {details}"
+
+
+def _infer_tool_capability_profile(
+    *,
+    input_schema: dict[str, Any] | None,
+    contract: NormalizedToolContract,
+) -> ToolCapabilityProfile:
+    has_declared_schema = isinstance(input_schema, dict) and bool(input_schema)
+    accepts_string_source = contract.source_value_type == "string"
+    accepts_object_source = contract.source_value_type == "object" or contract.mode == "flat"
+    supports_batch = contract.mode == "batch"
+    if contract.mode in {"batch", "nested_single", "flat"} and has_declared_schema:
+        schema_confidence: Literal["high", "medium", "low"] = "high"
+    elif has_declared_schema:
+        schema_confidence = "medium"
+    else:
+        schema_confidence = "low"
+    return ToolCapabilityProfile(
+        has_declared_schema=has_declared_schema,
+        accepts_string_source=accepts_string_source,
+        accepts_object_source=accepts_object_source,
+        supports_batch=supports_batch,
+        schema_confidence=schema_confidence,
+    )
+
+
 def _source_fields_for_kind(source_kind: SourceKind) -> set[str]:
     return {"url", "uri"} if source_kind == ROUTE_URL else {"filename", "content_type", "content_base64", "data_base64"}
 
@@ -785,6 +1048,7 @@ def _build_retry_contract_from_error(
     *,
     input_schema: dict[str, Any] | None,
     request: CanonicalExtractionRequest,
+    original_contract: NormalizedToolContract,
     validation_error: ValidationErrorSummary,
 ) -> NormalizedToolContract | None:
     for field_name in validation_error.string_item_fields:
@@ -806,6 +1070,19 @@ def _build_retry_contract_from_error(
     source_fields = _source_fields_for_kind(request.source_kind)
     for field_name in missing:
         if field_name in _preferred_batch_keys(request.source_kind) or field_name.endswith("_sources"):
+            if (
+                original_contract.mode == "batch"
+                and original_contract.source_value_type == "string"
+                and original_contract.batch_property == field_name
+            ):
+                return NormalizedToolContract(
+                    mode="batch",
+                    schema_shape="validation_retry.scalar_array",
+                    source_value_type="string",
+                    root_schema=input_schema,
+                    batch_property=field_name,
+                    item_schema={"type": "string"},
+                )
             return NormalizedToolContract(
                 mode="batch",
                 schema_shape="validation_retry.batch",
@@ -816,6 +1093,19 @@ def _build_retry_contract_from_error(
                 source_fields=source_fields,
             )
         if field_name in _preferred_source_keys(request.source_kind) or field_name.endswith("_source"):
+            if (
+                original_contract.mode == "nested_single"
+                and original_contract.source_value_type == "string"
+                and original_contract.source_property == field_name
+            ):
+                return NormalizedToolContract(
+                    mode="nested_single",
+                    schema_shape="validation_retry.scalar_value",
+                    source_value_type="string",
+                    root_schema=input_schema,
+                    source_property=field_name,
+                    item_schema={"type": "string"},
+                )
             return NormalizedToolContract(
                 mode="nested_single",
                 schema_shape="validation_retry.nested",
@@ -869,17 +1159,7 @@ def _default_adapter_name(contract: NormalizedToolContract, *, retry: bool = Fal
 
 
 def _serialize_source_candidates(source_candidates: list[SourceCandidate]) -> list[dict[str, Any]]:
-    serialized: list[dict[str, Any]] = []
-    for candidate in source_candidates:
-        serialized.append(
-            {
-                "kind": candidate.kind,
-                "value": candidate.value,
-                "description": candidate.description,
-                "preferred": candidate.preferred,
-            }
-        )
-    return serialized
+    return [_summarize_candidate_value(candidate) for candidate in source_candidates]
 
 
 async def _build_llm_invocation_plan(
@@ -894,6 +1174,8 @@ async def _build_llm_invocation_plan(
 ) -> AdaptiveToolInvocationPlan | None:
     if not isinstance(input_schema, dict):
         return None
+    if request.source_kind != ROUTE_URL and contract.source_value_type != "string":
+        return None
 
     try:
         candidate_payload = to_json_compatible_strict(
@@ -901,7 +1183,7 @@ async def _build_llm_invocation_plan(
             label="source_candidates",
         )
         canonical_request_payload = to_json_compatible_strict(
-            request,
+            _canonical_request_for_llm(request),
             label="canonical_request",
         )
         contract_payload = to_json_compatible_strict(
@@ -914,7 +1196,29 @@ async def _build_llm_invocation_plan(
             label="contract",
         )
         input_schema_payload = to_json_compatible_strict(input_schema, label="input_schema")
-        validation_error_payload = validation_error.raw_error if validation_error else ""
+        validation_error_payload = (
+            _truncate_text(validation_error.raw_error, MAX_LLM_VALIDATION_ERROR_CHARS)
+            if validation_error
+            else ""
+        )
+        planning_payload_size = sum(
+            len(json.dumps(item, ensure_ascii=False))
+            for item in (
+                candidate_payload,
+                canonical_request_payload,
+                contract_payload,
+                input_schema_payload,
+                validation_error_payload,
+            )
+        )
+        if planning_payload_size > MAX_LLM_PLANNING_PAYLOAD_CHARS:
+            logger.info(
+                "extractor_llm_plan_skipped_payload_budget",
+                tool_name=tool_name,
+                payload_chars=planning_payload_size,
+                payload_limit=MAX_LLM_PLANNING_PAYLOAD_CHARS,
+            )
+            return None
 
         if contract.mode in {"batch", "nested_single"} and contract.source_value_type in {"string", "object"}:
             prompt = (
@@ -963,7 +1267,12 @@ async def _build_llm_invocation_plan(
     try:
         payload = json.loads(content)
     except json.JSONDecodeError:
-        logger.warning("extractor_llm_plan_invalid_json", tool_name=tool_name)
+        logger.info(
+            "extractor_llm_plan_invalid_json",
+            tool_name=tool_name,
+            fallback_strategy="schema_or_default_contract",
+            reason="invalid_json",
+        )
         return None
     if not isinstance(payload, dict):
         return None
@@ -1017,40 +1326,70 @@ def _looks_like_document_payload(payload: Any) -> bool:
     )
 
 
-def _normalize_document_payload(payload: Any) -> dict[str, Any]:
+def _looks_like_tool_execution_envelope(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    return any(
+        key in payload
+        for key in ("success", "results", "items", "documents", "successful_count", "failed_count", "total_pdfs")
+    )
+
+
+def _normalize_document_payload(payload: Any) -> tuple[dict[str, Any], str | None]:
     if isinstance(payload, list):
+        last_reason: str | None = None
         for item in payload:
-            normalized = _normalize_document_payload(item)
+            normalized, reason = _normalize_document_payload(item)
             if normalized:
-                return normalized
-        return {}
+                return normalized, None
+            last_reason = last_reason or reason
+        return {}, last_reason
 
     if not isinstance(payload, dict):
-        return {}
+        return {}, None
 
     if _looks_like_document_payload(payload):
-        return payload
+        return payload, None
 
+    if payload.get("success") is False:
+        return {}, "tool_execution_failed"
+
+    nested_reason: str | None = None
     for key in ("result", "document", "data"):
-        normalized = _normalize_document_payload(payload.get(key))
+        normalized, reason = _normalize_document_payload(payload.get(key))
         if normalized:
-            return normalized
+            return normalized, None
+        nested_reason = nested_reason or reason
 
+    saw_successful_candidate = False
+    saw_candidate_list = False
     for key in ("results", "items", "documents"):
         candidates = payload.get(key)
         if not isinstance(candidates, list):
             continue
+        saw_candidate_list = True
         for item in candidates:
             if not isinstance(item, dict):
                 continue
             status = str(item.get("status") or "").lower()
             if item.get("success") is False or status in {"failed", "error"}:
                 continue
-            normalized = _normalize_document_payload(item)
+            saw_successful_candidate = True
+            normalized, reason = _normalize_document_payload(item)
             if normalized:
-                return normalized
+                return normalized, None
+            if reason not in {None, "tool_execution_failed", "no_successful_documents"}:
+                nested_reason = nested_reason or reason
 
-    return {}
+    successful_count = payload.get("successful_count")
+    if isinstance(successful_count, int) and successful_count <= 0:
+        return {}, "no_successful_documents"
+    if saw_candidate_list and not saw_successful_candidate:
+        return {}, "no_successful_documents"
+    if _looks_like_tool_execution_envelope(payload):
+        return {}, "empty_payload"
+
+    return {}, nested_reason
 
 
 def _normalize_document_result(
@@ -1058,18 +1397,22 @@ def _normalize_document_result(
     structured_content: Any,
     content_items: list[Any],
 ) -> tuple[dict[str, Any], str | None]:
-    normalized = _normalize_document_payload(structured_content)
+    normalized, reason = _normalize_document_payload(structured_content)
     if normalized:
         return normalized, None
+    if reason:
+        return {}, reason
 
     fallback_text = _result_text_from_content_items(content_items)
     if not fallback_text:
         return {}, "structured_content_missing_and_text_unusable"
 
     parsed = _json_candidate_from_text(fallback_text)
-    normalized = _normalize_document_payload(parsed)
+    normalized, reason = _normalize_document_payload(parsed)
     if normalized:
         return normalized, None
+    if reason:
+        return {}, reason
 
     return {"markdown_content": fallback_text, "plain_text": fallback_text}, None
 
@@ -1174,7 +1517,6 @@ class DataExtractorProvider:
             )
 
         attempts: list[ExtractionAttempt] = []
-        last_error: str | None = None
 
         for index, target in enumerate(targets):
             stage_name = "extract_primary" if index == 0 else f"extract_failover_{index}"
@@ -1224,18 +1566,23 @@ class DataExtractorProvider:
                     )
                 return result
 
-            last_error = attempt["attempt"].error
             if tracker:
                 await tracker.fail_stage(
                     stage_name,
                     {
                         "server_id": str(target.server_id),
                         "tool_name": target.tool_name,
-                        "message": last_error,
+                        "message": attempt["attempt"].error,
+                        "failure_category": attempt["attempt"].failure_category,
+                        "diagnostic_summary": attempt["attempt"].diagnostic_summary,
+                        "diagnostics": attempt["attempt"].diagnostics,
                     },
                 )
 
-        raise ValueError(last_error or "All extractor MCP targets failed")
+        raise ExtractorExecutionError(
+            _build_aggregated_extraction_error(attempts),
+            attempts=attempts,
+        )
 
     async def _invoke_target(
         self,
@@ -1264,6 +1611,7 @@ class DataExtractorProvider:
                         status="failed",
                         duration_ms=0,
                         error=error,
+                        failure_category="tool_unavailable",
                     ),
                 }
 
@@ -1281,6 +1629,7 @@ class DataExtractorProvider:
                         status="failed",
                         duration_ms=0,
                         error=error,
+                        failure_category="tool_disabled",
                     ),
                 }
 
@@ -1315,11 +1664,36 @@ class DataExtractorProvider:
             input_schema=input_schema,
             source_kind=source_kind,
         )
+        capability = _infer_tool_capability_profile(
+            input_schema=input_schema,
+            contract=contract,
+        )
         source_candidates, cleanup_paths = _prepare_source_candidates(request=request, content=content)
         invocation_trace: list[dict[str, Any]] = []
         validation_error: ValidationErrorSummary | None = None
 
         try:
+            readiness = _evaluate_unknown_contract_readiness(
+                input_schema=input_schema,
+                contract=contract,
+                capability=capability,
+                source_kind=source_kind,
+            )
+            if not readiness.compatible:
+                return {
+                    "success": False,
+                    "attempt": ExtractionAttempt(
+                        server_id=str(target.server_id),
+                        server_name=server.name,
+                        tool_name=target.tool_name,
+                        status="failed",
+                        duration_ms=0,
+                        error="Tool input schema could not be normalized for document extraction",
+                        failure_category=readiness.failure_category,
+                        diagnostic_summary=readiness.diagnostic_summary,
+                        diagnostics=readiness.diagnostics,
+                    ),
+                }
             for index in range(2):
                 plan = await _build_llm_invocation_plan(
                     tool_name=target.tool_name,
@@ -1337,12 +1711,23 @@ class DataExtractorProvider:
                             request=request,
                             adapter_name=_default_adapter_name(contract),
                             reasoning_source="schema",
-                            diagnostics={"top_level_fields": sorted(contract.top_level_fields)},
+                            source_candidates=source_candidates,
+                            diagnostics={
+                                "top_level_fields": sorted(contract.top_level_fields),
+                                "capability": {
+                                    "has_declared_schema": capability.has_declared_schema,
+                                    "accepts_string_source": capability.accepts_string_source,
+                                    "accepts_object_source": capability.accepts_object_source,
+                                    "supports_batch": capability.supports_batch,
+                                    "schema_confidence": capability.schema_confidence,
+                                },
+                            },
                         )
                     elif validation_error:
                         retry_contract = _build_retry_contract_from_error(
                             input_schema=input_schema,
                             request=request,
+                            original_contract=contract,
                             validation_error=validation_error,
                         )
                         if retry_contract:
@@ -1351,6 +1736,7 @@ class DataExtractorProvider:
                                 request=request,
                                 adapter_name=_default_adapter_name(retry_contract, retry=True),
                                 reasoning_source="validation_retry",
+                                source_candidates=source_candidates,
                                 diagnostics={
                                     "retry_reason": "validation_error",
                                     "validation_error_summary": {
@@ -1364,6 +1750,30 @@ class DataExtractorProvider:
                             break
                     else:
                         break
+
+                if plan.reasoning_source != "llm" and contract.source_value_type == "string":
+                    selected_string_source = _select_string_source_candidate(source_candidates=source_candidates)
+                    if not selected_string_source:
+                        return {
+                            "success": False,
+                            "attempt": ExtractionAttempt(
+                                server_id=str(target.server_id),
+                                server_name=server.name,
+                                tool_name=target.tool_name,
+                                status="failed",
+                                duration_ms=0,
+                                error="No usable string source candidate available for MCP tool invocation",
+                                failure_category="low_confidence_contract",
+                                diagnostic_summary="契约要求 string source，但当前提取源无法构造可用的字符串候选参数",
+                                diagnostics={
+                                    "adapter_attempts": invocation_trace,
+                                    "contract_mode": contract.mode,
+                                    "schema_shape": contract.schema_shape,
+                                    "source_value_type": contract.source_value_type,
+                                    "source_candidates": _serialize_source_candidates(source_candidates),
+                                },
+                            ),
+                        }
 
                 result = await self._call_tool_with_plan(
                     server=server,
@@ -1379,6 +1789,7 @@ class DataExtractorProvider:
                         "diagnostics": plan.diagnostics,
                         "success": result.success,
                         "error": result.error,
+                        "failure_category": None if result.success else ("validation_error" if _is_validation_error(result.error) else "tool_error"),
                         "duration_ms": result.duration_ms,
                     }
                 )
@@ -1406,6 +1817,8 @@ class DataExtractorProvider:
                     status="failed",
                     duration_ms=int(last_result["duration_ms"]) if last_result else 0,
                     error=str(last_result["error"]) if last_result else "MCP invocation failed",
+                    failure_category=str(last_result["failure_category"]) if last_result else "tool_error",
+                    diagnostics={"adapter_attempts": invocation_trace},
                 ),
             }
         finally:
@@ -1478,6 +1891,19 @@ class DataExtractorProvider:
         )
         markdown, plain_text = _payload_text_fields(payload)
         if not plain_text:
+            failure_category_map = {
+                "structured_content_missing_and_text_unusable": "unrecognized_payload",
+                "tool_execution_failed": "tool_execution_failed",
+                "no_successful_documents": "no_successful_documents",
+                "empty_payload": "empty_payload",
+            }
+            failure_category = failure_category_map.get(normalization_error or "", "empty_payload")
+            diagnostic_summary_map = {
+                "structured_content_missing_and_text_unusable": "MCP 返回既无结构化文档结果，也无可用正文文本。",
+                "tool_execution_failed": "MCP 工具返回失败响应，未产出可用文档内容。",
+                "no_successful_documents": "MCP 批处理调用未返回任何成功文档结果。",
+                "empty_payload": "MCP 调用成功，但文档载荷为空或缺少正文内容。",
+            }
             return {
                 "success": False,
                 "attempt": ExtractionAttempt(
@@ -1487,6 +1913,13 @@ class DataExtractorProvider:
                     status="failed",
                     duration_ms=attempt.duration_ms,
                     error=normalization_error or "document_payload_recognized_but_empty",
+                    failure_category=failure_category,
+                    diagnostic_summary=diagnostic_summary_map.get(normalization_error or "", None),
+                    diagnostics={
+                        "adapter_name": plan.adapter_name,
+                        "contract_shape": contract.schema_shape,
+                        "normalized_payload_shape": sorted(payload.keys()) if isinstance(payload, dict) else [],
+                    },
                 ),
             }
 
@@ -1507,6 +1940,7 @@ class DataExtractorProvider:
                     "adapter_attempts": invocation_trace,
                     "contract_shape": contract.schema_shape,
                     "normalization_error": normalization_error,
+                    "normalized_payload_shape": sorted(payload.keys()) if isinstance(payload, dict) else [],
                     "llm_fallback_used": any(item.get("reasoning_source") == "llm" for item in invocation_trace),
                 },
             ),

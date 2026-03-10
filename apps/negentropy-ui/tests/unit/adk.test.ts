@@ -228,6 +228,84 @@ describe("adk event mapping", () => {
     expect(events.some((event) => event.type === EventType.TOOL_CALL_START)).toBe(true);
   });
 
+  it("maps parallel tool calls and tool results without mixing toolCallId", () => {
+    const normalizer = new AdkMessageStreamNormalizer();
+    const events = [
+      ...normalizer.consume({
+        id: "tool-batch",
+        runId: "run-1",
+        threadId: "thread-1",
+        author: "assistant",
+        content: {
+          parts: [
+            {
+              functionCall: {
+                id: "call-1",
+                name: "google_search",
+                args: { q: "AfterShip" },
+              },
+            },
+            {
+              functionCall: {
+                id: "call-2",
+                name: "web_search",
+                args: { q: "tracking api" },
+              },
+            },
+          ],
+        },
+        timestamp: 1000,
+      }),
+      ...normalizer.consume({
+        id: "tool-result-batch",
+        runId: "run-1",
+        threadId: "thread-1",
+        author: "assistant",
+        content: {
+          parts: [
+            {
+              functionResponse: {
+                id: "call-1",
+                name: "google_search",
+                response: { result: { items: [{ title: "AfterShip" }] } },
+              },
+            },
+            {
+              functionResponse: {
+                id: "call-2",
+                name: "web_search",
+                response: { result: { items: [{ title: "Tracking API" }] } },
+              },
+            },
+          ],
+        },
+        timestamp: 1001,
+      }),
+    ];
+
+    const toolStarts = events.filter((event) => event.type === EventType.TOOL_CALL_START);
+    const toolResults = events.filter((event) => event.type === EventType.TOOL_CALL_RESULT);
+
+    expect(
+      toolStarts.map((event) =>
+        "toolCallId" in event ? String(event.toolCallId) : "",
+      ),
+    ).toEqual(["call-1", "call-2"]);
+    expect(
+      toolResults.map((event) =>
+        "toolCallId" in event ? String(event.toolCallId) : "",
+      ),
+    ).toEqual(["call-1", "call-2"]);
+    expect(
+      toolResults.map((event) =>
+        "content" in event ? String(event.content) : "",
+      ),
+    ).toEqual([
+      JSON.stringify({ items: [{ title: "AfterShip" }] }),
+      JSON.stringify({ items: [{ title: "Tracking API" }] }),
+    ]);
+  });
+
   it("parses valid ADK event payloads through the shared validator", () => {
     const payload = parseAdkEventPayload({
       id: "evt_6",
@@ -245,10 +323,6 @@ describe("adk event mapping", () => {
   it("rejects malformed ADK event payloads", () => {
     const result = safeParseAdkEventPayload({
       author: "assistant",
-      message: {
-        role: "assistant",
-        content: "ok",
-      },
     });
 
     expect(result.success).toBe(false);
@@ -268,5 +342,46 @@ describe("adk event mapping", () => {
 
     expect(result.payloads).toHaveLength(1);
     expect(result.invalidCount).toBe(1);
+  });
+
+  it("展开 event envelope 并继承外层 runId/threadId", () => {
+    const result = collectAdkEventPayloads({
+      id: "env-1",
+      runId: "run-env",
+      threadId: "thread-env",
+      event: {
+        author: "assistant",
+        content: { parts: [{ text: "来自 envelope 的文本" }] },
+      },
+    });
+
+    expect(result.invalidCount).toBe(0);
+    expect(result.payloads).toHaveLength(1);
+    expect(result.payloads[0]).toMatchObject({
+      runId: "run-env",
+      threadId: "thread-env",
+      author: "assistant",
+    });
+    expect(result.payloads[0]?.content?.parts?.[0]?.text).toBe(
+      "来自 envelope 的文本",
+    );
+  });
+
+  it("将 typed step envelope 映射为 actions.stepStarted", () => {
+    const payload = parseAdkEventPayload({
+      id: "env-step",
+      runId: "run-step",
+      threadId: "thread-step",
+      type: "step_started",
+      data: {
+        id: "step-1",
+        name: "Google Search",
+      },
+    });
+
+    expect(payload.actions?.stepStarted).toMatchObject({
+      id: "step-1",
+      name: "Google Search",
+    });
   });
 });

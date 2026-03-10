@@ -61,6 +61,9 @@ export {
   fetchAllDocuments,
   fetchDocumentDetail,
   fetchDocumentChunks,
+  fetchDocumentChunkDetail,
+  updateDocumentChunk,
+  regenerateDocumentChunkFamily,
   refreshDocumentMarkdown,
   deleteDocument,
   downloadDocument,
@@ -124,7 +127,9 @@ export type {
   KnowledgeDocument,
   KnowledgeDocumentDetail,
   DocumentChunkItem,
+  DocumentChunkDetailResponse,
   DocumentChunksResponse,
+  DocumentChunksMetadata,
   DocumentMarkdownRefreshResponse,
   DocumentListResponse,
   // Graph Enhanced Types (Phase 1)
@@ -195,6 +200,7 @@ export type {
 export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
 export type { PipelineRunCardProps } from "./components/PipelineRunCard";
 export { PipelineStatusBadge } from "./components/PipelineStatusBadge";
+export { PipelineStagesBar } from "./components/PipelineStagesBar";
 export { DocumentViewDialog } from "./components/DocumentViewDialog";
 
 // ============================================================================
@@ -208,13 +214,16 @@ export {
   STAGE_ORDER,
   STAGE_LABELS,
   STAGE_COLORS,
+  FAILURE_CATEGORY_LABELS,
   // 工具函数
   getPipelineStatusColor,
   getPipelineStatusTextColor,
   formatRelativeTime,
   truncateRunId,
   getStageColor,
+  getFailureCategoryLabel,
   getStageErrorMessage,
+  getStageErrorSummary,
   getFailedStages,
   buildPipelineErrorDetails,
   formatDuration,

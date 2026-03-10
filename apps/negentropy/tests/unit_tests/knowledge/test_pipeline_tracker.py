@@ -6,7 +6,8 @@ from uuid import uuid4
 import pytest
 
 from negentropy.knowledge.dao import UpsertResult
-from negentropy.knowledge.service import KnowledgeService
+from negentropy.knowledge.extraction import ExtractedDocumentResult
+from negentropy.knowledge.service import KnowledgeService, PipelineTracker
 
 
 @dataclass
@@ -58,6 +59,101 @@ class FakeStorageService:
         _ = source_uri
         return b"hello world"
 
+    async def upload_markdown_derivative(self, *, document_id, markdown_content: str):
+        _ = (document_id, markdown_content)
+        return "gs://derived/markdown.md"
+
+    async def save_markdown_content(self, *, document_id, markdown_content: str, markdown_gcs_uri=None):
+        _ = (document_id, markdown_content, markdown_gcs_uri)
+        return True
+
+
+@pytest.mark.asyncio
+async def test_pipeline_tracker_normalizes_empty_output_payloads() -> None:
+    dao = FakePipelineDao()
+    tracker = PipelineTracker(
+        dao=dao,
+        app_name="negentropy",
+        operation="ingest_text",
+        run_id="run-normalized",
+    )
+
+    await tracker.start({"source_uri": "memory://doc"})
+    await tracker.start_stage("extract")
+    await tracker.complete_stage("extract")
+    await tracker.complete()
+
+    record = dao.records[("negentropy", "run-normalized")]
+    assert record.payload["input"] == {"source_uri": "memory://doc"}
+    assert record.payload["output"] == {}
+    assert record.payload["stages"]["extract"]["output"] == {}
+
+
+@pytest.mark.asyncio
+async def test_pipeline_tracker_resume_normalizes_legacy_null_output_payloads() -> None:
+    dao = FakePipelineDao()
+    dao.records[("negentropy", "run-legacy")] = FakePipelineRun(
+        app_name="negentropy",
+        run_id="run-legacy",
+        status="running",
+        payload={
+            "input": None,
+            "output": None,
+            "stages": {
+                "extract": {
+                    "status": "completed",
+                    "output": None,
+                }
+            },
+        },
+    )
+    tracker = PipelineTracker(
+        dao=dao,
+        app_name="negentropy",
+        operation="ingest_text",
+        run_id="run-legacy",
+    )
+
+    await tracker.resume()
+    await tracker.complete()
+
+    record = dao.records[("negentropy", "run-legacy")]
+    assert record.payload["input"] == {}
+    assert record.payload["output"] == {}
+    assert record.payload["stages"]["extract"]["output"] == {}
+
+
+@pytest.mark.asyncio
+async def test_pipeline_tracker_emits_run_and_stage_logs(monkeypatch) -> None:
+    dao = FakePipelineDao()
+    tracker = PipelineTracker(
+        dao=dao,
+        app_name="negentropy",
+        operation="ingest_text",
+        run_id="run-logs",
+    )
+    events: list[tuple[str, dict]] = []
+
+    class FakeLogger:
+        def info(self, event: str, **kwargs):
+            events.append((event, kwargs))
+
+        def warning(self, event: str, **kwargs):
+            events.append((event, kwargs))
+
+    monkeypatch.setattr("negentropy.knowledge.service.logger", FakeLogger())
+
+    await tracker.start({"corpus_id": "corpus-1", "source_uri": "memory://doc"})
+    await tracker.start_stage("chunk")
+    await tracker.complete_stage("chunk", {"chunk_count": 2})
+    await tracker.complete({"chunk_count": 2})
+
+    event_names = [event for event, _ in events]
+    assert "pipeline_run_started" in event_names
+    assert "pipeline_stage_started" in event_names
+    assert "pipeline_stage_completed" in event_names
+    assert "pipeline_run_completed" in event_names
+
 
 @pytest.mark.asyncio
 async def test_async_rebuild_pipeline_failure_persists_input_and_terminal_timestamps(monkeypatch):
@@ -69,11 +165,11 @@ async def test_async_rebuild_pipeline_failure_persists_input_and_terminal_timest
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
 
-    async def fake_extract_file_content(**kwargs):
+    async def fake_extract_file_document(**kwargs):
         _ = kwargs
-        return "plain text"
+        return ExtractedDocumentResult(plain_text="plain text", markdown_content="plain text")
 
-    monkeypatch.setattr(service, "_extract_file_content", fake_extract_file_content)
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
 
     run_id = await service.create_pipeline(
         app_name=app_name,
@@ -128,15 +224,15 @@ async def test_async_rebuild_pipeline_accepts_mcp_extracted_markdown_payload(mon
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
 
-    async def fake_extract_file_content(**kwargs):
+    async def fake_extract_file_document(**kwargs):
         _ = kwargs
-        return "# Extracted Markdown"
+        return ExtractedDocumentResult(plain_text="# Extracted Markdown", markdown_content="# Extracted Markdown")
 
     async def fake_ingest_text_with_tracker(**kwargs):
         _ = kwargs
         return []
 
-    monkeypatch.setattr(service, "_extract_file_content", fake_extract_file_content)
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
     monkeypatch.setattr(service, "_ingest_text_with_tracker", fake_ingest_text_with_tracker)
 
     run_id = await service.create_pipeline(
@@ -158,3 +254,114 @@ async def test_async_rebuild_pipeline_accepts_mcp_extracted_markdown_payload(mon
     record = dao.records[(app_name, run_id)]
     assert record.status == "completed"
     assert record.payload["stages"]["download"]["status"] == "completed"
+    assert record.payload["stages"]["extract_gate"]["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_async_rebuild_pipeline_does_not_delete_existing_source_when_extracted_document_is_empty(monkeypatch):
+    class GuardRepository:
+        def __init__(self) -> None:
+            self.delete_called = False
+
+        async def delete_knowledge_by_source(self, *, corpus_id, app_name, source_uri):
+            _ = (corpus_id, app_name, source_uri)
+            self.delete_called = True
+            return 1
+
+    repository = GuardRepository()
+    dao = FakePipelineDao()
+    service = KnowledgeService(repository=repository, pipeline_dao=dao)
+    corpus_id = uuid4()
+    app_name = "negentropy"
+    source_uri = "gs://bucket/doc.pdf"
+
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
+
+    async def fake_extract_file_document(**kwargs):
+        _ = kwargs
+        return ExtractedDocumentResult(
+            plain_text="",
+            markdown_content="",
+            trace={"provider": "mcp", "attempts": [{"tool_name": "convert_pdf_to_markdown", "failure_category": "empty_payload"}]},
+        )
+
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
+
+    run_id = await service.create_pipeline(
+        app_name=app_name,
+        operation="rebuild_source",
+        input_data={
+            "corpus_id": str(corpus_id),
+            "source_uri": source_uri,
+        },
+    )
+
+    with pytest.raises(Exception, match="Failed to extract content"):
+        await service.execute_rebuild_source_pipeline(
+            run_id=run_id,
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=source_uri,
+        )
+
+    record = dao.records[(app_name, run_id)]
+    assert repository.delete_called is False
+    assert record.status == "failed"
+    assert record.payload["stages"]["extract_gate"]["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_async_ingest_file_pipeline_marks_run_failed_when_extracted_document_is_empty(monkeypatch):
+    class GuardRepository:
+        async def add_knowledge(self, *, corpus_id, app_name, chunks):
+            _ = (corpus_id, app_name, chunks)
+            raise AssertionError("add_knowledge should not be called")
+
+    dao = FakePipelineDao()
+    service = KnowledgeService(repository=GuardRepository(), pipeline_dao=dao)
+    corpus_id = uuid4()
+    app_name = "negentropy"
+    source_uri = "gs://bucket/context-engineering.pdf"
+    document_id = uuid4()
+
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: FakeStorageService())
+
+    async def fake_extract_file_document(**kwargs):
+        _ = kwargs
+        return ExtractedDocumentResult(
+            plain_text="",
+            markdown_content="",
+            trace={
+                "provider": "mcp",
+                "attempts": [{"tool_name": "convert_pdf_to_markdown", "failure_category": "tool_execution_failed"}],
+            },
+        )
+
+    monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
+
+    run_id = await service.create_pipeline(
+        app_name=app_name,
+        operation="ingest_file",
+        input_data={
+            "corpus_id": str(corpus_id),
+            "source_uri": source_uri,
+            "document_id": str(document_id),
+        },
+    )
+
+    with pytest.raises(Exception, match="Failed to extract content"):
+        await service.execute_ingest_file_pipeline(
+            run_id=run_id,
+            corpus_id=corpus_id,
+            app_name=app_name,
+            content=b"%PDF-1.4",
+            filename="Context Engineering.pdf",
+            content_type="application/pdf",
+            source_uri=source_uri,
+            metadata={"document_id": str(document_id)},
+            document_id=document_id,
+        )
+
+    record = dao.records[(app_name, run_id)]
+    assert record.status == "failed"
+    assert record.payload["stages"]["extract_gate"]["status"] == "failed"

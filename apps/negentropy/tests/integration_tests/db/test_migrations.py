@@ -1,9 +1,7 @@
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy.ext.asyncio import AsyncEngine
-
-from negentropy.models.base import Base
+from alembic.script import ScriptDirectory
 
 
 @pytest.fixture
@@ -11,6 +9,13 @@ def alembic_config():
     """Returns an Alembic configuration object."""
     config = Config("alembic.ini")
     return config
+
+
+def test_migrations_have_single_head(alembic_config: Config):
+    """Ensure the migration graph stays linear at the current head."""
+
+    script = ScriptDirectory.from_config(alembic_config)
+    assert script.get_heads() == ["f2c3d4e5a6b7"]
 
 
 def test_migrations_stairway(alembic_config: Config):

@@ -366,6 +366,9 @@ function findMatchingTextNodeId(
     if (node.type !== "text" || node.role !== input.role) {
       continue;
     }
+    if (node.payload.streaming !== true) {
+      continue;
+    }
     if (hasTechnicalChildren(node)) {
       continue;
     }
@@ -586,11 +589,18 @@ export function buildConversationTree(
   const pendingConfirmationCountByRun = new Map<string, number>();
   const pendingLinks: LinkInstruction[] = [];
   const ledgerByMessageId = new Map<string, MessageLedgerEntry>();
+  const canonicalMessageIdByRelatedId = new Map<string, string>();
   let activeRunId: string | undefined;
 
   effectiveMessageLedger.forEach((entry) => {
     ledgerByMessageId.set(entry.id, entry);
     messageRoleById.set(entry.id, entry.resolvedRole);
+    entry.relatedMessageIds.forEach((relatedMessageId) => {
+      canonicalMessageIdByRelatedId.set(relatedMessageId, entry.id);
+      if (!ledgerByMessageId.has(relatedMessageId)) {
+        ledgerByMessageId.set(relatedMessageId, entry);
+      }
+    });
   });
 
   const orderedEvents = [...events].sort((a, b) => {
@@ -677,12 +687,15 @@ export function buildConversationTree(
           sourceOrder: eventIndex,
         };
         messageMetaById.set(messageId, meta);
+        const canonicalMessageId =
+          canonicalMessageIdByRelatedId.get(messageId) || messageId;
 
         const delta =
           normalizedEvent.type === EventType.TEXT_MESSAGE_CONTENT && "delta" in normalizedEvent
             ? String(normalizedEvent.delta || "")
             : "";
-        const existingNodeId = messageNodeIndex.get(messageId);
+        const existingNodeId =
+          messageNodeIndex.get(canonicalMessageId) || messageNodeIndex.get(messageId);
         const matchedNodeId =
           !existingNodeId && isAssistantLikeRole(role) && delta
             ? findMatchingTextNodeId(nodeIndex, {
@@ -696,23 +709,24 @@ export function buildConversationTree(
                 timestamp: normalizeTimestamp(normalizedEvent.timestamp),
               })
             : null;
-        const nodeId = matchedNodeId || existingNodeId || `message:${messageId}`;
+        const nodeId = matchedNodeId || existingNodeId || `message:${canonicalMessageId}`;
         const node = upsertNode(nodeIndex, roots, turns, {
           id: nodeId,
           type: "text",
           parentId: turn.id,
           threadId: meta.threadId,
           runId: meta.runId,
-          messageId,
+          messageId: canonicalMessageId,
           timestamp: meta.timestamp,
           sourceOrder: meta.sourceOrder,
           title: role === "user" ? "用户消息" : "助手消息",
           role,
           payload: delta ? { content: delta, streaming: true } : { streaming: true },
           sourceEventTypes: [eventType],
-          relatedMessageIds: [messageId],
+          relatedMessageIds: [canonicalMessageId, messageId],
         });
         mergeEventMeta(node, normalizedEvent);
+        node.messageId = canonicalMessageId;
         if (role) {
           node.role = role;
           node.title = role === "user" ? "用户消息" : "助手消息";
@@ -723,10 +737,11 @@ export function buildConversationTree(
           node.payload.content = accumulateTextContent(existing, delta);
         }
         node.payload.streaming =
-          ledgerByMessageId.get(messageId)?.streaming ??
+          ledgerByMessageId.get(canonicalMessageId)?.streaming ??
           !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END));
+        messageNodeIndex.set(canonicalMessageId, node.id);
         messageNodeIndex.set(messageId, node.id);
-        if (matchedNodeId && matchedNodeId !== `message:${messageId}`) {
+        if (matchedNodeId && matchedNodeId !== `message:${canonicalMessageId}`) {
           node.messageId = node.messageId || messageId;
         }
         if (node.role && isAssistantLikeRole(node.role)) {
@@ -1084,10 +1099,14 @@ export function buildConversationTree(
 
   mergedFallbackMessages.forEach((message, fallbackIndex) => {
     const messageId = message.id;
-    if (messageNodeIndex.has(messageId)) {
-      const existingNodeId = messageNodeIndex.get(messageId);
+    const canonicalMessageId =
+      canonicalMessageIdByRelatedId.get(messageId) || messageId;
+    if (messageNodeIndex.has(canonicalMessageId) || messageNodeIndex.has(messageId)) {
+      const existingNodeId =
+        messageNodeIndex.get(canonicalMessageId) || messageNodeIndex.get(messageId);
       const existingNode = existingNodeId ? nodeIndex.get(existingNodeId) : null;
-      const snapshotMessage = ledgerByMessageId.get(messageId);
+      const snapshotMessage =
+        ledgerByMessageId.get(canonicalMessageId) || ledgerByMessageId.get(messageId);
       if (
         existingNode &&
         snapshotMessage &&
@@ -1100,6 +1119,10 @@ export function buildConversationTree(
           sourceEventTypes: snapshotMessage.sourceEventTypes,
           relatedMessageIds: snapshotMessage.relatedMessageIds,
         });
+        messageNodeIndex.set(canonicalMessageId, existingNode.id);
+        snapshotMessage.relatedMessageIds.forEach((relatedMessageId) => {
+          messageNodeIndex.set(relatedMessageId, existingNode.id);
+        });
       }
       return;
     }
@@ -1108,8 +1131,13 @@ export function buildConversationTree(
     const timestamp = getMessageTimestamp(message);
     const role = normalizeRole(message.role);
     const content = normalizeMessageContent(message).trim();
+    const snapshotMessage =
+      ledgerByMessageId.get(canonicalMessageId) || ledgerByMessageId.get(messageId);
     const duplicateNode = [...nodeIndex.values()].find((node) => {
       if (node.type !== "text" || node.role !== role) {
+        return false;
+      }
+      if (node.payload.streaming !== true) {
         return false;
       }
       if (hasTechnicalChildren(node)) {
@@ -1139,7 +1167,6 @@ export function buildConversationTree(
       return Math.abs(node.timestamp - timestamp) <= timeWindow;
     });
     if (duplicateNode) {
-      const snapshotMessage = ledgerByMessageId.get(messageId);
       finalizeTextNodeFromCanonicalMessage(duplicateNode, {
         content: snapshotMessage?.content || content,
         streaming: snapshotMessage?.streaming ?? (getMessageStreaming(message) === true),
@@ -1147,12 +1174,18 @@ export function buildConversationTree(
         sourceEventTypes: snapshotMessage?.sourceEventTypes || ["fallback.message"],
         relatedMessageIds: [
           ...(snapshotMessage?.relatedMessageIds || []),
+          canonicalMessageId,
           messageId,
         ],
       });
+      duplicateNode.messageId = canonicalMessageId;
       if (!duplicateNode.relatedMessageIds.includes(messageId)) {
         duplicateNode.relatedMessageIds.push(messageId);
       }
+      if (!duplicateNode.relatedMessageIds.includes(canonicalMessageId)) {
+        duplicateNode.relatedMessageIds.push(canonicalMessageId);
+      }
+      messageNodeIndex.set(canonicalMessageId, duplicateNode.id);
       messageNodeIndex.set(messageId, duplicateNode.id);
       return;
     }
@@ -1176,12 +1209,12 @@ export function buildConversationTree(
     }
     const parentId = fallbackTurn?.id ?? null;
     const node = upsertNode(nodeIndex, roots, turns, {
-      id: `message:${messageId}`,
+      id: `message:${canonicalMessageId}`,
       type: "text",
       parentId,
       threadId,
       runId: fallbackTurn?.runId || runId,
-      messageId,
+      messageId: canonicalMessageId,
       timestamp,
       sourceOrder: orderedEvents.length + fallbackIndex,
       title: role === "user" ? "用户消息" : "助手消息",
@@ -1190,10 +1223,14 @@ export function buildConversationTree(
         content,
         streaming: getMessageStreaming(message) === true,
       },
-      sourceEventTypes: ["fallback.message"],
-      relatedMessageIds: [messageId],
+      sourceEventTypes: snapshotMessage?.sourceEventTypes || ["fallback.message"],
+      relatedMessageIds: snapshotMessage?.relatedMessageIds || [canonicalMessageId, messageId],
     });
+    messageNodeIndex.set(canonicalMessageId, node.id);
     messageNodeIndex.set(messageId, node.id);
+    (snapshotMessage?.relatedMessageIds || []).forEach((relatedMessageId) => {
+      messageNodeIndex.set(relatedMessageId, node.id);
+    });
     if (role === "assistant" && (fallbackTurn?.runId || runId)) {
       assistantMessageByRun.set(fallbackTurn?.runId || runId || DEFAULT_RUN_ID, node.id);
     }

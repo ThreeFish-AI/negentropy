@@ -96,9 +96,12 @@ class KnowledgeRecord:
     content: str
     source_uri: Optional[str]
     chunk_index: int
-    metadata: Dict[str, Any]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    character_count: int = 0
+    retrieval_count: int = 0
+    is_enabled: bool = True
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     embedding: Optional[List[float]] = None
 
 
@@ -124,6 +127,8 @@ class KnowledgeMatch:
     content: str
     source_uri: Optional[str]
     metadata: Dict[str, Any]
+    retrieval_count: int = 0
+    is_enabled: bool = True
     semantic_score: float = 0.0
     keyword_score: float = 0.0
     combined_score: float = 0.0

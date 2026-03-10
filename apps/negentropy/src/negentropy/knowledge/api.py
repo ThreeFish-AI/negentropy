@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import func, select
 
 from negentropy.config import settings
@@ -198,6 +198,84 @@ class PipelinesUpsertRequest(BaseModel):
     expected_version: Optional[int] = None
 
 
+class PipelineErrorPayloadResponse(BaseModel):
+    """Pipeline 错误对象。
+
+    `failure_category` 用于稳定失败分类；`diagnostic_summary` 用于一条可直接展示的摘要；
+    `diagnostics` 保留完整结构化诊断信息，供明细排障使用。
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    failure_category: Optional[str] = Field(default=None, description="稳定失败分类。")
+    diagnostic_summary: Optional[str] = Field(
+        default=None,
+        description="一条可直接展示的摘要，默认用于契约类失败。",
+    )
+    diagnostics: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="结构化详细诊断信息，供明细排障使用。",
+    )
+
+
+class PipelineStageResultResponse(BaseModel):
+    # Pipeline 运行态 payload 仍处于演进期，允许透传未显式建模的增量字段。
+    model_config = ConfigDict(extra="allow")
+
+    status: str
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    duration_ms: Optional[int] = None
+    error: Optional[PipelineErrorPayloadResponse] = None
+    output: Dict[str, Any] = Field(default_factory=dict)
+    reason: Optional[str] = None
+
+
+class PipelineRunRecordResponse(BaseModel):
+    # Pipeline run 顶层字段继续保持向后兼容，后续若 payload 收敛可再逐步收紧。
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    run_id: str
+    status: str
+    version: Optional[int] = None
+    operation: Optional[str] = None
+    trigger: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    duration_ms: Optional[int] = None
+    duration: Optional[str] = None
+    input: Dict[str, Any] = Field(default_factory=dict)
+    output: Dict[str, Any] = Field(default_factory=dict)
+    stages: Dict[str, PipelineStageResultResponse] = Field(default_factory=dict)
+    error: Optional[PipelineErrorPayloadResponse] = None
+
+
+class KnowledgePipelinesResponse(BaseModel):
+    runs: list[PipelineRunRecordResponse] = Field(default_factory=list)
+    last_updated_at: Optional[str] = None
+
+
+class PipelineUpsertRecordResponse(BaseModel):
+    """Pipeline upsert 结果中的记录快照。"""
+
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    run_id: str
+    status: str
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    version: Optional[int] = None
+    updated_at: Optional[str] = None
+
+
+class PipelineUpsertResponse(BaseModel):
+    """Pipeline upsert 响应。"""
+
+    status: str
+    pipeline: PipelineUpsertRecordResponse
+
+
 # Graph API Request/Response Models
 class GraphBuildRequest(BaseModel):
     """图谱构建请求"""
@@ -221,6 +299,31 @@ class GraphBuildResponse(BaseModel):
     chunks_processed: int
     elapsed_seconds: float
     error_message: Optional[str] = None
+
+
+def _normalize_pipeline_stage_payloads(
+    stages: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    normalized: Dict[str, Any] = {}
+    for stage_name, stage_payload in (stages or {}).items():
+        stage_data = dict(stage_payload or {})
+        if "output" in stage_data and stage_data.get("output") is None:
+            stage_data["output"] = {}
+        normalized[stage_name] = stage_data
+    return normalized
+
+
+def _normalize_pipeline_run_payload(
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    normalized = dict(payload or {})
+    if normalized.get("input") is None:
+        normalized["input"] = {}
+    if normalized.get("output") is None:
+        normalized["output"] = {}
+    if "stages" in normalized or payload:
+        normalized["stages"] = _normalize_pipeline_stage_payloads(normalized.get("stages"))
+    return normalized
 
 
 class GraphSearchRequest(BaseModel):
@@ -1101,7 +1204,7 @@ async def _extract_and_store_document_markdown_from_gcs(
     )
 
 
-@router.post("/base/{corpus_id}/ingest_file")
+@router.post("/base/{corpus_id}/ingest_file", response_model=AsyncPipelineResponse)
 async def ingest_file(
     corpus_id: UUID,
     background_tasks: BackgroundTasks,
@@ -1122,7 +1225,7 @@ async def ingest_file(
     hierarchical_child_chunk_size: Optional[int] = Form(default=None),
     hierarchical_child_overlap: Optional[int] = Form(default=None),
     store_to_gcs: bool = Form(default=True),
-) -> Dict[str, Any]:
+) -> AsyncPipelineResponse:
     """从上传文件导入内容到知识库
 
     支持格式: .txt, .md, .markdown, .pdf
@@ -1199,7 +1302,6 @@ async def ingest_file(
             except json.JSONDecodeError:
                 parsed_separators = [item.strip() for item in separators.split(",") if item.strip()]
 
-        # 提取文本
         from .content import sanitize_filename
 
         # 保留用于展示的原始文件名（仅去除路径前缀并限制长度）
@@ -1211,6 +1313,7 @@ async def ingest_file(
         doc_record = None
         is_new_doc = True
         gcs_uri = None
+        storage_service = None
 
         if store_to_gcs:
             from negentropy.storage.service import DocumentStorageService
@@ -1242,24 +1345,6 @@ async def ingest_file(
         service = _get_service()
         corpus = await service.get_corpus_by_id(corpus_id)
         corpus_config = corpus.config if corpus else {}
-
-        source_kind = resolve_source_kind(filename=raw_filename, content_type=file.content_type)
-        extraction_result = await extract_source(
-            app_name=resolved_app,
-            corpus_id=corpus_id,
-            corpus_config=corpus_config,
-            source_kind=source_kind,
-            content=content,
-            filename=raw_filename,
-            content_type=file.content_type,
-        )
-        text = extraction_result.plain_text
-
-        if not text.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "EMPTY_CONTENT", "message": "No text content extracted from file"},
-            )
 
         # GCS 存储的文件强制使用 gcs_uri 作为 source_uri（支持 Rebuild 功能）
         # 只有非 GCS 存储时才使用用户提供的 source_uri 或文件名
@@ -1298,51 +1383,56 @@ async def ingest_file(
         meta["source_type"] = "file"
         if gcs_uri:
             meta["gcs_uri"] = gcs_uri
-        meta["extractor_trace"] = extraction_result.trace
         if doc_record:
             meta["document_id"] = str(doc_record.id)
 
-        # 调用现有的 ingest_text
-        records = await service.ingest_text(
+        run_id = await service.create_pipeline(
+            app_name=resolved_app,
+            operation="ingest_file",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "source_uri": final_source_uri,
+                "filename": raw_filename,
+                "content_type": file.content_type,
+                "file_size": len(content),
+                "document_id": str(doc_record.id) if doc_record else None,
+                "duplicate_document": (not is_new_doc) if doc_record else False,
+                "chunking_config": chunking_config_summary(chunking_config),
+            },
+        )
+
+        background_tasks.add_task(
+            service.execute_ingest_file_pipeline,
+            run_id=run_id,
             corpus_id=corpus_id,
             app_name=resolved_app,
-            text=text,
+            content=content,
+            filename=raw_filename,
+            content_type=file.content_type,
             source_uri=final_source_uri,
             metadata=meta,
             chunking_config=chunking_config,
+            document_id=doc_record.id if doc_record else None,
         )
 
         logger.info(
-            "api_ingest_file_completed",
+            "api_ingest_file_queued",
             corpus_id=str(corpus_id),
             filename=file.filename,
-            record_count=len(records),
-            is_new_doc=is_new_doc,
+            run_id=run_id,
+            document_id=str(doc_record.id) if doc_record else None,
+            duplicate_document=(not is_new_doc) if doc_record else False,
         )
 
-        result: Dict[str, Any] = {"count": len(records), "items": [r.id for r in records]}
-        if doc_record:
-            result["document_id"] = str(doc_record.id)
-            result["duplicate"] = not is_new_doc
-            result["markdown_extract_status"] = doc_record.markdown_extract_status
-
-            markdown_gcs_uri = await storage_service.upload_markdown_derivative(
-                document_id=doc_record.id,
-                markdown_content=extraction_result.markdown_content,
-            )
-            await storage_service.save_markdown_content(
-                document_id=doc_record.id,
-                markdown_content=extraction_result.markdown_content,
-                markdown_gcs_uri=markdown_gcs_uri,
-            )
-            stored_assets = await persist_extracted_assets(
-                document_id=doc_record.id,
-                assets=extraction_result.assets,
-            )
-            if stored_assets:
-                result["extracted_assets"] = stored_assets
-
-        return result
+        return AsyncPipelineResponse(
+            run_id=run_id,
+            status="running",
+            message=(
+                f"File ingest task started (document_id={doc_record.id}). Check Pipeline page for progress."
+                if doc_record
+                else "File ingest task started. Check Pipeline page for progress."
+            ),
+        )
 
     except ValueError as exc:
         logger.warning("file_parse_error", error=str(exc))
@@ -1411,7 +1501,89 @@ class DocumentMarkdownRefreshRequest(BaseModel):
 
 class DocumentChunksResponse(BaseModel):
     count: int
+    page: int = 1
+    page_size: int = 50
+    document_metadata: Dict[str, Any] = Field(default_factory=dict)
     items: list[Dict[str, Any]]
+
+
+class DocumentChunkDetailResponse(BaseModel):
+    item: Dict[str, Any]
+    document_metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DocumentChunkUpdateRequest(BaseModel):
+    app_name: Optional[str] = None
+    content: Optional[str] = None
+    is_enabled: Optional[bool] = None
+
+
+def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[KnowledgeRecord]) -> Dict[str, Any]:
+    metadata = item.metadata or {}
+    family_id = metadata.get("chunk_family_id")
+    child_chunks = []
+    if metadata.get("chunk_role") == "parent" and isinstance(family_id, str) and family_id:
+        child_chunks = [
+            {
+                "id": str(candidate.id),
+                "chunk_index": candidate.chunk_index,
+                "character_count": candidate.character_count,
+                "retrieval_count": candidate.retrieval_count,
+                "display_retrieval_count": candidate.retrieval_count,
+                "is_enabled": candidate.is_enabled,
+                "content": candidate.content,
+                "chunk_role": candidate.metadata.get("chunk_role", "leaf"),
+                "parent_chunk_index": candidate.metadata.get("parent_chunk_index"),
+                "child_chunk_index": candidate.metadata.get("child_chunk_index"),
+                "chunk_family_id": candidate.metadata.get("chunk_family_id"),
+                "metadata": candidate.metadata,
+            }
+            for candidate in siblings
+            if candidate.metadata.get("chunk_role") == "child"
+            and candidate.metadata.get("chunk_family_id") == family_id
+        ]
+
+    display_retrieval_count = item.retrieval_count
+    if metadata.get("chunk_role") == "parent":
+        display_retrieval_count = sum(child["retrieval_count"] for child in child_chunks)
+
+    return {
+        "id": str(item.id),
+        "content": item.content,
+        "source_uri": item.source_uri,
+        "created_at": item.created_at.isoformat() if item.created_at else None,
+        "updated_at": item.updated_at.isoformat() if item.updated_at else None,
+        "chunk_index": item.chunk_index,
+        "character_count": item.character_count,
+        "retrieval_count": item.retrieval_count,
+        "display_retrieval_count": display_retrieval_count,
+        "is_enabled": item.is_enabled,
+        "chunk_role": metadata.get("chunk_role", "leaf"),
+        "parent_chunk_index": metadata.get("parent_chunk_index"),
+        "child_chunk_index": metadata.get("child_chunk_index"),
+        "chunk_family_id": metadata.get("chunk_family_id"),
+        "metadata": metadata,
+        "child_chunks": child_chunks,
+    }
+
+
+def _build_document_chunk_metadata(doc: Any, items: list[KnowledgeRecord]) -> Dict[str, Any]:
+    chunk_stats = ((doc.metadata_ or {}).get("chunk_stats") or {}) if doc else {}
+    total_retrieval_count = sum(item.retrieval_count for item in items)
+    return {
+        "original_filename": getattr(doc, "original_filename", None),
+        "file_size": getattr(doc, "file_size", None),
+        "upload_date": doc.created_at.isoformat() if getattr(doc, "created_at", None) else None,
+        "last_update_date": doc.updated_at.isoformat() if getattr(doc, "updated_at", None) else None,
+        "source": (doc.metadata_ or {}).get("source_type", "file") if doc else "file",
+        "chunk_specification": chunk_stats.get("chunk_specification"),
+        "chunk_length": chunk_stats.get("chunk_length"),
+        "avg_paragraph_length": chunk_stats.get("avg_paragraph_length"),
+        "paragraph_count": chunk_stats.get("paragraph_count", len(items)),
+        "retrieval_count": total_retrieval_count,
+        "embedding_time_ms": chunk_stats.get("embedding_time_ms"),
+        "embedded_tokens": chunk_stats.get("embedded_tokens"),
+    }
 
 
 class DocumentActionRequest(_LegacyChunkingRequest):
@@ -1813,19 +1985,163 @@ async def list_document_chunks(
         limit=limit,
         offset=offset,
     )
+    serialized = [_serialize_document_chunk_item(item, items) for item in items]
     return DocumentChunksResponse(
         count=total_count,
-        items=[
-            {
-                "id": str(item.id),
-                "content": item.content,
-                "source_uri": item.source_uri,
-                "created_at": item.created_at.isoformat() if item.created_at else None,
-                "chunk_index": item.chunk_index,
-                "metadata": item.metadata,
-            }
-            for item in items
-        ],
+        page=(offset // limit) + 1,
+        page_size=limit,
+        document_metadata=_build_document_chunk_metadata(doc, items),
+        items=serialized,
+    )
+
+
+@router.get(
+    "/base/{corpus_id}/documents/{document_id}/chunks/{chunk_id}",
+    response_model=DocumentChunkDetailResponse,
+)
+async def get_document_chunk_detail(
+    corpus_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    app_name: Optional[str] = Query(default=None),
+) -> DocumentChunkDetailResponse:
+    resolved_app = _resolve_app_name(app_name)
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    service = _get_service()
+    item = await service.get_knowledge_chunk(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        knowledge_id=chunk_id,
+    )
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CHUNK_NOT_FOUND", "message": "Chunk not found"},
+        )
+
+    siblings = [item]
+    family_id = item.metadata.get("chunk_family_id")
+    if isinstance(family_id, str) and family_id:
+        siblings = await service._repository.list_knowledge_by_family(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            family_id=family_id,
+            source_uri=item.source_uri,
+        )
+
+    return DocumentChunkDetailResponse(
+        item=_serialize_document_chunk_item(item, siblings),
+        document_metadata=_build_document_chunk_metadata(doc, siblings),
+    )
+
+
+@router.patch(
+    "/base/{corpus_id}/documents/{document_id}/chunks/{chunk_id}",
+    response_model=DocumentChunkDetailResponse,
+)
+async def update_document_chunk(
+    corpus_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    payload: DocumentChunkUpdateRequest,
+) -> DocumentChunkDetailResponse:
+    resolved_app = _resolve_app_name(payload.app_name)
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    service = _get_service()
+    item = await service.update_knowledge_chunk(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        knowledge_id=chunk_id,
+        content=payload.content,
+        is_enabled=payload.is_enabled,
+    )
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CHUNK_NOT_FOUND", "message": "Chunk not found"},
+        )
+    siblings = [item]
+    family_id = item.metadata.get("chunk_family_id")
+    if isinstance(family_id, str) and family_id:
+        siblings = await service._repository.list_knowledge_by_family(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            family_id=family_id,
+            source_uri=item.source_uri,
+        )
+    return DocumentChunkDetailResponse(
+        item=_serialize_document_chunk_item(item, siblings),
+        document_metadata=_build_document_chunk_metadata(doc, siblings),
+    )
+
+
+@router.post(
+    "/base/{corpus_id}/documents/{document_id}/chunks/{chunk_id}/regenerate-family",
+    response_model=DocumentChunkDetailResponse,
+)
+async def regenerate_document_chunk_family(
+    corpus_id: UUID,
+    document_id: UUID,
+    chunk_id: UUID,
+    payload: DocumentChunkUpdateRequest,
+) -> DocumentChunkDetailResponse:
+    resolved_app = _resolve_app_name(payload.app_name)
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+    service = _get_service()
+    records = await service.regenerate_knowledge_family(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        knowledge_id=chunk_id,
+        content=payload.content or "",
+        is_enabled=payload.is_enabled,
+    )
+    if not records:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CHUNK_NOT_FOUND", "message": "Chunk not found"},
+        )
+    selected = next((item for item in records if str(item.id) == str(chunk_id)), records[0])
+    return DocumentChunkDetailResponse(
+        item=_serialize_document_chunk_item(selected, records),
+        document_metadata=_build_document_chunk_metadata(doc, records),
     )
 
 
@@ -2640,28 +2956,28 @@ async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
     return {"status": result.status, "graph": result.record}
 
 
-@router.get("/pipelines")
-async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+@router.get("/pipelines", response_model=KnowledgePipelinesResponse)
+async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> KnowledgePipelinesResponse:
     resolved_app = _resolve_app_name(app_name)
     dao = _get_dao()
     runs = await dao.list_pipeline_runs(resolved_app, limit=50)
-    return {
-        "runs": [
-            {
-                "id": str(run.id),
-                "run_id": run.run_id,
-                "status": run.status,
-                "version": run.version,
-                **(run.payload or {}),
-            }
+    return KnowledgePipelinesResponse(
+        runs=[
+            PipelineRunRecordResponse(
+                id=str(run.id),
+                run_id=run.run_id,
+                status=run.status,
+                version=run.version,
+                **_normalize_pipeline_run_payload(run.payload),
+            )
             for run in runs
         ],
-        "last_updated_at": runs[0].updated_at.isoformat() if runs else None,
-    }
+        last_updated_at=runs[0].updated_at.isoformat() if runs else None,
+    )
 
 
-@router.post("/pipelines")
-async def upsert_pipelines(payload: PipelinesUpsertRequest) -> Dict[str, Any]:
+@router.post("/pipelines", response_model=PipelineUpsertResponse)
+async def upsert_pipelines(payload: PipelinesUpsertRequest) -> PipelineUpsertResponse:
     resolved_app = _resolve_app_name(payload.app_name)
     dao = _get_dao()
     result = await dao.upsert_pipeline_run(
@@ -2674,7 +2990,10 @@ async def upsert_pipelines(payload: PipelinesUpsertRequest) -> Dict[str, Any]:
     )
     if result.status == "conflict":
         raise HTTPException(status_code=409, detail="Pipeline run version conflict")
-    return {"status": result.status, "pipeline": result.record}
+    return PipelineUpsertResponse(
+        status=result.status,
+        pipeline=PipelineUpsertRecordResponse(**result.record),
+    )
 
 
 # ============================================================================

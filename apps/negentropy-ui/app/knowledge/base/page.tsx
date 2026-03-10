@@ -19,6 +19,7 @@ import {
   ChunkingStrategy,
   DocumentViewDialog,
   DocumentChunkItem,
+  DocumentChunksMetadata,
   ExtractorDraftRoutes,
   ExtractorDraftTarget,
   KnowledgeDocument,
@@ -26,9 +27,12 @@ import {
   SearchMode,
   createEmptyExtractorDraftTarget,
   fetchDocumentChunks,
+  fetchDocumentChunkDetail,
   fetchDocuments,
   normalizeExtractorDraftRoutes,
+  regenerateDocumentChunkFamily,
   searchAcrossCorpora,
+  updateDocumentChunk,
   useKnowledgeBase,
   syncDocument,
   rebuildDocument,
@@ -42,7 +46,6 @@ import {
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
@@ -52,6 +55,7 @@ import { RetrievedChunkCard } from "./_components/RetrievedChunkCard";
 import { RetrievedChunkDetailDialog } from "./_components/RetrievedChunkDetailDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 import { buildRetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
+import type { RetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -89,45 +93,179 @@ function formatCorpusConfigSummary(corpus: CorpusRecord): string {
   return `strategy: ${config.strategy} · size: ${config.chunk_size} · overlap: ${config.overlap}`;
 }
 
-function ChunkDetailDrawer({
-  chunk,
-  onClose,
+function formatFileSize(size?: number | null): string {
+  if (!size || size <= 0) return "--";
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleString("zh-CN");
+}
+
+function formatChunkLabel(chunk: DocumentChunkItem): string {
+  const prefix = chunk.chunk_role === "parent" ? "Parent" : "Chunk";
+  return `${prefix}-${String(chunk.chunk_index).padStart(2, "0")}`;
+}
+
+function toDocumentChunkCardViewModel(chunk: DocumentChunkItem): RetrievedChunkViewModel {
+  return {
+    id: chunk.id,
+    variant: chunk.child_chunks.length > 0 ? "hierarchical" : "standard",
+    title: formatChunkLabel(chunk),
+    characterCount: chunk.character_count,
+    preview: chunk.content,
+    fullContent: chunk.content,
+    sourceLabel: chunk.source_uri || "-",
+    sourceTitle: chunk.source_uri || "-",
+    score: 0,
+    childHitCount: chunk.child_chunks.length,
+    childChunks: chunk.child_chunks
+      .filter((child) => child.content.trim().length > 0)
+      .map((child) => ({
+        id: child.id,
+        label: `C-${String(child.child_chunk_index ?? child.chunk_index).padStart(2, "0")}`,
+        content: child.content,
+        score: 0,
+      })),
+    raw: {
+      id: chunk.id,
+      content: chunk.content,
+      source_uri: chunk.source_uri,
+      combined_score: 0,
+      metadata: chunk.metadata,
+    } as KnowledgeMatch,
+  };
+}
+
+function DocumentMetadataPanel({
+  metadata,
 }: {
-  chunk: DocumentChunkItem | null;
-  onClose: () => void;
+  metadata: DocumentChunksMetadata;
 }) {
-  if (!chunk) return null;
-  const metadata = chunk.metadata;
-  const content = chunk.content;
+  const stats: Array<[string, string | number]> = [
+    ["Chunks specification", metadata.chunk_specification ?? "--"],
+    ["Chunks length", metadata.chunk_length ?? "--"],
+    ["Avg. paragraph length", metadata.avg_paragraph_length ?? "--"],
+    ["Paragraphs", metadata.paragraph_count ?? "--"],
+    ["Retrieval count", metadata.retrieval_count ?? 0],
+    ["Embedding time", metadata.embedding_time_ms ? `${metadata.embedding_time_ms} ms` : "--"],
+    ["Embedded spend", metadata.embedded_tokens ? `${metadata.embedded_tokens} tokens` : "--"],
+  ];
+  const docInfo: Array<[string, string | number]> = [
+    ["Original filename", metadata.original_filename ?? "--"],
+    ["Original file size", formatFileSize(metadata.file_size)],
+    ["Upload date", formatDateTime(metadata.upload_date)],
+    ["Last update date", formatDateTime(metadata.last_update_date)],
+    ["Source", metadata.source ?? "--"],
+  ];
+  const renderFieldGroup = (title: string, items: Array<[string, string | number]>) => (
+    <div>
+      <h4 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">{title}</h4>
+      <dl className="mt-3 space-y-2.5">
+        {items.map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)] items-start gap-x-4 gap-y-1">
+            <dt className="break-words text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+              {label}
+            </dt>
+            <dd className="break-words text-sm font-medium leading-6 text-foreground">
+              {String(value)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+
   return (
-    <OverlayDismissLayer
-      open={chunk !== null}
-      onClose={onClose}
-      containerClassName="flex min-h-full justify-end"
-      contentClassName="h-full w-[420px] border-l border-border bg-card p-4 shadow-2xl"
-      backdropTestId="chunk-drawer-backdrop"
-    >
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Chunk Detail</h3>
+    <section className="h-full rounded-2xl border border-border bg-card p-5">
+      <h3 className="text-base font-semibold">Document Metadata</h3>
+      <p className="mt-2 text-sm text-muted">
+        Metadata serves as a critical filter that enhances the accuracy and relevance of information retrieval.
+      </p>
+      <div className="mt-6 space-y-6">
+        {renderFieldGroup("Document Information", docInfo)}
+        {renderFieldGroup("Technical Parameters", stats)}
+      </div>
+    </section>
+  );
+}
+
+function EditChunkPanel({
+  chunk,
+  draftContent,
+  draftEnabled,
+  onDraftContentChange,
+  onDraftEnabledChange,
+  onCancel,
+  onSave,
+  onRegenerate,
+  pending,
+}: {
+  chunk: DocumentChunkItem;
+  draftContent: string;
+  draftEnabled: boolean;
+  onDraftContentChange: (value: string) => void;
+  onDraftEnabledChange: (value: boolean) => void;
+  onCancel: () => void;
+  onSave: () => void;
+  onRegenerate: () => void;
+  pending: boolean;
+}) {
+  return (
+    <section className="flex h-full flex-col rounded-2xl border border-border bg-card p-5">
+      <div className="mb-4">
+        <h3 className="text-2xl font-semibold">Edit Chunk</h3>
+        <p className="mt-1 text-sm text-muted">
+          {chunk.chunk_role === "parent" ? "Parent" : "Chunk"}-{String(chunk.chunk_index).padStart(2, "0")} · {chunk.character_count} characters
+        </p>
+      </div>
+      <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2">
+        <span className="text-sm text-muted">Enabled</span>
         <button
-          onClick={onClose}
-          className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
+          type="button"
+          aria-pressed={draftEnabled}
+          onClick={() => onDraftEnabledChange(!draftEnabled)}
+          className={`rounded-full px-3 py-1 text-xs font-medium ${draftEnabled ? "bg-emerald-500 text-white" : "bg-zinc-700 text-zinc-200"}`}
         >
-          Close
+          {draftEnabled ? "Enabled" : "Disabled"}
         </button>
       </div>
-      <div className="space-y-3 text-xs">
-        <div className="rounded border border-border bg-background p-3">
-          <p className="whitespace-pre-wrap break-words text-foreground">{content}</p>
-        </div>
-        <div className="rounded border border-border bg-background p-3">
-          <div className="mb-2 text-[11px] font-medium text-muted">Metadata</div>
-          <pre className="whitespace-pre-wrap break-words text-[11px] text-muted">
-            {JSON.stringify(metadata || {}, null, 2)}
-          </pre>
-        </div>
+      <textarea
+        value={draftContent}
+        onChange={(event) => onDraftContentChange(event.target.value)}
+        className="min-h-0 flex-1 resize-none rounded-2xl border border-border bg-background p-4 text-sm outline-none"
+      />
+      <div className="mt-4 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className={outlineButtonClassName("neutral", "rounded-xl px-4 py-2 text-sm")}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onRegenerate}
+          className={outlineButtonClassName("neutral", "rounded-xl px-4 py-2 text-sm")}
+        >
+          Save & Regenerate Child Chunks
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onSave}
+          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+        >
+          Save
+        </button>
       </div>
-    </OverlayDismissLayer>
+    </section>
   );
 }
 
@@ -487,10 +625,17 @@ export default function KnowledgeBasePage() {
   const [documentsLoading, setDocumentsLoading] = useState(false);
 
   const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
+  const [documentChunksMetadata, setDocumentChunksMetadata] = useState<DocumentChunksMetadata>({});
+  const [documentChunkCount, setDocumentChunkCount] = useState(0);
+  const [documentChunkPage, setDocumentChunkPage] = useState(1);
+  const [documentChunkPageSize, setDocumentChunkPageSize] = useState(10);
   const [chunksLoading, setChunksLoading] = useState(false);
 
   const [selectedRetrievedChunk, setSelectedRetrievedChunk] = useState<KnowledgeMatch | null>(null);
   const [selectedDocumentChunk, setSelectedDocumentChunk] = useState<DocumentChunkItem | null>(null);
+  const [chunkDraftContent, setChunkDraftContent] = useState("");
+  const [chunkDraftEnabled, setChunkDraftEnabled] = useState(true);
+  const [chunkActionPending, setChunkActionPending] = useState(false);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
@@ -595,22 +740,118 @@ export default function KnowledgeBasePage() {
     try {
       const res = await fetchDocumentChunks(selectedCorpusId, selectedDocumentId, {
         appName: APP_NAME,
-        limit: 200,
-        offset: 0,
+        limit: documentChunkPageSize,
+        offset: (documentChunkPage - 1) * documentChunkPageSize,
       });
       setDocumentChunks(res.items);
+      setDocumentChunksMetadata(res.document_metadata || {});
+      setDocumentChunkCount(res.count);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load chunks");
     } finally {
       setChunksLoading(false);
     }
-  }, [selectedCorpusId, selectedDocumentId]);
+  }, [selectedCorpusId, selectedDocumentId, documentChunkPage, documentChunkPageSize]);
 
   useEffect(() => {
     if (viewMode === "corpus" && corpusTab === "document-chunks" && selectedCorpusId && selectedDocumentId) {
       loadDocumentChunks();
     }
   }, [viewMode, corpusTab, selectedCorpusId, selectedDocumentId, loadDocumentChunks]);
+
+  useEffect(() => {
+    setSelectedDocumentChunk(null);
+    setChunkDraftContent("");
+    setChunkDraftEnabled(true);
+    setDocumentChunkPage(1);
+  }, [selectedDocumentId]);
+
+  const handleSelectDocumentChunk = useCallback(
+    async (chunk: DocumentChunkItem) => {
+      if (!selectedCorpusId || !selectedDocumentId) return;
+      try {
+        const detail = await fetchDocumentChunkDetail(
+          selectedCorpusId,
+          selectedDocumentId,
+          chunk.id,
+          { appName: APP_NAME },
+        );
+        setSelectedDocumentChunk(detail.item);
+        setChunkDraftContent(detail.item.content);
+        setChunkDraftEnabled(detail.item.is_enabled);
+        setDocumentChunksMetadata(detail.document_metadata || documentChunksMetadata);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to load chunk detail");
+      }
+    },
+    [selectedCorpusId, selectedDocumentId, documentChunksMetadata],
+  );
+
+  const handleSaveDocumentChunk = useCallback(async () => {
+    if (!selectedCorpusId || !selectedDocumentId || !selectedDocumentChunk) return;
+    setChunkActionPending(true);
+    try {
+      const detail = await updateDocumentChunk(
+        selectedCorpusId,
+        selectedDocumentId,
+        selectedDocumentChunk.id,
+        {
+          appName: APP_NAME,
+          content: chunkDraftContent,
+          is_enabled: chunkDraftEnabled,
+        },
+      );
+      setSelectedDocumentChunk(detail.item);
+      setChunkDraftContent(detail.item.content);
+      setChunkDraftEnabled(detail.item.is_enabled);
+      await loadDocumentChunks();
+      toast.success("Chunk saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save chunk");
+    } finally {
+      setChunkActionPending(false);
+    }
+  }, [
+    selectedCorpusId,
+    selectedDocumentId,
+    selectedDocumentChunk,
+    chunkDraftContent,
+    chunkDraftEnabled,
+    loadDocumentChunks,
+  ]);
+
+  const handleRegenerateDocumentChunkFamily = useCallback(async () => {
+    if (!selectedCorpusId || !selectedDocumentId || !selectedDocumentChunk) return;
+    setChunkActionPending(true);
+    try {
+      const detail = await regenerateDocumentChunkFamily(
+        selectedCorpusId,
+        selectedDocumentId,
+        selectedDocumentChunk.id,
+        {
+          appName: APP_NAME,
+          content: chunkDraftContent,
+          is_enabled: chunkDraftEnabled,
+        },
+      );
+      setSelectedDocumentChunk(detail.item);
+      setChunkDraftContent(detail.item.content);
+      setChunkDraftEnabled(detail.item.is_enabled);
+      await loadDocumentChunks();
+      toast.success("Chunk family regenerated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to regenerate chunk family");
+    } finally {
+      setChunkActionPending(false);
+    }
+  }, [
+    selectedCorpusId,
+    selectedDocumentId,
+    selectedDocumentChunk,
+    chunkDraftContent,
+    chunkDraftEnabled,
+    loadDocumentChunks,
+  ]);
 
   const resetRetrievalView = useCallback(() => {
     setRetrievalResults([]);
@@ -1102,7 +1343,9 @@ export default function KnowledgeBasePage() {
 
             <main
               data-testid="corpus-content-scroll"
-              className="min-w-0 flex-1 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-sm"
+              className={`min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 shadow-sm ${
+                corpusTab === "document-chunks" ? "overflow-hidden" : "overflow-y-auto"
+              }`}
             >
               {corpusTab === "documents" && (
                 <div className="space-y-3 pb-10">
@@ -1179,43 +1422,140 @@ export default function KnowledgeBasePage() {
               )}
 
               {corpusTab === "document-chunks" && (
-                <div className="space-y-3 pb-10">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold">Document Chunks</h2>
-                    <button
-                      onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "documents", documentId: null })}
-                      className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-xs")}
+                <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+                  <section className="flex min-h-0 flex-col rounded-2xl border border-border bg-card">
+                    <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                      <div>
+                        <h2 className="text-lg font-semibold">Document Chunks</h2>
+                        <p className="mt-1 text-sm text-muted">{documentChunkCount} Chunks</p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "documents", documentId: null })
+                        }
+                        className={outlineButtonClassName("neutral", "rounded-xl px-3 py-2 text-xs")}
+                      >
+                        Back to Documents
+                      </button>
+                    </div>
+
+                    <div
+                      data-testid="document-chunks-queue"
+                      className="flex-1 min-h-0 space-y-3 overflow-y-auto px-4 py-4"
                     >
-                      Back to Documents
-                    </button>
-                  </div>
-                  {chunksLoading ? (
-                    <p className="text-xs text-muted">Loading chunks...</p>
-                  ) : documentChunks.length === 0 ? (
-                    <p className="text-xs text-muted">No chunks.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {documentChunks.map((chunk) => (
+                      {chunksLoading ? (
+                        <p className="text-xs text-muted">Loading chunks...</p>
+                      ) : documentChunks.length === 0 ? (
+                        <p className="text-xs text-muted">No chunks.</p>
+                      ) : (
+                        documentChunks.map((chunk) => {
+                          const cardModel = toDocumentChunkCardViewModel(chunk);
+                          return (
+                            <RetrievedChunkCard
+                              key={chunk.id}
+                              chunk={cardModel}
+                              onOpen={() => void handleSelectDocumentChunk(chunk)}
+                              density="compact"
+                              hideFooter
+                              hideScores
+                              onChildChunkOpen={(childChunkId) => {
+                                const childChunk = chunk.child_chunks.find((child) => child.id === childChunkId);
+                                if (childChunk) {
+                                  void handleSelectDocumentChunk(childChunk);
+                                }
+                              }}
+                              className={
+                                selectedDocumentChunk?.id === chunk.id
+                                  ? "border-blue-500 bg-blue-500/5"
+                                  : "bg-background"
+                              }
+                              badges={(
+                                <>
+                                  <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
+                                  <span className="shrink-0 text-zinc-600 dark:text-zinc-400">
+                                    Retrieval Count {chunk.display_retrieval_count}
+                                  </span>
+                                  <span
+                                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                      chunk.is_enabled
+                                        ? "bg-emerald-500/15 text-emerald-500"
+                                        : "bg-zinc-500/15 text-zinc-500"
+                                    }`}
+                                  >
+                                    {chunk.is_enabled ? "Enabled" : "Disabled"}
+                                  </span>
+                                </>
+                              )}
+                            />
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          key={chunk.id}
-                          onClick={() => setSelectedDocumentChunk(chunk)}
-                          className={outlineButtonClassName(
-                            "neutral",
-                            "block w-full rounded-lg p-3 text-left hover:bg-muted/40",
-                          )}
+                          disabled={documentChunkPage <= 1}
+                          onClick={() => setDocumentChunkPage((current) => Math.max(1, current - 1))}
+                          className={outlineButtonClassName("neutral", "rounded-xl px-3 py-2 text-xs")}
                         >
-                          <p className="line-clamp-3 text-xs">{chunk.content}</p>
-                          <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted">
-                            chunk_index: {chunk.chunk_index} · source: {chunk.source_uri || "-"}
-                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700">
-                              role: {String(chunk.metadata?.chunk_role || "leaf")}
-                            </span>
-                          </div>
+                          Prev
                         </button>
-                      ))}
+                        <span className="text-sm text-muted">
+                          {documentChunkPage}/{Math.max(1, Math.ceil(documentChunkCount / documentChunkPageSize))}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={documentChunkPage >= Math.max(1, Math.ceil(documentChunkCount / documentChunkPageSize))}
+                          onClick={() =>
+                            setDocumentChunkPage((current) =>
+                              Math.min(Math.max(1, Math.ceil(documentChunkCount / documentChunkPageSize)), current + 1),
+                            )
+                          }
+                          className={outlineButtonClassName("neutral", "rounded-xl px-3 py-2 text-xs")}
+                        >
+                          Next
+                        </button>
+                      </div>
+                      <select
+                        value={String(documentChunkPageSize)}
+                        onChange={(event) => {
+                          setDocumentChunkPageSize(Number(event.target.value));
+                          setDocumentChunkPage(1);
+                        }}
+                        className="rounded-xl border border-border bg-background px-3 py-2 text-xs"
+                      >
+                        {[10, 25, 50].map((size) => (
+                          <option key={size} value={String(size)}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  )}
+                  </section>
+
+                  <div className="min-h-0">
+                    {selectedDocumentChunk ? (
+                      <EditChunkPanel
+                        chunk={selectedDocumentChunk}
+                        draftContent={chunkDraftContent}
+                        draftEnabled={chunkDraftEnabled}
+                        onDraftContentChange={setChunkDraftContent}
+                        onDraftEnabledChange={setChunkDraftEnabled}
+                        onCancel={() => {
+                          setSelectedDocumentChunk(null);
+                          setChunkDraftContent("");
+                          setChunkDraftEnabled(true);
+                        }}
+                        onSave={() => void handleSaveDocumentChunk()}
+                        onRegenerate={() => void handleRegenerateDocumentChunkFamily()}
+                        pending={chunkActionPending}
+                      />
+                    ) : (
+                      <DocumentMetadataPanel metadata={documentChunksMetadata} />
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1232,11 +1572,6 @@ export default function KnowledgeBasePage() {
           </div>
         )}
       </div>
-
-      <ChunkDetailDrawer
-        chunk={selectedDocumentChunk}
-        onClose={() => setSelectedDocumentChunk(null)}
-      />
 
       <RetrievedChunkDetailDialog
         chunk={selectedRetrievedChunkCard}

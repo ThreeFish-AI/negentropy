@@ -7,8 +7,8 @@ import {
   UseAgentUpdate,
   useAgent,
 } from "@copilotkitnext/react";
-import { HttpAgent, randomUUID } from "@ag-ui/client";
-import { Message, type BaseEvent } from "@ag-ui/core";
+import { randomUUID } from "@ag-ui/client";
+import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
@@ -27,6 +27,7 @@ import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 // 提取的工具函数
 import { createSessionLabel, buildAgentUrl } from "@/utils/session";
 import { deriveConnectionState } from "@/utils/session-hydration";
+import { NdjsonHttpAgent } from "@/lib/agui/ndjson-agent";
 
 // 统一的类型定义
 import type {
@@ -153,9 +154,28 @@ export function HomeBody({
   });
 
   useEffect(() => {
-    rawEventHandlerRef.current = appendRealtimeEvent;
+    rawEventHandlerRef.current = (event) => {
+      appendRealtimeEvent(event);
+      if (
+        sessionId &&
+        (event.type === EventType.RUN_FINISHED || event.type === EventType.RUN_ERROR)
+      ) {
+        scheduleSessionHydration(sessionId, {
+          reason: "run_terminal",
+          runId:
+            "runId" in event && typeof event.runId === "string"
+              ? event.runId
+              : undefined,
+        });
+      }
+    };
     updateSessionTimeRef.current = updateCurrentSessionTime;
-  }, [appendRealtimeEvent, updateCurrentSessionTime]);
+  }, [
+    appendRealtimeEvent,
+    scheduleSessionHydration,
+    sessionId,
+    updateCurrentSessionTime,
+  ]);
 
   const effectiveConnection = useMemo(() => {
     const derived = deriveConnectionState(rawEvents);
@@ -498,7 +518,7 @@ export default function Home() {
     }
     const userId = user.userId;
     const resolvedSession = sessionId || "pending";
-    return new HttpAgent({
+    return new NdjsonHttpAgent({
       url: buildAgentUrl(resolvedSession, userId, APP_NAME),
       headers: {
         "X-Session-ID": resolvedSession,

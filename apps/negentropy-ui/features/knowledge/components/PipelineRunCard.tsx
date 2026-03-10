@@ -3,17 +3,13 @@
 import Link from "next/link";
 import type { PipelineStageResult } from "../utils/knowledge-api";
 import { PipelineStatusBadge } from "./PipelineStatusBadge";
+import { PipelineStagesBar } from "./PipelineStagesBar";
 import {
   formatRelativeTime,
   truncateRunId,
   OPERATION_LABELS,
   TRIGGER_LABELS,
-  STAGE_LABELS,
-  getStageColor,
-  getStageErrorMessage,
   formatDuration,
-  calculateStageWidth,
-  getSortedStages,
 } from "../utils/pipeline-helpers";
 
 /**
@@ -27,7 +23,7 @@ export interface PipelineRunCardProps {
   version: number;
   updated_at?: string;
   /** 操作类型 */
-  operation?: "ingest_text" | "ingest_url" | "replace_source";
+  operation?: "ingest_text" | "ingest_url" | "ingest_file" | "replace_source";
   /** 触发方式 */
   trigger?: "api" | "ui" | "schedule";
   /** 运行时长（毫秒） */
@@ -118,42 +114,7 @@ export function PipelineRunCard({
 
       {/* 第三行：阶段进度条（仅在存在阶段数据时显示） */}
       {hasStages && (
-        <div className="mt-2 flex items-center gap-0.5">
-          {getSortedStages(stages).map(([stageName, stage]) => (
-            <div
-              key={stageName}
-              className="group relative"
-              style={{ width: calculateStageWidth(stage, stages!) }}
-            >
-              <div
-                className={`h-1.5 w-full rounded-full ${getStageColor(stageName, stage.status)}`}
-              />
-              {/* Hover Tooltip */}
-              <div
-                className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2
-                            whitespace-nowrap rounded-md bg-zinc-800 px-2 py-1.5 text-[11px] text-white
-                            opacity-0 shadow-lg transition-opacity duration-150
-                            group-hover:opacity-100 dark:bg-zinc-700 dark:text-zinc-100"
-              >
-                <div className="font-medium">{STAGE_LABELS[stageName] || stageName}</div>
-                <div className="text-zinc-300 dark:text-zinc-400">
-                  {stage.status}
-                  {stage.duration_ms ? ` · ${formatDuration(stage.duration_ms)}` : ""}
-                </div>
-                {stage.status === "failed" && stage.error && (
-                  <div className="mt-0.5 max-w-[150px] truncate text-rose-400">
-                    {getStageErrorMessage(stage.error)}
-                  </div>
-                )}
-                {stage.status === "skipped" && stage.reason && (
-                  <div className="mt-0.5 max-w-[150px] truncate italic text-zinc-400">
-                    {stage.reason}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <PipelineStagesBar stages={stages} className="mt-2" />
       )}
     </Link>
   );

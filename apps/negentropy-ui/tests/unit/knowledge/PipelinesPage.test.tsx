@@ -250,6 +250,96 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(selectedRunButton?.className).toContain("bg-zinc-900");
   });
 
+  it("Runs 阶段条复用共享 tooltip 内容，且不再被按钮容器裁剪", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-stage-tooltip-id",
+            run_id: "run-stage-tooltip",
+            status: "failed",
+          }),
+          stages: {
+            fetch: {
+              status: "completed",
+              duration_ms: 1200,
+            },
+            persist: {
+              status: "failed",
+              duration_ms: 2300,
+              error: {
+                message: "persist crashed due to invalid payload",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    const { container } = render(<KnowledgePipelinesPage />);
+    await settle();
+
+    const selectedRunButton = Array.from(container.querySelectorAll("button")).find((element) =>
+      element.textContent?.includes("run-stage-tooltip")
+    );
+    expect(selectedRunButton).toBeTruthy();
+    expect(selectedRunButton?.className).not.toContain("overflow-hidden");
+
+    const tooltips = within(selectedRunButton as HTMLElement).getAllByRole("tooltip");
+    expect(tooltips.length).toBe(2);
+    expect(within(selectedRunButton as HTMLElement).getByText("获取内容")).toBeInTheDocument();
+    expect(within(selectedRunButton as HTMLElement).getByText("completed · 1s")).toBeInTheDocument();
+    expect(within(selectedRunButton as HTMLElement).getAllByText("持久化").length).toBeGreaterThan(0);
+    expect(
+      within(selectedRunButton as HTMLElement).getByText("persist crashed due to invalid payload")
+    ).toBeInTheDocument();
+  });
+
+  it("详情区 Stages 使用与 Runs 一致的阶段颜色映射", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-stage-colors-id",
+            run_id: "run-stage-colors",
+            status: "failed",
+          }),
+          stages: {
+            fetch: {
+              status: "completed",
+              duration_ms: 100,
+            },
+            persist: {
+              status: "failed",
+              duration_ms: 200,
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    const stagesSection = screen.getByText("Stages").parentElement;
+    expect(stagesSection).not.toBeNull();
+
+    const fetchRow = within(stagesSection as HTMLElement).getByText("获取内容").closest("div");
+    const persistRow = within(stagesSection as HTMLElement).getByText("持久化").closest("div");
+    const stageDots = Array.from(
+      (stagesSection as HTMLElement).querySelectorAll("span.h-2.w-2.rounded-full")
+    );
+
+    expect(fetchRow).toBeTruthy();
+    expect(persistRow).toBeTruthy();
+    expect(stageDots[0]?.className).toContain("bg-sky-500");
+    expect(stageDots[1]?.className).toContain("bg-emerald-700");
+    expect(within(stagesSection as HTMLElement).getByText("completed")).toBeInTheDocument();
+    expect(within(stagesSection as HTMLElement).getByText("failed")).toBeInTheDocument();
+  });
+
   it("多 Stage 失败时，详情页 Errors 区域会同时展示所有阶段异常", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
       runs: [
@@ -322,7 +412,10 @@ describe("KnowledgePipelinesPage polling", () => {
     await settle();
 
     expect(screen.queryByText("运行级错误")).not.toBeInTheDocument();
-    expect(screen.getAllByText("backup extractor failed")).toHaveLength(2);
+    const errorsSection = screen.getByText("Errors").parentElement;
+    expect(errorsSection).not.toBeNull();
+    expect(within(errorsSection as HTMLElement).getAllByText("备用 MCP 提取 1")).toHaveLength(1);
+    expect(within(errorsSection as HTMLElement).getAllByText("backup extractor failed")).toHaveLength(1);
   });
 
   it("顶层错误与阶段错误不同步时，会同时展示运行级和阶段级错误", async () => {
@@ -389,5 +482,258 @@ describe("KnowledgePipelinesPage polling", () => {
     expect(screen.getByText("Errors")).toBeInTheDocument();
     expect(screen.getAllByText("持久化").length).toBeGreaterThan(0);
     expect(screen.getAllByText("persist detail error").length).toBeGreaterThan(0);
+  });
+
+  it("extract_gate 会按共享阶段语义显示，并渲染失败分类文案", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-extract-gate-id",
+            run_id: "run-extract-gate",
+            status: "failed",
+            operation: "rebuild_source",
+          }),
+          stages: {
+            extract_finalize: {
+              status: "completed",
+              duration_ms: 120,
+            },
+            extract_gate: {
+              status: "failed",
+              duration_ms: 33,
+              error: {
+                message: "Extractor produced empty document after normalization",
+                failure_category: "empty_payload",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getAllByText("提取结果校验").length).toBeGreaterThan(0);
+    expect(screen.getByText("提取结果为空")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Extractor produced empty document after normalization").length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/无法构造最小调用参数/)).not.toBeInTheDocument();
+  });
+
+  it("契约类失败会在 Errors 区展示受控诊断摘要", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-contract-summary-id",
+            run_id: "run-contract-summary",
+            status: "failed",
+            operation: "rebuild_source",
+          }),
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 18,
+              error: {
+                message: "Tool input schema could not be normalized for document extraction",
+                failure_category: "low_confidence_contract",
+                diagnostic_summary:
+                  "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getByText("Tool 契约置信度不足")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数")
+    ).toHaveLength(1);
+  });
+  it("failure_category 存在时，阶段摘要与错误详情会展示归一化标签", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-failure-category-id",
+            run_id: "run-failure-category",
+            status: "failed",
+          }),
+          error: {
+            message: "payload shape is invalid",
+            failure_category: "unsupported_contract",
+          },
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "payload shape is invalid",
+                failure_category: "unsupported_contract",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getAllByText("Tool 契约不受支持").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tool 契约不受支持 · payload shape is invalid").length).toBeGreaterThan(0);
+  });
+
+  it("failure_category 缺失或为空时，不渲染空标签占位", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-empty-failure-category-id",
+            run_id: "run-empty-failure-category",
+            status: "failed",
+          }),
+          error: {
+            message: "extractor failed without category",
+            failure_category: "   ",
+          },
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "extractor failed without category",
+                failure_category: "   ",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.queryByText("Tool 契约不受支持")).not.toBeInTheDocument();
+    expect(screen.getAllByText("extractor failed without category").length).toBeGreaterThan(0);
+  });
+  it("failure_category 存在时，阶段摘要与错误详情会展示归一化标签", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-failure-category-id",
+            run_id: "run-failure-category",
+            status: "failed",
+          }),
+          error: {
+            message: "payload shape is invalid",
+            failure_category: "unsupported_contract",
+          },
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "payload shape is invalid",
+                failure_category: "unsupported_contract",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getAllByText("Tool 契约不受支持").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tool 契约不受支持 · payload shape is invalid").length).toBeGreaterThan(0);
+  });
+
+  it("failure_category 缺失或为空时，不渲染空标签占位", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-empty-failure-category-id",
+            run_id: "run-empty-failure-category",
+            status: "failed",
+          }),
+          error: {
+            message: "extractor failed without category",
+            failure_category: "   ",
+          },
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "extractor failed without category",
+                failure_category: "   ",
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.queryByText("Tool 契约不受支持")).not.toBeInTheDocument();
+    expect(screen.getAllByText("extractor failed without category").length).toBeGreaterThan(0);
+  });
+
+  it("未知契约类失败会展示诊断摘要，且空摘要不会泄漏为占位文本", async () => {
+    knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      runs: [
+        {
+          ...makeRun({
+            id: "run-diagnostic-summary-id",
+            run_id: "run-diagnostic-summary",
+            status: "failed",
+          }),
+          error: {
+            message: "contract shape is ambiguous",
+            failure_category: "unsupported_contract",
+            diagnostic_summary: "缺少稳定的根字段，无法确认标准文档契约。",
+          },
+          stages: {
+            extract_primary: {
+              status: "failed",
+              duration_ms: 1200,
+              error: {
+                message: "contract shape is ambiguous",
+                failure_category: "unsupported_contract",
+                diagnostics: {
+                  summary: "候选字段冲突：body/content/text。",
+                },
+              },
+            },
+          },
+        },
+      ],
+      last_updated_at: "t0",
+    });
+
+    render(<KnowledgePipelinesPage />);
+    await settle();
+
+    expect(screen.getByText("候选字段冲突：body/content/text。")).toBeInTheDocument();
+    expect(screen.queryByText("缺少稳定的根字段，无法确认标准文档契约。")).not.toBeInTheDocument();
   });
 });
