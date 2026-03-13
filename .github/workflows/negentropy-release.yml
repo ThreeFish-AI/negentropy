@@ -1,0 +1,219 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - "negentropy-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "语义化版本号，例如 1.2.0 或 1.2.0-rc.1"
+        required: true
+        type: string
+      channel:
+        description: "发布通道"
+        required: true
+        default: candidate
+        type: choice
+        options:
+          - candidate
+          - stable
+      publish_release:
+        description: "是否同步创建或更新 GitHub Release"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: negentropy-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend-qa:
+    uses: ./.github/workflows/reusable-negentropy-backend-quality.yml
+    with:
+      run_performance: false
+
+  ui-qa:
+    uses: ./.github/workflows/reusable-negentropy-ui-quality.yml
+    with:
+      run_e2e: true
+
+  package-release:
+    name: Package Release Artifacts
+    needs: [backend-qa, ui-qa]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: release
+    permissions:
+      contents: write
+    env:
+      DISPATCH_VERSION: ${{ github.event.inputs.version }}
+      DISPATCH_CHANNEL: ${{ github.event.inputs.channel }}
+      DISPATCH_PUBLISH: ${{ github.event.inputs.publish_release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#negentropy-v}"
+            channel="stable"
+            publish_release="true"
+          else
+            version="${DISPATCH_VERSION}"
+            if [[ -z "${version}" ]]; then
+              echo "workflow_dispatch requires a version input" >&2
+              exit 1
+            fi
+            channel="${DISPATCH_CHANNEL:-candidate}"
+            publish_release="${DISPATCH_PUBLISH:-false}"
+          fi
+
+          tag="negentropy-v${version}"
+          title="Negentropy ${version}"
+          is_prerelease="false"
+          if [[ "${channel}" == "candidate" || "${version}" == *-* ]]; then
+            is_prerelease="true"
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "publish_release=${publish_release}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "title=${title}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${is_prerelease}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/negentropy/uv.lock
+
+      - name: Build backend distribution
+        working-directory: apps/negentropy
+        run: uv build
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: apps/negentropy-ui/pnpm-lock.yaml
+
+      - name: Install UI dependencies
+        working-directory: apps/negentropy-ui
+        run: pnpm install --frozen-lockfile
+
+      - name: Build UI standalone bundle
+        working-directory: apps/negentropy-ui
+        run: pnpm build
+
+      - name: Package release artifacts
+        shell: bash
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/ui-root/.next
+
+          cp apps/negentropy/dist/* artifacts/
+
+          if [[ ! -d apps/negentropy-ui/.next/standalone ]]; then
+            echo "Missing Next.js standalone output. Expected apps/negentropy-ui/.next/standalone" >&2
+            exit 1
+          fi
+
+          rsync -a apps/negentropy-ui/.next/standalone/ artifacts/ui-root/
+          rsync -a apps/negentropy-ui/.next/static/ artifacts/ui-root/.next/static/
+
+          if [[ -d apps/negentropy-ui/public ]]; then
+            rsync -a apps/negentropy-ui/public/ artifacts/ui-root/public/
+          fi
+
+          mkdir -p artifacts/ui-root/scripts
+          cp apps/negentropy-ui/package.json artifacts/ui-root/package.json
+          cp apps/negentropy-ui/pnpm-lock.yaml artifacts/ui-root/pnpm-lock.yaml
+          cp apps/negentropy-ui/scripts/start-production.mjs artifacts/ui-root/scripts/start-production.mjs
+
+          tar -czf "artifacts/negentropy-ui-${{ steps.meta.outputs.version }}.tgz" -C artifacts/ui-root .
+          rm -rf artifacts/ui-root
+
+          cat > artifacts/release-manifest.json <<EOF
+          {
+            "name": "negentropy",
+            "version": "${{ steps.meta.outputs.version }}",
+            "tag": "${{ steps.meta.outputs.tag }}",
+            "channel": "${{ steps.meta.outputs.channel }}",
+            "commit": "${GITHUB_SHA}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "generated_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          EOF
+
+          find artifacts -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -print0 | sort -z | xargs -0 sha256sum > artifacts/SHA256SUMS.txt
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: negentropy-release-${{ steps.meta.outputs.version }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish summary
+        run: |
+          echo "## Release Packaging" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version: \`${{ steps.meta.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Channel: \`${{ steps.meta.outputs.channel }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Git ref: \`${GITHUB_REF}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bundle: \`negentropy-release-${{ steps.meta.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Checksums: \`artifacts/SHA256SUMS.txt\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create or update GitHub Release
+        if: steps.meta.outputs.publish_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          notes_file="$(mktemp)"
+          cat > "${notes_file}" <<'EOF'
+          ## ${{ steps.meta.outputs.title }}
+
+          - Channel: `${{ steps.meta.outputs.channel }}`
+          - Commit: `${{ github.sha }}`
+          - QA Gates:
+            - Backend unit + integration
+            - UI lint + typecheck + coverage + build + Playwright smoke
+          - Workflow artifact: `negentropy-release-${{ steps.meta.outputs.version }}`
+          EOF
+
+          if gh release view "${{ steps.meta.outputs.tag }}" >/dev/null 2>&1; then
+            gh release upload "${{ steps.meta.outputs.tag }}" artifacts/* --clobber
+          else
+            extra_args=()
+            if [[ "${{ steps.meta.outputs.is_prerelease }}" == "true" ]]; then
+              extra_args+=(--prerelease)
+            fi
+
+            gh release create "${{ steps.meta.outputs.tag }}" artifacts/* \
+              --target "${GITHUB_SHA}" \
+              --title "${{ steps.meta.outputs.title }}" \
+              --notes-file "${notes_file}" \
+              "${extra_args[@]}"
+          fi
