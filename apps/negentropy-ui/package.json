@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
+    "start": "node ./scripts/start-production.mjs",
+    "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.vitest.json --noEmit",
     "test": "vitest run",
