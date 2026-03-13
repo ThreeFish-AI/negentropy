@@ -32,6 +32,7 @@ import {
   isEquivalentMessageContent,
   normalizeMessageContent,
 } from "@/utils/message";
+import { isNonCriticalError } from "@/utils/error-filter";
 import { buildMessageLedger } from "@/utils/message-ledger";
 
 type MutableNode = ConversationNode;
@@ -640,6 +641,11 @@ export function buildConversationTree(
         return;
       }
       case EventType.RUN_ERROR: {
+        const errorMessage = "message" in normalizedEvent ? String(normalizedEvent.message || "") : "";
+        if (isNonCriticalError(errorMessage)) {
+          turn.status = turn.status === "error" ? "finished" : turn.status;
+          return;
+        }
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `error:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}`,
           type: "error",
@@ -651,7 +657,7 @@ export function buildConversationTree(
           title: "运行错误",
           status: "error",
           payload: {
-            message: "message" in normalizedEvent ? normalizedEvent.message : "",
+            message: errorMessage,
             code: "code" in normalizedEvent ? normalizedEvent.code : "",
           },
           sourceEventTypes: [eventType],
