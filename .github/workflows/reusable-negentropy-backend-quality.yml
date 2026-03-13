@@ -130,7 +130,7 @@ jobs:
       - name: Run integration tests
         run: |
           mkdir -p test-results
-          uv run pytest tests/integration_tests/ -v \
+          uv run pytest tests/integration_tests/ -v --no-cov \
             --junitxml=test-results/integration.junit.xml
 
       - name: Upload backend integration artifacts
@@ -197,7 +197,7 @@ jobs:
       - name: Run performance tests
         run: |
           mkdir -p test-results
-          uv run pytest tests/performance_tests/ -v \
+          uv run pytest tests/performance_tests/ -v --no-cov \
             --junitxml=test-results/performance.junit.xml
 
       - name: Upload backend performance artifacts
