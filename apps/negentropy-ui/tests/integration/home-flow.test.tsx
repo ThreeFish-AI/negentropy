@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EventType } from "@ag-ui/core";
-import { HomeBody } from "../../app/page";
+import { HomeBody } from "../../app/home-body";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 

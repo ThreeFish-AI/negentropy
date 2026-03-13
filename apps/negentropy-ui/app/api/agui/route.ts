@@ -18,14 +18,6 @@ import {
 } from "@/lib/errors";
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 
-type AguiLifecycleEvent = BaseEvent & {
-  threadId: string;
-  runId: string;
-  message?: string;
-  code?: string;
-  result?: string;
-};
-
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 }
