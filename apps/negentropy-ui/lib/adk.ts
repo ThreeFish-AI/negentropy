@@ -417,7 +417,7 @@ export class AdkMessageStreamNormalizer {
     }
 
     if (payload.message?.role === "tool" && payload.message.tool_call_id) {
-      const content = text || payload.delta || "";
+      const content = extractTextParts(payload).join("") || payload.delta || "";
       events.push(
         createToolCallResultEvent(
           {
