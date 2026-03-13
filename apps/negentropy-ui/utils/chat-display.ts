@@ -13,6 +13,7 @@ import type {
 } from "@/types/a2ui";
 import type { ChatMessage, ToolCallStatus } from "@/types/common";
 import { buildNodeSummary, safeJsonParse } from "@/utils/conversation-summary";
+import { isNonCriticalError } from "@/utils/error-filter";
 
 const displayBlockTypeOrder: Record<ChatDisplayBlock["kind"], number> = {
   message: 0,
@@ -511,6 +512,9 @@ function walkTurnNode(node: ConversationNode, blocks: ChatDisplayBlock[]) {
       return;
     }
     if (child.type === "error") {
+      if (isNonCriticalError(String(child.payload.message || ""))) {
+        return;
+      }
       hasDisplayContent = true;
       flushPendingTools();
       if (replyBuilder) {

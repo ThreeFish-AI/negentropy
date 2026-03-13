@@ -41,7 +41,7 @@ function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" 
   return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
 }
 
-function isSemanticEquivalentEntry(
+export function isSemanticEquivalentEntry(
   left: Pick<
     MessageLedgerEntry,
     | "threadId"
