@@ -51,6 +51,7 @@ export function HomeBody({
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const rawEventHandlerRef = useRef<((event: BaseEvent) => void) | undefined>(
     undefined,
   );
@@ -276,6 +277,7 @@ export function HomeBody({
     appendOptimisticMessage(newMessage);
     agent.addMessage(newMessage);
     setInputValue("");
+    setScrollToBottomTrigger((prev) => prev + 1);
     if (sessionId) {
       updateCurrentSessionTime(sessionId);
     }
@@ -419,6 +421,7 @@ export function HomeBody({
                   setSelectedNodeId(id);
                 }
               }}
+              scrollToBottomTrigger={scrollToBottomTrigger}
             />
             <div
               className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}

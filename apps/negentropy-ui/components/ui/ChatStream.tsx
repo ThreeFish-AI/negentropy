@@ -12,6 +12,7 @@ type ChatStreamProps = {
   selectedNodeId?: string | null;
   onNodeSelect?: (nodeId: string) => void;
   contentClassName?: string;
+  scrollToBottomTrigger?: number;
 };
 
 export function ChatStream({
@@ -19,6 +20,7 @@ export function ChatStream({
   selectedNodeId,
   onNodeSelect,
   contentClassName,
+  scrollToBottomTrigger,
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
@@ -42,6 +44,12 @@ export function ChatStream({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [visibleNodes]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [scrollToBottomTrigger]);
 
   return (
     <div
