@@ -32,6 +32,7 @@ cd negentropy
 更多详细文档请参考 `docs/` 目录。
 
 - 团队工程里程碑与基线变更记录： [docs/engineering-changelog.md](./docs/engineering-changelog.md)
+- QA 与发布流水线说明： [docs/qa-delivery-pipeline.md](./docs/qa-delivery-pipeline.md)
 
 ## 🌳 Repository Structure
 
