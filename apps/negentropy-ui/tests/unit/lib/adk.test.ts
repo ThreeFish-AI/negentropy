@@ -107,6 +107,7 @@ describe("AdkMessageStreamNormalizer", () => {
             {
               functionResponse: {
                 id: "tool-1",
+                name: "google_search",
                 response: { result: "search results" },
               },
             },
