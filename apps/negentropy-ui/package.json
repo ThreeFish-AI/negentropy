@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack -p 3333",
+    "dev": "next dev --webpack -H localhost -p 3333",
     "build": "next build",
-    "start": "node ./scripts/start-production.mjs",
+    "start": "PORT=3333 HOSTNAME=localhost node ./scripts/start-production.mjs",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.vitest.json --noEmit",
