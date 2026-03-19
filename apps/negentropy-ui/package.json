@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev --webpack -p 3333",
     "build": "next build",
     "start": "node ./scripts/start-production.mjs",
     "lint": "eslint . --max-warnings=0",
