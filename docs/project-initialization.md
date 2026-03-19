@@ -218,10 +218,10 @@ negentropy/
 ```bash
 # Backend
 DATABASE_URL=postgresql://localhost:5432/negentropy
-API_PORT=6666
+API_PORT=6600
 
 # Frontend
-VITE_API_BASE_URL=http://localhost:6666
+VITE_API_BASE_URL=http://localhost:6600
 ```
 
 ### 4. 统一任务入口（可选）
