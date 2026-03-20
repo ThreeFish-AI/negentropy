@@ -22,7 +22,7 @@ export interface UseSessionListServiceReturnValue {
   activeSession: SessionRecord | null;
   setSessionListView: (view: SessionListView) => void;
   loadSessions: () => Promise<void>;
-  startNewSession: () => Promise<void>;
+  startNewSession: () => Promise<string | null>;
   archiveSession: (id: string) => Promise<void>;
   unarchiveSession: (id: string) => Promise<void>;
   renameSession: (id: string, title: string) => Promise<void>;
@@ -260,7 +260,7 @@ export function useSessionListService(
     [addLog, appName, loadSessions, userId],
   );
 
-  const startNewSession = useCallback(async () => {
+  const startNewSession = useCallback(async (): Promise<string | null> => {
     try {
       const response = await fetch("/api/agui/sessions", {
         method: "POST",
@@ -277,7 +277,7 @@ export function useSessionListService(
         if (response.status === 404) {
           addLog("warn", "session_not_found", { context: "startNewSession" });
         }
-        return;
+        return null;
       }
       const id = payload.id;
       const label = createSessionLabel(id);
@@ -286,13 +286,16 @@ export function useSessionListService(
           (a, b) => (b.lastUpdateTime || 0) - (a.lastUpdateTime || 0),
         ),
       );
+      onClearActiveSession();
       setSessionId(id);
+      return id;
     } catch (error) {
       setConnectionWithMetrics("error");
       addLog("error", "create_session_failed", { message: String(error) });
       console.warn("Failed to create session", error);
+      return null;
     }
-  }, [addLog, appName, setConnectionWithMetrics, setSessionId, userId]);
+  }, [addLog, appName, onClearActiveSession, setConnectionWithMetrics, setSessionId, userId]);
 
   const scheduleTitleRefresh = useCallback(() => {
     clearTitleRefreshTimers();

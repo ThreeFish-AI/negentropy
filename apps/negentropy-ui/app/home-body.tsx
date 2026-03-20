@@ -58,6 +58,9 @@ export function HomeBody({
   const updateSessionTimeRef = useRef<
     ((currentSessionId: string) => void) | undefined
   >(undefined);
+  const pendingSendRef = useRef<string | null>(null);
+  const pendingForSessionRef = useRef<string | null>(null);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   const addLog = useCallback(
     (
@@ -248,8 +251,74 @@ export function HomeBody({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodeId]);
 
+  const doSend = useCallback(
+    async (input: string) => {
+      if (!agent || !sessionId || !input.trim()) {
+        return;
+      }
+      if (
+        pendingConfirmations > 0 ||
+        effectiveConnection === "streaming" ||
+        effectiveConnection === "connecting" ||
+        effectiveConnection === "blocked"
+      ) {
+        return;
+      }
+
+      const runId = randomUUID();
+      const messageId = crypto.randomUUID();
+      const createdAt = new Date();
+      const newMessage = {
+        id: messageId,
+        role: "user",
+        content: input.trim(),
+        createdAt,
+        runId,
+        threadId: sessionId,
+        streaming: false,
+      } as Message;
+      appendOptimisticMessage(newMessage);
+      agent.addMessage(newMessage);
+      setScrollToBottomTrigger((prev) => prev + 1);
+      updateCurrentSessionTime(sessionId);
+      const shouldPollTitle =
+        !activeSession ||
+        activeSession.label === createSessionLabel(sessionId);
+      try {
+        setConnectionWithMetrics("connecting");
+        await agent.runAgent({
+          runId,
+        });
+        scheduleSessionHydration(sessionId);
+        await loadSessions();
+        if (shouldPollTitle) {
+          scheduleTitleRefresh();
+        }
+      } catch (error) {
+        setConnectionWithMetrics("error");
+        addLog("error", "run_agent_failed", { message: String(error) });
+        console.warn("Failed to run agent", error);
+      }
+    },
+    [
+      agent,
+      sessionId,
+      pendingConfirmations,
+      effectiveConnection,
+      appendOptimisticMessage,
+      updateCurrentSessionTime,
+      activeSession,
+      setConnectionWithMetrics,
+      scheduleSessionHydration,
+      loadSessions,
+      scheduleTitleRefresh,
+      addLog,
+    ],
+  );
+
   const sendInput = async () => {
-    if (!agent || !sessionId || !inputValue.trim()) {
+    const trimmed = inputValue.trim();
+    if (!agent || !trimmed) {
       return;
     }
     if (
@@ -261,45 +330,52 @@ export function HomeBody({
       return;
     }
 
-    const runId = randomUUID();
-    const messageId = crypto.randomUUID();
-    const createdAt = new Date();
-    const newMessage = {
-      id: messageId,
-      role: "user",
-      content: inputValue.trim(),
-      createdAt,
-      runId,
-      threadId: sessionId,
-      streaming: false,
-    } as Message;
-    // optimistic message 交给 session projection hook 管理，页面不再直接编排 render projection
-    appendOptimisticMessage(newMessage);
-    agent.addMessage(newMessage);
-    setInputValue("");
-    setScrollToBottomTrigger((prev) => prev + 1);
-    if (sessionId) {
-      updateCurrentSessionTime(sessionId);
-    }
-    const shouldPollTitle =
-      !!sessionId &&
-      (!activeSession || activeSession.label === createSessionLabel(sessionId));
-    try {
-      setConnectionWithMetrics("connecting");
-      await agent.runAgent({
-        runId,
-      });
-      scheduleSessionHydration(sessionId);
-      await loadSessions();
-      if (shouldPollTitle) {
-        scheduleTitleRefresh();
+    // 无 Session 时自动创建
+    if (!sessionId) {
+      if (isCreatingSession) {
+        return;
       }
-    } catch (error) {
-      setConnectionWithMetrics("error");
-      addLog("error", "run_agent_failed", { message: String(error) });
-      console.warn("Failed to run agent", error);
+      pendingSendRef.current = trimmed;
+      setInputValue("");
+      setScrollToBottomTrigger((prev) => prev + 1);
+      setIsCreatingSession(true);
+      try {
+        const newId = await startNewSession();
+        if (newId) {
+          pendingForSessionRef.current = newId;
+        } else {
+          setInputValue(pendingSendRef.current || "");
+          pendingSendRef.current = null;
+          pendingForSessionRef.current = null;
+        }
+      } finally {
+        setIsCreatingSession(false);
+      }
+      return;
     }
+
+    setInputValue("");
+    await doSend(trimmed);
   };
+
+  // 新 Session 创建后、Agent 重建完毕，自动发送 pending 消息
+  useEffect(() => {
+    if (
+      !pendingSendRef.current ||
+      !pendingForSessionRef.current ||
+      !agent ||
+      !sessionId
+    ) {
+      return;
+    }
+    if (sessionId !== pendingForSessionRef.current) {
+      return;
+    }
+    const pending = pendingSendRef.current;
+    pendingSendRef.current = null;
+    pendingForSessionRef.current = null;
+    void doSend(pending);
+  }, [agent, sessionId, doSend]);
 
   /* Refactored: State clearing moved to handleSessionChange to avoid set-state-in-effect */
   const handleSessionChange = useCallback((newId: string | null) => {
@@ -433,7 +509,7 @@ export function HomeBody({
                 isGenerating={effectiveConnection === "streaming"}
                 isBlocked={effectiveConnection === "blocked"}
                 disabled={
-                  !sessionId ||
+                  isCreatingSession ||
                   effectiveConnection === "streaming" ||
                   effectiveConnection === "connecting" ||
                   effectiveConnection === "blocked" ||
