@@ -25,7 +25,7 @@ export function ThemeToggle() {
     if (resolvedTheme === "dark") {
       return (
         <svg
-          className="h-4 w-4"
+          className="h-5 w-5"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -43,7 +43,7 @@ export function ThemeToggle() {
     }
     return (
       <svg
-        className="h-4 w-4"
+        className="h-5 w-5"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -69,7 +69,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={cycleTheme}
-      className="rounded-lg p-1.5 text-muted hover:bg-muted/20 hover:text-foreground"
+      className="rounded-lg p-2 text-muted hover:bg-muted/20 hover:text-foreground"
       aria-label={`当前: ${getLabel()}，点击切换`}
       title={getLabel()}
       suppressHydrationWarning

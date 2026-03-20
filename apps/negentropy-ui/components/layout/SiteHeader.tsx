@@ -12,19 +12,19 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
   const { navigationInfo } = useNavigation();
 
   return (
-    <div className="border-b border-zinc-200 bg-white px-4 py-1 sticky top-0 z-50 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="flex flex-wrap items-center justify-between gap-1.5">
+    <div className="border-b border-zinc-200 bg-white px-6 py-2 sticky top-0 z-50 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         {/* Brand + Location */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-0">
             <Image
               src="/logo.svg"
               alt="Negentropy"
-              width={36}
-              height={18}
-              className="h-[18px] w-9 object-contain"
+              width={48}
+              height={24}
+              className="h-6 w-12 object-contain"
             />
-            <span className="text-xs font-bold tracking-[0.1em] text-black dark:text-white">
+            <span className="text-sm font-bold tracking-[0.1em] text-black dark:text-white">
               Negentropy
             </span>
           </Link>
@@ -44,10 +44,10 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
         </div>
 
         {/* User Area and Actions */}
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-3 text-sm">
           <MainNav items={mainNavConfig} />
           {children}
-          <div className="h-3 w-px bg-zinc-200 mx-2 hidden sm:block dark:bg-zinc-700"></div>
+          <div className="h-4 w-px bg-zinc-200 mx-2 hidden sm:block dark:bg-zinc-700"></div>
           <ThemeToggle />
           <UserNav />
         </div>

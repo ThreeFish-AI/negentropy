@@ -23,7 +23,7 @@ export function MainNav({ items }: MainNavProps) {
   return (
     <div className="flex gap-6 md:gap-10">
       {visibleItems?.length ? (
-        <nav className="flex items-center gap-1 bg-zinc-100/50 p-0.5 rounded-full dark:bg-zinc-800/50">
+        <nav className="flex items-center gap-1 bg-zinc-100/50 p-1 rounded-full dark:bg-zinc-800/50">
           {visibleItems.map((item, index) => {
             // Logic to determine active state.
             // For "/", it matches exactly or if strictly root.
@@ -38,7 +38,7 @@ export function MainNav({ items }: MainNavProps) {
                 key={index}
                 href={item.disabled ? "#" : item.href}
                 className={cn(
-                  "px-3 py-1 rounded-full text-xs font-semibold transition-colors",
+                  "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
                   isActive
                     ? "bg-foreground text-background shadow-sm ring-1 ring-border"
                     : "text-muted hover:text-foreground",
