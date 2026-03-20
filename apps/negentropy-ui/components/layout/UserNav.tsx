@@ -32,7 +32,7 @@ export function UserNav() {
   if (!user) {
     return (
       <button
-        className="rounded-full bg-black px-4 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 transition-transform active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        className="rounded-full bg-black px-3 py-1 text-xs font-semibold text-white hover:bg-zinc-800 transition-transform active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
         onClick={login}
       >
         Sign in
@@ -45,7 +45,7 @@ export function UserNav() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-2 rounded-full border border-transparent p-1 pr-3 transition-colors outline-none",
+          "flex items-center gap-2 rounded-full border border-transparent p-0.5 pr-2 transition-colors outline-none",
           isOpen
             ? "bg-muted border-border"
             : "hover:bg-muted hover:border-border",
@@ -55,14 +55,14 @@ export function UserNav() {
           picture={user.picture}
           name={user.name}
           email={user.email}
-          className="h-7 w-7 object-cover"
+          className="h-5 w-5 object-cover"
         />
         <span className="text-xs font-medium text-muted-foreground hidden sm:inline-block max-w-[100px] truncate hover:text-foreground">
           {user.name || "User"}
         </span>
         <svg
           className={cn(
-            "h-3 w-3 text-muted-foreground transition-transform",
+            "h-2.5 w-2.5 text-muted-foreground transition-transform",
             isOpen && "rotate-180",
           )}
           fill="none"
