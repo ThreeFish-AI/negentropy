@@ -90,7 +90,7 @@ export class NdjsonHttpAgent extends AbstractAgent {
       resumeUrl.searchParams.set(key, value);
     });
     const sessionId =
-      current.searchParams.get("session_id") || this.threadId || "pending";
+      current.searchParams.get("session_id") || this.threadId || "";
     resumeUrl.searchParams.set("session_id", sessionId);
     resumeUrl.searchParams.set("cursor", cursor);
     resumeUrl.searchParams.set("resume_token", resumeToken);
