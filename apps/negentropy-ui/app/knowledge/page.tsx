@@ -274,6 +274,7 @@ export default function KnowledgeDashboardPage() {
                         started_at={run.started_at}
                         completed_at={run.completed_at}
                         stages={run.stages}
+                        error={run.error}
                         mode="selectable"
                         selected={selected?.id === run.id}
                         onSelect={() => setSelected(run)}

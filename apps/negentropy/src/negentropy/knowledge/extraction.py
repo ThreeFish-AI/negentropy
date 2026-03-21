@@ -1928,6 +1928,8 @@ async def extract_source(
 ) -> ExtractedDocumentResult:
     targets = resolve_targets(corpus_config, source_kind)
     if not targets:
+        if tracker:
+            await tracker.start_stage("extract_resolve")
         raise ExtractorExecutionError(
             f"No extractor targets configured for source kind '{source_kind}'. "
             "Please configure the Data Extractor MCP service and ensure the corpus "
