@@ -289,14 +289,6 @@ export default function KnowledgeDashboardPage() {
 
           <aside className="min-h-0 min-w-0 overflow-hidden overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
-              {/* Run Detail（条件渲染） */}
-              {selected && (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Run Detail</h2>
-                  <PipelineRunDetailPanel run={selected} />
-                </div>
-              )}
-
               {/* Alerts */}
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alerts</h2>
@@ -322,6 +314,14 @@ export default function KnowledgeDashboardPage() {
                   ? `加载失败：${error}`
                   : `状态源：${pipelinesPayload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
               </div>
+
+              {/* Run Detail（条件渲染） */}
+              {selected && (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Run Detail</h2>
+                  <PipelineRunDetailPanel run={selected} />
+                </div>
+              )}
 
               {/* Retry Queue */}
               {retryQueue.length ? (
