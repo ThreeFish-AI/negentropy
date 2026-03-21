@@ -106,6 +106,13 @@ export async function POST(request: Request) {
       "session_id is required",
     );
   }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(sessionId)) {
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.BAD_REQUEST,
+      "session_id must be a valid UUID",
+    );
+  }
   const resolvedThreadId =
     (typeof body.threadId === "string" && body.threadId.trim()) || sessionId;
   const resolvedRunId =

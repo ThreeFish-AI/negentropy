@@ -15,18 +15,17 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const agent = useMemo(() => {
-    if (!user) {
+    if (!user || !sessionId) {
       return null;
     }
     const userId = user.userId;
-    const resolvedSession = sessionId || "pending";
     return new NdjsonHttpAgent({
-      url: buildAgentUrl(resolvedSession, userId, APP_NAME),
+      url: buildAgentUrl(sessionId, userId, APP_NAME),
       headers: {
-        "X-Session-ID": resolvedSession,
+        "X-Session-ID": sessionId,
         "X-User-ID": userId,
       },
-      threadId: resolvedSession,
+      threadId: sessionId,
     });
   }, [sessionId, user]);
 
@@ -63,15 +62,7 @@ export default function Home() {
     );
   }
 
-  if (!agent) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
-        正在初始化 Agent...
-      </div>
-    );
-  }
-
-  const copilotAgents = { [AGENT_ID]: agent };
+  const copilotAgents = agent ? { [AGENT_ID]: agent } : {};
 
   return (
     <CopilotKitProvider

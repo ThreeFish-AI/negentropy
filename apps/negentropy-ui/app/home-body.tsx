@@ -318,7 +318,7 @@ export function HomeBody({
 
   const sendInput = async () => {
     const trimmed = inputValue.trim();
-    if (!agent || !trimmed) {
+    if (!trimmed) {
       return;
     }
     if (
@@ -330,7 +330,7 @@ export function HomeBody({
       return;
     }
 
-    // 无 Session 时自动创建
+    // 无 Session 时自动创建（不需要 agent）
     if (!sessionId) {
       if (isCreatingSession) {
         return;
@@ -354,6 +354,9 @@ export function HomeBody({
       return;
     }
 
+    if (!agent) {
+      return;
+    }
     setInputValue("");
     await doSend(trimmed);
   };
