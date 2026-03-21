@@ -500,25 +500,46 @@ class PostgresSessionService(BaseSessionService):
                 )
 
     def _orm_to_adk_event(self, event: "Event") -> ADKEvent:
-        """将 ORM Event 对象转换为 ADK Event 对象"""
+        """将 ORM Event 对象转换为 ADK Event 对象（完整恢复）"""
         from google.genai import types
+        from google.adk.events import EventActions
 
         content_dict = event.content or {}
 
-        # 从存储的字典重建 Content 对象
+        # 1. 完整恢复 Content（利用 Pydantic round-trip，含 functionCall/functionResponse）
         content = None
         if content_dict:
-            parts = []
-            for part_data in content_dict.get("parts", []):
-                if isinstance(part_data, dict) and "text" in part_data:
-                    parts.append(types.Part(text=part_data["text"]))
-            if parts:
-                content = types.Content(role=content_dict.get("role", "user"), parts=parts)
+            try:
+                content = types.Content.model_validate(content_dict)
+            except Exception:
+                # 降级：仅恢复文本 parts（原始行为）
+                parts = []
+                for part_data in content_dict.get("parts", []):
+                    if isinstance(part_data, dict) and "text" in part_data:
+                        parts.append(types.Part(text=part_data["text"]))
+                if parts:
+                    content = types.Content(
+                        role=content_dict.get("role", "user"), parts=parts
+                    )
+
+        # 2. 恢复 EventActions（transfer_to_agent, state_delta, end_of_agent 等）
+        actions = None
+        actions_dict = event.actions
+        if actions_dict:
+            try:
+                actions = EventActions(**actions_dict)
+            except Exception:
+                actions = None  # 容错：格式不兼容时降级
+
+        # 3. 恢复 invocation_id
+        invocation_id = str(event.invocation_id) if event.invocation_id else None
 
         return ADKEvent(
             id=str(event.id),
+            invocation_id=invocation_id,
             author=event.author,
             content=content,
+            actions=actions,
             timestamp=event.created_at.timestamp() if event.created_at else datetime.now(timezone.utc).timestamp(),
         )
 

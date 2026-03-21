@@ -1165,7 +1165,8 @@ export function buildConversationTree(
       if (node.type !== "text" || node.role !== role) {
         return false;
       }
-      if (node.payload.streaming !== true) {
+      // user 消息跳过 streaming 守卫：乐观消息 streaming=false，AGUI 节点经 TEXT_MESSAGE_END 后也为 false
+      if (role !== "user" && node.payload.streaming !== true) {
         return false;
       }
       if (hasTechnicalChildren(node)) {
@@ -1178,8 +1179,10 @@ export function buildConversationTree(
             isEquivalentMessageContent(existingContent, content)
           : existingContent === content;
       if (!contentMatches) return false;
+      // user 消息跳过 runId 匹配：乐观消息用前端 UUID，AGUI 事件用后端 UUID，必然不同
       const existingRunId = node.runId || undefined;
       const runMatches =
+        role === "user" ||
         existingRunId === runId ||
         existingRunId === DEFAULT_RUN_ID ||
         runId === DEFAULT_RUN_ID ||

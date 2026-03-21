@@ -131,6 +131,15 @@ function normalizeUiMessageRole(value: string | undefined): Message["role"] {
 export class AdkMessageStreamNormalizer {
   private openAssistantMessages = new Map<string, StreamMessageState>();
   private segmentIndexByRun = new Map<string, number>();
+  // Step 事件合成状态
+  private synthStepId: string | null = null;
+  private synthStepAuthor: string | null = null;
+  private synthStepCounter = 0;
+  private lastCommon: {
+    threadId: string;
+    runId: string;
+    timestamp: number;
+  } | null = null;
 
   private nextMessageId(runId: string, role: NormalizedRole): string {
     const nextIndex = this.segmentIndexByRun.get(runId) || 0;
@@ -158,6 +167,27 @@ export class AdkMessageStreamNormalizer {
       }),
     );
     this.openAssistantMessages.delete(common.runId);
+  }
+
+  private flushSynthStep(
+    events: BaseEvent[],
+    common: { threadId: string; runId: string; timestamp: number },
+  ) {
+    if (!this.synthStepId) return;
+    events.push(
+      createStepFinishedEvent(
+        { ...common, messageId: `flush:${this.synthStepId}` },
+        this.synthStepId,
+        null,
+      ),
+      createCustomEvent(
+        { ...common, messageId: `flush:${this.synthStepId}` },
+        "ne.a2ui.reasoning",
+        { stepId: this.synthStepId, phase: "finished" },
+      ),
+    );
+    this.synthStepId = null;
+    this.synthStepAuthor = null;
   }
 
   consume(payload: AdkEventPayload, fallback?: { threadId: string; runId: string }): BaseEvent[] {
@@ -512,6 +542,48 @@ export class AdkMessageStreamNormalizer {
       );
     }
 
+    // Step 事件合成：从 author 变化推断步骤边界（仅在无原生 step 事件时激活）
+    if (!payload.actions?.stepStarted && !payload.actions?.stepFinished) {
+      const author = payload.author;
+      if (author && author !== "user" && author !== this.synthStepAuthor) {
+        // 关闭前一个合成 step
+        if (this.synthStepId) {
+          events.push(
+            createStepFinishedEvent(
+              { ...common, messageId: payload.id },
+              this.synthStepId,
+              null,
+            ),
+            createCustomEvent(
+              { ...common, messageId: payload.id },
+              "ne.a2ui.reasoning",
+              { stepId: this.synthStepId, phase: "finished" },
+            ),
+          );
+        }
+        // 开启新的合成 step
+        this.synthStepId = `synth-step:${author}:${common.runId}:${this.synthStepCounter++}`;
+        this.synthStepAuthor = author;
+        events.push(
+          createStepStartedEvent(
+            { ...common, messageId: payload.id },
+            this.synthStepId,
+            author,
+          ),
+          createCustomEvent(
+            { ...common, messageId: payload.id },
+            "ne.a2ui.reasoning",
+            { stepId: this.synthStepId, phase: "started", title: author },
+          ),
+        );
+      }
+    }
+    this.lastCommon = {
+      threadId: common.threadId,
+      runId: common.runId,
+      timestamp: common.timestamp,
+    };
+
     if (payload.actions?.stepStarted) {
       events.push(
         createStepStartedEvent(
@@ -605,6 +677,7 @@ export class AdkMessageStreamNormalizer {
       threadId,
       timestamp,
     });
+    this.flushSynthStep(events, { runId, threadId, timestamp });
     return events;
   }
 
@@ -616,6 +689,9 @@ export class AdkMessageStreamNormalizer {
         threadId: "default",
         timestamp,
       });
+    }
+    if (this.lastCommon) {
+      this.flushSynthStep(events, { ...this.lastCommon, timestamp });
     }
     return events;
   }
