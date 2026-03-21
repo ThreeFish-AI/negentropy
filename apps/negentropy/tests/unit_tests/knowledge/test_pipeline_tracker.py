@@ -1,71 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.dao import UpsertResult
 from negentropy.knowledge.extraction import ExtractedDocumentResult
 from negentropy.knowledge.service import KnowledgeService, PipelineTracker
 
-
-@dataclass
-class FakePipelineRun:
-    app_name: str
-    run_id: str
-    status: str
-    payload: dict
-
-
-class FakePipelineDao:
-    def __init__(self) -> None:
-        self.records: dict[tuple[str, str], FakePipelineRun] = {}
-
-    async def get_pipeline_run(self, app_name: str, run_id: str):
-        return self.records.get((app_name, run_id))
-
-    async def upsert_pipeline_run(
-        self,
-        *,
-        app_name: str,
-        run_id: str,
-        status: str,
-        payload: dict,
-        idempotency_key,
-        expected_version,
-    ):
-        _ = (idempotency_key, expected_version)
-        record = FakePipelineRun(app_name=app_name, run_id=run_id, status=status, payload=payload)
-        self.records[(app_name, run_id)] = record
-        return UpsertResult(
-            status="updated",
-            record={
-                "run_id": run_id,
-                "status": status,
-                "payload": payload,
-            },
-        )
-
-
-class FakeRepository:
-    async def delete_knowledge_by_source(self, *, corpus_id, app_name, source_uri):
-        _ = (corpus_id, app_name, source_uri)
-        raise RuntimeError("delete failed")
-
-
-class FakeStorageService:
-    async def get_document_content_by_uri(self, source_uri: str):
-        _ = source_uri
-        return b"hello world"
-
-    async def upload_markdown_derivative(self, *, document_id, markdown_content: str):
-        _ = (document_id, markdown_content)
-        return "gs://derived/markdown.md"
-
-    async def save_markdown_content(self, *, document_id, markdown_content: str, markdown_gcs_uri=None):
-        _ = (document_id, markdown_content, markdown_gcs_uri)
-        return True
+from .conftest import (
+    FakeLogger,
+    FakePipelineDao,
+    FakePipelineRun,
+    FakeRepository,
+    FakeStorageService,
+)
 
 
 @pytest.mark.asyncio
@@ -132,23 +80,15 @@ async def test_pipeline_tracker_emits_run_and_stage_logs(monkeypatch) -> None:
         operation="ingest_text",
         run_id="run-logs",
     )
-    events: list[tuple[str, dict]] = []
-
-    class FakeLogger:
-        def info(self, event: str, **kwargs):
-            events.append((event, kwargs))
-
-        def warning(self, event: str, **kwargs):
-            events.append((event, kwargs))
-
-    monkeypatch.setattr("negentropy.knowledge.service.logger", FakeLogger())
+    fake_logger = FakeLogger()
+    monkeypatch.setattr("negentropy.knowledge.service.logger", fake_logger)
 
     await tracker.start({"corpus_id": "corpus-1", "source_uri": "memory://doc"})
     await tracker.start_stage("chunk")
     await tracker.complete_stage("chunk", {"chunk_count": 2})
     await tracker.complete({"chunk_count": 2})
 
-    event_names = [event for event, _ in events]
+    event_names = [event for event, _ in fake_logger.events]
     assert "pipeline_run_started" in event_names
     assert "pipeline_stage_started" in event_names
     assert "pipeline_stage_completed" in event_names
