@@ -1,6 +1,6 @@
 "use client";
 
-import type { PipelineStageResult } from "../utils/knowledge-api";
+import type { PipelineErrorPayload, PipelineStageResult } from "../utils/knowledge-api";
 import { PipelineStatusBadge } from "./PipelineStatusBadge";
 import { PipelineStagesBar } from "./PipelineStagesBar";
 import {
@@ -9,6 +9,8 @@ import {
   OPERATION_LABELS,
   TRIGGER_LABELS,
   formatDuration,
+  getFailedStages,
+  getStageErrorSummary,
 } from "../utils/pipeline-helpers";
 
 /**
@@ -33,6 +35,8 @@ export interface PipelineRunCardProps {
   completed_at?: string;
   /** 阶段执行结果 */
   stages?: Record<string, PipelineStageResult>;
+  /** 运行级错误 */
+  error?: PipelineErrorPayload;
   /** 卡片交互模式 */
   mode?: "link" | "selectable";
   /** 是否选中（仅 mode="selectable" 有效） */
@@ -73,6 +77,7 @@ function PipelineRunCardContent({
   started_at,
   completed_at,
   stages,
+  error,
   isSelectable,
 }: PipelineRunCardProps & { isSelectable: boolean }) {
   const duration = formatDuration(duration_ms, started_at, completed_at);
@@ -147,6 +152,27 @@ function PipelineRunCardContent({
           <span>{endLabel ? `结束 ${completed_at}` : "结束 -"}</span>
         </div>
       )}
+
+      {/* 第五行：失败摘要（仅失败时显示） */}
+      {status === "failed" && (() => {
+        const failedStageList = getFailedStages(stages);
+        if (failedStageList.length > 0) {
+          const first = failedStageList[0];
+          return (
+            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+              {first.label} · {first.message}
+            </p>
+          );
+        }
+        if (error && typeof error === "object") {
+          return (
+            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+              {getStageErrorSummary(error)}
+            </p>
+          );
+        }
+        return null;
+      })()}
     </>
   );
 }

@@ -413,6 +413,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const FAILURE_CATEGORY_LABELS: Record<string, string> = {
+  no_extractor_configured: "MCP 提取器未配置",
   validation_error: "参数校验失败",
   tool_error: "MCP 调用失败",
   empty_payload: "提取结果为空",
@@ -487,7 +488,9 @@ export const getDiagnosticSummary = (error: unknown): string | undefined => {
 };
 
 const shouldShowDiagnosticSummary = (failureCategory: string | undefined): boolean =>
-  failureCategory === "unsupported_contract" || failureCategory === "low_confidence_contract";
+  failureCategory === "unsupported_contract" ||
+  failureCategory === "low_confidence_contract" ||
+  failureCategory === "no_extractor_configured";
 export const getFailedStages = (
   stages?: Record<string, PipelineStageResult>
 ): FailedStageDetail[] =>
