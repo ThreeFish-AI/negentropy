@@ -2,6 +2,7 @@
 
 import type { AssistantReplyDisplayBlock } from "@/types/a2ui";
 import { MessageBubble, MarkdownContent } from "@/components/ui/MessageBubble";
+import { ReasoningStep } from "@/components/ui/ReasoningStep";
 import { ToolExecutionGroup } from "@/components/ui/ToolExecutionGroup";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,16 @@ export function AssistantReplyBubble({
                   isSelected={isSelected && block.nodeId === segment.nodeId}
                   onSelect={onSelect}
                   variant="embedded"
+                />
+              );
+            }
+            if (segment.kind === "reasoning") {
+              return (
+                <ReasoningStep
+                  key={segment.id}
+                  title={segment.title}
+                  phase={segment.phase}
+                  stepId={segment.stepId}
                 />
               );
             }
