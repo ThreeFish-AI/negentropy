@@ -945,32 +945,30 @@ export default function KnowledgeBasePage() {
     setIsDialogOpen(false);
   };
 
-  const handleIngestUrl = async ({
+  const handleIngestUrl = ({
     url,
   }: {
     url: string;
     chunkingConfig?: ChunkingConfig;
   }) => {
     if (!selectedCorpusId) {
-      throw new Error("Corpus is required before ingesting URL sources");
+      return Promise.reject(new Error("请先选择 Corpus"));
     }
-    try {
-      const result = await ingestUrl({
-        url: url.trim(),
-        as_document: true,
-        chunkingConfig: corpusChunkingConfig,
-      });
-      toast.success("URL ingest started");
-      setIsIngestUrlDialogOpen(false);
-      await loadDocuments();
+
+    // Toast 由 AddSourceDialog 负责显示，此处不重复；错误也由 AddSourceDialog .catch() 处理
+    setIsIngestUrlDialogOpen(false);
+
+    return ingestUrl({
+      url: url.trim(),
+      as_document: true,
+      chunkingConfig: corpusChunkingConfig,
+    }).then((result) => {
+      loadDocuments();
       return result;
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "URL ingest failed");
-      throw err;
-    }
+    });
   };
 
-  const handleIngestFile = async ({
+  const handleIngestFile = ({
     file,
     source_uri,
     chunkingConfig,
@@ -980,21 +978,25 @@ export default function KnowledgeBasePage() {
     chunkingConfig?: ChunkingConfig;
   }) => {
     if (!selectedCorpusId) {
-      throw new Error("Corpus is required before ingesting file sources");
+      toast.error("请先选择 Corpus");
+      return;
     }
-    try {
-      const result = await ingestFile({
-        file,
-        source_uri: source_uri || file.name,
-        chunkingConfig: chunkingConfig ?? corpusChunkingConfig,
+
+    // 立即显示 Toast 提示
+    toast.success("已开始从文件摄入知识源", {
+      description: "可在 Pipeline 页面查看构建进度",
+    });
+
+    // Fire-and-forget: 不等待 API 完成
+    ingestFile({
+      file,
+      source_uri: source_uri || file.name,
+      chunkingConfig: chunkingConfig ?? corpusChunkingConfig,
+    })
+      .then(() => loadDocuments())
+      .catch((err) => {
+        toast.error(err instanceof Error ? err.message : "文件摄入失败");
       });
-      toast.success("File ingest started");
-      await loadDocuments();
-      return result;
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "File ingest failed");
-      throw err;
-    }
   };
 
   const runDocumentAction = async (
