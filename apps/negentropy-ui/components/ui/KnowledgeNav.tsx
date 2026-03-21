@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 import { useNavigation } from "@/components/providers/NavigationProvider";
 
 const NAV_ITEMS = [
-  { href: "/knowledge", label: "Dashboard" },
   { href: "/knowledge/base", label: "Knowledge Base" },
-  { href: "/knowledge/documents", label: "Documents" },
   { href: "/knowledge/graph", label: "Knowledge Graph" },
+  { href: "/knowledge/documents", label: "Documents" },
   { href: "/knowledge/apis", label: "APIs" },
+  { href: "/knowledge", label: "Dashboard" },
 ];
 
 export function KnowledgeNav({
