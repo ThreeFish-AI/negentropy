@@ -11,6 +11,7 @@ from negentropy.knowledge.extraction import (
     CanonicalExtractionSource,
     DataExtractorProvider,
     ExtractionAttempt,
+    ExtractorExecutionError,
     _build_llm_invocation_plan,
     build_tool_adapter,
     extract_source,
@@ -47,31 +48,16 @@ def test_resolve_targets_sorts_and_filters_invalid_items() -> None:
 
 
 @pytest.mark.asyncio
-async def test_extract_source_uses_legacy_provider_without_routes(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_extract_url(self, *, url: str):  # type: ignore[no-untyped-def]
-        from negentropy.knowledge.extraction import ExtractedDocumentResult
-
-        return ExtractedDocumentResult(
-            plain_text="legacy text",
-            markdown_content="legacy markdown",
+async def test_extract_source_raises_when_no_routes_configured() -> None:
+    with pytest.raises(ExtractorExecutionError) as exc_info:
+        await extract_source(
+            app_name="negentropy",
+            corpus_id=uuid4(),
+            corpus_config={},
+            source_kind=ROUTE_URL,
+            url="https://example.com",
         )
-
-    monkeypatch.setattr(
-        "negentropy.knowledge.extraction.LegacyExtractionProvider.extract_url",
-        fake_extract_url,
-    )
-
-    result = await extract_source(
-        app_name="negentropy",
-        corpus_id=uuid4(),
-        corpus_config={},
-        source_kind=ROUTE_URL,
-        url="https://example.com",
-    )
-
-    assert result.plain_text == "legacy text"
-    assert result.markdown_content == "legacy markdown"
-    assert result.trace["provider"] == "legacy"
+    assert "No extractor targets configured" in str(exc_info.value)
 
 
 def test_build_tool_adapter_wraps_pdf_request_into_batch_sources_schema() -> None:
