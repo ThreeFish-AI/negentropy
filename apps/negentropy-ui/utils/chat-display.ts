@@ -6,6 +6,7 @@ import type {
   ConversationNode,
   ConversationTree,
   ReplyErrorDisplaySegment,
+  ReplyReasoningDisplaySegment,
   ReplyTextDisplaySegment,
   ReplyToolGroupDisplaySegment,
   ToolExecutionEntry,
@@ -285,6 +286,38 @@ function createReplyErrorSegment(node: ConversationNode): ReplyErrorDisplaySegme
   };
 }
 
+function createReplyReasoningSegment(
+  node: ConversationNode,
+): ReplyReasoningDisplaySegment {
+  return {
+    id: `reply-reasoning:${node.id}`,
+    kind: "reasoning",
+    nodeId: node.id,
+    timestamp: node.timeRange.start,
+    sourceOrder: node.sourceOrder,
+    title: node.title,
+    phase: node.status === "done" || node.status === "finished" ? "finished" : "started",
+    stepId: String(node.payload.stepId || node.id),
+    result: node.payload.result,
+  };
+}
+
+function collectReasoningSegments(
+  stepNode: ConversationNode,
+  builder: ReplyBuilder,
+) {
+  const reasoningChildren = stepNode.children.filter(
+    (child) => child.type === "reasoning" && child.visibility !== "debug-only",
+  );
+  if (reasoningChildren.length > 0) {
+    reasoningChildren.forEach((reasoningNode) => {
+      appendReplySegment(builder, createReplyReasoningSegment(reasoningNode));
+    });
+  } else {
+    appendReplySegment(builder, createReplyReasoningSegment(stepNode));
+  }
+}
+
 function createSummaryBlock(node: ConversationNode): ChatDisplayBlock {
   return {
     id: `display-summary:${node.id}`,
@@ -430,6 +463,20 @@ function collectAssistantSegmentsFromTextNode(
       }
       return;
     }
+    if (child.type === "step" || child.type === "reasoning") {
+      pushGroupedToolsToReply(builder, {
+        turnId,
+        anchorNodeId: node.id,
+        anchorMessageId: node.messageId,
+        nodes: pendingToolNodes,
+      });
+      pendingToolNodes = [];
+      collectReasoningSegments(
+        child.type === "step" ? child : child,
+        builder,
+      );
+      return;
+    }
     if (child.type === "error") {
       pushGroupedToolsToReply(builder, {
         turnId,
@@ -509,6 +556,15 @@ function walkTurnNode(node: ConversationNode, blocks: ChatDisplayBlock[]) {
       flushPendingTools();
       flushReply();
       blocks.push(createMessageBlock(child));
+      return;
+    }
+    if (child.type === "step" || child.type === "reasoning") {
+      hasDisplayContent = true;
+      if (!replyBuilder) {
+        replyBuilder = createReplyBuilder(child, node.id);
+      }
+      flushPendingTools(child);
+      collectReasoningSegments(child, replyBuilder);
       return;
     }
     if (child.type === "error") {

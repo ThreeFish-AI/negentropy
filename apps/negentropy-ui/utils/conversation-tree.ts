@@ -9,6 +9,7 @@ import {
   asAgUiEvent,
   getCustomEventData,
   getCustomEventType,
+  getEventAuthor,
   getEventMessageId,
   getEventRunId,
   getEventThreadId,
@@ -354,6 +355,7 @@ function findMatchingTextNodeId(
     role: "user" | "assistant" | "system";
     content: string;
     timestamp: number;
+    author?: string;
   },
 ): string | null {
   const normalizedContent = input.content.trim();
@@ -377,6 +379,13 @@ function findMatchingTextNodeId(
       continue;
     }
     if (!isRunCompatible(node.runId, input.runId)) {
+      continue;
+    }
+    if (
+      input.author &&
+      typeof node.payload.author === "string" &&
+      node.payload.author !== input.author
+    ) {
       continue;
     }
     if (Math.abs(node.timeRange.end - input.timestamp) > timeWindowSeconds) {
@@ -410,6 +419,7 @@ function finalizeTextNodeFromCanonicalMessage(
     resolvedRole: CanonicalMessageRole;
     sourceEventTypes?: string[];
     relatedMessageIds?: string[];
+    author?: string;
   },
 ) {
   const nextContent = message.content.trim();
@@ -424,6 +434,9 @@ function finalizeTextNodeFromCanonicalMessage(
     typeof node.payload.streaming === "boolean"
       ? node.payload.streaming && message.streaming
       : message.streaming;
+  if (message.author && !node.payload.author) {
+    node.payload.author = message.author;
+  }
   node.role = message.resolvedRole;
   node.title = message.resolvedRole === "user" ? "用户消息" : "助手消息";
   if (!message.streaming && !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END))) {
@@ -700,6 +713,7 @@ export function buildConversationTree(
           normalizedEvent.type === EventType.TEXT_MESSAGE_CONTENT && "delta" in normalizedEvent
             ? String(normalizedEvent.delta || "")
             : "";
+        const eventAuthor = getEventAuthor(normalizedEvent);
         const existingNodeId =
           messageNodeIndex.get(canonicalMessageId) || messageNodeIndex.get(messageId);
         const matchedNodeId =
@@ -713,9 +727,11 @@ export function buildConversationTree(
                     : role,
                 content: delta,
                 timestamp: normalizeTimestamp(normalizedEvent.timestamp),
+                author: eventAuthor,
               })
             : null;
         const nodeId = matchedNodeId || existingNodeId || `message:${canonicalMessageId}`;
+        const authorPayload = eventAuthor ? { author: eventAuthor } : {};
         const node = upsertNode(nodeIndex, roots, turns, {
           id: nodeId,
           type: "text",
@@ -727,7 +743,9 @@ export function buildConversationTree(
           sourceOrder: meta.sourceOrder,
           title: role === "user" ? "用户消息" : "助手消息",
           role,
-          payload: delta ? { content: delta, streaming: true } : { streaming: true },
+          payload: delta
+            ? { content: delta, streaming: true, ...authorPayload }
+            : { streaming: true, ...authorPayload },
           sourceEventTypes: [eventType],
           relatedMessageIds: [canonicalMessageId, messageId],
         });
@@ -737,6 +755,9 @@ export function buildConversationTree(
           node.role = role;
           node.title = role === "user" ? "用户消息" : "助手消息";
           messageRoleById.set(messageId, role);
+        }
+        if (eventAuthor && !node.payload.author) {
+          node.payload.author = eventAuthor;
         }
         if (delta) {
           const existing = String(node.payload.content || "");
@@ -1124,6 +1145,7 @@ export function buildConversationTree(
           resolvedRole: snapshotMessage.resolvedRole,
           sourceEventTypes: snapshotMessage.sourceEventTypes,
           relatedMessageIds: snapshotMessage.relatedMessageIds,
+          author: snapshotMessage.author,
         });
         messageNodeIndex.set(canonicalMessageId, existingNode.id);
         snapshotMessage.relatedMessageIds.forEach((relatedMessageId) => {
@@ -1183,6 +1205,7 @@ export function buildConversationTree(
           canonicalMessageId,
           messageId,
         ],
+        author: snapshotMessage?.author,
       });
       duplicateNode.messageId = canonicalMessageId;
       if (!duplicateNode.relatedMessageIds.includes(messageId)) {
