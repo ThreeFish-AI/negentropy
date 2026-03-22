@@ -199,6 +199,7 @@ export type {
 
 export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
 export type { PipelineRunCardProps } from "./components/PipelineRunCard";
+export { PipelineRunDetailPanel } from "./components/PipelineRunDetailPanel";
 export { PipelineStatusBadge } from "./components/PipelineStatusBadge";
 export { PipelineStagesBar } from "./components/PipelineStagesBar";
 export { DocumentViewDialog } from "./components/DocumentViewDialog";

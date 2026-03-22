@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import type { PipelineStageResult } from "../utils/knowledge-api";
+import type { PipelineErrorPayload, PipelineStageResult } from "../utils/knowledge-api";
 import { PipelineStatusBadge } from "./PipelineStatusBadge";
 import { PipelineStagesBar } from "./PipelineStagesBar";
 import {
@@ -10,6 +9,8 @@ import {
   OPERATION_LABELS,
   TRIGGER_LABELS,
   formatDuration,
+  getFailedStages,
+  getStageErrorSummary,
 } from "../utils/pipeline-helpers";
 
 /**
@@ -34,17 +35,38 @@ export interface PipelineRunCardProps {
   completed_at?: string;
   /** 阶段执行结果 */
   stages?: Record<string, PipelineStageResult>;
+  /** 运行级错误 */
+  error?: PipelineErrorPayload;
+  /** 卡片交互模式 */
+  mode?: "link" | "selectable";
+  /** 是否选中（仅 mode="selectable" 有效） */
+  selected?: boolean;
+  /** 点击回调（仅 mode="selectable" 有效） */
+  onSelect?: () => void;
   /** 支持扩展字段 */
   [key: string]: unknown;
 }
 
+/** 格式化时间戳为紧凑显示（MM-DD HH:mm:ss） */
+function formatCompactTimestamp(iso?: string): string | null {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    const ss = String(d.getSeconds()).padStart(2, "0");
+    return `${mm}-${dd} ${hh}:${mi}:${ss}`;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Pipeline Run 卡片组件
- *
- * 用于 Dashboard 页面展示 Pipeline 运行状态概览
- * 点击卡片跳转到 /knowledge/pipelines 详情页
+ * Pipeline Run 卡片内部内容（共享渲染逻辑）
  */
-export function PipelineRunCard({
+function PipelineRunCardContent({
   run_id,
   status,
   version,
@@ -55,44 +77,44 @@ export function PipelineRunCard({
   started_at,
   completed_at,
   stages,
-}: PipelineRunCardProps) {
-  // 计算运行时长
+  error,
+  isSelectable,
+}: PipelineRunCardProps & { isSelectable: boolean }) {
   const duration = formatDuration(duration_ms, started_at, completed_at);
-  // 操作类型标签
   const operationLabel = operation ? OPERATION_LABELS[operation] || operation : null;
-  // 触发方式标签
   const triggerLabel = trigger ? TRIGGER_LABELS[trigger] || trigger : null;
-  // 是否有阶段数据
   const hasStages = stages && Object.keys(stages).length > 0;
 
+  const startLabel = formatCompactTimestamp(started_at);
+  const endLabel = formatCompactTimestamp(completed_at);
+  const hasTimeline = startLabel || endLabel;
+
   return (
-    <Link
-      href="/knowledge/pipelines"
-      className="block rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5
-                 text-left transition-all hover:border-zinc-400 hover:bg-zinc-100
-                 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:border-zinc-500
-                 dark:hover:bg-zinc-800"
-    >
+    <>
       {/* 第一行：Run ID + 共享状态标签 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-medium text-zinc-700 dark:text-zinc-300">
-            {truncateRunId(run_id)}
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={`truncate text-xs font-semibold ${
+            isSelectable ? "" : "font-mono text-zinc-700 dark:text-zinc-300"
+          }`}>
+            {isSelectable ? run_id : truncateRunId(run_id)}
           </span>
         </div>
         <PipelineStatusBadge status={status} />
       </div>
 
       {/* 第二行：操作类型 + 触发方式 + 时长 + 版本 */}
-      <div className="mt-1.5 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
+      <div className={`mt-1.5 flex min-w-0 items-center justify-between text-[11px] ${
+        isSelectable ? "opacity-70" : "text-zinc-500 dark:text-zinc-400"
+      }`}>
         <div className="flex items-center gap-1.5">
           {operationLabel && (
             <>
-              <span className="font-medium text-zinc-600 dark:text-zinc-300">
+              <span className={isSelectable ? "font-medium" : "font-medium text-zinc-600 dark:text-zinc-300"}>
                 {operationLabel}
               </span>
               {triggerLabel && (
-                <span className="text-zinc-400 dark:text-zinc-500">·</span>
+                <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
               )}
             </>
           )}
@@ -104,26 +126,96 @@ export function PipelineRunCard({
           )}
           {duration !== "-" && (
             <>
-              <span className="text-zinc-400 dark:text-zinc-500">·</span>
+              <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
               <span>{duration}</span>
             </>
           )}
         </div>
-        <span>v{version}</span>
+        <span className="shrink-0">v{version}</span>
       </div>
 
-      {/* 第三行：阶段进度条（仅在存在阶段数据时显示） */}
+      {/* 第三行：阶段进度条 */}
       {hasStages && (
-        <PipelineStagesBar stages={stages} className="mt-2" />
+        <PipelineStagesBar
+          stages={stages}
+          className={`mt-2 ${isSelectable ? "min-w-0 overflow-visible" : ""}`}
+          gapClassName={isSelectable ? "gap-1" : undefined}
+          segmentClassName={isSelectable ? "min-w-0" : undefined}
+        />
       )}
-    </Link>
+
+      {/* 第四行：Timeline 时间戳 */}
+      {hasTimeline && (
+        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
+          <span>{startLabel ? `开始 ${started_at}` : "开始 -"}</span>
+          <span>→</span>
+          <span>{endLabel ? `结束 ${completed_at}` : "结束 -"}</span>
+        </div>
+      )}
+
+      {/* 第五行：失败摘要（仅失败时显示） */}
+      {status === "failed" && (() => {
+        const failedStageList = getFailedStages(stages);
+        if (failedStageList.length > 0) {
+          const first = failedStageList[0];
+          return (
+            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+              {first.label} · {first.message}
+            </p>
+          );
+        }
+        if (error && typeof error === "object") {
+          return (
+            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+              {getStageErrorSummary(error)}
+            </p>
+          );
+        }
+        return null;
+      })()}
+    </>
+  );
+}
+
+/**
+ * Pipeline Run 卡片组件
+ *
+ * 支持两种交互模式：
+ * - link: 静态展示卡片（默认）
+ * - selectable: 可选中的按钮式卡片，用于 Dashboard 融合列表
+ */
+export function PipelineRunCard(props: PipelineRunCardProps) {
+  const { mode = "link", selected, onSelect } = props;
+
+  if (mode === "selectable") {
+    return (
+      <button
+        className={`w-full min-w-0 rounded-lg border px-3 py-2.5 text-left ${
+          selected
+            ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            : "border-zinc-200 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
+        }`}
+        onClick={onSelect}
+      >
+        <PipelineRunCardContent {...props} isSelectable />
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="block rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5
+                 text-left dark:border-zinc-700 dark:bg-zinc-800/50"
+    >
+      <PipelineRunCardContent {...props} isSelectable={false} />
+    </div>
   );
 }
 
 /**
  * Pipeline Run 列表容器组件
  *
- * 渲染 Pipeline Run 卡片列表，包含"查看更多"链接
+ * 渲染 Pipeline Run 卡片列表
  * 空列表时显示"暂无作业记录"
  */
 export function PipelineRunList({ runs }: { runs: PipelineRunCardProps[] }) {
@@ -140,17 +232,6 @@ export function PipelineRunList({ runs }: { runs: PipelineRunCardProps[] }) {
       {runs.map((run, index) => (
         <PipelineRunCard key={run.run_id || `run-${index}`} {...run} />
       ))}
-      {/* 查看更多链接 */}
-      <Link
-        href="/knowledge/pipelines"
-        className="block rounded-lg border border-dashed border-zinc-200 px-3 py-2
-                   text-center text-xs text-zinc-500 transition-colors
-                   hover:border-zinc-400 hover:text-zinc-700
-                   dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500
-                   dark:hover:text-zinc-300"
-      >
-        查看全部作业 →
-      </Link>
     </div>
   );
 }
