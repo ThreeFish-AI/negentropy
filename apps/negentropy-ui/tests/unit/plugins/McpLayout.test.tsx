@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import McpServersPage from "@/app/plugins/mcp/page";
+import { MCP_HUB_LABEL } from "@/app/plugins/copy";
 
 vi.mock("@/components/ui/PluginsNav", () => ({
   PluginsNav: ({ title }: { title: string }) => <div data-testid="plugins-nav">{title}</div>,
@@ -50,6 +51,9 @@ describe("McpServersPage layout", () => {
     await waitFor(() => {
       expect(screen.getByTestId("mcp-card")).toBeInTheDocument();
     });
+
+    expect(screen.getByTestId("plugins-nav")).toHaveTextContent(MCP_HUB_LABEL);
+    expect(screen.getByRole("heading", { level: 1, name: MCP_HUB_LABEL })).toBeInTheDocument();
 
     const grid = screen.getByTestId("mcp-grid");
     expect(grid).toHaveClass("grid-cols-1");

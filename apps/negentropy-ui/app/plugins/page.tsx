@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MCP_HUB_LABEL } from "@/app/plugins/copy";
 import { PluginsNav } from "@/components/ui/PluginsNav";
 
 interface Stats {
@@ -52,7 +53,7 @@ export default function PluginsPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-3">
                 <StatCard
-                  title="MCP Servers"
+                  title={MCP_HUB_LABEL}
                   total={stats?.mcp_servers.total || 0}
                   enabled={stats?.mcp_servers.enabled || 0}
                   href="/plugins/mcp"
