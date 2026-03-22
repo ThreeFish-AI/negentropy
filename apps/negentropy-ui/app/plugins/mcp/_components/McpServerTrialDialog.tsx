@@ -418,9 +418,9 @@ export function McpServerTrialDialog({
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-12 gap-4">
-        <div className="col-span-3 min-h-0 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
-          <div className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Tools</div>
-          <div className="h-full overflow-auto space-y-4">
+        <div className="col-span-3 flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+          <div className="shrink-0 mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Tools</div>
+          <div className="min-h-0 flex-1 overflow-y-auto space-y-4">
             {groupedTools.map(([group, items]) => (
               <div key={group}>
                 <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">{group}</div>
@@ -445,15 +445,15 @@ export function McpServerTrialDialog({
           </div>
         </div>
 
-        <div className="col-span-4 min-h-0 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
+        <div className="col-span-4 flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+          <div className="shrink-0 mb-3 flex items-center justify-between gap-2">
+            <div className="min-w-0">
               <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 {selectedTool?.display_name || selectedTool?.title || selectedTool?.name || "选择 Tool"}
               </div>
-              <div className="text-xs text-zinc-500">{selectedTool?.description || "暂无描述"}</div>
+              <div className="line-clamp-3 text-xs text-zinc-500">{selectedTool?.description || "暂无描述"}</div>
             </div>
-            <div className="flex gap-2 text-xs">
+            <div className="flex shrink-0 gap-2 text-xs">
               <button
                 className={`rounded px-2 py-1 ${formMode === "guided" ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800"}`}
                 onClick={() => setFormMode("guided")}
@@ -469,7 +469,7 @@ export function McpServerTrialDialog({
             </div>
           </div>
 
-          <div className="h-[calc(100%-7rem)] overflow-auto space-y-3">
+          <div className="min-h-0 flex-1 overflow-y-auto space-y-3">
             {formMode === "raw" ? (
               <textarea
                 value={rawJson}
@@ -488,7 +488,7 @@ export function McpServerTrialDialog({
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between">
+          <div className="shrink-0 mt-3 flex items-center justify-between">
             <div className="text-xs text-red-500">{error}</div>
             <button
               onClick={handleExecute}
@@ -501,9 +501,9 @@ export function McpServerTrialDialog({
         </div>
 
         <div className="col-span-5 grid min-h-0 grid-rows-[220px_minmax(0,1fr)] gap-4">
-          <div className="min-h-0 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
-            <div className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">执行历史</div>
-            <div className="h-full overflow-auto space-y-2">
+          <div className="flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+            <div className="shrink-0 mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">执行历史</div>
+            <div className="min-h-0 flex-1 overflow-y-auto space-y-2">
               {historyLoading ? (
                 <div className="text-sm text-zinc-500">加载中...</div>
               ) : history.length === 0 ? (
@@ -532,12 +532,12 @@ export function McpServerTrialDialog({
             </div>
           </div>
 
-          <div className="min-h-0 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="flex min-h-0 flex-col rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+            <div className="shrink-0 mb-3 flex items-center justify-between">
               <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">白盒详情</div>
               <div className="text-xs text-zinc-500">{activeRun ? `${activeRun.status} · ${activeRun.duration_ms} ms` : "-"}</div>
             </div>
-            <div className="h-full overflow-auto space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto space-y-4">
               {!activeRun ? (
                 <div className="text-sm text-zinc-500">选择一条执行记录查看详情</div>
               ) : (
