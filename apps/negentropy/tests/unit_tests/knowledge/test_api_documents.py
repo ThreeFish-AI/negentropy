@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from io import BytesIO
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException, UploadFile
 
 from negentropy.knowledge import api as knowledge_api
-from negentropy.knowledge.types import ChunkingStrategy
+from negentropy.knowledge.types import ChunkingStrategy, KnowledgeRecord
 
 from .conftest import FakeKnowledgeService, FakeStorageService
 
@@ -82,6 +83,73 @@ async def test_list_document_chunks_invalid_source(monkeypatch):
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail["code"] == "INVALID_DOCUMENT_SOURCE"
+
+
+@pytest.mark.asyncio
+async def test_list_document_chunks_excludes_child_from_top_level(monkeypatch):
+    """层级分块场景：child chunks 不应出现在顶层 items 中，仅嵌套在 parent 下。"""
+    corpus_id = uuid4()
+    document_id = uuid4()
+    family_id = "family-001"
+
+    parent = KnowledgeRecord(
+        id=uuid4(),
+        corpus_id=corpus_id,
+        app_name="negentropy",
+        content="parent content",
+        source_uri="https://example.com/a",
+        chunk_index=0,
+        metadata={"chunk_role": "parent", "chunk_family_id": family_id},
+        created_at=None,
+        updated_at=None,
+        embedding=None,
+    )
+    child = KnowledgeRecord(
+        id=uuid4(),
+        corpus_id=corpus_id,
+        app_name="negentropy",
+        content="child content",
+        source_uri="https://example.com/a",
+        chunk_index=1,
+        metadata={
+            "chunk_role": "child",
+            "chunk_family_id": family_id,
+            "child_chunk_index": 0,
+        },
+        created_at=None,
+        updated_at=None,
+        embedding=None,
+    )
+
+    fake_service = FakeKnowledgeService()
+    fake_service.list_knowledge = AsyncMock(return_value=([parent, child], 2, {}, []))
+
+    doc = SimpleNamespace(
+        id=document_id,
+        metadata_={"source_type": "url", "origin_url": "https://example.com/a"},
+        gcs_uri=None,
+    )
+    fake_storage = FakeStorageService(doc=doc)
+
+    monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
+    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+
+    result = await knowledge_api.list_document_chunks(
+        corpus_id=corpus_id,
+        document_id=document_id,
+        app_name="negentropy",
+        include_archived=False,
+        limit=50,
+        offset=0,
+    )
+
+    # 顶层只有 parent，不含 child
+    assert result.count == 1
+    assert len(result.items) == 1
+    assert result.items[0]["chunk_role"] == "parent"
+    # child 嵌套在 parent 的 child_chunks 中
+    assert len(result.items[0]["child_chunks"]) == 1
+    assert result.items[0]["child_chunks"][0]["chunk_role"] == "child"
 
 
 @pytest.mark.asyncio

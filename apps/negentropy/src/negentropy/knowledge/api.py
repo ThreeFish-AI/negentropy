@@ -1977,20 +1977,33 @@ async def list_document_chunks(
         )
 
     service = _get_service()
-    items, total_count, _, _ = await service.list_knowledge(
+    # 获取该文档下全量 chunks（含 parent + child + leaf），用于 sibling 匹配
+    all_items, _, _, _ = await service.list_knowledge(
         corpus_id=corpus_id,
         app_name=resolved_app,
         source_uri=source_uri,
         include_archived=include_archived,
-        limit=limit,
-        offset=offset,
+        limit=10000,
+        offset=0,
     )
-    serialized = [_serialize_document_chunk_item(item, items) for item in items]
+
+    # 过滤顶层项：排除 child chunks（它们仅作为 parent 的嵌套子项显示）
+    top_level_items = [
+        item for item in all_items
+        if (item.metadata or {}).get("chunk_role") != "child"
+    ]
+
+    # Python 层分页
+    total_top = len(top_level_items)
+    paginated = top_level_items[offset : offset + limit]
+
+    # 序列化：传入 all_items 作为 siblings，确保 parent 能匹配到 child
+    serialized = [_serialize_document_chunk_item(item, all_items) for item in paginated]
     return DocumentChunksResponse(
-        count=total_count,
+        count=total_top,
         page=(offset // limit) + 1,
         page_size=limit,
-        document_metadata=_build_document_chunk_metadata(doc, items),
+        document_metadata=_build_document_chunk_metadata(doc, all_items),
         items=serialized,
     )
 
