@@ -79,7 +79,7 @@ export default function PluginsPage() {
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
               Quick Links
             </h2>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <QuickLink
                 href="/plugins/mcp"
                 title="Register MCP Server"
