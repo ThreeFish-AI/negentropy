@@ -57,19 +57,19 @@ export function RetrievedChunkCard({
         }
       }}
       className={cn(
-        "rounded-2xl border border-border bg-card text-left shadow-sm transition",
+        "rounded-xl border border-border bg-card text-left shadow-sm transition",
         "hover:border-border-muted hover:bg-card/95",
         className,
       )}
     >
-      <div className={cn("flex items-start justify-between gap-4 px-4 pt-4", isCompact && "gap-3")}>
+      <div className={cn("flex items-start justify-between gap-3 px-3 pt-3", isCompact && "gap-2.5")}>
         <div
           className={cn(
-            "flex min-w-0 flex-wrap items-center gap-2 text-sm font-medium text-zinc-500 dark:text-zinc-400",
-            isCompact && "text-xs",
+            "flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400",
+            isCompact && "text-[10px]",
           )}
         >
-          <Grip className={cn("h-3.5 w-3.5 shrink-0", isCompact && "h-3 w-3")} />
+          <Grip className={cn("h-[11px] w-[11px] shrink-0", isCompact && "h-2.5 w-2.5")} />
           <span className="truncate text-zinc-600 dark:text-zinc-400">{chunk.title}</span>
           <span className="shrink-0 text-zinc-400 dark:text-zinc-500">·</span>
           <span className="shrink-0 text-zinc-600 dark:text-zinc-400">{chunk.characterCount} characters</span>
@@ -78,8 +78,8 @@ export function RetrievedChunkCard({
         {!hideScores && (
           <span
             className={cn(
-              "shrink-0 rounded bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white",
-              isCompact && "px-1.5 py-0.5 text-[10px]",
+              "shrink-0 rounded bg-blue-600 px-1.5 py-[3px] text-[9px] font-semibold text-white",
+              isCompact && "px-1 py-[2px] text-[8px]",
             )}
           >
             SCORE {formatScore(chunk.score)}
@@ -87,11 +87,11 @@ export function RetrievedChunkCard({
         )}
       </div>
 
-      <div className="px-4 pb-3 pt-2">
+      <div className="px-3 pb-2.5 pt-1.5">
         <p
           className={cn(
-            "line-clamp-2 whitespace-pre-wrap text-[15px] font-medium text-foreground",
-            isCompact && "text-sm",
+            "line-clamp-2 whitespace-pre-wrap text-[12px] font-medium text-foreground",
+            isCompact && "text-[11px]",
           )}
         >
           {chunk.preview}
@@ -99,7 +99,7 @@ export function RetrievedChunkCard({
       </div>
 
       {hasChildren && (
-        <div className="px-4 pb-4">
+        <div className="px-3 pb-3">
           <button
             type="button"
             aria-expanded={isExpanded}
@@ -109,27 +109,27 @@ export function RetrievedChunkCard({
               setIsExpanded((prev) => !prev);
             }}
             className={cn(
-              "flex items-center gap-2 text-sm font-semibold tracking-wide text-zinc-700 dark:text-zinc-300",
-              isCompact && "text-xs",
+              "flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-zinc-700 dark:text-zinc-300",
+              isCompact && "text-[10px]",
             )}
           >
             {isExpanded ? (
-              <ChevronDown className={cn("h-4 w-4", isCompact && "h-3.5 w-3.5")} />
+              <ChevronDown className={cn("h-3.5 w-3.5", isCompact && "h-3 w-3")} />
             ) : (
-              <ChevronRight className={cn("h-4 w-4", isCompact && "h-3.5 w-3.5")} />
+              <ChevronRight className={cn("h-3.5 w-3.5", isCompact && "h-3 w-3")} />
             )}
             <span>HIT {chunk.childHitCount} CHILD CHUNKS</span>
           </button>
 
           {isExpanded && chunk.childChunks.length > 0 && (
-            <div id={childSectionId} className="mt-3 flex flex-col gap-2">
+            <div id={childSectionId} className="mt-2.5 flex flex-col gap-1.5">
               {chunk.childChunks.map((childChunk) => {
                 const childContent = (
                   <>
                     <span
                       className={cn(
-                        "rounded bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white",
-                        isCompact && "px-1.5 py-0.5 text-[10px]",
+                        "rounded bg-blue-600 px-1.5 py-[3px] text-[9px] font-semibold text-white",
+                        isCompact && "px-1 py-[2px] text-[8px]",
                       )}
                     >
                       {childChunk.label}
@@ -137,8 +137,8 @@ export function RetrievedChunkCard({
                     {!hideScores && (
                       <span
                         className={cn(
-                          "rounded bg-blue-600/85 px-2 py-1 text-[11px] font-semibold text-white",
-                          isCompact && "px-1.5 py-0.5 text-[10px]",
+                          "rounded bg-blue-600/85 px-1.5 py-[3px] text-[9px] font-semibold text-white",
+                          isCompact && "px-1 py-[2px] text-[8px]",
                         )}
                       >
                         SCORE {formatScore(childChunk.score)}
@@ -146,8 +146,8 @@ export function RetrievedChunkCard({
                     )}
                     <span
                       className={cn(
-                        "line-clamp-1 min-w-0 flex-1 rounded bg-blue-500/20 px-2 py-1 text-sm text-foreground",
-                        isCompact && "text-xs",
+                        "line-clamp-1 min-w-0 flex-1 rounded bg-blue-500/20 px-1.5 py-[3px] text-[11px] text-foreground",
+                        isCompact && "text-[10px]",
                       )}
                     >
                       {childChunk.content}
@@ -165,8 +165,8 @@ export function RetrievedChunkCard({
                         onChildChunkOpen(childChunk.id);
                       }}
                       className={cn(
-                        "flex w-full flex-wrap items-center gap-2 text-left text-sm text-foreground",
-                        isCompact && "text-xs",
+                        "flex w-full flex-wrap items-center gap-1.5 text-left text-[11px] text-foreground",
+                        isCompact && "text-[10px]",
                       )}
                     >
                       {childContent}
@@ -178,8 +178,8 @@ export function RetrievedChunkCard({
                   <div
                     key={childChunk.id}
                     className={cn(
-                      "flex flex-wrap items-center gap-2 text-sm text-foreground",
-                      isCompact && "text-xs",
+                      "flex flex-wrap items-center gap-1.5 text-[11px] text-foreground",
+                      isCompact && "text-[10px]",
                     )}
                   >
                     {childContent}
@@ -194,12 +194,12 @@ export function RetrievedChunkCard({
       {!hideFooter && (
         <div
           className={cn(
-            "flex items-center justify-between gap-4 border-t border-border px-4 py-3 text-sm",
-            isCompact && "text-xs",
+            "flex items-center justify-between gap-3 border-t border-border px-3 py-2.5 text-[11px]",
+            isCompact && "text-[10px]",
           )}
         >
-          <div className="flex min-w-0 items-center gap-2 text-zinc-700 dark:text-zinc-200">
-            <FileText className={cn("h-4 w-4 shrink-0 text-red-500", isCompact && "h-3.5 w-3.5")} />
+          <div className="flex min-w-0 items-center gap-1.5 text-zinc-700 dark:text-zinc-200">
+            <FileText className={cn("h-3.5 w-3.5 shrink-0 text-red-500", isCompact && "h-3 w-3")} />
             <span className="truncate" title={chunk.sourceTitle}>
               {chunk.sourceLabel}
             </span>
@@ -211,12 +211,12 @@ export function RetrievedChunkCard({
               handleOpen();
             }}
             className={cn(
-              "inline-flex items-center gap-1 text-sm font-medium uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
-              isCompact && "text-xs",
+              "inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
+              isCompact && "text-[10px]",
             )}
           >
             <span>Open</span>
-            <ExternalLink className={cn("h-4 w-4", isCompact && "h-3.5 w-3.5")} />
+            <ExternalLink className={cn("h-3.5 w-3.5", isCompact && "h-3 w-3")} />
           </button>
         </div>
       )}
