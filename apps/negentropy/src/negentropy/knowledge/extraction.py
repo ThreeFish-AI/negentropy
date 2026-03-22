@@ -18,6 +18,7 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool
+from negentropy.plugins.execution import McpToolExecutionService, RUN_ORIGIN_KNOWLEDGE_EXTRACTION
 from negentropy.serialization import to_json_compatible, to_json_compatible_strict
 from negentropy.storage.service import DocumentStorageService
 
@@ -1747,7 +1748,6 @@ class DataExtractorProvider:
                     target=target,
                     plan=plan,
                 )
-                await _increment_tool_call_count(server_id=target.server_id, tool_name=target.tool_name)
                 invocation_trace.append(
                     {
                         "attempt": index + 1,
@@ -1822,17 +1822,17 @@ class DataExtractorProvider:
         target: McpToolTarget,
         plan: AdaptiveToolInvocationPlan,
     ) -> Any:
-        return await self._client.call_tool(
-            transport_type=server.transport_type,
-            tool_name=target.tool_name,
-            arguments=plan.arguments,
-            command=server.command,
-            args=server.args,
-            env=server.env,
-            url=server.url,
-            headers=server.headers,
-            timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
-        )
+        async with AsyncSessionLocal() as db:
+            service = McpToolExecutionService(db, client=self._client)
+            execution = await service.execute_tool(
+                server=server,
+                user=None,
+                tool_name=target.tool_name,
+                arguments=plan.arguments,
+                origin=RUN_ORIGIN_KNOWLEDGE_EXTRACTION,
+                timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
+            )
+            return execution.call_result
 
     def _build_success_result(
         self,
