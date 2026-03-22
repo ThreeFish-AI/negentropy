@@ -55,6 +55,73 @@ export type ChunkingConfig =
   | SemanticChunkingConfig
   | HierarchicalChunkingConfig;
 
+/**
+ * 将 separators 数组编码为 textarea 可显示的文本。
+ *
+ * 每个 separator 中的特殊字符以转义序列表示（真实 \n → 字面量 \\n），
+ * 然后以真实换行符 join 各项，实现「每行一个 separator」的体验。
+ */
+export function encodeSeparatorsForDisplay(separators: string[]): string {
+  return separators
+    .map((sep) => {
+      if (sep === "") return "<empty>";
+      return sep
+        .replace(/\\/g, "\\\\")
+        .replace(/\n/g, "\\n")
+        .replace(/\t/g, "\\t")
+        .replace(/\r/g, "\\r");
+    })
+    .join("\n");
+}
+
+/**
+ * 将 textarea 文本解码回 separators 数组。
+ *
+ * 按真实换行拆分行，每行做反转义处理。
+ * 使用逐字符扫描避免正则替换的顺序依赖问题。
+ */
+export function decodeSeparatorsFromInput(text: string): string[] {
+  return text
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      if (line === "<empty>") return "";
+      let result = "";
+      let i = 0;
+      while (i < line.length) {
+        if (line[i] === "\\" && i + 1 < line.length) {
+          const next = line[i + 1];
+          switch (next) {
+            case "n":
+              result += "\n";
+              i += 2;
+              break;
+            case "t":
+              result += "\t";
+              i += 2;
+              break;
+            case "r":
+              result += "\r";
+              i += 2;
+              break;
+            case "\\":
+              result += "\\";
+              i += 2;
+              break;
+            default:
+              result += line[i];
+              i += 1;
+              break;
+          }
+        } else {
+          result += line[i];
+          i += 1;
+        }
+      }
+      return result;
+    });
+}
+
 export function createDefaultChunkingConfig(
   strategy: ChunkingStrategy = "recursive",
 ): ChunkingConfig {
@@ -78,7 +145,7 @@ export function createDefaultChunkingConfig(
       return {
         strategy,
         preserve_newlines: true,
-        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        separators: ["\n"],
         hierarchical_parent_chunk_size: 1024,
         hierarchical_child_chunk_size: 256,
         hierarchical_child_overlap: 51,
@@ -90,7 +157,7 @@ export function createDefaultChunkingConfig(
         chunk_size: 800,
         overlap: 100,
         preserve_newlines: true,
-        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        separators: ["\n"],
       };
   }
 }

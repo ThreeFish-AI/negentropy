@@ -3,6 +3,8 @@ import {
   buildCorpusConfig,
   createEmptyExtractorDraftTarget,
   createDefaultChunkingConfig,
+  encodeSeparatorsForDisplay,
+  decodeSeparatorsFromInput,
   fetchCorpus,
   fetchDocumentChunks,
   fetchDocuments,
@@ -348,5 +350,94 @@ describe("fetchCorpus", () => {
         ],
       },
     });
+  });
+});
+
+// ============================================================================
+// Separator Textarea 编解码
+// ============================================================================
+
+describe("encodeSeparatorsForDisplay", () => {
+  it("将换行符编码为 \\n 文本", () => {
+    expect(encodeSeparatorsForDisplay(["\n"])).toBe("\\n");
+  });
+
+  it("将双换行编码为 \\n\\n 文本", () => {
+    expect(encodeSeparatorsForDisplay(["\n\n"])).toBe("\\n\\n");
+  });
+
+  it("将普通字符原样保留", () => {
+    expect(encodeSeparatorsForDisplay(["。", ". "])).toBe("。\n. ");
+  });
+
+  it("将空字符串编码为 <empty> 标记", () => {
+    expect(encodeSeparatorsForDisplay([""])).toBe("<empty>");
+  });
+
+  it("将反斜杠编码为双反斜杠", () => {
+    expect(encodeSeparatorsForDisplay(["\\"])).toBe("\\\\");
+  });
+
+  it("正确编码含反斜杠+n 的字面量", () => {
+    expect(encodeSeparatorsForDisplay(["\\n"])).toBe("\\\\n");
+  });
+
+  it("编码新默认值 [\\n] 为单行 \\n", () => {
+    const defaults = createDefaultChunkingConfig("recursive");
+    if (defaults.strategy === "recursive") {
+      expect(encodeSeparatorsForDisplay(defaults.separators)).toBe("\\n");
+    }
+  });
+});
+
+describe("decodeSeparatorsFromInput", () => {
+  it("将 \\n 文本解码为换行符", () => {
+    expect(decodeSeparatorsFromInput("\\n")).toEqual(["\n"]);
+  });
+
+  it("将 \\n\\n 文本解码为双换行", () => {
+    expect(decodeSeparatorsFromInput("\\n\\n")).toEqual(["\n\n"]);
+  });
+
+  it("将普通字符原样保留", () => {
+    expect(decodeSeparatorsFromInput("。\n. ")).toEqual(["。", ". "]);
+  });
+
+  it("将 <empty> 标记解码为空字符串", () => {
+    expect(decodeSeparatorsFromInput("<empty>")).toEqual([""]);
+  });
+
+  it("将双反斜杠解码为单反斜杠", () => {
+    expect(decodeSeparatorsFromInput("\\\\")).toEqual(["\\"]);
+  });
+
+  it("过滤意外空行", () => {
+    expect(decodeSeparatorsFromInput("\\n\n\n。")).toEqual(["\n", "。"]);
+  });
+
+  it("保留尾部空格（如 '. '）", () => {
+    expect(decodeSeparatorsFromInput(". ")).toEqual([". "]);
+  });
+});
+
+describe("separator encode/decode 往返一致性", () => {
+  it("新默认值 [\\n] 往返一致", () => {
+    const seps = ["\n"];
+    expect(decodeSeparatorsFromInput(encodeSeparatorsForDisplay(seps))).toEqual(seps);
+  });
+
+  it("旧 12 元素默认值往返一致", () => {
+    const oldDefaults = ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""];
+    expect(decodeSeparatorsFromInput(encodeSeparatorsForDisplay(oldDefaults))).toEqual(oldDefaults);
+  });
+
+  it("含字面量反斜杠的 separator 往返一致", () => {
+    const seps = ["\\n", "\\"];
+    expect(decodeSeparatorsFromInput(encodeSeparatorsForDisplay(seps))).toEqual(seps);
+  });
+
+  it("混合特殊字符往返一致", () => {
+    const seps = ["\n\n", "\t", "\r\n", "。", ""];
+    expect(decodeSeparatorsFromInput(encodeSeparatorsForDisplay(seps))).toEqual(seps);
   });
 });

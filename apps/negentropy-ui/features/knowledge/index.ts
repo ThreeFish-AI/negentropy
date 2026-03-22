@@ -150,6 +150,8 @@ export type {
 export {
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
+  encodeSeparatorsForDisplay,
+  decodeSeparatorsFromInput,
   normalizeCorpusExtractorRoutes,
   createEmptyExtractorDraftTarget,
   normalizeExtractorDraftRoutes,

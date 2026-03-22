@@ -7,6 +7,8 @@ import {
   ChunkingStrategy,
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
+  encodeSeparatorsForDisplay,
+  decodeSeparatorsFromInput,
 } from "@/features/knowledge";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
@@ -258,15 +260,12 @@ export function CorpusFormDialog({
                       <textarea
                         className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
                         rows={4}
-                        placeholder={"\\n\\n\\n.\\n,\\n;"}
-                        value={config.separators.join("\n")}
+                        placeholder={"\\n"}
+                        value={encodeSeparatorsForDisplay(config.separators)}
                         onChange={(e) =>
                           setConfig({
                             ...config,
-                            separators: e.target.value
-                              .split("\n")
-                              .map((item) => item.trim())
-                              .filter(Boolean),
+                            separators: decodeSeparatorsFromInput(e.target.value),
                           })
                         }
                       />
@@ -415,15 +414,12 @@ export function CorpusFormDialog({
                       <textarea
                         className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
                         rows={4}
-                        placeholder={"\\n\\n\\n.\\n,\\n;"}
-                        value={config.separators.join("\n")}
+                        placeholder={"\\n"}
+                        value={encodeSeparatorsForDisplay(config.separators)}
                         onChange={(e) =>
                           setConfig({
                             ...config,
-                            separators: e.target.value
-                              .split("\n")
-                              .map((item) => item.trim())
-                              .filter(Boolean),
+                            separators: decodeSeparatorsFromInput(e.target.value),
                           })
                         }
                       />
