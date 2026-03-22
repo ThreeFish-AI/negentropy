@@ -37,7 +37,7 @@ dependencies = [
     "structlog>=25.5.0",            # Structured logging for machine-readability
     "orjson>=3.11.6",               # Fast JSON serialization
     "beautifulsoup4>=4.12.3",       # HTML parsing
-    "pypdf>=4.0.1",                 # PDF parsing
+    "pypdf>=6.9.1",                 # PDF parsing
     "pdfplumber>=0.11.0",           # PDF table extraction
 ]
 
@@ -113,4 +113,11 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "if typing.TYPE_CHECKING:",
     "@abstractmethod",
+]
+
+[tool.uv]
+constraint-dependencies = [
+    "authlib>=1.6.9",   # CVE-2026-27962 (critical) + CVE-2026-28490/28498/28802
+    "pyasn1>=0.6.3",    # CVE-2026-30922: unbounded recursion DoS
+    "pyjwt>=2.12.0",    # CVE-2026-32597: unknown crit header extensions
 ]
