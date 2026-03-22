@@ -167,7 +167,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright smoke tests
-        run: pnpm exec playwright test --update-snapshots
+        run: pnpm test:e2e
 
       - name: Upload Playwright report
         if: always()
@@ -175,14 +175,5 @@ jobs:
         with:
           name: playwright-report
           path: apps/negentropy-ui/playwright-report
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Upload updated snapshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-snapshots
-          path: apps/negentropy-ui/tests/e2e/smoke.spec.ts-snapshots/
           if-no-files-found: warn
           retention-days: 14
