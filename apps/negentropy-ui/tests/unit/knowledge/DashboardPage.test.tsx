@@ -15,7 +15,7 @@ vi.mock("@/features/knowledge", async () => {
   return createKnowledgeFeatureTestHarness(knowledgeMocks).exports;
 });
 
-import KnowledgeDashboardPage from "@/app/knowledge/page";
+import KnowledgeDashboardPage from "@/app/knowledge/dashboard/page";
 import { resetKnowledgeFeatureMocks } from "@/tests/helpers/knowledge";
 
 const flushPromises = async () => {
