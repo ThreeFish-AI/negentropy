@@ -131,7 +131,14 @@ function PipelineRunCardContent({
             </>
           )}
         </div>
-        <span className="shrink-0">v{version}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          {hasTimeline && (
+            <span className={isSelectable ? "opacity-60" : "text-zinc-400 dark:text-zinc-500"}>
+              {startLabel ?? "-"} → {endLabel ?? "-"}
+            </span>
+          )}
+          <span className="shrink-0">v{version}</span>
+        </div>
       </div>
 
       {/* 第三行：阶段进度条 */}
@@ -144,16 +151,7 @@ function PipelineRunCardContent({
         />
       )}
 
-      {/* 第四行：Timeline 时间戳 */}
-      {hasTimeline && (
-        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
-          <span>{startLabel ? `开始 ${started_at}` : "开始 -"}</span>
-          <span>→</span>
-          <span>{endLabel ? `结束 ${completed_at}` : "结束 -"}</span>
-        </div>
-      )}
-
-      {/* 第五行：失败摘要（仅失败时显示） */}
+      {/* 第四行：失败摘要（仅失败时显示） */}
       {status === "failed" && (() => {
         const failedStageList = getFailedStages(stages);
         if (failedStageList.length > 0) {
