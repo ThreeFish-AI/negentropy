@@ -53,6 +53,7 @@ import { DeleteCorpusDialog } from "./_components/DeleteCorpusDialog";
 import { DeleteSourceDialog } from "./_components/DeleteSourceDialog";
 import { RetrievedChunkCard } from "./_components/RetrievedChunkCard";
 import { RetrievedChunkDetailDialog } from "./_components/RetrievedChunkDetailDialog";
+import { EditChunkDialog } from "./_components/EditChunkDialog";
 import { ReplaceDocumentDialog } from "./_components/ReplaceDocumentDialog";
 import { buildRetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
 import type { RetrievedChunkViewModel } from "./_components/retrieved-chunk-presenter";
@@ -190,80 +191,6 @@ function DocumentMetadataPanel({
       <div className="mt-6 space-y-6">
         {renderFieldGroup("Document Information", docInfo)}
         {renderFieldGroup("Technical Parameters", stats)}
-      </div>
-    </section>
-  );
-}
-
-function EditChunkPanel({
-  chunk,
-  draftContent,
-  draftEnabled,
-  onDraftContentChange,
-  onDraftEnabledChange,
-  onCancel,
-  onSave,
-  onRegenerate,
-  pending,
-}: {
-  chunk: DocumentChunkItem;
-  draftContent: string;
-  draftEnabled: boolean;
-  onDraftContentChange: (value: string) => void;
-  onDraftEnabledChange: (value: boolean) => void;
-  onCancel: () => void;
-  onSave: () => void;
-  onRegenerate: () => void;
-  pending: boolean;
-}) {
-  return (
-    <section className="flex h-full flex-col rounded-2xl border border-border bg-card p-5">
-      <div className="mb-4">
-        <h3 className="text-2xl font-semibold">Edit Chunk</h3>
-        <p className="mt-1 text-sm text-muted">
-          {chunk.chunk_role === "parent" ? "Parent" : "Chunk"}-{String(chunk.chunk_index).padStart(2, "0")} · {chunk.character_count} characters
-        </p>
-      </div>
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2">
-        <span className="text-sm text-muted">Enabled</span>
-        <button
-          type="button"
-          aria-pressed={draftEnabled}
-          onClick={() => onDraftEnabledChange(!draftEnabled)}
-          className={`rounded-full px-3 py-1 text-xs font-medium ${draftEnabled ? "bg-emerald-500 text-white" : "bg-zinc-700 text-zinc-200"}`}
-        >
-          {draftEnabled ? "Enabled" : "Disabled"}
-        </button>
-      </div>
-      <textarea
-        value={draftContent}
-        onChange={(event) => onDraftContentChange(event.target.value)}
-        className="min-h-0 flex-1 resize-none rounded-2xl border border-border bg-background p-4 text-sm outline-none"
-      />
-      <div className="mt-4 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className={outlineButtonClassName("neutral", "rounded-xl px-4 py-2 text-sm")}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onRegenerate}
-          className={outlineButtonClassName("neutral", "rounded-xl px-4 py-2 text-sm")}
-        >
-          Save & Regenerate Child Chunks
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onSave}
-          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          Save
-        </button>
       </div>
     </section>
   );
@@ -1538,25 +1465,7 @@ export default function KnowledgeBasePage() {
                   </section>
 
                   <div className="min-h-0">
-                    {selectedDocumentChunk ? (
-                      <EditChunkPanel
-                        chunk={selectedDocumentChunk}
-                        draftContent={chunkDraftContent}
-                        draftEnabled={chunkDraftEnabled}
-                        onDraftContentChange={setChunkDraftContent}
-                        onDraftEnabledChange={setChunkDraftEnabled}
-                        onCancel={() => {
-                          setSelectedDocumentChunk(null);
-                          setChunkDraftContent("");
-                          setChunkDraftEnabled(true);
-                        }}
-                        onSave={() => void handleSaveDocumentChunk()}
-                        onRegenerate={() => void handleRegenerateDocumentChunkFamily()}
-                        pending={chunkActionPending}
-                      />
-                    ) : (
-                      <DocumentMetadataPanel metadata={documentChunksMetadata} />
-                    )}
+                    <DocumentMetadataPanel metadata={documentChunksMetadata} />
                   </div>
                 </div>
               )}
@@ -1652,6 +1561,22 @@ export default function KnowledgeBasePage() {
           setDeletingDocument(null);
         }}
         onConfirm={handleConfirmDeleteDocument}
+      />
+
+      <EditChunkDialog
+        chunk={selectedDocumentChunk}
+        draftContent={chunkDraftContent}
+        draftEnabled={chunkDraftEnabled}
+        onDraftContentChange={setChunkDraftContent}
+        onDraftEnabledChange={setChunkDraftEnabled}
+        onClose={() => {
+          setSelectedDocumentChunk(null);
+          setChunkDraftContent("");
+          setChunkDraftEnabled(true);
+        }}
+        onSave={() => void handleSaveDocumentChunk()}
+        onRegenerate={() => void handleRegenerateDocumentChunkFamily()}
+        pending={chunkActionPending}
       />
     </div>
   );
