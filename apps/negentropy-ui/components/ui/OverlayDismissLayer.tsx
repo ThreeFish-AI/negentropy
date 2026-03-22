@@ -33,11 +33,11 @@ export function OverlayDismissLayer({
   contentTestId,
   children,
 }: OverlayDismissLayerProps) {
-  if (!open) return null;
-
   const contentRef = useRef<HTMLDivElement | null>(null);
   const { className: contentPropsClassName, onClick, ...restContentProps } =
     contentProps ?? {};
+
+  if (!open) return null;
 
   const handleWrapperClick: NonNullable<HTMLAttributes<HTMLDivElement>["onClick"]> = (
     event,

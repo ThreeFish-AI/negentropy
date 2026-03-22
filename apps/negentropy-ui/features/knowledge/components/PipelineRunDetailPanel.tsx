@@ -1,8 +1,6 @@
 "use client";
 
 import type { PipelineRunRecord } from "../utils/knowledge-api";
-import { PipelineStatusBadge } from "./PipelineStatusBadge";
-import { PipelineStagesBar } from "./PipelineStagesBar";
 import {
   buildPipelineErrorDetails,
   formatDuration,

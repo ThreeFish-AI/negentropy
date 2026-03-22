@@ -2,7 +2,7 @@ import { ReactNode, useRef, useState } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EventType } from "@ag-ui/core";
-import { HomeBody } from "../../app/home-body";
+import { HomeBody, type HomeBodyAgent } from "../../app/home-body";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 
@@ -78,7 +78,7 @@ function Wrapper({ sessionId }: { sessionId: string | null }) {
 
   return (
     <HomeBody
-      agent={mockAgent}
+      agent={mockAgent as unknown as HomeBodyAgent}
       sessionId={currentSession}
       userId="ui"
       setSessionId={setCurrentSession}
@@ -546,8 +546,10 @@ describe("HomeBody integration", () => {
 
     // 验证创建了新 session
     await waitFor(() => {
-      const createCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(
-        ([url, opts]: [string, RequestInit | undefined]) =>
+      const createCalls = (
+        (global.fetch as ReturnType<typeof vi.fn>).mock.calls as Array<[string, RequestInit | undefined]>
+      ).filter(
+        ([url, opts]) =>
           url === "/api/agui/sessions" && opts?.method === "POST",
       );
       expect(createCalls.length).toBeGreaterThanOrEqual(1);

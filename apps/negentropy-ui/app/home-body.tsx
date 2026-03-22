@@ -396,7 +396,7 @@ export function HomeBody({
     pendingSendRef.current = null;
     pendingForSessionRef.current = null;
     void doSend(pending);
-  }, [agent, sessionId, doSend]);
+  }, [agent, sessionId, doSend, pendingSendRef, pendingForSessionRef]);
 
   /* Refactored: State clearing moved to handleSessionChange to avoid set-state-in-effect */
   const handleSessionChange = useCallback((newId: string | null) => {
