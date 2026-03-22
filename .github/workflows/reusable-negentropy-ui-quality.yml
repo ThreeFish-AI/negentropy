@@ -167,7 +167,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright smoke tests
-        run: pnpm test:e2e -- --update-snapshots
+        run: pnpm exec playwright test --update-snapshots
 
       - name: Upload Playwright report
         if: always()
