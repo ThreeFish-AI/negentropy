@@ -23,7 +23,7 @@ export function PluginsNav({
   const { setNavigationInfo } = useNavigation();
 
   useEffect(() => {
-    setNavigationInfo({ moduleLabel: "Plugins", pageTitle: title });
+    setNavigationInfo({ moduleLabel: "Interface", pageTitle: title });
     return () => {
       setNavigationInfo(null);
     };
