@@ -62,10 +62,11 @@ export default function Home() {
     );
   }
 
-  const copilotAgents = agent ? { [AGENT_ID]: agent } : {};
+  const copilotAgents = agent ? { [AGENT_ID]: agent } : undefined;
 
   return (
     <CopilotKitProvider
+      // @ts-expect-error @ag-ui/core@0.0.47 新增 "reasoning" Message 角色与 @copilotkitnext 捆绑的旧版 @ag-ui/client 类型不兼容
       agents__unsafe_dev_only={copilotAgents}
       showDevConsole="auto"
     >

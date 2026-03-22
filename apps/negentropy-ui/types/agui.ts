@@ -13,6 +13,7 @@ import { safeParseBaseEventProps } from "@/lib/agui/schema";
  * 基础事件属性
  */
 export interface BaseEventProps {
+  [key: string]: unknown;
   threadId: string;
   runId: string;
   timestamp: number;
