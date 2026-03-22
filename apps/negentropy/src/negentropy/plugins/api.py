@@ -37,8 +37,6 @@ from negentropy.models.plugin import (
 
 from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
 from .execution import McpToolExecutionService
-from .subagent_presets import build_negentropy_subagent_payloads
-
 logger = get_logger("negentropy.plugins.api")
 router = APIRouter(prefix="/plugins", tags=["plugins"])
 
@@ -1236,6 +1234,8 @@ async def list_negentropy_subagent_templates(
 ) -> List[NegentropySubAgentTemplateResponse]:
     """返回 Negentropy 内置 5 个 Faculty SubAgent 模板（来自代码定义）。"""
     _ = user  # 显式依赖鉴权
+    from .subagent_presets import build_negentropy_subagent_payloads
+
     payloads = build_negentropy_subagent_payloads()
     return [
         NegentropySubAgentTemplateResponse(
@@ -1264,6 +1264,8 @@ async def sync_negentropy_subagents(
     - 已存在但归属其他用户：跳过；
     - 不存在：创建。
     """
+    from .subagent_presets import build_negentropy_subagent_payloads
+
     payloads = build_negentropy_subagent_payloads()
     created_count = 0
     updated_count = 0
