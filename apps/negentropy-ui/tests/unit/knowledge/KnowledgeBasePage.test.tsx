@@ -493,7 +493,7 @@ describe("KnowledgeBasePage", () => {
         chunk_size: 800,
         overlap: 100,
         preserve_newlines: true,
-        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        separators: ["\n"],
       },
     });
   });

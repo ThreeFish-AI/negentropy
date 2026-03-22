@@ -43,6 +43,8 @@ import {
   deleteDocument,
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
+  encodeSeparatorsForDisplay,
+  decodeSeparatorsFromInput,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -413,17 +415,15 @@ function ChunkingStrategyPanel({
             <label className="text-xs md:col-span-2">
               <div className="mb-1 text-muted">Separators（每行一个）</div>
               <textarea
-                value={config.separators.join("\n")}
+                value={encodeSeparatorsForDisplay(config.separators)}
                 onChange={(e) =>
                   updateConfig({
                     ...config,
-                    separators: e.target.value
-                      .split("\n")
-                      .map((item) => item.trim())
-                      .filter(Boolean),
+                    separators: decodeSeparatorsFromInput(e.target.value),
                   })
                 }
                 rows={3}
+                placeholder={"\\n"}
                 className="w-full rounded border border-border bg-card px-2 py-2"
               />
             </label>
@@ -557,17 +557,15 @@ function ChunkingStrategyPanel({
           <label className="text-xs">
             <div className="mb-1 text-muted">Separators（每行一个）</div>
             <textarea
-              value={config.separators.join("\n")}
+              value={encodeSeparatorsForDisplay(config.separators)}
               onChange={(e) =>
                 updateConfig({
                   ...config,
-                  separators: e.target.value
-                    .split("\n")
-                    .map((item) => item.trim())
-                    .filter(Boolean),
+                  separators: decodeSeparatorsFromInput(e.target.value),
                 })
               }
               rows={3}
+              placeholder={"\\n"}
               className="w-full rounded border border-border bg-card px-2 py-2"
             />
           </label>
