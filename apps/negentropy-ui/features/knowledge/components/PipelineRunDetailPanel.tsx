@@ -35,8 +35,8 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
             Operation: {OPERATION_LABELS[run.operation] || run.operation}
           </p>
         )}
-        <p className="text-[11px] text-zinc-600 dark:text-zinc-400">Started: {run.started_at || "-"}</p>
-        <p className="text-[11px] text-zinc-600 dark:text-zinc-400">Completed: {run.completed_at || "-"}</p>
+        <p className="text-[11px] text-zinc-600 dark:text-zinc-400">开始 {run.started_at || "-"}</p>
+        <p className="text-[11px] text-zinc-600 dark:text-zinc-400">结束 {run.completed_at || "-"}</p>
         <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
           Duration: {formatDuration(run.duration_ms, run.started_at, run.completed_at)}
         </p>
