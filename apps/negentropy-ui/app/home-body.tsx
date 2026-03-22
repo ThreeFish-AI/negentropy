@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { UseAgentUpdate, useAgent } from "@copilotkitnext/react";
 import { randomUUID } from "@ag-ui/client";
 import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 
@@ -16,7 +15,7 @@ import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
 import { useSessionListService } from "@/features/session/hooks/useSessionListService";
 import { useSessionService } from "@/features/session/hooks/useSessionService";
 
-import { useAgentSubscription } from "@/hooks/useAgentSubscription";
+import { useAgentSubscription, type AgentLike } from "@/hooks/useAgentSubscription";
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
 // 提取的工具函数
@@ -32,19 +31,42 @@ import type {
 export const AGENT_ID = "negentropy";
 export const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
+/** Agent 类型：兼容 NdjsonHttpAgent 与测试 Mock */
+export type HomeBodyAgent = AgentLike & {
+  isRunning: boolean;
+  addMessage: (message: Message) => void;
+  runAgent: (params: { runId: string }) => Promise<unknown>;
+};
+
+/**
+ * HITL 确认工具注册子组件
+ *
+ * 仅在 CopilotKitProvider 内部渲染，避免 useCopilotKit() context 缺失。
+ */
+function ConfirmationToolRegistrar({
+  onFollowup,
+}: {
+  onFollowup: (payload: { action: string; note: string }) => void;
+}) {
+  useConfirmationTool(onFollowup);
+  return null;
+}
+
 export function HomeBody({
+  agent,
   sessionId,
   userId,
   setSessionId,
+  pendingSendRef,
+  pendingForSessionRef,
 }: {
+  agent: HomeBodyAgent | null;
   sessionId: string | null;
   userId: string;
   setSessionId: (id: string | null) => void;
+  pendingSendRef: React.MutableRefObject<string | null>;
+  pendingForSessionRef: React.MutableRefObject<string | null>;
 }) {
-  const { agent } = useAgent({
-    agentId: AGENT_ID,
-    updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnStateChanged],
-  });
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(false);
@@ -58,8 +80,6 @@ export function HomeBody({
   const updateSessionTimeRef = useRef<
     ((currentSessionId: string) => void) | undefined
   >(undefined);
-  const pendingSendRef = useRef<string | null>(null);
-  const pendingForSessionRef = useRef<string | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   const addLog = useCallback(
@@ -237,8 +257,6 @@ export function HomeBody({
     ],
   );
 
-  useConfirmationTool(handleConfirmationFollowup);
-
   // Escape key to return to live view
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -411,6 +429,9 @@ export function HomeBody({
 
   return (
     <div className="h-full flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden dark:bg-zinc-950 dark:text-zinc-100">
+      {agent && (
+        <ConfirmationToolRegistrar onFollowup={handleConfirmationFollowup} />
+      )}
       <div className="flex h-full overflow-hidden relative">
         {/* Left Sidebar: Session List */}
         <div
