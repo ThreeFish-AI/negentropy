@@ -17,11 +17,15 @@ def _sync_database_url() -> str:
 
 @pytest.fixture(autouse=True)
 def reset_database(alembic_config: Config):
-    """Keep migration tests isolated from the developer database."""
+    """Keep migration tests isolated – each test starts from *base*.
+
+    Teardown upgrades back to *head* so that subsequent non-migration
+    integration tests (engine, knowledge) find the schema intact.
+    """
 
     command.downgrade(alembic_config, "base")
     yield
-    command.downgrade(alembic_config, "base")
+    command.upgrade(alembic_config, "head")
 
 
 @pytest.fixture
