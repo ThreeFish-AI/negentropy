@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MCP_HUB_LABEL } from "@/app/plugins/copy";
 import { useNavigation } from "@/components/providers/NavigationProvider";
 
 const NAV_ITEMS = [
   { href: "/plugins", label: "Dashboard" },
-  { href: "/plugins/mcp", label: "MCP Servers" },
+  { href: "/plugins/mcp", label: MCP_HUB_LABEL },
   { href: "/plugins/skills", label: "Skills" },
   { href: "/plugins/subagents", label: "SubAgents" },
 ];
