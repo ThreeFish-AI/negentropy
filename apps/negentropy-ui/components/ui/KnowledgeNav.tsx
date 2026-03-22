@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 import { useNavigation } from "@/components/providers/NavigationProvider";
 
 const NAV_ITEMS = [
+  { href: "/knowledge/dashboard", label: "Dashboard" },
   { href: "/knowledge/base", label: "Knowledge Base" },
   { href: "/knowledge/graph", label: "Knowledge Graph" },
   { href: "/knowledge/documents", label: "Documents" },
   { href: "/knowledge/apis", label: "APIs" },
-  { href: "/knowledge", label: "Dashboard" },
 ];
 
 export function KnowledgeNav({
@@ -29,10 +29,7 @@ export function KnowledgeNav({
     };
   }, [title, setNavigationInfo]);
 
-  const isActive = (href: string) =>
-    href === "/knowledge"
-      ? pathname === "/knowledge"
-      : pathname.startsWith(href);
+  const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <div className="border-b border-border bg-card px-6 py-1">

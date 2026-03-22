@@ -137,6 +137,23 @@ test("Knowledge Base 页面可完成基础检索烟测", async ({ page }) => {
   await expect(page.getByText("Entropy-reducing retrieval result")).toBeVisible();
 });
 
+test("Knowledge 模块入口默认重定向到 Knowledge Base", async ({ page }) => {
+  await mockAuthenticatedUser(page);
+
+  await page.route("**/api/knowledge/base?app_name=negentropy", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([]),
+    });
+  });
+
+  await page.goto("/knowledge");
+
+  await expect(page).toHaveURL(/\/knowledge\/base$/);
+  await expect(page.getByRole("link", { name: "Knowledge Base" })).toHaveClass(/bg-foreground/);
+});
+
 test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
@@ -207,7 +224,7 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
   for (const theme of ["light", "dark"] as const) {
     await applyTheme(page, theme);
 
-    await page.goto("/knowledge");
+    await page.goto("/knowledge/dashboard");
     await assertThemeSettled(page, theme);
     await expect(page.getByRole("heading", { name: "Pipeline Runs" })).toBeVisible();
 
