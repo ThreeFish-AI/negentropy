@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EventType } from "@ag-ui/core";
@@ -73,12 +73,17 @@ vi.mock("@/components/providers/AuthProvider", () => ({
 
 function Wrapper({ sessionId }: { sessionId: string | null }) {
   const [currentSession, setCurrentSession] = useState(sessionId);
+  const pendingSendRef = useRef<string | null>(null);
+  const pendingForSessionRef = useRef<string | null>(null);
 
   return (
     <HomeBody
+      agent={mockAgent}
       sessionId={currentSession}
       userId="ui"
       setSessionId={setCurrentSession}
+      pendingSendRef={pendingSendRef}
+      pendingForSessionRef={pendingForSessionRef}
     />
   );
 }

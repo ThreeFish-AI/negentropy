@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { CopilotKitProvider } from "@copilotkitnext/react";
 
@@ -13,6 +13,8 @@ import { AGENT_ID, APP_NAME, HomeBody } from "./home-body";
 export default function Home() {
   const { user, status: authStatus, login } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const pendingSendRef = useRef<string | null>(null);
+  const pendingForSessionRef = useRef<string | null>(null);
 
   const agent = useMemo(() => {
     if (!user || !sessionId) {
@@ -62,18 +64,24 @@ export default function Home() {
     );
   }
 
-  const copilotAgents = agent ? { [AGENT_ID]: agent } : undefined;
+  const homeBodyProps = {
+    sessionId,
+    userId: user.userId,
+    setSessionId,
+    pendingSendRef,
+    pendingForSessionRef,
+  };
+
+  if (!agent) {
+    return <HomeBody agent={null} {...homeBodyProps} />;
+  }
 
   return (
     <CopilotKitProvider
-      agents__unsafe_dev_only={copilotAgents}
+      agents__unsafe_dev_only={{ [AGENT_ID]: agent }}
       showDevConsole="auto"
     >
-      <HomeBody
-        sessionId={sessionId}
-        userId={user.userId}
-        setSessionId={setSessionId}
-      />
+      <HomeBody agent={agent} {...homeBodyProps} />
     </CopilotKitProvider>
   );
 }
