@@ -1079,7 +1079,7 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByText("Chunk-?")).toBeInTheDocument();
   });
 
-  it("document-chunks 视图点击卡片后在右栏展示 Edit Chunk", async () => {
+  it("document-chunks 视图点击卡片后以模态框展示 Edit Chunk", async () => {
     const user = userEvent.setup();
     searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
     fetchDocumentChunksMock.mockResolvedValueOnce({
@@ -1104,7 +1104,7 @@ describe("KnowledgeBasePage", () => {
     expect(screen.getByRole("button", { name: "Save & Regenerate Child Chunks" })).toBeInTheDocument();
   });
 
-  it("document-chunks 视图可展开并点击子 chunk 进入右栏编辑", async () => {
+  it("document-chunks 视图可展开并点击子 chunk 以模态框进入编辑", async () => {
     const user = userEvent.setup();
     searchParamsState.value = knowledgeBasePageSearchParams.documentChunks();
     fetchDocumentChunksMock.mockResolvedValueOnce({
