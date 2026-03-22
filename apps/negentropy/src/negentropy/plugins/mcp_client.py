@@ -12,7 +12,7 @@ import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import Any, Callable
 
 import anyio
 import httpx
@@ -36,6 +36,7 @@ DEFAULT_TIMEOUT_SECONDS = 30
 async def logged_stdio_client(
     server: StdioServerParameters,
     errlog: ExternalProcessLogStream,
+    stderr_callback: Callable[[str], None] | None = None,
 ):
     """
     Spawn stdio MCP servers with stderr piped, then forward stderr lines
@@ -100,6 +101,8 @@ async def logged_stdio_client(
                 errors=server.encoding_error_handler,
             ):
                 errlog.write(chunk)
+                if stderr_callback:
+                    stderr_callback(chunk)
         except anyio.ClosedResourceError:  # pragma: no cover
             await anyio.lowlevel.checkpoint()
         finally:
@@ -204,6 +207,8 @@ class McpClientService:
         url: str | None = None,
         headers: dict[str, str] | None = None,
         timeout_seconds: float | None = None,
+        event_callback: Callable[[dict[str, Any]], None] | None = None,
+        stderr_callback: Callable[[str], None] | None = None,
     ) -> McpToolCallResult:
         start_time = time.time()
         effective_timeout = timeout_seconds or self.timeout_seconds
@@ -219,6 +224,8 @@ class McpClientService:
                     tool_name=tool_name,
                     arguments=arguments or {},
                     timeout_seconds=effective_timeout,
+                    event_callback=event_callback,
+                    stderr_callback=stderr_callback,
                 )
             elif transport_type == "sse":
                 if not url:
@@ -229,6 +236,7 @@ class McpClientService:
                     tool_name=tool_name,
                     arguments=arguments or {},
                     timeout_seconds=effective_timeout,
+                    event_callback=event_callback,
                 )
             elif transport_type == "http":
                 if not url:
@@ -239,6 +247,7 @@ class McpClientService:
                     tool_name=tool_name,
                     arguments=arguments or {},
                     timeout_seconds=effective_timeout,
+                    event_callback=event_callback,
                 )
             else:
                 return McpToolCallResult(success=False, error=f"Unsupported transport type: {transport_type}")
@@ -446,19 +455,45 @@ class McpClientService:
         tool_name: str,
         arguments: dict[str, Any],
         timeout_seconds: float,
+        event_callback: Callable[[dict[str, Any]], None] | None = None,
+        stderr_callback: Callable[[str], None] | None = None,
     ) -> McpToolCallResult:
         server_params = StdioServerParameters(command=command, args=args, env=env)
         async with asyncio.timeout(timeout_seconds):
-            async with logged_stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (
+            _emit_event(
+                event_callback,
+                stage="transport_connect",
+                status="running",
+                title="建立 STDIO 连接",
+                payload={"command": command, "args": args},
+            )
+            async with logged_stdio_client(
+                server_params,
+                errlog=self._build_stdio_errlog(command, args),
+                stderr_callback=stderr_callback,
+            ) as (
                 read,
                 write,
             ):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
+                    _emit_event(
+                        event_callback,
+                        stage="session_initialized",
+                        status="completed",
+                        title="MCP Session 已初始化",
+                    )
                     result = await session.call_tool(
                         tool_name,
                         arguments=arguments,
                         read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
+                    _emit_event(
+                        event_callback,
+                        stage="tool_result",
+                        status="completed" if not bool(result.isError) else "failed",
+                        title="MCP Tool 返回结果",
+                        payload={"tool_name": tool_name},
                     )
                     return McpToolCallResult(
                         success=not bool(result.isError),
@@ -512,15 +547,36 @@ class McpClientService:
         tool_name: str,
         arguments: dict[str, Any],
         timeout_seconds: float,
+        event_callback: Callable[[dict[str, Any]], None] | None = None,
     ) -> McpToolCallResult:
         async with asyncio.timeout(timeout_seconds):
+            _emit_event(
+                event_callback,
+                stage="transport_connect",
+                status="running",
+                title="建立 SSE 连接",
+                payload={"url": url},
+            )
             async with sse_client(url, headers=headers) as (read, write):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
+                    _emit_event(
+                        event_callback,
+                        stage="session_initialized",
+                        status="completed",
+                        title="MCP Session 已初始化",
+                    )
                     result = await session.call_tool(
                         tool_name,
                         arguments=arguments,
                         read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
+                    _emit_event(
+                        event_callback,
+                        stage="tool_result",
+                        status="completed" if not bool(result.isError) else "failed",
+                        title="MCP Tool 返回结果",
+                        payload={"tool_name": tool_name},
                     )
                     return McpToolCallResult(
                         success=not bool(result.isError),
@@ -567,15 +623,36 @@ class McpClientService:
         tool_name: str,
         arguments: dict[str, Any],
         timeout_seconds: float,
+        event_callback: Callable[[dict[str, Any]], None] | None = None,
     ) -> McpToolCallResult:
         async with asyncio.timeout(timeout_seconds):
+            _emit_event(
+                event_callback,
+                stage="transport_connect",
+                status="running",
+                title="建立 HTTP 连接",
+                payload={"url": url},
+            )
             async with streamablehttp_client(url, headers=headers) as (read, write, _session_id):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
+                    _emit_event(
+                        event_callback,
+                        stage="session_initialized",
+                        status="completed",
+                        title="MCP Session 已初始化",
+                    )
                     result = await session.call_tool(
                         tool_name,
                         arguments=arguments,
                         read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
+                    _emit_event(
+                        event_callback,
+                        stage="tool_result",
+                        status="completed" if not bool(result.isError) else "failed",
+                        title="MCP Tool 返回结果",
+                        payload={"tool_name": tool_name},
                     )
                     return McpToolCallResult(
                         success=not bool(result.isError),
@@ -594,3 +671,11 @@ def _extract_call_error(result: Any) -> str | None:
         if getattr(item, "type", None) == "text" and getattr(item, "text", None):
             parts.append(item.text)
     return "\n".join(parts).strip() or "MCP tool returned an error"
+
+
+def _emit_event(
+    callback: Callable[[dict[str, Any]], None] | None,
+    **event: Any,
+) -> None:
+    if callback:
+        callback(event)

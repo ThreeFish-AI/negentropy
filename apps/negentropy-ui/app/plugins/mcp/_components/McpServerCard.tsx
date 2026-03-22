@@ -669,6 +669,7 @@ interface McpTool {
 
 interface McpServerCardProps {
   server: McpServer;
+  onTry: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onLoad: () => void;
@@ -695,6 +696,7 @@ function formatVisibilityLabel(visibility: string): string {
 
 export function McpServerCard({
   server,
+  onTry,
   onEdit,
   onDelete,
   onLoad,
@@ -737,6 +739,17 @@ export function McpServerCard({
               {server.display_name || server.name}
             </h3>
             <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={onTry}
+                className="rounded-md p-2 text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
+                title="Try MCP Server"
+                aria-label={`Try ${server.display_name || server.name}`}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-5.197-3.03A1 1 0 008 9.03v5.94a1 1 0 001.555.832l5.197-3.03a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
               <button
                 onClick={onLoad}
                 disabled={loadingTools}

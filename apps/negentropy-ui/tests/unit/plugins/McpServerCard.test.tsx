@@ -66,6 +66,7 @@ describe("McpServerCard", () => {
     render(
       <McpServerCard
         server={server}
+        onTry={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onLoad={vi.fn()}
@@ -90,6 +91,7 @@ describe("McpServerCard", () => {
     render(
       <McpServerCard
         server={server}
+        onTry={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onLoad={vi.fn()}
@@ -114,6 +116,7 @@ describe("McpServerCard", () => {
           auto_start: true,
           tool_count: 14,
         }}
+        onTry={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onLoad={vi.fn()}
@@ -143,6 +146,7 @@ describe("McpServerCard", () => {
     render(
       <McpServerCard
         server={{ ...server, tool_count: 0 }}
+        onTry={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onLoad={vi.fn()}
@@ -154,5 +158,20 @@ describe("McpServerCard", () => {
     const toggleButton = screen.getByRole("button", { name: /toggle tools list/i });
     expect(toggleButton).toHaveTextContent("Loading tools...");
     expect(toggleButton).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("renders try action button", () => {
+    render(
+      <McpServerCard
+        server={server}
+        onTry={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onLoad={vi.fn()}
+        tools={[tool]}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Try Demo Server" })).toBeInTheDocument();
   });
 });

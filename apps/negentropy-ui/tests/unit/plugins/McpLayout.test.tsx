@@ -10,6 +10,10 @@ vi.mock("@/app/plugins/mcp/_components/McpServerFormDialog", () => ({
   McpServerFormDialog: () => null,
 }));
 
+vi.mock("@/app/plugins/mcp/_components/McpServerTrialDialog", () => ({
+  McpServerTrialDialog: () => null,
+}));
+
 vi.mock("@/app/plugins/mcp/_components/McpServerCard", () => ({
   McpServerCard: ({ server }: { server: { name: string } }) => (
     <div data-testid="mcp-card">{server.name}</div>

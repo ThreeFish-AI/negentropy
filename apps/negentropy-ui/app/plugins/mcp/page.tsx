@@ -5,6 +5,7 @@ import { MCP_HUB_LABEL } from "@/app/plugins/copy";
 import { PluginsNav } from "@/components/ui/PluginsNav";
 import { McpServerCard } from "./_components/McpServerCard";
 import { McpServerFormDialog } from "./_components/McpServerFormDialog";
+import { McpServerTrialDialog } from "./_components/McpServerTrialDialog";
 
 interface McpTool {
   id: string | null;
@@ -62,6 +63,7 @@ export default function McpServersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServer | null>(null);
   const [hasAutoRequestedTools, setHasAutoRequestedTools] = useState(false);
+  const [trialServer, setTrialServer] = useState<McpServer | null>(null);
 
   const fetchServers = async () => {
     try {
@@ -149,6 +151,7 @@ export default function McpServersPage() {
             : s
         )
       );
+      return data.tools;
     } catch (err) {
       setServers((prev) =>
         prev.map((s) =>
@@ -161,6 +164,7 @@ export default function McpServersPage() {
             : s
         )
       );
+      return [];
     }
   };
 
@@ -187,6 +191,10 @@ export default function McpServersPage() {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setEditingServer(null);
+  };
+
+  const handleTrialClose = () => {
+    setTrialServer(null);
   };
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
@@ -262,6 +270,7 @@ export default function McpServersPage() {
                   <div key={server.id} data-testid="mcp-grid-item">
                     <McpServerCard
                       server={server}
+                      onTry={() => setTrialServer(server)}
                       onEdit={() => handleEdit(server)}
                       onDelete={() => handleDelete(server.id)}
                       onLoad={() => handleLoadTools(server.id)}
@@ -282,6 +291,15 @@ export default function McpServersPage() {
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}
         server={editingServer}
+      />
+      <McpServerTrialDialog
+        isOpen={trialServer !== null}
+        server={trialServer}
+        tools={trialServer ? servers.find((server) => server.id === trialServer.id)?.tools || [] : []}
+        onClose={handleTrialClose}
+        onEnsureTools={async (serverId) => {
+          await handleLoadTools(serverId);
+        }}
       />
     </div>
   );
