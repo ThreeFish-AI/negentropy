@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MCP_HUB_LABEL } from "@/app/plugins/copy";
 import { PluginsNav } from "@/components/ui/PluginsNav";
 import { McpServerCard } from "./_components/McpServerCard";
 import { McpServerFormDialog } from "./_components/McpServerFormDialog";
+import { McpServerTrialDialog } from "./_components/McpServerTrialDialog";
 
 interface McpTool {
   id: string | null;
@@ -61,6 +63,7 @@ export default function McpServersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServer | null>(null);
   const [hasAutoRequestedTools, setHasAutoRequestedTools] = useState(false);
+  const [trialServer, setTrialServer] = useState<McpServer | null>(null);
 
   const fetchServers = async () => {
     try {
@@ -148,6 +151,7 @@ export default function McpServersPage() {
             : s
         )
       );
+      return data.tools;
     } catch (err) {
       setServers((prev) =>
         prev.map((s) =>
@@ -160,6 +164,7 @@ export default function McpServersPage() {
             : s
         )
       );
+      return [];
     }
   };
 
@@ -186,6 +191,10 @@ export default function McpServersPage() {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setEditingServer(null);
+  };
+
+  const handleTrialClose = () => {
+    setTrialServer(null);
   };
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
@@ -215,14 +224,14 @@ export default function McpServersPage() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
-      <PluginsNav title="MCP Servers" />
+      <PluginsNav title={MCP_HUB_LABEL} />
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-6">
           <div className="w-full">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                  MCP Servers
+                  {MCP_HUB_LABEL}
                 </h1>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   Manage Model Context Protocol servers for external tool integration.
@@ -261,6 +270,7 @@ export default function McpServersPage() {
                   <div key={server.id} data-testid="mcp-grid-item">
                     <McpServerCard
                       server={server}
+                      onTry={() => setTrialServer(server)}
                       onEdit={() => handleEdit(server)}
                       onDelete={() => handleDelete(server.id)}
                       onLoad={() => handleLoadTools(server.id)}
@@ -281,6 +291,15 @@ export default function McpServersPage() {
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}
         server={editingServer}
+      />
+      <McpServerTrialDialog
+        isOpen={trialServer !== null}
+        server={trialServer}
+        tools={trialServer ? servers.find((server) => server.id === trialServer.id)?.tools || [] : []}
+        onClose={handleTrialClose}
+        onEnsureTools={async (serverId) => {
+          await handleLoadTools(serverId);
+        }}
       />
     </div>
   );

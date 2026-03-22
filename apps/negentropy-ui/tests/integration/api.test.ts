@@ -17,7 +17,7 @@ import { POST as unarchiveSession } from "@/app/api/agui/sessions/[sessionId]/un
 
 // Mock 环境变量
 const mockEnv = {
-  AGUI_BASE_URL: "http://localhost:8000",
+  AGUI_BASE_URL: "http://localhost:6600",
   NEXT_PUBLIC_AGUI_APP_NAME: "negentropy",
   NEXT_PUBLIC_AGUI_USER_ID: "test-user",
 };
@@ -103,7 +103,7 @@ describe("POST /api/agui", () => {
   });
 
   it("应该返回错误当缺少用户消息", async () => {
-    const request = createMockRequest("http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=test", {
+    const request = createMockRequest("http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001", {
       method: "POST",
       body: JSON.stringify({
         messages: [],
@@ -147,7 +147,7 @@ describe("POST /api/agui", () => {
     );
 
     const request = createMockRequest(
-      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
       {
         method: "POST",
         body: JSON.stringify({
@@ -194,7 +194,7 @@ describe("POST /api/agui", () => {
     );
 
     const request = createMockRequest(
-      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
       {
         method: "POST",
         body: JSON.stringify({
@@ -246,7 +246,7 @@ describe("POST /api/agui", () => {
     );
 
     const request = createMockRequest(
-      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
       {
         method: "POST",
         body: JSON.stringify({
@@ -299,7 +299,7 @@ describe("POST /api/agui", () => {
     );
 
     const request = createMockRequest(
-      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
       {
         method: "POST",
         body: JSON.stringify({
@@ -344,7 +344,7 @@ describe("POST /api/agui", () => {
     );
 
     const request = createMockRequest(
-      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
       {
         method: "POST",
         headers: {
@@ -396,7 +396,7 @@ describe("POST /api/agui", () => {
     );
 
     const request = createMockRequest(
-      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=session-1",
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
       {
         method: "POST",
         body: JSON.stringify({

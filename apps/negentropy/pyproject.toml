@@ -19,7 +19,7 @@ dependencies = [
     "alembic>=1.18.3",              # Database migration tool
     
     # Core Infrastructure
-    "google-adk>=1.23.0",           # Google Agent Development Kit foundation
+    "google-adk>=1.27.2",           # Google Agent Development Kit foundation
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
     "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
     "pydantic-settings>=2.12.0",    # Configuration management using Pydantic models
@@ -103,6 +103,7 @@ omit = [
 ]
 
 [tool.coverage.report]
+fail_under = 50
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",

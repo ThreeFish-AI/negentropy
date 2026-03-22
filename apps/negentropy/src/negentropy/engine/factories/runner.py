@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 from google.adk.runners import Runner
 
-from negentropy.agents.agent import root_agent
 from negentropy.config import settings
 from negentropy.engine.factories.memory import get_memory_service
 from negentropy.engine.factories.session import get_session_service
@@ -50,13 +49,20 @@ def get_runner(
     """
     global _runner_instance
 
+    use_defaults = app_name is None and agent is None
+
     # 若已有缓存且未指定自定义参数，直接返回
-    if _runner_instance is not None and app_name is None and agent is None:
+    if _runner_instance is not None and use_defaults:
         return _runner_instance
+
+    if agent is None:
+        from negentropy.agents.agent import root_agent
+
+        agent = root_agent
 
     runner = Runner(
         app_name=app_name or settings.app_name,
-        agent=agent or root_agent,
+        agent=agent,
         session_service=get_session_service(),
         memory_service=get_memory_service(),
         artifact_service=get_artifact_service(),
@@ -64,7 +70,7 @@ def get_runner(
     )
 
     # 仅在使用默认参数时缓存
-    if app_name is None and agent is None:
+    if use_defaults:
         _runner_instance = runner
 
     return runner

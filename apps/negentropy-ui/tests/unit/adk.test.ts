@@ -127,14 +127,23 @@ describe("adk event mapping", () => {
     expect(events.map((event) => event.type)).toEqual([
       EventType.TEXT_MESSAGE_START,
       EventType.TEXT_MESSAGE_CONTENT,
+      EventType.STEP_STARTED, // 合成 step：author 从 undefined → "assistant"
+      EventType.CUSTOM,
       EventType.TEXT_MESSAGE_CONTENT,
       EventType.TEXT_MESSAGE_END,
+      EventType.STEP_FINISHED, // flushRun 关闭合成 step
+      EventType.CUSTOM,
     ]);
 
-    const messageIds = events
-      .filter((event) => "messageId" in event)
+    // 过滤掉合成 step 事件，仅验证消息生命周期的 messageId 一致性
+    const textMessageIds = events
+      .filter(
+        (event) =>
+          "messageId" in event &&
+          [EventType.TEXT_MESSAGE_START, EventType.TEXT_MESSAGE_CONTENT, EventType.TEXT_MESSAGE_END].includes(event.type),
+      )
       .map((event) => String(event.messageId));
-    expect(new Set(messageIds)).toEqual(new Set(["chunk-1"]));
+    expect(new Set(textMessageIds)).toEqual(new Set(["chunk-1"]));
 
     const messages = aguiEventsToMessages(events);
     expect(messages).toHaveLength(1);

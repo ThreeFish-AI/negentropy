@@ -1,8 +1,8 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EventType } from "@ag-ui/core";
-import { HomeBody } from "../../app/page";
+import { HomeBody, type HomeBodyAgent } from "../../app/home-body";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 
@@ -73,12 +73,17 @@ vi.mock("@/components/providers/AuthProvider", () => ({
 
 function Wrapper({ sessionId }: { sessionId: string | null }) {
   const [currentSession, setCurrentSession] = useState(sessionId);
+  const pendingSendRef = useRef<string | null>(null);
+  const pendingForSessionRef = useRef<string | null>(null);
 
   return (
     <HomeBody
+      agent={mockAgent as unknown as HomeBodyAgent}
       sessionId={currentSession}
       userId="ui"
       setSessionId={setCurrentSession}
+      pendingSendRef={pendingSendRef}
+      pendingForSessionRef={pendingForSessionRef}
     />
   );
 }
@@ -470,5 +475,84 @@ describe("HomeBody integration", () => {
     expect(mockAgent.runAgent).toHaveBeenCalledWith(
       expect.objectContaining({ runId: expect.any(String) }),
     );
+  }, 10000);
+
+  it("无 Session 时发送消息自动创建会话", async () => {
+    // 覆盖 fetch mock：sessions/list 返回空列表，模拟无 Session 状态
+    global.fetch = vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/agui/sessions/list")) {
+        return {
+          ok: true,
+          json: async () => [],
+        } as Response;
+      }
+      if (url.includes("/api/agui/sessions") && init?.method === "POST") {
+        return {
+          ok: true,
+          json: async () => ({ id: "s-auto", lastUpdateTime: Date.now() }),
+        } as Response;
+      }
+      if (url.includes("/api/agui/sessions/")) {
+        return {
+          ok: true,
+          json: async () => ({ events: [] }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({}),
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    render(<Wrapper sessionId={null} />);
+
+    // 等待初始 loadSessions 完成（返回空列表）
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/agui/sessions/list"),
+      );
+    });
+
+    // Composer 应处于可输入状态（disabled 不包含 !sessionId）
+    const input = screen.getByPlaceholderText("输入指令...");
+    await user.type(input, "Hello");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    // 验证自动触发了 session 创建
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/agui/sessions",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  }, 10000);
+
+  it("新建 Session 后中栏立即切换为空白会话", async () => {
+    const user = userEvent.setup();
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    // 发送一条消息，确保旧 session 有内容
+    await user.type(screen.getByPlaceholderText("输入指令..."), "ping");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(
+      await screen.findByText((content) => content.includes("world")),
+    ).toBeInTheDocument();
+
+    // 点击 "+ New" 创建新 session
+    await user.click(screen.getByRole("button", { name: "+ New" }));
+
+    // 验证创建了新 session
+    await waitFor(() => {
+      const createCalls = (
+        (global.fetch as ReturnType<typeof vi.fn>).mock.calls as Array<[string, RequestInit | undefined]>
+      ).filter(
+        ([url, opts]) =>
+          url === "/api/agui/sessions" && opts?.method === "POST",
+      );
+      expect(createCalls.length).toBeGreaterThanOrEqual(1);
+    });
   }, 10000);
 });

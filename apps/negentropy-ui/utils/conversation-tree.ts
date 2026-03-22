@@ -9,6 +9,7 @@ import {
   asAgUiEvent,
   getCustomEventData,
   getCustomEventType,
+  getEventAuthor,
   getEventMessageId,
   getEventRunId,
   getEventThreadId,
@@ -32,6 +33,7 @@ import {
   isEquivalentMessageContent,
   normalizeMessageContent,
 } from "@/utils/message";
+import { isNonCriticalError } from "@/utils/error-filter";
 import { buildMessageLedger } from "@/utils/message-ledger";
 
 type MutableNode = ConversationNode;
@@ -353,6 +355,7 @@ function findMatchingTextNodeId(
     role: "user" | "assistant" | "system";
     content: string;
     timestamp: number;
+    author?: string;
   },
 ): string | null {
   const normalizedContent = input.content.trim();
@@ -376,6 +379,13 @@ function findMatchingTextNodeId(
       continue;
     }
     if (!isRunCompatible(node.runId, input.runId)) {
+      continue;
+    }
+    if (
+      input.author &&
+      typeof node.payload.author === "string" &&
+      node.payload.author !== input.author
+    ) {
       continue;
     }
     if (Math.abs(node.timeRange.end - input.timestamp) > timeWindowSeconds) {
@@ -409,6 +419,7 @@ function finalizeTextNodeFromCanonicalMessage(
     resolvedRole: CanonicalMessageRole;
     sourceEventTypes?: string[];
     relatedMessageIds?: string[];
+    author?: string;
   },
 ) {
   const nextContent = message.content.trim();
@@ -423,6 +434,9 @@ function finalizeTextNodeFromCanonicalMessage(
     typeof node.payload.streaming === "boolean"
       ? node.payload.streaming && message.streaming
       : message.streaming;
+  if (message.author && !node.payload.author) {
+    node.payload.author = message.author;
+  }
   node.role = message.resolvedRole;
   node.title = message.resolvedRole === "user" ? "用户消息" : "助手消息";
   if (!message.streaming && !node.sourceEventTypes.includes(String(EventType.TEXT_MESSAGE_END))) {
@@ -640,6 +654,11 @@ export function buildConversationTree(
         return;
       }
       case EventType.RUN_ERROR: {
+        const errorMessage = "message" in normalizedEvent ? String(normalizedEvent.message || "") : "";
+        if (isNonCriticalError(errorMessage)) {
+          turn.status = turn.status === "error" ? "finished" : turn.status;
+          return;
+        }
         const node = upsertNode(nodeIndex, roots, turns, {
           id: `error:${runId}:${normalizeTimestamp(normalizedEvent.timestamp)}`,
           type: "error",
@@ -651,7 +670,7 @@ export function buildConversationTree(
           title: "运行错误",
           status: "error",
           payload: {
-            message: "message" in normalizedEvent ? normalizedEvent.message : "",
+            message: errorMessage,
             code: "code" in normalizedEvent ? normalizedEvent.code : "",
           },
           sourceEventTypes: [eventType],
@@ -694,6 +713,7 @@ export function buildConversationTree(
           normalizedEvent.type === EventType.TEXT_MESSAGE_CONTENT && "delta" in normalizedEvent
             ? String(normalizedEvent.delta || "")
             : "";
+        const eventAuthor = getEventAuthor(normalizedEvent);
         const existingNodeId =
           messageNodeIndex.get(canonicalMessageId) || messageNodeIndex.get(messageId);
         const matchedNodeId =
@@ -707,9 +727,11 @@ export function buildConversationTree(
                     : role,
                 content: delta,
                 timestamp: normalizeTimestamp(normalizedEvent.timestamp),
+                author: eventAuthor,
               })
             : null;
         const nodeId = matchedNodeId || existingNodeId || `message:${canonicalMessageId}`;
+        const authorPayload = eventAuthor ? { author: eventAuthor } : {};
         const node = upsertNode(nodeIndex, roots, turns, {
           id: nodeId,
           type: "text",
@@ -721,7 +743,9 @@ export function buildConversationTree(
           sourceOrder: meta.sourceOrder,
           title: role === "user" ? "用户消息" : "助手消息",
           role,
-          payload: delta ? { content: delta, streaming: true } : { streaming: true },
+          payload: delta
+            ? { content: delta, streaming: true, ...authorPayload }
+            : { streaming: true, ...authorPayload },
           sourceEventTypes: [eventType],
           relatedMessageIds: [canonicalMessageId, messageId],
         });
@@ -731,6 +755,9 @@ export function buildConversationTree(
           node.role = role;
           node.title = role === "user" ? "用户消息" : "助手消息";
           messageRoleById.set(messageId, role);
+        }
+        if (eventAuthor && !node.payload.author) {
+          node.payload.author = eventAuthor;
         }
         if (delta) {
           const existing = String(node.payload.content || "");
@@ -1118,6 +1145,7 @@ export function buildConversationTree(
           resolvedRole: snapshotMessage.resolvedRole,
           sourceEventTypes: snapshotMessage.sourceEventTypes,
           relatedMessageIds: snapshotMessage.relatedMessageIds,
+          author: snapshotMessage.author,
         });
         messageNodeIndex.set(canonicalMessageId, existingNode.id);
         snapshotMessage.relatedMessageIds.forEach((relatedMessageId) => {
@@ -1137,7 +1165,8 @@ export function buildConversationTree(
       if (node.type !== "text" || node.role !== role) {
         return false;
       }
-      if (node.payload.streaming !== true) {
+      // user 消息跳过 streaming 守卫：乐观消息 streaming=false，AGUI 节点经 TEXT_MESSAGE_END 后也为 false
+      if (role !== "user" && node.payload.streaming !== true) {
         return false;
       }
       if (hasTechnicalChildren(node)) {
@@ -1150,8 +1179,10 @@ export function buildConversationTree(
             isEquivalentMessageContent(existingContent, content)
           : existingContent === content;
       if (!contentMatches) return false;
+      // user 消息跳过 runId 匹配：乐观消息用前端 UUID，AGUI 事件用后端 UUID，必然不同
       const existingRunId = node.runId || undefined;
       const runMatches =
+        role === "user" ||
         existingRunId === runId ||
         existingRunId === DEFAULT_RUN_ID ||
         runId === DEFAULT_RUN_ID ||
@@ -1177,6 +1208,7 @@ export function buildConversationTree(
           canonicalMessageId,
           messageId,
         ],
+        author: snapshotMessage?.author,
       });
       duplicateNode.messageId = canonicalMessageId;
       if (!duplicateNode.relatedMessageIds.includes(messageId)) {

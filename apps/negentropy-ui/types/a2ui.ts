@@ -122,10 +122,23 @@ export interface ReplyErrorDisplaySegment {
   code?: string;
 }
 
+export interface ReplyReasoningDisplaySegment {
+  id: string;
+  kind: "reasoning";
+  nodeId: string;
+  timestamp: number;
+  sourceOrder: number;
+  title: string;
+  phase: "started" | "finished";
+  stepId: string;
+  result?: unknown;
+}
+
 export type AssistantReplyDisplaySegment =
   | ReplyTextDisplaySegment
   | ReplyToolGroupDisplaySegment
-  | ReplyErrorDisplaySegment;
+  | ReplyErrorDisplaySegment
+  | ReplyReasoningDisplaySegment;
 
 export interface AssistantReplyDisplayBlock {
   id: string;

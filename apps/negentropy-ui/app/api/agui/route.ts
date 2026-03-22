@@ -18,14 +18,6 @@ import {
 } from "@/lib/errors";
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
 
-type AguiLifecycleEvent = BaseEvent & {
-  threadId: string;
-  runId: string;
-  message?: string;
-  code?: string;
-  result?: string;
-};
-
 function getBaseUrl() {
   return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 }
@@ -112,6 +104,13 @@ export async function POST(request: Request) {
     return aguiErrorResponse(
       AGUI_ERROR_CODES.BAD_REQUEST,
       "session_id is required",
+    );
+  }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(sessionId)) {
+    return aguiErrorResponse(
+      AGUI_ERROR_CODES.BAD_REQUEST,
+      "session_id must be a valid UUID",
     );
   }
   const resolvedThreadId =

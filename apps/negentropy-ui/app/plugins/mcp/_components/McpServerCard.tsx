@@ -669,6 +669,7 @@ interface McpTool {
 
 interface McpServerCardProps {
   server: McpServer;
+  onTry: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onLoad: () => void;
@@ -677,8 +678,25 @@ interface McpServerCardProps {
   loadError?: string | null;
 }
 
+function formatTransportTypeLabel(transportType: string): string {
+  if (transportType === "http") {
+    return "HTTP(Streamable)";
+  }
+
+  return transportType;
+}
+
+function formatVisibilityLabel(visibility: string): string {
+  if (visibility === "public") {
+    return "Public";
+  }
+
+  return visibility;
+}
+
 export function McpServerCard({
   server,
+  onTry,
   onEdit,
   onDelete,
   onLoad,
@@ -691,6 +709,8 @@ export function McpServerCard({
   const visibleToolCount = tools.length > 0 ? tools.length : server.tool_count;
   const showToolToggle = visibleToolCount > 0 || loadingTools;
   const summaryDescription = server.description?.trim() || "No description";
+  const toolSummaryLabel =
+    loadingTools && visibleToolCount === 0 ? "Loading tools..." : `${visibleToolCount} Tools`;
 
   const expandedTool = useMemo(
     () => tools.find((tool) => tool.name === expandedToolName) || null,
@@ -719,6 +739,17 @@ export function McpServerCard({
               {server.display_name || server.name}
             </h3>
             <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={onTry}
+                className="rounded-md p-2 text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
+                title="Try MCP Server"
+                aria-label={`Try ${server.display_name || server.name}`}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-5.197-3.03A1 1 0 008 9.03v5.94a1 1 0 001.555.832l5.197-3.03a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
               <button
                 onClick={onLoad}
                 disabled={loadingTools}
@@ -771,11 +802,19 @@ export function McpServerCard({
               </span>
             )}
             <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-              {server.transport_type}
+              {formatTransportTypeLabel(server.transport_type)}
             </span>
             <span className="inline-flex shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-              {server.visibility}
+              {formatVisibilityLabel(server.visibility)}
             </span>
+            {server.auto_start && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Auto-start
+              </span>
+            )}
           </div>
 
           <p
@@ -786,12 +825,6 @@ export function McpServerCard({
           </p>
 
           <div className="mt-auto flex min-w-0 flex-nowrap items-center gap-3 overflow-hidden whitespace-nowrap pt-1 text-xs text-zinc-400 dark:text-zinc-500">
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
-              </svg>
-              {loadingTools && visibleToolCount === 0 ? "Loading tools..." : `${visibleToolCount} tools`}
-            </span>
             {showToolToggle && (
               <button
                 type="button"
@@ -816,15 +849,20 @@ export function McpServerCard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 )}
-                Tools
+                <span className="inline-flex items-center gap-1">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+                  </svg>
+                  {toolSummaryLabel}
+                </span>
               </button>
             )}
-            {server.auto_start && (
-              <span className="inline-flex shrink-0 items-center gap-1 text-amber-600 dark:text-amber-400">
+            {!showToolToggle && (
+              <span className="inline-flex shrink-0 items-center gap-1">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
                 </svg>
-                Auto-start
+                {toolSummaryLabel}
               </span>
             )}
           </div>

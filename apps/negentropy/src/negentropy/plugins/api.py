@@ -6,12 +6,13 @@ Plugins API 模块。
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, and_, or_
+from sqlalchemy import desc, func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -24,6 +25,9 @@ from negentropy.logging import get_logger
 from negentropy.models.plugin import (
     McpServer,
     McpTool,
+    McpToolRun,
+    McpToolRunEvent,
+    McpTrialAsset,
     PluginPermission,
     PluginPermissionType,
     PluginVisibility,
@@ -32,8 +36,7 @@ from negentropy.models.plugin import (
 )
 
 from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
-from .subagent_presets import build_negentropy_subagent_payloads
-
+from .execution import McpToolExecutionService
 logger = get_logger("negentropy.plugins.api")
 router = APIRouter(prefix="/plugins", tags=["plugins"])
 
@@ -171,6 +174,65 @@ class LoadToolsResponse(BaseModel):
     server_id: UUID
     tools: List[McpToolResponse] = Field(default_factory=list)
     duration_ms: int = 0
+    error: Optional[str] = None
+
+
+class McpTrialAssetResponse(BaseModel):
+    id: UUID
+    server_id: UUID
+    owner_id: str
+    original_filename: str
+    content_type: Optional[str] = None
+    size_bytes: int
+    sha256: str
+    gcs_uri: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: Optional[str] = None
+
+
+class McpToolRunEventResponse(BaseModel):
+    id: UUID
+    run_id: UUID
+    sequence_num: int
+    stage: str
+    status: str
+    title: str
+    detail: Optional[str] = None
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    duration_ms: int = 0
+    timestamp: Optional[str] = None
+
+
+class McpToolRunSummaryResponse(BaseModel):
+    id: UUID
+    server_id: UUID
+    tool_id: Optional[UUID] = None
+    tool_name: str
+    origin: str
+    status: str
+    created_by: Optional[str] = None
+    request_payload: Dict[str, Any] = Field(default_factory=dict)
+    normalized_request_payload: Dict[str, Any] = Field(default_factory=dict)
+    result_payload: Dict[str, Any] = Field(default_factory=dict)
+    error_summary: Optional[str] = None
+    duration_ms: int = 0
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+
+
+class McpToolRunDetailResponse(McpToolRunSummaryResponse):
+    events: List[McpToolRunEventResponse] = Field(default_factory=list)
+
+
+class ExecuteToolRequest(BaseModel):
+    tool_name: str
+    arguments: Dict[str, Any] = Field(default_factory=dict)
+    asset_refs: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ExecuteToolResponse(BaseModel):
+    success: bool
+    run: McpToolRunDetailResponse
     error: Optional[str] = None
 
 
@@ -535,6 +597,64 @@ def _mcp_tool_to_response(tool: McpTool) -> McpToolResponse:
     )
 
 
+def _mcp_trial_asset_to_response(asset: McpTrialAsset) -> McpTrialAssetResponse:
+    return McpTrialAssetResponse(
+        id=asset.id,
+        server_id=asset.server_id,
+        owner_id=asset.owner_id,
+        original_filename=asset.original_filename,
+        content_type=asset.content_type,
+        size_bytes=asset.size_bytes,
+        sha256=asset.sha256,
+        gcs_uri=asset.gcs_uri,
+        metadata=asset.metadata_ or {},
+        created_at=asset.created_at.isoformat() if asset.created_at else None,
+    )
+
+
+def _mcp_tool_run_event_to_response(event: McpToolRunEvent) -> McpToolRunEventResponse:
+    return McpToolRunEventResponse(
+        id=event.id,
+        run_id=event.run_id,
+        sequence_num=event.sequence_num,
+        stage=event.stage,
+        status=event.status,
+        title=event.title,
+        detail=event.detail,
+        payload=event.payload or {},
+        duration_ms=event.duration_ms or 0,
+        timestamp=event.timestamp.isoformat() if event.timestamp else None,
+    )
+
+
+def _mcp_tool_run_to_response(
+    run: McpToolRun,
+    events: List[McpToolRunEvent] | None = None,
+) -> McpToolRunDetailResponse | McpToolRunSummaryResponse:
+    payload = dict(
+        id=run.id,
+        server_id=run.server_id,
+        tool_id=run.tool_id,
+        tool_name=run.tool_name,
+        origin=run.origin,
+        status=run.status,
+        created_by=run.created_by,
+        request_payload=run.request_payload or {},
+        normalized_request_payload=run.normalized_request_payload or {},
+        result_payload=run.result_payload or {},
+        error_summary=run.error_summary,
+        duration_ms=run.duration_ms or 0,
+        started_at=run.started_at.isoformat() if run.started_at else None,
+        ended_at=run.ended_at.isoformat() if run.ended_at else None,
+    )
+    if events is None:
+        return McpToolRunSummaryResponse(**payload)
+    return McpToolRunDetailResponse(
+        **payload,
+        events=[_mcp_tool_run_event_to_response(item) for item in events],
+    )
+
+
 # =============================================================================
 # MCP Tool Endpoints
 # =============================================================================
@@ -684,6 +804,127 @@ async def update_mcp_tool(
         await db.refresh(tool)
 
         return _mcp_tool_to_response(tool)
+
+
+@router.post("/mcp/servers/{server_id}/trial-assets", response_model=McpTrialAssetResponse)
+async def upload_mcp_trial_asset(
+    server_id: UUID,
+    file: UploadFile = File(...),
+    metadata: Optional[str] = Form(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> McpTrialAssetResponse:
+    """上传 MCP 试用文件到 GCS。"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "edit")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        server = await db.get(McpServer, server_id)
+        if not server:
+            raise HTTPException(status_code=404, detail="Server not found")
+
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+        extra_metadata: Dict[str, Any] = {}
+        if metadata:
+            try:
+                parsed = json.loads(metadata)
+            except json.JSONDecodeError as exc:
+                raise HTTPException(status_code=400, detail=f"Invalid metadata JSON: {exc}") from exc
+            if isinstance(parsed, dict):
+                extra_metadata = parsed
+
+        service = McpToolExecutionService(db)
+        asset = await service.upload_trial_asset(
+            server=server,
+            owner_id=user.user_id,
+            filename=file.filename or "upload.pdf",
+            content=content,
+            content_type=file.content_type,
+            metadata=extra_metadata,
+        )
+        return _mcp_trial_asset_to_response(asset)
+
+
+@router.post("/mcp/servers/{server_id}/tools:execute", response_model=ExecuteToolResponse)
+async def execute_mcp_tool(
+    server_id: UUID,
+    payload: ExecuteToolRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> ExecuteToolResponse:
+    """执行指定 MCP Tool 并记录白盒历史。"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "edit")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        server = await db.get(McpServer, server_id)
+        if not server:
+            raise HTTPException(status_code=404, detail="Server not found")
+
+        service = McpToolExecutionService(db)
+        execution = await service.execute_tool(
+            server=server,
+            user=user,
+            tool_name=payload.tool_name,
+            arguments=payload.arguments,
+            asset_refs=payload.asset_refs,
+        )
+        detail = _mcp_tool_run_to_response(execution.run, execution.events)
+        return ExecuteToolResponse(
+            success=execution.call_result.success,
+            run=detail,
+            error=execution.call_result.error,
+        )
+
+
+@router.get("/mcp/servers/{server_id}/runs", response_model=List[McpToolRunSummaryResponse])
+async def list_mcp_tool_runs(
+    server_id: UUID,
+    tool_name: Optional[str] = Query(default=None),
+    origin: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=200),
+    user: AuthUser = Depends(get_current_user),
+) -> List[McpToolRunSummaryResponse]:
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        stmt = select(McpToolRun).where(McpToolRun.server_id == server_id)
+        if tool_name:
+            stmt = stmt.where(McpToolRun.tool_name == tool_name)
+        if origin:
+            stmt = stmt.where(McpToolRun.origin == origin)
+        stmt = stmt.order_by(desc(McpToolRun.started_at)).limit(limit)
+        result = await db.execute(stmt)
+        runs = result.scalars().all()
+        return [_mcp_tool_run_to_response(item) for item in runs]
+
+
+@router.get("/mcp/runs/{run_id}", response_model=McpToolRunDetailResponse)
+async def get_mcp_tool_run(
+    run_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> McpToolRunDetailResponse:
+    async with AsyncSessionLocal() as db:
+        run = await db.get(McpToolRun, run_id)
+        if not run:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        has_access, error = await check_plugin_access(db, "mcp_server", run.server_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        events_result = await db.execute(
+            select(McpToolRunEvent)
+            .where(McpToolRunEvent.run_id == run_id)
+            .order_by(McpToolRunEvent.sequence_num.asc())
+        )
+        events = events_result.scalars().all()
+        return _mcp_tool_run_to_response(run, list(events))
 
 
 # =============================================================================
@@ -993,6 +1234,8 @@ async def list_negentropy_subagent_templates(
 ) -> List[NegentropySubAgentTemplateResponse]:
     """返回 Negentropy 内置 5 个 Faculty SubAgent 模板（来自代码定义）。"""
     _ = user  # 显式依赖鉴权
+    from .subagent_presets import build_negentropy_subagent_payloads
+
     payloads = build_negentropy_subagent_payloads()
     return [
         NegentropySubAgentTemplateResponse(
@@ -1021,6 +1264,8 @@ async def sync_negentropy_subagents(
     - 已存在但归属其他用户：跳过；
     - 不存在：创建。
     """
+    from .subagent_presets import build_negentropy_subagent_payloads
+
     payloads = build_negentropy_subagent_payloads()
     created_count = 0
     updated_count = 0

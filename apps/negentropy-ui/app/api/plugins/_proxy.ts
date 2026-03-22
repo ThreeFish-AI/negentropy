@@ -152,6 +152,44 @@ export async function proxyPost(request: Request, path: string) {
   return NextResponse.json(JSON.parse(text), { status: upstreamResponse.status });
 }
 
+export async function proxyPostFormData(request: Request, path: string) {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    return errorResponse(
+      "PLUGINS_INTERNAL_ERROR",
+      "AGUI_BASE_URL is not configured",
+      500,
+    );
+  }
+
+  const formData = await request.formData();
+  const upstreamUrl = new URL(path, baseUrl);
+  const headers = extractForwardHeaders(request);
+
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(upstreamUrl, {
+      method: "POST",
+      headers,
+      body: formData,
+      cache: "no-store",
+    });
+  } catch (error) {
+    return errorResponse(
+      "PLUGINS_UPSTREAM_ERROR",
+      `Upstream connection failed: ${String(error)}`,
+      502,
+    );
+  }
+
+  const text = await upstreamResponse.text();
+  if (!upstreamResponse.ok) {
+    return upstreamErrorResponse(text, upstreamResponse.status);
+  }
+
+  return NextResponse.json(JSON.parse(text), { status: upstreamResponse.status });
+}
+
 export async function proxyPatch(request: Request, path: string) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {

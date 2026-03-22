@@ -6,6 +6,7 @@ import { buildMessageLedger, mergeMessageLedger } from "@/utils/message-ledger";
 import {
   hasSameEventSequence,
   mergeEvents,
+  mergeEventsWithRealtimePriority,
   type HydratedSessionDetail,
 } from "@/utils/session-hydration";
 
@@ -78,7 +79,12 @@ export function applyHydratedSession(
     };
   }
 
-  const nextRawEvents = mergeEvents(state.rawEvents, input.detail.events);
+  const nextRawEvents = mergeEventsWithRealtimePriority(
+    state.rawEvents,
+    input.detail.events,
+    state.messageLedger,
+    input.detail.messageLedger,
+  );
   return {
     loadedSessionId: input.sessionId,
     rawEvents: nextRawEvents,

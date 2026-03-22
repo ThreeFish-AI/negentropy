@@ -237,6 +237,91 @@ describe("session-projection", () => {
     );
   });
 
+  it("applyHydratedSession 会用 hydration 终态补全已 closed 的实时 assistant 截断内容", () => {
+    const base = {
+      loadedSessionId: "s1",
+      rawEvents: [
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "s1",
+          runId: "run-1",
+          messageId: "assistant-live",
+          delta: "## 分析\n\n| 项目 | 说明 |\n| --- | --- |\n| A | 首行",
+          timestamp: 1000,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "s1",
+          runId: "run-1",
+          messageId: "assistant-live",
+          timestamp: 1000.1,
+        }),
+      ],
+      messageLedger: [
+        {
+          id: "assistant-live",
+          threadId: "s1",
+          runId: "run-1",
+          resolvedRole: "assistant" as const,
+          resolutionSource: "explicit_role" as const,
+          content: "## 分析\n\n| 项目 | 说明 |\n| --- | --- |\n| A | 首行",
+          createdAt: new Date("2026-03-08T00:00:01.000Z"),
+          streaming: false,
+          lifecycle: "closed" as const,
+          origin: "realtime" as const,
+          sourceEventTypes: ["TEXT_MESSAGE_CONTENT", "TEXT_MESSAGE_END"],
+          relatedMessageIds: ["assistant-live"],
+        },
+      ],
+      snapshot: null,
+    };
+
+    const next = applyHydratedSession(base, {
+      sessionId: "s1",
+      shouldMerge: true,
+      detail: {
+        events: [
+          createTestEvent({
+            type: EventType.RUN_FINISHED,
+            threadId: "s1",
+            runId: "run-1",
+            timestamp: 1001,
+          }),
+        ],
+        messages: [],
+        messageLedger: [
+          {
+            id: "assistant-final",
+            threadId: "s1",
+            runId: "run-1",
+            resolvedRole: "assistant" as const,
+            resolutionSource: "snapshot_role" as const,
+            content:
+              "## 分析\n\n| 项目 | 说明 |\n| --- | --- |\n| A | 首行 |\n| B | 次行 |\n\n第一段结论。\n\n第二段结论。",
+            createdAt: new Date("2026-03-08T00:00:02.000Z"),
+            streaming: false,
+            lifecycle: "closed",
+            origin: "snapshot",
+            sourceEventTypes: ["MESSAGES_SNAPSHOT"],
+            relatedMessageIds: ["assistant-final"],
+          },
+        ],
+        snapshot: { stage: "done" },
+      },
+    });
+
+    expect(next.messageLedger).toHaveLength(1);
+    expect(next.messageLedger[0]).toMatchObject({
+      content:
+        "## 分析\n\n| 项目 | 说明 |\n| --- | --- |\n| A | 首行 |\n| B | 次行 |\n\n第一段结论。\n\n第二段结论。",
+      streaming: false,
+      lifecycle: "closed",
+    });
+    expect(next.messageLedger[0]?.relatedMessageIds).toEqual(
+      expect.arrayContaining(["assistant-live", "assistant-final"]),
+    );
+  });
+
   it("shouldMergeHydratedProjection 正确判断 session 合并条件", () => {
     expect(
       shouldMergeHydratedProjection({

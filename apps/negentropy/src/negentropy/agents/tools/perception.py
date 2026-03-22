@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
 from google.adk.tools import ToolContext
@@ -31,10 +31,12 @@ from negentropy.knowledge.constants import (
     DEFAULT_SEMANTIC_WEIGHT,
 )
 from negentropy.knowledge.embedding import build_batch_embedding_fn, build_embedding_fn
-from negentropy.knowledge.service import KnowledgeService
 from negentropy.knowledge.types import SearchConfig
 from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus
+
+if TYPE_CHECKING:
+    from negentropy.knowledge.service import KnowledgeService
 
 logger = get_logger("negentropy.tools.perception")
 
@@ -53,6 +55,8 @@ def _get_knowledge_service() -> KnowledgeService:
     """
     global _knowledge_service
     if _knowledge_service is None:
+        from negentropy.knowledge.service import KnowledgeService
+
         _knowledge_service = KnowledgeService(
             embedding_fn=build_embedding_fn(),
             batch_embedding_fn=build_batch_embedding_fn(),

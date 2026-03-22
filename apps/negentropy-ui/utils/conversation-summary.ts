@@ -78,7 +78,9 @@ export function classifyNodeVisibility(
     node.type === "text" ||
     node.type === "tool-call" ||
     node.type === "tool-result" ||
-    node.type === "error"
+    node.type === "error" ||
+    node.type === "reasoning" ||
+    node.type === "step"
   ) {
     return "chat";
   }
@@ -99,8 +101,6 @@ export function classifyNodeVisibility(
   }
   if (
     node.type === "activity" ||
-    node.type === "reasoning" ||
-    node.type === "step" ||
     node.type === "state-delta" ||
     node.type === "state-snapshot" ||
     node.type === "custom" ||

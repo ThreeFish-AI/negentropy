@@ -378,13 +378,6 @@ def apply_adk_patches():
                 mod.create_memory_service_from_options = patched_create_memory_service_from_options
             if hasattr(mod, "create_artifact_service_from_options"):
                 mod.create_artifact_service_from_options = patched_create_artifact_service_from_options
-            # Patch create_app in modules if present
-            if (
-                hasattr(mod, "create_app")
-                and mod.create_app != patched_create_app
-                and mod.create_app == original_create_app
-            ):
-                mod.create_app = patched_create_app
 
     logger.info(f"ADK service factories patched successfully: {', '.join(patched_items)}")
     logger.info(f"Using configured credential backend: {settings.credential_service_backend}")

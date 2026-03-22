@@ -18,13 +18,11 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool
+from negentropy.plugins.execution import McpToolExecutionService, RUN_ORIGIN_KNOWLEDGE_EXTRACTION
 from negentropy.serialization import to_json_compatible, to_json_compatible_strict
 from negentropy.storage.service import DocumentStorageService
 
 from .content import (
-    extract_file_content,
-    extract_file_markdown,
-    fetch_content,
     optimize_markdown_content,
     sanitize_filename,
 )
@@ -1452,36 +1450,6 @@ def _tool_has_usable_schema(tool: McpTool | None) -> bool:
     return bool(tool and isinstance(tool.input_schema, dict) and tool.input_schema)
 
 
-class LegacyExtractionProvider:
-    async def extract_url(self, *, url: str) -> ExtractedDocumentResult:
-        markdown = optimize_markdown_content(await fetch_content(url))
-        return ExtractedDocumentResult(
-            plain_text=markdown,
-            markdown_content=markdown,
-            metadata={"provider": "legacy", "source_kind": ROUTE_URL},
-            trace={"provider": "legacy"},
-        )
-
-    async def extract_file(
-        self,
-        *,
-        content: bytes,
-        filename: str,
-        content_type: str | None = None,
-    ) -> ExtractedDocumentResult:
-        text = await extract_file_content(content=content, filename=filename, content_type=content_type)
-        markdown = await extract_file_markdown(content=content, filename=filename, content_type=content_type)
-        return ExtractedDocumentResult(
-            plain_text=text,
-            markdown_content=markdown,
-            metadata={
-                "provider": "legacy",
-                "source_kind": resolve_source_kind(filename=filename, content_type=content_type),
-            },
-            trace={"provider": "legacy"},
-        )
-
-
 class DataExtractorProvider:
     def __init__(self) -> None:
         from negentropy.plugins.mcp_client import McpClientService
@@ -1780,7 +1748,6 @@ class DataExtractorProvider:
                     target=target,
                     plan=plan,
                 )
-                await _increment_tool_call_count(server_id=target.server_id, tool_name=target.tool_name)
                 invocation_trace.append(
                     {
                         "attempt": index + 1,
@@ -1855,17 +1822,17 @@ class DataExtractorProvider:
         target: McpToolTarget,
         plan: AdaptiveToolInvocationPlan,
     ) -> Any:
-        return await self._client.call_tool(
-            transport_type=server.transport_type,
-            tool_name=target.tool_name,
-            arguments=plan.arguments,
-            command=server.command,
-            args=server.args,
-            env=server.env,
-            url=server.url,
-            headers=server.headers,
-            timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
-        )
+        async with AsyncSessionLocal() as db:
+            service = McpToolExecutionService(db, client=self._client)
+            execution = await service.execute_tool(
+                server=server,
+                user=None,
+                tool_name=target.tool_name,
+                arguments=plan.arguments,
+                origin=RUN_ORIGIN_KNOWLEDGE_EXTRACTION,
+                timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
+            )
+            return execution.call_result
 
     def _build_success_result(
         self,
@@ -1960,31 +1927,27 @@ async def extract_source(
     tracker: Any | None = None,
 ) -> ExtractedDocumentResult:
     targets = resolve_targets(corpus_config, source_kind)
-    if targets:
-        provider = DataExtractorProvider()
-        return await provider.extract(
-            app_name=app_name,
-            corpus_id=corpus_id,
-            source_kind=source_kind,
-            corpus_config=corpus_config,
-            url=url,
-            content=content,
-            filename=filename,
-            content_type=content_type,
-            tracker=tracker,
+    if not targets:
+        if tracker:
+            await tracker.start_stage("extract_resolve")
+        raise ExtractorExecutionError(
+            f"No extractor targets configured for source kind '{source_kind}'. "
+            "Please configure the Data Extractor MCP service and ensure the corpus "
+            "has valid extractor_routes in its configuration.",
+            attempts=[],
         )
-
-    legacy = LegacyExtractionProvider()
-    if source_kind == ROUTE_URL:
-        result = await legacy.extract_url(url=url or "")
-    else:
-        result = await legacy.extract_file(
-            content=content or b"",
-            filename=filename or "unknown",
-            content_type=content_type,
-        )
-    result.trace = {"provider": "legacy", "source_kind": source_kind, "attempts": []}
-    return result
+    provider = DataExtractorProvider()
+    return await provider.extract(
+        app_name=app_name,
+        corpus_id=corpus_id,
+        source_kind=source_kind,
+        corpus_config=corpus_config,
+        url=url,
+        content=content,
+        filename=filename,
+        content_type=content_type,
+        tracker=tracker,
+    )
 
 
 async def persist_extracted_assets(

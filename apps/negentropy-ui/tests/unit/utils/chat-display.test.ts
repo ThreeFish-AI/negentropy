@@ -302,6 +302,80 @@ describe("buildChatDisplayBlocks", () => {
     }
   });
 
+  it("非关键 error 节点不产生 error display block", () => {
+    const tree: ConversationTree = {
+      roots: [
+        {
+          id: "turn:1",
+          type: "turn",
+          parentId: null,
+          children: [
+            {
+              id: "message:1",
+              type: "text",
+              parentId: "turn:1",
+              children: [],
+              threadId: "thread-1",
+              runId: "run-1",
+              messageId: "msg-1",
+              timestamp: 1001,
+              timeRange: { start: 1001, end: 1001 },
+              sourceOrder: 1,
+              title: "助手消息",
+              role: "assistant",
+              visibility: "chat",
+              isStructural: false,
+              payload: { content: "回答内容", streaming: false },
+              sourceEventTypes: ["text_message_start", "text_message_end"],
+              relatedMessageIds: ["msg-1"],
+            },
+            {
+              id: "error:1",
+              type: "error",
+              parentId: "turn:1",
+              children: [],
+              threadId: "thread-1",
+              runId: "run-1",
+              timestamp: 1002,
+              timeRange: { start: 1002, end: 1002 },
+              sourceOrder: 2,
+              title: "运行错误",
+              status: "error",
+              visibility: "chat",
+              isStructural: false,
+              payload: {
+                message:
+                  "litellm.APIError: Error building chunks for logging/streaming usage calculation",
+                code: "",
+              },
+              sourceEventTypes: ["run_error"],
+              relatedMessageIds: [],
+            },
+          ],
+          threadId: "thread-1",
+          runId: "run-1",
+          timestamp: 1000,
+          timeRange: { start: 1000, end: 1002 },
+          sourceOrder: 0,
+          title: "轮次 run-1",
+          visibility: "chat",
+          isStructural: false,
+          payload: {},
+          sourceEventTypes: ["run_started"],
+          relatedMessageIds: [],
+        },
+      ],
+      nodeIndex: new Map(),
+      messageNodeIndex: new Map(),
+      toolNodeIndex: new Map(),
+    };
+
+    const blocks = buildChatDisplayBlocks(tree);
+    const errorBlocks = blocks.filter((block) => block.kind === "error");
+    expect(errorBlocks).toHaveLength(0);
+    expect(blocks.some((block) => block.kind === "assistant-reply")).toBe(true);
+  });
+
   it("工具失败时显示失败摘要并默认展开", () => {
     const tree: ConversationTree = {
       roots: [

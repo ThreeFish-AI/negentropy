@@ -15,9 +15,10 @@ async def test_discover_stdio_uses_logged_stdio_client(monkeypatch: pytest.Monke
     captured: dict[str, object] = {}
 
     @asynccontextmanager
-    async def fake_logged_stdio_client(server_params, errlog):
+    async def fake_logged_stdio_client(server_params, errlog, stderr_callback=None):
         captured["server_params"] = server_params
         captured["errlog"] = errlog
+        _ = stderr_callback
         yield object(), object()
 
     class _Tool:
@@ -92,9 +93,10 @@ async def test_call_tool_stdio_passes_structured_errlog(monkeypatch: pytest.Monk
     captured: dict[str, object] = {}
 
     @asynccontextmanager
-    async def fake_logged_stdio_client(server_params, errlog):
+    async def fake_logged_stdio_client(server_params, errlog, stderr_callback=None):
         captured["server_params"] = server_params
         captured["errlog"] = errlog
+        _ = stderr_callback
         yield object(), object()
 
     class _Result:
@@ -141,8 +143,8 @@ async def test_call_tool_stdio_passes_structured_errlog(monkeypatch: pytest.Monk
 @pytest.mark.asyncio
 async def test_call_tool_stdio_preserves_non_dict_structured_content(monkeypatch: pytest.MonkeyPatch) -> None:
     @asynccontextmanager
-    async def fake_logged_stdio_client(server_params, errlog):
-        _ = (server_params, errlog)
+    async def fake_logged_stdio_client(server_params, errlog, stderr_callback=None):
+        _ = (server_params, errlog, stderr_callback)
         yield object(), object()
 
     class _Result:
@@ -179,6 +181,63 @@ async def test_call_tool_stdio_preserves_non_dict_structured_content(monkeypatch
 
     assert result.success is True
     assert result.structured_content == [{"result": {"markdown_content": "# Title"}}]
+
+
+@pytest.mark.asyncio
+async def test_call_tool_stdio_emits_whitebox_events_and_stderr(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+    emitted_events: list[dict[str, object]] = []
+    stderr_messages: list[str] = []
+
+    @asynccontextmanager
+    async def fake_logged_stdio_client(server_params, errlog, stderr_callback=None):
+        captured["server_params"] = server_params
+        captured["errlog"] = errlog
+        if stderr_callback:
+            stderr_callback("stderr line")
+        yield object(), object()
+
+    class _Result:
+        isError = False
+        content = []
+        structuredContent = {"ok": True}
+
+    class _Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def initialize(self) -> None:
+            captured["initialized"] = True
+
+        async def call_tool(self, tool_name, arguments, read_timeout_seconds):
+            _ = (tool_name, arguments, read_timeout_seconds)
+            return _Result()
+
+    monkeypatch.setattr("negentropy.plugins.mcp_client.logged_stdio_client", fake_logged_stdio_client)
+    monkeypatch.setattr("negentropy.plugins.mcp_client.ClientSession", lambda read, write: _Session())
+
+    service = McpClientService(timeout_seconds=5)
+    result = await service.call_tool(
+        transport_type="stdio",
+        command="uvx",
+        args=["mcp-server-fetch"],
+        env={},
+        tool_name="fetch",
+        arguments={"url": "https://example.com"},
+        event_callback=emitted_events.append,
+        stderr_callback=stderr_messages.append,
+    )
+
+    assert result.success is True
+    assert stderr_messages == ["stderr line"]
+    assert [event["stage"] for event in emitted_events] == [
+        "transport_connect",
+        "session_initialized",
+        "tool_result",
+    ]
 
 
 @pytest.mark.asyncio

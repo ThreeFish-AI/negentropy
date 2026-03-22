@@ -10,7 +10,7 @@ export type MainNavItem = NavItem;
 
 export const mainNavConfig: MainNavItem[] = [
   {
-    title: "Chat",
+    title: "Home",
     href: "/",
   },
   {
@@ -22,7 +22,7 @@ export const mainNavConfig: MainNavItem[] = [
     href: "/memory",
   },
   {
-    title: "Plugins",
+    title: "Interface",
     href: "/plugins",
   },
   {

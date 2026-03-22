@@ -251,9 +251,9 @@ export default function RoleManagementPage() {
         title="Role Management"
         description="Bind roles to page-level read/write permissions"
       />
-      <div className="flex-1 overflow-auto">
-        <div className="px-6 py-6">
-          <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-6">
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
             Role bindings are sourced from the server RBAC configuration. This
             page edits a local draft and does not persist changes yet.
