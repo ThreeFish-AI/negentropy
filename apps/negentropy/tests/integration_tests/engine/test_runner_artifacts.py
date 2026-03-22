@@ -39,22 +39,21 @@ def test_runner_artifact_injection():
         mock_artifact_service = MagicMock()
         # We patch where it's imported in runner_factory
         with patch("negentropy.engine.factories.runner.get_artifact_service", return_value=mock_artifact_service):
-            # We also need to patch root_agent since we default to it
-            with patch("negentropy.engine.factories.runner.root_agent", MagicMock()):
-                runner = get_runner(app_name="test_app", agent=MagicMock())
+            # agent= 显式传入，不会触发 root_agent 的延迟导入
+            runner = get_runner(app_name="test_app", agent=MagicMock())
 
-                # Verify Runner was initialized with artifact_service
-                print(f"Runner call args: {MockRunner.call_args}")
-                if MockRunner.call_args is None:
-                    raise AssertionError("Runner was not called!")
-                _, kwargs = MockRunner.call_args
+            # Verify Runner was initialized with artifact_service
+            print(f"Runner call args: {MockRunner.call_args}")
+            if MockRunner.call_args is None:
+                raise AssertionError("Runner was not called!")
+            _, kwargs = MockRunner.call_args
 
-                if "artifact_service" in kwargs:
-                    print("SUCCESS: artifact_service passed to Runner.")
-                    assert kwargs["artifact_service"] == mock_artifact_service
-                else:
-                    print("FAILED: artifact_service NOT passed to Runner.")
-                    raise AssertionError("artifact_service missing in Runner init")
+            if "artifact_service" in kwargs:
+                print("SUCCESS: artifact_service passed to Runner.")
+                assert kwargs["artifact_service"] == mock_artifact_service
+            else:
+                print("FAILED: artifact_service NOT passed to Runner.")
+                raise AssertionError("artifact_service missing in Runner init")
 
 
 if __name__ == "__main__":
