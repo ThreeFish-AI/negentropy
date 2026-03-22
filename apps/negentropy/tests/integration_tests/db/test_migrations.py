@@ -7,12 +7,21 @@ from sqlalchemy import create_engine, text
 from negentropy.config import settings
 
 
-CURRENT_HEAD = "a9d3f7b21c4e"
-PREVIOUS_HEAD = "f2c3d4e5a6b7"
+CURRENT_HEAD = "b4d7e2f9a1c3"
+PRESET_SEED_HEAD = "a9d3f7b21c4e"
 
 
 def _sync_database_url() -> str:
     return str(settings.database_url).replace("postgresql+asyncpg", "postgresql+psycopg")
+
+
+@pytest.fixture(autouse=True)
+def reset_database(alembic_config: Config):
+    """Keep migration tests isolated from the developer database."""
+
+    command.downgrade(alembic_config, "base")
+    yield
+    command.downgrade(alembic_config, "base")
 
 
 @pytest.fixture
@@ -48,7 +57,7 @@ def test_migrations_stairway(alembic_config: Config):
 
 
 def test_data_extractor_seeded_by_migration(alembic_config: Config):
-    """Ensure the Data Extractor MCP server is seeded with the expected runtime config."""
+    """Ensure the Data Extractor MCP server is present with the official preset config."""
 
     command.upgrade(alembic_config, "head")
 
@@ -85,49 +94,33 @@ def test_data_extractor_seeded_by_migration(alembic_config: Config):
     assert row["auto_start"] is True
 
 
-def test_data_extractor_seed_skips_existing_manual_record(alembic_config: Config):
-    """Ensure the seed migration does not overwrite a pre-existing data-extractor server."""
+def test_data_extractor_seed_repairs_existing_manual_record(alembic_config: Config):
+    """Ensure the latest migration reconciles a polluted manual record back to the official preset."""
 
-    command.downgrade(alembic_config, "base")
-    command.upgrade(alembic_config, PREVIOUS_HEAD)
+    command.upgrade(alembic_config, PRESET_SEED_HEAD)
 
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:
             conn.execute(
                 text("""
-                    INSERT INTO negentropy.mcp_servers (
-                        owner_id,
-                        visibility,
-                        name,
-                        display_name,
-                        description,
-                        transport_type,
-                        command,
-                        args,
-                        env,
-                        url,
-                        headers,
-                        is_enabled,
-                        auto_start,
-                        config
-                    )
-                    VALUES (
-                        'google:manual-owner',
-                        'PRIVATE'::negentropy.pluginvisibility,
-                        'data-extractor',
-                        'Manual Override',
-                        'manual record should win',
-                        'http',
-                        NULL,
-                        '[]'::jsonb,
-                        '{}'::jsonb,
-                        'http://manual.example/mcp',
-                        '{}'::jsonb,
-                        FALSE,
-                        FALSE,
-                        '{}'::jsonb
-                    )
+                    UPDATE negentropy.mcp_servers
+                    SET
+                        owner_id = 'google:manual-owner',
+                        visibility = 'PRIVATE'::negentropy.pluginvisibility,
+                        display_name = 'Manual Override',
+                        description = 'manual record should win',
+                        transport_type = 'http',
+                        command = NULL,
+                        args = '[]'::jsonb,
+                        env = '{}'::jsonb,
+                        url = 'http://manual.example/mcp',
+                        headers = '{}'::jsonb,
+                        is_enabled = FALSE,
+                        auto_start = FALSE,
+                        config = '{}'::jsonb,
+                        updated_at = now()
+                    WHERE name = 'data-extractor'
                 """)
             )
     finally:
@@ -155,10 +148,12 @@ def test_data_extractor_seed_skips_existing_manual_record(alembic_config: Config
     finally:
         engine.dispose()
 
-    assert row["owner_id"] == "google:manual-owner"
-    assert row["visibility"] == "PRIVATE"
-    assert row["display_name"] == "Manual Override"
-    assert row["description"] == "manual record should win"
-    assert row["url"] == "http://manual.example/mcp"
-    assert row["is_enabled"] is False
-    assert row["auto_start"] is False
+    assert row["owner_id"] == "system:data-extractor-preset"
+    assert row["visibility"] == "PUBLIC"
+    assert row["display_name"] == "Data Extractor"
+    assert row["description"] == (
+        "一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。"
+    )
+    assert row["url"] == "http://localhost:8081/mcp"
+    assert row["is_enabled"] is True
+    assert row["auto_start"] is True
