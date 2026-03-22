@@ -270,13 +270,13 @@ export function HomeBody({
       const createdAt = new Date();
       const newMessage = {
         id: messageId,
-        role: "user",
+        role: "user" as const,
         content: input.trim(),
         createdAt,
         runId,
         threadId: sessionId,
         streaming: false,
-      } as Message;
+      };
       appendOptimisticMessage(newMessage);
       agent.addMessage(newMessage);
       setScrollToBottomTrigger((prev) => prev + 1);
