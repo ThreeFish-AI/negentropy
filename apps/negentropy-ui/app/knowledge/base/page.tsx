@@ -1189,11 +1189,11 @@ export default function KnowledgeBasePage() {
           <div className="h-full overflow-y-auto">
             <div className="space-y-4 pb-28">
               {retrievalDocked && retrievalResults.length > 0 && (
-                <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                  <div className="mb-3 text-3xl font-semibold text-foreground">
+                <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                  <div className="mb-2.5 text-2xl font-semibold text-foreground">
                     {retrievedChunkCards.length} Retrieved Chunks
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {retrievedChunkCards.map((item) => (
                       <RetrievedChunkCard
                         key={`${item.id}-${item.raw.metadata?.corpus_id || "na"}`}
