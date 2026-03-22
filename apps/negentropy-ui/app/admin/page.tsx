@@ -92,9 +92,8 @@ export default function AdminPage() {
         title="User Management"
         description="Manage users and role assignments"
       />
-      <div className="flex-1 overflow-auto">
-        <div className="px-6 py-6">
-          <div className="mx-auto max-w-4xl">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
           {/* Current User Info */}
           <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
             <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2 dark:text-zinc-500">
@@ -241,7 +240,6 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
       </div>

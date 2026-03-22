@@ -36,67 +36,65 @@ export default function PluginsPage() {
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <PluginsNav title="Dashboard" />
-      <div className="flex-1 overflow-auto">
-        <div className="px-6 py-6">
-          <div className="mx-auto max-w-4xl">
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-              Plugin Management
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-              Manage MCP servers, Skills, and SubAgents for your AI agents.
-            </p>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
+            Interface
+          </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+            Manage MCP servers, Skills, and SubAgents for your AI agents.
+          </p>
 
-            {loading ? (
-              <div className="text-sm text-zinc-500">Loading...</div>
-            ) : error ? (
-              <div className="text-sm text-red-500">{error}</div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-3">
-                <StatCard
-                  title={MCP_HUB_LABEL}
-                  total={stats?.mcp_servers.total || 0}
-                  enabled={stats?.mcp_servers.enabled || 0}
-                  href="/plugins/mcp"
-                  description="Model Context Protocol servers"
-                />
-                <StatCard
-                  title="Skills"
-                  total={stats?.skills.total || 0}
-                  enabled={stats?.skills.enabled || 0}
-                  href="/plugins/skills"
-                  description="Reusable skill modules"
-                />
-                <StatCard
-                  title="SubAgents"
-                  total={stats?.subagents.total || 0}
-                  enabled={stats?.subagents.enabled || 0}
-                  href="/plugins/subagents"
-                  description="Sub-agent configurations"
-                />
-              </div>
-            )}
+          {loading ? (
+            <div className="text-sm text-zinc-500">Loading...</div>
+          ) : error ? (
+            <div className="text-sm text-red-500">{error}</div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <StatCard
+                title={MCP_HUB_LABEL}
+                total={stats?.mcp_servers.total || 0}
+                enabled={stats?.mcp_servers.enabled || 0}
+                href="/plugins/mcp"
+                description="Model Context Protocol servers"
+              />
+              <StatCard
+                title="Skills"
+                total={stats?.skills.total || 0}
+                enabled={stats?.skills.enabled || 0}
+                href="/plugins/skills"
+                description="Reusable skill modules"
+              />
+              <StatCard
+                title="SubAgents"
+                total={stats?.subagents.total || 0}
+                enabled={stats?.subagents.enabled || 0}
+                href="/plugins/subagents"
+                description="Sub-agent configurations"
+              />
+            </div>
+          )}
 
-            <div className="mt-8">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                Quick Links
-              </h2>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <QuickLink
-                  href="/plugins/mcp"
-                  title="Register MCP Server"
-                  description="Connect external tools via MCP protocol"
-                />
-                <QuickLink
-                  href="/plugins/skills"
-                  title="Create Skill"
-                  description="Define reusable prompt templates"
-                />
-                <QuickLink
-                  href="/plugins/subagents"
-                  title="Configure SubAgent"
-                  description="Set up specialized sub-agents"
-                />
-              </div>
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+              Quick Links
+            </h2>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <QuickLink
+                href="/plugins/mcp"
+                title="Register MCP Server"
+                description="Connect external tools via MCP protocol"
+              />
+              <QuickLink
+                href="/plugins/skills"
+                title="Create Skill"
+                description="Define reusable prompt templates"
+              />
+              <QuickLink
+                href="/plugins/subagents"
+                title="Configure SubAgent"
+                description="Set up specialized sub-agents"
+              />
             </div>
           </div>
         </div>
