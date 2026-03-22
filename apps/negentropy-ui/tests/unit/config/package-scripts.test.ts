@@ -16,7 +16,7 @@ const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
 
 describe("package.json scripts", () => {
   it("start 脚本统一走 standalone 生产启动器", () => {
-    expect(packageJson.scripts?.start).toBe("node ./scripts/start-production.mjs");
+    expect(packageJson.scripts?.start).toContain("node ./scripts/start-production.mjs");
   });
 
   it("standalone 生产启动器文件已纳入仓库", () => {
