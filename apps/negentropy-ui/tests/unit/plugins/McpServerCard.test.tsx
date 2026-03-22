@@ -103,4 +103,56 @@ describe("McpServerCard", () => {
     expect(screen.queryByText("Output Schema")).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced Metadata")).not.toBeInTheDocument();
   });
+
+  it("renders formatted badges and merged tools toggle", () => {
+    render(
+      <McpServerCard
+        server={{
+          ...server,
+          transport_type: "http",
+          visibility: "public",
+          auto_start: true,
+          tool_count: 14,
+        }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onLoad={vi.fn()}
+        tools={Array.from({ length: 14 }, (_, index) => ({
+          ...tool,
+          id: `tool-${index + 1}`,
+          name: `demo_tool_${index + 1}`,
+          title: `Demo Tool ${index + 1}`,
+        }))}
+      />
+    );
+
+    expect(screen.getByText("HTTP(Streamable)")).toBeInTheDocument();
+    expect(screen.getByText("Public")).toBeInTheDocument();
+    expect(screen.getByText("Auto-start")).toBeInTheDocument();
+
+    const toggleButton = screen.getByRole("button", { name: /toggle tools list/i });
+    expect(toggleButton).toHaveTextContent("14 Tools");
+    expect(screen.queryByText("14 tools")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Tools$/)).not.toBeInTheDocument();
+
+    fireEvent.click(toggleButton);
+    expect(screen.getByRole("button", { name: "Demo Tool 1" })).toBeInTheDocument();
+  });
+
+  it("shows loading label inside the merged tools control", () => {
+    render(
+      <McpServerCard
+        server={{ ...server, tool_count: 0 }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onLoad={vi.fn()}
+        tools={[]}
+        loadingTools
+      />
+    );
+
+    const toggleButton = screen.getByRole("button", { name: /toggle tools list/i });
+    expect(toggleButton).toHaveTextContent("Loading tools...");
+    expect(toggleButton).toHaveAttribute("aria-expanded", "false");
+  });
 });
