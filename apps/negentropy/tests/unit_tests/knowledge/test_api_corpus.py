@@ -60,21 +60,21 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
             return {
                 "url": {
                     "primary": {
-                        "server_name": "Data Extractor",
+                        "server_name": "data-extractor",
                         "tool_name": "convert_webpage_to_markdown",
                     },
                     "secondary": {
-                        "server_name": "Data Extractor",
+                        "server_name": "data-extractor",
                         "tool_name": "batch_convert_webpages_to_markdown",
                     },
                 },
                 "file_pdf": {
                     "primary": {
-                        "server_name": "Data Extractor",
-                        "tool_name": "convert_pdfs_to_markdown",
+                        "server_name": "data-extractor",
+                        "tool_name": "convert_pdf_to_markdown",
                     },
                     "secondary": {
-                        "server_name": "Data Extractor",
+                        "server_name": "data-extractor",
                         "tool_name": "batch_convert_pdfs_to_markdown",
                     },
                 },
@@ -95,11 +95,11 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
         "AsyncSessionLocal",
         lambda: FakeDefaultRouteSession(
             responses=[
-                [(server_id, "Data Extractor")],
+                [(server_id, "data-extractor")],
                 [
                     (server_id, "convert_webpage_to_markdown"),
                     (server_id, "batch_convert_webpages_to_markdown"),
-                    (server_id, "convert_pdfs_to_markdown"),
+                    (server_id, "convert_pdf_to_markdown"),
                     (server_id, "batch_convert_pdfs_to_markdown"),
                 ],
             ]
@@ -136,7 +136,7 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
             "targets": [
                 {
                     "server_id": str(server_id),
-                    "tool_name": "convert_pdfs_to_markdown",
+                    "tool_name": "convert_pdf_to_markdown",
                     "priority": 0,
                     "enabled": True,
                 },

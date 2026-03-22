@@ -31,11 +31,11 @@ class DefaultExtractorRoutesSettings(BaseModel):
     url: DefaultExtractorRouteSettings = Field(
         default_factory=lambda: DefaultExtractorRouteSettings(
             primary=DefaultExtractorTargetSettings(
-                server_name="Data Extractor",
+                server_name="data-extractor",
                 tool_name="convert_webpage_to_markdown",
             ),
             secondary=DefaultExtractorTargetSettings(
-                server_name="Data Extractor",
+                server_name="data-extractor",
                 tool_name="batch_convert_webpages_to_markdown",
             ),
         )
@@ -43,11 +43,11 @@ class DefaultExtractorRoutesSettings(BaseModel):
     file_pdf: DefaultExtractorRouteSettings = Field(
         default_factory=lambda: DefaultExtractorRouteSettings(
             primary=DefaultExtractorTargetSettings(
-                server_name="Data Extractor",
-                tool_name="convert_pdfs_to_markdown",
+                server_name="data-extractor",
+                tool_name="convert_pdf_to_markdown",
             ),
             secondary=DefaultExtractorTargetSettings(
-                server_name="Data Extractor",
+                server_name="data-extractor",
                 tool_name="batch_convert_pdfs_to_markdown",
             ),
         )
