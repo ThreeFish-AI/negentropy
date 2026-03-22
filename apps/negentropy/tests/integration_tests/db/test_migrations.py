@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, text
 from negentropy.config import settings
 
 
-CURRENT_HEAD = "b4d7e2f9a1c3"
+CURRENT_HEAD = "e6f7a8b9c0d1"
 PRESET_SEED_HEAD = "a9d3f7b21c4e"
 
 
