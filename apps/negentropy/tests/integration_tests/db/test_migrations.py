@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, text
 from negentropy.config import settings
 
 
-CURRENT_HEAD = "b4d7e2f9a1c3"
+CURRENT_HEAD = "e6f7a8b9c0d1"
 PRESET_SEED_HEAD = "a9d3f7b21c4e"
 
 
@@ -17,11 +17,15 @@ def _sync_database_url() -> str:
 
 @pytest.fixture(autouse=True)
 def reset_database(alembic_config: Config):
-    """Keep migration tests isolated from the developer database."""
+    """Keep migration tests isolated – each test starts from *base*.
+
+    Teardown upgrades back to *head* so that subsequent non-migration
+    integration tests (engine, knowledge) find the schema intact.
+    """
 
     command.downgrade(alembic_config, "base")
     yield
-    command.downgrade(alembic_config, "base")
+    command.upgrade(alembic_config, "head")
 
 
 @pytest.fixture

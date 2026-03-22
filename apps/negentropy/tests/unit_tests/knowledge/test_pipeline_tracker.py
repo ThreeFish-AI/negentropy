@@ -289,19 +289,20 @@ async def test_async_ingest_file_pipeline_marks_run_failed_when_extracted_docume
         },
     )
 
-    with pytest.raises(Exception, match="Failed to extract content"):
-        await service.execute_ingest_file_pipeline(
-            run_id=run_id,
-            corpus_id=corpus_id,
-            app_name=app_name,
-            content=b"%PDF-1.4",
-            filename="Context Engineering.pdf",
-            content_type="application/pdf",
-            source_uri=source_uri,
-            metadata={"document_id": str(document_id)},
-            document_id=document_id,
-        )
+    # execute_ingest_file_pipeline 现在吞没异常并返回 []（后台任务不再 re-raise）
+    result = await service.execute_ingest_file_pipeline(
+        run_id=run_id,
+        corpus_id=corpus_id,
+        app_name=app_name,
+        content=b"%PDF-1.4",
+        filename="Context Engineering.pdf",
+        content_type="application/pdf",
+        source_uri=source_uri,
+        metadata={"document_id": str(document_id)},
+        document_id=document_id,
+    )
 
+    assert result == []
     record = dao.records[(app_name, run_id)]
     assert record.status == "failed"
     assert record.payload["stages"]["extract_gate"]["status"] == "failed"

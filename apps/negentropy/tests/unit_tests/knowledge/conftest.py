@@ -81,12 +81,28 @@ class FakeMcpSession:
         if self.scalar_returns_none:
             return None
         ns_kwargs: dict = {
+            "id": uuid4(),
             "is_enabled": True,
             "input_schema": self.input_schema,
+            "output_schema": {},
+            "call_count": 0,
+            "name": "fake-tool",
         }
         if self.description is not None:
             ns_kwargs["description"] = self.description
         return SimpleNamespace(**ns_kwargs)
+
+    def add(self, obj):  # type: ignore[no-untyped-def]
+        """No-op: McpToolExecutionService calls db.add(run/event)."""
+
+    async def flush(self):
+        """No-op: McpToolExecutionService calls db.flush()."""
+
+    async def commit(self):
+        """No-op: McpToolExecutionService calls db.commit()."""
+
+    async def refresh(self, obj):  # type: ignore[no-untyped-def]
+        """No-op: McpToolExecutionService calls db.refresh(run)."""
 
 
 # ---------------------------------------------------------------------------

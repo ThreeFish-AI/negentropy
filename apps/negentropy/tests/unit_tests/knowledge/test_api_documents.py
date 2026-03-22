@@ -97,14 +97,21 @@ async def test_sync_document_success(monkeypatch):
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
 
-    async def fake_fetch_content(url: str) -> str:
-        assert url == source_url
-        return "# title\n\ncontent"
+    from negentropy.knowledge.extraction import ExtractedDocumentResult
+
+    async def fake_extract_source(**kwargs):
+        return ExtractedDocumentResult(
+            plain_text="content",
+            markdown_content="# title\n\ncontent",
+        )
+
+    async def fake_persist_extracted_assets(**kwargs):
+        return []
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
     monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
-    monkeypatch.setattr("negentropy.knowledge.content.fetch_content", fake_fetch_content)
-    monkeypatch.setattr("negentropy.knowledge.extraction.fetch_content", fake_fetch_content)
+    monkeypatch.setattr(knowledge_api, "extract_source", fake_extract_source)
+    monkeypatch.setattr(knowledge_api, "persist_extracted_assets", fake_persist_extracted_assets)
 
     result = await knowledge_api.sync_document(
         corpus_id=corpus_id,
