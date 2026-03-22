@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { ComponentPropsWithoutRef, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -34,30 +35,33 @@ export function OverlayDismissLayer({
 }: OverlayDismissLayerProps) {
   if (!open) return null;
 
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const { className: contentPropsClassName, onClick, ...restContentProps } =
     contentProps ?? {};
 
-  const handleBackdropClick = () => {
+  const handleWrapperClick: NonNullable<HTMLAttributes<HTMLDivElement>["onClick"]> = (
+    event,
+  ) => {
     if (!dismissible || busy) return;
+    if (contentRef.current?.contains(event.target as Node)) return;
     onClose();
   };
 
   const handleContentClick: NonNullable<HTMLAttributes<HTMLDivElement>["onClick"]> = (
     event,
   ) => {
-    event.stopPropagation();
     onClick?.(event);
   };
 
   return (
-    <div className={cn("fixed inset-0 z-50", wrapperClassName)}>
+    <div className={cn("fixed inset-0 z-50", wrapperClassName)} onClick={handleWrapperClick}>
       <div
         data-testid={backdropTestId ?? "overlay-backdrop"}
         className={cn("absolute inset-0 bg-black/50 backdrop-blur-sm", backdropClassName)}
-        onClick={handleBackdropClick}
       />
       <div className={cn("relative", containerClassName)}>
         <div
+          ref={contentRef}
           data-testid={contentTestId}
           {...restContentProps}
           className={cn(contentClassName, contentPropsClassName)}
