@@ -46,6 +46,11 @@ function getDashboardRunsPanel(page: PageHandle) {
   }).first();
 }
 
+function getPipelinesRunsPanel(page: PageHandle) {
+  return page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Runs" }),
+  }).first();
+}
 
 async function applyTheme(page: PageHandle, theme: ThemeVariant) {
   await page.emulateMedia({ colorScheme: theme });
@@ -137,7 +142,7 @@ test("Knowledge Base 页面可完成基础检索烟测", async ({ page }) => {
   await expect(page.getByText("Entropy-reducing retrieval result")).toBeVisible();
 });
 
-test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
+test("Knowledge Runs 状态标签在 Dashboard 与 Pipelines 页面视觉一致", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
   const sharedRuns = [
@@ -187,7 +192,14 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
         corpus_count: 2,
         knowledge_count: 8,
         last_build_at: "2026-03-08T10:05:00Z",
-        pipeline_runs: [],
+        pipeline_runs: sharedRuns.map((run) => ({
+          run_id: run.run_id,
+          status: run.status,
+          version: run.version,
+          operation: run.operation,
+          trigger: run.trigger,
+          updated_at: run.updated_at,
+        })),
         alerts: [],
       }),
     });
@@ -214,11 +226,6 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
     const dashboardRunsPanel = getDashboardRunsPanel(page);
     await expect(dashboardRunsPanel).toBeVisible();
 
-    // 验证首个 Run 自动选中
-    await expect(
-      page.getByRole("button", { name: /run-running/i }),
-    ).toHaveClass(/bg-zinc-900/);
-
     const dashboardRunning = await getStatusBadgeSnapshot(page, "状态: running");
     const dashboardCompleted = await getStatusBadgeSnapshot(page, "状态: completed");
     const dashboardFailed = await getStatusBadgeSnapshot(page, "状态: failed");
@@ -227,6 +234,29 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
       animations: "disabled",
       caret: "hide",
     });
+
+    await page.goto("/knowledge/pipelines");
+    await assertThemeSettled(page, theme);
+    await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /run-running/i }),
+    ).toHaveClass(/bg-zinc-900/);
+
+    const pipelinesRunsPanel = getPipelinesRunsPanel(page);
+    await expect(pipelinesRunsPanel).toBeVisible();
+
+    const pipelinesRunning = await getStatusBadgeSnapshot(page, "状态: running");
+    const pipelinesCompleted = await getStatusBadgeSnapshot(page, "状态: completed");
+    const pipelinesFailed = await getStatusBadgeSnapshot(page, "状态: failed");
+
+    await expect(pipelinesRunsPanel).toHaveScreenshot(`knowledge-pipelines-runs-${theme}.png`, {
+      animations: "disabled",
+      caret: "hide",
+    });
+
+    expect(pipelinesRunning).toEqual(dashboardRunning);
+    expect(pipelinesCompleted).toEqual(dashboardCompleted);
+    expect(pipelinesFailed).toEqual(dashboardFailed);
 
     expect(dashboardRunning.badgeClassName).toContain("inline-flex");
     expect(dashboardRunning.badgeClassName).toContain("gap-2");

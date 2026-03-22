@@ -25,7 +25,7 @@ import {
   type AgUiMessage,
 } from "@/types/agui";
 import { getMessageIdentityKey, normalizeMessageContent } from "@/utils/message";
-import { buildMessageLedger, isSemanticEquivalentEntry, ledgerEntriesToMessages } from "@/utils/message-ledger";
+import { buildMessageLedger, ledgerEntriesToMessages } from "@/utils/message-ledger";
 
 export type HydratedSessionDetail = {
   events: BaseEvent[];
@@ -71,7 +71,7 @@ function eventKey(event: BaseEvent): string {
         threadId,
         runId,
         messageId,
-        String(normalizeTimestamp(event.timestamp)),
+        String(getEventDelta(event) || ""),
       ].join("|");
     case EventType.TEXT_MESSAGE_END:
       return [type, threadId, runId, messageId].join("|");
@@ -140,108 +140,6 @@ export function mergeEvents(baseEvents: BaseEvent[], incomingEvents: BaseEvent[]
     }
     return eventKey(a).localeCompare(eventKey(b));
   });
-}
-
-const LIFECYCLE_EVENT_TYPES = new Set([
-  EventType.RUN_STARTED,
-  EventType.RUN_FINISHED,
-  EventType.RUN_ERROR,
-  EventType.MESSAGES_SNAPSHOT,
-  EventType.STATE_SNAPSHOT,
-  EventType.STATE_DELTA,
-  EventType.STEP_STARTED,
-  EventType.STEP_FINISHED,
-]);
-
-const TEXT_MESSAGE_EVENT_TYPES = new Set([
-  EventType.TEXT_MESSAGE_START,
-  EventType.TEXT_MESSAGE_CONTENT,
-  EventType.TEXT_MESSAGE_END,
-]);
-
-const TOOL_CALL_EVENT_TYPES = new Set([
-  EventType.TOOL_CALL_START,
-  EventType.TOOL_CALL_ARGS,
-  EventType.TOOL_CALL_END,
-  EventType.TOOL_CALL_RESULT,
-]);
-
-/**
- * Realtime-Wins 合并策略：当 hydration 事件的 messageId / toolCallId
- * 已在实时流事件中出现时，优先保留实时流版本，丢弃 hydrated 副本。
- * 对于 messageId 不同但语义等价的消息，同样丢弃 hydrated 副本。
- * 保留 hydrated 事件中的生命周期事件作为补充。
- */
-export function mergeEventsWithRealtimePriority(
-  realtimeEvents: BaseEvent[],
-  hydratedEvents: BaseEvent[],
-  realtimeLedger: MessageLedgerEntry[],
-  hydratedLedger: MessageLedgerEntry[],
-): BaseEvent[] {
-  // 1. 从实时事件中提取所有 messageId 和 toolCallId
-  const realtimeMessageIds = new Set<string>();
-  const realtimeToolCallIds = new Set<string>();
-  realtimeEvents.forEach((event) => {
-    const messageId = getEventMessageId(event);
-    if (messageId) {
-      realtimeMessageIds.add(messageId);
-    }
-    const toolCallId = getEventToolCallId(event);
-    if (toolCallId) {
-      realtimeToolCallIds.add(toolCallId);
-    }
-  });
-
-  // 2. 通过语义等价匹配建立 hydrated messageId → realtime messageId 映射
-  const hydratedToRealtimeMessageId = new Map<string, string>();
-  hydratedLedger.forEach((hydratedEntry) => {
-    if (realtimeMessageIds.has(hydratedEntry.id)) {
-      hydratedToRealtimeMessageId.set(hydratedEntry.id, hydratedEntry.id);
-      return;
-    }
-    for (const realtimeEntry of realtimeLedger) {
-      if (
-        isSemanticEquivalentEntry(
-          { ...hydratedEntry, origin: "fallback" },
-          { ...realtimeEntry, origin: "realtime" },
-        )
-      ) {
-        hydratedToRealtimeMessageId.set(hydratedEntry.id, realtimeEntry.id);
-        break;
-      }
-    }
-  });
-
-  // 3. 过滤 hydrated 事件
-  const filteredHydratedEvents = hydratedEvents.filter((event) => {
-    const eventType = event.type as EventType;
-
-    // 始终保留生命周期事件
-    if (LIFECYCLE_EVENT_TYPES.has(eventType)) {
-      return true;
-    }
-
-    // 过滤已被实时流覆盖的文本消息事件
-    if (TEXT_MESSAGE_EVENT_TYPES.has(eventType)) {
-      const messageId = getEventMessageId(event);
-      if (messageId && (realtimeMessageIds.has(messageId) || hydratedToRealtimeMessageId.has(messageId))) {
-        return false;
-      }
-    }
-
-    // 过滤已被实时流覆盖的工具调用事件
-    if (TOOL_CALL_EVENT_TYPES.has(eventType)) {
-      const toolCallId = getEventToolCallId(event);
-      if (toolCallId && realtimeToolCallIds.has(toolCallId)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  // 4. 使用既有 mergeEvents 合并
-  return mergeEvents(realtimeEvents, filteredHydratedEvents);
 }
 
 export function hasSameEventSequence(left: BaseEvent[], right: BaseEvent[]): boolean {

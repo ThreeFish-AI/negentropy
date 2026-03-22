@@ -19,22 +19,12 @@ def test_pricing_lookup_model_name_strips_vendor_prefix():
 
 
 def test_llm_settings_uses_online_pricing_when_available(monkeypatch):
-    monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
-    monkeypatch.delenv("NE_LLM_EMBEDDING_MODEL", raising=False)
-    monkeypatch.delenv("EMBEDDING_VENDOR", raising=False)
-    monkeypatch.delenv("NE_LLM_EMBEDDING_VENDOR", raising=False)
     monkeypatch.setattr(
         "negentropy.config.pricing.get_effective_model_pricing_usd",
         lambda model: ({"input": 1.0, "output": 3.2}, "litellm_online_catalog"),
     )
 
-    settings = LlmSettings(
-        _env_file=None,
-        vendor=LlmVendor.ZAI,
-        model_name="glm-5",
-        EMBEDDING_MODEL="glm-5",
-        EMBEDDING_VENDOR="zai",
-    )
+    settings = LlmSettings(vendor=LlmVendor.ZAI, model_name="glm-5")
 
     assert settings.full_model_name == "zai/glm-5"
     assert settings.embedding_full_model_name == "zai/glm-5"
@@ -42,21 +32,11 @@ def test_llm_settings_uses_online_pricing_when_available(monkeypatch):
 
 
 def test_llm_settings_falls_back_to_local_pricing(monkeypatch):
-    monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
-    monkeypatch.delenv("NE_LLM_EMBEDDING_MODEL", raising=False)
-    monkeypatch.delenv("EMBEDDING_VENDOR", raising=False)
-    monkeypatch.delenv("NE_LLM_EMBEDDING_VENDOR", raising=False)
     monkeypatch.setattr(
         "negentropy.config.pricing.get_effective_model_pricing_usd",
         lambda model: ({"input": 0.285714, "output": 1.142857}, "local_override"),
     )
 
-    settings = LlmSettings(
-        _env_file=None,
-        vendor=LlmVendor.ZAI,
-        model_name="glm-4.7",
-        EMBEDDING_MODEL="glm-4.7",
-        EMBEDDING_VENDOR="zai",
-    )
+    settings = LlmSettings(vendor=LlmVendor.ZAI, model_name="glm-4.7")
 
     assert settings.model_pricing == {"input": 0.285714, "output": 1.142857}

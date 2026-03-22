@@ -695,50 +695,6 @@ describe("buildConversationTree", () => {
     expect(tree.roots[0].children[0].title).toBe("用户消息");
   });
 
-  it("非关键 RUN_ERROR（litellm logging）不创建 error 节点", () => {
-    const events: AgUiEvent[] = [
-      createTestEvent({
-        type: EventType.RUN_STARTED,
-        threadId: "thread-1",
-        runId: "run-1",
-        timestamp: 1000,
-      }),
-      createTestEvent({
-        type: EventType.TEXT_MESSAGE_START,
-        threadId: "thread-1",
-        runId: "run-1",
-        messageId: "msg-1",
-        role: "assistant",
-        timestamp: 1001,
-      }),
-      createTestEvent({
-        type: EventType.TEXT_MESSAGE_CONTENT,
-        threadId: "thread-1",
-        runId: "run-1",
-        messageId: "msg-1",
-        delta: "回答内容",
-        timestamp: 1002,
-      }),
-      createTestEvent({
-        type: EventType.RUN_ERROR,
-        threadId: "thread-1",
-        runId: "run-1",
-        message:
-          "litellm.APIError: Error building chunks for logging/streaming usage calculation",
-        timestamp: 1003,
-      }),
-    ];
-
-    const tree = buildConversationTree({ events });
-    expect(tree.roots).toHaveLength(1);
-    const turn = tree.roots[0];
-    const errorChildren = turn.children.filter((child) => child.type === "error");
-    expect(errorChildren).toHaveLength(0);
-    const textChildren = turn.children.filter((child) => child.type === "text");
-    expect(textChildren).toHaveLength(1);
-    expect(textChildren[0]?.payload.content).toBe("回答内容");
-  });
-
   it("messages snapshot 可补入缺失的历史用户消息", () => {
     const events: AgUiEvent[] = [
       createTestEvent({

@@ -41,7 +41,7 @@ function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" 
   return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
 }
 
-export function isSemanticEquivalentEntry(
+function isSemanticEquivalentEntry(
   left: Pick<
     MessageLedgerEntry,
     | "threadId"
@@ -114,28 +114,11 @@ export function isSemanticEquivalentEntry(
 
   const realtimeEntry = left.origin === "realtime" ? left : right;
   const historicalEntry = realtimeEntry === left ? right : left;
-  const realtimeContent = realtimeEntry.content.trim();
-  const historicalContent = historicalEntry.content.trim();
-  const historicalCompletesClosedRealtime =
-    realtimeEntry.lifecycle === "closed" &&
-    historicalEntry.lifecycle === "closed" &&
-    historicalEntry.streaming === false &&
-    historicalContent.length > realtimeContent.length &&
-    historicalContent.startsWith(realtimeContent);
-  if (
-    realtimeEntry.lifecycle === "closed" &&
-    historicalContent !== realtimeContent &&
-    !historicalCompletesClosedRealtime
-  ) {
+  if (realtimeEntry.lifecycle === "closed" && historicalEntry.content.trim() !== realtimeEntry.content.trim()) {
     return false;
   }
 
-  if (
-    !left.streaming &&
-    !right.streaming &&
-    leftContent !== rightContent &&
-    !historicalCompletesClosedRealtime
-  ) {
+  if (!left.streaming && !right.streaming && leftContent !== rightContent) {
     return false;
   }
 

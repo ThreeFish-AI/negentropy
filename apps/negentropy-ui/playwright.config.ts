@@ -1,9 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const port = Number(process.env.PLAYWRIGHT_PORT || 3210);
+const port = Number(process.env.PLAYWRIGHT_PORT || 3100);
 const baseURL = `http://127.0.0.1:${port}`;
-const reuseExistingServer =
-  process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "true";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,18 +15,10 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "pnpm build && pnpm start",
+    command: `pnpm build && pnpm exec next start -p ${port}`,
     url: baseURL,
-    reuseExistingServer,
-    gracefulShutdown: {
-      signal: "SIGTERM",
-      timeout: 5_000,
-    },
+    reuseExistingServer: !process.env.CI,
     cwd: __dirname,
-    env: {
-      ...process.env,
-      PORT: String(port),
-    },
     timeout: 180_000,
   },
   projects: [

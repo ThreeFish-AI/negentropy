@@ -104,7 +104,7 @@ export interface ApiEndpoint {
   interactiveForm?: InteractiveFormConfig;
 }
 
-const BASE_URL = "http://localhost:6600";
+const BASE_URL = "http://localhost:8000";
 const DEFAULT_CHUNKING_CONFIG = createDefaultChunkingConfig("recursive");
 const DEFAULT_CHUNKING_CONFIG_DESCRIPTION =
   "canonical chunking 配置，按 strategy 判别。支持 fixed / recursive / semantic / hierarchical。";

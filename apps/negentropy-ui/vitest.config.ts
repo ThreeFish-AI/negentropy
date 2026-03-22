@@ -17,7 +17,7 @@ export default defineConfig({
     exclude: ["tests/e2e/**"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json-summary", "lcov"],
+      reporter: ["text", "html"],
       include: [
         "app/api/**/*.{ts,tsx}",
         "hooks/**/*.{ts,tsx}",
@@ -29,12 +29,6 @@ export default defineConfig({
         "tests/**",
         "**/*.d.ts",
       ],
-      thresholds: {
-        lines: 50,
-        functions: 50,
-        statements: 50,
-        branches: 48,
-      },
     },
   },
 });

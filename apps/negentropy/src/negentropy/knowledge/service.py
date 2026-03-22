@@ -342,13 +342,12 @@ class KnowledgeService:
     async def _fail_pipeline_execution(tracker: Optional[PipelineTracker], exc: Exception) -> None:
         if not tracker:
             return
-        error_payload: Dict[str, Any] = {
-            "type": type(exc).__name__,
-            "message": str(exc),
-        }
-        if isinstance(getattr(exc, "details", None), dict):
-            error_payload.update(exc.details)
-        await tracker.fail(error_payload)
+        await tracker.fail(
+            {
+                "type": type(exc).__name__,
+                "message": str(exc),
+            }
+        )
 
     async def _get_corpus_config(self, corpus_id: UUID) -> dict[str, Any]:
         corpus = await self.get_corpus_by_id(corpus_id)
@@ -585,19 +584,9 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
 
-                url_details: Dict[str, Any] = {}
-                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
-                    url_details["failure_category"] = "no_extractor_configured"
-                    url_details["diagnostic_summary"] = (
-                        "请配置 Data Extractor MCP 服务，"
-                        "并确保 Corpus 的 extractor_routes 配置正确。"
-                    )
                 raise KnowledgeError(
-                    code="CONTENT_FETCH_FAILED",
-                    message=f"Failed to fetch content from URL: {exc}",
-                    details=url_details or None,
+                    code="CONTENT_FETCH_FAILED", message=f"Failed to fetch content from URL: {exc}"
                 ) from exc
 
             if not text:
@@ -630,9 +619,7 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            # Pipeline 失败已由 tracker 持久化，不再重新抛出。
-            # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
-            return []
+            raise
 
     async def execute_ingest_file_pipeline(
         self,
@@ -693,19 +680,10 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
 
-                details: Dict[str, Any] = {}
-                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
-                    details["failure_category"] = "no_extractor_configured"
-                    details["diagnostic_summary"] = (
-                        "请配置 Data Extractor MCP 服务，"
-                        "并确保 Corpus 的 extractor_routes 配置正确。"
-                    )
                 raise KnowledgeError(
                     code="CONTENT_EXTRACTION_FAILED",
                     message=f"Failed to extract content: {exc}",
-                    details=details or None,
                 ) from exc
 
             if document_id:
@@ -764,9 +742,7 @@ class KnowledgeService:
             return records
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            # Pipeline 失败已由 tracker 持久化，不再重新抛出。
-            # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
-            return []
+            raise
 
     async def execute_replace_source_pipeline(
         self,

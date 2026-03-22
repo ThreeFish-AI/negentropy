@@ -17,7 +17,7 @@ import { POST as unarchiveSession } from "@/app/api/agui/sessions/[sessionId]/un
 
 // Mock 环境变量
 const mockEnv = {
-  AGUI_BASE_URL: "http://localhost:6600",
+  AGUI_BASE_URL: "http://localhost:8000",
   NEXT_PUBLIC_AGUI_APP_NAME: "negentropy",
   NEXT_PUBLIC_AGUI_USER_ID: "test-user",
 };

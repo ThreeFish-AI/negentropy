@@ -131,15 +131,6 @@ function normalizeUiMessageRole(value: string | undefined): Message["role"] {
 export class AdkMessageStreamNormalizer {
   private openAssistantMessages = new Map<string, StreamMessageState>();
   private segmentIndexByRun = new Map<string, number>();
-  // Step 事件合成状态
-  private synthStepId: string | null = null;
-  private synthStepAuthor: string | null = null;
-  private synthStepCounter = 0;
-  private lastCommon: {
-    threadId: string;
-    runId: string;
-    timestamp: number;
-  } | null = null;
 
   private nextMessageId(runId: string, role: NormalizedRole): string {
     const nextIndex = this.segmentIndexByRun.get(runId) || 0;
@@ -169,27 +160,6 @@ export class AdkMessageStreamNormalizer {
     this.openAssistantMessages.delete(common.runId);
   }
 
-  private flushSynthStep(
-    events: BaseEvent[],
-    common: { threadId: string; runId: string; timestamp: number },
-  ) {
-    if (!this.synthStepId) return;
-    events.push(
-      createStepFinishedEvent(
-        { ...common, messageId: `flush:${this.synthStepId}` },
-        this.synthStepId,
-        null,
-      ),
-      createCustomEvent(
-        { ...common, messageId: `flush:${this.synthStepId}` },
-        "ne.a2ui.reasoning",
-        { stepId: this.synthStepId, phase: "finished" },
-      ),
-    );
-    this.synthStepId = null;
-    this.synthStepAuthor = null;
-  }
-
   consume(payload: AdkEventPayload, fallback?: { threadId: string; runId: string }): BaseEvent[] {
     const events: BaseEvent[] = [];
     const timestamp = payload.timestamp || Date.now() / 1000;
@@ -216,24 +186,15 @@ export class AdkMessageStreamNormalizer {
       );
     };
     const role = getPayloadRole(payload);
+    const text = extractTextParts(payload).join("");
     const isToolResponsePart = payload.content?.parts?.some((p) => p.functionResponse);
-    const hasMixedContentParts = payload.content?.parts?.some((p) => p.functionCall) &&
-      payload.content?.parts?.some((p) => !p.functionCall && !p.functionResponse && (p.text || "").trim());
 
     if (role !== "assistant" || messageShouldFlushAfterPayload(payload)) {
       this.flushAssistantMessage(events, common);
     }
 
-    // 当 content.parts 同时包含 text 和 functionCall 时，按 functionCall 边界分割文本
-    if (hasMixedContentParts && payload.content?.parts) {
-      const parts = payload.content.parts;
-      let pendingText = "";
-
-      const emitPendingText = () => {
-        if (!pendingText.trim()) {
-          pendingText = "";
-          return;
-        }
+    if (text.trim().length > 0 && payload.message?.role !== "tool" && !isToolResponsePart) {
+      if (role !== "user" && role !== "system" && role !== "developer") {
         let openMessage = this.openAssistantMessages.get(common.runId);
         if (!openMessage) {
           openMessage = {
@@ -242,153 +203,118 @@ export class AdkMessageStreamNormalizer {
           this.openAssistantMessages.set(common.runId, openMessage);
           events.push(
             createTextMessageStartEvent(
-              { ...common, messageId: openMessage.messageId },
-              role,
-            ),
-          );
-        }
-        events.push(
-          createTextMessageContentEvent(
-            { ...common, messageId: openMessage.messageId },
-            pendingText,
-          ),
-        );
-        pendingText = "";
-      };
-
-      parts.forEach((part) => {
-        if (part.functionResponse) {
-          return; // functionResponse 在下方单独处理
-        }
-        if (part.functionCall) {
-          // 先 flush 前面积攒的文本并关闭当前消息
-          emitPendingText();
-          this.flushAssistantMessage(events, common);
-
-          // 发出工具调用事件
-          const fc = part.functionCall;
-          events.push(
-            createToolCallStartEvent(
-              { ...common, messageId: payload.id },
-              fc.id,
-              fc.name,
-            ),
-          );
-          events.push(
-            createToolCallArgsEvent(
-              { ...common, messageId: payload.id },
-              fc.id,
-              JSON.stringify(fc.args || {}),
-            ),
-          );
-          events.push(
-            createToolCallEndEvent(
-              { ...common, messageId: payload.id },
-              fc.id,
-            ),
-          );
-          const parentMessage = this.openAssistantMessages.get(common.runId);
-          pushLinkEvent(
-            `tool:${fc.id}`,
-            parentMessage ? `message:${parentMessage.messageId}` : `message:${payload.id}`,
-            "child",
-          );
-        } else {
-          const text = part.text || "";
-          if (text) {
-            pendingText += text;
-          }
-        }
-      });
-
-      // flush 剩余文本
-      emitPendingText();
-    } else {
-      // 非混合模式：保持原有逻辑
-      const text = extractTextParts(payload).join("");
-
-      if (text.trim().length > 0 && payload.message?.role !== "tool" && !isToolResponsePart) {
-        if (role !== "user" && role !== "system" && role !== "developer") {
-          let openMessage = this.openAssistantMessages.get(common.runId);
-          if (!openMessage) {
-            openMessage = {
-              messageId: payload.id || this.nextMessageId(common.runId, role),
-            };
-            this.openAssistantMessages.set(common.runId, openMessage);
-            events.push(
-              createTextMessageStartEvent(
-                {
-                  ...common,
-                  messageId: openMessage.messageId,
-                },
-                role,
-              ),
-            );
-          }
-
-          events.push(
-            createTextMessageContentEvent(
               {
                 ...common,
                 messageId: openMessage.messageId,
               },
-              text,
-            ),
-          );
-        } else {
-          const messageId = payload.id || this.nextMessageId(common.runId, role);
-          events.push(
-            createTextMessageStartEvent(
-              {
-                ...common,
-                messageId,
-              },
               role,
             ),
           );
-          events.push(
-            createTextMessageContentEvent(
-              {
-                ...common,
-                messageId,
-              },
-              text,
-            ),
-          );
-          events.push(
-            createTextMessageEndEvent({
+        }
+
+        events.push(
+          createTextMessageContentEvent(
+            {
+              ...common,
+              messageId: openMessage.messageId,
+            },
+            text,
+          ),
+        );
+      } else {
+        const messageId = payload.id || this.nextMessageId(common.runId, role);
+        events.push(
+          createTextMessageStartEvent(
+            {
               ...common,
               messageId,
-            }),
+            },
+            role,
+          ),
+        );
+        events.push(
+          createTextMessageContentEvent(
+            {
+              ...common,
+              messageId,
+            },
+            text,
+          ),
+        );
+        events.push(
+          createTextMessageEndEvent({
+            ...common,
+            messageId,
+          }),
+        );
+      }
+    }
+
+    if (payload.message?.tool_calls) {
+      payload.message.tool_calls.forEach((tc) => {
+        events.push(
+          createToolCallStartEvent(
+            {
+              ...common,
+              messageId: payload.id,
+            },
+            tc.id,
+            tc.function.name,
+          ),
+        );
+
+        if (tc.function.arguments) {
+          events.push(
+            createToolCallArgsEvent(
+              {
+                ...common,
+                messageId: payload.id,
+              },
+              tc.id,
+              tc.function.arguments,
+            ),
           );
         }
-      }
 
-      if (payload.message?.tool_calls) {
-        payload.message.tool_calls.forEach((tc) => {
+        events.push(
+          createToolCallEndEvent(
+            {
+              ...common,
+              messageId: payload.id,
+            },
+            tc.id,
+          ),
+        );
+        const parentMessage = this.openAssistantMessages.get(common.runId);
+        pushLinkEvent(`tool:${tc.id}`, parentMessage ? `message:${parentMessage.messageId}` : `message:${payload.id}`, "child");
+      });
+    }
+
+    if (payload.content?.parts) {
+      payload.content.parts.forEach((part) => {
+        if (part.functionCall) {
+          const fc = part.functionCall;
           events.push(
             createToolCallStartEvent(
               {
                 ...common,
                 messageId: payload.id,
               },
-              tc.id,
-              tc.function.name,
+              fc.id,
+              fc.name,
             ),
           );
 
-          if (tc.function.arguments) {
-            events.push(
-              createToolCallArgsEvent(
-                {
-                  ...common,
-                  messageId: payload.id,
-                },
-                tc.id,
-                tc.function.arguments,
-              ),
-            );
-          }
+          events.push(
+            createToolCallArgsEvent(
+              {
+                ...common,
+                messageId: payload.id,
+              },
+              fc.id,
+              JSON.stringify(fc.args || {}),
+            ),
+          );
 
           events.push(
             createToolCallEndEvent(
@@ -396,58 +322,17 @@ export class AdkMessageStreamNormalizer {
                 ...common,
                 messageId: payload.id,
               },
-              tc.id,
+              fc.id,
             ),
           );
           const parentMessage = this.openAssistantMessages.get(common.runId);
-          pushLinkEvent(`tool:${tc.id}`, parentMessage ? `message:${parentMessage.messageId}` : `message:${payload.id}`, "child");
-        });
-      }
-
-      if (payload.content?.parts) {
-        payload.content.parts.forEach((part) => {
-          if (part.functionCall) {
-            const fc = part.functionCall;
-            events.push(
-              createToolCallStartEvent(
-                {
-                  ...common,
-                  messageId: payload.id,
-                },
-                fc.id,
-                fc.name,
-              ),
-            );
-
-            events.push(
-              createToolCallArgsEvent(
-                {
-                  ...common,
-                  messageId: payload.id,
-                },
-                fc.id,
-                JSON.stringify(fc.args || {}),
-              ),
-            );
-
-            events.push(
-              createToolCallEndEvent(
-                {
-                  ...common,
-                  messageId: payload.id,
-                },
-                fc.id,
-              ),
-            );
-            const parentMessage = this.openAssistantMessages.get(common.runId);
-            pushLinkEvent(`tool:${fc.id}`, parentMessage ? `message:${parentMessage.messageId}` : `message:${payload.id}`, "child");
-          }
-        });
-      }
+          pushLinkEvent(`tool:${fc.id}`, parentMessage ? `message:${parentMessage.messageId}` : `message:${payload.id}`, "child");
+        }
+      });
     }
 
     if (payload.message?.role === "tool" && payload.message.tool_call_id) {
-      const content = extractTextParts(payload).join("") || payload.delta || "";
+      const content = text || payload.delta || "";
       events.push(
         createToolCallResultEvent(
           {
@@ -542,48 +427,6 @@ export class AdkMessageStreamNormalizer {
       );
     }
 
-    // Step 事件合成：从 author 变化推断步骤边界（仅在无原生 step 事件时激活）
-    if (!payload.actions?.stepStarted && !payload.actions?.stepFinished) {
-      const author = payload.author;
-      if (author && author !== "user" && author !== this.synthStepAuthor) {
-        // 关闭前一个合成 step
-        if (this.synthStepId) {
-          events.push(
-            createStepFinishedEvent(
-              { ...common, messageId: payload.id },
-              this.synthStepId,
-              null,
-            ),
-            createCustomEvent(
-              { ...common, messageId: payload.id },
-              "ne.a2ui.reasoning",
-              { stepId: this.synthStepId, phase: "finished" },
-            ),
-          );
-        }
-        // 开启新的合成 step
-        this.synthStepId = `synth-step:${author}:${common.runId}:${this.synthStepCounter++}`;
-        this.synthStepAuthor = author;
-        events.push(
-          createStepStartedEvent(
-            { ...common, messageId: payload.id },
-            this.synthStepId,
-            author,
-          ),
-          createCustomEvent(
-            { ...common, messageId: payload.id },
-            "ne.a2ui.reasoning",
-            { stepId: this.synthStepId, phase: "started", title: author },
-          ),
-        );
-      }
-    }
-    this.lastCommon = {
-      threadId: common.threadId,
-      runId: common.runId,
-      timestamp: common.timestamp,
-    };
-
     if (payload.actions?.stepStarted) {
       events.push(
         createStepStartedEvent(
@@ -677,7 +520,6 @@ export class AdkMessageStreamNormalizer {
       threadId,
       timestamp,
     });
-    this.flushSynthStep(events, { runId, threadId, timestamp });
     return events;
   }
 
@@ -689,9 +531,6 @@ export class AdkMessageStreamNormalizer {
         threadId: "default",
         timestamp,
       });
-    }
-    if (this.lastCommon) {
-      this.flushSynthStep(events, { ...this.lastCommon, timestamp });
     }
     return events;
   }

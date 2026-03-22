@@ -22,15 +22,12 @@ import {
   OPERATION_LABELS,
   STAGE_LABELS,
 } from "@/features/knowledge/utils/pipeline-helpers";
-import { PipelineRunCard, PipelineRunList } from "@/features/knowledge/components/PipelineRunCard";
-import { PipelineRunDetailPanel } from "@/features/knowledge/components/PipelineRunDetailPanel";
 import { PipelineStatusBadge } from "@/features/knowledge/components/PipelineStatusBadge";
 import { PipelineStagesBar } from "@/features/knowledge/components/PipelineStagesBar";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 
 export interface KnowledgeFeatureMockSet {
-  fetchDashboardMock: VitestMock;
   searchKnowledgeMock: VitestMock;
   ingestTextMock: VitestMock;
   ingestUrlMock: VitestMock;
@@ -62,7 +59,6 @@ export interface KnowledgeFeatureTestHarness {
 
 export function createKnowledgeFeatureMockSet(): KnowledgeFeatureMockSet {
   return {
-    fetchDashboardMock: vi.fn(),
     searchKnowledgeMock: vi.fn(),
     ingestTextMock: vi.fn(),
     ingestUrlMock: vi.fn(),
@@ -137,9 +133,6 @@ export function createKnowledgeConfigTestExports() {
     formatDuration,
     calculateStageWidth,
     getSortedStages,
-    PipelineRunCard,
-    PipelineRunList,
-    PipelineRunDetailPanel,
     PipelineStatusBadge,
     PipelineStagesBar,
   };
@@ -152,7 +145,6 @@ export function createKnowledgeFeatureTestHarness(
   return {
     mocks,
     exports: {
-      fetchDashboard: (...args: unknown[]) => mocks.fetchDashboardMock(...args),
       searchKnowledge: (...args: unknown[]) => mocks.searchKnowledgeMock(...args),
       ingestText: (...args: unknown[]) => mocks.ingestTextMock(...args),
       ingestUrl: (...args: unknown[]) => mocks.ingestUrlMock(...args),
