@@ -1,1 +1,1 @@
-export const MCP_HUB_LABEL = "MCP Hub";
+export const MCP_HUB_LABEL = "MCP";
