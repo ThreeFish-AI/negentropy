@@ -1193,6 +1193,10 @@ async def _extract_and_store_document_markdown_from_gcs(
             markdown_size=len(markdown_content),
             markdown_gcs_uri=markdown_gcs_uri,
         )
+        await persist_extracted_assets(
+            document_id=document_id,
+            assets=result.assets,
+        )
     except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
         logger.error(
             "document_markdown_extraction_failed",
