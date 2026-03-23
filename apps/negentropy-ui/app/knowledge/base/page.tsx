@@ -111,8 +111,11 @@ function formatDateTime(value?: string | null): string {
 }
 
 function formatChunkLabel(chunk: DocumentChunkItem): string {
-  const prefix = chunk.chunk_role === "parent" ? "Parent" : "Chunk";
-  return `${prefix}-${String(chunk.chunk_index).padStart(2, "0")}`;
+  if (chunk.chunk_role === "parent") {
+    const index = chunk.parent_chunk_index ?? chunk.chunk_index;
+    return `Parent-${String(index).padStart(2, "0")}`;
+  }
+  return `Chunk-${String(chunk.chunk_index).padStart(2, "0")}`;
 }
 
 function toDocumentChunkCardViewModel(chunk: DocumentChunkItem): RetrievedChunkViewModel {
