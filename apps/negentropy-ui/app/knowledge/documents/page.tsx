@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/activity-toast";
 import {
   DocumentViewDialog,
   KnowledgeDocument,

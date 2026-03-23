@@ -38,6 +38,12 @@ export type {
   UseMemoryAuditReturnValue,
 } from "./hooks/useMemoryAudit";
 
+export { useActivityLog } from "./hooks/useActivityLog";
+export type {
+  UseActivityLogOptions,
+  UseActivityLogReturnValue,
+} from "./hooks/useActivityLog";
+
 // ============================================================================
 // Utils (API Functions)
 // ============================================================================
@@ -56,6 +62,15 @@ export {
   triggerMemoryAutomationJobAction,
   runMemoryAutomationJob,
 } from "./utils/memory-api";
+
+// ============================================================================
+// Activity Log Types
+// ============================================================================
+
+export type {
+  ActivityEntry,
+  ActivityLevel,
+} from "@/lib/activity-store";
 
 // ============================================================================
 // Types
