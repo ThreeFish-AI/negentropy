@@ -10,7 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/lib/activity-toast";
 import {
   buildExtractorRoutesFromDraft,
   buildCorpusConfig,

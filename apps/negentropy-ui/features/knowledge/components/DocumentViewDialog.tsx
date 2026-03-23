@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/activity-toast";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 

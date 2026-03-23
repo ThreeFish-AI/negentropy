@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/activity-toast";
 import { AsyncPipelineResult, ChunkingConfig } from "@/features/knowledge";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
