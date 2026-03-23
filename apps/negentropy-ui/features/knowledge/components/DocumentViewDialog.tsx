@@ -85,7 +85,8 @@ function truncateHash(hash: string | null): string {
 function displayUser(createdBy: string | null): string {
   if (!createdBy) return "-";
   if (createdBy.includes("@")) {
-    return createdBy.split("@")[0];
+    const local = createdBy.split("@")[0];
+    return local || createdBy;
   }
   return createdBy.length > 20 ? `${createdBy.slice(0, 20)}...` : createdBy;
 }
@@ -203,13 +204,22 @@ export function DocumentViewDialog({
       containerClassName="flex min-h-full items-center justify-center p-4"
       contentClassName="flex h-[86vh] w-full max-w-5xl flex-col rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900"
     >
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex items-center gap-3">
+        {/* Header: Title + badges + close */}
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {getFileIcon(viewedDoc.content_type)}
             <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100" title={viewedDoc.original_filename}>
-                {viewedDoc.original_filename}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100" title={viewedDoc.original_filename}>
+                  {viewedDoc.original_filename}
+                </h2>
+                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge.bg} ${statusBadge.text}`}>
+                  {statusBadge.label}
+                </span>
+                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${markdownBadge.bg} ${markdownBadge.text}`}>
+                  {markdownBadge.label}
+                </span>
+              </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 {viewedDoc.content_type || "Unknown type"}
               </p>
@@ -217,7 +227,8 @@ export function DocumentViewDialog({
           </div>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            aria-label="Close document view"
+            className="shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -225,93 +236,81 @@ export function DocumentViewDialog({
           </button>
         </div>
 
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}>
-            {statusBadge.label}
-          </span>
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${markdownBadge.bg} ${markdownBadge.text}`}>
-            {markdownBadge.label}
-          </span>
-        </div>
-
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="min-h-0 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800 lg:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Markdown Content</h3>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {detail?.markdown_extracted_at ? `Updated ${formatRelativeTime(detail.markdown_extracted_at ?? undefined)}` : ""}
-              </span>
-            </div>
-
-            <div className="h-full max-h-[52vh] overflow-auto rounded-lg bg-zinc-50 p-3 dark:bg-zinc-950">
-              {loadingDetail ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading markdown content...</p>
-              ) : detailError ? (
-                <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
-              ) : markdownStatus === "processing" || markdownStatus === "pending" ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Markdown extraction is running in background. Please refresh in a moment.
-                </p>
-              ) : markdownStatus === "failed" ? (
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {detail?.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
-                </p>
-              ) : (detail?.markdown_content || "").trim().length === 0 ? (
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
-                </p>
-              ) : (
-                <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-zinc-800 dark:text-zinc-200">
-                  {detail?.markdown_content || "No markdown content available."}
-                </pre>
-              )}
-            </div>
+        {/* Metadata strip */}
+        <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-3">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Size</span>
+            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+              {formatFileSize(viewedDoc.file_size)}
+            </span>
           </div>
-
-          <div className="min-h-0 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-            <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Metadata</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-zinc-100 py-2 dark:border-zinc-800">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">File Size</span>
-                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {formatFileSize(viewedDoc.file_size)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-b border-zinc-100 py-2 dark:border-zinc-800">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">File Hash</span>
-                <span className="font-mono text-sm text-zinc-900 dark:text-zinc-100" title={viewedDoc.file_hash}>
-                  {truncateHash(viewedDoc.file_hash)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-b border-zinc-100 py-2 dark:border-zinc-800">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Corpus ID</span>
-                <span className="font-mono text-sm text-zinc-900 dark:text-zinc-100" title={viewedDoc.corpus_id}>
-                  {truncateHash(viewedDoc.corpus_id)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-b border-zinc-100 py-2 dark:border-zinc-800">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Storage Path</span>
-                <span className="max-w-[160px] truncate font-mono text-sm text-zinc-900 dark:text-zinc-100" title={viewedDoc.gcs_uri}>
-                  ...{viewedDoc.gcs_uri.slice(-24)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-b border-zinc-100 py-2 dark:border-zinc-800">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Created By</span>
-                <span className="text-sm text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_by || ""}>
-                  {displayUser(viewedDoc.created_by)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">Created At</span>
-                <span className="text-sm text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_at || ""}>
-                  {formatRelativeTime(viewedDoc.created_at ?? undefined)}
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Hash</span>
+            <span className="truncate font-mono font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.file_hash}>
+              {truncateHash(viewedDoc.file_hash)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Corpus</span>
+            <span className="truncate font-mono font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.corpus_id}>
+              {truncateHash(viewedDoc.corpus_id)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Storage</span>
+            <span className="truncate font-mono font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.gcs_uri}>
+              {viewedDoc.gcs_uri ? `...${viewedDoc.gcs_uri.slice(-24)}` : "-"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Created By</span>
+            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_by || ""}>
+              {displayUser(viewedDoc.created_by)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Created</span>
+            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_at || ""}>
+              {formatRelativeTime(viewedDoc.created_at ?? undefined)}
+            </span>
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
+        {/* Markdown Content - full width */}
+        <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Markdown Content</h3>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              {detail?.markdown_extracted_at ? `Updated ${formatRelativeTime(detail.markdown_extracted_at ?? undefined)}` : ""}
+            </span>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
+            {loadingDetail ? (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading markdown content...</p>
+            ) : detailError ? (
+              <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
+            ) : markdownStatus === "processing" || markdownStatus === "pending" ? (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Markdown extraction is running in background. Please refresh in a moment.
+              </p>
+            ) : markdownStatus === "failed" ? (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {detail?.markdown_extract_error || "Markdown extraction failed. You can re-ingest this source to retry."}
+              </p>
+            ) : (detail?.markdown_content || "").trim().length === 0 ? (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
+              </p>
+            ) : (
+              <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-zinc-800 dark:text-zinc-200">
+                {detail?.markdown_content || "No markdown content available."}
+              </pre>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-3">
           <button
             onClick={onClose}
             className="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
