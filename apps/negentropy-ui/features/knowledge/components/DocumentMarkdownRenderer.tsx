@@ -90,7 +90,7 @@ export function DocumentMarkdownRenderer({
         remarkPlugins={[remarkGfm]}
         components={{
           img({ src, alt, ...props }) {
-            if (!src) return null;
+            if (!src || typeof src !== "string") return null;
 
             const resolvedSrc = isAbsoluteUrl(src)
               ? src
