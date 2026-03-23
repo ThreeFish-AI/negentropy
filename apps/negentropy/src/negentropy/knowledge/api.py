@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from io import BytesIO
 from typing import Any, Dict, Optional
 from uuid import UUID
@@ -1916,6 +1917,83 @@ async def download_document(
         media_type="text/markdown; charset=utf-8" if is_url_doc else (doc.content_type or "application/octet-stream"),
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
+        },
+    )
+
+
+@router.get("/base/{corpus_id}/documents/{document_id}/assets/{asset_name:path}")
+async def get_document_asset(
+    corpus_id: UUID,
+    document_id: UUID,
+    asset_name: str,
+    app_name: Optional[str] = Query(default=None),
+):
+    """获取文档的衍生资产文件（图片等）。
+
+    从 GCS 的 ``derived/{document_id}/assets/`` 路径下载指定资产并流式返回。
+    资产内容不可变，设置长期缓存。
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+    from negentropy.storage.gcs_client import StorageError
+
+    storage_service = DocumentStorageService()
+
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    # 取 filename 最后一段，防止路径穿越
+    safe_filename = asset_name.split("/")[-1] if "/" in asset_name else asset_name
+    if not safe_filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_ASSET_NAME", "message": "Asset name is empty"},
+        )
+
+    # 直接构造 GCS 路径并下载（避免第二次文档查询）
+    gcs_path = DocumentStorageService._build_asset_gcs_path(
+        app_name=doc.app_name,
+        corpus_id=doc.corpus_id,
+        document_id=doc.id,
+        filename=safe_filename,
+    )
+
+    try:
+        gcs_client = storage_service._get_gcs_client()
+        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
+        content = gcs_client.download(gcs_uri)
+    except (StorageError, ValueError) as exc:
+        logger.warning(
+            "asset_download_failed",
+            doc_id=str(document_id),
+            asset_name=safe_filename,
+            error=str(exc),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "ASSET_NOT_FOUND", "message": "Requested asset not found"},
+        ) from exc
+
+    content_type = mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
+    # 清洗 header 用文件名，防止注入
+    header_filename = "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in safe_filename)
+
+    return StreamingResponse(
+        BytesIO(content),
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Disposition": f'inline; filename="{header_filename}"',
+            "Content-Length": str(len(content)),
         },
     )
 
