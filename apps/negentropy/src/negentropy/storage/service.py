@@ -94,6 +94,7 @@ class DocumentStorageService:
         filename: str,
         content_type: Optional[str] = None,
         metadata: Optional[dict] = None,
+        created_by: Optional[str] = None,
     ) -> Tuple[KnowledgeDocument, bool]:
         """Upload document to GCS and store metadata.
 
@@ -108,6 +109,7 @@ class DocumentStorageService:
             filename: Original filename
             content_type: MIME type of the file
             metadata: Optional metadata dictionary
+            created_by: Optional user identifier of the uploader
 
         Returns:
             Tuple of (document record, is_new) where is_new is False
@@ -154,6 +156,7 @@ class DocumentStorageService:
                 status="active",
                 markdown_extract_status="pending",
                 metadata_=metadata or {},
+                created_by=created_by,
             )
             db.add(doc)
 

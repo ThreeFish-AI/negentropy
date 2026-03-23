@@ -5,11 +5,13 @@ from io import BytesIO
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import func, select
 
+from negentropy.auth.deps import get_optional_user
+from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -954,6 +956,7 @@ async def ingest_url(
     corpus_id: UUID,
     payload: IngestUrlRequest,
     background_tasks: BackgroundTasks,
+    user: Optional[AuthUser] = Depends(get_optional_user),
 ) -> AsyncPipelineResponse:
     """异步从 URL 获取内容并摄入知识库
 
@@ -1011,6 +1014,7 @@ async def ingest_url(
                 filename=raw_name,
                 content_type="text/markdown",
                 metadata={"source_type": "url", "origin_url": payload.url},
+                created_by=user.user_id if user else None,
             )
             await storage_service.save_markdown_content(
                 document_id=doc_record.id,
@@ -1222,6 +1226,7 @@ async def ingest_file(
     hierarchical_child_chunk_size: Optional[int] = Form(default=None),
     hierarchical_child_overlap: Optional[int] = Form(default=None),
     store_to_gcs: bool = Form(default=True),
+    user: Optional[AuthUser] = Depends(get_optional_user),
 ) -> AsyncPipelineResponse:
     """从上传文件导入内容到知识库
 
@@ -1325,6 +1330,7 @@ async def ingest_file(
                     filename=raw_filename,
                     content_type=file.content_type,
                     metadata={"source": "ingest_file", "source_type": "file"},
+                    created_by=user.user_id if user else None,
                 )
                 gcs_uri = doc_record.gcs_uri
 
