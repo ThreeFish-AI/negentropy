@@ -372,8 +372,10 @@ export async function proxyGetBinary(
   const responseHeaders = new Headers();
   const contentDisposition = upstreamResponse.headers.get("content-disposition");
   const contentType = upstreamResponse.headers.get("content-type");
+  const cacheControl = upstreamResponse.headers.get("cache-control");
   if (contentDisposition) responseHeaders.set("content-disposition", contentDisposition);
   if (contentType) responseHeaders.set("content-type", contentType);
+  if (cacheControl) responseHeaders.set("cache-control", cacheControl);
 
   return new NextResponse(upstreamResponse.body, {
     status: upstreamResponse.status,

@@ -15,6 +15,7 @@ import {
   refreshDocumentMarkdown,
 } from "../utils/knowledge-api";
 import { formatRelativeTime } from "../utils/pipeline-helpers";
+import { DocumentMarkdownRenderer } from "./DocumentMarkdownRenderer";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -303,9 +304,12 @@ export function DocumentViewDialog({
                 Markdown content is empty. Click <strong>Re-Parse from GCS</strong> to regenerate from the source document.
               </p>
             ) : (
-              <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-zinc-800 dark:text-zinc-200">
-                {detail?.markdown_content || "No markdown content available."}
-              </pre>
+              <DocumentMarkdownRenderer
+                content={detail?.markdown_content || ""}
+                corpusId={document.corpus_id}
+                documentId={document.id}
+                appName={requestAppName}
+              />
             )}
           </div>
         </div>

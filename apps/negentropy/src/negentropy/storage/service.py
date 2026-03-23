@@ -497,6 +497,37 @@ class DocumentStorageService:
             )
             return None
 
+    async def download_extraction_asset(
+        self,
+        *,
+        document_id: UUID,
+        filename: str,
+    ) -> Optional[bytes]:
+        """从 GCS 下载 Data Extractor 生成的衍生资源。"""
+        doc = await self.get_document(document_id=document_id)
+        if not doc:
+            return None
+
+        gcs_client = self._get_gcs_client()
+        gcs_path = self._build_asset_gcs_path(
+            app_name=doc.app_name,
+            corpus_id=doc.corpus_id,
+            document_id=doc.id,
+            filename=filename,
+        )
+        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
+
+        try:
+            return gcs_client.download(gcs_uri)
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "extraction_asset_download_failed",
+                document_id=str(document_id),
+                filename=filename,
+                gcs_uri=gcs_uri,
+            )
+            return None
+
     async def get_document_content(self, document_id: UUID) -> Optional[bytes]:
         """Download document content from GCS.
 
