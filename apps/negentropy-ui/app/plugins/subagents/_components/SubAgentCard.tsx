@@ -79,7 +79,7 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
           )}
         </div>
         <p
-          className="mb-1 h-20 min-w-0 w-full overflow-hidden leading-5 line-clamp-4 text-sm text-zinc-500 dark:text-zinc-400"
+          className="mb-1 h-[60px] min-w-0 w-full overflow-hidden leading-5 line-clamp-3 text-sm text-zinc-500 dark:text-zinc-400"
           title={agent.description || "No description"}
         >
           {agent.description || "No description"}
