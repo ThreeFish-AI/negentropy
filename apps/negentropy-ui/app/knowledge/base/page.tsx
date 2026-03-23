@@ -1385,6 +1385,7 @@ export default function KnowledgeBasePage() {
                               density="compact"
                               hideFooter
                               hideScores
+                              showHitPrefix={false}
                               onChildChunkOpen={(childChunkId) => {
                                 const childChunk = chunk.child_chunks.find((child) => child.id === childChunkId);
                                 if (childChunk) {
