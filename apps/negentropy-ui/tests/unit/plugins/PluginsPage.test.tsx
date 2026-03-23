@@ -11,7 +11,7 @@ describe("PluginsPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the MCP Hub card with the existing MCP route", async () => {
+  it("renders the MCP card with the existing MCP route", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -29,7 +29,7 @@ describe("PluginsPage", () => {
 
     expect(screen.getByTestId("plugins-nav")).toHaveTextContent("Dashboard");
 
-    const mcpHubLink = screen.getByRole("link", { name: new RegExp(MCP_HUB_LABEL) });
+    const mcpHubLink = screen.getByRole("link", { name: new RegExp(`^${MCP_HUB_LABEL}`) });
     expect(mcpHubLink).toHaveAttribute("href", "/plugins/mcp");
   });
 });
