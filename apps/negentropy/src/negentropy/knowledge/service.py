@@ -930,6 +930,7 @@ class KnowledgeService:
         app_name: str,
         source_uri: str,
         chunking_config: Optional[ChunkingConfig] = None,
+        document_id: UUID | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 rebuild_source Pipeline（后台任务）"""
         if not self._pipeline_dao:
@@ -1012,6 +1013,33 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
+            if document_id:
+                from .extraction import persist_extracted_assets
+
+                await tracker.start_stage("markdown_store")
+                markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+                    document_id=document_id,
+                    markdown_content=extracted.markdown_content,
+                )
+                await storage_service.save_markdown_content(
+                    document_id=document_id,
+                    markdown_content=extracted.markdown_content,
+                    markdown_gcs_uri=markdown_gcs_uri,
+                )
+                await tracker.complete_stage(
+                    "markdown_store",
+                    {
+                        "document_id": str(document_id),
+                        "markdown_gcs_uri": markdown_gcs_uri,
+                        "markdown_length": len(extracted.markdown_content),
+                    },
+                )
+                await persist_extracted_assets(
+                    document_id=document_id,
+                    assets=extracted.assets,
+                    tracker=tracker,
+                )
+
             metadata = _normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"gcs_uri": source_uri, "rebuild": True},
@@ -1027,7 +1055,7 @@ class KnowledgeService:
                 chunking_config=config,
                 tracker=tracker,
             )
-            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
+            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records), "document_id": str(document_id) if document_id else None})
 
             logger.info(
                 "pipeline_execution_completed",

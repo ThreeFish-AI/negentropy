@@ -2433,6 +2433,7 @@ async def rebuild_document(
         app_name=resolved_app,
         source_uri=doc.gcs_uri,
         chunking_config=chunking_config,
+        document_id=document_id,
     )
     return AsyncPipelineResponse(
         run_id=run_id,
