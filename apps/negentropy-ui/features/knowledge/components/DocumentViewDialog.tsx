@@ -83,7 +83,8 @@ function truncateHash(hash: string | null): string {
   return `${hash.slice(0, 8)}...${hash.slice(-4)}`;
 }
 
-function displayUser(createdBy: string | null): string {
+function displayUser(createdBy: string | null, displayName?: string | null): string {
+  if (displayName) return displayName;
   if (!createdBy) return "-";
   if (createdBy.includes("@")) {
     const local = createdBy.split("@")[0];
@@ -265,8 +266,8 @@ export function DocumentViewDialog({
           </div>
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="shrink-0 text-zinc-500 dark:text-zinc-400">Created By</span>
-            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_by || ""}>
-              {displayUser(viewedDoc.created_by)}
+            <span className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={viewedDoc.created_by_name || viewedDoc.created_by || ""}>
+              {displayUser(viewedDoc.created_by, viewedDoc.created_by_name)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">

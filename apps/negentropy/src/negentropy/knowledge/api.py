@@ -18,6 +18,7 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus, Knowledge
 from negentropy.models.plugin import McpServer, McpTool
+from negentropy.models.pulse import UserState
 
 from .constants import (
     DEFAULT_CHUNK_SIZE,
@@ -1477,6 +1478,7 @@ class DocumentResponse(BaseModel):
     status: str
     created_at: Optional[str] = None
     created_by: Optional[str] = None
+    created_by_name: Optional[str] = None
     markdown_extract_status: str = "pending"
     markdown_extracted_at: Optional[str] = None
     markdown_extract_error: Optional[str] = None
@@ -1609,6 +1611,50 @@ class DocumentListResponse(BaseModel):
     items: list[DocumentResponse]
 
 
+async def _resolve_user_display_names(user_ids: list[str]) -> dict[str, str]:
+    """批量解析用户 ID 到显示名称（查询 UserState.state.profile.name）。"""
+    if not user_ids:
+        return {}
+    name_map: dict[str, str] = {}
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(UserState).where(
+                UserState.app_name == settings.app_name,
+                UserState.user_id.in_(user_ids),
+            )
+        )
+        for us in result.scalars().all():
+            state = us.state or {}
+            name = state.get("profile", {}).get("name")
+            if name:
+                name_map[us.user_id] = name
+    return name_map
+
+
+def _build_document_response(doc, name_map: dict[str, str]) -> DocumentResponse:
+    """从 ORM 文档对象构建 DocumentResponse，注入用户显示名。"""
+    return DocumentResponse(
+        id=doc.id,
+        corpus_id=doc.corpus_id,
+        app_name=doc.app_name,
+        file_hash=doc.file_hash,
+        original_filename=doc.original_filename,
+        gcs_uri=doc.gcs_uri,
+        content_type=doc.content_type,
+        file_size=doc.file_size,
+        status=doc.status,
+        created_at=doc.created_at.isoformat() if doc.created_at else None,
+        created_by=doc.created_by,
+        created_by_name=name_map.get(doc.created_by) if doc.created_by else None,
+        markdown_extract_status=doc.markdown_extract_status,
+        markdown_extracted_at=(
+            doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None
+        ),
+        markdown_extract_error=doc.markdown_extract_error,
+        metadata=doc.metadata_ or {},
+    )
+
+
 @router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
 async def list_documents(
     corpus_id: UUID,
@@ -1639,28 +1685,12 @@ async def list_documents(
         offset=offset,
     )
 
+    unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
+    name_map = await _resolve_user_display_names(unique_user_ids)
+
     return DocumentListResponse(
         count=total,
-        items=[
-            DocumentResponse(
-                id=doc.id,
-                corpus_id=doc.corpus_id,
-                app_name=doc.app_name,
-                file_hash=doc.file_hash,
-                original_filename=doc.original_filename,
-                gcs_uri=doc.gcs_uri,
-                content_type=doc.content_type,
-                file_size=doc.file_size,
-                status=doc.status,
-                created_at=doc.created_at.isoformat() if doc.created_at else None,
-                created_by=doc.created_by,
-                markdown_extract_status=doc.markdown_extract_status,
-                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
-                markdown_extract_error=doc.markdown_extract_error,
-                metadata=doc.metadata_ or {},
-            )
-            for doc in docs
-        ],
+        items=[_build_document_response(doc, name_map) for doc in docs],
     )
 
 
@@ -1692,28 +1722,12 @@ async def list_all_documents(
         offset=offset,
     )
 
+    unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
+    name_map = await _resolve_user_display_names(unique_user_ids)
+
     return DocumentListResponse(
         count=total,
-        items=[
-            DocumentResponse(
-                id=doc.id,
-                corpus_id=doc.corpus_id,
-                app_name=doc.app_name,
-                file_hash=doc.file_hash,
-                original_filename=doc.original_filename,
-                gcs_uri=doc.gcs_uri,
-                content_type=doc.content_type,
-                file_size=doc.file_size,
-                status=doc.status,
-                created_at=doc.created_at.isoformat() if doc.created_at else None,
-                created_by=doc.created_by,
-                markdown_extract_status=doc.markdown_extract_status,
-                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
-                markdown_extract_error=doc.markdown_extract_error,
-                metadata=doc.metadata_ or {},
-            )
-            for doc in docs
-        ],
+        items=[_build_document_response(doc, name_map) for doc in docs],
     )
 
 
@@ -1743,6 +1757,12 @@ async def get_document_detail(
 
     markdown_content = await storage_service.get_document_markdown(document_id)
 
+    name_map = (
+        await _resolve_user_display_names([doc.created_by])
+        if doc.created_by
+        else {}
+    )
+
     return DocumentDetailResponse(
         id=doc.id,
         corpus_id=doc.corpus_id,
@@ -1755,6 +1775,7 @@ async def get_document_detail(
         status=doc.status,
         created_at=doc.created_at.isoformat() if doc.created_at else None,
         created_by=doc.created_by,
+        created_by_name=name_map.get(doc.created_by) if doc.created_by else None,
         markdown_extract_status=doc.markdown_extract_status,
         markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
         markdown_extract_error=doc.markdown_extract_error,

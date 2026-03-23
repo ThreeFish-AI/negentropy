@@ -1083,6 +1083,7 @@ export interface KnowledgeDocument {
   status: string;
   created_at: string | null;
   created_by: string | null;
+  created_by_name?: string | null;
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
   markdown_extracted_at?: string | null;
   markdown_extract_error?: string | null;
