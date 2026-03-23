@@ -1141,7 +1141,7 @@ describe("KnowledgeBasePage", () => {
       await flushPromises();
     });
 
-    await user.click(screen.getByRole("button", { name: "HIT 1 CHILD CHUNKS" }));
+    await user.click(screen.getByRole("button", { name: "1 CHILD CHUNKS" }));
     await user.click(screen.getAllByRole("button", { name: /C-03.*child chunk content/i }).at(-1)!);
 
     expect(fetchDocumentChunkDetailMock).toHaveBeenCalledWith(

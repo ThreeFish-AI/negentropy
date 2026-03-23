@@ -18,6 +18,7 @@ interface RetrievedChunkCardProps {
   density?: "default" | "compact";
   hideFooter?: boolean;
   hideScores?: boolean;
+  showHitPrefix?: boolean;
   badges?: ReactNode;
   onChildChunkOpen?: (childChunkId: string) => void;
 }
@@ -33,6 +34,7 @@ export function RetrievedChunkCard({
   density = "default",
   hideFooter = false,
   hideScores = false,
+  showHitPrefix = true,
   badges,
   onChildChunkOpen,
 }: RetrievedChunkCardProps) {
@@ -118,7 +120,7 @@ export function RetrievedChunkCard({
             ) : (
               <ChevronRight className={cn("h-3.5 w-3.5", isCompact && "h-3 w-3")} />
             )}
-            <span>HIT {chunk.childHitCount} CHILD CHUNKS</span>
+            <span>{showHitPrefix ? "HIT " : ""}{chunk.childHitCount} CHILD CHUNKS</span>
           </button>
 
           {isExpanded && chunk.childChunks.length > 0 && (
