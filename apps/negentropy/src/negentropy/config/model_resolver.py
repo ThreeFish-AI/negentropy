@@ -155,7 +155,7 @@ async def _resolve_from_db(model_type: str) -> Optional[Tuple[str, Dict[str, Any
     if config is None:
         return None
 
-    full_name = _build_full_model_name(config.vendor, config.model_name)
+    full_name = build_full_model_name(config.vendor, config.model_name)
     cfg = config.config or {}
 
     if model_type == "embedding":
@@ -173,7 +173,7 @@ def _resolve_defaults(model_type: str) -> Tuple[str, Dict[str, Any]]:
     return get_fallback_llm_config()
 
 
-def _build_full_model_name(vendor: str, model_name: str) -> str:
+def build_full_model_name(vendor: str, model_name: str) -> str:
     """构建 LiteLLM 兼容的 vendor/model_name 字符串。"""
     from negentropy.model_names import canonicalize_model_name
 
@@ -230,6 +230,12 @@ def _build_llm_kwargs(vendor: str, model_name: str, config: Dict[str, Any]) -> D
     if "drop_params" in config and "drop_params" not in kwargs:
         kwargs["drop_params"] = config["drop_params"]
 
+    # 透传 API 凭证 (DB 单一事实源; 未配置时 litellm 自动回退到环境变量)
+    if "api_key" in config and config["api_key"]:
+        kwargs["api_key"] = config["api_key"]
+    if "api_base" in config and config["api_base"]:
+        kwargs["api_base"] = config["api_base"]
+
     return kwargs
 
 
@@ -240,4 +246,11 @@ def _build_embedding_kwargs(config: Dict[str, Any]) -> Dict[str, Any]:
         kwargs["dimensions"] = config["dimensions"]
     if "input_type" in config and config["input_type"]:
         kwargs["input_type"] = config["input_type"]
+
+    # 透传 API 凭证 (DB 单一事实源; 未配置时 litellm 自动回退到环境变量)
+    if "api_key" in config and config["api_key"]:
+        kwargs["api_key"] = config["api_key"]
+    if "api_base" in config and config["api_base"]:
+        kwargs["api_base"] = config["api_base"]
+
     return kwargs

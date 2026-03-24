@@ -75,6 +75,19 @@ export default function ModelsPage() {
   const [dimensions, setDimensions] = useState<string>("");
   const [inputType, setInputType] = useState("");
 
+  // API credentials (stored in config JSONB)
+  const [apiBase, setApiBase] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeyChanged, setApiKeyChanged] = useState(false);
+
+  // Ping state
+  const [pinging, setPinging] = useState(false);
+  const [pingResult, setPingResult] = useState<{
+    status: "ok" | "error";
+    message: string;
+    latency_ms?: number;
+  } | null>(null);
+
   const fetchModels = useCallback(async () => {
     try {
       setLoading(true);
@@ -104,6 +117,10 @@ export default function ModelsPage() {
     setMaxTokens("");
     setDimensions("");
     setInputType("");
+    setApiBase("");
+    setApiKey("");
+    setApiKeyChanged(false);
+    setPingResult(null);
   };
 
   const openCreateForm = (modelType: string) => {
@@ -130,6 +147,10 @@ export default function ModelsPage() {
     setMaxTokens(cfg.max_tokens != null ? String(cfg.max_tokens) : "");
     setDimensions(cfg.dimensions != null ? String(cfg.dimensions) : "");
     setInputType((cfg.input_type as string) ?? "");
+    setApiBase((cfg.api_base as string) ?? "");
+    setApiKey((cfg.api_key as string) ?? "");
+    setApiKeyChanged(false);
+    setPingResult(null);
     setShowForm(true);
   };
 
@@ -148,6 +169,9 @@ export default function ModelsPage() {
       if (dimensions && !isNaN(parsedDimensions)) cfg.dimensions = parsedDimensions;
       if (inputType) cfg.input_type = inputType;
     }
+    // API credentials (所有 model_type 共享)
+    if (apiBase.trim()) cfg.api_base = apiBase.trim();
+    if (apiKeyChanged && apiKey.trim()) cfg.api_key = apiKey.trim();
     return cfg;
   };
 
@@ -227,6 +251,45 @@ export default function ModelsPage() {
       setError(err instanceof Error ? err.message : "Toggle failed");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handlePing = async () => {
+    setPinging(true);
+    setPingResult(null);
+    try {
+      const currentConfig = buildConfig();
+      const payload = {
+        model_type: form.model_type,
+        vendor: form.vendor,
+        model_name: form.model_name,
+        config: currentConfig,
+        api_base: apiBase.trim() || null,
+        api_key: apiKeyChanged ? apiKey.trim() || null : null,
+        model_id: editingId || null,
+      };
+      const response = await fetch("/api/auth/admin/models/ping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setPingResult({
+          status: "error",
+          message: data.error || `HTTP ${response.status}`,
+        });
+        return;
+      }
+      const data = await response.json();
+      setPingResult(data);
+    } catch (err) {
+      setPingResult({
+        status: "error",
+        message: err instanceof Error ? err.message : "网络错误",
+      });
+    } finally {
+      setPinging(false);
     }
   };
 
@@ -543,6 +606,74 @@ export default function ModelsPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* API Credentials */}
+                  <div className="rounded-lg border border-zinc-100 p-3 dark:border-zinc-700 space-y-3">
+                    <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      API Credentials
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
+                        API Base URL (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={apiBase}
+                        onChange={(e) => setApiBase(e.target.value)}
+                        placeholder="e.g. https://open.bigmodel.cn/api/paas/v4"
+                        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
+                        API Key (optional)
+                      </label>
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => {
+                          setApiKey(e.target.value);
+                          setApiKeyChanged(true);
+                        }}
+                        placeholder={editingId ? "留空则保持不变" : "sk-..."}
+                        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-mono dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                      {editingId && !apiKeyChanged && apiKey && (
+                        <p className="mt-1 text-[10px] text-zinc-400">
+                          当前已配置 (已脱敏显示)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ping */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handlePing}
+                      disabled={pinging || !form.vendor || !form.model_name}
+                      className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-50"
+                    >
+                      {pinging ? "Pinging..." : "Ping"}
+                    </button>
+                    {pingResult && (
+                      <div
+                        className={`flex-1 rounded-lg px-3 py-1.5 text-xs whitespace-pre-wrap ${
+                          pingResult.status === "ok"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                            : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                        }`}
+                      >
+                        {pingResult.message}
+                        {pingResult.latency_ms != null &&
+                          pingResult.latency_ms > 0 && (
+                            <span className="ml-1 opacity-60">
+                              ({pingResult.latency_ms}ms)
+                            </span>
+                          )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Enabled toggle */}
                   <div className="flex items-center gap-2">
