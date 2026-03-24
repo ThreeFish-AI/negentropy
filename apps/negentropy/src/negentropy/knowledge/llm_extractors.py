@@ -25,7 +25,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from uuid import UUID
 
-from negentropy.config import settings
 from negentropy.logging import get_logger
 
 if TYPE_CHECKING:
@@ -145,15 +144,15 @@ Output as JSON with the following structure:
 
     @staticmethod
     def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        """解析模型配置（DB 优先，.env 回退）。返回 (model_name, extra_kwargs)。"""
+        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
         if explicit_model:
             return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config
+        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
 
         cached = get_cached_llm_config()
         if cached is not None:
             return cached[0], cached[1]
-        return settings.llm.full_model_name, settings.llm.to_litellm_kwargs()
+        return get_fallback_llm_config()
 
     async def extract(
         self,
@@ -433,15 +432,15 @@ Output as JSON with the following structure:
 
     @staticmethod
     def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        """解析模型配置（DB 优先，.env 回退）。返回 (model_name, extra_kwargs)。"""
+        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
         if explicit_model:
             return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config
+        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
 
         cached = get_cached_llm_config()
         if cached is not None:
             return cached[0], cached[1]
-        return settings.llm.full_model_name, settings.llm.to_litellm_kwargs()
+        return get_fallback_llm_config()
 
     async def extract(
         self,
