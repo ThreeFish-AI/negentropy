@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
@@ -280,9 +281,14 @@ async def list_model_configs(current_user: AuthUser = Depends(get_current_user))
 
     from negentropy.models.model_config import ModelConfig
 
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(ModelConfig).order_by(ModelConfig.model_type, ModelConfig.created_at))
-        configs = result.scalars().all()
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(ModelConfig).order_by(ModelConfig.model_type, ModelConfig.created_at))
+            configs = result.scalars().all()
+    except Exception:
+        from negentropy.logging import get_logger
+        get_logger("negentropy.auth.api").warning("list_model_configs_failed", exc_info=True)
+        return {"models": {"llm": [], "embedding": [], "rerank": []}}
 
     grouped: dict[str, list] = {"llm": [], "embedding": [], "rerank": []}
     for mc in configs:
@@ -314,27 +320,40 @@ async def create_model_config(
             detail=f"Invalid model_type: {payload.model_type}. Must be one of: llm, embedding, rerank",
         )
 
-    async with AsyncSessionLocal() as db:
-        # 如果 is_default=True，先取消同类型的其他默认
-        if payload.is_default:
-            await db.execute(
-                update(ModelConfig)
-                .where(ModelConfig.model_type == mt, ModelConfig.is_default.is_(True))
-                .values(is_default=False)
-            )
+    try:
+        async with AsyncSessionLocal() as db:
+            # 如果 is_default=True，先取消同类型的其他默认
+            if payload.is_default:
+                await db.execute(
+                    update(ModelConfig)
+                    .where(ModelConfig.model_type == mt, ModelConfig.is_default.is_(True))
+                    .values(is_default=False)
+                )
 
-        mc = ModelConfig(
-            model_type=mt,
-            display_name=payload.display_name,
-            vendor=payload.vendor,
-            model_name=payload.model_name,
-            is_default=payload.is_default,
-            enabled=payload.enabled,
-            config=payload.config,
+            mc = ModelConfig(
+                model_type=mt,
+                display_name=payload.display_name,
+                vendor=payload.vendor,
+                model_name=payload.model_name,
+                is_default=payload.is_default,
+                enabled=payload.enabled,
+                config=payload.config,
+            )
+            db.add(mc)
+            await db.commit()
+            await db.refresh(mc)
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Model config already exists: {payload.vendor}/{payload.model_name} ({payload.model_type})",
         )
-        db.add(mc)
-        await db.commit()
-        await db.refresh(mc)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create model config: {exc}",
+        )
 
     invalidate_cache(payload.model_type)
     return {"model": _model_config_to_dict(mc)}
@@ -353,27 +372,40 @@ async def update_model_config(
     from negentropy.config.model_resolver import invalidate_cache
     from negentropy.models.model_config import ModelConfig
 
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
-        mc = result.scalar_one_or_none()
-        if not mc:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
+            mc = result.scalar_one_or_none()
+            if not mc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
 
-        # 如果设为默认，先取消同类型的其他默认
-        if payload.is_default is True and not mc.is_default:
-            await db.execute(
-                update(ModelConfig)
-                .where(ModelConfig.model_type == mc.model_type, ModelConfig.is_default.is_(True))
-                .values(is_default=False)
-            )
+            # 如果设为默认，先取消同类型的其他默认
+            if payload.is_default is True and not mc.is_default:
+                await db.execute(
+                    update(ModelConfig)
+                    .where(ModelConfig.model_type == mc.model_type, ModelConfig.is_default.is_(True))
+                    .values(is_default=False)
+                )
 
-        update_data = payload.model_dump(exclude_none=True)
-        for key, value in update_data.items():
-            setattr(mc, key, value)
+            update_data = payload.model_dump(exclude_none=True)
+            for key, value in update_data.items():
+                setattr(mc, key, value)
 
-        model_type_val = mc.model_type.value
-        await db.commit()
-        await db.refresh(mc)
+            model_type_val = mc.model_type.value
+            await db.commit()
+            await db.refresh(mc)
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Update conflicts with existing model config (duplicate vendor/model_name/model_type)",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update model config: {exc}",
+        )
 
     invalidate_cache(model_type_val)
     return {"model": _model_config_to_dict(mc)}
@@ -391,21 +423,29 @@ async def delete_model_config(
     from negentropy.config.model_resolver import invalidate_cache
     from negentropy.models.model_config import ModelConfig
 
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
-        mc = result.scalar_one_or_none()
-        if not mc:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
+            mc = result.scalar_one_or_none()
+            if not mc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
 
-        if mc.is_default:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete the default model. Set another model as default first.",
-            )
+            if mc.is_default:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot delete the default model. Set another model as default first.",
+                )
 
-        model_type_val = mc.model_type.value
-        await db.delete(mc)
-        await db.commit()
+            model_type_val = mc.model_type.value
+            await db.delete(mc)
+            await db.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete model config: {exc}",
+        )
 
     invalidate_cache(model_type_val)
     return {"status": "deleted"}
@@ -423,27 +463,35 @@ async def set_default_model(
     from negentropy.config.model_resolver import invalidate_cache
     from negentropy.models.model_config import ModelConfig
 
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
-        mc = result.scalar_one_or_none()
-        if not mc:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
+            mc = result.scalar_one_or_none()
+            if not mc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
 
-        if not mc.enabled:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot set a disabled model as default.",
+            if not mc.enabled:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot set a disabled model as default.",
+                )
+
+            # 事务: 取消同类型旧默认，设置新默认
+            await db.execute(
+                update(ModelConfig)
+                .where(ModelConfig.model_type == mc.model_type, ModelConfig.is_default.is_(True))
+                .values(is_default=False)
             )
-
-        # 事务: 取消同类型旧默认，设置新默认
-        await db.execute(
-            update(ModelConfig)
-            .where(ModelConfig.model_type == mc.model_type, ModelConfig.is_default.is_(True))
-            .values(is_default=False)
+            mc.is_default = True
+            await db.commit()
+            await db.refresh(mc)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to set default model: {exc}",
         )
-        mc.is_default = True
-        await db.commit()
-        await db.refresh(mc)
 
     invalidate_cache(mc.model_type.value)
     return {"model": _model_config_to_dict(mc)}
