@@ -137,6 +137,13 @@ export function DocumentMarkdownRenderer({
           pre({ children }) {
             return <pre className="relative">{children}</pre>;
           },
+          table({ children }) {
+            return (
+              <div className="overflow-x-auto">
+                <table>{children}</table>
+              </div>
+            );
+          },
         }}
       >
         {content}
