@@ -16,6 +16,7 @@ from .plugin import (
     Skill,
     SubAgent,
 )
+from .model_config import ModelConfig, ModelType
 from .pulse import AppState, Event, Message, Run, Snapshot, Thread, UserState
 from .security import Credential
 
@@ -65,4 +66,7 @@ __all__ = [
     "McpTrialAsset",
     "Skill",
     "SubAgent",
+    # Model Config
+    "ModelConfig",
+    "ModelType",
 ]
