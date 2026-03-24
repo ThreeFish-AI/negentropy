@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
-import { getAuthBaseUrl } from "../../../_config";
+import { getAuthBaseUrl } from "../../_config";
 
 export async function GET(request: Request) {
   const baseUrl = getAuthBaseUrl();
