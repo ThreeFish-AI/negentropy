@@ -646,8 +646,47 @@ export default function ModelsPage() {
                     </div>
                   </div>
 
-                  {/* Ping */}
+                </div>
+
+                {/* Ping result */}
+                {pingResult && (
+                  <div
+                    className={`mt-3 rounded-lg px-3 py-1.5 text-xs whitespace-pre-wrap ${
+                      pingResult.status === "ok"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                        : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                    }`}
+                  >
+                    {pingResult.message}
+                    {pingResult.latency_ms != null &&
+                      pingResult.latency_ms > 0 && (
+                        <span className="ml-1 opacity-60">
+                          ({pingResult.latency_ms}ms)
+                        </span>
+                      )}
+                  </div>
+                )}
+
+                {/* 底部操作栏 */}
+                <div className="mt-5 flex items-center">
                   <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="enabled"
+                        checked={form.enabled}
+                        onChange={(e) =>
+                          setForm({ ...form, enabled: e.target.checked })
+                        }
+                        className="rounded border-zinc-300 dark:border-zinc-600"
+                      />
+                      <label
+                        htmlFor="enabled"
+                        className="text-xs text-zinc-600 dark:text-zinc-400"
+                      >
+                        Enabled
+                      </label>
+                    </div>
                     <button
                       type="button"
                       onClick={handlePing}
@@ -656,59 +695,22 @@ export default function ModelsPage() {
                     >
                       {pinging ? "Pinging..." : "Ping"}
                     </button>
-                    {pingResult && (
-                      <div
-                        className={`flex-1 rounded-lg px-3 py-1.5 text-xs whitespace-pre-wrap ${
-                          pingResult.status === "ok"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
-                            : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                        }`}
-                      >
-                        {pingResult.message}
-                        {pingResult.latency_ms != null &&
-                          pingResult.latency_ms > 0 && (
-                            <span className="ml-1 opacity-60">
-                              ({pingResult.latency_ms}ms)
-                            </span>
-                          )}
-                      </div>
-                    )}
                   </div>
-
-                  {/* Enabled toggle */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="enabled"
-                      checked={form.enabled}
-                      onChange={(e) =>
-                        setForm({ ...form, enabled: e.target.checked })
-                      }
-                      className="rounded border-zinc-300 dark:border-zinc-600"
-                    />
-                    <label
-                      htmlFor="enabled"
-                      className="text-xs text-zinc-600 dark:text-zinc-400"
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      onClick={resetForm}
+                      className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
                     >
-                      Enabled
-                    </label>
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || !form.display_name || !form.model_name}
+                      className="px-4 py-2 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : editingId ? "Update" : "Create"}
+                    </button>
                   </div>
-                </div>
-
-                <div className="mt-5 flex justify-end gap-2">
-                  <button
-                    onClick={resetForm}
-                    className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || !form.display_name || !form.model_name}
-                    className="px-4 py-2 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
-                  >
-                    {saving ? "Saving..." : editingId ? "Update" : "Create"}
-                  </button>
                 </div>
               </div>
             </div>
