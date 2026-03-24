@@ -340,6 +340,19 @@ def apply_adk_patches():
         if not any(getattr(route, "path", "").endswith("/sessions/{session_id}/title") for route in app.router.routes):
             app.include_router(sessions_router)
             logger.info("Sessions API router mounted for title updates")
+
+        # 预热模型配置缓存，确保同步读取 (create_model) 在首次调用时有数据
+        @app.on_event("startup")
+        async def _warm_model_config_cache():
+            from negentropy.config.model_resolver import resolve_embedding_config, resolve_llm_config
+
+            try:
+                await resolve_llm_config()
+                await resolve_embedding_config()
+                logger.info("model_config_cache_warmed")
+            except Exception as exc:
+                logger.warning("model_config_cache_warm_failed", error=str(exc))
+
         return app
 
     # Patch get_fast_api_app via AdkWebServer so it applies to current call

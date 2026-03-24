@@ -15,6 +15,13 @@ from negentropy.config import settings
 def create_model() -> LiteLlm:
     """创建 LiteLlm 实例。
 
-    若未来需要为模型添加 retry、fallback 或其他配置，只需修改此处。
+    优先使用缓存的 DB 配置，回退到 .env。
+    缓存由 engine/bootstrap.py 的 startup 事件预热。
     """
+    from negentropy.config.model_resolver import get_cached_llm_config
+
+    cached = get_cached_llm_config()
+    if cached:
+        name, kwargs = cached
+        return LiteLlm(name, **kwargs)
     return LiteLlm(settings.llm.full_model_name, **settings.llm.to_litellm_kwargs())

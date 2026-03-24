@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
@@ -230,3 +231,219 @@ async def list_permissions() -> dict[str, Any]:
     from .rbac import get_all_permissions
 
     return {"permissions": get_all_permissions()}
+
+
+# =============================================================================
+# Model Config Admin Endpoints
+# =============================================================================
+
+
+class ModelConfigCreate(BaseModel):
+    model_type: str = Field(..., description="llm, embedding, or rerank")
+    display_name: str
+    vendor: str
+    model_name: str
+    is_default: bool = False
+    enabled: bool = True
+    config: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ModelConfigUpdate(BaseModel):
+    display_name: Optional[str] = None
+    vendor: Optional[str] = None
+    model_name: Optional[str] = None
+    is_default: Optional[bool] = None
+    enabled: Optional[bool] = None
+    config: Optional[Dict[str, Any]] = None
+
+
+def _model_config_to_dict(mc) -> dict[str, Any]:
+    return {
+        "id": str(mc.id),
+        "modelType": mc.model_type.value,
+        "displayName": mc.display_name,
+        "vendor": mc.vendor,
+        "modelName": mc.model_name,
+        "isDefault": mc.is_default,
+        "enabled": mc.enabled,
+        "config": mc.config or {},
+        "createdAt": mc.created_at.isoformat() if mc.created_at else None,
+        "updatedAt": mc.updated_at.isoformat() if mc.updated_at else None,
+    }
+
+
+@router.get("/admin/models")
+async def list_model_configs(current_user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
+    """List all model configurations, grouped by model_type."""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from negentropy.models.model_config import ModelConfig
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(ModelConfig).order_by(ModelConfig.model_type, ModelConfig.created_at))
+        configs = result.scalars().all()
+
+    grouped: dict[str, list] = {"llm": [], "embedding": [], "rerank": []}
+    for mc in configs:
+        key = mc.model_type.value
+        if key not in grouped:
+            grouped[key] = []
+        grouped[key].append(_model_config_to_dict(mc))
+
+    return {"models": grouped}
+
+
+@router.post("/admin/models", status_code=status.HTTP_201_CREATED)
+async def create_model_config(
+    payload: ModelConfigCreate,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Create a new model configuration."""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.model_config import ModelConfig, ModelType
+
+    try:
+        mt = ModelType(payload.model_type)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid model_type: {payload.model_type}. Must be one of: llm, embedding, rerank",
+        )
+
+    async with AsyncSessionLocal() as db:
+        # 如果 is_default=True，先取消同类型的其他默认
+        if payload.is_default:
+            await db.execute(
+                update(ModelConfig)
+                .where(ModelConfig.model_type == mt, ModelConfig.is_default.is_(True))
+                .values(is_default=False)
+            )
+
+        mc = ModelConfig(
+            model_type=mt,
+            display_name=payload.display_name,
+            vendor=payload.vendor,
+            model_name=payload.model_name,
+            is_default=payload.is_default,
+            enabled=payload.enabled,
+            config=payload.config,
+        )
+        db.add(mc)
+        await db.commit()
+        await db.refresh(mc)
+
+    invalidate_cache(payload.model_type)
+    return {"model": _model_config_to_dict(mc)}
+
+
+@router.patch("/admin/models/{model_id}")
+async def update_model_config(
+    model_id: UUID,
+    payload: ModelConfigUpdate,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Update a model configuration."""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.model_config import ModelConfig
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
+        mc = result.scalar_one_or_none()
+        if not mc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
+
+        # 如果设为默认，先取消同类型的其他默认
+        if payload.is_default is True and not mc.is_default:
+            await db.execute(
+                update(ModelConfig)
+                .where(ModelConfig.model_type == mc.model_type, ModelConfig.is_default.is_(True))
+                .values(is_default=False)
+            )
+
+        update_data = payload.model_dump(exclude_none=True)
+        for key, value in update_data.items():
+            setattr(mc, key, value)
+
+        model_type_val = mc.model_type.value
+        await db.commit()
+        await db.refresh(mc)
+
+    invalidate_cache(model_type_val)
+    return {"model": _model_config_to_dict(mc)}
+
+
+@router.delete("/admin/models/{model_id}")
+async def delete_model_config(
+    model_id: UUID,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Delete a model configuration. Cannot delete the sole default of a type."""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.model_config import ModelConfig
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
+        mc = result.scalar_one_or_none()
+        if not mc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
+
+        if mc.is_default:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete the default model. Set another model as default first.",
+            )
+
+        model_type_val = mc.model_type.value
+        await db.delete(mc)
+        await db.commit()
+
+    invalidate_cache(model_type_val)
+    return {"status": "deleted"}
+
+
+@router.post("/admin/models/{model_id}/set-default")
+async def set_default_model(
+    model_id: UUID,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Set a model configuration as the default for its type."""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.model_config import ModelConfig
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(ModelConfig).where(ModelConfig.id == model_id))
+        mc = result.scalar_one_or_none()
+        if not mc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model config not found")
+
+        if not mc.enabled:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot set a disabled model as default.",
+            )
+
+        # 事务: 取消同类型旧默认，设置新默认
+        await db.execute(
+            update(ModelConfig)
+            .where(ModelConfig.model_type == mc.model_type, ModelConfig.is_default.is_(True))
+            .values(is_default=False)
+        )
+        mc.is_default = True
+        await db.commit()
+        await db.refresh(mc)
+
+    invalidate_cache(mc.model_type.value)
+    return {"model": _model_config_to_dict(mc)}

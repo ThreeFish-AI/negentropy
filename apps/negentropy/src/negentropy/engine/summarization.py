@@ -24,10 +24,17 @@ class SessionSummarizer:
     """Uses LLM to summarize conversation history into a short title."""
 
     def __init__(self):
-        kwargs = settings.llm.to_litellm_kwargs()
+        from negentropy.config.model_resolver import get_cached_llm_config
+
+        cached = get_cached_llm_config()
+        if cached:
+            name, kwargs = cached
+        else:
+            name = settings.llm.full_model_name
+            kwargs = settings.llm.to_litellm_kwargs()
         kwargs["max_tokens"] = 20
         logger.debug("session_summarizer_initialized")
-        self.model = LiteLlm(settings.llm.full_model_name, **kwargs)
+        self.model = LiteLlm(name, **kwargs)
 
     async def generate_title(self, history: List[types.Content]) -> Optional[str]:
         """

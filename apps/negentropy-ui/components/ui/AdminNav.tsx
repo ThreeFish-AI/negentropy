@@ -8,6 +8,7 @@ import { useNavigation } from "@/components/providers/NavigationProvider";
 const NAV_ITEMS = [
   { href: "/admin", label: "Users" },
   { href: "/admin/roles", label: "Role Management" },
+  { href: "/admin/models", label: "Models" },
 ];
 
 export function AdminNav({
