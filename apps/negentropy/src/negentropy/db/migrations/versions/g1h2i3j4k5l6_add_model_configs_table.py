@@ -24,15 +24,20 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     schema = negentropy.models.base.NEGENTROPY_SCHEMA
 
-    # 创建 model_type_enum 类型
-    model_type_enum = postgresql.ENUM("llm", "embedding", "rerank", name="model_type_enum", schema=schema)
-    model_type_enum.create(op.get_bind(), checkfirst=True)
+    # 创建 model_type_enum 类型（幂等）
+    op.execute(f"""
+        DO $$ BEGIN
+            CREATE TYPE {schema}.model_type_enum AS ENUM ('llm', 'embedding', 'rerank');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """)
 
     op.create_table(
         "model_configs",
         sa.Column(
             "model_type",
-            sa.Enum("llm", "embedding", "rerank", name="model_type_enum", schema=schema),
+            postgresql.ENUM("llm", "embedding", "rerank", name="model_type_enum", schema=schema, create_type=False),
             nullable=False,
         ),
         sa.Column("display_name", sa.String(length=255), nullable=False),
@@ -65,9 +70,10 @@ def upgrade() -> None:
     )
 
     # Seed 默认数据
+    model_type_col = postgresql.ENUM("llm", "embedding", "rerank", name="model_type_enum", schema=schema, create_type=False)
     model_configs = sa.table(
         "model_configs",
-        sa.column("model_type", sa.String),
+        sa.column("model_type", model_type_col),
         sa.column("display_name", sa.String),
         sa.column("vendor", sa.String),
         sa.column("model_name", sa.String),
@@ -108,5 +114,4 @@ def downgrade() -> None:
     op.drop_table("model_configs", schema=schema)
 
     # 删除 enum 类型
-    model_type_enum = postgresql.ENUM("llm", "embedding", "rerank", name="model_type_enum", schema=schema)
-    model_type_enum.drop(op.get_bind(), checkfirst=True)
+    op.execute(f"DROP TYPE IF EXISTS {schema}.model_type_enum")
