@@ -39,7 +39,13 @@ class ModelConfig(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "model_configs"
 
     model_type: Mapped[ModelType] = mapped_column(
-        Enum(ModelType, schema=NEGENTROPY_SCHEMA, name="model_type_enum"),
+        Enum(
+            ModelType,
+            values_callable=lambda enum: [e.value for e in enum],
+            schema=NEGENTROPY_SCHEMA,
+            name="model_type_enum",
+            create_type=False,
+        ),
         nullable=False,
     )
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)

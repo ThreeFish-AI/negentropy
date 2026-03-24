@@ -1,16 +1,18 @@
 """
-Model Resolver — DB 优先、.env 回退的模型配置解析器。
+Model Resolver — DB 单一事实源的模型配置解析器。
 
 遵循 Single Source of Truth 原则：
 1. 首先从 DB 查询 default 配置
-2. 若 DB 无数据或不可达，回退到 settings.llm
+2. 若 DB 无数据或不可达，回退到硬编码默认值
 3. 内存缓存 + TTL 避免每次请求查 DB
 
 公开接口:
-- resolve_llm_config()        — 异步解析默认 LLM
-- resolve_embedding_config()  — 异步解析默认 Embedding
-- get_cached_llm_config()     — 同步缓存读取 (无法 await 的上下文)
-- invalidate_cache()          — 缓存失效 (Admin 写操作后调用)
+- resolve_llm_config()            — 异步解析默认 LLM
+- resolve_embedding_config()      — 异步解析默认 Embedding
+- get_cached_llm_config()         — 同步缓存读取 (无法 await 的上下文)
+- get_fallback_llm_config()       — 同步获取硬编码 LLM 默认值
+- get_fallback_embedding_config() — 同步获取硬编码 Embedding 默认值
+- invalidate_cache()              — 缓存失效 (Admin 写操作后调用)
 """
 
 from __future__ import annotations
@@ -20,6 +22,16 @@ from typing import Any, Dict, Optional, Tuple
 
 # Cache TTL in seconds
 _CACHE_TTL = 60.0
+
+# 硬编码默认值 — DB 不可达时的回退配置
+_DEFAULT_LLM_MODEL = "zai/glm-5"
+_DEFAULT_LLM_KWARGS: Dict[str, Any] = {
+    "temperature": 0.7,
+    "drop_params": True,
+    "extra_body": {"thinking": {"type": "disabled"}},
+}
+_DEFAULT_EMBEDDING_MODEL = "vertex_ai/text-embedding-005"
+_DEFAULT_EMBEDDING_KWARGS: Dict[str, Any] = {}
 
 # In-memory cache: { model_type: (full_model_name, kwargs, timestamp) }
 _cache: Dict[str, Tuple[str, Dict[str, Any], float]] = {}
@@ -61,6 +73,16 @@ def get_cached_embedding_config() -> Optional[Tuple[str, Dict[str, Any]]]:
         if time.monotonic() - ts < _CACHE_TTL:
             return name, kwargs.copy()
     return None
+
+
+def get_fallback_llm_config() -> Tuple[str, Dict[str, Any]]:
+    """同步获取硬编码 LLM 默认值 — 供消费者在无法 await 的上下文中使用。"""
+    return _DEFAULT_LLM_MODEL, _DEFAULT_LLM_KWARGS.copy()
+
+
+def get_fallback_embedding_config() -> Tuple[str, Dict[str, Any]]:
+    """同步获取硬编码 Embedding 默认值。"""
+    return _DEFAULT_EMBEDDING_MODEL, _DEFAULT_EMBEDDING_KWARGS.copy()
 
 
 async def resolve_llm_config() -> Tuple[str, Dict[str, Any]]:
@@ -106,8 +128,8 @@ async def _resolve(model_type: str) -> Tuple[str, Dict[str, Any]]:
         logger = get_logger("negentropy.config.model_resolver")
         logger.warning("model_resolver_db_fallback", model_type=model_type, exc_info=True)
 
-    # 3. 回退到 settings.llm
-    name, kwargs = _resolve_from_settings(model_type)
+    # 3. 回退到硬编码默认值
+    name, kwargs = _resolve_defaults(model_type)
     _cache[model_type] = (name, kwargs, now)
     return name, kwargs.copy()
 
@@ -144,20 +166,11 @@ async def _resolve_from_db(model_type: str) -> Optional[Tuple[str, Dict[str, Any
     return full_name, kwargs
 
 
-def _resolve_from_settings(model_type: str) -> Tuple[str, Dict[str, Any]]:
-    """从 settings.llm 回退解析。"""
-    from negentropy.config import settings
-
+def _resolve_defaults(model_type: str) -> Tuple[str, Dict[str, Any]]:
+    """返回硬编码默认值 — DB 不可达时的回退。"""
     if model_type == "embedding":
-        return (
-            settings.llm.embedding_full_model_name,
-            settings.llm.to_litellm_embedding_kwargs(),
-        )
-    # llm / rerank 均回退到 LLM settings
-    return (
-        settings.llm.full_model_name,
-        settings.llm.to_litellm_kwargs(),
-    )
+        return get_fallback_embedding_config()
+    return get_fallback_llm_config()
 
 
 def _build_full_model_name(vendor: str, model_name: str) -> str:
@@ -171,7 +184,7 @@ def _build_full_model_name(vendor: str, model_name: str) -> str:
 def _build_llm_kwargs(vendor: str, model_name: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """从 DB config JSONB 构建 LiteLLM kwargs。
 
-    复用 LlmSettings._apply_thinking_config 的供应商特定转译逻辑。
+    供应商特定的 LiteLLM kwargs 构建逻辑。
     """
     kwargs: Dict[str, Any] = {}
 
