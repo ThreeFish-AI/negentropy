@@ -258,7 +258,39 @@ class ModelConfigUpdate(BaseModel):
     config: Optional[Dict[str, Any]] = None
 
 
+class ModelPingRequest(BaseModel):
+    """Ping 请求 — 接收表单当前数据（未保存状态亦可测试）。"""
+
+    model_type: str = Field(..., description="llm, embedding, or rerank")
+    vendor: str
+    model_name: str
+    config: Dict[str, Any] = Field(default_factory=dict)
+    api_base: Optional[str] = None
+    api_key: Optional[str] = None
+    model_id: Optional[UUID] = None
+
+
+def _mask_api_key(key: str | None) -> str | None:
+    """将 api_key 脱敏为 ****xxxx 格式，仅保留末 4 位。"""
+    if not key:
+        return None
+    if len(key) <= 4:
+        return "****"
+    return "****" + key[-4:]
+
+
+def _sanitize_error(msg: str, max_len: int = 300) -> str:
+    """从错误信息中移除可能的 API Key / Token，防止泄露。"""
+    import re
+
+    sanitized = re.sub(r"(sk-|key-|Bearer\s+)\S+", r"\1****", msg)
+    return sanitized[:max_len]
+
+
 def _model_config_to_dict(mc) -> dict[str, Any]:
+    cfg = dict(mc.config or {})
+    if "api_key" in cfg:
+        cfg["api_key"] = _mask_api_key(cfg["api_key"])
     return {
         "id": str(mc.id),
         "modelType": mc.model_type.value,
@@ -267,7 +299,7 @@ def _model_config_to_dict(mc) -> dict[str, Any]:
         "modelName": mc.model_name,
         "isDefault": mc.is_default,
         "enabled": mc.enabled,
-        "config": mc.config or {},
+        "config": cfg,
         "createdAt": mc.created_at.isoformat() if mc.created_at else None,
         "updatedAt": mc.updated_at.isoformat() if mc.updated_at else None,
     }
@@ -359,6 +391,202 @@ async def create_model_config(
     return {"model": _model_config_to_dict(mc)}
 
 
+# --- Ping endpoint (注册在 {model_id} 路由之前，避免 FastAPI 将 "ping" 匹配为路径参数) ---
+
+
+@router.post("/admin/models/ping")
+async def ping_model(
+    payload: ModelPingRequest,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """发送轻量级请求验证模型连通性。
+
+    根据 model_type 使用不同的验证策略:
+    - LLM: litellm.acompletion (发送 "Ping, give me a pong")
+    - Embedding: litellm.aembedding (嵌入测试文本，验证向量维度)
+    - Rerank: httpx POST (匹配 APIReranker 运行时路径)
+    """
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    import asyncio
+    import time
+
+    from negentropy.config.model_resolver import build_full_model_name
+
+    full_model_name = build_full_model_name(payload.vendor, payload.model_name)
+
+    # --- 解析 api_key 优先级链: 表单 > DB > 环境变量 (litellm 默认行为) ---
+    effective_api_key = payload.api_key
+    effective_api_base = payload.api_base or payload.config.get("api_base")
+
+    if effective_api_key is None and payload.model_id:
+        from negentropy.models.model_config import ModelConfig
+
+        try:
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(ModelConfig).where(ModelConfig.id == payload.model_id))
+                stored = result.scalar_one_or_none()
+                if stored and stored.config:
+                    effective_api_key = stored.config.get("api_key")
+                    if not effective_api_base:
+                        effective_api_base = stored.config.get("api_base")
+        except Exception:
+            from negentropy.logging import get_logger
+
+            get_logger("negentropy.auth.api").warning(
+                "ping_db_lookup_failed", model_id=str(payload.model_id), exc_info=True,
+            )
+
+    start_time = time.monotonic()
+
+    try:
+        if payload.model_type == "llm":
+            result = await _ping_llm(full_model_name, effective_api_key, effective_api_base)
+        elif payload.model_type == "embedding":
+            result = await _ping_embedding(full_model_name, effective_api_key, effective_api_base)
+        elif payload.model_type == "rerank":
+            result = await _ping_rerank(
+                payload.model_name, effective_api_key, effective_api_base,
+            )
+        else:
+            return {"status": "error", "message": f"不支持的模型类型: {payload.model_type}"}
+
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+        result["latency_ms"] = latency_ms
+        return result
+
+    except Exception as exc:
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+        error_msg = _sanitize_error(str(exc))
+        if "AuthenticationError" in error_msg or "401" in error_msg:
+            message = f"认证失败：API Key 无效或已过期。\n{error_msg}"
+        elif "404" in error_msg or "NotFoundError" in error_msg:
+            message = f"模型未找到：请检查 vendor/model_name 是否正确。\n{error_msg}"
+        elif "timeout" in error_msg.lower() or isinstance(exc, asyncio.TimeoutError):
+            message = "连接超时 (30s)，请检查网络或 API Base URL 配置。"
+        else:
+            message = f"Ping 失败：{error_msg}"
+        return {"status": "error", "message": message, "latency_ms": latency_ms}
+
+
+async def _ping_llm(
+    model: str,
+    api_key: str | None,
+    api_base: str | None,
+) -> dict[str, Any]:
+    """LLM Ping: 发送 'Ping, give me a pong' 并验证响应。"""
+    import asyncio
+
+    import litellm
+
+    kwargs: Dict[str, Any] = {"max_tokens": 20}
+    if api_key:
+        kwargs["api_key"] = api_key
+    if api_base:
+        kwargs["api_base"] = api_base
+
+    response = await asyncio.wait_for(
+        litellm.acompletion(
+            model=model,
+            messages=[{"role": "user", "content": "Ping, give me a pong"}],
+            **kwargs,
+        ),
+        timeout=30.0,
+    )
+    content = response.choices[0].message.content or ""
+    return {"status": "ok", "message": f"Pong! {content.strip()[:100]}"}
+
+
+async def _ping_embedding(
+    model: str,
+    api_key: str | None,
+    api_base: str | None,
+) -> dict[str, Any]:
+    """Embedding Ping: 嵌入测试文本并验证向量维度。"""
+    import asyncio
+
+    import litellm
+
+    kwargs: Dict[str, Any] = {}
+    if api_key:
+        kwargs["api_key"] = api_key
+    if api_base:
+        kwargs["api_base"] = api_base
+
+    response = await asyncio.wait_for(
+        litellm.aembedding(
+            model=model,
+            input=["Hello, world!"],
+            **kwargs,
+        ),
+        timeout=30.0,
+    )
+
+    # 兼容 dict 和对象属性两种返回格式
+    data = getattr(response, "data", None) or response.get("data", [])
+    if not data:
+        return {"status": "error", "message": "Embedding 响应为空，未返回向量数据。"}
+
+    item = data[0]
+    embedding = getattr(item, "embedding", None)
+    if embedding is None and isinstance(item, dict):
+        embedding = item.get("embedding")
+    if not embedding:
+        return {"status": "error", "message": "Embedding 响应格式异常，未找到向量数据。"}
+
+    dims = len(embedding)
+    return {"status": "ok", "message": f"Pong! Embedding 连通正常，维度: {dims}"}
+
+
+async def _ping_rerank(
+    model_name: str,
+    api_key: str | None,
+    api_base: str | None,
+) -> dict[str, Any]:
+    """Rerank Ping: 匹配 APIReranker 运行时路径 (httpx POST)。"""
+    import httpx
+
+    base_url = api_base or "https://api.cohere.ai/v1/rerank"
+
+    if not api_key:
+        import os
+
+        api_key = os.getenv("COHERE_API_KEY")
+    if not api_key:
+        return {"status": "error", "message": "缺少 API Key：请配置 Rerank 模型的 API Key。"}
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "X-Client-Name": "negentropy-ping",
+    }
+    payload = {
+        "query": "What is artificial intelligence?",
+        "documents": [
+            "AI is a branch of computer science.",
+            "The weather is sunny today.",
+        ],
+        "top_n": 2,
+        "model": model_name,
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(base_url, headers=headers, json=payload)
+        resp.raise_for_status()
+        result = resp.json()
+
+    results = result.get("results", [])
+    if not results:
+        return {"status": "error", "message": "Rerank 响应为空，未返回排序结果。"}
+
+    top_score = results[0].get("relevance_score", 0)
+    return {
+        "status": "ok",
+        "message": f"Pong! Rerank 连通正常，Top 相关性分数: {top_score:.4f}",
+    }
+
+
 @router.patch("/admin/models/{model_id}")
 async def update_model_config(
     model_id: UUID,
@@ -388,6 +616,15 @@ async def update_model_config(
                 )
 
             update_data = payload.model_dump(exclude_none=True)
+            # 服务端防御: 保护 DB 中的 api_key 不被脱敏值覆盖
+            if "config" in update_data and mc.config:
+                new_config = update_data["config"]
+                incoming_key = new_config.get("api_key")
+                if incoming_key is not None and incoming_key.startswith("****"):
+                    # 客户端回传了脱敏值，保留 DB 中的原始值
+                    new_config["api_key"] = mc.config.get("api_key")
+                elif "api_key" not in new_config and "api_key" in (mc.config or {}):
+                    new_config["api_key"] = mc.config["api_key"]
             for key, value in update_data.items():
                 setattr(mc, key, value)
 
