@@ -1252,11 +1252,16 @@ async def _build_llm_invocation_plan(
         return None
 
     try:
+        from negentropy.config.model_resolver import resolve_llm_config
+
+        _llm_name, _llm_kwargs = await resolve_llm_config()
+        # 过滤掉与显式参数冲突的键
+        _safe_kwargs = {k: v for k, v in _llm_kwargs.items() if k not in ("model", "messages", "response_format")}
         response = await litellm.acompletion(
-            model=settings.llm.full_model_name,
+            model=_llm_name,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
-            **settings.llm.to_litellm_kwargs(),
+            **_safe_kwargs,
         )
     except Exception as exc:
         logger.warning("extractor_llm_plan_failed", tool_name=tool_name, error=str(exc))
