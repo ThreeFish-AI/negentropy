@@ -4,16 +4,23 @@
 并与 Markdown 中的图片引用正确匹配。
 """
 
+import base64
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 
 from negentropy.knowledge.extraction import (
     ExtractionAsset,
+    _extract_base64_from_asset,
     _extract_image_assets_from_content_items,
     _extract_markdown_image_refs,
+    _is_gcs_uri,
     _merge_extraction_assets,
     _mime_to_extension,
+    _normalize_assets,
+    persist_extracted_assets,
 )
 
 
@@ -251,3 +258,189 @@ class TestMergeExtractionAssets:
         assert len(merged) == 3
         names = [a.name for a in merged]
         assert names == ["existing.png", "new1.png", "new2.png"]
+
+    def test_backfill_when_structured_has_non_gcs_uri(self):
+        """非 GCS URI 时允许用 content_items 数据回填。"""
+        merged = _merge_extraction_assets(
+            [ExtractionAsset(name="img.png", content_type="image/png", uri="file:///tmp/img.png")],
+            [ExtractionAsset(name="img.png", content_type="image/png", data_base64="backfill_data")],
+        )
+        assert len(merged) == 1
+        assert merged[0].data_base64 == "backfill_data"
+        assert merged[0].uri == "file:///tmp/img.png"
+        assert merged[0].metadata.get("source") == "content_items_backfill"
+
+    def test_backfill_when_structured_has_http_uri(self):
+        """HTTP URI 时允许回填。"""
+        merged = _merge_extraction_assets(
+            [ExtractionAsset(name="img.png", content_type="image/png", uri="https://mcp.example.com/img.png")],
+            [ExtractionAsset(name="img.png", content_type="image/png", data_base64="content_data")],
+        )
+        assert len(merged) == 1
+        assert merged[0].data_base64 == "content_data"
+
+    def test_no_backfill_when_structured_has_gcs_uri(self):
+        """GCS URI 时不回填。"""
+        merged = _merge_extraction_assets(
+            [ExtractionAsset(name="img.png", content_type="image/png", uri="gs://bucket/path/img.png")],
+            [ExtractionAsset(name="img.png", content_type="image/png", data_base64="should_not_use")],
+        )
+        assert len(merged) == 1
+        assert merged[0].data_base64 is None
+        assert merged[0].uri == "gs://bucket/path/img.png"
+
+
+# ---------------------------------------------------------------------------
+# _extract_base64_from_asset & _is_gcs_uri
+# ---------------------------------------------------------------------------
+
+
+class TestExtractBase64FromAsset:
+
+    def test_data_base64_field(self):
+        assert _extract_base64_from_asset({"data_base64": "abc"}) == "abc"
+
+    def test_content_base64_field(self):
+        assert _extract_base64_from_asset({"content_base64": "def"}) == "def"
+
+    def test_data_field(self):
+        assert _extract_base64_from_asset({"data": "ghi"}) == "ghi"
+
+    def test_base64_field(self):
+        assert _extract_base64_from_asset({"base64": "jkl"}) == "jkl"
+
+    def test_image_data_field(self):
+        assert _extract_base64_from_asset({"image_data": "mno"}) == "mno"
+
+    def test_priority_data_base64_over_data(self):
+        assert _extract_base64_from_asset({"data_base64": "winner", "data": "loser"}) == "winner"
+
+    def test_skips_empty_string(self):
+        assert _extract_base64_from_asset({"data_base64": "", "data": "fallback"}) == "fallback"
+
+    def test_skips_non_string(self):
+        assert _extract_base64_from_asset({"data_base64": 123, "data": "ok"}) == "ok"
+
+    def test_returns_none_when_empty(self):
+        assert _extract_base64_from_asset({"uri": "gs://bucket/img.png"}) is None
+
+
+class TestIsGcsUri:
+
+    def test_gcs_uri(self):
+        assert _is_gcs_uri("gs://bucket/path/file.png") is True
+
+    def test_http_uri(self):
+        assert _is_gcs_uri("https://example.com/file.png") is False
+
+    def test_file_uri(self):
+        assert _is_gcs_uri("file:///tmp/file.png") is False
+
+    def test_none(self):
+        assert _is_gcs_uri(None) is False
+
+    def test_empty_string(self):
+        assert _is_gcs_uri("") is False
+
+
+# ---------------------------------------------------------------------------
+# _normalize_assets
+# ---------------------------------------------------------------------------
+
+
+class TestNormalizeAssets:
+
+    def test_extracts_data_base64_field(self):
+        assets = _normalize_assets([{"name": "img.png", "content_type": "image/png", "data_base64": "abc"}])
+        assert assets[0].data_base64 == "abc"
+
+    def test_extracts_data_field(self):
+        """MCP ImageContent 标准使用 'data' 字段。"""
+        assets = _normalize_assets([{"name": "img.png", "content_type": "image/png", "data": "ghi"}])
+        assert assets[0].data_base64 == "ghi"
+
+    def test_extracts_base64_field(self):
+        assets = _normalize_assets([{"name": "img.png", "content_type": "image/png", "base64": "jkl"}])
+        assert assets[0].data_base64 == "jkl"
+
+    def test_priority_data_base64_over_data(self):
+        assets = _normalize_assets([{"name": "img.png", "data_base64": "winner", "data": "loser"}])
+        assert assets[0].data_base64 == "winner"
+
+    def test_no_base64_returns_none(self):
+        assets = _normalize_assets([{"name": "img.png", "uri": "https://example.com/img.png"}])
+        assert assets[0].data_base64 is None
+        assert assets[0].uri == "https://example.com/img.png"
+
+    def test_empty_list(self):
+        assert _normalize_assets([]) == []
+
+    def test_non_list_returns_empty(self):
+        assert _normalize_assets(None) == []
+        assert _normalize_assets("not a list") == []
+
+
+# ---------------------------------------------------------------------------
+# persist_extracted_assets
+# ---------------------------------------------------------------------------
+
+
+class TestPersistExtractedAssets:
+
+    @pytest.mark.asyncio
+    async def test_uploads_asset_with_non_gcs_uri_and_data(self):
+        """有非 GCS URI 但有 data_base64 时，应上传到 GCS。"""
+        doc_id = uuid4()
+        asset = ExtractionAsset(
+            name="img.png",
+            content_type="image/png",
+            uri="https://mcp.example.com/temp/img.png",
+            data_base64=base64.b64encode(b"fake-png").decode(),
+        )
+
+        mock_storage = AsyncMock()
+        mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
+
+        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+            result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
+
+        assert len(result) == 1
+        assert result[0]["uri"] == "gs://bucket/assets/img.png"
+        mock_storage.upload_extraction_asset.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_skips_upload_for_gcs_uri(self):
+        """已有 GCS URI 时不重复上传。"""
+        doc_id = uuid4()
+        asset = ExtractionAsset(
+            name="img.png",
+            content_type="image/png",
+            uri="gs://bucket/existing/img.png",
+        )
+
+        mock_storage = AsyncMock()
+
+        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+            result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
+
+        assert result[0]["uri"] == "gs://bucket/existing/img.png"
+        mock_storage.upload_extraction_asset.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_uploads_asset_without_uri(self):
+        """无 URI 时正常上传。"""
+        doc_id = uuid4()
+        asset = ExtractionAsset(
+            name="img.png",
+            content_type="image/png",
+            data_base64=base64.b64encode(b"fake-png").decode(),
+        )
+
+        mock_storage = AsyncMock()
+        mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
+
+        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+            result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
+
+        assert result[0]["uri"] == "gs://bucket/assets/img.png"
+        mock_storage.upload_extraction_asset.assert_called_once()
