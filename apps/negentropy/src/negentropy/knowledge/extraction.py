@@ -256,6 +256,24 @@ def _json_candidate_from_text(text: str) -> Any:
         return None
 
 
+# base64 数据字段名优先级序列（覆盖不同 MCP 工具实现的命名习惯）
+_BASE64_FIELD_NAMES = ("data_base64", "content_base64", "data", "base64", "image_data")
+
+
+def _extract_base64_from_asset(item: dict[str, Any]) -> str | None:
+    """从 asset dict 中按优先级提取 base64 编码数据。"""
+    for field_name in _BASE64_FIELD_NAMES:
+        value = item.get(field_name)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _is_gcs_uri(uri: str | None) -> bool:
+    """判断 URI 是否为 GCS 路径。"""
+    return bool(uri and uri.startswith("gs://"))
+
+
 def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
     if not isinstance(raw_assets, list):
         return []
@@ -266,16 +284,22 @@ def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
             continue
         name = str(item.get("name") or item.get("filename") or f"asset-{index + 1}")
         content_type = str(item.get("content_type") or item.get("mime_type") or "application/octet-stream")
+        data_base64 = _extract_base64_from_asset(item)
+        uri = item.get("uri") if isinstance(item.get("uri"), str) else None
+
+        if not data_base64 and not uri and not (isinstance(item.get("text"), str) and item.get("text")):
+            logger.warning(
+                "asset_missing_data_and_uri",
+                asset_name=name,
+                available_keys=sorted(item.keys()),
+            )
+
         assets.append(
             ExtractionAsset(
                 name=name,
                 content_type=content_type,
-                uri=item.get("uri") if isinstance(item.get("uri"), str) else None,
-                data_base64=(
-                    item.get("data_base64")
-                    if isinstance(item.get("data_base64"), str)
-                    else item.get("content_base64")
-                ),
+                uri=uri,
+                data_base64=data_base64,
                 text=item.get("text") if isinstance(item.get("text"), str) else None,
                 metadata=item.get("metadata") if isinstance(item.get("metadata"), dict) else {},
             )
@@ -369,7 +393,8 @@ def _merge_extraction_assets(
 ) -> list[ExtractionAsset]:
     """合并 structured_content 和 content_items 两个来源的资产。
 
-    structured_assets 优先：同名且已含数据的项不被覆盖，缺数据的项被补充。
+    structured_assets 优先：同名且已含有效数据的项不被覆盖。
+    当 structured asset 无 data_base64 且 URI 非 GCS 地址时，允许 content_items 回填。
     """
     if not content_image_assets:
         return structured_assets
@@ -385,7 +410,14 @@ def _merge_extraction_assets(
         if img_asset.name in existing_names:
             existing_idx = existing_names[img_asset.name]
             existing = merged[existing_idx]
-            if not existing.data_base64 and not existing.uri and not existing.text:
+            # structured 已有 base64 数据 → 不覆盖
+            if existing.data_base64:
+                continue
+            # structured 已有 GCS URI → 不覆盖（GCS URI 可直接服务）
+            if _is_gcs_uri(existing.uri):
+                continue
+            # 其他情况（无数据、或 URI 非 GCS）→ 允许用 content_items 数据回填
+            if img_asset.data_base64:
                 merged[existing_idx] = ExtractionAsset(
                     name=existing.name,
                     content_type=img_asset.content_type or existing.content_type,
@@ -2092,7 +2124,11 @@ async def persist_extracted_assets(
     stored_assets: list[dict[str, Any]] = []
     for asset in assets:
         uri = asset.uri
-        if not uri:
+
+        # 上传决策：无 URI 或 URI 非 GCS 且有可上传数据时，需上传到 GCS
+        needs_upload = not uri or (not _is_gcs_uri(uri) and bool(asset.data_base64))
+
+        if needs_upload:
             content_bytes: bytes | None = None
             if asset.data_base64:
                 try:
@@ -2108,6 +2144,12 @@ async def persist_extracted_assets(
                     filename=asset.name,
                     content=content_bytes,
                     content_type=asset.content_type,
+                )
+            elif not _is_gcs_uri(uri):
+                logger.warning(
+                    "asset_no_uploadable_content",
+                    document_id=str(document_id),
+                    asset_name=asset.name,
                 )
 
         stored_assets.append(
