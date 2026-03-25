@@ -279,7 +279,7 @@ export function DocumentViewDialog({
         </div>
 
         {/* Markdown Content - full width */}
-        <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Markdown Content</h3>
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -287,7 +287,7 @@ export function DocumentViewDialog({
             </span>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
+          <div className="min-h-0 min-w-0 flex-1 overflow-auto rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
             {loadingDetail ? (
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading markdown content...</p>
             ) : detailError ? (
