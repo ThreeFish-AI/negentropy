@@ -52,7 +52,7 @@ export function DocumentMarkdownRenderer({
   return (
     <div
       className={cn(
-        "overflow-hidden break-words whitespace-normal text-sm",
+        "min-w-0 overflow-x-auto break-words whitespace-normal text-sm",
         // 段落
         "[&_p]:leading-7 [&_p]:my-1",
         "[&_p+*]:mt-3",
@@ -71,7 +71,7 @@ export function DocumentMarkdownRenderer({
         "[&_pre]:bg-zinc-100 [&_pre]:dark:bg-zinc-800 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-3",
         "[&_pre_code]:bg-transparent [&_pre_code]:p-0",
         // 链接
-        "[&_a]:underline [&_a]:underline-offset-2 [&_a]:text-blue-600 [&_a]:dark:text-blue-400",
+        "[&_a]:underline [&_a]:underline-offset-2 [&_a]:text-blue-600 [&_a]:dark:text-blue-400 [&_a]:break-all",
         // 表格
         "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:text-sm",
         "[&_thead]:bg-zinc-100 [&_thead]:dark:bg-zinc-800/60",
