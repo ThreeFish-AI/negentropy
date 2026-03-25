@@ -283,6 +283,124 @@ def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
     return assets
 
 
+# ---------------------------------------------------------------------------
+# ImageContent 提取与 Markdown 图片引用匹配
+# ---------------------------------------------------------------------------
+
+_MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+
+
+def _extract_markdown_image_refs(markdown_content: str) -> list[str]:
+    """按顺序提取 Markdown 中本地图片引用的文件名。
+
+    排除绝对 URL (http/https/data/blob)，从路径中取最后一段。
+    """
+    refs: list[str] = []
+    for match in _MARKDOWN_IMAGE_RE.finditer(markdown_content):
+        src = match.group(1).strip()
+        if src.startswith(("http://", "https://", "data:", "blob:")):
+            continue
+        filename = src.split("/")[-1].split("\\")[-1]
+        if filename:
+            refs.append(filename)
+    return refs
+
+
+def _mime_to_extension(mime_type: str) -> str:
+    """将 MIME 类型映射为文件扩展名。"""
+    mapping = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/gif": ".gif",
+        "image/webp": ".webp",
+        "image/svg+xml": ".svg",
+        "image/bmp": ".bmp",
+        "image/tiff": ".tiff",
+    }
+    return mapping.get(mime_type.lower(), ".png")
+
+
+def _extract_image_assets_from_content_items(
+    content_items: list[Any],
+    markdown_content: str,
+) -> list[ExtractionAsset]:
+    """从 MCP content_items 中提取 ImageContent 并转换为 ExtractionAsset。
+
+    ImageContent 无文件名字段，通过与 Markdown 中图片引用的顺序一一对应来命名。
+    """
+    image_items: list[Any] = []
+    for item in content_items:
+        if getattr(item, "type", None) == "image":
+            data = getattr(item, "data", None)
+            mime_type = getattr(item, "mimeType", None)
+            if data and mime_type:
+                image_items.append(item)
+
+    if not image_items:
+        return []
+
+    image_refs = _extract_markdown_image_refs(markdown_content)
+
+    assets: list[ExtractionAsset] = []
+    for index, img_item in enumerate(image_items):
+        data = getattr(img_item, "data", "")
+        mime_type = getattr(img_item, "mimeType", "image/png")
+
+        if index < len(image_refs):
+            name = image_refs[index]
+        else:
+            ext = _mime_to_extension(mime_type)
+            name = f"image-content-{index + 1}{ext}"
+
+        assets.append(
+            ExtractionAsset(
+                name=name,
+                content_type=mime_type,
+                data_base64=data,
+            )
+        )
+
+    return assets
+
+
+def _merge_extraction_assets(
+    structured_assets: list[ExtractionAsset],
+    content_image_assets: list[ExtractionAsset],
+) -> list[ExtractionAsset]:
+    """合并 structured_content 和 content_items 两个来源的资产。
+
+    structured_assets 优先：同名且已含数据的项不被覆盖，缺数据的项被补充。
+    """
+    if not content_image_assets:
+        return structured_assets
+    if not structured_assets:
+        return content_image_assets
+
+    existing_names: dict[str, int] = {}
+    for idx, asset in enumerate(structured_assets):
+        existing_names[asset.name] = idx
+
+    merged = list(structured_assets)
+    for img_asset in content_image_assets:
+        if img_asset.name in existing_names:
+            existing_idx = existing_names[img_asset.name]
+            existing = merged[existing_idx]
+            if not existing.data_base64 and not existing.uri and not existing.text:
+                merged[existing_idx] = ExtractionAsset(
+                    name=existing.name,
+                    content_type=img_asset.content_type or existing.content_type,
+                    uri=existing.uri,
+                    data_base64=img_asset.data_base64,
+                    text=existing.text,
+                    metadata={**existing.metadata, "source": "content_items_backfill"},
+                )
+        else:
+            merged.append(img_asset)
+            existing_names[img_asset.name] = len(merged) - 1
+
+    return merged
+
+
 def _schema_properties(schema: Any) -> dict[str, Any]:
     if not isinstance(schema, dict):
         return {}
@@ -1905,7 +2023,10 @@ class DataExtractorProvider:
                     **(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}),
                     "adapter_name": plan.adapter_name,
                 },
-                assets=_normalize_assets(payload.get("assets")),
+                assets=_merge_extraction_assets(
+                    _normalize_assets(payload.get("assets")),
+                    _extract_image_assets_from_content_items(result.content, markdown),
+                ),
                 trace={
                     "adapter_name": plan.adapter_name,
                     "adapter_schema_summary": plan.diagnostics,
