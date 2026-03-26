@@ -1,19 +1,21 @@
-from datetime import datetime
-from typing import Any, Dict
+"""凭证存储模型。"""
 
-from sqlalchemy import DateTime, Index, String, func
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
 
-from negentropy.models.base import NEGENTROPY_SCHEMA, Base
+from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base
 
 
 class Credential(Base):
-    """
-    Credential Model.
+    """凭证存储模型。
 
-    Stores authentication credentials (API Keys, OAuth Tokens, etc.)
-    using a flexible JSONB structure compatible with ADK's AuthCredential.
+    存储认证凭证 (API Keys, OAuth Tokens 等)，
+    使用 JSONB 结构兼容 ADK AuthCredential。
     """
 
     __tablename__ = "credentials"
@@ -24,13 +26,13 @@ class Credential(Base):
     credential_key: Mapped[str] = mapped_column(String(255), primary_key=True)
 
     # Stores the serialized AuthCredential object
-    credential_data: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    credential_data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # 注意：此表只有 updated_at，没有 created_at
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        TIMESTAMP,
+        server_default=func.now(),
+        onupdate=func.now(),
         nullable=False,
     )
 

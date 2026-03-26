@@ -1,9 +1,8 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, TypeDecorator
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy import DateTime, ForeignKey, String, TypeDecorator
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 from sqlalchemy.types import UserDefinedType
@@ -23,7 +22,7 @@ class _VectorImpl(UserDefinedType):
 
     cache_ok = True
 
-    def __init__(self, dim: Optional[int] = None):
+    def __init__(self, dim: int | None = None):
         self.dim = dim
 
     def get_col_spec(self, **kw) -> str:
@@ -57,7 +56,7 @@ class Vector(TypeDecorator):
     impl = String
     cache_ok = True
 
-    def __init__(self, dim: Optional[int] = None):
+    def __init__(self, dim: int | None = None):
         super().__init__()
         self.dim = dim
 
@@ -70,7 +69,7 @@ class Vector(TypeDecorator):
 # =============================================================================
 
 
-def fk(table: str, column: str = "id", ondelete: Optional[str] = None) -> ForeignKey:
+def fk(table: str, column: str = "id", ondelete: str | None = None) -> ForeignKey:
     """创建带 schema 的 ForeignKey
 
     Args:
@@ -116,3 +115,11 @@ class UUIDMixin:
     id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4, server_default=func.gen_random_uuid()
     )
+
+
+# =============================================================================
+# 业务常量
+# =============================================================================
+
+# 默认 Embedding 向量维度 (text-embedding-005 等模型输出 1536 维)
+DEFAULT_EMBEDDING_DIM = 1536
