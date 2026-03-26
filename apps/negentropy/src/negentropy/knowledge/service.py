@@ -709,19 +709,13 @@ class KnowledgeService:
                 ) from exc
 
             if document_id:
-                from .extraction import persist_extracted_assets
-                from negentropy.storage.service import DocumentStorageService
+                from .extraction import store_extracted_document_artifacts
 
-                storage_service = DocumentStorageService()
                 await tracker.start_stage("markdown_store")
-                markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+                markdown_gcs_uri, _ = await store_extracted_document_artifacts(
                     document_id=document_id,
-                    markdown_content=extracted.markdown_content,
-                )
-                await storage_service.save_markdown_content(
-                    document_id=document_id,
-                    markdown_content=extracted.markdown_content,
-                    markdown_gcs_uri=markdown_gcs_uri,
+                    extracted=extracted,
+                    tracker=tracker,
                 )
                 await tracker.complete_stage(
                     "markdown_store",
@@ -731,12 +725,6 @@ class KnowledgeService:
                         "markdown_length": len(extracted.markdown_content),
                     },
                 )
-                await persist_extracted_assets(
-                    document_id=document_id,
-                    assets=extracted.assets,
-                    tracker=tracker,
-                )
-
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -1014,17 +1002,13 @@ class KnowledgeService:
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
             if document_id:
-                from .extraction import persist_extracted_assets
+                from .extraction import store_extracted_document_artifacts
 
                 await tracker.start_stage("markdown_store")
-                markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+                markdown_gcs_uri, _ = await store_extracted_document_artifacts(
                     document_id=document_id,
-                    markdown_content=extracted.markdown_content,
-                )
-                await storage_service.save_markdown_content(
-                    document_id=document_id,
-                    markdown_content=extracted.markdown_content,
-                    markdown_gcs_uri=markdown_gcs_uri,
+                    extracted=extracted,
+                    tracker=tracker,
                 )
                 await tracker.complete_stage(
                     "markdown_store",
@@ -1034,12 +1018,6 @@ class KnowledgeService:
                         "markdown_length": len(extracted.markdown_content),
                     },
                 )
-                await persist_extracted_assets(
-                    document_id=document_id,
-                    assets=extracted.assets,
-                    tracker=tracker,
-                )
-
             metadata = _normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"gcs_uri": source_uri, "rebuild": True},

@@ -13,9 +13,11 @@ import pytest
 
 from negentropy.knowledge.extraction import (
     ExtractionAsset,
+    _extract_enhanced_image_assets,
     _extract_base64_from_asset,
     _extract_image_assets_from_content_items,
     _extract_markdown_image_refs,
+    _guess_image_content_type,
     _is_gcs_uri,
     _merge_extraction_assets,
     _mime_to_extension,
@@ -92,6 +94,17 @@ class TestMimeToExtension:
     def test_case_insensitive(self):
         assert _mime_to_extension("Image/PNG") == ".png"
         assert _mime_to_extension("IMAGE/JPEG") == ".jpg"
+
+
+class TestGuessImageContentType:
+
+    def test_known_suffixes(self):
+        assert _guess_image_content_type("chart.png") == "image/png"
+        assert _guess_image_content_type("chart.jpeg") == "image/jpeg"
+        assert _guess_image_content_type("chart.svg") == "image/svg+xml"
+
+    def test_unknown_suffix_defaults_to_octet_stream(self):
+        assert _guess_image_content_type("chart.bin") == "application/octet-stream"
 
 
 # ---------------------------------------------------------------------------
@@ -380,6 +393,63 @@ class TestNormalizeAssets:
         assert _normalize_assets("not a list") == []
 
 
+class TestExtractEnhancedImageAssets:
+
+    def test_extracts_assets_from_output_directory(self, tmp_path):
+        output_dir = tmp_path / "enhanced"
+        output_dir.mkdir()
+        image_path = output_dir / "figure-1.png"
+        image_path.write_bytes(b"png-data")
+
+        assets = _extract_enhanced_image_assets(
+            {
+                "enhanced_assets": {
+                    "output_directory": str(output_dir),
+                    "images": {"files": ["figure-1.png"]},
+                }
+            }
+        )
+
+        assert len(assets) == 1
+        assert assets[0].name == "figure-1.png"
+        assert assets[0].local_path == str(image_path.resolve())
+        assert assets[0].content_type == "image/png"
+        assert assets[0].metadata["source"] == "enhanced_output_directory"
+
+    def test_ignores_missing_files(self, tmp_path):
+        output_dir = tmp_path / "enhanced"
+        output_dir.mkdir()
+
+        assets = _extract_enhanced_image_assets(
+            {
+                "enhanced_assets": {
+                    "output_directory": str(output_dir),
+                    "images": {"files": ["missing.png"]},
+                }
+            }
+        )
+
+        assert assets == []
+
+    def test_normalizes_nested_paths_to_basename(self, tmp_path):
+        output_dir = tmp_path / "enhanced"
+        output_dir.mkdir()
+        image_path = output_dir / "figure-2.png"
+        image_path.write_bytes(b"png-data")
+
+        assets = _extract_enhanced_image_assets(
+            {
+                "enhanced_assets": {
+                    "output_directory": str(output_dir),
+                    "images": {"files": ["nested/figure-2.png"]},
+                }
+            }
+        )
+
+        assert len(assets) == 1
+        assert assets[0].name == "figure-2.png"
+
+
 # ---------------------------------------------------------------------------
 # persist_extracted_assets
 # ---------------------------------------------------------------------------
@@ -399,6 +469,7 @@ class TestPersistExtractedAssets:
         )
 
         mock_storage = AsyncMock()
+        mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
         mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
 
         with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
@@ -419,6 +490,7 @@ class TestPersistExtractedAssets:
         )
 
         mock_storage = AsyncMock()
+        mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
 
         with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
@@ -437,6 +509,7 @@ class TestPersistExtractedAssets:
         )
 
         mock_storage = AsyncMock()
+        mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
         mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
 
         with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
@@ -444,3 +517,64 @@ class TestPersistExtractedAssets:
 
         assert result[0]["uri"] == "gs://bucket/assets/img.png"
         mock_storage.upload_extraction_asset.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_uploads_asset_from_local_path_and_cleans_stale_manifest(self, tmp_path):
+        doc_id = uuid4()
+        local_file = tmp_path / "img.png"
+        local_file.write_bytes(b"fake-png")
+        asset = ExtractionAsset(
+            name="img.png",
+            content_type="image/png",
+            local_path=str(local_file),
+            metadata={"source": "enhanced_output_directory"},
+        )
+
+        mock_storage = AsyncMock()
+        mock_storage.get_document.return_value = SimpleNamespace(
+            metadata_={
+                "extracted_assets": [
+                    {"name": "stale.png", "uri": "gs://bucket/assets/stale.png", "content_type": "image/png"}
+                ]
+            }
+        )
+        mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
+
+        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+            result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
+
+        assert result == [
+            {
+                "name": "img.png",
+                "content_type": "image/png",
+                "uri": "gs://bucket/assets/img.png",
+                "source": "enhanced_output_directory",
+            }
+        ]
+        mock_storage.update_document_metadata.assert_awaited_once_with(
+            document_id=doc_id,
+            metadata_patch={"extracted_assets": result},
+        )
+        mock_storage.delete_gcs_uri.assert_awaited_once_with(gcs_uri="gs://bucket/assets/stale.png")
+
+    @pytest.mark.asyncio
+    async def test_clears_manifest_when_assets_empty(self):
+        doc_id = uuid4()
+        mock_storage = AsyncMock()
+        mock_storage.get_document.return_value = SimpleNamespace(
+            metadata_={
+                "extracted_assets": [
+                    {"name": "stale.png", "uri": "gs://bucket/assets/stale.png", "content_type": "image/png"}
+                ]
+            }
+        )
+
+        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+            result = await persist_extracted_assets(document_id=doc_id, assets=[])
+
+        assert result == []
+        mock_storage.update_document_metadata.assert_awaited_once_with(
+            document_id=doc_id,
+            metadata_patch={"extracted_assets": []},
+        )
+        mock_storage.delete_gcs_uri.assert_awaited_once_with(gcs_uri="gs://bucket/assets/stale.png")

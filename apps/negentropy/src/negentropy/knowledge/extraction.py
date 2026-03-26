@@ -45,6 +45,7 @@ class ExtractionAsset:
     content_type: str
     uri: str | None = None
     data_base64: str | None = None
+    local_path: str | None = None
     text: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -300,6 +301,7 @@ def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
                 content_type=content_type,
                 uri=uri,
                 data_base64=data_base64,
+                local_path=item.get("local_path") if isinstance(item.get("local_path"), str) else None,
                 text=item.get("text") if isinstance(item.get("text"), str) else None,
                 metadata=item.get("metadata") if isinstance(item.get("metadata"), dict) else {},
             )
@@ -344,6 +346,22 @@ def _mime_to_extension(mime_type: str) -> str:
     return mapping.get(mime_type.lower(), ".png")
 
 
+def _guess_image_content_type(filename: str) -> str:
+    suffix = Path(filename).suffix.lower()
+    mapping = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".bmp": "image/bmp",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+    }
+    return mapping.get(suffix, "application/octet-stream")
+
+
 def _extract_image_assets_from_content_items(
     content_items: list[Any],
     markdown_content: str,
@@ -381,6 +399,7 @@ def _extract_image_assets_from_content_items(
                 name=name,
                 content_type=mime_type,
                 data_base64=data,
+                metadata={"source": "content_items"},
             )
         )
 
@@ -431,6 +450,77 @@ def _merge_extraction_assets(
             existing_names[img_asset.name] = len(merged) - 1
 
     return merged
+
+
+def _extract_enhanced_image_assets(payload: dict[str, Any]) -> list[ExtractionAsset]:
+    """从 enhanced_assets.output_directory + images.files 提取本地图片资产。"""
+    enhanced_assets = payload.get("enhanced_assets")
+    if not isinstance(enhanced_assets, dict):
+        return []
+
+    output_directory = enhanced_assets.get("output_directory")
+    images = enhanced_assets.get("images")
+    if not isinstance(output_directory, str) or not output_directory.strip():
+        return []
+    if not isinstance(images, dict):
+        return []
+
+    files = images.get("files")
+    if not isinstance(files, list):
+        return []
+
+    try:
+        base_dir = Path(output_directory).expanduser().resolve(strict=True)
+    except OSError:
+        logger.warning("enhanced_asset_output_directory_invalid", output_directory=output_directory)
+        return []
+
+    assets: list[ExtractionAsset] = []
+    for raw_name in files:
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            continue
+
+        safe_name = Path(raw_name).name
+        if safe_name != raw_name:
+            logger.warning(
+                "enhanced_asset_filename_normalized",
+                original_name=raw_name,
+                normalized_name=safe_name,
+            )
+
+        candidate = (base_dir / safe_name)
+        try:
+            resolved = candidate.resolve(strict=True)
+        except OSError:
+            logger.warning(
+                "enhanced_asset_file_missing",
+                output_directory=str(base_dir),
+                asset_name=safe_name,
+            )
+            continue
+
+        try:
+            resolved.relative_to(base_dir)
+        except ValueError:
+            logger.warning(
+                "enhanced_asset_path_outside_output_directory",
+                output_directory=str(base_dir),
+                asset_path=str(resolved),
+            )
+            continue
+        if not resolved.is_file():
+            logger.warning("enhanced_asset_not_a_file", asset_path=str(resolved))
+            continue
+
+        assets.append(
+            ExtractionAsset(
+                name=safe_name,
+                content_type=_guess_image_content_type(safe_name),
+                local_path=str(resolved),
+                metadata={"source": "enhanced_output_directory"},
+            )
+        )
+    return assets
 
 
 def _schema_properties(schema: Any) -> dict[str, Any]:
@@ -2056,7 +2146,10 @@ class DataExtractorProvider:
                     "adapter_name": plan.adapter_name,
                 },
                 assets=_merge_extraction_assets(
-                    _normalize_assets(payload.get("assets")),
+                    _merge_extraction_assets(
+                        _normalize_assets(payload.get("assets")),
+                        _extract_enhanced_image_assets(payload),
+                    ),
                     _extract_image_assets_from_content_items(result.content, markdown),
                 ),
                 trace={
@@ -2114,19 +2207,30 @@ async def persist_extracted_assets(
     assets: list[ExtractionAsset],
     tracker: Any | None = None,
 ) -> list[dict[str, Any]]:
-    if not assets:
-        return []
-
     if tracker:
         await tracker.start_stage("extract_assets_store")
 
     storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(document_id=document_id)
+    if not doc:
+        if tracker:
+            await tracker.complete_stage("extract_assets_store", {"asset_count": 0, "document_found": False})
+        return []
+
+    existing_assets = []
+    if isinstance(doc.metadata_, dict):
+        raw_existing_assets = doc.metadata_.get("extracted_assets")
+        if isinstance(raw_existing_assets, list):
+            existing_assets = [item for item in raw_existing_assets if isinstance(item, dict)]
+
     stored_assets: list[dict[str, Any]] = []
     for asset in assets:
         uri = asset.uri
 
         # 上传决策：无 URI 或 URI 非 GCS 且有可上传数据时，需上传到 GCS
-        needs_upload = not uri or (not _is_gcs_uri(uri) and bool(asset.data_base64))
+        needs_upload = not uri or (
+            not _is_gcs_uri(uri) and bool(asset.data_base64 or asset.local_path or asset.text is not None)
+        )
 
         if needs_upload:
             content_bytes: bytes | None = None
@@ -2135,6 +2239,17 @@ async def persist_extracted_assets(
                     content_bytes = base64.b64decode(asset.data_base64)
                 except (ValueError, TypeError):
                     logger.warning("invalid_asset_base64_skipped", document_id=str(document_id), asset_name=asset.name)
+            elif asset.local_path:
+                try:
+                    content_bytes = Path(asset.local_path).read_bytes()
+                except OSError as exc:
+                    logger.warning(
+                        "asset_local_file_read_failed",
+                        document_id=str(document_id),
+                        asset_name=asset.name,
+                        local_path=asset.local_path,
+                        error=str(exc),
+                    )
             elif asset.text is not None:
                 content_bytes = asset.text.encode("utf-8")
 
@@ -2157,13 +2272,59 @@ async def persist_extracted_assets(
                 "name": asset.name,
                 "content_type": asset.content_type,
                 "uri": uri,
-                "metadata": asset.metadata,
+                "source": str(asset.metadata.get("source") or "structured_asset"),
             }
         )
 
+    await storage_service.update_document_metadata(
+        document_id=document_id,
+        metadata_patch={"extracted_assets": stored_assets},
+    )
+    existing_uris = {
+        str(item.get("uri"))
+        for item in existing_assets
+        if isinstance(item.get("uri"), str) and _is_gcs_uri(item.get("uri"))
+    }
+    current_uris = {
+        str(item.get("uri"))
+        for item in stored_assets
+        if isinstance(item.get("uri"), str) and _is_gcs_uri(item.get("uri"))
+    }
+    stale_uris = sorted(existing_uris - current_uris)
+    for stale_uri in stale_uris:
+        await storage_service.delete_gcs_uri(gcs_uri=stale_uri)
+
     if tracker:
-        await tracker.complete_stage("extract_assets_store", {"asset_count": len(stored_assets)})
+        await tracker.complete_stage(
+            "extract_assets_store",
+            {"asset_count": len(stored_assets), "deleted_stale_asset_count": len(stale_uris)},
+        )
     return stored_assets
+
+
+async def store_extracted_document_artifacts(
+    *,
+    document_id: UUID,
+    extracted: ExtractedDocumentResult,
+    tracker: Any | None = None,
+) -> tuple[str | None, list[dict[str, Any]]]:
+    """统一保存提取后的 Markdown 与图片资产。"""
+    storage_service = DocumentStorageService()
+    markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+        document_id=document_id,
+        markdown_content=extracted.markdown_content,
+    )
+    await storage_service.save_markdown_content(
+        document_id=document_id,
+        markdown_content=extracted.markdown_content,
+        markdown_gcs_uri=markdown_gcs_uri,
+    )
+    stored_assets = await persist_extracted_assets(
+        document_id=document_id,
+        assets=extracted.assets,
+        tracker=tracker,
+    )
+    return markdown_gcs_uri, stored_assets
 
 
 def build_url_document_filename(url: str) -> str:

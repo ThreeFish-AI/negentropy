@@ -173,13 +173,18 @@ async def test_sync_document_success(monkeypatch):
             markdown_content="# title\n\ncontent",
         )
 
-    async def fake_persist_extracted_assets(**kwargs):
-        return []
+    async def fake_store_extracted_document_artifacts(**kwargs):
+        fake_storage.saved_markdown = kwargs["extracted"].markdown_content
+        return "gs://derived/markdown.md", []
 
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
     monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
     monkeypatch.setattr(knowledge_api, "extract_source", fake_extract_source)
-    monkeypatch.setattr(knowledge_api, "persist_extracted_assets", fake_persist_extracted_assets)
+    monkeypatch.setattr(
+        knowledge_api,
+        "store_extracted_document_artifacts",
+        fake_store_extracted_document_artifacts,
+    )
 
     result = await knowledge_api.sync_document(
         corpus_id=corpus_id,

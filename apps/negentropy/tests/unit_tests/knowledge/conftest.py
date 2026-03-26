@@ -125,6 +125,9 @@ class FakeStorageService:
         self.saved_markdown: str | None = None
         self.saved_markdown_gcs_uri: str | None = None
         self.uploaded_markdown: str | None = None
+        self.uploaded_assets: list[dict[str, object]] = []
+        self.deleted_gcs_uris: list[str] = []
+        self.updated_metadata_patches: list[dict[str, object]] = []
         self.upload_and_store_calls: list[dict[str, object]] = []
 
     async def get_document(self, *, document_id, corpus_id=None, app_name=None):
@@ -163,8 +166,33 @@ class FakeStorageService:
                 id=uuid4(),
                 gcs_uri="gs://negentropy/knowledge/test.pdf",
                 markdown_extract_status="pending",
+                metadata_={},
             )
         return self.doc, True
+
+    async def upload_extraction_asset(self, *, document_id, filename: str, content: bytes, content_type: str):
+        _ = document_id
+        self.uploaded_assets.append(
+            {
+                "filename": filename,
+                "content": content,
+                "content_type": content_type,
+            }
+        )
+        return f"gs://derived/assets/{filename}"
+
+    async def update_document_metadata(self, *, document_id, metadata_patch: dict):
+        _ = document_id
+        self.updated_metadata_patches.append(metadata_patch)
+        if self.doc is not None:
+            current = dict(getattr(self.doc, "metadata_", {}) or {})
+            current.update(metadata_patch)
+            self.doc.metadata_ = current
+        return True
+
+    async def delete_gcs_uri(self, *, gcs_uri: str):
+        self.deleted_gcs_uris.append(gcs_uri)
+        return True
 
 
 # ---------------------------------------------------------------------------
