@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
+from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
 
 
 class Thread(Base, UUIDMixin, TimestampMixin):
@@ -86,7 +86,7 @@ class Message(Base, UUIDMixin):
     event_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.events.id", ondelete="SET NULL"))
     role: Mapped[str] = mapped_column(String(20), nullable=False)  # 'user', 'assistant', 'tool', 'system'
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(1536))
+    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
@@ -113,22 +113,5 @@ class Snapshot(Base, UUIDMixin):
     thread: Mapped["Thread"] = relationship(back_populates="snapshots")
 
 
-class UserState(Base):
-    __tablename__ = "user_states"
-
-    user_id: Mapped[str] = mapped_column(String(255), primary_key=True)
-    app_name: Mapped[str] = mapped_column(String(255), primary_key=True)
-    state: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
-
-class AppState(Base):
-    __tablename__ = "app_states"
-
-    app_name: Mapped[str] = mapped_column(String(255), primary_key=True)
-    state: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
-
-# Forward references for relationships to be defined in other modules
-from .internalization import ConsolidationJob  # noqa: F401
+# Backward-compatible re-exports (UserState/AppState 已迁移至 state.py)
+from .state import AppState, UserState  # noqa: F401

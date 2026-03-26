@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
+from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
 
 
 class Memory(Base, UUIDMixin, TimestampMixin):
@@ -22,7 +22,7 @@ class Memory(Base, UUIDMixin, TimestampMixin):
         String(50), nullable=False, default="episodic", server_default="'episodic'"
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(1536))
+    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
     retention_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
     access_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
@@ -50,7 +50,7 @@ class Fact(Base, UUIDMixin, TimestampMixin):
     )
     key: Mapped[str] = mapped_column(String(255), nullable=False)
     value: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(1536))
+    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
     valid_until: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)

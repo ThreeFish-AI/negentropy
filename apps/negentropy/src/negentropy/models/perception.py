@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from .base import NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin, Vector
+from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin, Vector
 
 
 class Corpus(Base, UUIDMixin, TimestampMixin):
@@ -35,7 +35,7 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
     )
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(1536))
+    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     # TSVECTOR 用于全文搜索
     search_vector: Mapped[Optional[Any]] = mapped_column(TSVECTOR)
     source_uri: Mapped[Optional[str]] = mapped_column(Text)

@@ -116,3 +116,11 @@ class UUIDMixin:
     id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, default=uuid4, server_default=func.gen_random_uuid()
     )
+
+
+# =============================================================================
+# 业务常量
+# =============================================================================
+
+# 默认 Embedding 向量维度 (text-embedding-005 等模型输出 1536 维)
+DEFAULT_EMBEDDING_DIM = 1536
