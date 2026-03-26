@@ -5,7 +5,7 @@ UserState 和 AppState 使用复合主键（无 UUID），用于存储应用/用
 """
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import JSONB
@@ -22,7 +22,7 @@ class UserState(Base):
 
     user_id: Mapped[str] = mapped_column(String(255), primary_key=True)
     app_name: Mapped[str] = mapped_column(String(255), primary_key=True)
-    state: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    state: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
 
@@ -32,5 +32,5 @@ class AppState(Base):
     __tablename__ = "app_states"
 
     app_name: Mapped[str] = mapped_column(String(255), primary_key=True)
-    state: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    state: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

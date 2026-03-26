@@ -1,6 +1,6 @@
 """子智能体配置模型。"""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy import Boolean, Enum, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -23,16 +23,16 @@ class SubAgent(Base, UUIDMixin, TimestampMixin):
 
     # 基本信息
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    display_name: Mapped[Optional[str]] = mapped_column(String(255))
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    display_name: Mapped[str | None] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
     agent_type: Mapped[str] = mapped_column(String(100), nullable=False)  # llm_agent, workflow, etc.
 
     # Agent 配置
-    system_prompt: Mapped[Optional[str]] = mapped_column(Text)
-    model: Mapped[Optional[str]] = mapped_column(String(100))
-    config: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
-    skills: Mapped[Optional[List[str]]] = mapped_column(JSONB, server_default="[]")
-    tools: Mapped[Optional[List[str]]] = mapped_column(JSONB, server_default="[]")
+    system_prompt: Mapped[str | None] = mapped_column(Text)
+    model: Mapped[str | None] = mapped_column(String(100))
+    config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
+    skills: Mapped[list[str] | None] = mapped_column(JSONB, server_default="[]")
+    tools: Mapped[list[str] | None] = mapped_column(JSONB, server_default="[]")
 
     # 状态
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")

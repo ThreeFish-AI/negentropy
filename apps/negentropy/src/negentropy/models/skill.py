@@ -1,6 +1,6 @@
 """技能模块定义模型。"""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy import Boolean, Enum, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -23,16 +23,16 @@ class Skill(Base, UUIDMixin, TimestampMixin):
 
     # 基本信息
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    display_name: Mapped[Optional[str]] = mapped_column(String(255))
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    display_name: Mapped[str | None] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(100), nullable=False, server_default="general")
     version: Mapped[str] = mapped_column(String(50), nullable=False, server_default="1.0.0")
 
     # 技能定义
-    prompt_template: Mapped[Optional[str]] = mapped_column(Text)
-    config_schema: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
-    default_config: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
-    required_tools: Mapped[Optional[List[str]]] = mapped_column(JSONB, server_default="[]")
+    prompt_template: Mapped[str | None] = mapped_column(Text)
+    config_schema: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
+    default_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
+    required_tools: Mapped[list[str] | None] = mapped_column(JSONB, server_default="[]")
 
     # 状态
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")

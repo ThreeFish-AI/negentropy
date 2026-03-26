@@ -1,6 +1,6 @@
 """MCP Server 与 Tool 定义模型。"""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Boolean, Enum, Index, Integer, String, Text, UniqueConstraint
@@ -24,21 +24,21 @@ class McpServer(Base, UUIDMixin, TimestampMixin):
 
     # 基本信息
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    display_name: Mapped[Optional[str]] = mapped_column(String(255))
-    description: Mapped[Optional[str]] = mapped_column(Text)
+    display_name: Mapped[str | None] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
 
     # 传输配置
     transport_type: Mapped[str] = mapped_column(String(50), nullable=False)  # stdio, sse, http
-    command: Mapped[Optional[str]] = mapped_column(Text)  # for stdio transport
-    args: Mapped[Optional[List[str]]] = mapped_column(JSONB, server_default="[]")
-    env: Mapped[Optional[Dict[str, str]]] = mapped_column(JSONB, server_default="{}")
-    url: Mapped[Optional[str]] = mapped_column(String(500))  # for sse/http
-    headers: Mapped[Optional[Dict[str, str]]] = mapped_column(JSONB, server_default="{}")  # for sse/http
+    command: Mapped[str | None] = mapped_column(Text)  # for stdio transport
+    args: Mapped[list[str] | None] = mapped_column(JSONB, server_default="[]")
+    env: Mapped[dict[str, str] | None] = mapped_column(JSONB, server_default="{}")
+    url: Mapped[str | None] = mapped_column(String(500))  # for sse/http
+    headers: Mapped[dict[str, str] | None] = mapped_column(JSONB, server_default="{}")  # for sse/http
 
     # 状态和配置
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     auto_start: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
-    config: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
+    config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 
     __table_args__ = (
         UniqueConstraint("name", name="mcp_servers_name_unique"),
@@ -48,7 +48,7 @@ class McpServer(Base, UUIDMixin, TimestampMixin):
     )
 
     # Relationships
-    tools: Mapped[List["McpTool"]] = relationship(back_populates="server", cascade="all, delete-orphan")
+    tools: Mapped[list["McpTool"]] = relationship(back_populates="server", cascade="all, delete-orphan")
 
 
 class McpTool(Base, UUIDMixin, TimestampMixin):
@@ -58,15 +58,15 @@ class McpTool(Base, UUIDMixin, TimestampMixin):
 
     server_id: Mapped[UUID] = mapped_column(fk("mcp_servers", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    title: Mapped[Optional[str]] = mapped_column(String(255))
-    display_name: Mapped[Optional[str]] = mapped_column(String(255))
-    description: Mapped[Optional[str]] = mapped_column(Text)
-    input_schema: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    output_schema: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    icons: Mapped[List[Dict[str, Any]]] = mapped_column(JSONB, nullable=False, server_default="[]")
-    annotations: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    execution: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    meta: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    title: Mapped[str | None] = mapped_column(String(255))
+    display_name: Mapped[str | None] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
+    input_schema: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    output_schema: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    icons: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, server_default="[]")
+    annotations: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    execution: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    meta: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     call_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 

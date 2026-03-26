@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -13,7 +13,7 @@ from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, Tim
 class Memory(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "memories"
 
-    thread_id: Mapped[Optional[UUID]] = mapped_column(
+    thread_id: Mapped[UUID | None] = mapped_column(
         ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
     )
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -22,8 +22,8 @@ class Memory(Base, UUIDMixin, TimestampMixin):
         String(50), nullable=False, default="episodic", server_default="'episodic'"
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
-    metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
     retention_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
     access_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     last_accessed_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
@@ -40,7 +40,7 @@ class Memory(Base, UUIDMixin, TimestampMixin):
 class Fact(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "facts"
 
-    thread_id: Mapped[Optional[UUID]] = mapped_column(
+    thread_id: Mapped[UUID | None] = mapped_column(
         ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
     )
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -49,11 +49,11 @@ class Fact(Base, UUIDMixin, TimestampMixin):
         String(50), nullable=False, default="preference", server_default="'preference'"
     )
     key: Mapped[str] = mapped_column(String(255), nullable=False)
-    value: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
+    value: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
-    valid_until: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
+    valid_until: Mapped[datetime | None] = mapped_column(TIMESTAMP)
 
     __table_args__ = (
         UniqueConstraint("user_id", "app_name", "fact_type", "key", name="facts_user_key_unique"),
@@ -69,10 +69,10 @@ class ConsolidationJob(Base, UUIDMixin):
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="'pending'")
     job_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    result: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
-    error: Mapped[Optional[str]] = mapped_column(Text)
-    started_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
+    error: Mapped[str | None] = mapped_column(Text)
+    started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP)
+    completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     thread: Mapped["Thread"] = relationship("Thread", back_populates="consolidation_jobs")
@@ -85,7 +85,7 @@ class Instruction(Base, UUIDMixin):
     instruction_key: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
-    metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     __table_args__ = (
@@ -98,8 +98,8 @@ class MemoryAutomationConfig(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "memory_automation_configs"
 
     app_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    config: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    updated_by: Mapped[Optional[str]] = mapped_column(String(255))
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    updated_by: Mapped[str | None] = mapped_column(String(255))
 
 
 class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
@@ -118,8 +118,8 @@ class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     memory_id: Mapped[str] = mapped_column(String(255), nullable=False)
     decision: Mapped[str] = mapped_column(String(20), nullable=False)
-    note: Mapped[Optional[str]] = mapped_column(Text)
-    idempotency_key: Mapped[Optional[str]] = mapped_column(String(255))
+    note: Mapped[str | None] = mapped_column(Text)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
 
     __table_args__ = (

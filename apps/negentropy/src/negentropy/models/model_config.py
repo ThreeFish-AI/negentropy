@@ -6,7 +6,7 @@ Model Configuration 数据模型。
 """
 
 import enum
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy import Boolean, Enum, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -57,7 +57,7 @@ class ModelConfig(Base, UUIDMixin, TimestampMixin):
     enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
-    config: Mapped[Dict[str, Any]] = mapped_column(
+    config: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, server_default="{}"
     )
 

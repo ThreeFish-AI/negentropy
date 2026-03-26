@@ -1,11 +1,10 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
 
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin, Vector
 
@@ -15,16 +14,16 @@ class Corpus(Base, UUIDMixin, TimestampMixin):
 
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text)
-    config: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, server_default="{}")
+    description: Mapped[str | None] = mapped_column(Text)
+    config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 
     __table_args__ = (
         UniqueConstraint("app_name", "name", name="corpus_app_name_unique"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
-    knowledge_items: Mapped[List["Knowledge"]] = relationship(back_populates="corpus", cascade="all, delete-orphan")
-    documents: Mapped[List["KnowledgeDocument"]] = relationship(back_populates="corpus", cascade="all, delete-orphan")
+    knowledge_items: Mapped[list["Knowledge"]] = relationship(back_populates="corpus", cascade="all, delete-orphan")
+    documents: Mapped[list["KnowledgeDocument"]] = relationship(back_populates="corpus", cascade="all, delete-orphan")
 
 
 class Knowledge(Base, UUIDMixin, TimestampMixin):
@@ -35,19 +34,19 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
     )
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[Optional[List[float]]] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     # TSVECTOR 用于全文搜索
-    search_vector: Mapped[Optional[Any]] = mapped_column(TSVECTOR)
-    source_uri: Mapped[Optional[str]] = mapped_column(Text)
+    search_vector: Mapped[Any | None] = mapped_column(TSVECTOR)
+    source_uri: Mapped[str | None] = mapped_column(Text)
     chunk_index: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     character_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     retrieval_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
-    metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
 
     # Knowledge Graph entity fields
-    entity_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    entity_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    entity_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    entity_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     corpus: Mapped["Corpus"] = relationship(back_populates="knowledge_items")
 
@@ -69,29 +68,29 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     # 存储信息
     gcs_uri: Mapped[str] = mapped_column(Text, nullable=False)
-    content_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # 状态追踪
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", server_default="'active'")
 
     # 上传者信息
-    created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # 预处理后的 Markdown 内容与状态
-    markdown_content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    markdown_gcs_uri: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    markdown_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    markdown_gcs_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     markdown_extract_status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="pending",
         server_default="'pending'",
     )
-    markdown_extract_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    markdown_extracted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    markdown_extract_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    markdown_extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # 可选元数据
-    metadata_: Mapped[Optional[Dict[str, Any]]] = mapped_column("metadata", JSONB, server_default="{}")
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
 
     __table_args__ = (
         UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),

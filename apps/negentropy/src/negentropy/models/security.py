@@ -1,7 +1,7 @@
 """凭证存储模型。"""
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy import Index, String
 from sqlalchemy.dialects.postgresql import JSONB
@@ -26,7 +26,7 @@ class Credential(Base):
     credential_key: Mapped[str] = mapped_column(String(255), primary_key=True)
 
     # Stores the serialized AuthCredential object
-    credential_data: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    credential_data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # 注意：此表只有 updated_at，没有 created_at
     updated_at: Mapped[datetime] = mapped_column(

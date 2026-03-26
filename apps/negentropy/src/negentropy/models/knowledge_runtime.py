@@ -1,6 +1,6 @@
 """知识运行时模型 -- Knowledge Graph 与 Pipeline 执行记录。"""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy import Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
@@ -19,8 +19,8 @@ class _KnowledgeRunMixin:
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     run_id: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="'pending'")
-    payload: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    idempotency_key: Mapped[Optional[str]] = mapped_column(String(255))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    idempotency_key: Mapped[str | None] = mapped_column(String(255))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
 
 
