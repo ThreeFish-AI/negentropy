@@ -303,6 +303,23 @@ class DocumentStorageService:
                     gcs_client.delete(doc.gcs_uri)
                     if doc.markdown_gcs_uri:
                         gcs_client.delete(doc.markdown_gcs_uri)
+                    metadata = dict(doc.metadata_ or {})
+                    extracted_assets = metadata.get("extracted_assets")
+                    if isinstance(extracted_assets, list):
+                        for asset in extracted_assets:
+                            if not isinstance(asset, dict):
+                                continue
+                            uri = asset.get("uri")
+                            if isinstance(uri, str) and uri.startswith("gs://"):
+                                try:
+                                    gcs_client.delete(uri)
+                                except StorageError as exc:
+                                    logger.warning(
+                                        "gcs_delete_asset_failed_proceeding_with_db_delete",
+                                        doc_id=str(document_id),
+                                        asset_uri=uri,
+                                        error=str(exc),
+                                    )
                 except StorageError as exc:
                     logger.warning(
                         "gcs_delete_failed_proceeding_with_db_delete",
@@ -429,6 +446,15 @@ class DocumentStorageService:
             doc.metadata_ = current
             await db.commit()
             return True
+
+    async def delete_gcs_uri(self, *, gcs_uri: str) -> bool:
+        """删除任意 GCS URI；失败时仅记录日志。"""
+        try:
+            self._get_gcs_client().delete(gcs_uri)
+            return True
+        except StorageError as exc:
+            logger.warning("gcs_uri_delete_failed", gcs_uri=gcs_uri, error=str(exc))
+            return False
 
     async def upload_markdown_derivative(
         self,

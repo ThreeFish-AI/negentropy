@@ -4,6 +4,7 @@
 包括批量/单文件 schema 适配、重试机制、failover 和契约诊断。
 """
 
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -1326,3 +1327,80 @@ async def test_data_extractor_provider_structured_assets_take_precedence_over_co
     assert extracted.assets[0].name == "chart.png"
     # structured_content 中的数据应优先
     assert extracted.assets[0].data_base64 == "c3RydWN0dXJlZF9kYXRh"
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_reads_enhanced_assets_from_output_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    server_id = uuid4()
+    output_dir = tmp_path / "enhanced_assets"
+    output_dir.mkdir()
+    (output_dir / "img_1.png").write_bytes(b"png")
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content={
+                    "markdown_content": "# Report\n![](img_1.png)",
+                    "plain_text": "Report",
+                    "enhanced_assets": {
+                        "output_directory": str(output_dir),
+                        "images": {
+                            "count": 1,
+                            "files": ["img_1.png"],
+                        },
+                    },
+                },
+                content=[],
+                error=None,
+                duration_ms=20,
+            )
+
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        lambda: FakeMcpSession(
+            server_id=server_id,
+            input_schema={
+                "type": "object",
+                "properties": {"content_base64": {"type": "string"}},
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._increment_tool_call_count",
+        noop_increment_tool_call_count,
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        noop_llm_plan,
+    )
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    extracted = result["result"]
+    assert len(extracted.assets) == 1
+    assert extracted.assets[0].name == "img_1.png"
+    assert extracted.assets[0].local_path == str((output_dir / "img_1.png").resolve())
+    assert extracted.assets[0].metadata["source"] == "enhanced_output_directory"

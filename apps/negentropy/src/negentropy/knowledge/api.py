@@ -36,6 +36,7 @@ from .extraction import (
     merge_corpus_config,
     persist_extracted_assets,
     resolve_source_kind,
+    store_extracted_document_artifacts,
 )
 from .dao import KnowledgeRunDao
 from .exceptions import (
@@ -1179,24 +1180,15 @@ async def _extract_and_store_document_markdown_from_gcs(
         if not markdown_content:
             raise ValueError("Extractor returned empty markdown content")
 
-        markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+        markdown_gcs_uri, _ = await store_extracted_document_artifacts(
             document_id=document_id,
-            markdown_content=markdown_content,
-        )
-        await storage_service.save_markdown_content(
-            document_id=document_id,
-            markdown_content=markdown_content,
-            markdown_gcs_uri=markdown_gcs_uri,
+            extracted=result,
         )
         logger.info(
             "document_markdown_extraction_completed",
             document_id=str(document_id),
             markdown_size=len(markdown_content),
             markdown_gcs_uri=markdown_gcs_uri,
-        )
-        await persist_extracted_assets(
-            document_id=document_id,
-            assets=result.assets,
         )
     except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
         logger.error(
@@ -1336,7 +1328,7 @@ async def ingest_file(
                     filename=raw_filename,
                     content_type=file.content_type,
                     metadata={"source": "ingest_file", "source_type": "file"},
-                    created_by=user.user_id if user else None,
+                    created_by=getattr(user, "user_id", None),
                 )
                 gcs_uri = doc_record.gcs_uri
 
@@ -2314,18 +2306,9 @@ async def sync_document(
             detail={"code": "EMPTY_CONTENT", "message": "No content extracted from URL"},
         )
 
-    markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+    _, stored_assets = await store_extracted_document_artifacts(
         document_id=document_id,
-        markdown_content=markdown_text,
-    )
-    await storage_service.save_markdown_content(
-        document_id=document_id,
-        markdown_content=markdown_text,
-        markdown_gcs_uri=markdown_gcs_uri,
-    )
-    stored_assets = await persist_extracted_assets(
-        document_id=document_id,
-        assets=extraction_result.assets,
+        extracted=extraction_result,
     )
     chunking_config = _resolve_chunking_config_from_doc_request(
         payload=payload,
