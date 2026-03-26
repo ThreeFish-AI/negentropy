@@ -29,6 +29,8 @@ from .types import (
     SearchConfig,
     chunking_config_summary,
     default_chunking_config,
+    infer_source_type,
+    normalize_source_metadata,
     SourceSummary,
     merge_search_results,
 )
@@ -520,7 +522,7 @@ class KnowledgeService:
         )
 
         try:
-            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
+            normalized_metadata = normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -604,7 +606,7 @@ class KnowledgeService:
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
+            meta = normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
 
             # 后续阶段复用 _ingest_text_with_tracker
@@ -730,7 +732,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
+                metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -804,7 +806,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
+                metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -880,7 +882,7 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
-            metadata = _normalize_source_metadata(
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"source_url": source_uri},
             )
@@ -891,7 +893,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
+                metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -1018,7 +1020,7 @@ class KnowledgeService:
                         "markdown_length": len(extracted.markdown_content),
                     },
                 )
-            metadata = _normalize_source_metadata(
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"gcs_uri": source_uri, "rebuild": True},
             )
@@ -1110,7 +1112,7 @@ class KnowledgeService:
         )
 
         try:
-            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
+            normalized_metadata = normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -1500,7 +1502,7 @@ class KnowledgeService:
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
+            meta = normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
 
             # 后续阶段复用 _ingest_text_with_tracker
@@ -1619,7 +1621,7 @@ class KnowledgeService:
             )
 
             # 准备 metadata（保留原始 URL 信息）
-            metadata = _normalize_source_metadata(
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"source_url": source_uri},
             )
@@ -1804,7 +1806,7 @@ class KnowledgeService:
             )
 
             # 准备 metadata
-            metadata = _normalize_source_metadata(
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"gcs_uri": source_uri, "rebuild": True},
             )
@@ -2687,25 +2689,3 @@ def _guess_content_type(filename: str) -> Optional[str]:
         "markdown": "text/markdown",
     }
     return content_types.get(ext)
-
-
-def _infer_source_type(source_uri: Optional[str]) -> str:
-    if source_uri and source_uri.startswith("gs://"):
-        return "file"
-    if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
-        return "url"
-    if source_uri:
-        return "text"
-    return "unknown"
-
-
-def _normalize_source_metadata(
-    *,
-    source_uri: Optional[str],
-    metadata: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    normalized = dict(metadata or {})
-    source_type = normalized.get("source_type")
-    if source_type not in {"file", "url", "text", "unknown"}:
-        normalized["source_type"] = _infer_source_type(source_uri)
-    return normalized

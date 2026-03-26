@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -39,46 +39,9 @@ from .llm_extractors import (
     CompositeEntityExtractor,
     CompositeRelationExtractor,
 )
-from .types import GraphEdge, GraphNode, KgEntityType, KgRelationType, KnowledgeGraphPayload
+from .types import GraphBuildConfig, GraphEdge, GraphNode, GraphQueryConfig, KgEntityType, KgRelationType, KnowledgeGraphPayload
 
 logger = get_logger("negentropy.knowledge.graph_service")
-
-
-# ============================================================================
-# Configuration Types
-# ============================================================================
-
-
-@dataclass(frozen=True)
-class GraphBuildConfig:
-    """图谱构建配置
-
-    控制实体和关系提取的行为。
-    """
-
-    enable_llm_extraction: bool = True
-    llm_model: Optional[str] = None
-    entity_types: List[str] = field(default_factory=lambda: KgEntityType.all_values())
-    relation_types: List[str] = field(default_factory=lambda: KgRelationType.all_values())
-    min_entity_confidence: float = 0.5
-    min_relation_confidence: float = 0.5
-    batch_size: int = 10
-    max_concurrency: int = 3
-
-
-@dataclass(frozen=True)
-class GraphQueryConfig:
-    """图谱查询配置
-
-    控制图谱检索和遍历的行为。
-    """
-
-    max_depth: int = 2
-    limit: int = 100
-    semantic_weight: float = 0.6
-    graph_weight: float = 0.4
-    include_neighbors: bool = True
-    neighbor_limit: int = 10
 
 
 # ============================================================================
@@ -166,7 +129,10 @@ class GraphService:
             config: 构建配置（可选）
         """
         self._repository = repository or get_graph_repository(session)
-        self._config = config or GraphBuildConfig()
+        self._config = config or GraphBuildConfig(
+            entity_types=tuple(KgEntityType.all_values()),
+            relation_types=tuple(KgRelationType.all_values()),
+        )
 
         # 初始化提取器
         self._entity_extractor = CompositeEntityExtractor(
