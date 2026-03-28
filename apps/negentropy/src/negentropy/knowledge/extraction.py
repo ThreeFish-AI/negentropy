@@ -1745,6 +1745,8 @@ class DataExtractorProvider:
                 content=content,
                 filename=filename,
                 content_type=content_type,
+                tracker=tracker,
+                stage_name=stage_name,
             )
             attempts.append(attempt["attempt"])
 
@@ -1808,6 +1810,8 @@ class DataExtractorProvider:
         content: bytes | None,
         filename: str | None,
         content_type: str | None,
+        tracker: Any | None = None,
+        stage_name: str | None = None,
     ) -> dict[str, Any]:
         tool: McpTool | None = None
         discovered_tool: Any | None = None
@@ -1992,6 +1996,8 @@ class DataExtractorProvider:
                     server=server,
                     target=target,
                     plan=plan,
+                    tracker=tracker,
+                    stage_name=stage_name,
                 )
                 invocation_trace.append(
                     {
@@ -2066,7 +2072,13 @@ class DataExtractorProvider:
         server: McpServer,
         target: McpToolTarget,
         plan: AdaptiveToolInvocationPlan,
+        tracker: Any | None = None,
+        stage_name: str | None = None,
     ) -> Any:
+        event_sink = None
+        if tracker and stage_name:
+            event_sink = tracker.create_stage_event_sink(stage_name)
+
         async with AsyncSessionLocal() as db:
             service = McpToolExecutionService(db, client=self._client)
             execution = await service.execute_tool(
@@ -2076,6 +2088,7 @@ class DataExtractorProvider:
                 arguments=plan.arguments,
                 origin=RUN_ORIGIN_KNOWLEDGE_EXTRACTION,
                 timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
+                external_event_sink=event_sink,
             )
             return execution.call_result
 

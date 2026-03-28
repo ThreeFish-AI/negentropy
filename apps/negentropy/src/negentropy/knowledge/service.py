@@ -185,6 +185,7 @@ class PipelineTracker:
         now = datetime.now(timezone.utc).isoformat()
         stage_data = self._stages.get(stage, {})
         started_at = stage_data.get("started_at")
+        existing_mcp_events = stage_data.get("mcp_events")
 
         self._stages[stage] = {
             "status": "completed",
@@ -193,6 +194,8 @@ class PipelineTracker:
             "duration_ms": self._calculate_duration_ms(started_at, now),
             "output": self._normalize_dict_payload(output),
         }
+        if existing_mcp_events:
+            self._stages[stage]["mcp_events"] = existing_mcp_events
         self._current_stage = None
         await self._persist()
         self._log_stage_event(
@@ -226,6 +229,7 @@ class PipelineTracker:
         if target_stage:
             stage_data = self._stages.get(target_stage, {})
             stage_started_at = stage_data.get("started_at")
+            existing_mcp_events = stage_data.get("mcp_events")
             self._stages[target_stage] = {
                 "status": "failed",
                 "started_at": stage_started_at,
@@ -233,6 +237,8 @@ class PipelineTracker:
                 "duration_ms": self._calculate_duration_ms(stage_started_at, now),
                 "error": error,
             }
+            if existing_mcp_events:
+                self._stages[target_stage]["mcp_events"] = existing_mcp_events
 
         self._status = "failed"
         self._error = error
@@ -259,6 +265,47 @@ class PipelineTracker:
                 "error": error,
             },
         )
+
+    _MAX_STDERR_EVENTS = 5
+    _PERSIST_WORTHY_STAGES = frozenset({"transport_connect", "session_initialized"})
+
+    def buffer_stage_event(self, stage: str, event: Dict[str, Any]) -> None:
+        """同步地将 MCP 子事件缓存到当前 stage 的内存数据中（不触发 DB 写入）。"""
+        stage_data = self._stages.get(stage)
+        if not stage_data:
+            return
+        if "mcp_events" not in stage_data:
+            stage_data["mcp_events"] = []
+
+        mcp_events = stage_data["mcp_events"]
+
+        if event.get("stage") == "stderr":
+            stderr_count = sum(1 for e in mcp_events if e.get("stage") == "stderr")
+            if stderr_count >= self._MAX_STDERR_EVENTS:
+                for i, e in enumerate(mcp_events):
+                    if e.get("stage") == "stderr":
+                        mcp_events.pop(i)
+                        break
+
+        mcp_events.append({
+            **event,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+    def create_stage_event_sink(self, stage: str) -> Callable[[Dict[str, Any]], None]:
+        """工厂方法：创建同步事件回调，对关键事件触发非阻塞 persist。"""
+        import asyncio
+
+        def sink(event: Dict[str, Any]) -> None:
+            self.buffer_stage_event(stage, event)
+            if event.get("stage") in self._PERSIST_WORTHY_STAGES:
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(self._persist())
+                except RuntimeError:
+                    pass
+
+        return sink
 
     async def skip_stage(self, stage: str, reason: Optional[str] = None) -> None:
         """跳过阶段执行"""

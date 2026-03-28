@@ -113,6 +113,7 @@ export type {
   KnowledgePipelinesPayload,
   PipelineRunRecord,
   PipelineStageResult,
+  McpStageEvent,
   PipelineStageStatus,
   PipelineOperation,
   IngestResult,
