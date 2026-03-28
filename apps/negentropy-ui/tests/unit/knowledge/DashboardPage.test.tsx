@@ -122,7 +122,7 @@ describe("KnowledgeDashboardPage polling", () => {
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(9);
   });
 
-  it("存在 running Run 时按 3 秒节奏轮询", async () => {
+  it("存在 running Run 时按 5 秒节奏轮询", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
       runs: [makeRun({ status: "running" })],
       last_updated_at: "t0",
@@ -133,7 +133,7 @@ describe("KnowledgeDashboardPage polling", () => {
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(6000);
+      await vi.advanceTimersByTimeAsync(10000);
     });
     await settle();
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(3);

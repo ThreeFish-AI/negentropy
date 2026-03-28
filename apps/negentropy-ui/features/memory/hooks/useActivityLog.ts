@@ -7,7 +7,7 @@
  * 遵循 AGENTS.md 原则：单一职责、复用驱动
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   readActivities,
   clearActivities,
@@ -39,7 +39,9 @@ export function useActivityLog(
   options: UseActivityLogOptions = {},
 ): UseActivityLogReturnValue {
   const { initialFilter = null } = options;
-  const [allEntries, setAllEntries] = useState<ActivityEntry[]>([]);
+  const [allEntries, setAllEntries] = useState<ActivityEntry[]>(() =>
+    readActivities().reverse(),
+  );
   const [levelFilter, setLevelFilter] = useState<ActivityLevel | null>(
     initialFilter,
   );
@@ -54,11 +56,6 @@ export function useActivityLog(
     clearActivities();
     setAllEntries([]);
   }, []);
-
-  // 挂载时加载
-  useEffect(() => {
-    reload();
-  }, [reload]);
 
   const entries = useMemo(
     () =>
