@@ -10,6 +10,10 @@ export default defineConfig({
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   fullyParallel: true,
+  snapshotPathTemplate: "{snapshotDir}/{arg}{-projectName}{ext}",
+  expect: {
+    toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
+  },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
