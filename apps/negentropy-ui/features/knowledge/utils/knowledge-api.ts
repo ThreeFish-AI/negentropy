@@ -691,6 +691,16 @@ export interface PipelineErrorPayload extends Record<string, unknown> {
   diagnostics?: Record<string, unknown>;
 }
 
+// MCP 工具调用子事件
+export interface McpStageEvent {
+  stage: string;
+  status: string;
+  title: string;
+  timestamp: string;
+  payload?: Record<string, unknown>;
+  detail?: string;
+}
+
 // Pipeline 阶段结果
 export interface PipelineStageResult {
   status: PipelineStageStatus;
@@ -700,6 +710,7 @@ export interface PipelineStageResult {
   error?: PipelineErrorPayload;
   output?: Record<string, unknown>;
   reason?: string; // for skipped status
+  mcp_events?: McpStageEvent[];
 }
 
 // Pipeline Run 记录

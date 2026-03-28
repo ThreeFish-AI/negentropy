@@ -69,6 +69,14 @@ export function PipelineStagesBar({
             {stage.status === "skipped" && stage.reason && (
               <div className="mt-0.5 italic text-zinc-400">{stage.reason}</div>
             )}
+            {stage.mcp_events && stage.mcp_events.length > 0 && (() => {
+              const lastEvent = stage.mcp_events.filter((e) => e.stage !== "stderr").at(-1);
+              return lastEvent ? (
+                <div className="mt-0.5 text-amber-300">
+                  {lastEvent.title} · {lastEvent.status}
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
       ))}

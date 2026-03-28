@@ -48,33 +48,58 @@ export function PipelineRunDetailPanel({ run }: { run: PipelineRunRecord }) {
           <p className="text-[11px] uppercase text-zinc-400 dark:text-zinc-500">Stages</p>
           <div className="mt-2 space-y-2">
             {getSortedStages(run.stages).map(([stageName, stage]) => (
-              <div key={stageName} className="flex min-w-0 items-center gap-2 text-[11px]">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${getStageColor(stageName, stage.status)}`} />
-                <span className="min-w-0 truncate font-medium text-zinc-700 dark:text-zinc-300">
-                  {STAGE_LABELS[stageName] || stageName}
-                </span>
-                <span className="shrink-0 uppercase text-zinc-400">
-                  {stage.status || "unknown"}
-                </span>
-                <span className="shrink-0 text-zinc-400">
-                  {stage.duration_ms ? `${stage.duration_ms}ms` : "-"}
-                </span>
-                {stage.status === "skipped" && stage.reason && (
-                  <span className="truncate text-zinc-400 italic">({stage.reason})</span>
-                )}
-                {stage.error && (
-                  <span className="truncate max-w-[120px] text-rose-500">
-                    {getStageErrorSummary(stage.error)}
+              <div key={stageName}>
+                <div className="flex min-w-0 items-center gap-2 text-[11px]">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${getStageColor(stageName, stage.status)}`} />
+                  <span className="min-w-0 truncate font-medium text-zinc-700 dark:text-zinc-300">
+                    {STAGE_LABELS[stageName] || stageName}
                   </span>
-                )}
-                {stage.output && (
-                  <span className="truncate max-w-[120px] text-emerald-600 dark:text-emerald-400">
-                    {typeof stage.output === "object" && stage.output !== null && "chunk_count" in stage.output
-                      ? `${(stage.output as { chunk_count?: unknown }).chunk_count} chunks`
-                      : typeof stage.output === "object" && stage.output !== null && "record_count" in stage.output
-                        ? `${(stage.output as { record_count?: unknown }).record_count} records`
-                        : ""}
+                  <span className="shrink-0 uppercase text-zinc-400">
+                    {stage.status || "unknown"}
                   </span>
+                  <span className="shrink-0 text-zinc-400">
+                    {stage.duration_ms ? `${stage.duration_ms}ms` : "-"}
+                  </span>
+                  {stage.status === "skipped" && stage.reason && (
+                    <span className="truncate text-zinc-400 italic">({stage.reason})</span>
+                  )}
+                  {stage.error && (
+                    <span className="truncate max-w-[120px] text-rose-500">
+                      {getStageErrorSummary(stage.error)}
+                    </span>
+                  )}
+                  {stage.output && (
+                    <span className="truncate max-w-[120px] text-emerald-600 dark:text-emerald-400">
+                      {typeof stage.output === "object" && stage.output !== null && "chunk_count" in stage.output
+                        ? `${(stage.output as { chunk_count?: unknown }).chunk_count} chunks`
+                        : typeof stage.output === "object" && stage.output !== null && "record_count" in stage.output
+                          ? `${(stage.output as { record_count?: unknown }).record_count} records`
+                          : ""}
+                    </span>
+                  )}
+                </div>
+                {stage.mcp_events && stage.mcp_events.length > 0 && (
+                  <div className="ml-4 mt-1 space-y-0.5">
+                    {stage.mcp_events
+                      .filter((evt) => evt.stage !== "stderr")
+                      .map((evt, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-zinc-500">
+                          <span
+                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                              evt.status === "completed"
+                                ? "bg-emerald-400"
+                                : evt.status === "running"
+                                  ? "bg-amber-400 animate-pulse"
+                                  : evt.status === "failed"
+                                    ? "bg-rose-400"
+                                    : "bg-zinc-300 dark:bg-zinc-600"
+                            }`}
+                          />
+                          <span className="truncate">{evt.title}</span>
+                          <span className="shrink-0 text-zinc-300 dark:text-zinc-600">{evt.status}</span>
+                        </div>
+                      ))}
+                  </div>
                 )}
               </div>
             ))}

@@ -16,7 +16,7 @@ import {
 } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
-const RUNNING_POLL_INTERVAL_MS = 3000;
+const RUNNING_POLL_INTERVAL_MS = 5000;
 const BOOTSTRAP_POLL_INTERVAL_MS = 1000;
 const BOOTSTRAP_POLL_MAX_TICKS = 8;
 
