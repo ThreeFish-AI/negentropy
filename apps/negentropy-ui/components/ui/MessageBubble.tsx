@@ -6,7 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/common";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { getStreamingMarkdownSegments } from "@/utils/streaming-markdown";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { UserAvatar } from "./UserAvatar";
@@ -229,7 +229,8 @@ export function MarkdownContent({
   const segments = getStreamingMarkdownSegments(content, isStreaming);
   const renderMarkdown = (value: string) => (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={defaultRemarkPlugins}
+      rehypePlugins={defaultRehypePlugins}
       components={{
         code({ className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || "");

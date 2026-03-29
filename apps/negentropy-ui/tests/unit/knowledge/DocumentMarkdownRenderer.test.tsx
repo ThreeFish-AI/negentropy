@@ -38,4 +38,43 @@ describe("DocumentMarkdownRenderer", () => {
 
     expect(container.querySelector("img")).toHaveAttribute("src", "https://example.com/image.png");
   });
+
+  it("渲染行内数学公式 $...$ 为 KaTeX 输出", () => {
+    const { container } = render(
+      <DocumentMarkdownRenderer
+        content={"质能方程 $E=mc^2$ 是物理学基础公式。"}
+        corpusId="corpus-1"
+        documentId="document-1"
+      />,
+    );
+
+    const katexElements = container.querySelectorAll(".katex");
+    expect(katexElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("渲染显示数学公式 $$...$$ 为独立 KaTeX 块", () => {
+    const { container } = render(
+      <DocumentMarkdownRenderer
+        content={"下面是公式：\n\n$$\n\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}\n$$"}
+        corpusId="corpus-1"
+        documentId="document-1"
+      />,
+    );
+
+    const katexDisplay = container.querySelectorAll(".katex-display");
+    expect(katexDisplay.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("GFM 表格中嵌入行内公式时表格和公式均正常渲染", () => {
+    const { container } = render(
+      <DocumentMarkdownRenderer
+        content={"| 公式 | 值 |\n| --- | --- |\n| $E=mc^2$ | 质能等价 |"}
+        corpusId="corpus-1"
+        documentId="document-1"
+      />,
+    );
+
+    expect(container.querySelector("table")).not.toBeNull();
+    expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(1);
+  });
 });

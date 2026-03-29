@@ -85,6 +85,31 @@ describe("MessageBubble", () => {
     expect(screen.getByText("const answer = 42;").closest("pre")).not.toBeNull();
   });
 
+  it("聊天消息中的行内数学公式被正确渲染", () => {
+    const { container } = render(
+      <MessageBubble
+        message={{ id: "a-math", role: "assistant", content: "根据 $E=mc^2$，能量与质量等价。" }}
+      />,
+    );
+
+    expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("流式消息中包含数学公式时不崩溃", () => {
+    const { container } = render(
+      <MessageBubble
+        message={{
+          id: "a-math-stream",
+          role: "assistant",
+          content: "计算结果：$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$",
+          streaming: true,
+        }}
+      />,
+    );
+
+    expect(container).toBeTruthy();
+  });
+
   it("流式回复中的未闭合表格尾部会降级为安全文本，完成后恢复为表格", () => {
     const { rerender, container } = render(
       <MessageBubble
