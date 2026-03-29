@@ -318,10 +318,13 @@ export const getPipelineStatusColor = (status?: string): string => {
       return "bg-emerald-500";
     case "running":
     case "in_progress":
+    case "processing":
       return "bg-amber-500 animate-pulse";
     case "failed":
     case "error":
       return "bg-rose-500";
+    case "pending":
+      return "bg-zinc-400 animate-pulse";
     case "skipped":
       return "bg-zinc-300 dark:bg-zinc-600";
     default:
@@ -341,10 +344,13 @@ export const getPipelineStatusTextColor = (status?: string): string => {
       return "text-emerald-600 dark:text-emerald-400";
     case "running":
     case "in_progress":
+    case "processing":
       return "text-amber-600 dark:text-amber-400";
     case "failed":
     case "error":
       return "text-rose-600 dark:text-rose-400";
+    case "pending":
+      return "text-zinc-600 dark:text-zinc-400";
     default:
       return "text-zinc-500 dark:text-zinc-400";
   }

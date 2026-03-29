@@ -45,6 +45,7 @@ import {
   normalizeChunkingConfig,
   encodeSeparatorsForDisplay,
   decodeSeparatorsFromInput,
+  PipelineStatusBadge,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
@@ -551,6 +552,7 @@ export default function KnowledgeBasePage() {
 
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [buildingDocIds, setBuildingDocIds] = useState<Set<string>>(new Set());
 
   const [documentChunks, setDocumentChunks] = useState<DocumentChunkItem[]>([]);
   const [documentChunksMetadata, setDocumentChunksMetadata] = useState<DocumentChunksMetadata>({});
@@ -654,6 +656,15 @@ export default function KnowledgeBasePage() {
     } finally {
       setDocumentsLoading(false);
     }
+  }, [selectedCorpusId]);
+
+  /** 静默刷新：更新文档列表但不显示 Loading 状态 */
+  const silentLoadDocuments = useCallback(async () => {
+    if (!selectedCorpusId) return;
+    try {
+      const res = await fetchDocuments(selectedCorpusId, { appName: APP_NAME, limit: 100, offset: 0 });
+      setDocuments(res.items);
+    } catch { /* 静默刷新失败不阻断 */ }
   }, [selectedCorpusId]);
 
   useEffect(() => {
@@ -932,18 +943,39 @@ export default function KnowledgeBasePage() {
     doc: KnowledgeDocument,
   ) => {
     if (!selectedCorpusId) return;
+
+    // rebuild / sync: 乐观更新 + 静默刷新，避免列表闪烁
+    if (action === "rebuild" || action === "sync") {
+      setBuildingDocIds((prev) => new Set(prev).add(doc.id));
+      toast.info(`正在${action === "rebuild" ? "重建" : "同步"}「${doc.original_filename}」…`);
+      try {
+        if (action === "rebuild") {
+          await rebuildDocument(selectedCorpusId, doc.id, {
+            app_name: APP_NAME,
+            ...corpusChunkingConfig,
+          });
+        } else {
+          await syncDocument(selectedCorpusId, doc.id, {
+            app_name: APP_NAME,
+            ...corpusChunkingConfig,
+          });
+        }
+        toast.success(`${action === "rebuild" ? "重建" : "同步"}已启动「${doc.original_filename}」`);
+        await silentLoadDocuments();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : `${action} failed`);
+      } finally {
+        setBuildingDocIds((prev) => {
+          const next = new Set(prev);
+          next.delete(doc.id);
+          return next;
+        });
+      }
+      return;
+    }
+
     try {
-      if (action === "sync") {
-        await syncDocument(selectedCorpusId, doc.id, {
-          app_name: APP_NAME,
-          ...corpusChunkingConfig,
-        });
-      } else if (action === "rebuild") {
-        await rebuildDocument(selectedCorpusId, doc.id, {
-          app_name: APP_NAME,
-          ...corpusChunkingConfig,
-        });
-      } else if (action === "archive") {
+      if (action === "archive") {
         await archiveDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
       } else if (action === "unarchive") {
         await unarchiveDocument(selectedCorpusId, doc.id, { app_name: APP_NAME });
@@ -1328,7 +1360,16 @@ export default function KnowledgeBasePage() {
                                 onClick={() => syncQueryState({ view: "corpus", corpusId: selectedCorpusId, tab: "document-chunks", documentId: doc.id })}
                               >
                                 <p className="truncate text-sm font-medium">{doc.original_filename}</p>
-                                <p className="text-[11px] text-muted">{sourceType} · {doc.status} · {doc.file_size} bytes</p>
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted">
+                                  <span>{sourceType} · {doc.file_size} bytes</span>
+                                  <PipelineStatusBadge
+                                    status={
+                                      buildingDocIds.has(doc.id)
+                                        ? "processing"
+                                        : doc.markdown_extract_status || doc.status
+                                    }
+                                  />
+                                </div>
                               </button>
                               <div className="flex flex-wrap items-center justify-end gap-1">
                                 <button onClick={() => runDocumentAction("view", doc)} className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}>View</button>
