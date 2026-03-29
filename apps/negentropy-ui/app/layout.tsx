@@ -7,6 +7,7 @@ import { NavigationProvider } from "@/components/providers/NavigationProvider";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

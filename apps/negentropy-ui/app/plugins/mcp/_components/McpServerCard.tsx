@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 
 const MARKDOWN_CONTENT_CLASS = [
@@ -326,7 +326,7 @@ function RichTextContent({
 
   return (
     <div className={`${MARKDOWN_CONTENT_CLASS} text-zinc-600 dark:text-zinc-300`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{parsed.value}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={defaultRemarkPlugins} rehypePlugins={defaultRehypePlugins}>{parsed.value}</ReactMarkdown>
     </div>
   );
 }

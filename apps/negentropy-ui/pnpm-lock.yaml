@@ -38,6 +38,9 @@ importers:
       d3-zoom:
         specifier: ^3.0.0
         version: 3.0.0
+      katex:
+        specifier: ^0.16.33
+        version: 0.16.33
       lucide-react:
         specifier: ^0.525.0
         version: 0.525.0(react@19.2.3)
@@ -65,9 +68,15 @@ importers:
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@19.2.14)(react@19.2.3)
+      rehype-katex:
+        specifier: ^7.0.1
+        version: 7.0.1
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
+      remark-math:
+        specifier: ^6.0.0
+        version: 6.0.0
       rxjs:
         specifier: 7.8.1
         version: 7.8.1

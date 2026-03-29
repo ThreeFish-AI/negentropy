@@ -2,7 +2,7 @@
 
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { cn } from "@/lib/utils";
 import { MermaidDiagram } from "@/components/ui/MermaidDiagram";
 
@@ -87,7 +87,8 @@ export function DocumentMarkdownRenderer({
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={defaultRemarkPlugins}
+        rehypePlugins={defaultRehypePlugins}
         components={{
           img({ src, alt, ...props }) {
             if (!src || typeof src !== "string") return null;
