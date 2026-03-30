@@ -239,6 +239,20 @@ def resolve_targets(raw: dict[str, Any] | None, source_kind: SourceKind) -> list
     return sorted((target for target in targets if target.enabled), key=lambda item: item.priority)
 
 
+# 按 source_kind 的合理默认超时（毫秒），用于 target.timeout_ms 缺失的兜底
+_DEFAULT_EXTRACTION_TIMEOUT_MS: dict[str, int] = {
+    ROUTE_URL: 60_000,           # 1 分钟
+    ROUTE_FILE_PDF: 300_000,     # 5 分钟
+    ROUTE_FILE_GENERIC: 120_000,  # 2 分钟
+}
+_FALLBACK_EXTRACTION_TIMEOUT_MS = 120_000
+
+
+def _default_extraction_timeout_ms(source_kind: SourceKind) -> int:
+    """按 source_kind 返回合理的默认超时值（毫秒）。"""
+    return _DEFAULT_EXTRACTION_TIMEOUT_MS.get(source_kind, _FALLBACK_EXTRACTION_TIMEOUT_MS)
+
+
 def _result_text_from_content_items(content_items: list[Any]) -> str:
     text_chunks: list[str] = []
     for item in content_items:
@@ -1021,7 +1035,13 @@ def _build_plan_from_contract(
     selected_source_kind: str | None = None
     if contract.source_value_type == "string":
         candidates = source_candidates or []
-        preferred_kind = "url" if request.source_kind == ROUTE_URL else "local_path"
+        if request.source_kind == ROUTE_URL:
+            preferred_kind = "url"
+        elif contract.mode == "batch" and contract.source_value_type == "string":
+            # batch string 工具可能运行在远端，base64 比 local_path 更具通用性
+            preferred_kind = "base64_string"
+        else:
+            preferred_kind = "local_path"
         selected_source_kind = _select_string_source_candidate_kind(
             source_candidates=candidates,
             preferred_kind=preferred_kind,
@@ -1813,6 +1833,17 @@ class DataExtractorProvider:
         tracker: Any | None = None,
         stage_name: str | None = None,
     ) -> dict[str, Any]:
+        # 超时兜底: 当 target 未显式配置 timeout_ms 时，按 source_kind 填充合理默认值
+        if not target.timeout_ms:
+            default_ms = _default_extraction_timeout_ms(source_kind)
+            target.timeout_ms = default_ms
+            logger.info(
+                "extraction_target_timeout_defaulted",
+                tool_name=target.tool_name,
+                source_kind=source_kind,
+                default_timeout_ms=default_ms,
+            )
+
         tool: McpTool | None = None
         discovered_tool: Any | None = None
         async with AsyncSessionLocal() as db:
