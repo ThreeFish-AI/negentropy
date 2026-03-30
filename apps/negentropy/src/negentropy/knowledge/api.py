@@ -2724,11 +2724,17 @@ async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
 
 
 @router.get("/pipelines", response_model=KnowledgePipelinesResponse)
-async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> KnowledgePipelinesResponse:
+async def get_pipelines(
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> KnowledgePipelinesResponse:
     resolved_app = _resolve_app_name(app_name)
     dao = _get_dao()
-    runs = await dao.list_pipeline_runs(resolved_app, limit=50)
+    total = await dao.count_pipeline_runs(resolved_app)
+    runs = await dao.list_pipeline_runs(resolved_app, limit=limit, offset=offset)
     return KnowledgePipelinesResponse(
+        count=total,
         runs=[
             PipelineRunRecordResponse(
                 id=str(run.id),
