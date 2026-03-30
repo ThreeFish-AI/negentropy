@@ -185,6 +185,7 @@ class PipelineRunRecordResponse(BaseModel):
 
 
 class KnowledgePipelinesResponse(BaseModel):
+    count: int = 0
     runs: list[PipelineRunRecordResponse] = Field(default_factory=list)
     last_updated_at: Optional[str] = None
 

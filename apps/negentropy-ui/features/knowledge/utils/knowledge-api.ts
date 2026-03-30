@@ -732,6 +732,7 @@ export interface PipelineRunRecord {
 }
 
 export interface KnowledgePipelinesPayload {
+  count?: number;
   last_updated_at?: string;
   runs?: PipelineRunRecord[];
 }
@@ -2027,9 +2028,14 @@ export async function fetchGraphBuildHistory(
 
 export async function fetchPipelines(
   appName?: string,
+  options?: { limit?: number; offset?: number },
 ): Promise<KnowledgePipelinesPayload> {
-  const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
-  const res = await fetch(`/api/knowledge/pipelines${params}`, {
+  const query = new URLSearchParams();
+  if (appName) query.set("app_name", appName);
+  if (options?.limit != null) query.set("limit", String(options.limit));
+  if (options?.offset != null) query.set("offset", String(options.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/pipelines${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
   });
   if (!res.ok) {

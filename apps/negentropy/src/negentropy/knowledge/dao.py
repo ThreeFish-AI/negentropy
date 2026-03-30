@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Type
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
@@ -71,12 +71,23 @@ class KnowledgeRunDao:
             expected_version=expected_version,
         )
 
-    async def list_pipeline_runs(self, app_name: str, limit: int = 50) -> list[KnowledgePipelineRun]:
+    async def count_pipeline_runs(self, app_name: str) -> int:
+        async with self._session_factory() as db:
+            stmt = (
+                select(func.count())
+                .select_from(KnowledgePipelineRun)
+                .where(KnowledgePipelineRun.app_name == app_name)
+            )
+            result = await db.scalar(stmt)
+            return result or 0
+
+    async def list_pipeline_runs(self, app_name: str, limit: int = 50, offset: int = 0) -> list[KnowledgePipelineRun]:
         async with self._session_factory() as db:
             stmt = (
                 select(KnowledgePipelineRun)
                 .where(KnowledgePipelineRun.app_name == app_name)
                 .order_by(KnowledgePipelineRun.updated_at.desc())
+                .offset(offset)
                 .limit(limit)
             )
             result = await db.execute(stmt)
