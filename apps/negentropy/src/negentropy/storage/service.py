@@ -68,23 +68,116 @@ class DocumentStorageService:
         corpus_id: UUID,
         file_hash: str,
     ) -> Optional[KnowledgeDocument]:
-        """Check if document with same hash exists in corpus.
+        """Check if document with same hash exists in corpus (any status).
+
+        查询范围包含所有状态（active / deleted 等），以匹配数据库唯一约束
+        ``uq_knowledge_documents_corpus_hash(corpus_id, file_hash)`` 的实际覆盖范围。
 
         Args:
             corpus_id: Corpus UUID
             file_hash: SHA-256 hash of file content
 
         Returns:
-            Existing document record if found, None otherwise
+            Existing document record if found (including soft-deleted), None otherwise
         """
         async with AsyncSessionLocal() as db:
             stmt = select(KnowledgeDocument).where(
                 KnowledgeDocument.corpus_id == corpus_id,
                 KnowledgeDocument.file_hash == file_hash,
-                KnowledgeDocument.status == "active",
             )
             result = await db.execute(stmt)
             return result.scalar_one_or_none()
+
+    @staticmethod
+    def _best_effort_cleanup_gcs(
+        gcs_client: GCSStorageClient,
+        *,
+        old_gcs_uri: Optional[str],
+        old_markdown_gcs_uri: Optional[str],
+        old_metadata: Optional[dict],
+    ) -> None:
+        """Best-effort 清理旧 GCS 资源，失败仅记录日志，不阻断主流程。"""
+        for uri in (old_gcs_uri, old_markdown_gcs_uri):
+            if uri:
+                try:
+                    gcs_client.delete(uri)
+                except StorageError:
+                    logger.warning("reactivate_old_gcs_cleanup_failed", uri=uri)
+
+        old_assets = (old_metadata or {}).get("extracted_assets")
+        if isinstance(old_assets, list):
+            for asset in old_assets:
+                if isinstance(asset, dict):
+                    uri = asset.get("uri")
+                    if isinstance(uri, str) and uri.startswith("gs://"):
+                        try:
+                            gcs_client.delete(uri)
+                        except StorageError:
+                            logger.warning("reactivate_old_asset_cleanup_failed", uri=uri)
+
+    async def _reactivate_document(
+        self,
+        existing_doc: KnowledgeDocument,
+        app_name: str,
+        content: bytes,
+        filename: str,
+        content_type: Optional[str] = None,
+        metadata: Optional[dict] = None,
+        created_by: Optional[str] = None,
+    ) -> KnowledgeDocument:
+        """复活 soft-deleted 文档：重新上传 GCS 并更新记录状态。
+
+        soft-delete 后 GCS 文件可能已被清理，因此需要重新上传。
+        同时重置 Markdown 提取状态以触发重新提取。
+        """
+        gcs_client = self._get_gcs_client()
+        gcs_path = gcs_client.build_gcs_path(app_name, str(existing_doc.corpus_id), filename)
+
+        gcs_uri = gcs_client.upload(
+            content=content,
+            gcs_path=gcs_path,
+            content_type=content_type,
+        )
+
+        async with AsyncSessionLocal() as db:
+            stmt = select(KnowledgeDocument).where(KnowledgeDocument.id == existing_doc.id)
+            result = await db.execute(stmt)
+            doc = result.scalar_one_or_none()
+            if not doc:
+                raise StorageError(f"Document {existing_doc.id} disappeared during reactivation")
+
+            # Best-effort 清理旧 GCS 资源，防止孤立 blob 积累
+            self._best_effort_cleanup_gcs(
+                gcs_client,
+                old_gcs_uri=doc.gcs_uri if doc.gcs_uri != gcs_uri else None,
+                old_markdown_gcs_uri=doc.markdown_gcs_uri,
+                old_metadata=doc.metadata_,
+            )
+
+            doc.status = "active"
+            doc.gcs_uri = gcs_uri
+            doc.original_filename = filename
+            doc.content_type = content_type
+            doc.file_size = len(content)
+            doc.metadata_ = metadata or {}
+            doc.created_by = created_by
+            doc.markdown_content = None
+            doc.markdown_gcs_uri = None
+            doc.markdown_extract_status = "pending"
+            doc.markdown_extract_error = None
+            doc.markdown_extracted_at = None
+
+            await db.commit()
+            await db.refresh(doc)
+
+            logger.info(
+                "document_reactivated",
+                doc_id=str(doc.id),
+                corpus_id=str(doc.corpus_id),
+                gcs_uri=gcs_uri,
+                file_hash=doc.file_hash,
+            )
+            return doc
 
     async def upload_and_store(
         self,
@@ -121,16 +214,36 @@ class DocumentStorageService:
         # Compute hash
         file_hash = GCSStorageClient.compute_hash(content)
 
-        # Check for duplicate
+        # Check for duplicate (any status, including soft-deleted)
         existing = await self.check_duplicate(corpus_id, file_hash)
         if existing:
+            if existing.status == "active":
+                logger.info(
+                    "document_duplicate_found",
+                    corpus_id=str(corpus_id),
+                    file_hash=file_hash,
+                    existing_doc_id=str(existing.id),
+                )
+                return existing, False
+
+            # soft-deleted 文档重新摄入 → 复活
             logger.info(
-                "document_duplicate_found",
+                "document_reactivating_soft_deleted",
                 corpus_id=str(corpus_id),
                 file_hash=file_hash,
                 existing_doc_id=str(existing.id),
+                previous_status=existing.status,
             )
-            return existing, False
+            reactivated = await self._reactivate_document(
+                existing_doc=existing,
+                app_name=app_name,
+                content=content,
+                filename=filename,
+                content_type=content_type,
+                metadata=metadata,
+                created_by=created_by,
+            )
+            return reactivated, False
 
         # Build GCS path
         gcs_client = self._get_gcs_client()
@@ -164,16 +277,33 @@ class DocumentStorageService:
                 await db.commit()
                 await db.refresh(doc)
             except IntegrityError:
-                # Race condition: another upload completed first
+                # Race condition: another request completed first, or soft-deleted doc exists
                 await db.rollback()
                 existing = await self.check_duplicate(corpus_id, file_hash)
                 if existing:
+                    if existing.status == "active":
+                        logger.info(
+                            "document_race_condition_resolved",
+                            corpus_id=str(corpus_id),
+                            file_hash=file_hash,
+                        )
+                        return existing, False
+                    # 并发场景下发现 deleted 文档 → 复活
                     logger.info(
-                        "document_race_condition_resolved",
+                        "document_race_condition_reactivating",
                         corpus_id=str(corpus_id),
                         file_hash=file_hash,
                     )
-                    return existing, False
+                    reactivated = await self._reactivate_document(
+                        existing_doc=existing,
+                        app_name=app_name,
+                        content=content,
+                        filename=filename,
+                        content_type=content_type,
+                        metadata=metadata,
+                        created_by=created_by,
+                    )
+                    return reactivated, False
                 raise
 
             logger.info(
