@@ -72,6 +72,11 @@ from .lifecycle_schemas import (  # noqa: F401
     WikiPublicationListResponse as _WikiPubListResp,
     WikiPublicationResponse as _WikiPubResp,
     WikiPublishActionResponse,
+    # Phase 5: 统一检索与语料质量 Schemas
+    UnifiedSearchRequest as _UnifiedSearchReq,
+    UnifiedSearchResponse as _UnifiedSearchResp,
+    CorpusQualityResponse as _CorpusQualityResp,
+    CorpusVersionResponse as _CorpusVersionResp,
 )
 
 from negentropy.auth.deps import get_optional_user
@@ -4018,3 +4023,164 @@ async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
         markdown_content=content_data["markdown_content"],
         document_filename=content_data["filename"] or "",
     )
+
+
+# =============================================================================
+# Phase 5: 统一检索 & 语料质量 API
+# =============================================================================
+
+_corpus_engine: Optional["CorpusEngine"] = None
+_retrieval_service: Optional["UnifiedRetrievalService"] = None
+
+
+def _get_corpus_engine() -> "CorpusEngine":
+    global _corpus_engine
+    if _corpus_engine is None:
+        from .corpus_engine import CorpusEngine
+        _corpus_engine = CorpusEngine()
+    return _corpus_engine
+
+
+def _get_retrieval_service() -> "UnifiedRetrievalService":
+    global _retrieval_service
+    if _retrieval_service is None:
+        from .retrieval import UnifiedRetrievalService
+        _retrieval_service = UnifiedRetrievalService()
+    return _retrieval_service
+
+
+# --- 语料质量评估 ---
+
+@router.get("/base/{corpus_id}/quality")
+async def assess_corpus_quality(corpus_id: UUID) -> _CorpusQualityResp:
+    """多维质量评分
+
+    对语料库进行 6 维度质量评估：覆盖度、新鲜度、多样性、信息密度、
+    嵌入覆盖率、实体密度。返回综合分数和评级 (excellent/good/fair/poor)。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        result = await engine.assess_quality(db, corpus_id)
+
+    logger.info("api_corpus_quality", corpus_id=str(corpus_id), score=result.get("total_score"))
+    return result
+
+
+@router.post("/base/{corpus_id}/versions")
+async def create_corpus_version(
+    corpus_id: UUID,
+    notes: Optional[str] = Query(default=None),
+) -> _CorpusVersionResp:
+    """创建语料库版本快照
+
+    记录当前文档数量和质量分数，用于后续对比分析。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        snapshot = await engine.create_version_snapshot(
+            db,
+            corpus_id=corpus_id,
+            notes=notes or "Manual snapshot via API",
+            triggered_by="api",
+        )
+        await db.commit()
+
+    return {
+        "id": str(snapshot.id),
+        "corpus_id": str(corpus_id),
+        "version_number": snapshot.version_number,
+        "quality_score": snapshot.quality_score,
+        "document_count": snapshot.document_count,
+        "diff_summary": snapshot.diff_summary,
+        "created_at": snapshot.created_at.isoformat() if snapshot.created_at else None,
+    }
+
+
+@router.get("/base/{corpus_id}/versions")
+async def get_corpus_versions(
+    corpus_id: UUID,
+    limit: int = Query(default=20, ge=1, le=50),
+):
+    """获取版本历史"""
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        versions = await engine.get_version_history(db, corpus_id, limit=limit)
+
+    return {"items": versions}
+
+
+@router.get("/base/{corpus_id}/suggestions")
+async def suggest_cross_references(
+    corpus_id: UUID,
+    limit: int = Query(default=10, ge=1, le=20),
+):
+    """跨语料引用推荐
+
+    基于项目内其他语料库的文档信息推荐可能相关的内容。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        suggestions = await engine.suggest_cross_references(db, corpus_id, limit=limit)
+
+    return {"items": suggestions}
+
+
+# --- 统一检索 ---
+
+@router.post("/unified/search")
+async def unified_search(body: _UnifiedSearchReq) -> _UnifiedSearchResp:
+    """统一检索入口
+
+    核心特性：
+    - 自动意图分类（事实型/探索型/对比型/导航型/图查询型）
+    - 分面过滤（corpus_ids / source_types / entity_types / date_range）
+    - 排名可解释性（semantic_score / keyword_score / combined_score）
+    - 可选引用生成与图谱丰富
+    """
+    svc = _get_retrieval_service()
+
+    async with AsyncSessionLocal() as db:
+        result = await svc.search(
+            db,
+            query=body.query,
+            corpus_ids=body.corpus_ids,
+            source_types=body.source_types,
+            entity_types=body.entity_types,
+            date_from=body.date_from,
+            date_to=body.date_to,
+            limit=body.limit or 20,
+            offset=body.offset or 0,
+            include_citations=body.include_citations or False,
+            include_entities=body.include_entities or False,
+            mode=body.mode,
+        )
+
+    logger.info("api_unified_search", query=body.query[:80], intent=result.get("query_intent"),
+                   count=len(result.get("items", [])))
+
+    return result
+
+
+@router.post("/unified/feedback")
+async def record_search_feedback(
+    feedback_type: str = Query(..., description="click | useful | not_useful"),
+    query_text: Optional[str] = Query(default=None),
+    document_id: Optional[UUID] = Query(default=None),
+):
+    """记录检索反馈（用于优化检索质量）"""
+    svc = _get_retrieval_service()
+
+    async with AsyncSessionLocal() as db:
+        await svc.record_feedback(
+            db,
+            feedback_type=feedback_type,
+            query_text=query_text,
+            document_id=document_id,
+        )
+        await db.commit()
+
+    return {"detail": "Feedback recorded", "feedback_type": feedback_type}
