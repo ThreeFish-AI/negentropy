@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 from .constants import DEFAULT_KEYWORD_WEIGHT, DEFAULT_SEMANTIC_WEIGHT, TEXT_PREVIEW_MAX_LENGTH
 from .exceptions import SearchError
 from .extraction import ExtractedDocumentResult, ROUTE_URL, extract_source, resolve_source_kind
+from .source_tracking import SourceTrackingService, TrackingContext
 from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
@@ -378,6 +379,15 @@ class KnowledgeService:
         self._chunking_config = chunking_config or default_chunking_config()
         self._reranker = reranker or NoopReranker()
         self._pipeline_dao = pipeline_dao
+        # Phase 2: 来源追踪服务（懒初始化）
+        self._source_tracker: SourceTrackingService | None = None
+
+    @property
+    def source_tracker(self) -> SourceTrackingService:
+        """懒初始化来源追踪服务"""
+        if self._source_tracker is None:
+            self._source_tracker = SourceTrackingService()
+        return self._source_tracker
 
     async def _resume_async_pipeline_tracker(self, tracker: PipelineTracker) -> PipelineTracker:
         await tracker.resume()
@@ -410,7 +420,8 @@ class KnowledgeService:
         app_name: str,
         url: str,
         tracker: Optional[PipelineTracker] = None,
-    ) -> str:
+    ) -> tuple[str, ExtractedDocumentResult]:
+        """提取 URL 内容，返回 (plain_text, 完整结果)"""
         result = await extract_source(
             app_name=app_name,
             corpus_id=corpus_id,
@@ -419,7 +430,7 @@ class KnowledgeService:
             url=url,
             tracker=tracker,
         )
-        return result.plain_text
+        return result.plain_text, result
 
     async def _extract_file_content(
         self,
@@ -740,6 +751,7 @@ class KnowledgeService:
                         "trace": extracted.trace,
                     },
                 )
+
             except ValueError as exc:
                 from .exceptions import KnowledgeError
                 from .extraction import ExtractorExecutionError
@@ -756,6 +768,32 @@ class KnowledgeService:
                     message=f"Failed to extract content: {exc}",
                     details=details or None,
                 ) from exc
+
+            # Phase 2: 来源追踪（文件类型自动判断）
+            if document_id:
+                await tracker.start_stage("source_tracking")
+                try:
+                    source_kind = resolve_source_kind(
+                        source_uri=source_uri or filename,
+                        filename=filename,
+                        content_type=content_type,
+                    )
+                    tracking_ctx = TrackingContext(
+                        tracker_run_id=tracker.run_id if tracker else None,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                    )
+                    async with self._repository.session() as db:
+                        await self.source_tracker.track(
+                            db,
+                            document_id=document_id,
+                            result=extracted,
+                            source_kind=source_kind,
+                            context=tracking_ctx,
+                        )
+                except Exception as track_exc:
+                    logger.warning("source_tracking_failed", error=str(track_exc), exc_info=True)
+                await tracker.complete_stage("source_tracking")
 
             if document_id:
                 from .extraction import store_extracted_document_artifacts
@@ -1532,7 +1570,7 @@ class KnowledgeService:
 
         try:
             try:
-                text = await self._extract_url_content(
+                text, extract_result = await self._extract_url_content(
                     corpus_id=corpus_id,
                     app_name=app_name,
                     url=url,
@@ -1551,6 +1589,45 @@ class KnowledgeService:
             # Merge metadata
             meta = normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
+
+            # Phase 2: 来源追踪（在 chunking 之前执行，不阻塞主流程）
+            if tracker:
+                await tracker.start_stage("source_tracking")
+            try:
+                # 从 records 中获取 document_id（在 _ingest_text_with_tracker 中创建）
+                async with self._repository.session() as db:
+                    # 查找刚创建的文档（通过 URL 在 metadata 中匹配）
+                    from sqlalchemy import select
+                    from negentropy.models.perception import KnowledgeDocument
+
+                    result = await db.execute(
+                        select(KnowledgeDocument)
+                        .where(KnowledgeDocument.corpus_id == corpus_id)
+                        .where(KnowledgeDocument.gcs_uri.like(  # noqa: S608
+                            f"%{url.replace('%', '\\%').replace('_', '\\_')}%",
+                            escape="\\",
+                        ))
+                        .order_by(KnowledgeDocument.created_at.desc())
+                        .limit(1)
+                    )
+                    doc = result.scalar_one_or_none()
+                    if doc and extract_result:
+                        tracking_ctx = TrackingContext(
+                            tracker_run_id=tracker.run_id if tracker else None,
+                            corpus_id=corpus_id,
+                            app_name=app_name,
+                        )
+                        await self.source_tracker.track(
+                            db,
+                            document_id=doc.id,
+                            result=extract_result,
+                            source_kind="url",
+                            context=tracking_ctx,
+                        )
+            except Exception as track_exc:
+                logger.warning("source_tracking_failed", error=str(track_exc), exc_info=True)
+            if tracker:
+                await tracker.complete_stage("source_tracking")
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(

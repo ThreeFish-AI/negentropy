@@ -6,7 +6,25 @@ from .mcp import McpServer, McpTool
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
 from .model_config import ModelConfig, ModelType
 from .observability import Trace
-from .perception import Corpus, Knowledge, KnowledgeDocument
+from .perception import (
+    Corpus,
+    Knowledge,
+    KnowledgeDocument,
+    # Phase 2: 来源追踪
+    DocSource,
+    # Phase 3: 目录编目
+    DocCatalogNode,
+    DocCatalogMembership,
+    # Phase 4: Wiki 发布
+    WikiPublication,
+    WikiPublicationEntry,
+    # Phase 5: 知识图谱增强
+    KgEntity,
+    KgRelation,
+    KgEntityMention,
+    CorpusVersion,
+    KnowledgeFeedback,
+)
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
 from .pulse import Event, Message, Run, Snapshot, Thread
 from .security import Credential
@@ -48,6 +66,20 @@ __all__ = [
     "Corpus",
     "Knowledge",
     "KnowledgeDocument",
+    # Phase 2: 来源追踪
+    "DocSource",
+    # Phase 3: 目录编目
+    "DocCatalogNode",
+    "DocCatalogMembership",
+    # Phase 4: Wiki 发布
+    "WikiPublication",
+    "WikiPublicationEntry",
+    # Phase 5: 知识图谱增强
+    "KgEntity",
+    "KgRelation",
+    "KgEntityMention",
+    "CorpusVersion",
+    "KnowledgeFeedback",
     # Knowledge Runtime
     "KnowledgeGraphRun",
     "KnowledgePipelineRun",
