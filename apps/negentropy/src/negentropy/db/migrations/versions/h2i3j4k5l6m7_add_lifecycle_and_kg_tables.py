@@ -40,50 +40,10 @@ schema = negentropy.models.base.NEGENTROPY_SCHEMA
 
 def upgrade() -> None:
     # =========================================================================
-    # 1. 扩展现有表
+    # 1. 先创建所有新表（确保 FK 目标表存在）
     # =========================================================================
 
-    # 1a. knowledge_documents 新增 source_id 外键
-    op.add_column(
-        "knowledge_documents",
-        sa.Column(
-            "source_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey(f"{schema}.doc_sources.id", ondelete="SET NULL"),
-            nullable=True,
-        ),
-        schema=schema,
-    )
-    op.create_index(
-        "ix_knowledge_documents_source_id",
-        "knowledge_documents",
-        ["source_id"],
-        schema=schema,
-    )
-
-    # 1b. corpus 新增字段
-    op.add_column("corpus", sa.Column("quality_score", sa.Float(), nullable=True), schema=schema)
-    op.add_column("corpus", sa.Column("corpus_type", sa.String(length=50), nullable=True), schema=schema)
-    op.add_column(
-        "corpus",
-        sa.Column("tags", postgresql.JSONB(astext_type=sa.Text()), server_default="{}"),
-        schema=schema,
-    )
-    op.add_column(
-        "corpus",
-        sa.Column(
-            "parent_corpus_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey(f"{schema}.corpus.id", ondelete="SET NULL"),
-            nullable=True,
-        ),
-        schema=schema,
-    )
-
-    # =========================================================================
-    # 2. Phase 2: 文档来源追踪
-    # =========================================================================
-
+    # 1a. Phase 2: 文档来源追踪
     op.create_table(
         "doc_sources",
         sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
@@ -202,7 +162,7 @@ def upgrade() -> None:
         sa.Column("canonical_name", sa.String(length=500), nullable=True),
         sa.Column("entity_type", sa.String(length=50), nullable=False),
         sa.Column("aliases", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("embedding", postgresql.Vector(1536), nullable=True),
+        sa.Column("embedding", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("confidence", sa.Float(), nullable=False, server_default="1.0"),
         sa.Column("mention_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("source_count", sa.Integer(), nullable=False, server_default="0"),
@@ -218,12 +178,8 @@ def upgrade() -> None:
         schema=schema,
     )
     op.create_index("ix_kg_entities_corpus_type", "kg_entities", ["corpus_id", "entity_type"], schema=schema)
-    # HNSW 索引用用于向量搜索（需要 pgvector 扩展）
-    op.execute(f"""
-        CREATE INDEX IF NOT EXISTS ix_kg_entities_embedding
-        ON {schema}.kg_entities USING hnsw (embedding vector_cosine_ops)
-        WITH (m = 16, ef_construction = 64);
-    """)
+    # NOTE: HNSW 向量索引 (ix_kg_entities_embedding) 需要 pgvector 扩展 + embedding 列为 vector 类型
+    # 当前 embedding 列使用 JSONB 存储，待确认 pgvector 可用后通过独立 migration 添加向量索引
     op.create_index("ix_kg_entities_confidence", "kg_entities", ["confidence"], schema=schema)
 
     op.create_table(
@@ -329,6 +285,47 @@ def upgrade() -> None:
     op.create_index("ix_kb_feedback_session", "knowledge_feedback", ["session_id"], schema=schema)
     op.create_index("ix_kb_feedback_type", "knowledge_feedback", ["feedback_type"], schema=schema)
     op.create_index("ix_kb_feedback_created", "knowledge_feedback", ["created_at"], schema=schema)
+
+    # =========================================================================
+    # 2. 扩展现有表（此时所有 FK 目标表已创建完毕）
+    # =========================================================================
+
+    # 2a. knowledge_documents 新增 source_id 外键
+    op.add_column(
+        "knowledge_documents",
+        sa.Column(
+            "source_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey(f"{schema}.doc_sources.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+        schema=schema,
+    )
+    op.create_index(
+        "ix_knowledge_documents_source_id",
+        "knowledge_documents",
+        ["source_id"],
+        schema=schema,
+    )
+
+    # 2b. corpus 新增字段
+    op.add_column("corpus", sa.Column("quality_score", sa.Float(), nullable=True), schema=schema)
+    op.add_column("corpus", sa.Column("corpus_type", sa.String(length=50), nullable=True), schema=schema)
+    op.add_column(
+        "corpus",
+        sa.Column("tags", postgresql.JSONB(astext_type=sa.Text()), server_default="{}"),
+        schema=schema,
+    )
+    op.add_column(
+        "corpus",
+        sa.Column(
+            "parent_corpus_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey(f"{schema}.corpus.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+        schema=schema,
+    )
 
 
 def downgrade() -> None:
