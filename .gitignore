@@ -246,3 +246,6 @@ apps/negentropy-ui/.yarn/*
 
 # Temp files
 .temp/
+
+# Custom
+.claude/
