@@ -55,12 +55,36 @@ from .schemas import (  # noqa: F401
     _LegacyChunkingRequest,
 )
 
+# Phase 2-4: 生命周期管理 Schemas
+from .lifecycle_schemas import (  # noqa: F401
+    AssignDocumentRequest,
+    CatalogNodeCreateRequest as _CatalogNodeCreateReq,
+    CatalogNodeResponse as _CatalogNodeResp,
+    CatalogNodeUpdateRequest as _CatalogNodeUpdateReq,
+    CatalogTreeResponse,
+    CategorySuggestionResponse,
+    DocSourceListResponse as _DocSourceListResp,
+    DocSourceResponse as _DocSourceResp,
+    DocumentProvenanceResponse,
+    WikiEntryContentResponse,
+    WikiNavTreeResponse,
+    WikiPublicationCreateRequest as _WikiPubCreateReq,
+    WikiPublicationListResponse as _WikiPubListResp,
+    WikiPublicationResponse as _WikiPubResp,
+    WikiPublishActionResponse,
+    # Phase 5: 统一检索与语料质量 Schemas
+    UnifiedSearchRequest as _UnifiedSearchReq,
+    UnifiedSearchResponse as _UnifiedSearchResp,
+    CorpusQualityResponse as _CorpusQualityResp,
+    CorpusVersionResponse as _CorpusVersionResp,
+)
+
 from negentropy.auth.deps import get_optional_user
 from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
-from negentropy.models.perception import Corpus, Knowledge
+from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
 
@@ -3265,3 +3289,898 @@ async def get_api_stats(
             failed_count=failed_count,
             avg_latency_ms=round(avg_latency_ms, 2),
         )
+
+
+# =============================================================================
+# Phase 2: 文档来源追踪 API
+# =============================================================================
+
+
+def _to_source_resp(doc_source) -> _DocSourceResp:
+    """将 DocSource ORM 对象转换为 API 响应 Schema（消除三处重复构建）"""
+    return _DocSourceResp(
+        id=doc_source.id,
+        document_id=doc_source.document_id,
+        source_type=doc_source.source_type,
+        source_url=doc_source.source_url,
+        original_url=doc_source.original_url,
+        title=doc_source.title,
+        author=doc_source.author,
+        extracted_summary=doc_source.extracted_summary,
+        extraction_duration_ms=doc_source.extraction_duration_ms,
+        extracted_at=doc_source.extracted_at,
+        extractor_tool_name=doc_source.extractor_tool_name,
+        extractor_server_id=doc_source.extractor_server_id,
+        raw_metadata=doc_source.raw_metadata or {},
+        created_at=doc_source.created_at,
+        updated_at=doc_source.updated_at,
+    )
+
+
+@router.get("/sources")
+async def list_doc_sources(
+    corpus_id: Optional[UUID] = Query(default=None),
+    source_type: Optional[str] = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> _DocSourceListResp:
+    """列出文档来源记录
+
+    支持按语料库 ID 和来源类型过滤，返回分页结果。
+
+    Args:
+        corpus_id: 语料库 ID（可选，不传则返回空列表）
+        source_type: 来源类型过滤（url/file_pdf/file_generic/text_input）
+        offset: 分页偏移量
+        limit: 每页数量上限
+
+    Returns:
+        来源记录列表及总数
+    """
+    service = _get_service()
+
+    # corpus_id 为必传参数（DAO 层依赖其进行关联查询）
+    if corpus_id is None:
+        logger.info("api_list_sources", corpus_id=None, total=0)
+        return _DocSourceListResp(items=[], total=0, offset=offset, limit=limit)
+
+    async with AsyncSessionLocal() as db:
+        sources, total = await service.source_tracker.list_sources(
+            db=db,
+            corpus_id=corpus_id,
+            source_type=source_type,
+            offset=offset,
+            limit=limit,
+        )
+
+    logger.info(
+        "api_list_sources",
+        corpus_id=str(corpus_id),
+        source_type=source_type,
+        total=total,
+    )
+
+    items = [_to_source_resp(s) for s in sources]
+
+    return _DocSourceListResp(items=items, total=total, offset=offset, limit=limit)
+
+
+@router.get("/sources/{source_id}")
+async def get_doc_source(
+    source_id: UUID,
+) -> _DocSourceResp:
+    """获取单个来源记录详情
+
+    Args:
+        source_id: 来源记录 UUID
+
+    Returns:
+        来源详情
+
+    Raises:
+        404: 来源记录不存在
+    """
+    service = _get_service()
+
+    async with AsyncSessionLocal() as db:
+        doc_source = await service.source_tracker.get_by_id(db, source_id)
+
+    if doc_source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source record not found")
+
+    logger.info("api_get_source", source_id=str(source_id))
+
+    return _to_source_resp(doc_source)
+
+
+@router.get("/documents/{document_id}/source")
+async def get_document_provenance(
+    document_id: UUID,
+) -> DocumentProvenanceResponse:
+    """查询文档的溯源信息（来源追踪）
+
+    返回该 KnowledgeDocument 的基本信息及其关联的 DocSource 记录，
+    用于追溯文档的原始来源（URL/PDF/文件/文本输入）。
+
+    Args:
+        document_id: KnowledgeDocument 的 UUID
+
+    Returns:
+        文档基本信息 + 嵌套的来源追踪信息
+
+    Raises:
+        404: 文档不存在或无关联的来源记录
+    """
+    from sqlalchemy import select as sql_select
+
+    service = _get_service()
+
+    async with AsyncSessionLocal() as db:
+        # 1. 查询文档基本信息
+        doc_stmt = sql_select(KnowledgeDocument).where(KnowledgeDocument.id == document_id)
+        doc_result = await db.execute(doc_stmt)
+        doc = doc_result.scalar_one_or_none()
+
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document {document_id} not found",
+            )
+
+        # 2. 查询来源追踪记录
+        doc_source = await service.source_tracker.get_provenance(db, document_id)
+
+    if doc_source is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No source tracking record for document {document_id}",
+        )
+
+    logger.info(
+        "api_document_provenance",
+        document_id=str(document_id),
+        source_id=str(doc_source.id),
+        source_type=doc_source.source_type,
+    )
+
+    # 构建嵌套的来源信息
+    source_resp = _to_source_resp(doc_source)
+
+    return DocumentProvenanceResponse(
+        document_id=document_id,
+        filename=doc.filename or "",
+        file_hash=doc.file_hash or "",
+        content_type=doc.content_type,
+        status=doc.status or "unknown",
+        markdown_extract_status=doc.markdown_extract_status or "unknown",
+        source=source_resp,
+    )
+
+
+# =============================================================================
+# Phase 3: 文档目录编目 API
+# =============================================================================
+
+_catalog_service: Optional["CatalogService"] = None
+
+
+def _get_catalog_service() -> "CatalogService":
+    global _catalog_service
+    if _catalog_service is None:
+        from .catalog_service import CatalogService
+        _catalog_service = CatalogService()
+    return _catalog_service
+
+
+def _to_catalog_node_resp(row: dict, *, children_count: int = 0, document_count: int = 0) -> _CatalogNodeResp:
+    """将 DAO 树查询行转换为 API 响应 Schema"""
+    return _CatalogNodeResp(
+        id=row["id"],
+        corpus_id=UUID("00000000-0000-0000-0000-000000000000"),  # tree query 不返回 corpus_id，由调用方补充
+        parent_id=row.get("parent_id"),
+        name=row["name"],
+        slug=row["slug"],
+        node_type=row["node_type"],
+        description=row.get("description"),
+        sort_order=row["sort_order"],
+        config=row.get("config") or {},
+        depth=row.get("depth", 0),
+        children_count=children_count,
+        document_count=document_count,
+    )
+
+
+# --- 目录树查询 ---
+
+@router.get("/catalog/tree/{corpus_id}")
+async def get_catalog_tree(
+    corpus_id: UUID,
+) -> CatalogTreeResponse:
+    """获取语料库完整目录树
+
+    返回扁平化的节点列表，每个节点含 depth（层级深度）和 path（祖先路径），
+    前端可根据这些信息构建树形 UI 组件。
+
+    Args:
+        corpus_id: 语料库 ID
+
+    Returns:
+        目录树节点列表及统计信息
+    """
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        tree_data = await catalog_svc.get_tree(db, corpus_id)
+
+    # 计算每个节点的子节点数
+    id_to_children_count: dict[UUID, int] = {}
+    for node in tree_data:
+        pid = node.get("parent_id")
+        if pid is not None:
+            id_to_children_count[pid] = id_to_children_count.get(pid, 0) + 1
+
+    items = [
+        _to_catalog_node_resp(
+            node,
+            children_count=id_to_children_count.get(node["id"], 0),
+        )
+        for node in tree_data
+    ]
+
+    max_depth = max((n.get("depth", 0) for n in tree_data), default=0) if tree_data else 0
+
+    logger.info(
+        "api_get_catalog_tree",
+        corpus_id=str(corpus_id),
+        total_nodes=len(items),
+        max_depth=max_depth,
+    )
+
+    return CatalogTreeResponse(tree=items, total_nodes=len(items), max_depth=max_depth)
+
+
+@router.get("/catalog/nodes/{node_id}")
+async def get_catalog_node(node_id: UUID) -> _CatalogNodeResp:
+    """获取单个目录节点详情"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        node = await catalog_svc.get_node(db, node_id)
+
+    if node is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+
+    logger.info("api_get_catalog_node", node_id=str(node_id))
+    return _CatalogNodeResp.model_validate(node)
+
+
+@router.get("/catalog/subtree/{node_id}")
+async def get_catalog_subtree(node_id: UUID) -> CatalogTreeResponse:
+    """获取以指定节点为根的子树"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        subtree_data = await catalog_svc.get_subtree(db, node_id)
+
+    items = [_to_catalog_node_resp(n) for n in subtree_data]
+    max_depth = max((n.get("depth", 0) for n in subtree_data), default=0) if subtree_data else 0
+
+    return CatalogTreeResponse(tree=items, total_nodes=len(items), max_depth=max_depth)
+
+
+# --- 目录节点 CRUD ---
+
+@router.post("/catalog/nodes")
+async def create_catalog_node(
+    body: _CatalogNodeCreateReq,
+    corpus_id: UUID = Query(..., description="所属语料库 ID"),
+) -> _CatalogNodeResp:
+    """创建目录节点
+
+    支持创建 category / collection / document_ref 三种类型的节点。
+    可选指定 parent_id 构建层级关系。
+    """
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            node = await catalog_svc.create_node(
+                db,
+                corpus_id=corpus_id,
+                name=body.name,
+                slug=body.slug,
+                parent_id=body.parent_id,
+                node_type=body.node_type,
+                description=body.description,
+                sort_order=body.sort_order,
+                config=body.config if body.config else None,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        await db.commit()
+
+    logger.info("api_create_catalog_node", node_id=str(node.id), corpus_id=str(corpus_id))
+    resp = _CatalogNodeResp.model_validate(node)
+    resp.corpus_id = corpus_id
+    return resp
+
+
+@router.patch("/catalog/nodes/{node_id}")
+async def update_catalog_node(
+    node_id: UUID,
+    body: _CatalogNodeUpdateReq,
+) -> _CatalogNodeResp:
+    """更新目录节点属性"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        # 过滤掉 None 值，只传递实际更新的字段
+        update_kwargs = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
+        if not update_kwargs:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+
+        try:
+            node = await catalog_svc.update_node(db, node_id, **update_kwargs)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if node is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+
+        await db.commit()
+
+    logger.info("api_update_catalog_node", node_id=str(node_id))
+    return _CatalogNodeResp.model_validate(node)
+
+
+@router.delete("/catalog/nodes/{node_id}")
+async def delete_catalog_node(node_id: UUID):
+    """删除目录节点（级联删除所有子节点和文档关联）"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        deleted = await catalog_svc.delete_node(db, node_id)
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+        await db.commit()
+
+    logger.info("api_delete_catalog_node", node_id=str(node_id))
+    return {"detail": "Catalog node deleted", "node_id": str(node_id)}
+
+
+@router.post("/catalog/nodes/{node_id}/move")
+async def move_catalog_node(
+    node_id: UUID,
+    new_parent_id: Optional[UUID] = Query(default=None),
+) -> _CatalogNodeResp:
+    """移动目录节点到新的父节点下
+
+    传入 new_parent_id=null 可将节点提升为根节点。
+    自动检测并防止循环引用。
+    """
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            node = await catalog_svc.move_node(db, node_id, new_parent_id=new_parent_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if node is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+
+        await db.commit()
+
+    logger.info("api_move_catalog_node", node_id=str(node_id), new_parent_id=str(new_parent_id) if new_parent_id else "root")
+    return _CatalogNodeResp.model_validate(node)
+
+
+# --- 文档归属管理 ---
+
+@router.post("/catalog/nodes/{node_id}/documents")
+async def assign_documents_to_node(
+    node_id: UUID,
+    body: AssignDocumentRequest,
+):
+    """将一批文档归入目录节点（幂等操作）"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        assigned_count = 0
+        errors: list[str] = []
+        for doc_id in body.document_ids:
+            try:
+                await catalog_svc.assign_document(db, node_id, doc_id)
+                assigned_count += 1
+            except ValueError as exc:
+                errors.append(f"{doc_id}: {exc}")
+
+        await db.commit()
+
+    logger.info("api_assign_documents", node_id=str(node_id), assigned=assigned_count, errors=len(errors))
+
+    result = {"assigned_count": assigned_count, "total_requested": len(body.document_ids)}
+    if errors:
+        result["errors"] = errors
+    return result
+
+
+@router.delete("/catalog/nodes/{node_id}/documents/{document_id}")
+async def unassign_document_from_node(
+    node_id: UUID,
+    document_id: UUID,
+):
+    """从目录节点移除文档归属"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        removed = await catalog_svc.unassign_document(db, node_id, document_id)
+        await db.commit()
+
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found in catalog node {node_id}",
+        )
+
+    logger.info("api_unassign_document", node_id=str(node_id), document_id=str(document_id))
+    return {"detail": "Document unassigned from catalog node"}
+
+
+@router.get("/catalog/nodes/{node_id}/documents")
+async def get_node_documents(
+    node_id: UUID,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """获取目录节点下的文档列表（分页）"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        documents, total = await catalog_svc.get_node_documents(
+            db, node_id, offset=offset, limit=limit
+        )
+
+    items = []
+    for doc in documents:
+        items.append({
+            "id": str(doc.id),
+            "filename": doc.filename,
+            "title": (doc.metadata_ or {}).get("title") or doc.filename,
+            "status": doc.status,
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        })
+
+    logger.info("api_get_node_documents", node_id=str(node_id), total=total)
+    return {"items": items, "total": total, "offset": offset, "limit": limit}
+
+
+@router.get("/documents/{document_id}/catalog-nodes")
+async def get_document_catalog_nodes(document_id: UUID):
+    """获取文档所属的所有目录节点"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        nodes = await catalog_svc.get_document_nodes(db, document_id)
+
+    items = [
+        {
+            "id": str(n.id),
+            "name": n.name,
+            "slug": n.slug,
+            "node_type": n.node_type,
+            "parent_id": str(n.parent_id) if n.parent_id else None,
+        }
+        for n in nodes
+    ]
+
+    logger.info("api_get_document_catalog_nodes", document_id=str(document_id), count=len(items))
+    return {"items": items}
+
+
+# =============================================================================
+# Phase 4: Wiki 发布 API
+# =============================================================================
+
+_wiki_service: Optional["WikiPublishingService"] = None
+
+
+def _get_wiki_service() -> "WikiPublishingService":
+    global _wiki_service
+    if _wiki_service is None:
+        from .wiki_service import WikiPublishingService
+        _wiki_service = WikiPublishingService()
+    return _wiki_service
+
+
+# --- Publication CRUD ---
+
+@router.post("/wiki/publications")
+async def create_wiki_publication(
+    body: _WikiPubCreateReq,
+) -> _WikiPubResp:
+    """创建新的 Wiki 发布记录
+
+    初始状态为 draft，需调用 publish 端点后 SSG 应用才能拉取数据。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            pub = await wiki_svc.create_publication(
+                db,
+                corpus_id=body.corpus_id,
+                name=body.name,
+                slug=body.slug,
+                description=body.description,
+                theme=body.theme,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        await db.commit()
+
+    logger.info("api_create_wiki_pub", pub_id=str(pub.id), corpus_id=str(body.corpus_id))
+    resp = _WikiPubResp.model_validate(pub)
+    resp.entries_count = 0
+    return resp
+
+
+@router.get("/wiki/publications")
+async def list_wiki_publications(
+    corpus_id: Optional[UUID] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> _WikiPubListResp:
+    """列出 Wiki 发布记录"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        pubs, total = await wiki_svc.list_publications(
+            db, corpus_id=corpus_id, status=status, offset=offset, limit=limit
+        )
+
+    items = []
+    for pub in pubs:
+        resp = _WikiPubResp.model_validate(pub)
+        # 获取条目数（懒加载，避免 N+1）
+        entries_count = len(pub.entries) if hasattr(pub, "entries") and pub.entries else 0
+        resp.entries_count = entries_count
+        items.append(resp)
+
+    return _WikiPubListResp(items=items, total=total)
+
+
+@router.get("/wiki/publications/{pub_id}")
+async def get_wiki_publication(pub_id: UUID) -> _WikiPubResp:
+    """获取单个 Wiki 发布详情"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        pub = await wiki_svc.get_publication(db, pub_id)
+
+    if pub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+
+    resp = _WikiPubResp.model_validate(pub)
+    resp.entries_count = len(pub.entries) if hasattr(pub, "entries") and pub.entries else 0
+    return resp
+
+
+@router.patch("/wiki/publications/{pub_id}")
+async def update_wiki_publication(
+    pub_id: UUID,
+    body: dict,  # 使用 dict 接受灵活更新字段
+):
+    """更新 Wiki 发布属性（部分更新）"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            pub = await wiki_svc.update_publication(db, pub_id, **body)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if pub is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+        await db.commit()
+
+    logger.info("api_update_wiki_pub", pub_id=str(pub_id))
+    return {"detail": "Publication updated"}
+
+
+@router.delete("/wiki/publications/{pub_id}")
+async def delete_wiki_publication(pub_id: UUID):
+    """删除 Wiki 发布（级联删除所有条目）"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        deleted = await wiki_svc.delete_publication(db, pub_id)
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+        await db.commit()
+
+    logger.info("api_delete_wiki_pub", pub_id=str(pub_id))
+    return {"detail": "Publication deleted"}
+
+
+# --- 发布操作 ---
+
+@router.post("/wiki/publications/{pub_id}/publish")
+async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
+    """触发发布：将 draft/published 状态转为 published，递增版本号
+
+    SSG 应用 (apps/negentropy-wiki) 在 ISR 再验证窗口内会自动拉取最新数据。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            pub = await wiki_svc.publish(db, pub_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if pub is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+
+        entries = await wiki_svc.get_entries(db, pub_id)
+        await db.commit()
+
+    logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version)
+
+    return WikiPublishActionResponse(
+        publication_id=pub.id,
+        status=pub.status,
+        version=pub.version,
+        published_at=pub.published_at,
+        entries_count=len(entries),
+        message=f"Published successfully (v{pub.version})",
+    )
+
+
+@router.post("/wiki/publications/{pub_id}/unpublish")
+async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
+    """取消发布：published → draft"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        pub = await wiki_svc.unpublish(db, pub_id)
+        if pub is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+        entries = await wiki_svc.get_entries(db, pub_id)
+        await db.commit()
+
+    return WikiPublishActionResponse(
+        publication_id=pub.id,
+        status=pub.status,
+        version=pub.version,
+        published_at=pub.published_at,
+        entries_count=len(entries),
+        message="Unpublished successfully",
+    )
+
+
+# --- 条目管理 ---
+
+@router.get("/wiki/publications/{pub_id}/entries")
+async def get_wiki_entries(pub_id: UUID):
+    """获取发布的所有条目列表"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        entries = await wiki_svc.get_entries(db, pub_id)
+
+    items = [
+        {
+            "id": str(e.id),
+            "document_id": str(e.document_id),
+            "entry_slug": e.entry_slug,
+            "entry_title": e.entry_title,
+            "is_index_page": e.is_index_page,
+        }
+        for e in entries
+    ]
+
+    return {"items": items, "total": len(items)}
+
+
+@router.get("/wiki/publications/{pub_id}/nav-tree")
+async def get_wiki_nav_tree(pub_id: UUID) -> WikiNavTreeResponse:
+    """获取 Wiki 导航树结构
+
+    供 SSG 构建时生成侧边栏导航。基于 entries 自动构建扁平列表，
+    前端可根据 entry_order 字段自行组装层级树。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        nav_tree = await wiki_svc.get_nav_tree(db, pub_id)
+
+    return WikiNavTreeResponse(publication_id=pub_id, nav_tree={"items": nav_tree})
+
+
+@router.get("/wiki/entries/{entry_id}/content")
+async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
+    """获取单条 Wiki 条目的 Markdown 内容
+
+    供 SSG 构建时拉取文档内容进行静态渲染。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        content_data = await wiki_svc.get_entry_content(db, entry_id)
+
+    if content_data is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki entry not found")
+
+    logger.info("api_wiki_entry_content", entry_id=str(entry_id))
+
+    return WikiEntryContentResponse(
+        entry_id=entry_id,
+        document_id=content_data["document_id"],
+        entry_slug="",  # 需要额外查询 entry 表获取
+        entry_title=content_data["title"],
+        markdown_content=content_data["markdown_content"],
+        document_filename=content_data["filename"] or "",
+    )
+
+
+# =============================================================================
+# Phase 5: 统一检索 & 语料质量 API
+# =============================================================================
+
+_corpus_engine: Optional["CorpusEngine"] = None
+_retrieval_service: Optional["UnifiedRetrievalService"] = None
+
+
+def _get_corpus_engine() -> "CorpusEngine":
+    global _corpus_engine
+    if _corpus_engine is None:
+        from .corpus_engine import CorpusEngine
+        _corpus_engine = CorpusEngine()
+    return _corpus_engine
+
+
+def _get_retrieval_service() -> "UnifiedRetrievalService":
+    global _retrieval_service
+    if _retrieval_service is None:
+        from .retrieval import UnifiedRetrievalService
+        _retrieval_service = UnifiedRetrievalService()
+    return _retrieval_service
+
+
+# --- 语料质量评估 ---
+
+@router.get("/base/{corpus_id}/quality")
+async def assess_corpus_quality(corpus_id: UUID) -> _CorpusQualityResp:
+    """多维质量评分
+
+    对语料库进行 6 维度质量评估：覆盖度、新鲜度、多样性、信息密度、
+    嵌入覆盖率、实体密度。返回综合分数和评级 (excellent/good/fair/poor)。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        result = await engine.assess_quality(db, corpus_id)
+
+    logger.info("api_corpus_quality", corpus_id=str(corpus_id), score=result.get("total_score"))
+    return result
+
+
+@router.post("/base/{corpus_id}/versions")
+async def create_corpus_version(
+    corpus_id: UUID,
+    notes: Optional[str] = Query(default=None),
+) -> _CorpusVersionResp:
+    """创建语料库版本快照
+
+    记录当前文档数量和质量分数，用于后续对比分析。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        snapshot = await engine.create_version_snapshot(
+            db,
+            corpus_id=corpus_id,
+            notes=notes or "Manual snapshot via API",
+            triggered_by="api",
+        )
+        await db.commit()
+
+    return {
+        "id": str(snapshot.id),
+        "corpus_id": str(corpus_id),
+        "version_number": snapshot.version_number,
+        "quality_score": snapshot.quality_score,
+        "document_count": snapshot.document_count,
+        "diff_summary": snapshot.diff_summary,
+        "created_at": snapshot.created_at.isoformat() if snapshot.created_at else None,
+    }
+
+
+@router.get("/base/{corpus_id}/versions")
+async def get_corpus_versions(
+    corpus_id: UUID,
+    limit: int = Query(default=20, ge=1, le=50),
+):
+    """获取版本历史"""
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        versions = await engine.get_version_history(db, corpus_id, limit=limit)
+
+    return {"items": versions}
+
+
+@router.get("/base/{corpus_id}/suggestions")
+async def suggest_cross_references(
+    corpus_id: UUID,
+    limit: int = Query(default=10, ge=1, le=20),
+):
+    """跨语料引用推荐
+
+    基于项目内其他语料库的文档信息推荐可能相关的内容。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        suggestions = await engine.suggest_cross_references(db, corpus_id, limit=limit)
+
+    return {"items": suggestions}
+
+
+# --- 统一检索 ---
+
+@router.post("/unified/search")
+async def unified_search(body: _UnifiedSearchReq) -> _UnifiedSearchResp:
+    """统一检索入口
+
+    核心特性：
+    - 自动意图分类（事实型/探索型/对比型/导航型/图查询型）
+    - 分面过滤（corpus_ids / source_types / entity_types / date_range）
+    - 排名可解释性（semantic_score / keyword_score / combined_score）
+    - 可选引用生成与图谱丰富
+    """
+    svc = _get_retrieval_service()
+
+    async with AsyncSessionLocal() as db:
+        result = await svc.search(
+            db,
+            query=body.query,
+            corpus_ids=body.corpus_ids,
+            source_types=body.source_types,
+            entity_types=body.entity_types,
+            date_from=body.date_from,
+            date_to=body.date_to,
+            limit=body.limit or 20,
+            offset=body.offset or 0,
+            include_citations=body.include_citations or False,
+            include_entities=body.include_entities or False,
+            mode=body.mode,
+        )
+
+    logger.info("api_unified_search", query=body.query[:80], intent=result.get("query_intent"),
+                   count=len(result.get("items", [])))
+
+    return result
+
+
+@router.post("/unified/feedback")
+async def record_search_feedback(
+    feedback_type: str = Query(..., description="click | useful | not_useful"),
+    query_text: Optional[str] = Query(default=None),
+    document_id: Optional[UUID] = Query(default=None),
+):
+    """记录检索反馈（用于优化检索质量）"""
+    svc = _get_retrieval_service()
+
+    async with AsyncSessionLocal() as db:
+        await svc.record_feedback(
+            db,
+            feedback_type=feedback_type,
+            query_text=query_text,
+            document_id=document_id,
+        )
+        await db.commit()
+
+    return {"detail": "Feedback recorded", "feedback_type": feedback_type}
