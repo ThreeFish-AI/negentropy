@@ -2062,3 +2062,175 @@ export async function upsertPipelines(params: {
   }
   return res.json();
 }
+
+// ============================================================================
+// Catalog Types (目录编册 — 对齐后端 catalog_dao.py)
+// ============================================================================
+
+export type CatalogNodeType = "category" | "collection" | "document_ref";
+
+/** 目录节点 — 对齐后端 DocCatalogNode + CTE 扩展字段 */
+export interface CatalogNode {
+  id: string;
+  corpus_id: string;
+  name: string;
+  slug: string;
+  parent_id: string | null;
+  node_type: CatalogNodeType;
+  description: string | null;
+  sort_order: number;
+  config: Record<string, unknown>;
+  /** CTE 计算字段：层级深度（根节点为 0） */
+  depth?: number;
+  /** CTE 计算字段：从根到当前节点的 ID 路径数组 */
+  path?: string[];
+  /** 前端派生：子节点数量 */
+  children_count?: number;
+  /** 前端派生：关联文档数量 */
+  document_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateCatalogNodeParams {
+  corpus_id: string;
+  name: string;
+  slug: string;
+  parent_id?: string | null;
+  node_type?: CatalogNodeType;
+  description?: string;
+  sort_order?: number;
+  config?: Record<string, unknown>;
+}
+
+export interface UpdateCatalogNodeParams {
+  name?: string;
+  slug?: string;
+  parent_id?: string | null;
+  node_type?: CatalogNodeType;
+  description?: string;
+  sort_order?: number;
+  config?: Record<string, unknown>;
+}
+
+export interface CatalogTreeResponse {
+  tree: CatalogNode[];
+}
+
+export interface CatalogNodesResponse {
+  nodes: CatalogNode[];
+  total: number;
+}
+
+export interface CatalogNodeDocumentsResponse {
+  documents: KnowledgeDocument[];
+  total: number;
+}
+
+// ============================================================================
+// Catalog API Functions
+// ============================================================================
+
+/** 获取目录树（CTE 扁平化列表，含 depth/path） */
+export async function fetchCatalogTree(corpusId: string): Promise<CatalogNode[]> {
+  const res = await fetch(`/api/knowledge/catalog/tree/${corpusId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch catalog tree: ${res.statusText}`);
+  const data = await res.json();
+  return data.tree ?? data;
+}
+
+/** 获取目录节点列表（分页） */
+export async function fetchCatalogNodes(params: {
+  corpus_id?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<CatalogNodesResponse> {
+  const query = new URLSearchParams();
+  if (params.corpus_id) query.set("corpus_id", params.corpus_id);
+  if (params.limit != null) query.set("limit", String(params.limit));
+  if (params.offset != null) query.set("offset", String(params.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/catalog${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch catalog nodes: ${res.statusText}`);
+  return res.json();
+}
+
+/** 创建目录节点 */
+export async function createCatalogNode(params: CreateCatalogNodeParams): Promise<CatalogNode> {
+  const res = await fetch("/api/knowledge/catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to create catalog node: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取单个目录节点详情 */
+export async function fetchCatalogNode(nodeId: string): Promise<CatalogNode> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch catalog node: ${res.statusText}`);
+  return res.json();
+}
+
+/** 更新目录节点 */
+export async function updateCatalogNode(
+  nodeId: string,
+  params: UpdateCatalogNodeParams,
+): Promise<CatalogNode> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to update catalog node: ${res.statusText}`);
+  return res.json();
+}
+
+/** 删除目录节点 */
+export async function deleteCatalogNode(nodeId: string): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete catalog node: ${res.statusText}`);
+}
+
+/** 获取目录节点下的文档列表（分页） */
+export async function fetchCatalogNodeDocuments(
+  nodeId: string,
+  options?: { limit?: number; offset?: number },
+): Promise<CatalogNodeDocumentsResponse> {
+  const query = new URLSearchParams();
+  if (options?.limit != null) query.set("limit", String(options.limit));
+  if (options?.offset != null) query.set("offset", String(options.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch node documents: ${res.statusText}`);
+  return res.json();
+}
+
+/** 将文档分配到目录节点 */
+export async function assignDocumentToNode(
+  nodeId: string,
+  docId: string,
+): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to assign document: ${res.statusText}`);
+}
+
+/** 从目录节点移除文档 */
+export async function unassignDocumentFromNode(
+  nodeId: string,
+  docId: string,
+): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to unassign document: ${res.statusText}`);
+}
