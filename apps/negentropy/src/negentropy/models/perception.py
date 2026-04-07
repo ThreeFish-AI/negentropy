@@ -139,7 +139,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
 
     corpus: Mapped["Corpus"] = relationship(back_populates="documents")
     # Phase 2: 来源记录（反向关联）
-    source: Mapped["DocSource | None"] = relationship()
+    source: Mapped["DocSource | None"] = relationship(foreign_keys=[source_id])
 
 
 # =============================================================================
@@ -176,7 +176,9 @@ class DocSource(Base, UUIDMixin, TimestampMixin):
     # 原始元数据快照
     raw_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 
-    document: Mapped["KnowledgeDocument"] = relationship(back_populates="source")
+    document: Mapped["KnowledgeDocument"] = relationship(
+        back_populates="source", foreign_keys=[document_id]
+    )
 
     __table_args__ = (
         Index("ix_doc_sources_document_id", "document_id"),
