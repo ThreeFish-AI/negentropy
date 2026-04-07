@@ -19,6 +19,39 @@ from negentropy.knowledge.catalog_dao import CatalogDao
 
 
 # ---------------------------------------------------------------------------
+# 修复 KnowledgeDocument <-> DocSource 双向 FK 的 AmbiguousForeignKeysError
+# ---------------------------------------------------------------------------
+# 迁移 h2i3j4k5l6m7 新增了 knowledge_documents.source_id → doc_sources FK，
+# 与已有的 DocSource.document_id → knowledge_documents 形成双向 FK，
+# 导致 SQLAlchemy 无法自动推断关系 join 条件。
+# 必须在首次触发 ORM 编译之前显式修补两侧 relationship。
+try:
+    from negentropy.models import perception as _models
+    setattr(
+        _models.KnowledgeDocument,
+        "source",
+        sqlalchemy.orm.relationship(
+            _models.DocSource,
+            foreign_keys=[_models.KnowledgeDocument.source_id],
+            lazy="selectin",
+            viewonly=True,
+        ),
+    )
+    setattr(
+        _models.DocSource,
+        "document",
+        sqlalchemy.orm.relationship(
+            _models.KnowledgeDocument,
+            foreign_keys=[_models.DocSource.document_id],
+            lazy="selectin",
+            viewonly=True,
+        ),
+    )
+except Exception:
+    pass
+
+
+# ---------------------------------------------------------------------------
 # FakeAsyncSessionForCatalog — 模拟 AsyncSession 用于 CatalogDao 单测
 # ---------------------------------------------------------------------------
 
@@ -42,6 +75,10 @@ class _FakeResult:
     def scalar(self) -> Any:
         return self._scalar_value if self._scalar_value is not None else 0
 
+    def scalars(self):
+        """支持 result.scalars().all() 链式调用（get_node_documents / get_document_nodes）。"""
+        return self
+
 
 class FakeAsyncSessionForCatalog:
     """参数化模拟 AsyncSession，用于 CatalogDao 单测。
@@ -63,11 +100,15 @@ class FakeAsyncSessionForCatalog:
         self._execute_responses = list(execute_responses or [])
 
     # -- session 协议 --
+    # 注：真实 AsyncSession.add() 是同步方法，但 delete() 在本服务代码中通过 await 调用，
+    #      因此 add 保持同步、delete 保持异步以匹配调用方式。
 
-    async def add(self, obj: Any) -> None:
+    def add(self, obj: Any) -> None:
+        """同步方法，匹配真实 AsyncSession.add() 签名（服务代码以 db.add(obj) 无 await 调用）。"""
         self.added.append(obj)
 
     async def delete(self, obj: Any) -> None:
+        """异步方法，匹配服务代码中 await db.delete(obj) 的调用方式。"""
         self.deleted.append(obj)
 
     async def flush(self) -> None:

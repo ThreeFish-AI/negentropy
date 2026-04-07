@@ -534,13 +534,15 @@ class FakeEntityDbSession:
 
         return _FakeExecuteResult([])
 
-    async def add(self, obj):
+    def add(self, obj):
+        """同步方法，匹配真实 AsyncSession.add() 签名。"""
         self.added.append(obj)
         # 为新对象生成 ID（模拟 DB 自增）
         if hasattr(obj, "id") and getattr(obj, "id", None) is None:
             obj.id = self._next_id()
 
     async def delete(self, obj):
+        """异步方法 — kg_entity_service 中不使用 await delete，但 catalog_dao 使用。"""
         self.deleted.append(obj)
 
     async def flush(self):

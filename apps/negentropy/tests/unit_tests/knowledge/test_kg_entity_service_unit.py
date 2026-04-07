@@ -562,7 +562,7 @@ class TestBatchSyncFromGraphBuild:
         """单个节点处理失败不应阻止其他节点的处理。"""
         nodes = [
             {"id": str(uuid4()), "label": "GoodNode", "node_type": "OK"},
-            {"id": "BAD-ID", "label": "BadNode", "node_type": "BROKEN"},  # 会触发异常
+            {"id": str(uuid4()), "label": "BadNode", "node_type": "BROKEN"},  # 合法 UUID，execute 时触发异常
             {"id": str(uuid4()), "label": "AnotherGood", "node_type": "OK"},
         ]
 
