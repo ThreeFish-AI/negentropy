@@ -338,7 +338,8 @@ def downgrade() -> None:
     # 5. 图谱增强
     op.drop_table("kg_entity_mentions", schema=schema)
     op.drop_table("kg_relations", schema=schema)
-    op.drop_index("ix_kg_entities_embedding", table_name="kg_entities", schema=schema)
+    # NOTE: ix_kg_entities_embedding 未在 upgrade() 中创建（embedding 列为 JSONB，
+    # 待 pgvector 就绪后由独立 migration 处理），故 downgrade 无需删除该索引。
     op.drop_index("ix_kg_entities_confidence", table_name="kg_entities", schema=schema)
     op.drop_index("ix_kg_entities_corpus_type", table_name="kg_entities", schema=schema)
     op.drop_table("kg_entities", schema=schema)
