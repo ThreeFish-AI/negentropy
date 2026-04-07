@@ -210,7 +210,7 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
     });
   });
 
-  await page.route("**/api/knowledge/pipelines?app_name=negentropy", async (route) => {
+  await page.route(/\/api\/knowledge\/pipelines\?.*app_name=negentropy/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
