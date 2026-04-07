@@ -22,7 +22,6 @@ export default function CatalogPage() {
     refresh,
     toggleExpand,
     selectNode,
-    navigateToPath,
   } = useCatalogTree({ corpusId });
 
   const handleAddChild = useCallback((parentId: string) => {

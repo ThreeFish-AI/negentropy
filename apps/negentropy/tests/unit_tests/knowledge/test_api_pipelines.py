@@ -21,8 +21,8 @@ async def test_get_pipelines_returns_diagnostic_summary_in_typed_response(monkey
     run_id = uuid4()
 
     class FakeDao:
-        async def list_pipeline_runs(self, app_name: str, limit: int = 50):
-            _ = (app_name, limit)
+        async def list_pipeline_runs(self, app_name: str, limit: int = 50, offset: int = 0):
+            _ = (app_name, limit, offset)
             return [
                 SimpleNamespace(
                     id=run_id,
@@ -47,6 +47,10 @@ async def test_get_pipelines_returns_diagnostic_summary_in_typed_response(monkey
                 )
             ]
 
+        async def count_pipeline_runs(self, app_name: str) -> int:
+            _ = app_name
+            return 1
+
     monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
 
     result = await knowledge_api.get_pipelines(app_name="negentropy")
@@ -65,8 +69,8 @@ async def test_get_pipelines_normalizes_null_output_payloads(monkeypatch):
     run_id = uuid4()
 
     class FakeDao:
-        async def list_pipeline_runs(self, app_name: str, limit: int = 50):
-            _ = (app_name, limit)
+        async def list_pipeline_runs(self, app_name: str, limit: int = 50, offset: int = 0):
+            _ = (app_name, limit, offset)
             return [
                 SimpleNamespace(
                     id=run_id,
@@ -86,6 +90,10 @@ async def test_get_pipelines_normalizes_null_output_payloads(monkeypatch):
                     updated_at=SimpleNamespace(isoformat=lambda: "2026-03-09T16:30:00+08:00"),
                 )
             ]
+
+        async def count_pipeline_runs(self, app_name: str) -> int:
+            _ = app_name
+            return 1
 
     monkeypatch.setattr(knowledge_api, "_get_dao", lambda: FakeDao())
 
