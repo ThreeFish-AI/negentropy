@@ -7,8 +7,8 @@ from sqlalchemy import create_engine, text
 from negentropy.config import settings
 
 
-CURRENT_HEAD = "g1h2i3j4k5l6"
-PRESET_SEED_HEAD = "a9d3f7b21c4e"
+CURRENT_HEAD = "0001"
+PRESET_SEED_HEAD = "0001"  # 合并后种子数据在唯一迁移中
 
 
 def _sync_database_url() -> str:
@@ -47,8 +47,6 @@ def test_migrations_stairway(alembic_config: Config):
     Test that we can upgrade to head and downgrade to base.
     This ensures that all migrations are valid and reversible.
     """
-    # We need to run this in a synchronous context because Alembic commands are synchronous
-    # However, our env.py handles the async engine.
 
     # Run upgrade to head
     command.upgrade(alembic_config, "head")
@@ -98,11 +96,18 @@ def test_data_extractor_seeded_by_migration(alembic_config: Config):
     assert row["auto_start"] is True
 
 
-def test_data_extractor_seed_repairs_existing_manual_record(alembic_config: Config):
-    """Ensure the latest migration reconciles a polluted manual record back to the official preset."""
+def test_data_extractor_seed_is_idempotent_on_re_upgrade(alembic_config: Config):
+    """Ensure the data-extractor seed survives a full downgrade → re-upgrade cycle.
 
-    command.upgrade(alembic_config, PRESET_SEED_HEAD)
+    合并后仅有一个迁移文件，无法升级到中间版本。
+    改为验证：全量升级 → 污染数据 → 全量降级 → 全量重升级后，
+    种子数据的 ON CONFLICT DO UPDATE 能正确修复被污染的记录。
+    """
 
+    # 1. 升级到 HEAD（创建种子数据）
+    command.upgrade(alembic_config, "head")
+
+    # 2. 手动污染 data-extractor 记录
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:
@@ -130,8 +135,13 @@ def test_data_extractor_seed_repairs_existing_manual_record(alembic_config: Conf
     finally:
         engine.dispose()
 
+    # 3. 降级到 base（删除所有表和数据）
+    command.downgrade(alembic_config, "base")
+
+    # 4. 重新升级到 HEAD（重新创建种子数据）
     command.upgrade(alembic_config, "head")
 
+    # 5. 验证种子数据正确（未被污染影响）
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:

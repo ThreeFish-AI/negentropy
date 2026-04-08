@@ -77,28 +77,6 @@ def upgrade() -> None:
     op.create_index('ix_negentropy_credentials_app_name', 'credentials', ['app_name'], unique=False, schema='negentropy')
     op.create_index('ix_negentropy_credentials_credential_key', 'credentials', ['credential_key'], unique=False, schema='negentropy')
     op.create_index('ix_negentropy_credentials_user_id', 'credentials', ['user_id'], unique=False, schema='negentropy')
-    op.create_table('doc_sources',
-    sa.Column('document_id', sa.UUID(), nullable=False),
-    sa.Column('source_type', sa.String(length=20), nullable=False),
-    sa.Column('source_url', sa.Text(), nullable=True),
-    sa.Column('original_url', sa.Text(), nullable=True),
-    sa.Column('title', sa.String(length=500), nullable=True),
-    sa.Column('author', sa.String(length=255), nullable=True),
-    sa.Column('extracted_summary', sa.Text(), nullable=True),
-    sa.Column('extraction_duration_ms', sa.Integer(), nullable=True),
-    sa.Column('extracted_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('extractor_tool_name', sa.String(length=100), nullable=True),
-    sa.Column('extractor_server_id', sa.String(length=100), nullable=True),
-    sa.Column('raw_metadata', postgresql.JSONB(astext_type=sa.Text()), server_default='{}', nullable=True),
-    sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['document_id'], ['negentropy.knowledge_documents.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    schema='negentropy'
-    )
-    op.create_index('ix_doc_sources_document_id', 'doc_sources', ['document_id'], unique=False, schema='negentropy')
-    op.create_index('ix_doc_sources_source_type', 'doc_sources', ['source_type'], unique=False, schema='negentropy')
     op.create_table('instructions',
     sa.Column('app_name', sa.String(length=255), nullable=False),
     sa.Column('instruction_key', sa.String(length=255), nullable=False),
@@ -127,20 +105,61 @@ def upgrade() -> None:
     sa.Column('markdown_extract_error', sa.Text(), nullable=True),
     sa.Column('markdown_extracted_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), server_default='{}', nullable=True),
-    sa.Column('source_id', sa.UUID(), nullable=True),
+    # source_id 列延后添加（与 doc_sources 存在循环依赖）
     sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['corpus_id'], ['negentropy.corpus.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['source_id'], ['negentropy.doc_sources.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('corpus_id', 'file_hash', name='uq_knowledge_documents_corpus_hash'),
     schema='negentropy'
     )
     op.create_index('ix_knowledge_documents_app_name', 'knowledge_documents', ['app_name'], unique=False, schema='negentropy')
     op.create_index('ix_knowledge_documents_markdown_extract_status', 'knowledge_documents', ['markdown_extract_status'], unique=False, schema='negentropy')
-    op.create_index('ix_knowledge_documents_source_id', 'knowledge_documents', ['source_id'], unique=False, schema='negentropy')
     op.create_index('ix_knowledge_documents_status', 'knowledge_documents', ['status'], unique=False, schema='negentropy')
+    # doc_sources 依赖 knowledge_documents（FK: document_id → knowledge_documents.id），
+    # 故在 knowledge_documents 之后创建
+    op.create_table('doc_sources',
+    sa.Column('document_id', sa.UUID(), nullable=False),
+    sa.Column('source_type', sa.String(length=20), nullable=False),
+    sa.Column('source_url', sa.Text(), nullable=True),
+    sa.Column('original_url', sa.Text(), nullable=True),
+    sa.Column('title', sa.String(length=500), nullable=True),
+    sa.Column('author', sa.String(length=255), nullable=True),
+    sa.Column('extracted_summary', sa.Text(), nullable=True),
+    sa.Column('extraction_duration_ms', sa.Integer(), nullable=True),
+    sa.Column('extracted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('extractor_tool_name', sa.String(length=100), nullable=True),
+    sa.Column('extractor_server_id', sa.String(length=100), nullable=True),
+    sa.Column('raw_metadata', postgresql.JSONB(astext_type=sa.Text()), server_default='{}', nullable=True),
+    sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['document_id'], ['negentropy.knowledge_documents.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    schema='negentropy'
+    )
+    op.create_index('ix_doc_sources_document_id', 'doc_sources', ['document_id'], unique=False, schema='negentropy')
+    op.create_index('ix_doc_sources_source_type', 'doc_sources', ['source_type'], unique=False, schema='negentropy')
+
+    # knowledge_documents.source_id 延后添加（解决与 doc_sources 的循环依赖）
+    op.add_column(
+        'knowledge_documents',
+        sa.Column('source_id', sa.UUID(), nullable=True),
+        schema='negentropy',
+    )
+    op.create_foreign_key(
+        'fk_knowledge_documents_source_id',
+        'knowledge_documents',
+        'doc_sources',
+        ['source_id'],
+        ['id'],
+        ondelete='SET NULL',
+        source_schema='negentropy',
+        referent_schema='negentropy',
+    )
+    op.create_index('ix_knowledge_documents_source_id', 'knowledge_documents', ['source_id'], unique=False, schema='negentropy')
+
     op.create_table('knowledge_graph_runs',
     sa.Column('app_name', sa.String(length=255), nullable=False),
     sa.Column('run_id', sa.String(length=255), nullable=False),
@@ -486,7 +505,7 @@ def upgrade() -> None:
     )
     op.create_index('ix_kg_entities_confidence', 'kg_entities', ['confidence'], unique=False, schema='negentropy')
     op.create_index('ix_kg_entities_corpus_type', 'kg_entities', ['corpus_id', 'entity_type'], unique=False, schema='negentropy')
-    op.create_index('ix_kg_entities_embedding', 'kg_entities', ['embedding'], unique=False, schema='negentropy', postgresql_using='hnsw', postgresql_ops={'embedding': 'vector_cosine_ops'}, postgresql_with={'m': 16, 'ef_construction': 64})
+    # NOTE: ix_kg_entities_embedding (HNSW) 延后创建，需先将 embedding 列转为 vector 类型
     op.create_table('knowledge',
     sa.Column('corpus_id', sa.UUID(), nullable=False),
     sa.Column('app_name', sa.String(length=255), nullable=False),
@@ -795,6 +814,28 @@ def upgrade() -> None:
     # ### end Alembic commands ###
 
     # =========================================================================
+    # 修正 embedding 列类型：Alembic autogenerate 将 Vector(TypeDecorator)
+    # 的 impl(String) 用于 DDL，需 ALTER 为 pgvector vector 类型
+    # =========================================================================
+    _embedding_tables = [
+        "facts", "knowledge", "messages", "memories", "kg_entities",
+    ]
+    for tbl in _embedding_tables:
+        op.execute(sa.text(
+            f"ALTER TABLE negentropy.{tbl}"
+            f" ALTER COLUMN embedding TYPE vector(1536)"
+            f" USING embedding::vector"
+        ))
+
+    # HNSW 向量索引（依赖 embedding 列为正确的 vector 类型）
+    op.execute(sa.text(
+        "CREATE INDEX IF NOT EXISTS ix_kg_entities_embedding"
+        " ON negentropy.kg_entities"
+        " USING hnsw (embedding vector_cosine_ops)"
+        " WITH (m = 16, ef_construction = 64)"
+    ))
+
+    # =========================================================================
     # 手动创建的索引（不在 ORM 自动检测范围内）
     # =========================================================================
 
@@ -973,7 +1014,9 @@ def downgrade() -> None:
     op.drop_index('ix_mcp_tools_server_id', table_name='mcp_tools', schema='negentropy')
     op.drop_table('mcp_tools', schema='negentropy')
     op.drop_table('knowledge', schema='negentropy')
-    op.drop_index('ix_kg_entities_embedding', table_name='kg_entities', schema='negentropy', postgresql_using='hnsw', postgresql_ops={'embedding': 'vector_cosine_ops'}, postgresql_with={'m': 16, 'ef_construction': 64})
+    op.execute(sa.text(
+        "DROP INDEX IF EXISTS negentropy.ix_kg_entities_embedding"
+    ))
     op.drop_index('ix_kg_entities_corpus_type', table_name='kg_entities', schema='negentropy')
     op.drop_index('ix_kg_entities_confidence', table_name='kg_entities', schema='negentropy')
     op.drop_table('kg_entities', schema='negentropy')
@@ -1010,13 +1053,16 @@ def downgrade() -> None:
     op.drop_table('knowledge_graph_runs', schema='negentropy')
     op.drop_index('ix_knowledge_documents_status', table_name='knowledge_documents', schema='negentropy')
     op.drop_index('ix_knowledge_documents_source_id', table_name='knowledge_documents', schema='negentropy')
+    # 先删除 source_id 列（含 FK → doc_sources），再删 doc_sources
+    op.drop_constraint('fk_knowledge_documents_source_id', 'knowledge_documents', type_='foreignkey', schema='negentropy')
+    op.drop_column('knowledge_documents', 'source_id', schema='negentropy')
     op.drop_index('ix_knowledge_documents_markdown_extract_status', table_name='knowledge_documents', schema='negentropy')
     op.drop_index('ix_knowledge_documents_app_name', table_name='knowledge_documents', schema='negentropy')
-    op.drop_table('knowledge_documents', schema='negentropy')
     op.drop_table('instructions', schema='negentropy')
     op.drop_index('ix_doc_sources_source_type', table_name='doc_sources', schema='negentropy')
     op.drop_index('ix_doc_sources_document_id', table_name='doc_sources', schema='negentropy')
     op.drop_table('doc_sources', schema='negentropy')
+    op.drop_table('knowledge_documents', schema='negentropy')
     op.drop_index('ix_negentropy_credentials_user_id', table_name='credentials', schema='negentropy')
     op.drop_index('ix_negentropy_credentials_credential_key', table_name='credentials', schema='negentropy')
     op.drop_index('ix_negentropy_credentials_app_name', table_name='credentials', schema='negentropy')
@@ -1031,3 +1077,8 @@ def downgrade() -> None:
     op.execute(sa.text(
         "DROP SEQUENCE IF EXISTS negentropy.events_sequence_num_seq"
     ))
+
+    # 删除枚举类型
+    op.execute(sa.text("DROP TYPE IF EXISTS negentropy.model_type_enum"))
+    op.execute(sa.text("DROP TYPE IF EXISTS negentropy.pluginpermissiontype"))
+    op.execute(sa.text("DROP TYPE IF EXISTS negentropy.pluginvisibility"))
