@@ -96,7 +96,7 @@
 - `pnpm lint` 已成为 `apps/negentropy-ui` 的正式工程门禁。
 - `useSessionManager` 的禁用由 [apps/negentropy-ui/eslint.config.mjs](../apps/negentropy-ui/eslint.config.mjs) 中的 `no-restricted-imports` 承载。
 - `useSessionManager` 仍保留为 legacy 兼容入口，但其架构边界说明已同步收敛到 [A2UI 文档](./a2ui.md)。
-- UI 规划与落地背景仍可参考 [UI 设计与落地方案](./negentropy-ui-plan.md)。
+- UI 架构设计请参考 [framework.md §9](./framework.md#9-前端应用架构-negentropy-ui)；开发操作指南请参考 [development.md §5](./development.md#5-前端开发)。
 
 ### 验证
 

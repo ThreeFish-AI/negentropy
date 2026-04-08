@@ -3,7 +3,7 @@
 > 本文档是 Negentropy 系统的**架构设计单一权威参考**，基于代码事实与工程实践，描述系统的设计原理、组件结构与扩展范式。
 >
 > - 项目概览与快速上手：[README.md](../README.md)
-> - 工程初始化与目录约定：[docs/project-initialization.md](./project-initialization.md)
+> - 开发指南：[docs/development.md](./development.md)
 > - QA 与发布流水线：[docs/qa-delivery-pipeline.md](./qa-delivery-pipeline.md)
 > - 工程变更日志：[docs/engineering-changelog.md](./engineering-changelog.md)
 
@@ -20,6 +20,9 @@
 7. [配置管理体系](#7-配置管理体系)
 8. [数据持久化架构](#8-数据持久化架构)
 9. [前端应用架构](#9-前端应用架构-negentropy-ui)
+   - 9.4 [AG-UI 协议架构](#94-ag-ui-协议架构)
+   - 9.5 [UI 交互状态机](#95-ui-交互状态机)
+   - 9.6 [API 契约与错误处理规范](#96-api-契约与错误处理规范)
 10. [测试策略与质量保障](#10-测试策略与质量保障)
 11. [扩展点与演进方向](#11-扩展点与演进方向)
 12. [参考文献](#12-参考文献)
@@ -106,7 +109,7 @@ graph TB
 | **negentropy-ui** (前端) | Next.js 16<sup>[[8]](#ref8)</sup>, React 19, TypeScript, Tailwind CSS | `pnpm` | [`app/layout.tsx`](../apps/negentropy-ui/app/layout.tsx) |
 | **negentropy-wiki** (Wiki) | Next.js, TypeScript | `pnpm` | [`src/`](../apps/negentropy-wiki/src/) |
 
-应用间仅通过 **HTTP/JSON 契约**通信，严禁源码互引。详见 [project-initialization.md](./project-initialization.md) §职责边界。
+应用间仅通过 **HTTP/JSON 契约**通信，严禁源码互引。详见 [development.md](./development.md) §项目结构。
 
 ---
 
@@ -626,6 +629,144 @@ apps/negentropy-ui/app/
 | `types/` | TypeScript 类型定义 |
 | `config/` | 前端配置常量 |
 
+### 9.4 AG-UI 协议架构
+
+前端通过 **AG-UI Protocol**<sup>[[11]](#ref11)</sup> 与后端 ADK 服务通信，以事件流为最小单位驱动 UI 状态。
+
+#### 协议定位
+
+- **事件流为唯一真值**：所有 UI 状态由事件流驱动，前端不自写状态真值<sup>[[11]](#ref11)</sup>
+- **传输无绑定**：协议支持 SSE/WebSockets/Webhooks，当前采用 SSE over POST
+- **BFF 代理模式**：前端通过 Route Handler（`/api/agui`）代理后端，解决 CORS/鉴权问题
+
+#### CopilotKit 连接层
+
+采用 CopilotKit 的 `useAgent` 作为 AG-UI 级联接口<sup>[[15]](#ref15)</sup>，统一管理连接控制与状态：
+
+```
+CopilotKitProvider → useAgent (HttpAgent) → BFF /api/agui → ADK Web → SSE Events
+```
+
+#### 事件到 UI 的映射
+
+| AG-UI 事件类型 | UI 表现 |
+| :------------- | :------ |
+| `TEXT_MESSAGE_*` | 文本气泡（流式拼接，按 `messageId` 聚合） |
+| `TOOL_CALL_*` | 可折叠工具调用卡片（入参/出参分区） |
+| `STATE_SNAPSHOT` / `STATE_DELTA` | 右栏状态树（只读） |
+| `ACTIVITY_*` | 右栏活动日志（时间序列） |
+
+### 9.5 UI 交互状态机
+
+#### 连接状态
+
+```mermaid
+stateDiagram-v2
+    [*] --> idle
+    idle --> connecting: 创建 Session / 发送消息
+    connecting --> streaming: SSE 连接建立
+    streaming --> idle: 事件流结束
+    streaming --> retrying: SSE 断连
+    retrying --> streaming: 重连成功
+    retrying --> error: 超过重试阈值
+    error --> connecting: 手动重连
+```
+
+- `idle`：未连接（进入页面未创建 session）
+- `connecting`：发起 SSE 连接
+- `streaming`：事件流正常
+- `retrying`：指数退避重试
+- `error`：连接失败（提示手动重连）
+
+#### 输入状态
+
+- `ready`：可发送
+- `sending`：发送中（锁定输入）
+- `blocked`：等待 HITL 确认（需用户操作）
+
+#### 恢复策略设计
+
+- 断连 → `retrying`（指数退避，系数 `1.8`，最大延迟 `8s`，抖动 `±20%`）
+- 最大重试次数：`8`
+- 超过阈值 → `error`，需用户手动触发重连
+
+### 9.6 API 契约与错误处理规范
+
+#### 事件信封 (Event Envelope)
+
+```ts
+type AguiEvent = {
+  id: string;                // 事件唯一 ID（幂等）
+  type: string;              // 事件类型（AG-UI 标准）
+  timestamp: string;         // ISO-8601
+  payload: {
+    id?: string;
+    author?: string;
+    content?: {
+      role?: string;
+      parts?: Array<{ text?: string }>;
+    };
+    actions?: {
+      stateDelta?: Record<string, unknown>;
+      artifactDelta?: Record<string, unknown>;
+    };
+    [key: string]: unknown;
+  };
+  meta: {
+    session_id?: string;
+    run_id?: string;
+    user_id?: string;
+    source?: "agent" | "tool" | "system";
+    seq?: number;            // 可选：事件序号（用于排序/补偿）
+  };
+};
+```
+
+#### 错误码体系
+
+> 由 BFF 统一翻译后端错误，UI 只处理以下错误码与语义。
+
+| 错误码 | HTTP | 含义 | UI 行为 |
+| :----- | :--- | :--- | :------ |
+| `AGUI_BAD_REQUEST` | 400 | 请求字段不合法 | 显示表单错误，不重试 |
+| `AGUI_UNAUTHORIZED` | 401 | 鉴权失败 | 提示登录/权限不足 |
+| `AGUI_FORBIDDEN` | 403 | 权限不足 | 提示无权限，不重试 |
+| `AGUI_NOT_FOUND` | 404 | 目标资源不存在 | 提示资源不可用 |
+| `AGUI_RATE_LIMITED` | 429 | 触发限流 | 延迟重试（指数退避） |
+| `AGUI_UPSTREAM_TIMEOUT` | 504 | 上游超时 | 自动重试（限次数） |
+| `AGUI_UPSTREAM_ERROR` | 502 | 上游错误 | 自动重试（限次数） |
+| `AGUI_INTERNAL_ERROR` | 500 | BFF 内部错误 | 提示错误，可重试 |
+
+#### UI 状态模型
+
+```ts
+type ConnectionState = "idle" | "connecting" | "streaming" | "retrying" | "error";
+type InputState = "ready" | "sending" | "blocked";
+
+type UiState = {
+  sessionId: string | null;
+  userId: string | null;
+  connection: ConnectionState;
+  input: InputState;
+  messages: Array<{ id: string; role: "user" | "agent" | "system"; content: string; timestamp: string }>;
+  events: Array<{ id: string; type: string; payload: Record<string, unknown>; timestamp: string }>;
+  snapshot: Record<string, unknown> | null;
+};
+```
+
+**状态更新规则**：
+
+- **只读策略**：`snapshot` 仅由 `STATE_*` 事件驱动更新
+- **事件流优先**：`events` 以时间序列追加，不做删除性变更
+- **消息派生**：`messages` 由 `TEXT_MESSAGE_*` 聚合生成，保留事件原始序列
+- **连接状态**：由 SSE 连接生命周期驱动
+
+#### POST 发送重试策略
+
+- 默认不重试（避免重复输入）
+- 仅在 `AGUI_UPSTREAM_TIMEOUT` / `AGUI_UPSTREAM_ERROR` / `AGUI_RATE_LIMITED` 时重试，最多 `2` 次
+- 前端为每次输入生成 `client_request_id`（UUID），通过 `metadata` 透传用于去重
+
 ---
 
 ## 10. 测试策略与质量保障
@@ -775,6 +916,16 @@ graph LR
 <a id="ref9"></a>[9] Astral, "uv: An extremely fast Python package installer," _Astral_, 2025. [Online]. Available: https://docs.astral.sh/uv/
 
 <a id="ref10"></a>[10] BerriAI, "LiteLLM: Call 100+ LLMs using the same Input/Output Format," _BerriAI_, 2025. [Online]. Available: https://docs.litellm.ai/
+
+<a id="ref11"></a>[11] CopilotKit, "Events," _Agent User Interaction Protocol_, 2025. [Online]. Available: https://docs.ag-ui.com/concepts/events
+
+<a id="ref12"></a>[12] CopilotKit, "Core Architecture," _Agent User Interaction Protocol_, 2025. [Online]. Available: https://docs.ag-ui.com/concepts/architecture
+
+<a id="ref13"></a>[13] CopilotKit, "Server Quickstart," _Agent User Interaction Protocol_, 2025. [Online]. Available: https://docs.ag-ui.com/quickstart/server
+
+<a id="ref14"></a>[14] CopilotKit, "Middleware / Stream Compaction," _Agent User Interaction Protocol (JS Client SDK)_, 2025. [Online]. Available: https://docs.ag-ui.com/sdk/js/client/middleware
+
+<a id="ref15"></a>[15] CopilotKit, "CopilotKit README (Quick Start & useAgent)," _GitHub Repository_, 2025. [Online]. Available: https://github.com/CopilotKit/CopilotKit
 
 ---
 

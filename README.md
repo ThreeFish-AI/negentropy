@@ -36,7 +36,7 @@ cd negentropy
 
 ## 🌳 Repository Structure
 
-详见 [docs/project-initialization.md](./docs/project-initialization.md)
+详见 [docs/development.md](./docs/development.md)
 
 ## 💸 LLM 成本统计
 
