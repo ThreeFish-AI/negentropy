@@ -202,19 +202,19 @@ class CatalogDao:
             DocCatalogNode.description,
             DocCatalogNode.sort_order,
             DocCatalogNode.config,
-            (literal_column("t.depth") + 1).label("depth"),
-            (literal_column("t.path") + func.array([DocCatalogNode.id])).label("path"),
+            (cte.c.depth + 1).label("depth"),
+            (cte.c.path + func.array([DocCatalogNode.id])).label("path"),
         ).join(
             cte,
             DocCatalogNode.parent_id == cte.c.id,
         )
 
-        full_tree = union_all(cte.select(), recursive_part).alias()
+        full_tree = union_all(cte.select(), recursive_part).alias("tree_result")
         # 限制最大深度，防止超深树导致性能问题
         query = (
             select(full_tree)
-            .where(literal_column(f"{full_tree.name}.depth") <= max_depth)
-            .order_by(literal_column(f"{full_tree.name}.depth"), literal_column(f"{full_tree.name}.sort_order"), literal_column(f"{full_tree.name}.name"))
+            .where(full_tree.c.depth <= max_depth)
+            .order_by(full_tree.c.depth, full_tree.c.sort_order, full_tree.c.name)
         )
 
         result = await db.execute(query)
@@ -276,18 +276,18 @@ class CatalogDao:
             DocCatalogNode.description,
             DocCatalogNode.sort_order,
             DocCatalogNode.config,
-            (literal_column("t.depth") + 1).label("depth"),
-            (literal_column("t.path") + func.array([DocCatalogNode.id])).label("path"),
+            (anchor.c.depth + 1).label("depth"),
+            (anchor.c.path + func.array([DocCatalogNode.id])).label("path"),
         ).join(
             anchor,
             DocCatalogNode.parent_id == anchor.c.id,
         )
 
-        full_tree = union_all(anchor.select(), recursive_part).alias()
+        full_tree = union_all(anchor.select(), recursive_part).alias("subtree_result")
         query = (
             select(full_tree)
-            .where(literal_column(f"{full_tree.name}.depth") <= max_depth)
-            .order_by(literal_column(f"{full_tree.name}.depth"), literal_column(f"{full_tree.name}.sort_order"))
+            .where(full_tree.c.depth <= max_depth)
+            .order_by(full_tree.c.depth, full_tree.c.sort_order)
         )
 
         result = await db.execute(query)
