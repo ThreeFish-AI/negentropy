@@ -27,22 +27,29 @@ from negentropy.knowledge.catalog_dao import CatalogDao
 
 @pytest.fixture
 async def sample_corpus(db_engine):
-    """创建测试用语料库。"""
+    """创建测试用语料库。
+
+    仅返回 corpus_id（UUID），避免 ORM 对象跨 session 附加冲突。
+    """
     from negentropy.models.perception import Corpus
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     session_factory = async_sessionmaker(
         bind=db_engine, class_=AsyncSession, expire_on_commit=False
     )
+    corpus_id: UUID | None = None
     async with session_factory() as session:
         corpus = Corpus(name="test-catalog-corpus", app_name="negentropy")
         session.add(corpus)
         await session.flush()
         await session.commit()
-        yield corpus
-        # cleanup
-        async with session_factory() as s:
-            await s.delete(corpus)
+        corpus_id = corpus.id
+        yield corpus_id
+    # cleanup — 通过 ID 删除，避免 session 附加冲突
+    async with session_factory() as s:
+        corpus_obj = await s.get(Corpus, corpus_id)
+        if corpus_obj is not None:
+            await s.delete(corpus_obj)
             await s.commit()
 
 
@@ -66,34 +73,34 @@ async def catalog_tree(db_engine, sample_corpus):
     async with session_factory() as session:
         root = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus.id,
+            corpus_id=sample_corpus,
             name="Root",
             slug="root",
         )
         cat_a = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus.id,
+            corpus_id=sample_corpus,
             name="Category A",
             slug="cat-a",
             parent_id=root.id,
         )
         cat_b = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus.id,
+            corpus_id=sample_corpus,
             name="Category B",
             slug="cat-b",
             parent_id=root.id,
         )
         sub_a1 = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus.id,
+            corpus_id=sample_corpus,
             name="SubCategory A1",
             slug="sub-a1",
             parent_id=cat_a.id,
         )
         sub_a2 = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus.id,
+            corpus_id=sample_corpus,
             name="SubCategory A2",
             slug="sub-a2",
             parent_id=cat_a.id,
@@ -101,7 +108,7 @@ async def catalog_tree(db_engine, sample_corpus):
         await session.commit()
 
         return {
-            "corpus_id": sample_corpus.id,
+            "corpus_id": sample_corpus,
             "root": root,
             "cat_a": cat_a,
             "cat_b": cat_b,
@@ -113,18 +120,21 @@ async def catalog_tree(db_engine, sample_corpus):
 
 @pytest.fixture
 async def sample_documents(db_engine, sample_corpus):
-    """创建若干测试用 KnowledgeDocument 记录。"""
+    """创建若干测试用 KnowledgeDocument 记录。
+
+    仅返回 doc.id 列表（UUID），避免 ORM 对象跨 session 附加冲突。
+    """
     from negentropy.models.perception import KnowledgeDocument
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     session_factory = async_sessionmaker(
         bind=db_engine, class_=AsyncSession, expire_on_commit=False
     )
-    docs: list[KnowledgeDocument] = []
+    doc_ids: list[UUID] = []
     async with session_factory() as session:
         for i in range(3):
             doc = KnowledgeDocument(
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 app_name="negentropy",
                 file_hash=f"hash_{i}" * 8,
                 original_filename=f"doc_{i}.pdf",
@@ -134,15 +144,17 @@ async def sample_documents(db_engine, sample_corpus):
             )
             session.add(doc)
             await session.flush()
-            docs.append(doc)
+            doc_ids.append(doc.id)
         await session.commit()
 
-    yield docs
+    yield doc_ids
 
-    # cleanup
+    # cleanup — 通过 ID 删除，避免 session 附加冲突
     async with session_factory() as s:
-        for doc in docs:
-            await s.delete(doc)
+        for doc_id in doc_ids:
+            doc_obj = await s.get(KnowledgeDocument, doc_id)
+            if doc_obj is not None:
+                await s.delete(doc_obj)
         await s.commit()
 
 
@@ -165,13 +177,13 @@ class TestCatalogTreeCte:
         async with session_factory() as session:
             root = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Solo Root",
                 slug="solo-root",
             )
             await session.commit()
 
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus.id)
+            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
 
         assert len(tree) == 1
         assert tree[0]["id"] == root.id
@@ -191,20 +203,20 @@ class TestCatalogTreeCte:
         async with session_factory() as session:
             root = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Root",
                 slug="root-2l",
             )
             child = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Child",
                 slug="child-2l",
                 parent_id=root.id,
             )
             await session.commit()
 
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus.id)
+            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
 
         assert len(tree) == 2
         # 按 depth 排序：先根后子
@@ -274,19 +286,19 @@ class TestCatalogTreeCte:
         async with session_factory() as session:
             r1 = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Root Alpha",
                 slug="root-alpha",
             )
             r2 = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Root Beta",
                 slug="root-beta",
             )
             await session.commit()
 
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus.id)
+            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
 
         assert len(tree) == 2
         root_ids = {row["id"] for row in tree if row["depth"] == 0}
@@ -301,7 +313,7 @@ class TestCatalogTreeCte:
             bind=db_engine, class_=AsyncSession, expire_on_commit=False
         )
         async with session_factory() as session:
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus.id)
+            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
 
         assert tree == []
 
@@ -454,7 +466,7 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             created = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Roundtrip Node",
                 slug="roundtrip-node",
                 parent_id=None,
@@ -489,7 +501,7 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             node = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Original Name",
                 slug="original-slug",
                 sort_order=5,
@@ -522,13 +534,13 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             parent = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Parent",
                 slug="cascade-parent",
             )
             child = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Child",
                 slug="cascade-child",
                 parent_id=parent.id,
@@ -561,13 +573,13 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             parent = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Parent Node",
                 slug="parent-node",
             )
             child = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus.id,
+                corpus_id=sample_corpus,
                 name="Child Node",
                 slug="child-node",
                 parent_id=parent.id,
@@ -617,7 +629,7 @@ class TestCatalogMembershipIntegration:
             bind=db_engine, class_=AsyncSession, expire_on_commit=False
         )
         node_id = catalog_tree["cat_a"].id
-        doc_id = sample_documents[0].id
+        doc_id = sample_documents[0]
 
         # 1. assign
         async with session_factory() as session:
@@ -669,7 +681,7 @@ class TestCatalogMembershipIntegration:
             bind=db_engine, class_=AsyncSession, expire_on_commit=False
         )
         node_id = catalog_tree["cat_b"].id
-        doc_id = sample_documents[1].id
+        doc_id = sample_documents[1]
 
         async with session_factory() as session:
             first = await CatalogDao.assign_document(
@@ -704,11 +716,11 @@ class TestCatalogMembershipIntegration:
 
         # 将所有文档分配到同一节点
         async with session_factory() as session:
-            for doc in sample_documents:
+            for doc_id in sample_documents:
                 await CatalogDao.assign_document(
                     session,
                     catalog_node_id=node_id,
-                    document_id=doc.id,
+                    document_id=doc_id,
                 )
             await session.commit()
 
@@ -743,11 +755,11 @@ class TestCatalogMembershipIntegration:
         node_id = catalog_tree["cat_a"].id
 
         async with session_factory() as session:
-            for doc in sample_documents:
+            for doc_id in sample_documents:
                 await CatalogDao.assign_document(
                     session,
                     catalog_node_id=node_id,
-                    document_id=doc.id,
+                    document_id=doc_id,
                 )
             await session.commit()
 
@@ -773,7 +785,7 @@ class TestCatalogMembershipIntegration:
         session_factory = async_sessionmaker(
             bind=db_engine, class_=AsyncSession, expire_on_commit=False
         )
-        doc_id = sample_documents[0].id
+        doc_id = sample_documents[0]
         target_nodes = [catalog_tree["cat_a"].id, catalog_tree["cat_b"].id]
 
         async with session_factory() as session:
