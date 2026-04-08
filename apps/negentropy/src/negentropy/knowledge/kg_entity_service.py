@@ -109,10 +109,11 @@ class KgEntityService:
         await db.flush()  # flush to generate new_entity.id
 
         # 创建 mention 记录（此时 new_entity.id 已生成）
+        # 注意：knowledge_chunk_id 不在此设置，因为 knowledge_id 在批量同步场景中
+        # 可能指向不存在的 Knowledge 记录，会导致 FK 约束违规
         from negentropy.models.perception import KgEntityMention
         mention = KgEntityMention(
             entity_id=new_entity.id,
-            knowledge_chunk_id=knowledge_id,
             corpus_id=corpus_id,
             context_snippet=f"Entity '{name}' extracted from chunk",
         )
