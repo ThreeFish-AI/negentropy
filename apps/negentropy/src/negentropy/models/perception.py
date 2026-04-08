@@ -176,9 +176,7 @@ class DocSource(Base, UUIDMixin, TimestampMixin):
     # 原始元数据快照
     raw_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 
-    document: Mapped["KnowledgeDocument"] = relationship(
-        back_populates="source", foreign_keys=[document_id]
-    )
+    document: Mapped["KnowledgeDocument"] = relationship(foreign_keys=[document_id])
 
     __table_args__ = (
         Index("ix_doc_sources_document_id", "document_id"),
