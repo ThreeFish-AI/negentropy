@@ -4,24 +4,19 @@ Revision ID: 0001
 Revises:
 Create Date: 2026-04-08 00:00:00.000000+00:00
 
-本迁移文件为 Negentropy 项目的合并初始迁移，从 ORM 模型定义重新生成。
-合并自 24 个增量迁移文件，一次性创建所有表、索引、约束、枚举、序列、
-触发器和种子数据。
+本迁移文件从 ORM 模型定义（Base.metadata）重新生成，一次性创建全部
+42 张业务表、索引、约束、枚举类型、序列、触发器和种子数据。
 
 变更范围:
-  - 42 张业务表（Pulse / Internalization / Perception / State / Action /
-    Observability / Security / Plugin Ecosystem / Model Config / Knowledge Runtime）
-  - 3 个枚举类型（pluginvisibility / pluginpermissiontype / model_type_enum）
-  - 1 个序列（events_sequence_num_seq）
-  - HNSW 向量索引、GIN 全文搜索索引、部分索引
-  - TSVECTOR 自动更新触发器
-  - 种子数据（model_configs 默认模型 + data-extractor MCP 预设）
+  - Pulse / Internalization / Perception / State / Action
+  - Observability / Security / Plugin Ecosystem / Model Config / Knowledge Runtime
+  - 共 42 张表、3 个枚举、1 个序列、HNSW/GIN/部分索引、TSVECTOR 触发器
+  - 种子数据：model_configs 默认模型 × 2 + data-extractor MCP 预设
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-# Register custom types (e.g. Vector) for Alembic autogenerate
 import negentropy.models.base
 from sqlalchemy.dialects import postgresql
 
@@ -118,7 +113,7 @@ def upgrade() -> None:
     op.create_index('ix_knowledge_documents_markdown_extract_status', 'knowledge_documents', ['markdown_extract_status'], unique=False, schema='negentropy')
     op.create_index('ix_knowledge_documents_status', 'knowledge_documents', ['status'], unique=False, schema='negentropy')
     # doc_sources 依赖 knowledge_documents（FK: document_id → knowledge_documents.id），
-    # 故在 knowledge_documents 之后创建
+    # 故在此处创建，并随后添加 knowledge_documents.source_id → doc_sources.id
     op.create_table('doc_sources',
     sa.Column('document_id', sa.UUID(), nullable=False),
     sa.Column('source_type', sa.String(length=20), nullable=False),
@@ -141,8 +136,7 @@ def upgrade() -> None:
     )
     op.create_index('ix_doc_sources_document_id', 'doc_sources', ['document_id'], unique=False, schema='negentropy')
     op.create_index('ix_doc_sources_source_type', 'doc_sources', ['source_type'], unique=False, schema='negentropy')
-
-    # knowledge_documents.source_id 延后添加（解决与 doc_sources 的循环依赖）
+    # 延后添加 knowledge_documents.source_id（解决循环 FK）
     op.add_column(
         'knowledge_documents',
         sa.Column('source_id', sa.UUID(), nullable=True),
@@ -159,7 +153,6 @@ def upgrade() -> None:
         referent_schema='negentropy',
     )
     op.create_index('ix_knowledge_documents_source_id', 'knowledge_documents', ['source_id'], unique=False, schema='negentropy')
-
     op.create_table('knowledge_graph_runs',
     sa.Column('app_name', sa.String(length=255), nullable=False),
     sa.Column('run_id', sa.String(length=255), nullable=False),
@@ -467,7 +460,7 @@ def upgrade() -> None:
     sa.Column('fact_type', sa.String(length=50), server_default='preference', nullable=False),
     sa.Column('key', sa.String(length=255), nullable=False),
     sa.Column('value', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('embedding', negentropy.models.base.Vector(), nullable=True),
+    sa.Column('embedding', negentropy.models.base.Vector(dim=1536), nullable=True),
     sa.Column('confidence', sa.Float(), server_default='1.0', nullable=False),
     sa.Column('valid_from', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('valid_until', sa.DateTime(timezone=True), nullable=True),
@@ -486,7 +479,7 @@ def upgrade() -> None:
     sa.Column('canonical_name', sa.String(length=500), nullable=True),
     sa.Column('entity_type', sa.String(length=50), nullable=False),
     sa.Column('aliases', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('embedding', negentropy.models.base.Vector(), nullable=True),
+    sa.Column('embedding', negentropy.models.base.Vector(dim=1536), nullable=True),
     sa.Column('confidence', sa.Float(), nullable=False),
     sa.Column('mention_count', sa.Integer(), nullable=False),
     sa.Column('source_count', sa.Integer(), nullable=False),
@@ -505,12 +498,11 @@ def upgrade() -> None:
     )
     op.create_index('ix_kg_entities_confidence', 'kg_entities', ['confidence'], unique=False, schema='negentropy')
     op.create_index('ix_kg_entities_corpus_type', 'kg_entities', ['corpus_id', 'entity_type'], unique=False, schema='negentropy')
-    # NOTE: ix_kg_entities_embedding (HNSW) 延后创建，需先将 embedding 列转为 vector 类型
     op.create_table('knowledge',
     sa.Column('corpus_id', sa.UUID(), nullable=False),
     sa.Column('app_name', sa.String(length=255), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('embedding', negentropy.models.base.Vector(), nullable=True),
+    sa.Column('embedding', negentropy.models.base.Vector(dim=1536), nullable=True),
     sa.Column('search_vector', postgresql.TSVECTOR(), nullable=True),
     sa.Column('source_uri', sa.Text(), nullable=True),
     sa.Column('chunk_index', sa.Integer(), server_default='0', nullable=False),
@@ -575,7 +567,7 @@ def upgrade() -> None:
     sa.Column('app_name', sa.String(length=255), nullable=False),
     sa.Column('memory_type', sa.String(length=50), server_default='episodic', nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('embedding', negentropy.models.base.Vector(), nullable=True),
+    sa.Column('embedding', negentropy.models.base.Vector(dim=1536), nullable=True),
     sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), server_default='{}', nullable=True),
     sa.Column('retention_score', sa.Float(), server_default='1.0', nullable=False),
     sa.Column('access_count', sa.Integer(), server_default='0', nullable=False),
@@ -768,7 +760,7 @@ def upgrade() -> None:
     sa.Column('event_id', sa.UUID(), nullable=True),
     sa.Column('role', sa.String(length=20), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('embedding', negentropy.models.base.Vector(), nullable=True),
+    sa.Column('embedding', negentropy.models.base.Vector(dim=1536), nullable=True),
     sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), server_default='{}', nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('id', sa.UUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -814,20 +806,10 @@ def upgrade() -> None:
     # ### end Alembic commands ###
 
     # =========================================================================
-    # 修正 embedding 列类型：Alembic autogenerate 将 Vector(TypeDecorator)
-    # 的 impl(String) 用于 DDL，需 ALTER 为 pgvector vector 类型
+    # 手动补充：autogenerate 无法捕获的非 ORM 概念
     # =========================================================================
-    _embedding_tables = [
-        "facts", "knowledge", "messages", "memories", "kg_entities",
-    ]
-    for tbl in _embedding_tables:
-        op.execute(sa.text(
-            f"ALTER TABLE negentropy.{tbl}"
-            f" ALTER COLUMN embedding TYPE vector(1536)"
-            f" USING embedding::vector"
-        ))
 
-    # HNSW 向量索引（依赖 embedding 列为正确的 vector 类型）
+    # HNSW 向量索引（ORM 的 postgresql_with 参数不被 autogenerate 支持）
     op.execute(sa.text(
         "CREATE INDEX IF NOT EXISTS ix_kg_entities_embedding"
         " ON negentropy.kg_entities"
@@ -835,11 +817,7 @@ def upgrade() -> None:
         " WITH (m = 16, ef_construction = 64)"
     ))
 
-    # =========================================================================
-    # 手动创建的索引（不在 ORM 自动检测范围内）
-    # =========================================================================
-
-    # GIN 索引：knowledge.search_vector 全文搜索
+    # GIN 索引：knowledge.search_vector 全文搜索（未在 ORM __table_args__ 中声明）
     op.create_index(
         "ix_negentropy_knowledge_search_vector",
         "knowledge",
@@ -849,16 +827,14 @@ def upgrade() -> None:
         postgresql_using="gin",
     )
 
-    # 部分索引：knowledge.entity_type 非空时的索引
+    # 部分索引：entity_type 非空时（未在 ORM 中声明）
     op.execute(sa.text(
         "CREATE INDEX IF NOT EXISTS idx_kb_entity_type"
         " ON negentropy.knowledge(entity_type)"
         " WHERE entity_type IS NOT NULL"
     ))
 
-    # =========================================================================
-    # TSVECTOR 触发器：自动从 content 更新 search_vector
-    # =========================================================================
+    # TSVECTOR 触发器：自动从 content 更新 search_vector（非 ORM 概念）
     op.execute(sa.text(
         "CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE"
         " ON negentropy.knowledge FOR EACH ROW EXECUTE FUNCTION"
@@ -869,7 +845,7 @@ def upgrade() -> None:
     # 种子数据
     # =========================================================================
 
-    # 1. model_configs 默认模型配置
+    # model_configs 默认模型配置
     model_type_col = postgresql.ENUM(
         "llm", "embedding", "rerank",
         name="model_type_enum", schema="negentropy", create_type=False,
@@ -909,7 +885,7 @@ def upgrade() -> None:
         ],
     )
 
-    # 2. Data Extractor MCP Server 预设（幂等 upsert）
+    # Data Extractor MCP Server 预设（幂等 upsert）
     op.execute(sa.text(f"""
         INSERT INTO negentropy.mcp_servers (
             owner_id, visibility, name, display_name, description,
@@ -953,26 +929,47 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # =========================================================================
-    # 删除种子数据（随表删除自动清除，无需显式操作）
+    # 前置清理：删除 upgrade 中手动创建的非 ORM 对象（逆序）
     # =========================================================================
 
-    # =========================================================================
-    # 删除触发器
-    # =========================================================================
+    # 删除 TSVECTOR 触发器
     op.execute(sa.text(
         "DROP TRIGGER IF EXISTS tsvectorupdate ON negentropy.knowledge"
     ))
 
-    # =========================================================================
-    # 删除手动创建的索引
-    # =========================================================================
+    # 删除 HNSW 向量索引
     op.execute(sa.text(
-        "DROP INDEX IF EXISTS negentropy.idx_kb_entity_type"
+        "DROP INDEX IF EXISTS negentropy.ix_kg_entities_embedding"
     ))
+
+    # 删除 GIN 索引
     op.drop_index(
         "ix_negentropy_knowledge_search_vector",
         table_name="knowledge",
         schema="negentropy",
+    )
+
+    # 删除部分索引
+    op.execute(sa.text(
+        "DROP INDEX IF EXISTS negentropy.idx_kb_entity_type"
+    ))
+
+    # 删除循环 FK：先删约束和列，再由 autogenerate 删对应表
+    # 1) knowledge_documents.source_id → doc_sources.id（upgrade 中延后添加的）
+    op.drop_constraint(
+        'fk_knowledge_documents_source_id',
+        'knowledge_documents',
+        type_='foreignkey',
+        schema='negentropy',
+    )
+    op.drop_column('knowledge_documents', 'source_id', schema='negentropy')
+
+    # 2) doc_sources.document_id → knowledge_documents.id（阻止先删 knowledge_documents）
+    op.drop_constraint(
+        'doc_sources_document_id_fkey',
+        'doc_sources',
+        type_='foreignkey',
+        schema='negentropy',
     )
 
     # ### commands auto generated by Alembic - please adjust! ###
@@ -1014,9 +1011,6 @@ def downgrade() -> None:
     op.drop_index('ix_mcp_tools_server_id', table_name='mcp_tools', schema='negentropy')
     op.drop_table('mcp_tools', schema='negentropy')
     op.drop_table('knowledge', schema='negentropy')
-    op.execute(sa.text(
-        "DROP INDEX IF EXISTS negentropy.ix_kg_entities_embedding"
-    ))
     op.drop_index('ix_kg_entities_corpus_type', table_name='kg_entities', schema='negentropy')
     op.drop_index('ix_kg_entities_confidence', table_name='kg_entities', schema='negentropy')
     op.drop_table('kg_entities', schema='negentropy')
@@ -1052,17 +1046,14 @@ def downgrade() -> None:
     op.drop_table('knowledge_pipeline_runs', schema='negentropy')
     op.drop_table('knowledge_graph_runs', schema='negentropy')
     op.drop_index('ix_knowledge_documents_status', table_name='knowledge_documents', schema='negentropy')
-    op.drop_index('ix_knowledge_documents_source_id', table_name='knowledge_documents', schema='negentropy')
-    # 先删除 source_id 列（含 FK → doc_sources），再删 doc_sources
-    op.drop_constraint('fk_knowledge_documents_source_id', 'knowledge_documents', type_='foreignkey', schema='negentropy')
-    op.drop_column('knowledge_documents', 'source_id', schema='negentropy')
+    # ix_knowledge_documents_source_id 已随 source_id 列的 DROP 级联删除（前置清理中）
     op.drop_index('ix_knowledge_documents_markdown_extract_status', table_name='knowledge_documents', schema='negentropy')
     op.drop_index('ix_knowledge_documents_app_name', table_name='knowledge_documents', schema='negentropy')
+    op.drop_table('knowledge_documents', schema='negentropy')
     op.drop_table('instructions', schema='negentropy')
     op.drop_index('ix_doc_sources_source_type', table_name='doc_sources', schema='negentropy')
     op.drop_index('ix_doc_sources_document_id', table_name='doc_sources', schema='negentropy')
     op.drop_table('doc_sources', schema='negentropy')
-    op.drop_table('knowledge_documents', schema='negentropy')
     op.drop_index('ix_negentropy_credentials_user_id', table_name='credentials', schema='negentropy')
     op.drop_index('ix_negentropy_credentials_credential_key', table_name='credentials', schema='negentropy')
     op.drop_index('ix_negentropy_credentials_app_name', table_name='credentials', schema='negentropy')
@@ -1072,13 +1063,15 @@ def downgrade() -> None:
     # ### end Alembic commands ###
 
     # =========================================================================
-    # 后置 DDL：删除序列（events 表已删除）
+    # 后置清理：删除序列和枚举类型
     # =========================================================================
+
+    # 删除序列
     op.execute(sa.text(
         "DROP SEQUENCE IF EXISTS negentropy.events_sequence_num_seq"
     ))
 
-    # 删除枚举类型
+    # 删除枚举类型（防止 re-upgrade 时 DuplicateObjectError）
     op.execute(sa.text("DROP TYPE IF EXISTS negentropy.model_type_enum"))
     op.execute(sa.text("DROP TYPE IF EXISTS negentropy.pluginpermissiontype"))
     op.execute(sa.text("DROP TYPE IF EXISTS negentropy.pluginvisibility"))
