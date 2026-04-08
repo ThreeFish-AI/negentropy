@@ -21,35 +21,30 @@ export default async function WikiPublicationPage({ params }: Props) {
   let navItems: WikiNavTreeItem[] = [];
 
   try {
-    // 尝试通过 slug 查找（当前 API 不支持 slug 查询，先列出再匹配）
-    const result = await wikiApi.listPublications();
-    const match = result.items.find(
-      (p) => p.slug === pubSlug && p.status === "published"
-    );
+    const match = await wikiApi.findPublicationBySlug(pubSlug);
     if (match) {
       publication = match;
       const navResult = await wikiApi.getNavTree(match.id);
       navItems = navResult.nav_tree?.items || [];
     }
   } catch (err) {
-    console.error("Failed to load publication:", err);
+    console.error(`[Wiki] Failed to load publication "${pubSlug}":`, err);
   }
 
   if (!publication) {
     return (
-      <main className="wiki-main" style={{ padding: "3rem 2rem", textAlign: "center" }}>
+      <main className="wiki-main wiki-not-found">
         <h1>Wiki 未找到</h1>
-        <p style={{ color: "var(--wiki-text-secondary)", marginTop: "0.5rem" }}>
+        <p className="wiki-not-found-hint">
           Publication &quot;{pubSlug}&quot; 不存在或未发布
         </p>
-        <Link href="/" style={{ marginTop: "1rem", display: "inline-block" }}>
+        <Link href="/" className="wiki-back-link">
           ← 返回首页
         </Link>
       </main>
     );
   }
 
-  // 找到首页条目（is_index_page = true）
   const indexEntry = navItems.find((item) => item.is_index_page);
 
   return (
@@ -58,13 +53,11 @@ export default async function WikiPublicationPage({ params }: Props) {
       <aside className="wiki-sidebar">
         <div className="wiki-sidebar-header">{publication.name}</div>
         {publication.description && (
-          <p style={{ fontSize: "0.85em", color: "var(--wiki-text-secondary)", marginBottom: "1rem" }}>
-            {publication.description}
-          </p>
+          <p className="wiki-sidebar-desc">{publication.description}</p>
         )}
         {indexEntry && (
           <Link href={`/${pubSlug}/${indexEntry.entry_slug}`} className="wiki-nav-link active">
-            📄 首页
+            首页
           </Link>
         )}
         <nav>
@@ -90,7 +83,7 @@ export default async function WikiPublicationPage({ params }: Props) {
         <header className="wiki-doc-header">
           <h1 className="wiki-doc-title">{publication.name}</h1>
           <div className="wiki-doc-meta">
-            版本 v{pub.version} · {navItems.length} 篇文档 ·{" "}
+            版本 v{publication.version} · {navItems.length} 篇文档 ·{" "}
             {publication.published_at
               ? new Date(publication.published_at).toLocaleDateString("zh-CN")
               : "尚未发布"}
@@ -98,35 +91,26 @@ export default async function WikiPublicationPage({ params }: Props) {
         </header>
 
         {indexEntry ? (
-          <div>
-            {/* 如果有首页条目，引导用户点击 */}
-            <p style={{ color: "var(--wiki-text-secondary)" }}>
-              请从左侧导航选择文档，或访问{" "}
-              <Link href={`/${pubSlug}/${indexEntry.entry_slug}`}>首页</Link> 开始浏览。
-            </p>
-          </div>
+          <p className="wiki-text-hint">
+            请从左侧导航选择文档，或访问{" "}
+            <Link href={`/${pubSlug}/${indexEntry.entry_slug}`}>首页</Link> 开始浏览。
+          </p>
         ) : (
-          <div style={{ color: "var(--wiki-text-secondary)", padding: "2rem 0" }}>
+          <p className="wiki-text-hint wiki-empty-hint">
             此 Publication 尚无文档条目。请通过后端管理界面添加文档后重新发布。
-          </div>
+          </p>
         )}
 
         {/* 文档索引 */}
         {navItems.length > 0 && (
-          <section style={{ marginTop: "3rem" }}>
-            <h2>📑 文档索引</h2>
-            <ul style={{ listStyle: "none", display: "grid", gap: "0.5rem", marginTop: "1rem" }}>
+          <section className="wiki-doc-index">
+            <h2>文档索引</h2>
+            <ul className="wiki-doc-index-list">
               {navItems.map((item) => (
                 <li key={item.entry_id}>
                   <Link
                     href={`/${pubSlug}/${item.entry_slug}`}
-                    style={{
-                      display: "block",
-                      padding: "0.5rem 0.75rem",
-                      borderRadius: "6px",
-                      border: "1px solid var(--wiki-border)",
-                      transition: "all 0.12s ease",
-                    }}
+                    className="wiki-doc-index-item"
                   >
                     {item.is_index_page && "🏠 "}
                     {item.entry_title || item.entry_slug}
