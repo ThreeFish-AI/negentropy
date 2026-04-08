@@ -106,19 +106,18 @@ class KgEntityService:
             mention_count=1,
         )
         db.add(new_entity)
+        await db.flush()  # flush to generate new_entity.id
 
-        # 同时创建 mention 记录
+        # 创建 mention 记录（此时 new_entity.id 已生成）
         from negentropy.models.perception import KgEntityMention
         mention = KgEntityMention(
-            entity_id=new_entity.id,  # will be set after flush
+            entity_id=new_entity.id,
             knowledge_chunk_id=knowledge_id,
+            corpus_id=corpus_id,
             context_snippet=f"Entity '{name}' extracted from chunk",
         )
         db.add(mention)
-
         await db.flush()
-        # 关联 mention 的 entity_id（此时 new_entity.id 已生成）
-        mention.entity_id = new_entity.id
 
         logger.info("kg_entity_created", extra={
             "entity_id": str(new_entity.id),

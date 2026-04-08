@@ -190,7 +190,7 @@ class CatalogDao:
                 DocCatalogNode.corpus_id == corpus_id,
                 DocCatalogNode.parent_id.is_(None),
             )
-            .cte_recursive("cat_tree", recursive=True)
+            .cte("cat_tree", recursive=True)
         )
 
         recursive_part = select(
@@ -264,7 +264,7 @@ class CatalogDao:
                 func.array([DocCatalogNode.id]).label("path"),
             )
             .where(DocCatalogNode.id == node_id)
-            .cte_recursive("sub_tree", recursive=True)
+            .cte("sub_tree", recursive=True)
         )
 
         recursive_part = select(
