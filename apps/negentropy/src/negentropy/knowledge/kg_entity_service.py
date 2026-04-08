@@ -189,6 +189,7 @@ class KgEntityService:
             relation_type=relation_type,
             weight=weight,
             evidence_text=evidence_text,
+            corpus_id=corpus_id,
         )
         db.add(relation)
         await db.flush()
