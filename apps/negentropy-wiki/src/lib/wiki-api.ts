@@ -104,6 +104,32 @@ class WikiApiClient {
   async getEntryContent(entryId: string): Promise<WikiEntryContent> {
     return this.fetch(`/entries/${entryId}/content`);
   }
+
+  // -------------------------------------------------------------------------
+  // 辅助查询（组合原子 API，供页面组件直接调用）
+  // -------------------------------------------------------------------------
+
+  /**
+   * 通过 slug 查找已发布的 Publication
+   *
+   * 当前后端不支持 slug 直查，先列出再匹配。
+   * 后续若后端提供 `/publications?slug=xxx` 接口可直接替换实现。
+   */
+  async findPublicationBySlug(slug: string): Promise<WikiPublication | null> {
+    const result = await this.listPublications();
+    return result.items.find((p) => p.slug === slug) ?? null;
+  }
+
+  /**
+   * 通过 entry_slug 查找对应的 entry_id
+   *
+   * 当前后端不支持按 slug 查询 entry，先获取 entries 列表再匹配。
+   */
+  async findEntryId(pubId: string, entrySlug: string): Promise<string | null> {
+    const result = await this.getEntries(pubId);
+    const match = result.items.find((e) => e.entry_slug === entrySlug);
+    return match?.id ?? null;
+  }
 }
 
 export const wikiApi = new WikiApiClient();

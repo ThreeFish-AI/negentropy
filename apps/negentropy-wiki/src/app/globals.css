@@ -3,8 +3,8 @@
  *
  * 设计原则：
  *   - 三套主题 (default / book / docs) 通过 CSS 变量切换
- *   - 优先使用 Tailwind CSS v4 工具类
- *   - 深色模式支持通过 [data-theme] 属性切换
+ *   - 深色模式通过 prefers-color-scheme 自动适配
+ *   - 所有颜色统一使用 CSS 变量，禁止硬编码
  */
 
 /* ====== CSS 变量（主题系统）====== */
@@ -28,6 +28,8 @@
   --wiki-code-font: "SF Mono", "Fira Code", "Cascadia Code", monospace;
   --wiki-radius: 8px;
   --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --wiki-success-bg: #e8f5e9;
+  --wiki-success-text: #2e7d32;
 }
 
 [data-theme="book"] {
@@ -55,6 +57,8 @@
     --wiki-border: #333333;
     --wiki-sidebar-bg: #1f1f1f;
     --wiki-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --wiki-success-bg: #1b3a1e;
+    --wiki-success-text: #66bb6a;
   }
 }
 
@@ -188,6 +192,34 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
   border-bottom: 1px solid var(--wiki-border);
 }
 
+.wiki-sidebar-desc {
+  font-size: 0.85em;
+  color: var(--wiki-text-secondary);
+  margin-bottom: 1rem;
+}
+
+.wiki-sidebar-back {
+  color: inherit;
+  text-decoration: none;
+}
+.wiki-sidebar-back:hover {
+  text-decoration: none;
+  color: var(--wiki-accent);
+}
+
+.wiki-sidebar-reading {
+  margin-top: 1rem;
+}
+
+.wiki-reading-label {
+  font-size: 0.82em;
+  color: var(--wiki-text-secondary);
+}
+
+.wiki-reading-title {
+  font-size: 0.92em;
+}
+
 .wiki-nav-list {
   list-style: none;
 }
@@ -216,6 +248,12 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
 }
 
 /* ====== 首页样式 ====== */
+
+.wiki-home-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
 
 .wiki-home-hero {
   text-align: center;
@@ -286,8 +324,51 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
   color: var(--wiki-text-secondary);
 }
 .wiki-badge.published {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--wiki-success-bg);
+  color: var(--wiki-success-text);
+}
+
+/* ====== 空态 / 未找到 ====== */
+
+.wiki-empty-state {
+  text-align: center;
+  padding: 4rem 0;
+  color: var(--wiki-text-secondary);
+}
+
+.wiki-empty-title {
+  font-size: 1.1em;
+}
+
+.wiki-empty-hint {
+  margin-top: 0.5rem;
+  font-size: 0.9em;
+}
+
+.wiki-not-found {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.wiki-not-found-hint {
+  color: var(--wiki-text-secondary);
+  margin-top: 0.5rem;
+}
+
+.wiki-not-found-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.wiki-back-link {
+  margin-top: 1rem;
+  display: inline-block;
+}
+
+.wiki-text-hint {
+  color: var(--wiki-text-secondary);
 }
 
 /* ====== 文档内容页 ====== */
@@ -314,7 +395,32 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
   line-height: 1.8;
 }
 
-/* ====== TOC（文内目录）====== */
+/* ====== 文档索引 ====== */
+
+.wiki-doc-index {
+  margin-top: 3rem;
+}
+
+.wiki-doc-index-list {
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.wiki-doc-index-item {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--wiki-border);
+  transition: all 0.12s ease;
+}
+.wiki-doc-index-item:hover {
+  background: var(--wiki-bg-secondary);
+  text-decoration: none;
+}
+
+/* ====== TOC（文内目录）[预留：客户端动态生成] ====== */
 
 .wiki-toc {
   position: fixed;

@@ -13,38 +13,38 @@ export default async function WikiHomePage() {
 
   try {
     const result = await wikiApi.listPublications();
-    publications = result.items.filter((p) => p.status === "published");
+    publications = result.items;
   } catch (err) {
-    console.error("Failed to fetch publications:", err);
+    console.error("[Wiki] Failed to fetch publications:", err);
   }
 
   return (
-    <main className="wiki-main" style={{ maxWidth: "960px", margin: "0 auto", padding: "3rem 2rem" }}>
+    <main className="wiki-main wiki-home-container">
       <div className="wiki-home-hero">
-        <h1 className="wiki-home-title">📚 Negentropy Wiki</h1>
+        <h1 className="wiki-home-title">Negentropy Wiki</h1>
         <p className="wiki-home-subtitle">
           知识库发布站点 — 浏览已发布的文档集合
         </p>
       </div>
 
       {publications.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "4rem 0", color: "var(--wiki-text-secondary)" }}>
-          <p style={{ fontSize: "1.1em" }}>暂无已发布的 Wiki</p>
-          <p style={{ marginTop: "0.5rem", fontSize: "0.9em" }}>
+        <div className="wiki-empty-state">
+          <p className="wiki-empty-title">暂无已发布的 Wiki</p>
+          <p className="wiki-empty-hint">
             请在后端管理界面创建并发布 Wiki Publication
           </p>
         </div>
       ) : (
         <div className="wiki-pub-grid">
-          {publications.map((pub) => (
-            <a key={pub.id} href={`/${pub.slug}`} className="wiki-pub-card">
-              <h2 className="wiki-pub-card-name">{pub.name}</h2>
-              {pub.description && (
-                <p className="wiki-pub-card-desc">{pub.description}</p>
+          {publications.map((publication) => (
+            <a key={publication.id} href={`/${publication.slug}`} className="wiki-pub-card">
+              <h2 className="wiki-pub-card-name">{publication.name}</h2>
+              {publication.description && (
+                <p className="wiki-pub-card-desc">{publication.description}</p>
               )}
               <div className="wiki-pub-card-meta">
-                <span className="wiki-badge published">v{pub.version}</span>
-                <span>{pub.entries_count} 篇文档</span>
+                <span className="wiki-badge published">v{publication.version}</span>
+                <span>{publication.entries_count} 篇文档</span>
               </div>
             </a>
           ))}
