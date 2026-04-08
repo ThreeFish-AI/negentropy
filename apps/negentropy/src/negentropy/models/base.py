@@ -51,9 +51,14 @@ class _VectorImpl(UserDefinedType):
 
 
 class Vector(TypeDecorator):
-    """SQLAlchemy TypeDecorator for pgvector's vector type."""
+    """SQLAlchemy TypeDecorator for pgvector's vector type.
 
-    impl = String
+    使用 _VectorImpl 作为 impl（而非 String），确保 Alembic autogenerate
+    在 CREATE TABLE 中生成正确的 vector(1536) 列类型，避免后续需要
+    ALTER COLUMN 修补。
+    """
+
+    impl = _VectorImpl
     cache_ok = True
 
     def __init__(self, dim: int | None = None):
