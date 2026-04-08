@@ -47,6 +47,7 @@ class KgEntityService:
         embedding: Optional[list[float]] = None,
         metadata: Optional[dict] = None,
         corpus_id: Optional[UUID] = None,
+        app_name: str = "negentropy",
     ) -> None:
         """从 knowledge 记录同步实体到 kg_entities 表（双写）
 
@@ -62,6 +63,7 @@ class KgEntityService:
             embedding: 实体的向量表示（可选，用于向量搜索）
             metadata: 额外元数据
             corpus_id: 所属语料库 ID
+            app_name: 应用名称（默认 "negentropy"）
         """
         from negentropy.models.perception import KgEntity
 
@@ -95,6 +97,7 @@ class KgEntityService:
         # 创建新记录
         new_entity = KgEntity(
             corpus_id=corpus_id,
+            app_name=app_name,
             name=name,
             entity_type=entity_type,
             confidence=confidence,
@@ -103,19 +106,19 @@ class KgEntityService:
             mention_count=1,
         )
         db.add(new_entity)
+        await db.flush()  # flush to generate new_entity.id
 
-        # 同时创建 mention 记录
+        # 创建 mention 记录（此时 new_entity.id 已生成）
+        # 注意：knowledge_chunk_id 不在此设置，因为 knowledge_id 在批量同步场景中
+        # 可能指向不存在的 Knowledge 记录，会导致 FK 约束违规
         from negentropy.models.perception import KgEntityMention
         mention = KgEntityMention(
-            entity_id=new_entity.id,  # will be set after flush
-            knowledge_chunk_id=knowledge_id,
+            entity_id=new_entity.id,
+            corpus_id=corpus_id,
             context_snippet=f"Entity '{name}' extracted from chunk",
         )
         db.add(mention)
-
         await db.flush()
-        # 关联 mention 的 entity_id（此时 new_entity.id 已生成）
-        mention.entity_id = new_entity.id
 
         logger.info("kg_entity_created", extra={
             "entity_id": str(new_entity.id),
@@ -204,6 +207,7 @@ class KgEntityService:
         nodes: list[dict],
         edges: list[dict],
         corpus_id: Optional[UUID] = None,
+        app_name: str = "negentropy",
     ) -> dict[str, int]:
         """从图谱构建结果批量同步实体和关系
 
@@ -212,6 +216,7 @@ class KgEntityService:
             nodes: 图谱节点列表（每个含 id, label, node_type, metadata 等）
             edges: 图谱边列表（每个含 source, target, label, edge_type, weight 等）
             corpus_id: 语料库 ID
+            app_name: 应用名称（默认 "negentropy"）
 
         Returns:
             统计信息 {"entities_synced": N, "relations_synced": M}
@@ -229,6 +234,7 @@ class KgEntityService:
                     confidence=float(node.get("confidence", 0)),
                     metadata=node.get("metadata"),
                     corpus_id=corpus_id,
+                    app_name=app_name,
                 )
                 entities_synced += 1
             except Exception as exc:

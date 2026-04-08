@@ -151,9 +151,9 @@ class TestSyncEntityFromKnowledge:
         assert entity.mention_count == 1
         assert entity.corpus_id == _CORPUS_ID
 
-        # Mention 记录应关联 knowledge_chunk_id
+        # Mention 记录不再设置 knowledge_chunk_id（避免 FK 约束违规）
         mention = db.added[1]
-        assert mention.knowledge_chunk_id == _KNOWLEDGE_ID
+        assert mention.knowledge_chunk_id is None
 
     # -- 2. 更新已有实体 — 置信度升级 --
 
@@ -275,7 +275,7 @@ class TestSyncEntityFromKnowledge:
         assert len(db.added) >= 2
         mention = db.added[1]
         assert hasattr(mention, "knowledge_chunk_id")
-        assert mention.knowledge_chunk_id == _KNOWLEDGE_ID
+        assert mention.knowledge_chunk_id is None  # 不再设置，避免 FK 约束违规
         assert hasattr(mention, "context_snippet")
 
     # -- 8. corpus_id 参与唯一性检查 --
