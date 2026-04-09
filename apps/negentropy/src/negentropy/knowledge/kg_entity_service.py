@@ -137,6 +137,7 @@ class KgEntityService:
         weight: float = 1.0,
         evidence_text: Optional[str] = None,
         corpus_id: Optional[UUID] = None,
+        app_name: str = "negentropy",
     ) -> None:
         """同步关系到 kg_relations 表
 
@@ -189,6 +190,8 @@ class KgEntityService:
             relation_type=relation_type,
             weight=weight,
             evidence_text=evidence_text,
+            corpus_id=corpus_id,
+            app_name=app_name,
         )
         db.add(relation)
         await db.flush()

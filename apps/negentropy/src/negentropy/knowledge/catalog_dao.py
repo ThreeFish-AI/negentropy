@@ -12,14 +12,9 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import (
-    Integer,
-    Select,
-    Text,
     func,
-    literal_column,
     select,
     text,
-    union_all,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -171,53 +166,39 @@ class CatalogDao:
             - depth: 层级深度（根节点为 0）
             - path: 从根到当前节点的 ID 路径数组
         """
-        schema = NEGENTROPY_SCHEMA
+        table = f"{NEGENTROPY_SCHEMA}.doc_catalog_nodes"
 
-        cte = (
-            select(
-                DocCatalogNode.id,
-                DocCatalogNode.parent_id,
-                DocCatalogNode.name,
-                DocCatalogNode.slug,
-                DocCatalogNode.node_type,
-                DocCatalogNode.description,
-                DocCatalogNode.sort_order,
-                DocCatalogNode.config,
-                literal_column("0").label("depth"),
-                func.array([DocCatalogNode.id]).label("path"),
+        stmt = text(f"""
+            WITH RECURSIVE cat_tree AS (
+                SELECT
+                    id, parent_id, name, slug, node_type,
+                    description, sort_order, config,
+                    0 AS depth,
+                    ARRAY[id] AS path
+                FROM {table}
+                WHERE corpus_id = :corpus_id AND parent_id IS NULL
+
+                UNION ALL
+
+                SELECT
+                    n.id, n.parent_id, n.name, n.slug, n.node_type,
+                    n.description, n.sort_order, n.config,
+                    ct.depth + 1,
+                    ct.path || n.id
+                FROM {table} n
+                JOIN cat_tree ct ON n.parent_id = ct.id
             )
-            .where(
-                DocCatalogNode.corpus_id == corpus_id,
-                DocCatalogNode.parent_id.is_(None),
-            )
-            .cte("cat_tree", recursive=True)
-        )
+            SELECT id, parent_id, name, slug, node_type,
+                   description, sort_order, config, depth, path
+            FROM cat_tree
+            WHERE depth <= :max_depth
+            ORDER BY depth, sort_order, name
+        """)
 
-        recursive_part = select(
-            DocCatalogNode.id,
-            DocCatalogNode.parent_id,
-            DocCatalogNode.name,
-            DocCatalogNode.slug,
-            DocCatalogNode.node_type,
-            DocCatalogNode.description,
-            DocCatalogNode.sort_order,
-            DocCatalogNode.config,
-            (cte.c.depth + 1).label("depth"),
-            (cte.c.path + func.array([DocCatalogNode.id])).label("path"),
-        ).join(
-            cte,
-            DocCatalogNode.parent_id == cte.c.id,
+        result = await db.execute(
+            stmt,
+            {"corpus_id": str(corpus_id), "max_depth": max_depth},
         )
-
-        full_tree = union_all(cte.select(), recursive_part).alias("tree_result")
-        # 限制最大深度，防止超深树导致性能问题
-        query = (
-            select(full_tree)
-            .where(full_tree.c.depth <= max_depth)
-            .order_by(full_tree.c.depth, full_tree.c.sort_order, full_tree.c.name)
-        )
-
-        result = await db.execute(query)
         rows = result.all()
 
         tree_data = []
@@ -248,49 +229,39 @@ class CatalogDao:
         max_depth: int = MAX_TREE_DEPTH,
     ) -> list[dict]:
         """获取以指定节点为根的子树"""
-        schema = NEGENTROPY_SCHEMA
+        table = f"{NEGENTROPY_SCHEMA}.doc_catalog_nodes"
 
-        anchor = (
-            select(
-                DocCatalogNode.id,
-                DocCatalogNode.parent_id,
-                DocCatalogNode.name,
-                DocCatalogNode.slug,
-                DocCatalogNode.node_type,
-                DocCatalogNode.description,
-                DocCatalogNode.sort_order,
-                DocCatalogNode.config,
-                literal_column("0").label("depth"),
-                func.array([DocCatalogNode.id]).label("path"),
+        stmt = text(f"""
+            WITH RECURSIVE sub_tree AS (
+                SELECT
+                    id, parent_id, name, slug, node_type,
+                    description, sort_order, config,
+                    0 AS depth,
+                    ARRAY[id] AS path
+                FROM {table}
+                WHERE id = :node_id
+
+                UNION ALL
+
+                SELECT
+                    n.id, n.parent_id, n.name, n.slug, n.node_type,
+                    n.description, n.sort_order, n.config,
+                    st.depth + 1,
+                    st.path || n.id
+                FROM {table} n
+                JOIN sub_tree st ON n.parent_id = st.id
             )
-            .where(DocCatalogNode.id == node_id)
-            .cte("sub_tree", recursive=True)
-        )
+            SELECT id, parent_id, name, slug, node_type,
+                   description, sort_order, config, depth, path
+            FROM sub_tree
+            WHERE depth <= :max_depth
+            ORDER BY depth, sort_order
+        """)
 
-        recursive_part = select(
-            DocCatalogNode.id,
-            DocCatalogNode.parent_id,
-            DocCatalogNode.name,
-            DocCatalogNode.slug,
-            DocCatalogNode.node_type,
-            DocCatalogNode.description,
-            DocCatalogNode.sort_order,
-            DocCatalogNode.config,
-            (anchor.c.depth + 1).label("depth"),
-            (anchor.c.path + func.array([DocCatalogNode.id])).label("path"),
-        ).join(
-            anchor,
-            DocCatalogNode.parent_id == anchor.c.id,
+        result = await db.execute(
+            stmt,
+            {"node_id": str(node_id), "max_depth": max_depth},
         )
-
-        full_tree = union_all(anchor.select(), recursive_part).alias("subtree_result")
-        query = (
-            select(full_tree)
-            .where(full_tree.c.depth <= max_depth)
-            .order_by(full_tree.c.depth, full_tree.c.sort_order)
-        )
-
-        result = await db.execute(query)
         rows = result.all()
 
         return [
