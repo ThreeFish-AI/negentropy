@@ -1,10 +1,9 @@
 [English](./README.md) | [简体中文](./docs/zh-CN/README.md)
 
-<h1 align="center">🔮 Negentropy (熵减引擎)</h1>
-
+<h1 align="center">🔮 Negentropy</h1>
 
 <p align="center">
-  <strong>一个「一核五翼」(One Root, Five Wings) 架构的智能体系统，致力于对抗知识的无序趋势（熵增），实现持续自我进化的认知体系。</strong>
+  <strong>An agentic system built on a "One Root, Five Wings" architecture, dedicated to combating the entropic decay of knowledge and forging a continuously self-evolving cognitive framework.</strong>
 </p>
 
 <div align="center">
@@ -18,145 +17,158 @@
 </div>
 
 <p align="center">
-  <b>🔮 本我 · 调度核心 | 不参与原子任务执行，依据<strong>正交分解 (Orthogonal Decomposition)</strong> 原则，将意图精准委派给最合适的系部。</b> <br/> <b>👁️ 慧眼 · 感知</b> | <b>💎 本心 · 内化</b> | <b>🧠 元神 · 坐照</b> | <b>✋ 妙手 · 知行</b> | <b>🗣️ 喉舌：影响</b>
+  <b>🔮 The Self · Scheduling Core | Bypasses atomic task execution. Strictly adhering to <strong>Orthogonal Decomposition</strong>, it acts as the master conductor, assigning intents to the most capable faculties.</b> <br/> <b>👁️ The Eye · Perception</b> | <b>💎 The Soul · Internalization</b> | <b>🧠 The Mind · Contemplation</b> | <b>✋ The Hand · Action</b> | <b>🗣️ The Voice · Influence</b>
+  <br/>
 </p>
 
 ---
 
-## 🤔 为什么需要熵减引擎？
+<p align="center">
+<b><small><small><strong>Disclaimer</strong> · All tools and methodologies provided by this project are for reference only. The project team bears no direct or indirect responsibility for the outcomes of using this system. The term "cultivation/practice" herein refers purely to the self-evolution and optimization of the system, free of any religious connotations.</small></small></b>
+</p>
 
-你或许已经用过了不少智能体系统，但大概率踩过这些坑：
+---
 
-- 🌀 **信息过载** —— Agent 获取了海量信息，但信号和噪音齐飞，你只得到一堆「有用的废话」
-- 🕳️ **金鱼记忆** —— 上一轮对话的结论，下一轮就被忘得一干二净，仿佛每次都在重启人生
-- 🏄 **浅尝辄止** —— Agent 只会表面回答，从不会深挖二阶问题——「为什么」永远没人替你问
-- 💬 **纸上谈兵** —— 分析得头头是道，真正需要执行代码、操作文件时就开始「建议您手动操作」
-- 🌫️ **晦涩难懂** —— 明明是专业的洞察，输出却像天书，价值传递的损耗率直逼 80%
+## 🤔 Why Negentropy Engine?
 
-**Negentropy 的回答**：逐一对抗这些熵增形态。不在于造一个 Agent，而是构建一个**持续自我进化的认知系统**。
+You've probably test-driven your fair share of agentic systems by now, and inevitably stepped into these classic pitfalls:
+
+- 🌀 **Information Overload** —— Agents devour oceans of data, but signal and noise fly together. You're left with a pile of "truthful nonsense."
+- 🕳️ **Goldfish Memory** —— The hard-won conclusions from your last dialogue are tossed out the window by the next. It's like rebooting life every five minutes.
+- 🏄 **Surface-Level Skimming** —— Agents give you textbook answers but never dig into second-order problems. Nobody's ever asking "But _why_?" on your behalf.
+- 💬 **Armchair Strategists** —— The analysis is flawless, but the moment real work (executing code, touching files) is required, you hit the dreaded "I suggest you do this manually."
+- 🌫️ **Impenetrable Jargon** —— What should be a professional insight reads like an ancient scroll. The value degradation in transmission approaches a solid 80%.
+
+**Negentropy's Answer**: We engage these entropic forms head-on. The goal isn't just to build another Agent, but to forge a **continuously self-evolving cognitive system**.
 
 ```mermaid
 graph TB
-    Root["🔮 NegentropyEngine<br/>（本我 · 调度核心）"]
+    Root["🔮 NegentropyEngine<br/>(The Self · Scheduling Core)"]
 
-    Root -->|"transfer_to_agent"| P["👁️ 慧眼 · 感知<br/>Perception"]
-    Root -->|"transfer_to_agent"| I["💎 本心 · 内化<br/>Internalization"]
-    Root -->|"transfer_to_agent"| C["🧠 元神 · 坐照<br/>Contemplation"]
-    Root -->|"transfer_to_agent"| A["✋ 妙手 · 知行<br/>Action"]
-    Root -->|"transfer_to_agent"| Inf["🗣️ 喉舌 · 影响<br/>Influence"]
+    Root -->|"transfer_to_agent"| P["👁️ The Eye · Perception Faculty"]
+    Root -->|"transfer_to_agent"| I["💎 The Soul · Internalization Faculty"]
+    Root -->|"transfer_to_agent"| C["🧠 The Mind · Contemplation Faculty"]
+    Root -->|"transfer_to_agent"| A["✋ The Hand · Action Faculty"]
+    Root -->|"transfer_to_agent"| Inf["🗣️ The Voice · Influence Faculty"]
 
-    P -->|对抗| O["信息过载<br/>噪音淹没信号"]
-    I -->|对抗| F["遗忘<br/>知识碎片化"]
-    C -->|对抗| S["肤浅<br/>表层响应"]
-    A -->|对抗| E["虚谈<br/>认知-行动断裂"]
-    Inf -->|对抗| Obs["晦涩<br/>价值传递失真"]
+    P -->|Combats| O["Information Overload<br/>Noise Drowning Signal"]
+    I -->|Combats| F["Amnesia<br/>Knowledge Fragmentation"]
+    C -->|Combats| S["Superficiality<br/>Surface-Level Responses"]
+    A -->|Combats| E["All Talk<br/>Cognitive-Action Disconnect"]
+    Inf -->|Combats| Obs["Obscurity<br/>Value Degradation"]
 ```
 
 ---
 
-## ✨ 核心特性
+## ✨ Core Features
 
-- 🏗️ **「一核五翼」智能体编排** —— 一个编排者 + 五个正交系部的分工协作架构。根智能体负责调度决策，五大系部分别对抗信息过载、遗忘、肤浅、虚谈和晦涩
+- 🏗️ **"One Root, Five Wings" Orchestration** —— A master orchestrator teaming up with five orthogonal faculties. The root agent handles the dispatching, while the five wings systematically obliterate information overload, amnesia, superficiality, inaction, and obscurity.
 
-- 🔄 **三条标准流水线** —— 预封装的知识获取、问题解决、价值交付流水线，告别手动编排多步骤任务的繁琐，开箱即用
+- 🔄 **Three Standardized Pipelines** —— Pre-packaged pipelines for Knowledge Acquisition, Problem Solving, and Value Delivery. Say goodbye to the tedious chore of manually wiring multi-step tasks. It works out of the box.
 
-- 🧠 **动态记忆系统** —— 基于艾宾浩斯遗忘曲线的记忆衰减机制，结构化事实存储，记忆审计与治理，让 Agent 真正「记住」而不是「复读」
+- 🧠 **Dynamic Memory System** —— A memory decay mechanism modeled on the Ebbinghaus Forgetting Curve, paired with structured factual storage and memory governance. This ensures the Agent actually _remembers_ instead of merely _repeating_.
 
-- 📚 **知识管理引擎** —— 文档摄入、语义分块、向量检索、知识图谱、语义搜索，一套完整的知识生命周期管理
+- 📚 **Knowledge Management Engine** —— From document ingestion, semantic chunking, and vector retrieval to knowledge graphs and semantic search—a full-lifecycle knowledge management suite.
 
-- 🐱 **沙箱代码执行** —— MCP 协议 + MicroSandbox 双通道隔离执行，安全地让 Agent 真正「动手」而不是只动嘴
+- 🐱 **Sandboxed Code Execution** —— Dual-channel isolated execution via MCP Protocol + MicroSandbox. Safely allows the Agent to get its hands dirty, graduating from "all talk" to "taking action."
 
-- 🔧 **可插拔后端** —— Session / Memory / Artifact / Credential 全部支持 inmemory / PostgreSQL / VertexAI / GCS 切换，开发用 inmemory，生产上 postgres，平滑迁移零代码修改
+- 🔧 **Pluggable Backends** —— Sessions, Memories, Artifacts, and Credentials fully support seamless switching between in-memory / PostgreSQL / VertexAI / GCS. Use in-memory for dev, Postgres for prod. Zero-code smooth migration.
 
-- 📡 **全链路可观测** —— structlog 结构化日志 + OpenTelemetry 分布式追踪 + Langfuse Trace 分析，Agent 的每一次「思考」都有据可查
+- 📡 **Full-Stack Observability** —— Structured logging via `structlog` + Distributed tracing with OpenTelemetry + Trace analysis via Langfuse. Every "thought" the Agent has is fully documented and auditable.
 
 ---
 
-## ✨ 快速上手
+## ✨ Quick Start
 
-### 前置要求
+### Prerequisites
 
-| 依赖                             | 最低版本          | 用途          |
-| :------------------------------- | :---------------- | :------------ |
-| Python                           | 3.13+             | 后端运行时    |
-| [uv](https://docs.astral.sh/uv/) | 最新              | Python 包管理 |
-| Node.js                          | 22+               | 前端运行时    |
-| [pnpm](https://pnpm.io/)         | 最新              | 前端包管理    |
-| PostgreSQL                       | 16+ (含 pgvector) | 数据持久化    |
+<center>
 
-### 1. 克隆项目
+| Dependency                       | Minimum Version     | Purpose                  |
+| :------------------------------- | :------------------ | :----------------------- |
+| Python                           | 3.13+               | Backend Runtime          |
+| [uv](https://docs.astral.sh/uv/) | Latest              | Python Package Manager   |
+| Node.js                          | 22+                 | Frontend Runtime         |
+| [pnpm](https://pnpm.io/)         | Latest              | Frontend Package Manager |
+| PostgreSQL                       | 16+ (with pgvector) | Data Persistence         |
+
+</center>
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/ThreeFish-AI/negentropy.git
 cd negentropy
 ```
 
-### 2. 启动后端
+### 2. Boot the Backend
 
 ```bash
 cd apps/negentropy
-cp .env.example .env          # 复制并填写环境变量
-uv sync --dev                  # 安装全部依赖（含开发依赖）
-uv run alembic upgrade head    # 应用数据库迁移
-uv run adk web --port 8000 --reload_agents src/negentropy  # 启动引擎
+cp .env.example .env          # Copy and configure environment variables
+uv sync --dev                  # Install all dependencies (including dev)
+uv run alembic upgrade head    # Apply database migrations
+uv run adk web --port 8000 --reload_agents src/negentropy  # Start the engine
 ```
 
-### 3. 启动前端
+### 3. Boot the Frontend
 
 ```bash
 cd apps/negentropy-ui
-pnpm install                   # 安装依赖
-pnpm run dev                   # 启动开发服务器 (localhost:3333)
+pnpm install                   # Install dependencies
+pnpm run dev                   # Start development server (localhost:3333)
 ```
 
-### 4. 开始对话
+### 4. Initiate Dialogue
 
-打开浏览器访问 `http://localhost:3333`，开始与 NegentropyEngine 对话。
+Fire up your browser, head over to `http://localhost:3333`, and start conversing with the NegentropyEngine.
 
-> 完整的环境搭建指南、数据库迁移、前后端对接、故障排查详见 [docs/development.md](./docs/development.md)。
+> For comprehensive guides on environment setup, database migrations, frontend-backend integration, and troubleshooting, please refer to [docs/development.md](./docs/development.md).
 
 ---
 
-## 🏛️ 架构概览
+## 🏛️ Architecture Overview
 
-> [!TIP]
-> 
-> **设计哲学**
-> 
-> 系统的命名源自薛定谔 (Erwin Schrödinger) 在《生命是什么？》中提出的概念——生命以**负熵 (Negentropy)** 为食<sup>[[1]](#ref1)</sup>。
+<p align="center">
+  <b><strong>Design Philosophy</strong> | The system's namesake draws from Erwin Schrödinger's concept in <em>What is Life?</em>—life feeds on <strong>negative entropy (Negentropy)</strong><sup><link url=#ref1>1</link></sup>.
+</p>
 
-### 一核五翼
+### One Root, Five Wings
 
-**NegentropyEngine** 不直接执行原子任务，只做调度决策。五个系部各司其职，三条流水线封装常见的多系部协作模式。架构遵循**正交分解**原则，确保系部间职责独立、变更局部化。
+The **NegentropyEngine** refrains from executing atomic tasks directly; it exists solely for scheduling and dispatching. The five faculties operate purely in their element, while three pipelines encapsulate common multi-faculty collaboration patterns. The architecture rigidly adheres to **Orthogonal Decomposition**, ensuring decoupled responsibilities and strictly localized mutations.
 
-| 图腾  | 系部        | Agent 名称               | 对抗目标 | 核心职责                             | 专属工具                                   |
-| :---: | :---------- | :----------------------- | :------- | :----------------------------------- | :----------------------------------------- |
-|   👁️   | 慧眼 · 感知 | `PerceptionFaculty`      | 信息过载 | 广域扫描、噪音过滤、多源交叉验证     | `search_knowledge_base`, `search_web`      |
-|   💎   | 本心 · 内化 | `InternalizationFaculty` | 遗忘     | 知识结构化、长期记忆管理、一致性维护 | `save_to_memory`, `update_knowledge_graph` |
-|   🧠   | 元神 · 坐照 | `ContemplationFaculty`   | 肤浅     | 二阶思维、策略规划、错误根因分析     | `analyze_context`, `create_plan`           |
-|   ✋   | 妙手 · 知行 | `ActionFaculty`          | 虚谈     | 精准执行、代码生成、安全变更         | `execute_code`, `read_file`, `write_file`  |
-|   🗣️   | 喉舌 · 影响 | `InfluenceFaculty`       | 晦涩     | 价值传递、格式适配、说服与教育       | `publish_content`, `send_notification`     |
+<center>
 
-> 完整的架构设计方案、流水线编排机制、设计模式目录详见 [docs/framework.md](./docs/framework.md)。
+| Totem | Faculty                    | Agent Name               | Combats              | Core Responsibility                                                         | Exclusive Tools                            |
+| :---: | :------------------------- | :----------------------- | :------------------- | :-------------------------------------------------------------------------- | :----------------------------------------- |
+|   👁️   | The Eye · Perception       | `PerceptionFaculty`      | Information Overload | Wide-area scanning, noise filtering, multi-source cross-validation          | `search_knowledge_base`, `search_web`      |
+|   💎   | The Soul · Internalization | `InternalizationFaculty` | Amnesia              | Knowledge structuring, long-term memory governance, consistency maintenance | `save_to_memory`, `update_knowledge_graph` |
+|   🧠   | The Mind · Contemplation   | `ContemplationFaculty`   | Superficiality       | Second-order thinking, strategic planning, root cause analysis              | `analyze_context`, `create_plan`           |
+|   ✋   | The Hand · Action          | `ActionFaculty`          | All Talk             | Precision execution, code generation, safe mutation                         | `execute_code`, `read_file`, `write_file`  |
+|   🗣️   | The Voice · Influence      | `InfluenceFaculty`       | Obscurity            | Value delivery, format adaptation, persuasion and education                 | `publish_content`, `send_notification`     |
 
-### 三层架构
+</center>
+
+> Dive into the complete architectural blueprint, pipeline orchestration mechanics, and design pattern registry in [docs/framework.md](./docs/framework.md).
+
+### Three-Tier Architecture
 
 ```mermaid
 graph TB
-    subgraph Presentation["🖥️ 展示层"]
+    subgraph Presentation["🖥️ Presentation Layer"]
         UI["negentropy-ui<br/><i>Next.js 22 · React 19 · Tailwind</i>"]
         Wiki["negentropy-wiki<br/><i>Next.js</i>"]
     end
 
-    subgraph Engine["⚙️ 引擎层"]
-        Root["🔮 NegentropyEngine<br/>根智能体（本我）"]
-        Faculties["五大系部<br/>👁️ 感知 · 💎 内化 · 🧠 坐照 · ✋ 知行 · 🗣️ 影响"]
-        Pipelines["三条流水线<br/>知识获取 · 问题解决 · 价值交付"]
+    subgraph Engine["⚙️ Engine Layer"]
+        Root["🔮 NegentropyEngine<br/>Root Agent (The Self)"]
+        Faculties["Five Faculties<br/>👁️ Perception <br> 💎 Internalization <br> 🧠 Contemplation <br> ✋ Action <br> 🗣️ Influence"]
+        Pipelines["Three Pipelines<br/>Knowledge Acquisition <br> Problem Solving <br> Value Delivery"]
     end
 
-    subgraph Infra["🏗️ 基础设施层"]
+    subgraph Infra["🏗️ Infrastructure Layer"]
         DB[("PostgreSQL 16+<br/>pgvector")]
-        LLM["LiteLLM<br/>100+ LLM 统一接口"]
+        LLM["LiteLLM<br/>100+ LLMs Unified API"]
         OTel["OpenTelemetry · Langfuse"]
         Sandbox["MCP · MicroSandbox"]
     end
@@ -182,41 +194,41 @@ graph TB
 
 ---
 
-## 📚 文档导航
+## 📚 Document Navigator
 
-| 文档                                            | 说明                                                                 |
-| :---------------------------------------------- | :------------------------------------------------------------------- |
-| [开发指南](./docs/development.md)               | 环境搭建、日常开发工作流、数据库迁移、前后端对接、故障排查           |
-| [架构设计](./docs/framework.md)                 | 一核五翼详解、流水线编排、设计模式目录、引擎层、数据持久化、前端架构 |
-| [知识系统](./docs/knowledges.md)                | 知识管理模块的详细设计与使用                                         |
-| [记忆系统](./docs/memory.md)                    | 记忆生命周期、遗忘曲线、治理机制                                     |
-| [知识图谱](./docs/knowledge-graph.md)           | 知识图谱建模与查询                                                   |
-| [QA 流水线](./docs/qa-delivery-pipeline.md)     | 质量门禁与发布流程                                                   |
-| [SSO 集成](./docs/sso.md)                       | Google OAuth 认证配置                                                |
-| [工程变更日志](./docs/engineering-changelog.md) | 里程碑与基线变更记录                                                 |
-| [AI 协作协议](./AGENTS.md)                      | Agent 协作行为准则与工程规范                                         |
+<center>
 
----
+| Document                                                 | Description                                                                                     |
+| :------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| [Development Guide](./docs/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
+| [Architecture Design](./docs/framework.md)               | Deep dive into the One Root/Five Wings, pipeline choreography, design patterns, engine workings |
+| [Knowledge System](./docs/knowledges.md)                 | Detailed design and usage of the knowledge management module                                    |
+| [Memory System](./docs/memory.md)                        | Memory lifecycle, forgetting curves, and governance mechanics                                   |
+| [Knowledge Graph](./docs/knowledge-graph.md)             | Graph modeling and query implementation                                                         |
+| [QA Pipeline](./docs/qa-delivery-pipeline.md)            | Quality gates and release workflows                                                             |
+| [SSO Integration](./docs/sso.md)                         | Google OAuth authentication config                                                              |
+| [Engineering Changelog](./docs/engineering-changelog.md) | Milestones and baseline mutation records                                                        |
+| [AI Collaboration Protocol](./AGENTS.md)                 | Agent cooperation guidelines and engineering codebase                                           |
 
-## 🤝 参与贡献
-
-如果您在使用过程中遇到任何问题，请通过 [GitHub Issues](https://github.com/ThreeFish-AI/negentropy/issues) 寻求帮助。
-
-- **核心原则**：熵减、上下文驱动、循证工程。
-- **提交规范**：请确保所有变更符合 Systemic Integrity (系统完整性) 要求。
+</center>
 
 ---
 
-> [!WARNING]
-> 
-> **免责声明**
-> 
-> 本项目提供的所有工具与方法论仅供参考。用户在使用过程中产生的任何结果，项目组不承担直接或间接责任。这里的「修行」指代系统的自我演化与优化过程，不涉及任何宗教含义。
+## 🤝 Community & Contributions
 
-<a id="ref1"></a>[1] E. Schrödinger, "What is Life? The Physical Aspect of the Living Cell," *Cambridge University Press*, 1944.
+If you're holding onto an inspiration that pulls chaos back into order, or if you bump into any snags while navigating the system, please don't hesitate to share your wisdom:
+
+1. Before hitting the keyboard, kindly take a detour through the [Development Guide](./docs/development.md).
+2. Sling your game-changing ideas into our [Issues](https://github.com/ThreeFish-AI/negentropy/issues) or directly submit a [Pull Request](https://github.com/ThreeFish-AI/negentropy/pulls) packing some serious paradigm-shifting power.
+
+Please hold "Entropy Reduction," "Context-Driven," and "Evidence-Based Engineering" as your **core principles**, ensuring every mutation aligns perfectly with Systemic Integrity.
+
+---
+
+<a id="ref1"></a>[1] E. Schrödinger, "What is Life? The Physical Aspect of the Living Cell," _Cambridge University Press_, 1944.
 
 ---
 
 <p align="center">
-  <a href="LICENSE">Apache License 2.0</a>, © 2026 <a href="https://github.com/ThreeFish-AI">ThreeFish-AI</a>
+  <a href="./LICENSE">Apache License 2.0</a>, © 2026 <a href="https://github.com/ThreeFish-AI">ThreeFish-AI</a>
 </p>
