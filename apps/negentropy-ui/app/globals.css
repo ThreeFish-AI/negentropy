@@ -161,3 +161,21 @@ body {
     opacity: 1;
   }
 }
+
+/*
+ * KaTeX 暗色模式适配
+ * KaTeX 大部分元素通过 color: currentColor 自动继承文字颜色，
+ * 但部分装饰性元素（分数线、根号等）需要额外覆盖。
+ */
+.dark .katex .vlist-t2 > .vlist-r > .vlist > .vlist-s,
+.dark .katex .frac-line,
+.dark .katex .overline .overline-line,
+.dark .katex .underline .underline-line,
+.dark .katex .sqrt > .sqrt-line,
+.dark .katex .hline {
+  border-color: currentColor;
+}
+
+.dark .katex .sqrt > .root {
+  color: currentColor;
+}

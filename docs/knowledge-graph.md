@@ -1,109 +1,332 @@
-# Knowledge Graph 技术落地方案
+# 知识图谱架构设计与工程实施方案
 
-> 本文档是 Knowledge Graph 能力实施的权威规划文档，用于管理和跟进整体 Planning。
-
-## 0. 范围与事实源（Single Source of Truth）
-
-- **底层存储模型**：[apps/negentropy/src/negentropy/models/perception.py](../apps/negentropy/src/negentropy/models/perception.py)（`Corpus` / `Knowledge`）
-- **图谱处理逻辑**：[apps/negentropy/src/negentropy/knowledge/graph.py](../apps/negentropy/src/negentropy/knowledge/graph.py)
-- **数据库权威定义**：[docs/schema/perception_schema.sql](./schema/perception_schema.sql)
-- **Schema 扩展**：[docs/schema/kg_schema_extension.sql](./schema/kg_schema_extension.sql)（新增）
-- **调研资料**：
-  - [Neo4j 调研](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/050-neo4j.md)
-  - [PostgreSQL vs Neo4j](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/051-postgres-neo4j.md)
-  - [Cognee 调研](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/040-cognee.md)
-
----
-
-## 1. 目标与边界
-
-### 1.1 核心目标
-
-将现有基础的 Knowledge Graph 能力升级为**生产级**知识图谱系统，支持：
-
-1. **智能实体提取**：基于 LLM 的多语言实体识别（人名、组织、地点、概念等）
-2. **语义关系提取**：基于 LLM 的精确关系识别（WORKS_FOR、LOCATED_IN、RELATED_TO 等）
-3. **专业图存储**：引入 Apache AGE 支持 Cypher 图查询
-4. **图算法支持**：PageRank 重要性计算、社区检测、最短路径
-5. **GraphRAG 能力**：向量 + 图遍历的混合检索增强生成
-
-### 1.2 边界约束
-
-| 在范围内 | 不在范围内 |
-|---------|-----------|
-| 实体/关系提取增强 | 实时图流处理 |
-| PostgreSQL + Apache AGE 集成 | Neo4j 集群部署（Phase 3 按需） |
-| 图算法（PageRank、社区检测） | 复杂图神经网络（GNN） |
-| GraphRAG 检索 | 知识推理引擎 |
-| 前端可视化增强 | 3D 图可视化 |
+> 本文档是 Negentropy 知识图谱模块的**架构设计单一权威参考 (Single Source of Truth)**，涵盖学术理论基础、行业框架分析、两阶段工程方案（PostgreSQL 阶段 → 终极阶段）以及价值量化体系。
+>
+> - 系统全景架构：[docs/framework.md](./framework.md)
+> - Knowledge 模块全景：[docs/knowledges.md](./knowledges.md)
+> - Memory 模块设计：[docs/memory.md](./memory.md)
+> - 数据库 Schema：[docs/schema/kg_schema_extension.sql](./schema/kg_schema_extension.sql)
+> - 源码入口：
+>   - 策略基类：[knowledge/graph.py](../apps/negentropy/src/negentropy/knowledge/graph.py)
+>   - LLM 提取器：[knowledge/llm_extractors.py](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)
+>   - 图谱存储：[knowledge/graph_repository.py](../apps/negentropy/src/negentropy/knowledge/graph_repository.py)
+>   - 图谱服务：[knowledge/graph_service.py](../apps/negentropy/src/negentropy/knowledge/graph_service.py)
+>   - 类型定义：[knowledge/types.py](../apps/negentropy/src/negentropy/knowledge/types.py)
+>   - REST API：[knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)
 
 ---
 
-## 2. 技术选型决策
+## 目录
 
-### 2.1 决策矩阵
+1. [愿景与哲学基础](#1-愿景与哲学基础)
+2. [学术理论基础](#2-学术理论基础)
+3. [行业框架全景分析](#3-行业框架全景分析)
+4. [当前实现现状 (Phase 1)](#4-当前实现现状-phase-1)
+5. [PostgreSQL 阶段深度设计](#5-postgresql-阶段深度设计)
+6. [终极阶段设计](#6-终极阶段设计)
+7. [价值量化体系](#7-价值量化体系)
+8. [一核五翼集成架构](#8-一核五翼集成架构)
+9. [实施路线图](#9-实施路线图)
+10. [风险管理与边界控制](#10-风险管理与边界控制)
+11. [参考文献](#11-参考文献)
+12. [变更日志](#12-变更日志)
 
-| 维度 | PostgreSQL + Apache AGE | Neo4j | 推荐方案 |
-|------|------------------------|-------|---------|
-| **现有基础设施** | ✅ 完全复用 | ❌ 需新增 | PostgreSQL |
-| **图遍历 1-3 跳** | ✅ 良好 | ✅ 优秀 | PostgreSQL 足够 |
-| **图遍历 4+ 跳** | ⚠️ 较慢 | ✅ 优秀 | 按需引入 Neo4j |
-| **向量搜索** | ✅ pgvector 已有 | ✅ HNSW | pgvector |
-| **混合查询 (SQL+图)** | ✅ 原生支持 | ❌ 需 ETL | PostgreSQL |
-| **运维复杂度** | ✅ 低 | ⚠️ 高 | PostgreSQL |
-| **成本** | ✅ 零增量 | ⚠️ 商业授权 | PostgreSQL |
-| **GDS 算法库** | ❌ 无 | ✅ 50+ | Phase 2 按需 |
+---
 
-### 2.2 推荐方案：渐进式混合架构
+## 1. 愿景与哲学基础
+
+### 1.1 结构化负熵：知识图谱的核心价值
+
+Negentropy（熵减引擎）的命名源自薛定谔在《生命是什么》中提出的核心洞见——生命以**负熵 (Negentropy)** 为食<sup>[[12]](#ref12)</sup>。映射到知识系统，知识图谱是实现**结构化负熵**的核心机制：将散乱的文本信息转化为有序的实体-关系网络，从根本上对抗知识碎片化的熵增趋势。
+
+知识图谱是 Hogan 等人所定义的"由实体（节点）及其相互关系（边）组成的图结构数据模型，用于集成、管理和从数据中提取价值"<sup>[[1]](#ref1)</sup>。在 Negentropy 的语境下，知识图谱是 Knowledge 模块<sup>[[10]](#ref10)</sup>的核心结构化组件，由**内化系部 (InternalizationFaculty)** 通过 `update_knowledge_graph` 工具触发构建——将感知系部获取的原始信息，经过实体提取、关系映射和图谱构建，形成可推理、可遍历、可量化的知识网络。
+
+### 1.2 超越向量检索
+
+纯向量语义检索（如 Negentropy 现有的 pgvector HNSW）虽然在"找到相似内容"方面表现优异，但存在本质局限<sup>[[2]](#ref2)</sup>：
+
+| 能力维度 | 纯向量检索 | 向量 + 知识图谱 |
+| :------- | :--------- | :-------------- |
+| 语义匹配 | ✅ 余弦相似度 | ✅ 继承 |
+| 结构化推理 | ❌ 无法回答"A 与 B 的关系链" | ✅ 多跳路径遍历 |
+| 实体消歧 | ❌ "苹果"可能指公司或水果 | ✅ 实体类型 + 关系上下文 |
+| 全局洞察 | ❌ 仅返回局部相似片段 | ✅ 社区检测 + 层级摘要 |
+| 时序感知 | ❌ 无时间维度 | ✅ 时态关系 + 事实有效期 |
+| 可解释性 | ⚠️ 向量距离不直观 | ✅ 关系路径可追溯 |
+| 上下文丰富度 | ⚠️ 独立 Chunk | ✅ 实体邻域聚合 |
+
+### 1.3 知识图谱在五翼架构中的定位
 
 ```mermaid
-timeline
-    title Knowledge Graph 技术演进路线
-    section Phase 1 (0-2月)
-        PostgreSQL + Apache AGE : LLM 提取器 : 基础图查询
-    section Phase 2 (2-4月)
-        图算法集成 : Cognee 适配器 : 质量监控
-    section Phase 3 (4-6月)
-        GraphRAG : Neo4j 评估 : 按需迁移
-```
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
+flowchart TB
+    subgraph Perception["👁️ 感知系部"]
+        P_In["原始文本/文档"]
+        P_Out["知识块 (Chunks)"]
+        P_In --> P_Out
+    end
 
-**决策依据**：
-1. **熵减原则**：复用现有 PostgreSQL 基础设施，避免引入新的运维复杂度
-2. **演进式设计**：从简单方案起步，按需增强
-3. **单一事实源**：PostgreSQL 作为权威数据源，避免 Split-Brain
+    subgraph KG["💎 知识图谱引擎"]
+        direction TB
+        Extract["实体/关系提取<br/>(LLM + Regex)"]
+        Store["图存储<br/>(Apache AGE)"]
+        Algo["图算法<br/>(PageRank · 社区检测)"]
+        Retrieve["混合检索<br/>(Vector + Graph)"]
+        Extract --> Store --> Algo
+        Store --> Retrieve
+    end
+
+    subgraph Internalization["💎 内化系部"]
+        Memory["长期记忆"]
+        Facts["结构化事实"]
+    end
+
+    subgraph Contemplation["🧠 坐照系部"]
+        Reason["二阶思维"]
+        Plan["策略规划"]
+    end
+
+    subgraph Action["✋ 知行系部"]
+        Execute["精准执行"]
+    end
+
+    P_Out -->|"异步触发"| Extract
+    Retrieve -->|"GraphRAG 上下文"| Reason
+    Retrieve -->|"结构化知识"| Execute
+    Algo -->|"社区摘要"| Reason
+    Store -->|"实体-关系网络"| Memory
+    Store -->|"三元组"| Facts
+
+    classDef perception fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef kg fill:#F59E0B,stroke:#92400E,color:#000
+    classDef wing fill:#10B981,stroke:#065F46,color:#FFF
+    classDef thinking fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+
+    class P_In,P_Out perception
+    class Extract,Store,Algo,Retrieve kg
+    class Memory,Facts wing
+    class Reason,Plan thinking
+    class Execute wing
+```
 
 ---
 
-## 3. 系统架构
+## 2. 学术理论基础
 
-### 3.1 整体架构图
+### 2.1 知识图谱基本概念
+
+知识图谱的核心数据模型可归纳为两大流派<sup>[[1]](#ref1)</sup>：
+
+**RDF（资源描述框架）**：W3C 标准，以 `(Subject, Predicate, Object)` 三元组为原子单位，强调全局语义互操作性与形式化推理能力（OWL / RDFS）。
+
+**属性图 (Property Graph)**：以节点和边为一等公民，节点和边均可附带任意属性。查询语言包括 Cypher (Neo4j)、GQL (ISO 标准)、openCypher (Apache AGE)。
+
+| 维度 | RDF | 属性图 |
+| :--- | :-- | :----- |
+| 标准化 | W3C 标准（SPARQL, OWL） | ISO GQL (2024) |
+| 语义推理 | ✅ 完整 OWL 推理 | ⚠️ 有限支持 |
+| 关系建模 | 原子三元组，多关系需具体化 | 边为一等公民，原生多关系 |
+| 属性访问 | 需额外三元组 | O(1) 原生属性 |
+| 查询效率 | 变长 JOIN | O(|graph|) 遍历 |
+| 工程复杂度 | 高（本体论设计） | 中（灵活 Schema） |
+
+**Negentropy 选择属性图模型**，理由：
+1. Apache AGE 原生支持 openCypher，与 PostgreSQL 完全融合
+2. 属性图的灵活 Schema 契合演进式设计原则
+3. 边上的属性（weight, confidence, evidence）对检索质量至关重要
+
+### 2.2 知识图谱嵌入
+
+知识图谱嵌入 (KGE) 将实体和关系映射到连续向量空间，支持链接预测和实体分类<sup>[[2]](#ref2)</sup>：
+
+- **TransE**<sup>[[2]](#ref2)</sup>：基础翻译模型，$\mathbf{h} + \mathbf{r} \approx \mathbf{t}$，适合一对一关系但难以处理对称/多对多关系
+- **RotatE**<sup>[[3]](#ref3)</sup>：在复数空间中将关系建模为旋转 $\mathbf{t} = \mathbf{h} \circ \mathbf{r}$（$\mathbf{r}_i = e^{i\theta_i}$），天然保持对称性、反对称性、逆关系和组合关系模式
+- **ComplEx / DistMult**：基于双线性模型的语义匹配，适合复杂关系模式
+
+**在 Negentropy 中的应用场景**：KGE 在终极阶段可用于实体链接预测（发现隐含关系）和图增强检索（embedding 距离作为补充排序信号）。当前阶段暂不需要 KGE，优先使用 LLM 直接提取。
+
+### 2.3 GraphRAG 范式
+
+**Microsoft GraphRAG**<sup>[[4]](#ref4)</sup> 开创了结构化检索增强生成范式，核心流程：
+
+1. 文本分割为 TextUnit → LLM 提取实体和关系 → 构建知识图谱
+2. Leiden 算法进行分层社区检测<sup>[[15]](#ref15)</sup>
+3. LLM 为每个社区生成自然语言摘要
+4. 双模式检索：
+   - **Local Search**：从查询实体出发做图遍历，聚合邻域上下文
+   - **Global Search**：Map-Reduce 遍历社区摘要，适合全局性问题
+
+**LightRAG**<sup>[[5]](#ref5)</sup> 提出了更高效的替代方案：
+
+- **双层检索**：Low-Level（实体 + 直接关系）+ High-Level（概念/主题级聚合）
+- **增量更新**：新文档通过 Union 操作合并到现有图谱（无需重建）
+- **性能优势**：比 GraphRAG 节省约 6000 倍 token 消耗，查询延迟降低约 33%
+
+### 2.4 时态知识图谱
+
+Graphiti/Zep<sup>[[6]](#ref6)</sup> 提出了面向 AI Agent 的**双时态知识图谱**架构：
+
+- **三层级结构**：Episode 子图（原始输入）→ Semantic Entity 子图（提取实体/关系）→ Community 子图（聚类摘要）
+- **双时态模型**：
+  - 事件时间线 (T)：事实在真实世界的有效时间 `(t_valid, t_invalid)`
+  - 事务时间线 (T')：事实被系统记录的时间 `(t_make, t_expire)`
+- **矛盾处理**：新信息与旧事实冲突时，系统自动设置 `t_invalid` 使旧边失效
+- **性能基准**：Deep Memory Retrieval 准确率 94.8%（vs MemGPT 93.4%），延迟降低 ~90%
+
+**与 Negentropy Memory 模块的互补**：Memory 模块使用 Ebbinghaus 遗忘曲线<sup>[[8]](#ref8)</sup>管理情景记忆（完整公式：`retention_score = min(1.0, e^{-λt} × (1 + ln(1+n)) / 5.0)`，详见 [memory.md](./memory.md)），知识图谱提供**结构化语义记忆**——两者分别对应人类认知的海马体（短期/情景）与新皮层（长期/结构化）。
+
+### 2.5 倒数排名融合
+
+Cormack 等人提出的 Reciprocal Rank Fusion (RRF)<sup>[[7]](#ref7)</sup> 为多信号融合提供了无需参数调优的稳健方案：
+
+$$RRF(d) = \sum_{r \in R} \frac{1}{k + rank_r(d)}$$
+
+其中 $k$ 为平滑常数（Negentropy 默认 $k=60$，配置于 `SearchConfig.rrf_k`）。RRF 的核心优势是**对分数尺度不敏感**，无论语义分数范围是 [0,1] 还是图分数范围是 [0,5]，排名融合都能产生稳健结果。Negentropy 的知识检索已在 L0 阶段支持 RRF 模式（见 [knowledges.md §5.2](./knowledges.md)），知识图谱的混合检索将进一步扩展 RRF 的信号来源。
+
+---
+
+## 3. 行业框架全景分析
+
+### 3.1 Cognee：ECL 管道与 PostgreSQL 原生支持
+
+[Cognee](https://github.com/topoteretes/cognee) 是面向 AI Agent 的知识引擎，采用 **ECL (Extract-Cognify-Load)** 管道架构<sup>[[13]](#ref13)</sup>：
+
+- **Extract**：从任意格式文档提取结构化数据
+- **Cognify**：LLM 驱动的实体/关系提取 + 去重 + Schema 推断
+- **Load**：三层存储（图数据库 + 向量数据库 + 关系数据库）
+
+**关键特性**：
+- PostgreSQL 原生支持（关系存储）+ pgvector（向量存储）
+- 图存储支持 Neo4j / KuzuDB / FalkorDB / NetworkX
+- 异步操作全栈、可插拔 LLM 提供商
+- Local-first 无强制云依赖
+
+**与 Negentropy 的契合点**：Cognee 的 ECL 管道天然映射到 Negentropy 的"感知 → 内化"管道；三层存储模型与 Negentropy 的 PostgreSQL + pgvector + Apache AGE 完全对齐。
+
+### 3.2 Graphiti/Zep：双时态与记忆级 KG
+
+[Graphiti](https://github.com/getzep/graphiti) 是 Zep 开源的时态知识图谱引擎<sup>[[6]](#ref6)</sup>：
+
+- **三层级图结构**：Episode（原始输入）→ Semantic Entity（实体/关系）→ Community（聚类摘要）
+- **三级实体解析**：精确匹配 → 模糊相似度 → LLM 推理
+- **实时增量更新**：无需批量重计算
+- **混合检索**：语义嵌入 + BM25 关键词 + 图遍历
+
+**与 Negentropy 的契合点**：双时态模型与 Memory 模块的遗忘曲线形成互补；实体解析策略可增强现有 `LLMEntityExtractor` 的去重能力。
+
+### 3.3 Microsoft GraphRAG：社区检测与层级摘要
+
+[GraphRAG](https://github.com/microsoft/graphrag) 由 Microsoft Research 提出<sup>[[4]](#ref4)</sup>：
+
+- **Leiden 社区检测**<sup>[[15]](#ref15)</sup>：基于模块度优化的分层聚类
+- **层级摘要**：每个社区由 LLM 生成自然语言总结
+- **Map-Reduce 全局搜索**：遍历社区摘要回答全局性问题
+- **技术无关知识模型**：通过抽象层适配多种存储后端
+
+**与 Negentropy 的契合点**：社区摘要天然服务于坐照系部的"二阶思维"——从实体关系中浮现宏观洞察。
+
+### 3.4 LightRAG：高效双层检索
+
+[LightRAG](https://github.com/HKUDS/LightRAG) 以极简主义实现高效 GraphRAG<sup>[[5]](#ref5)</sup>：
+
+- **双层检索**：Low-Level（具体实体和直接关系）+ High-Level（概念/主题聚合）
+- **增量更新**：通过 Union 操作合并新图谱（无需全量重建）
+- **可插拔存储**：JSON / PostgreSQL / Neo4j / MongoDB / Redis
+
+**性能对比**：
+
+| 指标 | LightRAG | GraphRAG | NaiveRAG |
+| :--- | :------- | :------- | :------- |
+| Token/Query | ~100 | ~610,000 | ~500 |
+| API Calls/Query | 1 | 数百 | 1 |
+| Win Rate vs NaiveRAG | 82.54% | — | Baseline |
+| 增量更新开销 | 仅提取 | 社区重建 | N/A |
+
+**与 Negentropy 的契合点**：LightRAG 的成本效率模型非常适合初期部署；PostgreSQL 原生支持降低集成门槛。
+
+### 3.5 Apache AGE：PostgreSQL 原生图扩展
+
+[Apache AGE](https://age.apache.org/) 为 PostgreSQL 提供属性图能力<sup>[[11]](#ref11)</sup>：
+
+- **openCypher 查询语言**：通过 `cypher()` 函数在 SQL 中执行图查询
+- **零额外基础设施**：作为 PostgreSQL 扩展安装，复用现有连接池、事务、备份
+- **混合查询**：SQL + Cypher 在同一事务中执行
+- **agtype 数据类型**：存储图节点和边的属性
+
+### 3.6 框架决策矩阵
+
+| 维度 | Cognee | Graphiti/Zep | GraphRAG | LightRAG | AGE (当前) |
+| :--- | :----- | :----------- | :------- | :------- | :--------- |
+| **PostgreSQL 原生** | ✅ 关系层 | ❌ Neo4j/FalkorDB | ❌ 技术无关 | ✅ 可选 | ✅ 完全原生 |
+| **时态建模** | ❌ | ✅ 双时态 | ❌ | ❌ | ❌ (Phase 2 预备) |
+| **社区检测** | ✅ Louvain | ❌ | ✅ Leiden | ❌ | ❌ (Phase 2 规划) |
+| **增量更新** | ✅ | ✅ 实时 | ❌ 全量重建 | ✅ Union | ⚠️ 部分 |
+| **Token 效率** | 中等 | 中等 | 低（token 密集） | ✅ 极高 | ✅ 高 |
+| **多跳推理** | ✅ | ✅ | ✅ 社区级 | ✅ 双层 | ⚠️ 1-3 跳 |
+| **运维复杂度** | 中等 | 高（需图 DB） | 中等 | 低 | ✅ 极低 |
+| **生产成熟度** | ⭐⭐⭐ | ⭐⭐⭐⭐ (Zep 企业版) | ⭐⭐⭐⭐ (Azure) | ⭐⭐⭐ | ⭐⭐⭐ |
+
+### 3.7 复用策略
+
+遵循 AGENTS.md **复用驱动 (Composition over Construction)** 原则：
+
+| 能力 | 复用来源 | 自建内容 |
+| :--- | :------- | :------- |
+| 实体/关系提取 | ✅ 现有 `LLMEntityExtractor` | 增强去重/解析 |
+| 图存储 | ✅ Apache AGE (已集成) | 迁移 JSONB → AGE 边 |
+| 社区检测 | 🔄 Louvain (Python networkx) | 服务层编排 |
+| GraphRAG 检索 | 🔄 LightRAG 双层模式启发 | 适配现有 `SearchConfig` |
+| 时态建模 | 🔄 Graphiti 双时态模型启发 | 扩展关系属性 |
+| 向量检索 | ✅ pgvector HNSW (已有) | RRF 融合图分数 |
+
+---
+
+## 4. 当前实现现状 (Phase 1)
+
+### 4.1 已完成交付物
+
+Phase 1 基础能力增强已于 2026-02 完成，主要交付物：
+
+| 组件 | 文件路径 | 状态 | 说明 |
+| :--- | :------- | :--- | :--- |
+| LLM 实体提取器 | [`llm_extractors.py`](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py) | ✅ | `LLMEntityExtractor` 多语言实体提取 |
+| LLM 关系提取器 | [`llm_extractors.py`](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py) | ✅ | `LLMRelationExtractor` 语义关系提取 + 证据 |
+| 组合提取器 | [`llm_extractors.py`](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py) | ✅ | `CompositeEntityExtractor` / `CompositeRelationExtractor` 回退策略 |
+| 策略基类 | [`graph.py`](../apps/negentropy/src/negentropy/knowledge/graph.py) | ✅ | `EntityExtractor` / `RelationExtractor` ABC |
+| 图谱存储 | [`graph_repository.py`](../apps/negentropy/src/negentropy/knowledge/graph_repository.py) | ✅ | `AgeGraphRepository` CRUD + 查询 |
+| 图谱服务 | [`graph_service.py`](../apps/negentropy/src/negentropy/knowledge/graph_service.py) | ✅ | `GraphService` 构建编排 + 检索封装 |
+| 类型定义 | [`types.py`](../apps/negentropy/src/negentropy/knowledge/types.py) | ✅ | `KgEntityType` / `KgRelationType` / `GraphSearchMode` |
+| API 端点 | [`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) | ✅ | 图谱构建/查询/检索/邻居/路径 API |
+| DB Schema | [`kg_schema_extension.sql`](./schema/kg_schema_extension.sql) | ✅ | AGE 扩展 + 枚举 + 函数 + 视图 |
+
+### 4.2 当前架构
 
 ```mermaid
 %%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "secondaryBorderColor": "#0f5132", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff", "tertiaryBorderColor": "#842029"}}}%%
 flowchart TB
     subgraph API["API Layer"]
         KAPI["Knowledge API<br/>(现有)"]
-        GAPI["Graph API<br/>(扩展)"]
-        GRAG["GraphRAG API<br/>(Phase 3)"]
+        GAPI["Graph API<br/>(Phase 1 ✅)"]
+        GRAG["GraphRAG API<br/>(Phase 3 🔲)"]
     end
 
     subgraph Service["Service Layer"]
         KSvc["KnowledgeService<br/>(现有)"]
-        GSvc["GraphService<br/>(新增)"]
-        E2E["LLMEntityExtractor<br/>(新增)"]
-        R2R["LLMRelationExtractor<br/>(新增)"]
+        GSvc["GraphService<br/>(Phase 1 ✅)"]
+        E2E["LLMEntityExtractor<br/>(Phase 1 ✅)"]
+        R2R["LLMRelationExtractor<br/>(Phase 1 ✅)"]
     end
 
     subgraph Repo["Repository Layer"]
         KRepo["KnowledgeRepository<br/>(现有)"]
-        GRepo["GraphRepository<br/>(新增 AGE)"]
+        GRepo["AgeGraphRepository<br/>(Phase 1 ✅)"]
     end
 
     subgraph Storage["Storage Layer (PostgreSQL 16+)"]
         direction TB
         Corpus[("corpus<br/>(现有)")]
         Knowledge[("knowledge<br/>(现有+扩展)")]
-        AGE[("Apache AGE<br/>(新增)")]
+        AGE[("Apache AGE<br/>(Phase 1 ✅)")]
         HNSW["HNSW Index<br/>(pgvector)"]
     end
 
@@ -118,52 +341,62 @@ flowchart TB
     GRepo --> AGE
     GRepo --> Knowledge
 
-    classDef api fill:#0b3d91,stroke:#0b3d91,color:#ffffff;
-    classDef svc fill:#0f5132,stroke:#0f5132,color:#ffffff;
-    classDef repo fill:#0f5132,stroke:#0f5132,color:#ffffff;
-    classDef store fill:#842029,stroke:#842029,color:#ffffff;
+    classDef api fill:#0b3d91,stroke:#0b3d91,color:#ffffff
+    classDef svc fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef repo fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef store fill:#842029,stroke:#842029,color:#ffffff
+    classDef pending fill:#6c757d,stroke:#6c757d,color:#ffffff
 
-    class KAPI,GAPI,GRAG api
+    class KAPI,GAPI api
+    class GRAG pending
     class KSvc,GSvc,E2E,R2R svc
     class KRepo,GRepo repo
     class Corpus,Knowledge,AGE,HNSW store
 ```
 
-### 3.2 数据模型
+### 4.3 实体与关系类型
 
-#### 3.2.1 现有模型扩展
+**实体类型** (8 种)：
 
-```sql
--- 扩展 knowledge 表，增加图谱关联字段
-ALTER TABLE knowledge ADD COLUMN IF NOT EXISTS
-    entity_type VARCHAR(50),           -- 实体类型: person/org/concept/event
-    entity_confidence FLOAT DEFAULT 1.0; -- 提取置信度
+```python
+class KgEntityType(Enum):
+    PERSON = "person"            # 人物
+    ORGANIZATION = "organization" # 组织/公司
+    LOCATION = "location"        # 地点
+    EVENT = "event"              # 事件
+    CONCEPT = "concept"          # 概念/术语
+    PRODUCT = "product"          # 产品
+    DOCUMENT = "document"        # 文档（注：当前 LLM 提取 Prompt 未包含此类型，将归入 OTHER）
+    OTHER = "other"              # 其他
 ```
 
-#### 3.2.2 Apache AGE 图谱
+**关系类型** (12 种)：
 
-```sql
--- 创建图谱
-SELECT create_graph('negentropy_kg');
-
--- 实体节点属性
--- - id: UUID (关联到 knowledge.id)
--- - label: 实体名称
--- - type: 实体类型 (person/organization/location/event/concept/product)
--- - confidence: 提取置信度
--- - source_corpus_id: 来源语料库
-
--- 关系边属性
--- - type: 关系类型 (WORKS_FOR, LOCATED_IN, RELATED_TO, etc.)
--- - weight: 关系强度
--- - confidence: 提取置信度
--- - evidence: 支撑文本片段
--- - source_knowledge_ids: 来源知识块
+```python
+class KgRelationType(Enum):
+    # 组织关系
+    WORKS_FOR = "WORKS_FOR"        # 就职于
+    PART_OF = "PART_OF"            # 隶属于
+    LOCATED_IN = "LOCATED_IN"      # 位于
+    # 语义关系
+    RELATED_TO = "RELATED_TO"      # 相关
+    SIMILAR_TO = "SIMILAR_TO"      # 相似
+    DERIVED_FROM = "DERIVED_FROM"  # 衍生自
+    # 因果关系
+    CAUSES = "CAUSES"              # 导致
+    PRECEDES = "PRECEDES"          # 先于
+    FOLLOWS = "FOLLOWS"            # 后于
+    # 引用关系
+    MENTIONS = "MENTIONS"          # 提及
+    CREATED_BY = "CREATED_BY"      # 创建者
+    # 共现关系（回退）
+    CO_OCCURS = "CO_OCCURS"        # 共现
 ```
 
-### 3.3 数据流
+### 4.4 数据流
 
 ```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
 sequenceDiagram
     participant Client
     participant KnowledgeService
@@ -194,365 +427,830 @@ sequenceDiagram
     GraphService->>Knowledge: UPDATE entity_type, confidence
 ```
 
----
-
-## 4. 分阶段实施计划
-
-### 4.1 Phase 1: 基础能力增强 (0-2个月)
-
-**目标**：增强实体/关系提取能力，引入专业图存储
-
-| # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
-|---|------|-------|------|--------|------|
-| P1-1 | LLM 实体提取器 | P0 | - | `LLMEntityExtractor` | ✅ Completed |
-| P1-2 | LLM 关系提取器 | P0 | P1-1 | `LLMRelationExtractor` | ✅ Completed |
-| P1-3 | Apache AGE Schema | P0 | - | `kg_schema_extension.sql` | ✅ Completed |
-| P1-4 | GraphRepository 实现 | P0 | P1-3 | `AgeGraphRepository` | ✅ Completed |
-| P1-5 | GraphService 实现 | P0 | P1-4 | `GraphService` | ✅ Completed |
-| P1-6 | 图谱构建 Pipeline | P1 | P1-5 | 异步构建任务 | ✅ Completed |
-| P1-7 | 前端可视化增强 | P1 | - | D3.js 交互优化 | ✅ Completed |
-| P1-8 | 类型定义扩展 | P0 | - | `types.py` 更新 | ✅ Completed |
-| P1-9 | API 端点扩展 | P1 | P1-5 | Graph API | ✅ Completed |
-
-**里程碑**：
-- ✅ M1.1: LLM 提取器上线，支持中英文实体提取
-- ✅ M1.2: Apache AGE 集成完成，支持 Cypher 查询
-- ✅ M1.3: 图谱可视化增强，支持拖拽、缩放、筛选
-
-### 4.2 Phase 2: 图算法与分析 (2-4个月)
-
-**目标**：引入图算法，支持知识推理
-
-| # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
-|---|------|-------|------|--------|------|
-| P2-1 | PageRank 重要性计算 | P1 | P1-6 | 实体重要性评分 | 🔲 Pending |
-| P2-2 | 社区检测 (Louvain) | P1 | P1-6 | 实体聚类 | 🔲 Pending |
-| P2-3 | 最短路径查询 | P1 | P1-4 | `kg_shortest_path()` | 🔲 Pending |
-| P2-4 | 图遍历索引优化 | P2 | P1-4 | 索引优化 | 🔲 Pending |
-| P2-5 | Cognee 适配器 | P2 | P2-1 | `CogneeAdapter` | 🔲 Pending |
-| P2-6 | 图谱质量评估 | P2 | P2-1 | 质量报告 API | 🔲 Pending |
-
-**里程碑**：
-- ✅ M2.1: 支持 PageRank 和社区检测
-- ✅ M2.2: Cognee 集成，支持 INSIGHTS 检索模式
-- ✅ M2.3: 图谱质量监控仪表盘
-
-### 4.3 Phase 3: GraphRAG 集成 (4-6个月)
-
-**目标**：实现 GraphRAG 能力
-
-| # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
-|---|------|-------|------|--------|------|
-| P3-1 | 图遍历检索增强 | P1 | P2-3 | `kg_hybrid_search()` | 🔲 Pending |
-| P3-2 | 上下文聚合 | P1 | P3-1 | 邻居实体聚合 | 🔲 Pending |
-| P3-3 | 图摘要生成 | P2 | P3-2 | 子图摘要 | 🔲 Pending |
-| P3-4 | GraphRAG API | P1 | P3-3 | `/knowledge/graph/rag` | 🔲 Pending |
-| P3-5 | Neo4j 评估 | P2 | P2-1 | 性能对比报告 | 🔲 Pending |
-| P3-6 | Neo4j 迁移方案 | P2 | P3-5 | 按需实施 | 🔲 Pending |
-
-**里程碑**：
-- ✅ M3.1: GraphRAG API 上线
-- ✅ M3.2: 性能优化完成 (P95 < 500ms)
-- ✅ M3.3: Neo4j 可选部署完成
-
----
-
-## 5. 关键文件清单
-
-| 文件路径 | 操作 | 说明 | 状态 |
-|---------|-----|------|------|
-| `apps/negentropy/src/negentropy/knowledge/graph.py` | 修改 | 新增 LLM 提取器引用 | - |
-| `apps/negentropy/src/negentropy/knowledge/llm_extractors.py` | **新建** | LLM 实体/关系提取器 | ✅ |
-| `apps/negentropy/src/negentropy/knowledge/graph_repository.py` | **新建** | Apache AGE 存储实现 | ✅ |
-| `apps/negentropy/src/negentropy/knowledge/graph_service.py` | **新建** | 图谱服务层 | ✅ |
-| `apps/negentropy/src/negentropy/knowledge/types.py` | 修改 | 扩展图谱类型 | ✅ |
-| `apps/negentropy/src/negentropy/knowledge/api.py` | 修改 | 新增图谱查询端点 | ✅ |
-| `docs/schema/kg_schema_extension.sql` | **新建** | Apache AGE Schema | ✅ |
-| `apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts` | 修改 | 前端 API 客户端 | ✅ |
-| `apps/negentropy-ui/features/knowledge/index.ts` | 修改 | 前端类型导出 | ✅ |
-| `apps/negentropy-ui/app/knowledge/graph/page.tsx` | 修改 | 前端可视化增强 | ✅ |
-| `docs/knowledge-graph.md` | **新建** | 本文档 | ✅ |
-
----
-
-## 6. 实体与关系类型定义
-
-### 6.1 实体类型 (Entity Types)
-
-```python
-class EntityType(str, Enum):
-    """知识图谱实体类型"""
-    PERSON = "person"           # 人物
-    ORGANIZATION = "organization"  # 组织/公司
-    LOCATION = "location"       # 地点
-    EVENT = "event"             # 事件
-    CONCEPT = "concept"         # 概念/术语
-    PRODUCT = "product"         # 产品
-    DOCUMENT = "document"       # 文档
-    OTHER = "other"             # 其他
-```
-
-### 6.2 关系类型 (Relation Types)
-
-```python
-class RelationType(str, Enum):
-    """知识图谱关系类型"""
-    # 组织关系
-    WORKS_FOR = "WORKS_FOR"       # 就职于
-    PART_OF = "PART_OF"           # 隶属于
-    LOCATED_IN = "LOCATED_IN"     # 位于
-
-    # 语义关系
-    RELATED_TO = "RELATED_TO"     # 相关
-    SIMILAR_TO = "SIMILAR_TO"     # 相似
-    DERIVED_FROM = "DERIVED_FROM" # 衍生自
-
-    # 因果关系
-    CAUSES = "CAUSES"             # 导致
-    PRECEDES = "PRECEDES"         # 先于
-    FOLLOWS = "FOLLOWS"           # 后于
-
-    # 引用关系
-    MENTIONS = "MENTIONS"         # 提及
-    CREATED_BY = "CREATED_BY"     # 创建者
-
-    # 共现关系（回退）
-    CO_OCCURS = "CO_OCCURS"       # 共现
-```
-
----
-
-## 7. API 端点设计
-
-### 7.1 图谱管理 API
+### 4.5 API 端点
 
 | 端点 | 方法 | 说明 |
-|------|------|------|
-| `/knowledge/graph` | GET | 获取最新图谱 |
-| `/knowledge/graph` | POST | 写回图谱（版本快照） |
-| `/knowledge/graph/build` | POST | 触发图谱构建 |
-| `/knowledge/graph/runs` | GET | 获取构建历史 |
+| :--- | :--- | :--- |
+| `/knowledge/base/{corpus_id}/graph/build` | POST | 触发图谱构建 |
+| `/knowledge/base/{corpus_id}/graph` | GET | 获取语料库图谱 |
+| `/knowledge/base/{corpus_id}/graph/search` | POST | 图谱混合检索 |
+| `/knowledge/graph/neighbors` | POST | 查询实体邻居 |
+| `/knowledge/graph/path` | POST | 查询最短路径 |
+| `/knowledge/base/{corpus_id}/graph` | DELETE | 清除图谱 |
+| `/knowledge/base/{corpus_id}/graph/history` | GET | 构建历史 |
 
-### 7.2 图查询 API (新增)
+### 4.6 诚实评估：当前限制
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/knowledge/graph/entities/{id}/neighbors` | GET | 查询实体邻居 |
-| `/knowledge/graph/path` | GET | 查询最短路径 |
-| `/knowledge/graph/search` | POST | 图谱混合检索 |
-| `/knowledge/graph/entities/{id}/importance` | GET | 获取实体重要性 |
+基于代码事实的审视，Phase 1 存在以下待改进之处：
 
-### 7.3 请求/响应示例
+1. **JSONB 关系存储**：`AgeGraphRepository` 中部分关系通过 `knowledge.metadata` 的 JSONB 字段存储，尚未完全迁移到 Apache AGE 原生图边。这限制了真正的 Cypher 图遍历能力。
 
-**查询实体邻居**：
-```json
-// GET /knowledge/graph/entities/{id}/neighbors?depth=2&limit=50
-{
-  "entity": {
-    "id": "entity-001",
-    "label": "OpenAI",
-    "type": "organization"
-  },
-  "neighbors": [
-    {
-      "id": "entity-002",
-      "label": "Sam Altman",
-      "type": "person",
-      "distance": 1,
-      "relation": "WORKS_FOR"
-    }
-  ],
-  "stats": {
-    "total_count": 15,
-    "by_type": {"person": 10, "organization": 5}
-  }
-}
-```
+2. **简化路径查询**：`find_path()` 方法为简化实现，未使用 AGE 的 `shortestPath()` Cypher 函数。
 
-**图谱混合检索**：
-```json
-// POST /knowledge/graph/search
-{
-  "query": "OpenAI 的创始人是谁",
-  "corpus_id": "uuid",
-  "mode": "hybrid",
-  "graph_depth": 2,
-  "limit": 10
-}
+3. **简化邻居遍历**：SQL 函数 `kg_neighbors()` 使用递归 CTE 近似，而非真正的 AGE Cypher 多跳遍历。真正的 Cypher 遍历函数 `kg_cypher_neighbors()` 已定义但需要应用层配合。
 
-// Response
-{
-  "results": [
-    {
-      "entity": {"id": "...", "label": "Sam Altman", "type": "person"},
-      "semantic_score": 0.85,
-      "graph_score": 0.72,
-      "combined_score": 0.79,
-      "context": [
-        {"label": "OpenAI", "relation": "CEO_OF"},
-        {"label": "Y Combinator", "relation": "PRESIDENT_OF"}
-      ]
-    }
-  ]
-}
-```
+4. **无图算法**：PageRank（`kg_entity_importance()` 为简化度中心性近似）、社区检测均未实现。
+
+5. **无时态建模**：关系无时间维度，无法追踪事实有效期。
+
+6. **无 GraphRAG**：混合检索 `kg_hybrid_search()` 采用语义分数 + 图度分数线性加权，尚未实现社区级检索或双层检索。
 
 ---
 
-## 8. 性能基准
+## 5. PostgreSQL 阶段深度设计
 
-### 8.1 目标指标
+### 5.1 设计原则
 
-| 场景 | 目标 | 说明 |
-|------|------|------|
-| 图遍历 1-3 跳 | P95 < 100ms | Apache AGE |
-| 混合检索 (向量+图) | P95 < 300ms | 融合检索 |
-| 图谱构建 (1000 chunks) | < 5min | 异步任务 |
-| LLM 实体提取 | < 2s/chunk | 批量优化 |
+| 原则 | 应用 |
+| :--- | :--- |
+| **基础设施复用** | 零新服务，全部能力在 PostgreSQL + Apache AGE 内实现 |
+| **单一事实源** | PostgreSQL 为图数据的唯一权威源，避免 Split-Brain |
+| **演进式设计** | 渐进增强，每步可独立部署、独立回滚 |
+| **正交分解** | 图存储、图算法、混合检索三个关注点独立演进 |
 
-### 8.2 性能优化策略
+### 5.2 增强图存储：JSONB → AGE 原生图边
 
-1. **索引优化**：为 Apache AGE 的实体/边表创建合适索引
-2. **查询优化**：限制图遍历深度，使用参数化 Cypher
-3. **缓存策略**：缓存热门实体和路径
-4. **批量处理**：LLM 提取采用批处理，减少 API 调用
+**目标**：将关系存储从 `knowledge.metadata` JSONB 完全迁移到 Apache AGE 原生图边，释放 Cypher 遍历能力。
 
----
+**迁移策略**（双读兼容）：
 
-## 9. 风险与边界控制
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+flowchart LR
+    subgraph Phase_A["阶段 A: 双写"]
+        Write_JSONB["写 JSONB"]
+        Write_AGE["写 AGE Edge"]
+        Write_JSONB & Write_AGE
+    end
 
-### 9.1 风险矩阵
+    subgraph Phase_B["阶段 B: 双读"]
+        Read_JSONB["读 JSONB (回退)"]
+        Read_AGE["读 AGE (优先)"]
+    end
 
-| 风险 | 影响 | 概率 | 缓解措施 |
-|------|------|------|---------|
-| 现有 JSONB 图谱数据丢失 | 高 | 低 | 保留 `knowledge_graph_runs.payload` 作为备份 |
-| 实体 ID 映射错误 | 中 | 中 | 使用 UUID 映射表，支持回滚 |
-| 批量构建失败 | 中 | 中 | 断点续传，支持增量构建 |
-| LLM API 限流 | 中 | 高 | 指数退避，队列缓冲 |
-| 图遍历性能下降 | 高 | 中 | 限制最大深度，缓存热门路径 |
+    subgraph Phase_C["阶段 C: 清理"]
+        Drop_JSONB["移除 JSONB 关系字段"]
+        AGE_Only["AGE 唯一源"]
+    end
 
-### 9.2 回滚方案
+    Phase_A --> Phase_B --> Phase_C
+
+    classDef step fill:#0f5132,stroke:#0f5132,color:#ffffff
+    class Write_JSONB,Write_AGE,Read_JSONB,Read_AGE,Drop_JSONB,AGE_Only step
+```
+
+**关键实现细节**：
+
+1. **`AgeGraphRepository.create_relations()`** 改为调用 [`kg_create_relation()`](./schema/kg_schema_extension.sql) SQL 函数（已在 Schema 的 Cypher 辅助函数部分定义）
+2. **Session 预热**：每个数据库连接需执行 `LOAD 'age'; SET search_path = ag_catalog, "$user", public;`
+3. **实体 ID 映射**：维护 `knowledge.id ↔ AGE vertex id` 的双向映射
+
+### 5.3 图算法层
+
+#### 5.3.1 PageRank
+
+当前 `kg_entity_importance()` 为简化度中心性（`ln(1 + 入度 + 出度)`）。需升级为迭代式 PageRank：
+
+**PostgreSQL 迭代式 PageRank 设计**：
 
 ```sql
--- 保留原有 JSONB 图谱数据
--- 新增 Apache AGE 图谱作为增量
--- 支持 API 切换 (config flag)
+-- 迭代 PageRank (阻尼因子 d=0.85, 最大迭代 max_iter=20)
+CREATE OR REPLACE FUNCTION kg_pagerank(
+    p_corpus_id UUID,
+    p_damping FLOAT DEFAULT 0.85,
+    p_max_iter INTEGER DEFAULT 20,
+    p_tolerance FLOAT DEFAULT 1e-6
+)
+RETURNS TABLE (entity_id UUID, rank FLOAT)
+AS $$
+WITH RECURSIVE pagerank AS (
+    -- 初始化: 均匀分布
+    SELECT id AS entity_id, 1.0 / COUNT(*) OVER() AS rank, 0 AS iter
+    FROM knowledge WHERE corpus_id = p_corpus_id AND entity_type IS NOT NULL
 
--- 回滚命令
-DROP EXTENSION IF EXISTS age;
--- 恢复原有 API 行为
+    UNION ALL
+
+    -- 迭代: PR(v) = (1-d)/N + d * Σ PR(u)/out_degree(u)
+    SELECT ... -- 完整实现参见 Phase 2 交付
+)
+SELECT entity_id, rank FROM pagerank
+WHERE iter = (SELECT MAX(iter) FROM pagerank);
+$$ LANGUAGE SQL;
+```
+
+**备选方案**：若迭代 CTE 性能不佳（预期在 >10K 实体时出现瓶颈），可在 Python 服务层使用 `networkx.pagerank()` 计算后写回数据库。
+
+#### 5.3.2 社区检测 (Louvain)
+
+采用 Python 服务层 + `networkx` 库实现，因为 Louvain 算法需要多轮迭代和模块度优化，不适合纯 SQL 实现<sup>[[15]](#ref15)</sup>：
+
+```python
+# GraphService 中的社区检测方法
+async def detect_communities(
+    self, corpus_id: UUID, resolution: float = 1.0
+) -> Dict[str, int]:
+    """Louvain 社区检测
+
+    1. 从 AGE 加载图结构到 NetworkX
+    2. 执行 Louvain 聚类
+    3. 将社区 ID 写回 knowledge.metadata
+    """
+    import networkx as nx
+    from community import community_louvain
+
+    G = await self.repository.export_to_networkx(corpus_id)
+    partition = community_louvain.best_partition(G, resolution=resolution)
+    await self.repository.update_communities(corpus_id, partition)
+    return partition
+```
+
+**存储设计**：社区 ID 存储在 `knowledge.metadata->>'community_id'` 中，并建立 GIN 索引以支持社区级聚合查询。
+
+#### 5.3.3 最短路径
+
+升级当前桩实现，使用 AGE 原生 Cypher `shortestPath()`：
+
+```sql
+-- 使用 AGE Cypher 的最短路径查询
+SELECT * FROM cypher('negentropy_kg', $$
+    MATCH path = shortestPath(
+        (a:Entity {id: $source_id})-[*..5]-(b:Entity {id: $target_id})
+    )
+    RETURN nodes(path) as nodes,
+           relationships(path) as rels,
+           length(path) as distance
+$$, params => '...');
+```
+
+### 5.4 混合检索增强
+
+**目标**：构建 **Vector + Graph + RRF** 三层融合检索管道。
+
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "actorBorder": "#0b3d91", "actorTextColor": "#ffffff"}}}%%
+sequenceDiagram
+    participant User
+    participant SearchAPI
+    participant VectorSearch as pgvector<br/>(L0 Semantic)
+    participant GraphExpand as AGE Cypher<br/>(Graph Expand)
+    participant RRF as RRF Fusion
+    participant Reranker as L1 Reranker
+    participant LLM
+
+    User->>SearchAPI: query + corpus_id
+    SearchAPI->>VectorSearch: embedding <=> query_embedding (Top-K)
+    VectorSearch-->>SearchAPI: semantic_candidates[]
+
+    SearchAPI->>GraphExpand: 对 Top-K 实体做 1-2 跳扩展
+    GraphExpand-->>SearchAPI: neighbor_entities[] + relations[]
+
+    SearchAPI->>RRF: 融合信号
+    Note over RRF: semantic_rank<br/>graph_degree_rank<br/>community_rank (Phase 3)
+
+    RRF-->>SearchAPI: fused_ranking[]
+
+    SearchAPI->>Reranker: Cross-Encoder 精排 (L1)
+    Reranker-->>SearchAPI: final_results[]
+
+    SearchAPI->>LLM: 组装上下文 (实体 + 邻居 + 关系)
+    LLM-->>User: GraphRAG 增强回答
+```
+
+**RRF 多信号融合**：
+
+```
+RRF_score(d) = 1/(k + rank_semantic(d)) + 1/(k + rank_graph(d))
+```
+
+- `rank_semantic`：pgvector 余弦相似度排名
+- `rank_graph`：基于实体度中心性 + 邻域丰富度的排名
+- Phase 3 增加 `rank_community`：基于社区重要性的排名
+
+**配置扩展**：在现有 `GraphSearchMode` 类型中增加检索模式。当前定义为 `Literal` 类型别名：
+
+```python
+# 当前定义 (types.py)
+GraphSearchMode = Literal["semantic", "graph", "hybrid"]
+
+# Phase 2 扩展为：
+GraphSearchMode = Literal["semantic", "graph", "hybrid", "rrf"]
+
+# Phase 3 扩展为：
+GraphSearchMode = Literal["semantic", "graph", "hybrid", "rrf", "graphrag"]
+```
+
+### 5.5 实体/关系类型扩展
+
+**可扩展分类设计**：
+
+当前 8 种实体类型和 12 种关系类型覆盖了通用场景。为支持领域特定需求（如法律、医疗、代码），设计可扩展的分类机制：
+
+1. **用户自定义类型**：通过 `corpus.config` JSONB 字段配置 `custom_entity_types` 和 `custom_relation_types`
+2. **类型继承**：自定义类型可标注父类型（如 `DISEASE → CONCEPT`），确保向后兼容
+3. **提取指导**：自定义类型附带示例文本，供 LLM 提取时参考
+
+**时态属性预备**：
+
+为终极阶段的时态建模做准备，在关系属性中预留时间字段：
+
+```sql
+-- 关系属性扩展（在 AGE 边属性中）
+{
+    "type": "WORKS_FOR",
+    "confidence": 0.95,
+    "evidence": "...",
+    "valid_from": "2024-01-01",  -- 事实生效时间 (Phase 3)
+    "valid_to": null,             -- 事实失效时间 (Phase 3)
+    "created_at": "2026-04-08"   -- 系统录入时间
+}
+```
+
+### 5.6 数据模型演进
+
+**索引优化计划**：
+
+| 索引 | 目标 | 类型 |
+| :--- | :--- | :--- |
+| `idx_kb_entity_type` | 按实体类型筛选 | BTree (已有) |
+| `idx_kb_entity_confidence` | 筛选高质量实体 | BTree (已有) |
+| `idx_kb_metadata_community` | 社区级聚合查询 | GIN on `metadata->>'community_id'` (新增) |
+| AGE vertex index | 加速 MATCH 查询 | AGE BTree on `entity.id` (新增) |
+| AGE edge index | 加速关系遍历 | AGE BTree on `edge.type` (新增) |
+
+**性能目标**：
+
+| 场景 | 目标 | 说明 |
+| :--- | :--- | :--- |
+| 图遍历 1-3 跳 | P95 < 100ms | AGE Cypher |
+| 混合检索 (向量+图) | P95 < 300ms | RRF 融合 |
+| 图谱构建 (1000 chunks) | < 5min | 异步任务 |
+| LLM 实体提取 | < 2s/chunk | 批量优化 |
+| PageRank 计算 (10K 实体) | < 30s | 迭代式或 NetworkX |
+| 社区检测 (10K 实体) | < 60s | Louvain/Python |
+
+---
+
+## 6. 终极阶段设计
+
+### 6.1 GraphRAG 实现
+
+以 Microsoft GraphRAG<sup>[[4]](#ref4)</sup> 为蓝本，结合 LightRAG<sup>[[5]](#ref5)</sup> 的效率优化：
+
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
+flowchart TB
+    subgraph Build["索引构建"]
+        Chunks["文本分块"] --> Extract["实体/关系提取<br/>(LLM)"]
+        Extract --> Graph["知识图谱<br/>(AGE)"]
+        Graph --> Leiden["Leiden 社区检测"]
+        Leiden --> L1_Comm["Level-1 社区"]
+        Leiden --> L2_Comm["Level-2 社区"]
+        L1_Comm --> Summary1["L1 社区摘要<br/>(LLM)"]
+        L2_Comm --> Summary2["L2 社区摘要<br/>(LLM)"]
+    end
+
+    subgraph Retrieve["双层检索"]
+        Query["用户查询"]
+        Query --> Local["Local Search<br/>(实体邻域)"]
+        Query --> Global["Global Search<br/>(社区摘要)"]
+        Local --> EntityMatch["实体匹配<br/>(向量)"]
+        EntityMatch --> GraphTraverse["图遍历<br/>(1-2 跳)"]
+        GraphTraverse --> LocalContext["局部上下文"]
+        Global --> CommunityMap["社区摘要<br/>Map-Reduce"]
+        CommunityMap --> GlobalContext["全局上下文"]
+    end
+
+    subgraph Generate["增强生成"]
+        LocalContext --> Merge["上下文融合"]
+        GlobalContext --> Merge
+        Merge --> LLM["LLM 生成"]
+        LLM --> Answer["GraphRAG 回答"]
+    end
+
+    classDef build fill:#0b3d91,stroke:#0b3d91,color:#ffffff
+    classDef retrieve fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef gen fill:#842029,stroke:#842029,color:#ffffff
+
+    class Chunks,Extract,Graph,Leiden,L1_Comm,L2_Comm,Summary1,Summary2 build
+    class Query,Local,Global,EntityMatch,GraphTraverse,LocalContext,CommunityMap,GlobalContext retrieve
+    class Merge,LLM,Answer gen
+```
+
+**关键设计决策**：
+
+1. **社区检测算法**：从 Phase 2 的 Louvain 升级为 Leiden<sup>[[15]](#ref15)</sup>，Leiden 在保证社区连通性方面更优
+2. **社区摘要存储**：`kg_community_summaries` 表，字段包含 `community_id, level, summary_text, embedding, entity_count`
+3. **增量更新策略**：新实体加入后仅重新计算受影响社区的摘要（参考 LightRAG<sup>[[5]](#ref5)</sup> 的 Union 策略）
+
+### 6.2 时态知识图谱
+
+以 Graphiti<sup>[[6]](#ref6)</sup> 为蓝本的双时态模型设计：
+
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+stateDiagram-v2
+    [*] --> Created: 实体/关系创建
+    Created --> Active: valid_from ≤ now
+    Active --> Superseded: 新信息覆盖<br/>设置 valid_to
+    Active --> Expired: 时间过期<br/>valid_to ≤ now
+    Superseded --> [*]
+    Expired --> [*]
+
+    state Active {
+        [*] --> Current
+        Current --> Reinforced: 多次被引用
+        Reinforced --> Current: 无新引用
+    }
+```
+
+**双时态字段设计**：
+
+```sql
+-- AGE 边属性扩展
+{
+    "type": "WORKS_FOR",
+    "confidence": 0.95,
+    -- 事件时间线 (Timeline T): 真实世界事实有效期
+    "valid_from": "2024-01-15T00:00:00Z",
+    "valid_to": null,  -- null 表示当前有效
+    -- 事务时间线 (Timeline T'): 系统记录时间
+    "created_at": "2026-04-08T10:30:00Z",
+    "expired_at": null, -- null 表示当前记录
+    -- 溯源
+    "source_episode_id": "uuid-of-source-chunk",
+    "evidence": "Sam Altman is the CEO of OpenAI."
+}
+```
+
+**矛盾检测**：当新提取的关系与现有关系冲突时（同一 source-target 对、同一 relation_type 但不同属性），系统自动触发矛盾解决流程：
+1. LLM 判断是"更新"还是"矛盾"
+2. 若为"更新"：旧边设置 `valid_to = now`，新边 `valid_from = now`
+3. 若为"矛盾"：两边共存，标记 `contradiction_flag = true`，等待人工审核
+
+### 6.3 增量图更新
+
+参考 LightRAG<sup>[[5]](#ref5)</sup> 的增量更新策略：
+
+| 步骤 | 说明 |
+| :--- | :--- |
+| 1. 增量提取 | 仅对新 ingestion 的 chunks 执行实体/关系提取 |
+| 2. 实体解析 | 新实体与现有图谱做匹配：精确 → 模糊 → LLM 推理 |
+| 3. Union 合并 | 匹配成功的实体合并属性；新实体直接插入 |
+| 4. 边权更新 | 重复出现的关系增加 `weight`，更新 `confidence` |
+| 5. 社区增量更新 | 仅重新计算受影响社区的摘要 |
+
+**实体解析的三层策略**（参考 Graphiti<sup>[[6]](#ref6)</sup>）：
+
+1. **精确匹配**：label 完全一致 + 同 corpus_id
+2. **模糊匹配**：SHA256 哈希前缀匹配（`llm_extractors.py` 中已有 `_generate_entity_id()` 使用 SHA256）
+3. **LLM 语义匹配**：当模糊匹配置信度不足时，调用 LLM 判断两个实体是否指代同一对象
+
+### 6.4 高级检索模式
+
+**双层检索**（启发自 LightRAG<sup>[[5]](#ref5)</sup>）：
+
+| 层级 | 检索目标 | 适用场景 | 示例查询 |
+| :--- | :------- | :------- | :------- |
+| **Low-Level** | 具体实体 + 直接关系 | 事实性问题 | "OpenAI 的 CEO 是谁？" |
+| **High-Level** | 概念/主题 + 社区摘要 | 全局性问题 | "AI 行业的主要竞争格局？" |
+
+**多跳推理链**：
+
+```
+Query: "A 公司的技术对 B 行业有什么影响？"
+
+1. 实体匹配: A公司 (ORGANIZATION)
+2. 1-hop: A公司 --CREATED_BY--> 产品X (PRODUCT)
+3. 2-hop: 产品X --RELATED_TO--> B行业 (CONCEPT)
+4. 关系路径: A公司 → [CREATED_BY] → 产品X → [RELATED_TO] → B行业
+5. 上下文聚合: 产品X 的描述 + A公司与产品X的关系证据 + 产品X与B行业的关系证据
+6. LLM 生成: 基于结构化上下文的推理回答
+```
+
+### 6.5 Neo4j 评估标准
+
+Apache AGE 的边界在于：
+
+| 瓶颈维度 | 触发阈值 | 替代方案 |
+| :------- | :------- | :------- |
+| 图规模 | >100K 实体 / >500K 关系 | Neo4j Community / AuraDB |
+| 遍历深度 | 频繁 4+ 跳查询 | Neo4j 原生 Cypher |
+| 图算法 | 需要 50+ GDS 算法库 | Neo4j Graph Data Science |
+| AGE 性能 | ORDER BY 在大数据集上退化 | Neo4j 原生索引 |
+
+**迁移路径**：
+
+1. 导出 AGE 图数据为 CSV（`COPY (SELECT * FROM cypher(...)) TO ...`）
+2. Neo4j Admin Import 批量加载
+3. 维护 PostgreSQL ↔ Neo4j 的实体 ID 映射
+4. 混合部署：PostgreSQL（关系数据 + 向量）+ Neo4j（图遍历 + 算法）
+
+### 6.6 Cognee 适配器策略
+
+遵循现有 Strategy Pattern（[graph.py](../apps/negentropy/src/negentropy/knowledge/graph.py) 中的 `EntityExtractor` / `RelationExtractor` ABC）：
+
+```python
+class CogneeAdapter:
+    """Cognee ECL Pipeline 适配器
+
+    将 Cognee 的 Extract-Cognify-Load 管道映射到
+    Negentropy 的 GraphService 接口。
+
+    遵循 Adapter Pattern [9]。
+    """
+
+    async def extract_and_cognify(
+        self, corpus_id: UUID, chunks: List[str]
+    ) -> KnowledgeGraphPayload:
+        """调用 Cognee API 执行实体提取和图构建"""
+        # 1. cognee.add(chunks)
+        # 2. cognee.cognify()
+        # 3. 转换为 KnowledgeGraphPayload (GraphNode[] + GraphEdge[])
+        ...
 ```
 
 ---
 
-## 10. 验证清单
+## 7. 价值量化体系
 
-### 10.1 Phase 1 验证
+### 7.1 价值维度
 
-- [x] LLM 提取器代码实现完成
-- [x] LLM 关系提取器代码实现完成
-- [x] Apache AGE Schema 定义完成
-- [x] GraphRepository 代码实现完成
-- [x] GraphService 代码实现完成
-- [x] 类型定义扩展完成
-- [x] API 端点扩展完成
-- [x] 前端 API 客户端完成
-- [ ] LLM 提取器正确提取中英文实体（待集成测试）
-- [ ] LLM 提取器正确识别语义关系（待集成测试）
-- [ ] Apache AGE 扩展安装成功（待部署）
-- [ ] 图谱创建和 Cypher 查询正常（待部署）
-- [ ] 图遍历 1-3 跳延迟 < 100ms（待性能测试）
-- [ ] 前端可视化正确渲染新图谱（待集成测试）
-- [ ] 混合检索返回正确结果（待集成测试）
+| 维度 | 指标 | 测量方法 | 基线 | 目标 |
+| :--- | :--- | :------- | :--- | :--- |
+| **检索质量** | Answer Relevance Score | LLM-as-judge 对检索上下文评分 | 向量检索基线 | **+15%** |
+| **多跳准确率** | Deep Memory Retrieval (DMR) | DMR 基准测试<sup>[[6]](#ref6)</sup> | N/A | **>85%** |
+| **上下文丰富度** | Avg entities per query context | 检索日志分析 | 0 (纯向量) | **>3 entities/query** |
+| **幻觉减少** | Grounding Rate | 引用验证（回答是否可追溯到知识源） | 基线测试 | **>90%** |
+| **Token 效率** | Tokens per quality-equivalent answer | A/B 对比（等质量回答的 token 消耗） | 向量 RAG 基线 | **-30%** |
+| **检索延迟** | P95 混合检索响应时间 | 性能监控 (OpenTelemetry) | N/A | **<500ms** |
+| **知识覆盖度** | Graph Density (edges/nodes) | `kg_corpus_stats()` SQL 函数 | N/A | **>2.0** |
+| **实体质量** | Avg Entity Confidence | `AVG(entity_confidence)` | N/A | **>0.80** |
+| **新鲜度** | Avg Entity Age (days) | `NOW() - AVG(created_at)` | N/A | **<7 days (活跃库)** |
 
-### 10.2 测试命令
+### 7.2 测量基础设施
 
-```bash
-# 单元测试
-cd apps/negentropy
-uv run pytest tests/unit_tests/knowledge/ -v -k "graph"
+**自动化评估管道**：
 
-# 集成测试
-uv run pytest tests/integration_tests/knowledge/ -v -k "graph"
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+flowchart LR
+    subgraph Ingest["数据采集"]
+        Log["检索日志<br/>(Langfuse)"]
+        Query["评测查询集"]
+    end
 
-# E2E 测试
-uv run pytest tests/e2e_tests/knowledge_graph_test.py -v
+    subgraph Evaluate["评估"]
+        VectorRAG["向量 RAG<br/>(对照组)"]
+        GraphRAG["Graph RAG<br/>(实验组)"]
+        Judge["LLM-as-Judge<br/>评分"]
+    end
+
+    subgraph Report["报告"]
+        Metrics["指标仪表盘"]
+        Trend["趋势分析"]
+        Alert["质量告警"]
+    end
+
+    Log --> Evaluate
+    Query --> VectorRAG
+    Query --> GraphRAG
+    VectorRAG --> Judge
+    GraphRAG --> Judge
+    Judge --> Metrics --> Trend --> Alert
+
+    classDef ingest fill:#0b3d91,stroke:#0b3d91,color:#ffffff
+    classDef eval fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef report fill:#842029,stroke:#842029,color:#ffffff
+
+    class Log,Query ingest
+    class VectorRAG,GraphRAG,Judge eval
+    class Metrics,Trend,Alert report
 ```
+
+**A/B 测试框架**：
+
+| 实验组 | 检索方式 | 评估指标 |
+| :----- | :------- | :------- |
+| Control | 纯向量检索 (pgvector HNSW) | Relevance, Tokens, Latency |
+| Treatment-1 | 向量 + 图度加权 (当前 `kg_hybrid_search`) | 同上 |
+| Treatment-2 | 向量 + 图 + RRF (Phase 2) | 同上 |
+| Treatment-3 | GraphRAG 双层检索 (Phase 3) | 同上 |
+
+### 7.3 KG 健康指标
+
+**实体质量**：
+
+| 指标 | 计算 | 健康阈值 | 告警阈值 |
+| :--- | :--- | :------- | :------- |
+| 平均置信度 | `AVG(entity_confidence)` | ≥ 0.80 | < 0.60 |
+| 类型分布均衡度 | Shannon Entropy of type distribution | > 1.5 | < 1.0 |
+| 孤立实体比例 | 无任何关系的实体 / 总实体 | < 20% | > 40% |
+
+**图结构健康**：
+
+| 指标 | 计算 | 说明 |
+| :--- | :--- | :--- |
+| 图密度 | edges / nodes | 反映知识关联丰富度 |
+| 连通分量数 | BFS/DFS 统计 | 理想情况下 1 个大分量 |
+| 平均路径长度 | 采样计算 | 较短表示知识关联紧密 |
+| 聚类系数 | 三角形计数 / 可能三角形 | 反映知识局部结构化程度 |
+
+**构建管道健康**：
+
+| 指标 | 数据源 | 说明 |
+| :--- | :----- | :--- |
+| 构建成功率 | `kg_build_runs.status` | completed / total |
+| 平均构建时长 | `completed_at - started_at` | 按 corpus 大小归一化 |
+| 提取吞吐量 | chunks_processed / duration | chunks/minute |
+
+### 7.4 ROI 计算框架
+
+**成本模型**：
+
+| 成本项 | 计算公式 | 典型值 |
+| :----- | :------- | :----- |
+| LLM 提取 | chunks × avg_tokens × price_per_token | ~$0.05/chunk (GPT-4o-mini) |
+| 存储 | (entities + relations) × avg_row_size | ~$0.01/1K entities/month |
+| 计算 | pagerank_time + community_time | ~$0.005/1K entities/run |
+| 社区摘要 (Phase 3) | communities × avg_summary_tokens × price | ~$0.10/community |
+
+**收益模型**：
+
+| 收益项 | 量化方式 |
+| :----- | :------- |
+| 幻觉减少 | grounding_rate_improvement × risk_cost_per_hallucination |
+| 回答质量提升 | relevance_score_improvement × user_satisfaction_value |
+| Token 节省 | token_reduction_rate × total_tokens × price |
+| 人工标注节省 | entity_auto_extraction_count × manual_cost_per_entity |
+
+**盈亏平衡点**：当 `corpus_size > ~500 chunks` 且 `daily_queries > ~50` 时，KG 投入通常在 2-3 个月内回本。
 
 ---
 
-## 11. 参考资料
+## 8. 一核五翼集成架构
 
-### 11.1 调研文档
+### 8.1 知识图谱与五翼的交互
 
-- [050-neo4j.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/050-neo4j.md) - Neo4j 图数据库深度调研
-- [051-postgres-neo4j.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/051-postgres-neo4j.md) - PostgreSQL vs Neo4j 对比分析
-- [040-cognee.md](https://github.com/ThreeFish-AI/agentic-ai-cognizes/blob/master/docs/research/040-cognee.md) - Cognee AI 记忆层框架调研
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
+flowchart TB
+    subgraph Root["🔮 NegentropyEngine"]
+        Engine["本我<br/>调度与协调"]
+    end
 
-### 11.2 技术文档
+    subgraph Perception["👁️ 感知系部"]
+        ScanWeb["广域扫描"]
+        SearchKB["知识库检索"]
+    end
 
-- [Apache AGE Documentation](https://age.apache.org/age-manual/master/intro/introduction.html)
-- [Neo4j Graph Data Science](https://neo4j.com/docs/graph-data-science/current/)
-- [pgvector Extension](https://github.com/pgvector/pgvector)
-- [Cognee Documentation](https://docs.cognee.ai/)
+    subgraph KnowledgeGraph["💎 Knowledge Graph"]
+        direction TB
+        KG_Build["图谱构建<br/>实体/关系提取"]
+        KG_Store["图存储<br/>Apache AGE"]
+        KG_Algo["图算法<br/>PageRank · 社区"]
+        KG_Search["混合检索<br/>Vector + Graph"]
+    end
 
-### 11.3 学术参考
+    subgraph Internalization["💎 内化系部"]
+        Memory_Ep["情景记忆<br/>(Memory)"]
+        Memory_Sem["语义记忆<br/>(Fact)"]
+    end
 
-<a id="ref1"></a>[1] E. Gamma et al., "Design Patterns: Elements of Reusable Object-Oriented Software," _Addison-Wesley_, 1994.
+    subgraph Contemplation["🧠 坐照系部"]
+        SecondOrder["二阶思维"]
+        Strategy["策略规划"]
+    end
 
-<a id="ref2"></a>[2] J. Tang et al., "LINE: Large-scale Information Network Embedding," _WWW'15_, 2015.
+    subgraph Action["✋ 知行系部"]
+        CodeExec["代码执行"]
+        FileOps["文件操作"]
+    end
 
-<a id="ref3"></a>[3] D. Edge et al., "From local to global: A Graph RAG approach to query-focused summarization," _arXiv:2404.16130_, 2024.
+    subgraph Influence["🗣️ 影响系部"]
+        Publish["内容发布"]
+        Convince["循证说服"]
+    end
+
+    %% 感知 → 知识图谱
+    SearchKB -->|"知识块"| KG_Build
+    ScanWeb -->|"外部文档"| KG_Build
+
+    %% 知识图谱 → 内化
+    KG_Store -->|"实体网络"| Memory_Sem
+    KG_Build -->|"结构化事实"| Memory_Sem
+
+    %% 知识图谱 → 坐照
+    KG_Algo -->|"社区摘要"| SecondOrder
+    KG_Algo -->|"实体重要性"| Strategy
+
+    %% 知识图谱 → 知行
+    KG_Search -->|"GraphRAG 上下文"| CodeExec
+
+    %% 知识图谱 → 影响
+    KG_Search -->|"实体关系网络"| Convince
+
+    %% 引擎协调
+    Engine -.->|transfer_to_agent| Perception
+    Engine -.->|transfer_to_agent| Internalization
+    Engine -.->|transfer_to_agent| Contemplation
+    Engine -.->|transfer_to_agent| Action
+    Engine -.->|transfer_to_agent| Influence
+
+    classDef root fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef perception fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef kg fill:#F59E0B,stroke:#92400E,color:#000
+    classDef wing fill:#10B981,stroke:#065F46,color:#FFF
+    classDef thinking fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef influence fill:#EC4899,stroke:#831843,color:#FFF
+
+    class Engine root
+    class ScanWeb,SearchKB perception
+    class KG_Build,KG_Store,KG_Algo,KG_Search kg
+    class Memory_Ep,Memory_Sem wing
+    class SecondOrder,Strategy thinking
+    class CodeExec,FileOps wing
+    class Publish,Convince influence
+```
+
+### 8.2 跨模块协同
+
+#### KG × Memory 协同
+
+| 维度 | Knowledge Graph | Memory 模块 |
+| :--- | :-------------- | :---------- |
+| 记忆类型 | 语义记忆（结构化） | 情景记忆（叙事式） |
+| 衰减模型 | 时态关系 `valid_from/to` | Ebbinghaus 遗忘曲线 |
+| 访问更新 | 关系 `weight` 增强 | `access_count += 1` |
+| 治理模型 | 图谱版本快照 | GDPR 审计日志 |
+| 检索方式 | 图遍历 + 向量 | 向量 + 时间衰减 |
+
+**协同场景**：当用户询问"上次我们讨论的那个项目的技术架构"时：
+1. Memory 模块通过时间衰减检索最近的讨论情景
+2. 从情景中提取"项目名"等实体
+3. KG 模块通过实体邻域扩展获取完整技术架构
+4. 两者融合提供完整上下文
+
+#### KG × Contemplation 协同
+
+坐照系部的"二阶思维"需要**宏观洞察**——这正是知识图谱社区检测的核心价值：
+
+- **社区摘要** → 领域全景理解（"AI Agent 领域有哪些主要技术流派？"）
+- **实体重要性 (PageRank)** → 优先关注核心概念
+- **关系路径** → 因果推理链（"A 导致 B，B 导致 C，因此 A 间接影响 C"）
+
+### 8.3 Pipeline 集成点
+
+| 标准流水线 | KG 集成点 | 说明 |
+| :--------- | :-------- | :--- |
+| **知识获取 (KA)** | 感知 → **KG 构建** → 内化 | 新知识自动触发图谱增量更新 |
+| **问题解决 (PS)** | 感知 → 坐照(**KG 检索**) → 知行 → 内化 | GraphRAG 丰富坐照的推理上下文 |
+| **价值交付 (VD)** | 感知 → 坐照(**KG 社区摘要**) → 影响 | 社区洞察支撑宏观叙事 |
+
+---
+
+## 9. 实施路线图
+
+### 9.1 时间线总览
+
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+timeline
+    title 知识图谱技术演进路线
+    section Phase 1 (已完成)
+        LLM 提取器 : Apache AGE 集成 : Graph API
+    section Phase 2 (2-4月)
+        JSONB→AGE 迁移 : PageRank/社区检测 : RRF 混合检索 : 价值基线测量
+    section Phase 3 (4-8月)
+        Leiden 社区检测 : 社区摘要 : GraphRAG 双层检索 : 时态建模 : 增量更新
+    section Phase 4 (8-12月)
+        Neo4j 评估 : 高级图算法 : 跨语料融合 : 联邦知识图谱
+```
+
+### 9.2 Phase 2: PostgreSQL 深度集成 (2-4 月)
+
+| # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
+| :- | :--- | :----- | :--- | :----- | :--- |
+| P2-1 | JSONB 关系迁移到 AGE 图边 | P0 | P1 | 更新 `AgeGraphRepository` | 🔲 |
+| P2-2 | 实现 Cypher 原生遍历 | P0 | P2-1 | `find_neighbors` via Cypher | 🔲 |
+| P2-3 | PageRank 实现 | P1 | P2-2 | `kg_pagerank()` SQL/Python | 🔲 |
+| P2-4 | Louvain 社区检测 | P1 | P2-2 | `GraphService.detect_communities()` | 🔲 |
+| P2-5 | RRF 混合检索增强 | P1 | P2-2 | 更新 `kg_hybrid_search()` | 🔲 |
+| P2-6 | Cognee 适配器原型 | P2 | P2-4 | `CogneeAdapter` class | 🔲 |
+| P2-7 | 图谱质量仪表盘 | P2 | P2-3 | API + 前端组件 | 🔲 |
+| P2-8 | 价值量化基线测量 | P1 | P2-5 | A/B 测试基线报告 | 🔲 |
+
+**里程碑**：
+- M2.1: JSONB → AGE 迁移完成，Cypher 遍历上线
+- M2.2: PageRank + 社区检测就绪，支持实体重要性排序
+- M2.3: RRF 混合检索上线，价值基线已建立
+
+### 9.3 Phase 3: GraphRAG 与高级能力 (4-8 月)
+
+| # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
+| :- | :--- | :----- | :--- | :----- | :--- |
+| P3-1 | Leiden 社区检测 | P1 | P2-4 | 升级社区算法 | 🔲 |
+| P3-2 | 社区摘要管道 | P1 | P3-1 | `kg_community_summaries` 表 + LLM 摘要 | 🔲 |
+| P3-3 | 双层检索 (实体 + 社区) | P1 | P3-2 | `GraphSearchMode.GRAPHRAG` | 🔲 |
+| P3-4 | 时态关系建模 | P2 | P2-1 | `valid_from/to` 字段 + 矛盾检测 | 🔲 |
+| P3-5 | 增量图更新 | P1 | P2-1 | Delta-based graph evolution | 🔲 |
+| P3-6 | Neo4j 评估与基准 | P2 | P3-3 | 性能对比报告 | 🔲 |
+| P3-7 | GraphRAG API 端点 | P1 | P3-3 | `POST /knowledge/graph/rag` | 🔲 |
+| P3-8 | 矛盾检测与解决 | P2 | P3-4 | 实体冲突解决流程 | 🔲 |
+
+**里程碑**：
+- M3.1: GraphRAG 双层检索上线（Local + Global Search）
+- M3.2: 时态关系与增量更新就绪
+- M3.3: Neo4j 评估完成，输出迁移决策报告
+
+### 9.4 Phase 4: 终极成熟 (8-12 月)
+
+| 方向 | 说明 |
+| :--- | :--- |
+| Neo4j 可选部署 | 依据 Phase 3 评估结论决定 |
+| 高级图算法 | Node2Vec、GAT (图注意力网络) |
+| 跨语料融合 | 多 Corpus 间的实体链接与关系推断 |
+| 联邦知识图谱 | 多租户环境下的图谱隔离与按需融合 |
+| 代码知识图谱 | 从代码库提取函数调用图<sup>[[14]](#ref14)</sup>，支撑 Action 系部的精准执行 |
+
+---
+
+## 10. 风险管理与边界控制
+
+### 10.1 风险矩阵
+
+| 风险 | 影响 | 概率 | 阶段 | 缓解措施 |
+| :--- | :--- | :--- | :--- | :------- |
+| JSONB → AGE 迁移导致数据不一致 | 高 | 中 | Phase 2 | 双写 + 双读过渡期；保留 JSONB 备份 |
+| Apache AGE ORDER BY 性能退化 | 中 | 中 | Phase 2 | 应用层排序回退；监控查询执行计划 |
+| LLM 提取成本在大语料上爆炸 | 高 | 高 | Phase 2+ | 指数退避 + 队列缓冲；批处理优化；小模型（GPT-4o-mini） |
+| 社区检测在小图上效果不佳 | 中 | 中 | Phase 2 | 设置最小图规模阈值（>100 实体） |
+| GraphRAG 社区摘要质量参差不齐 | 中 | 中 | Phase 3 | 人工审核 + 置信度阈值 |
+| 时态建模增加查询复杂度 | 中 | 低 | Phase 3 | `valid_to IS NULL` 默认过滤；时态查询索引 |
+| Neo4j 迁移打破单一事实源 | 高 | 低 | Phase 4 | 保持 PostgreSQL 为关系数据权威源；单向同步 |
+
+### 10.2 回滚策略
+
+| 阶段 | 回滚方案 |
+| :--- | :------- |
+| Phase 2 | 恢复 JSONB 读取路径；禁用 AGE 遍历功能标志 |
+| Phase 3 | 降级 GraphRAG 为 Hybrid 模式；禁用社区摘要 |
+| Phase 4 | Neo4j 为可选增强，移除不影响核心功能 |
+
+### 10.3 边缘情况处理
+
+| 边缘情况 | 处理策略 |
+| :------- | :------- |
+| 空图谱（无实体） | 降级为纯向量检索；API 返回空结果而非错误 |
+| 断连组件（多个孤立子图） | 各子图独立计算 PageRank 和社区；检索时跨子图聚合 |
+| 循环关系（A→B→A） | AGE Cypher 遍历设置最大深度限制；去重路径节点 |
+| 自引用实体（A→A） | 提取阶段过滤；存储阶段约束 CHECK (source_id != target_id) |
+| 超大社区（>1000 实体） | 递归细分：对大社区应用更高 resolution 参数 |
+| 提取器返回空结果 | 回退到 `RegexEntityExtractor` / `CooccurrenceRelationExtractor` |
+
+---
+
+## 11. 参考文献
+
+<a id="ref1"></a>[1] A. Hogan, E. Blomqvist, M. Cochez, C. d'Amato, G. de Melo, C. Gutierrez, S. Kirrane, J. E. Labra Gayo, R. Navigli, S. Neumaier, A. Ngonga Ngomo, A. Polleres, S. M. Rashid, A. Rula, L. Schmelzeisen, J. Sequeda, S. Staab, and A. Zimmermann, "Knowledge graphs," _ACM Comput. Surv._, vol. 54, no. 4, art. 71, Jul. 2021.
+
+<a id="ref2"></a>[2] S. Ji, S. Pan, E. Cambria, P. Marttinen, and P. S. Yu, "A survey on knowledge graphs: Representation, acquisition, and applications," _IEEE Trans. Neural Netw. Learn. Syst._, vol. 33, no. 2, pp. 494–514, Feb. 2022.
+
+<a id="ref3"></a>[3] Z. Sun, Z.-H. Deng, J.-Y. Nie, and J. Tang, "RotatE: Knowledge graph embedding by relational rotation in complex space," in _Proc. 7th Int. Conf. Learn. Representations (ICLR)_, 2019.
+
+<a id="ref4"></a>[4] D. Edge, H. Trinh, N. Cheng, J. Bradley, A. Chao, A. Mody, S. Truitt, and J. Larson, "From local to global: A graph RAG approach to query-focused summarization," _arXiv preprint arXiv:2404.16130_, 2024.
+
+<a id="ref5"></a>[5] Z. Guo, L. Liang, G. Long, C. Lu, H. Xiong, J. Shan, and D. Han, "LightRAG: Simple and fast retrieval-augmented generation," _arXiv preprint arXiv:2410.05779_, 2024.
+
+<a id="ref6"></a>[6] P. Tripathi, D. Sullivan, A. Levy, P. Katz, and L. Luo, "Zep: A temporal knowledge graph architecture for agent memory," _arXiv preprint arXiv:2501.13956_, 2025.
+
+<a id="ref7"></a>[7] G. V. Cormack, C. L. A. Clarke, and S. Buettcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," in _Proc. SIGIR_, pp. 758–759, 2009.
+
+<a id="ref8"></a>[8] H. Ebbinghaus, "Memory: A contribution to experimental psychology," _Teachers College, Columbia University_, 1885/1913.
+
+<a id="ref9"></a>[9] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, "Design Patterns: Elements of Reusable Object-Oriented Software," _Addison-Wesley_, 1994.
+
+<a id="ref10"></a>[10] M. Fowler, "Patterns of Enterprise Application Architecture," _Addison-Wesley_, 2002.
+
+<a id="ref11"></a>[11] Apache Software Foundation, "Apache AGE: A graph extension for PostgreSQL," 2024. [Online]. Available: https://age.apache.org/
+
+<a id="ref12"></a>[12] E. Schrödinger, "What is Life? The Physical Aspect of the Living Cell," _Cambridge University Press_, 1944.
+
+<a id="ref13"></a>[13] Cognee AI, "Cognee: AI memory engine documentation," 2025. [Online]. Available: https://docs.cognee.ai/
+
+<a id="ref14"></a>[14] R. Abdalkareem, O. Nourry, S. Wehaibi, S. Mujahid, and E. Shihab, "Application of knowledge graph in software engineering field: A systematic literature review," _Inf. Softw. Technol._, vol. 162, pp. 107030, Oct. 2023.
+
+<a id="ref15"></a>[15] V. A. Traag, L. Waltman, and N. J. van Eck, "From Louvain to Leiden: Guaranteeing well-connected communities," _Sci. Rep._, vol. 9, art. 5233, 2019.
 
 ---
 
 ## 12. 变更日志
 
 | 日期 | 版本 | 变更内容 | 作者 |
-|------|------|---------|------|
+| :--- | :--- | :------- | :--- |
 | 2026-02-15 | 1.0 | 初始版本，Phase 1 规划 | Claude |
 | 2026-02-15 | 1.1 | Phase 1 实现完成 | Claude |
+| 2026-04-08 | 2.0 | **完全重写**：学术基础 (15 篇 IEEE 引用)、行业框架分析 (5 大框架)、两阶段设计 (PostgreSQL → 终极)、价值量化体系、一核五翼集成架构、实施路线图 (Phase 2-4) | Claude |
 
-### 1.1 版本实现摘要
+---
 
-Phase 1 基础能力增强已完成，主要交付物包括：
-
-1. **LLM 实体提取器** (`llm_extractors.py`)
-   - `LLMEntityExtractor`: 基于 LLM 的多语言实体提取
-   - `LLMRelationExtractor`: 基于 LLM 的语义关系提取
-   - `CompositeEntityExtractor`/`CompositeRelationExtractor`: 组合提取器，支持回退
-
-2. **Apache AGE Schema** (`kg_schema_extension.sql`)
-   - `kg_entity_type` / `kg_relation_type` 枚举类型
-   - `kg_build_runs` 图谱构建历史表
-   - `kg_entities` 实体检索视图
-   - `kg_hybrid_search()` 混合检索函数
-   - `kg_neighbors()` 图遍历函数
-   - Cypher 辅助函数
-
-3. **GraphRepository** (`graph_repository.py`)
-   - `AgeGraphRepository`: Apache AGE 存储实现
-   - 实体/关系 CRUD 操作
-   - 图遍历和混合检索
-
-4. **GraphService** (`graph_service.py`)
-   - 图谱构建协调
-   - 混合检索封装
-   - 构建历史管理
-
-5. **类型定义扩展** (`types.py`)
-   - `KgEntityType` / `KgRelationType` 枚举
-   - `GraphSearchMode` 检索模式
-   - `GraphSearchConfig` / `GraphBuildConfigModel` 配置类
-
-6. **API 端点扩展** (`api.py`)
-   - `POST /knowledge/base/{corpus_id}/graph/build`: 触发图谱构建
-   - `GET /knowledge/base/{corpus_id}/graph`: 获取语料库图谱
-   - `POST /knowledge/base/{corpus_id}/graph/search`: 图谱混合检索
-   - `POST /knowledge/graph/neighbors`: 查询实体邻居
-   - `POST /knowledge/graph/path`: 查询最短路径
-   - `DELETE /knowledge/base/{corpus_id}/graph`: 清除图谱
-   - `GET /knowledge/base/{corpus_id}/graph/history`: 构建历史
-
-7. **前端 API 客户端** (`knowledge-api.ts`)
-   - 新增所有图谱相关 API 函数和类型导出
+> **文档维护**：本文档与代码同步演进。架构变更时需同步更新对应章节，保持代码事实与文档描述的一致性。变更遵循 [AGENTS.md](../AGENTS.md) 中的 Verification Before Done 定式。

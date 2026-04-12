@@ -2,7 +2,7 @@
  * ErrorMessage 组件
  *
  * 统一错误展示组件
- * 对齐 docs/negentropy-ui-plan.md 第 13.4.3 节的错误码定义
+ * 对齐 docs/framework.md §9.6 的错误码定义
  */
 
 "use client";

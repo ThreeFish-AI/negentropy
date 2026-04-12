@@ -45,6 +45,7 @@ class ExtractionAsset:
     content_type: str
     uri: str | None = None
     data_base64: str | None = None
+    local_path: str | None = None
     text: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -238,6 +239,20 @@ def resolve_targets(raw: dict[str, Any] | None, source_kind: SourceKind) -> list
     return sorted((target for target in targets if target.enabled), key=lambda item: item.priority)
 
 
+# 按 source_kind 的合理默认超时（毫秒），用于 target.timeout_ms 缺失的兜底
+_DEFAULT_EXTRACTION_TIMEOUT_MS: dict[str, int] = {
+    ROUTE_URL: 60_000,           # 1 分钟
+    ROUTE_FILE_PDF: 300_000,     # 5 分钟
+    ROUTE_FILE_GENERIC: 120_000,  # 2 分钟
+}
+_FALLBACK_EXTRACTION_TIMEOUT_MS = 120_000
+
+
+def _default_extraction_timeout_ms(source_kind: SourceKind) -> int:
+    """按 source_kind 返回合理的默认超时值（毫秒）。"""
+    return _DEFAULT_EXTRACTION_TIMEOUT_MS.get(source_kind, _FALLBACK_EXTRACTION_TIMEOUT_MS)
+
+
 def _result_text_from_content_items(content_items: list[Any]) -> str:
     text_chunks: list[str] = []
     for item in content_items:
@@ -256,6 +271,24 @@ def _json_candidate_from_text(text: str) -> Any:
         return None
 
 
+# base64 数据字段名优先级序列（覆盖不同 MCP 工具实现的命名习惯）
+_BASE64_FIELD_NAMES = ("data_base64", "content_base64", "data", "base64", "image_data")
+
+
+def _extract_base64_from_asset(item: dict[str, Any]) -> str | None:
+    """从 asset dict 中按优先级提取 base64 编码数据。"""
+    for field_name in _BASE64_FIELD_NAMES:
+        value = item.get(field_name)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _is_gcs_uri(uri: str | None) -> bool:
+    """判断 URI 是否为 GCS 路径。"""
+    return bool(uri and uri.startswith("gs://"))
+
+
 def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
     if not isinstance(raw_assets, list):
         return []
@@ -266,18 +299,239 @@ def _normalize_assets(raw_assets: Any) -> list[ExtractionAsset]:
             continue
         name = str(item.get("name") or item.get("filename") or f"asset-{index + 1}")
         content_type = str(item.get("content_type") or item.get("mime_type") or "application/octet-stream")
+        data_base64 = _extract_base64_from_asset(item)
+        uri = item.get("uri") if isinstance(item.get("uri"), str) else None
+
+        if not data_base64 and not uri and not (isinstance(item.get("text"), str) and item.get("text")):
+            logger.warning(
+                "asset_missing_data_and_uri",
+                asset_name=name,
+                available_keys=sorted(item.keys()),
+            )
+
         assets.append(
             ExtractionAsset(
                 name=name,
                 content_type=content_type,
-                uri=item.get("uri") if isinstance(item.get("uri"), str) else None,
-                data_base64=(
-                    item.get("data_base64")
-                    if isinstance(item.get("data_base64"), str)
-                    else item.get("content_base64")
-                ),
+                uri=uri,
+                data_base64=data_base64,
+                local_path=item.get("local_path") if isinstance(item.get("local_path"), str) else None,
                 text=item.get("text") if isinstance(item.get("text"), str) else None,
                 metadata=item.get("metadata") if isinstance(item.get("metadata"), dict) else {},
+            )
+        )
+    return assets
+
+
+# ---------------------------------------------------------------------------
+# ImageContent 提取与 Markdown 图片引用匹配
+# ---------------------------------------------------------------------------
+
+_MARKDOWN_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+
+
+def _extract_markdown_image_refs(markdown_content: str) -> list[str]:
+    """按顺序提取 Markdown 中本地图片引用的文件名。
+
+    排除绝对 URL (http/https/data/blob)，从路径中取最后一段。
+    """
+    refs: list[str] = []
+    for match in _MARKDOWN_IMAGE_RE.finditer(markdown_content):
+        src = match.group(1).strip()
+        if src.startswith(("http://", "https://", "data:", "blob:")):
+            continue
+        filename = src.split("/")[-1].split("\\")[-1]
+        if filename:
+            refs.append(filename)
+    return refs
+
+
+def _mime_to_extension(mime_type: str) -> str:
+    """将 MIME 类型映射为文件扩展名。"""
+    mapping = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/gif": ".gif",
+        "image/webp": ".webp",
+        "image/svg+xml": ".svg",
+        "image/bmp": ".bmp",
+        "image/tiff": ".tiff",
+    }
+    return mapping.get(mime_type.lower(), ".png")
+
+
+def _guess_image_content_type(filename: str) -> str:
+    suffix = Path(filename).suffix.lower()
+    mapping = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".bmp": "image/bmp",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+    }
+    return mapping.get(suffix, "application/octet-stream")
+
+
+def _extract_image_assets_from_content_items(
+    content_items: list[Any],
+    markdown_content: str,
+) -> list[ExtractionAsset]:
+    """从 MCP content_items 中提取 ImageContent 并转换为 ExtractionAsset。
+
+    ImageContent 无文件名字段，通过与 Markdown 中图片引用的顺序一一对应来命名。
+    """
+    image_items: list[Any] = []
+    for item in content_items:
+        if getattr(item, "type", None) == "image":
+            data = getattr(item, "data", None)
+            mime_type = getattr(item, "mimeType", None)
+            if data and mime_type:
+                image_items.append(item)
+
+    if not image_items:
+        return []
+
+    image_refs = _extract_markdown_image_refs(markdown_content)
+
+    assets: list[ExtractionAsset] = []
+    for index, img_item in enumerate(image_items):
+        data = getattr(img_item, "data", "")
+        mime_type = getattr(img_item, "mimeType", "image/png")
+
+        if index < len(image_refs):
+            name = image_refs[index]
+        else:
+            ext = _mime_to_extension(mime_type)
+            name = f"image-content-{index + 1}{ext}"
+
+        assets.append(
+            ExtractionAsset(
+                name=name,
+                content_type=mime_type,
+                data_base64=data,
+                metadata={"source": "content_items"},
+            )
+        )
+
+    return assets
+
+
+def _merge_extraction_assets(
+    structured_assets: list[ExtractionAsset],
+    content_image_assets: list[ExtractionAsset],
+) -> list[ExtractionAsset]:
+    """合并 structured_content 和 content_items 两个来源的资产。
+
+    structured_assets 优先：同名且已含有效数据的项不被覆盖。
+    当 structured asset 无 data_base64 且 URI 非 GCS 地址时，允许 content_items 回填。
+    """
+    if not content_image_assets:
+        return structured_assets
+    if not structured_assets:
+        return content_image_assets
+
+    existing_names: dict[str, int] = {}
+    for idx, asset in enumerate(structured_assets):
+        existing_names[asset.name] = idx
+
+    merged = list(structured_assets)
+    for img_asset in content_image_assets:
+        if img_asset.name in existing_names:
+            existing_idx = existing_names[img_asset.name]
+            existing = merged[existing_idx]
+            # structured 已有 base64 数据 → 不覆盖
+            if existing.data_base64:
+                continue
+            # structured 已有 GCS URI → 不覆盖（GCS URI 可直接服务）
+            if _is_gcs_uri(existing.uri):
+                continue
+            # 其他情况（无数据、或 URI 非 GCS）→ 允许用 content_items 数据回填
+            if img_asset.data_base64:
+                merged[existing_idx] = ExtractionAsset(
+                    name=existing.name,
+                    content_type=img_asset.content_type or existing.content_type,
+                    uri=existing.uri,
+                    data_base64=img_asset.data_base64,
+                    text=existing.text,
+                    metadata={**existing.metadata, "source": "content_items_backfill"},
+                )
+        else:
+            merged.append(img_asset)
+            existing_names[img_asset.name] = len(merged) - 1
+
+    return merged
+
+
+def _extract_enhanced_image_assets(payload: dict[str, Any]) -> list[ExtractionAsset]:
+    """从 enhanced_assets.output_directory + images.files 提取本地图片资产。"""
+    enhanced_assets = payload.get("enhanced_assets")
+    if not isinstance(enhanced_assets, dict):
+        return []
+
+    output_directory = enhanced_assets.get("output_directory")
+    images = enhanced_assets.get("images")
+    if not isinstance(output_directory, str) or not output_directory.strip():
+        return []
+    if not isinstance(images, dict):
+        return []
+
+    files = images.get("files")
+    if not isinstance(files, list):
+        return []
+
+    try:
+        base_dir = Path(output_directory).expanduser().resolve(strict=True)
+    except OSError:
+        logger.warning("enhanced_asset_output_directory_invalid", output_directory=output_directory)
+        return []
+
+    assets: list[ExtractionAsset] = []
+    for raw_name in files:
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            continue
+
+        safe_name = Path(raw_name).name
+        if safe_name != raw_name:
+            logger.warning(
+                "enhanced_asset_filename_normalized",
+                original_name=raw_name,
+                normalized_name=safe_name,
+            )
+
+        candidate = (base_dir / safe_name)
+        try:
+            resolved = candidate.resolve(strict=True)
+        except OSError:
+            logger.warning(
+                "enhanced_asset_file_missing",
+                output_directory=str(base_dir),
+                asset_name=safe_name,
+            )
+            continue
+
+        try:
+            resolved.relative_to(base_dir)
+        except ValueError:
+            logger.warning(
+                "enhanced_asset_path_outside_output_directory",
+                output_directory=str(base_dir),
+                asset_path=str(resolved),
+            )
+            continue
+        if not resolved.is_file():
+            logger.warning("enhanced_asset_not_a_file", asset_path=str(resolved))
+            continue
+
+        assets.append(
+            ExtractionAsset(
+                name=safe_name,
+                content_type=_guess_image_content_type(safe_name),
+                local_path=str(resolved),
+                metadata={"source": "enhanced_output_directory"},
             )
         )
     return assets
@@ -781,7 +1035,13 @@ def _build_plan_from_contract(
     selected_source_kind: str | None = None
     if contract.source_value_type == "string":
         candidates = source_candidates or []
-        preferred_kind = "url" if request.source_kind == ROUTE_URL else "local_path"
+        if request.source_kind == ROUTE_URL:
+            preferred_kind = "url"
+        elif contract.mode == "batch" and contract.source_value_type == "string":
+            # batch string 工具可能运行在远端，base64 比 local_path 更具通用性
+            preferred_kind = "base64_string"
+        else:
+            preferred_kind = "local_path"
         selected_source_kind = _select_string_source_candidate_kind(
             source_candidates=candidates,
             preferred_kind=preferred_kind,
@@ -1252,11 +1512,16 @@ async def _build_llm_invocation_plan(
         return None
 
     try:
+        from negentropy.config.model_resolver import resolve_llm_config
+
+        _llm_name, _llm_kwargs = await resolve_llm_config()
+        # 过滤掉与显式参数冲突的键
+        _safe_kwargs = {k: v for k, v in _llm_kwargs.items() if k not in ("model", "messages", "response_format")}
         response = await litellm.acompletion(
-            model=settings.llm.full_model_name,
+            model=_llm_name,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
-            **settings.llm.to_litellm_kwargs(),
+            **_safe_kwargs,
         )
     except Exception as exc:
         logger.warning("extractor_llm_plan_failed", tool_name=tool_name, error=str(exc))
@@ -1500,6 +1765,8 @@ class DataExtractorProvider:
                 content=content,
                 filename=filename,
                 content_type=content_type,
+                tracker=tracker,
+                stage_name=stage_name,
             )
             attempts.append(attempt["attempt"])
 
@@ -1563,7 +1830,20 @@ class DataExtractorProvider:
         content: bytes | None,
         filename: str | None,
         content_type: str | None,
+        tracker: Any | None = None,
+        stage_name: str | None = None,
     ) -> dict[str, Any]:
+        # 超时兜底: 当 target 未显式配置 timeout_ms 时，按 source_kind 填充合理默认值
+        if not target.timeout_ms:
+            default_ms = _default_extraction_timeout_ms(source_kind)
+            target.timeout_ms = default_ms
+            logger.info(
+                "extraction_target_timeout_defaulted",
+                tool_name=target.tool_name,
+                source_kind=source_kind,
+                default_timeout_ms=default_ms,
+            )
+
         tool: McpTool | None = None
         discovered_tool: Any | None = None
         async with AsyncSessionLocal() as db:
@@ -1747,6 +2027,8 @@ class DataExtractorProvider:
                     server=server,
                     target=target,
                     plan=plan,
+                    tracker=tracker,
+                    stage_name=stage_name,
                 )
                 invocation_trace.append(
                     {
@@ -1821,7 +2103,13 @@ class DataExtractorProvider:
         server: McpServer,
         target: McpToolTarget,
         plan: AdaptiveToolInvocationPlan,
+        tracker: Any | None = None,
+        stage_name: str | None = None,
     ) -> Any:
+        event_sink = None
+        if tracker and stage_name:
+            event_sink = tracker.create_stage_event_sink(stage_name)
+
         async with AsyncSessionLocal() as db:
             service = McpToolExecutionService(db, client=self._client)
             execution = await service.execute_tool(
@@ -1831,6 +2119,7 @@ class DataExtractorProvider:
                 arguments=plan.arguments,
                 origin=RUN_ORIGIN_KNOWLEDGE_EXTRACTION,
                 timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
+                external_event_sink=event_sink,
             )
             return execution.call_result
 
@@ -1900,7 +2189,13 @@ class DataExtractorProvider:
                     **(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}),
                     "adapter_name": plan.adapter_name,
                 },
-                assets=_normalize_assets(payload.get("assets")),
+                assets=_merge_extraction_assets(
+                    _merge_extraction_assets(
+                        _normalize_assets(payload.get("assets")),
+                        _extract_enhanced_image_assets(payload),
+                    ),
+                    _extract_image_assets_from_content_items(result.content, markdown),
+                ),
                 trace={
                     "adapter_name": plan.adapter_name,
                     "adapter_schema_summary": plan.diagnostics,
@@ -1956,23 +2251,49 @@ async def persist_extracted_assets(
     assets: list[ExtractionAsset],
     tracker: Any | None = None,
 ) -> list[dict[str, Any]]:
-    if not assets:
-        return []
-
     if tracker:
         await tracker.start_stage("extract_assets_store")
 
     storage_service = DocumentStorageService()
+    doc = await storage_service.get_document(document_id=document_id)
+    if not doc:
+        if tracker:
+            await tracker.complete_stage("extract_assets_store", {"asset_count": 0, "document_found": False})
+        return []
+
+    existing_assets = []
+    if isinstance(doc.metadata_, dict):
+        raw_existing_assets = doc.metadata_.get("extracted_assets")
+        if isinstance(raw_existing_assets, list):
+            existing_assets = [item for item in raw_existing_assets if isinstance(item, dict)]
+
     stored_assets: list[dict[str, Any]] = []
     for asset in assets:
         uri = asset.uri
-        if not uri:
+
+        # 上传决策：无 URI 或 URI 非 GCS 且有可上传数据时，需上传到 GCS
+        needs_upload = not uri or (
+            not _is_gcs_uri(uri) and bool(asset.data_base64 or asset.local_path or asset.text is not None)
+        )
+
+        if needs_upload:
             content_bytes: bytes | None = None
             if asset.data_base64:
                 try:
                     content_bytes = base64.b64decode(asset.data_base64)
                 except (ValueError, TypeError):
                     logger.warning("invalid_asset_base64_skipped", document_id=str(document_id), asset_name=asset.name)
+            elif asset.local_path:
+                try:
+                    content_bytes = Path(asset.local_path).read_bytes()
+                except OSError as exc:
+                    logger.warning(
+                        "asset_local_file_read_failed",
+                        document_id=str(document_id),
+                        asset_name=asset.name,
+                        local_path=asset.local_path,
+                        error=str(exc),
+                    )
             elif asset.text is not None:
                 content_bytes = asset.text.encode("utf-8")
 
@@ -1983,19 +2304,71 @@ async def persist_extracted_assets(
                     content=content_bytes,
                     content_type=asset.content_type,
                 )
+            elif not _is_gcs_uri(uri):
+                logger.warning(
+                    "asset_no_uploadable_content",
+                    document_id=str(document_id),
+                    asset_name=asset.name,
+                )
 
         stored_assets.append(
             {
                 "name": asset.name,
                 "content_type": asset.content_type,
                 "uri": uri,
-                "metadata": asset.metadata,
+                "source": str(asset.metadata.get("source") or "structured_asset"),
             }
         )
 
+    await storage_service.update_document_metadata(
+        document_id=document_id,
+        metadata_patch={"extracted_assets": stored_assets},
+    )
+    existing_uris = {
+        str(item.get("uri"))
+        for item in existing_assets
+        if isinstance(item.get("uri"), str) and _is_gcs_uri(item.get("uri"))
+    }
+    current_uris = {
+        str(item.get("uri"))
+        for item in stored_assets
+        if isinstance(item.get("uri"), str) and _is_gcs_uri(item.get("uri"))
+    }
+    stale_uris = sorted(existing_uris - current_uris)
+    for stale_uri in stale_uris:
+        await storage_service.delete_gcs_uri(gcs_uri=stale_uri)
+
     if tracker:
-        await tracker.complete_stage("extract_assets_store", {"asset_count": len(stored_assets)})
+        await tracker.complete_stage(
+            "extract_assets_store",
+            {"asset_count": len(stored_assets), "deleted_stale_asset_count": len(stale_uris)},
+        )
     return stored_assets
+
+
+async def store_extracted_document_artifacts(
+    *,
+    document_id: UUID,
+    extracted: ExtractedDocumentResult,
+    tracker: Any | None = None,
+) -> tuple[str | None, list[dict[str, Any]]]:
+    """统一保存提取后的 Markdown 与图片资产。"""
+    storage_service = DocumentStorageService()
+    markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+        document_id=document_id,
+        markdown_content=extracted.markdown_content,
+    )
+    await storage_service.save_markdown_content(
+        document_id=document_id,
+        markdown_content=extracted.markdown_content,
+        markdown_gcs_uri=markdown_gcs_uri,
+    )
+    stored_assets = await persist_extracted_assets(
+        document_id=document_id,
+        assets=extracted.assets,
+        tracker=tracker,
+    )
+    return markdown_gcs_uri, stored_assets
 
 
 def build_url_document_filename(url: str) -> str:

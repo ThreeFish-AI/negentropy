@@ -14,7 +14,6 @@ from uuid import UUID, uuid4
 import pytest
 
 from negentropy.knowledge.graph_service import (
-    GraphBuildConfig,
     GraphBuildResult,
     GraphService,
     GraphQueryResult,
@@ -25,10 +24,10 @@ from negentropy.knowledge.graph_repository import (
     GraphSearchResult,
 )
 from negentropy.knowledge.types import (
-    GraphBuildConfigModel,
+    GraphBuildConfig,
     GraphEdge,
     GraphNode,
-    GraphSearchConfig,
+    GraphQueryConfig,
 )
 
 

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 from .constants import DEFAULT_KEYWORD_WEIGHT, DEFAULT_SEMANTIC_WEIGHT, TEXT_PREVIEW_MAX_LENGTH
 from .exceptions import SearchError
 from .extraction import ExtractedDocumentResult, ROUTE_URL, extract_source, resolve_source_kind
+from .source_tracking import SourceTrackingService, TrackingContext
 from .reranking import NoopReranker, Reranker
 from .repository import KnowledgeRepository
 from .types import (
@@ -29,6 +30,8 @@ from .types import (
     SearchConfig,
     chunking_config_summary,
     default_chunking_config,
+    infer_source_type,
+    normalize_source_metadata,
     SourceSummary,
     merge_search_results,
 )
@@ -183,6 +186,7 @@ class PipelineTracker:
         now = datetime.now(timezone.utc).isoformat()
         stage_data = self._stages.get(stage, {})
         started_at = stage_data.get("started_at")
+        existing_mcp_events = stage_data.get("mcp_events")
 
         self._stages[stage] = {
             "status": "completed",
@@ -191,6 +195,8 @@ class PipelineTracker:
             "duration_ms": self._calculate_duration_ms(started_at, now),
             "output": self._normalize_dict_payload(output),
         }
+        if existing_mcp_events:
+            self._stages[stage]["mcp_events"] = existing_mcp_events
         self._current_stage = None
         await self._persist()
         self._log_stage_event(
@@ -224,6 +230,7 @@ class PipelineTracker:
         if target_stage:
             stage_data = self._stages.get(target_stage, {})
             stage_started_at = stage_data.get("started_at")
+            existing_mcp_events = stage_data.get("mcp_events")
             self._stages[target_stage] = {
                 "status": "failed",
                 "started_at": stage_started_at,
@@ -231,6 +238,8 @@ class PipelineTracker:
                 "duration_ms": self._calculate_duration_ms(stage_started_at, now),
                 "error": error,
             }
+            if existing_mcp_events:
+                self._stages[target_stage]["mcp_events"] = existing_mcp_events
 
         self._status = "failed"
         self._error = error
@@ -257,6 +266,47 @@ class PipelineTracker:
                 "error": error,
             },
         )
+
+    _MAX_STDERR_EVENTS = 5
+    _PERSIST_WORTHY_STAGES = frozenset({"transport_connect", "session_initialized"})
+
+    def buffer_stage_event(self, stage: str, event: Dict[str, Any]) -> None:
+        """同步地将 MCP 子事件缓存到当前 stage 的内存数据中（不触发 DB 写入）。"""
+        stage_data = self._stages.get(stage)
+        if not stage_data:
+            return
+        if "mcp_events" not in stage_data:
+            stage_data["mcp_events"] = []
+
+        mcp_events = stage_data["mcp_events"]
+
+        if event.get("stage") == "stderr":
+            stderr_count = sum(1 for e in mcp_events if e.get("stage") == "stderr")
+            if stderr_count >= self._MAX_STDERR_EVENTS:
+                for i, e in enumerate(mcp_events):
+                    if e.get("stage") == "stderr":
+                        mcp_events.pop(i)
+                        break
+
+        mcp_events.append({
+            **event,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+    def create_stage_event_sink(self, stage: str) -> Callable[[Dict[str, Any]], None]:
+        """工厂方法：创建同步事件回调，对关键事件触发非阻塞 persist。"""
+        import asyncio
+
+        def sink(event: Dict[str, Any]) -> None:
+            self.buffer_stage_event(stage, event)
+            if event.get("stage") in self._PERSIST_WORTHY_STAGES:
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(self._persist())
+                except RuntimeError:
+                    pass
+
+        return sink
 
     async def skip_stage(self, stage: str, reason: Optional[str] = None) -> None:
         """跳过阶段执行"""
@@ -329,6 +379,15 @@ class KnowledgeService:
         self._chunking_config = chunking_config or default_chunking_config()
         self._reranker = reranker or NoopReranker()
         self._pipeline_dao = pipeline_dao
+        # Phase 2: 来源追踪服务（懒初始化）
+        self._source_tracker: SourceTrackingService | None = None
+
+    @property
+    def source_tracker(self) -> SourceTrackingService:
+        """懒初始化来源追踪服务"""
+        if self._source_tracker is None:
+            self._source_tracker = SourceTrackingService()
+        return self._source_tracker
 
     async def _resume_async_pipeline_tracker(self, tracker: PipelineTracker) -> PipelineTracker:
         await tracker.resume()
@@ -361,7 +420,8 @@ class KnowledgeService:
         app_name: str,
         url: str,
         tracker: Optional[PipelineTracker] = None,
-    ) -> str:
+    ) -> tuple[str, ExtractedDocumentResult]:
+        """提取 URL 内容，返回 (plain_text, 完整结果)"""
         result = await extract_source(
             app_name=app_name,
             corpus_id=corpus_id,
@@ -370,7 +430,7 @@ class KnowledgeService:
             url=url,
             tracker=tracker,
         )
-        return result.plain_text
+        return result.plain_text, result
 
     async def _extract_file_content(
         self,
@@ -520,7 +580,7 @@ class KnowledgeService:
         )
 
         try:
-            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
+            normalized_metadata = normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -604,7 +664,7 @@ class KnowledgeService:
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
+            meta = normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
 
             # 后续阶段复用 _ingest_text_with_tracker
@@ -691,6 +751,7 @@ class KnowledgeService:
                         "trace": extracted.trace,
                     },
                 )
+
             except ValueError as exc:
                 from .exceptions import KnowledgeError
                 from .extraction import ExtractorExecutionError
@@ -708,20 +769,40 @@ class KnowledgeService:
                     details=details or None,
                 ) from exc
 
+            # Phase 2: 来源追踪（文件类型自动判断）
             if document_id:
-                from .extraction import persist_extracted_assets
-                from negentropy.storage.service import DocumentStorageService
+                await tracker.start_stage("source_tracking")
+                try:
+                    source_kind = resolve_source_kind(
+                        source_uri=source_uri or filename,
+                        filename=filename,
+                        content_type=content_type,
+                    )
+                    tracking_ctx = TrackingContext(
+                        tracker_run_id=tracker.run_id if tracker else None,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                    )
+                    async with self._repository.session() as db:
+                        await self.source_tracker.track(
+                            db,
+                            document_id=document_id,
+                            result=extracted,
+                            source_kind=source_kind,
+                            context=tracking_ctx,
+                        )
+                except Exception as track_exc:
+                    logger.warning("source_tracking_failed", error=str(track_exc), exc_info=True)
+                await tracker.complete_stage("source_tracking")
 
-                storage_service = DocumentStorageService()
+            if document_id:
+                from .extraction import store_extracted_document_artifacts
+
                 await tracker.start_stage("markdown_store")
-                markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+                markdown_gcs_uri, _ = await store_extracted_document_artifacts(
                     document_id=document_id,
-                    markdown_content=extracted.markdown_content,
-                )
-                await storage_service.save_markdown_content(
-                    document_id=document_id,
-                    markdown_content=extracted.markdown_content,
-                    markdown_gcs_uri=markdown_gcs_uri,
+                    extracted=extracted,
+                    tracker=tracker,
                 )
                 await tracker.complete_stage(
                     "markdown_store",
@@ -731,18 +812,12 @@ class KnowledgeService:
                         "markdown_length": len(extracted.markdown_content),
                     },
                 )
-                await persist_extracted_assets(
-                    document_id=document_id,
-                    assets=extracted.assets,
-                    tracker=tracker,
-                )
-
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
+                metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -816,7 +891,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
+                metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -892,7 +967,7 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
-            metadata = _normalize_source_metadata(
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"source_url": source_uri},
             )
@@ -903,7 +978,7 @@ class KnowledgeService:
                 app_name=app_name,
                 text=text,
                 source_uri=source_uri,
-                metadata=_normalize_source_metadata(source_uri=source_uri, metadata=metadata),
+                metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
             )
@@ -930,6 +1005,7 @@ class KnowledgeService:
         app_name: str,
         source_uri: str,
         chunking_config: Optional[ChunkingConfig] = None,
+        document_id: UUID | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 rebuild_source Pipeline（后台任务）"""
         if not self._pipeline_dao:
@@ -1012,7 +1088,24 @@ class KnowledgeService:
             )
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
-            metadata = _normalize_source_metadata(
+            if document_id:
+                from .extraction import store_extracted_document_artifacts
+
+                await tracker.start_stage("markdown_store")
+                markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+                    document_id=document_id,
+                    extracted=extracted,
+                    tracker=tracker,
+                )
+                await tracker.complete_stage(
+                    "markdown_store",
+                    {
+                        "document_id": str(document_id),
+                        "markdown_gcs_uri": markdown_gcs_uri,
+                        "markdown_length": len(extracted.markdown_content),
+                    },
+                )
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"gcs_uri": source_uri, "rebuild": True},
             )
@@ -1027,7 +1120,7 @@ class KnowledgeService:
                 chunking_config=config,
                 tracker=tracker,
             )
-            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
+            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records), "document_id": str(document_id) if document_id else None})
 
             logger.info(
                 "pipeline_execution_completed",
@@ -1104,7 +1197,7 @@ class KnowledgeService:
         )
 
         try:
-            normalized_metadata = _normalize_source_metadata(source_uri=source_uri, metadata=metadata)
+            normalized_metadata = normalize_source_metadata(source_uri=source_uri, metadata=metadata)
             records = await self._ingest_text_with_tracker(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -1477,7 +1570,7 @@ class KnowledgeService:
 
         try:
             try:
-                text = await self._extract_url_content(
+                text, extract_result = await self._extract_url_content(
                     corpus_id=corpus_id,
                     app_name=app_name,
                     url=url,
@@ -1494,8 +1587,47 @@ class KnowledgeService:
                 raise ValueError("No content extracted from URL")
 
             # Merge metadata
-            meta = _normalize_source_metadata(source_uri=url, metadata=metadata)
+            meta = normalize_source_metadata(source_uri=url, metadata=metadata)
             meta["source_url"] = url
+
+            # Phase 2: 来源追踪（在 chunking 之前执行，不阻塞主流程）
+            if tracker:
+                await tracker.start_stage("source_tracking")
+            try:
+                # 从 records 中获取 document_id（在 _ingest_text_with_tracker 中创建）
+                async with self._repository.session() as db:
+                    # 查找刚创建的文档（通过 URL 在 metadata 中匹配）
+                    from sqlalchemy import select
+                    from negentropy.models.perception import KnowledgeDocument
+
+                    result = await db.execute(
+                        select(KnowledgeDocument)
+                        .where(KnowledgeDocument.corpus_id == corpus_id)
+                        .where(KnowledgeDocument.gcs_uri.like(  # noqa: S608
+                            f"%{url.replace('%', '\\%').replace('_', '\\_')}%",
+                            escape="\\",
+                        ))
+                        .order_by(KnowledgeDocument.created_at.desc())
+                        .limit(1)
+                    )
+                    doc = result.scalar_one_or_none()
+                    if doc and extract_result:
+                        tracking_ctx = TrackingContext(
+                            tracker_run_id=tracker.run_id if tracker else None,
+                            corpus_id=corpus_id,
+                            app_name=app_name,
+                        )
+                        await self.source_tracker.track(
+                            db,
+                            document_id=doc.id,
+                            result=extract_result,
+                            source_kind="url",
+                            context=tracking_ctx,
+                        )
+            except Exception as track_exc:
+                logger.warning("source_tracking_failed", error=str(track_exc), exc_info=True)
+            if tracker:
+                await tracker.complete_stage("source_tracking")
 
             # 后续阶段复用 _ingest_text_with_tracker
             records = await self._ingest_text_with_tracker(
@@ -1613,7 +1745,7 @@ class KnowledgeService:
             )
 
             # 准备 metadata（保留原始 URL 信息）
-            metadata = _normalize_source_metadata(
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"source_url": source_uri},
             )
@@ -1798,7 +1930,7 @@ class KnowledgeService:
             )
 
             # 准备 metadata
-            metadata = _normalize_source_metadata(
+            metadata = normalize_source_metadata(
                 source_uri=source_uri,
                 metadata={"gcs_uri": source_uri, "rebuild": True},
             )
@@ -2681,25 +2813,3 @@ def _guess_content_type(filename: str) -> Optional[str]:
         "markdown": "text/markdown",
     }
     return content_types.get(ext)
-
-
-def _infer_source_type(source_uri: Optional[str]) -> str:
-    if source_uri and source_uri.startswith("gs://"):
-        return "file"
-    if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
-        return "url"
-    if source_uri:
-        return "text"
-    return "unknown"
-
-
-def _normalize_source_metadata(
-    *,
-    source_uri: Optional[str],
-    metadata: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    normalized = dict(metadata or {})
-    source_type = normalized.get("source_type")
-    if source_type not in {"file", "url", "text", "unknown"}:
-        normalized["source_type"] = _infer_source_type(source_uri)
-    return normalized

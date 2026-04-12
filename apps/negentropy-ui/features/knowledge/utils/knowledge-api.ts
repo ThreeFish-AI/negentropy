@@ -55,6 +55,73 @@ export type ChunkingConfig =
   | SemanticChunkingConfig
   | HierarchicalChunkingConfig;
 
+/**
+ * 将 separators 数组编码为 textarea 可显示的文本。
+ *
+ * 每个 separator 中的特殊字符以转义序列表示（真实 \n → 字面量 \\n），
+ * 然后以真实换行符 join 各项，实现「每行一个 separator」的体验。
+ */
+export function encodeSeparatorsForDisplay(separators: string[]): string {
+  return separators
+    .map((sep) => {
+      if (sep === "") return "<empty>";
+      return sep
+        .replace(/\\/g, "\\\\")
+        .replace(/\n/g, "\\n")
+        .replace(/\t/g, "\\t")
+        .replace(/\r/g, "\\r");
+    })
+    .join("\n");
+}
+
+/**
+ * 将 textarea 文本解码回 separators 数组。
+ *
+ * 按真实换行拆分行，每行做反转义处理。
+ * 使用逐字符扫描避免正则替换的顺序依赖问题。
+ */
+export function decodeSeparatorsFromInput(text: string): string[] {
+  return text
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      if (line === "<empty>") return "";
+      let result = "";
+      let i = 0;
+      while (i < line.length) {
+        if (line[i] === "\\" && i + 1 < line.length) {
+          const next = line[i + 1];
+          switch (next) {
+            case "n":
+              result += "\n";
+              i += 2;
+              break;
+            case "t":
+              result += "\t";
+              i += 2;
+              break;
+            case "r":
+              result += "\r";
+              i += 2;
+              break;
+            case "\\":
+              result += "\\";
+              i += 2;
+              break;
+            default:
+              result += line[i];
+              i += 1;
+              break;
+          }
+        } else {
+          result += line[i];
+          i += 1;
+        }
+      }
+      return result;
+    });
+}
+
 export function createDefaultChunkingConfig(
   strategy: ChunkingStrategy = "recursive",
 ): ChunkingConfig {
@@ -78,7 +145,7 @@ export function createDefaultChunkingConfig(
       return {
         strategy,
         preserve_newlines: true,
-        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        separators: ["\n"],
         hierarchical_parent_chunk_size: 1024,
         hierarchical_child_chunk_size: 256,
         hierarchical_child_overlap: 51,
@@ -90,7 +157,7 @@ export function createDefaultChunkingConfig(
         chunk_size: 800,
         overlap: 100,
         preserve_newlines: true,
-        separators: ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "；", ";", " ", ""],
+        separators: ["\n"],
       };
   }
 }
@@ -624,6 +691,16 @@ export interface PipelineErrorPayload extends Record<string, unknown> {
   diagnostics?: Record<string, unknown>;
 }
 
+// MCP 工具调用子事件
+export interface McpStageEvent {
+  stage: string;
+  status: string;
+  title: string;
+  timestamp: string;
+  payload?: Record<string, unknown>;
+  detail?: string;
+}
+
 // Pipeline 阶段结果
 export interface PipelineStageResult {
   status: PipelineStageStatus;
@@ -633,6 +710,7 @@ export interface PipelineStageResult {
   error?: PipelineErrorPayload;
   output?: Record<string, unknown>;
   reason?: string; // for skipped status
+  mcp_events?: McpStageEvent[];
 }
 
 // Pipeline Run 记录
@@ -654,6 +732,7 @@ export interface PipelineRunRecord {
 }
 
 export interface KnowledgePipelinesPayload {
+  count?: number;
   last_updated_at?: string;
   runs?: PipelineRunRecord[];
 }
@@ -1016,6 +1095,7 @@ export interface KnowledgeDocument {
   status: string;
   created_at: string | null;
   created_by: string | null;
+  created_by_name?: string | null;
   markdown_extract_status?: "pending" | "processing" | "completed" | "failed" | string;
   markdown_extracted_at?: string | null;
   markdown_extract_error?: string | null;
@@ -1948,9 +2028,14 @@ export async function fetchGraphBuildHistory(
 
 export async function fetchPipelines(
   appName?: string,
+  options?: { limit?: number; offset?: number },
 ): Promise<KnowledgePipelinesPayload> {
-  const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
-  const res = await fetch(`/api/knowledge/pipelines${params}`, {
+  const query = new URLSearchParams();
+  if (appName) query.set("app_name", appName);
+  if (options?.limit != null) query.set("limit", String(options.limit));
+  if (options?.offset != null) query.set("offset", String(options.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/pipelines${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -1976,4 +2061,176 @@ export async function upsertPipelines(params: {
     throw new Error(`Failed to upsert pipelines: ${res.statusText}`);
   }
   return res.json();
+}
+
+// ============================================================================
+// Catalog Types (目录编册 — 对齐后端 catalog_dao.py)
+// ============================================================================
+
+export type CatalogNodeType = "category" | "collection" | "document_ref";
+
+/** 目录节点 — 对齐后端 DocCatalogNode + CTE 扩展字段 */
+export interface CatalogNode {
+  id: string;
+  corpus_id: string;
+  name: string;
+  slug: string;
+  parent_id: string | null;
+  node_type: CatalogNodeType;
+  description: string | null;
+  sort_order: number;
+  config: Record<string, unknown>;
+  /** CTE 计算字段：层级深度（根节点为 0） */
+  depth?: number;
+  /** CTE 计算字段：从根到当前节点的 ID 路径数组 */
+  path?: string[];
+  /** 前端派生：子节点数量 */
+  children_count?: number;
+  /** 前端派生：关联文档数量 */
+  document_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateCatalogNodeParams {
+  corpus_id: string;
+  name: string;
+  slug: string;
+  parent_id?: string | null;
+  node_type?: CatalogNodeType;
+  description?: string;
+  sort_order?: number;
+  config?: Record<string, unknown>;
+}
+
+export interface UpdateCatalogNodeParams {
+  name?: string;
+  slug?: string;
+  parent_id?: string | null;
+  node_type?: CatalogNodeType;
+  description?: string;
+  sort_order?: number;
+  config?: Record<string, unknown>;
+}
+
+export interface CatalogTreeResponse {
+  tree: CatalogNode[];
+}
+
+export interface CatalogNodesResponse {
+  nodes: CatalogNode[];
+  total: number;
+}
+
+export interface CatalogNodeDocumentsResponse {
+  documents: KnowledgeDocument[];
+  total: number;
+}
+
+// ============================================================================
+// Catalog API Functions
+// ============================================================================
+
+/** 获取目录树（CTE 扁平化列表，含 depth/path） */
+export async function fetchCatalogTree(corpusId: string): Promise<CatalogNode[]> {
+  const res = await fetch(`/api/knowledge/catalog/tree/${corpusId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch catalog tree: ${res.statusText}`);
+  const data = await res.json();
+  return data.tree ?? data;
+}
+
+/** 获取目录节点列表（分页） */
+export async function fetchCatalogNodes(params: {
+  corpus_id?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<CatalogNodesResponse> {
+  const query = new URLSearchParams();
+  if (params.corpus_id) query.set("corpus_id", params.corpus_id);
+  if (params.limit != null) query.set("limit", String(params.limit));
+  if (params.offset != null) query.set("offset", String(params.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/catalog${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch catalog nodes: ${res.statusText}`);
+  return res.json();
+}
+
+/** 创建目录节点 */
+export async function createCatalogNode(params: CreateCatalogNodeParams): Promise<CatalogNode> {
+  const res = await fetch("/api/knowledge/catalog", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to create catalog node: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取单个目录节点详情 */
+export async function fetchCatalogNode(nodeId: string): Promise<CatalogNode> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch catalog node: ${res.statusText}`);
+  return res.json();
+}
+
+/** 更新目录节点 */
+export async function updateCatalogNode(
+  nodeId: string,
+  params: UpdateCatalogNodeParams,
+): Promise<CatalogNode> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to update catalog node: ${res.statusText}`);
+  return res.json();
+}
+
+/** 删除目录节点 */
+export async function deleteCatalogNode(nodeId: string): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete catalog node: ${res.statusText}`);
+}
+
+/** 获取目录节点下的文档列表（分页） */
+export async function fetchCatalogNodeDocuments(
+  nodeId: string,
+  options?: { limit?: number; offset?: number },
+): Promise<CatalogNodeDocumentsResponse> {
+  const query = new URLSearchParams();
+  if (options?.limit != null) query.set("limit", String(options.limit));
+  if (options?.offset != null) query.set("offset", String(options.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch node documents: ${res.statusText}`);
+  return res.json();
+}
+
+/** 将文档分配到目录节点 */
+export async function assignDocumentToNode(
+  nodeId: string,
+  docId: string,
+): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to assign document: ${res.statusText}`);
+}
+
+/** 从目录节点移除文档 */
+export async function unassignDocumentFromNode(
+  nodeId: string,
+  docId: string,
+): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to unassign document: ${res.statusText}`);
 }

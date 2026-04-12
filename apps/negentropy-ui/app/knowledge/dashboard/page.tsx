@@ -16,7 +16,8 @@ import {
 } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
-const RUNNING_POLL_INTERVAL_MS = 3000;
+const PAGE_SIZE = 10;
+const RUNNING_POLL_INTERVAL_MS = 5000;
 const BOOTSTRAP_POLL_INTERVAL_MS = 1000;
 const BOOTSTRAP_POLL_MAX_TICKS = 8;
 
@@ -65,9 +66,12 @@ export default function KnowledgeDashboardPage() {
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [retryQueue, setRetryQueue] = useState<PipelineRunRecord[]>([]);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const applyPipelinesPayload = useCallback((data: KnowledgePipelinesPayload) => {
     setPipelinesPayload(data);
+    setTotal(data.count ?? data.runs?.length ?? 0);
     setError(null);
     setSelected((prev) => {
       if (!data.runs?.length) return null;
@@ -77,11 +81,15 @@ export default function KnowledgeDashboardPage() {
     });
   }, []);
 
-  const loadPipelines = useCallback(async () => {
-    const data = await fetchPipelines(APP_NAME);
+  const loadPipelines = useCallback(async (overridePage?: number) => {
+    const p = overridePage ?? page;
+    const data = await fetchPipelines(APP_NAME, {
+      limit: PAGE_SIZE,
+      offset: (p - 1) * PAGE_SIZE,
+    });
     applyPipelinesPayload(data);
     return data;
-  }, [applyPipelinesPayload]);
+  }, [applyPipelinesPayload, page]);
 
   useEffect(() => {
     let active = true;
@@ -89,7 +97,10 @@ export default function KnowledgeDashboardPage() {
       try {
         const [dashData, pipeData] = await Promise.all([
           fetchDashboard(APP_NAME),
-          fetchPipelines(APP_NAME),
+          fetchPipelines(APP_NAME, {
+            limit: PAGE_SIZE,
+            offset: (page - 1) * PAGE_SIZE,
+          }),
         ]);
         if (!active) return;
         setDashboardData(dashData);
@@ -104,10 +115,11 @@ export default function KnowledgeDashboardPage() {
     return () => {
       active = false;
     };
-  }, [applyPipelinesPayload]);
+  }, [applyPipelinesPayload, page]);
 
   useEffect(() => {
     if (!hasInitialLoad) return;
+    if (page !== 1) return;
     if (hasRunningRuns(pipelinesPayload?.runs)) return;
 
     let active = true;
@@ -117,7 +129,10 @@ export default function KnowledgeDashboardPage() {
     const intervalId = setInterval(async () => {
       tick += 1;
       try {
-        const data = await fetchPipelines(APP_NAME);
+        const data = await fetchPipelines(APP_NAME, {
+          limit: PAGE_SIZE,
+          offset: 0,
+        });
         if (!active) return;
 
         const nextSnapshot = createRunsSnapshot(data.runs);
@@ -143,13 +158,14 @@ export default function KnowledgeDashboardPage() {
       active = false;
       clearInterval(intervalId);
     };
-  }, [applyPipelinesPayload, hasInitialLoad, pipelinesPayload?.runs]);
+  }, [applyPipelinesPayload, hasInitialLoad, pipelinesPayload?.runs, page]);
 
   useEffect(() => {
+    if (page !== 1) return;
     if (!hasRunningRuns(pipelinesPayload?.runs)) return;
 
     const intervalId = setInterval(() => {
-      loadPipelines().catch((err) => {
+      loadPipelines(1).catch((err) => {
         setError(String(err));
       });
     }, RUNNING_POLL_INTERVAL_MS);
@@ -157,7 +173,7 @@ export default function KnowledgeDashboardPage() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [loadPipelines, pipelinesPayload?.runs]);
+  }, [loadPipelines, pipelinesPayload?.runs, page]);
 
   const metrics = useMemo(() => {
     if (!dashboardData) return [];
@@ -277,6 +293,32 @@ export default function KnowledgeDashboardPage() {
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">暂无作业</p>
+                )}
+                {total > 0 && (
+                  <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {total} run{total !== 1 ? "s" : ""}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Page {page} / {Math.ceil(total / PAGE_SIZE) || 1}
+                      </span>
+                      <button
+                        onClick={() => setPage((p) => Math.min(Math.ceil(total / PAGE_SIZE), p + 1))}
+                        disabled={page >= Math.ceil(total / PAGE_SIZE)}
+                        className={outlineButtonClassName("neutral", "rounded px-2 py-1 text-[11px]")}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

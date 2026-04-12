@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import io
 import re
-from typing import Literal
 
 import httpx
 from bs4 import BeautifulSoup
-from pypdf import PdfReader
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.knowledge.content")
@@ -43,12 +40,13 @@ async def extract_file_content(
     filename: str,
     content_type: str | None = None,
 ) -> str:
-    """从上传的文件中提取文本内容
+    """从文本/Markdown 文件中提取内容。
+
+    PDF 文件需通过 MCP Tool（extract_source）提取，不在此函数处理。
 
     支持格式:
     - text/plain (.txt)
     - text/markdown (.md, .markdown)
-    - application/pdf (.pdf)
 
     Args:
         content: 文件二进制内容
@@ -73,10 +71,11 @@ async def extract_file_content(
 
     if ext in ("txt", "md", "markdown"):
         text = _extract_text_file(content)
-    elif ext == "pdf" or (content_type and "application/pdf" in content_type):
-        text = _extract_pdf_with_tables(content)
     else:
-        raise ValueError(f"Unsupported file type: {ext or content_type or 'unknown'}")
+        raise ValueError(
+            f"Unsupported file type for local extraction: {ext or content_type or 'unknown'}. "
+            "PDF files should be extracted via MCP Tool (extract_source)."
+        )
 
     logger.info(
         "extract_file_completed",
@@ -94,8 +93,7 @@ async def extract_file_markdown(
 ) -> str:
     """提取并优化文件的 Markdown 内容。
 
-    该函数复用现有提取逻辑，并统一做 Markdown 规范化，
-    作为 Documents View 的正文来源。
+    仅支持文本/Markdown 文件。PDF 文件需通过 MCP Tool 提取。
     """
     extracted = await extract_file_content(
         content=content,
@@ -151,93 +149,15 @@ def _extract_text_file(content: bytes) -> str:
         raise ValueError(f"Failed to decode text file: {exc}") from exc
 
 
-def _extract_pdf_with_tables(content: bytes) -> str:
-    """从 PDF 字节内容提取文本，支持表格
-
-    使用 pdfplumber 提取文本和表格，表格转换为 Markdown 格式
-    """
-    try:
-        import pdfplumber
-    except ImportError as exc:
-        logger.error("pdfplumber_not_installed", error=str(exc))
-        raise ValueError("pdfplumber is required for PDF extraction. Install it with: pip install pdfplumber") from exc
-
-    try:
-        text_parts = []
-
-        with pdfplumber.open(io.BytesIO(content)) as pdf:
-            for page_num, page in enumerate(pdf.pages):
-                page_text_parts = []
-
-                # 1. 提取表格并转换为 Markdown
-                tables = page.extract_tables()
-                for table in tables:
-                    if table and any(table):  # 确保表格非空
-                        table_md = _table_to_markdown(table)
-                        page_text_parts.append(table_md)
-
-                # 2. 提取普通文本
-                page_text = page.extract_text()
-                if page_text:
-                    page_text_parts.append(page_text)
-
-                if page_text_parts:
-                    text_parts.append(f"--- Page {page_num + 1} ---\n\n" + "\n\n".join(page_text_parts))
-
-        result = "\n\n".join(text_parts).strip()
-
-        logger.info(
-            "pdf_extraction_completed",
-            page_count=len(pdf.pages) if pdf else 0,
-            text_length=len(result),
-        )
-
-        return result
-
-    except Exception as exc:
-        logger.error("pdf_extraction_failed", error=str(exc))
-        raise ValueError(f"Failed to extract text from PDF: {exc}") from exc
-
-
-def _escape_markdown_cell(cell: str) -> str:
-    """转义 Markdown 表格单元格中的特殊字符"""
-    return cell.replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ")
-
-
-def _table_to_markdown(table: list[list[str | None]]) -> str:
-    """将表格数据转换为 Markdown 格式
-
-    Args:
-        table: 二维列表，每个元素是单元格内容
-
-    Returns:
-        Markdown 格式的表格字符串
-    """
-    if not table or not any(table):
-        return ""
-
-    # 过滤空行并转义特殊字符
-    rows = [[_escape_markdown_cell(str(cell or "")) for cell in row] for row in table if row]
-    if not rows:
-        return ""
-
-    lines = []
-
-    for i, row in enumerate(rows):
-        lines.append("| " + " | ".join(row) + " |")
-        if i == 0:  # 添加表头分隔符
-            lines.append("| " + " | ".join(["---"] * len(row)) + " |")
-
-    return "\n".join(lines)
-
-
 async def fetch_content(url: str) -> str:
     """Fetch and extract text content from a URL.
 
     Supports:
     - HTML: Extracts text, removing scripts/styles.
-    - PDF: Extracts text from pages.
     - ArXiv: Auto-converts /abs/ URLs to /pdf/.
+
+    Note: PDF extraction via this function is not supported.
+    Use extract_source() with MCP Tool instead.
     """
     logger.info("fetch_content_started", url=url)
 
@@ -261,24 +181,15 @@ async def fetch_content(url: str) -> str:
     content_type = response.headers.get("content-type", "").lower()
     logger.info("fetch_content_downloaded", url=url, content_type=content_type, size=len(response.content))
 
-    # 2. Parse PDF
+    # PDF 需通过 MCP Tool 提取，不在此函数处理
     if "application/pdf" in content_type or url.endswith(".pdf"):
-        return _extract_pdf_with_tables(response.content)
+        raise ValueError(
+            "PDF extraction via fetch_content is not supported. "
+            "Use extract_source() with MCP Tool instead."
+        )
 
-    # 3. Parse HTML (default)
+    # Parse HTML (default)
     return _extract_html(response.text)
-
-
-def _extract_pdf(content: bytes) -> str:
-    try:
-        reader = PdfReader(io.BytesIO(content))
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() + "\n\n"
-        return text.strip()
-    except Exception as exc:
-        logger.error("pdf_extraction_failed", error=str(exc))
-        raise ValueError(f"Failed to extract text from PDF: {exc}")
 
 
 def _extract_html(html: str) -> str:

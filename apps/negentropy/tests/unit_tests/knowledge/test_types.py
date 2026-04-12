@@ -14,11 +14,14 @@ from negentropy.knowledge.types import (
     ChunkingStrategy,
     CorpusRecord,
     CorpusSpec,
-    GraphBuildConfigModel,
+    GraphBuildConfig,
+    GraphQueryConfig,
     KnowledgeChunk,
     KnowledgeMatch,
     KnowledgeRecord,
     SearchConfig,
+    infer_source_type,
+    normalize_source_metadata,
     serialize_chunking_config,
 )
 from negentropy.knowledge.constants import (
@@ -246,15 +249,15 @@ class TestImmutability:
 
 
 class TestGraphBuildConfig:
-    """GraphBuildConfigModel 配置测试"""
+    """GraphBuildConfig 配置测试"""
 
     def test_graph_build_config_hashable(self) -> None:
         """图谱构建配置应保持可哈希"""
-        config1 = GraphBuildConfigModel(
+        config1 = GraphBuildConfig(
             entity_types=["person", "organization", "person"],
             relation_types=["WORKS_FOR", "  ", "WORKS_FOR"],
         )
-        config2 = GraphBuildConfigModel(
+        config2 = GraphBuildConfig(
             entity_types=("person", "organization"),
             relation_types=("WORKS_FOR",),
         )
@@ -290,3 +293,95 @@ class TestTypeValidation:
 
         with pytest.raises(ValidationError):
             SearchConfig(limit=-1)
+
+
+class TestInferSourceType:
+    """infer_source_type 工具函数测试"""
+
+    def test_gs_uri_returns_file(self) -> None:
+        """gs:// 前缀应推断为 file"""
+        assert infer_source_type("gs://bucket/path") == "file"
+
+    def test_http_uri_returns_url(self) -> None:
+        """http:// 前缀应推断为 url"""
+        assert infer_source_type("http://example.com") == "url"
+
+    def test_https_uri_returns_url(self) -> None:
+        """https:// 前缀应推断为 url"""
+        assert infer_source_type("https://example.com/page") == "url"
+
+    def test_plain_text_uri_returns_text(self) -> None:
+        """非空非特殊前缀应推断为 text"""
+        assert infer_source_type("some-plain-text-id") == "text"
+
+    def test_none_uri_returns_unknown(self) -> None:
+        """None URI 应推断为 unknown"""
+        assert infer_source_type(None) == "unknown"
+
+    def test_metadata_source_type_takes_precedence(self) -> None:
+        """metadata 中已有 source_type 应优先采用"""
+        result = infer_source_type("gs://bucket/path", {"source_type": "url"})
+        assert result == "url"
+
+    def test_metadata_invalid_source_type_falls_back(self) -> None:
+        """metadata 中无效 source_type 应回退到 URI 推断"""
+        result = infer_source_type("gs://bucket/path", {"source_type": "invalid"})
+        assert result == "file"
+
+
+class TestNormalizeSourceMetadata:
+    """normalize_source_metadata 工具函数测试"""
+
+    def test_adds_source_type_when_missing(self) -> None:
+        """缺失 source_type 时应自动补充"""
+        result = normalize_source_metadata(
+            source_uri="https://example.com",
+            metadata={"key": "value"},
+        )
+        assert result["source_type"] == "url"
+        assert result["key"] == "value"
+
+    def test_preserves_valid_source_type(self) -> None:
+        """已有有效 source_type 时应保留"""
+        result = normalize_source_metadata(
+            source_uri="gs://bucket/file",
+            metadata={"source_type": "text"},
+        )
+        assert result["source_type"] == "text"
+
+    def test_handles_none_metadata(self) -> None:
+        """metadata 为 None 时应返回含 source_type 的新字典"""
+        result = normalize_source_metadata(source_uri=None, metadata=None)
+        assert result == {"source_type": "unknown"}
+
+
+class TestGraphQueryConfig:
+    """GraphQueryConfig 配置测试"""
+
+    def test_default_values(self) -> None:
+        """GraphQueryConfig 默认值应正确"""
+        config = GraphQueryConfig()
+        assert config.max_depth == 2
+        assert config.include_neighbors is True
+
+    def test_custom_values(self) -> None:
+        """GraphQueryConfig 自定义值应正确"""
+        config = GraphQueryConfig(max_depth=3, include_neighbors=False)
+        assert config.max_depth == 3
+        assert config.include_neighbors is False
+
+
+class TestBackwardCompatibleAliases:
+    """向后兼容别名测试"""
+
+    def test_graph_build_config_model_alias(self) -> None:
+        """GraphBuildConfigModel 别名应指向 GraphBuildConfig"""
+        from negentropy.knowledge import GraphBuildConfigModel
+
+        assert GraphBuildConfigModel is GraphBuildConfig
+
+    def test_graph_search_config_alias(self) -> None:
+        """GraphSearchConfig 别名应指向 GraphQueryConfig"""
+        from negentropy.knowledge import GraphSearchConfig
+
+        assert GraphSearchConfig is GraphQueryConfig

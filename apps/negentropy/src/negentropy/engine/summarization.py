@@ -14,7 +14,6 @@ from google.adk.models import LlmRequest
 from google.adk.models.lite_llm import LiteLlm
 from google.genai import types
 
-from negentropy.config import settings
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.summarization")
@@ -24,10 +23,16 @@ class SessionSummarizer:
     """Uses LLM to summarize conversation history into a short title."""
 
     def __init__(self):
-        kwargs = settings.llm.to_litellm_kwargs()
+        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+
+        cached = get_cached_llm_config()
+        if cached:
+            name, kwargs = cached
+        else:
+            name, kwargs = get_fallback_llm_config()
         kwargs["max_tokens"] = 20
         logger.debug("session_summarizer_initialized")
-        self.model = LiteLlm(settings.llm.full_model_name, **kwargs)
+        self.model = LiteLlm(name, **kwargs)
 
     async def generate_title(self, history: List[types.Content]) -> Optional[str]:
         """

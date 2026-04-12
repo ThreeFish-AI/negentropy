@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { KnowledgeDocument, fetchDocumentDetail } from "@/features/knowledge";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
@@ -149,7 +149,7 @@ export function ReplaceDocumentDialog({
             <div className="h-full min-h-0 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-950">
               {text.trim() ? (
                 <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:text-xs prose-code:text-xs">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={defaultRemarkPlugins} rehypePlugins={defaultRehypePlugins}>{text}</ReactMarkdown>
                 </div>
               ) : (
                 <p className="text-zinc-500 dark:text-zinc-400">暂无可预览内容</p>

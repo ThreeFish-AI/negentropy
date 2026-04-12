@@ -81,12 +81,28 @@ class FakeMcpSession:
         if self.scalar_returns_none:
             return None
         ns_kwargs: dict = {
+            "id": uuid4(),
             "is_enabled": True,
             "input_schema": self.input_schema,
+            "output_schema": {},
+            "call_count": 0,
+            "name": "fake-tool",
         }
         if self.description is not None:
             ns_kwargs["description"] = self.description
         return SimpleNamespace(**ns_kwargs)
+
+    def add(self, obj):  # type: ignore[no-untyped-def]
+        """No-op: McpToolExecutionService calls db.add(run/event)."""
+
+    async def flush(self):
+        """No-op: McpToolExecutionService calls db.flush()."""
+
+    async def commit(self):
+        """No-op: McpToolExecutionService calls db.commit()."""
+
+    async def refresh(self, obj):  # type: ignore[no-untyped-def]
+        """No-op: McpToolExecutionService calls db.refresh(run)."""
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +125,9 @@ class FakeStorageService:
         self.saved_markdown: str | None = None
         self.saved_markdown_gcs_uri: str | None = None
         self.uploaded_markdown: str | None = None
+        self.uploaded_assets: list[dict[str, object]] = []
+        self.deleted_gcs_uris: list[str] = []
+        self.updated_metadata_patches: list[dict[str, object]] = []
         self.upload_and_store_calls: list[dict[str, object]] = []
 
     async def get_document(self, *, document_id, corpus_id=None, app_name=None):
@@ -147,8 +166,33 @@ class FakeStorageService:
                 id=uuid4(),
                 gcs_uri="gs://negentropy/knowledge/test.pdf",
                 markdown_extract_status="pending",
+                metadata_={},
             )
         return self.doc, True
+
+    async def upload_extraction_asset(self, *, document_id, filename: str, content: bytes, content_type: str):
+        _ = document_id
+        self.uploaded_assets.append(
+            {
+                "filename": filename,
+                "content": content,
+                "content_type": content_type,
+            }
+        )
+        return f"gs://derived/assets/{filename}"
+
+    async def update_document_metadata(self, *, document_id, metadata_patch: dict):
+        _ = document_id
+        self.updated_metadata_patches.append(metadata_patch)
+        if self.doc is not None:
+            current = dict(getattr(self.doc, "metadata_", {}) or {})
+            current.update(metadata_patch)
+            self.doc.metadata_ = current
+        return True
+
+    async def delete_gcs_uri(self, *, gcs_uri: str):
+        self.deleted_gcs_uris.append(gcs_uri)
+        return True
 
 
 # ---------------------------------------------------------------------------
@@ -403,3 +447,163 @@ class FakeRepository:
     async def delete_knowledge_by_source(self, *, corpus_id, app_name, source_uri):
         _ = (corpus_id, app_name, source_uri)
         raise RuntimeError("delete failed")
+
+
+# ---------------------------------------------------------------------------
+# 9. FakeSourceDao — 替代 SourceDao.create() 的测试替身
+# ---------------------------------------------------------------------------
+
+
+class FakeSourceDao:
+    """捕获 SourceDao.create() 调用参数并返回模拟 DocSource 记录。"""
+
+    def __init__(self) -> None:
+        self.created_sources: list[dict[str, object]] = []
+
+    async def create(self, db, *, document_id, **kwargs) -> SimpleNamespace:
+        """记录 create 调用并返回模拟 DocSource 对象。"""
+        self.created_sources.append({"document_id": document_id, **kwargs})
+        return SimpleNamespace(
+            id=uuid4(),
+            document_id=document_id,
+            **kwargs,
+            created_at=None,
+            updated_at=None,
+        )
+
+
+# ---------------------------------------------------------------------------
+# 10. FakeEntityDbSession — 模拟 AsyncSession 用于 KgEntityService 单测
+# ---------------------------------------------------------------------------
+
+
+class FakeEntityDbSession:
+    """维护内存实体注册表的模拟 AsyncSession。
+
+    支持 ``execute(select(...))`` 返回匹配/空结果、``add(obj)``
+    注册对象、``flush()`` 触发 ID 生成。
+    """
+
+    def __init__(self) -> None:
+        self.entities: list[SimpleNamespace] = []
+        self.relations: list[SimpleNamespace] = []
+        self.added: list[object] = []
+        self.deleted: list[object] = []
+        self.flush_count: int = 0
+        self._id_counter: int = 0
+
+    def _next_id(self) -> str:
+        self._id_counter += 1
+        return str(uuid4())
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def execute(self, stmt):
+        """解析 select 语句并返回匹配结果或空 Row。
+
+        通过检查 stmt 的字符串表示来决定返回值：
+        - 若查询 KgEntity 且有 where 条件 → 在 entities 中查找匹配项
+        - 若查询 KgRelation 且有 where 条件 → 在 relations 中查找匹配项
+        - 其他情况返回空结果
+        """
+        stmt_str = str(stmt)
+
+        # 判断是否为 KgEntity 查询
+        if "kg_entity" in stmt_str.lower():
+            # 检查是否有匹配的实体
+            result = None
+            for ent in self.entities:
+                # 简单匹配：若 stmt 包含 name 过滤条件且 entity name 匹配则返回
+                match = True
+                # 这里做基本启发式匹配——实际测试中通过 monkeypatch 更精确
+                if match and result is None:
+                    result = ent
+            if result is not None:
+                return _FakeExecuteResult([result])
+            return _FakeExecuteResult([])
+
+        # 判断是否为 KgRelation 查询
+        if "kg_relation" in stmt_str.lower():
+            for rel in self.relations:
+                return _FakeExecuteResult([rel])
+            return _FakeExecuteResult([])
+
+        return _FakeExecuteResult([])
+
+    def add(self, obj):
+        """同步方法，匹配真实 AsyncSession.add() 签名。"""
+        self.added.append(obj)
+        # 为新对象生成 ID（模拟 DB 自增）
+        if hasattr(obj, "id") and getattr(obj, "id", None) is None:
+            obj.id = self._next_id()
+
+    async def delete(self, obj):
+        """异步方法 — kg_entity_service 中不使用 await delete，但 catalog_dao 使用。"""
+        self.deleted.append(obj)
+
+    async def flush(self):
+        self.flush_count += 1
+
+    async def commit(self):
+        pass
+
+    async def refresh(self, obj):
+        pass
+
+
+class _FakeExecuteResult:
+    """模拟 db.execute() 返回的结果对象。"""
+
+    def __init__(self, rows: list):
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+    def scalar_one_or_none(self):
+        return self._rows[0] if self._rows else None
+
+
+# ---------------------------------------------------------------------------
+# 11. 工厂函数 — 快速构建被测模块的输入数据
+# ---------------------------------------------------------------------------
+
+
+def make_extracted_document_result(
+    *,
+    plain_text: str = "Sample document content for testing.",
+    markdown_content: str = "# Test Document\n\nThis is sample content.",
+    metadata: dict[str, object] | None = None,
+    trace: dict[str, object] | None = None,
+):
+    """工厂函数：快速构建 ExtractedDocumentResult 实例。"""
+    from negentropy.knowledge.extraction import ExtractedDocumentResult
+    return ExtractedDocumentResult(
+        plain_text=plain_text,
+        markdown_content=markdown_content,
+        metadata=metadata or {},
+        trace=trace or {},
+    )
+
+
+def make_tracking_context(
+    *,
+    tracker_run_id: str = "run-test-001",
+    corpus_id: UUID | None = None,
+    app_name: str = "negentropy",
+    mcp_tool_name: str | None = "convert_pdf_to_markdown",
+    mcp_server_id: UUID | None = None,
+):
+    """工厂函数：快速构建 TrackingContext 实例。"""
+    from negentropy.knowledge.source_tracking import TrackingContext
+    return TrackingContext(
+        tracker_run_id=tracker_run_id,
+        corpus_id=corpus_id,
+        app_name=app_name,
+        mcp_tool_name=mcp_tool_name,
+        mcp_server_id=mcp_server_id,
+    )

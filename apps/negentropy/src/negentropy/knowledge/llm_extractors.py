@@ -25,7 +25,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from uuid import UUID
 
-from negentropy.config import settings
 from negentropy.logging import get_logger
 
 if TYPE_CHECKING:
@@ -138,14 +137,22 @@ Output as JSON with the following structure:
             max_retries: 最大重试次数
             fallback_to_regex: 失败时是否回退到正则提取器
         """
-        self._model = model or self._get_default_model()
+        self._model, self._model_kwargs = self._resolve_model_config(model)
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_regex = fallback_to_regex
 
-    def _get_default_model(self) -> str:
-        """获取默认 LLM 模型（使用统一配置）"""
-        return settings.llm.full_model_name
+    @staticmethod
+    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
+        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
+        if explicit_model:
+            return explicit_model, {}
+        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+
+        cached = get_cached_llm_config()
+        if cached is not None:
+            return cached[0], cached[1]
+        return get_fallback_llm_config()
 
     async def extract(
         self,
@@ -242,11 +249,17 @@ Output as JSON with the following structure:
         last_error = None
         for attempt in range(self._max_retries):
             try:
+                # 过滤掉与显式参数冲突的 kwargs 键
+                safe_kwargs = {
+                    k: v for k, v in self._model_kwargs.items()
+                    if k not in ("model", "messages", "temperature", "response_format")
+                }
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
+                    **safe_kwargs,
                 )
 
                 content = response.choices[0].message.content
@@ -412,14 +425,22 @@ Output as JSON with the following structure:
             max_retries: 最大重试次数
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
         """
-        self._model = model or self._get_default_model()
+        self._model, self._model_kwargs = self._resolve_model_config(model)
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_cooccurrence = fallback_to_cooccurrence
 
-    def _get_default_model(self) -> str:
-        """获取默认 LLM 模型（使用统一配置）"""
-        return settings.llm.full_model_name
+    @staticmethod
+    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
+        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
+        if explicit_model:
+            return explicit_model, {}
+        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+
+        cached = get_cached_llm_config()
+        if cached is not None:
+            return cached[0], cached[1]
+        return get_fallback_llm_config()
 
     async def extract(
         self,
@@ -542,11 +563,17 @@ Output as JSON with the following structure:
         last_error = None
         for attempt in range(self._max_retries):
             try:
+                # 过滤掉与显式参数冲突的 kwargs 键
+                safe_kwargs = {
+                    k: v for k, v in self._model_kwargs.items()
+                    if k not in ("model", "messages", "temperature", "response_format")
+                }
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
+                    **safe_kwargs,
                 )
 
                 content = response.choices[0].message.content

@@ -19,15 +19,15 @@ Usage:
     settings.environment.env  # "development"
     settings.environment.is_production  # False
 
-    # Access LLM configuration
-    settings.llm.full_model_name
-    settings.llm.to_litellm_kwargs()
-
     # Access database configuration
     settings.database.url
 
     # Access logging configuration
     settings.logging.level
+
+Note:
+    LLM/Embedding 模型配置已迁移至 DB (model_configs 表)，
+    通过 Admin UI 管理，使用 model_resolver 解析。
 """
 
 from functools import cached_property
@@ -40,7 +40,6 @@ from .auth import AuthSettings
 from .database import DatabaseSettings
 from .environment import EnvironmentSettings, get_env_files
 from .knowledge import KnowledgeSettings
-from .llm import LlmSettings
 from .logging import LoggingSettings
 from .observability import ObservabilitySettings
 from .search import SearchSettings
@@ -85,10 +84,6 @@ class Settings(BaseSettings):
         return AppSettings(_env_file=_get_env_files())
 
     @cached_property
-    def llm(self) -> LlmSettings:
-        return LlmSettings(_env_file=_get_env_files())
-
-    @cached_property
     def logging(self) -> LoggingSettings:
         return LoggingSettings(_env_file=_get_env_files())
 
@@ -126,22 +121,6 @@ class Settings(BaseSettings):
     @property
     def app_name(self) -> str:
         return self.app.name
-
-    @property
-    def default_model(self) -> str:
-        return self.llm.full_model_name
-
-    @property
-    def orchestrator_model(self) -> str:
-        return self.llm.full_model_name
-
-    @property
-    def faculty_model(self) -> str:
-        return self.llm.full_model_name
-
-    @property
-    def model_kwargs(self) -> dict:
-        return self.llm.to_litellm_kwargs()
 
     @property
     def log_level(self) -> str:
@@ -231,12 +210,6 @@ class Settings(BaseSettings):
     def vertex_agent_engine_id(self) -> str | None:
         return self.services.vertex_agent_engine_id
 
-    # Deprecated: Use settings.llm directly
-    @property
-    def llm_config(self) -> LlmSettings:
-        """Deprecated. Use settings.llm instead."""
-        return self.llm
-
 
 # Singleton instance
 settings = Settings()
@@ -247,7 +220,6 @@ __all__ = [
     "AppSettings",
     "EnvironmentSettings",
     "KnowledgeSettings",
-    "LlmSettings",
     "LoggingSettings",
     "ObservabilitySettings",
     "DatabaseSettings",

@@ -210,7 +210,7 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
     });
   });
 
-  await page.route("**/api/knowledge/pipelines?app_name=negentropy", async (route) => {
+  await page.route(/\/api\/knowledge\/pipelines\?.*app_name=negentropy/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -738,6 +738,7 @@ test("聊天中的并行搜索过程会按正文位置内联展示并在 hydrati
 
   await page.reload();
 
+  await expect(summaryHeading).toBeVisible({ timeout: 7000 });
   await assertInlineOrder();
   await expect(page.getByText("工具并行执行")).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "AfterShip 信息摘要" })).toBeVisible();

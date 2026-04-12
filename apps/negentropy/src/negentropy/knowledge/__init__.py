@@ -39,10 +39,10 @@ from .types import (
     ChunkingStrategy,
     CorpusRecord,
     CorpusSpec,
-    GraphBuildConfigModel,
+    GraphBuildConfig,
     GraphEdge,
     GraphNode,
-    GraphSearchConfig,
+    GraphQueryConfig,
     KnowledgeChunk,
     KnowledgeGraphPayload,
     KnowledgeMatch,
@@ -50,8 +50,14 @@ from .types import (
     KgEntityType,
     KgRelationType,
     SearchConfig,
+    infer_source_type,
+    normalize_source_metadata,
     merge_search_results,
 )
+
+# Backward-compatible aliases (deprecated)
+GraphBuildConfigModel = GraphBuildConfig
+GraphSearchConfig = GraphQueryConfig
 
 __all__ = [
     "chunk_text",
@@ -67,6 +73,8 @@ __all__ = [
     "KnowledgeMatch",
     "KnowledgeRecord",
     "SearchConfig",
+    "infer_source_type",
+    "normalize_source_metadata",
     "merge_search_results",
     # Graph types
     "GraphNode",
@@ -74,6 +82,9 @@ __all__ = [
     "KnowledgeGraphPayload",
     "KgEntityType",
     "KgRelationType",
+    "GraphQueryConfig",
+    "GraphBuildConfig",
+    # Backward-compatible aliases (deprecated)
     "GraphSearchConfig",
     "GraphBuildConfigModel",
     # Graph repository

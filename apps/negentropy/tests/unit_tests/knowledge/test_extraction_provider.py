@@ -4,6 +4,7 @@
 包括批量/单文件 schema 适配、重试机制、failover 和契约诊断。
 """
 
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -1137,3 +1138,269 @@ async def test_data_extractor_provider_retries_with_string_batch_contract_after_
     assert call_arguments[1] == {"pdf_sources": ["/tmp/retry.pdf"]}
     assert len(llm_calls) == 2
     assert llm_calls[1]["validation_error"].string_item_fields == ["pdf_sources.0"]
+
+
+# ---------------------------------------------------------------------------
+# _invoke_target: ImageContent in content_items merged into assets
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_merges_image_content_items_into_assets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """当 structured_content 不含 assets，但 content_items 有 ImageContent 时，
+    图片应被提取并与 Markdown 引用匹配，生成正确的 ExtractionAsset 列表。
+    """
+    server_id = uuid4()
+
+    class FakeImageContent:
+        def __init__(self, data: str, mime: str) -> None:
+            self.type = "image"
+            self.data = data
+            self.mimeType = mime
+
+    class FakeTextContent:
+        type = "text"
+        text = ""
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content={
+                    "markdown_content": (
+                        "# PDF Report\n"
+                        "![](img_1_36_20260324_135001.png)\n"
+                        "Some analysis text.\n"
+                        "![](img_1_37_20260324_135001.png)"
+                    ),
+                    "plain_text": "PDF Report\nSome analysis text.",
+                    "metadata": {"pages": 5},
+                    # NOTE: structured_content 中没有 "assets" 字段
+                },
+                content=[
+                    FakeTextContent(),
+                    FakeImageContent(data="cG5nX2RhdGFfMQ==", mime="image/png"),
+                    FakeImageContent(data="cG5nX2RhdGFfMg==", mime="image/png"),
+                ],
+                error=None,
+                duration_ms=42,
+            )
+
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        lambda: FakeMcpSession(
+            server_id=server_id,
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "content_base64": {"type": "string"},
+                    "filename": {"type": "string"},
+                },
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._increment_tool_call_count",
+        noop_increment_tool_call_count,
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        noop_llm_plan,
+    )
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    extracted = result["result"]
+
+    # Markdown 正确提取
+    assert "# PDF Report" in extracted.markdown_content
+
+    # assets 应包含从 content_items 提取的两张图片
+    assert len(extracted.assets) == 2
+    assert extracted.assets[0].name == "img_1_36_20260324_135001.png"
+    assert extracted.assets[0].content_type == "image/png"
+    assert extracted.assets[0].data_base64 == "cG5nX2RhdGFfMQ=="
+    assert extracted.assets[1].name == "img_1_37_20260324_135001.png"
+    assert extracted.assets[1].data_base64 == "cG5nX2RhdGFfMg=="
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_structured_assets_take_precedence_over_content_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """当 structured_content 中已包含带 data_base64 的 assets，
+    content_items 中的同名 ImageContent 不应覆盖。
+    """
+    server_id = uuid4()
+
+    class FakeImageContent:
+        def __init__(self, data: str, mime: str) -> None:
+            self.type = "image"
+            self.data = data
+            self.mimeType = mime
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content={
+                    "markdown_content": "# Report\n![](chart.png)",
+                    "plain_text": "Report",
+                    "assets": [
+                        {
+                            "name": "chart.png",
+                            "content_type": "image/png",
+                            "data_base64": "c3RydWN0dXJlZF9kYXRh",
+                        }
+                    ],
+                },
+                content=[
+                    FakeImageContent(data="Y29udGVudF9kYXRh", mime="image/png"),
+                ],
+                error=None,
+                duration_ms=20,
+            )
+
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        lambda: FakeMcpSession(
+            server_id=server_id,
+            input_schema={
+                "type": "object",
+                "properties": {"content_base64": {"type": "string"}},
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._increment_tool_call_count",
+        noop_increment_tool_call_count,
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        noop_llm_plan,
+    )
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    extracted = result["result"]
+    assert len(extracted.assets) == 1
+    assert extracted.assets[0].name == "chart.png"
+    # structured_content 中的数据应优先
+    assert extracted.assets[0].data_base64 == "c3RydWN0dXJlZF9kYXRh"
+
+
+@pytest.mark.asyncio
+async def test_data_extractor_provider_reads_enhanced_assets_from_output_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    server_id = uuid4()
+    output_dir = tmp_path / "enhanced_assets"
+    output_dir.mkdir()
+    (output_dir / "img_1.png").write_bytes(b"png")
+
+    class FakeClient:
+        async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
+            _ = kwargs
+            return SimpleNamespace(
+                success=True,
+                structured_content={
+                    "markdown_content": "# Report\n![](img_1.png)",
+                    "plain_text": "Report",
+                    "enhanced_assets": {
+                        "output_directory": str(output_dir),
+                        "images": {
+                            "count": 1,
+                            "files": ["img_1.png"],
+                        },
+                    },
+                },
+                content=[],
+                error=None,
+                duration_ms=20,
+            )
+
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        lambda: FakeMcpSession(
+            server_id=server_id,
+            input_schema={
+                "type": "object",
+                "properties": {"content_base64": {"type": "string"}},
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._increment_tool_call_count",
+        noop_increment_tool_call_count,
+    )
+    monkeypatch.setattr(
+        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        noop_llm_plan,
+    )
+
+    provider = DataExtractorProvider()
+    provider._client = FakeClient()
+
+    result = await provider._invoke_target(
+        app_name="negentropy",
+        corpus_id=uuid4(),
+        target=SimpleNamespace(
+            server_id=server_id,
+            tool_name="convert_pdf_to_markdown",
+            timeout_ms=None,
+            tool_options={},
+        ),
+        source_kind=ROUTE_FILE_PDF,
+        url=None,
+        content=b"%PDF-1.5",
+        filename="report.pdf",
+        content_type="application/pdf",
+    )
+
+    assert result["success"] is True
+    extracted = result["result"]
+    assert len(extracted.assets) == 1
+    assert extracted.assets[0].name == "img_1.png"
+    assert extracted.assets[0].local_path == str((output_dir / "img_1.png").resolve())
+    assert extracted.assets[0].metadata["source"] == "enhanced_output_directory"

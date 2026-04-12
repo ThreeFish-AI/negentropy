@@ -28,8 +28,10 @@ from negentropy.logging.io import ExternalProcessLogStream, derive_external_proc
 logger = get_logger("negentropy.plugins.mcp_client")
 stderr_logger = get_logger("stderr")
 
-# 连接超时时间（秒）
+# 连接/发现阶段超时（秒）
 DEFAULT_TIMEOUT_SECONDS = 30
+# 工具调用操作阶段超时兜底值（秒），当调用方未传 timeout_seconds 时使用
+DEFAULT_OPERATION_TIMEOUT_SECONDS = 120
 
 
 @asynccontextmanager
@@ -195,6 +197,152 @@ class McpClientService:
     def __init__(self, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS):
         self.timeout_seconds = timeout_seconds
 
+    # ── 传输层抽象 ──────────────────────────────────────────────────
+
+    @asynccontextmanager
+    async def _open_transport(
+        self,
+        *,
+        transport_type: str,
+        command: str | None = None,
+        args: list[str] | None = None,
+        env: dict[str, str] | None = None,
+        url: str | None = None,
+        headers: dict[str, str] | None = None,
+        stderr_callback: Callable[[str], None] | None = None,
+    ):
+        """根据传输类型建立连接，返回统一的 (read, write) 管道。"""
+        if transport_type == "stdio":
+            server_params = StdioServerParameters(
+                command=command or "",
+                args=args or [],
+                env=env or {},
+            )
+            async with logged_stdio_client(
+                server_params,
+                errlog=self._build_stdio_errlog(command or "", args or []),
+                stderr_callback=stderr_callback,
+            ) as (read, write):
+                yield read, write
+        elif transport_type == "sse":
+            async with sse_client(url or "", headers=headers or {}) as (read, write):
+                yield read, write
+        elif transport_type == "http":
+            async with streamablehttp_client(url or "", headers=headers or {}) as (read, write, _):
+                yield read, write
+        else:
+            raise ValueError(f"Unsupported transport type: {transport_type}")
+
+    # ── 统一工具调用 ────────────────────────────────────────────────
+
+    async def _call_tool_on_transport(
+        self,
+        *,
+        transport_type: str,
+        tool_name: str,
+        arguments: dict[str, Any],
+        timeout_seconds: float,
+        event_callback: Callable[[dict[str, Any]], None] | None = None,
+        command: str | None = None,
+        args: list[str] | None = None,
+        env: dict[str, str] | None = None,
+        url: str | None = None,
+        headers: dict[str, str] | None = None,
+        stderr_callback: Callable[[str], None] | None = None,
+    ) -> McpToolCallResult:
+        """统一的工具调用方法，适用于所有传输类型。"""
+        transport_labels = {"stdio": "STDIO", "sse": "SSE", "http": "HTTP"}
+        async with asyncio.timeout(timeout_seconds):
+            _emit_event(
+                event_callback,
+                stage="transport_connect",
+                status="running",
+                title=f"建立 {transport_labels.get(transport_type, transport_type)} 连接",
+                payload={"url": url} if url else {"command": command, "args": args},
+            )
+            async with self._open_transport(
+                transport_type=transport_type,
+                command=command,
+                args=args,
+                env=env,
+                url=url,
+                headers=headers,
+                stderr_callback=stderr_callback,
+            ) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    _emit_event(
+                        event_callback,
+                        stage="session_initialized",
+                        status="completed",
+                        title="MCP Session 已初始化",
+                    )
+                    result = await session.call_tool(
+                        tool_name,
+                        arguments=arguments,
+                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
+                    _emit_event(
+                        event_callback,
+                        stage="tool_result",
+                        status="completed" if not bool(result.isError) else "failed",
+                        title="MCP Tool 返回结果",
+                        payload={"tool_name": tool_name},
+                    )
+                    return McpToolCallResult(
+                        success=not bool(result.isError),
+                        content=list(result.content or []),
+                        structured_content=getattr(result, "structuredContent", None),
+                        error=_extract_call_error(result),
+                    )
+
+    # ── 统一工具发现 ────────────────────────────────────────────────
+
+    async def _discover_on_transport(
+        self,
+        *,
+        transport_type: str,
+        command: str | None = None,
+        args: list[str] | None = None,
+        env: dict[str, str] | None = None,
+        url: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> McpConnectionResult:
+        """统一的工具发现方法，适用于所有传输类型。"""
+        async with asyncio.timeout(self.timeout_seconds):
+            async with self._open_transport(
+                transport_type=transport_type,
+                command=command,
+                args=args,
+                env=env,
+                url=url,
+                headers=headers,
+            ) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    tools_result = await session.list_tools()
+
+                    tools = [
+                        McpToolInfo(
+                            name=t.name,
+                            title=t.title,
+                            description=t.description,
+                            input_schema=t.inputSchema or {},
+                            output_schema=t.outputSchema or {},
+                            icons=[icon.model_dump(mode="json") for icon in (t.icons or [])],
+                            annotations=t.annotations.model_dump(mode="json") if t.annotations else {},
+                            execution=t.execution.model_dump(mode="json") if t.execution else {},
+                            meta=t.meta or {},
+                        )
+                        for t in tools_result.tools
+                    ]
+
+                    transport_source = command if transport_type == "stdio" else url
+                    logger.info(f"Discovered {len(tools)} tools via {transport_type} from {transport_source}")
+                    return McpConnectionResult(success=True, tools=tools)
+
+    # ── 公开入口方法 ────────────────────────────────────────────────
+
     async def call_tool(
         self,
         *,
@@ -211,47 +359,30 @@ class McpClientService:
         stderr_callback: Callable[[str], None] | None = None,
     ) -> McpToolCallResult:
         start_time = time.time()
-        effective_timeout = timeout_seconds or self.timeout_seconds
+        effective_timeout = timeout_seconds if timeout_seconds is not None else DEFAULT_OPERATION_TIMEOUT_SECONDS
+
+        # 参数前置校验
+        if transport_type == "stdio" and not command:
+            return McpToolCallResult(success=False, error="Command is required for stdio transport")
+        if transport_type in ("sse", "http") and not url:
+            return McpToolCallResult(success=False, error=f"URL is required for {transport_type} transport")
+        if transport_type not in ("stdio", "sse", "http"):
+            return McpToolCallResult(success=False, error=f"Unsupported transport type: {transport_type}")
 
         try:
-            if transport_type == "stdio":
-                if not command:
-                    return McpToolCallResult(success=False, error="Command is required for stdio transport")
-                result = await self._call_tool_stdio(
-                    command=command,
-                    args=args or [],
-                    env=env or {},
-                    tool_name=tool_name,
-                    arguments=arguments or {},
-                    timeout_seconds=effective_timeout,
-                    event_callback=event_callback,
-                    stderr_callback=stderr_callback,
-                )
-            elif transport_type == "sse":
-                if not url:
-                    return McpToolCallResult(success=False, error="URL is required for sse transport")
-                result = await self._call_tool_sse(
-                    url=url,
-                    headers=headers or {},
-                    tool_name=tool_name,
-                    arguments=arguments or {},
-                    timeout_seconds=effective_timeout,
-                    event_callback=event_callback,
-                )
-            elif transport_type == "http":
-                if not url:
-                    return McpToolCallResult(success=False, error="URL is required for http transport")
-                result = await self._call_tool_http(
-                    url=url,
-                    headers=headers or {},
-                    tool_name=tool_name,
-                    arguments=arguments or {},
-                    timeout_seconds=effective_timeout,
-                    event_callback=event_callback,
-                )
-            else:
-                return McpToolCallResult(success=False, error=f"Unsupported transport type: {transport_type}")
-
+            result = await self._call_tool_on_transport(
+                transport_type=transport_type,
+                tool_name=tool_name,
+                arguments=arguments or {},
+                timeout_seconds=effective_timeout,
+                event_callback=event_callback,
+                command=command,
+                args=args,
+                env=env,
+                url=url,
+                headers=headers,
+                stderr_callback=stderr_callback,
+            )
             result.duration_ms = int((time.time() - start_time) * 1000)
             return result
         except TimeoutError:
@@ -304,82 +435,58 @@ class McpClientService:
         """
         start_time = time.time()
 
-        try:
-            if transport_type == "stdio":
-                if not command:
-                    return McpConnectionResult(
-                        success=False,
-                        error="Command is required for stdio transport",
-                        duration_ms=0,
-                    )
-                result = await self._discover_stdio(
-                    command=command,
-                    args=args or [],
-                    env=env or {},
-                )
-            elif transport_type == "sse":
-                if not url:
-                    return McpConnectionResult(
-                        success=False,
-                        error="URL is required for sse transport",
-                        duration_ms=0,
-                    )
-                result = await self._discover_sse(url=url, headers=headers or {})
-            elif transport_type == "http":
-                if not url:
-                    return McpConnectionResult(
-                        success=False,
-                        error="URL is required for http transport",
-                        duration_ms=0,
-                    )
-                result = await self._discover_http(url=url, headers=headers or {})
-            else:
-                return McpConnectionResult(
-                    success=False,
-                    error=f"Unsupported transport type: {transport_type}",
-                    duration_ms=0,
-                )
+        # 参数前置校验
+        if transport_type == "stdio" and not command:
+            return McpConnectionResult(success=False, error="Command is required for stdio transport", duration_ms=0)
+        if transport_type in ("sse", "http") and not url:
+            return McpConnectionResult(
+                success=False, error=f"URL is required for {transport_type} transport", duration_ms=0
+            )
+        if transport_type not in ("stdio", "sse", "http"):
+            return McpConnectionResult(
+                success=False, error=f"Unsupported transport type: {transport_type}", duration_ms=0
+            )
 
+        try:
+            result = await self._discover_on_transport(
+                transport_type=transport_type,
+                command=command,
+                args=args,
+                env=env,
+                url=url,
+                headers=headers,
+            )
             result.duration_ms = int((time.time() - start_time) * 1000)
             return result
-
         except TimeoutError:
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = f"Connection timeout after {self.timeout_seconds}s"
             logger.warning(f"MCP connection timeout: {error_msg}")
-            return McpConnectionResult(
-                success=False,
-                error=error_msg,
-                duration_ms=duration_ms,
-            )
+            return McpConnectionResult(success=False, error=error_msg, duration_ms=duration_ms)
         except FileNotFoundError as e:
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = f"Command not found: {e.filename}"
             logger.warning(f"MCP command not found: {error_msg}")
-            return McpConnectionResult(
-                success=False,
-                error=error_msg,
-                duration_ms=duration_ms,
-            )
+            return McpConnectionResult(success=False, error=error_msg, duration_ms=duration_ms)
         except ExceptionGroup as e:
-            # anyio TaskGroup 抛出的异常组 - 提取子异常的真实错误消息
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = self._extract_exception_group_error(e)
             logger.error(f"MCP 连接异常组: {error_msg}", exc_info=True)
-            return McpConnectionResult(
-                success=False,
-                error=error_msg,
-                duration_ms=duration_ms,
-            )
+            return McpConnectionResult(success=False, error=error_msg, duration_ms=duration_ms)
         except Exception as e:
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = self._extract_error_message(e)
             logger.error(f"MCP connection failed: {error_msg}", exc_info=True)
-            return McpConnectionResult(
-                success=False,
-                error=error_msg,
-                duration_ms=duration_ms,
-            )
+            return McpConnectionResult(success=False, error=error_msg, duration_ms=duration_ms)
+
+    # ── 辅助方法 ────────────────────────────────────────────────────
+
+    @staticmethod
+    def _build_stdio_errlog(command: str, args: list[str]) -> ExternalProcessLogStream:
+        return ExternalProcessLogStream(
+            stderr_logger,
+            source=derive_external_process_source(command, args),
+        )
 
     def _extract_exception_group_error(self, exc_group: ExceptionGroup) -> str:
         """从 ExceptionGroup 中提取友好的错误消息"""
@@ -405,261 +512,6 @@ class McpClientService:
             return self._extract_exception_group_error(exc)
         # 其他异常
         return str(exc)
-
-    async def _discover_stdio(
-        self,
-        command: str,
-        args: list[str],
-        env: dict[str, str],
-    ) -> McpConnectionResult:
-        """STDIO 传输类型的 Tool 发现"""
-        server_params = StdioServerParameters(
-            command=command,
-            args=args,
-            env=env,
-        )
-
-        async with asyncio.timeout(self.timeout_seconds):
-            async with logged_stdio_client(server_params, errlog=self._build_stdio_errlog(command, args)) as (
-                read,
-                write,
-            ):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    tools_result = await session.list_tools()
-
-                    tools = [
-                        McpToolInfo(
-                            name=t.name,
-                            title=t.title,
-                            description=t.description,
-                            input_schema=t.inputSchema or {},
-                            output_schema=t.outputSchema or {},
-                            icons=[icon.model_dump(mode="json") for icon in (t.icons or [])],
-                            annotations=t.annotations.model_dump(mode="json") if t.annotations else {},
-                            execution=t.execution.model_dump(mode="json") if t.execution else {},
-                            meta=t.meta or {},
-                        )
-                        for t in tools_result.tools
-                    ]
-
-                    logger.info(f"Discovered {len(tools)} tools via stdio from {command}")
-                    return McpConnectionResult(success=True, tools=tools)
-
-    async def _call_tool_stdio(
-        self,
-        *,
-        command: str,
-        args: list[str],
-        env: dict[str, str],
-        tool_name: str,
-        arguments: dict[str, Any],
-        timeout_seconds: float,
-        event_callback: Callable[[dict[str, Any]], None] | None = None,
-        stderr_callback: Callable[[str], None] | None = None,
-    ) -> McpToolCallResult:
-        server_params = StdioServerParameters(command=command, args=args, env=env)
-        async with asyncio.timeout(timeout_seconds):
-            _emit_event(
-                event_callback,
-                stage="transport_connect",
-                status="running",
-                title="建立 STDIO 连接",
-                payload={"command": command, "args": args},
-            )
-            async with logged_stdio_client(
-                server_params,
-                errlog=self._build_stdio_errlog(command, args),
-                stderr_callback=stderr_callback,
-            ) as (
-                read,
-                write,
-            ):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    _emit_event(
-                        event_callback,
-                        stage="session_initialized",
-                        status="completed",
-                        title="MCP Session 已初始化",
-                    )
-                    result = await session.call_tool(
-                        tool_name,
-                        arguments=arguments,
-                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
-                    )
-                    _emit_event(
-                        event_callback,
-                        stage="tool_result",
-                        status="completed" if not bool(result.isError) else "failed",
-                        title="MCP Tool 返回结果",
-                        payload={"tool_name": tool_name},
-                    )
-                    return McpToolCallResult(
-                        success=not bool(result.isError),
-                        content=list(result.content or []),
-                        structured_content=getattr(result, "structuredContent", None),
-                        error=_extract_call_error(result),
-                    )
-
-    @staticmethod
-    def _build_stdio_errlog(command: str, args: list[str]) -> ExternalProcessLogStream:
-        return ExternalProcessLogStream(
-            stderr_logger,
-            source=derive_external_process_source(command, args),
-        )
-
-    async def _discover_sse(
-        self,
-        url: str,
-        headers: dict[str, str],
-    ) -> McpConnectionResult:
-        """SSE 传输类型的 Tool 发现"""
-        async with asyncio.timeout(self.timeout_seconds):
-            async with sse_client(url, headers=headers) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    tools_result = await session.list_tools()
-
-                    tools = [
-                        McpToolInfo(
-                            name=t.name,
-                            title=t.title,
-                            description=t.description,
-                            input_schema=t.inputSchema or {},
-                            output_schema=t.outputSchema or {},
-                            icons=[icon.model_dump(mode="json") for icon in (t.icons or [])],
-                            annotations=t.annotations.model_dump(mode="json") if t.annotations else {},
-                            execution=t.execution.model_dump(mode="json") if t.execution else {},
-                            meta=t.meta or {},
-                        )
-                        for t in tools_result.tools
-                    ]
-
-                    logger.info(f"Discovered {len(tools)} tools via sse from {url}")
-                    return McpConnectionResult(success=True, tools=tools)
-
-    async def _call_tool_sse(
-        self,
-        *,
-        url: str,
-        headers: dict[str, str],
-        tool_name: str,
-        arguments: dict[str, Any],
-        timeout_seconds: float,
-        event_callback: Callable[[dict[str, Any]], None] | None = None,
-    ) -> McpToolCallResult:
-        async with asyncio.timeout(timeout_seconds):
-            _emit_event(
-                event_callback,
-                stage="transport_connect",
-                status="running",
-                title="建立 SSE 连接",
-                payload={"url": url},
-            )
-            async with sse_client(url, headers=headers) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    _emit_event(
-                        event_callback,
-                        stage="session_initialized",
-                        status="completed",
-                        title="MCP Session 已初始化",
-                    )
-                    result = await session.call_tool(
-                        tool_name,
-                        arguments=arguments,
-                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
-                    )
-                    _emit_event(
-                        event_callback,
-                        stage="tool_result",
-                        status="completed" if not bool(result.isError) else "failed",
-                        title="MCP Tool 返回结果",
-                        payload={"tool_name": tool_name},
-                    )
-                    return McpToolCallResult(
-                        success=not bool(result.isError),
-                        content=list(result.content or []),
-                        structured_content=getattr(result, "structuredContent", None),
-                        error=_extract_call_error(result),
-                    )
-
-    async def _discover_http(
-        self,
-        url: str,
-        headers: dict[str, str],
-    ) -> McpConnectionResult:
-        """HTTP (Streamable HTTP) 传输类型的 Tool 发现"""
-        async with asyncio.timeout(self.timeout_seconds):
-            async with streamablehttp_client(url, headers=headers) as (read, write, _session_id):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    tools_result = await session.list_tools()
-
-                    tools = [
-                        McpToolInfo(
-                            name=t.name,
-                            title=t.title,
-                            description=t.description,
-                            input_schema=t.inputSchema or {},
-                            output_schema=t.outputSchema or {},
-                            icons=[icon.model_dump(mode="json") for icon in (t.icons or [])],
-                            annotations=t.annotations.model_dump(mode="json") if t.annotations else {},
-                            execution=t.execution.model_dump(mode="json") if t.execution else {},
-                            meta=t.meta or {},
-                        )
-                        for t in tools_result.tools
-                    ]
-
-                    logger.info(f"Discovered {len(tools)} tools via http from {url}")
-                    return McpConnectionResult(success=True, tools=tools)
-
-    async def _call_tool_http(
-        self,
-        *,
-        url: str,
-        headers: dict[str, str],
-        tool_name: str,
-        arguments: dict[str, Any],
-        timeout_seconds: float,
-        event_callback: Callable[[dict[str, Any]], None] | None = None,
-    ) -> McpToolCallResult:
-        async with asyncio.timeout(timeout_seconds):
-            _emit_event(
-                event_callback,
-                stage="transport_connect",
-                status="running",
-                title="建立 HTTP 连接",
-                payload={"url": url},
-            )
-            async with streamablehttp_client(url, headers=headers) as (read, write, _session_id):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    _emit_event(
-                        event_callback,
-                        stage="session_initialized",
-                        status="completed",
-                        title="MCP Session 已初始化",
-                    )
-                    result = await session.call_tool(
-                        tool_name,
-                        arguments=arguments,
-                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
-                    )
-                    _emit_event(
-                        event_callback,
-                        stage="tool_result",
-                        status="completed" if not bool(result.isError) else "failed",
-                        title="MCP Tool 返回结果",
-                        payload={"tool_name": tool_name},
-                    )
-                    return McpToolCallResult(
-                        success=not bool(result.isError),
-                        content=list(result.content or []),
-                        structured_content=getattr(result, "structuredContent", None),
-                        error=_extract_call_error(result),
-                    )
 
 
 def _extract_call_error(result: Any) -> str | None:

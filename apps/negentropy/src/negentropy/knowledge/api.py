@@ -1,20 +1,92 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from io import BytesIO
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError  # noqa: F401
 from sqlalchemy import func, select
 
+from .schemas import (  # noqa: F401
+    ApiStatsResponse,
+    ArchiveSourceRequest,
+    ArchiveSourceResponse,
+    AsyncPipelineResponse,
+    CorpusCreateRequest,
+    CorpusResponse,
+    CorpusUpdateRequest,
+    DashboardResponse,
+    DeleteSourceRequest,
+    DeleteSourceResponse,
+    DocumentActionRequest,
+    DocumentChunkDetailResponse,
+    DocumentChunksResponse,
+    DocumentChunkUpdateRequest,
+    DocumentDetailResponse,
+    DocumentListResponse,
+    DocumentMarkdownRefreshRequest,
+    DocumentMarkdownRefreshResponse,
+    DocumentReplaceRequest,
+    DocumentResponse,
+    GraphBuildRequest,
+    GraphBuildResponse,
+    GraphNeighborsRequest,
+    GraphPathRequest,
+    GraphPayload,
+    GraphSearchRequest,
+    GraphSearchResponse,
+    GraphUpsertRequest,
+    IngestRequest,
+    IngestUrlRequest,
+    KnowledgePipelinesResponse,
+    PipelineRunRecordResponse,
+    PipelineStageResultResponse,
+    PipelinesUpsertRequest,
+    PipelineUpsertResponse,
+    PipelineUpsertRecordResponse,
+    RebuildSourceRequest,
+    ReplaceSourceRequest,
+    SearchRequest,
+    SyncSourceRequest,
+    _LegacyChunkingRequest,
+)
+
+# Phase 2-4: 生命周期管理 Schemas
+from .lifecycle_schemas import (  # noqa: F401
+    AssignDocumentRequest,
+    CatalogNodeCreateRequest as _CatalogNodeCreateReq,
+    CatalogNodeResponse as _CatalogNodeResp,
+    CatalogNodeUpdateRequest as _CatalogNodeUpdateReq,
+    CatalogTreeResponse,
+    CategorySuggestionResponse,
+    DocSourceListResponse as _DocSourceListResp,
+    DocSourceResponse as _DocSourceResp,
+    DocumentProvenanceResponse,
+    WikiEntryContentResponse,
+    WikiNavTreeResponse,
+    WikiPublicationCreateRequest as _WikiPubCreateReq,
+    WikiPublicationListResponse as _WikiPubListResp,
+    WikiPublicationResponse as _WikiPubResp,
+    WikiPublishActionResponse,
+    # Phase 5: 统一检索与语料质量 Schemas
+    UnifiedSearchRequest as _UnifiedSearchReq,
+    UnifiedSearchResponse as _UnifiedSearchResp,
+    CorpusQualityResponse as _CorpusQualityResp,
+    CorpusVersionResponse as _CorpusVersionResp,
+)
+
+from negentropy.auth.deps import get_optional_user
+from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
-from negentropy.models.perception import Corpus, Knowledge
+from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument
 from negentropy.models.plugin import McpServer, McpTool
+from negentropy.models.pulse import UserState
 
 from .constants import (
     DEFAULT_CHUNK_SIZE,
@@ -32,6 +104,7 @@ from .extraction import (
     merge_corpus_config,
     persist_extracted_assets,
     resolve_source_kind,
+    store_extracted_document_artifacts,
 )
 from .dao import KnowledgeRunDao
 from .exceptions import (
@@ -45,260 +118,26 @@ from .exceptions import (
     ValidationError as KnowledgeValidationError,
     VersionConflict,
 )
-from .graph_service import GraphService, GraphBuildConfig, GraphQueryConfig, get_graph_service
+from .graph_service import GraphService, get_graph_service
 from .service import KnowledgeService
-from .types import ChunkingConfig, CorpusSpec, SearchConfig, GraphSearchConfig
 from .types import (
+    ChunkingConfig,
+    CorpusSpec,
+    GraphBuildConfig,
+    GraphQueryConfig,
+    SearchConfig,
     chunking_config_summary,
     create_chunking_config,
     default_chunking_config,
+    infer_source_type,
     normalize_chunking_config,
+    normalize_source_metadata,
     serialize_chunking_config,
 )
 
 
 logger = get_logger("negentropy.knowledge.api")
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
-
-
-class CorpusCreateRequest(BaseModel):
-    app_name: Optional[str] = None
-    name: str
-    description: Optional[str] = None
-    config: Dict[str, Any] = Field(default_factory=dict)
-
-
-class CorpusUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    config: Optional[Dict[str, Any]] = None
-
-
-class CorpusResponse(BaseModel):
-    id: UUID
-    app_name: str
-    name: str
-    description: Optional[str] = None
-    config: Dict[str, Any] = Field(default_factory=dict)
-    knowledge_count: int = 0
-
-
-class _LegacyChunkingRequest(BaseModel):
-    chunking_config: Optional[Dict[str, Any]] = None
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    semantic_buffer_size: Optional[int] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
-
-
-class IngestRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
-    text: str
-    source_uri: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class IngestUrlRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
-    url: str
-    as_document: bool = False
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class ReplaceSourceRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
-    text: str
-    source_uri: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class SyncSourceRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
-    source_uri: str
-
-
-class RebuildSourceRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
-    source_uri: str
-
-
-class DeleteSourceRequest(BaseModel):
-    app_name: Optional[str] = None
-    source_uri: str
-
-
-class ArchiveSourceRequest(BaseModel):
-    app_name: Optional[str] = None
-    source_uri: str
-    archived: bool = True
-
-
-class AsyncPipelineResponse(BaseModel):
-    """异步 Pipeline 响应模型"""
-
-    run_id: str
-    status: str = "running"
-    message: str
-
-
-class ArchiveSourceResponse(BaseModel):
-    """归档/解档 Source 响应模型"""
-
-    updated_count: int
-    archived: bool
-
-
-class SearchRequest(BaseModel):
-    app_name: Optional[str] = None
-    query: str
-    mode: Optional[str] = None
-    limit: Optional[int] = None
-    semantic_weight: Optional[float] = None
-    keyword_weight: Optional[float] = None
-    metadata_filter: Optional[Dict[str, Any]] = None
-
-
-class DashboardResponse(BaseModel):
-    corpus_count: int
-    knowledge_count: int
-    last_build_at: Optional[str] = None
-    pipeline_runs: list[Dict[str, Any]] = Field(default_factory=list)
-    alerts: list[Dict[str, Any]] = Field(default_factory=list)
-
-
-class GraphPayload(BaseModel):
-    nodes: list[Dict[str, Any]] = Field(default_factory=list)
-    edges: list[Dict[str, Any]] = Field(default_factory=list)
-    runs: list[Dict[str, Any]] = Field(default_factory=list)
-
-
-class GraphUpsertRequest(BaseModel):
-    app_name: Optional[str] = None
-    run_id: str
-    status: str = "pending"
-    graph: GraphPayload
-    idempotency_key: Optional[str] = None
-    expected_version: Optional[int] = None
-
-
-class PipelinesUpsertRequest(BaseModel):
-    app_name: Optional[str] = None
-    run_id: str
-    status: str = "pending"
-    payload: Dict[str, Any] = Field(default_factory=dict)
-    idempotency_key: Optional[str] = None
-    expected_version: Optional[int] = None
-
-
-class PipelineErrorPayloadResponse(BaseModel):
-    """Pipeline 错误对象。
-
-    `failure_category` 用于稳定失败分类；`diagnostic_summary` 用于一条可直接展示的摘要；
-    `diagnostics` 保留完整结构化诊断信息，供明细排障使用。
-    """
-
-    model_config = ConfigDict(extra="allow")
-
-    failure_category: Optional[str] = Field(default=None, description="稳定失败分类。")
-    diagnostic_summary: Optional[str] = Field(
-        default=None,
-        description="一条可直接展示的摘要，默认用于契约类失败。",
-    )
-    diagnostics: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="结构化详细诊断信息，供明细排障使用。",
-    )
-
-
-class PipelineStageResultResponse(BaseModel):
-    # Pipeline 运行态 payload 仍处于演进期，允许透传未显式建模的增量字段。
-    model_config = ConfigDict(extra="allow")
-
-    status: str
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-    duration_ms: Optional[int] = None
-    error: Optional[PipelineErrorPayloadResponse] = None
-    output: Dict[str, Any] = Field(default_factory=dict)
-    reason: Optional[str] = None
-
-
-class PipelineRunRecordResponse(BaseModel):
-    # Pipeline run 顶层字段继续保持向后兼容，后续若 payload 收敛可再逐步收紧。
-    model_config = ConfigDict(extra="allow")
-
-    id: str
-    run_id: str
-    status: str
-    version: Optional[int] = None
-    operation: Optional[str] = None
-    trigger: Optional[str] = None
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-    duration_ms: Optional[int] = None
-    duration: Optional[str] = None
-    input: Dict[str, Any] = Field(default_factory=dict)
-    output: Dict[str, Any] = Field(default_factory=dict)
-    stages: Dict[str, PipelineStageResultResponse] = Field(default_factory=dict)
-    error: Optional[PipelineErrorPayloadResponse] = None
-
-
-class KnowledgePipelinesResponse(BaseModel):
-    runs: list[PipelineRunRecordResponse] = Field(default_factory=list)
-    last_updated_at: Optional[str] = None
-
-
-class PipelineUpsertRecordResponse(BaseModel):
-    """Pipeline upsert 结果中的记录快照。"""
-
-    model_config = ConfigDict(extra="allow")
-
-    id: str
-    run_id: str
-    status: str
-    payload: Dict[str, Any] = Field(default_factory=dict)
-    version: Optional[int] = None
-    updated_at: Optional[str] = None
-
-
-class PipelineUpsertResponse(BaseModel):
-    """Pipeline upsert 响应。"""
-
-    status: str
-    pipeline: PipelineUpsertRecordResponse
-
-
-# Graph API Request/Response Models
-class GraphBuildRequest(BaseModel):
-    """图谱构建请求"""
-
-    app_name: Optional[str] = None
-    enable_llm_extraction: bool = True
-    llm_model: Optional[str] = None
-    min_entity_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
-    min_relation_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
-    batch_size: int = Field(default=10, ge=1, le=100)
-
-
-class GraphBuildResponse(BaseModel):
-    """图谱构建响应"""
-
-    run_id: str
-    corpus_id: UUID
-    status: str
-    entity_count: int
-    relation_count: int
-    chunks_processed: int
-    elapsed_seconds: float
-    error_message: Optional[str] = None
 
 
 def _normalize_pipeline_stage_payloads(
@@ -324,46 +163,6 @@ def _normalize_pipeline_run_payload(
     if "stages" in normalized or payload:
         normalized["stages"] = _normalize_pipeline_stage_payloads(normalized.get("stages"))
     return normalized
-
-
-class GraphSearchRequest(BaseModel):
-    """图谱检索请求"""
-
-    app_name: Optional[str] = None
-    query: str
-    mode: str = "hybrid"  # semantic, graph, hybrid
-    limit: int = Field(default=20, ge=1, le=100)
-    max_depth: int = Field(default=2, ge=1, le=5)
-    semantic_weight: float = Field(default=0.6, ge=0.0, le=1.0)
-    graph_weight: float = Field(default=0.4, ge=0.0, le=1.0)
-    include_neighbors: bool = True
-    neighbor_limit: int = Field(default=10, ge=1, le=50)
-
-
-class GraphSearchResponse(BaseModel):
-    """图谱检索响应"""
-
-    count: int
-    query_time_ms: float
-    items: list[Dict[str, Any]] = Field(default_factory=list)
-
-
-class GraphNeighborsRequest(BaseModel):
-    """邻居查询请求"""
-
-    app_name: Optional[str] = None
-    entity_id: str
-    max_depth: int = Field(default=2, ge=1, le=5)
-    limit: int = Field(default=100, ge=1, le=500)
-
-
-class GraphPathRequest(BaseModel):
-    """路径查询请求"""
-
-    app_name: Optional[str] = None
-    source_id: str
-    target_id: str
-    max_depth: int = Field(default=5, ge=1, le=10)
 
 
 _service: Optional[KnowledgeService] = None
@@ -460,14 +259,6 @@ def _build_chunking_config(
     return normalize_chunking_config(payload)
 
 
-def _infer_source_type(source_uri: Optional[str]) -> str:
-    if source_uri and source_uri.startswith("gs://"):
-        return "file"
-    if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
-        return "url"
-    if source_uri:
-        return "text"
-    return "unknown"
 
 
 def _resolve_chunking_option(
@@ -616,16 +407,6 @@ async def _resolve_default_extractor_routes() -> Dict[str, Any]:
     return resolved_routes
 
 
-def _normalize_source_metadata(
-    *,
-    source_uri: Optional[str],
-    metadata: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    normalized = dict(metadata or {})
-    source_type = normalized.get("source_type")
-    if source_type not in {"file", "url", "text", "unknown"}:
-        normalized["source_type"] = _infer_source_type(source_uri)
-    return normalized
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
@@ -954,6 +735,7 @@ async def ingest_url(
     corpus_id: UUID,
     payload: IngestUrlRequest,
     background_tasks: BackgroundTasks,
+    user: Optional[AuthUser] = Depends(get_optional_user),
 ) -> AsyncPipelineResponse:
     """异步从 URL 获取内容并摄入知识库
 
@@ -1011,6 +793,7 @@ async def ingest_url(
                 filename=raw_name,
                 content_type="text/markdown",
                 metadata={"source_type": "url", "origin_url": payload.url},
+                created_by=user.user_id if user else None,
             )
             await storage_service.save_markdown_content(
                 document_id=doc_record.id,
@@ -1022,7 +805,7 @@ async def ingest_url(
                 assets=extraction_result.assets,
             )
 
-            meta = _normalize_source_metadata(source_uri=payload.url, metadata=payload.metadata)
+            meta = normalize_source_metadata(source_uri=payload.url, metadata=payload.metadata)
             meta["source_type"] = "url"
             meta["origin_url"] = payload.url
             meta["document_id"] = str(doc_record.id)
@@ -1117,65 +900,15 @@ async def ingest_url(
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
-async def _extract_and_store_document_markdown(
-    *,
-    document_id: UUID,
-    content: bytes,
-    filename: str,
-    content_type: Optional[str],
-) -> None:
-    """后台提取并持久化文档 Markdown 正文。"""
-    from .content import extract_file_markdown
-    from negentropy.storage.service import DocumentStorageService
-
-    storage_service = DocumentStorageService()
-    await storage_service.update_markdown_extraction_status(
-        document_id=document_id,
-        status="processing",
-        error=None,
-    )
-
-    try:
-        markdown_content = await extract_file_markdown(
-            content=content,
-            filename=filename,
-            content_type=content_type,
-        )
-        if not markdown_content.strip():
-            raise ValueError("Extracted markdown content is empty")
-        markdown_gcs_uri = await storage_service.upload_markdown_derivative(
-            document_id=document_id,
-            markdown_content=markdown_content,
-        )
-        await storage_service.save_markdown_content(
-            document_id=document_id,
-            markdown_content=markdown_content,
-            markdown_gcs_uri=markdown_gcs_uri,
-        )
-        logger.info(
-            "document_markdown_extraction_completed",
-            document_id=str(document_id),
-            markdown_size=len(markdown_content),
-            markdown_gcs_uri=markdown_gcs_uri,
-        )
-    except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
-        logger.error(
-            "document_markdown_extraction_failed",
-            document_id=str(document_id),
-            error=str(exc),
-        )
-        await storage_service.update_markdown_extraction_status(
-            document_id=document_id,
-            status="failed",
-            error=str(exc),
-        )
-
-
 async def _extract_and_store_document_markdown_from_gcs(
     *,
     document_id: UUID,
 ) -> None:
-    """从 GCS 重新加载原始文档并执行 Markdown 提取。"""
+    """从 GCS 重新加载原始文档，通过 MCP Tool 提取 Markdown 并刷新存储。
+
+    与 ingest pipeline 共用同一条 MCP Tool 提取路径（extract_source），
+    确保 Document View 的 Markdown 内容与 Chunk 内容质量一致。
+    """
     from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
@@ -1196,12 +929,54 @@ async def _extract_and_store_document_markdown_from_gcs(
         )
         return
 
-    await _extract_and_store_document_markdown(
+    await storage_service.update_markdown_extraction_status(
         document_id=document_id,
-        content=content,
-        filename=doc.original_filename,
-        content_type=doc.content_type,
+        status="processing",
+        error=None,
     )
+
+    try:
+        service = _get_service()
+        corpus_config = await service._get_corpus_config(doc.corpus_id)
+        source_kind = resolve_source_kind(
+            filename=doc.original_filename,
+            content_type=doc.content_type,
+        )
+        result = await extract_source(
+            app_name=doc.app_name,
+            corpus_id=doc.corpus_id,
+            corpus_config=corpus_config,
+            source_kind=source_kind,
+            content=content,
+            filename=doc.original_filename,
+            content_type=doc.content_type,
+        )
+
+        markdown_content = (result.markdown_content or "").strip()
+        if not markdown_content:
+            raise ValueError("Extractor returned empty markdown content")
+
+        markdown_gcs_uri, _ = await store_extracted_document_artifacts(
+            document_id=document_id,
+            extracted=result,
+        )
+        logger.info(
+            "document_markdown_extraction_completed",
+            document_id=str(document_id),
+            markdown_size=len(markdown_content),
+            markdown_gcs_uri=markdown_gcs_uri,
+        )
+    except Exception as exc:  # noqa: BLE001 - 后台任务需兜底并可观测
+        logger.error(
+            "document_markdown_extraction_failed",
+            document_id=str(document_id),
+            error=str(exc),
+        )
+        await storage_service.update_markdown_extraction_status(
+            document_id=document_id,
+            status="failed",
+            error=str(exc),
+        )
 
 
 @router.post("/base/{corpus_id}/ingest_file", response_model=AsyncPipelineResponse)
@@ -1225,6 +1000,7 @@ async def ingest_file(
     hierarchical_child_chunk_size: Optional[int] = Form(default=None),
     hierarchical_child_overlap: Optional[int] = Form(default=None),
     store_to_gcs: bool = Form(default=True),
+    user: Optional[AuthUser] = Depends(get_optional_user),
 ) -> AsyncPipelineResponse:
     """从上传文件导入内容到知识库
 
@@ -1328,6 +1104,7 @@ async def ingest_file(
                     filename=raw_filename,
                     content_type=file.content_type,
                     metadata={"source": "ingest_file", "source_type": "file"},
+                    created_by=getattr(user, "user_id", None),
                 )
                 gcs_uri = doc_record.gcs_uri
 
@@ -1455,69 +1232,6 @@ async def ingest_file(
 # ============================================================================
 
 
-class DocumentResponse(BaseModel):
-    """文档元信息响应模型"""
-
-    id: UUID
-    corpus_id: UUID
-    app_name: str
-    file_hash: str
-    original_filename: str
-    gcs_uri: str
-    content_type: Optional[str] = None
-    file_size: int
-    status: str
-    created_at: Optional[str] = None
-    created_by: Optional[str] = None
-    markdown_extract_status: str = "pending"
-    markdown_extracted_at: Optional[str] = None
-    markdown_extract_error: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-    class Config:
-        from_attributes = True
-
-
-class DocumentDetailResponse(DocumentResponse):
-    """文档详情响应（含 Markdown 正文）。"""
-
-    markdown_content: Optional[str] = None
-    markdown_gcs_uri: Optional[str] = None
-
-
-class DocumentMarkdownRefreshResponse(BaseModel):
-    """文档 Markdown 重解析响应。"""
-
-    document_id: UUID
-    status: str
-    message: str
-
-
-class DocumentMarkdownRefreshRequest(BaseModel):
-    """文档 Markdown 重解析请求。"""
-
-    app_name: Optional[str] = None
-
-
-class DocumentChunksResponse(BaseModel):
-    count: int
-    page: int = 1
-    page_size: int = 50
-    document_metadata: Dict[str, Any] = Field(default_factory=dict)
-    items: list[Dict[str, Any]]
-
-
-class DocumentChunkDetailResponse(BaseModel):
-    item: Dict[str, Any]
-    document_metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class DocumentChunkUpdateRequest(BaseModel):
-    app_name: Optional[str] = None
-    content: Optional[str] = None
-    is_enabled: Optional[bool] = None
-
-
 def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[KnowledgeRecord]) -> Dict[str, Any]:
     metadata = item.metadata or {}
     family_id = metadata.get("chunk_family_id")
@@ -1586,19 +1300,48 @@ def _build_document_chunk_metadata(doc: Any, items: list[KnowledgeRecord]) -> Di
     }
 
 
-class DocumentActionRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
+async def _resolve_user_display_names(user_ids: list[str]) -> dict[str, str]:
+    """批量解析用户 ID 到显示名称（查询 UserState.state.profile.name）。"""
+    if not user_ids:
+        return {}
+    name_map: dict[str, str] = {}
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(UserState).where(
+                UserState.app_name == settings.app_name,
+                UserState.user_id.in_(user_ids),
+            )
+        )
+        for us in result.scalars().all():
+            state = us.state or {}
+            name = state.get("profile", {}).get("name")
+            if name:
+                name_map[us.user_id] = name
+    return name_map
 
 
-class DocumentReplaceRequest(DocumentActionRequest):
-    text: str
-
-
-class DocumentListResponse(BaseModel):
-    """文档列表响应模型"""
-
-    count: int
-    items: list[DocumentResponse]
+def _build_document_response(doc, name_map: dict[str, str]) -> DocumentResponse:
+    """从 ORM 文档对象构建 DocumentResponse，注入用户显示名。"""
+    return DocumentResponse(
+        id=doc.id,
+        corpus_id=doc.corpus_id,
+        app_name=doc.app_name,
+        file_hash=doc.file_hash,
+        original_filename=doc.original_filename,
+        gcs_uri=doc.gcs_uri,
+        content_type=doc.content_type,
+        file_size=doc.file_size,
+        status=doc.status,
+        created_at=doc.created_at.isoformat() if doc.created_at else None,
+        created_by=doc.created_by,
+        created_by_name=name_map.get(doc.created_by) if doc.created_by else None,
+        markdown_extract_status=doc.markdown_extract_status,
+        markdown_extracted_at=(
+            doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None
+        ),
+        markdown_extract_error=doc.markdown_extract_error,
+        metadata=doc.metadata_ or {},
+    )
 
 
 @router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
@@ -1631,28 +1374,12 @@ async def list_documents(
         offset=offset,
     )
 
+    unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
+    name_map = await _resolve_user_display_names(unique_user_ids)
+
     return DocumentListResponse(
         count=total,
-        items=[
-            DocumentResponse(
-                id=doc.id,
-                corpus_id=doc.corpus_id,
-                app_name=doc.app_name,
-                file_hash=doc.file_hash,
-                original_filename=doc.original_filename,
-                gcs_uri=doc.gcs_uri,
-                content_type=doc.content_type,
-                file_size=doc.file_size,
-                status=doc.status,
-                created_at=doc.created_at.isoformat() if doc.created_at else None,
-                created_by=doc.created_by,
-                markdown_extract_status=doc.markdown_extract_status,
-                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
-                markdown_extract_error=doc.markdown_extract_error,
-                metadata=doc.metadata_ or {},
-            )
-            for doc in docs
-        ],
+        items=[_build_document_response(doc, name_map) for doc in docs],
     )
 
 
@@ -1684,28 +1411,12 @@ async def list_all_documents(
         offset=offset,
     )
 
+    unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
+    name_map = await _resolve_user_display_names(unique_user_ids)
+
     return DocumentListResponse(
         count=total,
-        items=[
-            DocumentResponse(
-                id=doc.id,
-                corpus_id=doc.corpus_id,
-                app_name=doc.app_name,
-                file_hash=doc.file_hash,
-                original_filename=doc.original_filename,
-                gcs_uri=doc.gcs_uri,
-                content_type=doc.content_type,
-                file_size=doc.file_size,
-                status=doc.status,
-                created_at=doc.created_at.isoformat() if doc.created_at else None,
-                created_by=doc.created_by,
-                markdown_extract_status=doc.markdown_extract_status,
-                markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
-                markdown_extract_error=doc.markdown_extract_error,
-                metadata=doc.metadata_ or {},
-            )
-            for doc in docs
-        ],
+        items=[_build_document_response(doc, name_map) for doc in docs],
     )
 
 
@@ -1735,6 +1446,12 @@ async def get_document_detail(
 
     markdown_content = await storage_service.get_document_markdown(document_id)
 
+    name_map = (
+        await _resolve_user_display_names([doc.created_by])
+        if doc.created_by
+        else {}
+    )
+
     return DocumentDetailResponse(
         id=doc.id,
         corpus_id=doc.corpus_id,
@@ -1747,6 +1464,7 @@ async def get_document_detail(
         status=doc.status,
         created_at=doc.created_at.isoformat() if doc.created_at else None,
         created_by=doc.created_by,
+        created_by_name=name_map.get(doc.created_by) if doc.created_by else None,
         markdown_extract_status=doc.markdown_extract_status,
         markdown_extracted_at=doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None,
         markdown_extract_error=doc.markdown_extract_error,
@@ -1917,6 +1635,83 @@ async def download_document(
     )
 
 
+@router.get("/base/{corpus_id}/documents/{document_id}/assets/{asset_name:path}")
+async def get_document_asset(
+    corpus_id: UUID,
+    document_id: UUID,
+    asset_name: str,
+    app_name: Optional[str] = Query(default=None),
+):
+    """获取文档的衍生资产文件（图片等）。
+
+    从 GCS 的 ``derived/{document_id}/assets/`` 路径下载指定资产并流式返回。
+    资产内容不可变，设置长期缓存。
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    from negentropy.storage.service import DocumentStorageService
+    from negentropy.storage.gcs_client import StorageError
+
+    storage_service = DocumentStorageService()
+
+    doc = await storage_service.get_document(
+        document_id=document_id,
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+    )
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    # 取 filename 最后一段，防止路径穿越
+    safe_filename = asset_name.split("/")[-1] if "/" in asset_name else asset_name
+    if not safe_filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_ASSET_NAME", "message": "Asset name is empty"},
+        )
+
+    # 直接构造 GCS 路径并下载（避免第二次文档查询）
+    gcs_path = DocumentStorageService._build_asset_gcs_path(
+        app_name=doc.app_name,
+        corpus_id=doc.corpus_id,
+        document_id=doc.id,
+        filename=safe_filename,
+    )
+
+    try:
+        gcs_client = storage_service._get_gcs_client()
+        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
+        content = gcs_client.download(gcs_uri)
+    except (StorageError, ValueError) as exc:
+        logger.warning(
+            "asset_download_failed",
+            doc_id=str(document_id),
+            asset_name=safe_filename,
+            error=str(exc),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "ASSET_NOT_FOUND", "message": "Requested asset not found"},
+        ) from exc
+
+    content_type = mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
+    # 清洗 header 用文件名，防止注入
+    header_filename = "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in safe_filename)
+
+    return StreamingResponse(
+        BytesIO(content),
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Disposition": f'inline; filename="{header_filename}"',
+            "Content-Length": str(len(content)),
+        },
+    )
+
+
 def _is_url_document(doc: Any) -> bool:
     metadata = doc.metadata_ or {}
     return metadata.get("source_type") == "url"
@@ -1977,20 +1772,33 @@ async def list_document_chunks(
         )
 
     service = _get_service()
-    items, total_count, _, _ = await service.list_knowledge(
+    # 获取该文档下全量 chunks（含 parent + child + leaf），用于 sibling 匹配
+    all_items, _, _, _ = await service.list_knowledge(
         corpus_id=corpus_id,
         app_name=resolved_app,
         source_uri=source_uri,
         include_archived=include_archived,
-        limit=limit,
-        offset=offset,
+        limit=10000,
+        offset=0,
     )
-    serialized = [_serialize_document_chunk_item(item, items) for item in items]
+
+    # 过滤顶层项：排除 child chunks（它们仅作为 parent 的嵌套子项显示）
+    top_level_items = [
+        item for item in all_items
+        if (item.metadata or {}).get("chunk_role") != "child"
+    ]
+
+    # Python 层分页
+    total_top = len(top_level_items)
+    paginated = top_level_items[offset : offset + limit]
+
+    # 序列化：传入 all_items 作为 siblings，确保 parent 能匹配到 child
+    serialized = [_serialize_document_chunk_item(item, all_items) for item in paginated]
     return DocumentChunksResponse(
-        count=total_count,
+        count=total_top,
         page=(offset // limit) + 1,
         page_size=limit,
-        document_metadata=_build_document_chunk_metadata(doc, items),
+        document_metadata=_build_document_chunk_metadata(doc, all_items),
         items=serialized,
     )
 
@@ -2195,24 +2003,15 @@ async def sync_document(
             detail={"code": "EMPTY_CONTENT", "message": "No content extracted from URL"},
         )
 
-    markdown_gcs_uri = await storage_service.upload_markdown_derivative(
+    _, stored_assets = await store_extracted_document_artifacts(
         document_id=document_id,
-        markdown_content=markdown_text,
-    )
-    await storage_service.save_markdown_content(
-        document_id=document_id,
-        markdown_content=markdown_text,
-        markdown_gcs_uri=markdown_gcs_uri,
-    )
-    stored_assets = await persist_extracted_assets(
-        document_id=document_id,
-        assets=extraction_result.assets,
+        extracted=extraction_result,
     )
     chunking_config = _resolve_chunking_config_from_doc_request(
         payload=payload,
         corpus_config=corpus.config if corpus else {},
     )
-    metadata = _normalize_source_metadata(
+    metadata = normalize_source_metadata(
         source_uri=source_uri,
         metadata={"source_type": "url", "origin_url": source_uri, "document_id": str(document_id)},
     )
@@ -2284,7 +2083,7 @@ async def rebuild_document(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"code": "INVALID_DOCUMENT_SOURCE", "message": "URL document markdown not available"},
             )
-        metadata = _normalize_source_metadata(
+        metadata = normalize_source_metadata(
             source_uri=source_uri,
             metadata={"source_type": "url", "origin_url": source_uri, "document_id": str(document_id)},
         )
@@ -2335,6 +2134,7 @@ async def rebuild_document(
         app_name=resolved_app,
         source_uri=doc.gcs_uri,
         chunking_config=chunking_config,
+        document_id=document_id,
     )
     return AsyncPipelineResponse(
         run_id=run_id,
@@ -2378,7 +2178,7 @@ async def replace_document(
         payload=payload,
         corpus_config=corpus.config if corpus else {},
     )
-    metadata = _normalize_source_metadata(
+    metadata = normalize_source_metadata(
         source_uri=source_uri,
         metadata={
             "source_type": "url" if _is_url_document(doc) else "file",
@@ -2724,15 +2524,6 @@ async def rebuild_source(
         ) from exc
 
 
-class DeleteSourceResponse(BaseModel):
-    """删除 Source 响应模型"""
-
-    deleted_count: int
-    deleted_documents: int = 0
-    deleted_gcs_objects: int = 0
-    warnings: list[str] = Field(default_factory=list)
-
-
 @router.post("/base/{corpus_id}/delete_source", response_model=DeleteSourceResponse)
 async def delete_source(
     corpus_id: UUID,
@@ -2957,11 +2748,17 @@ async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
 
 
 @router.get("/pipelines", response_model=KnowledgePipelinesResponse)
-async def get_pipelines(app_name: Optional[str] = Query(default=None)) -> KnowledgePipelinesResponse:
+async def get_pipelines(
+    app_name: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> KnowledgePipelinesResponse:
     resolved_app = _resolve_app_name(app_name)
     dao = _get_dao()
-    runs = await dao.list_pipeline_runs(resolved_app, limit=50)
+    total = await dao.count_pipeline_runs(resolved_app)
+    runs = await dao.list_pipeline_runs(resolved_app, limit=limit, offset=offset)
     return KnowledgePipelinesResponse(
+        count=total,
         runs=[
             PipelineRunRecordResponse(
                 id=str(run.id),
@@ -3414,15 +3211,6 @@ ENDPOINT_PATTERNS: dict[str, list[str]] = {
 }
 
 
-class ApiStatsResponse(BaseModel):
-    """API 统计响应模型"""
-
-    total_calls: int = Field(description="总调用次数")
-    success_count: int = Field(description="成功调用次数")
-    failed_count: int = Field(description="失败调用次数")
-    avg_latency_ms: float = Field(description="平均延迟（毫秒）")
-
-
 @router.get("/stats", response_model=ApiStatsResponse)
 async def get_api_stats(
     app_name: Optional[str] = Query(default=None),
@@ -3501,3 +3289,898 @@ async def get_api_stats(
             failed_count=failed_count,
             avg_latency_ms=round(avg_latency_ms, 2),
         )
+
+
+# =============================================================================
+# Phase 2: 文档来源追踪 API
+# =============================================================================
+
+
+def _to_source_resp(doc_source) -> _DocSourceResp:
+    """将 DocSource ORM 对象转换为 API 响应 Schema（消除三处重复构建）"""
+    return _DocSourceResp(
+        id=doc_source.id,
+        document_id=doc_source.document_id,
+        source_type=doc_source.source_type,
+        source_url=doc_source.source_url,
+        original_url=doc_source.original_url,
+        title=doc_source.title,
+        author=doc_source.author,
+        extracted_summary=doc_source.extracted_summary,
+        extraction_duration_ms=doc_source.extraction_duration_ms,
+        extracted_at=doc_source.extracted_at,
+        extractor_tool_name=doc_source.extractor_tool_name,
+        extractor_server_id=doc_source.extractor_server_id,
+        raw_metadata=doc_source.raw_metadata or {},
+        created_at=doc_source.created_at,
+        updated_at=doc_source.updated_at,
+    )
+
+
+@router.get("/sources")
+async def list_doc_sources(
+    corpus_id: Optional[UUID] = Query(default=None),
+    source_type: Optional[str] = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> _DocSourceListResp:
+    """列出文档来源记录
+
+    支持按语料库 ID 和来源类型过滤，返回分页结果。
+
+    Args:
+        corpus_id: 语料库 ID（可选，不传则返回空列表）
+        source_type: 来源类型过滤（url/file_pdf/file_generic/text_input）
+        offset: 分页偏移量
+        limit: 每页数量上限
+
+    Returns:
+        来源记录列表及总数
+    """
+    service = _get_service()
+
+    # corpus_id 为必传参数（DAO 层依赖其进行关联查询）
+    if corpus_id is None:
+        logger.info("api_list_sources", corpus_id=None, total=0)
+        return _DocSourceListResp(items=[], total=0, offset=offset, limit=limit)
+
+    async with AsyncSessionLocal() as db:
+        sources, total = await service.source_tracker.list_sources(
+            db=db,
+            corpus_id=corpus_id,
+            source_type=source_type,
+            offset=offset,
+            limit=limit,
+        )
+
+    logger.info(
+        "api_list_sources",
+        corpus_id=str(corpus_id),
+        source_type=source_type,
+        total=total,
+    )
+
+    items = [_to_source_resp(s) for s in sources]
+
+    return _DocSourceListResp(items=items, total=total, offset=offset, limit=limit)
+
+
+@router.get("/sources/{source_id}")
+async def get_doc_source(
+    source_id: UUID,
+) -> _DocSourceResp:
+    """获取单个来源记录详情
+
+    Args:
+        source_id: 来源记录 UUID
+
+    Returns:
+        来源详情
+
+    Raises:
+        404: 来源记录不存在
+    """
+    service = _get_service()
+
+    async with AsyncSessionLocal() as db:
+        doc_source = await service.source_tracker.get_by_id(db, source_id)
+
+    if doc_source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source record not found")
+
+    logger.info("api_get_source", source_id=str(source_id))
+
+    return _to_source_resp(doc_source)
+
+
+@router.get("/documents/{document_id}/source")
+async def get_document_provenance(
+    document_id: UUID,
+) -> DocumentProvenanceResponse:
+    """查询文档的溯源信息（来源追踪）
+
+    返回该 KnowledgeDocument 的基本信息及其关联的 DocSource 记录，
+    用于追溯文档的原始来源（URL/PDF/文件/文本输入）。
+
+    Args:
+        document_id: KnowledgeDocument 的 UUID
+
+    Returns:
+        文档基本信息 + 嵌套的来源追踪信息
+
+    Raises:
+        404: 文档不存在或无关联的来源记录
+    """
+    from sqlalchemy import select as sql_select
+
+    service = _get_service()
+
+    async with AsyncSessionLocal() as db:
+        # 1. 查询文档基本信息
+        doc_stmt = sql_select(KnowledgeDocument).where(KnowledgeDocument.id == document_id)
+        doc_result = await db.execute(doc_stmt)
+        doc = doc_result.scalar_one_or_none()
+
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document {document_id} not found",
+            )
+
+        # 2. 查询来源追踪记录
+        doc_source = await service.source_tracker.get_provenance(db, document_id)
+
+    if doc_source is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No source tracking record for document {document_id}",
+        )
+
+    logger.info(
+        "api_document_provenance",
+        document_id=str(document_id),
+        source_id=str(doc_source.id),
+        source_type=doc_source.source_type,
+    )
+
+    # 构建嵌套的来源信息
+    source_resp = _to_source_resp(doc_source)
+
+    return DocumentProvenanceResponse(
+        document_id=document_id,
+        filename=doc.filename or "",
+        file_hash=doc.file_hash or "",
+        content_type=doc.content_type,
+        status=doc.status or "unknown",
+        markdown_extract_status=doc.markdown_extract_status or "unknown",
+        source=source_resp,
+    )
+
+
+# =============================================================================
+# Phase 3: 文档目录编目 API
+# =============================================================================
+
+_catalog_service: Optional["CatalogService"] = None
+
+
+def _get_catalog_service() -> "CatalogService":
+    global _catalog_service
+    if _catalog_service is None:
+        from .catalog_service import CatalogService
+        _catalog_service = CatalogService()
+    return _catalog_service
+
+
+def _to_catalog_node_resp(row: dict, *, children_count: int = 0, document_count: int = 0) -> _CatalogNodeResp:
+    """将 DAO 树查询行转换为 API 响应 Schema"""
+    return _CatalogNodeResp(
+        id=row["id"],
+        corpus_id=UUID("00000000-0000-0000-0000-000000000000"),  # tree query 不返回 corpus_id，由调用方补充
+        parent_id=row.get("parent_id"),
+        name=row["name"],
+        slug=row["slug"],
+        node_type=row["node_type"],
+        description=row.get("description"),
+        sort_order=row["sort_order"],
+        config=row.get("config") or {},
+        depth=row.get("depth", 0),
+        children_count=children_count,
+        document_count=document_count,
+    )
+
+
+# --- 目录树查询 ---
+
+@router.get("/catalog/tree/{corpus_id}")
+async def get_catalog_tree(
+    corpus_id: UUID,
+) -> CatalogTreeResponse:
+    """获取语料库完整目录树
+
+    返回扁平化的节点列表，每个节点含 depth（层级深度）和 path（祖先路径），
+    前端可根据这些信息构建树形 UI 组件。
+
+    Args:
+        corpus_id: 语料库 ID
+
+    Returns:
+        目录树节点列表及统计信息
+    """
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        tree_data = await catalog_svc.get_tree(db, corpus_id)
+
+    # 计算每个节点的子节点数
+    id_to_children_count: dict[UUID, int] = {}
+    for node in tree_data:
+        pid = node.get("parent_id")
+        if pid is not None:
+            id_to_children_count[pid] = id_to_children_count.get(pid, 0) + 1
+
+    items = [
+        _to_catalog_node_resp(
+            node,
+            children_count=id_to_children_count.get(node["id"], 0),
+        )
+        for node in tree_data
+    ]
+
+    max_depth = max((n.get("depth", 0) for n in tree_data), default=0) if tree_data else 0
+
+    logger.info(
+        "api_get_catalog_tree",
+        corpus_id=str(corpus_id),
+        total_nodes=len(items),
+        max_depth=max_depth,
+    )
+
+    return CatalogTreeResponse(tree=items, total_nodes=len(items), max_depth=max_depth)
+
+
+@router.get("/catalog/nodes/{node_id}")
+async def get_catalog_node(node_id: UUID) -> _CatalogNodeResp:
+    """获取单个目录节点详情"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        node = await catalog_svc.get_node(db, node_id)
+
+    if node is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+
+    logger.info("api_get_catalog_node", node_id=str(node_id))
+    return _CatalogNodeResp.model_validate(node)
+
+
+@router.get("/catalog/subtree/{node_id}")
+async def get_catalog_subtree(node_id: UUID) -> CatalogTreeResponse:
+    """获取以指定节点为根的子树"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        subtree_data = await catalog_svc.get_subtree(db, node_id)
+
+    items = [_to_catalog_node_resp(n) for n in subtree_data]
+    max_depth = max((n.get("depth", 0) for n in subtree_data), default=0) if subtree_data else 0
+
+    return CatalogTreeResponse(tree=items, total_nodes=len(items), max_depth=max_depth)
+
+
+# --- 目录节点 CRUD ---
+
+@router.post("/catalog/nodes")
+async def create_catalog_node(
+    body: _CatalogNodeCreateReq,
+    corpus_id: UUID = Query(..., description="所属语料库 ID"),
+) -> _CatalogNodeResp:
+    """创建目录节点
+
+    支持创建 category / collection / document_ref 三种类型的节点。
+    可选指定 parent_id 构建层级关系。
+    """
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            node = await catalog_svc.create_node(
+                db,
+                corpus_id=corpus_id,
+                name=body.name,
+                slug=body.slug,
+                parent_id=body.parent_id,
+                node_type=body.node_type,
+                description=body.description,
+                sort_order=body.sort_order,
+                config=body.config if body.config else None,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        await db.commit()
+
+    logger.info("api_create_catalog_node", node_id=str(node.id), corpus_id=str(corpus_id))
+    resp = _CatalogNodeResp.model_validate(node)
+    resp.corpus_id = corpus_id
+    return resp
+
+
+@router.patch("/catalog/nodes/{node_id}")
+async def update_catalog_node(
+    node_id: UUID,
+    body: _CatalogNodeUpdateReq,
+) -> _CatalogNodeResp:
+    """更新目录节点属性"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        # 过滤掉 None 值，只传递实际更新的字段
+        update_kwargs = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
+        if not update_kwargs:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+
+        try:
+            node = await catalog_svc.update_node(db, node_id, **update_kwargs)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if node is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+
+        await db.commit()
+
+    logger.info("api_update_catalog_node", node_id=str(node_id))
+    return _CatalogNodeResp.model_validate(node)
+
+
+@router.delete("/catalog/nodes/{node_id}")
+async def delete_catalog_node(node_id: UUID):
+    """删除目录节点（级联删除所有子节点和文档关联）"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        deleted = await catalog_svc.delete_node(db, node_id)
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+        await db.commit()
+
+    logger.info("api_delete_catalog_node", node_id=str(node_id))
+    return {"detail": "Catalog node deleted", "node_id": str(node_id)}
+
+
+@router.post("/catalog/nodes/{node_id}/move")
+async def move_catalog_node(
+    node_id: UUID,
+    new_parent_id: Optional[UUID] = Query(default=None),
+) -> _CatalogNodeResp:
+    """移动目录节点到新的父节点下
+
+    传入 new_parent_id=null 可将节点提升为根节点。
+    自动检测并防止循环引用。
+    """
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            node = await catalog_svc.move_node(db, node_id, new_parent_id=new_parent_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if node is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+
+        await db.commit()
+
+    logger.info("api_move_catalog_node", node_id=str(node_id), new_parent_id=str(new_parent_id) if new_parent_id else "root")
+    return _CatalogNodeResp.model_validate(node)
+
+
+# --- 文档归属管理 ---
+
+@router.post("/catalog/nodes/{node_id}/documents")
+async def assign_documents_to_node(
+    node_id: UUID,
+    body: AssignDocumentRequest,
+):
+    """将一批文档归入目录节点（幂等操作）"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        assigned_count = 0
+        errors: list[str] = []
+        for doc_id in body.document_ids:
+            try:
+                await catalog_svc.assign_document(db, node_id, doc_id)
+                assigned_count += 1
+            except ValueError as exc:
+                errors.append(f"{doc_id}: {exc}")
+
+        await db.commit()
+
+    logger.info("api_assign_documents", node_id=str(node_id), assigned=assigned_count, errors=len(errors))
+
+    result = {"assigned_count": assigned_count, "total_requested": len(body.document_ids)}
+    if errors:
+        result["errors"] = errors
+    return result
+
+
+@router.delete("/catalog/nodes/{node_id}/documents/{document_id}")
+async def unassign_document_from_node(
+    node_id: UUID,
+    document_id: UUID,
+):
+    """从目录节点移除文档归属"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        removed = await catalog_svc.unassign_document(db, node_id, document_id)
+        await db.commit()
+
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found in catalog node {node_id}",
+        )
+
+    logger.info("api_unassign_document", node_id=str(node_id), document_id=str(document_id))
+    return {"detail": "Document unassigned from catalog node"}
+
+
+@router.get("/catalog/nodes/{node_id}/documents")
+async def get_node_documents(
+    node_id: UUID,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """获取目录节点下的文档列表（分页）"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        documents, total = await catalog_svc.get_node_documents(
+            db, node_id, offset=offset, limit=limit
+        )
+
+    items = []
+    for doc in documents:
+        items.append({
+            "id": str(doc.id),
+            "filename": doc.filename,
+            "title": (doc.metadata_ or {}).get("title") or doc.filename,
+            "status": doc.status,
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        })
+
+    logger.info("api_get_node_documents", node_id=str(node_id), total=total)
+    return {"items": items, "total": total, "offset": offset, "limit": limit}
+
+
+@router.get("/documents/{document_id}/catalog-nodes")
+async def get_document_catalog_nodes(document_id: UUID):
+    """获取文档所属的所有目录节点"""
+    catalog_svc = _get_catalog_service()
+
+    async with AsyncSessionLocal() as db:
+        nodes = await catalog_svc.get_document_nodes(db, document_id)
+
+    items = [
+        {
+            "id": str(n.id),
+            "name": n.name,
+            "slug": n.slug,
+            "node_type": n.node_type,
+            "parent_id": str(n.parent_id) if n.parent_id else None,
+        }
+        for n in nodes
+    ]
+
+    logger.info("api_get_document_catalog_nodes", document_id=str(document_id), count=len(items))
+    return {"items": items}
+
+
+# =============================================================================
+# Phase 4: Wiki 发布 API
+# =============================================================================
+
+_wiki_service: Optional["WikiPublishingService"] = None
+
+
+def _get_wiki_service() -> "WikiPublishingService":
+    global _wiki_service
+    if _wiki_service is None:
+        from .wiki_service import WikiPublishingService
+        _wiki_service = WikiPublishingService()
+    return _wiki_service
+
+
+# --- Publication CRUD ---
+
+@router.post("/wiki/publications")
+async def create_wiki_publication(
+    body: _WikiPubCreateReq,
+) -> _WikiPubResp:
+    """创建新的 Wiki 发布记录
+
+    初始状态为 draft，需调用 publish 端点后 SSG 应用才能拉取数据。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            pub = await wiki_svc.create_publication(
+                db,
+                corpus_id=body.corpus_id,
+                name=body.name,
+                slug=body.slug,
+                description=body.description,
+                theme=body.theme,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        await db.commit()
+
+    logger.info("api_create_wiki_pub", pub_id=str(pub.id), corpus_id=str(body.corpus_id))
+    resp = _WikiPubResp.model_validate(pub)
+    resp.entries_count = 0
+    return resp
+
+
+@router.get("/wiki/publications")
+async def list_wiki_publications(
+    corpus_id: Optional[UUID] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> _WikiPubListResp:
+    """列出 Wiki 发布记录"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        pubs, total = await wiki_svc.list_publications(
+            db, corpus_id=corpus_id, status=status, offset=offset, limit=limit
+        )
+
+    items = []
+    for pub in pubs:
+        resp = _WikiPubResp.model_validate(pub)
+        # 获取条目数（懒加载，避免 N+1）
+        entries_count = len(pub.entries) if hasattr(pub, "entries") and pub.entries else 0
+        resp.entries_count = entries_count
+        items.append(resp)
+
+    return _WikiPubListResp(items=items, total=total)
+
+
+@router.get("/wiki/publications/{pub_id}")
+async def get_wiki_publication(pub_id: UUID) -> _WikiPubResp:
+    """获取单个 Wiki 发布详情"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        pub = await wiki_svc.get_publication(db, pub_id)
+
+    if pub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+
+    resp = _WikiPubResp.model_validate(pub)
+    resp.entries_count = len(pub.entries) if hasattr(pub, "entries") and pub.entries else 0
+    return resp
+
+
+@router.patch("/wiki/publications/{pub_id}")
+async def update_wiki_publication(
+    pub_id: UUID,
+    body: dict,  # 使用 dict 接受灵活更新字段
+):
+    """更新 Wiki 发布属性（部分更新）"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            pub = await wiki_svc.update_publication(db, pub_id, **body)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if pub is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+        await db.commit()
+
+    logger.info("api_update_wiki_pub", pub_id=str(pub_id))
+    return {"detail": "Publication updated"}
+
+
+@router.delete("/wiki/publications/{pub_id}")
+async def delete_wiki_publication(pub_id: UUID):
+    """删除 Wiki 发布（级联删除所有条目）"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        deleted = await wiki_svc.delete_publication(db, pub_id)
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+        await db.commit()
+
+    logger.info("api_delete_wiki_pub", pub_id=str(pub_id))
+    return {"detail": "Publication deleted"}
+
+
+# --- 发布操作 ---
+
+@router.post("/wiki/publications/{pub_id}/publish")
+async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
+    """触发发布：将 draft/published 状态转为 published，递增版本号
+
+    SSG 应用 (apps/negentropy-wiki) 在 ISR 再验证窗口内会自动拉取最新数据。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        try:
+            pub = await wiki_svc.publish(db, pub_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+        if pub is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+
+        entries = await wiki_svc.get_entries(db, pub_id)
+        await db.commit()
+
+    logger.info("api_publish_wiki", pub_id=str(pub_id), version=pub.version)
+
+    return WikiPublishActionResponse(
+        publication_id=pub.id,
+        status=pub.status,
+        version=pub.version,
+        published_at=pub.published_at,
+        entries_count=len(entries),
+        message=f"Published successfully (v{pub.version})",
+    )
+
+
+@router.post("/wiki/publications/{pub_id}/unpublish")
+async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
+    """取消发布：published → draft"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        pub = await wiki_svc.unpublish(db, pub_id)
+        if pub is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+        entries = await wiki_svc.get_entries(db, pub_id)
+        await db.commit()
+
+    return WikiPublishActionResponse(
+        publication_id=pub.id,
+        status=pub.status,
+        version=pub.version,
+        published_at=pub.published_at,
+        entries_count=len(entries),
+        message="Unpublished successfully",
+    )
+
+
+# --- 条目管理 ---
+
+@router.get("/wiki/publications/{pub_id}/entries")
+async def get_wiki_entries(pub_id: UUID):
+    """获取发布的所有条目列表"""
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        entries = await wiki_svc.get_entries(db, pub_id)
+
+    items = [
+        {
+            "id": str(e.id),
+            "document_id": str(e.document_id),
+            "entry_slug": e.entry_slug,
+            "entry_title": e.entry_title,
+            "is_index_page": e.is_index_page,
+        }
+        for e in entries
+    ]
+
+    return {"items": items, "total": len(items)}
+
+
+@router.get("/wiki/publications/{pub_id}/nav-tree")
+async def get_wiki_nav_tree(pub_id: UUID) -> WikiNavTreeResponse:
+    """获取 Wiki 导航树结构
+
+    供 SSG 构建时生成侧边栏导航。基于 entries 自动构建扁平列表，
+    前端可根据 entry_order 字段自行组装层级树。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        nav_tree = await wiki_svc.get_nav_tree(db, pub_id)
+
+    return WikiNavTreeResponse(publication_id=pub_id, nav_tree={"items": nav_tree})
+
+
+@router.get("/wiki/entries/{entry_id}/content")
+async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
+    """获取单条 Wiki 条目的 Markdown 内容
+
+    供 SSG 构建时拉取文档内容进行静态渲染。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        content_data = await wiki_svc.get_entry_content(db, entry_id)
+
+    if content_data is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki entry not found")
+
+    logger.info("api_wiki_entry_content", entry_id=str(entry_id))
+
+    return WikiEntryContentResponse(
+        entry_id=entry_id,
+        document_id=content_data["document_id"],
+        entry_slug="",  # 需要额外查询 entry 表获取
+        entry_title=content_data["title"],
+        markdown_content=content_data["markdown_content"],
+        document_filename=content_data["filename"] or "",
+    )
+
+
+# =============================================================================
+# Phase 5: 统一检索 & 语料质量 API
+# =============================================================================
+
+_corpus_engine: Optional["CorpusEngine"] = None
+_retrieval_service: Optional["UnifiedRetrievalService"] = None
+
+
+def _get_corpus_engine() -> "CorpusEngine":
+    global _corpus_engine
+    if _corpus_engine is None:
+        from .corpus_engine import CorpusEngine
+        _corpus_engine = CorpusEngine()
+    return _corpus_engine
+
+
+def _get_retrieval_service() -> "UnifiedRetrievalService":
+    global _retrieval_service
+    if _retrieval_service is None:
+        from .retrieval import UnifiedRetrievalService
+        _retrieval_service = UnifiedRetrievalService()
+    return _retrieval_service
+
+
+# --- 语料质量评估 ---
+
+@router.get("/base/{corpus_id}/quality")
+async def assess_corpus_quality(corpus_id: UUID) -> _CorpusQualityResp:
+    """多维质量评分
+
+    对语料库进行 6 维度质量评估：覆盖度、新鲜度、多样性、信息密度、
+    嵌入覆盖率、实体密度。返回综合分数和评级 (excellent/good/fair/poor)。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        result = await engine.assess_quality(db, corpus_id)
+
+    logger.info("api_corpus_quality", corpus_id=str(corpus_id), score=result.get("total_score"))
+    return result
+
+
+@router.post("/base/{corpus_id}/versions")
+async def create_corpus_version(
+    corpus_id: UUID,
+    notes: Optional[str] = Query(default=None),
+) -> _CorpusVersionResp:
+    """创建语料库版本快照
+
+    记录当前文档数量和质量分数，用于后续对比分析。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        snapshot = await engine.create_version_snapshot(
+            db,
+            corpus_id=corpus_id,
+            notes=notes or "Manual snapshot via API",
+            triggered_by="api",
+        )
+        await db.commit()
+
+    return {
+        "id": str(snapshot.id),
+        "corpus_id": str(corpus_id),
+        "version_number": snapshot.version_number,
+        "quality_score": snapshot.quality_score,
+        "document_count": snapshot.document_count,
+        "diff_summary": snapshot.diff_summary,
+        "created_at": snapshot.created_at.isoformat() if snapshot.created_at else None,
+    }
+
+
+@router.get("/base/{corpus_id}/versions")
+async def get_corpus_versions(
+    corpus_id: UUID,
+    limit: int = Query(default=20, ge=1, le=50),
+):
+    """获取版本历史"""
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        versions = await engine.get_version_history(db, corpus_id, limit=limit)
+
+    return {"items": versions}
+
+
+@router.get("/base/{corpus_id}/suggestions")
+async def suggest_cross_references(
+    corpus_id: UUID,
+    limit: int = Query(default=10, ge=1, le=20),
+):
+    """跨语料引用推荐
+
+    基于项目内其他语料库的文档信息推荐可能相关的内容。
+    """
+    engine = _get_corpus_engine()
+
+    async with AsyncSessionLocal() as db:
+        suggestions = await engine.suggest_cross_references(db, corpus_id, limit=limit)
+
+    return {"items": suggestions}
+
+
+# --- 统一检索 ---
+
+@router.post("/unified/search")
+async def unified_search(body: _UnifiedSearchReq) -> _UnifiedSearchResp:
+    """统一检索入口
+
+    核心特性：
+    - 自动意图分类（事实型/探索型/对比型/导航型/图查询型）
+    - 分面过滤（corpus_ids / source_types / entity_types / date_range）
+    - 排名可解释性（semantic_score / keyword_score / combined_score）
+    - 可选引用生成与图谱丰富
+    """
+    svc = _get_retrieval_service()
+
+    async with AsyncSessionLocal() as db:
+        result = await svc.search(
+            db,
+            query=body.query,
+            corpus_ids=body.corpus_ids,
+            source_types=body.source_types,
+            entity_types=body.entity_types,
+            date_from=body.date_from,
+            date_to=body.date_to,
+            limit=body.limit or 20,
+            offset=body.offset or 0,
+            include_citations=body.include_citations or False,
+            include_entities=body.include_entities or False,
+            mode=body.mode,
+        )
+
+    logger.info("api_unified_search", query=body.query[:80], intent=result.get("query_intent"),
+                   count=len(result.get("items", [])))
+
+    return result
+
+
+@router.post("/unified/feedback")
+async def record_search_feedback(
+    feedback_type: str = Query(..., description="click | useful | not_useful"),
+    query_text: Optional[str] = Query(default=None),
+    document_id: Optional[UUID] = Query(default=None),
+):
+    """记录检索反馈（用于优化检索质量）"""
+    svc = _get_retrieval_service()
+
+    async with AsyncSessionLocal() as db:
+        await svc.record_feedback(
+            db,
+            feedback_type=feedback_type,
+            query_text=query_text,
+            document_id=document_id,
+        )
+        await db.commit()
+
+    return {"detail": "Feedback recorded", "feedback_type": feedback_type}

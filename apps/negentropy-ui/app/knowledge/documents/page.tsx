@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/activity-toast";
 import {
   DocumentViewDialog,
   KnowledgeDocument,
@@ -55,7 +55,8 @@ function truncateHash(hash: string | null): React.ReactElement {
   );
 }
 
-function displayUser(createdBy: string | null): string {
+function displayUser(createdBy: string | null, displayName?: string | null): string {
+  if (displayName) return displayName;
   if (!createdBy) return "-";
   if (createdBy.includes("@")) {
     return createdBy.split("@")[0];
@@ -223,8 +224,8 @@ export default function DocumentsPage() {
                       </div>
 
                       {/* Created By - col-span-1 */}
-                      <div className="col-span-1 text-muted truncate text-xs text-center" title={doc.created_by || ""}>
-                        {displayUser(doc.created_by)}
+                      <div className="col-span-1 text-muted truncate text-xs text-center" title={doc.created_by_name || doc.created_by || ""}>
+                        {displayUser(doc.created_by, doc.created_by_name)}
                       </div>
 
                       {/* Created At - col-span-1 */}

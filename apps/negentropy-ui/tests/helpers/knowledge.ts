@@ -4,6 +4,8 @@ import {
   buildExtractorRoutesFromDraft,
   createDefaultChunkingConfig,
   createEmptyExtractorDraftTarget,
+  encodeSeparatorsForDisplay,
+  decodeSeparatorsFromInput,
   normalizeChunkingConfig,
   normalizeCorpusExtractorRoutes,
   normalizeExtractorDraftRoutes,
@@ -119,6 +121,8 @@ export function primeKnowledgeFeatureMocks(
 export function createKnowledgeConfigTestExports() {
   return {
     createDefaultChunkingConfig,
+    encodeSeparatorsForDisplay,
+    decodeSeparatorsFromInput,
     normalizeChunkingConfig,
     normalizeCorpusExtractorRoutes,
     createEmptyExtractorDraftTarget,

@@ -116,6 +116,47 @@ class SourceSummary:
     source_type: Literal["file", "url", "text", "unknown"]
 
 
+# ============================================================================
+# Source Type Utilities
+# ============================================================================
+
+
+def infer_source_type(
+    source_uri: Optional[str],
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Literal["file", "url", "text", "unknown"]:
+    """推断来源类型
+
+    优先从 metadata 中读取已有的 source_type，否则根据 URI 前缀推断。
+    """
+    raw = (metadata or {}).get("source_type")
+    if raw in {"file", "url", "text", "unknown"}:
+        return raw
+    if source_uri and source_uri.startswith("gs://"):
+        return "file"
+    if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
+        return "url"
+    if source_uri:
+        return "text"
+    return "unknown"
+
+
+def normalize_source_metadata(
+    *,
+    source_uri: Optional[str],
+    metadata: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """规范化来源元数据
+
+    确保 metadata 中包含有效的 source_type 字段。
+    """
+    normalized = dict(metadata or {})
+    source_type = normalized.get("source_type")
+    if source_type not in {"file", "url", "text", "unknown"}:
+        normalized["source_type"] = infer_source_type(source_uri)
+    return normalized
+
+
 @dataclass(frozen=True)
 class KnowledgeMatch:
     """知识匹配结果
@@ -652,23 +693,8 @@ class KnowledgeGraphPayload:
     runs: Optional[List[Dict[str, Any]]] = None
 
 
-@dataclass(frozen=True)
-class GraphSearchMatch:
-    """图谱检索结果
-
-    包含实体信息、相似度分数和图结构分数。
-    """
-
-    entity: GraphNode
-    semantic_score: float = 0.0
-    graph_score: float = 0.0
-    combined_score: float = 0.0
-    neighbors: List[GraphNode] = field(default_factory=list)
-    path: Optional[List[str]] = None
-
-
-class GraphSearchConfig(BaseModel):
-    """图谱检索配置
+class GraphQueryConfig(BaseModel):
+    """图谱查询配置
 
     控制图谱检索和遍历的行为。
     """
@@ -721,7 +747,7 @@ class GraphSearchConfig(BaseModel):
         return v
 
 
-class GraphBuildConfigModel(BaseModel):
+class GraphBuildConfig(BaseModel):
     """图谱构建配置
 
     控制实体和关系提取的行为。

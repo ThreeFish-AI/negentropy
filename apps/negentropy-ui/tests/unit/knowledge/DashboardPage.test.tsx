@@ -77,9 +77,10 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("在首屏无数据时，会通过兜底轮询自动显示新 Run", async () => {
     knowledgeMocks.fetchPipelinesMock
-      .mockResolvedValueOnce({ runs: [], last_updated_at: "t0" })
-      .mockResolvedValueOnce({ runs: [], last_updated_at: "t1" })
+      .mockResolvedValueOnce({ count: 0, runs: [], last_updated_at: "t0" })
+      .mockResolvedValueOnce({ count: 0, runs: [], last_updated_at: "t1" })
       .mockResolvedValueOnce({
+        count: 1,
         runs: [makeRun({ run_id: "run-new", id: "run-new-id" })],
         last_updated_at: "t2",
       });
@@ -100,6 +101,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("兜底轮询在达到 8 秒窗口后停止继续请求", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 0,
       runs: [],
       last_updated_at: "t0",
     });
@@ -122,8 +124,9 @@ describe("KnowledgeDashboardPage polling", () => {
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(9);
   });
 
-  it("存在 running Run 时按 3 秒节奏轮询", async () => {
+  it("存在 running Run 时按 5 秒节奏轮询", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [makeRun({ status: "running" })],
       last_updated_at: "t0",
     });
@@ -133,7 +136,7 @@ describe("KnowledgeDashboardPage polling", () => {
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(6000);
+      await vi.advanceTimersByTimeAsync(10000);
     });
     await settle();
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(3);
@@ -141,6 +144,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("桌面端使用固定双栏 grid，并为长内容提供收敛样式", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -198,6 +202,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("失败的重建源 Run 会在卡片中显示开始与结束时间", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         makeRun({
           id: "run-failed-id",
@@ -222,6 +227,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("Runs 列表状态标签复用共享状态样式", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 3,
       runs: [
         makeRun({
           id: "run-running-id",
@@ -266,6 +272,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("Runs 阶段条复用共享 tooltip 内容，且不再被按钮容器裁剪", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -312,6 +319,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("详情区 Stages 使用与 Runs 一致的阶段颜色映射", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -356,6 +364,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("多 Stage 失败时，详情页 Errors 区域会同时展示所有阶段异常", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -398,6 +407,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("顶层错误与阶段错误重复时，Errors 区域不会重复展示运行级错误", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -434,6 +444,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("顶层错误与阶段错误不同步时，会同时展示运行级和阶段级错误", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -469,6 +480,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("即使缺少顶层 error，也会基于 stages 渲染 Errors 区域", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -500,6 +512,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("extract_gate 会按共享阶段语义显示，并渲染失败分类文案", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -540,6 +553,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("契约类失败会在 Errors 区展示受控诊断摘要", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -575,6 +589,7 @@ describe("KnowledgeDashboardPage polling", () => {
   });
   it("failure_category 存在时，阶段摘要与错误详情会展示归一化标签", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -610,6 +625,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("failure_category 缺失或为空时，不渲染空标签占位", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({
@@ -645,6 +661,7 @@ describe("KnowledgeDashboardPage polling", () => {
 
   it("未知契约类失败会展示诊断摘要，且空摘要不会泄漏为占位文本", async () => {
     knowledgeMocks.fetchPipelinesMock.mockResolvedValue({
+      count: 1,
       runs: [
         {
           ...makeRun({

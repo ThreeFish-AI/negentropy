@@ -80,6 +80,16 @@ export {
   findGraphPath,
   clearCorpusGraph,
   fetchGraphBuildHistory,
+  // Catalog Management
+  fetchCatalogTree,
+  fetchCatalogNodes,
+  createCatalogNode,
+  fetchCatalogNode,
+  updateCatalogNode,
+  deleteCatalogNode,
+  fetchCatalogNodeDocuments,
+  assignDocumentToNode,
+  unassignDocumentFromNode,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -113,6 +123,7 @@ export type {
   KnowledgePipelinesPayload,
   PipelineRunRecord,
   PipelineStageResult,
+  McpStageEvent,
   PipelineStageStatus,
   PipelineOperation,
   IngestResult,
@@ -145,11 +156,21 @@ export type {
   GraphPathResult,
   GraphBuildRunRecord,
   GraphBuildHistoryResult,
+  // Catalog Management
+  CatalogNodeType,
+  CatalogNode,
+  CreateCatalogNodeParams,
+  UpdateCatalogNodeParams,
+  CatalogTreeResponse,
+  CatalogNodesResponse,
+  CatalogNodeDocumentsResponse,
 } from "./utils/knowledge-api";
 
 export {
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
+  encodeSeparatorsForDisplay,
+  decodeSeparatorsFromInput,
   normalizeCorpusExtractorRoutes,
   createEmptyExtractorDraftTarget,
   normalizeExtractorDraftRoutes,

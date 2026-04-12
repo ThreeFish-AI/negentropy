@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, Optional, Literal, Sequence
+from typing import Any, Dict, Iterable, Optional, Sequence
 from uuid import UUID
 
 from sqlalchemy import Boolean, String, cast, func, select, text, update
@@ -15,7 +15,7 @@ from negentropy.models.perception import Corpus, Knowledge
 
 from .constants import BATCH_INSERT_SIZE, RECALL_MULTIPLIER
 from .exceptions import DatabaseError, SearchError
-from .types import CorpusRecord, CorpusSpec, KnowledgeChunk, KnowledgeMatch, KnowledgeRecord, SourceSummary, merge_search_results
+from .types import CorpusRecord, CorpusSpec, KnowledgeChunk, KnowledgeMatch, KnowledgeRecord, SourceSummary, infer_source_type, merge_search_results
 
 
 logger = get_logger("negentropy.knowledge.repository")
@@ -518,7 +518,7 @@ class KnowledgeRepository:
                 uri, metadata, count = row
                 key = uri or "__null__"
                 archived = self._is_archived(metadata)
-                source_type = self._infer_source_type(uri, metadata)
+                source_type = infer_source_type(uri, metadata)
                 display_name = self._infer_display_name(metadata)
                 existing = summary_map.get(key)
                 if existing:
@@ -1113,22 +1113,6 @@ class KnowledgeRepository:
             updated_at=knowledge.updated_at,
             embedding=knowledge.embedding,
         )
-    @staticmethod
-    def _infer_source_type(
-        source_uri: Optional[str],
-        metadata: Optional[Dict[str, Any]],
-    ) -> Literal["file", "url", "text", "unknown"]:
-        raw = (metadata or {}).get("source_type")
-        if raw in {"file", "url", "text", "unknown"}:
-            return raw
-        if source_uri and source_uri.startswith("gs://"):
-            return "file"
-        if source_uri and (source_uri.startswith("http://") or source_uri.startswith("https://")):
-            return "url"
-        if source_uri:
-            return "text"
-        return "unknown"
-
     @staticmethod
     def _is_archived(metadata: Optional[Dict[str, Any]]) -> bool:
         return bool((metadata or {}).get("archived") is True)

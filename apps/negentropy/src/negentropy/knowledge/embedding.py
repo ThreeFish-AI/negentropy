@@ -126,6 +126,13 @@ async def _call_with_retry(
     raise last_exc
 
 
+async def _resolve_embedding() -> tuple[str, dict]:
+    """解析 Embedding 模型配置 (DB 优先, .env 回退)。"""
+    from negentropy.config.model_resolver import resolve_embedding_config
+
+    return await resolve_embedding_config()
+
+
 def build_embedding_fn() -> EmbeddingFn:
     """构建单条文本向量化函数
 
@@ -135,12 +142,13 @@ def build_embedding_fn() -> EmbeddingFn:
     Raises:
         EmbeddingFailed: 当向量化请求失败或响应格式异常时
     """
-    model_name = settings.llm.embedding_full_model_name
 
     async def embed(text: str) -> list[float]:
         cleaned = text.strip()
         if not cleaned:
             return []
+
+        model_name, extra_kwargs = await _resolve_embedding()
 
         try:
             import litellm
@@ -149,7 +157,7 @@ def build_embedding_fn() -> EmbeddingFn:
                 return await litellm.aembedding(
                     model=model_name,
                     input=[cleaned],
-                    **settings.llm.to_litellm_embedding_kwargs(),
+                    **extra_kwargs,
                 )
 
             response = await _call_with_retry(
@@ -197,13 +205,14 @@ def build_batch_embedding_fn() -> BatchEmbeddingFn:
     Raises:
         EmbeddingFailed: 当向量化请求失败或响应格式异常时
     """
-    model_name = settings.llm.embedding_full_model_name
 
     MAX_BATCH_SIZE = 10  # Conservative batch size to avoid token limits (20k)
 
     async def batch_embed(texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
+
+        model_name, extra_kwargs = await _resolve_embedding()
 
         # Split texts into batches
         batches = [texts[i : i + MAX_BATCH_SIZE] for i in range(0, len(texts), MAX_BATCH_SIZE)]
@@ -225,7 +234,7 @@ def build_batch_embedding_fn() -> BatchEmbeddingFn:
                         return await litellm.aembedding(
                             model=model_name,
                             input=non_empty_texts,
-                            **settings.llm.to_litellm_embedding_kwargs(),
+                            **extra_kwargs,
                         )
 
                     response = await _call_with_retry(

@@ -5,7 +5,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from uuid import UUID
 
 from sqlalchemy import select
@@ -87,6 +87,7 @@ class McpToolExecutionService:
         asset_refs: dict[str, Any] | None = None,
         origin: str = RUN_ORIGIN_TRIAL_UI,
         timeout_seconds: float | None = None,
+        external_event_sink: Callable[[dict[str, Any]], None] | None = None,
     ) -> ExecutionResult:
         tool = await self._db.scalar(
             select(McpTool).where(McpTool.server_id == server.id, McpTool.name == tool_name)
@@ -177,6 +178,8 @@ class McpToolExecutionService:
                 payload=_json_safe(event.get("payload") or {}),
                 duration_ms=int(event.get("duration_ms") or 0),
             )
+            if external_event_sink:
+                external_event_sink(event)
 
         def handle_stderr(message: str) -> None:
             stderr_lines.append(message)

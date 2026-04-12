@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 
 const MARKDOWN_CONTENT_CLASS = [
@@ -326,7 +326,7 @@ function RichTextContent({
 
   return (
     <div className={`${MARKDOWN_CONTENT_CLASS} text-zinc-600 dark:text-zinc-300`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{parsed.value}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={defaultRemarkPlugins} rehypePlugins={defaultRehypePlugins}>{parsed.value}</ReactMarkdown>
     </div>
   );
 }
@@ -732,7 +732,7 @@ export function McpServerCard({
 
   return (
     <div className="space-y-2">
-      <div className="flex h-[196px] flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="flex h-[176px] flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
             <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -818,7 +818,7 @@ export function McpServerCard({
           </div>
 
           <p
-            className="mb-1 h-20 min-w-0 w-full overflow-hidden text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"
+            className="mb-1 h-[60px] min-w-0 w-full overflow-hidden text-sm leading-5 text-zinc-500 line-clamp-3 dark:text-zinc-400"
             title={summaryDescription}
           >
             {summaryDescription}

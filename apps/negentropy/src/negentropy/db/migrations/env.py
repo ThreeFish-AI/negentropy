@@ -79,6 +79,7 @@ _IGNORED_INDEXES = frozenset({
     "idx_kb_entity_type",                    # 部分索引 (WHERE entity_type IS NOT NULL)
     "ix_negentropy_knowledge_search_vector", # GIN 索引 (TSVECTOR)
     "ix_knowledge_documents_file_hash",      # 命名与 ORM 自动生成的不一致
+    "ix_kg_entities_embedding",              # HNSW 索引 (需 ALTER COLUMN 后手动创建)
 })
 
 

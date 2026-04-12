@@ -1,14 +1,14 @@
 /**
  * 统一错误处理模块
  *
- * 对齐 docs/negentropy-ui-plan.md 第 13.4.3 节的错误码定义
+ * 对齐 docs/framework.md §9.6 的错误码定义
  * 遵循 AGENTS.md 原则：单一事实源、标准化流水线
  */
 
 /**
  * AG-UI 错误码枚举
  *
- * 参考: docs/negentropy-ui-plan.md 第 13.4.3 节
+ * 参考: docs/framework.md §9.6 API 契约与错误处理规范
  */
 export const AGUI_ERROR_CODES = {
   BAD_REQUEST: "AGUI_BAD_REQUEST",
