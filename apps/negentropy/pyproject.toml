@@ -114,11 +114,13 @@ exclude_lines = [
 ]
 
 [tool.uv]
+override-dependencies = [
+    "aiohttp>=3.13.4",      # CVE-2025/2026 (19 个): microsandbox==0.1.8 锁死 <3.11.0, 强制覆盖升级
+]
 constraint-dependencies = [
     "authlib>=1.6.9",       # CVE-2026-27962 (critical) + CVE-2026-28490/28498/28802
     "pyasn1>=0.6.3",        # CVE-2026-30922: unbounded recursion DoS
     "pyjwt>=2.12.0",        # CVE-2026-32597: unknown crit header extensions
-    # aiohttp CVE-2025/2026 (12 个) 无法修复：microsandbox==0.1.8 严格锁死 aiohttp>=3.10.0,<3.11.0
     "cryptography>=46.0.7", # CVE-2026: buffer overflow, subgroup attack, DNS constraint
     "pygments>=2.20.0",     # CVE-2026-4539: ReDoS via GUID regex
     "requests>=2.33.0",     # CVE-2026-25645: insecure temp file reuse
