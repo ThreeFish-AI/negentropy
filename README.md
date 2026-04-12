@@ -3,7 +3,7 @@
 <h1 align="center">🔮 Negentropy</h1>
 
 <p align="center">
-  <strong>An agentic system built on a "One Root, Five Wings" architecture, dedicated to combating the entropic decay of knowledge and forging a continuously self-evolving cognitive framework.</strong>
+  <strong>An agentic system built on a "One Root, Five Wings" architecture, dedicated to combating the entropy production of infomation and forging a continuously self-evolving cognitive framework.</strong>
 </p>
 
 <div align="center">
