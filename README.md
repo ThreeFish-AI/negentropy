@@ -200,6 +200,7 @@ graph TB
 
 | Document                                                 | Description                                                                                     |
 | :------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| [User Guide](./docs/user-guide.md)                       | End-user guide covering all features: chat, knowledge, memory, plugins, admin, and wiki          |
 | [Development Guide](./docs/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
 | [Architecture Design](./docs/framework.md)               | Deep dive into the One Root/Five Wings, pipeline choreography, design patterns, engine workings |
 | [Knowledge System](./docs/knowledges.md)                 | Detailed design and usage of the knowledge management module                                    |
