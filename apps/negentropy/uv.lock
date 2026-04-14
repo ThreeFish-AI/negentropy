@@ -4,12 +4,37 @@ requires-python = "==3.13.*"
 
 [manifest]
 constraints = [
+    { name = "aiomysql", specifier = ">=0.3.0" },
     { name = "authlib", specifier = ">=1.6.9" },
+    { name = "azure-core", specifier = ">=1.38.0" },
+    { name = "brotli", specifier = ">=1.2.0" },
     { name = "cryptography", specifier = ">=46.0.7" },
+    { name = "ecdsa", specifier = ">=0.19.2" },
+    { name = "fickling", specifier = ">=0.1.10" },
+    { name = "filelock", specifier = ">=3.20.3" },
+    { name = "flask", specifier = ">=3.1.3" },
+    { name = "google-cloud-aiplatform", specifier = ">=1.133.0" },
+    { name = "h2", specifier = ">=4.3.0" },
+    { name = "markdown", specifier = ">=3.8.1" },
+    { name = "markdownify", specifier = ">=0.14.1" },
+    { name = "marshmallow", specifier = ">=3.26.2" },
+    { name = "nltk", specifier = ">=3.9.4" },
+    { name = "orjson", specifier = ">=3.11.6" },
+    { name = "pillow", specifier = ">=12.2.0" },
+    { name = "protobuf", specifier = ">=5.29.6" },
     { name = "pyasn1", specifier = ">=0.6.3" },
     { name = "pygments", specifier = ">=2.20.0" },
     { name = "pyjwt", specifier = ">=2.12.0" },
+    { name = "pyopenssl", specifier = ">=26.0.0" },
+    { name = "pypdf", specifier = ">=6.10.0" },
     { name = "requests", specifier = ">=2.33.0" },
+    { name = "starlette", specifier = ">=0.50.0" },
+    { name = "tornado", specifier = ">=6.5.5" },
+    { name = "transformers", specifier = ">=4.53.0" },
+    { name = "ujson", specifier = ">=5.12.0" },
+    { name = "unstructured", specifier = ">=0.18.18" },
+    { name = "urllib3", specifier = ">=2.6.3" },
+    { name = "werkzeug", specifier = ">=3.1.6" },
 ]
 overrides = [{ name = "aiohttp", specifier = ">=3.13.4" }]
 
