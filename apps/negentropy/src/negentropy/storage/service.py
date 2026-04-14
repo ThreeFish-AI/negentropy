@@ -626,7 +626,7 @@ class DocumentStorageService:
         content: bytes,
         content_type: str,
     ) -> Optional[str]:
-        """上传 Data Extractor 生成的衍生资源。"""
+        """上传 Negentropy Perceives 生成的衍生资源。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
             return None
@@ -659,7 +659,7 @@ class DocumentStorageService:
         document_id: UUID,
         filename: str,
     ) -> Optional[bytes]:
-        """从 GCS 下载 Data Extractor 生成的衍生资源。"""
+        """从 GCS 下载 Negentropy Perceives 生成的衍生资源。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
             return None

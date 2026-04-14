@@ -222,7 +222,7 @@ async def test_async_rebuild_pipeline_does_not_delete_existing_source_when_extra
         return ExtractedDocumentResult(
             plain_text="",
             markdown_content="",
-            trace={"provider": "mcp", "attempts": [{"tool_name": "convert_pdf_to_markdown", "failure_category": "empty_payload"}]},
+            trace={"provider": "mcp", "attempts": [{"tool_name": "parse_pdf_to_markdown", "failure_category": "empty_payload"}]},
         )
 
     monkeypatch.setattr(service, "_extract_file_document", fake_extract_file_document)
@@ -273,7 +273,7 @@ async def test_async_ingest_file_pipeline_marks_run_failed_when_extracted_docume
             markdown_content="",
             trace={
                 "provider": "mcp",
-                "attempts": [{"tool_name": "convert_pdf_to_markdown", "failure_category": "tool_execution_failed"}],
+                "attempts": [{"tool_name": "parse_pdf_to_markdown", "failure_category": "tool_execution_failed"}],
             },
         )
 

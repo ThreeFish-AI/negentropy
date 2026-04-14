@@ -31,13 +31,13 @@ class DefaultExtractorRoutesSettings(BaseModel):
     url: DefaultExtractorRouteSettings = Field(
         default_factory=lambda: DefaultExtractorRouteSettings(
             primary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="convert_webpage_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_webpage_to_markdown",
                 timeout_ms=60_000,
             ),
             secondary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="batch_convert_webpages_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_webpages_to_markdown",
                 timeout_ms=120_000,
             ),
         )
@@ -45,13 +45,13 @@ class DefaultExtractorRoutesSettings(BaseModel):
     file_pdf: DefaultExtractorRouteSettings = Field(
         default_factory=lambda: DefaultExtractorRouteSettings(
             primary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="convert_pdf_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_pdf_to_markdown",
                 timeout_ms=300_000,
             ),
             secondary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="batch_convert_pdfs_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_pdfs_to_markdown",
                 timeout_ms=600_000,
             ),
         )

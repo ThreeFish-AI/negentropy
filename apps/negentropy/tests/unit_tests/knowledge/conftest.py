@@ -595,7 +595,7 @@ def make_tracking_context(
     tracker_run_id: str = "run-test-001",
     corpus_id: UUID | None = None,
     app_name: str = "negentropy",
-    mcp_tool_name: str | None = "convert_pdf_to_markdown",
+    mcp_tool_name: str | None = "parse_pdf_to_markdown",
     mcp_server_id: UUID | None = None,
 ):
     """工厂函数：快速构建 TrackingContext 实例。"""
