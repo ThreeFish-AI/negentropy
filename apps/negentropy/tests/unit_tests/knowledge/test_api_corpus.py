@@ -60,22 +60,22 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
             return {
                 "url": {
                     "primary": {
-                        "server_name": "data-extractor",
-                        "tool_name": "convert_webpage_to_markdown",
+                        "server_name": "negentropy-perceives",
+                        "tool_name": "parse_webpage_to_markdown",
                     },
                     "secondary": {
-                        "server_name": "data-extractor",
-                        "tool_name": "batch_convert_webpages_to_markdown",
+                        "server_name": "negentropy-perceives",
+                        "tool_name": "parse_webpages_to_markdown",
                     },
                 },
                 "file_pdf": {
                     "primary": {
-                        "server_name": "data-extractor",
-                        "tool_name": "convert_pdf_to_markdown",
+                        "server_name": "negentropy-perceives",
+                        "tool_name": "parse_pdf_to_markdown",
                     },
                     "secondary": {
-                        "server_name": "data-extractor",
-                        "tool_name": "batch_convert_pdfs_to_markdown",
+                        "server_name": "negentropy-perceives",
+                        "tool_name": "parse_pdfs_to_markdown",
                     },
                 },
             }
@@ -95,12 +95,12 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
         "AsyncSessionLocal",
         lambda: FakeDefaultRouteSession(
             responses=[
-                [(server_id, "data-extractor")],
+                [(server_id, "negentropy-perceives")],
                 [
-                    (server_id, "convert_webpage_to_markdown"),
-                    (server_id, "batch_convert_webpages_to_markdown"),
-                    (server_id, "convert_pdf_to_markdown"),
-                    (server_id, "batch_convert_pdfs_to_markdown"),
+                    (server_id, "parse_webpage_to_markdown"),
+                    (server_id, "parse_webpages_to_markdown"),
+                    (server_id, "parse_pdf_to_markdown"),
+                    (server_id, "parse_pdfs_to_markdown"),
                 ],
             ]
         ),
@@ -120,13 +120,13 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
             "targets": [
                 {
                     "server_id": str(server_id),
-                    "tool_name": "convert_webpage_to_markdown",
+                    "tool_name": "parse_webpage_to_markdown",
                     "priority": 0,
                     "enabled": True,
                 },
                 {
                     "server_id": str(server_id),
-                    "tool_name": "batch_convert_webpages_to_markdown",
+                    "tool_name": "parse_webpages_to_markdown",
                     "priority": 1,
                     "enabled": True,
                 },
@@ -136,20 +136,20 @@ async def test_create_corpus_injects_backend_default_extractor_routes(monkeypatc
             "targets": [
                 {
                     "server_id": str(server_id),
-                    "tool_name": "convert_pdf_to_markdown",
+                    "tool_name": "parse_pdf_to_markdown",
                     "priority": 0,
                     "enabled": True,
                 },
                 {
                     "server_id": str(server_id),
-                    "tool_name": "batch_convert_pdfs_to_markdown",
+                    "tool_name": "parse_pdfs_to_markdown",
                     "priority": 1,
                     "enabled": True,
                 },
             ]
         },
     }
-    assert result.config["extractor_routes"]["url"]["targets"][0]["tool_name"] == "convert_webpage_to_markdown"
+    assert result.config["extractor_routes"]["url"]["targets"][0]["tool_name"] == "parse_webpage_to_markdown"
 
 
 @pytest.mark.asyncio

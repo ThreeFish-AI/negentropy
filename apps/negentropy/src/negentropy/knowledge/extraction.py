@@ -2227,7 +2227,7 @@ async def extract_source(
             await tracker.start_stage("extract_resolve")
         raise ExtractorExecutionError(
             f"No extractor targets configured for source kind '{source_kind}'. "
-            "Please configure the Data Extractor MCP service and ensure the corpus "
+            "Please configure the Negentropy Perceives MCP service and ensure the corpus "
             "has valid extractor_routes in its configuration.",
             attempts=[],
         )

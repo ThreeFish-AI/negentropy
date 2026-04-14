@@ -69,7 +69,7 @@ class TestUrlSourceTracker:
         assert meta["author"] == "John Doe"
         assert meta["extraction_duration_ms"] == 1234
         assert meta["extracted_summary"] is not None
-        assert meta["extractor_tool_name"] == "convert_pdf_to_markdown"
+        assert meta["extractor_tool_name"] == "parse_pdf_to_markdown"
 
     @pytest.mark.asyncio
     async def test_extract_metadata_title_from_metadata_priority(self) -> None:

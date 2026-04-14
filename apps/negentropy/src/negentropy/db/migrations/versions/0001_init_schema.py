@@ -11,7 +11,7 @@ Create Date: 2026-04-08 00:00:00.000000+00:00
   - Pulse / Internalization / Perception / State / Action
   - Observability / Security / Plugin Ecosystem / Model Config / Knowledge Runtime
   - 共 42 张表、3 个枚举、1 个序列、HNSW/GIN/部分索引、TSVECTOR 触发器
-  - 种子数据：model_configs 默认模型 × 2 + data-extractor MCP 预设
+  - 种子数据：model_configs 默认模型 × 2 + negentropy-perceives MCP 预设
 """
 from typing import Sequence, Union
 
@@ -885,7 +885,7 @@ def upgrade() -> None:
         ],
     )
 
-    # Data Extractor MCP Server 预设（幂等 upsert）
+    # Negentropy Perceives MCP Server 预设（幂等 upsert）
     op.execute(sa.text(f"""
         INSERT INTO negentropy.mcp_servers (
             owner_id, visibility, name, display_name, description,
@@ -893,10 +893,10 @@ def upgrade() -> None:
             is_enabled, auto_start, config
         )
         VALUES (
-            'system:data-extractor-preset',
+            'system:negentropy-perceives-preset',
             'PUBLIC'::negentropy.pluginvisibility,
-            'data-extractor',
-            'Data Extractor',
+            'negentropy-perceives',
+            'Negentropy Perceives',
             '一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。',
             'http',
             NULL,

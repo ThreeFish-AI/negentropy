@@ -651,7 +651,7 @@ class KnowledgeService:
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
                     url_details["failure_category"] = "no_extractor_configured"
                     url_details["diagnostic_summary"] = (
-                        "请配置 Data Extractor MCP 服务，"
+                        "请配置 Negentropy Perceives MCP 服务，"
                         "并确保 Corpus 的 extractor_routes 配置正确。"
                     )
                 raise KnowledgeError(
@@ -760,7 +760,7 @@ class KnowledgeService:
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
                     details["failure_category"] = "no_extractor_configured"
                     details["diagnostic_summary"] = (
-                        "请配置 Data Extractor MCP 服务，"
+                        "请配置 Negentropy Perceives MCP 服务，"
                         "并确保 Corpus 的 extractor_routes 配置正确。"
                     )
                 raise KnowledgeError(
