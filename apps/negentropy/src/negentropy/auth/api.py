@@ -235,6 +235,151 @@ async def list_permissions() -> dict[str, Any]:
 
 
 # =============================================================================
+# Vendor Config Admin Endpoints
+# =============================================================================
+
+
+SUPPORTED_VENDOR_CONFIG_VENDORS = {"openai", "anthropic", "gemini"}
+
+
+class VendorConfigUpsert(BaseModel):
+    api_key: Optional[str] = Field(default=None, description="API Key (空字符串或 null 表示保留原值)")
+    api_base: Optional[str] = None
+
+
+def _vendor_config_to_dict(vc) -> dict[str, Any]:
+    return {
+        "vendor": vc.vendor,
+        "apiKey": _mask_api_key(vc.api_key),
+        "apiBase": vc.api_base,
+        "configured": True,
+    }
+
+
+@router.get("/admin/vendor-configs")
+async def list_vendor_configs(current_user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
+    """列出所有支持的供应商配置（始终返回 3 个供应商，未配置的填充 null）。"""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from negentropy.models.vendor_config import VendorConfig
+
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(VendorConfig))
+            stored = result.scalars().all()
+    except Exception:
+        from negentropy.logging import get_logger
+        get_logger("negentropy.auth.api").warning("list_vendor_configs_failed", exc_info=True)
+        stored = []
+
+    stored_map = {vc.vendor: vc for vc in stored}
+    configs = []
+    for vendor in sorted(SUPPORTED_VENDOR_CONFIG_VENDORS):
+        vc = stored_map.get(vendor)
+        if vc:
+            configs.append(_vendor_config_to_dict(vc))
+        else:
+            configs.append({
+                "vendor": vendor,
+                "apiKey": None,
+                "apiBase": None,
+                "configured": False,
+            })
+
+    return {"vendorConfigs": configs}
+
+
+@router.put("/admin/vendor-configs/{vendor}")
+async def upsert_vendor_config(
+    vendor: str,
+    payload: VendorConfigUpsert,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """创建或更新供应商配置（Upsert 语义）。"""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+    if vendor not in SUPPORTED_VENDOR_CONFIG_VENDORS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported vendor: {vendor}. Supported: {', '.join(sorted(SUPPORTED_VENDOR_CONFIG_VENDORS))}",
+        )
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.vendor_config import VendorConfig
+
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(VendorConfig).where(VendorConfig.vendor == vendor))
+            vc = result.scalar_one_or_none()
+
+            if vc is None:
+                # 创建新配置：api_key 必须提供
+                if not payload.api_key or not payload.api_key.strip():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="API Key is required for new vendor configuration",
+                    )
+                vc = VendorConfig(vendor=vendor, api_key=payload.api_key, api_base=payload.api_base)
+                db.add(vc)
+            else:
+                # 更新：空 key 表示保留原值；脱敏值也保留原值
+                if not payload.api_key or payload.api_key.startswith("****"):
+                    payload.api_key = vc.api_key
+                vc.api_key = payload.api_key
+                vc.api_base = payload.api_base
+
+            await db.commit()
+            await db.refresh(vc)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_sanitize_error(f"Failed to upsert vendor config: {exc}"),
+        )
+
+    # 供应商凭证变更影响所有模型类型，清除全部缓存
+    invalidate_cache(None)
+    return {"vendorConfig": _vendor_config_to_dict(vc)}
+
+
+@router.delete("/admin/vendor-configs/{vendor}")
+async def delete_vendor_config(
+    vendor: str,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """删除供应商配置。"""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+    if vendor not in SUPPORTED_VENDOR_CONFIG_VENDORS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported vendor: {vendor}. Supported: {', '.join(sorted(SUPPORTED_VENDOR_CONFIG_VENDORS))}",
+        )
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.vendor_config import VendorConfig
+
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(VendorConfig).where(VendorConfig.vendor == vendor))
+            vc = result.scalar_one_or_none()
+            if not vc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="vendor config not found")
+            await db.delete(vc)
+            await db.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_sanitize_error(f"Failed to delete vendor config: {exc}"),
+        )
+
+    invalidate_cache(None)
+    return {"status": "deleted", "vendor": vendor}
+
+
+# =============================================================================
 # Model Config Admin Endpoints
 # =============================================================================
 
@@ -416,7 +561,7 @@ async def ping_model(
 
     full_model_name = build_full_model_name(payload.vendor, payload.model_name)
 
-    # --- 解析 api_key 优先级链: 表单 > DB > 环境变量 (litellm 默认行为) ---
+    # --- 解析 api_key 优先级链: 表单 > DB 模型配置 > DB 供应商配置 > 环境变量 ---
     effective_api_key = payload.api_key
     effective_api_base = payload.api_base or payload.config.get("api_base")
 
@@ -436,6 +581,25 @@ async def ping_model(
 
             get_logger("negentropy.auth.api").warning(
                 "ping_db_lookup_failed", model_id=str(payload.model_id), exc_info=True,
+            )
+
+    # 回退到供应商级凭证
+    if effective_api_key is None:
+        from negentropy.models.vendor_config import VendorConfig
+
+        try:
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(VendorConfig).where(VendorConfig.vendor == payload.vendor))
+                vc = result.scalar_one_or_none()
+                if vc:
+                    effective_api_key = vc.api_key
+                    if not effective_api_base:
+                        effective_api_base = vc.api_base
+        except Exception:
+            from negentropy.logging import get_logger
+
+            get_logger("negentropy.auth.api").warning(
+                "ping_vendor_lookup_failed", vendor=payload.vendor, exc_info=True,
             )
 
     start_time = time.monotonic()

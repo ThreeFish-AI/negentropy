@@ -155,13 +155,16 @@ async def _resolve_from_db(model_type: str) -> Optional[Tuple[str, Dict[str, Any
     if config is None:
         return None
 
+    # 在同一 session 中查询供应商级凭证作为回退
+    vendor_config = await _get_vendor_config(config.vendor)
+
     full_name = build_full_model_name(config.vendor, config.model_name)
     cfg = config.config or {}
 
     if model_type == "embedding":
-        kwargs = _build_embedding_kwargs(cfg)
+        kwargs = _build_embedding_kwargs(cfg, vendor_config)
     else:
-        kwargs = _build_llm_kwargs(config.vendor, config.model_name, cfg)
+        kwargs = _build_llm_kwargs(config.vendor, config.model_name, cfg, vendor_config)
 
     return full_name, kwargs
 
@@ -181,10 +184,33 @@ def build_full_model_name(vendor: str, model_name: str) -> str:
     return canonicalize_model_name(raw) or raw
 
 
-def _build_llm_kwargs(vendor: str, model_name: str, config: Dict[str, Any]) -> Dict[str, Any]:
+async def _get_vendor_config(vendor: str) -> Optional[Dict[str, str]]:
+    """从 DB 查询供应商级凭证（api_key + api_base）。查询失败时静默返回 None。"""
+    try:
+        from sqlalchemy import select
+
+        from negentropy.db.session import AsyncSessionLocal
+        from negentropy.models.vendor_config import VendorConfig
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(VendorConfig).where(VendorConfig.vendor == vendor)
+            )
+            vc = result.scalar_one_or_none()
+
+        if vc is None:
+            return None
+        return {"api_key": vc.api_key, "api_base": vc.api_base}
+    except Exception:
+        # vendor_configs 表可能尚未迁移，或 DB 不可达 — 静默回退
+        return None
+
+
+def _build_llm_kwargs(vendor: str, model_name: str, config: Dict[str, Any], vendor_config: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """从 DB config JSONB 构建 LiteLLM kwargs。
 
     供应商特定的 LiteLLM kwargs 构建逻辑。
+    凭证解析链: model config > vendor config > LiteLLM 环境变量回退。
     """
     kwargs: Dict[str, Any] = {}
 
@@ -230,16 +256,18 @@ def _build_llm_kwargs(vendor: str, model_name: str, config: Dict[str, Any]) -> D
     if "drop_params" in config and "drop_params" not in kwargs:
         kwargs["drop_params"] = config["drop_params"]
 
-    # 透传 API 凭证 (DB 单一事实源; 未配置时 litellm 自动回退到环境变量)
-    if "api_key" in config and config["api_key"]:
-        kwargs["api_key"] = config["api_key"]
-    if "api_base" in config and config["api_base"]:
-        kwargs["api_base"] = config["api_base"]
+    # 透传 API 凭证: model config > vendor config > LiteLLM 环境变量回退
+    effective_api_key = config.get("api_key") or (vendor_config or {}).get("api_key")
+    effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
+    if effective_api_key:
+        kwargs["api_key"] = effective_api_key
+    if effective_api_base:
+        kwargs["api_base"] = effective_api_base
 
     return kwargs
 
 
-def _build_embedding_kwargs(config: Dict[str, Any]) -> Dict[str, Any]:
+def _build_embedding_kwargs(config: Dict[str, Any], vendor_config: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """从 DB config JSONB 构建 Embedding kwargs。"""
     kwargs: Dict[str, Any] = {}
     if "dimensions" in config and config["dimensions"] is not None:
@@ -247,10 +275,12 @@ def _build_embedding_kwargs(config: Dict[str, Any]) -> Dict[str, Any]:
     if "input_type" in config and config["input_type"]:
         kwargs["input_type"] = config["input_type"]
 
-    # 透传 API 凭证 (DB 单一事实源; 未配置时 litellm 自动回退到环境变量)
-    if "api_key" in config and config["api_key"]:
-        kwargs["api_key"] = config["api_key"]
-    if "api_base" in config and config["api_base"]:
-        kwargs["api_base"] = config["api_base"]
+    # 透传 API 凭证: model config > vendor config > LiteLLM 环境变量回退
+    effective_api_key = config.get("api_key") or (vendor_config or {}).get("api_key")
+    effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
+    if effective_api_key:
+        kwargs["api_key"] = effective_api_key
+    if effective_api_base:
+        kwargs["api_base"] = effective_api_base
 
     return kwargs

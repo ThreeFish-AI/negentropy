@@ -5,6 +5,7 @@ from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpServer, McpTool
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
 from .model_config import ModelConfig, ModelType
+from .vendor_config import VendorConfig
 from .observability import Trace
 from .perception import (
     Corpus,
@@ -102,4 +103,6 @@ __all__ = [
     # Model Config
     "ModelConfig",
     "ModelType",
+    # Vendor Config
+    "VendorConfig",
 ]

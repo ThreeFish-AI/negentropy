@@ -16,4 +16,5 @@ class LlmVendor(str, Enum):
     ZAI = "zai"
     VERTEX_AI = "vertex_ai"
     DEEPSEEK = "deepseek"
+    GEMINI = "gemini"
     OLLAMA = "ollama"
