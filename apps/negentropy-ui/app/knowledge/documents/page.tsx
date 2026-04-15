@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
-  DocumentViewDialog,
   KnowledgeDocument,
   fetchAllDocuments,
   deleteDocument,
@@ -75,7 +75,7 @@ export default function DocumentsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteHard, setDeleteHard] = useState(false);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
-  const [viewingDoc, setViewingDoc] = useState<KnowledgeDocument | null>(null);
+  const router = useRouter();
 
   // 加载语料库列表
   const loadCorpora = useCallback(async () => {
@@ -265,7 +265,7 @@ export default function DocumentsPage() {
                         ) : (
                           <>
                             <button
-                              onClick={() => setViewingDoc(doc)}
+                              onClick={() => router.push(`/knowledge/documents/${doc.corpus_id}/${doc.id}`)}
                               className="rounded p-1.5 text-muted hover:text-green-600 hover:bg-green-50 transition-colors"
                               title="View document content"
                             >
@@ -335,12 +335,6 @@ export default function DocumentsPage() {
         </main>
       </div>
 
-      {/* Document View Dialog */}
-      <DocumentViewDialog
-        isOpen={viewingDoc !== null}
-        document={viewingDoc}
-        onClose={() => setViewingDoc(null)}
-      />
     </div>
   );
 }
