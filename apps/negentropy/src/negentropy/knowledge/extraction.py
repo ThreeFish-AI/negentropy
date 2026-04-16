@@ -14,11 +14,10 @@ from uuid import UUID
 import litellm
 from sqlalchemy import select, update
 
-from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool
-from negentropy.plugins.execution import McpToolExecutionService, RUN_ORIGIN_KNOWLEDGE_EXTRACTION
+from negentropy.plugins.execution import RUN_ORIGIN_KNOWLEDGE_EXTRACTION, McpToolExecutionService
 from negentropy.serialization import to_json_compatible, to_json_compatible_strict
 from negentropy.storage.service import DocumentStorageService
 

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -8,6 +10,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
+
+if TYPE_CHECKING:
+    from .pulse import Thread
 
 
 class Memory(Base, UUIDMixin, TimestampMixin):
@@ -71,7 +76,7 @@ class ConsolidationJob(Base, UUIDMixin):
     completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
-    thread: Mapped["Thread"] = relationship("Thread", back_populates="consolidation_jobs")
+    thread: Mapped[Thread] = relationship("Thread", back_populates="consolidation_jobs")
 
 
 class Instruction(Base, UUIDMixin):

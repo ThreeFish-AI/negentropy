@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import urllib.parse
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
@@ -11,6 +12,91 @@ from fastapi.responses import StreamingResponse
 from pydantic import ValidationError  # noqa: F401
 from sqlalchemy import func, select
 
+from negentropy.auth.deps import get_optional_user
+from negentropy.auth.service import AuthUser
+from negentropy.config import settings
+from negentropy.db.session import AsyncSessionLocal
+from negentropy.logging import get_logger
+from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument
+from negentropy.models.plugin import McpServer, McpTool
+from negentropy.models.pulse import UserState
+
+from .constants import (
+    DEFAULT_KEYWORD_WEIGHT,
+    DEFAULT_SEARCH_LIMIT,
+    DEFAULT_SEMANTIC_WEIGHT,
+)
+from .dao import KnowledgeRunDao
+from .embedding import build_batch_embedding_fn, build_embedding_fn
+from .exceptions import (
+    CorpusNotFound,
+    DatabaseError,
+    EmbeddingFailed,
+    InvalidChunkSize,
+    InvalidSearchConfig,
+    KnowledgeError,
+    SearchError,
+    VersionConflict,
+)
+from .extraction import (
+    ROUTE_URL,
+    build_url_document_filename,
+    extract_source,
+    get_chunking_config_only,
+    merge_corpus_config,
+    persist_extracted_assets,
+    resolve_source_kind,
+    store_extracted_document_artifacts,
+)
+from .graph_service import GraphService, get_graph_service
+
+# Phase 2-4: 生命周期管理 Schemas
+from .lifecycle_schemas import (  # noqa: F401
+    AssignDocumentRequest,
+    CatalogTreeResponse,
+    CategorySuggestionResponse,
+    DocumentProvenanceResponse,
+    WikiEntryContentResponse,
+    WikiNavTreeResponse,
+    WikiPublishActionResponse,
+)
+from .lifecycle_schemas import (
+    CatalogNodeCreateRequest as _CatalogNodeCreateReq,
+)
+from .lifecycle_schemas import (
+    CatalogNodeResponse as _CatalogNodeResp,
+)
+from .lifecycle_schemas import (
+    CatalogNodeUpdateRequest as _CatalogNodeUpdateReq,
+)
+from .lifecycle_schemas import (
+    CorpusQualityResponse as _CorpusQualityResp,
+)
+from .lifecycle_schemas import (
+    CorpusVersionResponse as _CorpusVersionResp,
+)
+from .lifecycle_schemas import (
+    DocSourceListResponse as _DocSourceListResp,
+)
+from .lifecycle_schemas import (
+    DocSourceResponse as _DocSourceResp,
+)
+from .lifecycle_schemas import (
+    # Phase 5: 统一检索与语料质量 Schemas
+    UnifiedSearchRequest as _UnifiedSearchReq,
+)
+from .lifecycle_schemas import (
+    UnifiedSearchResponse as _UnifiedSearchResp,
+)
+from .lifecycle_schemas import (
+    WikiPublicationCreateRequest as _WikiPubCreateReq,
+)
+from .lifecycle_schemas import (
+    WikiPublicationListResponse as _WikiPubListResp,
+)
+from .lifecycle_schemas import (
+    WikiPublicationResponse as _WikiPubResp,
+)
 from .schemas import (  # noqa: F401
     ApiStatsResponse,
     ArchiveSourceRequest,
@@ -46,79 +132,14 @@ from .schemas import (  # noqa: F401
     PipelineRunRecordResponse,
     PipelineStageResultResponse,
     PipelinesUpsertRequest,
-    PipelineUpsertResponse,
     PipelineUpsertRecordResponse,
+    PipelineUpsertResponse,
     RebuildSourceRequest,
     ReplaceSourceRequest,
     SearchRequest,
     SyncSourceRequest,
     _LegacyChunkingRequest,
 )
-
-# Phase 2-4: 生命周期管理 Schemas
-from .lifecycle_schemas import (  # noqa: F401
-    AssignDocumentRequest,
-    CatalogNodeCreateRequest as _CatalogNodeCreateReq,
-    CatalogNodeResponse as _CatalogNodeResp,
-    CatalogNodeUpdateRequest as _CatalogNodeUpdateReq,
-    CatalogTreeResponse,
-    CategorySuggestionResponse,
-    DocSourceListResponse as _DocSourceListResp,
-    DocSourceResponse as _DocSourceResp,
-    DocumentProvenanceResponse,
-    WikiEntryContentResponse,
-    WikiNavTreeResponse,
-    WikiPublicationCreateRequest as _WikiPubCreateReq,
-    WikiPublicationListResponse as _WikiPubListResp,
-    WikiPublicationResponse as _WikiPubResp,
-    WikiPublishActionResponse,
-    # Phase 5: 统一检索与语料质量 Schemas
-    UnifiedSearchRequest as _UnifiedSearchReq,
-    UnifiedSearchResponse as _UnifiedSearchResp,
-    CorpusQualityResponse as _CorpusQualityResp,
-    CorpusVersionResponse as _CorpusVersionResp,
-)
-
-from negentropy.auth.deps import get_optional_user
-from negentropy.auth.service import AuthUser
-from negentropy.config import settings
-from negentropy.db.session import AsyncSessionLocal
-from negentropy.logging import get_logger
-from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument
-from negentropy.models.plugin import McpServer, McpTool
-from negentropy.models.pulse import UserState
-
-from .constants import (
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_KEYWORD_WEIGHT,
-    DEFAULT_OVERLAP,
-    DEFAULT_SEARCH_LIMIT,
-    DEFAULT_SEMANTIC_WEIGHT,
-)
-from .embedding import build_batch_embedding_fn, build_embedding_fn
-from .extraction import (
-    ROUTE_URL,
-    build_url_document_filename,
-    extract_source,
-    get_chunking_config_only,
-    merge_corpus_config,
-    persist_extracted_assets,
-    resolve_source_kind,
-    store_extracted_document_artifacts,
-)
-from .dao import KnowledgeRunDao
-from .exceptions import (
-    CorpusNotFound,
-    DatabaseError,
-    EmbeddingFailed,
-    InvalidChunkSize,
-    InvalidSearchConfig,
-    KnowledgeError,
-    SearchError,
-    ValidationError as KnowledgeValidationError,
-    VersionConflict,
-)
-from .graph_service import GraphService, get_graph_service
 from .service import KnowledgeService
 from .types import (
     ChunkingConfig,
@@ -127,23 +148,26 @@ from .types import (
     GraphQueryConfig,
     SearchConfig,
     chunking_config_summary,
-    create_chunking_config,
-    default_chunking_config,
-    infer_source_type,
     normalize_chunking_config,
     normalize_source_metadata,
     serialize_chunking_config,
 )
 
+if TYPE_CHECKING:
+    from .catalog_service import CatalogService
+    from .corpus_engine import CorpusEngine
+    from .retrieval import UnifiedRetrievalService
+    from .types import KnowledgeRecord
+    from .wiki_service import WikiPublishingService
 
 logger = get_logger("negentropy.knowledge.api")
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 
 def _normalize_pipeline_stage_payloads(
-    stages: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
-    normalized: Dict[str, Any] = {}
+    stages: dict[str, Any] | None,
+) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
     for stage_name, stage_payload in (stages or {}).items():
         stage_data = dict(stage_payload or {})
         if "output" in stage_data and stage_data.get("output") is None:
@@ -153,8 +177,8 @@ def _normalize_pipeline_stage_payloads(
 
 
 def _normalize_pipeline_run_payload(
-    payload: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
+    payload: dict[str, Any] | None,
+) -> dict[str, Any]:
     normalized = dict(payload or {})
     if normalized.get("input") is None:
         normalized["input"] = {}
@@ -165,9 +189,9 @@ def _normalize_pipeline_run_payload(
     return normalized
 
 
-_service: Optional[KnowledgeService] = None
-_dao: Optional[KnowledgeRunDao] = None
-_graph_service: Optional[GraphService] = None
+_service: KnowledgeService | None = None
+_dao: KnowledgeRunDao | None = None
+_graph_service: GraphService | None = None
 
 
 def _get_service() -> KnowledgeService:
@@ -195,7 +219,7 @@ def _get_dao() -> KnowledgeRunDao:
     return _dao
 
 
-def _resolve_app_name(app_name: Optional[str]) -> str:
+def _resolve_app_name(app_name: str | None) -> str:
     return app_name or settings.app_name
 
 
@@ -252,8 +276,8 @@ def _map_exception_to_http(exc: KnowledgeError) -> HTTPException:
 
 
 def _build_chunking_config(
-    payload: Optional[Dict[str, Any]],
-) -> Optional[ChunkingConfig]:
+    payload: dict[str, Any] | None,
+) -> ChunkingConfig | None:
     if not payload:
         return None
     return normalize_chunking_config(payload)
@@ -261,7 +285,7 @@ def _build_chunking_config(
 
 def _resolve_chunking_option(
     request_value: Any,
-    corpus_config: Dict[str, Any],
+    corpus_config: dict[str, Any],
     key: str,
 ) -> Any:
     if request_value is not None:
@@ -269,7 +293,7 @@ def _resolve_chunking_option(
     return corpus_config.get(key)
 
 
-def _extract_legacy_chunking_payload(payload: _LegacyChunkingRequest) -> Dict[str, Any]:
+def _extract_legacy_chunking_payload(payload: _LegacyChunkingRequest) -> dict[str, Any]:
     candidate = {
         "strategy": payload.strategy,
         "chunk_size": payload.chunk_size,
@@ -289,10 +313,10 @@ def _extract_legacy_chunking_payload(payload: _LegacyChunkingRequest) -> Dict[st
 
 def _resolve_chunking_config(
     *,
-    chunking_config: Optional[Dict[str, Any]],
-    legacy_payload: Optional[Dict[str, Any]],
-    corpus_config: Dict[str, Any],
-) -> Optional[ChunkingConfig]:
+    chunking_config: dict[str, Any] | None,
+    legacy_payload: dict[str, Any] | None,
+    corpus_config: dict[str, Any],
+) -> ChunkingConfig | None:
     if chunking_config:
         return normalize_chunking_config(chunking_config)
     if legacy_payload:
@@ -306,23 +330,23 @@ def _resolve_chunking_config(
     return None
 
 
-def _serialize_corpus_config(config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _serialize_corpus_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return merge_corpus_config(
         config, serialize_chunking_config(normalize_chunking_config(get_chunking_config_only(config)))
     )
 
 
-def _has_explicit_extractor_routes(config: Optional[Dict[str, Any]]) -> bool:
+def _has_explicit_extractor_routes(config: dict[str, Any] | None) -> bool:
     return isinstance(config, dict) and "extractor_routes" in config
 
 
-async def _resolve_default_extractor_routes() -> Dict[str, Any]:
+async def _resolve_default_extractor_routes() -> dict[str, Any]:
     default_routes = settings.knowledge.default_extractor_routes.model_dump(mode="python")
-    resolved_routes: Dict[str, Any] = {
+    resolved_routes: dict[str, Any] = {
         "url": {"targets": []},
         "file_pdf": {"targets": []},
     }
-    candidates: list[tuple[str, int, Dict[str, Any]]] = []
+    candidates: list[tuple[str, int, dict[str, Any]]] = []
     server_names: set[str] = set()
 
     for route_key in ("url", "file_pdf"):
@@ -404,7 +428,7 @@ async def _resolve_default_extractor_routes() -> Dict[str, Any]:
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
-async def get_dashboard(app_name: Optional[str] = Query(default=None)) -> DashboardResponse:
+async def get_dashboard(app_name: str | None = Query(default=None)) -> DashboardResponse:
     resolved_app = _resolve_app_name(app_name)
     dao = _get_dao()
     pipeline_runs = [
@@ -431,7 +455,7 @@ async def get_dashboard(app_name: Optional[str] = Query(default=None)) -> Dashbo
 
 
 @router.get("/base", response_model=list[CorpusResponse])
-async def list_corpora(app_name: Optional[str] = Query(default=None)) -> list[CorpusResponse]:
+async def list_corpora(app_name: str | None = Query(default=None)) -> list[CorpusResponse]:
     resolved_app = _resolve_app_name(app_name)
     async with AsyncSessionLocal() as db:
         stmt = (
@@ -482,7 +506,7 @@ async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
 
 
 @router.get("/base/{corpus_id}", response_model=CorpusResponse)
-async def get_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=None)) -> CorpusResponse:
+async def get_corpus(corpus_id: UUID, app_name: str | None = Query(default=None)) -> CorpusResponse:
     resolved_app = _resolve_app_name(app_name)
     async with AsyncSessionLocal() as db:
         stmt = (
@@ -520,7 +544,6 @@ async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> Corpus
     try:
         corpus = await service.update_corpus(corpus_id=corpus_id, spec=update_data)
         # Fetch knowledge count separately since update doesn't return it
-        dao = _get_dao()
         # Optimization: Reuse existing count logic or separate query
         # For simplicity, returning 0 or fetching count if critical.
         # API expects knowledge_count.
@@ -549,7 +572,7 @@ async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> Corpus
 
 
 @router.delete("/base/{corpus_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_corpus(corpus_id: UUID, app_name: Optional[str] = Query(default=None)) -> None:
+async def delete_corpus(corpus_id: UUID, app_name: str | None = Query(default=None)) -> None:
     """删除语料库及其所有知识块
 
     级联删除: 删除 Corpus 时同时删除所有关联的 Knowledge 记录。
@@ -663,12 +686,12 @@ async def ingest_text(
 @router.get("/base/{corpus_id}/knowledge")
 async def list_knowledge(
     corpus_id: UUID,
-    app_name: Optional[str] = Query(default=None),
-    source_uri: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
+    source_uri: str | None = Query(default=None),
     include_archived: bool = Query(default=False),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """列出知识库中的知识条目
 
     Args:
@@ -729,7 +752,7 @@ async def ingest_url(
     corpus_id: UUID,
     payload: IngestUrlRequest,
     background_tasks: BackgroundTasks,
-    user: Optional[AuthUser] = Depends(get_optional_user),
+    user: AuthUser | None = Depends(get_optional_user),
 ) -> AsyncPipelineResponse:
     """异步从 URL 获取内容并摄入知识库
 
@@ -978,23 +1001,23 @@ async def ingest_file(
     corpus_id: UUID,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    app_name: Optional[str] = Form(default=None),
-    source_uri: Optional[str] = Form(default=None),
-    metadata: Optional[str] = Form(default=None),
-    strategy: Optional[str] = Form(default=None),
-    chunk_size: Optional[int] = Form(default=None),
-    overlap: Optional[int] = Form(default=None),
-    preserve_newlines: Optional[bool] = Form(default=None),
-    separators: Optional[str] = Form(default=None),
-    semantic_threshold: Optional[float] = Form(default=None),
-    semantic_buffer_size: Optional[int] = Form(default=None),
-    min_chunk_size: Optional[int] = Form(default=None),
-    max_chunk_size: Optional[int] = Form(default=None),
-    hierarchical_parent_chunk_size: Optional[int] = Form(default=None),
-    hierarchical_child_chunk_size: Optional[int] = Form(default=None),
-    hierarchical_child_overlap: Optional[int] = Form(default=None),
+    app_name: str | None = Form(default=None),
+    source_uri: str | None = Form(default=None),
+    metadata: str | None = Form(default=None),
+    strategy: str | None = Form(default=None),
+    chunk_size: int | None = Form(default=None),
+    overlap: int | None = Form(default=None),
+    preserve_newlines: bool | None = Form(default=None),
+    separators: str | None = Form(default=None),
+    semantic_threshold: float | None = Form(default=None),
+    semantic_buffer_size: int | None = Form(default=None),
+    min_chunk_size: int | None = Form(default=None),
+    max_chunk_size: int | None = Form(default=None),
+    hierarchical_parent_chunk_size: int | None = Form(default=None),
+    hierarchical_child_chunk_size: int | None = Form(default=None),
+    hierarchical_child_overlap: int | None = Form(default=None),
     store_to_gcs: bool = Form(default=True),
-    user: Optional[AuthUser] = Depends(get_optional_user),
+    user: AuthUser | None = Depends(get_optional_user),
 ) -> AsyncPipelineResponse:
     """从上传文件导入内容到知识库
 
@@ -1053,7 +1076,7 @@ async def ingest_file(
             )
 
         # 解析 metadata JSON
-        meta: Dict[str, Any] = {}
+        meta: dict[str, Any] = {}
         if metadata:
             try:
                 meta = json.loads(metadata)
@@ -1063,7 +1086,7 @@ async def ingest_file(
                     detail={"code": "INVALID_METADATA", "message": "metadata must be valid JSON"},
                 ) from exc
 
-        parsed_separators: Optional[list[str]] = None
+        parsed_separators: list[str] | None = None
         if separators:
             try:
                 raw = json.loads(separators)
@@ -1086,8 +1109,8 @@ async def ingest_file(
         storage_service = None
 
         if store_to_gcs:
-            from negentropy.storage.service import DocumentStorageService
             from negentropy.storage.gcs_client import StorageError
+            from negentropy.storage.service import DocumentStorageService
 
             try:
                 storage_service = DocumentStorageService()
@@ -1226,7 +1249,7 @@ async def ingest_file(
 # ============================================================================
 
 
-def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[KnowledgeRecord]) -> Dict[str, Any]:
+def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[KnowledgeRecord]) -> dict[str, Any]:
     metadata = item.metadata or {}
     family_id = metadata.get("chunk_family_id")
     child_chunks = []
@@ -1275,7 +1298,7 @@ def _serialize_document_chunk_item(item: KnowledgeRecord, siblings: list[Knowled
     }
 
 
-def _build_document_chunk_metadata(doc: Any, items: list[KnowledgeRecord]) -> Dict[str, Any]:
+def _build_document_chunk_metadata(doc: Any, items: list[KnowledgeRecord]) -> dict[str, Any]:
     chunk_stats = ((doc.metadata_ or {}).get("chunk_stats") or {}) if doc else {}
     total_retrieval_count = sum(item.retrieval_count for item in items)
     return {
@@ -1339,7 +1362,7 @@ def _build_document_response(doc, name_map: dict[str, str]) -> DocumentResponse:
 @router.get("/base/{corpus_id}/documents", response_model=DocumentListResponse)
 async def list_documents(
     corpus_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> DocumentListResponse:
@@ -1377,7 +1400,7 @@ async def list_documents(
 
 @router.get("/documents", response_model=DocumentListResponse)
 async def list_all_documents(
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> DocumentListResponse:
@@ -1416,7 +1439,7 @@ async def list_all_documents(
 async def get_document_detail(
     corpus_id: UUID,
     document_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
 ) -> DocumentDetailResponse:
     """获取单个文档详情（含 Markdown 正文）。"""
     resolved_app = _resolve_app_name(app_name)
@@ -1515,7 +1538,7 @@ async def refresh_document_markdown(
 async def delete_document(
     corpus_id: UUID,
     document_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     hard_delete: bool = Query(default=False),
 ) -> None:
     """删除文档
@@ -1549,7 +1572,7 @@ async def delete_document(
 async def download_document(
     corpus_id: UUID,
     document_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
 ):
     """下载文档原始文件
 
@@ -1563,8 +1586,8 @@ async def download_document(
     """
     resolved_app = _resolve_app_name(app_name)
 
-    from negentropy.storage.service import DocumentStorageService
     from negentropy.storage.gcs_client import StorageError
+    from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
 
@@ -1628,7 +1651,7 @@ async def get_document_asset(
     corpus_id: UUID,
     document_id: UUID,
     asset_name: str,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
 ):
     """获取文档的衍生资产文件（图片等）。
 
@@ -1637,8 +1660,8 @@ async def get_document_asset(
     """
     resolved_app = _resolve_app_name(app_name)
 
-    from negentropy.storage.service import DocumentStorageService
     from negentropy.storage.gcs_client import StorageError
+    from negentropy.storage.service import DocumentStorageService
 
     storage_service = DocumentStorageService()
 
@@ -1705,7 +1728,7 @@ def _is_url_document(doc: Any) -> bool:
     return metadata.get("source_type") == "url"
 
 
-def _resolve_document_source_uri(doc: Any) -> Optional[str]:
+def _resolve_document_source_uri(doc: Any) -> str | None:
     metadata = doc.metadata_ or {}
     if metadata.get("source_type") == "url":
         origin_url = metadata.get("origin_url")
@@ -1719,8 +1742,8 @@ def _resolve_document_source_uri(doc: Any) -> Optional[str]:
 def _resolve_chunking_config_from_doc_request(
     *,
     payload: DocumentActionRequest,
-    corpus_config: Dict[str, Any],
-) -> Optional[ChunkingConfig]:
+    corpus_config: dict[str, Any],
+) -> ChunkingConfig | None:
     return _resolve_chunking_config(
         chunking_config=payload.chunking_config,
         legacy_payload=_extract_legacy_chunking_payload(payload),
@@ -1732,7 +1755,7 @@ def _resolve_chunking_config_from_doc_request(
 async def list_document_chunks(
     corpus_id: UUID,
     document_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     include_archived: bool = Query(default=False),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
@@ -1796,7 +1819,7 @@ async def get_document_chunk_detail(
     corpus_id: UUID,
     document_id: UUID,
     chunk_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
 ) -> DocumentChunkDetailResponse:
     resolved_app = _resolve_app_name(app_name)
     from negentropy.storage.service import DocumentStorageService
@@ -2628,7 +2651,7 @@ async def archive_source(
 
 
 @router.post("/base/{corpus_id}/search")
-async def search(corpus_id: UUID, payload: SearchRequest) -> Dict[str, Any]:
+async def search(corpus_id: UUID, payload: SearchRequest) -> dict[str, Any]:
     """搜索知识库
 
     集成统一异常处理、结构化日志和配置验证。
@@ -2694,7 +2717,7 @@ async def search(corpus_id: UUID, payload: SearchRequest) -> Dict[str, Any]:
 
 
 @router.get("/graph")
-async def get_graph(app_name: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+async def get_graph(app_name: str | None = Query(default=None)) -> dict[str, Any]:
     resolved_app = _resolve_app_name(app_name)
     dao = _get_dao()
     latest = await dao.get_latest_graph(resolved_app)
@@ -2716,7 +2739,7 @@ async def get_graph(app_name: Optional[str] = Query(default=None)) -> Dict[str, 
 
 
 @router.post("/graph")
-async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
+async def upsert_graph(payload: GraphUpsertRequest) -> dict[str, Any]:
     resolved_app = _resolve_app_name(payload.app_name)
     dao = _get_dao()
     result = await dao.upsert_graph_run(
@@ -2734,7 +2757,7 @@ async def upsert_graph(payload: GraphUpsertRequest) -> Dict[str, Any]:
 
 @router.get("/pipelines", response_model=KnowledgePipelinesResponse)
 async def get_pipelines(
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> KnowledgePipelinesResponse:
@@ -2873,12 +2896,12 @@ async def build_knowledge_graph(
         raise _map_exception_to_http(exc) from exc
 
 
-@router.get("/base/{corpus_id}/graph", response_model=Dict[str, Any])
+@router.get("/base/{corpus_id}/graph", response_model=dict[str, Any])
 async def get_corpus_graph(
     corpus_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     include_runs: bool = Query(default=False),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取语料库的知识图谱
 
     Args:
@@ -3026,7 +3049,7 @@ async def search_knowledge_graph(
 @router.post("/graph/neighbors")
 async def find_entity_neighbors(
     payload: GraphNeighborsRequest,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """查询实体邻居
 
     Args:
@@ -3066,7 +3089,7 @@ async def find_entity_neighbors(
 @router.post("/graph/path")
 async def find_entity_path(
     payload: GraphPathRequest,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """查询两点间最短路径
 
     Args:
@@ -3101,7 +3124,7 @@ async def find_entity_path(
 @router.delete("/base/{corpus_id}/graph", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_corpus_graph(
     corpus_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
 ) -> None:
     """清除语料库的图谱数据
 
@@ -3130,9 +3153,9 @@ async def clear_corpus_graph(
 @router.get("/base/{corpus_id}/graph/history")
 async def get_graph_build_history(
     corpus_id: UUID,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取图谱构建历史
 
     Args:
@@ -3198,9 +3221,9 @@ ENDPOINT_PATTERNS: dict[str, list[str]] = {
 
 @router.get("/stats", response_model=ApiStatsResponse)
 async def get_api_stats(
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     period_hours: int = Query(default=24, ge=1, le=720, description="统计周期（小时）"),
-    endpoint: Optional[str] = Query(default=None, description="API endpoint ID (如 search, ingest)"),
+    endpoint: str | None = Query(default=None, description="API endpoint ID (如 search, ingest)"),
 ) -> ApiStatsResponse:
     """获取 Knowledge API 调用统计
 
@@ -3217,7 +3240,8 @@ async def get_api_stats(
     """
     from datetime import datetime, timedelta
 
-    from sqlalchemy import and_, func as sql_func, or_, select
+    from sqlalchemy import and_, or_, select
+    from sqlalchemy import func as sql_func
 
     from negentropy.models.observability import Trace
 
@@ -3301,8 +3325,8 @@ def _to_source_resp(doc_source) -> _DocSourceResp:
 
 @router.get("/sources")
 async def list_doc_sources(
-    corpus_id: Optional[UUID] = Query(default=None),
-    source_type: Optional[str] = Query(default=None),
+    corpus_id: UUID | None = Query(default=None),
+    source_type: str | None = Query(default=None),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> _DocSourceListResp:
@@ -3443,10 +3467,10 @@ async def get_document_provenance(
 # Phase 3: 文档目录编目 API
 # =============================================================================
 
-_catalog_service: Optional["CatalogService"] = None
+_catalog_service: CatalogService | None = None
 
 
-def _get_catalog_service() -> "CatalogService":
+def _get_catalog_service() -> CatalogService:
     global _catalog_service
     if _catalog_service is None:
         from .catalog_service import CatalogService
@@ -3581,7 +3605,7 @@ async def create_catalog_node(
                 config=body.config if body.config else None,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         await db.commit()
 
     logger.info("api_create_catalog_node", node_id=str(node.id), corpus_id=str(corpus_id))
@@ -3607,7 +3631,7 @@ async def update_catalog_node(
         try:
             node = await catalog_svc.update_node(db, node_id, **update_kwargs)
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
         if node is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
@@ -3636,7 +3660,7 @@ async def delete_catalog_node(node_id: UUID):
 @router.post("/catalog/nodes/{node_id}/move")
 async def move_catalog_node(
     node_id: UUID,
-    new_parent_id: Optional[UUID] = Query(default=None),
+    new_parent_id: UUID | None = Query(default=None),
 ) -> _CatalogNodeResp:
     """移动目录节点到新的父节点下
 
@@ -3649,7 +3673,7 @@ async def move_catalog_node(
         try:
             node = await catalog_svc.move_node(db, node_id, new_parent_id=new_parent_id)
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
         if node is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
@@ -3770,10 +3794,10 @@ async def get_document_catalog_nodes(document_id: UUID):
 # Phase 4: Wiki 发布 API
 # =============================================================================
 
-_wiki_service: Optional["WikiPublishingService"] = None
+_wiki_service: WikiPublishingService | None = None
 
 
-def _get_wiki_service() -> "WikiPublishingService":
+def _get_wiki_service() -> WikiPublishingService:
     global _wiki_service
     if _wiki_service is None:
         from .wiki_service import WikiPublishingService
@@ -3806,7 +3830,7 @@ async def create_wiki_publication(
                 theme=body.theme,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         await db.commit()
 
     logger.info("api_create_wiki_pub", pub_id=str(pub.id), corpus_id=str(body.corpus_id))
@@ -3817,8 +3841,8 @@ async def create_wiki_publication(
 
 @router.get("/wiki/publications")
 async def list_wiki_publications(
-    corpus_id: Optional[UUID] = Query(default=None),
-    status: Optional[str] = Query(default=None),
+    corpus_id: UUID | None = Query(default=None),
+    status: str | None = Query(default=None),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> _WikiPubListResp:
@@ -3869,7 +3893,7 @@ async def update_wiki_publication(
         try:
             pub = await wiki_svc.update_publication(db, pub_id, **body)
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
         if pub is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
@@ -3909,7 +3933,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         try:
             pub = await wiki_svc.publish(db, pub_id)
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
         if pub is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
@@ -4021,11 +4045,11 @@ async def get_wiki_entry_content(entry_id: UUID) -> WikiEntryContentResponse:
 # Phase 5: 统一检索 & 语料质量 API
 # =============================================================================
 
-_corpus_engine: Optional["CorpusEngine"] = None
-_retrieval_service: Optional["UnifiedRetrievalService"] = None
+_corpus_engine: CorpusEngine | None = None
+_retrieval_service: UnifiedRetrievalService | None = None
 
 
-def _get_corpus_engine() -> "CorpusEngine":
+def _get_corpus_engine() -> CorpusEngine:
     global _corpus_engine
     if _corpus_engine is None:
         from .corpus_engine import CorpusEngine
@@ -4034,7 +4058,7 @@ def _get_corpus_engine() -> "CorpusEngine":
     return _corpus_engine
 
 
-def _get_retrieval_service() -> "UnifiedRetrievalService":
+def _get_retrieval_service() -> UnifiedRetrievalService:
     global _retrieval_service
     if _retrieval_service is None:
         from .retrieval import UnifiedRetrievalService
@@ -4065,7 +4089,7 @@ async def assess_corpus_quality(corpus_id: UUID) -> _CorpusQualityResp:
 @router.post("/base/{corpus_id}/versions")
 async def create_corpus_version(
     corpus_id: UUID,
-    notes: Optional[str] = Query(default=None),
+    notes: str | None = Query(default=None),
 ) -> _CorpusVersionResp:
     """创建语料库版本快照
 
@@ -4168,8 +4192,8 @@ async def unified_search(body: _UnifiedSearchReq) -> _UnifiedSearchResp:
 @router.post("/unified/feedback")
 async def record_search_feedback(
     feedback_type: str = Query(..., description="click | useful | not_useful"),
-    query_text: Optional[str] = Query(default=None),
-    document_id: Optional[UUID] = Query(default=None),
+    query_text: str | None = Query(default=None),
+    document_id: UUID | None = Query(default=None),
 ):
     """记录检索反馈（用于优化检索质量）"""
     svc = _get_retrieval_service()

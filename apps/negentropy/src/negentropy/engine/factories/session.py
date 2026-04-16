@@ -98,7 +98,8 @@ def get_session_service(backend: str | None = None) -> BaseSessionService:
     try:
         backend_enum = SessionBackend(backend_str.lower())
     except ValueError:
-        raise ValueError(f"Unsupported session backend: {backend_str}. Supported: {[b.value for b in SessionBackend]}")
+        supported = [b.value for b in SessionBackend]
+        raise ValueError(f"Unsupported session backend: {backend_str}. Supported: {supported}") from None
 
     # 如果已有缓存实例且未显式指定 backend，直接返回
     if _session_service_instance is not None and backend is None:

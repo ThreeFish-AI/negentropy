@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -13,14 +13,14 @@ from negentropy.models.knowledge_runtime import KnowledgeGraphRun, KnowledgePipe
 @dataclass(frozen=True)
 class UpsertResult:
     status: str
-    record: Dict[str, Any]
+    record: dict[str, Any]
 
 
 class KnowledgeRunDao:
     def __init__(self, session_factory=AsyncSessionLocal):
         self._session_factory = session_factory
 
-    async def get_pipeline_run(self, app_name: str, run_id: str) -> Optional[KnowledgePipelineRun]:
+    async def get_pipeline_run(self, app_name: str, run_id: str) -> KnowledgePipelineRun | None:
         async with self._session_factory() as db:
             stmt = select(KnowledgePipelineRun).where(
                 KnowledgePipelineRun.app_name == app_name,
@@ -29,7 +29,7 @@ class KnowledgeRunDao:
             result = await db.execute(stmt)
             return result.scalar_one_or_none()
 
-    async def get_latest_graph(self, app_name: str) -> Optional[KnowledgeGraphRun]:
+    async def get_latest_graph(self, app_name: str) -> KnowledgeGraphRun | None:
         async with self._session_factory() as db:
             stmt = (
                 select(KnowledgeGraphRun)
@@ -57,9 +57,9 @@ class KnowledgeRunDao:
         app_name: str,
         run_id: str,
         status: str,
-        payload: Dict[str, Any],
-        idempotency_key: Optional[str],
-        expected_version: Optional[int],
+        payload: dict[str, Any],
+        idempotency_key: str | None,
+        expected_version: int | None,
     ) -> UpsertResult:
         return await self._upsert_run(
             model_class=KnowledgeGraphRun,
@@ -97,9 +97,9 @@ class KnowledgeRunDao:
         app_name: str,
         run_id: str,
         status: str,
-        payload: Dict[str, Any],
-        idempotency_key: Optional[str],
-        expected_version: Optional[int],
+        payload: dict[str, Any],
+        idempotency_key: str | None,
+        expected_version: int | None,
     ) -> UpsertResult:
         return await self._upsert_run(
             model_class=KnowledgePipelineRun,
@@ -114,13 +114,13 @@ class KnowledgeRunDao:
     async def _upsert_run(
         self,
         *,
-        model_class: Type,
+        model_class: type,
         app_name: str,
         run_id: str,
         status: str,
-        payload: Dict[str, Any],
-        idempotency_key: Optional[str],
-        expected_version: Optional[int],
+        payload: dict[str, Any],
+        idempotency_key: str | None,
+        expected_version: int | None,
     ) -> UpsertResult:
         """通用 upsert 逻辑，适用于 GraphRun 和 PipelineRun
 
@@ -181,7 +181,7 @@ class KnowledgeRunDao:
             return UpsertResult("created", self._to_record(record))
 
     @staticmethod
-    def _to_record(record: Any) -> Dict[str, Any]:
+    def _to_record(record: Any) -> dict[str, Any]:
         """通用记录转换"""
         return {
             "id": str(record.id),

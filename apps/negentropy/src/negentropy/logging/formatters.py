@@ -4,8 +4,9 @@ Log formatters and color utilities.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
+
 from structlog.typing import EventDict
 
 # =============================================================================
@@ -89,7 +90,7 @@ class ConsoleFormatter:
                 normalized = raw_timestamp.replace("Z", "+00:00")
                 dt = datetime.fromisoformat(normalized)
                 if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
+                    dt = dt.replace(tzinfo=UTC)
                 return dt.astimezone().strftime(cls.TIMESTAMP_FORMAT)
             except (ValueError, TypeError):
                 pass

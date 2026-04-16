@@ -61,7 +61,9 @@ select = [
     "B",   # flake8-bugbear: Catches common bugs and design problems
     "UP",  # pyupgrade: Upgrades syntax to newer Python versions automatically
 ]
-ignore = []
+ignore = [
+    "B008",  # Depends()/Query()/File() in function defaults — standard FastAPI pattern
+]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -6,7 +6,6 @@ SandboxRunner 抽象基类
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
 
 class SandboxBackend(Enum):
@@ -114,6 +113,6 @@ class BaseSandboxRunner(ABC):
         except Exception:
             return False
 
-    async def cleanup(self) -> None:
+    async def cleanup(self) -> None:  # noqa: B027
         """清理资源 (子类可覆写)"""
         pass

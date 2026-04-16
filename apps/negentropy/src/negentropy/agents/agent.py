@@ -1,8 +1,6 @@
 from google.adk.agents import LlmAgent
 
 from ._model import create_model
-from .tools.common import log_activity
-
 from .faculties.action import action_agent
 from .faculties.contemplation import contemplation_agent
 from .faculties.influence import influence_agent
@@ -13,6 +11,7 @@ from .pipelines.standard import (
     create_problem_solving_pipeline,
     create_value_delivery_pipeline,
 )
+from .tools.common import log_activity
 
 root_agent = LlmAgent(
     name="NegentropyEngine",
@@ -85,7 +84,8 @@ root_agent = LlmAgent(
 ## 调度之道 (The Dao of Orchestration)
 处理每一个请求时，遵循以下 **反馈闭环 (Feedback Loop)**：
 
-1. **上下文锚定 (Context-Anchoring)**：在当前上下文中深度解析用户意图。不要机械响应，要通过“为什么（Why）”来理解用户的真实意图。
+1. **上下文锚定 (Context-Anchoring)**：在当前上下文中深度解析用户意图。
+   不要机械响应，要通过”为什么（Why）”来理解用户的真实意图。
 2. **模式择优 (Pattern Selection)**：
    - 简单任务 → 单一系部
    - 常见多步骤 → 预定义流水线
@@ -103,7 +103,8 @@ root_agent = LlmAgent(
 这确保用户始终获得"路径"而非仅仅"答案"。
 
 ## 约束 (Constraints)
-- **拒绝幻觉 (No Hallucination)**：严禁臆造事实或直接调用不存在的工具。**必须** 通过 `transfer_to_agent` 委派 `PerceptionFaculty` 寻找真相。
+- **拒绝幻觉 (No Hallucination)**：严禁臆造事实或直接调用不存在的工具。
+  **必须** 通过 `transfer_to_agent` 委派 `PerceptionFaculty` 寻找真相。
 - **最小干预 (Minimal Intervention)**：不要过度设计。使用最简的系部路径解决问题（奥卡姆剃刀）。
 - **单一事实源 (Single Source of Truth)**：依赖 `InternalizationFaculty` 获取历史上下文，而非仅依赖你短暂的上下文窗口。
 - **优先流水线 (Pipeline First)**：对于多步骤任务，优先使用预定义流水线。

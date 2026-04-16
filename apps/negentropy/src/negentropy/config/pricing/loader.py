@@ -8,10 +8,8 @@ Reference: https://open.bigmodel.cn/pricing
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from .models import GLMPricingConfig, ModelPricing
-
 
 # Default pricing file location (relative to this module)
 _PRICING_FILE = Path(__file__).parent / "glm_pricing.json"
@@ -34,13 +32,13 @@ def load_glm_pricing() -> GLMPricingConfig:
     if not _PRICING_FILE.exists():
         raise FileNotFoundError(f"Pricing configuration not found: {_PRICING_FILE}")
 
-    with open(_PRICING_FILE, "r", encoding="utf-8") as f:
+    with open(_PRICING_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
     return GLMPricingConfig.model_validate(data)
 
 
-def get_model_pricing(model_name: str) -> Optional[ModelPricing]:
+def get_model_pricing(model_name: str) -> ModelPricing | None:
     """
     Get pricing for a specific model.
 
@@ -61,7 +59,7 @@ def get_model_pricing(model_name: str) -> Optional[ModelPricing]:
 
     # Partial match with preference for longer (more specific) matches
     # e.g., "glm-4.7-flashx" matches "glm-4.7" over "glm-4"
-    best_match: Optional[Tuple[str, ModelPricing]] = None
+    best_match: tuple[str, ModelPricing] | None = None
     for key, pricing in config.models.items():
         if model_lower.startswith(key):
             if best_match is None or len(key) > len(best_match[0]):
@@ -73,7 +71,7 @@ def get_model_pricing(model_name: str) -> Optional[ModelPricing]:
     return None
 
 
-def get_model_pricing_usd(model_name: str) -> Optional[Dict[str, float]]:
+def get_model_pricing_usd(model_name: str) -> dict[str, float] | None:
     """
     Get pricing for a specific model in USD per 1M tokens.
 

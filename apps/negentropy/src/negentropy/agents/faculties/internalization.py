@@ -3,7 +3,6 @@ from google.adk.agents import LlmAgent
 from .._model import create_model
 from ..tools.common import log_activity
 from ..tools.internalization import save_to_memory, update_knowledge_graph
-from negentropy.config import settings
 
 _DESCRIPTION = (
     "Handles: memory storage, knowledge structuring, knowledge graph updates, long-term retention. "

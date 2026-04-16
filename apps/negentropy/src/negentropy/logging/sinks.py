@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import sys
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Literal
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal
+
 import orjson
 from structlog.typing import EventDict
 

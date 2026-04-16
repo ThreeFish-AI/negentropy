@@ -1,11 +1,10 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,10 +17,10 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from negentropy.models.base import Base, Vector as VectorType
-
 # Import all models to ensure they are registered with Base.metadata
-from negentropy.models import *  # noqa
+from negentropy.models import *  # noqa: F403, E402
+from negentropy.models.base import Base  # noqa: E402
+from negentropy.models.base import Vector as VectorType  # noqa: E402
 
 target_metadata = Base.metadata
 
@@ -31,12 +30,12 @@ target_metadata = Base.metadata
 # ... etc.
 
 
-from negentropy.config import settings
-
 # Register pgvector type name for reflection to avoid "unknown type" warnings.
 # This does not suppress warnings; it teaches SQLAlchemy how to interpret 'vector'.
-from sqlalchemy.dialects.postgresql.base import ischema_names
-from sqlalchemy.types import UserDefinedType
+from sqlalchemy.dialects.postgresql.base import ischema_names  # noqa: E402
+from sqlalchemy.types import UserDefinedType  # noqa: E402
+
+from negentropy.config import settings  # noqa: E402
 
 
 class _PGVector(UserDefinedType):

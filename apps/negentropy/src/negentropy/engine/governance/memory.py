@@ -23,7 +23,6 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,9 +43,9 @@ class AuditRecord:
 
     memory_id: str
     decision: str
-    version: Optional[int] = None
-    note: Optional[str] = None
-    created_at: Optional[datetime] = None
+    version: int | None = None
+    note: str | None = None
+    created_at: datetime | None = None
 
 
 class MemoryGovernanceService:
@@ -71,11 +70,11 @@ class MemoryGovernanceService:
         *,
         user_id: str,
         app_name: str,
-        decisions: Dict[str, str],
-        expected_versions: Optional[Dict[str, int]] = None,
-        note: Optional[str] = None,
-        idempotency_key: Optional[str] = None,
-    ) -> List[AuditRecord]:
+        decisions: dict[str, str],
+        expected_versions: dict[str, int] | None = None,
+        note: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> list[AuditRecord]:
         """处理用户记忆审计决策
 
         决策类型:
@@ -121,7 +120,7 @@ class MemoryGovernanceService:
                 )
                 return existing_records
 
-        records: List[AuditRecord] = []
+        records: list[AuditRecord] = []
 
         # 验证决策
         self._validate_decisions(decisions)
@@ -211,7 +210,7 @@ class MemoryGovernanceService:
         user_id: str,
         app_name: str,
         limit: int = 100,
-    ) -> List[AuditRecord]:
+    ) -> list[AuditRecord]:
         """获取审计历史
 
         Args:
@@ -322,7 +321,7 @@ class MemoryGovernanceService:
 
         return max(0.0, min(1.0, retention_score))
 
-    def _validate_decisions(self, decisions: Dict[str, str]) -> None:
+    def _validate_decisions(self, decisions: dict[str, str]) -> None:
         """验证审计决策
 
         Args:
@@ -482,7 +481,7 @@ class MemoryGovernanceService:
         app_name: str,
         user_id: str,
         idempotency_key: str,
-    ) -> Optional[List[AuditRecord]]:
+    ) -> list[AuditRecord] | None:
         """获取幂等性键对应的记录
 
         Args:

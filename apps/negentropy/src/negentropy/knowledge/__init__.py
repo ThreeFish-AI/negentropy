@@ -11,8 +11,8 @@ from .graph_repository import (
 )
 from .graph_service import (
     GraphBuildResult,
-    GraphService,
     GraphQueryResult,
+    GraphService,
     get_graph_service,
 )
 from .llm_extractors import (
@@ -23,16 +23,16 @@ from .llm_extractors import (
     LLMRelationExtractor,
     RelationExtractionResult,
 )
+from .repository import KnowledgeRepository
 from .reranking import (
     APIReranker,
     CompositeReranker,
     LocalReranker,
     NoopReranker,
-    Reranker,
     RerankConfig,
+    Reranker,
     create_default_reranker,
 )
-from .repository import KnowledgeRepository
 from .service import KnowledgeService
 from .types import (
     ChunkingConfig,
@@ -43,16 +43,16 @@ from .types import (
     GraphEdge,
     GraphNode,
     GraphQueryConfig,
+    KgEntityType,
+    KgRelationType,
     KnowledgeChunk,
     KnowledgeGraphPayload,
     KnowledgeMatch,
     KnowledgeRecord,
-    KgEntityType,
-    KgRelationType,
     SearchConfig,
     infer_source_type,
-    normalize_source_metadata,
     merge_search_results,
+    normalize_source_metadata,
 )
 
 # Backward-compatible aliases (deprecated)

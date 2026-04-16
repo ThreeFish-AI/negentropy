@@ -11,16 +11,15 @@
 
 from __future__ import annotations
 
-import logging
 import re
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.knowledge.catalog_dao import CatalogDao
-from negentropy.models.perception import DocCatalogNode, KnowledgeDocument
 from negentropy.logging import get_logger
+from negentropy.models.perception import DocCatalogNode, KnowledgeDocument
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
 
@@ -41,12 +40,12 @@ class CatalogService:
         *,
         corpus_id: UUID,
         name: str,
-        slug: Optional[str] = None,
-        parent_id: Optional[UUID] = None,
+        slug: str | None = None,
+        parent_id: UUID | None = None,
         node_type: str = "category",
-        description: Optional[str] = None,
+        description: str | None = None,
         sort_order: int = 0,
-        config: Optional[dict] = None,
+        config: dict | None = None,
     ) -> DocCatalogNode:
         """创建目录节点
 
@@ -122,7 +121,7 @@ class CatalogService:
         self,
         db: AsyncSession,
         node_id: UUID,
-        new_parent_id: Optional[UUID],
+        new_parent_id: UUID | None,
     ) -> DocCatalogNode | None:
         """移动节点到新的父节点下
 

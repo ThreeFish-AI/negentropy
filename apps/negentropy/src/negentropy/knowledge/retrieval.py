@@ -12,16 +12,14 @@
 
 from __future__ import annotations
 
-import logging
 import re
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.types import SearchConfig, create_chunking_config
 from negentropy.logging import get_logger
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
@@ -98,17 +96,17 @@ class UnifiedRetrievalService:
         db: AsyncSession,
         *,
         query: str,
-        corpus_ids: Optional[list[UUID]] = None,
-        source_types: Optional[list[str]] = None,
-        entity_types: Optional[list[str]] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        tags: Optional[list[str]] = None,
+        corpus_ids: list[UUID] | None = None,
+        source_types: list[str] | None = None,
+        entity_types: list[str] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        tags: list[str] | None = None,
         limit: int = 20,
         offset: int = 0,
         include_citations: bool = False,
         include_entities: bool = False,
-        mode: Optional[str] = None,
+        mode: str | None = None,
     ) -> dict[str, Any]:
         """统一检索入口
 
@@ -181,10 +179,10 @@ class UnifiedRetrievalService:
         db: AsyncSession,
         *,
         query: str,
-        corpus_ids: Optional[list[UUID]],
-        source_types: Optional[list[str]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
+        corpus_ids: list[UUID] | None,
+        source_types: list[str] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
         limit: int,
         offset: int,
         intent: str,
@@ -300,7 +298,7 @@ class UnifiedRetrievalService:
         db: AsyncSession,
         *,
         query: str,
-        corpus_ids: Optional[list[UUID]],
+        corpus_ids: list[UUID] | None,
         limit: int,
     ) -> dict[str, Any]:
         """导航模式 — 返回语料库/文档列表"""
@@ -341,7 +339,7 @@ class UnifiedRetrievalService:
     async def _build_facets(
         self,
         db: AsyncSession,
-        corpus_ids: Optional[list[UUID]] = None,
+        corpus_ids: list[UUID] | None = None,
     ) -> dict[str, Any]:
         """构建分面统计信息"""
         facets: dict[str, Any] = {}
@@ -364,7 +362,7 @@ class UnifiedRetrievalService:
         items: list[dict],
     ) -> list[dict]:
         """为结果项添加引用信息"""
-        from negentropy.models.perception import DocSource, KnowledgeDocument
+        from negentropy.models.perception import DocSource
 
         for item in items:
             doc_id = item.get("document_id")
@@ -421,7 +419,7 @@ class UnifiedRetrievalService:
         feedback = KnowledgeFeedback(
             feedback_type="impression",
             query_text=query,
-            metadata={"intent": intent, "timestamp": datetime.now(timezone.utc).isoformat()},
+            metadata={"intent": intent, "timestamp": datetime.now(UTC).isoformat()},
         )
         db.add(feedback)
         await db.flush()
@@ -431,10 +429,10 @@ class UnifiedRetrievalService:
         db: AsyncSession,
         *,
         feedback_type: str,  # click / useful / not_useful
-        query_text: Optional[str] = None,
-        document_id: Optional[UUID] = None,
-        knowledge_id: Optional[UUID] = None,
-        metadata: Optional[dict] = None,
+        query_text: str | None = None,
+        document_id: UUID | None = None,
+        knowledge_id: UUID | None = None,
+        metadata: dict | None = None,
     ) -> None:
         """记录用户反馈（点击/有用/无用）"""
         from negentropy.models.perception import KnowledgeFeedback

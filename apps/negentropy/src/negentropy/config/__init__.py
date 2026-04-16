@@ -30,8 +30,8 @@ Note:
     通过 Admin UI 管理，使用 model_resolver 解析。
 """
 
-from functools import cached_property
 import os
+from functools import cached_property
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

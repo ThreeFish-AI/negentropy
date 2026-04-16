@@ -9,11 +9,10 @@ ArtifactsFactory: 统一的 ArtifactService 后端工厂
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import google.auth
 from google.adk.artifacts import BaseArtifactService
-from google.cloud import storage
 
 from negentropy.config import settings
 
@@ -46,7 +45,8 @@ def create_gcs_artifact_service() -> BaseArtifactService:
     try:
         google.auth.default()
     except google.auth.exceptions.DefaultCredentialsError:
-        raise ValueError("GCS ArtifactService requires Google Cloud credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS)")
+        msg = "GCS ArtifactService requires Google Cloud credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS)"
+        raise ValueError(msg) from None
 
     return GcsArtifactService(bucket_name=settings.gcs_bucket_name)
 
@@ -58,7 +58,7 @@ _BACKEND_FACTORIES = {
 }
 
 # 模块级单例缓存
-_artifact_service_instance: Optional[BaseArtifactService] = None
+_artifact_service_instance: BaseArtifactService | None = None
 
 
 def get_artifact_service(backend: str | None = None) -> BaseArtifactService:
@@ -83,7 +83,7 @@ def get_artifact_service(backend: str | None = None) -> BaseArtifactService:
     except ValueError:
         raise ValueError(
             f"Unsupported artifact backend: {backend_str}. Supported: {[b.value for b in ArtifactBackend]}"
-        )
+        ) from None
 
     # 如果已有缓存实例且未显式指定 backend，直接返回
     if _artifact_service_instance is not None and backend is None:

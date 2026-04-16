@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -18,9 +18,7 @@ from negentropy.models.perception import (
     Corpus,
     CorpusVersion,
     KnowledgeDocument,
-    KnowledgeFeedback,
 )
-from negentropy.models.base import NEGENTROPY_SCHEMA
 
 logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 
@@ -72,7 +70,7 @@ class CorpusEngine:
                 "total_score": 0.0,
                 "scores": {},
                 "details": {"document_count": 0},
-                "assessed_at": datetime.now(timezone.utc).isoformat(),
+                "assessed_at": datetime.now(UTC).isoformat(),
                 "grade": "empty",
             }
 
@@ -90,7 +88,7 @@ class CorpusEngine:
         # 3. 新鲜度（基于 updated_at）
         freshness_result = await db.execute(
             select(
-                func.avg(func.extract("epoch", datetime.now(timezone.utc) - KnowledgeDocument.updated_at)).label(
+                func.avg(func.extract("epoch", datetime.now(UTC) - KnowledgeDocument.updated_at)).label(
                     "avg_age_seconds"
                 )
             ).where(KnowledgeDocument.corpus_id == corpus_id)
@@ -136,7 +134,7 @@ class CorpusEngine:
             "total_score": round(total_score, 4),
             "scores": {k: round(v, 4) for k, v in scores.items()},
             "details": details,
-            "assessed_at": datetime.now(timezone.utc).isoformat(),
+            "assessed_at": datetime.now(UTC).isoformat(),
             "grade": grade,
         }
 
@@ -156,9 +154,9 @@ class CorpusEngine:
         db: AsyncSession,
         *,
         corpus_id: UUID,
-        quality_score: Optional[float] = None,
-        triggered_by: Optional[str] = None,
-        notes: Optional[str] = None,
+        quality_score: float | None = None,
+        triggered_by: str | None = None,
+        notes: str | None = None,
     ) -> CorpusVersion:
         """创建语料库版本快照
 

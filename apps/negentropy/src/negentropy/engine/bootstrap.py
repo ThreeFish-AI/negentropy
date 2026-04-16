@@ -1,22 +1,23 @@
-import sys
-import os
 import base64
-from typing import Any, Optional
+import os
+import sys
 from pathlib import Path
+from typing import Any
 
 # Import the original factory module to be patched
 import google.adk.cli.utils.service_factory as original_factory
 
+from negentropy.config import settings
+
 # Import our custom factories
 from negentropy.engine.factories import (
-    get_session_service,
-    get_memory_service,
     get_artifact_service,
     get_credential_service,
+    get_memory_service,
+    get_session_service,
 )
-from negentropy.config import settings
-from negentropy.logging import configure_logging, get_logger
 from negentropy.instrumentation import LiteLLMLoggingCallback, patch_litellm_otel_cost
+from negentropy.logging import configure_logging, get_logger
 
 # ------------------------------------------------------------------------------
 # Map Negentropy API key to provider-specific env vars (if not already set)
@@ -92,9 +93,9 @@ _original_create_artifact = original_factory.create_artifact_service_from_option
 def patched_create_session_service_from_options(
     *,
     base_dir: Path | str,
-    session_service_uri: Optional[str] = None,
-    session_db_kwargs: Optional[dict[str, Any]] = None,
-    app_name_to_dir: Optional[dict[str, str]] = None,
+    session_service_uri: str | None = None,
+    session_db_kwargs: dict[str, Any] | None = None,
+    app_name_to_dir: dict[str, str] | None = None,
     use_local_storage: bool = True,
 ):
     """
@@ -119,7 +120,7 @@ def patched_create_session_service_from_options(
 def patched_create_memory_service_from_options(
     *,
     base_dir: Path | str,
-    memory_service_uri: Optional[str] = None,
+    memory_service_uri: str | None = None,
 ):
     """
     Patched factory that prefers negentropy settings if no explicit URI is provided.
@@ -138,7 +139,7 @@ def patched_create_memory_service_from_options(
 def patched_create_artifact_service_from_options(
     *,
     base_dir: Path | str,
-    artifact_service_uri: Optional[str] = None,
+    artifact_service_uri: str | None = None,
     strict_uri: bool = False,
     use_local_storage: bool = True,
 ):
@@ -210,17 +211,20 @@ def apply_adk_patches():
     def _inject_negentropy_routes(app):
         logger.info("Injecting TracingInitMiddleware into ADK FastAPI app")
 
+        import uuid
+
+        from opentelemetry import baggage, trace
+        from opentelemetry import context as otel_context
+        from opentelemetry.sdk.trace import Status, StatusCode
         from starlette.middleware.base import BaseHTTPMiddleware
         from starlette.requests import Request
-        from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
-        from opentelemetry import baggage, context as otel_context, trace
-        from opentelemetry.sdk.trace import StatusCode, Status
-        import uuid
-        from negentropy.knowledge.api import router as knowledge_router
-        from negentropy.engine.api import router as memory_router
-        from negentropy.engine.sessions_api import router as sessions_router
+
         from negentropy.auth.api import router as auth_router
         from negentropy.auth.middleware import AuthMiddleware
+        from negentropy.engine.adapters.postgres.tracing import get_tracing_manager, set_tracing_context
+        from negentropy.engine.api import router as memory_router
+        from negentropy.engine.sessions_api import router as sessions_router
+        from negentropy.knowledge.api import router as knowledge_router
         from negentropy.plugins.api import router as plugins_router
 
         class TracingInitMiddleware(BaseHTTPMiddleware):

@@ -4,8 +4,6 @@ Observability Configuration.
 Configures connection settings for external observability platforms (Langfuse, OTLP collectors).
 """
 
-from typing import Optional
-
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -29,11 +27,11 @@ class ObservabilitySettings(BaseSettings):
         default="https://cloud.langfuse.com",
         description="Langfuse API Host (e.g. https://cloud.langfuse.com or self-hosted)",
     )
-    langfuse_public_key: Optional[str] = Field(
+    langfuse_public_key: str | None = Field(
         default=None,
         description="Langfuse Public Key (pk-lf-...)",
     )
-    langfuse_secret_key: Optional[SecretStr] = Field(
+    langfuse_secret_key: SecretStr | None = Field(
         default=None,
         description="Langfuse Secret Key (sk-lf-...)",
     )

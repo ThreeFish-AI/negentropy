@@ -3,7 +3,7 @@ SSO/Auth Configuration.
 """
 
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,13 +31,13 @@ class AuthSettings(BaseSettings):
 
     token_secret: SecretStr = Field(default=SecretStr(""), description="HMAC secret for session tokens")
 
-    google_client_id: Optional[str] = Field(default=None, description="Google OAuth client ID")
-    google_client_secret: Optional[SecretStr] = Field(default=None, description="Google OAuth client secret")
-    google_redirect_uri: Optional[str] = Field(default=None, description="Google OAuth redirect URI")
+    google_client_id: str | None = Field(default=None, description="Google OAuth client ID")
+    google_client_secret: SecretStr | None = Field(default=None, description="Google OAuth client secret")
+    google_redirect_uri: str | None = Field(default=None, description="Google OAuth redirect URI")
     google_scopes: list[str] = Field(default_factory=lambda: ["openid", "email", "profile"])
 
     cookie_name: str = Field(default="ne_sso", description="Session cookie name")
-    cookie_domain: Optional[str] = Field(default=None, description="Session cookie domain")
+    cookie_domain: str | None = Field(default=None, description="Session cookie domain")
     cookie_secure: bool = Field(default=False, description="Send cookie over HTTPS only")
     cookie_same_site: Literal["lax", "strict", "none"] = Field(default="lax", description="SameSite policy")
 

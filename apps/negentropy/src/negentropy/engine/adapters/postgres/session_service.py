@@ -16,11 +16,13 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from google.adk.events import Event as ADKEvent
+
+if TYPE_CHECKING:
+    from negentropy.models.pulse import Event
 
 # ADK 官方类型
 from google.adk.sessions import Session
@@ -29,7 +31,8 @@ from google.adk.sessions.base_session_service import (
     GetSessionConfig,
     ListSessionsResponse,
 )
-from google.adk.events import Event as ADKEvent
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
@@ -74,8 +77,8 @@ class PostgresSessionService(BaseSessionService):
         *,
         app_name: str,
         user_id: str,
-        state: Optional[dict[str, Any]] = None,
-        session_id: Optional[str] = None,
+        state: dict[str, Any] | None = None,
+        session_id: str | None = None,
     ) -> Session:
         """创建新会话"""
         sid = session_id or str(uuid.uuid4())
@@ -99,7 +102,7 @@ class PostgresSessionService(BaseSessionService):
             user_id=user_id,
             state=initial_state,
             events=[],
-            last_update_time=datetime.now(timezone.utc).timestamp(),
+            last_update_time=datetime.now(UTC).timestamp(),
         )
 
     async def get_session(
@@ -108,8 +111,8 @@ class PostgresSessionService(BaseSessionService):
         app_name: str,
         user_id: str,
         session_id: str,
-        config: Optional[GetSessionConfig] = None,
-    ) -> Optional[Session]:
+        config: GetSessionConfig | None = None,
+    ) -> Session | None:
         """获取会话"""
         self._validate_session_id(session_id)
         try:
@@ -156,12 +159,10 @@ class PostgresSessionService(BaseSessionService):
                 user_id=thread.user_id,
                 state={**(thread.state or {}), "metadata": thread.metadata_ or {}},  # 合并 metadata_ 到 state
                 events=[self._orm_to_adk_event(e) for e in events],
-                last_update_time=thread.updated_at.timestamp()
-                if thread.updated_at
-                else datetime.now(timezone.utc).timestamp(),
+                last_update_time=thread.updated_at.timestamp() if thread.updated_at else datetime.now(UTC).timestamp(),
             )
 
-    async def list_sessions(self, *, app_name: str, user_id: Optional[str] = None) -> ListSessionsResponse:
+    async def list_sessions(self, *, app_name: str, user_id: str | None = None) -> ListSessionsResponse:
         """列出所有会话"""
         async with db_session.AsyncSessionLocal() as db:
             query = select(self.Thread).where(self.Thread.app_name == app_name)
@@ -179,7 +180,7 @@ class PostgresSessionService(BaseSessionService):
                 user_id=t.user_id,
                 state={**(t.state or {}), "metadata": t.metadata_ or {}},  # 合并 metadata_ 到 state
                 events=[],  # 列表不加载 events
-                last_update_time=t.updated_at.timestamp() if t.updated_at else datetime.now(timezone.utc).timestamp(),
+                last_update_time=t.updated_at.timestamp() if t.updated_at else datetime.now(UTC).timestamp(),
             )
             for t in threads
         ]
@@ -228,9 +229,7 @@ class PostgresSessionService(BaseSessionService):
 
             # 3. 更新 Thread updated_at
             stmt = (
-                update(self.Thread)
-                .where(self.Thread.id == uuid.UUID(session.id))
-                .values(updated_at=datetime.now(timezone.utc))
+                update(self.Thread).where(self.Thread.id == uuid.UUID(session.id)).values(updated_at=datetime.now(UTC))
             )
 
             await db.execute(stmt)
@@ -246,8 +245,9 @@ class PostgresSessionService(BaseSessionService):
         """后台生成标题并更新 metadata_"""
         self._validate_session_id(session_id)
 
-        from negentropy.engine.summarization import SessionSummarizer
         from google.genai import types
+
+        from negentropy.engine.summarization import SessionSummarizer
         from negentropy.logging import get_logger
 
         logger = get_logger("negentropy.session_service")
@@ -357,7 +357,7 @@ class PostgresSessionService(BaseSessionService):
         app_name: str,
         user_id: str,
         session_id: str,
-        title: Optional[str],
+        title: str | None,
     ) -> bool:
         """更新会话标题 (metadata.title)"""
         self._validate_session_id(session_id)
@@ -389,7 +389,7 @@ class PostgresSessionService(BaseSessionService):
                 )
                 .values(
                     metadata_=current_metadata,
-                    updated_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(UTC),
                 )
             )
             await db.commit()
@@ -430,7 +430,7 @@ class PostgresSessionService(BaseSessionService):
                 )
                 .values(
                     metadata_=current_metadata,
-                    updated_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(UTC),
                 )
             )
             await db.commit()
@@ -499,10 +499,10 @@ class PostgresSessionService(BaseSessionService):
                     )
                 )
 
-    def _orm_to_adk_event(self, event: "Event") -> ADKEvent:
+    def _orm_to_adk_event(self, event: Event) -> ADKEvent:
         """将 ORM Event 对象转换为 ADK Event 对象（完整恢复）"""
-        from google.genai import types
         from google.adk.events import EventActions
+        from google.genai import types
 
         content_dict = event.content or {}
 
@@ -538,7 +538,7 @@ class PostgresSessionService(BaseSessionService):
             author=event.author,
             content=content,
             actions=actions,
-            timestamp=event.created_at.timestamp() if event.created_at else datetime.now(timezone.utc).timestamp(),
+            timestamp=event.created_at.timestamp() if event.created_at else datetime.now(UTC).timestamp(),
         )
 
     def _ensure_uuid(self, value: Any) -> uuid.UUID:

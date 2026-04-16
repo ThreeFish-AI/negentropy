@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import HTTPException, Request, status
 
 from negentropy.config import settings
@@ -10,7 +8,7 @@ from .service import AuthService, AuthUser
 from .tokens import TokenError
 
 
-def _extract_bearer_token(request: Request) -> Optional[str]:
+def _extract_bearer_token(request: Request) -> str | None:
     auth_header = request.headers.get("authorization")
     if auth_header and auth_header.lower().startswith("bearer "):
         return auth_header.split(" ", 1)[1].strip()
@@ -30,7 +28,7 @@ def get_current_user(request: Request) -> AuthUser:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
-def get_optional_user(request: Request) -> Optional[AuthUser]:
+def get_optional_user(request: Request) -> AuthUser | None:
     token = _extract_bearer_token(request)
     if not token:
         return None

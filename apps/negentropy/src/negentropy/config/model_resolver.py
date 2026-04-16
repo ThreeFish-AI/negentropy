@@ -18,26 +18,26 @@ Model Resolver — DB 单一事实源的模型配置解析器。
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 # Cache TTL in seconds
 _CACHE_TTL = 60.0
 
 # 硬编码默认值 — DB 不可达时的回退配置
 _DEFAULT_LLM_MODEL = "zai/glm-5"
-_DEFAULT_LLM_KWARGS: Dict[str, Any] = {
+_DEFAULT_LLM_KWARGS: dict[str, Any] = {
     "temperature": 0.7,
     "drop_params": True,
     "extra_body": {"thinking": {"type": "disabled"}},
 }
 _DEFAULT_EMBEDDING_MODEL = "vertex_ai/text-embedding-005"
-_DEFAULT_EMBEDDING_KWARGS: Dict[str, Any] = {}
+_DEFAULT_EMBEDDING_KWARGS: dict[str, Any] = {}
 
 # In-memory cache: { model_type: (full_model_name, kwargs, timestamp) }
-_cache: Dict[str, Tuple[str, Dict[str, Any], float]] = {}
+_cache: dict[str, tuple[str, dict[str, Any], float]] = {}
 
 
-def invalidate_cache(model_type: Optional[str] = None) -> None:
+def invalidate_cache(model_type: str | None = None) -> None:
     """使缓存失效。Admin 写操作后调用。
 
     Args:
@@ -49,7 +49,7 @@ def invalidate_cache(model_type: Optional[str] = None) -> None:
         _cache.clear()
 
 
-def get_cached_llm_config() -> Optional[Tuple[str, Dict[str, Any]]]:
+def get_cached_llm_config() -> tuple[str, dict[str, Any]] | None:
     """同步缓存读取 — 用于 create_model() 等无法 await 的上下文。
 
     返回 kwargs 的浅拷贝，防止调用方原地修改污染缓存。
@@ -65,7 +65,7 @@ def get_cached_llm_config() -> Optional[Tuple[str, Dict[str, Any]]]:
     return None
 
 
-def get_cached_embedding_config() -> Optional[Tuple[str, Dict[str, Any]]]:
+def get_cached_embedding_config() -> tuple[str, dict[str, Any]] | None:
     """同步缓存读取 — Embedding 模型。返回 kwargs 浅拷贝。"""
     entry = _cache.get("embedding")
     if entry is not None:
@@ -75,17 +75,17 @@ def get_cached_embedding_config() -> Optional[Tuple[str, Dict[str, Any]]]:
     return None
 
 
-def get_fallback_llm_config() -> Tuple[str, Dict[str, Any]]:
+def get_fallback_llm_config() -> tuple[str, dict[str, Any]]:
     """同步获取硬编码 LLM 默认值 — 供消费者在无法 await 的上下文中使用。"""
     return _DEFAULT_LLM_MODEL, _DEFAULT_LLM_KWARGS.copy()
 
 
-def get_fallback_embedding_config() -> Tuple[str, Dict[str, Any]]:
+def get_fallback_embedding_config() -> tuple[str, dict[str, Any]]:
     """同步获取硬编码 Embedding 默认值。"""
     return _DEFAULT_EMBEDDING_MODEL, _DEFAULT_EMBEDDING_KWARGS.copy()
 
 
-async def resolve_llm_config() -> Tuple[str, Dict[str, Any]]:
+async def resolve_llm_config() -> tuple[str, dict[str, Any]]:
     """异步解析默认 LLM 模型配置。
 
     Returns:
@@ -94,7 +94,7 @@ async def resolve_llm_config() -> Tuple[str, Dict[str, Any]]:
     return await _resolve("llm")
 
 
-async def resolve_embedding_config() -> Tuple[str, Dict[str, Any]]:
+async def resolve_embedding_config() -> tuple[str, dict[str, Any]]:
     """异步解析默认 Embedding 模型配置。
 
     Returns:
@@ -103,7 +103,7 @@ async def resolve_embedding_config() -> Tuple[str, Dict[str, Any]]:
     return await _resolve("embedding")
 
 
-async def _resolve(model_type: str) -> Tuple[str, Dict[str, Any]]:
+async def _resolve(model_type: str) -> tuple[str, dict[str, Any]]:
     """核心解析: DB → 缓存 → .env 回退。"""
     now = time.monotonic()
 
@@ -134,7 +134,7 @@ async def _resolve(model_type: str) -> Tuple[str, Dict[str, Any]]:
     return name, kwargs.copy()
 
 
-async def _resolve_from_db(model_type: str) -> Optional[Tuple[str, Dict[str, Any]]]:
+async def _resolve_from_db(model_type: str) -> tuple[str, dict[str, Any]] | None:
     """从 DB 查询默认模型配置。"""
     from sqlalchemy import select
 
@@ -169,7 +169,7 @@ async def _resolve_from_db(model_type: str) -> Optional[Tuple[str, Dict[str, Any
     return full_name, kwargs
 
 
-def _resolve_defaults(model_type: str) -> Tuple[str, Dict[str, Any]]:
+def _resolve_defaults(model_type: str) -> tuple[str, dict[str, Any]]:
     """返回硬编码默认值 — DB 不可达时的回退。"""
     if model_type == "embedding":
         return get_fallback_embedding_config()
@@ -184,7 +184,7 @@ def build_full_model_name(vendor: str, model_name: str) -> str:
     return canonicalize_model_name(raw) or raw
 
 
-async def _get_vendor_config(vendor: str) -> Optional[Dict[str, str]]:
+async def _get_vendor_config(vendor: str) -> dict[str, str] | None:
     """从 DB 查询供应商级凭证（api_key + api_base）。查询失败时静默返回 None。"""
     try:
         from sqlalchemy import select
@@ -205,14 +205,14 @@ async def _get_vendor_config(vendor: str) -> Optional[Dict[str, str]]:
 
 
 def _build_llm_kwargs(
-    vendor: str, model_name: str, config: Dict[str, Any], vendor_config: Optional[Dict[str, str]] = None
-) -> Dict[str, Any]:
+    vendor: str, model_name: str, config: dict[str, Any], vendor_config: dict[str, str] | None = None
+) -> dict[str, Any]:
     """从 DB config JSONB 构建 LiteLLM kwargs。
 
     供应商特定的 LiteLLM kwargs 构建逻辑。
     凭证解析链: model config > vendor config > LiteLLM 环境变量回退。
     """
-    kwargs: Dict[str, Any] = {}
+    kwargs: dict[str, Any] = {}
 
     if "temperature" in config:
         kwargs["temperature"] = config["temperature"]
@@ -228,7 +228,7 @@ def _build_llm_kwargs(
         kwargs["drop_params"] = config.get("drop_params", True)
         thinking_mode = config.get("thinking_mode", False)
         if thinking_mode:
-            thinking_config: Dict[str, Any] = {
+            thinking_config: dict[str, Any] = {
                 "type": "enabled",
                 "budget_tokens": config.get("thinking_budget", 2048),
             }
@@ -267,9 +267,9 @@ def _build_llm_kwargs(
     return kwargs
 
 
-def _build_embedding_kwargs(config: Dict[str, Any], vendor_config: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+def _build_embedding_kwargs(config: dict[str, Any], vendor_config: dict[str, str] | None = None) -> dict[str, Any]:
     """从 DB config JSONB 构建 Embedding kwargs。"""
-    kwargs: Dict[str, Any] = {}
+    kwargs: dict[str, Any] = {}
     if "dimensions" in config and config["dimensions"] is not None:
         kwargs["dimensions"] = config["dimensions"]
     if "input_type" in config and config["input_type"]:

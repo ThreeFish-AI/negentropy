@@ -8,19 +8,18 @@ Wiki 发布 — 数据访问层 (DAO)
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from datetime import UTC
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select, update as sql_update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.models.perception import (
-    Knowledge,
     KnowledgeDocument,
     WikiPublication,
     WikiPublicationEntry,
 )
-from negentropy.models.base import NEGENTROPY_SCHEMA
 
 logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 
@@ -39,11 +38,11 @@ class WikiDao:
         corpus_id: UUID,
         name: str,
         slug: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         theme: str = "default",
-        navigation_config: Optional[dict] = None,
-        custom_css: Optional[str] = None,
-        custom_js: Optional[str] = None,
+        navigation_config: dict | None = None,
+        custom_css: str | None = None,
+        custom_js: str | None = None,
     ) -> WikiPublication:
         """创建 Wiki 发布记录（初始状态为 draft）"""
         pub = WikiPublication(
@@ -92,8 +91,8 @@ class WikiDao:
     async def list_publications(
         db: AsyncSession,
         *,
-        corpus_id: Optional[UUID] = None,
-        status: Optional[str] = None,
+        corpus_id: UUID | None = None,
+        status: str | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[WikiPublication], int]:
@@ -169,11 +168,11 @@ class WikiDao:
         if pub.status not in ("draft", "published"):
             raise ValueError(f"Cannot publish a publication in status: {pub.status}")
 
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         pub.status = "published"
         pub.version += 1
-        pub.published_at = datetime.now(timezone.utc)
+        pub.published_at = datetime.now(UTC)
         await db.flush()
 
         logger.info(
@@ -216,8 +215,8 @@ class WikiDao:
         publication_id: UUID,
         document_id: UUID,
         entry_slug: str,
-        entry_title: Optional[str] = None,
-        entry_order: Optional[dict] = None,
+        entry_title: str | None = None,
+        entry_order: dict | None = None,
         is_index_page: bool = False,
     ) -> WikiPublicationEntry:
         """创建或更新条目映射（幂等：同一 publication+document 组合只保留一条）"""

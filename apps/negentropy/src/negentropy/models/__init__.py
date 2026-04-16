@@ -5,26 +5,25 @@ from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpServer, McpTool
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
 from .model_config import ModelConfig, ModelType
-from .vendor_config import VendorConfig
 from .observability import Trace
 from .perception import (
     Corpus,
-    Knowledge,
-    KnowledgeDocument,
-    # Phase 2: 来源追踪
-    DocSource,
+    CorpusVersion,
+    DocCatalogMembership,
     # Phase 3: 目录编目
     DocCatalogNode,
-    DocCatalogMembership,
+    # Phase 2: 来源追踪
+    DocSource,
+    # Phase 5: 知识图谱增强
+    KgEntity,
+    KgEntityMention,
+    KgRelation,
+    Knowledge,
+    KnowledgeDocument,
+    KnowledgeFeedback,
     # Phase 4: Wiki 发布
     WikiPublication,
     WikiPublicationEntry,
-    # Phase 5: 知识图谱增强
-    KgEntity,
-    KgRelation,
-    KgEntityMention,
-    CorpusVersion,
-    KnowledgeFeedback,
 )
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
 from .pulse import Event, Message, Run, Snapshot, Thread
@@ -32,6 +31,7 @@ from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
 from .sub_agent import SubAgent
+from .vendor_config import VendorConfig
 
 __all__ = [
     # Base

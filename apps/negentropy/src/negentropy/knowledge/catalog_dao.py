@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import (
@@ -18,12 +17,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import (
     DocCatalogMembership,
     DocCatalogNode,
     KnowledgeDocument,
 )
-from negentropy.models.base import NEGENTROPY_SCHEMA
 
 logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 
@@ -45,11 +44,11 @@ class CatalogDao:
         corpus_id: UUID,
         name: str,
         slug: str,
-        parent_id: Optional[UUID] = None,
+        parent_id: UUID | None = None,
         node_type: str = "category",
-        description: Optional[str] = None,
+        description: str | None = None,
         sort_order: int = 0,
-        config: Optional[dict] = None,
+        config: dict | None = None,
     ) -> DocCatalogNode:
         """创建目录节点"""
         node = DocCatalogNode(
@@ -98,13 +97,13 @@ class CatalogDao:
         db: AsyncSession,
         node_id: UUID,
         *,
-        name: Optional[str] = None,
-        slug: Optional[str] = None,
-        parent_id: Optional[UUID] = None,
-        node_type: Optional[str] = None,
-        description: Optional[str] = None,
-        sort_order: Optional[int] = None,
-        config: Optional[dict] = None,
+        name: str | None = None,
+        slug: str | None = None,
+        parent_id: UUID | None = None,
+        node_type: str | None = None,
+        description: str | None = None,
+        sort_order: int | None = None,
+        config: dict | None = None,
     ) -> DocCatalogNode | None:
         """更新目录节点（仅更新传入的非 None 字段）"""
         node = await CatalogDao.get_node(db, node_id)

@@ -6,12 +6,11 @@ including deduplication, listing, and deletion.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import or_, select, func
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
@@ -30,7 +29,7 @@ class DocumentStorageService:
     handling file deduplication based on content hash.
     """
 
-    def __init__(self, gcs_client: Optional[GCSStorageClient] = None):
+    def __init__(self, gcs_client: GCSStorageClient | None = None):
         self._gcs = gcs_client
 
     def _get_gcs_client(self) -> GCSStorageClient:
@@ -67,7 +66,7 @@ class DocumentStorageService:
         self,
         corpus_id: UUID,
         file_hash: str,
-    ) -> Optional[KnowledgeDocument]:
+    ) -> KnowledgeDocument | None:
         """Check if document with same hash exists in corpus (any status).
 
         查询范围包含所有状态（active / deleted 等），以匹配数据库唯一约束
@@ -92,9 +91,9 @@ class DocumentStorageService:
     def _best_effort_cleanup_gcs(
         gcs_client: GCSStorageClient,
         *,
-        old_gcs_uri: Optional[str],
-        old_markdown_gcs_uri: Optional[str],
-        old_metadata: Optional[dict],
+        old_gcs_uri: str | None,
+        old_markdown_gcs_uri: str | None,
+        old_metadata: dict | None,
     ) -> None:
         """Best-effort 清理旧 GCS 资源，失败仅记录日志，不阻断主流程。"""
         for uri in (old_gcs_uri, old_markdown_gcs_uri):
@@ -121,9 +120,9 @@ class DocumentStorageService:
         app_name: str,
         content: bytes,
         filename: str,
-        content_type: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        created_by: Optional[str] = None,
+        content_type: str | None = None,
+        metadata: dict | None = None,
+        created_by: str | None = None,
     ) -> KnowledgeDocument:
         """复活 soft-deleted 文档：重新上传 GCS 并更新记录状态。
 
@@ -185,10 +184,10 @@ class DocumentStorageService:
         app_name: str,
         content: bytes,
         filename: str,
-        content_type: Optional[str] = None,
-        metadata: Optional[dict] = None,
-        created_by: Optional[str] = None,
-    ) -> Tuple[KnowledgeDocument, bool]:
+        content_type: str | None = None,
+        metadata: dict | None = None,
+        created_by: str | None = None,
+    ) -> tuple[KnowledgeDocument, bool]:
         """Upload document to GCS and store metadata.
 
         This method handles deduplication: if a document with the same
@@ -318,11 +317,11 @@ class DocumentStorageService:
 
     async def list_documents(
         self,
-        corpus_id: Optional[UUID] = None,
-        app_name: Optional[str] = None,
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> Tuple[list[KnowledgeDocument], int]:
+    ) -> tuple[list[KnowledgeDocument], int]:
         """List documents with optional filtering.
 
         Args:
@@ -363,9 +362,9 @@ class DocumentStorageService:
     async def get_document(
         self,
         document_id: UUID,
-        corpus_id: Optional[UUID] = None,
-        app_name: Optional[str] = None,
-    ) -> Optional[KnowledgeDocument]:
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
+    ) -> KnowledgeDocument | None:
         """Get a specific document by ID.
 
         Args:
@@ -390,8 +389,8 @@ class DocumentStorageService:
     async def delete_document(
         self,
         document_id: UUID,
-        corpus_id: Optional[UUID] = None,
-        app_name: Optional[str] = None,
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
         soft_delete: bool = True,
     ) -> bool:
         """Delete document (soft or hard delete).
@@ -471,10 +470,10 @@ class DocumentStorageService:
         self,
         *,
         gcs_uri: str,
-        corpus_id: Optional[UUID] = None,
-        app_name: Optional[str] = None,
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
         include_deleted: bool = False,
-    ) -> Optional[KnowledgeDocument]:
+    ) -> KnowledgeDocument | None:
         """按 gcs_uri 查询文档记录。"""
         async with AsyncSessionLocal() as db:
             conditions = [KnowledgeDocument.gcs_uri == gcs_uri]
@@ -493,9 +492,9 @@ class DocumentStorageService:
         self,
         *,
         source_uri: str,
-        corpus_id: Optional[UUID] = None,
-        app_name: Optional[str] = None,
-    ) -> Optional[KnowledgeDocument]:
+        corpus_id: UUID | None = None,
+        app_name: str | None = None,
+    ) -> KnowledgeDocument | None:
         async with AsyncSessionLocal() as db:
             conditions = [
                 or_(
@@ -517,7 +516,7 @@ class DocumentStorageService:
         *,
         document_id: UUID,
         status: str,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> bool:
         """更新 Markdown 提取状态。"""
         async with AsyncSessionLocal() as db:
@@ -530,7 +529,7 @@ class DocumentStorageService:
             doc.markdown_extract_status = status
             doc.markdown_extract_error = error
             if status == "completed":
-                doc.markdown_extracted_at = datetime.now(timezone.utc)
+                doc.markdown_extracted_at = datetime.now(UTC)
             await db.commit()
             return True
 
@@ -539,7 +538,7 @@ class DocumentStorageService:
         *,
         document_id: UUID,
         markdown_content: str,
-        markdown_gcs_uri: Optional[str] = None,
+        markdown_gcs_uri: str | None = None,
     ) -> bool:
         """保存 Markdown 正文与提取完成状态。"""
         async with AsyncSessionLocal() as db:
@@ -553,7 +552,7 @@ class DocumentStorageService:
             doc.markdown_gcs_uri = markdown_gcs_uri
             doc.markdown_extract_status = "completed"
             doc.markdown_extract_error = None
-            doc.markdown_extracted_at = datetime.now(timezone.utc)
+            doc.markdown_extracted_at = datetime.now(UTC)
             await db.commit()
             return True
 
@@ -591,7 +590,7 @@ class DocumentStorageService:
         *,
         document_id: UUID,
         markdown_content: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """将 Markdown 内容上传到 GCS，失败时仅记录日志并返回 None。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
@@ -625,7 +624,7 @@ class DocumentStorageService:
         filename: str,
         content: bytes,
         content_type: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """上传 Negentropy Perceives 生成的衍生资源。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
@@ -658,7 +657,7 @@ class DocumentStorageService:
         *,
         document_id: UUID,
         filename: str,
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         """从 GCS 下载 Negentropy Perceives 生成的衍生资源。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
@@ -684,7 +683,7 @@ class DocumentStorageService:
             )
             return None
 
-    async def get_document_content(self, document_id: UUID) -> Optional[bytes]:
+    async def get_document_content(self, document_id: UUID) -> bytes | None:
         """Download document content from GCS.
 
         Args:
@@ -700,7 +699,7 @@ class DocumentStorageService:
         gcs_client = self._get_gcs_client()
         return gcs_client.download(doc.gcs_uri)
 
-    async def get_document_markdown(self, document_id: UUID) -> Optional[str]:
+    async def get_document_markdown(self, document_id: UUID) -> str | None:
         """读取文档 Markdown 正文（优先 PostgreSQL，缺失时回退 GCS）。"""
         doc = await self.get_document(document_id=document_id)
         if not doc:
@@ -737,7 +736,7 @@ class DocumentStorageService:
             )
             return None
 
-    async def get_document_content_by_uri(self, gcs_uri: str) -> Optional[bytes]:
+    async def get_document_content_by_uri(self, gcs_uri: str) -> bytes | None:
         """Download document content by GCS URI directly.
 
         用于 Rebuild 操作，直接通过 GCS URI 下载文件内容。

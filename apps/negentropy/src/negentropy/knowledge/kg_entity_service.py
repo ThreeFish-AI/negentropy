@@ -16,8 +16,6 @@
 
 from __future__ import annotations
 
-import logging
-from typing import Any, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,9 +42,9 @@ class KgEntityService:
         name: str,
         entity_type: str,
         confidence: float = 0.0,
-        embedding: Optional[list[float]] = None,
-        metadata: Optional[dict] = None,
-        corpus_id: Optional[UUID] = None,
+        embedding: list[float] | None = None,
+        metadata: dict | None = None,
+        corpus_id: UUID | None = None,
         app_name: str = "negentropy",
     ) -> None:
         """从 knowledge 记录同步实体到 kg_entities 表（双写）
@@ -144,8 +142,8 @@ class KgEntityService:
         target_name: str,
         relation_type: str,
         weight: float = 1.0,
-        evidence_text: Optional[str] = None,
-        corpus_id: Optional[UUID] = None,
+        evidence_text: str | None = None,
+        corpus_id: UUID | None = None,
         app_name: str = "negentropy",
     ) -> None:
         """同步关系到 kg_relations 表
@@ -154,6 +152,7 @@ class KgEntityService:
         如果任一端点不存在，则跳过（延迟创建）。
         """
         from sqlalchemy import select as sql_select
+
         from negentropy.models.perception import KgEntity, KgRelation
 
         _corpus_filters = [KgEntity.corpus_id == corpus_id] if corpus_id else []
@@ -230,7 +229,7 @@ class KgEntityService:
         *,
         nodes: list[dict],
         edges: list[dict],
-        corpus_id: Optional[UUID] = None,
+        corpus_id: UUID | None = None,
         app_name: str = "negentropy",
     ) -> dict[str, int]:
         """从图谱构建结果批量同步实体和关系
@@ -309,8 +308,8 @@ class KgEntityService:
         self,
         db: AsyncSession,
         *,
-        corpus_id: Optional[UUID] = None,
-        entity_type: Optional[str] = None,
+        corpus_id: UUID | None = None,
+        entity_type: str | None = None,
         limit: int = 20,
     ) -> list[dict]:
         """获取高频提及实体 Top-N
@@ -318,7 +317,8 @@ class KgEntityService:
         Returns:
             实体列表，按 mention_count 降序排列
         """
-        from sqlalchemy import func, select as sql_select
+        from sqlalchemy import select as sql_select
+
         from negentropy.models.perception import KgEntity
 
         query = sql_select(

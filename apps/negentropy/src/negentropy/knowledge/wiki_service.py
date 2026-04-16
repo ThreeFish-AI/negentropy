@@ -11,16 +11,15 @@ Wiki 发布 — 服务层
 
 from __future__ import annotations
 
-import logging
 import re
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.knowledge.wiki_dao import WikiDao
-from negentropy.models.perception import WikiPublication, WikiPublicationEntry
 from negentropy.logging import get_logger
+from negentropy.models.perception import WikiPublication, WikiPublicationEntry
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
 
@@ -43,8 +42,8 @@ class WikiPublishingService:
         *,
         corpus_id: UUID,
         name: str,
-        slug: Optional[str] = None,
-        description: Optional[str] = None,
+        slug: str | None = None,
+        description: str | None = None,
         theme: str = "default",
     ) -> WikiPublication:
         """创建新的 Wiki 发布记录
@@ -89,8 +88,8 @@ class WikiPublishingService:
         self,
         db: AsyncSession,
         *,
-        corpus_id: Optional[UUID] = None,
-        status: Optional[str] = None,
+        corpus_id: UUID | None = None,
+        status: str | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[WikiPublication], int]:
@@ -143,7 +142,7 @@ class WikiPublishingService:
         publication_id: UUID,
         document_id: UUID,
         entry_slug: str,
-        entry_title: Optional[str] = None,
+        entry_title: str | None = None,
         is_index_page: bool = False,
     ) -> WikiPublicationEntry:
         """添加/更新文档到发布的映射条目"""

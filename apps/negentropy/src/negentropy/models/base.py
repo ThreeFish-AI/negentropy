@@ -1,12 +1,11 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, TypeDecorator
+from sqlalchemy import DateTime, ForeignKey, TypeDecorator
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 from sqlalchemy.types import UserDefinedType
-
 
 # Schema 名称常量，用于隔离业务表与 ADK 后台表 (ADK 默认使用 public schema)
 NEGENTROPY_SCHEMA = "negentropy"

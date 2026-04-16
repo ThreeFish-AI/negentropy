@@ -7,10 +7,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
-from uuid import UUID
-
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,16 +27,16 @@ class SourceDao:
         *,
         document_id: UUID,
         source_type: str,
-        source_url: Optional[str] = None,
-        original_url: Optional[str] = None,
-        title: Optional[str] = None,
-        author: Optional[str] = None,
-        extracted_summary: Optional[str] = None,
-        extraction_duration_ms: Optional[int] = None,
-        extracted_at: Optional[datetime] = None,
-        extractor_tool_name: Optional[str] = None,
-        extractor_server_id: Optional[str] = None,
-        raw_metadata: Optional[dict] = None,
+        source_url: str | None = None,
+        original_url: str | None = None,
+        title: str | None = None,
+        author: str | None = None,
+        extracted_summary: str | None = None,
+        extraction_duration_ms: int | None = None,
+        extracted_at: datetime | None = None,
+        extractor_tool_name: str | None = None,
+        extractor_server_id: str | None = None,
+        raw_metadata: dict | None = None,
     ) -> DocSource:
         """创建来源记录"""
         doc_source = DocSource(
@@ -83,7 +81,7 @@ class SourceDao:
     async def list_by_corpus(
         db: AsyncSession,
         corpus_id: UUID,
-        source_type: Optional[str] = None,
+        source_type: str | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[DocSource], int]:

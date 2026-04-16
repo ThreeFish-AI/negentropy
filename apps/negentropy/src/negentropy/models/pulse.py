@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from sqlalchemy import ForeignKey, Integer, Sequence, String, Text, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
+
+if TYPE_CHECKING:
+    from .internalization import ConsolidationJob
 
 
 class Thread(Base, UUIDMixin, TimestampMixin):
@@ -27,11 +33,11 @@ class Thread(Base, UUIDMixin, TimestampMixin):
         {"schema": NEGENTROPY_SCHEMA},
     )
 
-    events: Mapped[list["Event"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    runs: Mapped[list["Run"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    messages: Mapped[list["Message"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    snapshots: Mapped[list["Snapshot"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    consolidation_jobs: Mapped[list["ConsolidationJob"]] = relationship(
+    events: Mapped[list[Event]] = relationship(back_populates="thread", cascade="all, delete-orphan")
+    runs: Mapped[list[Run]] = relationship(back_populates="thread", cascade="all, delete-orphan")
+    messages: Mapped[list[Message]] = relationship(back_populates="thread", cascade="all, delete-orphan")
+    snapshots: Mapped[list[Snapshot]] = relationship(back_populates="thread", cascade="all, delete-orphan")
+    consolidation_jobs: Mapped[list[ConsolidationJob]] = relationship(
         back_populates="thread", cascade="all, delete-orphan"
     )
 
@@ -57,8 +63,8 @@ class Event(Base, UUIDMixin):
     # Note: Using Integer for BIGSERIAL might need BigInteger, but standard int in Py matches.
     # We might need to handle the explicit sequence definition if we were creating tables, but for mapping it's fine.
 
-    thread: Mapped["Thread"] = relationship(back_populates="events")
-    messages: Mapped[list["Message"]] = relationship(back_populates="event")
+    thread: Mapped[Thread] = relationship(back_populates="events")
+    messages: Mapped[list[Message]] = relationship(back_populates="event")
 
 
 class Run(Base, UUIDMixin):
@@ -74,7 +80,7 @@ class Run(Base, UUIDMixin):
     started_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP)
 
-    thread: Mapped["Thread"] = relationship(back_populates="runs")
+    thread: Mapped[Thread] = relationship(back_populates="runs")
 
 
 class Message(Base, UUIDMixin):
@@ -90,8 +96,8 @@ class Message(Base, UUIDMixin):
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
-    thread: Mapped["Thread"] = relationship(back_populates="messages")
-    event: Mapped["Event"] = relationship(back_populates="messages")
+    thread: Mapped[Thread] = relationship(back_populates="messages")
+    event: Mapped[Event] = relationship(back_populates="messages")
 
 
 class Snapshot(Base, UUIDMixin):
@@ -110,8 +116,8 @@ class Snapshot(Base, UUIDMixin):
         {"schema": NEGENTROPY_SCHEMA},
     )
 
-    thread: Mapped["Thread"] = relationship(back_populates="snapshots")
+    thread: Mapped[Thread] = relationship(back_populates="snapshots")
 
 
 # Backward-compatible re-exports (UserState/AppState 已迁移至 state.py)
-from .state import AppState, UserState  # noqa: F401
+from .state import AppState, UserState  # noqa: F401, E402

@@ -10,7 +10,7 @@ Knowledge 模块统一异常体系
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class KnowledgeError(Exception):
@@ -24,7 +24,7 @@ class KnowledgeError(Exception):
         message: str,
         *,
         code: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.code = code
@@ -56,8 +56,8 @@ class CorpusNotFound(DomainError):
         self,
         *,
         app_name: str,
-        corpus_name: Optional[str] = None,
-        corpus_id: Optional[str] = None,
+        corpus_name: str | None = None,
+        corpus_id: str | None = None,
     ) -> None:
         if corpus_name:
             message = f"Corpus '{corpus_name}' not found in app '{app_name}'"
@@ -82,7 +82,7 @@ class KnowledgeNotFound(DomainError):
         self,
         *,
         knowledge_id: str,
-        corpus_id: Optional[str] = None,
+        corpus_id: str | None = None,
     ) -> None:
         message = f"Knowledge with id '{knowledge_id}' not found"
         details = {"knowledge_id": knowledge_id}
@@ -290,7 +290,7 @@ class GraphBuildError(InfrastructureError):
         self,
         *,
         corpus_id: str,
-        run_id: Optional[str] = None,
+        run_id: str | None = None,
         reason: str,
     ) -> None:
         message = f"Graph build failed for corpus '{corpus_id}': {reason}"

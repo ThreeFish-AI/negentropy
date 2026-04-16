@@ -4,6 +4,7 @@ import re
 
 import httpx
 from bs4 import BeautifulSoup
+
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.knowledge.content")
@@ -177,7 +178,7 @@ async def fetch_content(url: str) -> str:
             response.raise_for_status()
         except httpx.HTTPError as exc:
             logger.error("fetch_content_failed", url=url, error=str(exc))
-            raise ValueError(f"Failed to fetch URL: {exc}")
+            raise ValueError(f"Failed to fetch URL: {exc}") from exc
 
     content_type = response.headers.get("content-type", "").lower()
     logger.info("fetch_content_downloaded", url=url, content_type=content_type, size=len(response.content))

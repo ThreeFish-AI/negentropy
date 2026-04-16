@@ -3,7 +3,6 @@ ADK Services Configuration.
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -69,9 +68,9 @@ class ServicesSettings(BaseSettings):
     )
 
     # GCS Configuration
-    gcs_bucket_name: Optional[str] = Field(default=None, description="GCS bucket name for artifact storage")
+    gcs_bucket_name: str | None = Field(default=None, description="GCS bucket name for artifact storage")
 
     # VertexAI Configuration
-    vertex_project_id: Optional[str] = Field(default=None, description="VertexAI project ID")
-    vertex_location: Optional[str] = Field(default=None, description="VertexAI location")
-    vertex_agent_engine_id: Optional[str] = Field(default=None, description="VertexAI Agent Engine ID")
+    vertex_project_id: str | None = Field(default=None, description="VertexAI project ID")
+    vertex_location: str | None = Field(default=None, description="VertexAI location")
+    vertex_agent_engine_id: str | None = Field(default=None, description="VertexAI Agent Engine ID")

@@ -8,7 +8,6 @@ Session Summarization - 对话标题生成
 """
 
 import re
-from typing import List, Optional
 
 from google.adk.models import LlmRequest
 from google.adk.models.lite_llm import LiteLlm
@@ -34,7 +33,7 @@ class SessionSummarizer:
         logger.debug("session_summarizer_initialized")
         self.model = LiteLlm(name, **kwargs)
 
-    async def generate_title(self, history: List[types.Content]) -> Optional[str]:
+    async def generate_title(self, history: list[types.Content]) -> str | None:
         """
         Generates a short title (roughly 12 Chinese character width) for the given conversation history.
         """

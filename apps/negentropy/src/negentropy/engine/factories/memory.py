@@ -9,8 +9,9 @@ MemoryServiceFactory: 统一的 MemoryService 后端工厂
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional
+from typing import TYPE_CHECKING
 
 from google.adk.memory.base_memory_service import BaseMemoryService
 
@@ -57,7 +58,7 @@ def create_vertexai_memory_service() -> BaseMemoryService:
 
 
 def create_postgres_memory_service(
-    embedding_fn: Optional[EmbeddingFn] = None,
+    embedding_fn: EmbeddingFn | None = None,
     consolidation_worker=None,
 ) -> BaseMemoryService:
     """
@@ -83,7 +84,7 @@ _BACKEND_FACTORIES = {
 }
 
 # 模块级单例缓存 (替代 lru_cache，避免参数变化时返回错误实例)
-_memory_service_instance: Optional[BaseMemoryService] = None
+_memory_service_instance: BaseMemoryService | None = None
 
 
 def get_memory_service(backend: str | None = None) -> BaseMemoryService:
@@ -106,7 +107,8 @@ def get_memory_service(backend: str | None = None) -> BaseMemoryService:
     try:
         backend_enum = MemoryBackend(backend_str.lower())
     except ValueError:
-        raise ValueError(f"Unsupported memory backend: {backend_str}. Supported: {[b.value for b in MemoryBackend]}")
+        supported = [b.value for b in MemoryBackend]
+        raise ValueError(f"Unsupported memory backend: {backend_str}. Supported: {supported}") from None
 
     # 如果已有缓存实例且未显式指定 backend，直接返回
     if _memory_service_instance is not None and backend is None:
@@ -135,10 +137,10 @@ def reset_memory_service() -> None:
 # Memory Governance Factory
 # ============================================================================
 
-_memory_governance_service_instance: Optional["MemoryGovernanceService"] = None
+_memory_governance_service_instance: MemoryGovernanceService | None = None
 
 
-def get_memory_governance_service() -> "MemoryGovernanceService":
+def get_memory_governance_service() -> MemoryGovernanceService:
     """
     获取 MemoryGovernanceService 实例 (工厂函数)
 
@@ -165,11 +167,11 @@ def reset_memory_governance_service() -> None:
 # Fact Service Factory
 # ============================================================================
 
-_fact_service_instance: Optional["FactService"] = None
-_memory_automation_service_instance: Optional["MemoryAutomationService"] = None
+_fact_service_instance: FactService | None = None
+_memory_automation_service_instance: MemoryAutomationService | None = None
 
 
-def get_fact_service(embedding_fn: Optional[EmbeddingFn] = None) -> "FactService":
+def get_fact_service(embedding_fn: EmbeddingFn | None = None) -> FactService:
     """
     获取 FactService 实例 (工厂函数)
 
@@ -198,7 +200,7 @@ def reset_fact_service() -> None:
     _fact_service_instance = None
 
 
-def get_memory_automation_service() -> "MemoryAutomationService":
+def get_memory_automation_service() -> MemoryAutomationService:
     global _memory_automation_service_instance
 
     if _memory_automation_service_instance is None:

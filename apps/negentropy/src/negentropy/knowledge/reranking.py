@@ -13,8 +13,7 @@ L1 Reranking 层 - 两阶段检索的精排阶段
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, List, Optional
+from dataclasses import dataclass
 
 from negentropy.logging import get_logger
 
@@ -48,9 +47,9 @@ class Reranker(ABC):
     async def rerank(
         self,
         query: str,
-        candidates: List[KnowledgeMatch],
-        config: Optional[RerankConfig] = None,
-    ) -> List[KnowledgeMatch]:
+        candidates: list[KnowledgeMatch],
+        config: RerankConfig | None = None,
+    ) -> list[KnowledgeMatch]:
         """重排序候选结果
 
         Args:
@@ -74,9 +73,9 @@ class NoopReranker(Reranker):
     async def rerank(
         self,
         query: str,
-        candidates: List[KnowledgeMatch],
-        config: Optional[RerankConfig] = None,
-    ) -> List[KnowledgeMatch]:
+        candidates: list[KnowledgeMatch],
+        config: RerankConfig | None = None,
+    ) -> list[KnowledgeMatch]:
         """返回原始结果，仅限制数量"""
         config = config or RerankConfig()
         return candidates[: config.top_k]
@@ -141,9 +140,9 @@ class LocalReranker(Reranker):
     async def rerank(
         self,
         query: str,
-        candidates: List[KnowledgeMatch],
-        config: Optional[RerankConfig] = None,
-    ) -> List[KnowledgeMatch]:
+        candidates: list[KnowledgeMatch],
+        config: RerankConfig | None = None,
+    ) -> list[KnowledgeMatch]:
         """使用本地模型重排序"""
         config = config or RerankConfig()
 
@@ -165,7 +164,7 @@ class LocalReranker(Reranker):
 
         # 更新分数并排序
         reranked = []
-        for match, score in zip(candidates, scores):
+        for match, score in zip(candidates, scores, strict=True):
             reranked.append(
                 KnowledgeMatch(
                     id=match.id,
@@ -214,7 +213,7 @@ class APIReranker(Reranker):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "rerank-english-v3.0",
         base_url: str = "https://api.cohere.ai/v1/rerank",
     ):
@@ -232,9 +231,9 @@ class APIReranker(Reranker):
     async def rerank(
         self,
         query: str,
-        candidates: List[KnowledgeMatch],
-        config: Optional[RerankConfig] = None,
-    ) -> List[KnowledgeMatch]:
+        candidates: list[KnowledgeMatch],
+        config: RerankConfig | None = None,
+    ) -> list[KnowledgeMatch]:
         """使用 API 重排序"""
         config = config or RerankConfig()
 
@@ -299,9 +298,9 @@ class CompositeReranker(Reranker):
 
     def __init__(
         self,
-        primary: Optional[Reranker] = None,
-        fallback: Optional[Reranker] = None,
-        final_fallback: Optional[Reranker] = None,
+        primary: Reranker | None = None,
+        fallback: Reranker | None = None,
+        final_fallback: Reranker | None = None,
     ):
         """初始化组合重排序器
 
@@ -317,9 +316,9 @@ class CompositeReranker(Reranker):
     async def rerank(
         self,
         query: str,
-        candidates: List[KnowledgeMatch],
-        config: Optional[RerankConfig] = None,
-    ) -> List[KnowledgeMatch]:
+        candidates: list[KnowledgeMatch],
+        config: RerankConfig | None = None,
+    ) -> list[KnowledgeMatch]:
         """使用组合策略重排序"""
         rerankers = [self._primary, self._fallback, self._final_fallback]
         valid_rerankers = [r for r in rerankers if r is not None]
@@ -367,8 +366,8 @@ def create_default_reranker() -> Reranker:
     """
     import os
 
-    primary: Optional[Reranker] = None
-    fallback: Optional[Reranker] = None
+    primary: Reranker | None = None
+    fallback: Reranker | None = None
 
     # 尝试使用 API Reranker
     cohere_api_key = os.getenv("COHERE_API_KEY")

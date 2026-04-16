@@ -1,10 +1,10 @@
 import asyncio
 import sys
 
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from negentropy.config import settings
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy import text
 
 
 async def reset_db():

@@ -20,8 +20,8 @@ Fact 表示从对话中提取的结构化知识（用户偏好、配置、事实
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -41,7 +41,7 @@ class FactService:
     基于 (user_id, app_name, fact_type, key) 唯一约束实现 upsert。
     """
 
-    def __init__(self, embedding_fn: Optional[callable] = None):
+    def __init__(self, embedding_fn: callable | None = None):
         self._embedding_fn = embedding_fn
 
     async def upsert_fact(
@@ -51,11 +51,11 @@ class FactService:
         app_name: str,
         fact_type: str = "preference",
         key: str,
-        value: Dict[str, Any],
+        value: dict[str, Any],
         confidence: float = 1.0,
-        valid_from: Optional[datetime] = None,
-        valid_until: Optional[datetime] = None,
-        thread_id: Optional[UUID] = None,
+        valid_from: datetime | None = None,
+        valid_until: datetime | None = None,
+        thread_id: UUID | None = None,
     ) -> Fact:
         """创建或更新 Fact
 
@@ -89,7 +89,7 @@ class FactService:
                     error=str(exc),
                 )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         async with db_session.AsyncSessionLocal() as db:
             stmt = (
@@ -136,8 +136,8 @@ class FactService:
         user_id: str,
         app_name: str,
         key: str,
-        fact_type: Optional[str] = None,
-    ) -> Optional[Fact]:
+        fact_type: str | None = None,
+    ) -> Fact | None:
         """按 key 精确获取 Fact
 
         自动过滤已失效的 Fact (valid_until < now)。
@@ -151,7 +151,7 @@ class FactService:
         Returns:
             Fact 实例或 None
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         async with db_session.AsyncSessionLocal() as db:
             stmt = select(Fact).where(
@@ -190,7 +190,7 @@ class FactService:
         Returns:
             匹配的 Fact 列表
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 尝试向量语义检索
         if self._embedding_fn:
@@ -258,7 +258,7 @@ class FactService:
         user_id: str,
         app_name: str,
         key: str,
-        fact_type: Optional[str] = None,
+        fact_type: str | None = None,
     ) -> bool:
         """删除指定 Fact
 
@@ -301,7 +301,7 @@ class FactService:
         *,
         user_id: str,
         app_name: str,
-        fact_type: Optional[str] = None,
+        fact_type: str | None = None,
         limit: int = 100,
     ) -> list[Fact]:
         """列出用户的所有有效 Fact
@@ -315,7 +315,7 @@ class FactService:
         Returns:
             Fact 列表
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         async with db_session.AsyncSessionLocal() as db:
             stmt = select(Fact).where(

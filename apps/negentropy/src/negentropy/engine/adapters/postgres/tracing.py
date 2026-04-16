@@ -16,19 +16,16 @@ OpenTelemetry 双路导出集成
 """
 
 import asyncio
-import json
-import uuid
 from contextvars import ContextVar
 from datetime import datetime
-from typing import Any, Optional
 
-from opentelemetry import trace, context, baggage
-from opentelemetry.sdk.trace import TracerProvider, ReadableSpan, SpanProcessor
+from opentelemetry import baggage, context, trace
+from opentelemetry.sdk.trace import ReadableSpan, SpanProcessor, TracerProvider
 from opentelemetry.sdk.trace.export import (
     BatchSpanProcessor,
+    ConsoleSpanExporter,
     SpanExporter,
     SpanExportResult,
-    ConsoleSpanExporter,
 )
 
 try:
@@ -36,23 +33,22 @@ try:
 except ImportError:
     OTLPSpanExporter = None
 
-from opentelemetry.trace import Status, StatusCode
-from sqlalchemy import insert, create_engine
+from sqlalchemy import create_engine, insert
 from sqlalchemy.orm import sessionmaker
 
 from negentropy.config import settings
-from negentropy.models.observability import Trace
 from negentropy.logging import get_logger
+from negentropy.models.observability import Trace
 
 logger = get_logger(__name__)
 
 # Context variables for storing session/user context across async boundaries
 # These are set by middleware and read by the LangfuseAttributesProcessor
-_session_id_context: ContextVar[Optional[str]] = ContextVar("_session_id_context", default=None)
-_user_id_context: ContextVar[Optional[str]] = ContextVar("_user_id_context", default=None)
+_session_id_context: ContextVar[str | None] = ContextVar("_session_id_context", default=None)
+_user_id_context: ContextVar[str | None] = ContextVar("_user_id_context", default=None)
 
 
-def set_tracing_context(*, session_id: Optional[str] = None, user_id: Optional[str] = None) -> None:
+def set_tracing_context(*, session_id: str | None = None, user_id: str | None = None) -> None:
     """
     Set the current tracing context (session_id, user_id).
 
@@ -69,7 +65,7 @@ def set_tracing_context(*, session_id: Optional[str] = None, user_id: Optional[s
         _user_id_context.set(user_id)
 
 
-def get_tracing_context() -> tuple[Optional[str], Optional[str]]:
+def get_tracing_context() -> tuple[str | None, str | None]:
     """Get the current tracing context (session_id, user_id)."""
     return _session_id_context.get(None), _user_id_context.get(None)
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Boolean, String, cast, func, select, text, update
@@ -13,7 +14,7 @@ from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import Corpus, Knowledge
 
-from .constants import BATCH_INSERT_SIZE, RECALL_MULTIPLIER
+from .constants import RECALL_MULTIPLIER
 from .exceptions import DatabaseError, SearchError
 from .types import (
     CorpusRecord,
@@ -26,12 +27,11 @@ from .types import (
     merge_search_results,
 )
 
-
 logger = get_logger("negentropy.knowledge.repository")
 
 
 class KnowledgeRepository:
-    def __init__(self, session_factory: Optional[async_sessionmaker] = None):
+    def __init__(self, session_factory: async_sessionmaker | None = None):
         """
         初始化 KnowledgeRepository。
 
@@ -50,7 +50,7 @@ class KnowledgeRepository:
 
         return AsyncSessionLocal
 
-    async def get_corpus(self, *, app_name: str, name: str) -> Optional[CorpusRecord]:
+    async def get_corpus(self, *, app_name: str, name: str) -> CorpusRecord | None:
         async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.app_name == app_name, Corpus.name == name)
             result = await db.execute(stmt)
@@ -59,7 +59,7 @@ class KnowledgeRepository:
                 return None
             return self._to_corpus_record(corpus)
 
-    async def get_corpus_by_id(self, corpus_id: UUID) -> Optional[CorpusRecord]:
+    async def get_corpus_by_id(self, corpus_id: UUID) -> CorpusRecord | None:
         async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.id == corpus_id)
             result = await db.execute(stmt)
@@ -88,7 +88,7 @@ class KnowledgeRepository:
             await db.refresh(corpus)
             return self._to_corpus_record(corpus)
 
-    async def update_corpus(self, corpus_id: UUID, spec: Dict[str, Any]) -> Optional[CorpusRecord]:
+    async def update_corpus(self, corpus_id: UUID, spec: dict[str, Any]) -> CorpusRecord | None:
         async with self._get_session_factory()() as db:
             stmt = select(Corpus).where(Corpus.id == corpus_id)
             result = await db.execute(stmt)
@@ -239,7 +239,7 @@ class KnowledgeRepository:
         *,
         corpus_id: UUID,
         app_name: str,
-        source_uri: Optional[str],
+        source_uri: str | None,
         family_id: str,
     ) -> int:
         async with self._get_session_factory()() as db:
@@ -288,17 +288,17 @@ class KnowledgeRepository:
             # 如果 archived=False，设置 metadata.archived = false
             archive_value = "true" if archived else "false"
             update_stmt = text(
-                """
-                UPDATE {schema}.knowledge
+                f"""
+                UPDATE {NEGENTROPY_SCHEMA}.knowledge
                 SET metadata = jsonb_set(
                     COALESCE(metadata, '{{}}'::jsonb),
                     '{{archived}}',
-                    '{value}'::jsonb
+                    '{archive_value}'::jsonb
                 )
                 WHERE corpus_id = :corpus_id
                   AND app_name = :app_name
                   AND source_uri = :source_uri
-            """.format(schema=NEGENTROPY_SCHEMA, value=archive_value)
+            """
             )
 
             result = await db.execute(
@@ -318,7 +318,7 @@ class KnowledgeRepository:
         corpus_id: UUID,
         app_name: str,
         knowledge_id: UUID,
-    ) -> Optional[KnowledgeRecord]:
+    ) -> KnowledgeRecord | None:
         async with self._get_session_factory()() as db:
             stmt = select(Knowledge).where(
                 Knowledge.id == knowledge_id,
@@ -335,7 +335,7 @@ class KnowledgeRepository:
         corpus_id: UUID,
         app_name: str,
         family_id: str,
-        source_uri: Optional[str],
+        source_uri: str | None,
     ) -> list[KnowledgeRecord]:
         async with self._get_session_factory()() as db:
             stmt = (
@@ -360,9 +360,9 @@ class KnowledgeRepository:
         corpus_id: UUID,
         app_name: str,
         knowledge_id: UUID,
-        content: Optional[str] = None,
-        is_enabled: Optional[bool] = None,
-    ) -> Optional[KnowledgeRecord]:
+        content: str | None = None,
+        is_enabled: bool | None = None,
+    ) -> KnowledgeRecord | None:
         async with self._get_session_factory()() as db:
             stmt = select(Knowledge).where(
                 Knowledge.id == knowledge_id,
@@ -390,7 +390,7 @@ class KnowledgeRepository:
         corpus_id: UUID,
         app_name: str,
         family_id: str,
-        source_uri: Optional[str],
+        source_uri: str | None,
         is_enabled: bool,
     ) -> int:
         async with self._get_session_factory()() as db:
@@ -438,11 +438,11 @@ class KnowledgeRepository:
         *,
         corpus_id: UUID,
         app_name: str,
-        source_uri: Optional[str] = None,
+        source_uri: str | None = None,
         limit: int = 20,
         offset: int = 0,
         include_archived: bool = False,
-    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int], list[SourceSummary]]:
+    ) -> tuple[list[KnowledgeRecord], int, dict[str, int], list[SourceSummary]]:
         """列出知识库中的知识条目
 
         Args:
@@ -506,7 +506,7 @@ class KnowledgeRepository:
                 .group_by(Knowledge.source_uri)
             )
             stats_result = await db.execute(stats_stmt)
-            source_stats: Dict[str, int] = {}
+            source_stats: dict[str, int] = {}
             for row in stats_result:
                 uri, count = row
                 source_stats[uri or "__null__"] = count
@@ -528,7 +528,7 @@ class KnowledgeRepository:
                 )
             )
             source_detail_result = await db.execute(source_detail_stmt)
-            summary_map: Dict[str, SourceSummary] = {}
+            summary_map: dict[str, SourceSummary] = {}
             for row in source_detail_result:
                 uri, metadata, count = row
                 key = uri or "__null__"
@@ -570,7 +570,7 @@ class KnowledgeRepository:
         app_name: str,
         query_embedding: list[float],
         limit: int,
-        metadata_filter: Optional[Dict[str, Any]] = None,
+        metadata_filter: dict[str, Any] | None = None,
     ) -> list[KnowledgeMatch]:
         """语义检索
 
@@ -630,14 +630,14 @@ class KnowledgeRepository:
         app_name: str,
         query: str,
         limit: int,
-        metadata_filter: Optional[Dict[str, Any]] = None,
+        metadata_filter: dict[str, Any] | None = None,
     ) -> list[KnowledgeMatch]:
         """关键词检索
 
         使用 PostgreSQL 的全文搜索（BM25）进行关键词匹配。
         """
         filters = ""
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "corpus_id": str(corpus_id),
             "app_name": app_name,
             "query": query,
@@ -703,7 +703,7 @@ class KnowledgeRepository:
         limit: int,
         semantic_weight: float = 0.7,
         keyword_weight: float = 0.3,
-        metadata_filter: Optional[Dict[str, Any]] = None,
+        metadata_filter: dict[str, Any] | None = None,
     ) -> list[KnowledgeMatch]:
         """混合检索
 
@@ -712,7 +712,7 @@ class KnowledgeRepository:
 
         参考: docs/schema/perception_schema.sql Part 6
         """
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "p_corpus_id": str(corpus_id),
             "p_app_name": app_name,
             "p_query": query,
@@ -723,7 +723,6 @@ class KnowledgeRepository:
         }
 
         # 添加元数据过滤（如果需要）
-        metadata_clause = ""
         if metadata_filter:
             # 注意：kb_hybrid_search 函数可能不支持 metadata_filter
             # 此处作为可选扩展点，实际使用时需要确保函数已更新
@@ -774,7 +773,7 @@ class KnowledgeRepository:
                 )
             return matches
 
-        except Exception as exc:
+        except Exception:
             # 回退到 Python 端混合检索
             # 如果数据库函数不可用，自动降级
             return await self._fallback_hybrid_search(
@@ -798,7 +797,7 @@ class KnowledgeRepository:
         limit: int,
         semantic_weight: float,
         keyword_weight: float,
-        metadata_filter: Optional[Dict[str, Any]] = None,
+        metadata_filter: dict[str, Any] | None = None,
     ) -> list[KnowledgeMatch]:
         """Python 端混合检索（回退方案）
 
@@ -862,7 +861,7 @@ class KnowledgeRepository:
         [1] Y. Wang et al., "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods,"
             SIGIR'18, 2018.
         """
-        params: Dict[str, Any] = {
+        params: dict[str, Any] = {
             "p_corpus_id": str(corpus_id),
             "p_app_name": app_name,
             "p_query": query,
@@ -968,9 +967,9 @@ class KnowledgeRepository:
         )
 
         # 构建 RRF 分数字典
-        rrf_scores: Dict[UUID, float] = {}
-        semantic_ranks: Dict[UUID, int] = {}
-        keyword_ranks: Dict[UUID, int] = {}
+        rrf_scores: dict[UUID, float] = {}
+        semantic_ranks: dict[UUID, int] = {}
+        keyword_ranks: dict[UUID, int] = {}
 
         # 语义排名
         for rank, match in enumerate(semantic_matches, start=1):
@@ -1013,7 +1012,7 @@ class KnowledgeRepository:
         *,
         corpus_id: UUID,
         app_name: str,
-        source_uri: Optional[str],
+        source_uri: str | None,
         family_ids: Iterable[str],
     ) -> list[KnowledgeMatch]:
         family_id_list = [item for item in family_ids if item]
@@ -1130,16 +1129,16 @@ class KnowledgeRepository:
         )
 
     @staticmethod
-    def _is_archived(metadata: Optional[Dict[str, Any]]) -> bool:
+    def _is_archived(metadata: dict[str, Any] | None) -> bool:
         return bool((metadata or {}).get("archived") is True)
 
     @staticmethod
-    def _is_searchable(metadata: Optional[Dict[str, Any]]) -> bool:
+    def _is_searchable(metadata: dict[str, Any] | None) -> bool:
         value = (metadata or {}).get("searchable")
         return value is not False
 
     @staticmethod
-    def _infer_display_name(metadata: Optional[Dict[str, Any]]) -> Optional[str]:
+    def _infer_display_name(metadata: dict[str, Any] | None) -> str | None:
         raw = (metadata or {}).get("original_filename")
         return raw if isinstance(raw, str) and raw.strip() else None
 

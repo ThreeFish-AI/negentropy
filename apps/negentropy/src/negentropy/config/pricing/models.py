@@ -5,8 +5,6 @@ Data models for LLM model pricing configuration.
 Reference: https://open.bigmodel.cn/pricing
 """
 
-from typing import Dict, Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -56,7 +54,7 @@ class GLMPricingConfig(BaseModel):
     """Root configuration for GLM model pricing."""
 
     metadata: PricingMetadata
-    models: Dict[str, ModelPricing] = Field(
+    models: dict[str, ModelPricing] = Field(
         default_factory=dict,
         description="Mapping of model name (lowercase) to pricing configuration",
     )

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import JSONResponse
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -22,9 +21,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class AuthUserResponse(BaseModel):
     user_id: str = Field(..., alias="userId")
-    email: Optional[str] = Field(default=None)
-    name: Optional[str] = Field(default=None)
-    picture: Optional[str] = Field(default=None)
+    email: str | None = Field(default=None)
+    name: str | None = Field(default=None)
+    picture: str | None = Field(default=None)
     roles: list[str] = Field(default_factory=list)
     provider: str = Field(default="google")
 
@@ -50,7 +49,7 @@ def _to_user_response(user: AuthUser) -> AuthUserResponse:
 
 
 @router.get("/google/login")
-async def google_login(redirect: Optional[str] = Query(default=None)) -> RedirectResponse:
+async def google_login(redirect: str | None = Query(default=None)) -> RedirectResponse:
     service = AuthService()
     login_url = service.build_login_url(redirect=redirect)
     return RedirectResponse(login_url)
@@ -176,7 +175,7 @@ async def get_user(user_id: str, current_user: AuthUser = Depends(get_current_us
 
 
 @router.get("/status")
-async def status_check(user: Optional[AuthUser] = Depends(get_optional_user)) -> dict[str, Any]:
+async def status_check(user: AuthUser | None = Depends(get_optional_user)) -> dict[str, Any]:
     return {
         "enabled": settings.auth.enabled,
         "mode": settings.auth.mode,
@@ -243,8 +242,8 @@ SUPPORTED_VENDOR_CONFIG_VENDORS = {"openai", "anthropic", "gemini"}
 
 
 class VendorConfigUpsert(BaseModel):
-    api_key: Optional[str] = Field(default=None, description="API Key (空字符串或 null 表示保留原值)")
-    api_base: Optional[str] = None
+    api_key: str | None = Field(default=None, description="API Key (空字符串或 null 表示保留原值)")
+    api_base: str | None = None
 
 
 def _vendor_config_to_dict(vc) -> dict[str, Any]:
@@ -338,7 +337,7 @@ async def upsert_vendor_config(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=_sanitize_error(f"Failed to upsert vendor config: {exc}"),
-        )
+        ) from exc
 
     # 供应商凭证变更影响所有模型类型，清除全部缓存
     invalidate_cache(None)
@@ -376,7 +375,7 @@ async def delete_vendor_config(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=_sanitize_error(f"Failed to delete vendor config: {exc}"),
-        )
+        ) from exc
 
     invalidate_cache(None)
     return {"status": "deleted", "vendor": vendor}
@@ -394,16 +393,16 @@ class ModelConfigCreate(BaseModel):
     model_name: str
     is_default: bool = False
     enabled: bool = True
-    config: Dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
 
 
 class ModelConfigUpdate(BaseModel):
-    display_name: Optional[str] = None
-    vendor: Optional[str] = None
-    model_name: Optional[str] = None
-    is_default: Optional[bool] = None
-    enabled: Optional[bool] = None
-    config: Optional[Dict[str, Any]] = None
+    display_name: str | None = None
+    vendor: str | None = None
+    model_name: str | None = None
+    is_default: bool | None = None
+    enabled: bool | None = None
+    config: dict[str, Any] | None = None
 
 
 class ModelPingRequest(BaseModel):
@@ -412,10 +411,10 @@ class ModelPingRequest(BaseModel):
     model_type: str = Field(..., description="llm, embedding, or rerank")
     vendor: str
     model_name: str
-    config: Dict[str, Any] = Field(default_factory=dict)
-    api_base: Optional[str] = None
-    api_key: Optional[str] = None
-    model_id: Optional[UUID] = None
+    config: dict[str, Any] = Field(default_factory=dict)
+    api_base: str | None = None
+    api_key: str | None = None
+    model_id: UUID | None = None
 
 
 def _mask_api_key(key: str | None) -> str | None:
@@ -499,7 +498,7 @@ async def create_model_config(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid model_type: {payload.model_type}. Must be one of: llm, embedding, rerank",
-        )
+        ) from None
 
     try:
         async with AsyncSessionLocal() as db:
@@ -527,14 +526,14 @@ async def create_model_config(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Model config already exists: {payload.vendor}/{payload.model_name} ({payload.model_type})",
-        )
+        ) from None
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create model config: {exc}",
-        )
+        ) from exc
 
     invalidate_cache(payload.model_type)
     return {"model": _model_config_to_dict(mc)}
@@ -654,7 +653,7 @@ async def _ping_llm(
 
     import litellm
 
-    kwargs: Dict[str, Any] = {"max_tokens": 20}
+    kwargs: dict[str, Any] = {"max_tokens": 20}
     if api_key:
         kwargs["api_key"] = api_key
     if api_base:
@@ -682,7 +681,7 @@ async def _ping_embedding(
 
     import litellm
 
-    kwargs: Dict[str, Any] = {}
+    kwargs: dict[str, Any] = {}
     if api_key:
         kwargs["api_key"] = api_key
     if api_base:
@@ -809,14 +808,14 @@ async def update_model_config(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Update conflicts with existing model config (duplicate vendor/model_name/model_type)",
-        )
+        ) from None
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update model config: {exc}",
-        )
+        ) from exc
 
     invalidate_cache(model_type_val)
     return {"model": _model_config_to_dict(mc)}
@@ -856,7 +855,7 @@ async def delete_model_config(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete model config: {exc}",
-        )
+        ) from exc
 
     invalidate_cache(model_type_val)
     return {"status": "deleted"}
@@ -902,7 +901,7 @@ async def set_default_model(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to set default model: {exc}",
-        )
+        ) from exc
 
     invalidate_cache(mc.model_type.value)
     return {"model": _model_config_to_dict(mc)}

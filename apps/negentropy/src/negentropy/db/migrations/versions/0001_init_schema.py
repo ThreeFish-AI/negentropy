@@ -14,18 +14,19 @@ Create Date: 2026-04-08 00:00:00.000000+00:00
   - 种子数据：model_configs 默认模型 × 2 + negentropy-perceives MCP 预设
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-import negentropy.models.base
+from alembic import op
 from sqlalchemy.dialects import postgresql
+
+import negentropy.models.base
 
 # revision identifiers, used by Alembic.
 revision: str = "0001"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -1041,7 +1042,7 @@ def upgrade() -> None:
 
     # Negentropy Perceives MCP Server 预设（幂等 upsert）
     op.execute(
-        sa.text(f"""
+        sa.text("""
         INSERT INTO negentropy.mcp_servers (
             owner_id, visibility, name, display_name, description,
             transport_type, command, args, env, url, headers,
@@ -1052,16 +1053,17 @@ def upgrade() -> None:
             'PUBLIC'::negentropy.pluginvisibility,
             'negentropy-perceives',
             'Negentropy Perceives',
-            '一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。',
+            '一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、'
+            '图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。',
             'http',
             NULL,
             '[]'::jsonb,
-            '{{}}'::jsonb,
+            '{}'::jsonb,
             'http://localhost:8081/mcp',
-            '{{}}'::jsonb,
+            '{}'::jsonb,
             TRUE,
             TRUE,
-            '{{}}'::jsonb
+            '{}'::jsonb
         )
         ON CONFLICT (name) DO UPDATE
         SET

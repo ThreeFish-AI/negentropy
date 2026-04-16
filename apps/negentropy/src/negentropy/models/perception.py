@@ -2,12 +2,11 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, Index
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin, Vector, fk
-
 
 # =============================================================================
 # 文档生命周期管理模型（Phase 1-4）
