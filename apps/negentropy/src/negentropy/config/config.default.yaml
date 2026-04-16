@@ -1,0 +1,156 @@
+# =============================================================================
+# Negentropy Default Configuration
+# =============================================================================
+# 此文件包含所有配置项的默认值，随项目包分发。
+#
+# 用户自定义配置:
+#   uv run negentropy init            # 拷贝到 ~/.negentropy/config.yaml
+#   uv run negentropy -c my.yaml      # 使用自定义配置文件
+#
+# 优先级（从高到低）:
+#   1. 环境变量（如 NE_DB_POOL_SIZE=20）
+#   2. .env 系列文件（向后兼容）
+#   3. CLI 指定 YAML（-c path）
+#   4. ~/.negentropy/config.yaml（用户级）
+#   5. 本文件（项目默认）
+#   6. 代码中的 Field defaults
+#
+# 注意: 密钥类配置（SecretStr）请通过环境变量设置，切勿写入 YAML 文件。
+# =============================================================================
+
+# --- 环境选择 ---
+# 可选值: development | testing | staging | production
+env: development
+
+# --- 应用元数据 ---
+app:
+  name: negentropy
+
+# --- 日志配置 ---
+logging:
+  level: INFO                              # DEBUG | INFO | WARNING | ERROR | CRITICAL
+  format: console                          # console | json
+  sinks: stdio                             # 逗号分隔: stdio | file | gcloud
+  file_path: logs/negentropy.log
+  gcloud_log_name: negentropy
+  console_timestamp_format: "%Y-%m-%d %H:%M:%S"
+  console_level_width: 8
+  console_logger_width: 32
+  console_separator: " | "
+
+# --- 数据库配置 ---
+database:
+  url: "postgresql+asyncpg://aigc:@localhost:5432/negentropy"
+  pool_size: 5
+  max_overflow: 10
+  pool_recycle: 3600
+  echo: false
+
+# --- 可观测性配置 ---
+observability:
+  langfuse_host: "https://cloud.langfuse.com"
+  langfuse_enabled: true
+  # langfuse_public_key: 通过环境变量 NE_OBSERVABILITY_LANGFUSE_PUBLIC_KEY 设置
+  # langfuse_secret_key: 通过环境变量 NE_OBSERVABILITY_LANGFUSE_SECRET_KEY 设置
+
+# --- ADK 服务配置 ---
+services:
+  credential_backend: inmemory             # inmemory | postgres | session
+  memory_backend: inmemory                 # inmemory | vertexai | postgres
+  session_backend: inmemory                # inmemory | vertexai | database | postgres
+  artifact_backend: inmemory               # inmemory | gcs
+  # gcs_bucket_name: null                  # GCS bucket（artifact_backend=gcs 时必填）
+  # vertex_project_id: null                # VertexAI 项目 ID
+  # vertex_location: null                  # VertexAI 区域
+  # vertex_agent_engine_id: null           # VertexAI Agent Engine ID
+
+# --- Auth / SSO 配置 ---
+auth:
+  enabled: true
+  mode: optional                           # off | optional | strict
+  # token_secret: 通过环境变量 NE_AUTH_TOKEN_SECRET 设置
+  # google_client_id: null
+  # google_client_secret: 通过环境变量 NE_AUTH_GOOGLE_CLIENT_SECRET 设置
+  # google_redirect_uri: null
+  google_scopes:
+    - openid
+    - email
+    - profile
+  cookie_name: ne_sso
+  # cookie_domain: null
+  cookie_secure: false
+  cookie_same_site: lax
+  session_ttl_seconds: 604800              # 7 天
+  state_ttl_seconds: 600
+  allowed_domains: []
+  allowed_emails: []
+  admin_emails: []
+  user_id_strategy: sub                    # sub | email
+  default_redirect_path: "/"
+
+# --- Web Search 配置 ---
+search:
+  provider: google                         # google | duckduckgo | bing
+  # google_api_key: 通过环境变量 NE_SEARCH_GOOGLE_API_KEY 设置
+  # google_cx_id: null
+  max_retries: 3
+  timeout_seconds: 10.0
+  base_backoff_seconds: 1.0
+  max_results: 10
+
+# --- ZAI (Zhipu AI) API 配置 ---
+# ZAI_API_KEY 和 ZAI_API_BASE 通过环境变量设置（供 LiteLLM 使用）
+
+# --- Knowledge 配置 ---
+knowledge:
+  default_extractor_routes:
+    url:
+      primary:
+        server_name: negentropy-perceives
+        tool_name: parse_webpage_to_markdown
+        enabled: true
+        timeout_ms: 60000
+      secondary:
+        server_name: negentropy-perceives
+        tool_name: parse_webpages_to_markdown
+        enabled: true
+        timeout_ms: 120000
+    file_pdf:
+      primary:
+        server_name: negentropy-perceives
+        tool_name: parse_pdf_to_markdown
+        enabled: true
+        timeout_ms: 300000
+      secondary:
+        server_name: negentropy-perceives
+        tool_name: parse_pdfs_to_markdown
+        enabled: true
+        timeout_ms: 600000
+
+# =============================================================================
+# 环境特定推荐配置
+# =============================================================================
+#
+# DEVELOPMENT:
+#   env: development
+#   logging:
+#     level: DEBUG
+#     format: console
+#   database:
+#     echo: true
+#
+# TESTING:
+#   env: testing
+#   logging:
+#     level: WARNING
+#     format: json
+#
+# PRODUCTION:
+#   env: production
+#   logging:
+#     level: INFO
+#     format: json
+#     sinks: stdio,gcloud
+#   database:
+#     pool_size: 20
+#     max_overflow: 30

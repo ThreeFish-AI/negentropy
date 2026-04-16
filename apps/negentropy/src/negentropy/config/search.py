@@ -12,7 +12,7 @@ Web Search Configuration.
 from enum import Enum
 
 from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 class SearchProvider(str, Enum):
@@ -89,3 +89,22 @@ class SearchSettings(BaseSettings):
             return False
         secret = api_key.get_secret_value()
         return bool(secret and self.google_cx_id)
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        from ._base import YamlDictSource, get_yaml_section
+
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlDictSource(settings_cls, get_yaml_section("search")),
+            file_secret_settings,
+        )

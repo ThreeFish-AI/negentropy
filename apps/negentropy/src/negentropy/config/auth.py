@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Literal
 
 from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 class AuthMode(str, Enum):
@@ -50,3 +50,22 @@ class AuthSettings(BaseSettings):
 
     user_id_strategy: Literal["sub", "email"] = Field(default="sub", description="User ID source: google sub or email")
     default_redirect_path: str = Field(default="/", description="Default redirect path after login")
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        from ._base import YamlDictSource, get_yaml_section
+
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlDictSource(settings_cls, get_yaml_section("auth")),
+            file_secret_settings,
+        )
