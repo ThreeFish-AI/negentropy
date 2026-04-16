@@ -45,6 +45,7 @@ _CORPUS_ID_B = UUID("00000000-0000-0000-0000-000000000002")
 # 必须在首次触发 ORM 编译之前修补两侧关系。
 try:
     from negentropy.models import perception as _models
+
     setattr(
         _models.KnowledgeDocument,
         "source",
@@ -420,9 +421,7 @@ class TestSyncRelation:
         """已存在的相同关系不应重复创建。"""
         src = _make_entity_ns(name="Alice")
         tgt = _make_entity_ns(name="Bob")
-        existing_rel = _make_relation_ns(
-            source_id=src.id, target_id=tgt.id, relation_type="WORKS_FOR"
-        )
+        existing_rel = _make_relation_ns(source_id=src.id, target_id=tgt.id, relation_type="WORKS_FOR")
         db.entities.extend([src, tgt])
         db.relations.append(existing_rel)
 
@@ -549,9 +548,7 @@ class TestBatchSyncFromGraphBuild:
             return _FakeExecuteResult([])
 
         with patch.object(db, "execute", side_effect=_fake_execute):
-            result = await service.batch_sync_from_graph_build(
-                db, nodes=nodes, edges=edges, corpus_id=_CORPUS_ID
-            )
+            result = await service.batch_sync_from_graph_build(db, nodes=nodes, edges=edges, corpus_id=_CORPUS_ID)
 
         assert result["entities_synced"] == 2
         assert result["relations_synced"] == 1
@@ -576,9 +573,7 @@ class TestBatchSyncFromGraphBuild:
             return _FakeExecuteResult([])
 
         with patch.object(db, "execute", side_effect=_fake_execute):
-            result = await service.batch_sync_from_graph_build(
-                db, nodes=nodes, edges=[], corpus_id=_CORPUS_ID
-            )
+            result = await service.batch_sync_from_graph_build(db, nodes=nodes, edges=[], corpus_id=_CORPUS_ID)
 
         # 2 个成功 + 1 个失败被隔离
         assert result["entities_synced"] == 2
@@ -602,9 +597,7 @@ class TestBatchSyncFromGraphBuild:
             return _FakeExecuteResult([])
 
         with patch.object(db, "execute", side_effect=_fake_execute):
-            result = await service.batch_sync_from_graph_build(
-                db, nodes=[], edges=edges, corpus_id=_CORPUS_ID
-            )
+            result = await service.batch_sync_from_graph_build(db, nodes=[], edges=edges, corpus_id=_CORPUS_ID)
 
         # 至少部分边成功（具体数量取决于异常触发时机）
         assert result["relations_synced"] >= 0
@@ -614,9 +607,7 @@ class TestBatchSyncFromGraphBuild:
 
     async def test_batch_sync_empty_inputs_returns_zeros(self, service, db):
         """空的 nodes 和 edges 列表应返回 {0, 0}。"""
-        result = await service.batch_sync_from_graph_build(
-            db, nodes=[], edges=[]
-        )
+        result = await service.batch_sync_from_graph_build(db, nodes=[], edges=[])
 
         assert result == {"entities_synced": 0, "relations_synced": 0}
 
@@ -638,9 +629,7 @@ class TestBatchSyncFromGraphBuild:
             return _FakeExecuteResult([])
 
         with patch.object(db, "execute", side_effect=_fake_execute):
-            result = await service.batch_sync_from_graph_build(
-                db, nodes=nodes, edges=edges, corpus_id=_CORPUS_ID
-            )
+            result = await service.batch_sync_from_graph_build(db, nodes=nodes, edges=edges, corpus_id=_CORPUS_ID)
 
         assert result["entities_synced"] == 3
         assert result["relations_synced"] == 2
@@ -674,13 +663,11 @@ class TestGetTopEntities:
 
     async def test_get_top_entities_returns_ordered_list(self, service, db):
         """返回列表应按 mention_count 降序排列。"""
+
         # 模拟 execute 返回预置的全部实体行
         # 服务端按 (id, name, entity_type, confidence, mention_count, created_at) 取值
         async def _fake_execute(stmt):
-            rows = [
-                (e.id, e.name, e.entity_type, e.confidence or 0, e.mention_count, None)
-                for e in db.entities
-            ]
+            rows = [(e.id, e.name, e.entity_type, e.confidence or 0, e.mention_count, None) for e in db.entities]
             return _FakeSelectResult(rows)
 
         with patch.object(db, "execute", side_effect=_fake_execute):
@@ -739,8 +726,7 @@ class TestGetTopEntities:
             # 捕获 .limit() 的调用——通过返回固定行数来验证
             # 服务端按 (id, name, entity_type, confidence, mention_count, created_at) 取值
             rows = [
-                (e.id, e.name, e.entity_type, e.confidence or 0, e.mention_count, None)
-                for e in db.entities[:2]
+                (e.id, e.name, e.entity_type, e.confidence or 0, e.mention_count, None) for e in db.entities[:2]
             ]  # 模拟只返回 2 条
             returned_rows.extend(rows)
             return _FakeSelectResult(rows)

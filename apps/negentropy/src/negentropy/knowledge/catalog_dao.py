@@ -64,27 +64,26 @@ class CatalogDao:
         )
         db.add(node)
         await db.flush()
-        logger.info("catalog_node_created", extra={
-            "id": str(node.id),
-            "corpus_id": str(corpus_id),
-            "name": name,
-            "slug": slug,
-            "parent_id": str(parent_id) if parent_id else None,
-        })
+        logger.info(
+            "catalog_node_created",
+            extra={
+                "id": str(node.id),
+                "corpus_id": str(corpus_id),
+                "name": name,
+                "slug": slug,
+                "parent_id": str(parent_id) if parent_id else None,
+            },
+        )
         return node
 
     @staticmethod
     async def get_node(db: AsyncSession, node_id: UUID) -> DocCatalogNode | None:
         """按 ID 获取节点"""
-        result = await db.execute(
-            select(DocCatalogNode).where(DocCatalogNode.id == node_id)
-        )
+        result = await db.execute(select(DocCatalogNode).where(DocCatalogNode.id == node_id))
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_node_by_slug(
-        db: AsyncSession, corpus_id: UUID, slug: str
-    ) -> DocCatalogNode | None:
+    async def get_node_by_slug(db: AsyncSession, corpus_id: UUID, slug: str) -> DocCatalogNode | None:
         """按 corpus + slug 获取节点（slug 在同一 corpus 内唯一）"""
         result = await db.execute(
             select(DocCatalogNode).where(
@@ -203,23 +202,28 @@ class CatalogDao:
 
         tree_data = []
         for row in rows:
-            tree_data.append({
-                "id": row[0],
-                "parent_id": row[1],
-                "name": row[2],
-                "slug": row[3],
-                "node_type": row[4],
-                "description": row[5],
-                "sort_order": row[6],
-                "config": row[7],
-                "depth": row[8],
-                "path": list(row[9]) if row[9] else [],
-            })
+            tree_data.append(
+                {
+                    "id": row[0],
+                    "parent_id": row[1],
+                    "name": row[2],
+                    "slug": row[3],
+                    "node_type": row[4],
+                    "description": row[5],
+                    "sort_order": row[6],
+                    "config": row[7],
+                    "depth": row[8],
+                    "path": list(row[9]) if row[9] else [],
+                }
+            )
 
-        logger.debug("catalog_tree_queried", extra={
-            "corpus_id": str(corpus_id),
-            "node_count": len(tree_data),
-        })
+        logger.debug(
+            "catalog_tree_queried",
+            extra={
+                "corpus_id": str(corpus_id),
+                "node_count": len(tree_data),
+            },
+        )
         return tree_data
 
     @staticmethod
@@ -266,9 +270,16 @@ class CatalogDao:
 
         return [
             {
-                "id": row[0], "parent_id": row[1], "name": row[2], "slug": row[3],
-                "node_type": row[4], "description": row[5], "sort_order": row[6],
-                "config": row[7], "depth": row[8], "path": list(row[9]) if row[9] else [],
+                "id": row[0],
+                "parent_id": row[1],
+                "name": row[2],
+                "slug": row[3],
+                "node_type": row[4],
+                "description": row[5],
+                "sort_order": row[6],
+                "config": row[7],
+                "depth": row[8],
+                "path": list(row[9]) if row[9] else [],
             }
             for row in rows
         ]
@@ -301,10 +312,13 @@ class CatalogDao:
         )
         db.add(membership)
         await db.flush()
-        logger.info("document_assigned_to_catalog", extra={
-            "catalog_node_id": str(catalog_node_id),
-            "document_id": str(document_id),
-        })
+        logger.info(
+            "document_assigned_to_catalog",
+            extra={
+                "catalog_node_id": str(catalog_node_id),
+                "document_id": str(document_id),
+            },
+        )
         return membership
 
     @staticmethod

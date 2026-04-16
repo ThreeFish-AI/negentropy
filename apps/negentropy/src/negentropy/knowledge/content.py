@@ -35,6 +35,7 @@ def sanitize_filename(filename: str | None) -> str:
 # File Content Extraction (文件内容提取)
 # ============================================================================
 
+
 async def extract_file_content(
     content: bytes,
     filename: str,
@@ -184,8 +185,7 @@ async def fetch_content(url: str) -> str:
     # PDF 需通过 MCP Tool 提取，不在此函数处理
     if "application/pdf" in content_type or url.endswith(".pdf"):
         raise ValueError(
-            "PDF extraction via fetch_content is not supported. "
-            "Use extract_source() with MCP Tool instead."
+            "PDF extraction via fetch_content is not supported. Use extract_source() with MCP Tool instead."
         )
 
     # Parse HTML (default)

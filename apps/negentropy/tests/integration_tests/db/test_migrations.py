@@ -66,8 +66,9 @@ def test_negentropy_perceives_seeded_by_migration(alembic_config: Config):
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:
-            row = conn.execute(
-                text("""
+            row = (
+                conn.execute(
+                    text("""
                     SELECT
                         owner_id,
                         visibility::text AS visibility,
@@ -80,7 +81,10 @@ def test_negentropy_perceives_seeded_by_migration(alembic_config: Config):
                     FROM negentropy.mcp_servers
                     WHERE name = 'negentropy-perceives'
                 """)
-            ).mappings().one()
+                )
+                .mappings()
+                .one()
+            )
     finally:
         engine.dispose()
 
@@ -145,8 +149,9 @@ def test_negentropy_perceives_seed_is_idempotent_on_re_upgrade(alembic_config: C
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:
-            row = conn.execute(
-                text("""
+            row = (
+                conn.execute(
+                    text("""
                     SELECT
                         owner_id,
                         visibility::text AS visibility,
@@ -158,7 +163,10 @@ def test_negentropy_perceives_seed_is_idempotent_on_re_upgrade(alembic_config: C
                     FROM negentropy.mcp_servers
                     WHERE name = 'negentropy-perceives'
                 """)
-            ).mappings().one()
+                )
+                .mappings()
+                .one()
+            )
     finally:
         engine.dispose()
 

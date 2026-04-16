@@ -29,24 +29,54 @@ logger = get_logger(__name__.rsplit(".", 1)[0])
 # 查询意图分类规则
 _INTENT_PATTERNS = {
     "fact": [
-        r"什么是", r"谁发明了", r"定义", r"意思", r"how to define",
-        r"what is", r"who invented", r"definition",
+        r"什么是",
+        r"谁发明了",
+        r"定义",
+        r"意思",
+        r"how to define",
+        r"what is",
+        r"who invented",
+        r"definition",
     ],
     "exploration": [
-        r"介绍", r"概述", r"总结", r"explain", r"tell me about",
-        r"overview", r"summary", r"describe",
+        r"介绍",
+        r"概述",
+        r"总结",
+        r"explain",
+        r"tell me about",
+        r"overview",
+        r"summary",
+        r"describe",
     ],
     "comparison": [
-        r"对比", r"比较", r"区别", r"差异", r"vs\.?", r"compare",
-        r"difference", r"better than",
+        r"对比",
+        r"比较",
+        r"区别",
+        r"差异",
+        r"vs\.?",
+        r"compare",
+        r"difference",
+        r"better than",
     ],
     "navigation": [
-        r"列表", r"目录", r"索引", r"所有.*文档", r"list all",
-        r"index", r"catalog", r"table of contents",
+        r"列表",
+        r"目录",
+        r"索引",
+        r"所有.*文档",
+        r"list all",
+        r"index",
+        r"catalog",
+        r"table of contents",
     ],
     "graph_query": [
-        r"关系", r"关联", r"图谱", r"实体", r"relation", r"graph",
-        r"connected to", r"related entities",
+        r"关系",
+        r"关联",
+        r"图谱",
+        r"实体",
+        r"relation",
+        r"graph",
+        r"connected to",
+        r"related entities",
     ],
 }
 
@@ -105,9 +135,7 @@ class UnifiedRetrievalService:
         if intent == "graph_query":
             result = await self._graph_search(db, query=query, limit=limit)
         elif intent == "navigation":
-            result = await self._navigation_search(
-                db, query=query, corpus_ids=corpus_ids, limit=limit
-            )
+            result = await self._navigation_search(db, query=query, corpus_ids=corpus_ids, limit=limit)
         else:
             result = await self._hybrid_search(
                 db,
@@ -137,11 +165,14 @@ class UnifiedRetrievalService:
         result["query_intent"] = intent
         result["query"] = query
 
-        logger.info("unified_search_completed", extra={
-            "intent": intent,
-            "result_count": len(result.get("items", [])),
-            "query": query[:100],
-        })
+        logger.info(
+            "unified_search_completed",
+            extra={
+                "intent": intent,
+                "result_count": len(result.get("items", [])),
+                "query": query[:100],
+            },
+        )
 
         return result
 
@@ -165,11 +196,14 @@ class UnifiedRetrievalService:
         """
         from negentropy.models.perception import Knowledge, KnowledgeDocument
 
-        base_query = (
-            select(Knowledge.id, Knowledge.document_id, Knowledge.plain_text,
-                   Knowledge.chunk_index, Knowledge.metadata_, Knowledge.created_at)
-            .join(KnowledgeDocument, Knowledge.document_id == KnowledgeDocument.id)
-        )
+        base_query = select(
+            Knowledge.id,
+            Knowledge.document_id,
+            Knowledge.plain_text,
+            Knowledge.chunk_index,
+            Knowledge.metadata_,
+            Knowledge.created_at,
+        ).join(KnowledgeDocument, Knowledge.document_id == KnowledgeDocument.id)
 
         # 过滤条件
         if corpus_ids:
@@ -186,38 +220,33 @@ class UnifiedRetrievalService:
 
         # 关键词搜索（ILIKE）
         search_term = f"%{query.replace('%', '\\%').replace('_', '\\_')}%"
-        base_query = base_query.where(
-            Knowledge.plain_text.ilike(search_term, escape="\\")
-        )
+        base_query = base_query.where(Knowledge.plain_text.ilike(search_term, escape="\\"))
 
         # 总数
-        count_result = await db.execute(
-            select(func.count()).select_from(base_query.subquery())
-        )
+        count_result = await db.execute(select(func.count()).select_from(base_query.subquery()))
         total = count_result.scalar() or 0
 
         # 分页查询
-        result = await db.execute(
-            base_query.order_by(Knowledge.created_at.desc())
-            .offset(offset).limit(limit)
-        )
+        result = await db.execute(base_query.order_by(Knowledge.created_at.desc()).offset(offset).limit(limit))
         rows = result.all()
 
         items = []
         for row in rows:
             knowledge_id, doc_id, plain_text, chunk_idx, metadata, created_at = row
-            items.append({
-                "id": str(knowledge_id),
-                "document_id": str(doc_id),
-                "chunk_index": chunk_idx,
-                "snippet": (plain_text or "")[:300],
-                "semantic_score": None,  # 需要向量计算
-                "keyword_score": 1.0,  # ILIKE 匹配的基础分数
-                "combined_score": 1.0,
-                "rerank_score": None,
-                "metadata": metadata or {},
-                "created_at": created_at.isoformat() if created_at else None,
-            })
+            items.append(
+                {
+                    "id": str(knowledge_id),
+                    "document_id": str(doc_id),
+                    "chunk_index": chunk_idx,
+                    "snippet": (plain_text or "")[:300],
+                    "semantic_score": None,  # 需要向量计算
+                    "keyword_score": 1.0,  # ILIKE 匹配的基础分数
+                    "combined_score": 1.0,
+                    "rerank_score": None,
+                    "metadata": metadata or {},
+                    "created_at": created_at.isoformat() if created_at else None,
+                }
+            )
 
         return {
             "items": items,
@@ -289,18 +318,18 @@ class UnifiedRetrievalService:
         for corp in corpora:
             doc_count_res = await db.execute(
                 select(func.count()).select_from(
-                    select(KnowledgeDocument.id)
-                    .where(KnowledgeDocument.corpus_id == corp.id)
-                    .subquery()
+                    select(KnowledgeDocument.id).where(KnowledgeDocument.corpus_id == corp.id).subquery()
                 )
             )
             count = doc_count_res.scalar() or 0
-            items.append({
-                "id": str(corp.id),
-                "name": corp.name,
-                "type": "corpus",
-                "document_count": count,
-            })
+            items.append(
+                {
+                    "id": str(corp.id),
+                    "name": corp.name,
+                    "type": "corpus",
+                    "document_count": count,
+                }
+            )
 
         return {
             "items": items,
@@ -319,15 +348,13 @@ class UnifiedRetrievalService:
 
         # 来源类型分布
         from negentropy.models.perception import DocSource, KnowledgeDocument
+
         source_type_result = await db.execute(
             select(DocSource.source_type, func.count())
             .join(KnowledgeDocument, DocSource.document_id == KnowledgeDocument.id)
             .group_by(DocSource.source_type)
         )
-        facets["source_types"] = [
-            {"value": row[0], "count": row[1]}
-            for row in source_type_result.all()
-        ]
+        facets["source_types"] = [{"value": row[0], "count": row[1]} for row in source_type_result.all()]
 
         return facets
 
@@ -345,9 +372,7 @@ class UnifiedRetrievalService:
                 continue
             try:
                 uuid_doc_id = UUID(doc_id) if isinstance(doc_id, str) else doc_id
-                src_result = await db.execute(
-                    select(DocSource).where(DocSource.document_id == uuid_doc_id).limit(1)
-                )
+                src_result = await db.execute(select(DocSource).where(DocSource.document_id == uuid_doc_id).limit(1))
                 src = src_result.scalar_one_or_none()
                 if src:
                     item["citation"] = {
@@ -374,9 +399,7 @@ class UnifiedRetrievalService:
             try:
                 doc_id = UUID(item["document_id"])
                 mentions = await db.execute(
-                    select(KgEntityMention.entity_id)
-                    .where(KgEntityMention.knowledge_chunk_id == doc_id)
-                    .limit(5)
+                    select(KgEntityMention.entity_id).where(KgEntityMention.knowledge_chunk_id == doc_id).limit(5)
                 )
                 entity_ids = [str(row[0]) for row in mentions.all()]
                 if entity_ids:
@@ -426,7 +449,10 @@ class UnifiedRetrievalService:
         db.add(feedback)
         await db.flush()
 
-        logger.info("feedback_recorded", extra={
-            "feedback_type": feedback_type,
-            "has_document": document_id is not None,
-        })
+        logger.info(
+            "feedback_recorded",
+            extra={
+                "feedback_type": feedback_type,
+                "has_document": document_id is not None,
+            },
+        )

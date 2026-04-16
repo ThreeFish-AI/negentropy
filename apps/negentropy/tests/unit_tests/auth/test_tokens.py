@@ -45,4 +45,3 @@ def test_decode_token_rejects_expired_token() -> None:
 
     with pytest.raises(TokenError, match="token expired"):
         decode_token(token, "secret")
-

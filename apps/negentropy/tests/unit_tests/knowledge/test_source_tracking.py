@@ -58,9 +58,7 @@ class TestUrlSourceTracker:
         )
         ctx = make_tracking_context()
 
-        meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=ctx
-        )
+        meta = await tracker.extract_metadata(document_id=doc_id, result=result, context=ctx)
 
         assert meta["source_type"] == "url"
         assert meta["source_url"] == "https://example.com/page"
@@ -84,7 +82,9 @@ class TestUrlSourceTracker:
             markdown_content="# Markdown Heading",
         )
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result_with_meta_title, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result_with_meta_title,
+            context=make_tracking_context(),
         )
         assert meta["title"] == "Meta Title"
 
@@ -95,7 +95,9 @@ class TestUrlSourceTracker:
             markdown_content="# Should Not Use This",
         )
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result_trace_fallback, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result_trace_fallback,
+            context=make_tracking_context(),
         )
         assert meta["title"] == "Trace Title Only"
 
@@ -111,7 +113,9 @@ class TestUrlSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] == "Extracted From Heading"
@@ -128,7 +132,9 @@ class TestUrlSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] == "First non-empty line used as fallback title."
@@ -145,7 +151,9 @@ class TestUrlSourceTracker:
             markdown_content=None,
         )
         meta_none = await tracker.extract_metadata(
-            document_id=doc_id, result=result_none, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result_none,
+            context=make_tracking_context(),
         )
         assert meta_none["title"] is None
 
@@ -155,7 +163,9 @@ class TestUrlSourceTracker:
             markdown_content="",
         )
         meta_empty = await tracker.extract_metadata(
-            document_id=doc_id, result=result_empty, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result_empty,
+            context=make_tracking_context(),
         )
         assert meta_empty["title"] is None
 
@@ -171,7 +181,9 @@ class TestUrlSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] is None
@@ -193,7 +205,9 @@ class TestUrlSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["original_url"] == "https://example.com/page"
@@ -224,7 +238,9 @@ class TestPdfSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["source_type"] == "file_pdf"
@@ -247,7 +263,9 @@ class TestPdfSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         # 代码逻辑：.replace(".pdf", "").replace("_", " ").strip()
@@ -263,7 +281,9 @@ class TestPdfSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["original_url"] is None
@@ -283,7 +303,9 @@ class TestPdfSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         raw = meta["raw_metadata"]
@@ -309,7 +331,9 @@ class TestPdfSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] == "README"
@@ -334,7 +358,9 @@ class TestFileSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["source_type"] == "file_generic"
@@ -354,7 +380,9 @@ class TestFileSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] == "report"
@@ -369,7 +397,9 @@ class TestFileSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] == ".gitignore"
@@ -384,7 +414,9 @@ class TestFileSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] is None
@@ -399,7 +431,9 @@ class TestFileSourceTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["author"] is None
@@ -429,7 +463,9 @@ class TestTextInputTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] == "My Custom Title"
@@ -442,7 +478,9 @@ class TestTextInputTracker:
         result = make_extracted_document_result(metadata={})
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["title"] == "文本输入"
@@ -460,7 +498,9 @@ class TestTextInputTracker:
         result = make_extracted_document_result(metadata={})
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=ctx,
+            document_id=doc_id,
+            result=result,
+            context=ctx,
         )
 
         assert meta["extractor_tool_name"] is None
@@ -476,7 +516,9 @@ class TestTextInputTracker:
         )
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["source_url"] is None
@@ -490,7 +532,9 @@ class TestTextInputTracker:
         result = make_extracted_document_result(trace={"duration_ms": 9999})
 
         meta = await tracker.extract_metadata(
-            document_id=doc_id, result=result, context=make_tracking_context(),
+            document_id=doc_id,
+            result=result,
+            context=make_tracking_context(),
         )
 
         assert meta["extraction_duration_ms"] is None

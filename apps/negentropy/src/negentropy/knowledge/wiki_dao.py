@@ -60,26 +60,25 @@ class WikiDao:
         )
         db.add(pub)
         await db.flush()
-        logger.info("wiki_publication_created", extra={
-            "id": str(pub.id),
-            "corpus_id": str(corpus_id),
-            "name": name,
-            "slug": slug,
-        })
+        logger.info(
+            "wiki_publication_created",
+            extra={
+                "id": str(pub.id),
+                "corpus_id": str(corpus_id),
+                "name": name,
+                "slug": slug,
+            },
+        )
         return pub
 
     @staticmethod
     async def get_publication(db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
         """按 ID 获取发布记录"""
-        result = await db.execute(
-            select(WikiPublication).where(WikiPublication.id == pub_id)
-        )
+        result = await db.execute(select(WikiPublication).where(WikiPublication.id == pub_id))
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_publication_by_slug(
-        db: AsyncSession, corpus_id: UUID, slug: str
-    ) -> WikiPublication | None:
+    async def get_publication_by_slug(db: AsyncSession, corpus_id: UUID, slug: str) -> WikiPublication | None:
         """按 corpus + slug 获取发布记录"""
         result = await db.execute(
             select(WikiPublication).where(
@@ -131,8 +130,14 @@ class WikiDao:
             return None
 
         allowed_fields = {
-            "name", "slug", "description", "status", "theme",
-            "navigation_config", "custom_css", "custom_js",
+            "name",
+            "slug",
+            "description",
+            "status",
+            "theme",
+            "navigation_config",
+            "custom_css",
+            "custom_js",
         }
         for key, value in kwargs.items():
             if key in allowed_fields and value is not None:
@@ -171,10 +176,13 @@ class WikiDao:
         pub.published_at = datetime.now(timezone.utc)
         await db.flush()
 
-        logger.info("wiki_published", extra={
-            "pub_id": str(pub_id),
-            "version": pub.version,
-        })
+        logger.info(
+            "wiki_published",
+            extra={
+                "pub_id": str(pub_id),
+                "version": pub.version,
+            },
+        )
         return pub
 
     @staticmethod
@@ -249,9 +257,7 @@ class WikiDao:
         """删除单条条目映射"""
         from sqlalchemy import delete as sql_delete
 
-        result = await db.execute(
-            sql_delete(WikiPublicationEntry).where(WikiPublicationEntry.id == entry_id)
-        )
+        result = await db.execute(sql_delete(WikiPublicationEntry).where(WikiPublicationEntry.id == entry_id))
         await db.flush()
         return result.rowcount > 0
 
@@ -334,13 +340,15 @@ class WikiDao:
 
         nav_items = []
         for entry in entries:
-            nav_items.append({
-                "entry_id": str(entry.id),
-                "entry_slug": entry.entry_slug,
-                "entry_title": entry.entry_title or entry.entry_slug,
-                "is_index_page": entry.is_index_page,
-                "order_path": entry.entry_order,
-                "document_id": str(entry.document_id),
-            })
+            nav_items.append(
+                {
+                    "entry_id": str(entry.id),
+                    "entry_slug": entry.entry_slug,
+                    "entry_title": entry.entry_title or entry.entry_slug,
+                    "is_index_page": entry.is_index_page,
+                    "order_path": entry.entry_order,
+                    "document_id": str(entry.document_id),
+                }
+            )
 
         return nav_items

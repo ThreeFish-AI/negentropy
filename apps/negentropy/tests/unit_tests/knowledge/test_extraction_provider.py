@@ -257,10 +257,7 @@ async def test_negentropy_perceives_provider_rejects_failed_json_text_envelope(
 
     class FakeTextItem:
         type = "text"
-        text = (
-            '{"success":false,"total_pdfs":0,"successful_count":0,'
-            '"failed_count":0,"results":[],"total_pages":0}'
-        )
+        text = '{"success":false,"total_pdfs":0,"successful_count":0,"failed_count":0,"results":[],"total_pages":0}'
 
     class FakeClient:
         async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
@@ -720,8 +717,7 @@ async def test_negentropy_perceives_provider_keeps_string_contract_on_missing_si
                     structured_content=None,
                     content=[],
                     error=(
-                        "1 validation error for call[parse_pdf_to_markdown]\n"
-                        "pdf_source\n  Missing required argument\n"
+                        "1 validation error for call[parse_pdf_to_markdown]\npdf_source\n  Missing required argument\n"
                     ),
                     duration_ms=8,
                 )
@@ -780,7 +776,9 @@ async def test_negentropy_perceives_provider_keeps_string_contract_on_missing_si
     assert all(isinstance(item["pdf_source"], str) for item in call_arguments)
     assert result["result"].metadata["adapter_name"] == "single_string_source_retry_v1"
     assert result["result"].trace["adapter_attempts"][1]["reasoning_source"] == "validation_retry"
-    assert result["result"].trace["adapter_attempts"][1]["diagnostics"]["schema_shape"] == "validation_retry.scalar_value"
+    assert (
+        result["result"].trace["adapter_attempts"][1]["diagnostics"]["schema_shape"] == "validation_retry.scalar_value"
+    )
 
 
 @pytest.mark.asyncio

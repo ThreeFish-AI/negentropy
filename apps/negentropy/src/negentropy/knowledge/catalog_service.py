@@ -78,8 +78,7 @@ class CatalogService:
 
         if not _SLUG_PATTERN.match(slug):
             raise ValueError(
-                f"Invalid slug format: {slug!r}. "
-                f"Must contain only lowercase alphanumeric characters and hyphens."
+                f"Invalid slug format: {slug!r}. Must contain only lowercase alphanumeric characters and hyphens."
             )
 
         # 如果指定了 parent_id，验证父节点存在且属于同一 corpus

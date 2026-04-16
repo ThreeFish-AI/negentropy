@@ -75,7 +75,9 @@ def test_context_assembler_config_updates_managed_function_defaults():
 
 
 @pytest.mark.asyncio
-async def test_scheduler_actions_raise_when_pg_cron_unavailable(service: MemoryAutomationService, monkeypatch: pytest.MonkeyPatch):
+async def test_scheduler_actions_raise_when_pg_cron_unavailable(
+    service: MemoryAutomationService, monkeypatch: pytest.MonkeyPatch
+):
     async def fake_capabilities():
         return {
             "pg_cron_installed": True,

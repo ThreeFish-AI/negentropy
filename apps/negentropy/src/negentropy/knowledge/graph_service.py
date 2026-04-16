@@ -39,7 +39,15 @@ from .llm_extractors import (
     CompositeEntityExtractor,
     CompositeRelationExtractor,
 )
-from .types import GraphBuildConfig, GraphEdge, GraphNode, GraphQueryConfig, KgEntityType, KgRelationType, KnowledgeGraphPayload
+from .types import (
+    GraphBuildConfig,
+    GraphEdge,
+    GraphNode,
+    GraphQueryConfig,
+    KgEntityType,
+    KgRelationType,
+    KnowledgeGraphPayload,
+)
 
 logger = get_logger("negentropy.knowledge.graph_service")
 

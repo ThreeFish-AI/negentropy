@@ -140,7 +140,9 @@ class TestKnowledgeRunMixin:
         shared_fields = {"app_name", "run_id", "status", "payload", "idempotency_key", "version"}
         for cls in [KnowledgeGraphRun, KnowledgePipelineRun]:
             model_columns = {c.key for c in cls.__table__.columns}
-            assert shared_fields.issubset(model_columns), f"{cls.__name__} missing fields: {shared_fields - model_columns}"
+            assert shared_fields.issubset(model_columns), (
+                f"{cls.__name__} missing fields: {shared_fields - model_columns}"
+            )
 
     def test_distinct_tablenames(self):
         from negentropy.models.knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun

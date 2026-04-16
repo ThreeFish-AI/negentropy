@@ -7,6 +7,7 @@ Create Date: 2026-04-14 00:00:00.000000+00:00
 新增供应商级凭证配置表，支持 OpenAI/Anthropic/Gemini 的统一 API Key 管理。
 每个供应商最多一条记录 (vendor 自然主键)。
 """
+
 from typing import Sequence, Union
 
 from alembic import op

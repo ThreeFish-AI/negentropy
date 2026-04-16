@@ -82,9 +82,7 @@ class TestEntitySyncIntegration:
 
     # -- 1. 创建后更新，验证最终 DB 状态 --
 
-    async def test_full_sync_lifecycle_create_then_update(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_full_sync_lifecycle_create_then_update(self, service, db_session, integration_corpus):
         """先创建实体再更新，验证最终 DB 状态正确。"""
         kid = uuid4()
 
@@ -132,9 +130,7 @@ class TestEntitySyncIntegration:
 
     # -- 2. 同一 (name, type, corpus) 幂等合并为一条记录 --
 
-    async def test_concurrent_same_entity_idempotency(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_concurrent_same_entity_idempotency(self, service, db_session, integration_corpus):
         """相同 (name, type, corpus) 的多次同步应只产生一条实体记录。"""
         kid1, kid2, kid3 = uuid4(), uuid4(), uuid4()
 
@@ -209,16 +205,12 @@ class TestEntitySyncIntegration:
         assert len(result_b.scalars().all()) == 1
 
         # 总数应为 2
-        total = await db_session.execute(
-            sql_select(KgEntity).where(KgEntity.name == "CrossCorpusEntity")
-        )
+        total = await db_session.execute(sql_select(KgEntity).where(KgEntity.name == "CrossCorpusEntity"))
         assert len(total.scalars().all()) == 2
 
     # -- 4. 多次同步 mention_count 累积 --
 
-    async def test_mention_count_accumulates_across_syncs(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_mention_count_accumulates_across_syncs(self, service, db_session, integration_corpus):
         """多次对同一实体的同步操作应使 mention_count 正确累积。"""
         for i in range(5):
             await service.sync_entity_from_knowledge(
@@ -245,9 +237,7 @@ class TestEntitySyncIntegration:
 
     # -- 5. embedding 持久化到 DB --
 
-    async def test_entity_with_embedding_stored_correctly(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_entity_with_embedding_stored_correctly(self, service, db_session, integration_corpus):
         """embedding 向量应正确写入并从 DB 读回。"""
         # 使用与模型 DEFAULT_EMBEDDING_DIM 一致的维度（1536）
         embedding = [0.1] * 1536
@@ -262,18 +252,14 @@ class TestEntitySyncIntegration:
         )
         await db_session.commit()
 
-        result = await db_session.execute(
-            sql_select(KgEntity).where(KgEntity.name == "EmbeddedEntity")
-        )
+        result = await db_session.execute(sql_select(KgEntity).where(KgEntity.name == "EmbeddedEntity"))
         entity = result.scalar_one()
         assert entity.embedding is not None
         assert len(entity.embedding) == len(embedding)
 
     # -- 6. JSONB properties 合并可验证 --
 
-    async def test_properties_merge_behavior_in_db(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_properties_merge_behavior_in_db(self, service, db_session, integration_corpus):
         """properties 字段的 JSONB 合并行为应在 DB 中可验证。"""
         # 第一次：初始属性
         await service.sync_entity_from_knowledge(
@@ -297,14 +283,12 @@ class TestEntitySyncIntegration:
         )
         await db_session.commit()
 
-        result = await db_session.execute(
-            sql_select(KgEntity.properties).where(KgEntity.name == "MergeTest")
-        )
+        result = await db_session.execute(sql_select(KgEntity.properties).where(KgEntity.name == "MergeTest"))
         props = result.scalar_one()
 
-        assert props["role"] == "engineer"       # 保留旧键
-        assert props["team"] == "AI-ML"          # 被新值覆盖
-        assert props["level"] == "senior"        # 新增键
+        assert props["role"] == "engineer"  # 保留旧键
+        assert props["team"] == "AI-ML"  # 被新值覆盖
+        assert props["level"] == "senior"  # 新增键
 
 
 # ===================================================================
@@ -362,9 +346,7 @@ class TestRelationSyncIntegration:
 
     # -- 2. 端点缺失时静默跳过 --
 
-    async def test_skip_relation_when_endpoint_absent(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_skip_relation_when_endpoint_absent(self, service, db_session, integration_corpus):
         """任一端点不存在时，不应抛异常且不创建关系。"""
         # 只预置 source
         await service.sync_entity_from_knowledge(
@@ -391,9 +373,7 @@ class TestRelationSyncIntegration:
 
     # -- 3. 相同关系不重复创建 --
 
-    async def test_duplicate_relation_not_created(
-        self, service, db_session, integration_corpus, _preloaded_entities
-    ):
+    async def test_duplicate_relation_not_created(self, service, db_session, integration_corpus, _preloaded_entities):
         """已存在的相同 (source, target, type) 关系不应重复创建。"""
         await service.sync_relation(
             db_session,
@@ -419,9 +399,7 @@ class TestRelationSyncIntegration:
 
     # -- 4. 双向关系可共存 --
 
-    async def test_bidirectional_relations(
-        self, service, db_session, integration_corpus, _preloaded_entities
-    ):
+    async def test_bidirectional_relations(self, service, db_session, integration_corpus, _preloaded_entities):
         """A→B 和 B→A 是两条独立关系，可以共存。"""
         await service.sync_relation(
             db_session,
@@ -439,9 +417,7 @@ class TestRelationSyncIntegration:
         )
         await db_session.commit()
 
-        result = await db_session.execute(
-            sql_select(KgRelation.relation_type).order_by(KgRelation.relation_type)
-        )
+        result = await db_session.execute(sql_select(KgRelation.relation_type).order_by(KgRelation.relation_type))
         types = sorted([row[0] for row in result.all()])
 
         assert len(types) == 2
@@ -459,9 +435,7 @@ class TestBatchSyncIntegration:
 
     # -- 1. 模拟图谱构建输出进行批量同步 --
 
-    async def test_batch_sync_graph_build_output(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_batch_sync_graph_build_output(self, service, db_session, integration_corpus):
         """模拟图构建输出，批量同步节点和边到 DB。"""
         nodes = [
             {
@@ -499,9 +473,11 @@ class TestBatchSyncIntegration:
 
         # 验证 DB 中确实存在这些实体
         ent_result = await db_session.execute(
-            sql_select(KgEntity.name).where(
+            sql_select(KgEntity.name)
+            .where(
                 KgEntity.corpus_id == integration_corpus.id,
-            ).order_by(KgEntity.name)
+            )
+            .order_by(KgEntity.name)
         )
         names = [row[0] for row in ent_result.all()]
         assert "BatchNodeA" in names
@@ -516,9 +492,7 @@ class TestBatchSyncIntegration:
 
     # -- 2. 部分失败时数据一致性 --
 
-    async def test_batch_sync_partial_failure_recovery(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_batch_sync_partial_failure_recovery(self, service, db_session, integration_corpus):
         """部分节点处理失败时，成功的节点和边仍应正确持久化。"""
         nodes = [
             {
@@ -553,16 +527,12 @@ class TestBatchSyncIntegration:
         assert stats["relations_synced"] == 1
 
         # 验证 DB 中数据一致
-        ent_count = await db_session.execute(
-            sql_select(KgEntity).where(KgEntity.corpus_id == integration_corpus.id)
-        )
+        ent_count = await db_session.execute(sql_select(KgEntity).where(KgEntity.corpus_id == integration_corpus.id))
         assert len(ent_count.scalars().all()) >= 2
 
     # -- 3. 大数据集基本性能检查 --
 
-    async def test_batch_sync_large_dataset_performance(
-        self, service, db_session, integration_corpus
-    ):
+    async def test_batch_sync_large_dataset_performance(self, service, db_session, integration_corpus):
         """较大规模数据集的基本性能检查。"""
         node_count = 50
         edge_count = 80
@@ -595,9 +565,7 @@ class TestBatchSyncIntegration:
         assert stats["relations_synced"] == edge_count
 
         # 验证 get_top_entities 可正常工作
-        top = await service.get_top_entities(
-            db_session, corpus_id=integration_corpus.id, limit=5
-        )
+        top = await service.get_top_entities(db_session, corpus_id=integration_corpus.id, limit=5)
         assert isinstance(top, list)
         assert len(top) <= 5
         if top:

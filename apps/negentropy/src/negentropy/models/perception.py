@@ -28,9 +28,7 @@ class Corpus(Base, UUIDMixin, TimestampMixin):
     quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     corpus_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # technical/research/web/general
     tags: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
-    parent_corpus_id: Mapped[UUID | None] = mapped_column(
-        fk("corpus", ondelete="SET NULL"), nullable=True
-    )
+    parent_corpus_id: Mapped[UUID | None] = mapped_column(fk("corpus", ondelete="SET NULL"), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("app_name", "name", name="corpus_app_name_unique"),
@@ -42,16 +40,19 @@ class Corpus(Base, UUIDMixin, TimestampMixin):
 
     # Phase 3: 目录节点
     catalog_nodes: Mapped[list["DocCatalogNode"]] = relationship(
-        back_populates="corpus", cascade="all, delete-orphan",
+        back_populates="corpus",
+        cascade="all, delete-orphan",
         order_by="DocCatalogNode.sort_order",
     )
     # Phase 4: Wiki 发布
     wiki_publications: Mapped[list["WikiPublication"]] = relationship(
-        back_populates="corpus", cascade="all, delete-orphan",
+        back_populates="corpus",
+        cascade="all, delete-orphan",
     )
     # Phase 5: 版本快照
     versions: Mapped[list["CorpusVersion"]] = relationship(
-        back_populates="corpus", cascade="all, delete-orphan",
+        back_populates="corpus",
+        cascade="all, delete-orphan",
         order_by="CorpusVersion.version_number.desc()",
     )
 
@@ -123,9 +124,7 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
 
     # Phase 2: 来源追踪外键
-    source_id: Mapped[UUID | None] = mapped_column(
-        fk("doc_sources", ondelete="SET NULL"), nullable=True
-    )
+    source_id: Mapped[UUID | None] = mapped_column(fk("doc_sources", ondelete="SET NULL"), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),
@@ -156,9 +155,7 @@ class DocSource(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "doc_sources"
 
-    document_id: Mapped[UUID] = mapped_column(
-        fk("knowledge_documents", ondelete="CASCADE"), nullable=False
-    )
+    document_id: Mapped[UUID] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=False)
     # 来源类型，与 extraction.py 的 SourceKind 对齐
     source_type: Mapped[str] = mapped_column(String(20), nullable=False)  # url | file_pdf | file_generic | text_input
     # URL 信息：source_url 为最终实际 URL，original_url 为重定向前的原始 URL
@@ -204,12 +201,8 @@ class DocCatalogNode(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "doc_catalog_nodes"
 
-    corpus_id: Mapped[UUID] = mapped_column(
-        fk("corpus", ondelete="CASCADE"), nullable=False
-    )
-    parent_id: Mapped[UUID | None] = mapped_column(
-        fk("doc_catalog_nodes", ondelete="SET NULL"), nullable=True
-    )
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
+    parent_id: Mapped[UUID | None] = mapped_column(fk("doc_catalog_nodes", ondelete="SET NULL"), nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)  # URL-friendly 标识
     node_type: Mapped[str] = mapped_column(
@@ -219,18 +212,16 @@ class DocCatalogNode(Base, UUIDMixin, TimestampMixin):
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 
-    parent: Mapped["DocCatalogNode | None"] = relationship(
-        remote_side="DocCatalogNode.id", back_populates="children"
-    )
+    parent: Mapped["DocCatalogNode | None"] = relationship(remote_side="DocCatalogNode.id", back_populates="children")
     children: Mapped[list["DocCatalogNode"]] = relationship(
-        back_populates="parent", cascade="all, delete-orphan",
+        back_populates="parent",
+        cascade="all, delete-orphan",
         order_by="DocCatalogNode.sort_order",
     )
     corpus: Mapped["Corpus"] = relationship(back_populates="catalog_nodes")
 
     __table_args__ = (
-        UniqueConstraint("corpus_id", "parent_id", "name",
-                         name="uq_catalog_sibling_name"),
+        UniqueConstraint("corpus_id", "parent_id", "name", name="uq_catalog_sibling_name"),
         UniqueConstraint("corpus_id", "slug", name="uq_catalog_corpus_slug"),
         Index("ix_doc_catalog_nodes_corpus_id", "corpus_id"),
         Index("ix_doc_catalog_nodes_parent_id", "parent_id"),
@@ -247,19 +238,14 @@ class DocCatalogMembership(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "doc_catalog_memberships"
 
-    catalog_node_id: Mapped[UUID] = mapped_column(
-        fk("doc_catalog_nodes", ondelete="CASCADE"), nullable=False
-    )
-    document_id: Mapped[UUID] = mapped_column(
-        fk("knowledge_documents", ondelete="CASCADE"), nullable=False
-    )
+    catalog_node_id: Mapped[UUID] = mapped_column(fk("doc_catalog_nodes", ondelete="CASCADE"), nullable=False)
+    document_id: Mapped[UUID] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=False)
 
     catalog_node: Mapped["DocCatalogNode"] = relationship()
     document: Mapped["KnowledgeDocument"] = relationship()
 
     __table_args__ = (
-        UniqueConstraint("catalog_node_id", "document_id",
-                         name="uq_catalog_membership_unique"),
+        UniqueConstraint("catalog_node_id", "document_id", name="uq_catalog_membership_unique"),
         Index("ix_catalog_memberships_document_id", "document_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
@@ -279,9 +265,7 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "wiki_publications"
 
-    corpus_id: Mapped[UUID] = mapped_column(
-        fk("corpus", ondelete="CASCADE"), nullable=False
-    )
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -291,9 +275,7 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
     theme: Mapped[str] = mapped_column(
         String(20), nullable=False, default="default", server_default="'default'"
     )  # default | book | docs
-    navigation_config: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONB, server_default="{}"
-    )
+    navigation_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
     custom_css: Mapped[str | None] = mapped_column(Text, nullable=True)
     custom_js: Mapped[str | None] = mapped_column(Text, nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -301,7 +283,8 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
 
     corpus: Mapped["Corpus"] = relationship(back_populates="wiki_publications")
     entries: Mapped[list["WikiPublicationEntry"]] = relationship(
-        back_populates="publication", cascade="all, delete-orphan",
+        back_populates="publication",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (
@@ -323,12 +306,8 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "wiki_publication_entries"
 
-    publication_id: Mapped[UUID] = mapped_column(
-        fk("wiki_publications", ondelete="CASCADE"), nullable=False
-    )
-    document_id: Mapped[UUID] = mapped_column(
-        fk("knowledge_documents", ondelete="CASCADE"), nullable=False
-    )
+    publication_id: Mapped[UUID] = mapped_column(fk("wiki_publications", ondelete="CASCADE"), nullable=False)
+    document_id: Mapped[UUID] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=False)
     entry_slug: Mapped[str] = mapped_column(String(255), nullable=False)
     entry_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     entry_order: Mapped[str | None] = mapped_column(JSONB)  # JSON path in nav tree
@@ -338,10 +317,8 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     document: Mapped["KnowledgeDocument"] = relationship()
 
     __table_args__ = (
-        UniqueConstraint("publication_id", "entry_slug",
-                         name="uq_wiki_entry_pub_slug"),
-        UniqueConstraint("publication_id", "document_id",
-                         name="uq_wiki_entry_pub_doc"),
+        UniqueConstraint("publication_id", "entry_slug", name="uq_wiki_entry_pub_slug"),
+        UniqueConstraint("publication_id", "document_id", name="uq_wiki_entry_pub_doc"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -360,9 +337,7 @@ class KgEntity(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "kg_entities"
 
-    corpus_id: Mapped[UUID] = mapped_column(
-        fk("corpus", ondelete="CASCADE"), nullable=False
-    )
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # 核心身份
@@ -398,16 +373,18 @@ class KgEntity(Base, UUIDMixin, TimestampMixin):
     incoming_relations: Mapped[list["KgRelation"]] = relationship(
         back_populates="target_entity", foreign_keys="KgRelation.target_id"
     )
-    mentions: Mapped[list["KgEntityMention"]] = relationship(
-        back_populates="entity", cascade="all, delete-orphan"
-    )
+    mentions: Mapped[list["KgEntityMention"]] = relationship(back_populates="entity", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("corpus_id", "canonical_name", name="uq_kg_entity_corpus_name"),
         Index("ix_kg_entities_corpus_type", "corpus_id", "entity_type"),
-        Index("ix_kg_entities_embedding", "embedding",
-              postgresql_using="hnsw", postgresql_ops={"embedding": "vector_cosine_ops"},
-              postgresql_with={"m": 16, "ef_construction": 64}),
+        Index(
+            "ix_kg_entities_embedding",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+            postgresql_with={"m": 16, "ef_construction": 64},
+        ),
         Index("ix_kg_entities_confidence", "confidence"),
         {"schema": NEGENTROPY_SCHEMA},
     )
@@ -421,15 +398,9 @@ class KgRelation(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "kg_relations"
 
-    source_id: Mapped[UUID] = mapped_column(
-        fk("kg_entities", ondelete="CASCADE"), nullable=False
-    )
-    target_id: Mapped[UUID] = mapped_column(
-        fk("kg_entities", ondelete="CASCADE"), nullable=False
-    )
-    corpus_id: Mapped[UUID] = mapped_column(
-        fk("corpus", ondelete="CASCADE"), nullable=False
-    )
+    source_id: Mapped[UUID] = mapped_column(fk("kg_entities", ondelete="CASCADE"), nullable=False)
+    target_id: Mapped[UUID] = mapped_column(fk("kg_entities", ondelete="CASCADE"), nullable=False)
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     relation_type: Mapped[str] = mapped_column(String(50), nullable=False)  # WORKS_FOR, RELATED_TO, ...
@@ -448,16 +419,11 @@ class KgRelation(Base, UUIDMixin, TimestampMixin):
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
-    source_entity: Mapped["KgEntity"] = relationship(
-        foreign_keys=[source_id], back_populates="outgoing_relations"
-    )
-    target_entity: Mapped["KgEntity"] = relationship(
-        foreign_keys=[target_id], back_populates="incoming_relations"
-    )
+    source_entity: Mapped["KgEntity"] = relationship(foreign_keys=[source_id], back_populates="outgoing_relations")
+    target_entity: Mapped["KgEntity"] = relationship(foreign_keys=[target_id], back_populates="incoming_relations")
 
     __table_args__ = (
-        UniqueConstraint("source_id", "target_id", "relation_type",
-                         name="uq_kg_relation_src_tgt_type"),
+        UniqueConstraint("source_id", "target_id", "relation_type", name="uq_kg_relation_src_tgt_type"),
         Index("ix_kg_relations_source", "source_id"),
         Index("ix_kg_relations_target", "target_id"),
         Index("ix_kg_relations_corpus", "corpus_id"),
@@ -475,26 +441,19 @@ class KgEntityMention(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "kg_entity_mentions"
 
-    entity_id: Mapped[UUID] = mapped_column(
-        fk("kg_entities", ondelete="CASCADE"), nullable=False
-    )
-    corpus_id: Mapped[UUID] = mapped_column(
-        fk("corpus", ondelete="CASCADE"), nullable=False
-    )
+    entity_id: Mapped[UUID] = mapped_column(fk("kg_entities", ondelete="CASCADE"), nullable=False)
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
     # 提及位置（可为空，如非 chunk 来源）
-    knowledge_chunk_id: Mapped[UUID | None] = mapped_column(
-        fk("knowledge", ondelete="SET NULL"), nullable=True
-    )
-    document_id: Mapped[UUID | None] = mapped_column(
-        fk("knowledge_documents", ondelete="SET NULL"), nullable=True
-    )
+    knowledge_chunk_id: Mapped[UUID | None] = mapped_column(fk("knowledge", ondelete="SET NULL"), nullable=True)
+    document_id: Mapped[UUID | None] = mapped_column(fk("knowledge_documents", ondelete="SET NULL"), nullable=True)
     # 上下文
     context_snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
     char_offset: Mapped[int | None] = mapped_column(Integer, nullable=True)
     char_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # 提取元数据
     extraction_method: Mapped[str] = mapped_column(
-        String(50), default="llm"  # llm | regex | cooccurrence
+        String(50),
+        default="llm",  # llm | regex | cooccurrence
     )
     extraction_confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
     extractor_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -524,9 +483,7 @@ class CorpusVersion(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "corpus_versions"
 
-    corpus_id: Mapped[UUID] = mapped_column(
-        fk("corpus", ondelete="CASCADE"), nullable=False
-    )
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -571,12 +528,8 @@ class KnowledgeFeedback(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "knowledge_feedback"
 
-    knowledge_id: Mapped[UUID] = mapped_column(
-        fk("knowledge", ondelete="CASCADE"), nullable=False
-    )
-    corpus_id: Mapped[UUID] = mapped_column(
-        fk("corpus", ondelete="CASCADE"), nullable=False
-    )
+    knowledge_id: Mapped[UUID] = mapped_column(fk("knowledge", ondelete="CASCADE"), nullable=False)
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # 会话上下文

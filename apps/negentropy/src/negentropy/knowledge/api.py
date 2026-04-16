@@ -259,8 +259,6 @@ def _build_chunking_config(
     return normalize_chunking_config(payload)
 
 
-
-
 def _resolve_chunking_option(
     request_value: Any,
     corpus_config: Dict[str, Any],
@@ -309,7 +307,9 @@ def _resolve_chunking_config(
 
 
 def _serialize_corpus_config(config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    return merge_corpus_config(config, serialize_chunking_config(normalize_chunking_config(get_chunking_config_only(config))))
+    return merge_corpus_config(
+        config, serialize_chunking_config(normalize_chunking_config(get_chunking_config_only(config)))
+    )
 
 
 def _has_explicit_extractor_routes(config: Optional[Dict[str, Any]]) -> bool:
@@ -344,8 +344,9 @@ async def _resolve_default_extractor_routes() -> Dict[str, Any]:
     async with AsyncSessionLocal() as db:
         server_rows = (
             await db.execute(
-                select(McpServer.id, McpServer.name)
-                .where(McpServer.name.in_(server_names), McpServer.is_enabled.is_(True))
+                select(McpServer.id, McpServer.name).where(
+                    McpServer.name.in_(server_names), McpServer.is_enabled.is_(True)
+                )
             )
         ).all()
         servers_by_name = {name: server_id for server_id, name in server_rows}
@@ -355,13 +356,12 @@ async def _resolve_default_extractor_routes() -> Dict[str, Any]:
         if server_ids:
             tool_rows = (
                 await db.execute(
-                    select(McpTool.server_id, McpTool.name)
-                    .where(McpTool.server_id.in_(server_ids), McpTool.is_enabled.is_(True))
+                    select(McpTool.server_id, McpTool.name).where(
+                        McpTool.server_id.in_(server_ids), McpTool.is_enabled.is_(True)
+                    )
                 )
             ).all()
-            enabled_tools_by_server = {
-                (str(server_id), tool_name): True for server_id, tool_name in tool_rows
-            }
+            enabled_tools_by_server = {(str(server_id), tool_name): True for server_id, tool_name in tool_rows}
 
     for route_key, priority, target in candidates:
         server_name = str(target["server_name"]).strip()
@@ -391,11 +391,7 @@ async def _resolve_default_extractor_routes() -> Dict[str, Any]:
                 "tool_name": tool_name,
                 "priority": priority,
                 "enabled": True,
-                **(
-                    {"timeout_ms": int(target["timeout_ms"])}
-                    if target.get("timeout_ms") is not None
-                    else {}
-                ),
+                **({"timeout_ms": int(target["timeout_ms"])} if target.get("timeout_ms") is not None else {}),
                 **(
                     {"tool_options": target["tool_options"]}
                     if isinstance(target.get("tool_options"), dict) and target["tool_options"]
@@ -405,8 +401,6 @@ async def _resolve_default_extractor_routes() -> Dict[str, Any]:
         )
 
     return resolved_routes
-
-
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
@@ -1336,9 +1330,7 @@ def _build_document_response(doc, name_map: dict[str, str]) -> DocumentResponse:
         created_by=doc.created_by,
         created_by_name=name_map.get(doc.created_by) if doc.created_by else None,
         markdown_extract_status=doc.markdown_extract_status,
-        markdown_extracted_at=(
-            doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None
-        ),
+        markdown_extracted_at=(doc.markdown_extracted_at.isoformat() if doc.markdown_extracted_at else None),
         markdown_extract_error=doc.markdown_extract_error,
         metadata=doc.metadata_ or {},
     )
@@ -1446,11 +1438,7 @@ async def get_document_detail(
 
     markdown_content = await storage_service.get_document_markdown(document_id)
 
-    name_map = (
-        await _resolve_user_display_names([doc.created_by])
-        if doc.created_by
-        else {}
-    )
+    name_map = await _resolve_user_display_names([doc.created_by]) if doc.created_by else {}
 
     return DocumentDetailResponse(
         id=doc.id,
@@ -1783,10 +1771,7 @@ async def list_document_chunks(
     )
 
     # 过滤顶层项：排除 child chunks（它们仅作为 parent 的嵌套子项显示）
-    top_level_items = [
-        item for item in all_items
-        if (item.metadata or {}).get("chunk_role") != "child"
-    ]
+    top_level_items = [item for item in all_items if (item.metadata or {}).get("chunk_role") != "child"]
 
     # Python 层分页
     total_top = len(top_level_items)
@@ -3252,15 +3237,12 @@ async def get_api_stats(
             # 默认：所有 Knowledge API
             conditions.append(Trace.operation_name.op("~")(r"/knowledge/"))
 
-        stmt = (
-            select(
-                sql_func.count().label("total_calls"),
-                sql_func.count().filter(Trace.status_code == "OK").label("success_count"),
-                sql_func.count().filter(Trace.status_code != "OK").label("failed_count"),
-                sql_func.avg(Trace.duration_ns).label("avg_duration_ns"),
-            )
-            .where(and_(*conditions))
-        )
+        stmt = select(
+            sql_func.count().label("total_calls"),
+            sql_func.count().filter(Trace.status_code == "OK").label("success_count"),
+            sql_func.count().filter(Trace.status_code != "OK").label("failed_count"),
+            sql_func.avg(Trace.duration_ns).label("avg_duration_ns"),
+        ).where(and_(*conditions))
 
         result = await db.execute(stmt)
         row = result.one()
@@ -3468,6 +3450,7 @@ def _get_catalog_service() -> "CatalogService":
     global _catalog_service
     if _catalog_service is None:
         from .catalog_service import CatalogService
+
         _catalog_service = CatalogService()
     return _catalog_service
 
@@ -3491,6 +3474,7 @@ def _to_catalog_node_resp(row: dict, *, children_count: int = 0, document_count:
 
 
 # --- 目录树查询 ---
+
 
 @router.get("/catalog/tree/{corpus_id}")
 async def get_catalog_tree(
@@ -3569,6 +3553,7 @@ async def get_catalog_subtree(node_id: UUID) -> CatalogTreeResponse:
 
 
 # --- 目录节点 CRUD ---
+
 
 @router.post("/catalog/nodes")
 async def create_catalog_node(
@@ -3671,11 +3656,14 @@ async def move_catalog_node(
 
         await db.commit()
 
-    logger.info("api_move_catalog_node", node_id=str(node_id), new_parent_id=str(new_parent_id) if new_parent_id else "root")
+    logger.info(
+        "api_move_catalog_node", node_id=str(node_id), new_parent_id=str(new_parent_id) if new_parent_id else "root"
+    )
     return _CatalogNodeResp.model_validate(node)
 
 
 # --- 文档归属管理 ---
+
 
 @router.post("/catalog/nodes/{node_id}/documents")
 async def assign_documents_to_node(
@@ -3737,19 +3725,19 @@ async def get_node_documents(
     catalog_svc = _get_catalog_service()
 
     async with AsyncSessionLocal() as db:
-        documents, total = await catalog_svc.get_node_documents(
-            db, node_id, offset=offset, limit=limit
-        )
+        documents, total = await catalog_svc.get_node_documents(db, node_id, offset=offset, limit=limit)
 
     items = []
     for doc in documents:
-        items.append({
-            "id": str(doc.id),
-            "filename": doc.filename,
-            "title": (doc.metadata_ or {}).get("title") or doc.filename,
-            "status": doc.status,
-            "created_at": doc.created_at.isoformat() if doc.created_at else None,
-        })
+        items.append(
+            {
+                "id": str(doc.id),
+                "filename": doc.filename,
+                "title": (doc.metadata_ or {}).get("title") or doc.filename,
+                "status": doc.status,
+                "created_at": doc.created_at.isoformat() if doc.created_at else None,
+            }
+        )
 
     logger.info("api_get_node_documents", node_id=str(node_id), total=total)
     return {"items": items, "total": total, "offset": offset, "limit": limit}
@@ -3789,11 +3777,13 @@ def _get_wiki_service() -> "WikiPublishingService":
     global _wiki_service
     if _wiki_service is None:
         from .wiki_service import WikiPublishingService
+
         _wiki_service = WikiPublishingService()
     return _wiki_service
 
 
 # --- Publication CRUD ---
+
 
 @router.post("/wiki/publications")
 async def create_wiki_publication(
@@ -3906,6 +3896,7 @@ async def delete_wiki_publication(pub_id: UUID):
 
 # --- 发布操作 ---
 
+
 @router.post("/wiki/publications/{pub_id}/publish")
 async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
     """触发发布：将 draft/published 状态转为 published，递增版本号
@@ -3961,6 +3952,7 @@ async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
 
 
 # --- 条目管理 ---
+
 
 @router.get("/wiki/publications/{pub_id}/entries")
 async def get_wiki_entries(pub_id: UUID):
@@ -4037,6 +4029,7 @@ def _get_corpus_engine() -> "CorpusEngine":
     global _corpus_engine
     if _corpus_engine is None:
         from .corpus_engine import CorpusEngine
+
         _corpus_engine = CorpusEngine()
     return _corpus_engine
 
@@ -4045,11 +4038,13 @@ def _get_retrieval_service() -> "UnifiedRetrievalService":
     global _retrieval_service
     if _retrieval_service is None:
         from .retrieval import UnifiedRetrievalService
+
         _retrieval_service = UnifiedRetrievalService()
     return _retrieval_service
 
 
 # --- 语料质量评估 ---
+
 
 @router.get("/base/{corpus_id}/quality")
 async def assess_corpus_quality(corpus_id: UUID) -> _CorpusQualityResp:
@@ -4131,6 +4126,7 @@ async def suggest_cross_references(
 
 # --- 统一检索 ---
 
+
 @router.post("/unified/search")
 async def unified_search(body: _UnifiedSearchReq) -> _UnifiedSearchResp:
     """统一检索入口
@@ -4159,8 +4155,12 @@ async def unified_search(body: _UnifiedSearchReq) -> _UnifiedSearchResp:
             mode=body.mode,
         )
 
-    logger.info("api_unified_search", query=body.query[:80], intent=result.get("query_intent"),
-                   count=len(result.get("items", [])))
+    logger.info(
+        "api_unified_search",
+        query=body.query[:80],
+        intent=result.get("query_intent"),
+        count=len(result.get("items", [])),
+    )
 
     return result
 

@@ -94,11 +94,7 @@ class FakeRepository:
         app_name: str,
         match_ids: Iterable[UUID],
     ) -> dict[UUID, dict[str, Any]]:
-        return {
-            item: {"chunk_index": self.chunk_indices[item]}
-            for item in match_ids
-            if item in self.chunk_indices
-        }
+        return {item: {"chunk_index": self.chunk_indices[item]} for item in match_ids if item in self.chunk_indices}
 
     async def get_hierarchical_parent_matches(
         self,

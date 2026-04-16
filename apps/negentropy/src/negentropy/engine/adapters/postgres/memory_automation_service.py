@@ -36,6 +36,7 @@ DEFAULT_AUTOMATION_CONFIG: dict[str, Any] = {
     },
 }
 
+
 class MemoryAutomationUnavailableError(RuntimeError):
     """Raised when automation runtime capabilities are not available."""
 
@@ -281,9 +282,7 @@ class MemoryAutomationService:
         self._validate_config(merged)
 
         async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                select(MemoryAutomationConfig).where(MemoryAutomationConfig.app_name == app_name)
-            )
+            result = await db.execute(select(MemoryAutomationConfig).where(MemoryAutomationConfig.app_name == app_name))
             entity = result.scalar_one_or_none()
             if entity is None:
                 entity = MemoryAutomationConfig(app_name=app_name, config=merged, updated_by=updated_by)
@@ -358,9 +357,7 @@ class MemoryAutomationService:
 
     async def _load_stored_config(self, *, app_name: str) -> dict[str, Any]:
         async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                select(MemoryAutomationConfig).where(MemoryAutomationConfig.app_name == app_name)
-            )
+            result = await db.execute(select(MemoryAutomationConfig).where(MemoryAutomationConfig.app_name == app_name))
             entity = result.scalar_one_or_none()
         return entity.config if entity and entity.config else {}
 
@@ -441,9 +438,7 @@ class MemoryAutomationService:
                 {"schema": NEGENTROPY_SCHEMA},
             )
             rows = {
-                row["name"]: row["definition"]
-                for row in result.mappings().all()
-                if row["name"] in function_definitions
+                row["name"]: row["definition"] for row in result.mappings().all() if row["name"] in function_definitions
             }
 
         states = []
@@ -477,7 +472,9 @@ class MemoryAutomationService:
                         "process_label": template.process_label,
                         "function_name": template.function_name,
                         "enabled": self._build_job_runtime(job_key=job_key, config=config)[0],
-                        "status": "degraded" if self._build_job_runtime(job_key=job_key, config=config)[0] else "disabled",
+                        "status": "degraded"
+                        if self._build_job_runtime(job_key=job_key, config=config)[0]
+                        else "disabled",
                         "job_id": None,
                         "schedule": self._build_job_runtime(job_key=job_key, config=config)[1],
                         "command": self._build_job_runtime(job_key=job_key, config=config)[2],
@@ -495,9 +492,7 @@ class MemoryAutomationService:
                     ),
                 )
                 cron_rows = {
-                    row["jobname"]: dict(row)
-                    for row in result.mappings().all()
-                    if row["jobname"] in JOB_TEMPLATES
+                    row["jobname"]: dict(row) for row in result.mappings().all() if row["jobname"] in JOB_TEMPLATES
                 }
 
         jobs = []
@@ -531,9 +526,7 @@ class MemoryAutomationService:
 
     async def _is_pg_cron_installed(self) -> bool:
         async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                text("SELECT 1 FROM pg_extension WHERE extname = 'pg_cron' LIMIT 1")
-            )
+            result = await db.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'pg_cron' LIMIT 1"))
             return result.scalar() == 1
 
     async def _probe_pg_cron_table(self, table_name: str) -> bool:
@@ -643,8 +636,7 @@ class MemoryAutomationService:
         return (
             bool(consolidation["enabled"]),
             consolidation["schedule"],
-            "SELECT "
-            f"{NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation('{interval}'::interval)",
+            f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation('{interval}'::interval)",
         )
 
     def _build_manual_run_sql(self, *, job_key: JobKey, config: dict[str, Any]) -> str:

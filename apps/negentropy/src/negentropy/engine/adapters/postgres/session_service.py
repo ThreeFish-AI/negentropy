@@ -518,9 +518,7 @@ class PostgresSessionService(BaseSessionService):
                     if isinstance(part_data, dict) and "text" in part_data:
                         parts.append(types.Part(text=part_data["text"]))
                 if parts:
-                    content = types.Content(
-                        role=content_dict.get("role", "user"), parts=parts
-                    )
+                    content = types.Content(role=content_dict.get("role", "user"), parts=parts)
 
         # 2. 恢复 EventActions（transfer_to_agent, state_delta, end_of_agent 等）
         actions = None

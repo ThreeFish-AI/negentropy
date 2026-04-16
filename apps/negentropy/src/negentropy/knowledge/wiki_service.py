@@ -95,9 +95,7 @@ class WikiPublishingService:
         limit: int = 50,
     ) -> tuple[list[WikiPublication], int]:
         """列出发布记录"""
-        return await WikiDao.list_publications(
-            db, corpus_id=corpus_id, status=status, offset=offset, limit=limit
-        )
+        return await WikiDao.list_publications(db, corpus_id=corpus_id, status=status, offset=offset, limit=limit)
 
     async def update_publication(
         self,
@@ -221,10 +219,13 @@ class WikiPublishingService:
                 )
                 synced += 1
 
-        logger.info("wiki_entries_synced_from_catalog", extra={
-            "publication_id": str(publication_id),
-            "synced_count": synced,
-        })
+        logger.info(
+            "wiki_entries_synced_from_catalog",
+            extra={
+                "publication_id": str(publication_id),
+                "synced_count": synced,
+            },
+        )
         return synced
 
     # ------------------------------------------------------------------

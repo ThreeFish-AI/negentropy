@@ -193,9 +193,7 @@ async def _get_vendor_config(vendor: str) -> Optional[Dict[str, str]]:
         from negentropy.models.vendor_config import VendorConfig
 
         async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(VendorConfig).where(VendorConfig.vendor == vendor)
-            )
+            result = await session.execute(select(VendorConfig).where(VendorConfig.vendor == vendor))
             vc = result.scalar_one_or_none()
 
         if vc is None:
@@ -206,7 +204,9 @@ async def _get_vendor_config(vendor: str) -> Optional[Dict[str, str]]:
         return None
 
 
-def _build_llm_kwargs(vendor: str, model_name: str, config: Dict[str, Any], vendor_config: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+def _build_llm_kwargs(
+    vendor: str, model_name: str, config: Dict[str, Any], vendor_config: Optional[Dict[str, str]] = None
+) -> Dict[str, Any]:
     """从 DB config JSONB 构建 LiteLLM kwargs。
 
     供应商特定的 LiteLLM kwargs 构建逻辑。

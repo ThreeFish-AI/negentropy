@@ -28,7 +28,9 @@ async def test_discover_stdio_uses_logged_stdio_client(monkeypatch: pytest.Monke
             self.description = "demo tool"
             self.inputSchema = {"type": "object"}
             self.outputSchema = {"type": "object", "properties": {"ok": {"type": "boolean"}}}
-            self.icons = [type("_Icon", (), {"model_dump": lambda self, mode="json": {"src": "https://example.com/icon.png"}})()]
+            self.icons = [
+                type("_Icon", (), {"model_dump": lambda self, mode="json": {"src": "https://example.com/icon.png"}})()
+            ]
             self.annotations = type(
                 "_Annotations",
                 (),

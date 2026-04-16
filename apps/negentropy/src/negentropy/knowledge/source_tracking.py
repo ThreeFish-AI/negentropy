@@ -122,7 +122,10 @@ class SourceTrackingStrategy(ABC):
         if not plain_text:
             return None
         if len(plain_text) > SourceTrackingStrategy.SUMMARY_MAX_LENGTH:
-            return plain_text[: SourceTrackingStrategy.SUMMARY_MAX_LENGTH - len(SourceTrackingStrategy.ELLIPSIS)] + SourceTrackingStrategy.ELLIPSIS
+            return (
+                plain_text[: SourceTrackingStrategy.SUMMARY_MAX_LENGTH - len(SourceTrackingStrategy.ELLIPSIS)]
+                + SourceTrackingStrategy.ELLIPSIS
+            )
         return plain_text
 
     @staticmethod
@@ -160,9 +163,7 @@ class UrlSourceTracker(SourceTrackingStrategy):
 
         # 标题优先级：metadata.title > trace.title > 从 markdown 第一行提取
         title = (
-            metadata.get("title")
-            or trace.get("title")
-            or self._extract_title_from_markdown(result.markdown_content)
+            metadata.get("title") or trace.get("title") or self._extract_title_from_markdown(result.markdown_content)
         )
 
         return {
@@ -375,12 +376,15 @@ class SourceTrackingService:
             **meta,
         )
 
-        logger.info("source_tracked", extra={
-            "doc_source_id": str(doc_source.id),
-            "document_id": str(document_id),
-            "source_type": meta.get("source_type"),
-            "title": meta.get("title"),
-        })
+        logger.info(
+            "source_tracked",
+            extra={
+                "doc_source_id": str(doc_source.id),
+                "document_id": str(document_id),
+                "source_type": meta.get("source_type"),
+                "title": meta.get("title"),
+            },
+        )
 
         return doc_source
 

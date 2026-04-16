@@ -174,9 +174,7 @@ async def test_build_llm_invocation_plan_logs_info_when_json_is_invalid(monkeypa
             raise AssertionError(f"unexpected warning: {event} {kwargs}")
 
     async def fake_acompletion(**kwargs):
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="{not-json"))]
-        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="{not-json"))])
 
     monkeypatch.setattr("negentropy.knowledge.extraction.logger", FakeLogger())
     monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)

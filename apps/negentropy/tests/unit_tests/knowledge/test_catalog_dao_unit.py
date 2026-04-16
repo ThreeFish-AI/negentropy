@@ -27,6 +27,7 @@ from negentropy.knowledge.catalog_dao import CatalogDao
 # 必须在首次触发 ORM 编译之前显式修补两侧 relationship。
 try:
     from negentropy.models import perception as _models
+
     setattr(
         _models.KnowledgeDocument,
         "source",
@@ -270,9 +271,9 @@ class TestCatalogNodeCrud:
         updated = await CatalogDao.update_node(
             session,
             node_id=node_id,
-            name="New Name",       # 应更新
-            sort_order=10,         # 应更新
-            description="Desc",    # 应更新
+            name="New Name",  # 应更新
+            sort_order=10,  # 应更新
+            description="Desc",  # 应更新
             # slug 未传入 → 不更新
             # parent_id 未传入 → 不更新
             # node_type 未传入 → 不更新
@@ -398,7 +399,7 @@ class TestCatalogMembership:
 
         assert membership is existing
         assert len(session.added) == 0  # 不应新增
-        assert session.flush_count == 0   # 不应 flush
+        assert session.flush_count == 0  # 不应 flush
 
     @pytest.mark.asyncio
     async def test_unassign_document_deletes_membership(self) -> None:

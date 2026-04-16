@@ -37,6 +37,7 @@ from negentropy.models.plugin import (
 
 from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
 from .execution import McpToolExecutionService
+
 logger = get_logger("negentropy.plugins.api")
 router = APIRouter(prefix="/plugins", tags=["plugins"])
 
@@ -380,9 +381,7 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
         visible_mcp_ids = await get_visible_plugin_ids(db, "mcp_server", user)
         mcp_total = len(visible_mcp_ids)
         mcp_enabled_result = await db.scalar(
-            select(func.count()).where(
-                and_(McpServer.id.in_(visible_mcp_ids), McpServer.is_enabled == True)
-            )
+            select(func.count()).where(and_(McpServer.id.in_(visible_mcp_ids), McpServer.is_enabled == True))
         )
         mcp_enabled = mcp_enabled_result or 0
 
@@ -520,9 +519,7 @@ async def update_mcp_server(
                 raise HTTPException(status_code=400, detail="Server name cannot be empty")
             if new_name != server.name:
                 existing = await db.scalar(
-                    select(McpServer).where(
-                        and_(McpServer.name == new_name, McpServer.id != server_id)
-                    )
+                    select(McpServer).where(and_(McpServer.name == new_name, McpServer.id != server_id))
                 )
                 if existing:
                     raise HTTPException(status_code=400, detail="Server name already exists")
@@ -771,9 +768,7 @@ async def list_mcp_server_tools(
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
-        result = await db.execute(
-            select(McpTool).where(McpTool.server_id == server_id).order_by(McpTool.name)
-        )
+        result = await db.execute(select(McpTool).where(McpTool.server_id == server_id).order_by(McpTool.name))
         tools = result.scalars().all()
 
         return [_mcp_tool_to_response(t) for t in tools]
@@ -919,9 +914,7 @@ async def get_mcp_tool_run(
             raise HTTPException(status_code=403, detail=error)
 
         events_result = await db.execute(
-            select(McpToolRunEvent)
-            .where(McpToolRunEvent.run_id == run_id)
-            .order_by(McpToolRunEvent.sequence_num.asc())
+            select(McpToolRunEvent).where(McpToolRunEvent.run_id == run_id).order_by(McpToolRunEvent.sequence_num.asc())
         )
         events = events_result.scalars().all()
         return _mcp_tool_run_to_response(run, list(events))
@@ -1025,9 +1018,7 @@ async def update_skill(
             if not new_name:
                 raise HTTPException(status_code=400, detail="Skill name cannot be empty")
             if new_name != skill.name:
-                existing = await db.scalar(
-                    select(Skill).where(and_(Skill.name == new_name, Skill.id != skill_id))
-                )
+                existing = await db.scalar(select(Skill).where(and_(Skill.name == new_name, Skill.id != skill_id)))
                 if existing:
                     raise HTTPException(status_code=400, detail="Skill name already exists")
             update_data["name"] = new_name
@@ -1565,12 +1556,12 @@ async def list_permissions(
         )
         permissions = result.scalars().all()
 
-    return [
-        PermissionResponse(id=p.id, user_id=p.user_id, permission=p.permission.value) for p in permissions
-    ]
+    return [PermissionResponse(id=p.id, user_id=p.user_id, permission=p.permission.value) for p in permissions]
 
 
-@router.post("/{plugin_type}/{plugin_id}/permissions", response_model=PermissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{plugin_type}/{plugin_id}/permissions", response_model=PermissionResponse, status_code=status.HTTP_201_CREATED
+)
 async def grant_permission(
     plugin_type: str,
     plugin_id: UUID,

@@ -251,7 +251,8 @@ Output as JSON with the following structure:
             try:
                 # 过滤掉与显式参数冲突的 kwargs 键
                 safe_kwargs = {
-                    k: v for k, v in self._model_kwargs.items()
+                    k: v
+                    for k, v in self._model_kwargs.items()
                     if k not in ("model", "messages", "temperature", "response_format")
                 }
                 response = await litellm.acompletion(
@@ -565,7 +566,8 @@ Output as JSON with the following structure:
             try:
                 # 过滤掉与显式参数冲突的 kwargs 键
                 safe_kwargs = {
-                    k: v for k, v in self._model_kwargs.items()
+                    k: v
+                    for k, v in self._model_kwargs.items()
                     if k not in ("model", "messages", "temperature", "response_format")
                 }
                 response = await litellm.acompletion(

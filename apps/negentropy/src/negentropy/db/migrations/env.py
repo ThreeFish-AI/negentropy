@@ -75,12 +75,14 @@ def run_migrations_offline() -> None:
 
 # 通过迁移文件手动创建的索引，不在 ORM 模型中定义
 # 这些索引需要在此忽略，否则 autogenerate 会尝试删除它们
-_IGNORED_INDEXES = frozenset({
-    "idx_kb_entity_type",                    # 部分索引 (WHERE entity_type IS NOT NULL)
-    "ix_negentropy_knowledge_search_vector", # GIN 索引 (TSVECTOR)
-    "ix_knowledge_documents_file_hash",      # 命名与 ORM 自动生成的不一致
-    "ix_kg_entities_embedding",              # HNSW 索引 (需 ALTER COLUMN 后手动创建)
-})
+_IGNORED_INDEXES = frozenset(
+    {
+        "idx_kb_entity_type",  # 部分索引 (WHERE entity_type IS NOT NULL)
+        "ix_negentropy_knowledge_search_vector",  # GIN 索引 (TSVECTOR)
+        "ix_knowledge_documents_file_hash",  # 命名与 ORM 自动生成的不一致
+        "ix_kg_entities_embedding",  # HNSW 索引 (需 ALTER COLUMN 后手动创建)
+    }
+)
 
 
 def do_run_migrations(connection: Connection) -> None:

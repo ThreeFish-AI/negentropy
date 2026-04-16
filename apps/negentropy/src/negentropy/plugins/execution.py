@@ -89,9 +89,7 @@ class McpToolExecutionService:
         timeout_seconds: float | None = None,
         external_event_sink: Callable[[dict[str, Any]], None] | None = None,
     ) -> ExecutionResult:
-        tool = await self._db.scalar(
-            select(McpTool).where(McpTool.server_id == server.id, McpTool.name == tool_name)
-        )
+        tool = await self._db.scalar(select(McpTool).where(McpTool.server_id == server.id, McpTool.name == tool_name))
         initial_payload = _json_safe(arguments or {})
         run = McpToolRun(
             server_id=server.id,

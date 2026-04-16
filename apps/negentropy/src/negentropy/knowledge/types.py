@@ -337,7 +337,9 @@ def ChunkingConfig(**data: Any) -> ChunkingConfigValue:
     if strategy is None:
         if any(key.startswith("hierarchical_") for key in data):
             strategy = ChunkingStrategy.HIERARCHICAL
-        elif any(key in {"semantic_threshold", "semantic_buffer_size", "min_chunk_size", "max_chunk_size"} for key in data):
+        elif any(
+            key in {"semantic_threshold", "semantic_buffer_size", "min_chunk_size", "max_chunk_size"} for key in data
+        ):
             strategy = ChunkingStrategy.SEMANTIC
         else:
             strategy = ChunkingStrategy.RECURSIVE

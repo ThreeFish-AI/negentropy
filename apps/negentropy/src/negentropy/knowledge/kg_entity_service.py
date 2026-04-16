@@ -69,7 +69,9 @@ class KgEntityService:
 
         # 检查是否已存在（幂等）
         existing = await db.execute(
-            __import__("sqlalchemy").select(KgEntity).where(
+            __import__("sqlalchemy")
+            .select(KgEntity)
+            .where(
                 KgEntity.name == name,
                 KgEntity.entity_type == entity_type,
                 KgEntity.corpus_id == corpus_id if corpus_id else True,
@@ -87,11 +89,14 @@ class KgEntityService:
                 merged = {**(existing_rec.properties or {}), **metadata}
                 existing_rec.properties = merged
             existing_rec.mention_count += 1
-            logger.debug("kg_entity_updated", extra={
-                "entity_id": str(existing_rec.id),
-                "name": name,
-                "mention_count": existing_rec.mention_count,
-            })
+            logger.debug(
+                "kg_entity_updated",
+                extra={
+                    "entity_id": str(existing_rec.id),
+                    "name": name,
+                    "mention_count": existing_rec.mention_count,
+                },
+            )
             return
 
         # 创建新记录
@@ -112,6 +117,7 @@ class KgEntityService:
         # 注意：knowledge_chunk_id 不在此设置，因为 knowledge_id 在批量同步场景中
         # 可能指向不存在的 Knowledge 记录，会导致 FK 约束违规
         from negentropy.models.perception import KgEntityMention
+
         mention = KgEntityMention(
             entity_id=new_entity.id,
             corpus_id=corpus_id,
@@ -120,12 +126,15 @@ class KgEntityService:
         db.add(mention)
         await db.flush()
 
-        logger.info("kg_entity_created", extra={
-            "entity_id": str(new_entity.id),
-            "name": name,
-            "entity_type": entity_type,
-            "corpus_id": str(corpus_id) if corpus_id else None,
-        })
+        logger.info(
+            "kg_entity_created",
+            extra={
+                "entity_id": str(new_entity.id),
+                "name": name,
+                "entity_type": entity_type,
+                "corpus_id": str(corpus_id) if corpus_id else None,
+            },
+        )
 
     async def sync_relation(
         self,
@@ -150,36 +159,45 @@ class KgEntityService:
         _corpus_filters = [KgEntity.corpus_id == corpus_id] if corpus_id else []
 
         src_result = await db.execute(
-            sql_select(KgEntity).where(
+            sql_select(KgEntity)
+            .where(
                 KgEntity.name == source_name,
                 *_corpus_filters,
-            ).limit(1)
+            )
+            .limit(1)
         )
         tgt_result = await db.execute(
-            sql_select(KgEntity).where(
+            sql_select(KgEntity)
+            .where(
                 KgEntity.name == target_name,
                 *_corpus_filters,
-            ).limit(1)
+            )
+            .limit(1)
         )
 
         src = src_result.scalar_one_or_none()
         tgt = tgt_result.scalar_one_or_none()
 
         if src is None or tgt is None:
-            logger.debug("kg_relation_skipped", extra={
-                "source": source_name,
-                "target": target_name,
-                "reason": "endpoint not found in kg_entities",
-            })
+            logger.debug(
+                "kg_relation_skipped",
+                extra={
+                    "source": source_name,
+                    "target": target_name,
+                    "reason": "endpoint not found in kg_entities",
+                },
+            )
             return
 
         # 检查是否已存在相同关系
         existing = await db.execute(
-            sql_select(KgRelation).where(
+            sql_select(KgRelation)
+            .where(
                 KgRelation.source_id == src.id,
                 KgRelation.target_id == tgt.id,
                 KgRelation.relation_type == relation_type,
-            ).limit(1)
+            )
+            .limit(1)
         )
         if existing.scalar_one_or_none() is not None:
             return
@@ -196,12 +214,15 @@ class KgEntityService:
         db.add(relation)
         await db.flush()
 
-        logger.debug("kg_relation_created", extra={
-            "relation_id": str(relation.id),
-            "source": source_name,
-            "target": target_name,
-            "type": relation_type,
-        })
+        logger.debug(
+            "kg_relation_created",
+            extra={
+                "relation_id": str(relation.id),
+                "source": source_name,
+                "target": target_name,
+                "type": relation_type,
+            },
+        )
 
     async def batch_sync_from_graph_build(
         self,
@@ -241,9 +262,13 @@ class KgEntityService:
                 )
                 entities_synced += 1
             except Exception as exc:
-                logger.warning("batch_sync_entity_failed", extra={
-                    "node_id": node.get("id"), "error": str(exc),
-                })
+                logger.warning(
+                    "batch_sync_entity_failed",
+                    extra={
+                        "node_id": node.get("id"),
+                        "error": str(exc),
+                    },
+                )
 
         for edge in edges:
             try:
@@ -258,16 +283,22 @@ class KgEntityService:
                 )
                 relations_synced += 1
             except Exception as exc:
-                logger.warning("batch_sync_relation_failed", extra={
-                    "edge_source": edge.get("source"),
-                    "error": str(exc),
-                })
+                logger.warning(
+                    "batch_sync_relation_failed",
+                    extra={
+                        "edge_source": edge.get("source"),
+                        "error": str(exc),
+                    },
+                )
 
-        logger.info("kg_batch_sync_completed", extra={
-            "entities_synced": entities_synced,
-            "relations_synced": relations_synced,
-            "corpus_id": str(corpus_id) if corpus_id else None,
-        })
+        logger.info(
+            "kg_batch_sync_completed",
+            extra={
+                "entities_synced": entities_synced,
+                "relations_synced": relations_synced,
+                "corpus_id": str(corpus_id) if corpus_id else None,
+            },
+        )
 
         return {
             "entities_synced": entities_synced,

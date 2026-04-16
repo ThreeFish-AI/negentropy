@@ -57,27 +57,26 @@ class SourceDao:
         )
         db.add(doc_source)
         await db.flush()
-        logger.info("doc_source_created", extra={
-            "id": str(doc_source.id),
-            "document_id": str(document_id),
-            "source_type": source_type,
-        })
+        logger.info(
+            "doc_source_created",
+            extra={
+                "id": str(doc_source.id),
+                "document_id": str(document_id),
+                "source_type": source_type,
+            },
+        )
         return doc_source
 
     @staticmethod
     async def get_by_id(db: AsyncSession, source_id: UUID) -> DocSource | None:
         """按 ID 获取来源记录"""
-        result = await db.execute(
-            select(DocSource).where(DocSource.id == source_id)
-        )
+        result = await db.execute(select(DocSource).where(DocSource.id == source_id))
         return result.scalar_one_or_none()
 
     @staticmethod
     async def get_by_document_id(db: AsyncSession, document_id: UUID) -> DocSource | None:
         """按文档 ID 获取来源记录"""
-        result = await db.execute(
-            select(DocSource).where(DocSource.document_id == document_id)
-        )
+        result = await db.execute(select(DocSource).where(DocSource.document_id == document_id))
         return result.scalar_one_or_none()
 
     @staticmethod
@@ -118,9 +117,7 @@ class SourceDao:
             return False
         # 先清除文档的外键引用
         await db.execute(
-            update(KnowledgeDocument)
-            .where(KnowledgeDocument.source_id == source_id)
-            .values(source_id=None)
+            update(KnowledgeDocument).where(KnowledgeDocument.source_id == source_id).values(source_id=None)
         )
         await db.delete(doc_source)
         await db.flush()

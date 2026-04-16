@@ -93,9 +93,7 @@ class StreamToLogger:
 class ExternalProcessLogStream:
     """Adapt external process stderr writes into the unified logging pipeline."""
 
-    _PREFIX_PATTERN = re.compile(
-        r"^\[(?P<timestamp>[^\]]+)\]\s+(?P<level>[A-Z]+):\s*(?P<message>.*)$"
-    )
+    _PREFIX_PATTERN = re.compile(r"^\[(?P<timestamp>[^\]]+)\]\s+(?P<level>[A-Z]+):\s*(?P<message>.*)$")
     _LEVELS = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,

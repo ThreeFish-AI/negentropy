@@ -15,7 +15,16 @@ from negentropy.models.perception import Corpus, Knowledge
 
 from .constants import BATCH_INSERT_SIZE, RECALL_MULTIPLIER
 from .exceptions import DatabaseError, SearchError
-from .types import CorpusRecord, CorpusSpec, KnowledgeChunk, KnowledgeMatch, KnowledgeRecord, SourceSummary, infer_source_type, merge_search_results
+from .types import (
+    CorpusRecord,
+    CorpusSpec,
+    KnowledgeChunk,
+    KnowledgeMatch,
+    KnowledgeRecord,
+    SourceSummary,
+    infer_source_type,
+    merge_search_results,
+)
 
 
 logger = get_logger("negentropy.knowledge.repository")
@@ -278,7 +287,8 @@ class KnowledgeRepository:
             # 如果 archived=True，设置 metadata.archived = true
             # 如果 archived=False，设置 metadata.archived = false
             archive_value = "true" if archived else "false"
-            update_stmt = text("""
+            update_stmt = text(
+                """
                 UPDATE {schema}.knowledge
                 SET metadata = jsonb_set(
                     COALESCE(metadata, '{{}}'::jsonb),
@@ -288,7 +298,8 @@ class KnowledgeRepository:
                 WHERE corpus_id = :corpus_id
                   AND app_name = :app_name
                   AND source_uri = :source_uri
-            """.format(schema=NEGENTROPY_SCHEMA, value=archive_value))
+            """.format(schema=NEGENTROPY_SCHEMA, value=archive_value)
+            )
 
             result = await db.execute(
                 update_stmt,
@@ -501,16 +512,20 @@ class KnowledgeRepository:
                 source_stats[uri or "__null__"] = count
 
             # 查询 source 摘要（包含 archived/source_type）
-            source_detail_stmt = select(
-                Knowledge.source_uri,
-                Knowledge.metadata_,
-                func.count(Knowledge.id),
-            ).where(
-                Knowledge.corpus_id == corpus_id,
-                Knowledge.app_name == app_name,
-            ).group_by(
-                Knowledge.source_uri,
-                Knowledge.metadata_,
+            source_detail_stmt = (
+                select(
+                    Knowledge.source_uri,
+                    Knowledge.metadata_,
+                    func.count(Knowledge.id),
+                )
+                .where(
+                    Knowledge.corpus_id == corpus_id,
+                    Knowledge.app_name == app_name,
+                )
+                .group_by(
+                    Knowledge.source_uri,
+                    Knowledge.metadata_,
+                )
             )
             source_detail_result = await db.execute(source_detail_stmt)
             summary_map: Dict[str, SourceSummary] = {}
@@ -587,16 +602,16 @@ class KnowledgeRepository:
             matches: list[KnowledgeMatch] = []
             for knowledge, score in rows:
                 matches.append(
-                        KnowledgeMatch(
-                            id=knowledge.id,
-                            content=knowledge.content,
-                            source_uri=knowledge.source_uri,
-                            metadata=knowledge.metadata_ or {},
-                            retrieval_count=knowledge.retrieval_count,
-                            is_enabled=knowledge.is_enabled,
-                            semantic_score=float(score or 0.0),
-                            keyword_score=0.0,
-                            combined_score=float(score or 0.0),
+                    KnowledgeMatch(
+                        id=knowledge.id,
+                        content=knowledge.content,
+                        source_uri=knowledge.source_uri,
+                        metadata=knowledge.metadata_ or {},
+                        retrieval_count=knowledge.retrieval_count,
+                        is_enabled=knowledge.is_enabled,
+                        semantic_score=float(score or 0.0),
+                        keyword_score=0.0,
+                        combined_score=float(score or 0.0),
                     )
                 )
             return matches
@@ -1113,6 +1128,7 @@ class KnowledgeRepository:
             updated_at=knowledge.updated_at,
             embedding=knowledge.embedding,
         )
+
     @staticmethod
     def _is_archived(metadata: Optional[Dict[str, Any]]) -> bool:
         return bool((metadata or {}).get("archived") is True)

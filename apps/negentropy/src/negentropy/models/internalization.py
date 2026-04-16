@@ -13,9 +13,7 @@ from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, Tim
 class Memory(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "memories"
 
-    thread_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
-    )
+    thread_id: Mapped[UUID | None] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL"))
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     memory_type: Mapped[str] = mapped_column(
@@ -40,9 +38,7 @@ class Memory(Base, UUIDMixin, TimestampMixin):
 class Fact(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "facts"
 
-    thread_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
-    )
+    thread_id: Mapped[UUID | None] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL"))
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     fact_type: Mapped[str] = mapped_column(

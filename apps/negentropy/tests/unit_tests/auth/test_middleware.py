@@ -152,4 +152,3 @@ def test_middleware_allows_allowlist_paths(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-

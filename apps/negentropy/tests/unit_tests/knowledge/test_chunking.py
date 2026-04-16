@@ -225,10 +225,7 @@ class TestChunkingDeterminism:
 
 class TestHierarchicalChunking:
     def test_hierarchical_chunk_returns_child_chunks(self) -> None:
-        text = (
-            "第一章介绍系统背景。第一章继续补充实现细节。\n\n"
-            "第二章描述检索链路。第二章继续描述父子分块。"
-        )
+        text = "第一章介绍系统背景。第一章继续补充实现细节。\n\n第二章描述检索链路。第二章继续描述父子分块。"
         config = ChunkingConfig(
             strategy=ChunkingStrategy.HIERARCHICAL,
             hierarchical_parent_chunk_size=20,

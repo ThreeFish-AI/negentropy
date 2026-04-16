@@ -74,9 +74,7 @@ class KnowledgeRunDao:
     async def count_pipeline_runs(self, app_name: str) -> int:
         async with self._session_factory() as db:
             stmt = (
-                select(func.count())
-                .select_from(KnowledgePipelineRun)
-                .where(KnowledgePipelineRun.app_name == app_name)
+                select(func.count()).select_from(KnowledgePipelineRun).where(KnowledgePipelineRun.app_name == app_name)
             )
             result = await db.scalar(stmt)
             return result or 0

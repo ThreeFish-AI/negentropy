@@ -288,10 +288,12 @@ class PipelineTracker:
                         mcp_events.pop(i)
                         break
 
-        mcp_events.append({
-            **event,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        mcp_events.append(
+            {
+                **event,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     def create_stage_event_sink(self, stage: str) -> Callable[[Dict[str, Any]], None]:
         """工厂方法：创建同步事件回调，对关键事件触发非阻塞 persist。"""
@@ -651,8 +653,7 @@ class KnowledgeService:
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
                     url_details["failure_category"] = "no_extractor_configured"
                     url_details["diagnostic_summary"] = (
-                        "请配置 Negentropy Perceives MCP 服务，"
-                        "并确保 Corpus 的 extractor_routes 配置正确。"
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
                     )
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED",
@@ -760,8 +761,7 @@ class KnowledgeService:
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
                     details["failure_category"] = "no_extractor_configured"
                     details["diagnostic_summary"] = (
-                        "请配置 Negentropy Perceives MCP 服务，"
-                        "并确保 Corpus 的 extractor_routes 配置正确。"
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
                     )
                 raise KnowledgeError(
                     code="CONTENT_EXTRACTION_FAILED",
@@ -1042,12 +1042,15 @@ class KnowledgeService:
                     raise ValueError(f"Document not found in GCS: {source_uri}")
             except StorageError as exc:
                 from .exceptions import KnowledgeError
+
                 raise KnowledgeError(
                     code="GCS_DOWNLOAD_FAILED",
                     message=f"Failed to download content from GCS: {exc}",
                 ) from exc
 
-            await tracker.complete_stage("download", {"content_length": len(content) if content else 0, "source_uri": source_uri})
+            await tracker.complete_stage(
+                "download", {"content_length": len(content) if content else 0, "source_uri": source_uri}
+            )
 
             try:
                 filename = source_uri.split("/")[-1]
@@ -1120,7 +1123,13 @@ class KnowledgeService:
                 chunking_config=config,
                 tracker=tracker,
             )
-            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records), "document_id": str(document_id) if document_id else None})
+            await tracker.complete(
+                {
+                    "deleted_count": deleted_count,
+                    "chunk_count": len(records),
+                    "document_id": str(document_id) if document_id else None,
+                }
+            )
 
             logger.info(
                 "pipeline_execution_completed",
@@ -1603,10 +1612,12 @@ class KnowledgeService:
                     result = await db.execute(
                         select(KnowledgeDocument)
                         .where(KnowledgeDocument.corpus_id == corpus_id)
-                        .where(KnowledgeDocument.gcs_uri.like(  # noqa: S608
-                            f"%{url.replace('%', '\\%').replace('_', '\\_')}%",
-                            escape="\\",
-                        ))
+                        .where(
+                            KnowledgeDocument.gcs_uri.like(  # noqa: S608
+                                f"%{url.replace('%', '\\%').replace('_', '\\_')}%",
+                                escape="\\",
+                            )
+                        )
                         .order_by(KnowledgeDocument.created_at.desc())
                         .limit(1)
                     )
@@ -2522,8 +2533,7 @@ class KnowledgeService:
                 return chunk_list
             embeddings = await self._batch_embedding_fn([c.content for c in searchable_chunks])
             embedding_by_key = {
-                (chunk.source_uri, chunk.chunk_index): emb
-                for chunk, emb in zip(searchable_chunks, embeddings)
+                (chunk.source_uri, chunk.chunk_index): emb for chunk, emb in zip(searchable_chunks, embeddings)
             }
             return [
                 KnowledgeChunk(
@@ -2700,11 +2710,7 @@ class KnowledgeService:
         matches: Iterable[KnowledgeMatch],
     ) -> list[KnowledgeMatch]:
         match_list = list(matches)
-        child_ids = [
-            item.id
-            for item in match_list
-            if item.metadata.get("chunk_role") == CHUNK_ROLE_CHILD
-        ]
+        child_ids = [item.id for item in match_list if item.metadata.get("chunk_role") == CHUNK_ROLE_CHILD]
         target_ids = child_ids or [item.id for item in match_list]
         increment_retrieval_counts = getattr(self._repository, "increment_retrieval_counts", None)
         if callable(increment_retrieval_counts):

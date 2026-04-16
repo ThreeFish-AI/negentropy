@@ -241,8 +241,8 @@ def resolve_targets(raw: dict[str, Any] | None, source_kind: SourceKind) -> list
 
 # 按 source_kind 的合理默认超时（毫秒），用于 target.timeout_ms 缺失的兜底
 _DEFAULT_EXTRACTION_TIMEOUT_MS: dict[str, int] = {
-    ROUTE_URL: 60_000,           # 1 分钟
-    ROUTE_FILE_PDF: 300_000,     # 5 分钟
+    ROUTE_URL: 60_000,  # 1 分钟
+    ROUTE_FILE_PDF: 300_000,  # 5 分钟
     ROUTE_FILE_GENERIC: 120_000,  # 2 分钟
 }
 _FALLBACK_EXTRACTION_TIMEOUT_MS = 120_000
@@ -502,7 +502,7 @@ def _extract_enhanced_image_assets(payload: dict[str, Any]) -> list[ExtractionAs
                 normalized_name=safe_name,
             )
 
-        candidate = (base_dir / safe_name)
+        candidate = base_dir / safe_name
         try:
             resolved = candidate.resolve(strict=True)
         except OSError:
@@ -697,28 +697,19 @@ def _evaluate_unknown_contract_readiness(
         )
 
     any_recognized_declared = any(item["recognized_declared_fields"] for item in branch_failures)
-    unsupported_required = sorted(
-        {
-            field
-            for item in branch_failures
-            for field in item["unsupported_required_fields"]
-        }
-    )
+    unsupported_required = sorted({field for item in branch_failures for field in item["unsupported_required_fields"]})
 
     if unsupported_required:
         failure_category = "low_confidence_contract" if any_recognized_declared else "unsupported_contract"
         diagnostic_summary = (
-            "契约为 unknown，要求额外必填字段 "
-            f"{', '.join(unsupported_required)}，当前提取源无法构造最小调用参数"
+            f"契约为 unknown，要求额外必填字段 {', '.join(unsupported_required)}，当前提取源无法构造最小调用参数"
         )
     elif any_recognized_declared:
         failure_category = "low_confidence_contract"
         diagnostic_summary = "契约存在候选文档字段，但未找到可安全构造的最小调用参数分支"
     else:
         failure_category = (
-            "low_confidence_contract"
-            if capability.schema_confidence == "low"
-            else "unsupported_contract"
+            "low_confidence_contract" if capability.schema_confidence == "low" else "unsupported_contract"
         )
         diagnostic_summary = "契约未声明可识别的文档 source 字段，无法判定为可兼容的提取工具"
 
@@ -1455,9 +1446,7 @@ async def _build_llm_invocation_plan(
         )
         input_schema_payload = to_json_compatible_strict(input_schema, label="input_schema")
         validation_error_payload = (
-            _truncate_text(validation_error.raw_error, MAX_LLM_VALIDATION_ERROR_CHARS)
-            if validation_error
-            else ""
+            _truncate_text(validation_error.raw_error, MAX_LLM_VALIDATION_ERROR_CHARS) if validation_error else ""
         )
         planning_payload_size = sum(
             len(json.dumps(item, ensure_ascii=False))
@@ -1681,17 +1670,8 @@ def _normalize_document_result(
 
 
 def _payload_text_fields(payload: dict[str, Any]) -> tuple[str, str]:
-    markdown = str(
-        payload.get("markdown")
-        or payload.get("markdown_content")
-        or ""
-    ).strip()
-    plain_text = str(
-        payload.get("text")
-        or payload.get("plain_text")
-        or payload.get("content")
-        or ""
-    ).strip()
+    markdown = str(payload.get("markdown") or payload.get("markdown_content") or "").strip()
+    plain_text = str(payload.get("text") or payload.get("plain_text") or payload.get("content") or "").strip()
 
     if not markdown and plain_text:
         markdown = optimize_markdown_content(plain_text)
@@ -2038,7 +2018,9 @@ class DataExtractorProvider:
                         "diagnostics": plan.diagnostics,
                         "success": result.success,
                         "error": result.error,
-                        "failure_category": None if result.success else ("validation_error" if _is_validation_error(result.error) else "tool_error"),
+                        "failure_category": None
+                        if result.success
+                        else ("validation_error" if _is_validation_error(result.error) else "tool_error"),
                         "duration_ms": result.duration_ms,
                     }
                 )

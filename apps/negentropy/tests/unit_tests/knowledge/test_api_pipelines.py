@@ -169,7 +169,9 @@ async def test_upsert_pipelines_returns_typed_response(monkeypatch):
 
     assert result.status == "updated"
     assert result.pipeline.run_id == "pipeline-2"
-    assert result.pipeline.payload["stages"]["extract_primary"]["error"]["diagnostic_summary"].startswith("契约为 unknown")
+    assert result.pipeline.payload["stages"]["extract_primary"]["error"]["diagnostic_summary"].startswith(
+        "契约为 unknown"
+    )
 
 
 def test_upsert_pipelines_openapi_uses_explicit_response_model() -> None:

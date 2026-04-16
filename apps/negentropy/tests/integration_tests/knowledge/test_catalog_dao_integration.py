@@ -34,9 +34,7 @@ async def sample_corpus(db_engine):
     from negentropy.models.perception import Corpus
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-    session_factory = async_sessionmaker(
-        bind=db_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
     corpus_id: UUID | None = None
     async with session_factory() as session:
         corpus = Corpus(name="test-catalog-corpus", app_name="negentropy")
@@ -67,9 +65,7 @@ async def catalog_tree(db_engine, sample_corpus):
     """
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-    session_factory = async_sessionmaker(
-        bind=db_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
     async with session_factory() as session:
         root = await CatalogDao.create_node(
             session,
@@ -127,9 +123,7 @@ async def sample_documents(db_engine, sample_corpus):
     from negentropy.models.perception import KnowledgeDocument
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-    session_factory = async_sessionmaker(
-        bind=db_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
     doc_ids: list[UUID] = []
     async with session_factory() as session:
         for i in range(3):
@@ -171,9 +165,7 @@ class TestCatalogTreeCte:
         """单根节点：depth=0，path=[root_id]"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             root = await CatalogDao.create_node(
                 session,
@@ -197,9 +189,7 @@ class TestCatalogTreeCte:
         """两层层级结构：根 depth=0，子节点 depth=1，path 累积正确"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             root = await CatalogDao.create_node(
                 session,
@@ -240,9 +230,7 @@ class TestCatalogTreeCte:
 
         session_factory = catalog_tree["session"]
         async with session_factory() as session:
-            tree = await CatalogDao.get_tree(
-                session, corpus_id=catalog_tree["corpus_id"]
-            )
+            tree = await CatalogDao.get_tree(session, corpus_id=catalog_tree["corpus_id"])
 
         # 应返回全部 5 个节点
         assert len(tree) == 5
@@ -280,9 +268,7 @@ class TestCatalogTreeCte:
         """多个根节点（parent_id=None）应全部出现在结果中"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             r1 = await CatalogDao.create_node(
                 session,
@@ -309,9 +295,7 @@ class TestCatalogTreeCte:
         """空语料库（无任何节点）应返回空列表"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
 
@@ -342,9 +326,7 @@ class TestCatalogTreeCte:
 
         session_factory = catalog_tree["session"]
         async with session_factory() as session:
-            tree = await CatalogDao.get_tree(
-                session, corpus_id=catalog_tree["corpus_id"]
-        )
+            tree = await CatalogDao.get_tree(session, corpus_id=catalog_tree["corpus_id"])
 
         # 提取排序键用于断言
         order_keys = [(row["depth"], row["sort_order"], row["name"]) for row in tree]
@@ -423,9 +405,7 @@ class TestCatalogSubtreeCte:
         session_factory = catalog_tree["session"]
         anchor_id = catalog_tree["cat_a"].id
         async with session_factory() as session:
-            subtree = await CatalogDao.get_subtree(
-                session, node_id=anchor_id, max_depth=0
-            )
+            subtree = await CatalogDao.get_subtree(session, node_id=anchor_id, max_depth=0)
 
         # max_depth=0 → 仅锚点自身
         assert len(subtree) == 1
@@ -437,9 +417,7 @@ class TestCatalogSubtreeCte:
         """不存在的节点 ID 应返回空列表"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         fake_id = uuid4()
         async with session_factory() as session:
             subtree = await CatalogDao.get_subtree(session, node_id=fake_id)
@@ -460,9 +438,7 @@ class TestCatalogCrudIntegration:
         """创建节点后通过 get_node 取回，字段一致"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             created = await CatalogDao.create_node(
                 session,
@@ -495,9 +471,7 @@ class TestCatalogCrudIntegration:
         """update_node 仅修改指定字段，未指定字段保持不变"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             node = await CatalogDao.create_node(
                 session,
@@ -528,9 +502,7 @@ class TestCatalogCrudIntegration:
         """删除父节点后，子节点应被级联删除"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             parent = await CatalogDao.create_node(
                 session,
@@ -567,9 +539,7 @@ class TestCatalogCrudIntegration:
         """创建带 parent_id 的节点应正确设置外键关系"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
             parent = await CatalogDao.create_node(
                 session,
@@ -600,9 +570,7 @@ class TestCatalogCrudIntegration:
         """删除不存在的节点应幂等返回 False"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         fake_id = uuid4()
         async with session_factory() as session:
             result = await CatalogDao.delete_node(session, fake_id)
@@ -625,9 +593,7 @@ class TestCatalogMembershipIntegration:
         """完整的 assign -> verify -> unassign -> verify 生命周期"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         node_id = catalog_tree["cat_a"].id
         doc_id = sample_documents[0]
 
@@ -645,9 +611,7 @@ class TestCatalogMembershipIntegration:
 
         # 2. verify assignment exists via get_node_documents
         async with session_factory() as session:
-            docs, total = await CatalogDao.get_node_documents(
-                session, catalog_node_id=node_id
-            )
+            docs, total = await CatalogDao.get_node_documents(session, catalog_node_id=node_id)
 
         assert total >= 1
 
@@ -664,22 +628,16 @@ class TestCatalogMembershipIntegration:
 
         # 4. verify removal
         async with session_factory() as session:
-            docs_after, total_after = await CatalogDao.get_node_documents(
-                session, catalog_node_id=node_id
-            )
+            docs_after, total_after = await CatalogDao.get_node_documents(session, catalog_node_id=node_id)
 
         assert total_after < total
 
     @pytest.mark.asyncio
-    async def test_assign_duplicate_is_idempotent(
-        self, db_engine, sample_corpus, catalog_tree, sample_documents
-    ):
+    async def test_assign_duplicate_is_idempotent(self, db_engine, sample_corpus, catalog_tree, sample_documents):
         """重复 assign 同一文档不应报错，应返回已有记录"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         node_id = catalog_tree["cat_b"].id
         doc_id = sample_documents[1]
 
@@ -703,15 +661,11 @@ class TestCatalogMembershipIntegration:
         assert first.id == second.id
 
     @pytest.mark.asyncio
-    async def test_get_node_documents_pagination(
-        self, db_engine, sample_corpus, catalog_tree, sample_documents
-    ):
+    async def test_get_node_documents_pagination(self, db_engine, sample_corpus, catalog_tree, sample_documents):
         """分页参数 offset/limit 应生效"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         node_id = catalog_tree["root"].id
 
         # 将所有文档分配到同一节点
@@ -726,32 +680,24 @@ class TestCatalogMembershipIntegration:
 
         # 分页取第 1 条
         async with session_factory() as session:
-            page1, _ = await CatalogDao.get_node_documents(
-                session, catalog_node_id=node_id, offset=0, limit=1
-            )
+            page1, _ = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=0, limit=1)
 
         assert len(page1) == 1
 
         # 分页取第 2 条
         async with session_factory() as session:
-            page2, _ = await CatalogDao.get_node_documents(
-                session, catalog_node_id=node_id, offset=1, limit=1
-            )
+            page2, _ = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=1, limit=1)
 
         assert len(page2) == 1
         # 两页的文档应不同
         assert page1[0].id != page2[0].id
 
     @pytest.mark.asyncio
-    async def test_get_node_documents_total_count(
-        self, db_engine, sample_corpus, catalog_tree, sample_documents
-    ):
+    async def test_get_node_documents_total_count(self, db_engine, sample_corpus, catalog_tree, sample_documents):
         """total count 不受 offset/limit 影响，始终返回总数"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         node_id = catalog_tree["cat_a"].id
 
         async with session_factory() as session:
@@ -765,26 +711,18 @@ class TestCatalogMembershipIntegration:
 
         # 不同分页参数下的 total 应一致
         async with session_factory() as session:
-            _, total_full = await CatalogDao.get_node_documents(
-                session, catalog_node_id=node_id, offset=0, limit=50
-            )
-            _, total_paged = await CatalogDao.get_node_documents(
-                session, catalog_node_id=node_id, offset=1, limit=1
-            )
+            _, total_full = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=0, limit=50)
+            _, total_paged = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=1, limit=1)
 
         assert total_full == total_paged
         assert total_full == len(sample_documents)
 
     @pytest.mark.asyncio
-    async def test_get_document_nodes_multi_membership(
-        self, db_engine, sample_corpus, catalog_tree, sample_documents
-    ):
+    async def test_get_document_nodes_multi_membership(self, db_engine, sample_corpus, catalog_tree, sample_documents):
         """同一文档属于多个目录节点时，get_document_nodes 应返回所有关联节点"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        session_factory = async_sessionmaker(
-            bind=db_engine, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         doc_id = sample_documents[0]
         target_nodes = [catalog_tree["cat_a"].id, catalog_tree["cat_b"].id]
 

@@ -57,8 +57,8 @@ class DocSourceRecord:
 class CatalogNodeType(Enum):
     """目录节点类型"""
 
-    CATEGORY = "category"       # 纯分类容器
-    COLLECTION = "collection"   # 有序集合
+    CATEGORY = "category"  # 纯分类容器
+    COLLECTION = "collection"  # 有序集合
     DOCUMENT_REF = "document_ref"  # 文档引用叶子节点
 
 
@@ -125,9 +125,9 @@ class WikiStatus(Enum):
 class WikiTheme(Enum):
     """Wiki 主题"""
 
-    DEFAULT = "default"   # Notion/Vercel 风格
-    BOOK = "book"         # GitBook 风格
-    DOCS = "docs"         # Docusaurus 风格
+    DEFAULT = "default"  # Notion/Vercel 风格
+    BOOK = "book"  # GitBook 风格
+    DOCS = "docs"  # Docusaurus 风格
 
 
 @dataclass(frozen=True)
@@ -140,7 +140,7 @@ class WikiPublicationRecord:
     slug: str
     description: Optional[str]
     status: str  # WikiStatus value
-    theme: str   # WikiTheme value
+    theme: str  # WikiTheme value
     navigation_config: Dict[str, Any] = field(default_factory=dict)
     version: int = 1
     published_at: Optional[datetime] = None
@@ -253,12 +253,12 @@ class EnhancedGraphEdge:
 class QueryIntent(Enum):
     """查询意图分类"""
 
-    FACTUAL = "factual"           # "What is X?" → semantic preferred
-    EXPLORATORY = "exploratory"     # "Tell me about Y" → hybrid broad
-    COMPARATIVE = "comparative"     # "X vs Y" → keyword + semantic
-    NAVIGATIONAL = "navigational"   # "Find doc about Z" → keyword exact
-    OPERATIONAL = "operational"     # Code/config lookup → keyword strict
-    GRAPH_QUERY = "graph_query"     # "Who works for X?" → graph_hybrid
+    FACTUAL = "factual"  # "What is X?" → semantic preferred
+    EXPLORATORY = "exploratory"  # "Tell me about Y" → hybrid broad
+    COMPARATIVE = "comparative"  # "X vs Y" → keyword + semantic
+    NAVIGATIONAL = "navigational"  # "Find doc about Z" → keyword exact
+    OPERATIONAL = "operational"  # Code/config lookup → keyword strict
+    GRAPH_QUERY = "graph_query"  # "Who works for X?" → graph_hybrid
 
 
 @dataclass(frozen=True)
@@ -302,13 +302,13 @@ class UnifiedSearchResultItem:
 class CorpusQualityMetrics:
     """语料库质量评估结果"""
 
-    score: float                          # 总分 0-1
-    coverage_score: float                 # 域覆盖广度
-    freshness_score: float                 # 内容新鲜度
-    diversity_score: float                # 来源多样性
-    density_score: float                  # 信息密度
-    embedding_coverage: float             # 嵌入覆盖率
-    entity_density: float                 # 实体密度（图谱丰富度）
+    score: float  # 总分 0-1
+    coverage_score: float  # 域覆盖广度
+    freshness_score: float  # 内容新鲜度
+    diversity_score: float  # 来源多样性
+    density_score: float  # 信息密度
+    embedding_coverage: float  # 嵌入覆盖率
+    entity_density: float  # 实体密度（图谱丰富度）
     detail: Dict[str, Any] = field(default_factory=dict)
 
 

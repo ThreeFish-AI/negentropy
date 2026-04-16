@@ -270,6 +270,7 @@ async def list_vendor_configs(current_user: AuthUser = Depends(get_current_user)
             stored = result.scalars().all()
     except Exception:
         from negentropy.logging import get_logger
+
         get_logger("negentropy.auth.api").warning("list_vendor_configs_failed", exc_info=True)
         stored = []
 
@@ -280,12 +281,14 @@ async def list_vendor_configs(current_user: AuthUser = Depends(get_current_user)
         if vc:
             configs.append(_vendor_config_to_dict(vc))
         else:
-            configs.append({
-                "vendor": vendor,
-                "apiKey": None,
-                "apiBase": None,
-                "configured": False,
-            })
+            configs.append(
+                {
+                    "vendor": vendor,
+                    "apiKey": None,
+                    "apiBase": None,
+                    "configured": False,
+                }
+            )
 
     return {"vendorConfigs": configs}
 
@@ -464,6 +467,7 @@ async def list_model_configs(current_user: AuthUser = Depends(get_current_user))
             configs = result.scalars().all()
     except Exception:
         from negentropy.logging import get_logger
+
         get_logger("negentropy.auth.api").warning("list_model_configs_failed", exc_info=True)
         return {"models": {"llm": [], "embedding": [], "rerank": []}}
 
@@ -580,7 +584,9 @@ async def ping_model(
             from negentropy.logging import get_logger
 
             get_logger("negentropy.auth.api").warning(
-                "ping_db_lookup_failed", model_id=str(payload.model_id), exc_info=True,
+                "ping_db_lookup_failed",
+                model_id=str(payload.model_id),
+                exc_info=True,
             )
 
     # 回退到供应商级凭证
@@ -599,7 +605,9 @@ async def ping_model(
             from negentropy.logging import get_logger
 
             get_logger("negentropy.auth.api").warning(
-                "ping_vendor_lookup_failed", vendor=payload.vendor, exc_info=True,
+                "ping_vendor_lookup_failed",
+                vendor=payload.vendor,
+                exc_info=True,
             )
 
     start_time = time.monotonic()
@@ -611,7 +619,9 @@ async def ping_model(
             result = await _ping_embedding(full_model_name, effective_api_key, effective_api_base)
         elif payload.model_type == "rerank":
             result = await _ping_rerank(
-                payload.model_name, effective_api_key, effective_api_base,
+                payload.model_name,
+                effective_api_key,
+                effective_api_base,
             )
         else:
             return {"status": "error", "message": f"不支持的模型类型: {payload.model_type}"}
