@@ -15,8 +15,8 @@ from negentropy.auth.rbac import (
 )
 from negentropy.auth.service import AuthUser
 from negentropy.auth.tokens import TokenError
-from negentropy.config.auth import AuthSettings
 from negentropy.config import settings
+from negentropy.config.auth import AuthSettings
 
 
 def _request(headers: dict[str, str] | None = None, cookies: dict[str, str] | None = None) -> Request:

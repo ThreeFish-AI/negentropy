@@ -1,6 +1,7 @@
 import pytest
 import sqlalchemy
 from sqlalchemy import text
+
 from negentropy.db import get_db
 
 

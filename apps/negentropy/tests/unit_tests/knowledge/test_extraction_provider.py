@@ -18,7 +18,6 @@ from negentropy.knowledge.extraction import (
 
 from .conftest import FakeMcpSession, noop_increment_tool_call_count, noop_llm_plan
 
-
 # ---------------------------------------------------------------------------
 # _invoke_target: batch schema & normalisation
 # ---------------------------------------------------------------------------

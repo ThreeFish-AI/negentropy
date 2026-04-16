@@ -7,29 +7,26 @@ Graph Service 单元测试
 
 from __future__ import annotations
 
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
 
-from negentropy.knowledge.graph_service import (
-    GraphBuildResult,
-    GraphService,
-    GraphQueryResult,
-    get_graph_service,
-)
 from negentropy.knowledge.graph_repository import (
     BuildRunRecord,
     GraphSearchResult,
+)
+from negentropy.knowledge.graph_service import (
+    GraphBuildResult,
+    GraphQueryResult,
+    GraphService,
+    get_graph_service,
 )
 from negentropy.knowledge.types import (
     GraphBuildConfig,
     GraphEdge,
     GraphNode,
-    GraphQueryConfig,
 )
-
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 

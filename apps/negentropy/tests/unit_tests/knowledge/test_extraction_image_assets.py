@@ -13,8 +13,8 @@ import pytest
 
 from negentropy.knowledge.extraction import (
     ExtractionAsset,
-    _extract_enhanced_image_assets,
     _extract_base64_from_asset,
+    _extract_enhanced_image_assets,
     _extract_image_assets_from_content_items,
     _extract_markdown_image_refs,
     _guess_image_content_type,
@@ -24,7 +24,6 @@ from negentropy.knowledge.extraction import (
     _normalize_assets,
     persist_extracted_assets,
 )
-
 
 # ---------------------------------------------------------------------------
 # _extract_markdown_image_refs

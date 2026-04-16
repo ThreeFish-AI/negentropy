@@ -9,14 +9,13 @@ CatalogDao 单元测试
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, Optional
-from uuid import UUID, uuid4
+from typing import Any
+from uuid import uuid4
 
 import pytest
 import sqlalchemy.orm
 
 from negentropy.knowledge.catalog_dao import CatalogDao
-
 
 # ---------------------------------------------------------------------------
 # 修复 KnowledgeDocument <-> DocSource 双向 FK 的 AmbiguousForeignKeysError
@@ -28,25 +27,17 @@ from negentropy.knowledge.catalog_dao import CatalogDao
 try:
     from negentropy.models import perception as _models
 
-    setattr(
-        _models.KnowledgeDocument,
-        "source",
-        sqlalchemy.orm.relationship(
-            _models.DocSource,
-            foreign_keys=[_models.KnowledgeDocument.source_id],
-            lazy="selectin",
-            viewonly=True,
-        ),
-    )
-    setattr(
+    _models.KnowledgeDocument.source = sqlalchemy.orm.relationship(
         _models.DocSource,
-        "document",
-        sqlalchemy.orm.relationship(
-            _models.KnowledgeDocument,
-            foreign_keys=[_models.DocSource.document_id],
-            lazy="selectin",
-            viewonly=True,
-        ),
+        foreign_keys=[_models.KnowledgeDocument.source_id],
+        lazy="selectin",
+        viewonly=True,
+    )
+    _models.DocSource.document = sqlalchemy.orm.relationship(
+        _models.KnowledgeDocument,
+        foreign_keys=[_models.DocSource.document_id],
+        lazy="selectin",
+        viewonly=True,
     )
 except Exception:
     pass
@@ -63,7 +54,7 @@ class _FakeResult:
     支持 scalar_one_or_none() 和 all() 两种消费方式。
     """
 
-    def __init__(self, rows: Optional[list] = None, scalar_value: Any = None) -> None:
+    def __init__(self, rows: list | None = None, scalar_value: Any = None) -> None:
         self._rows = rows if rows is not None else []
         self._scalar_value = scalar_value
 
@@ -93,7 +84,7 @@ class FakeAsyncSessionForCatalog:
     def __init__(
         self,
         *,
-        execute_responses: Optional[list[_FakeResult]] = None,
+        execute_responses: list[_FakeResult] | None = None,
     ) -> None:
         self.added: list[Any] = []
         self.deleted: list[Any] = []

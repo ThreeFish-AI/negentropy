@@ -14,15 +14,14 @@ KgEntityService 集成测试 — Dual-Write Strategy
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import select as sql_select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from negentropy.knowledge.kg_entity_service import KgEntityService
-from negentropy.models.perception import Corpus, KgEntity, KgEntityMention, KgRelation
-
+from negentropy.models.perception import Corpus, KgEntity, KgRelation
 
 # ---------------------------------------------------------------------------
 # Fixtures

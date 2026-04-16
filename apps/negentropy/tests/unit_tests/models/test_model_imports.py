@@ -3,8 +3,6 @@
 纯 Python 导入级测试，不需要数据库连接。
 """
 
-import pytest
-
 
 class TestBarrelExports:
     """__init__.py 的 barrel export 完整性验证。"""
@@ -63,7 +61,7 @@ class TestBackwardCompatPluginImports:
         """新子模块的直接导入路径可用。"""
         from negentropy.models.mcp import McpServer, McpTool
         from negentropy.models.mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
-        from negentropy.models.plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
+        from negentropy.models.plugin_common import PluginPermission
         from negentropy.models.skill import Skill
         from negentropy.models.sub_agent import SubAgent
 

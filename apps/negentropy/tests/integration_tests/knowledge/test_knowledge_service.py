@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any
 from uuid import UUID, uuid4
 
 from negentropy.knowledge.service import KnowledgeService
@@ -32,7 +33,7 @@ def _make_record(corpus_id: UUID, app_name: str, chunk: KnowledgeChunk) -> Knowl
 class FakeRepository:
     def __init__(self) -> None:
         self.added: list[KnowledgeChunk] = []
-        self.deleted_sources: list[Dict[str, Any]] = []
+        self.deleted_sources: list[dict[str, Any]] = []
         self.semantic_results: list[KnowledgeMatch] = []
         self.keyword_results: list[KnowledgeMatch] = []
         self.parent_results: list[KnowledgeMatch] = []
@@ -72,7 +73,7 @@ class FakeRepository:
         app_name: str,
         query_embedding: list[float],
         limit: int,
-        metadata_filter: Optional[Dict[str, Any]] = None,
+        metadata_filter: dict[str, Any] | None = None,
     ) -> list[KnowledgeMatch]:
         return self.semantic_results[:limit]
 
@@ -83,7 +84,7 @@ class FakeRepository:
         app_name: str,
         query: str,
         limit: int,
-        metadata_filter: Optional[Dict[str, Any]] = None,
+        metadata_filter: dict[str, Any] | None = None,
     ) -> list[KnowledgeMatch]:
         return self.keyword_results[:limit]
 
@@ -101,7 +102,7 @@ class FakeRepository:
         *,
         corpus_id: UUID,
         app_name: str,
-        source_uri: Optional[str],
+        source_uri: str | None,
         family_ids: Iterable[str],
     ) -> list[KnowledgeMatch]:
         return list(self.parent_results)

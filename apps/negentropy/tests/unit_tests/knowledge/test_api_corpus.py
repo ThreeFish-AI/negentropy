@@ -12,7 +12,6 @@ from uuid import uuid4
 import pytest
 
 from negentropy.knowledge import api as knowledge_api
-from negentropy.knowledge.types import ChunkingStrategy
 
 from .conftest import FakeDefaultRouteSession, FakeKnowledgeService, FakeScalarSession
 
@@ -27,7 +26,7 @@ async def test_create_corpus_serializes_chunking_strategy_to_string(monkeypatch)
     monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
     monkeypatch.setattr(knowledge_api, "_resolve_default_extractor_routes", fake_default_routes)
 
-    result = await knowledge_api.create_corpus(
+    await knowledge_api.create_corpus(
         knowledge_api.CorpusCreateRequest(
             app_name="negentropy",
             name="docs",

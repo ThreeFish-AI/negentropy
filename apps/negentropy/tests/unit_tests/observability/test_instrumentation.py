@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -199,8 +199,8 @@ def test_log_success_event_skips_non_recording_current_span(monkeypatch):
     callback.log_success_event(
         kwargs,
         response_obj,
-        datetime.now(timezone.utc),
-        datetime.now(timezone.utc),
+        datetime.now(UTC),
+        datetime.now(UTC),
     )
 
     assert span.attributes == {}

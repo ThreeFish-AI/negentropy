@@ -37,7 +37,9 @@ async def test_get_pipelines_returns_diagnostic_summary_in_typed_response(monkey
                                 "error": {
                                     "message": "Tool input schema could not be normalized for document extraction",
                                     "failure_category": "low_confidence_contract",
-                                    "diagnostic_summary": "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数",
+                                    "diagnostic_summary": (
+                                        "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数"
+                                    ),
                                     "diagnostics": {"summary": "ignored because direct summary exists"},
                                 },
                             }
@@ -146,7 +148,9 @@ async def test_upsert_pipelines_returns_typed_response(monkeypatch):
                                 "status": "failed",
                                 "error": {
                                     "failure_category": "low_confidence_contract",
-                                    "diagnostic_summary": "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数",
+                                    "diagnostic_summary": (
+                                        "契约为 unknown，要求额外必填字段 opaque，当前提取源无法构造最小调用参数"
+                                    ),
                                 },
                             }
                         }

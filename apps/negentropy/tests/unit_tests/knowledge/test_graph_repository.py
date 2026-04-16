@@ -7,7 +7,6 @@ Graph Repository 单元测试
 
 from __future__ import annotations
 
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -17,14 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from negentropy.knowledge.graph_repository import (
     AgeGraphRepository,
     BuildRunRecord,
-    EntityRecord,
-    GraphRepository,
     GraphSearchResult,
-    RelationRecord,
     get_graph_repository,
 )
 from negentropy.knowledge.types import GraphEdge, GraphNode
-
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 

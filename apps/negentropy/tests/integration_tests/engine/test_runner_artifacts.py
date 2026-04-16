@@ -23,7 +23,8 @@ def mock_modules():
 
 mock_modules()
 
-from negentropy.engine.factories.runner import get_runner, reset_runner
+from negentropy.engine.factories.runner import get_runner, reset_runner  # noqa: E402
+
 # negentropy.engine.artifacts_factory is real
 
 
@@ -40,7 +41,7 @@ def test_runner_artifact_injection():
         # We patch where it's imported in runner_factory
         with patch("negentropy.engine.factories.runner.get_artifact_service", return_value=mock_artifact_service):
             # agent= 显式传入，不会触发 root_agent 的延迟导入
-            runner = get_runner(app_name="test_app", agent=MagicMock())
+            get_runner(app_name="test_app", agent=MagicMock())
 
             # Verify Runner was initialized with artifact_service
             print(f"Runner call args: {MockRunner.call_args}")

@@ -12,8 +12,6 @@ import pytest
 from negentropy.knowledge.extraction import (
     ROUTE_FILE_PDF,
     ROUTE_URL,
-    CanonicalExtractionRequest,
-    CanonicalExtractionSource,
     ExtractionAttempt,
     ExtractorExecutionError,
     build_tool_adapter,

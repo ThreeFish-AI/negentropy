@@ -9,6 +9,10 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from negentropy.knowledge.constants import (
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_OVERLAP,
+)
 from negentropy.knowledge.types import (
     ChunkingConfig,
     ChunkingStrategy,
@@ -18,15 +22,10 @@ from negentropy.knowledge.types import (
     GraphQueryConfig,
     KnowledgeChunk,
     KnowledgeMatch,
-    KnowledgeRecord,
     SearchConfig,
     infer_source_type,
     normalize_source_metadata,
     serialize_chunking_config,
-)
-from negentropy.knowledge.constants import (
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_OVERLAP,
 )
 
 

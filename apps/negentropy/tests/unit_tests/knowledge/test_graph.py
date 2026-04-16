@@ -6,8 +6,7 @@ Graph Strategy Pattern 单元测试
 
 from __future__ import annotations
 
-from typing import List
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 
@@ -19,7 +18,6 @@ from negentropy.knowledge.graph import (
     RelationExtractor,
 )
 from negentropy.knowledge.types import GraphEdge, GraphNode
-
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -126,7 +124,7 @@ class TestGraphProcessor:
         """应支持注入自定义 EntityExtractor"""
 
         class MockEntityExtractor(EntityExtractor):
-            async def extract(self, text: str, corpus_id: UUID) -> List[GraphNode]:
+            async def extract(self, text: str, corpus_id: UUID) -> list[GraphNode]:
                 return [GraphNode(id="mock-1", label="MockEntity", node_type="mock")]
 
         processor = GraphProcessor(entity_extractor=MockEntityExtractor())
@@ -139,7 +137,7 @@ class TestGraphProcessor:
         """应支持注入自定义 RelationExtractor"""
 
         class MockRelationExtractor(RelationExtractor):
-            async def extract(self, entities: List[GraphNode], text: str) -> List[GraphEdge]:
+            async def extract(self, entities: list[GraphNode], text: str) -> list[GraphEdge]:
                 return [GraphEdge(source="a", target="b", label="mock_rel")]
 
         processor = GraphProcessor(relation_extractor=MockRelationExtractor())

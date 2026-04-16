@@ -4,8 +4,8 @@ import pytest
 
 from negentropy.engine.adapters.postgres.memory_automation_service import (
     DEFAULT_AUTOMATION_CONFIG,
-    MemoryAutomationUnavailableError,
     MemoryAutomationService,
+    MemoryAutomationUnavailableError,
     _build_function_definitions,
 )
 

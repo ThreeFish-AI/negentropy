@@ -15,32 +15,23 @@ import sqlalchemy.orm
 
 from negentropy.knowledge.wiki_service import WikiPublishingService
 
-
 # ---------------------------------------------------------------------------
 # 修复 KnowledgeDocument <-> DocSource 双向 FK 的 AmbiguousForeignKeysError
 # ---------------------------------------------------------------------------
 try:
     from negentropy.models import perception as _models
 
-    setattr(
-        _models.KnowledgeDocument,
-        "source",
-        sqlalchemy.orm.relationship(
-            _models.DocSource,
-            foreign_keys=[_models.KnowledgeDocument.source_id],
-            lazy="selectin",
-            viewonly=True,
-        ),
-    )
-    setattr(
+    _models.KnowledgeDocument.source = sqlalchemy.orm.relationship(
         _models.DocSource,
-        "document",
-        sqlalchemy.orm.relationship(
-            _models.KnowledgeDocument,
-            foreign_keys=[_models.DocSource.document_id],
-            lazy="selectin",
-            viewonly=True,
-        ),
+        foreign_keys=[_models.KnowledgeDocument.source_id],
+        lazy="selectin",
+        viewonly=True,
+    )
+    _models.DocSource.document = sqlalchemy.orm.relationship(
+        _models.KnowledgeDocument,
+        foreign_keys=[_models.DocSource.document_id],
+        lazy="selectin",
+        viewonly=True,
     )
 except Exception:
     pass

@@ -6,10 +6,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
 import warnings
-from typing import Any
 from uuid import UUID, uuid4
 
 import pytest

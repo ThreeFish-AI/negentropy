@@ -239,7 +239,7 @@ async def test_rebuild_document_url_requires_markdown(monkeypatch):
     monkeypatch.setattr("negentropy.storage.service.DocumentStorageService", lambda: fake_storage)
     monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(HTTPException):
         await knowledge_api.rebuild_document(
             corpus_id=corpus_id,
             document_id=document_id,

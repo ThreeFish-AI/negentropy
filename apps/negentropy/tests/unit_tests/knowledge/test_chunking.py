@@ -21,7 +21,6 @@ from pydantic import ValidationError
 
 from negentropy.knowledge.chunking import (
     _cosine_similarity,
-    _fixed_chunk,
     _recursive_chunk,
     _split_into_sentences,
     chunk_text,
@@ -176,13 +175,11 @@ class TestChunkingConfigValidation:
 
     def test_chunk_size_zero_raises_validation_error(self) -> None:
         """零分块大小应抛出验证异常"""
-        text = "abc"
         with pytest.raises(ValidationError, match="chunk_size must be at least"):
             ChunkingConfig(chunk_size=0, overlap=0)
 
     def test_negative_chunk_size_raises_validation_error(self) -> None:
         """负分块大小应抛出验证异常"""
-        text = "abc"
         with pytest.raises(ValidationError, match="chunk_size must be at least"):
             ChunkingConfig(chunk_size=-1, overlap=0)
 

@@ -9,22 +9,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 
 from negentropy.knowledge.llm_extractors import (
     CompositeEntityExtractor,
-    CompositeRelationExtractor,
-    EntityExtractionResult,
     LLMEntityExtractor,
     LLMRelationExtractor,
-    RelationExtractionResult,
 )
-from negentropy.knowledge.types import GraphEdge, GraphNode, KgEntityType, KgRelationType
-
+from negentropy.knowledge.types import GraphNode, KgEntityType, KgRelationType
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 

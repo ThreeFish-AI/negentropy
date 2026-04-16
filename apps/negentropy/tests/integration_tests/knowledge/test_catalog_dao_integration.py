@@ -19,7 +19,6 @@ import pytest
 
 from negentropy.knowledge.catalog_dao import CatalogDao
 
-
 # ===================================================================
 # Fixtures — 测试数据构建
 # ===================================================================
@@ -31,8 +30,9 @@ async def sample_corpus(db_engine):
 
     仅返回 corpus_id（UUID），避免 ORM 对象跨 session 附加冲突。
     """
-    from negentropy.models.perception import Corpus
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    from negentropy.models.perception import Corpus
 
     session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
     corpus_id: UUID | None = None
@@ -120,8 +120,9 @@ async def sample_documents(db_engine, sample_corpus):
 
     仅返回 doc.id 列表（UUID），避免 ORM 对象跨 session 附加冲突。
     """
-    from negentropy.models.perception import KnowledgeDocument
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    from negentropy.models.perception import KnowledgeDocument
 
     session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
     doc_ids: list[UUID] = []
@@ -226,7 +227,6 @@ class TestCatalogTreeCte:
     @pytest.mark.asyncio
     async def test_get_tree_three_level_deep_hierarchy(self, catalog_tree):
         """三层深度树：depth/path 正确性验证"""
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         session_factory = catalog_tree["session"]
         async with session_factory() as session:
@@ -304,7 +304,6 @@ class TestCatalogTreeCte:
     @pytest.mark.asyncio
     async def test_get_tree_respects_max_depth(self, catalog_tree):
         """max_depth=1 应仅返回根和第一层子节点，排除第二层"""
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         session_factory = catalog_tree["session"]
         async with session_factory() as session:
@@ -322,7 +321,6 @@ class TestCatalogTreeCte:
     @pytest.mark.asyncio
     async def test_get_tree_ordering_by_depth_then_sort_order(self, catalog_tree):
         """排序规则：先按 depth 升序，再按 sort_order 升序，最后按 name 升序"""
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         session_factory = catalog_tree["session"]
         async with session_factory() as session:
@@ -345,7 +343,6 @@ class TestCatalogSubtreeCte:
     @pytest.mark.asyncio
     async def test_get_subtree_single_node(self, catalog_tree):
         """叶子节点作为锚点：仅返回自身，depth=0"""
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         session_factory = catalog_tree["session"]
         leaf_id = catalog_tree["sub_a1"].id
@@ -360,7 +357,6 @@ class TestCatalogSubtreeCte:
     @pytest.mark.asyncio
     async def test_get_subtree_with_children(self, catalog_tree):
         """带子节点的锚点：anchor depth=0，children depth=1"""
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         session_factory = catalog_tree["session"]
         anchor_id = catalog_tree["cat_a"].id
@@ -384,7 +380,6 @@ class TestCatalogSubtreeCte:
     @pytest.mark.asyncio
     async def test_get_subtree_excludes_siblings(self, catalog_tree):
         """子树查询应排除兄弟节点（如 CatB 不在 CatA 的子树中）"""
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         session_factory = catalog_tree["session"]
         anchor_id = catalog_tree["cat_a"].id
@@ -400,7 +395,6 @@ class TestCatalogSubtreeCte:
     @pytest.mark.asyncio
     async def test_get_subtree_max_depth_limitation(self, catalog_tree):
         """max_depth 应限制子树返回深度"""
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         session_factory = catalog_tree["session"]
         anchor_id = catalog_tree["cat_a"].id

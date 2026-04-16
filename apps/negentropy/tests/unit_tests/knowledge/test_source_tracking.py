@@ -21,7 +21,6 @@ from negentropy.knowledge.source_tracking import (
     SourceTrackingService,
     SourceTrackingStrategy,
     TextInputTracker,
-    TrackingContext,
     UrlSourceTracker,
 )
 
@@ -30,7 +29,6 @@ from .conftest import (
     make_extracted_document_result,
     make_tracking_context,
 )
-
 
 # =============================================================================
 # TestUrlSourceTracker
@@ -566,7 +564,7 @@ class TestSourceTrackingService:
         )
 
         monkeypatch.setattr("negentropy.knowledge.source_tracking.SourceDao", fake_dao)
-        doc_source = await service.track(
+        await service.track(
             fake_db,
             document_id=doc_id,
             result=result,
@@ -591,7 +589,7 @@ class TestSourceTrackingService:
         result = make_extracted_document_result(metadata={})
 
         monkeypatch.setattr("negentropy.knowledge.source_tracking.SourceDao", fake_dao)
-        doc_source = await service.track(
+        await service.track(
             fake_db,
             document_id=doc_id,
             result=result,
@@ -670,7 +668,7 @@ class TestSourceTrackingService:
         )
 
         monkeypatch.setattr("negentropy.knowledge.source_tracking.SourceDao", fake_dao)
-        doc_source = await service.track(
+        await service.track(
             fake_db,
             document_id=doc_id,
             result=result,

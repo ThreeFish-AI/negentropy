@@ -27,7 +27,6 @@ from negentropy.agents.pipelines.standard import (
     create_problem_solving_pipeline,
     create_value_delivery_pipeline,
 )
-from negentropy.agents.tools.common import log_activity
 
 # ---------------------------------------------------------------------------
 # 1. Root Agent 结构
@@ -100,7 +99,7 @@ def _assert_pipeline_structure(pipeline: SequentialAgent, expected_names: list[s
     assert len(agents) == len(expected_names), (
         f"Pipeline {pipeline.name}: 预期 {len(expected_names)} 步, 实际 {len(agents)} 步"
     )
-    for i, (agent, name, key) in enumerate(zip(agents, expected_names, expected_keys)):
+    for i, (agent, name, key) in enumerate(zip(agents, expected_names, expected_keys, strict=True)):
         assert agent.name == name, f"步骤 {i}: 预期 {name}, 实际 {agent.name}"
         assert agent.output_key == key, f"步骤 {i} ({name}): 预期 output_key={key!r}, 实际 {agent.output_key!r}"
 

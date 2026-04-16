@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from negentropy.knowledge.chunking import _fixed_chunk, chunk_text
+from negentropy.knowledge.chunking import chunk_text
 from negentropy.knowledge.types import ChunkingConfig
 
 
@@ -63,9 +63,9 @@ class TestWordBoundaryProtection:
 
     def test_fixed_chunk_with_overlap_preserves_words(self) -> None:
         """测试 Fixed 分块带 Overlap 保护单词完整性"""
-        from negentropy.knowledge.types import ChunkingStrategy
-
         import re
+
+        from negentropy.knowledge.types import ChunkingStrategy
 
         text = "The quick brown fox jumps over the lazy dog"
         config = ChunkingConfig(strategy=ChunkingStrategy.FIXED, chunk_size=25, overlap=10)
@@ -80,9 +80,9 @@ class TestWordBoundaryProtection:
 
     def test_recursive_chunk_overlap_preserves_words(self) -> None:
         """测试 Recursive 分块 Overlap 保护单词完整性"""
-        from negentropy.knowledge.types import ChunkingStrategy
-
         import re
+
+        from negentropy.knowledge.types import ChunkingStrategy
 
         text = """
         This is a long paragraph that contains many English words.
@@ -100,9 +100,9 @@ class TestWordBoundaryProtection:
 
     def test_mixed_chinese_english_text(self) -> None:
         """测试中英文混合文本"""
-        from negentropy.knowledge.types import ChunkingStrategy
-
         import re
+
+        from negentropy.knowledge.types import ChunkingStrategy
 
         text = "这是中文This is English更多中文More English here结束"
         config = ChunkingConfig(strategy=ChunkingStrategy.FIXED, chunk_size=15, overlap=0)

@@ -14,7 +14,7 @@ KgEntityService 单元测试 — Dual-Write Strategy
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -23,7 +23,6 @@ import sqlalchemy.orm
 from negentropy.knowledge.kg_entity_service import KgEntityService
 from tests.unit_tests.knowledge.conftest import (
     FakeEntityDbSession,
-    FakeLogger,
 )
 
 # ---------------------------------------------------------------------------
@@ -46,25 +45,17 @@ _CORPUS_ID_B = UUID("00000000-0000-0000-0000-000000000002")
 try:
     from negentropy.models import perception as _models
 
-    setattr(
-        _models.KnowledgeDocument,
-        "source",
-        sqlalchemy.orm.relationship(
-            _models.DocSource,
-            foreign_keys=[_models.KnowledgeDocument.source_id],
-            lazy="selectin",
-            viewonly=True,
-        ),
-    )
-    setattr(
+    _models.KnowledgeDocument.source = sqlalchemy.orm.relationship(
         _models.DocSource,
-        "document",
-        sqlalchemy.orm.relationship(
-            _models.KnowledgeDocument,
-            foreign_keys=[_models.DocSource.document_id],
-            lazy="selectin",
-            viewonly=True,
-        ),
+        foreign_keys=[_models.KnowledgeDocument.source_id],
+        lazy="selectin",
+        viewonly=True,
+    )
+    _models.DocSource.document = sqlalchemy.orm.relationship(
+        _models.KnowledgeDocument,
+        foreign_keys=[_models.DocSource.document_id],
+        lazy="selectin",
+        viewonly=True,
     )
 except Exception:
     pass
