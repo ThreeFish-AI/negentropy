@@ -5,7 +5,7 @@ Configures connection settings for external observability platforms (Langfuse, O
 """
 
 from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 class ObservabilitySettings(BaseSettings):
@@ -45,3 +45,22 @@ class ObservabilitySettings(BaseSettings):
         """Full Langfuse OTLP endpoint with correct path for HTTP/protobuf."""
         base = self.langfuse_host.rstrip("/")
         return f"{base}/api/public/otel/v1/traces"
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        from ._base import YamlDictSource, get_yaml_section
+
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlDictSource(settings_cls, get_yaml_section("observability")),
+            file_secret_settings,
+        )

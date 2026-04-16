@@ -5,7 +5,7 @@ Knowledge Configuration.
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 class DefaultExtractorTargetSettings(BaseModel):
@@ -72,3 +72,22 @@ class KnowledgeSettings(BaseSettings):
     default_extractor_routes: DefaultExtractorRoutesSettings = Field(
         default_factory=DefaultExtractorRoutesSettings,
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        from ._base import YamlDictSource, get_yaml_section
+
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlDictSource(settings_cls, get_yaml_section("knowledge")),
+            file_secret_settings,
+        )
