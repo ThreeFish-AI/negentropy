@@ -142,6 +142,7 @@ export default function DocumentDetailPage() {
       void loadDetail();
     }, 3000);
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- detail 仅用于 null guard，加入依赖会导致轮询死循环
   }, [detail?.markdown_extract_status, loadDetail]);
 
   // ---- Action handlers ----
