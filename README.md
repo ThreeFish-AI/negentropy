@@ -119,7 +119,21 @@ pnpm install                   # Install dependencies
 pnpm run dev                   # Start development server (localhost:3333)
 ```
 
-### 4. Initiate Dialogue
+### 4. Set Up Pre-commit Hooks (Recommended)
+
+Install local git hooks to auto-run format and lint before every commit, keeping CI clean:
+
+```bash
+# Install pre-commit (requires uv)
+uv tool install pre-commit
+
+# Register hooks (run once at the project root)
+pre-commit install
+```
+
+> On first commit, pre-commit will download hook environments automatically. To verify all hooks manually: `pre-commit run --all-files`
+
+### 5. Initiate Dialogue
 
 Fire up your browser, head over to `http://localhost:3333`, and start conversing with the NegentropyEngine.
 

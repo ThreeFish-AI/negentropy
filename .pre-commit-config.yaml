@@ -1,0 +1,54 @@
+# .pre-commit-config.yaml
+#
+# 本地开发 pre-commit 钩子：在每次 git commit 前自动运行 format 和 lint，
+# 将格式/Lint 缺陷拦截在本地，避免浪费 CI/CD 资源。
+#
+# 安装方式（仅需执行一次）：
+#   uv tool install pre-commit
+#   pre-commit install
+#
+# 手动运行全量检查：
+#   pre-commit run --all-files
+
+default_install_hook_types: [pre-commit]
+
+repos:
+  # ── Python: apps/negentropy ──────────────────────────────────────────────
+  # 使用官方 ruff-pre-commit 集成（版本与 pyproject.toml 中 ruff>=0.14.14 对齐）
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.14
+    hooks:
+      # 1. Lint：自动修复可修复项，有修复时以非零码退出（提示重新 git add）
+      - id: ruff
+        name: ruff lint (negentropy)
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^apps/negentropy/
+        types_or: [python, pyi]
+      # 2. Format：统一代码风格（双引号、空格缩进、行宽 120）
+      - id: ruff-format
+        name: ruff format (negentropy)
+        files: ^apps/negentropy/
+        types_or: [python, pyi]
+
+  # ── Node.js: apps/negentropy-ui ──────────────────────────────────────────
+  # ESLint v9 flat config（eslint.config.mjs），零警告策略（--max-warnings=0）
+  - repo: local
+    hooks:
+      - id: negentropy-ui-eslint
+        name: ESLint (negentropy-ui)
+        language: system
+        # pass_filenames: false —— ESLint 自行管理文件范围，避免框架传入文件名导致路径错误
+        entry: bash -c 'cd apps/negentropy-ui && pnpm lint'
+        files: ^apps/negentropy-ui/.*\.(js|jsx|ts|tsx|mjs|cjs)$
+        pass_filenames: false
+
+  # ── Node.js: apps/negentropy-wiki ────────────────────────────────────────
+  # next lint（Next.js 15 内置 ESLint 集成，eslint.config.mjs flat config）
+  - repo: local
+    hooks:
+      - id: negentropy-wiki-eslint
+        name: next lint (negentropy-wiki)
+        language: system
+        entry: bash -c 'cd apps/negentropy-wiki && pnpm lint'
+        files: ^apps/negentropy-wiki/.*\.(js|jsx|ts|tsx|mjs|cjs)$
+        pass_filenames: false
