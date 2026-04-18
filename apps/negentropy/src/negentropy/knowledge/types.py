@@ -213,9 +213,10 @@ class _ChunkingConfigWithSeparators(_ChunkingConfigBase):
     @field_validator("separators")
     @classmethod
     def validate_separators(cls, v: list[str] | tuple[str, ...]) -> tuple[str, ...]:
-        normalized = [item for item in (s.strip() for s in v) if item]
         deduped: list[str] = []
-        for item in normalized:
+        for item in v:
+            if item is None or item == "":
+                continue
             if item not in deduped:
                 deduped.append(item)
         return tuple(deduped)
