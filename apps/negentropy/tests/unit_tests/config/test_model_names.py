@@ -40,5 +40,7 @@ def test_fallback_embedding_config():
     from negentropy.config.model_resolver import get_fallback_embedding_config
 
     name, kwargs = get_fallback_embedding_config()
-    assert name == "vertex_ai/text-embedding-005"
+    # Default switched to gemini/text-embedding-004 (768-dim, same as vertex_ai/text-embedding-005)
+    # to align with vendor_configs-driven credentials. Override via NEGENTROPY_DEFAULT_EMBEDDING_MODEL.
+    assert name == "gemini/text-embedding-004"
     assert kwargs == {}
