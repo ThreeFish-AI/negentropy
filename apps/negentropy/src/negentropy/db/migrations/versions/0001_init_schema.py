@@ -1059,7 +1059,7 @@ def upgrade() -> None:
             NULL,
             '[]'::jsonb,
             '{}'::jsonb,
-            'http://localhost:8081/mcp',
+            'http://localhost:8092/mcp',
             '{}'::jsonb,
             TRUE,
             TRUE,
