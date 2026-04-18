@@ -95,7 +95,7 @@ def test_negentropy_perceives_seeded_by_migration(alembic_config: Config):
         "图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。"
     )
     assert row["transport_type"] == "http"
-    assert row["url"] == "http://localhost:8081/mcp"
+    assert row["url"] == "http://localhost:8092/mcp"
     assert row["is_enabled"] is True
     assert row["auto_start"] is True
 
@@ -177,6 +177,6 @@ def test_negentropy_perceives_seed_is_idempotent_on_re_upgrade(alembic_config: C
         "一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、"
         "图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。"
     )
-    assert row["url"] == "http://localhost:8081/mcp"
+    assert row["url"] == "http://localhost:8092/mcp"
     assert row["is_enabled"] is True
     assert row["auto_start"] is True
