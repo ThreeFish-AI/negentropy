@@ -204,3 +204,55 @@ class TestSettingsIntegration:
             assert s.database.pool_size == 20
             # Other defaults preserved
             assert s.database.max_overflow == 10
+
+
+# ---------------------------------------------------------------------------
+# Nested env delimiter & environment section structure
+# ---------------------------------------------------------------------------
+
+
+class TestEnvNestedDelimiter:
+    """`env_nested_delimiter="__"` 允许通过扁平环境变量覆盖深层嵌套字段。"""
+
+    def test_env_nested_delimiter_override(self, monkeypatch):
+        monkeypatch.setenv(
+            "NE_KNOWLEDGE_DEFAULT_EXTRACTOR_ROUTES__URL__PRIMARY__TIMEOUT_MS",
+            "90000",
+        )
+        reset_cache()
+        reset_sections()
+
+        from negentropy.config import Settings
+
+        s = Settings()
+        assert s.knowledge.default_extractor_routes.url.primary.timeout_ms == 90000
+
+
+class TestEnvironmentSectionStructure:
+    """`environment.env` 为规范结构；顶级 `env:` 保留向后兼容回退。"""
+
+    def test_new_environment_section(self, tmp_path):
+        user_yaml = tmp_path / "config.yaml"
+        user_yaml.write_text("environment:\n  env: production\n")
+
+        with patch("negentropy.config.yaml_loader.USER_CONFIG_FILE", user_yaml):
+            reset_cache()
+            reset_sections()
+
+            from negentropy.config import Settings
+
+            s = Settings()
+            assert s.environment.env == "production"
+
+    def test_legacy_top_level_env_still_works(self, tmp_path):
+        user_yaml = tmp_path / "config.yaml"
+        user_yaml.write_text("env: staging\n")
+
+        with patch("negentropy.config.yaml_loader.USER_CONFIG_FILE", user_yaml):
+            reset_cache()
+            reset_sections()
+
+            from negentropy.config import Settings
+
+            s = Settings()
+            assert s.environment.env == "staging"

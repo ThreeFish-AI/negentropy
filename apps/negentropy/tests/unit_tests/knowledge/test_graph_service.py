@@ -274,7 +274,7 @@ class FakeGraphRepository:
 @pytest.mark.asyncio
 async def test_build_graph_persists_canonical_model_name():
     repository = FakeGraphRepository()
-    service = GraphService(repository=repository, config=GraphBuildConfig(llm_model="glm-5"))
+    service = GraphService(repository=repository, config=GraphBuildConfig(llm_model="openai/gpt-5-mini"))
 
     result = await service.build_graph(
         corpus_id=uuid4(),
@@ -283,5 +283,5 @@ async def test_build_graph_persists_canonical_model_name():
     )
 
     assert result.status == "completed"
-    assert repository.create_build_run_kwargs["model_name"] == "zai/glm-5"
-    assert repository.create_build_run_kwargs["extractor_config"]["llm_model"] == "zai/glm-5"
+    assert repository.create_build_run_kwargs["model_name"] == "openai/gpt-5-mini"
+    assert repository.create_build_run_kwargs["extractor_config"]["llm_model"] == "openai/gpt-5-mini"

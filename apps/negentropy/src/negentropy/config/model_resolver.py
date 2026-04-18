@@ -24,12 +24,11 @@ from typing import Any
 # Cache TTL in seconds
 _CACHE_TTL = 60.0
 
-# 默认模型名 — 支持环境变量覆盖，未设置时使用硬编码 fallback
-_DEFAULT_LLM_MODEL = os.getenv("NEGENTROPY_DEFAULT_LLM_MODEL", "zai/glm-5")
+# 硬编码默认值 — DB 不可达时的回退配置
+_DEFAULT_LLM_MODEL = "openai/gpt-5-mini"
 _DEFAULT_LLM_KWARGS: dict[str, Any] = {
     "temperature": 0.7,
     "drop_params": True,
-    "extra_body": {"thinking": {"type": "disabled"}},
 }
 # gemini/text-embedding-004 与 vertex_ai/text-embedding-005 同为 768 维，
 # 切换不破坏既有 HNSW 向量索引；如需恢复 vertex 模型可通过环境变量覆盖。
@@ -229,21 +228,7 @@ def _build_llm_kwargs(
     # 供应商特定的 thinking/reasoning 适配
     model_lower = model_name.lower()
 
-    if vendor == "zai" or "glm" in model_lower:
-        kwargs["drop_params"] = config.get("drop_params", True)
-        thinking_mode = config.get("thinking_mode", False)
-        if thinking_mode:
-            thinking_config: dict[str, Any] = {
-                "type": "enabled",
-                "budget_tokens": config.get("thinking_budget", 2048),
-            }
-            if config.get("preserve_thinking", False):
-                thinking_config["clear_thinking"] = False
-        else:
-            thinking_config = {"type": "disabled"}
-        kwargs["extra_body"] = {"thinking": thinking_config}
-
-    elif vendor == "anthropic" or "claude" in model_lower:
+    if vendor == "anthropic" or "claude" in model_lower:
         thinking_mode = config.get("thinking_mode", False)
         if thinking_mode:
             kwargs["thinking"] = {

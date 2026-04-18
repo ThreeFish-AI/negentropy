@@ -67,7 +67,7 @@ def _build_success_callback(parent_span: _FakeSpan):
     return callback
 
 
-def test_patch_litellm_otel_cost_normalizes_request_and_response_model(monkeypatch):
+def test_patch_litellm_otel_cost_injects_cost_attributes(monkeypatch):
     def _original_set_attributes(self, span, kwargs, response_obj):
         self.safe_set_attribute(span, "gen_ai.request.model", kwargs.get("model"))
         self.safe_set_attribute(span, "gen_ai.response.model", response_obj.get("model"))
@@ -77,13 +77,13 @@ def test_patch_litellm_otel_cost_normalizes_request_and_response_model(monkeypat
 
     span = _FakeSpan()
     callback = _FakeOpenTelemetryCallback()
-    kwargs = {"model": "zai/glm-5", "response_cost": 0.12}
-    response_obj = {"model": "glm-5"}
+    kwargs = {"model": "openai/gpt-5-mini", "response_cost": 0.12}
+    response_obj = {"model": "openai/gpt-5-mini"}
 
     OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
 
-    assert span.attributes["gen_ai.request.model"] == "zai/glm-5"
-    assert span.attributes["gen_ai.response.model"] == "zai/glm-5"
+    assert span.attributes["gen_ai.request.model"] == "openai/gpt-5-mini"
+    assert span.attributes["gen_ai.response.model"] == "openai/gpt-5-mini"
     assert span.attributes["gen_ai.usage.cost"] == 0.12
 
 
@@ -99,7 +99,12 @@ def test_patch_litellm_otel_cost_skips_non_recording_span(monkeypatch):
     span = _FakeSpan(recording=False)
     callback = _FakeOpenTelemetryCallback()
 
-    OpenTelemetry.set_attributes(callback, span, {"model": "zai/glm-5", "response_cost": 0.12}, {"model": "glm-5"})
+    OpenTelemetry.set_attributes(
+        callback,
+        span,
+        {"model": "openai/gpt-5-mini", "response_cost": 0.12},
+        {"model": "openai/gpt-5-mini"},
+    )
 
     assert calls["count"] == 0
     assert span.attributes == {}
@@ -118,8 +123,8 @@ def test_patch_litellm_handle_success_skips_ended_parent_span(monkeypatch):
 
     OpenTelemetry._handle_success(
         callback,
-        {"model": "zai/glm-5"},
-        {"model": "glm-5", "choices": []},
+        {"model": "openai/gpt-5-mini"},
+        {"model": "openai/gpt-5-mini", "choices": []},
         datetime.now(),
         datetime.now(),
     )
@@ -143,14 +148,14 @@ def test_patch_litellm_handle_success_preserves_recording_parent_span(monkeypatc
 
     OpenTelemetry._handle_success(
         callback,
-        {"model": "zai/glm-5", "response_cost": 0.12},
-        {"model": "glm-5", "choices": []},
+        {"model": "openai/gpt-5-mini", "response_cost": 0.12},
+        {"model": "openai/gpt-5-mini", "choices": []},
         datetime.now(),
         datetime.now(),
     )
 
     assert set_attributes_calls["count"] == 1
-    assert parent_span.attributes["gen_ai.request.model"] == "zai/glm-5"
+    assert parent_span.attributes["gen_ai.request.model"] == "openai/gpt-5-mini"
     assert parent_span.attributes["gen_ai.usage.cost"] == 0.12
     assert len(parent_span.statuses) == 1
 
@@ -167,10 +172,10 @@ def test_resolve_total_cost_uses_unified_online_catalog(monkeypatch):
 
     response_obj = SimpleNamespace(
         usage=SimpleNamespace(prompt_tokens=120, completion_tokens=80),
-        model="zai/glm-5",
+        model="openai/gpt-5-mini",
     )
 
-    cost, pricing_source, refresh_error = _resolve_total_cost({"model": "zai/glm-5"}, response_obj)
+    cost, pricing_source, refresh_error = _resolve_total_cost({"model": "openai/gpt-5-mini"}, response_obj)
 
     assert cost == pytest.approx(0.000376)
     assert pricing_source == "litellm_online_catalog"
@@ -192,9 +197,9 @@ def test_log_success_event_skips_non_recording_current_span(monkeypatch):
 
     response_obj = SimpleNamespace(
         usage=SimpleNamespace(prompt_tokens=10, completion_tokens=20),
-        model="zai/glm-5",
+        model="openai/gpt-5-mini",
     )
-    kwargs = {"model": "zai/glm-5", "response_cost": 0.12}
+    kwargs = {"model": "openai/gpt-5-mini", "response_cost": 0.12}
 
     callback.log_success_event(
         kwargs,

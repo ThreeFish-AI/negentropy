@@ -6,9 +6,6 @@ from sqlalchemy import create_engine, text
 
 from negentropy.config import settings
 
-CURRENT_HEAD = "0001"
-PRESET_SEED_HEAD = "0001"  # 合并后种子数据在唯一迁移中
-
 
 def _sync_database_url() -> str:
     return str(settings.database_url).replace("postgresql+asyncpg", "postgresql+psycopg")
@@ -35,10 +32,11 @@ def alembic_config():
 
 
 def test_migrations_have_single_head(alembic_config: Config):
-    """Ensure the migration graph stays linear at the current head."""
+    """Ensure the migration graph stays linear — exactly one head exists."""
 
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == [CURRENT_HEAD]
+    heads = script.get_heads()
+    assert len(heads) == 1, f"Expected single Alembic head, got: {heads}"
 
 
 def test_migrations_stairway(alembic_config: Config):
