@@ -5,6 +5,8 @@ import {
   createDefaultChunkingConfig,
   encodeSeparatorsForDisplay,
   decodeSeparatorsFromInput,
+  decodeLiteralEscapesIfNeeded,
+  normalizeChunkingConfig,
   fetchCorpus,
   fetchDocumentChunks,
   fetchDocuments,
@@ -439,5 +441,92 @@ describe("separator encode/decode 往返一致性", () => {
   it("混合特殊字符往返一致", () => {
     const seps = ["\n\n", "\t", "\r\n", "。", ""];
     expect(decodeSeparatorsFromInput(encodeSeparatorsForDisplay(seps))).toEqual(seps);
+  });
+});
+
+describe("decodeLiteralEscapesIfNeeded", () => {
+  it("将字面量 `\\n\\n`（4 字符）解码为真换行 `\\n\\n`（2 字符）", () => {
+    expect(decodeLiteralEscapesIfNeeded("\\n\\n")).toBe("\n\n");
+  });
+
+  it("将字面量 `\\n` 解码为真换行 `\\n`", () => {
+    expect(decodeLiteralEscapesIfNeeded("\\n")).toBe("\n");
+  });
+
+  it("已为真换行的输入原样返回（idempotent）", () => {
+    expect(decodeLiteralEscapesIfNeeded("\n\n")).toBe("\n\n");
+    expect(decodeLiteralEscapesIfNeeded("\n")).toBe("\n");
+  });
+
+  it("对纯文本不做任何处理", () => {
+    expect(decodeLiteralEscapesIfNeeded("。")).toBe("。");
+    expect(decodeLiteralEscapesIfNeeded(". ")).toBe(". ");
+  });
+
+  it("混合真换行与字面量时保守不解码", () => {
+    expect(decodeLiteralEscapesIfNeeded("abc\n\\n")).toBe("abc\n\\n");
+  });
+
+  it("空字符串原样返回", () => {
+    expect(decodeLiteralEscapesIfNeeded("")).toBe("");
+  });
+});
+
+describe("normalizeChunkingConfig 防御式解码", () => {
+  it("hierarchical 策略：DB 中字面量转义自动解码为真换行（修复 Bug）", () => {
+    const result = normalizeChunkingConfig({
+      strategy: "hierarchical",
+      separators: ["\\n\\n", "\\n", "。"],
+      hierarchical_parent_chunk_size: 1024,
+      hierarchical_child_chunk_size: 256,
+      hierarchical_child_overlap: 51,
+    });
+    expect(result.strategy).toBe("hierarchical");
+    if (result.strategy === "hierarchical") {
+      expect(result.separators).toEqual(["\n\n", "\n", "。"]);
+    }
+  });
+
+  it("recursive 策略：真换行原样保留", () => {
+    const result = normalizeChunkingConfig({
+      strategy: "recursive",
+      chunk_size: 800,
+      overlap: 100,
+      separators: ["\n\n", "\n", "。"],
+    });
+    expect(result.strategy).toBe("recursive");
+    if (result.strategy === "recursive") {
+      expect(result.separators).toEqual(["\n\n", "\n", "。"]);
+    }
+  });
+
+  it("hierarchical 策略：真换行原样保留（不被误解码）", () => {
+    const result = normalizeChunkingConfig({
+      strategy: "hierarchical",
+      separators: ["\n\n", "\n"],
+    });
+    expect(result.strategy).toBe("hierarchical");
+    if (result.strategy === "hierarchical") {
+      expect(result.separators).toEqual(["\n\n", "\n"]);
+    }
+  });
+
+  it("recursive 策略：字面量转义自动解码", () => {
+    const result = normalizeChunkingConfig({
+      strategy: "recursive",
+      separators: ["\\n", "。"],
+    });
+    expect(result.strategy).toBe("recursive");
+    if (result.strategy === "recursive") {
+      expect(result.separators).toEqual(["\n", "。"]);
+    }
+  });
+
+  it("separators 缺失时回退到默认值", () => {
+    const result = normalizeChunkingConfig({ strategy: "hierarchical" });
+    expect(result.strategy).toBe("hierarchical");
+    if (result.strategy === "hierarchical") {
+      expect(result.separators).toEqual(["\n"]);
+    }
   });
 });

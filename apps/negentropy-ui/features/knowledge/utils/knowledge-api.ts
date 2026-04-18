@@ -122,6 +122,31 @@ export function decodeSeparatorsFromInput(text: string): string[] {
     });
 }
 
+/**
+ * 防御式解码单个分隔符字符串。
+ *
+ * 用于兜底「DB 中残留字面量转义序列」的历史/导入数据：
+ *   - 输入 `"\\n\\n"`（4 字符 `\n\n`）→ 输出 `"\n\n"`（2 字符真换行）
+ *   - 输入 `"\n\n"`（已是真换行）→ 原样返回（idempotent）
+ *
+ * 复用 decodeSeparatorsFromInput 的逐字符扫描逻辑，仅当字符串包含字面量转义
+ * 序列（`\n` / `\t` / `\r` / `\\`）但不含真实控制字符时触发解码，避免对正常数据的副作用。
+ */
+export function decodeLiteralEscapesIfNeeded(value: string): string {
+  if (typeof value !== "string" || value.length === 0) return value;
+  const hasLiteralEscape = /\\[ntr\\]/.test(value);
+  const hasRealControl = /[\n\t\r]/.test(value);
+  if (!hasLiteralEscape || hasRealControl) return value;
+  // 复用 decodeSeparatorsFromInput 的核心扫描逻辑：单行解码后取首项
+  const decoded = decodeSeparatorsFromInput(value);
+  return decoded[0] ?? value;
+}
+
+function normalizeSeparatorsArray(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+  return (value as unknown[]).map((s) => decodeLiteralEscapesIfNeeded(String(s)));
+}
+
 export function createDefaultChunkingConfig(
   strategy: ChunkingStrategy = "recursive",
 ): ChunkingConfig {
@@ -198,9 +223,7 @@ export function normalizeChunkingConfig(
           typeof config?.preserve_newlines === "boolean"
             ? config.preserve_newlines
             : defaults.preserve_newlines,
-        separators: Array.isArray(config?.separators)
-          ? (config.separators as string[])
-          : defaults.separators,
+        separators: normalizeSeparatorsArray(config?.separators, defaults.separators),
         hierarchical_parent_chunk_size: Number(
           config?.hierarchical_parent_chunk_size ?? defaults.hierarchical_parent_chunk_size,
         ),
@@ -223,9 +246,7 @@ export function normalizeChunkingConfig(
           typeof config?.preserve_newlines === "boolean"
             ? config.preserve_newlines
             : defaults.preserve_newlines,
-        separators: Array.isArray(config?.separators)
-          ? (config.separators as string[])
-          : defaults.separators,
+        separators: normalizeSeparatorsArray(config?.separators, defaults.separators),
       };
     }
   }

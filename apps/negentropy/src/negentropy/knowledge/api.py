@@ -1091,7 +1091,7 @@ async def ingest_file(
             try:
                 raw = json.loads(separators)
                 if isinstance(raw, list):
-                    parsed_separators = [str(item) for item in raw if str(item).strip()]
+                    parsed_separators = [str(item) for item in raw if str(item) != ""]
             except json.JSONDecodeError:
                 parsed_separators = [item.strip() for item in separators.split(",") if item.strip()]
 
