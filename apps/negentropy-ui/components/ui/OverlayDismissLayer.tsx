@@ -59,7 +59,12 @@ export function OverlayDismissLayer({
         data-testid={backdropTestId ?? "overlay-backdrop"}
         className={cn("absolute inset-0 bg-black/50 backdrop-blur-sm", backdropClassName)}
       />
-      <div className={cn("relative", containerClassName)}>
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center justify-center",
+          containerClassName,
+        )}
+      >
         <div
           ref={contentRef}
           data-testid={contentTestId}

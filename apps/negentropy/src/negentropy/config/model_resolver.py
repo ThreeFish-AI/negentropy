@@ -1,9 +1,9 @@
 """
-Model Resolver — DB 单一事实源的模型配置解析器。
+Model Resolver — 默认模型 + vendor_configs 凭证的模型配置解析器。
 
 遵循 Single Source of Truth 原则：
-1. 首先从 DB 查询 default 配置
-2. 若 DB 无数据或不可达，回退到硬编码默认值
+1. 默认模型名由环境变量或硬编码 fallback 决定
+2. 从模型名解析 vendor，再从 vendor_configs 表读取 api_key/api_base
 3. 内存缓存 + TTL 避免每次请求查 DB
 
 公开接口:
@@ -17,20 +17,23 @@ Model Resolver — DB 单一事实源的模型配置解析器。
 
 from __future__ import annotations
 
+import os
 import time
 from typing import Any
 
 # Cache TTL in seconds
 _CACHE_TTL = 60.0
 
-# 硬编码默认值 — DB 不可达时的回退配置
-_DEFAULT_LLM_MODEL = "zai/glm-5"
+# 默认模型名 — 支持环境变量覆盖，未设置时使用硬编码 fallback
+_DEFAULT_LLM_MODEL = os.getenv("NEGENTROPY_DEFAULT_LLM_MODEL", "zai/glm-5")
 _DEFAULT_LLM_KWARGS: dict[str, Any] = {
     "temperature": 0.7,
     "drop_params": True,
     "extra_body": {"thinking": {"type": "disabled"}},
 }
-_DEFAULT_EMBEDDING_MODEL = "vertex_ai/text-embedding-005"
+# gemini/text-embedding-004 与 vertex_ai/text-embedding-005 同为 768 维，
+# 切换不破坏既有 HNSW 向量索引；如需恢复 vertex 模型可通过环境变量覆盖。
+_DEFAULT_EMBEDDING_MODEL = os.getenv("NEGENTROPY_DEFAULT_EMBEDDING_MODEL", "gemini/text-embedding-004")
 _DEFAULT_EMBEDDING_KWARGS: dict[str, Any] = {}
 
 # In-memory cache: { model_type: (full_model_name, kwargs, timestamp) }
@@ -104,7 +107,7 @@ async def resolve_embedding_config() -> tuple[str, dict[str, Any]]:
 
 
 async def _resolve(model_type: str) -> tuple[str, dict[str, Any]]:
-    """核心解析: DB → 缓存 → .env 回退。"""
+    """核心解析: 缓存 → vendor_configs + 默认模型名 → 硬编码回退。"""
     now = time.monotonic()
 
     # 1. 检查缓存
@@ -114,9 +117,9 @@ async def _resolve(model_type: str) -> tuple[str, dict[str, Any]]:
         if now - ts < _CACHE_TTL:
             return name, kwargs.copy()
 
-    # 2. 尝试 DB
+    # 2. 尝试 vendor_configs + 默认模型名
     try:
-        result = await _resolve_from_db(model_type)
+        result = await _resolve_from_vendor_configs(model_type)
         if result is not None:
             name, kwargs = result
             _cache[model_type] = (name, kwargs, now)
@@ -134,39 +137,41 @@ async def _resolve(model_type: str) -> tuple[str, dict[str, Any]]:
     return name, kwargs.copy()
 
 
-async def _resolve_from_db(model_type: str) -> tuple[str, dict[str, Any]] | None:
-    """从 DB 查询默认模型配置。"""
-    from sqlalchemy import select
+async def _resolve_from_vendor_configs(model_type: str) -> tuple[str, dict[str, Any]] | None:
+    """根据默认模型名 + vendor_configs 凭证组合解析。
 
-    from negentropy.db.session import AsyncSessionLocal
-    from negentropy.models.model_config import ModelConfig, ModelType
-
-    mt = ModelType(model_type)
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(ModelConfig).where(
-                ModelConfig.model_type == mt,
-                ModelConfig.is_default.is_(True),
-                ModelConfig.enabled.is_(True),
-            )
-        )
-        config = result.scalar_one_or_none()
-
-    if config is None:
+    - 默认模型名由环境变量或硬编码 fallback 决定
+    - 从模型名解析 vendor (如 'gemini/text-embedding-004' → 'gemini')
+    - 从 vendor_configs 表读取该 vendor 的 api_key/api_base
+    """
+    if model_type == "embedding":
+        full_name = _DEFAULT_EMBEDDING_MODEL
+    elif model_type == "llm":
+        full_name = _DEFAULT_LLM_MODEL
+    else:
         return None
 
-    # 在同一 session 中查询供应商级凭证作为回退
-    vendor_config = await _get_vendor_config(config.vendor)
-
-    full_name = build_full_model_name(config.vendor, config.model_name)
-    cfg = config.config or {}
+    vendor, model_name = _split_vendor_and_model(full_name)
+    vendor_config = await _get_vendor_config(vendor) if vendor else None
 
     if model_type == "embedding":
-        kwargs = _build_embedding_kwargs(cfg, vendor_config)
+        kwargs = _build_embedding_kwargs({}, vendor_config)
     else:
-        kwargs = _build_llm_kwargs(config.vendor, config.model_name, cfg, vendor_config)
+        # LLM 默认 kwargs 由 _DEFAULT_LLM_KWARGS 提供 (temperature/drop_params/thinking)
+        # vendor 特定逻辑通过 _build_llm_kwargs 适配；此处合并以保留默认行为
+        kwargs = _build_llm_kwargs(vendor or "", model_name, {}, vendor_config)
+        for k, v in _DEFAULT_LLM_KWARGS.items():
+            kwargs.setdefault(k, v.copy() if isinstance(v, dict) else v)
 
     return full_name, kwargs
+
+
+def _split_vendor_and_model(full_name: str) -> tuple[str | None, str]:
+    """从 'vendor/model' 形式解析 (vendor, model_name)。"""
+    if "/" in full_name:
+        vendor, model_name = full_name.split("/", 1)
+        return vendor, model_name
+    return None, full_name
 
 
 def _resolve_defaults(model_type: str) -> tuple[str, dict[str, Any]]:
