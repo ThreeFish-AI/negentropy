@@ -19,12 +19,6 @@ from negentropy.engine.factories import (
 from negentropy.instrumentation import LiteLLMLoggingCallback, patch_litellm_otel_cost
 from negentropy.logging import configure_logging, get_logger
 
-# ------------------------------------------------------------------------------
-# Map Negentropy API key to provider-specific env vars (if not already set)
-# ------------------------------------------------------------------------------
-if os.getenv("NE_API_KEY") and not os.getenv("ZAI_API_KEY"):
-    os.environ["ZAI_API_KEY"] = os.environ["NE_API_KEY"]
-
 # Initialize logging early
 configure_logging(
     level=settings.log_level,

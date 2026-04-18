@@ -29,8 +29,8 @@ class ModelConfig(Base, UUIDMixin, TimestampMixin):
     Attributes:
         model_type: 模型类型 (llm / embedding / rerank)
         display_name: 管理界面展示名称
-        vendor: 供应商标识 (如 openai, anthropic, zai, vertex_ai, deepseek, ollama)
-        model_name: 模型标识符 (如 glm-5, text-embedding-005)
+        vendor: 供应商标识 (如 openai, anthropic, gemini, vertex_ai, deepseek, ollama)
+        model_name: 模型标识符 (如 gpt-5-mini, text-embedding-005)
         is_default: 是否为该类型的默认模型
         enabled: 是否启用
         config: 供应商特定参数 (temperature, thinking_mode 等)

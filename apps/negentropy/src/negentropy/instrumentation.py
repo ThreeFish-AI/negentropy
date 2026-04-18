@@ -16,10 +16,7 @@ from negentropy.model_names import canonicalize_model_name
 
 
 def _normalize_model_name(model: str) -> str:
-    """Normalize model name for consistent Langfuse reporting.
-
-    Ensures GLM models always have the 'zai/' prefix for consistent naming.
-    """
+    """Normalize model name for consistent Langfuse reporting."""
     return canonicalize_model_name(model) or model
 
 
