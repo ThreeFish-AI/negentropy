@@ -38,7 +38,7 @@
 
 | 职责域 | 文件路径 | 说明 |
 | :-- | :-- | :-- |
-| ORM 模型 | [`models/internalization.py`](../apps/negentropy/src/negentropy/models/internalization.py) | Memory, Fact, ConsolidationJob, Instruction, MemoryAutomationConfig, MemoryAuditLog |
+| ORM 模型 | [`models/internalization.py`](../apps/negentropy/src/negentropy/models/internalization.py) | Memory, Fact, MemoryAutomationConfig, MemoryAuditLog |
 | 记忆存储 | [`engine/adapters/postgres/memory_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) | PostgresMemoryService — 混合检索 + 访问记录 |
 | 事实存储 | [`engine/adapters/postgres/fact_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/fact_service.py) | FactService — Fact CRUD + upsert |
 | 记忆治理 | [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py) | MemoryGovernanceService — 遗忘曲线 + 审计决策 |
@@ -139,7 +139,7 @@ flowchart LR
 | :-- | :-- | :-- | :-- | :-- |
 | 情景记忆 (Episodic) | Experiential (Case-based) | `Memory` ORM | `memories` | content + embedding(1536d) + retention_score |
 | 语义记忆 (Semantic) | Factual | `Fact` ORM | `facts` | key-value(JSONB) + confidence + validity |
-| 程序性记忆 (Procedural) | Experiential (Skill-based) | `Instruction` ORM | `instructions` | versioned instruction_key + content |
+| 程序性记忆 (Procedural) | Experiential (Skill-based) | `Skill` ORM | `skills` | versioned prompt_template + config_schema |
 | 工作记忆 (Working) | Working | `get_context_window()` | SQL 函数 | token budget 动态组装 |
 
 ### 2.3 记忆动态学：形成-演化-检索

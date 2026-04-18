@@ -41,8 +41,11 @@ from negentropy.config import settings  # noqa: E402
 class _PGVector(UserDefinedType):
     cache_ok = True
 
+    def __init__(self, dim: int | None = None):
+        self.dim = dim
+
     def get_col_spec(self, **kw):
-        return "vector"
+        return "vector" if self.dim is None else f"vector({self.dim})"
 
 
 ischema_names.setdefault("vector", _PGVector)

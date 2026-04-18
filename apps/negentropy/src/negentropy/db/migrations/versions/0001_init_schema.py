@@ -1,18 +1,15 @@
-"""Negentropy 合并初始迁移
+"""Negentropy 合并初始迁移（熵减后单一版本）
 
 Revision ID: 0001
 Revises:
-Create Date: 2026-04-08 00:00:00.000000+00:00
+Create Date: 2026-04-19 00:00:00.000000+00:00
 
-本迁移文件从 ORM 模型定义（Base.metadata）重新生成，一次性创建全部
-42 张业务表、索引、约束、枚举类型、序列、触发器和种子数据。
-
-变更范围:
-  - Pulse / Internalization / Perception / State / Action
-  - Observability / Security / Plugin Ecosystem / Model Config / Knowledge Runtime
-  - 共 42 张表、3 个枚举、1 个序列、HNSW/GIN/部分索引、TSVECTOR 触发器
-  - 种子数据：model_configs 默认模型 × 2 + negentropy-perceives MCP 预设
+基于清理后 ORM metadata 通过 alembic autogenerate 重新生成，
+一次性创建全部 37 张业务表、3 个枚举、1 个序列、HNSW/GIN/部分索引、TSVECTOR 触发器。
+不包含任何种子数据。
 """
+
+# ruff: noqa: E501
 
 from collections.abc import Sequence
 
@@ -79,60 +76,10 @@ def upgrade() -> None:
         "ix_negentropy_credentials_credential_key", "credentials", ["credential_key"], unique=False, schema="negentropy"
     )
     op.create_index("ix_negentropy_credentials_user_id", "credentials", ["user_id"], unique=False, schema="negentropy")
-    op.create_table(
-        "instructions",
-        sa.Column("app_name", sa.String(length=255), nullable=False),
-        sa.Column("instruction_key", sa.String(length=255), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("version", sa.Integer(), server_default="1", nullable=False),
-        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("app_name", "instruction_key", "version", name="instructions_app_key_version_unique"),
-        schema="negentropy",
-    )
-    op.create_table(
-        "knowledge_documents",
-        sa.Column("corpus_id", sa.UUID(), nullable=False),
-        sa.Column("app_name", sa.String(length=255), nullable=False),
-        sa.Column("file_hash", sa.String(length=64), nullable=False),
-        sa.Column("original_filename", sa.String(length=255), nullable=False),
-        sa.Column("gcs_uri", sa.Text(), nullable=False),
-        sa.Column("content_type", sa.String(length=100), nullable=True),
-        sa.Column("file_size", sa.Integer(), nullable=False),
-        sa.Column("status", sa.String(length=20), server_default="active", nullable=False),
-        sa.Column("created_by", sa.String(length=255), nullable=True),
-        sa.Column("markdown_content", sa.Text(), nullable=True),
-        sa.Column("markdown_gcs_uri", sa.Text(), nullable=True),
-        sa.Column("markdown_extract_status", sa.String(length=20), server_default="pending", nullable=False),
-        sa.Column("markdown_extract_error", sa.Text(), nullable=True),
-        sa.Column("markdown_extracted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
-        # source_id 列延后添加（与 doc_sources 存在循环依赖）
-        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.ForeignKeyConstraint(["corpus_id"], ["negentropy.corpus.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),
-        schema="negentropy",
-    )
-    op.create_index(
-        "ix_knowledge_documents_app_name", "knowledge_documents", ["app_name"], unique=False, schema="negentropy"
-    )
-    op.create_index(
-        "ix_knowledge_documents_markdown_extract_status",
-        "knowledge_documents",
-        ["markdown_extract_status"],
-        unique=False,
-        schema="negentropy",
-    )
-    op.create_index(
-        "ix_knowledge_documents_status", "knowledge_documents", ["status"], unique=False, schema="negentropy"
-    )
-    # doc_sources 依赖 knowledge_documents（FK: document_id → knowledge_documents.id），
-    # 故在此处创建，并随后添加 knowledge_documents.source_id → doc_sources.id
+    # NOTE: doc_sources 和 knowledge_documents 存在循环 FK 依赖，需拆分创建：
+    # 1) 先建 doc_sources（不带 document_id FK）
+    # 2) 再建 knowledge_documents（带 source_id FK → doc_sources）
+    # 3) 最后补加 doc_sources.document_id FK → knowledge_documents
     op.create_table(
         "doc_sources",
         sa.Column("document_id", sa.UUID(), nullable=False),
@@ -150,30 +97,64 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.ForeignKeyConstraint(["document_id"], ["negentropy.knowledge_documents.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         schema="negentropy",
     )
     op.create_index("ix_doc_sources_document_id", "doc_sources", ["document_id"], unique=False, schema="negentropy")
     op.create_index("ix_doc_sources_source_type", "doc_sources", ["source_type"], unique=False, schema="negentropy")
-    # 延后添加 knowledge_documents.source_id（解决循环 FK）
-    op.add_column(
+    op.create_table(
         "knowledge_documents",
+        sa.Column("corpus_id", sa.UUID(), nullable=False),
+        sa.Column("app_name", sa.String(length=255), nullable=False),
+        sa.Column("file_hash", sa.String(length=64), nullable=False),
+        sa.Column("original_filename", sa.String(length=255), nullable=False),
+        sa.Column("gcs_uri", sa.Text(), nullable=False),
+        sa.Column("content_type", sa.String(length=100), nullable=True),
+        sa.Column("file_size", sa.Integer(), nullable=False),
+        sa.Column("status", sa.String(length=20), server_default="active", nullable=False),
+        sa.Column("created_by", sa.String(length=255), nullable=True),
+        sa.Column("markdown_content", sa.Text(), nullable=True),
+        sa.Column("markdown_gcs_uri", sa.Text(), nullable=True),
+        sa.Column("markdown_extract_status", sa.String(length=20), server_default="pending", nullable=False),
+        sa.Column("markdown_extract_error", sa.Text(), nullable=True),
+        sa.Column("markdown_extracted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
         sa.Column("source_id", sa.UUID(), nullable=True),
+        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.ForeignKeyConstraint(["corpus_id"], ["negentropy.corpus.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["source_id"], ["negentropy.doc_sources.id"], ondelete="SET NULL"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("corpus_id", "file_hash", name="uq_knowledge_documents_corpus_hash"),
         schema="negentropy",
     )
-    op.create_foreign_key(
-        "fk_knowledge_documents_source_id",
+    op.create_index(
+        "ix_knowledge_documents_app_name", "knowledge_documents", ["app_name"], unique=False, schema="negentropy"
+    )
+    op.create_index(
+        "ix_knowledge_documents_markdown_extract_status",
         "knowledge_documents",
-        "doc_sources",
-        ["source_id"],
-        ["id"],
-        ondelete="SET NULL",
-        source_schema="negentropy",
-        referent_schema="negentropy",
+        ["markdown_extract_status"],
+        unique=False,
+        schema="negentropy",
     )
     op.create_index(
         "ix_knowledge_documents_source_id", "knowledge_documents", ["source_id"], unique=False, schema="negentropy"
+    )
+    op.create_index(
+        "ix_knowledge_documents_status", "knowledge_documents", ["status"], unique=False, schema="negentropy"
+    )
+    # 补加循环 FK：doc_sources.document_id → knowledge_documents.id
+    op.create_foreign_key(
+        "fk_doc_sources_document_id",
+        "doc_sources",
+        "knowledge_documents",
+        ["document_id"],
+        ["id"],
+        source_schema="negentropy",
+        referent_schema="negentropy",
+        ondelete="CASCADE",
     )
     op.create_table(
         "knowledge_graph_runs",
@@ -318,22 +299,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_plugin_permissions_user", "plugin_permissions", ["user_id"], unique=False, schema="negentropy")
     op.create_table(
-        "sandbox_executions",
-        sa.Column("run_id", sa.Uuid(), nullable=True),
-        sa.Column("sandbox_type", sa.String(length=50), nullable=True),
-        sa.Column("code", sa.Text(), nullable=True),
-        sa.Column("environment", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("stdout", sa.Text(), nullable=True),
-        sa.Column("stderr", sa.Text(), nullable=True),
-        sa.Column("exit_code", sa.Integer(), nullable=True),
-        sa.Column("execution_time_ms", sa.Float(), nullable=True),
-        sa.Column("resource_usage", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        schema="negentropy",
-    )
-    op.create_table(
         "skills",
         sa.Column("owner_id", sa.String(length=255), nullable=False),
         sa.Column(
@@ -452,18 +417,13 @@ def upgrade() -> None:
         schema="negentropy",
     )
     op.create_table(
-        "consolidation_jobs",
-        sa.Column("thread_id", sa.UUID(), nullable=False),
-        sa.Column("status", sa.String(length=20), server_default="pending", nullable=False),
-        sa.Column("job_type", sa.String(length=50), nullable=False),
-        sa.Column("result", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
-        sa.Column("error", sa.Text(), nullable=True),
-        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
+        "vendor_configs",
+        sa.Column("vendor", sa.String(length=50), nullable=False),
+        sa.Column("api_key", sa.Text(), nullable=False),
+        sa.Column("api_base", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.PrimaryKeyConstraint("vendor"),
         schema="negentropy",
     )
     op.create_table(
@@ -682,33 +642,6 @@ def upgrade() -> None:
         schema="negentropy",
     )
     op.create_table(
-        "runs",
-        sa.Column("thread_id", sa.UUID(), nullable=False),
-        sa.Column("status", sa.String(length=20), server_default="pending", nullable=False),
-        sa.Column("thinking_steps", postgresql.JSONB(astext_type=sa.Text()), server_default="[]", nullable=True),
-        sa.Column("tool_calls", postgresql.JSONB(astext_type=sa.Text()), server_default="[]", nullable=True),
-        sa.Column("error", sa.Text(), nullable=True),
-        sa.Column("started_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-        schema="negentropy",
-    )
-    op.create_table(
-        "snapshots",
-        sa.Column("thread_id", sa.UUID(), nullable=False),
-        sa.Column("version", sa.Integer(), nullable=False),
-        sa.Column("state", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("events_summary", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("thread_id", "version", name="snapshots_thread_version_unique"),
-        schema="negentropy",
-    )
-    op.create_table(
         "tool_executions",
         sa.Column("tool_id", sa.UUID(), nullable=True),
         sa.Column("run_id", sa.Uuid(), nullable=True),
@@ -892,21 +825,6 @@ def upgrade() -> None:
         schema="negentropy",
     )
     op.create_table(
-        "messages",
-        sa.Column("thread_id", sa.UUID(), nullable=False),
-        sa.Column("event_id", sa.UUID(), nullable=True),
-        sa.Column("role", sa.String(length=20), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("embedding", negentropy.models.base.Vector(dim=1536), nullable=True),
-        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),
-        sa.ForeignKeyConstraint(["event_id"], ["negentropy.events.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["thread_id"], ["negentropy.threads.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-        schema="negentropy",
-    )
-    op.create_table(
         "wiki_publication_entries",
         sa.Column("publication_id", sa.UUID(), nullable=False),
         sa.Column("document_id", sa.UUID(), nullable=False),
@@ -951,8 +869,13 @@ def upgrade() -> None:
     # ### end Alembic commands ###
 
     # =========================================================================
-    # 手动补充：autogenerate 无法捕获的非 ORM 概念
+    # 手动补齐：autogenerate 盲区（HNSW/GIN/部分索引/TSVECTOR 触发器）
     # =========================================================================
+
+    # B-tree 索引：knowledge_documents.file_hash（命名与 ORM 不一致，被 _IGNORED_INDEXES 跳过）
+    op.create_index(
+        "ix_knowledge_documents_file_hash", "knowledge_documents", ["file_hash"], unique=False, schema="negentropy"
+    )
 
     # HNSW 向量索引（ORM 的 postgresql_with 参数不被 autogenerate 支持）
     op.execute(
@@ -983,105 +906,13 @@ def upgrade() -> None:
         )
     )
 
-    # TSVECTOR 触发器：自动从 content 更新 search_vector（非 ORM 概念）
+    # TSVECTOR 触发器：自动从 content 更新 search_vector
     op.execute(
         sa.text(
             "CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE"
             " ON negentropy.knowledge FOR EACH ROW EXECUTE FUNCTION"
             " tsvector_update_trigger(search_vector, 'pg_catalog.english', content)"
         )
-    )
-
-    # =========================================================================
-    # 种子数据
-    # =========================================================================
-
-    # model_configs 默认模型配置
-    model_type_col = postgresql.ENUM(
-        "llm",
-        "embedding",
-        "rerank",
-        name="model_type_enum",
-        schema="negentropy",
-        create_type=False,
-    )
-    model_configs = sa.table(
-        "model_configs",
-        sa.column("model_type", model_type_col),
-        sa.column("display_name", sa.String),
-        sa.column("vendor", sa.String),
-        sa.column("model_name", sa.String),
-        sa.column("is_default", sa.Boolean),
-        sa.column("enabled", sa.Boolean),
-        sa.column("config", postgresql.JSONB),
-        schema="negentropy",
-    )
-    op.bulk_insert(
-        model_configs,
-        [
-            {
-                "model_type": "llm",
-                "display_name": "GLM-5 (智谱)",
-                "vendor": "zai",
-                "model_name": "glm-5",
-                "is_default": True,
-                "enabled": True,
-                "config": {"temperature": 0.7},
-            },
-            {
-                "model_type": "embedding",
-                "display_name": "Text Embedding 005 (Vertex AI)",
-                "vendor": "vertex_ai",
-                "model_name": "text-embedding-005",
-                "is_default": True,
-                "enabled": True,
-                "config": {},
-            },
-        ],
-    )
-
-    # Negentropy Perceives MCP Server 预设（幂等 upsert）
-    op.execute(
-        sa.text("""
-        INSERT INTO negentropy.mcp_servers (
-            owner_id, visibility, name, display_name, description,
-            transport_type, command, args, env, url, headers,
-            is_enabled, auto_start, config
-        )
-        VALUES (
-            'system:negentropy-perceives-preset',
-            'PUBLIC'::negentropy.pluginvisibility,
-            'negentropy-perceives',
-            'Negentropy Perceives',
-            '一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、'
-            '图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。',
-            'http',
-            NULL,
-            '[]'::jsonb,
-            '{}'::jsonb,
-            'http://localhost:8092/mcp',
-            '{}'::jsonb,
-            TRUE,
-            TRUE,
-            '{}'::jsonb
-        )
-        ON CONFLICT (name) DO UPDATE
-        SET
-            owner_id = EXCLUDED.owner_id,
-            visibility = EXCLUDED.visibility,
-            display_name = EXCLUDED.display_name,
-            description = EXCLUDED.description,
-            transport_type = EXCLUDED.transport_type,
-            command = EXCLUDED.command,
-            args = EXCLUDED.args,
-            env = EXCLUDED.env,
-            url = EXCLUDED.url,
-            headers = EXCLUDED.headers,
-            is_enabled = EXCLUDED.is_enabled,
-            auto_start = EXCLUDED.auto_start,
-            config = EXCLUDED.config,
-            updated_at = now()
-    """)
     )
 
 
@@ -1106,29 +937,20 @@ def downgrade() -> None:
     # 删除部分索引
     op.execute(sa.text("DROP INDEX IF EXISTS negentropy.idx_kb_entity_type"))
 
-    # 删除循环 FK：先删约束和列，再由 autogenerate 删对应表
-    # 1) knowledge_documents.source_id → doc_sources.id（upgrade 中延后添加的）
-    op.drop_constraint(
-        "fk_knowledge_documents_source_id",
-        "knowledge_documents",
-        type_="foreignkey",
+    # 删除 B-tree 索引
+    op.drop_index(
+        "ix_knowledge_documents_file_hash",
+        table_name="knowledge_documents",
         schema="negentropy",
     )
-    op.drop_column("knowledge_documents", "source_id", schema="negentropy")
 
-    # 2) doc_sources.document_id → knowledge_documents.id（阻止先删 knowledge_documents）
-    op.drop_constraint(
-        "doc_sources_document_id_fkey",
-        "doc_sources",
-        type_="foreignkey",
-        schema="negentropy",
-    )
+    # 删除循环 FK：先删约束，再删对应表
+    op.drop_constraint("fk_doc_sources_document_id", "doc_sources", type_="foreignkey", schema="negentropy")
 
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_index("ix_mcp_tool_run_events_run_timestamp", table_name="mcp_tool_run_events", schema="negentropy")
     op.drop_table("mcp_tool_run_events", schema="negentropy")
     op.drop_table("wiki_publication_entries", schema="negentropy")
-    op.drop_table("messages", schema="negentropy")
     op.drop_index("ix_mcp_tool_runs_server_tool_started", table_name="mcp_tool_runs", schema="negentropy")
     op.drop_index("ix_mcp_tool_runs_origin_started", table_name="mcp_tool_runs", schema="negentropy")
     op.drop_table("mcp_tool_runs", schema="negentropy")
@@ -1154,8 +976,6 @@ def downgrade() -> None:
     op.drop_index("ix_wiki_publications_corpus_id", table_name="wiki_publications", schema="negentropy")
     op.drop_table("wiki_publications", schema="negentropy")
     op.drop_table("tool_executions", schema="negentropy")
-    op.drop_table("snapshots", schema="negentropy")
-    op.drop_table("runs", schema="negentropy")
     op.drop_table("memories", schema="negentropy")
     op.drop_index("ix_mcp_trial_assets_server_created", table_name="mcp_trial_assets", schema="negentropy")
     op.drop_index("ix_mcp_trial_assets_owner_created", table_name="mcp_trial_assets", schema="negentropy")
@@ -1174,7 +994,7 @@ def downgrade() -> None:
     op.drop_index("ix_corpus_versions_status", table_name="corpus_versions", schema="negentropy")
     op.drop_index("ix_corpus_versions_corpus_id", table_name="corpus_versions", schema="negentropy")
     op.drop_table("corpus_versions", schema="negentropy")
-    op.drop_table("consolidation_jobs", schema="negentropy")
+    op.drop_table("vendor_configs", schema="negentropy")
     op.drop_table("user_states", schema="negentropy")
     op.drop_table("traces", schema="negentropy")
     op.drop_table("tools", schema="negentropy")
@@ -1184,7 +1004,6 @@ def downgrade() -> None:
     op.drop_index("ix_skills_owner", table_name="skills", schema="negentropy")
     op.drop_index("ix_skills_category", table_name="skills", schema="negentropy")
     op.drop_table("skills", schema="negentropy")
-    op.drop_table("sandbox_executions", schema="negentropy")
     op.drop_index("ix_plugin_permissions_user", table_name="plugin_permissions", schema="negentropy")
     op.drop_index("ix_plugin_permissions_plugin", table_name="plugin_permissions", schema="negentropy")
     op.drop_table("plugin_permissions", schema="negentropy")
@@ -1203,13 +1022,12 @@ def downgrade() -> None:
     op.drop_table("knowledge_pipeline_runs", schema="negentropy")
     op.drop_table("knowledge_graph_runs", schema="negentropy")
     op.drop_index("ix_knowledge_documents_status", table_name="knowledge_documents", schema="negentropy")
-    # ix_knowledge_documents_source_id 已随 source_id 列的 DROP 级联删除（前置清理中）
+    op.drop_index("ix_knowledge_documents_source_id", table_name="knowledge_documents", schema="negentropy")
     op.drop_index(
         "ix_knowledge_documents_markdown_extract_status", table_name="knowledge_documents", schema="negentropy"
     )
     op.drop_index("ix_knowledge_documents_app_name", table_name="knowledge_documents", schema="negentropy")
     op.drop_table("knowledge_documents", schema="negentropy")
-    op.drop_table("instructions", schema="negentropy")
     op.drop_index("ix_doc_sources_source_type", table_name="doc_sources", schema="negentropy")
     op.drop_index("ix_doc_sources_document_id", table_name="doc_sources", schema="negentropy")
     op.drop_table("doc_sources", schema="negentropy")
@@ -1224,11 +1042,7 @@ def downgrade() -> None:
     # =========================================================================
     # 后置清理：删除序列和枚举类型
     # =========================================================================
-
-    # 删除序列
     op.execute(sa.text("DROP SEQUENCE IF EXISTS negentropy.events_sequence_num_seq"))
-
-    # 删除枚举类型（防止 re-upgrade 时 DuplicateObjectError）
     op.execute(sa.text("DROP TYPE IF EXISTS negentropy.model_type_enum"))
     op.execute(sa.text("DROP TYPE IF EXISTS negentropy.pluginpermissiontype"))
     op.execute(sa.text("DROP TYPE IF EXISTS negentropy.pluginvisibility"))

@@ -1,6 +1,6 @@
-from .action import SandboxExecution, Tool, ToolExecution
+from .action import Tool, ToolExecution
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
-from .internalization import ConsolidationJob, Fact, Instruction, Memory, MemoryAuditLog, MemoryAutomationConfig
+from .internalization import Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpServer, McpTool
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
@@ -26,7 +26,7 @@ from .perception import (
     WikiPublicationEntry,
 )
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
-from .pulse import Event, Message, Run, Snapshot, Thread
+from .pulse import Event, Thread
 from .security import Credential
 from .skill import Skill
 from .state import AppState, UserState
@@ -44,23 +44,17 @@ __all__ = [
     # Pulse (会话)
     "Thread",
     "Event",
-    "Run",
-    "Message",
-    "Snapshot",
     # State (应用/用户状态)
     "UserState",
     "AppState",
     # Internalization (记忆)
     "Memory",
     "Fact",
-    "ConsolidationJob",
-    "Instruction",
     "MemoryAuditLog",
     "MemoryAutomationConfig",
     # Action
     "Tool",
     "ToolExecution",
-    "SandboxExecution",
     # Observability
     "Trace",
     # Perception (知识)

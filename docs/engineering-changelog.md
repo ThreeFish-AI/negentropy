@@ -20,7 +20,7 @@
 |------|------|---------|
 | **B008** | 60 | 在 `pyproject.toml` 的 `[tool.ruff.lint] ignore` 中排除——FastAPI `Depends()`/`Query()`/`File()` 用于函数签名是框架标准用法 |
 | **B904** | 21 | 为 `except` 中的 `raise` 补充 `from err` 或 `from None`，保留完整异常链 |
-| **F821** | 15 | 通过 `TYPE_CHECKING` 守卫导入解决循环依赖下的前向引用（`Event`、`KnowledgeRecord`、`CatalogService`、`WikiPublishingService`、`CorpusEngine`、`UnifiedRetrievalService`、`Thread`、`ConsolidationJob`），以及补充 `import urllib.parse` |
+| **F821** | 15 | 通过 `TYPE_CHECKING` 守卫导入解决循环依赖下的前向引用（`Event`、`KnowledgeRecord`、`CatalogService`、`WikiPublishingService`、`CorpusEngine`、`UnifiedRetrievalService`、`Thread`），以及补充 `import urllib.parse` |
 | **E501** | 7 | 拆分过长行（中文文档字符串、IEEE 引用、迁移脚本、断言字符串） |
 | **E402** | 7 | 为 Alembic env.py 配置后导入、模块尾部兼容性重导出等添加 `# noqa: E402` |
 | **B905** | 5 | 为 `zip()` 调用添加 `strict=True`（均已验证等长保证） |

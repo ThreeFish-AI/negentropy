@@ -28,5 +28,8 @@
 
 ### Breaking
 
+- 合并 `0001_init_schema.py` / `0002_add_vendor_configs.py` 为单一 `0001_init_schema.py`（revision id 重置为 `0001`）；升级路径：**需先 `DROP SCHEMA negentropy CASCADE` 再 `uv run alembic upgrade head`**（项目处于早期阶段，无线上负担，不做自动兼容）。
+- 移除 6 个孤岛型 ORM 与对应表：`SandboxExecution`、`Instruction`、`ConsolidationJob`、`Run`、`Message`、`Snapshot`；两轮审计下均为业务零引用，遵循熵减原则。配套裁撤 `Thread.{runs,messages,snapshots,consolidation_jobs}` 与 `Event.messages` 五个 relationship。业务表数由 42 降为 37。
+- 新迁移不包含任何种子数据（`model_configs` / `mcp_servers` 预设）；默认配置改由应用侧初始化流程（如 `negentropy init` 或管理员首次登录）承担。
 - 用户级 `~/.negentropy/config.yaml` 或部署脚本中若配置了 `zai/*` 模型，需在 Admin → Model 页迁移至 OpenAI / Anthropic / Gemini 等 vendor 重新配置；历史 DB 中 `vendor=zai` 的 `model_configs` 记录不会被自动清理，但调用时将因缺失解析逻辑而返回「模型未配置」。
 - 下线 `NE_API_KEY → ZAI_API_KEY` 映射；依赖该映射的部署需改为直接设置各 vendor 原生环境变量（如 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`）。
