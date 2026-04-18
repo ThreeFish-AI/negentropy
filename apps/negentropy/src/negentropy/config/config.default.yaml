@@ -1,26 +1,46 @@
 # =============================================================================
 # Negentropy Default Configuration
 # =============================================================================
-# 此文件包含所有配置项的默认值，随项目包分发。
+# 此文件包含所有配置项的默认值，随项目包分发，作为「单一事实源」。
 #
 # 用户自定义配置:
 #   uv run negentropy init            # 拷贝到 ~/.negentropy/config.yaml
 #   uv run negentropy -c my.yaml      # 使用自定义配置文件
 #
 # 优先级（从高到低）:
-#   1. 环境变量（如 NE_DB_POOL_SIZE=20）
-#   2. .env 系列文件（向后兼容）
-#   3. CLI 指定 YAML（-c path）
+#   1. 环境变量（如 NE_DB_POOL_SIZE=20；嵌套键使用 __ 分隔，见下方说明）
+#   2. .env / .env.<environment> / .env.local（本地覆盖，保留向后兼容）
+#   3. CLI 指定 YAML（-c path 或 NE_CONFIG_PATH）
 #   4. ~/.negentropy/config.yaml（用户级）
 #   5. 本文件（项目默认）
 #   6. 代码中的 Field defaults
 #
-# 注意: 密钥类配置（SecretStr）请通过环境变量设置，切勿写入 YAML 文件。
+# 嵌套路径覆盖（env_nested_delimiter="__"）:
+#   NE_KNOWLEDGE_DEFAULT_EXTRACTOR_ROUTES__URL__PRIMARY__TIMEOUT_MS=90000
+#
+# 密钥类配置（SecretStr / 凭证）请通过环境变量或本地 .env.local 设置，
+# 切勿写入本 YAML 或提交至仓库。常用密钥环境变量清单:
+#   - NE_AUTH_TOKEN_SECRET
+#   - NE_AUTH_GOOGLE_CLIENT_SECRET
+#   - NE_OBSERVABILITY_LANGFUSE_PUBLIC_KEY
+#   - NE_OBSERVABILITY_LANGFUSE_SECRET_KEY
+#   - NE_SEARCH_GOOGLE_API_KEY
+#   - OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY（LiteLLM 原生直读）
 # =============================================================================
 
-# --- 环境选择 ---
-# 可选值: development | testing | staging | production
-env: development
+# --- YAML 锚点常量（DRY）---
+# Pydantic Settings 以 extra="ignore" 忽略下划线前缀顶级键，此块仅用于 YAML 内部复用。
+_constants:
+  perceives_server:  &perceives_server  negentropy-perceives
+  timeout_short_ms:  &timeout_short_ms  60000
+  timeout_medium_ms: &timeout_medium_ms 120000
+  timeout_long_ms:   &timeout_long_ms   300000
+  timeout_xlong_ms:  &timeout_xlong_ms  600000
+  session_ttl_7d:    &session_ttl_7d    604800
+
+# --- 运行环境 ---
+environment:
+  env: development                         # development | testing | staging | production
 
 # --- 应用元数据 ---
 app:
@@ -40,7 +60,9 @@ logging:
 
 # --- 数据库配置 ---
 database:
-  url: "postgresql+asyncpg://aigc:@localhost:5432/negentropy"
+  # 本地示例 URL。生产部署通过 NE_DB_URL 覆盖；本地凭证请使用 .env.local 或
+  # shell export，切勿把真实用户名/密码提交到仓库。
+  url: "postgresql+asyncpg://USER:PASSWORD@localhost:5432/negentropy"
   pool_size: 5
   max_overflow: 10
   pool_recycle: 3600
@@ -78,9 +100,9 @@ auth:
     - profile
   cookie_name: ne_sso
   # cookie_domain: null
-  cookie_secure: false
+  cookie_secure: false                     # ⚠️ 生产必须为 true（要求 HTTPS）
   cookie_same_site: lax
-  session_ttl_seconds: 604800              # 7 天
+  session_ttl_seconds: *session_ttl_7d     # 7 天
   state_ttl_seconds: 600
   allowed_domains: []
   allowed_emails: []
@@ -91,6 +113,10 @@ auth:
 # --- Web Search 配置 ---
 search:
   provider: google                         # google | duckduckgo | bing
+  # Google Programmable Search:
+  #   API Key 获取: https://developers.google.com/custom-search/v1/introduction
+  #   CX ID 获取:  https://programmablesearchengine.google.com/controlpanel/all
+  #   免费配额:    100 queries/day，超额需在 Google Cloud Console 启用计费
   # google_api_key: 通过环境变量 NE_SEARCH_GOOGLE_API_KEY 设置
   # google_cx_id: null
   max_retries: 3
@@ -98,41 +124,39 @@ search:
   base_backoff_seconds: 1.0
   max_results: 10
 
-# --- ZAI (Zhipu AI) API 配置 ---
-# ZAI_API_KEY 和 ZAI_API_BASE 通过环境变量设置（供 LiteLLM 使用）
-
 # --- Knowledge 配置 ---
 knowledge:
   default_extractor_routes:
     url:
       primary:
-        server_name: negentropy-perceives
+        server_name: *perceives_server
         tool_name: parse_webpage_to_markdown
         enabled: true
-        timeout_ms: 60000
+        timeout_ms: *timeout_short_ms
       secondary:
-        server_name: negentropy-perceives
+        server_name: *perceives_server
         tool_name: parse_webpages_to_markdown
         enabled: true
-        timeout_ms: 120000
+        timeout_ms: *timeout_medium_ms
     file_pdf:
       primary:
-        server_name: negentropy-perceives
+        server_name: *perceives_server
         tool_name: parse_pdf_to_markdown
         enabled: true
-        timeout_ms: 300000
+        timeout_ms: *timeout_long_ms
       secondary:
-        server_name: negentropy-perceives
+        server_name: *perceives_server
         tool_name: parse_pdfs_to_markdown
         enabled: true
-        timeout_ms: 600000
+        timeout_ms: *timeout_xlong_ms
 
 # =============================================================================
 # 环境特定推荐配置
 # =============================================================================
 #
 # DEVELOPMENT:
-#   env: development
+#   environment:
+#     env: development
 #   logging:
 #     level: DEBUG
 #     format: console
@@ -140,13 +164,15 @@ knowledge:
 #     echo: true
 #
 # TESTING:
-#   env: testing
+#   environment:
+#     env: testing
 #   logging:
 #     level: WARNING
 #     format: json
 #
 # PRODUCTION:
-#   env: production
+#   environment:
+#     env: production
 #   logging:
 #     level: INFO
 #     format: json
@@ -154,3 +180,5 @@ knowledge:
 #   database:
 #     pool_size: 20
 #     max_overflow: 30
+#   auth:
+#     cookie_secure: true

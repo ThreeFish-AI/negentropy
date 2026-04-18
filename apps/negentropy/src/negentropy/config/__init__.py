@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_get_env_files(),
         env_file_encoding="utf-8",
+        env_nested_delimiter="__",
         extra="ignore",
     )
 
@@ -86,8 +87,17 @@ class Settings(BaseSettings):
         ):
             set_yaml_section(section, yaml_config.get(section, {}))
 
-        # EnvironmentSettings reads the top-level "env" key
-        set_yaml_section("environment", {"env": yaml_config.get("env", "development")})
+        # EnvironmentSettings reads the "environment" section; the legacy
+        # top-level "env" key (pre-refactor layout) is merged in so that
+        # user-level ~/.negentropy/config.yaml written against the old layout
+        # keeps working without migration.
+        environment_section = dict(yaml_config.get("environment") or {})
+        legacy_env = yaml_config.get("env")
+        if legacy_env is not None:
+            environment_section["env"] = legacy_env
+        if "env" not in environment_section:
+            environment_section["env"] = "development"
+        set_yaml_section("environment", environment_section)
 
         super().__init__(**kwargs)
 
