@@ -105,8 +105,12 @@ cd negentropy
 
 ```bash
 cd apps/negentropy
-cp .env.example .env          # Copy and configure environment variables
 uv sync --dev                  # Install all dependencies (including dev)
+uv run negentropy init         # Generate ~/.negentropy/config.yaml
+# Provide secrets via shell environment (or .env.local for local dev):
+#   export NE_DB_URL=postgresql+asyncpg://...
+#   export OPENAI_API_KEY=...
+#   export ANTHROPIC_API_KEY=...
 uv run alembic upgrade head    # Apply database migrations
 uv run adk web --port 8000 --reload_agents src/negentropy  # Start the engine
 ```

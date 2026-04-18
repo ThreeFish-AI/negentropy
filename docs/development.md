@@ -94,12 +94,12 @@ negentropy/
 │   │   ├── pyproject.toml             # uv 项目配置
 │   │   ├── uv.lock                    # uv 锁文件（提交至版本库）
 │   │   ├── .python-version            # Python 版本锚定
-│   │   ├── .env.example               # 环境变量模板（后端）
 │   │   ├── alembic.ini                # Alembic 全局配置
 │   │   ├── src/negentropy/            # 主包
 │   │   │   ├── agents/                # 智能体编排（一核五翼）
 │   │   │   ├── engine/                # 引擎层（API/工厂/适配器/沙箱）
-│   │   │   ├── config/                # 配置管理（正交配置域）
+│   │   │   ├── config/                # 配置管理（YAML 分层 + Pydantic 正交域）
+│   │   │   │   └── config.default.yaml  # 包级默认 YAML（单一事实源）
 │   │   │   ├── models/                # 数据模型（ORM）
 │   │   │   ├── knowledge/             # 知识管理
 │   │   │   ├── auth/                  # 认证与授权
@@ -457,12 +457,20 @@ app.add_middleware(
 
 ### 8.2 后端环境变量
 
-使用 `apps/negentropy/.env.example` 作为模板。后端通过 Pydantic Settings 的 [Nested Settings 正交配置域](./framework.md#7-配置管理体系) 加载环境变量。
+后端配置以 `apps/negentropy/src/negentropy/config/config.default.yaml` 为单一事实源。密钥/敏感项通过 shell 环境变量（或 `.env.local`）覆盖，遵循六级优先级：环境变量 → `.env` → CLI YAML（`-c`）→ `~/.negentropy/config.yaml` → 包默认 YAML → 代码默认。支持 `env_nested_delimiter="__"` 覆盖深层嵌套字段。
 
 ```bash
-# 核心配置
-NE_DB_URL=postgresql+asyncpg://localhost:5432/negentropy
-NE_ENV=development
+# 核心配置（通过 shell 环境变量覆盖 YAML 默认值）
+export NE_DB_URL=postgresql+asyncpg://localhost:5432/negentropy
+export NE_ENV=development
+
+# 深层嵌套覆盖示例（使用 __ 分隔符）
+export NE_KNOWLEDGE_DEFAULT_EXTRACTOR_ROUTES__URL__PRIMARY__TIMEOUT_MS=90000
+
+# 密钥类变量（严禁写入 YAML 或提交到仓库）
+export OPENAI_API_KEY=...
+export ANTHROPIC_API_KEY=...
+export GEMINI_API_KEY=...
 ```
 
 ### 8.3 前端环境变量
@@ -480,8 +488,9 @@ NEXT_PUBLIC_AGUI_USER_ID=dev-user
 
 ### 8.4 安全约束
 
-- `.env.example` 仅作模板，`.env.local` / `.env.production` 用于环境覆盖
-- **禁止**提交包含密钥的实际 `.env` 文件
+- 后端配置默认值由 `config.default.yaml` 承载；密钥仅通过 shell 环境变量或 `.env.local` 提供，**严禁**写入 YAML 或仓库
+- `.env.local` / `.env.{environment}.local` 仅用于本地覆盖，不得提交
+- 前端 `.env.example` 仅作模板，`.env.local` / `.env.production` 用于环境覆盖
 - `.gitignore` 必须排除 `.env`、`.env.local`、`.env.*.local`
 
 ---
@@ -494,7 +503,7 @@ NEXT_PUBLIC_AGUI_USER_ID=dev-user
 - [ ] 所有测试通过（`uv run pytest` + `pnpm run test`）
 - [ ] Linter 无报错（`ruff check` + `pnpm run lint`）
 - [ ] 类型检查通过（`pnpm run typecheck`）
-- [ ] 环境变量模板已同步（`.env.example`）
+- [ ] 后端默认配置已同步（`config.default.yaml`），前端环境变量模板已同步（`.env.example`）
 - [ ] `.gitignore` 正确排除敏感文件
 - [ ] 文档已同步更新
 
