@@ -423,7 +423,7 @@ thread_id: Mapped[UUID] = mapped_column(
 
 | 变量                        | 作用域 | 说明                                       |
 | :-------------------------- | :----- | :----------------------------------------- |
-| `AGUI_BASE_URL`             | 服务端 | ADK 后端地址（如 `http://localhost:8000`） |
+| `AGUI_BASE_URL`             | 服务端 | 后端地址（默认 `http://localhost:3292`）   |
 | `NEXT_PUBLIC_AGUI_APP_NAME` | 客户端 | 应用名称标识                               |
 | `NEXT_PUBLIC_AGUI_USER_ID`  | 客户端 | 用户标识                                   |
 
@@ -479,12 +479,14 @@ export GEMINI_API_KEY=...
 
 ```bash
 # 服务端（仅 Route Handler 可用）
-AGUI_BASE_URL=http://localhost:8000
+AGUI_BASE_URL=http://localhost:3292
 
 # 客户端（浏览器可见）
 NEXT_PUBLIC_AGUI_APP_NAME=negentropy
 NEXT_PUBLIC_AGUI_USER_ID=dev-user
 ```
+
+> **迁移守护**：若 `AGUI_BASE_URL` 指向历史本地端口（如 `:6600` / `:6666`）且 `NODE_ENV !== "production"`，BFF 会打印一次性迁移告警并将端口重写为 `:3292`；生产环境仅告警、不改写，以便运维显式修复。详见 `apps/negentropy-ui/lib/server/backend-url.ts`。
 
 ### 8.4 安全约束
 

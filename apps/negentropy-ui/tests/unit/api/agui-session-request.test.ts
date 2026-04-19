@@ -34,15 +34,8 @@ describe("session request helpers", () => {
     expect(getSessionAguiBaseUrl()).toBe("http://public-agui");
   });
 
-  it("在 base url 缺失时返回结构化内部错误", async () => {
-    const result = getSessionAguiBaseUrl();
-
-    expect(result).toBeInstanceOf(Response);
-    const response = result as Response;
-    const data = await response.json();
-    expect(response.status).toBe(500);
-    expect(data.error.code).toBe("AGUI_INTERNAL_ERROR");
-    expect(data.error.message).toContain("AGUI_BASE_URL is not configured");
+  it("在所有 base url env 均缺失时回落到默认端口 :3292", () => {
+    expect(getSessionAguiBaseUrl()).toBe("http://localhost:3292");
   });
 
   it("json-read header 应透传鉴权并补齐 Accept", () => {

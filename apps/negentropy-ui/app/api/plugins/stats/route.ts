@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
+import { getAguiBaseUrl } from "@/lib/server/backend-url";
 
 /**
  * Plugins Stats API 代理端点
@@ -13,12 +14,7 @@ interface PluginStatsResponse {
   subagents: { total: number; enabled: number };
 }
 
-function getBaseUrl() {
-  return (
-    process.env.AGUI_BASE_URL ||
-    process.env.NEXT_PUBLIC_AGUI_BASE_URL
-  );
-}
+const getBaseUrl = getAguiBaseUrl;
 
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);

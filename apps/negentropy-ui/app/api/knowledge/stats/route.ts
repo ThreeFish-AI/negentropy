@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getKnowledgeBaseUrl } from "@/lib/server/backend-url";
 
 /**
  * Knowledge API 统计端点
@@ -14,31 +15,12 @@ interface ApiStatsResponse {
   avg_latency_ms: number;
 }
 
-function getBaseUrl() {
-  return (
-    process.env.KNOWLEDGE_BASE_URL ||
-    process.env.AGUI_BASE_URL ||
-    process.env.NEXT_PUBLIC_AGUI_BASE_URL
-  );
-}
-
 export async function GET(request: NextRequest) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getKnowledgeBaseUrl();
 
   // 从查询参数获取 endpoint
   const { searchParams } = request.nextUrl;
   const endpoint = searchParams.get("endpoint");
-
-  // 如果没有配置后端 URL，返回默认值
-  if (!baseUrl) {
-    const defaultStats: ApiStatsResponse = {
-      total_calls: 0,
-      success_count: 0,
-      failed_count: 0,
-      avg_latency_ms: 0,
-    };
-    return NextResponse.json(defaultStats);
-  }
 
   try {
     // 构建后端 URL，传递 endpoint 参数
