@@ -330,10 +330,196 @@ def _resolve_chunking_config(
     return None
 
 
+_MODELS_WHITELIST: frozenset[str] = frozenset({"llm_config_id", "embedding_config_id"})
+
+
 def _serialize_corpus_config(config: dict[str, Any] | None) -> dict[str, Any]:
-    return merge_corpus_config(
+    serialized = merge_corpus_config(
         config, serialize_chunking_config(normalize_chunking_config(get_chunking_config_only(config)))
     )
+    # 白名单过滤 models 子键；非 UUID 字符串提前 400。
+    if isinstance(config, dict) and "models" in config:
+        raw_models = config.get("models") or {}
+        if raw_models is None:
+            serialized.pop("models", None)
+        elif not isinstance(raw_models, dict):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "INVALID_CORPUS_CONFIG", "message": "config.models must be an object"},
+            )
+        else:
+            clean: dict[str, Any] = {}
+            for key, value in raw_models.items():
+                if key not in _MODELS_WHITELIST:
+                    continue
+                if value is None or value == "":
+                    continue
+                try:
+                    UUID(str(value))
+                except (TypeError, ValueError) as exc:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "code": "INVALID_CORPUS_CONFIG",
+                            "message": f"config.models.{key} must be a UUID string",
+                        },
+                    ) from exc
+                clean[key] = str(value)
+            if clean:
+                serialized["models"] = clean
+            else:
+                serialized.pop("models", None)
+    return serialized
+
+
+async def _validate_models_references(models: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """校验 config.models 引用的 model_configs 行存在且类型匹配；返回 {key: row_dict}。
+
+    返回结构供调用方（例如 update_corpus）用于比较维度变更。
+    """
+    if not models:
+        return {}
+
+    from negentropy.models.model_config import ModelConfig, ModelType
+
+    key_to_type = {"llm_config_id": ModelType.LLM, "embedding_config_id": ModelType.EMBEDDING}
+    resolved: dict[str, dict[str, Any]] = {}
+    async with AsyncSessionLocal() as db:
+        for key, expected_type in key_to_type.items():
+            raw = models.get(key)
+            if not raw:
+                continue
+            try:
+                mc_id = UUID(str(raw))
+            except (TypeError, ValueError) as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"code": "INVALID_CORPUS_CONFIG", "message": f"config.models.{key} invalid UUID"},
+                ) from exc
+            row = (await db.execute(select(ModelConfig).where(ModelConfig.id == mc_id))).scalar_one_or_none()
+            if row is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "code": "MODEL_CONFIG_NOT_FOUND",
+                        "message": f"config.models.{key} 引用的 model_config 不存在",
+                    },
+                )
+            row_type = row.model_type.value if hasattr(row.model_type, "value") else str(row.model_type)
+            if row_type != expected_type.value:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "code": "MODEL_TYPE_MISMATCH",
+                        "message": f"config.models.{key} 引用 model_type={row_type}，应为 {expected_type.value}",
+                    },
+                )
+            if not row.enabled:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "code": "MODEL_CONFIG_DISABLED",
+                        "message": f"config.models.{key} 引用的 model_config 已禁用",
+                    },
+                )
+            resolved[key] = {
+                "id": str(row.id),
+                "model_type": row_type,
+                "vendor": row.vendor,
+                "model_name": row.model_name,
+                "config": dict(row.config or {}),
+            }
+    return resolved
+
+
+def _extract_dimension_from_row_config(row_config: dict[str, Any] | None) -> int | None:
+    """从 model_configs.config JSONB 中取 `dimensions`；非正整数视为未登记。"""
+    if not isinstance(row_config, dict):
+        return None
+    raw = row_config.get("dimensions")
+    if raw is None:
+        return None
+    try:
+        val = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return val if val > 0 else None
+
+
+async def _resolve_embedding_dimension(config_id: str | None) -> int | None:
+    """按 model_configs.id 查询 embedding 模型的 dimensions；不存在则 None。"""
+    if not config_id:
+        return None
+    try:
+        mc_id = UUID(str(config_id))
+    except (TypeError, ValueError):
+        return None
+    from negentropy.models.model_config import ModelConfig
+
+    async with AsyncSessionLocal() as db:
+        row = (await db.execute(select(ModelConfig).where(ModelConfig.id == mc_id))).scalar_one_or_none()
+        if row is None:
+            return None
+        return _extract_dimension_from_row_config(dict(row.config or {}))
+
+
+async def _enqueue_embedding_rebuild(
+    *,
+    background_tasks: BackgroundTasks,
+    service: Any,
+    corpus_id: UUID,
+    app_name: str,
+    corpus_config: dict[str, Any],
+) -> dict[str, Any]:
+    """对 Corpus 下所有 distinct source_uri 触发 rebuild_source 流水线。
+
+    返回 `{count, run_ids}` 作为 `CorpusResponse.rebuild_triggered`。
+    """
+    async with AsyncSessionLocal() as db:
+        rows = (
+            await db.execute(
+                select(Knowledge.source_uri)
+                .where(Knowledge.corpus_id == corpus_id, Knowledge.source_uri.is_not(None))
+                .distinct()
+            )
+        ).all()
+    source_uris = [r[0] for r in rows if r[0]]
+
+    chunking_config = _resolve_chunking_config(
+        chunking_config=None,
+        legacy_payload=None,
+        corpus_config=corpus_config,
+    )
+
+    run_ids: list[str] = []
+    for source_uri in source_uris:
+        run_id = await service.create_pipeline(
+            app_name=app_name,
+            operation="rebuild_source",
+            input_data={
+                "corpus_id": str(corpus_id),
+                "source_uri": source_uri,
+                "chunking_config": chunking_config_summary(chunking_config),
+                "trigger": "embedding_model_changed",
+            },
+        )
+        background_tasks.add_task(
+            service.execute_rebuild_source_pipeline,
+            run_id=run_id,
+            corpus_id=corpus_id,
+            app_name=app_name,
+            source_uri=source_uri,
+            chunking_config=chunking_config,
+        )
+        run_ids.append(run_id)
+
+    logger.info(
+        "corpus_embedding_rebuild_enqueued",
+        corpus_id=str(corpus_id),
+        app_name=app_name,
+        count=len(run_ids),
+    )
+    return {"count": len(run_ids), "run_ids": run_ids}
 
 
 def _has_explicit_extractor_routes(config: dict[str, Any] | None) -> bool:
@@ -533,7 +719,11 @@ async def get_corpus(corpus_id: UUID, app_name: str | None = Query(default=None)
 
 
 @router.patch("/base/{corpus_id}", response_model=CorpusResponse)
-async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> CorpusResponse:
+async def update_corpus(
+    corpus_id: UUID,
+    payload: CorpusUpdateRequest,
+    background_tasks: BackgroundTasks,
+) -> CorpusResponse:
     service = _get_service()
     update_data = payload.model_dump(exclude_unset=True)
     if "config" in update_data:
@@ -541,18 +731,51 @@ async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> Corpus
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    # 捕获旧配置并校验新 models 引用；用于判定 Embedding 维度是否变化。
+    old_corpus = await service.get_corpus_by_id(corpus_id)
+    old_config = dict(old_corpus.config or {}) if old_corpus else {}
+    old_models = old_config.get("models") if isinstance(old_config, dict) else None
+    old_embedding_id = (
+        str(old_models.get("embedding_config_id"))
+        if isinstance(old_models, dict) and old_models.get("embedding_config_id")
+        else None
+    )
+
+    new_config = update_data.get("config") if "config" in update_data else None
+    new_models = (new_config or {}).get("models") if isinstance(new_config, dict) else None
+    new_resolved = await _validate_models_references(new_models)
+    new_embedding_id = (
+        str(new_models.get("embedding_config_id"))
+        if isinstance(new_models, dict) and new_models.get("embedding_config_id")
+        else None
+    )
+
     try:
         corpus = await service.update_corpus(corpus_id=corpus_id, spec=update_data)
-        # Fetch knowledge count separately since update doesn't return it
-        # Optimization: Reuse existing count logic or separate query
-        # For simplicity, returning 0 or fetching count if critical.
-        # API expects knowledge_count.
 
-        # We need to fetch count to adhere to response model
         async with AsyncSessionLocal() as db:
             knowledge_count = await db.scalar(
                 select(func.count()).select_from(Knowledge).where(Knowledge.corpus_id == corpus.id)
             )
+
+        rebuild_triggered: dict[str, Any] | None = None
+        # 仅当 config.models 显式参与更新时评估维度变化；否则跳过以免无谓查询。
+        if "config" in update_data and old_embedding_id != new_embedding_id and (knowledge_count or 0) > 0:
+            old_dim = await _resolve_embedding_dimension(old_embedding_id) if old_embedding_id else None
+            new_dim: int | None = None
+            if new_embedding_id:
+                new_row = new_resolved.get("embedding_config_id") or {}
+                new_dim = _extract_dimension_from_row_config(new_row.get("config") or {})
+            # 维度差异或单边切换视为维度变化；若两端维度均未显式登记则按保守策略不触发。
+            dim_changed = old_dim is not None and new_dim is not None and old_dim != new_dim
+            if dim_changed:
+                rebuild_triggered = await _enqueue_embedding_rebuild(
+                    background_tasks=background_tasks,
+                    service=service,
+                    corpus_id=corpus.id,
+                    app_name=corpus.app_name,
+                    corpus_config=dict(corpus.config or {}),
+                )
 
         return CorpusResponse(
             id=corpus.id,
@@ -561,6 +784,7 @@ async def update_corpus(corpus_id: UUID, payload: CorpusUpdateRequest) -> Corpus
             description=corpus.description,
             config=_serialize_corpus_config(corpus.config or None),
             knowledge_count=knowledge_count or 0,
+            rebuild_triggered=rebuild_triggered,
         )
     except ValueError as exc:
         raise HTTPException(

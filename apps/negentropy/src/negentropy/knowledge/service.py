@@ -1242,6 +1242,9 @@ class KnowledgeService:
     ) -> list[KnowledgeRecord]:
         """内部方法：执行文本摄入，支持可选的 Pipeline 追踪"""
         config = chunking_config or self._chunking_config
+        # Corpus 级 Embedding 模型解析：存在则按需构建 fn，否则回退 service 默认。
+        corpus_record = await self._repository.get_corpus_by_id(corpus_id)
+        corpus_config_dict: dict[str, Any] | None = dict(corpus_record.config or {}) if corpus_record else None
 
         # 阶段 1: Chunking
         if tracker:
@@ -1270,11 +1273,11 @@ class KnowledgeService:
         )
 
         # 阶段 2: Embedding
-        if self._embedding_fn:
+        if self._embedding_fn or self._extract_embedding_config_id(corpus_config_dict):
             if tracker:
                 await tracker.start_stage("embed")
 
-            chunks = await self._attach_embeddings(chunks)
+            chunks = await self._attach_embeddings(chunks, corpus_config=corpus_config_dict)
 
             if tracker:
                 await tracker.complete_stage(
@@ -2141,7 +2144,10 @@ class KnowledgeService:
                 },
                 embedding=item.embedding,
             )
-            for item in await self._attach_embeddings(chunks)
+            for item in await self._attach_embeddings(
+                chunks,
+                corpus_config=dict(corpus.config or {}) if corpus else None,
+            )
         ]
         records = await self._repository.add_knowledge(
             corpus_id=corpus_id,
@@ -2520,18 +2526,48 @@ class KnowledgeService:
 
         return chunks
 
-    async def _attach_embeddings(self, chunks: Iterable[KnowledgeChunk]) -> list[KnowledgeChunk]:
+    @staticmethod
+    def _extract_embedding_config_id(corpus_config: dict[str, Any] | None) -> str | None:
+        """从 corpus.config['models'] 提取 embedding_config_id；无则返回 None。"""
+        if not corpus_config:
+            return None
+        models = corpus_config.get("models") if isinstance(corpus_config, dict) else None
+        if not isinstance(models, dict):
+            return None
+        value = models.get("embedding_config_id")
+        if value is None:
+            return None
+        return str(value)
+
+    async def _attach_embeddings(
+        self,
+        chunks: Iterable[KnowledgeChunk],
+        *,
+        corpus_config: dict[str, Any] | None = None,
+    ) -> list[KnowledgeChunk]:
         chunk_list = list(chunks)
 
         if not chunk_list:
             return []
 
+        embedding_config_id = self._extract_embedding_config_id(corpus_config)
+
+        # Corpus 指定了 embedding 模型 → 按需构建一次性 fn；否则使用 service 级默认 fn。
+        if embedding_config_id is not None:
+            from .embedding import build_batch_embedding_fn, build_embedding_fn
+
+            batch_fn = build_batch_embedding_fn(embedding_config_id)
+            single_fn = build_embedding_fn(embedding_config_id)
+        else:
+            batch_fn = self._batch_embedding_fn
+            single_fn = self._embedding_fn
+
         # 优先使用批量向量化（一次 API 调用完成所有 chunk）
-        if self._batch_embedding_fn:
+        if batch_fn:
             searchable_chunks = [c for c in chunk_list if self._is_searchable_chunk(c)]
             if not searchable_chunks:
                 return chunk_list
-            embeddings = await self._batch_embedding_fn([c.content for c in searchable_chunks])
+            embeddings = await batch_fn([c.content for c in searchable_chunks])
             embedding_by_key = {
                 (chunk.source_uri, chunk.chunk_index): emb
                 for chunk, emb in zip(searchable_chunks, embeddings, strict=True)
@@ -2548,14 +2584,14 @@ class KnowledgeService:
             ]
 
         # 回退到逐条向量化
-        if not self._embedding_fn:
+        if not single_fn:
             return chunk_list
 
         enriched: list[KnowledgeChunk] = []
         for chunk in chunk_list:
             embedding = None
             if self._is_searchable_chunk(chunk):
-                embedding = await self._embedding_fn(chunk.content)
+                embedding = await single_fn(chunk.content)
             enriched.append(
                 KnowledgeChunk(
                     content=chunk.content,

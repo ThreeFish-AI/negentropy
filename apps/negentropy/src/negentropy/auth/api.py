@@ -380,6 +380,289 @@ async def delete_vendor_config(
 
 
 # =============================================================================
+# Model Config Admin Endpoints (model_configs CRUD)
+# =============================================================================
+
+
+class ModelConfigCreateRequest(BaseModel):
+    model_type: str = Field(..., description="模型类型: llm / embedding / rerank")
+    display_name: str = Field(..., min_length=1, max_length=255)
+    vendor: str = Field(..., min_length=1, max_length=50)
+    model_name: str = Field(..., min_length=1, max_length=255)
+    is_default: bool = False
+    enabled: bool = True
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class ModelConfigUpdateRequest(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=255)
+    is_default: bool | None = None
+    enabled: bool | None = None
+    config: dict[str, Any] | None = None
+
+
+def _model_config_to_dict(mc) -> dict[str, Any]:
+    return {
+        "id": str(mc.id),
+        "model_type": mc.model_type.value if hasattr(mc.model_type, "value") else str(mc.model_type),
+        "display_name": mc.display_name,
+        "vendor": mc.vendor,
+        "model_name": mc.model_name,
+        "is_default": mc.is_default,
+        "enabled": mc.enabled,
+        "config": dict(mc.config or {}),
+        "created_at": mc.created_at.isoformat() if getattr(mc, "created_at", None) else None,
+        "updated_at": mc.updated_at.isoformat() if getattr(mc, "updated_at", None) else None,
+    }
+
+
+def _validate_model_type(value: str):
+    from negentropy.models.model_config import ModelType
+
+    try:
+        return ModelType(value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported model_type: {value}. Allowed: llm / embedding / rerank",
+        ) from exc
+
+
+@router.get("/admin/model-configs")
+async def list_model_configs(
+    model_type: str | None = Query(default=None),
+    vendor: str | None = Query(default=None),
+    enabled: bool | None = Query(default=None),
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """列出 model_configs 表条目。
+
+    业务侧调用时通常传 `model_type=...&enabled=true`，返回按默认优先 + 展示名排序的列表。
+    """
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from negentropy.models.model_config import ModelConfig, ModelType
+
+    stmt = select(ModelConfig)
+    if model_type:
+        stmt = stmt.where(ModelConfig.model_type == _validate_model_type(model_type))
+    if vendor:
+        stmt = stmt.where(ModelConfig.vendor == vendor)
+    if enabled is not None:
+        stmt = stmt.where(ModelConfig.enabled == enabled)
+    stmt = stmt.order_by(
+        ModelConfig.model_type,
+        ModelConfig.is_default.desc(),
+        ModelConfig.display_name.asc(),
+    )
+
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(stmt)
+            rows = result.scalars().all()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_sanitize_error(f"Failed to list model_configs: {exc}"),
+        ) from exc
+
+    items = [_model_config_to_dict(mc) for mc in rows]
+    _ = ModelType  # re-export usage; avoid unused import lint
+    return {"items": items, "count": len(items)}
+
+
+@router.post("/admin/model-configs", status_code=status.HTTP_201_CREATED)
+async def create_model_config(
+    payload: ModelConfigCreateRequest,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """新建 model_configs 条目。
+
+    唯一约束 `(vendor, model_name, model_type)` 由 DB 保证；冲突返回 HTTP 409。
+    若 `is_default=True`，在同一事务内将同 `model_type` 其它行置 False。
+    """
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from sqlalchemy import update as sa_update
+    from sqlalchemy.exc import IntegrityError
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.model_config import ModelConfig
+
+    mt = _validate_model_type(payload.model_type)
+
+    try:
+        async with AsyncSessionLocal() as db:
+            if payload.is_default:
+                await db.execute(
+                    sa_update(ModelConfig)
+                    .where(ModelConfig.model_type == mt, ModelConfig.is_default.is_(True))
+                    .values(is_default=False)
+                )
+            mc = ModelConfig(
+                model_type=mt,
+                display_name=payload.display_name,
+                vendor=payload.vendor,
+                model_name=payload.model_name,
+                is_default=payload.is_default,
+                enabled=payload.enabled,
+                config=payload.config or {},
+            )
+            db.add(mc)
+            try:
+                await db.commit()
+            except IntegrityError as exc:
+                await db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        f"model_config conflict: (vendor={payload.vendor}, "
+                        f"model_name={payload.model_name}, model_type={payload.model_type}) 已存在"
+                    ),
+                ) from exc
+            await db.refresh(mc)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_sanitize_error(f"Failed to create model_config: {exc}"),
+        ) from exc
+
+    invalidate_cache(None)
+    return {"model_config": _model_config_to_dict(mc)}
+
+
+@router.patch("/admin/model-configs/{config_id}")
+async def update_model_config(
+    config_id: str,
+    payload: ModelConfigUpdateRequest,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """更新 model_configs 条目。仅允许更新 display_name / is_default / enabled / config 字段。"""
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from uuid import UUID as _UUID
+
+    from sqlalchemy import update as sa_update
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.model_config import ModelConfig
+
+    try:
+        mc_id = _UUID(config_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid config_id") from exc
+
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(ModelConfig).where(ModelConfig.id == mc_id))
+            mc = result.scalar_one_or_none()
+            if not mc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model_config not found")
+
+            if payload.is_default is True and not mc.is_default:
+                await db.execute(
+                    sa_update(ModelConfig)
+                    .where(
+                        ModelConfig.model_type == mc.model_type,
+                        ModelConfig.is_default.is_(True),
+                        ModelConfig.id != mc.id,
+                    )
+                    .values(is_default=False)
+                )
+
+            if payload.display_name is not None:
+                mc.display_name = payload.display_name
+            if payload.is_default is not None:
+                mc.is_default = payload.is_default
+            if payload.enabled is not None:
+                mc.enabled = payload.enabled
+            if payload.config is not None:
+                mc.config = payload.config
+
+            await db.commit()
+            await db.refresh(mc)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_sanitize_error(f"Failed to update model_config: {exc}"),
+        ) from exc
+
+    invalidate_cache(None)
+    return {"model_config": _model_config_to_dict(mc)}
+
+
+@router.delete("/admin/model-configs/{config_id}")
+async def delete_model_config(
+    config_id: str,
+    current_user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """删除 model_configs 条目。
+
+    若有 Corpus 仍在引用（`corpus.config->'models'` 的 llm_config_id / embedding_config_id），
+    返回 HTTP 409 + 引用计数。
+    """
+    if "admin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+
+    from uuid import UUID as _UUID
+
+    from sqlalchemy import text as sa_text
+
+    from negentropy.config.model_resolver import invalidate_cache
+    from negentropy.models.model_config import ModelConfig
+
+    try:
+        mc_id = _UUID(config_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid config_id") from exc
+
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(ModelConfig).where(ModelConfig.id == mc_id))
+            mc = result.scalar_one_or_none()
+            if not mc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model_config not found")
+
+            # 反查 Corpus 引用：llm_config_id / embedding_config_id 均以字符串形式存储。
+            ref_stmt = sa_text(
+                """
+                SELECT COUNT(*) FROM negentropy.corpus
+                WHERE (config -> 'models' ->> 'llm_config_id') = :cid
+                   OR (config -> 'models' ->> 'embedding_config_id') = :cid
+                """
+            )
+            ref_count = (await db.execute(ref_stmt, {"cid": str(mc_id)})).scalar_one()
+            if ref_count and ref_count > 0:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "model_config 仍被 Corpus 引用，无法删除",
+                        "reference_count": int(ref_count),
+                    },
+                )
+
+            await db.delete(mc)
+            await db.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_sanitize_error(f"Failed to delete model_config: {exc}"),
+        ) from exc
+
+    invalidate_cache(None)
+    return {"status": "deleted", "id": str(mc_id)}
+
+
+# =============================================================================
 # Model Ping Endpoint
 # =============================================================================
 

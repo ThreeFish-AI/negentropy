@@ -20,6 +20,7 @@ from __future__ import annotations
 import os
 import time
 from typing import Any
+from uuid import UUID
 
 # Cache TTL in seconds
 _CACHE_TTL = 60.0
@@ -103,6 +104,107 @@ async def resolve_embedding_config() -> tuple[str, dict[str, Any]]:
         (full_model_name, embedding_kwargs)
     """
     return await _resolve("embedding")
+
+
+async def resolve_llm_config_by_id(config_id: UUID | str | None) -> tuple[str, dict[str, Any]]:
+    """根据 model_configs.id 解析 LLM 配置；None / 查询失败回退默认。"""
+    if config_id is None:
+        return await resolve_llm_config()
+    return await _resolve_by_id("llm", config_id)
+
+
+async def resolve_embedding_config_by_id(config_id: UUID | str | None) -> tuple[str, dict[str, Any]]:
+    """根据 model_configs.id 解析 Embedding 配置；None / 查询失败回退默认。"""
+    if config_id is None:
+        return await resolve_embedding_config()
+    return await _resolve_by_id("embedding", config_id)
+
+
+async def _resolve_by_id(model_type: str, config_id: UUID | str) -> tuple[str, dict[str, Any]]:
+    """按 model_configs.id 解析: 缓存 → DB 行 + vendor_configs → 失败回退默认。"""
+    now = time.monotonic()
+    cache_key = f"{model_type}:{config_id!s}"
+
+    entry = _cache.get(cache_key)
+    if entry is not None:
+        name, kwargs, ts = entry
+        if now - ts < _CACHE_TTL:
+            return name, kwargs.copy()
+
+    try:
+        result = await _resolve_from_model_config_row(model_type, config_id)
+        if result is not None:
+            name, kwargs = result
+            _cache[cache_key] = (name, kwargs, now)
+            return name, kwargs.copy()
+    except Exception:
+        from negentropy.logging import get_logger
+
+        logger = get_logger("negentropy.config.model_resolver")
+        logger.warning(
+            "model_resolver_by_id_failed",
+            model_type=model_type,
+            config_id=str(config_id),
+            exc_info=True,
+        )
+
+    # 行不存在 / 禁用 / 类型不匹配 → 回退默认解析
+    from negentropy.logging import get_logger
+
+    get_logger("negentropy.config.model_resolver").warning(
+        "model_resolver_by_id_fallback_default",
+        model_type=model_type,
+        config_id=str(config_id),
+    )
+    if model_type == "embedding":
+        return await resolve_embedding_config()
+    return await resolve_llm_config()
+
+
+async def _resolve_from_model_config_row(model_type: str, config_id: UUID | str) -> tuple[str, dict[str, Any]] | None:
+    """从 model_configs 表读取指定行并构建 kwargs；行不存在 / 已禁用 / 类型不匹配返回 None。"""
+    from uuid import UUID as _UUID
+
+    from sqlalchemy import select
+
+    from negentropy.db.session import AsyncSessionLocal
+    from negentropy.models.model_config import ModelConfig, ModelType
+
+    mt_map = {"llm": ModelType.LLM, "embedding": ModelType.EMBEDDING, "rerank": ModelType.RERANK}
+    if model_type not in mt_map:
+        return None
+
+    try:
+        config_uuid = config_id if isinstance(config_id, _UUID) else _UUID(str(config_id))
+    except (ValueError, TypeError):
+        return None
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(ModelConfig).where(ModelConfig.id == config_uuid))
+        mc = result.scalar_one_or_none()
+
+    if mc is None or not mc.enabled:
+        return None
+
+    row_model_type = mc.model_type.value if hasattr(mc.model_type, "value") else str(mc.model_type)
+    if row_model_type != model_type:
+        return None
+
+    vendor = mc.vendor
+    model_name = mc.model_name
+    full_name = build_full_model_name(vendor, model_name)
+    vendor_config = await _get_vendor_config(vendor) if vendor else None
+
+    config_jsonb: dict[str, Any] = dict(mc.config or {})
+
+    if model_type == "embedding":
+        kwargs = _build_embedding_kwargs(config_jsonb, vendor_config, full_model_name=full_name)
+    else:
+        kwargs = _build_llm_kwargs(vendor or "", model_name, config_jsonb, vendor_config)
+        for k, v in _DEFAULT_LLM_KWARGS.items():
+            kwargs.setdefault(k, v.copy() if isinstance(v, dict) else v)
+
+    return full_name, kwargs
 
 
 async def _resolve(model_type: str) -> tuple[str, dict[str, Any]]:

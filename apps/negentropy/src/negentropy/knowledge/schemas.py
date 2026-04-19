@@ -36,6 +36,13 @@ class CorpusResponse(BaseModel):
     description: str | None = None
     config: dict[str, Any] = Field(default_factory=dict)
     knowledge_count: int = 0
+    rebuild_triggered: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Embedding 模型变更时自动触发的 rebuild_source 概要；未触发时为 null。"
+            "结构: {count: int, run_ids: list[str]}"
+        ),
+    )
 
 
 # ============================================================================
