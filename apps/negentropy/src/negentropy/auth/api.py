@@ -419,16 +419,15 @@ async def ping_model(
     """发送 'Ping, give me a pong' 验证 LLM 模型连通性。
 
     凭证回退链: 表单 > vendor_configs (DB) > LiteLLM 环境变量。
+
+    kwargs 构造复用业务主链路的 `build_ping_llm_kwargs`（含 drop_params=True
+    与 vendor 专属适配），确保 Ping 与生产路径的参数语义一致。
     """
     if "admin" not in current_user.roles:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
 
     import asyncio
     import time
-
-    from negentropy.config.model_resolver import build_full_model_name
-
-    full_model_name = build_full_model_name(payload.vendor, payload.model_name)
 
     effective_api_key = payload.api_key
     effective_api_base = payload.api_base or payload.config.get("api_base")
@@ -456,7 +455,12 @@ async def ping_model(
     start_time = time.monotonic()
 
     try:
-        result = await _ping_llm(full_model_name, effective_api_key, effective_api_base)
+        result = await _ping_llm(
+            vendor=payload.vendor,
+            model_name=payload.model_name,
+            api_key=effective_api_key,
+            api_base=effective_api_base,
+        )
         latency_ms = int((time.monotonic() - start_time) * 1000)
         result["latency_ms"] = latency_ms
         return result
@@ -464,6 +468,19 @@ async def ping_model(
     except Exception as exc:
         latency_ms = int((time.monotonic() - start_time) * 1000)
         error_msg = _sanitize_error(str(exc))
+
+        from negentropy.config.model_resolver import build_full_model_name, normalize_api_base
+        from negentropy.logging import get_logger
+
+        get_logger("negentropy.auth.api").warning(
+            "ping_llm_failed",
+            vendor=payload.vendor,
+            model=build_full_model_name(payload.vendor, payload.model_name),
+            api_base=normalize_api_base(effective_api_base),
+            latency_ms=latency_ms,
+            error=error_msg,
+        )
+
         if "AuthenticationError" in error_msg or "401" in error_msg:
             message = f"认证失败：API Key 无效或已过期。\n{error_msg}"
         elif "404" in error_msg or "NotFoundError" in error_msg:
@@ -476,24 +493,34 @@ async def ping_model(
 
 
 async def _ping_llm(
-    model: str,
+    *,
+    vendor: str,
+    model_name: str,
     api_key: str | None,
     api_base: str | None,
 ) -> dict[str, Any]:
-    """LLM Ping: 发送 'Ping, give me a pong' 并验证响应。"""
+    """LLM Ping: 发送 'Ping, give me a pong' 并验证响应。
+
+    复用 `build_ping_llm_kwargs` 构造 kwargs（含 drop_params 与 vendor 适配），
+    与业务主链路保持单一事实源。
+    """
     import asyncio
 
     import litellm
 
-    kwargs: dict[str, Any] = {"max_tokens": 20}
-    if api_key:
-        kwargs["api_key"] = api_key
-    if api_base:
-        kwargs["api_base"] = api_base
+    from negentropy.config.model_resolver import build_full_model_name, build_ping_llm_kwargs
+
+    full_model_name = build_full_model_name(vendor, model_name)
+    kwargs = build_ping_llm_kwargs(
+        vendor,
+        model_name,
+        api_key_override=api_key,
+        api_base_override=api_base,
+    )
 
     response = await asyncio.wait_for(
         litellm.acompletion(
-            model=model,
+            model=full_model_name,
             messages=[{"role": "user", "content": "Ping, give me a pong"}],
             **kwargs,
         ),

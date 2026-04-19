@@ -231,6 +231,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 .env*
+!.env.example
 .vercel
 *.tsbuildinfo
 next-env.d.ts

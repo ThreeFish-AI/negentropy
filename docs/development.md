@@ -71,7 +71,7 @@ uv run adk web --port 8000 --reload_agents src/negentropy  # ADK Web 启动
 ```bash
 cd apps/negentropy-ui
 pnpm install                           # 安装依赖
-pnpm run dev                           # 启动开发服务器 (localhost:3333)
+pnpm run dev                           # 启动开发服务器 (localhost:3192)
 ```
 
 ---
@@ -156,7 +156,7 @@ flowchart LR
     Start --> SetupFE[前端: pnpm install]
 
     SetupBE --> DevBE[后端: uv run adk web<br>--reload_agents]
-    SetupFE --> DevFE[前端: pnpm run dev<br>localhost:3333]
+    SetupFE --> DevFE[前端: pnpm run dev<br>localhost:3192]
 
     DevBE --> |热重载| DevBE
     DevFE --> |热重载| DevFE
@@ -225,7 +225,7 @@ uv run ruff format .                   # 代码格式化
 ```bash
 cd apps/negentropy-ui
 
-pnpm run dev                           # 开发启动 (localhost:3333)
+pnpm run dev                           # 开发启动 (localhost:3192)
 pnpm run build                         # 生产构建
 pnpm run start                         # 生产启动
 ```
@@ -263,7 +263,7 @@ pnpm run typecheck                     # TypeScript 类型检查
 **前置条件**：
 
 - 后端 ADK 已启动，`AGUI_BASE_URL` 可访问
-- 前端已启动：`http://localhost:3333`
+- 前端已启动：`http://localhost:3192`
 - `.env.local` 中 `NEXT_PUBLIC_AGUI_APP_NAME` 与 `NEXT_PUBLIC_AGUI_USER_ID` 已设置
 
 **验证步骤**：
@@ -423,7 +423,7 @@ thread_id: Mapped[UUID] = mapped_column(
 
 | 变量                        | 作用域 | 说明                                       |
 | :-------------------------- | :----- | :----------------------------------------- |
-| `AGUI_BASE_URL`             | 服务端 | ADK 后端地址（如 `http://localhost:8000`） |
+| `AGUI_BASE_URL`             | 服务端 | 后端地址（默认 `http://localhost:3292`）   |
 | `NEXT_PUBLIC_AGUI_APP_NAME` | 客户端 | 应用名称标识                               |
 | `NEXT_PUBLIC_AGUI_USER_ID`  | 客户端 | 用户标识                                   |
 
@@ -436,7 +436,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3333"],
+    allow_origins=["http://localhost:3192"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -479,12 +479,14 @@ export GEMINI_API_KEY=...
 
 ```bash
 # 服务端（仅 Route Handler 可用）
-AGUI_BASE_URL=http://localhost:8000
+AGUI_BASE_URL=http://localhost:3292
 
 # 客户端（浏览器可见）
 NEXT_PUBLIC_AGUI_APP_NAME=negentropy
 NEXT_PUBLIC_AGUI_USER_ID=dev-user
 ```
+
+> **迁移守护**：若 `AGUI_BASE_URL` 指向历史本地端口（如 `:6600` / `:6666`）且 `NODE_ENV !== "production"`，BFF 会打印一次性迁移告警并将端口重写为 `:3292`；生产环境仅告警、不改写，以便运维显式修复。详见 `apps/negentropy-ui/lib/server/backend-url.ts`。
 
 ### 8.4 安全约束
 

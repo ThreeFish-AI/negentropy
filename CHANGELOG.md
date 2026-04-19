@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复 Admin → Models 对 OpenAI 兼容代理 `base_url`（如 `http://llms.as-in.io/v1`）下 `gpt-5-mini` 等新一代模型 Ping 返回 `404 NotFound` 的问题，并一并收敛 Anthropic / Gemini 的同类风险：
+  - `auth.api._ping_llm` 原本手写最小 kwargs（`max_tokens=20 + api_key + api_base`），绕过业务主链路的 `_build_llm_kwargs` / `_DEFAULT_LLM_KWARGS` 合并策略，缺失 `drop_params=True`，导致 LiteLLM 无法将 `max_tokens` 自动映射为 gpt-5 / o-系要求的 `max_completion_tokens`，代理兜底以 `{'meta':{'code':404}, 'data':{}}` 返回 404；
+  - 新增 `config.model_resolver.build_ping_llm_kwargs(vendor, model_name, ...)`：内部复用 `_build_llm_kwargs` 以继承 vendor 专属适配（Anthropic `thinking={"type":"disabled"}`、OpenAI o 系列 `reasoning_effort`），并强制 `drop_params=True`，但故意不注入 `_DEFAULT_LLM_KWARGS["temperature"]`（gpt-5 仅接受 `temperature=1`，Ping 阶段不应耦合模型版本）；
+  - 新增 `config.model_resolver.normalize_api_base(...)`：防御性剥离用户误贴的 `/chat/completions`、`/v1/messages`、`/completions` 后缀及尾部多余 `/`，幂等且对合法 `https://host/v1` 配置零影响；
+  - `auth.api.ping_model` / `_ping_llm` 重构为复用上述入口，异常路径新增结构化日志（vendor / full_model_name / 归一化 api_base / latency / 脱敏 error）；
+  - 新增单元测试 `tests/unit_tests/config/test_model_resolver_ping.py`（17 用例）与端点测试 `tests/unit_tests/auth/test_admin_models_ping.py`（9 用例），覆盖三家 vendor kwargs 透传、DB vendor_configs 回退、api_base 规范化、401 / 404 / timeout 中文文案分类、非 admin 403 拦截。
+- 修复 `adk web` 启动时 `MemoryAutomationFunctionResponse` 触发的 Pydantic `UserWarning: Field name "schema" in "MemoryAutomationFunctionResponse" shadows an attribute in parent "BaseModel"`：将 Python 属性名改为 `schema_name`，通过 `Field(alias="schema", serialization_alias="schema")` + `model_config = ConfigDict(populate_by_name=True)` 保持线协议（wire format）键名 `"schema"` 不变，前端 TS 类型与后端 SQL 数据零改动。
+- 补齐 `opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0` 依赖，消除 ADK `adk_web_server` 启动期 `Unable to import GoogleGenAiSdkInstrumentor` WARNING，恢复 Google GenAI SDK 的 OTel 自动埋点，与现有 Langfuse OTel 链路打通。
+- 站点级安静化两类先于 `negentropy.bootstrap` 触发的上游启动噪声（`AuthlibDeprecationWarning: authlib.jose module is deprecated` 与 `[EXPERIMENTAL] feature FeatureName.PLUGGABLE_AUTH is enabled`）：通过 `apps/negentropy/src/_negentropy_silence.pth`（hatchling `force-include` 至 site-packages 根）+ `negentropy/_silence_upstream_warnings.py` 在解释器 site 初始化期替换 `warnings.showwarning`，按消息子串白名单丢弃噪声；不影响任何其他告警通道，对 `authlib.deprecate` 的 `simplefilter("always", AuthlibDeprecationWarning)` 免疫（在 filter 之后的 showwarning 层拦截）。
+
 ### Removed
 
 - 删除 `apps/negentropy/.env.example`（197 行）：其承载的全部非密钥配置项已在 `config.default.yaml` 中以结构化 YAML 形式表达，密钥类条目改为通过 shell 环境变量或 `.env.local` 提供。

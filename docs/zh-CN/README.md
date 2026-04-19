@@ -120,12 +120,12 @@ uv run adk web --port 8000 --reload_agents src/negentropy  # 启动引擎
 ```bash
 cd apps/negentropy-ui
 pnpm install                   # 安装依赖
-pnpm run dev                   # 启动开发服务器 (localhost:3333)
+pnpm run dev                   # 启动开发服务器 (localhost:3192)
 ```
 
 ### 4. 开始对话
 
-打开浏览器访问 `http://localhost:3333`，开始与 NegentropyEngine 对话。
+打开浏览器访问 `http://localhost:3192`，开始与 NegentropyEngine 对话。
 
 > 完整的环境搭建指南、数据库迁移、前后端对接、故障排查详见 [docs/development.md](../development.md)。
 

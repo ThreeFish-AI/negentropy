@@ -17,7 +17,7 @@ import { POST as unarchiveSession } from "@/app/api/agui/sessions/[sessionId]/un
 
 // Mock 环境变量
 const mockEnv = {
-  AGUI_BASE_URL: "http://localhost:6600",
+  AGUI_BASE_URL: "http://localhost:3292",
   NEXT_PUBLIC_AGUI_APP_NAME: "negentropy",
   NEXT_PUBLIC_AGUI_USER_ID: "test-user",
 };
@@ -54,22 +54,76 @@ describe("POST /api/agui", () => {
     vi.restoreAllMocks();
   });
 
-  it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
+  it("未显式配置 AGUI_BASE_URL 时应回落到默认端口 :3292", async () => {
     delete process.env.AGUI_BASE_URL;
+    delete process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 
-    const request = createMockRequest("http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=test", {
-      method: "POST",
-      body: JSON.stringify({
-        messages: [{ role: "user", content: "test" }],
-      }),
-    });
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        ),
+      );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "ping" }],
+        }),
+      },
+    );
 
     const response = await POST(request);
-    const data = await response.json();
+    // 读尽 body 确保 stream 完成，避免测试运行时未处理的 pending promise
+    await response.text();
 
-    expect(response.status).toBe(500);
-    expect(data.error.code).toBe("AGUI_INTERNAL_ERROR");
-    expect(data.error.message).toContain("AGUI_BASE_URL is not configured");
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const calledUrl = (fetchSpy.mock.calls[0]?.[0] as URL).toString();
+    expect(calledUrl).toBe("http://localhost:3292/run_sse");
+  });
+
+  it("AGUI_BASE_URL 为空字符串也应回落到默认端口 :3292", async () => {
+    process.env.AGUI_BASE_URL = "";
+
+    const fetchSpy = vi
+      .spyOn(global, "fetch")
+      .mockResolvedValue(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.close();
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        ),
+      );
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui?app_name=negentropy&user_id=test&session_id=00000000-0000-0000-0000-000000000001",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "ping" }],
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    await response.text();
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const calledUrl = (fetchSpy.mock.calls[0]?.[0] as URL).toString();
+    expect(calledUrl).toBe("http://localhost:3292/run_sse");
   });
 
   it("应该返回错误当 JSON 无效", async () => {
@@ -482,16 +536,25 @@ describe("GET /api/agui/sessions/list", () => {
     vi.restoreAllMocks();
   });
 
-  it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
+  it("未显式配置 AGUI_BASE_URL 时应回落到默认端口 :3292", async () => {
     delete process.env.AGUI_BASE_URL;
+    delete process.env.NEXT_PUBLIC_AGUI_BASE_URL;
 
-    const request = createMockRequest("http://localhost:3000/api/agui/sessions/list?app_name=negentropy&user_id=test");
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify([]),
+    } as Response);
+
+    const request = createMockRequest(
+      "http://localhost:3000/api/agui/sessions/list?app_name=negentropy&user_id=test",
+    );
 
     const response = await GET(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(data.error.code).toBe("AGUI_INTERNAL_ERROR");
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const calledUrl = (fetchSpy.mock.calls[0]?.[0] as URL).toString();
+    expect(calledUrl.startsWith("http://localhost:3292/")).toBe(true);
   });
 
   it("应该返回错误当缺少 app_name", async () => {
@@ -632,8 +695,21 @@ describe("POST /api/agui/sessions", () => {
     delete process.env.NEXT_PUBLIC_AGUI_USER_ID;
   });
 
-  it("应该返回错误当 AGUI_BASE_URL 未配置", async () => {
+  it("未显式配置 AGUI_BASE_URL 时应回落到默认端口 :3292", async () => {
     delete process.env.AGUI_BASE_URL;
+    delete process.env.NEXT_PUBLIC_AGUI_BASE_URL;
+
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          id: "s-new",
+          lastUpdateTime: 1,
+          state: { metadata: {} },
+          events: [],
+        }),
+    } as Response);
 
     const request = createMockRequest("http://localhost:3000/api/agui/sessions", {
       method: "POST",
@@ -644,10 +720,10 @@ describe("POST /api/agui/sessions", () => {
     });
 
     const response = await createSession(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(data.error.code).toBe("AGUI_INTERNAL_ERROR");
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const calledUrl = (fetchSpy.mock.calls[0]?.[0] as URL).toString();
+    expect(calledUrl.startsWith("http://localhost:3292/")).toBe(true);
   });
 
   it("应该返回错误当 JSON 无效", async () => {
