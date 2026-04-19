@@ -57,6 +57,7 @@ export interface KnowledgeFeatureMockSet {
   unarchiveDocumentMock: VitestMock;
   downloadDocumentMock: VitestMock;
   deleteDocumentMock: VitestMock;
+  fetchModelConfigsMock: VitestMock;
 }
 
 export interface KnowledgeFeatureTestHarness {
@@ -89,6 +90,7 @@ export function createKnowledgeFeatureMockSet(): KnowledgeFeatureMockSet {
     unarchiveDocumentMock: vi.fn(),
     downloadDocumentMock: vi.fn(),
     deleteDocumentMock: vi.fn(),
+    fetchModelConfigsMock: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -184,6 +186,7 @@ export function createKnowledgeFeatureTestHarness(
       unarchiveDocument: (...args: unknown[]) => mocks.unarchiveDocumentMock(...args),
       downloadDocument: (...args: unknown[]) => mocks.downloadDocumentMock(...args),
       deleteDocument: (...args: unknown[]) => mocks.deleteDocumentMock(...args),
+      fetchModelConfigs: (...args: unknown[]) => mocks.fetchModelConfigsMock(...args),
       ...createKnowledgeConfigTestExports(),
       ...overrides,
     },
