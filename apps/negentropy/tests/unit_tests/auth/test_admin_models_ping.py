@@ -2,7 +2,9 @@
 
 关键不变量：
 - Gemini 官方默认 `api_base` 被归一化为 None，避免 litellm 1.83.x 漏掉 `/v1beta/`。
-- 其它 vendor（OpenAI/Anthropic）`api_base` 恒等透传。
+- OpenAI 官方域名（含 `/v1` 写法）归一化为 None；自建代理末尾无 `/v1` 时补齐 `/v1`，
+  抵消 litellm 未向 OpenAI SDK 注入版本段的拼接缺陷。
+- Anthropic 等其它 vendor `api_base` 恒等透传。
 - 始终注入 `drop_params=True`。
 """
 
@@ -51,7 +53,8 @@ async def test_ping_gemini_custom_proxy_appends_v1beta():
 
 
 @pytest.mark.asyncio
-async def test_ping_openai_identity_passthrough():
+async def test_ping_openai_official_host_maps_to_none():
+    # OpenAI 官方域名（含 /v1 写法）→ 归一化为 None，放行 litellm 内置默认 URL
     fake_acompletion = AsyncMock(return_value=_mock_response())
     with patch("litellm.acompletion", new=fake_acompletion):
         await _ping_llm(
@@ -60,7 +63,22 @@ async def test_ping_openai_identity_passthrough():
             api_base="https://api.openai.com/v1",
         )
     kwargs = fake_acompletion.await_args.kwargs
-    assert kwargs["api_base"] == "https://api.openai.com/v1"
+    assert "api_base" not in kwargs, "OpenAI 官方域名应被归一化为 None 以放行 litellm 内置 URL"
+    assert kwargs["drop_params"] is True
+
+
+@pytest.mark.asyncio
+async def test_ping_openai_custom_gateway_appends_v1():
+    # 核心回归：自建网关（如 llms.as-in.io）补齐 /v1，抵消 OpenAI SDK 仅拼 /chat/completions 的缺陷
+    fake_acompletion = AsyncMock(return_value=_mock_response())
+    with patch("litellm.acompletion", new=fake_acompletion):
+        await _ping_llm(
+            model="openai/gpt-4o-mini",
+            api_key="sk-test",
+            api_base="http://llms.as-in.io",
+        )
+    kwargs = fake_acompletion.await_args.kwargs
+    assert kwargs["api_base"] == "http://llms.as-in.io/v1"
     assert kwargs["drop_params"] is True
 
 

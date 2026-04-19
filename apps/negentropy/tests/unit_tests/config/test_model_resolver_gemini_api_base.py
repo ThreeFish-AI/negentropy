@@ -17,20 +17,14 @@ def test_empty_string_returns_none():
 
 
 def test_non_gemini_model_identity_passthrough():
-    # OpenAI / Anthropic 等非 gemini/ 前缀模型不应被改写
-    assert (
-        normalize_api_base_for_litellm("openai/gpt-4o-mini", "https://api.example.com/v1")
-        == "https://api.example.com/v1"
-    )
+    # Anthropic 等非 gemini/ 非 openai/ 前缀模型不应被改写（恒等清洗）
+    # OpenAI 分支用例已迁移至 test_model_resolver_openai_api_base.py
     assert normalize_api_base_for_litellm("anthropic/claude-sonnet-4", "https://proxy.local") == "https://proxy.local"
 
 
 def test_non_gemini_still_strips_trailing_slash():
-    # 非 gemini 仅做去尾斜杠清洗，不做 /v1beta 补齐
-    assert (
-        normalize_api_base_for_litellm("openai/gpt-4o-mini", "https://api.example.com/v1/")
-        == "https://api.example.com/v1"
-    )
+    # 非 gemini/ 非 openai/ 前缀仅做去尾斜杠清洗，不做版本段补齐
+    assert normalize_api_base_for_litellm("anthropic/claude-sonnet-4", "https://proxy.local/") == "https://proxy.local"
 
 
 def test_gemini_default_host_maps_to_none():

@@ -199,48 +199,94 @@ _GEMINI_API_BASE_STRIP_SUFFIXES: tuple[str, ...] = (
     "/v1beta",
 )
 
+# OpenAI 官方 host（litellm 内置默认 = 此 host + "/v1"）。
+_OPENAI_DEFAULT_API_HOST = "https://api.openai.com"
+# 用户易误粘的 curl 路径后缀（覆盖 chat/completions/embeddings/responses 四链路，含 /v1 前缀变体，长串优先）。
+_OPENAI_API_BASE_STRIP_SUFFIXES: tuple[str, ...] = (
+    "/v1/chat/completions",
+    "/v1/completions",
+    "/v1/embeddings",
+    "/v1/responses",
+    "/chat/completions",
+    "/completions",
+    "/embeddings",
+    "/responses",
+)
+
 
 def normalize_api_base_for_litellm(model: str, api_base: str | None) -> str | None:
-    """为 LiteLLM 规范化 Gemini 的 api_base，抵消其 URL 拼接对 /v1beta 的丢弃。
+    """为 LiteLLM 规范化 Gemini 与 OpenAI 的 api_base，抵消其 URL 拼接对版本段的丢弃。
 
-    litellm 1.83.x 的 `_check_custom_proxy` 在 `custom_llm_provider=="gemini"` 且
+    **Gemini**：litellm 1.83.x 的 `_check_custom_proxy` 在 `custom_llm_provider=="gemini"` 且
     `api_base` 非空时，以 `{api_base}/models/{model}:{endpoint}` 拼接目标 URL
     (参见 `.venv/.../vertex_ai/vertex_llm_base.py:_check_custom_proxy`)，该格式
     丢失了 Google 要求的 `/v1beta/` 版本段。直接透传 `api_base` 会让请求落到错误
     路径，Google 边缘以 HTML 兜底页响应，进而触发 `GeminiException - Received=<!DOCTYPE html>`。
 
+    **OpenAI**：litellm 将用户 `api_base` 原样作为 `AsyncOpenAI(base_url=...)`，而 OpenAI
+    Python SDK 仅以相对路径 `chat/completions` 拼接最终 URL（见
+    `site-packages/openai/resources/chat/completions/completions.py::create`），与 litellm 内置
+    默认 `https://api.openai.com/v1` 的 `/v1` 版本段不对齐。用户按官网 placeholder 风格填入裸 host
+    时请求落到根路径 `chat/completions`，网关以 catchall 40x/429 响应。
+
     规则：
-    1. 非 `gemini/` 前缀模型 → 恒等返回，不修改。
-    2. `api_base` 为空/None → 返回 None，交给 litellm 默认链路。
-    3. 清洗尾斜杠与常见误粘后缀（`/generateContent`、`/chat/completions`、`/v1beta/openai`、`/v1beta`）。
-    4. 归一后等于 Google 默认域名 → 返回 None，让 litellm 走内置 URL（含 `/v1beta/`）。
-    5. 自建代理 / 私有网关 → 补齐 `/v1beta` 结尾，确保 litellm 拼出合法路径。
+    1. `api_base` 为空/None → 返回 None，交给 litellm 默认链路。
+    2. 清洗尾斜杠 + 与 vendor 无关的 Anthropic 及其它前缀 → 清洗后恒等返回。
+    3. **Gemini** 分支：剥离常见误粘后缀；官方域名 → None 放行 litellm 内置 URL；自建代理补齐 `/v1beta`。
+    4. **OpenAI** 分支：剥离常见误粘后缀；官方域名（含 `/v1` 写法）→ None；URL 已显式带 `/v1` 结尾或
+       中段含 `/v1/` → 恒等透传；其余自建代理末尾无 `/v1` → 补齐 `/v1`。
     """
     if api_base is None:
         return None
     stripped = api_base.strip().rstrip("/")
     if not stripped:
         return None
-    if not model.startswith("gemini/"):
-        return stripped
 
-    # 迭代剥离末尾噪声后缀（用户在 Base URL 字段粘贴了 curl 完整路径时尤其常见）。
-    changed = True
-    while changed:
-        changed = False
-        for suffix in _GEMINI_API_BASE_STRIP_SUFFIXES:
-            if stripped.endswith(suffix):
-                stripped = stripped[: -len(suffix)].rstrip("/")
-                changed = True
-                break
+    if model.startswith("gemini/"):
+        # 迭代剥离末尾噪声后缀（用户在 Base URL 字段粘贴了 curl 完整路径时尤其常见）。
+        changed = True
+        while changed:
+            changed = False
+            for suffix in _GEMINI_API_BASE_STRIP_SUFFIXES:
+                if stripped.endswith(suffix):
+                    stripped = stripped[: -len(suffix)].rstrip("/")
+                    changed = True
+                    break
 
-    if not stripped:
-        return None
-    if stripped == _GEMINI_DEFAULT_API_HOST:
-        return None
-    if stripped.endswith("/v1beta"):
-        return stripped
-    return f"{stripped}/v1beta"
+        if not stripped:
+            return None
+        if stripped == _GEMINI_DEFAULT_API_HOST:
+            return None
+        if stripped.endswith("/v1beta"):
+            return stripped
+        return f"{stripped}/v1beta"
+
+    if model.startswith("openai/"):
+        # 迭代剥离常见 curl 完整路径误粘（长串后缀已按优先级排序）。
+        changed = True
+        while changed:
+            changed = False
+            for suffix in _OPENAI_API_BASE_STRIP_SUFFIXES:
+                if stripped.endswith(suffix):
+                    stripped = stripped[: -len(suffix)].rstrip("/")
+                    changed = True
+                    break
+
+        if not stripped:
+            return None
+        # 官方域名（含裸 host 与 host/v1 两种写法）→ None 放行 litellm 内置 URL。
+        if stripped in (_OPENAI_DEFAULT_API_HOST, f"{_OPENAI_DEFAULT_API_HOST}/v1"):
+            return None
+        # 已显式带 /v1 结尾 → 不重复追加（含 https://gateway/v1、https://gateway/openai/v1 等）。
+        if stripped.endswith("/v1"):
+            return stripped
+        # URL 中段已含 /v1/（如 https://gateway/v1/custom）→ 恒等透传，避免双重 /v1。
+        if "/v1/" in stripped:
+            return stripped
+        # 默认：补齐 /v1，抵消 OpenAI SDK 仅拼 /chat/completions 的缺陷。
+        return f"{stripped}/v1"
+
+    return stripped
 
 
 async def _get_vendor_config(vendor: str) -> dict[str, str] | None:
