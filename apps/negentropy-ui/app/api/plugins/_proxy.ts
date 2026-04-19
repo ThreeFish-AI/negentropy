@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
+import { getAguiBaseUrl } from "@/lib/server/backend-url";
 
 /**
  * Plugins API 代理工具函数
@@ -7,12 +8,7 @@ import { buildAuthHeaders } from "@/lib/sso";
  * 用于将前端的 /api/plugins/* 请求代理到后端 /plugins/* API
  */
 
-function getBaseUrl() {
-  return (
-    process.env.AGUI_BASE_URL ||
-    process.env.NEXT_PUBLIC_AGUI_BASE_URL
-  );
-}
+const getBaseUrl = getAguiBaseUrl;
 
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);

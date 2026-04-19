@@ -3,17 +3,15 @@ import {
   errorResponse as aguiErrorResponse,
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
+import { getAguiBaseUrl } from "@/lib/server/backend-url";
 
+/**
+ * 返回类型保持 `string | Response` 以维持既有路由的接入形态。
+ * 在 SSOT helper 引入默认值之后，Response 分支实际不可达，
+ * 但保留该契约作为 defense-in-depth，避免批量修改调用方。
+ */
 export function getSessionAguiBaseUrl(): string | Response {
-  const baseUrl = process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
-  if (!baseUrl) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.INTERNAL_ERROR,
-      "AGUI_BASE_URL is not configured",
-    );
-  }
-
-  return baseUrl;
+  return getAguiBaseUrl();
 }
 
 export function buildSessionUpstreamHeaders(

@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
+import { getMemoryBaseUrl } from "@/lib/server/backend-url";
 
-function getBaseUrl() {
-  return (
-    process.env.MEMORY_BASE_URL ||
-    process.env.AGUI_BASE_URL ||
-    process.env.NEXT_PUBLIC_AGUI_BASE_URL
-  );
-}
+const getBaseUrl = getMemoryBaseUrl;
 
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);

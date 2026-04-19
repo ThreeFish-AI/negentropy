@@ -17,10 +17,7 @@ import {
   AGUI_ERROR_CODES,
 } from "@/lib/errors";
 import { normalizeAguiEvent, resolveEventRunAndThread } from "@/utils/agui-normalization";
-
-function getBaseUrl() {
-  return process.env.AGUI_BASE_URL || process.env.NEXT_PUBLIC_AGUI_BASE_URL;
-}
+import { getAguiBaseUrl } from "@/lib/server/backend-url";
 
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);
@@ -75,13 +72,7 @@ function normalizeEvent(
 }
 
 export async function POST(request: Request) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return aguiErrorResponse(
-      AGUI_ERROR_CODES.INTERNAL_ERROR,
-      "AGUI_BASE_URL is not configured",
-    );
-  }
+  const baseUrl = getAguiBaseUrl();
 
   let body: Record<string, unknown>;
   try {

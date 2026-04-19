@@ -10,7 +10,34 @@ describe("GET /api/knowledge/stats", () => {
     delete process.env.NEXT_PUBLIC_AGUI_BASE_URL;
   });
 
-  it("未配置后端地址时返回全零统计", async () => {
+  it("未显式配置后端地址时应回落到默认端口 :3292", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        total_calls: 1,
+        success_count: 1,
+        failed_count: 0,
+        avg_latency_ms: 10,
+      }),
+    } as Response);
+
+    const response = await GET(new NextRequest("http://localhost:3000/api/knowledge/stats"));
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
+    expect(calledUrl.startsWith("http://localhost:3292/knowledge/stats")).toBe(true);
+    expect(await response.json()).toEqual({
+      total_calls: 1,
+      success_count: 1,
+      failed_count: 0,
+      avg_latency_ms: 10,
+    });
+  });
+
+  it("后端不可达时 catch 分支仍降级返回全零统计", async () => {
+    vi.spyOn(global, "fetch").mockRejectedValue(new Error("ECONNREFUSED"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     const response = await GET(new NextRequest("http://localhost:3000/api/knowledge/stats"));
 
     expect(await response.json()).toEqual({
@@ -19,6 +46,7 @@ describe("GET /api/knowledge/stats", () => {
       failed_count: 0,
       avg_latency_ms: 0,
     });
+    errorSpy.mockRestore();
   });
 
   it("会透传 endpoint 参数到后端", async () => {
