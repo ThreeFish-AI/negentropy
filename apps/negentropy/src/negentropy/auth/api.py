@@ -427,11 +427,15 @@ async def ping_model(
     import time
 
     from negentropy.config.model_resolver import build_full_model_name
+    from negentropy.logging import get_logger
+
+    log = get_logger("negentropy.auth.api")
 
     full_model_name = build_full_model_name(payload.vendor, payload.model_name)
 
     effective_api_key = payload.api_key
     effective_api_base = payload.api_base or payload.config.get("api_base")
+    api_key_source = "payload" if payload.api_key else "env"
 
     if effective_api_key is None:
         from negentropy.models.vendor_config import VendorConfig
@@ -442,16 +446,25 @@ async def ping_model(
                 vc = result.scalar_one_or_none()
                 if vc:
                     effective_api_key = vc.api_key
+                    api_key_source = "db"
                     if not effective_api_base:
                         effective_api_base = vc.api_base
         except Exception:
-            from negentropy.logging import get_logger
-
-            get_logger("negentropy.auth.api").warning(
+            log.warning(
                 "ping_vendor_lookup_failed",
                 vendor=payload.vendor,
                 exc_info=True,
             )
+
+    log.info(
+        "model_ping_start",
+        vendor=payload.vendor,
+        model_name=payload.model_name,
+        full_model_name=full_model_name,
+        api_base=effective_api_base,
+        api_key_fingerprint=_mask_api_key(effective_api_key),
+        api_key_source=api_key_source,
+    )
 
     start_time = time.monotonic()
 
@@ -459,17 +472,35 @@ async def ping_model(
         result = await _ping_llm(full_model_name, effective_api_key, effective_api_base)
         latency_ms = int((time.monotonic() - start_time) * 1000)
         result["latency_ms"] = latency_ms
+        log.info(
+            "model_ping_ok",
+            vendor=payload.vendor,
+            model_name=payload.model_name,
+            latency_ms=latency_ms,
+        )
         return result
 
     except Exception as exc:
         latency_ms = int((time.monotonic() - start_time) * 1000)
         error_msg = _sanitize_error(str(exc))
+        log.warning(
+            "model_ping_failed",
+            vendor=payload.vendor,
+            model_name=payload.model_name,
+            latency_ms=latency_ms,
+            exc_type=type(exc).__name__,
+            exc_status=getattr(exc, "status_code", None),
+            exc_message=_sanitize_error(str(exc), max_len=500),
+            exc_info=True,
+        )
         if "AuthenticationError" in error_msg or "401" in error_msg:
             message = f"认证失败：API Key 无效或已过期。\n{error_msg}"
         elif "404" in error_msg or "NotFoundError" in error_msg:
             message = f"模型未找到：请检查 vendor/model_name 是否正确。\n{error_msg}"
+        elif "RateLimitError" in error_msg or "429" in error_msg:
+            message = f"请求过于频繁（429）：供应商已限流，请稍后重试。\n{error_msg}"
         elif "timeout" in error_msg.lower() or isinstance(exc, asyncio.TimeoutError):
-            message = "连接超时 (30s)，请检查网络或 API Base URL 配置。"
+            message = "连接超时 (5 min)，请检查网络或 API Base URL 配置。"
         else:
             message = f"Ping 失败：{error_msg}"
         return {"status": "error", "message": message, "latency_ms": latency_ms}
@@ -485,7 +516,14 @@ async def _ping_llm(
 
     import litellm
 
-    kwargs: dict[str, Any] = {"max_tokens": 20}
+    kwargs: dict[str, Any] = {
+        "max_tokens": 20,
+        # Ping 为健康检查，必须 fail-fast：禁用 litellm 与底层 SDK 的自动重试，
+        # 避免 1 次点击放大为 3 次请求、反向触发上游限流。
+        # num_retries=0 关闭 litellm 重试循环；max_retries=0 透传覆盖 openai SDK 默认 2。
+        "num_retries": 0,
+        "max_retries": 0,
+    }
     if api_key:
         kwargs["api_key"] = api_key
     if api_base:
@@ -497,7 +535,7 @@ async def _ping_llm(
             messages=[{"role": "user", "content": "Ping, give me a pong"}],
             **kwargs,
         ),
-        timeout=30.0,
+        timeout=300.0,  # 5 min：对齐 OpenAI SDK/LiteLLM 默认 600s，同时兼顾 UI 可用性
     )
     content = response.choices[0].message.content or ""
     return {"status": "ok", "message": f"Pong! {content.strip()[:100]}"}
