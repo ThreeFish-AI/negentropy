@@ -120,7 +120,7 @@ uv run adk web --port 8000 --reload_agents src/negentropy  # Start the engine
 ```bash
 cd apps/negentropy-ui
 pnpm install                   # Install dependencies
-pnpm run dev                   # Start development server (localhost:3333)
+pnpm run dev                   # Start development server (localhost:3192)
 ```
 
 ### 4. Set Up Pre-commit Hooks (Recommended)
@@ -139,7 +139,7 @@ pre-commit install
 
 ### 5. Initiate Dialogue
 
-Fire up your browser, head over to `http://localhost:3333`, and start conversing with the NegentropyEngine.
+Fire up your browser, head over to `http://localhost:3192`, and start conversing with the NegentropyEngine.
 
 > For comprehensive guides on environment setup, database migrations, frontend-backend integration, and troubleshooting, please refer to [docs/development.md](./docs/development.md).
 
