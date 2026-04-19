@@ -516,18 +516,23 @@ async def _ping_llm(
 
     import litellm
 
+    from negentropy.config.model_resolver import normalize_api_base_for_litellm
+
+    # `drop_params=True` 与 `_DEFAULT_LLM_KWARGS` 保持一致，防御 vendor 特有字段差异。
+    # Ping 为健康检查，必须 fail-fast：禁用 litellm 与底层 SDK 的自动重试，
+    # 避免 1 次点击放大为 3 次请求、反向触发上游限流。
+    # num_retries=0 关闭 litellm 重试循环；max_retries=0 透传覆盖 openai SDK 默认 2。
     kwargs: dict[str, Any] = {
         "max_tokens": 20,
-        # Ping 为健康检查，必须 fail-fast：禁用 litellm 与底层 SDK 的自动重试，
-        # 避免 1 次点击放大为 3 次请求、反向触发上游限流。
-        # num_retries=0 关闭 litellm 重试循环；max_retries=0 透传覆盖 openai SDK 默认 2。
+        "drop_params": True,
         "num_retries": 0,
         "max_retries": 0,
     }
     if api_key:
         kwargs["api_key"] = api_key
-    if api_base:
-        kwargs["api_base"] = api_base
+    normalized_api_base = normalize_api_base_for_litellm(model, api_base)
+    if normalized_api_base:
+        kwargs["api_base"] = normalized_api_base
 
     response = await asyncio.wait_for(
         litellm.acompletion(

@@ -154,7 +154,7 @@ async def _resolve_from_vendor_configs(model_type: str) -> tuple[str, dict[str, 
     vendor_config = await _get_vendor_config(vendor) if vendor else None
 
     if model_type == "embedding":
-        kwargs = _build_embedding_kwargs({}, vendor_config)
+        kwargs = _build_embedding_kwargs({}, vendor_config, full_model_name=full_name)
     else:
         # LLM 默认 kwargs 由 _DEFAULT_LLM_KWARGS 提供 (temperature/drop_params/thinking)
         # vendor 特定逻辑通过 _build_llm_kwargs 适配；此处合并以保留默认行为
@@ -186,6 +186,61 @@ def build_full_model_name(vendor: str, model_name: str) -> str:
 
     raw = f"{vendor}/{model_name}" if "/" not in model_name else model_name
     return canonicalize_model_name(raw) or raw
+
+
+# Google AI Studio 默认域名常量（litellm 内置默认指向同一地址）。
+_GEMINI_DEFAULT_API_HOST = "https://generativelanguage.googleapis.com"
+# 用户常误粘的路径后缀（来自 curl 示例或 OpenAI 兼容文档），归一化时需剥离。
+_GEMINI_API_BASE_STRIP_SUFFIXES: tuple[str, ...] = (
+    "/v1beta/openai/chat/completions",
+    "/v1beta/openai",
+    "/chat/completions",
+    "/generateContent",
+    "/v1beta",
+)
+
+
+def normalize_api_base_for_litellm(model: str, api_base: str | None) -> str | None:
+    """为 LiteLLM 规范化 Gemini 的 api_base，抵消其 URL 拼接对 /v1beta 的丢弃。
+
+    litellm 1.83.x 的 `_check_custom_proxy` 在 `custom_llm_provider=="gemini"` 且
+    `api_base` 非空时，以 `{api_base}/models/{model}:{endpoint}` 拼接目标 URL
+    (参见 `.venv/.../vertex_ai/vertex_llm_base.py:_check_custom_proxy`)，该格式
+    丢失了 Google 要求的 `/v1beta/` 版本段。直接透传 `api_base` 会让请求落到错误
+    路径，Google 边缘以 HTML 兜底页响应，进而触发 `GeminiException - Received=<!DOCTYPE html>`。
+
+    规则：
+    1. 非 `gemini/` 前缀模型 → 恒等返回，不修改。
+    2. `api_base` 为空/None → 返回 None，交给 litellm 默认链路。
+    3. 清洗尾斜杠与常见误粘后缀（`/generateContent`、`/chat/completions`、`/v1beta/openai`、`/v1beta`）。
+    4. 归一后等于 Google 默认域名 → 返回 None，让 litellm 走内置 URL（含 `/v1beta/`）。
+    5. 自建代理 / 私有网关 → 补齐 `/v1beta` 结尾，确保 litellm 拼出合法路径。
+    """
+    if api_base is None:
+        return None
+    stripped = api_base.strip().rstrip("/")
+    if not stripped:
+        return None
+    if not model.startswith("gemini/"):
+        return stripped
+
+    # 迭代剥离末尾噪声后缀（用户在 Base URL 字段粘贴了 curl 完整路径时尤其常见）。
+    changed = True
+    while changed:
+        changed = False
+        for suffix in _GEMINI_API_BASE_STRIP_SUFFIXES:
+            if stripped.endswith(suffix):
+                stripped = stripped[: -len(suffix)].rstrip("/")
+                changed = True
+                break
+
+    if not stripped:
+        return None
+    if stripped == _GEMINI_DEFAULT_API_HOST:
+        return None
+    if stripped.endswith("/v1beta"):
+        return stripped
+    return f"{stripped}/v1beta"
 
 
 async def _get_vendor_config(vendor: str) -> dict[str, str] | None:
@@ -251,13 +306,19 @@ def _build_llm_kwargs(
     effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
     if effective_api_key:
         kwargs["api_key"] = effective_api_key
-    if effective_api_base:
-        kwargs["api_base"] = effective_api_base
+    full_model = f"{vendor}/{model_name}" if vendor else model_name
+    normalized_api_base = normalize_api_base_for_litellm(full_model, effective_api_base)
+    if normalized_api_base:
+        kwargs["api_base"] = normalized_api_base
 
     return kwargs
 
 
-def _build_embedding_kwargs(config: dict[str, Any], vendor_config: dict[str, str] | None = None) -> dict[str, Any]:
+def _build_embedding_kwargs(
+    config: dict[str, Any],
+    vendor_config: dict[str, str] | None = None,
+    full_model_name: str | None = None,
+) -> dict[str, Any]:
     """从 DB config JSONB 构建 Embedding kwargs。"""
     kwargs: dict[str, Any] = {}
     if "dimensions" in config and config["dimensions"] is not None:
@@ -270,7 +331,8 @@ def _build_embedding_kwargs(config: dict[str, Any], vendor_config: dict[str, str
     effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
     if effective_api_key:
         kwargs["api_key"] = effective_api_key
-    if effective_api_base:
-        kwargs["api_base"] = effective_api_base
+    normalized_api_base = normalize_api_base_for_litellm(full_model_name or "", effective_api_base)
+    if normalized_api_base:
+        kwargs["api_base"] = normalized_api_base
 
     return kwargs
