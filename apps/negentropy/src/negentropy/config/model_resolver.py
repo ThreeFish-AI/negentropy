@@ -257,6 +257,93 @@ def _build_llm_kwargs(
     return kwargs
 
 
+# 规则依据各 vendor 的 api_base 约定（LiteLLM 会在 base 之后自动拼接端点）：
+#   - OpenAI 兼容：api_base 形如 `https://host/v1`，LiteLLM 会附加 `/chat/completions`；
+#     故用户误贴的 `/chat/completions` 应被剥离，保留 `/v1`。
+#   - Anthropic：api_base 形如 `https://api.anthropic.com`，LiteLLM 附加 `/v1/messages`；
+#     故误贴的 `/v1/messages` 应被整体剥离，不能保留 `/v1`。
+# 为避免短后缀抢先匹配（例如 `/messages` 命中 `/v1/messages` 中的尾段但留下残缺的 `/v1`），
+# 长后缀位于列表前端，依赖 break-per-iteration 的策略确保长后缀优先匹配。
+_API_BASE_REDUNDANT_SUFFIXES: tuple[str, ...] = (
+    "/v1/messages",
+    "/chat/completions",
+    "/completions",
+)
+
+
+def normalize_api_base(api_base: str | None) -> str | None:
+    """规范化 api_base — 防御性移除用户误贴的端点路径后缀。
+
+    用户在 Admin UI 配置 Base URL 时，偶有将完整端点（如
+    `http://llms.as-in.io/v1/chat/completions`）误填为 Base URL 的情况，
+    导致 LiteLLM 再次拼接 `/chat/completions` 造成 404。此函数以幂等方式
+    去除常见冗余后缀与尾部斜杠，不影响合法配置（形如 `https://host/v1`）。
+
+    剥离策略：在同一循环内交错处理「尾部斜杠」与「冗余后缀」，直至稳定，
+    以覆盖形如 `http://x/v1/chat/completions/` 这样「斜杠 + 后缀」交错出现
+    的组合情况。
+    """
+    if api_base is None:
+        return None
+    trimmed = api_base.strip()
+    if not trimmed:
+        return None
+
+    changed = True
+    while changed:
+        changed = False
+        if trimmed.endswith("/"):
+            trimmed = trimmed.rstrip("/")
+            changed = True
+            continue
+        for suffix in _API_BASE_REDUNDANT_SUFFIXES:
+            if trimmed.endswith(suffix):
+                trimmed = trimmed[: -len(suffix)]
+                changed = True
+                break
+
+    return trimmed or None
+
+
+def build_ping_llm_kwargs(
+    vendor: str,
+    model_name: str,
+    *,
+    api_key_override: str | None = None,
+    api_base_override: str | None = None,
+    vendor_config: dict[str, str] | None = None,
+    max_tokens: int | None = 20,
+) -> dict[str, Any]:
+    """构造 Admin Ping 使用的 LiteLLM kwargs，复用业务主链路的 _build_llm_kwargs。
+
+    合并顺序：
+      1) _build_llm_kwargs(vendor, model_name, config={}, vendor_config)
+         — 注入 vendor 特定适配（Anthropic thinking disabled / OpenAI o-系 reasoning）
+           以及 vendor_config 凭证；
+      2) setdefault("drop_params", True)
+         — Ping 语义的核心保护：gpt-5 / o-系等新模型对 max_tokens、temperature 有
+           严格约束；drop_params=True 允许 LiteLLM 自动剔除或映射不兼容参数；
+      3) 覆盖 api_key / api_base（若显式提供，normalize_api_base 已应用）；
+      4) 附加 max_tokens（若非 None）。
+
+    注意：故意不合并 _DEFAULT_LLM_KWARGS["temperature"]。temperature 与具体模型合法取值耦合
+    （如 gpt-5-mini 仅接受 1），Ping 阶段不应注入默认值，交由服务端缺省处理。
+    """
+    kwargs = _build_llm_kwargs(vendor, model_name, {}, vendor_config)
+    kwargs.setdefault("drop_params", True)
+
+    normalized_api_base = normalize_api_base(api_base_override)
+    if api_key_override:
+        kwargs["api_key"] = api_key_override
+    if normalized_api_base:
+        kwargs["api_base"] = normalized_api_base
+
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
+
+    return kwargs
+
+
 def _build_embedding_kwargs(config: dict[str, Any], vendor_config: dict[str, str] | None = None) -> dict[str, Any]:
     """从 DB config JSONB 构建 Embedding kwargs。"""
     kwargs: dict[str, Any] = {}
