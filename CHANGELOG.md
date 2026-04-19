@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复 `adk web` 启动时 `MemoryAutomationFunctionResponse` 触发的 Pydantic `UserWarning: Field name "schema" in "MemoryAutomationFunctionResponse" shadows an attribute in parent "BaseModel"`：将 Python 属性名改为 `schema_name`，通过 `Field(alias="schema", serialization_alias="schema")` + `model_config = ConfigDict(populate_by_name=True)` 保持线协议（wire format）键名 `"schema"` 不变，前端 TS 类型与后端 SQL 数据零改动。
+- 补齐 `opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0` 依赖，消除 ADK `adk_web_server` 启动期 `Unable to import GoogleGenAiSdkInstrumentor` WARNING，恢复 Google GenAI SDK 的 OTel 自动埋点，与现有 Langfuse OTel 链路打通。
+- 站点级安静化两类先于 `negentropy.bootstrap` 触发的上游启动噪声（`AuthlibDeprecationWarning: authlib.jose module is deprecated` 与 `[EXPERIMENTAL] feature FeatureName.PLUGGABLE_AUTH is enabled`）：通过 `apps/negentropy/src/_negentropy_silence.pth`（hatchling `force-include` 至 site-packages 根）+ `negentropy/_silence_upstream_warnings.py` 在解释器 site 初始化期替换 `warnings.showwarning`，按消息子串白名单丢弃噪声；不影响任何其他告警通道，对 `authlib.deprecate` 的 `simplefilter("always", AuthlibDeprecationWarning)` 免疫（在 filter 之后的 showwarning 层拦截）。
+
 ### Removed
 
 - 删除 `apps/negentropy/.env.example`（197 行）：其承载的全部非密钥配置项已在 `config.default.yaml` 中以结构化 YAML 形式表达，密钥类条目改为通过 shell 环境变量或 `.env.local` 提供。

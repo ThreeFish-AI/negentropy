@@ -31,7 +31,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 
 from negentropy.auth.deps import get_current_user
@@ -145,8 +145,10 @@ class MemoryDashboardResponse(BaseModel):
 
 
 class MemoryAutomationFunctionResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str
-    schema: str
+    schema_name: str = Field(alias="schema", serialization_alias="schema")
     status: str
     definition: str
     managed: bool = True
