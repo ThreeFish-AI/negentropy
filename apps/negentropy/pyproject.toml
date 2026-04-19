@@ -5,6 +5,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/negentropy"]
 
+[tool.hatch.build.targets.wheel.force-include]
+# 将 .pth 文件安装到 site-packages 根目录, 触发解释器 site 初始化期的早期 hook 加载
+# 用于在 ADK CLI 加载第三方依赖前抑制两类已知上游噪声 (authlib.jose / PLUGGABLE_AUTH)
+"src/_negentropy_silence.pth" = "_negentropy_silence.pth"
+
 [project]
 name = "negentropy"
 version = "0.1.0"
@@ -20,6 +25,7 @@ dependencies = [
     
     # Core Infrastructure
     "google-adk>=1.28.1",           # GHSA-rg7c-g689-fr3x: code injection + missing auth on adk web/api_server eval endpoints
+    "opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0",  # ADK GenAI SDK OTel 自动埋点 (消除 adk_web_server 启动期 WARNING)
     "microsandbox>=0.1.8",          # Isolated execution environment for tool usage
     "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
     "pydantic-settings[yaml]>=2.12.0",  # Configuration management with YAML support
