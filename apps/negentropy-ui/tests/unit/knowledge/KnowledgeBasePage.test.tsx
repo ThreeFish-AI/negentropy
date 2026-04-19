@@ -175,6 +175,7 @@ describe("KnowledgeBasePage", () => {
     resetKnowledgeFeatureMocks(knowledgeMocks);
     resetKnowledgeBasePageLocalMocks(localMocks);
     primeKnowledgeBasePageLocalMocks(localMocks);
+    knowledgeMocks.fetchModelConfigsMock.mockResolvedValue([]);
     useKnowledgeBaseMock.mockImplementation(() => buildKnowledgeBaseHookState(localMocks));
   });
 
