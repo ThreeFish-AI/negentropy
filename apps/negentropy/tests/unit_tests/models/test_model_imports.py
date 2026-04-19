@@ -105,14 +105,11 @@ class TestBackwardCompatPulseImports:
         assert US1 is US2
 
     def test_pulse_core_models_intact(self):
-        """pulse.py 的核心模型（Thread/Event/Run/Message/Snapshot）仍在原位。"""
-        from negentropy.models.pulse import Event, Message, Run, Snapshot, Thread
+        """pulse.py 的核心模型（Thread/Event）仍在原位。"""
+        from negentropy.models.pulse import Event, Thread
 
         assert Thread.__tablename__ == "threads"
         assert Event.__tablename__ == "events"
-        assert Run.__tablename__ == "runs"
-        assert Message.__tablename__ == "messages"
-        assert Snapshot.__tablename__ == "snapshots"
 
 
 class TestVectorConstant:

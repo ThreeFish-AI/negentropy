@@ -47,18 +47,3 @@ class ToolExecution(Base, UUIDMixin):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     tool: Mapped["Tool"] = relationship(back_populates="executions")
-
-
-class SandboxExecution(Base, UUIDMixin):
-    __tablename__ = "sandbox_executions"
-
-    run_id: Mapped[UUID | None] = mapped_column()
-    sandbox_type: Mapped[str | None] = mapped_column(String(50))
-    code: Mapped[str | None] = mapped_column(Text)
-    environment: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    stdout: Mapped[str | None] = mapped_column(Text)
-    stderr: Mapped[str | None] = mapped_column(Text)
-    exit_code: Mapped[int | None] = mapped_column(Integer)
-    execution_time_ms: Mapped[float | None] = mapped_column(Float)
-    resource_usage: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
