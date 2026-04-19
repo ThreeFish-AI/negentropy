@@ -9,7 +9,9 @@ import {
   normalizeChunkingConfig,
   normalizeCorpusExtractorRoutes,
   normalizeExtractorDraftRoutes,
+  separatorsArrayEqual,
 } from "@/features/knowledge/utils/knowledge-api";
+import { SeparatorsTextarea } from "@/features/knowledge/components/SeparatorsTextarea";
 import {
   buildPipelineErrorDetails,
   calculateStageWidth,
@@ -123,12 +125,14 @@ export function createKnowledgeConfigTestExports() {
     createDefaultChunkingConfig,
     encodeSeparatorsForDisplay,
     decodeSeparatorsFromInput,
+    separatorsArrayEqual,
     normalizeChunkingConfig,
     normalizeCorpusExtractorRoutes,
     createEmptyExtractorDraftTarget,
     normalizeExtractorDraftRoutes,
     buildExtractorRoutesFromDraft,
     buildCorpusConfig,
+    SeparatorsTextarea,
     OPERATION_LABELS,
     STAGE_LABELS,
     getPipelineStatusColor,

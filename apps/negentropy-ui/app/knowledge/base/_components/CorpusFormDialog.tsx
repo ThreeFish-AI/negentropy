@@ -7,8 +7,7 @@ import {
   ChunkingStrategy,
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
-  encodeSeparatorsForDisplay,
-  decodeSeparatorsFromInput,
+  SeparatorsTextarea,
 } from "@/features/knowledge";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
@@ -257,16 +256,13 @@ export function CorpusFormDialog({
                       <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
                         Separators (one per line)
                       </label>
-                      <textarea
+                      <SeparatorsTextarea
                         className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
                         rows={4}
                         placeholder={"\\n"}
-                        value={encodeSeparatorsForDisplay(config.separators)}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            separators: decodeSeparatorsFromInput(e.target.value),
-                          })
+                        value={config.separators}
+                        onChange={(separators) =>
+                          setConfig({ ...config, separators })
                         }
                       />
                     </div>
@@ -411,16 +407,13 @@ export function CorpusFormDialog({
                       <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
                         Separators (one per line)
                       </label>
-                      <textarea
+                      <SeparatorsTextarea
                         className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
                         rows={4}
                         placeholder={"\\n"}
-                        value={encodeSeparatorsForDisplay(config.separators)}
-                        onChange={(e) =>
-                          setConfig({
-                            ...config,
-                            separators: decodeSeparatorsFromInput(e.target.value),
-                          })
+                        value={config.separators}
+                        onChange={(separators) =>
+                          setConfig({ ...config, separators })
                         }
                       />
                     </div>
