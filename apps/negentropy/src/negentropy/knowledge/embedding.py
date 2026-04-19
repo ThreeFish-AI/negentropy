@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
+from uuid import UUID
 
 from negentropy.logging import get_logger
 
@@ -125,15 +126,26 @@ async def _call_with_retry(
     raise last_exc
 
 
-async def _resolve_embedding() -> tuple[str, dict]:
-    """解析 Embedding 模型配置 (DB 优先, .env 回退)。"""
-    from negentropy.config.model_resolver import resolve_embedding_config
+async def _resolve_embedding(embedding_config_id: UUID | str | None = None) -> tuple[str, dict]:
+    """解析 Embedding 模型配置。
 
+    优先按 `embedding_config_id` 从 model_configs 表解析；行不可用时回退到默认解析。
+    """
+    from negentropy.config.model_resolver import (
+        resolve_embedding_config,
+        resolve_embedding_config_by_id,
+    )
+
+    if embedding_config_id is not None:
+        return await resolve_embedding_config_by_id(embedding_config_id)
     return await resolve_embedding_config()
 
 
-def build_embedding_fn() -> EmbeddingFn:
+def build_embedding_fn(embedding_config_id: UUID | str | None = None) -> EmbeddingFn:
     """构建单条文本向量化函数
+
+    Args:
+        embedding_config_id: 可选 model_configs.id；None 表示使用全局默认 embedding 模型。
 
     Returns:
         异步 embedding 函数
@@ -147,7 +159,7 @@ def build_embedding_fn() -> EmbeddingFn:
         if not cleaned:
             return []
 
-        model_name, extra_kwargs = await _resolve_embedding()
+        model_name, extra_kwargs = await _resolve_embedding(embedding_config_id)
 
         try:
             import litellm
@@ -192,11 +204,14 @@ def build_embedding_fn() -> EmbeddingFn:
     return embed
 
 
-def build_batch_embedding_fn() -> BatchEmbeddingFn:
+def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> BatchEmbeddingFn:
     """构建批量文本向量化函数
 
     利用 litellm.aembedding 的 input 列表参数，
     一次 API 调用完成多条文本的向量化。
+
+    Args:
+        embedding_config_id: 可选 model_configs.id；None 表示使用全局默认 embedding 模型。
 
     Returns:
         异步批量 embedding 函数
@@ -211,7 +226,7 @@ def build_batch_embedding_fn() -> BatchEmbeddingFn:
         if not texts:
             return []
 
-        model_name, extra_kwargs = await _resolve_embedding()
+        model_name, extra_kwargs = await _resolve_embedding(embedding_config_id)
 
         # Split texts into batches
         batches = [texts[i : i + MAX_BATCH_SIZE] for i in range(0, len(texts), MAX_BATCH_SIZE)]
