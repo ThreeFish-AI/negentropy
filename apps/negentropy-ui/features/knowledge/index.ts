@@ -72,6 +72,8 @@ export {
   replaceDocument,
   archiveDocument,
   unarchiveDocument,
+  // Model Configs
+  fetchModelConfigs,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,
@@ -118,6 +120,8 @@ export type {
   ExtractorDraftTarget,
   ExtractorDraftRoute,
   ExtractorDraftRoutes,
+  ModelConfigItem,
+  CorpusModelsConfig,
   KnowledgeMatch,
   KnowledgeGraphPayload,
   KnowledgePipelinesPayload,

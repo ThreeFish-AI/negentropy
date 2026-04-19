@@ -519,6 +519,7 @@ export interface CorpusRecord {
   description?: string;
   knowledge_count: number;
   config?: Record<string, unknown>;
+  rebuild_triggered?: { count: number; run_ids: string[] } | null;
 }
 
 export type ExtractorSourceKind = "url" | "file_pdf";
@@ -541,6 +542,22 @@ export type CorpusExtractorTargets = McpExtractorTargetConfig[];
 export type ExtractorDraftTarget = McpExtractorTargetConfig;
 export type ExtractorDraftRoute = [ExtractorDraftTarget, ExtractorDraftTarget];
 export type ExtractorDraftRoutes = Record<CorpusExtractorRouteKey, ExtractorDraftRoute>;
+
+export interface ModelConfigItem {
+  id: string;
+  model_type: "llm" | "embedding" | "rerank";
+  display_name: string;
+  vendor: string;
+  model_name: string;
+  is_default: boolean;
+  enabled: boolean;
+  config: Record<string, unknown>;
+}
+
+export interface CorpusModelsConfig {
+  llm_config_id?: string | null;
+  embedding_config_id?: string | null;
+}
 
 export interface CorpusExtractorRoutes {
   url?: CorpusExtractorRouteConfig;
@@ -658,14 +675,22 @@ export function buildExtractorRoutesFromDraft(
 export function buildCorpusConfig(
   chunkingConfig: ChunkingConfig,
   extractorRoutes?: CorpusExtractorRoutes | NormalizedCorpusExtractorRoutes,
+  models?: CorpusModelsConfig | null,
 ): Record<string, unknown> {
-  return {
+  const result: Record<string, unknown> = {
     ...(chunkingConfig as unknown as Record<string, unknown>),
     extractor_routes: {
       url: { targets: extractorRoutes?.url?.targets || [] },
       file_pdf: { targets: extractorRoutes?.file_pdf?.targets || [] },
     },
   };
+  if (models) {
+    const clean: Record<string, string> = {};
+    if (models.llm_config_id) clean.llm_config_id = models.llm_config_id;
+    if (models.embedding_config_id) clean.embedding_config_id = models.embedding_config_id;
+    if (Object.keys(clean).length > 0) result.models = clean;
+  }
+  return result;
 }
 
 export interface KnowledgeMatch {
@@ -952,6 +977,22 @@ export async function fetchDashboard(
 // ============================================================================
 // Corpus (Knowledge Base)
 // ============================================================================
+
+export async function fetchModelConfigs(params?: {
+  modelType?: string;
+  enabled?: boolean;
+}): Promise<ModelConfigItem[]> {
+  const qs = new URLSearchParams();
+  if (params?.modelType) qs.set("model_type", params.modelType);
+  if (params?.enabled !== undefined) qs.set("enabled", String(params.enabled));
+  const query = qs.toString();
+  const res = await fetch(`/api/auth/admin/model-configs${query ? `?${query}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch model configs: ${res.statusText}`);
+  const data = await res.json();
+  return data.items || [];
+}
 
 export async function fetchCorpora(appName?: string): Promise<CorpusRecord[]> {
   const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
