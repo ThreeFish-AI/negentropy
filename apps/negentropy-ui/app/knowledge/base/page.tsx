@@ -43,8 +43,7 @@ import {
   deleteDocument,
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
-  encodeSeparatorsForDisplay,
-  decodeSeparatorsFromInput,
+  SeparatorsTextarea,
   PipelineStatusBadge,
 } from "@/features/knowledge";
 
@@ -345,13 +344,10 @@ function ChunkingStrategyPanel({
             </label>
             <label className="text-xs md:col-span-2">
               <div className="mb-1 text-muted">Separators（每行一个）</div>
-              <textarea
-                value={encodeSeparatorsForDisplay(config.separators)}
-                onChange={(e) =>
-                  updateConfig({
-                    ...config,
-                    separators: decodeSeparatorsFromInput(e.target.value),
-                  })
+              <SeparatorsTextarea
+                value={config.separators}
+                onChange={(separators) =>
+                  updateConfig({ ...config, separators })
                 }
                 rows={3}
                 placeholder={"\\n"}
@@ -487,13 +483,10 @@ function ChunkingStrategyPanel({
           </div>
           <label className="text-xs">
             <div className="mb-1 text-muted">Separators（每行一个）</div>
-            <textarea
-              value={encodeSeparatorsForDisplay(config.separators)}
-              onChange={(e) =>
-                updateConfig({
-                  ...config,
-                  separators: decodeSeparatorsFromInput(e.target.value),
-                })
+            <SeparatorsTextarea
+              value={config.separators}
+              onChange={(separators) =>
+                updateConfig({ ...config, separators })
               }
               rows={3}
               placeholder={"\\n"}

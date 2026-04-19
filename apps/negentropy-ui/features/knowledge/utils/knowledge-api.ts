@@ -147,6 +147,24 @@ function normalizeSeparatorsArray(value: unknown, fallback: string[]): string[] 
   return (value as unknown[]).map((s) => decodeLiteralEscapesIfNeeded(String(s)));
 }
 
+/**
+ * 逐元素比较两个 separators 数组的语义等价性。
+ *
+ * 用于受控文本域判别「外部 value 变化」是自身键入 round-trip 的回写还是真外部更新
+ * （策略切换重置 defaults 等），避免以数组引用为判据导致的无谓重同步。
+ */
+export function separatorsArrayEqual(
+  a: readonly string[],
+  b: readonly string[],
+): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 export function createDefaultChunkingConfig(
   strategy: ChunkingStrategy = "recursive",
 ): ChunkingConfig {
