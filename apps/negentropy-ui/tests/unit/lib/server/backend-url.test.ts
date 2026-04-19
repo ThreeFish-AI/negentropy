@@ -25,7 +25,6 @@ function clearBackendEnv(): void {
 }
 
 describe("backend-url SSOT helper", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -37,7 +36,7 @@ describe("backend-url SSOT helper", () => {
   afterEach(() => {
     warnSpy.mockRestore();
     clearBackendEnv();
-    process.env.NODE_ENV = originalNodeEnv;
+    vi.unstubAllEnvs();
     __resetLegacyPortWarningsForTests();
   });
 
@@ -119,7 +118,7 @@ describe("backend-url SSOT helper", () => {
 
   describe("legacy port 迁移守护（开发模式）", () => {
     beforeEach(() => {
-      process.env.NODE_ENV = "development";
+      vi.stubEnv("NODE_ENV", "development");
     });
 
     it("localhost:6600 应被重写为 :3292 并打印一次迁移告警", () => {
@@ -165,7 +164,7 @@ describe("backend-url SSOT helper", () => {
 
   describe("legacy port 迁移守护（生产模式）", () => {
     beforeEach(() => {
-      process.env.NODE_ENV = "production";
+      vi.stubEnv("NODE_ENV", "production");
     });
 
     it("localhost:6600 在生产环境仅告警、不改写", () => {
