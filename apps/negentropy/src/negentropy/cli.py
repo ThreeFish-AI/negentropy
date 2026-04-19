@@ -48,7 +48,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         env["NE_CONFIG_PATH"] = str(config_path)
 
     # Determine port and host
-    port = args.port or 6600
+    port = args.port or 3292
     host = args.host or "0.0.0.0"
 
     # Build adk web command
@@ -88,7 +88,7 @@ def main() -> None:
 
     # serve subcommand
     serve_parser = subparsers.add_parser("serve", help="启动 ADK Web 服务器")
-    serve_parser.add_argument("--port", type=int, default=6600, help="服务器端口 (默认: 6600)")
+    serve_parser.add_argument("--port", type=int, default=3292, help="服务器端口 (默认: 3292)")
     serve_parser.add_argument("--host", default="0.0.0.0", help="绑定地址 (默认: 0.0.0.0)")
     serve_parser.add_argument("--no-reload", action="store_true", help="禁用热重载")
 

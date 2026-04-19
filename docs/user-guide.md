@@ -196,7 +196,7 @@ pnpm install
 pnpm run dev
 ```
 
-> 前端启动后访问 `http://localhost:3333` 即可进入 Negentropy 主界面。
+> 前端启动后访问 `http://localhost:3192` 即可进入 Negentropy 主界面。
 
 ### 2.4 首次对话
 
@@ -206,7 +206,7 @@ sequenceDiagram
     participant UI as 🖥️ 前端界面
     participant BE as ⚙️ 后端引擎
 
-    U->>UI: 打开 localhost:3333
+    U->>UI: 打开 localhost:3192
     UI->>UI: 显示三栏布局<br/>（Session 列表 / 聊天区 / 调试面板）
     U->>UI: 在 Composer 输入框输入消息
     UI->>BE: 自动创建 Session<br/>发送用户消息
@@ -216,7 +216,7 @@ sequenceDiagram
     U->>UI: 阅读 Agent 回复<br/>查看右侧调试信息
 ```
 
-打开浏览器访问 `http://localhost:3333`，你会看到三栏布局的对话界面：
+打开浏览器访问 `http://localhost:3192`，你会看到三栏布局的对话界面：
 
 - **左侧**：Session 列表（当前为空）
 - **中间**：聊天区域 + 底部输入框（Composer）

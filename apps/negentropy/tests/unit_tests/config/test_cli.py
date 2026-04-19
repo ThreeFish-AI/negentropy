@@ -78,7 +78,7 @@ class TestServeCommand:
 
         class Args:
             config = str(tmp_path / "nonexistent.yaml")
-            port = 6600
+            port = 3292
             host = "0.0.0.0"
             no_reload = False
 

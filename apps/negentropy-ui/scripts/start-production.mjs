@@ -77,7 +77,7 @@ function prepareStandaloneRuntime(projectRoot) {
 }
 
 /* 应用默认端口与主机名（可被外部环境变量覆盖） */
-process.env.PORT ??= "3333";
+process.env.PORT ??= "3192";
 process.env.HOSTNAME ??= "localhost";
 
 const projectRoot = process.cwd();
