@@ -22,18 +22,18 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import select, text, update
+from google.adk.memory.base_memory_service import (
+    BaseMemoryService,
+    MemoryEntry,
+    SearchMemoryResponse,
+)
 
 # ADK 官方类型
 from google.adk.sessions import Session as ADKSession
-from google.adk.memory.base_memory_service import (
-    BaseMemoryService,
-    SearchMemoryResponse,
-    MemoryEntry,
-)
+from sqlalchemy import select, text, update
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
@@ -60,7 +60,7 @@ class PostgresMemoryService(BaseMemoryService):
     2. 基于 Hybrid Search 检索相关记忆 (语义 + BM25 融合)
     """
 
-    def __init__(self, embedding_fn: Optional[callable] = None, consolidation_worker=None):
+    def __init__(self, embedding_fn: callable | None = None, consolidation_worker=None):
         self._embedding_fn = embedding_fn  # 向量化函数
         self._consolidation_worker = consolidation_worker  # Phase 2 Worker
 
@@ -412,7 +412,7 @@ class PostgresMemoryService(BaseMemoryService):
 
         try:
             async with db_session.AsyncSessionLocal() as db:
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 # 批量更新 access_count 和 last_accessed_at
                 stmt = (
                     update(Memory)
@@ -443,7 +443,7 @@ class PostgresMemoryService(BaseMemoryService):
         for m in memories_data:
             content_val = {"parts": [{"text": m["content"]}]}
             created_at = m.get("created_at")
-            timestamp = created_at.isoformat() if created_at else datetime.now(timezone.utc).isoformat()
+            timestamp = created_at.isoformat() if created_at else datetime.now(UTC).isoformat()
 
             memories.append(
                 MemoryEntry(
@@ -478,7 +478,7 @@ class PostgresMemoryService(BaseMemoryService):
                     id=str(m.id),
                     content=content_val,
                     author="system",
-                    timestamp=m.created_at.isoformat() if m.created_at else datetime.now(timezone.utc).isoformat(),
+                    timestamp=m.created_at.isoformat() if m.created_at else datetime.now(UTC).isoformat(),
                     relevance_score=m.retention_score,
                     custom_metadata=m.metadata_ or {},
                 )

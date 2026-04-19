@@ -3,8 +3,6 @@
 纯 Python 导入级测试，不需要数据库连接。
 """
 
-import pytest
-
 
 class TestBarrelExports:
     """__init__.py 的 barrel export 完整性验证。"""
@@ -63,7 +61,7 @@ class TestBackwardCompatPluginImports:
         """新子模块的直接导入路径可用。"""
         from negentropy.models.mcp import McpServer, McpTool
         from negentropy.models.mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
-        from negentropy.models.plugin_common import PluginPermission, PluginPermissionType, PluginVisibility
+        from negentropy.models.plugin_common import PluginPermission
         from negentropy.models.skill import Skill
         from negentropy.models.sub_agent import SubAgent
 
@@ -107,14 +105,11 @@ class TestBackwardCompatPulseImports:
         assert US1 is US2
 
     def test_pulse_core_models_intact(self):
-        """pulse.py 的核心模型（Thread/Event/Run/Message/Snapshot）仍在原位。"""
-        from negentropy.models.pulse import Event, Message, Run, Snapshot, Thread
+        """pulse.py 的核心模型（Thread/Event）仍在原位。"""
+        from negentropy.models.pulse import Event, Thread
 
         assert Thread.__tablename__ == "threads"
         assert Event.__tablename__ == "events"
-        assert Run.__tablename__ == "runs"
-        assert Message.__tablename__ == "messages"
-        assert Snapshot.__tablename__ == "snapshots"
 
 
 class TestVectorConstant:
@@ -140,7 +135,9 @@ class TestKnowledgeRunMixin:
         shared_fields = {"app_name", "run_id", "status", "payload", "idempotency_key", "version"}
         for cls in [KnowledgeGraphRun, KnowledgePipelineRun]:
             model_columns = {c.key for c in cls.__table__.columns}
-            assert shared_fields.issubset(model_columns), f"{cls.__name__} missing fields: {shared_fields - model_columns}"
+            assert shared_fields.issubset(model_columns), (
+                f"{cls.__name__} missing fields: {shared_fields - model_columns}"
+            )
 
     def test_distinct_tablenames(self):
         from negentropy.models.knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun

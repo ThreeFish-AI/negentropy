@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Dict, Iterable, List, Literal, Mapping, Optional, TypeAlias
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationInfo, field_validator, model_validator
@@ -22,7 +23,6 @@ from .constants import (
     MAX_OVERLAP_RATIO,
     MIN_CHUNK_SIZE,
 )
-
 
 SearchMode = Literal["semantic", "keyword", "hybrid", "rrf"]
 GraphSearchMode = Literal["semantic", "graph", "hybrid"]
@@ -49,8 +49,8 @@ class CorpusSpec:
 
     app_name: str
     name: str
-    description: Optional[str] = None
-    config: Dict[str, Any] = field(default_factory=dict)
+    description: str | None = None
+    config: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -63,8 +63,8 @@ class CorpusRecord:
     id: UUID
     app_name: str
     name: str
-    description: Optional[str]
-    config: Dict[str, Any]
+    description: str | None
+    config: dict[str, Any]
     created_at: datetime
     updated_at: datetime
 
@@ -77,10 +77,10 @@ class KnowledgeChunk:
     """
 
     content: str
-    source_uri: Optional[str] = None
+    source_uri: str | None = None
     chunk_index: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    embedding: Optional[List[float]] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    embedding: list[float] | None = None
 
 
 @dataclass(frozen=True)
@@ -94,23 +94,23 @@ class KnowledgeRecord:
     corpus_id: UUID
     app_name: str
     content: str
-    source_uri: Optional[str]
+    source_uri: str | None
     chunk_index: int
     character_count: int = 0
     retrieval_count: int = 0
     is_enabled: bool = True
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    embedding: Optional[List[float]] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    embedding: list[float] | None = None
 
 
 @dataclass(frozen=True)
 class SourceSummary:
     """Source 聚合摘要"""
 
-    source_uri: Optional[str]
-    display_name: Optional[str]
+    source_uri: str | None
+    display_name: str | None
     count: int
     archived: bool
     source_type: Literal["file", "url", "text", "unknown"]
@@ -122,8 +122,8 @@ class SourceSummary:
 
 
 def infer_source_type(
-    source_uri: Optional[str],
-    metadata: Optional[Dict[str, Any]] = None,
+    source_uri: str | None,
+    metadata: dict[str, Any] | None = None,
 ) -> Literal["file", "url", "text", "unknown"]:
     """推断来源类型
 
@@ -143,9 +143,9 @@ def infer_source_type(
 
 def normalize_source_metadata(
     *,
-    source_uri: Optional[str],
-    metadata: Optional[Dict[str, Any]],
-) -> Dict[str, Any]:
+    source_uri: str | None,
+    metadata: dict[str, Any] | None,
+) -> dict[str, Any]:
     """规范化来源元数据
 
     确保 metadata 中包含有效的 source_type 字段。
@@ -166,8 +166,8 @@ class KnowledgeMatch:
 
     id: UUID
     content: str
-    source_uri: Optional[str]
-    metadata: Dict[str, Any]
+    source_uri: str | None
+    metadata: dict[str, Any]
     retrieval_count: int = 0
     is_enabled: bool = True
     semantic_score: float = 0.0
@@ -212,10 +212,11 @@ class _ChunkingConfigWithSeparators(_ChunkingConfigBase):
 
     @field_validator("separators")
     @classmethod
-    def validate_separators(cls, v: List[str] | tuple[str, ...]) -> tuple[str, ...]:
-        normalized = [item for item in (s.strip() for s in v) if item]
-        deduped: List[str] = []
-        for item in normalized:
+    def validate_separators(cls, v: list[str] | tuple[str, ...]) -> tuple[str, ...]:
+        deduped: list[str] = []
+        for item in v:
+            if item is None or item == "":
+                continue
             if item not in deduped:
                 deduped.append(item)
         return tuple(deduped)
@@ -269,7 +270,7 @@ class SemanticChunkingConfig(_ChunkingConfigBase):
         return v
 
     @model_validator(mode="after")
-    def validate_semantic_relationships(self) -> "SemanticChunkingConfig":
+    def validate_semantic_relationships(self) -> SemanticChunkingConfig:
         if self.min_chunk_size > self.max_chunk_size:
             raise ValueError(
                 f"min_chunk_size ({self.min_chunk_size}) must be <= max_chunk_size ({self.max_chunk_size})"
@@ -303,7 +304,7 @@ class HierarchicalChunkingConfig(_ChunkingConfigWithSeparators):
         return v
 
     @model_validator(mode="after")
-    def validate_hierarchical_relationships(self) -> "HierarchicalChunkingConfig":
+    def validate_hierarchical_relationships(self) -> HierarchicalChunkingConfig:
         if self.hierarchical_parent_chunk_size < self.hierarchical_child_chunk_size:
             raise ValueError("hierarchical_parent_chunk_size must be >= hierarchical_child_chunk_size")
         if self.hierarchical_child_overlap >= self.hierarchical_child_chunk_size:
@@ -318,7 +319,7 @@ class HierarchicalChunkingConfig(_ChunkingConfigWithSeparators):
         return self
 
 
-ChunkingConfigValue: TypeAlias = Annotated[
+type ChunkingConfigValue = Annotated[
     FixedChunkingConfig | RecursiveChunkingConfig | SemanticChunkingConfig | HierarchicalChunkingConfig,
     Field(discriminator="strategy"),
 ]
@@ -337,7 +338,9 @@ def ChunkingConfig(**data: Any) -> ChunkingConfigValue:
     if strategy is None:
         if any(key.startswith("hierarchical_") for key in data):
             strategy = ChunkingStrategy.HIERARCHICAL
-        elif any(key in {"semantic_threshold", "semantic_buffer_size", "min_chunk_size", "max_chunk_size"} for key in data):
+        elif any(
+            key in {"semantic_threshold", "semantic_buffer_size", "min_chunk_size", "max_chunk_size"} for key in data
+        ):
             strategy = ChunkingStrategy.SEMANTIC
         else:
             strategy = ChunkingStrategy.RECURSIVE
@@ -352,7 +355,7 @@ def default_chunking_config() -> ChunkingConfigValue:
     return RecursiveChunkingConfig()
 
 
-def serialize_chunking_config(config: ChunkingConfigValue | None) -> Dict[str, Any]:
+def serialize_chunking_config(config: ChunkingConfigValue | None) -> dict[str, Any]:
     if config is None:
         return {}
     return config.model_dump(mode="json")
@@ -403,7 +406,7 @@ def normalize_chunking_config(
     return create_chunking_config(**payload)
 
 
-def chunking_config_summary(config: ChunkingConfigValue | None) -> Dict[str, Any]:
+def chunking_config_summary(config: ChunkingConfigValue | None) -> dict[str, Any]:
     if config is None:
         return {}
 
@@ -465,7 +468,7 @@ class SearchConfig(BaseModel):
     limit: int = 20
     semantic_weight: float = 0.7
     keyword_weight: float = 0.3
-    metadata_filter: Optional[Dict[str, Any]] = None
+    metadata_filter: dict[str, Any] | None = None
     rrf_k: int = 60  # RRF 平滑常数，仅用于 "rrf" 模式
 
     @field_validator("limit")
@@ -521,13 +524,13 @@ class SearchConfig(BaseModel):
 
 
 def merge_search_results(
-    semantic_matches: "Iterable[KnowledgeMatch]",
-    keyword_matches: "Iterable[KnowledgeMatch]",
+    semantic_matches: Iterable[KnowledgeMatch],
+    keyword_matches: Iterable[KnowledgeMatch],
     *,
     semantic_weight: float,
     keyword_weight: float,
     limit: int,
-) -> "list[KnowledgeMatch]":
+) -> list[KnowledgeMatch]:
     """融合语义和关键词检索结果
 
     纯函数，供 KnowledgeService 和 KnowledgeRepository 复用。
@@ -538,7 +541,7 @@ def merge_search_results(
     3. 重新计算 combined_score = semantic_score * w_s + keyword_score * w_k
     4. 按 combined_score 降序排列并返回前 limit 条
     """
-    merged: Dict[UUID, KnowledgeMatch] = {}
+    merged: dict[UUID, KnowledgeMatch] = {}
 
     for match in semantic_matches:
         merged[match.id] = KnowledgeMatch(
@@ -614,7 +617,7 @@ class KgEntityType(Enum):
     OTHER = "other"  # 其他
 
     @classmethod
-    def all_values(cls) -> List[str]:
+    def all_values(cls) -> list[str]:
         """获取所有实体类型值列表"""
         return [e.value for e in cls]
 
@@ -648,7 +651,7 @@ class KgRelationType(Enum):
     CO_OCCURS = "CO_OCCURS"  # 共现
 
     @classmethod
-    def all_values(cls) -> List[str]:
+    def all_values(cls) -> list[str]:
         """获取所有关系类型值列表"""
         return [e.value for e in cls]
 
@@ -661,9 +664,9 @@ class GraphNode:
     """
 
     id: str
-    label: Optional[str] = None
-    node_type: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    label: str | None = None
+    node_type: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -675,10 +678,10 @@ class GraphEdge:
 
     source: str
     target: str
-    label: Optional[str] = None
-    edge_type: Optional[str] = None
+    label: str | None = None
+    edge_type: str | None = None
     weight: float = 1.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -688,9 +691,9 @@ class KnowledgeGraphPayload:
     包含节点和边的完整图谱数据。
     """
 
-    nodes: List[GraphNode]
-    edges: List[GraphEdge]
-    runs: Optional[List[Dict[str, Any]]] = None
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+    runs: list[dict[str, Any]] | None = None
 
 
 class GraphQueryConfig(BaseModel):
@@ -708,7 +711,7 @@ class GraphQueryConfig(BaseModel):
     graph_weight: float = 0.4
     include_neighbors: bool = True
     neighbor_limit: int = 10
-    entity_type_filter: Optional[str] = None
+    entity_type_filter: str | None = None
 
     @field_validator("max_depth")
     @classmethod
@@ -756,7 +759,7 @@ class GraphBuildConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     enable_llm_extraction: bool = True
-    llm_model: Optional[str] = None
+    llm_model: str | None = None
     entity_types: tuple[str, ...] = Field(default_factory=tuple)
     relation_types: tuple[str, ...] = Field(default_factory=tuple)
     min_entity_confidence: float = 0.5
@@ -794,9 +797,9 @@ class GraphBuildConfig(BaseModel):
 
     @field_validator("entity_types", "relation_types")
     @classmethod
-    def validate_graph_type_filters(cls, v: List[str] | tuple[str, ...]) -> tuple[str, ...]:
+    def validate_graph_type_filters(cls, v: list[str] | tuple[str, ...]) -> tuple[str, ...]:
         normalized = [item for item in (s.strip() for s in v) if item]
-        deduped: List[str] = []
+        deduped: list[str] = []
         for item in normalized:
             if item not in deduped:
                 deduped.append(item)

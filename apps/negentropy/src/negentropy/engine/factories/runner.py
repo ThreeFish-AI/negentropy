@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING
 from google.adk.runners import Runner
 
 from negentropy.config import settings
+from negentropy.engine.adapters.postgres.tracing import init_tracing
+from negentropy.engine.factories.artifacts import get_artifact_service
 from negentropy.engine.factories.memory import get_memory_service
 from negentropy.engine.factories.session import get_session_service
-from negentropy.engine.factories.artifacts import get_artifact_service
-from negentropy.engine.adapters.postgres.tracing import init_tracing
 
 if TYPE_CHECKING:
     from google.adk.agents.base_agent import BaseAgent
@@ -33,7 +33,7 @@ _runner_instance: Runner | None = None
 def get_runner(
     *,
     app_name: str | None = None,
-    agent: "BaseAgent | None" = None,
+    agent: BaseAgent | None = None,
     auto_create_session: bool = True,
 ) -> Runner:
     """

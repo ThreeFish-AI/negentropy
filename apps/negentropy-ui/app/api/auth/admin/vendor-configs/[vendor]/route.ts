@@ -2,11 +2,20 @@ import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
 import { getAuthBaseUrl } from "../../../_config";
 
-export async function PATCH(
+function parseUpstreamError(text: string): string {
+  try {
+    const data = JSON.parse(text);
+    return data.detail || data.error || text;
+  } catch {
+    return text || "Upstream returned non-OK status";
+  }
+}
+
+export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ modelId: string }> },
+  { params }: { params: Promise<{ vendor: string }> },
 ) {
-  const { modelId } = await params;
+  const { vendor } = await params;
   const baseUrl = getAuthBaseUrl();
   if (!baseUrl) {
     return NextResponse.json(
@@ -17,13 +26,13 @@ export async function PATCH(
 
   const body = await request.text();
   const upstreamUrl = new URL(
-    `/auth/admin/models/${encodeURIComponent(modelId)}`,
+    `/auth/admin/vendor-configs/${encodeURIComponent(vendor)}`,
     baseUrl,
   );
   let upstreamResponse: Response;
   try {
     upstreamResponse = await fetch(upstreamUrl, {
-      method: "PATCH",
+      method: "PUT",
       headers: {
         ...Object.fromEntries(buildAuthHeaders(request).entries()),
         "Content-Type": "application/json",
@@ -41,7 +50,7 @@ export async function PATCH(
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
     return NextResponse.json(
-      { error: text || "Upstream returned non-OK status" },
+      { error: parseUpstreamError(text) },
       { status: upstreamResponse.status },
     );
   }
@@ -53,9 +62,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ modelId: string }> },
+  { params }: { params: Promise<{ vendor: string }> },
 ) {
-  const { modelId } = await params;
+  const { vendor } = await params;
   const baseUrl = getAuthBaseUrl();
   if (!baseUrl) {
     return NextResponse.json(
@@ -65,7 +74,7 @@ export async function DELETE(
   }
 
   const upstreamUrl = new URL(
-    `/auth/admin/models/${encodeURIComponent(modelId)}`,
+    `/auth/admin/vendor-configs/${encodeURIComponent(vendor)}`,
     baseUrl,
   );
   let upstreamResponse: Response;
@@ -85,7 +94,7 @@ export async function DELETE(
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
     return NextResponse.json(
-      { error: text || "Upstream returned non-OK status" },
+      { error: parseUpstreamError(text) },
       { status: upstreamResponse.status },
     );
   }

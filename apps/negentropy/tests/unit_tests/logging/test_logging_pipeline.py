@@ -77,7 +77,7 @@ def test_console_formatter_formats_stdout_source_without_color() -> None:
     rendered = ConsoleFormatter.format(
         {
             "level": "info",
-            "message": "{\"ok\":true}",
+            "message": '{"ok":true}',
             "logger": "stdout",
             "source": "package.module.worker",
             "timestamp": "2026-03-07T10:00:00+00:00",

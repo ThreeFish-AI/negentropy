@@ -9,6 +9,10 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from negentropy.knowledge.constants import (
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_OVERLAP,
+)
 from negentropy.knowledge.types import (
     ChunkingConfig,
     ChunkingStrategy,
@@ -18,15 +22,10 @@ from negentropy.knowledge.types import (
     GraphQueryConfig,
     KnowledgeChunk,
     KnowledgeMatch,
-    KnowledgeRecord,
     SearchConfig,
     infer_source_type,
     normalize_source_metadata,
     serialize_chunking_config,
-)
-from negentropy.knowledge.constants import (
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_OVERLAP,
 )
 
 
@@ -141,9 +140,23 @@ class TestChunkingConfig:
         config = ChunkingConfig(chunk_size=100, overlap=50)
         assert config.overlap < config.chunk_size
 
-    def test_separators_normalized_to_hashable_tuple(self) -> None:
-        """separators 应标准化为可哈希的不可变元组"""
+    def test_separators_dedup_preserves_order_and_whitespace(self) -> None:
+        """separators 应去重并保持原值，包括纯空白与有意义的尾部空格
+
+        注：早期版本会 .strip() 并过滤空白，导致真换行 ``"\\n"`` / ``"\\n\\n"`` /
+        sentence-end ``". "`` 的尾部空格被静默销毁。修复后仅过滤空字符串与 None。
+        """
         config = ChunkingConfig(separators=["###", " ", "###", "\t", "---"])
+        assert config.separators == ("###", " ", "\t", "---")
+
+    def test_separators_preserve_real_newlines(self) -> None:
+        """真换行类分隔符（\\n / \\n\\n）必须被完整保留"""
+        config = ChunkingConfig(separators=["\n\n", "\n", "。", ". ", "! "])
+        assert config.separators == ("\n\n", "\n", "。", ". ", "! ")
+
+    def test_separators_filter_empty_string(self) -> None:
+        """空字符串无语义价值，应被过滤"""
+        config = ChunkingConfig(separators=["###", "", "---", ""])
         assert config.separators == ("###", "---")
 
     def test_serialize_chunking_config_returns_json_safe_recursive_payload(self) -> None:

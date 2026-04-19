@@ -2,6 +2,48 @@
 
 > 目标：沉淀已经完成的工程里程碑，记录背景、完成内容、影响面与验证结果，避免团队对当前工程基线产生状态误判。
 
+## 2026-04-16 · 全量 Lint 治理（ruff check 清零）
+
+### 背景
+
+`uv run ruff check .` 报告全项目存在 **1,722 项** lint 违规，分布于源码与测试共约 80+ 文件。问题类型涵盖：未使用导入（F401）、未使用变量（F841）、行过长（E501）、导入排序（I001）、`setattr` 常量属性（B010）、类型注解现代化（UP006/UP035/UP045/UP017/UP040）、`zip()` 缺少 `strict`（B905）、异常链缺失（B904）、未定义名称（F821）、布尔比较（E712）、FastAPI 标准用法误报（B008）等。
+
+### 完成内容
+
+#### 第一阶段：自动修复（1,615 项）
+
+通过 `uv run ruff check --fix .` 批量处理 F401、I001、B010、UP006/UP035/UP045/UP017 等可安全自动修复的违规。
+
+#### 第二阶段：手动修复（107 项）
+
+| 规则 | 数量 | 修复方式 |
+|------|------|---------|
+| **B008** | 60 | 在 `pyproject.toml` 的 `[tool.ruff.lint] ignore` 中排除——FastAPI `Depends()`/`Query()`/`File()` 用于函数签名是框架标准用法 |
+| **B904** | 21 | 为 `except` 中的 `raise` 补充 `from err` 或 `from None`，保留完整异常链 |
+| **F821** | 15 | 通过 `TYPE_CHECKING` 守卫导入解决循环依赖下的前向引用（`Event`、`KnowledgeRecord`、`CatalogService`、`WikiPublishingService`、`CorpusEngine`、`UnifiedRetrievalService`、`Thread`），以及补充 `import urllib.parse` |
+| **E501** | 7 | 拆分过长行（中文文档字符串、IEEE 引用、迁移脚本、断言字符串） |
+| **E402** | 7 | 为 Alembic env.py 配置后导入、模块尾部兼容性重导出等添加 `# noqa: E402` |
+| **B905** | 5 | 为 `zip()` 调用添加 `strict=True`（均已验证等长保证） |
+| **F841** | 4 | 移除未使用的变量赋值（保留有副作用的函数调用） |
+| **E712** | 4 | 将 SQLAlchemy 列的 `== True` 改为 `.is_(True)` |
+| **UP040** | 1 | 将 `TypeAlias` 注解迁移为 PEP 695 `type X = ...` 语法 |
+| **B023** | 1 | 通过默认参数绑定闭包中的循环变量 |
+| **B027** | 1 | 为 ABC 中有意的 no-op 方法添加 `# noqa: B027` |
+
+### 影响与当前状态
+
+- `uv run ruff check .` **全量通过（0 error）**。
+- 涉及源码与测试约 80+ 文件，所有修改均为 lint 治理与类型注解改进，不涉及业务逻辑变更。
+- `pyproject.toml` 新增 `B008` 排除规则，符合 FastAPI 社区最佳实践。
+
+### 验证
+
+```bash
+cd apps/negentropy && uv run ruff check .  # All checks passed!
+```
+
+---
+
 ## 2026-03-10 · QA 与发布流水线基线收口
 
 ### 背景

@@ -14,17 +14,17 @@ Reranking 模块单元测试
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
-from uuid import UUID, uuid4
 
 from negentropy.knowledge.reranking import (
     CompositeReranker,
     NoopReranker,
-    Reranker,
     RerankConfig,
+    Reranker,
 )
 from negentropy.knowledge.types import KnowledgeMatch
-
 
 # ================================
 # Test Data Fixtures
@@ -260,7 +260,7 @@ class TestRerankingIntegration:
         config = RerankConfig(top_k=10)
         reranked = await reranker.rerank("test query", sample_matches, config)
 
-        for original, reranked_match in zip(sample_matches, reranked):
+        for original, reranked_match in zip(sample_matches, reranked, strict=True):
             assert original.id == reranked_match.id
             assert original.content == reranked_match.content
             assert original.source_uri == reranked_match.source_uri

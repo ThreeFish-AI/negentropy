@@ -5,7 +5,7 @@ Logging Configuration.
 from enum import Enum
 
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 class LogLevel(str, Enum):
@@ -28,6 +28,7 @@ class LoggingSettings(BaseSettings):
         env_prefix="NE_LOG_",
         env_file=".env",
         env_file_encoding="utf-8",
+        env_nested_delimiter="__",
         extra="ignore",
         frozen=True,
     )
@@ -44,3 +45,22 @@ class LoggingSettings(BaseSettings):
     console_level_width: int = Field(default=8, description="Console level column width")
     console_logger_width: int = Field(default=32, description="Console logger column width")
     console_separator: str = Field(default=" | ", description="Console column separator")
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        from ._base import YamlDictSource, get_yaml_section
+
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlDictSource(settings_cls, get_yaml_section("logging")),
+            file_secret_settings,
+        )

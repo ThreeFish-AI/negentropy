@@ -10,7 +10,6 @@ Uses Strategy + Factory pattern to dynamically select CredentialService implemen
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from google.adk.auth.credential_service.base_credential_service import BaseCredentialService
 
@@ -58,7 +57,7 @@ _BACKEND_FACTORIES = {
 }
 
 # Module-level singleton
-_credential_service_instance: Optional[BaseCredentialService] = None
+_credential_service_instance: BaseCredentialService | None = None
 
 
 def get_credential_service(backend: str | None = None) -> BaseCredentialService:
@@ -80,7 +79,7 @@ def get_credential_service(backend: str | None = None) -> BaseCredentialService:
     except ValueError:
         raise ValueError(
             f"Unsupported credential backend: {backend_str}. Supported: {[b.value for b in CredentialBackend]}"
-        )
+        ) from None
 
     # Return cached instance if no explicit backend is requested
     if _credential_service_instance is not None and backend is None:

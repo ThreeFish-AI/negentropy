@@ -1,7 +1,7 @@
 """应用与用户状态数据模型。
 
 UserState 和 AppState 使用复合主键（无 UUID），用于存储应用/用户级别的 JSONB 状态，
-与 pulse.py 中基于 UUID 的会话模型（Thread/Event/Message）在数据模式上正交。
+与 pulse.py 中基于 UUID 的会话模型（Thread/Event）在数据模式上正交。
 """
 
 from datetime import datetime

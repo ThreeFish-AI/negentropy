@@ -4,9 +4,9 @@ from fastapi.testclient import TestClient
 
 from negentropy.auth.middleware import AuthMiddleware
 from negentropy.auth.service import AuthUser
+from negentropy.auth.tokens import TokenError
 from negentropy.config import settings
 from negentropy.config.auth import AuthMode, AuthSettings
-from negentropy.auth.tokens import TokenError
 
 
 def _build_app() -> FastAPI:
@@ -152,4 +152,3 @@ def test_middleware_allows_allowlist_paths(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-

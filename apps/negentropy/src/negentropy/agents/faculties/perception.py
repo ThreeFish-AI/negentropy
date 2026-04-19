@@ -3,7 +3,6 @@ from google.adk.agents import LlmAgent
 from .._model import create_model
 from ..tools.common import log_activity
 from ..tools.perception import search_knowledge_base, search_web
-from negentropy.config import settings
 
 _DESCRIPTION = (
     "Handles: information retrieval, web search, knowledge queries, fact-finding, data collection. "

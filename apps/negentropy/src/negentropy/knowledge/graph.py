@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
 from negentropy.logging import get_logger
@@ -43,7 +42,7 @@ class EntityExtractor(ABC):
         self,
         text: str,
         corpus_id: UUID,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """从文本中提取实体节点
 
         Args:
@@ -67,9 +66,9 @@ class RelationExtractor(ABC):
     @abstractmethod
     async def extract(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         text: str,
-    ) -> List[GraphEdge]:
+    ) -> list[GraphEdge]:
         """从文本中提取实体间关系
 
         Args:
@@ -103,7 +102,7 @@ class RegexEntityExtractor(EntityExtractor):
         self,
         text: str,
         corpus_id: UUID,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         logger.debug(
             "extract_entities_started",
             corpus_id=str(corpus_id),
@@ -111,7 +110,7 @@ class RegexEntityExtractor(EntityExtractor):
             extractor="regex",
         )
 
-        entities: List[GraphNode] = []
+        entities: list[GraphNode] = []
         seen = set()
 
         # 提取人名模式（大写开头的连续词）
@@ -176,9 +175,9 @@ class CooccurrenceRelationExtractor(RelationExtractor):
 
     async def extract(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         text: str,
-    ) -> List[GraphEdge]:
+    ) -> list[GraphEdge]:
         logger.debug(
             "extract_relations_started",
             entity_count=len(entities),
@@ -186,7 +185,7 @@ class CooccurrenceRelationExtractor(RelationExtractor):
             extractor="cooccurrence",
         )
 
-        edges: List[GraphEdge] = []
+        edges: list[GraphEdge] = []
         sentences = re.split(r"[.!?]+", text)
 
         for sentence in sentences:
@@ -232,8 +231,8 @@ class GraphProcessor:
 
     def __init__(
         self,
-        entity_extractor: Optional[EntityExtractor] = None,
-        relation_extractor: Optional[RelationExtractor] = None,
+        entity_extractor: EntityExtractor | None = None,
+        relation_extractor: RelationExtractor | None = None,
     ) -> None:
         """初始化图谱处理器
 
@@ -243,28 +242,28 @@ class GraphProcessor:
         """
         self._entity_extractor = entity_extractor or RegexEntityExtractor()
         self._relation_extractor = relation_extractor or CooccurrenceRelationExtractor()
-        self._nodes: Dict[str, GraphNode] = {}
-        self._edges: List[GraphEdge] = []
+        self._nodes: dict[str, GraphNode] = {}
+        self._edges: list[GraphEdge] = []
 
     async def extract_entities(
         self,
         text: str,
         corpus_id: UUID,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """从文本中提取实体节点（委托给 EntityExtractor）"""
         return await self._entity_extractor.extract(text, corpus_id)
 
     async def extract_relations(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         text: str,
-    ) -> List[GraphEdge]:
+    ) -> list[GraphEdge]:
         """从文本中提取实体间关系（委托给 RelationExtractor）"""
         return await self._relation_extractor.extract(entities, text)
 
     async def build_graph(
         self,
-        knowledge_chunks: List[str],
+        knowledge_chunks: list[str],
         corpus_id: UUID,
     ) -> KnowledgeGraphPayload:
         """从知识块构建图谱
@@ -288,8 +287,8 @@ class GraphProcessor:
             chunk_count=len(knowledge_chunks),
         )
 
-        all_nodes: Dict[str, GraphNode] = {}
-        all_edges: List[GraphEdge] = []
+        all_nodes: dict[str, GraphNode] = {}
+        all_edges: list[GraphEdge] = []
 
         for chunk in knowledge_chunks:
             # 提取实体
@@ -328,7 +327,7 @@ class GraphProcessor:
             edges=unique_edges,
         )
 
-    def _deduplicate_edges(self, edges: List[GraphEdge]) -> List[GraphEdge]:
+    def _deduplicate_edges(self, edges: list[GraphEdge]) -> list[GraphEdge]:
         """去重边列表
 
         基于 source 和 target 组合去重，保留权重最大的边。
@@ -339,7 +338,7 @@ class GraphProcessor:
         Returns:
             去重后的边列表
         """
-        edge_map: Dict[tuple[str, str], GraphEdge] = {}
+        edge_map: dict[tuple[str, str], GraphEdge] = {}
 
         for edge in edges:
             key = (edge.source, edge.target)
@@ -352,7 +351,7 @@ class GraphProcessor:
 
     async def merge_graphs(
         self,
-        graphs: List[KnowledgeGraphPayload],
+        graphs: list[KnowledgeGraphPayload],
     ) -> KnowledgeGraphPayload:
         """合并多个图谱
 
@@ -371,8 +370,8 @@ class GraphProcessor:
             graph_count=len(graphs),
         )
 
-        all_nodes: Dict[str, GraphNode] = {}
-        all_edges: List[GraphEdge] = []
+        all_nodes: dict[str, GraphNode] = {}
+        all_edges: list[GraphEdge] = []
 
         for graph in graphs:
             # 合并节点
@@ -409,7 +408,7 @@ class GraphProcessor:
         graph: KnowledgeGraphPayload,
         node_id: str,
         max_depth: int = 1,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """查询节点的邻居
 
         获取指定节点在指定深度内的所有邻居节点。
@@ -428,7 +427,7 @@ class GraphProcessor:
             max_depth=max_depth,
         )
 
-        neighbors: List[GraphNode] = []
+        neighbors: list[GraphNode] = []
         visited = set()
         to_visit = {node_id}
 

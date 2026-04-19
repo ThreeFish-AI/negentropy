@@ -1,11 +1,10 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,10 +17,10 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from negentropy.models.base import Base, Vector as VectorType
-
 # Import all models to ensure they are registered with Base.metadata
-from negentropy.models import *  # noqa
+from negentropy.models import *  # noqa: F403, E402
+from negentropy.models.base import Base  # noqa: E402
+from negentropy.models.base import Vector as VectorType  # noqa: E402
 
 target_metadata = Base.metadata
 
@@ -31,19 +30,22 @@ target_metadata = Base.metadata
 # ... etc.
 
 
-from negentropy.config import settings
-
 # Register pgvector type name for reflection to avoid "unknown type" warnings.
 # This does not suppress warnings; it teaches SQLAlchemy how to interpret 'vector'.
-from sqlalchemy.dialects.postgresql.base import ischema_names
-from sqlalchemy.types import UserDefinedType
+from sqlalchemy.dialects.postgresql.base import ischema_names  # noqa: E402
+from sqlalchemy.types import UserDefinedType  # noqa: E402
+
+from negentropy.config import settings  # noqa: E402
 
 
 class _PGVector(UserDefinedType):
     cache_ok = True
 
+    def __init__(self, dim: int | None = None):
+        self.dim = dim
+
     def get_col_spec(self, **kw):
-        return "vector"
+        return "vector" if self.dim is None else f"vector({self.dim})"
 
 
 ischema_names.setdefault("vector", _PGVector)
@@ -75,12 +77,14 @@ def run_migrations_offline() -> None:
 
 # 通过迁移文件手动创建的索引，不在 ORM 模型中定义
 # 这些索引需要在此忽略，否则 autogenerate 会尝试删除它们
-_IGNORED_INDEXES = frozenset({
-    "idx_kb_entity_type",                    # 部分索引 (WHERE entity_type IS NOT NULL)
-    "ix_negentropy_knowledge_search_vector", # GIN 索引 (TSVECTOR)
-    "ix_knowledge_documents_file_hash",      # 命名与 ORM 自动生成的不一致
-    "ix_kg_entities_embedding",              # HNSW 索引 (需 ALTER COLUMN 后手动创建)
-})
+_IGNORED_INDEXES = frozenset(
+    {
+        "idx_kb_entity_type",  # 部分索引 (WHERE entity_type IS NOT NULL)
+        "ix_negentropy_knowledge_search_vector",  # GIN 索引 (TSVECTOR)
+        "ix_knowledge_documents_file_hash",  # 命名与 ORM 自动生成的不一致
+        "ix_kg_entities_embedding",  # HNSW 索引 (需 ALTER COLUMN 后手动创建)
+    }
+)
 
 
 def do_run_migrations(connection: Connection) -> None:

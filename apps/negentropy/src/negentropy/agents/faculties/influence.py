@@ -3,7 +3,6 @@ from google.adk.agents import LlmAgent
 from .._model import create_model
 from ..tools.common import log_activity
 from ..tools.influence import publish_content, send_notification
-from negentropy.config import settings
 
 _DESCRIPTION = (
     "Handles: content publishing, report generation, documentation, user communication, value delivery. "

@@ -6,11 +6,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 # ============================================================================
 # Corpus Schemas
@@ -18,24 +17,24 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class CorpusCreateRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     name: str
-    description: Optional[str] = None
-    config: Dict[str, Any] = Field(default_factory=dict)
+    description: str | None = None
+    config: dict[str, Any] = Field(default_factory=dict)
 
 
 class CorpusUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    config: Optional[Dict[str, Any]] = None
+    name: str | None = None
+    description: str | None = None
+    config: dict[str, Any] | None = None
 
 
 class CorpusResponse(BaseModel):
     id: UUID
     app_name: str
     name: str
-    description: Optional[str] = None
-    config: Dict[str, Any] = Field(default_factory=dict)
+    description: str | None = None
+    config: dict[str, Any] = Field(default_factory=dict)
     knowledge_count: int = 0
 
 
@@ -45,59 +44,59 @@ class CorpusResponse(BaseModel):
 
 
 class _LegacyChunkingRequest(BaseModel):
-    chunking_config: Optional[Dict[str, Any]] = None
-    strategy: Optional[str] = None
-    chunk_size: Optional[int] = None
-    overlap: Optional[int] = None
-    preserve_newlines: Optional[bool] = None
-    separators: Optional[list[str]] = None
-    semantic_threshold: Optional[float] = None
-    semantic_buffer_size: Optional[int] = None
-    min_chunk_size: Optional[int] = None
-    max_chunk_size: Optional[int] = None
-    hierarchical_parent_chunk_size: Optional[int] = None
-    hierarchical_child_chunk_size: Optional[int] = None
-    hierarchical_child_overlap: Optional[int] = None
+    chunking_config: dict[str, Any] | None = None
+    strategy: str | None = None
+    chunk_size: int | None = None
+    overlap: int | None = None
+    preserve_newlines: bool | None = None
+    separators: list[str] | None = None
+    semantic_threshold: float | None = None
+    semantic_buffer_size: int | None = None
+    min_chunk_size: int | None = None
+    max_chunk_size: int | None = None
+    hierarchical_parent_chunk_size: int | None = None
+    hierarchical_child_chunk_size: int | None = None
+    hierarchical_child_overlap: int | None = None
 
 
 class IngestRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     text: str
-    source_uri: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    source_uri: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class IngestUrlRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     url: str
     as_document: bool = False
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ReplaceSourceRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     text: str
     source_uri: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class SyncSourceRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     source_uri: str
 
 
 class RebuildSourceRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     source_uri: str
 
 
 class DeleteSourceRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     source_uri: str
 
 
 class ArchiveSourceRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     source_uri: str
     archived: bool = True
 
@@ -140,12 +139,12 @@ class PipelineErrorPayloadResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    failure_category: Optional[str] = Field(default=None, description="稳定失败分类。")
-    diagnostic_summary: Optional[str] = Field(
+    failure_category: str | None = Field(default=None, description="稳定失败分类。")
+    diagnostic_summary: str | None = Field(
         default=None,
         description="一条可直接展示的摘要，默认用于契约类失败。",
     )
-    diagnostics: Dict[str, Any] = Field(
+    diagnostics: dict[str, Any] = Field(
         default_factory=dict,
         description="结构化详细诊断信息，供明细排障使用。",
     )
@@ -156,12 +155,12 @@ class PipelineStageResultResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     status: str
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-    duration_ms: Optional[int] = None
-    error: Optional[PipelineErrorPayloadResponse] = None
-    output: Dict[str, Any] = Field(default_factory=dict)
-    reason: Optional[str] = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    duration_ms: int | None = None
+    error: PipelineErrorPayloadResponse | None = None
+    output: dict[str, Any] = Field(default_factory=dict)
+    reason: str | None = None
 
 
 class PipelineRunRecordResponse(BaseModel):
@@ -171,23 +170,23 @@ class PipelineRunRecordResponse(BaseModel):
     id: str
     run_id: str
     status: str
-    version: Optional[int] = None
-    operation: Optional[str] = None
-    trigger: Optional[str] = None
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
-    duration_ms: Optional[int] = None
-    duration: Optional[str] = None
-    input: Dict[str, Any] = Field(default_factory=dict)
-    output: Dict[str, Any] = Field(default_factory=dict)
-    stages: Dict[str, PipelineStageResultResponse] = Field(default_factory=dict)
-    error: Optional[PipelineErrorPayloadResponse] = None
+    version: int | None = None
+    operation: str | None = None
+    trigger: str | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    duration_ms: int | None = None
+    duration: str | None = None
+    input: dict[str, Any] = Field(default_factory=dict)
+    output: dict[str, Any] = Field(default_factory=dict)
+    stages: dict[str, PipelineStageResultResponse] = Field(default_factory=dict)
+    error: PipelineErrorPayloadResponse | None = None
 
 
 class KnowledgePipelinesResponse(BaseModel):
     count: int = 0
     runs: list[PipelineRunRecordResponse] = Field(default_factory=list)
-    last_updated_at: Optional[str] = None
+    last_updated_at: str | None = None
 
 
 class PipelineUpsertRecordResponse(BaseModel):
@@ -198,9 +197,9 @@ class PipelineUpsertRecordResponse(BaseModel):
     id: str
     run_id: str
     status: str
-    payload: Dict[str, Any] = Field(default_factory=dict)
-    version: Optional[int] = None
-    updated_at: Optional[str] = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    version: int | None = None
+    updated_at: str | None = None
 
 
 class PipelineUpsertResponse(BaseModel):
@@ -211,12 +210,12 @@ class PipelineUpsertResponse(BaseModel):
 
 
 class PipelinesUpsertRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     run_id: str
     status: str = "pending"
-    payload: Dict[str, Any] = Field(default_factory=dict)
-    idempotency_key: Optional[str] = None
-    expected_version: Optional[int] = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    idempotency_key: str | None = None
+    expected_version: int | None = None
 
 
 # ============================================================================
@@ -225,21 +224,21 @@ class PipelinesUpsertRequest(BaseModel):
 
 
 class SearchRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     query: str
-    mode: Optional[str] = None
-    limit: Optional[int] = None
-    semantic_weight: Optional[float] = None
-    keyword_weight: Optional[float] = None
-    metadata_filter: Optional[Dict[str, Any]] = None
+    mode: str | None = None
+    limit: int | None = None
+    semantic_weight: float | None = None
+    keyword_weight: float | None = None
+    metadata_filter: dict[str, Any] | None = None
 
 
 class DashboardResponse(BaseModel):
     corpus_count: int
     knowledge_count: int
-    last_build_at: Optional[str] = None
-    pipeline_runs: list[Dict[str, Any]] = Field(default_factory=list)
-    alerts: list[Dict[str, Any]] = Field(default_factory=list)
+    last_build_at: str | None = None
+    pipeline_runs: list[dict[str, Any]] = Field(default_factory=list)
+    alerts: list[dict[str, Any]] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -248,26 +247,26 @@ class DashboardResponse(BaseModel):
 
 
 class GraphPayload(BaseModel):
-    nodes: list[Dict[str, Any]] = Field(default_factory=list)
-    edges: list[Dict[str, Any]] = Field(default_factory=list)
-    runs: list[Dict[str, Any]] = Field(default_factory=list)
+    nodes: list[dict[str, Any]] = Field(default_factory=list)
+    edges: list[dict[str, Any]] = Field(default_factory=list)
+    runs: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class GraphUpsertRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     run_id: str
     status: str = "pending"
     graph: GraphPayload
-    idempotency_key: Optional[str] = None
-    expected_version: Optional[int] = None
+    idempotency_key: str | None = None
+    expected_version: int | None = None
 
 
 class GraphBuildRequest(BaseModel):
     """图谱构建请求"""
 
-    app_name: Optional[str] = None
+    app_name: str | None = None
     enable_llm_extraction: bool = True
-    llm_model: Optional[str] = None
+    llm_model: str | None = None
     min_entity_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     min_relation_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     batch_size: int = Field(default=10, ge=1, le=100)
@@ -283,13 +282,13 @@ class GraphBuildResponse(BaseModel):
     relation_count: int
     chunks_processed: int
     elapsed_seconds: float
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class GraphSearchRequest(BaseModel):
     """图谱检索请求"""
 
-    app_name: Optional[str] = None
+    app_name: str | None = None
     query: str
     mode: str = "hybrid"  # semantic, graph, hybrid
     limit: int = Field(default=20, ge=1, le=100)
@@ -305,13 +304,13 @@ class GraphSearchResponse(BaseModel):
 
     count: int
     query_time_ms: float
-    items: list[Dict[str, Any]] = Field(default_factory=list)
+    items: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class GraphNeighborsRequest(BaseModel):
     """邻居查询请求"""
 
-    app_name: Optional[str] = None
+    app_name: str | None = None
     entity_id: str
     max_depth: int = Field(default=2, ge=1, le=5)
     limit: int = Field(default=100, ge=1, le=500)
@@ -320,7 +319,7 @@ class GraphNeighborsRequest(BaseModel):
 class GraphPathRequest(BaseModel):
     """路径查询请求"""
 
-    app_name: Optional[str] = None
+    app_name: str | None = None
     source_id: str
     target_id: str
     max_depth: int = Field(default=5, ge=1, le=10)
@@ -340,16 +339,16 @@ class DocumentResponse(BaseModel):
     file_hash: str
     original_filename: str
     gcs_uri: str
-    content_type: Optional[str] = None
+    content_type: str | None = None
     file_size: int
     status: str
-    created_at: Optional[str] = None
-    created_by: Optional[str] = None
-    created_by_name: Optional[str] = None
+    created_at: str | None = None
+    created_by: str | None = None
+    created_by_name: str | None = None
     markdown_extract_status: str = "pending"
-    markdown_extracted_at: Optional[str] = None
-    markdown_extract_error: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    markdown_extracted_at: str | None = None
+    markdown_extract_error: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         from_attributes = True
@@ -358,8 +357,8 @@ class DocumentResponse(BaseModel):
 class DocumentDetailResponse(DocumentResponse):
     """文档详情响应（含 Markdown 正文）。"""
 
-    markdown_content: Optional[str] = None
-    markdown_gcs_uri: Optional[str] = None
+    markdown_content: str | None = None
+    markdown_gcs_uri: str | None = None
 
 
 class DocumentMarkdownRefreshResponse(BaseModel):
@@ -373,30 +372,30 @@ class DocumentMarkdownRefreshResponse(BaseModel):
 class DocumentMarkdownRefreshRequest(BaseModel):
     """文档 Markdown 重解析请求。"""
 
-    app_name: Optional[str] = None
+    app_name: str | None = None
 
 
 class DocumentChunksResponse(BaseModel):
     count: int
     page: int = 1
     page_size: int = 50
-    document_metadata: Dict[str, Any] = Field(default_factory=dict)
-    items: list[Dict[str, Any]]
+    document_metadata: dict[str, Any] = Field(default_factory=dict)
+    items: list[dict[str, Any]]
 
 
 class DocumentChunkDetailResponse(BaseModel):
-    item: Dict[str, Any]
-    document_metadata: Dict[str, Any] = Field(default_factory=dict)
+    item: dict[str, Any]
+    document_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class DocumentChunkUpdateRequest(BaseModel):
-    app_name: Optional[str] = None
-    content: Optional[str] = None
-    is_enabled: Optional[bool] = None
+    app_name: str | None = None
+    content: str | None = None
+    is_enabled: bool | None = None
 
 
 class DocumentActionRequest(_LegacyChunkingRequest):
-    app_name: Optional[str] = None
+    app_name: str | None = None
 
 
 class DocumentReplaceRequest(DocumentActionRequest):

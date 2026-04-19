@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Integer, Sequence, String, Text, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy import ForeignKey, Integer, Sequence, String, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
+from .base import NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin
 
 
 class Thread(Base, UUIDMixin, TimestampMixin):
@@ -27,13 +30,7 @@ class Thread(Base, UUIDMixin, TimestampMixin):
         {"schema": NEGENTROPY_SCHEMA},
     )
 
-    events: Mapped[list["Event"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    runs: Mapped[list["Run"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    messages: Mapped[list["Message"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    snapshots: Mapped[list["Snapshot"]] = relationship(back_populates="thread", cascade="all, delete-orphan")
-    consolidation_jobs: Mapped[list["ConsolidationJob"]] = relationship(
-        back_populates="thread", cascade="all, delete-orphan"
-    )
+    events: Mapped[list[Event]] = relationship(back_populates="thread", cascade="all, delete-orphan")
 
 
 class Event(Base, UUIDMixin):
@@ -57,61 +54,8 @@ class Event(Base, UUIDMixin):
     # Note: Using Integer for BIGSERIAL might need BigInteger, but standard int in Py matches.
     # We might need to handle the explicit sequence definition if we were creating tables, but for mapping it's fine.
 
-    thread: Mapped["Thread"] = relationship(back_populates="events")
-    messages: Mapped[list["Message"]] = relationship(back_populates="event")
-
-
-class Run(Base, UUIDMixin):
-    __tablename__ = "runs"
-
-    thread_id: Mapped[UUID] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
-    )
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="'pending'")
-    thinking_steps: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, server_default="'[]'")
-    tool_calls: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, server_default="'[]'")
-    error: Mapped[str | None] = mapped_column(Text)
-    started_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
-    completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP)
-
-    thread: Mapped["Thread"] = relationship(back_populates="runs")
-
-
-class Message(Base, UUIDMixin):
-    __tablename__ = "messages"
-
-    thread_id: Mapped[UUID] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
-    )
-    event_id: Mapped[UUID | None] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.events.id", ondelete="SET NULL"))
-    role: Mapped[str] = mapped_column(String(20), nullable=False)  # 'user', 'assistant', 'tool', 'system'
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
-    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
-
-    thread: Mapped["Thread"] = relationship(back_populates="messages")
-    event: Mapped["Event"] = relationship(back_populates="messages")
-
-
-class Snapshot(Base, UUIDMixin):
-    __tablename__ = "snapshots"
-
-    thread_id: Mapped[UUID] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
-    )
-    version: Mapped[int] = mapped_column(Integer, nullable=False)
-    state: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    events_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("thread_id", "version", name="snapshots_thread_version_unique"),
-        {"schema": NEGENTROPY_SCHEMA},
-    )
-
-    thread: Mapped["Thread"] = relationship(back_populates="snapshots")
+    thread: Mapped[Thread] = relationship(back_populates="events")
 
 
 # Backward-compatible re-exports (UserState/AppState 已迁移至 state.py)
-from .state import AppState, UserState  # noqa: F401
+from .state import AppState, UserState  # noqa: F401, E402

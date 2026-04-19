@@ -4,13 +4,11 @@ Plugins 权限检查模块。
 提供插件访问权限的检查和管理功能。
 """
 
-from typing import Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.auth.rbac import has_permission
 from negentropy.auth.service import AuthUser
 from negentropy.models.plugin import (
     McpServer,
@@ -28,7 +26,7 @@ async def check_plugin_access(
     plugin_id: UUID,
     user: AuthUser,
     required_permission: str,  # "view" or "edit"
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """
     检查用户是否有权限访问指定插件。
 
@@ -84,7 +82,7 @@ async def check_plugin_ownership(
     plugin_type: str,
     plugin_id: UUID,
     user: AuthUser,
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """
     检查用户是否是插件的所有者。
 

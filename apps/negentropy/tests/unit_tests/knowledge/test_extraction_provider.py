@@ -18,14 +18,13 @@ from negentropy.knowledge.extraction import (
 
 from .conftest import FakeMcpSession, noop_increment_tool_call_count, noop_llm_plan
 
-
 # ---------------------------------------------------------------------------
 # _invoke_target: batch schema & normalisation
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batch_result(
+async def test_negentropy_perceives_provider_uses_pdf_batch_schema_and_normalizes_batch_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -92,7 +91,7 @@ async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batc
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="batch_convert_pdfs_to_markdown",
+            tool_name="parse_pdfs_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -122,7 +121,7 @@ async def test_data_extractor_provider_uses_pdf_batch_schema_and_normalizes_batc
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_normalizes_list_structured_content(
+async def test_negentropy_perceives_provider_normalizes_list_structured_content(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -168,7 +167,7 @@ async def test_data_extractor_provider_normalizes_list_structured_content(
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="batch_convert_pdfs_to_markdown",
+            tool_name="parse_pdfs_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -191,7 +190,7 @@ async def test_data_extractor_provider_normalizes_list_structured_content(
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_normalizes_json_text_content_when_structured_content_missing(
+async def test_negentropy_perceives_provider_normalizes_json_text_content_when_structured_content_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -232,7 +231,7 @@ async def test_data_extractor_provider_normalizes_json_text_content_when_structu
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -250,17 +249,14 @@ async def test_data_extractor_provider_normalizes_json_text_content_when_structu
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_rejects_failed_json_text_envelope(
+async def test_negentropy_perceives_provider_rejects_failed_json_text_envelope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
 
     class FakeTextItem:
         type = "text"
-        text = (
-            '{"success":false,"total_pdfs":0,"successful_count":0,'
-            '"failed_count":0,"results":[],"total_pages":0}'
-        )
+        text = '{"success":false,"total_pdfs":0,"successful_count":0,"failed_count":0,"results":[],"total_pages":0}'
 
     class FakeClient:
         async def call_tool(self, **kwargs):  # type: ignore[no-untyped-def]
@@ -294,7 +290,7 @@ async def test_data_extractor_provider_rejects_failed_json_text_envelope(
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -310,7 +306,7 @@ async def test_data_extractor_provider_rejects_failed_json_text_envelope(
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_uses_plain_text_content_when_json_is_unavailable(
+async def test_negentropy_perceives_provider_uses_plain_text_content_when_json_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -351,7 +347,7 @@ async def test_data_extractor_provider_uses_plain_text_content_when_json_is_unav
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -374,7 +370,7 @@ async def test_data_extractor_provider_uses_plain_text_content_when_json_is_unav
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_rejects_batch_payload_without_successful_documents(
+async def test_negentropy_perceives_provider_rejects_batch_payload_without_successful_documents(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -422,7 +418,7 @@ async def test_data_extractor_provider_rejects_batch_payload_without_successful_
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="batch_convert_pdfs_to_markdown",
+            tool_name="parse_pdfs_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -443,7 +439,7 @@ async def test_data_extractor_provider_rejects_batch_payload_without_successful_
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_retries_after_validation_error_with_batch_wrapper(
+async def test_negentropy_perceives_provider_retries_after_validation_error_with_batch_wrapper(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -462,7 +458,7 @@ async def test_data_extractor_provider_retries_after_validation_error_with_batch
                     structured_content=None,
                     content=[],
                     error=(
-                        "7 validation errors for call[batch_convert_pdfs_to_markdown]\n"
+                        "7 validation errors for call[parse_pdfs_to_markdown]\n"
                         "pdf_sources\n  Missing required argument\n"
                         "source_type\n  Unexpected keyword argument\n"
                         "content_base64\n  Unexpected keyword argument\n"
@@ -507,7 +503,7 @@ async def test_data_extractor_provider_retries_after_validation_error_with_batch
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="batch_convert_pdfs_to_markdown",
+            tool_name="parse_pdfs_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -541,7 +537,7 @@ async def test_data_extractor_provider_retries_after_validation_error_with_batch
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_uses_schema_string_source_for_single_pdf_without_llm(
+async def test_negentropy_perceives_provider_uses_schema_string_source_for_single_pdf_without_llm(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -562,7 +558,7 @@ async def test_data_extractor_provider_uses_schema_string_source_for_single_pdf_
         "negentropy.knowledge.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
-            server_name="data-extractor",
+            server_name="negentropy-perceives",
             input_schema={
                 "type": "object",
                 "properties": {
@@ -591,7 +587,7 @@ async def test_data_extractor_provider_uses_schema_string_source_for_single_pdf_
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -612,7 +608,7 @@ async def test_data_extractor_provider_uses_schema_string_source_for_single_pdf_
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_uses_llm_selected_string_source_for_single_pdf(
+async def test_negentropy_perceives_provider_uses_llm_selected_string_source_for_single_pdf(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -636,7 +632,7 @@ async def test_data_extractor_provider_uses_llm_selected_string_source_for_singl
                 error=None,
                 tools=[
                     SimpleNamespace(
-                        name="convert_pdf_to_markdown",
+                        name="parse_pdf_to_markdown",
                         description="single pdf",
                         input_schema={
                             "type": "object",
@@ -662,7 +658,7 @@ async def test_data_extractor_provider_uses_llm_selected_string_source_for_singl
         "negentropy.knowledge.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
-            server_name="data-extractor",
+            server_name="negentropy-perceives",
             scalar_returns_none=True,
         ),
     )
@@ -683,7 +679,7 @@ async def test_data_extractor_provider_uses_llm_selected_string_source_for_singl
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -701,7 +697,7 @@ async def test_data_extractor_provider_uses_llm_selected_string_source_for_singl
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_keeps_string_contract_on_missing_single_source_retry(
+async def test_negentropy_perceives_provider_keeps_string_contract_on_missing_single_source_retry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -720,8 +716,7 @@ async def test_data_extractor_provider_keeps_string_contract_on_missing_single_s
                     structured_content=None,
                     content=[],
                     error=(
-                        "1 validation error for call[convert_pdf_to_markdown]\n"
-                        "pdf_source\n  Missing required argument\n"
+                        "1 validation error for call[parse_pdf_to_markdown]\npdf_source\n  Missing required argument\n"
                     ),
                     duration_ms=8,
                 )
@@ -764,7 +759,7 @@ async def test_data_extractor_provider_keeps_string_contract_on_missing_single_s
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -780,11 +775,13 @@ async def test_data_extractor_provider_keeps_string_contract_on_missing_single_s
     assert all(isinstance(item["pdf_source"], str) for item in call_arguments)
     assert result["result"].metadata["adapter_name"] == "single_string_source_retry_v1"
     assert result["result"].trace["adapter_attempts"][1]["reasoning_source"] == "validation_retry"
-    assert result["result"].trace["adapter_attempts"][1]["diagnostics"]["schema_shape"] == "validation_retry.scalar_value"
+    assert (
+        result["result"].trace["adapter_attempts"][1]["diagnostics"]["schema_shape"] == "validation_retry.scalar_value"
+    )
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_fails_fast_when_single_string_source_has_no_candidate(
+async def test_negentropy_perceives_provider_fails_fast_when_single_string_source_has_no_candidate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -834,7 +831,7 @@ async def test_data_extractor_provider_fails_fast_when_single_string_source_has_
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -857,7 +854,7 @@ async def test_data_extractor_provider_fails_fast_when_single_string_source_has_
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_failovers_when_primary_returns_empty_payload(
+async def test_negentropy_perceives_provider_failovers_when_primary_returns_empty_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -929,7 +926,7 @@ async def test_data_extractor_provider_failovers_when_primary_returns_empty_payl
                 "file_pdf": {
                     "targets": [
                         {"server_id": str(server_id), "tool_name": "convert_pdfs_to_markdown", "priority": 0},
-                        {"server_id": str(server_id), "tool_name": "batch_convert_pdfs_to_markdown", "priority": 1},
+                        {"server_id": str(server_id), "tool_name": "parse_pdfs_to_markdown", "priority": 1},
                     ]
                 }
             }
@@ -950,7 +947,7 @@ async def test_data_extractor_provider_failovers_when_primary_returns_empty_payl
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_marks_unknown_contract_as_unsupported_for_failover(
+async def test_negentropy_perceives_provider_marks_unknown_contract_as_unsupported_for_failover(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -970,7 +967,7 @@ async def test_data_extractor_provider_marks_unknown_contract_as_unsupported_for
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -989,7 +986,7 @@ async def test_data_extractor_provider_marks_unknown_contract_as_unsupported_for
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_marks_unknown_contract_with_extra_required_fields_as_low_confidence(
+async def test_negentropy_perceives_provider_marks_unknown_contract_with_extra_required_fields_as_low_confidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -1016,7 +1013,7 @@ async def test_data_extractor_provider_marks_unknown_contract_with_extra_require
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -1040,7 +1037,7 @@ async def test_data_extractor_provider_marks_unknown_contract_with_extra_require
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_retries_with_string_batch_contract_after_string_type_error(
+async def test_negentropy_perceives_provider_retries_with_string_batch_contract_after_string_type_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     server_id = uuid4()
@@ -1060,7 +1057,7 @@ async def test_data_extractor_provider_retries_with_string_batch_contract_after_
                     structured_content=None,
                     content=[],
                     error=(
-                        "1 validation error for call[batch_convert_pdfs_to_markdown]\n"
+                        "1 validation error for call[parse_pdfs_to_markdown]\n"
                         "pdf_sources.0\n  Input should be a valid string\n"
                     ),
                     duration_ms=7,
@@ -1094,7 +1091,7 @@ async def test_data_extractor_provider_retries_with_string_batch_contract_after_
         "negentropy.knowledge.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
-            server_name="data-extractor",
+            server_name="negentropy-perceives",
             input_schema={
                 "type": "object",
                 "properties": {
@@ -1122,7 +1119,7 @@ async def test_data_extractor_provider_retries_with_string_batch_contract_after_
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="batch_convert_pdfs_to_markdown",
+            tool_name="parse_pdfs_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -1146,7 +1143,7 @@ async def test_data_extractor_provider_retries_with_string_batch_contract_after_
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_merges_image_content_items_into_assets(
+async def test_negentropy_perceives_provider_merges_image_content_items_into_assets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """当 structured_content 不含 assets，但 content_items 有 ImageContent 时，
@@ -1219,7 +1216,7 @@ async def test_data_extractor_provider_merges_image_content_items_into_assets(
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -1246,7 +1243,7 @@ async def test_data_extractor_provider_merges_image_content_items_into_assets(
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_structured_assets_take_precedence_over_content_items(
+async def test_negentropy_perceives_provider_structured_assets_take_precedence_over_content_items(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """当 structured_content 中已包含带 data_base64 的 assets，
@@ -1310,7 +1307,7 @@ async def test_data_extractor_provider_structured_assets_take_precedence_over_co
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),
@@ -1330,7 +1327,7 @@ async def test_data_extractor_provider_structured_assets_take_precedence_over_co
 
 
 @pytest.mark.asyncio
-async def test_data_extractor_provider_reads_enhanced_assets_from_output_directory(
+async def test_negentropy_perceives_provider_reads_enhanced_assets_from_output_directory(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1387,7 +1384,7 @@ async def test_data_extractor_provider_reads_enhanced_assets_from_output_directo
         corpus_id=uuid4(),
         target=SimpleNamespace(
             server_id=server_id,
-            tool_name="convert_pdf_to_markdown",
+            tool_name="parse_pdf_to_markdown",
             timeout_ms=None,
             tool_options={},
         ),

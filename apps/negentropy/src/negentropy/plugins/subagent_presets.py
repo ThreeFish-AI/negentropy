@@ -8,7 +8,7 @@ SubAgent 预设与 ADK 配置序列化。
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from google.adk.agents import BaseAgent, LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
@@ -22,7 +22,6 @@ from negentropy.agents.faculties import (
 from negentropy.model_names import canonicalize_model_name
 from negentropy.serialization import to_json_compatible
 
-
 NEGENTROPY_SUBAGENT_ORDER = [
     perception_agent,
     internalization_agent,
@@ -34,7 +33,7 @@ NEGENTROPY_SUBAGENT_ORDER = [
 NEGENTROPY_SUBAGENT_NAMES = [agent.name for agent in NEGENTROPY_SUBAGENT_ORDER]
 
 
-def _callable_name(callback: Any) -> Optional[str]:
+def _callable_name(callback: Any) -> str | None:
     if callback is None:
         return None
     if isinstance(callback, str):
@@ -58,7 +57,7 @@ def _tool_name(tool: Any) -> str:
     return tool.__class__.__name__
 
 
-def _model_name(model: Any) -> Optional[str]:
+def _model_name(model: Any) -> str | None:
     if model is None:
         return None
     model_name = getattr(model, "model", None)
@@ -80,9 +79,9 @@ def _agent_type(agent: BaseAgent) -> str:
     return "custom_agent"
 
 
-def serialize_adk_config(agent: BaseAgent) -> Dict[str, Any]:
+def serialize_adk_config(agent: BaseAgent) -> dict[str, Any]:
     """将 ADK Agent 实例序列化为可存储的配置对象。"""
-    base: Dict[str, Any] = {
+    base: dict[str, Any] = {
         "agent_type": _agent_type(agent),
         "agent_class": agent.__class__.__name__,
         "name": agent.name,
@@ -120,9 +119,9 @@ def serialize_adk_config(agent: BaseAgent) -> Dict[str, Any]:
     return base
 
 
-def build_negentropy_subagent_payloads() -> List[Dict[str, Any]]:
+def build_negentropy_subagent_payloads() -> list[dict[str, Any]]:
     """构建 Negentropy 内置 5 个 Faculty SubAgent 的标准 payload。"""
-    payloads: List[Dict[str, Any]] = []
+    payloads: list[dict[str, Any]] = []
     for agent in NEGENTROPY_SUBAGENT_ORDER:
         adk_config = serialize_adk_config(agent)
         payloads.append(

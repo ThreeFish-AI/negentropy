@@ -24,9 +24,7 @@ class McpToolRun(Base, UUIDMixin):
     status: Mapped[str] = mapped_column(String(50), nullable=False, server_default="running")
     created_by: Mapped[str | None] = mapped_column(String(255))
     request_payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
-    normalized_request_payload: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, nullable=False, server_default="{}"
-    )
+    normalized_request_payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     result_payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
     error_summary: Mapped[str | None] = mapped_column(Text)
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")

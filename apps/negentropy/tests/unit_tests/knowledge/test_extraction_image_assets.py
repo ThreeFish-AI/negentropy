@@ -13,8 +13,8 @@ import pytest
 
 from negentropy.knowledge.extraction import (
     ExtractionAsset,
-    _extract_enhanced_image_assets,
     _extract_base64_from_asset,
+    _extract_enhanced_image_assets,
     _extract_image_assets_from_content_items,
     _extract_markdown_image_refs,
     _guess_image_content_type,
@@ -25,14 +25,12 @@ from negentropy.knowledge.extraction import (
     persist_extracted_assets,
 )
 
-
 # ---------------------------------------------------------------------------
 # _extract_markdown_image_refs
 # ---------------------------------------------------------------------------
 
 
 class TestExtractMarkdownImageRefs:
-
     def test_extracts_simple_refs(self):
         md = "# Title\n![fig1](img_1.png)\ntext\n![fig2](img_2.jpg)"
         assert _extract_markdown_image_refs(md) == ["img_1.png", "img_2.jpg"]
@@ -79,7 +77,6 @@ class TestExtractMarkdownImageRefs:
 
 
 class TestMimeToExtension:
-
     def test_known_types(self):
         assert _mime_to_extension("image/png") == ".png"
         assert _mime_to_extension("image/jpeg") == ".jpg"
@@ -97,7 +94,6 @@ class TestMimeToExtension:
 
 
 class TestGuessImageContentType:
-
     def test_known_suffixes(self):
         assert _guess_image_content_type("chart.png") == "image/png"
         assert _guess_image_content_type("chart.jpeg") == "image/jpeg"
@@ -113,7 +109,6 @@ class TestGuessImageContentType:
 
 
 class TestExtractImageAssetsFromContentItems:
-
     def test_extracts_and_matches_by_order(self):
         content_items = [
             SimpleNamespace(type="text", text="# Hello"),
@@ -185,12 +180,7 @@ class TestExtractImageAssetsFromContentItems:
             SimpleNamespace(type="image", data="img1data", mimeType="image/png"),
             SimpleNamespace(type="image", data="img2data", mimeType="image/png"),
         ]
-        md = (
-            "# PDF Document\n"
-            "![](img_1_36_20260324_135001.png)\n"
-            "Some text\n"
-            "![](img_1_37_20260324_135001.png)"
-        )
+        md = "# PDF Document\n![](img_1_36_20260324_135001.png)\nSome text\n![](img_1_37_20260324_135001.png)"
 
         assets = _extract_image_assets_from_content_items(content_items, md)
         assert len(assets) == 2
@@ -204,7 +194,6 @@ class TestExtractImageAssetsFromContentItems:
 
 
 class TestMergeExtractionAssets:
-
     def test_content_images_only(self):
         merged = _merge_extraction_assets(
             [],
@@ -309,7 +298,6 @@ class TestMergeExtractionAssets:
 
 
 class TestExtractBase64FromAsset:
-
     def test_data_base64_field(self):
         assert _extract_base64_from_asset({"data_base64": "abc"}) == "abc"
 
@@ -339,7 +327,6 @@ class TestExtractBase64FromAsset:
 
 
 class TestIsGcsUri:
-
     def test_gcs_uri(self):
         assert _is_gcs_uri("gs://bucket/path/file.png") is True
 
@@ -362,7 +349,6 @@ class TestIsGcsUri:
 
 
 class TestNormalizeAssets:
-
     def test_extracts_data_base64_field(self):
         assets = _normalize_assets([{"name": "img.png", "content_type": "image/png", "data_base64": "abc"}])
         assert assets[0].data_base64 == "abc"
@@ -394,7 +380,6 @@ class TestNormalizeAssets:
 
 
 class TestExtractEnhancedImageAssets:
-
     def test_extracts_assets_from_output_directory(self, tmp_path):
         output_dir = tmp_path / "enhanced"
         output_dir.mkdir()
@@ -456,7 +441,6 @@ class TestExtractEnhancedImageAssets:
 
 
 class TestPersistExtractedAssets:
-
     @pytest.mark.asyncio
     async def test_uploads_asset_with_non_gcs_uri_and_data(self):
         """有非 GCS URI 但有 data_base64 时，应上传到 GCS。"""

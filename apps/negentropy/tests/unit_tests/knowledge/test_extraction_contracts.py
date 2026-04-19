@@ -12,8 +12,6 @@ import pytest
 from negentropy.knowledge.extraction import (
     ROUTE_FILE_PDF,
     ROUTE_URL,
-    CanonicalExtractionRequest,
-    CanonicalExtractionSource,
     ExtractionAttempt,
     ExtractorExecutionError,
     build_tool_adapter,
@@ -164,7 +162,7 @@ def test_extraction_attempt_slots_dataclass_is_json_serialized_in_trace() -> Non
     attempt = ExtractionAttempt(
         server_id="server-1",
         server_name="extractor",
-        tool_name="convert_pdf_to_markdown",
+        tool_name="parse_pdf_to_markdown",
         status="completed",
         duration_ms=12,
     )
@@ -175,7 +173,7 @@ def test_extraction_attempt_slots_dataclass_is_json_serialized_in_trace() -> Non
         {
             "server_id": "server-1",
             "server_name": "extractor",
-            "tool_name": "convert_pdf_to_markdown",
+            "tool_name": "parse_pdf_to_markdown",
             "status": "completed",
             "duration_ms": 12,
             "error": None,

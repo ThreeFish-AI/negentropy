@@ -1,12 +1,12 @@
-import pytest
-import asyncio
 from unittest.mock import MagicMock
-from negentropy.engine.adapters.postgres.tool_registry import ToolRegistry, FrontendTool
-from negentropy.engine.adapters.postgres.tracing import TracingManager, PostgresSpanExporter
+
+import pytest
+from sqlalchemy import delete, select
+
 import negentropy.db.session as db_session
+from negentropy.engine.adapters.postgres.tool_registry import FrontendTool, ToolRegistry
+from negentropy.engine.adapters.postgres.tracing import PostgresSpanExporter
 from negentropy.models.action import Tool
-from negentropy.models.observability import Trace
-from sqlalchemy import select, delete
 
 
 @pytest.mark.asyncio

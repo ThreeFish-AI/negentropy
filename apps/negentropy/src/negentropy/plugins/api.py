@@ -7,17 +7,15 @@ Plugins API 模块。
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
-from sqlalchemy import desc, func, select, and_, or_
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.auth.deps import get_current_user
-from negentropy.auth.rbac import has_permission
 from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
@@ -35,13 +33,14 @@ from negentropy.models.plugin import (
     SubAgent,
 )
 
-from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
 from .execution import McpToolExecutionService
+from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
+
 logger = get_logger("negentropy.plugins.api")
 router = APIRouter(prefix="/plugins", tags=["plugins"])
 
 
-def _resolve_app_name(app_name: Optional[str]) -> str:
+def _resolve_app_name(app_name: str | None) -> str:
     return app_name or settings.app_name
 
 
@@ -53,9 +52,9 @@ def _resolve_app_name(app_name: Optional[str]) -> str:
 class StatsResponse(BaseModel):
     """Dashboard 统计响应"""
 
-    mcp_servers: Dict[str, int]
-    skills: Dict[str, int]
-    subagents: Dict[str, int]
+    mcp_servers: dict[str, int]
+    skills: dict[str, int]
+    subagents: dict[str, int]
 
 
 class PermissionGrantRequest(BaseModel):
@@ -83,33 +82,33 @@ class PermissionResponse(BaseModel):
 
 class McpServerCreateRequest(BaseModel):
     name: str
-    display_name: Optional[str] = None
-    description: Optional[str] = None
+    display_name: str | None = None
+    description: str | None = None
     transport_type: str  # stdio, sse, http
-    command: Optional[str] = None
-    args: List[str] = Field(default_factory=list)
-    env: Dict[str, str] = Field(default_factory=dict)
-    url: Optional[str] = None
-    headers: Dict[str, str] = Field(default_factory=dict)
+    command: str | None = None
+    args: list[str] = Field(default_factory=list)
+    env: dict[str, str] = Field(default_factory=dict)
+    url: str | None = None
+    headers: dict[str, str] = Field(default_factory=dict)
     is_enabled: bool = True
     auto_start: bool = False
-    config: Dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
     visibility: str = "private"
 
 
 class McpServerUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    display_name: Optional[str] = None
-    description: Optional[str] = None
-    command: Optional[str] = None
-    args: Optional[List[str]] = None
-    env: Optional[Dict[str, str]] = None
-    url: Optional[str] = None
-    headers: Optional[Dict[str, str]] = None
-    is_enabled: Optional[bool] = None
-    auto_start: Optional[bool] = None
-    config: Optional[Dict[str, Any]] = None
-    visibility: Optional[str] = None
+    name: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    command: str | None = None
+    args: list[str] | None = None
+    env: dict[str, str] | None = None
+    url: str | None = None
+    headers: dict[str, str] | None = None
+    is_enabled: bool | None = None
+    auto_start: bool | None = None
+    config: dict[str, Any] | None = None
+    visibility: str | None = None
 
 
 class McpServerResponse(BaseModel):
@@ -117,17 +116,17 @@ class McpServerResponse(BaseModel):
     owner_id: str
     visibility: str
     name: str
-    display_name: Optional[str] = None
-    description: Optional[str] = None
+    display_name: str | None = None
+    description: str | None = None
     transport_type: str
-    command: Optional[str] = None
-    args: List[str] = Field(default_factory=list)
-    env: Dict[str, str] = Field(default_factory=dict)
-    url: Optional[str] = None
-    headers: Dict[str, str] = Field(default_factory=dict)
+    command: str | None = None
+    args: list[str] = Field(default_factory=list)
+    env: dict[str, str] = Field(default_factory=dict)
+    url: str | None = None
+    headers: dict[str, str] = Field(default_factory=dict)
     is_enabled: bool = True
     auto_start: bool = False
-    config: Dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
     tool_count: int = 0
 
     class Config:
@@ -142,17 +141,17 @@ class McpServerResponse(BaseModel):
 class McpToolResponse(BaseModel):
     """MCP Tool 响应模型"""
 
-    id: Optional[UUID] = None
+    id: UUID | None = None
     name: str
-    title: Optional[str] = None
-    display_name: Optional[str] = None
-    description: Optional[str] = None
-    input_schema: Dict[str, Any] = Field(default_factory=dict)
-    output_schema: Dict[str, Any] = Field(default_factory=dict)
-    icons: List[Dict[str, Any]] = Field(default_factory=list)
-    annotations: Dict[str, Any] = Field(default_factory=dict)
-    execution: Dict[str, Any] = Field(default_factory=dict)
-    meta: Dict[str, Any] = Field(default_factory=dict)
+    title: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    input_schema: dict[str, Any] = Field(default_factory=dict)
+    output_schema: dict[str, Any] = Field(default_factory=dict)
+    icons: list[dict[str, Any]] = Field(default_factory=list)
+    annotations: dict[str, Any] = Field(default_factory=dict)
+    execution: dict[str, Any] = Field(default_factory=dict)
+    meta: dict[str, Any] = Field(default_factory=dict)
     is_enabled: bool = True
     call_count: int = 0
 
@@ -163,8 +162,8 @@ class McpToolResponse(BaseModel):
 class McpToolUpdateRequest(BaseModel):
     """MCP Tool 更新请求"""
 
-    display_name: Optional[str] = None
-    is_enabled: Optional[bool] = None
+    display_name: str | None = None
+    is_enabled: bool | None = None
 
 
 class LoadToolsResponse(BaseModel):
@@ -172,9 +171,9 @@ class LoadToolsResponse(BaseModel):
 
     success: bool
     server_id: UUID
-    tools: List[McpToolResponse] = Field(default_factory=list)
+    tools: list[McpToolResponse] = Field(default_factory=list)
     duration_ms: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class McpTrialAssetResponse(BaseModel):
@@ -182,12 +181,12 @@ class McpTrialAssetResponse(BaseModel):
     server_id: UUID
     owner_id: str
     original_filename: str
-    content_type: Optional[str] = None
+    content_type: str | None = None
     size_bytes: int
     sha256: str
     gcs_uri: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    created_at: Optional[str] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str | None = None
 
 
 class McpToolRunEventResponse(BaseModel):
@@ -197,43 +196,43 @@ class McpToolRunEventResponse(BaseModel):
     stage: str
     status: str
     title: str
-    detail: Optional[str] = None
-    payload: Dict[str, Any] = Field(default_factory=dict)
+    detail: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
     duration_ms: int = 0
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
 
 
 class McpToolRunSummaryResponse(BaseModel):
     id: UUID
     server_id: UUID
-    tool_id: Optional[UUID] = None
+    tool_id: UUID | None = None
     tool_name: str
     origin: str
     status: str
-    created_by: Optional[str] = None
-    request_payload: Dict[str, Any] = Field(default_factory=dict)
-    normalized_request_payload: Dict[str, Any] = Field(default_factory=dict)
-    result_payload: Dict[str, Any] = Field(default_factory=dict)
-    error_summary: Optional[str] = None
+    created_by: str | None = None
+    request_payload: dict[str, Any] = Field(default_factory=dict)
+    normalized_request_payload: dict[str, Any] = Field(default_factory=dict)
+    result_payload: dict[str, Any] = Field(default_factory=dict)
+    error_summary: str | None = None
     duration_ms: int = 0
-    started_at: Optional[str] = None
-    ended_at: Optional[str] = None
+    started_at: str | None = None
+    ended_at: str | None = None
 
 
 class McpToolRunDetailResponse(McpToolRunSummaryResponse):
-    events: List[McpToolRunEventResponse] = Field(default_factory=list)
+    events: list[McpToolRunEventResponse] = Field(default_factory=list)
 
 
 class ExecuteToolRequest(BaseModel):
     tool_name: str
-    arguments: Dict[str, Any] = Field(default_factory=dict)
-    asset_refs: Dict[str, Any] = Field(default_factory=dict)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    asset_refs: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExecuteToolResponse(BaseModel):
     success: bool
     run: McpToolRunDetailResponse
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # =============================================================================
@@ -243,32 +242,32 @@ class ExecuteToolResponse(BaseModel):
 
 class SkillCreateRequest(BaseModel):
     name: str
-    display_name: Optional[str] = None
-    description: Optional[str] = None
+    display_name: str | None = None
+    description: str | None = None
     category: str = "general"
     version: str = "1.0.0"
-    prompt_template: Optional[str] = None
-    config_schema: Dict[str, Any] = Field(default_factory=dict)
-    default_config: Dict[str, Any] = Field(default_factory=dict)
-    required_tools: List[str] = Field(default_factory=list)
+    prompt_template: str | None = None
+    config_schema: dict[str, Any] = Field(default_factory=dict)
+    default_config: dict[str, Any] = Field(default_factory=dict)
+    required_tools: list[str] = Field(default_factory=list)
     is_enabled: bool = True
     priority: int = 0
     visibility: str = "private"
 
 
 class SkillUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    display_name: Optional[str] = None
-    description: Optional[str] = None
-    category: Optional[str] = None
-    version: Optional[str] = None
-    prompt_template: Optional[str] = None
-    config_schema: Optional[Dict[str, Any]] = None
-    default_config: Optional[Dict[str, Any]] = None
-    required_tools: Optional[List[str]] = None
-    is_enabled: Optional[bool] = None
-    priority: Optional[int] = None
-    visibility: Optional[str] = None
+    name: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    category: str | None = None
+    version: str | None = None
+    prompt_template: str | None = None
+    config_schema: dict[str, Any] | None = None
+    default_config: dict[str, Any] | None = None
+    required_tools: list[str] | None = None
+    is_enabled: bool | None = None
+    priority: int | None = None
+    visibility: str | None = None
 
 
 class SkillResponse(BaseModel):
@@ -276,14 +275,14 @@ class SkillResponse(BaseModel):
     owner_id: str
     visibility: str
     name: str
-    display_name: Optional[str] = None
-    description: Optional[str] = None
+    display_name: str | None = None
+    description: str | None = None
     category: str
     version: str
-    prompt_template: Optional[str] = None
-    config_schema: Dict[str, Any] = Field(default_factory=dict)
-    default_config: Dict[str, Any] = Field(default_factory=dict)
-    required_tools: List[str] = Field(default_factory=list)
+    prompt_template: str | None = None
+    config_schema: dict[str, Any] = Field(default_factory=dict)
+    default_config: dict[str, Any] = Field(default_factory=dict)
+    required_tools: list[str] = Field(default_factory=list)
     is_enabled: bool
     priority: int
 
@@ -298,33 +297,33 @@ class SkillResponse(BaseModel):
 
 class SubAgentCreateRequest(BaseModel):
     name: str
-    display_name: Optional[str] = None
-    description: Optional[str] = None
+    display_name: str | None = None
+    description: str | None = None
     agent_type: str
-    system_prompt: Optional[str] = None
-    model: Optional[str] = None
-    config: Dict[str, Any] = Field(default_factory=dict)
-    adk_config: Dict[str, Any] = Field(default_factory=dict)
-    skills: List[str] = Field(default_factory=list)
-    tools: List[str] = Field(default_factory=list)
+    system_prompt: str | None = None
+    model: str | None = None
+    config: dict[str, Any] = Field(default_factory=dict)
+    adk_config: dict[str, Any] = Field(default_factory=dict)
+    skills: list[str] = Field(default_factory=list)
+    tools: list[str] = Field(default_factory=list)
     is_enabled: bool = True
     visibility: str = "private"
 
 
 class SubAgentUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    display_name: Optional[str] = None
-    description: Optional[str] = None
-    agent_type: Optional[str] = None
-    system_prompt: Optional[str] = None
-    model: Optional[str] = None
-    config: Optional[Dict[str, Any]] = None
-    adk_config: Optional[Dict[str, Any]] = None
-    skills: Optional[List[str]] = None
-    tools: Optional[List[str]] = None
-    is_enabled: Optional[bool] = None
-    visibility: Optional[str] = None
-    confirm_builtin_rename: Optional[bool] = False
+    name: str | None = None
+    display_name: str | None = None
+    description: str | None = None
+    agent_type: str | None = None
+    system_prompt: str | None = None
+    model: str | None = None
+    config: dict[str, Any] | None = None
+    adk_config: dict[str, Any] | None = None
+    skills: list[str] | None = None
+    tools: list[str] | None = None
+    is_enabled: bool | None = None
+    visibility: str | None = None
+    confirm_builtin_rename: bool | None = False
 
 
 class SubAgentResponse(BaseModel):
@@ -332,15 +331,15 @@ class SubAgentResponse(BaseModel):
     owner_id: str
     visibility: str
     name: str
-    display_name: Optional[str] = None
-    description: Optional[str] = None
+    display_name: str | None = None
+    description: str | None = None
     agent_type: str
-    system_prompt: Optional[str] = None
-    model: Optional[str] = None
-    config: Dict[str, Any] = Field(default_factory=dict)
-    adk_config: Dict[str, Any] = Field(default_factory=dict)
-    skills: List[str] = Field(default_factory=list)
-    tools: List[str] = Field(default_factory=list)
+    system_prompt: str | None = None
+    model: str | None = None
+    config: dict[str, Any] = Field(default_factory=dict)
+    adk_config: dict[str, Any] = Field(default_factory=dict)
+    skills: list[str] = Field(default_factory=list)
+    tools: list[str] = Field(default_factory=list)
     source: str = "user_defined"
     is_builtin: bool = False
     is_enabled: bool
@@ -351,20 +350,20 @@ class SubAgentResponse(BaseModel):
 
 class NegentropySubAgentTemplateResponse(BaseModel):
     name: str
-    display_name: Optional[str] = None
-    description: Optional[str] = None
+    display_name: str | None = None
+    description: str | None = None
     agent_type: str
-    system_prompt: Optional[str] = None
-    model: Optional[str] = None
-    adk_config: Dict[str, Any] = Field(default_factory=dict)
-    tools: List[str] = Field(default_factory=list)
+    system_prompt: str | None = None
+    model: str | None = None
+    adk_config: dict[str, Any] = Field(default_factory=dict)
+    tools: list[str] = Field(default_factory=list)
 
 
 class NegentropySubAgentSyncResponse(BaseModel):
     created: int
     updated: int
     skipped: int
-    agents: List[SubAgentResponse] = Field(default_factory=list)
+    agents: list[SubAgentResponse] = Field(default_factory=list)
 
 
 # =============================================================================
@@ -380,9 +379,7 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
         visible_mcp_ids = await get_visible_plugin_ids(db, "mcp_server", user)
         mcp_total = len(visible_mcp_ids)
         mcp_enabled_result = await db.scalar(
-            select(func.count()).where(
-                and_(McpServer.id.in_(visible_mcp_ids), McpServer.is_enabled == True)
-            )
+            select(func.count()).where(and_(McpServer.id.in_(visible_mcp_ids), McpServer.is_enabled.is_(True)))
         )
         mcp_enabled = mcp_enabled_result or 0
 
@@ -390,7 +387,7 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
         visible_skill_ids = await get_visible_plugin_ids(db, "skill", user)
         skill_total = len(visible_skill_ids)
         skill_enabled_result = await db.scalar(
-            select(func.count()).where(and_(Skill.id.in_(visible_skill_ids), Skill.is_enabled == True))
+            select(func.count()).where(and_(Skill.id.in_(visible_skill_ids), Skill.is_enabled.is_(True)))
         )
         skill_enabled = skill_enabled_result or 0
 
@@ -398,7 +395,7 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
         visible_subagent_ids = await get_visible_plugin_ids(db, "sub_agent", user)
         subagent_total = len(visible_subagent_ids)
         subagent_enabled_result = await db.scalar(
-            select(func.count()).where(and_(SubAgent.id.in_(visible_subagent_ids), SubAgent.is_enabled == True))
+            select(func.count()).where(and_(SubAgent.id.in_(visible_subagent_ids), SubAgent.is_enabled.is_(True)))
         )
         subagent_enabled = subagent_enabled_result or 0
 
@@ -414,8 +411,8 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
 # =============================================================================
 
 
-@router.get("/mcp/servers", response_model=List[McpServerResponse])
-async def list_mcp_servers(user: AuthUser = Depends(get_current_user)) -> List[McpServerResponse]:
+@router.get("/mcp/servers", response_model=list[McpServerResponse])
+async def list_mcp_servers(user: AuthUser = Depends(get_current_user)) -> list[McpServerResponse]:
     """列出用户可见的 MCP 服务器"""
     async with AsyncSessionLocal() as db:
         visible_ids = await get_visible_plugin_ids(db, "mcp_server", user)
@@ -520,9 +517,7 @@ async def update_mcp_server(
                 raise HTTPException(status_code=400, detail="Server name cannot be empty")
             if new_name != server.name:
                 existing = await db.scalar(
-                    select(McpServer).where(
-                        and_(McpServer.name == new_name, McpServer.id != server_id)
-                    )
+                    select(McpServer).where(and_(McpServer.name == new_name, McpServer.id != server_id))
                 )
                 if existing:
                     raise HTTPException(status_code=400, detail="Server name already exists")
@@ -629,7 +624,7 @@ def _mcp_tool_run_event_to_response(event: McpToolRunEvent) -> McpToolRunEventRe
 
 def _mcp_tool_run_to_response(
     run: McpToolRun,
-    events: List[McpToolRunEvent] | None = None,
+    events: list[McpToolRunEvent] | None = None,
 ) -> McpToolRunDetailResponse | McpToolRunSummaryResponse:
     payload = dict(
         id=run.id,
@@ -712,7 +707,7 @@ async def load_mcp_server_tools(
         existing_tools = existing_tools_result.scalars().all()
         existing_map = {t.name: t for t in existing_tools}
 
-        updated_tools: List[McpTool] = []
+        updated_tools: list[McpTool] = []
         for tool_info in result.tools:
             if tool_info.name in existing_map:
                 # 更新现有 Tool
@@ -760,20 +755,18 @@ async def load_mcp_server_tools(
         )
 
 
-@router.get("/mcp/servers/{server_id}/tools", response_model=List[McpToolResponse])
+@router.get("/mcp/servers/{server_id}/tools", response_model=list[McpToolResponse])
 async def list_mcp_server_tools(
     server_id: UUID,
     user: AuthUser = Depends(get_current_user),
-) -> List[McpToolResponse]:
+) -> list[McpToolResponse]:
     """列出指定 MCP Server 的所有 Tools"""
     async with AsyncSessionLocal() as db:
         has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "view")
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
-        result = await db.execute(
-            select(McpTool).where(McpTool.server_id == server_id).order_by(McpTool.name)
-        )
+        result = await db.execute(select(McpTool).where(McpTool.server_id == server_id).order_by(McpTool.name))
         tools = result.scalars().all()
 
         return [_mcp_tool_to_response(t) for t in tools]
@@ -810,7 +803,7 @@ async def update_mcp_tool(
 async def upload_mcp_trial_asset(
     server_id: UUID,
     file: UploadFile = File(...),
-    metadata: Optional[str] = Form(default=None),
+    metadata: str | None = Form(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> McpTrialAssetResponse:
     """上传 MCP 试用文件到 GCS。"""
@@ -827,7 +820,7 @@ async def upload_mcp_trial_asset(
         if not content:
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
-        extra_metadata: Dict[str, Any] = {}
+        extra_metadata: dict[str, Any] = {}
         if metadata:
             try:
                 parsed = json.loads(metadata)
@@ -880,14 +873,14 @@ async def execute_mcp_tool(
         )
 
 
-@router.get("/mcp/servers/{server_id}/runs", response_model=List[McpToolRunSummaryResponse])
+@router.get("/mcp/servers/{server_id}/runs", response_model=list[McpToolRunSummaryResponse])
 async def list_mcp_tool_runs(
     server_id: UUID,
-    tool_name: Optional[str] = Query(default=None),
-    origin: Optional[str] = Query(default=None),
+    tool_name: str | None = Query(default=None),
+    origin: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=200),
     user: AuthUser = Depends(get_current_user),
-) -> List[McpToolRunSummaryResponse]:
+) -> list[McpToolRunSummaryResponse]:
     async with AsyncSessionLocal() as db:
         has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "view")
         if not has_access:
@@ -919,9 +912,7 @@ async def get_mcp_tool_run(
             raise HTTPException(status_code=403, detail=error)
 
         events_result = await db.execute(
-            select(McpToolRunEvent)
-            .where(McpToolRunEvent.run_id == run_id)
-            .order_by(McpToolRunEvent.sequence_num.asc())
+            select(McpToolRunEvent).where(McpToolRunEvent.run_id == run_id).order_by(McpToolRunEvent.sequence_num.asc())
         )
         events = events_result.scalars().all()
         return _mcp_tool_run_to_response(run, list(events))
@@ -932,11 +923,11 @@ async def get_mcp_tool_run(
 # =============================================================================
 
 
-@router.get("/skills", response_model=List[SkillResponse])
+@router.get("/skills", response_model=list[SkillResponse])
 async def list_skills(
-    category: Optional[str] = Query(default=None),
+    category: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
-) -> List[SkillResponse]:
+) -> list[SkillResponse]:
     """列出用户可见的 Skills"""
     async with AsyncSessionLocal() as db:
         visible_ids = await get_visible_plugin_ids(db, "skill", user)
@@ -1025,9 +1016,7 @@ async def update_skill(
             if not new_name:
                 raise HTTPException(status_code=400, detail="Skill name cannot be empty")
             if new_name != skill.name:
-                existing = await db.scalar(
-                    select(Skill).where(and_(Skill.name == new_name, Skill.id != skill_id))
-                )
+                existing = await db.scalar(select(Skill).where(and_(Skill.name == new_name, Skill.id != skill_id)))
                 if existing:
                     raise HTTPException(status_code=400, detail="Skill name already exists")
             update_data["name"] = new_name
@@ -1085,16 +1074,16 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
 # =============================================================================
 
 
-def _json_dict(value: Any) -> Dict[str, Any]:
+def _json_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
 def _build_adk_config_from_payload(
-    payload: Dict[str, Any],
-    existing_adk_config: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    payload: dict[str, Any],
+    existing_adk_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """构建 SubAgent 的 ADK 配置（可回放）。"""
-    adk_config: Dict[str, Any] = dict(existing_adk_config or {})
+    adk_config: dict[str, Any] = dict(existing_adk_config or {})
     incoming_adk = payload.get("adk_config")
     if isinstance(incoming_adk, dict):
         adk_config.update(incoming_adk)
@@ -1129,11 +1118,11 @@ def _build_adk_config_from_payload(
 
 def _merge_subagent_config(
     *,
-    current_config: Optional[Dict[str, Any]],
-    update_config: Optional[Dict[str, Any]],
-    adk_config: Dict[str, Any],
+    current_config: dict[str, Any] | None,
+    update_config: dict[str, Any] | None,
+    adk_config: dict[str, Any],
     source: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     merged = dict(current_config or {})
     if isinstance(update_config, dict):
         merged.update(update_config)
@@ -1143,9 +1132,9 @@ def _merge_subagent_config(
 
 
 def _materialize_subagent_payload(
-    agent: Optional[SubAgent],
-    incoming: Dict[str, Any],
-) -> Dict[str, Any]:
+    agent: SubAgent | None,
+    incoming: dict[str, Any],
+) -> dict[str, Any]:
     """将数据库对象与变更 payload 合并为完整视图，便于构建 adk_config。"""
     if agent is None:
         base = {
@@ -1188,14 +1177,14 @@ def _materialize_subagent_payload(
     return base
 
 
-def _resolve_subagent_source(config: Dict[str, Any]) -> str:
+def _resolve_subagent_source(config: dict[str, Any]) -> str:
     source = config.get("source")
     if isinstance(source, str) and source:
         return source
     return "user_defined"
 
 
-def _extract_adk_config(agent: SubAgent) -> Dict[str, Any]:
+def _extract_adk_config(agent: SubAgent) -> dict[str, Any]:
     config = _json_dict(agent.config)
     adk_config = config.get("adk_config")
     if isinstance(adk_config, dict):
@@ -1213,8 +1202,8 @@ def _extract_adk_config(agent: SubAgent) -> Dict[str, Any]:
     return _build_adk_config_from_payload(fallback_payload)
 
 
-@router.get("/subagents", response_model=List[SubAgentResponse])
-async def list_subagents(user: AuthUser = Depends(get_current_user)) -> List[SubAgentResponse]:
+@router.get("/subagents", response_model=list[SubAgentResponse])
+async def list_subagents(user: AuthUser = Depends(get_current_user)) -> list[SubAgentResponse]:
     """列出用户可见的 SubAgents"""
     async with AsyncSessionLocal() as db:
         visible_ids = await get_visible_plugin_ids(db, "sub_agent", user)
@@ -1228,10 +1217,10 @@ async def list_subagents(user: AuthUser = Depends(get_current_user)) -> List[Sub
     return [_subagent_to_response(a) for a in agents]
 
 
-@router.get("/subagents/templates/negentropy", response_model=List[NegentropySubAgentTemplateResponse])
+@router.get("/subagents/templates/negentropy", response_model=list[NegentropySubAgentTemplateResponse])
 async def list_negentropy_subagent_templates(
     user: AuthUser = Depends(get_current_user),
-) -> List[NegentropySubAgentTemplateResponse]:
+) -> list[NegentropySubAgentTemplateResponse]:
     """返回 Negentropy 内置 5 个 Faculty SubAgent 模板（来自代码定义）。"""
     _ = user  # 显式依赖鉴权
     from .subagent_presets import build_negentropy_subagent_payloads
@@ -1270,7 +1259,7 @@ async def sync_negentropy_subagents(
     created_count = 0
     updated_count = 0
     skipped_count = 0
-    touched_agents: List[SubAgent] = []
+    touched_agents: list[SubAgent] = []
 
     async with AsyncSessionLocal() as db:
         for payload in payloads:
@@ -1540,12 +1529,12 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
 # =============================================================================
 
 
-@router.get("/{plugin_type}/{plugin_id}/permissions", response_model=List[PermissionResponse])
+@router.get("/{plugin_type}/{plugin_id}/permissions", response_model=list[PermissionResponse])
 async def list_permissions(
     plugin_type: str,
     plugin_id: UUID,
     user: AuthUser = Depends(get_current_user),
-) -> List[PermissionResponse]:
+) -> list[PermissionResponse]:
     """获取插件的授权列表（仅 owner 可查看）"""
     if plugin_type not in ["mcp_server", "skill", "sub_agent"]:
         raise HTTPException(status_code=400, detail="Invalid plugin type")
@@ -1565,12 +1554,12 @@ async def list_permissions(
         )
         permissions = result.scalars().all()
 
-    return [
-        PermissionResponse(id=p.id, user_id=p.user_id, permission=p.permission.value) for p in permissions
-    ]
+    return [PermissionResponse(id=p.id, user_id=p.user_id, permission=p.permission.value) for p in permissions]
 
 
-@router.post("/{plugin_type}/{plugin_id}/permissions", response_model=PermissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{plugin_type}/{plugin_id}/permissions", response_model=PermissionResponse, status_code=status.HTTP_201_CREATED
+)
 async def grant_permission(
     plugin_type: str,
     plugin_id: UUID,

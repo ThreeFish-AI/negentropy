@@ -29,8 +29,8 @@ class ModelConfig(Base, UUIDMixin, TimestampMixin):
     Attributes:
         model_type: 模型类型 (llm / embedding / rerank)
         display_name: 管理界面展示名称
-        vendor: 供应商标识 (如 openai, anthropic, zai, vertex_ai, deepseek, ollama)
-        model_name: 模型标识符 (如 glm-5, text-embedding-005)
+        vendor: 供应商标识 (如 openai, anthropic, gemini, vertex_ai, deepseek, ollama)
+        model_name: 模型标识符 (如 gpt-5-mini, text-embedding-005)
         is_default: 是否为该类型的默认模型
         enabled: 是否启用
         config: 供应商特定参数 (temperature, thinking_mode 等)
@@ -51,15 +51,9 @@ class ModelConfig(Base, UUIDMixin, TimestampMixin):
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     vendor: Mapped[str] = mapped_column(String(50), nullable=False)
     model_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    is_default: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false"
-    )
-    enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default="true"
-    )
-    config: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, nullable=False, server_default="{}"
-    )
+    is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
 
     __table_args__ = (
         # 每种 model_type 只能有一个 default

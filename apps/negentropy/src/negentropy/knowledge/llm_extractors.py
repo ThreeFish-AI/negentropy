@@ -20,15 +20,14 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from negentropy.logging import get_logger
 
 if TYPE_CHECKING:
-    from .graph import EntityExtractor, RelationExtractor
+    pass
 
 from .types import GraphEdge, GraphNode, KgEntityType, KgRelationType
 
@@ -54,10 +53,10 @@ class EntityExtractionResult:
 
     name: str
     entity_type: str
-    description: Optional[str] = None
+    description: str | None = None
     confidence: float = 1.0
-    source_text: Optional[str] = None  # 来源文本片段
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    source_text: str | None = None  # 来源文本片段
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -70,10 +69,10 @@ class RelationExtractionResult:
     source_name: str
     target_name: str
     relation_type: str
-    description: Optional[str] = None
+    description: str | None = None
     confidence: float = 1.0
-    evidence: Optional[str] = None  # 支撑文本
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    evidence: str | None = None  # 支撑文本
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ============================================================================
@@ -124,7 +123,7 @@ Output as JSON with the following structure:
 
     def __init__(
         self,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
         fallback_to_regex: bool = True,
@@ -158,7 +157,7 @@ Output as JSON with the following structure:
         self,
         text: str,
         corpus_id: UUID,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """从文本中提取实体节点
 
         使用 LLM 结构化输出提取实体。
@@ -229,7 +228,7 @@ Output as JSON with the following structure:
 
             raise
 
-    async def _extract_with_llm(self, text: str) -> List[EntityExtractionResult]:
+    async def _extract_with_llm(self, text: str) -> list[EntityExtractionResult]:
         """使用 LLM 提取实体
 
         Args:
@@ -251,7 +250,8 @@ Output as JSON with the following structure:
             try:
                 # 过滤掉与显式参数冲突的 kwargs 键
                 safe_kwargs = {
-                    k: v for k, v in self._model_kwargs.items()
+                    k: v
+                    for k, v in self._model_kwargs.items()
                     if k not in ("model", "messages", "temperature", "response_format")
                 }
                 response = await litellm.acompletion(
@@ -276,7 +276,7 @@ Output as JSON with the following structure:
 
         raise RuntimeError(f"LLM entity extraction failed after {self._max_retries} retries: {last_error}")
 
-    def _parse_entity_response(self, content: str) -> List[EntityExtractionResult]:
+    def _parse_entity_response(self, content: str) -> list[EntityExtractionResult]:
         """解析 LLM 响应为实体列表
 
         Args:
@@ -342,7 +342,7 @@ Output as JSON with the following structure:
         self,
         text: str,
         corpus_id: UUID,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """回退到正则提取器
 
         当 LLM 提取失败时，使用正则提取作为回退。
@@ -408,11 +408,12 @@ Important:
 - Include the exact text evidence when possible
 
 Output as JSON with the following structure:
-{{"relations": [{{"source": "...", "target": "...", "type": "...", "description": "...", "evidence": "...", "confidence": 0.9}}]}}"""
+{{"relations": [{{"source": "...", "target": "...", "type": "...",
+"description": "...", "evidence": "...", "confidence": 0.9}}]}}"""
 
     def __init__(
         self,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
         fallback_to_cooccurrence: bool = True,
@@ -444,9 +445,9 @@ Output as JSON with the following structure:
 
     async def extract(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         text: str,
-    ) -> List[GraphEdge]:
+    ) -> list[GraphEdge]:
         """从文本中提取实体间关系
 
         Args:
@@ -528,9 +529,9 @@ Output as JSON with the following structure:
 
     async def _extract_with_llm(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         text: str,
-    ) -> List[RelationExtractionResult]:
+    ) -> list[RelationExtractionResult]:
         """使用 LLM 提取关系
 
         Args:
@@ -565,7 +566,8 @@ Output as JSON with the following structure:
             try:
                 # 过滤掉与显式参数冲突的 kwargs 键
                 safe_kwargs = {
-                    k: v for k, v in self._model_kwargs.items()
+                    k: v
+                    for k, v in self._model_kwargs.items()
                     if k not in ("model", "messages", "temperature", "response_format")
                 }
                 response = await litellm.acompletion(
@@ -590,7 +592,7 @@ Output as JSON with the following structure:
 
         raise RuntimeError(f"LLM relation extraction failed after {self._max_retries} retries: {last_error}")
 
-    def _parse_relation_response(self, content: str) -> List[RelationExtractionResult]:
+    def _parse_relation_response(self, content: str) -> list[RelationExtractionResult]:
         """解析 LLM 响应为关系列表
 
         Args:
@@ -638,9 +640,9 @@ Output as JSON with the following structure:
 
     async def _fallback_extract(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         text: str,
-    ) -> List[GraphEdge]:
+    ) -> list[GraphEdge]:
         """回退到共现提取器
 
         Args:
@@ -678,7 +680,7 @@ class CompositeEntityExtractor:
 
     def __init__(
         self,
-        llm_model: Optional[str] = None,
+        llm_model: str | None = None,
         enable_llm: bool = True,
         fallback_to_regex: bool = True,
     ) -> None:
@@ -703,7 +705,7 @@ class CompositeEntityExtractor:
         self,
         text: str,
         corpus_id: UUID,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """从文本中提取实体
 
         Args:
@@ -731,7 +733,7 @@ class CompositeRelationExtractor:
 
     def __init__(
         self,
-        llm_model: Optional[str] = None,
+        llm_model: str | None = None,
         enable_llm: bool = True,
         fallback_to_cooccurrence: bool = True,
     ) -> None:
@@ -754,9 +756,9 @@ class CompositeRelationExtractor:
 
     async def extract(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         text: str,
-    ) -> List[GraphEdge]:
+    ) -> list[GraphEdge]:
         """从文本中提取关系
 
         Args:

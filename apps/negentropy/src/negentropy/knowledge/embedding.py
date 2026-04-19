@@ -15,7 +15,6 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from negentropy.config import settings
 from negentropy.logging import get_logger
 
 from .exceptions import EmbeddingFailed
@@ -100,7 +99,7 @@ async def _call_with_retry(
     for attempt in range(1, max_retries + 1):
         try:
             return await asyncio.wait_for(coro_factory(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             last_exc = TimeoutError(f"Embedding API timed out after {timeout}s")
             logger.warning(
                 "embedding_timeout",
@@ -230,11 +229,15 @@ def build_batch_embedding_fn() -> BatchEmbeddingFn:
                 try:
                     import litellm
 
-                    async def _call():
+                    async def _call(
+                        _texts=non_empty_texts,
+                        _model=model_name,
+                        _kwargs=extra_kwargs,
+                    ):
                         return await litellm.aembedding(
-                            model=model_name,
-                            input=non_empty_texts,
-                            **extra_kwargs,
+                            model=_model,
+                            input=_texts,
+                            **_kwargs,
                         )
 
                     response = await _call_with_retry(
@@ -270,7 +273,7 @@ def build_batch_embedding_fn() -> BatchEmbeddingFn:
                     )
 
                 # Extract embeddings and map back to original positions in batch
-                for idx, data_item in zip(non_empty_indices, data):
+                for idx, data_item in zip(non_empty_indices, data, strict=True):
                     embedding = _extract_embedding_from_item(data_item)
                     if embedding is None:
                         raise EmbeddingFailed(

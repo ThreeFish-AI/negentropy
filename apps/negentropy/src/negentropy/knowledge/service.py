@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, List, Optional
+from collections.abc import Awaitable, Callable, Iterable
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from negentropy.logging import get_logger
@@ -11,12 +12,11 @@ from .chunking import chunk_text, semantic_chunk_async
 
 if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
-from .constants import DEFAULT_KEYWORD_WEIGHT, DEFAULT_SEMANTIC_WEIGHT, TEXT_PREVIEW_MAX_LENGTH
-from .exceptions import SearchError
-from .extraction import ExtractedDocumentResult, ROUTE_URL, extract_source, resolve_source_kind
-from .source_tracking import SourceTrackingService, TrackingContext
-from .reranking import NoopReranker, Reranker
+from .constants import TEXT_PREVIEW_MAX_LENGTH
+from .extraction import ROUTE_URL, ExtractedDocumentResult, extract_source, resolve_source_kind
 from .repository import KnowledgeRepository
+from .reranking import NoopReranker, Reranker
+from .source_tracking import SourceTrackingService, TrackingContext
 from .types import (
     ChunkingConfig,
     ChunkingStrategy,
@@ -28,12 +28,11 @@ from .types import (
     KnowledgeRecord,
     RecursiveChunkingConfig,
     SearchConfig,
+    SourceSummary,
     chunking_config_summary,
     default_chunking_config,
-    infer_source_type,
-    normalize_source_metadata,
-    SourceSummary,
     merge_search_results,
+    normalize_source_metadata,
 )
 
 logger = get_logger("negentropy.knowledge.service")
@@ -61,26 +60,26 @@ class PipelineTracker:
 
     def __init__(
         self,
-        dao: "KnowledgeRunDao",
+        dao: KnowledgeRunDao,
         app_name: str,
         operation: PipelineOperation,
-        run_id: Optional[str] = None,
+        run_id: str | None = None,
     ) -> None:
         self._dao = dao
         self._app_name = app_name
         self._operation = operation
         self._run_id = run_id or f"{operation}-{uuid.uuid4().hex[:8]}"
-        self._started_at: Optional[str] = None
-        self._completed_at: Optional[str] = None
-        self._duration_ms: Optional[int] = None
-        self._stages: Dict[str, Dict[str, Any]] = {}
-        self._input: Dict[str, Any] = {}
-        self._output: Optional[Dict[str, Any]] = None
-        self._error: Optional[Dict[str, Any]] = None
+        self._started_at: str | None = None
+        self._completed_at: str | None = None
+        self._duration_ms: int | None = None
+        self._stages: dict[str, dict[str, Any]] = {}
+        self._input: dict[str, Any] = {}
+        self._output: dict[str, Any] | None = None
+        self._error: dict[str, Any] | None = None
         self._status = "pending"
-        self._current_stage: Optional[str] = None
+        self._current_stage: str | None = None
 
-    def _log_context(self) -> Dict[str, Any]:
+    def _log_context(self) -> dict[str, Any]:
         return {
             "run_id": self._run_id,
             "operation": self._operation,
@@ -93,11 +92,11 @@ class PipelineTracker:
         event: str,
         *,
         level: str = "info",
-        stage: Optional[str] = None,
-        status: Optional[str] = None,
-        payload: Optional[Dict[str, Any]] = None,
+        stage: str | None = None,
+        status: str | None = None,
+        payload: dict[str, Any] | None = None,
     ) -> None:
-        log_payload: Dict[str, Any] = {
+        log_payload: dict[str, Any] = {
             **self._log_context(),
             "stage": stage,
             "status": status,
@@ -107,12 +106,12 @@ class PipelineTracker:
         getattr(logger, level)(event, **log_payload)
 
     @staticmethod
-    def _normalize_dict_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    def _normalize_dict_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
         return dict(payload or {})
 
     @classmethod
-    def _normalize_stages_payload(cls, stages: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        normalized: Dict[str, Dict[str, Any]] = {}
+    def _normalize_stages_payload(cls, stages: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        normalized: dict[str, dict[str, Any]] = {}
         for stage_name, stage_payload in stages.items():
             stage_data = dict(stage_payload or {})
             if "output" in stage_data:
@@ -125,11 +124,11 @@ class PipelineTracker:
         return self._run_id
 
     @property
-    def current_stage(self) -> Optional[str]:
+    def current_stage(self) -> str | None:
         return self._current_stage
 
     @staticmethod
-    def _calculate_duration_ms(started_at: Optional[str], completed_at: str) -> Optional[int]:
+    def _calculate_duration_ms(started_at: str | None, completed_at: str) -> int | None:
         if not started_at:
             return None
         try:
@@ -155,9 +154,9 @@ class PipelineTracker:
         self._error = payload.get("error")
         self._status = record.status
 
-    async def start(self, input_data: Dict[str, Any]) -> None:
+    async def start(self, input_data: dict[str, Any]) -> None:
         """开始 Pipeline 执行"""
-        self._started_at = datetime.now(timezone.utc).isoformat()
+        self._started_at = datetime.now(UTC).isoformat()
         self._input = input_data
         self._status = "running"
         await self._persist()
@@ -172,7 +171,7 @@ class PipelineTracker:
         self._current_stage = stage
         self._stages[stage] = {
             "status": "running",
-            "started_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
         }
         await self._persist()
         self._log_stage_event("pipeline_stage_started", stage=stage, status="running")
@@ -180,10 +179,10 @@ class PipelineTracker:
     async def complete_stage(
         self,
         stage: str,
-        output: Optional[Dict[str, Any]] = None,
+        output: dict[str, Any] | None = None,
     ) -> None:
         """完成阶段执行"""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         stage_data = self._stages.get(stage, {})
         started_at = stage_data.get("started_at")
         existing_mcp_events = stage_data.get("mcp_events")
@@ -212,19 +211,19 @@ class PipelineTracker:
     async def fail_stage(
         self,
         stage: str,
-        error: Dict[str, Any],
+        error: dict[str, Any],
     ) -> None:
         """阶段执行失败"""
         await self.fail(error, stage=stage)
 
     async def fail(
         self,
-        error: Dict[str, Any],
+        error: dict[str, Any],
         *,
-        stage: Optional[str] = None,
+        stage: str | None = None,
     ) -> None:
         """统一写入失败终态，确保 run 与 stage 的结束信息同时落盘。"""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         target_stage = stage or self._current_stage
 
         if target_stage:
@@ -270,7 +269,7 @@ class PipelineTracker:
     _MAX_STDERR_EVENTS = 5
     _PERSIST_WORTHY_STAGES = frozenset({"transport_connect", "session_initialized"})
 
-    def buffer_stage_event(self, stage: str, event: Dict[str, Any]) -> None:
+    def buffer_stage_event(self, stage: str, event: dict[str, Any]) -> None:
         """同步地将 MCP 子事件缓存到当前 stage 的内存数据中（不触发 DB 写入）。"""
         stage_data = self._stages.get(stage)
         if not stage_data:
@@ -288,16 +287,18 @@ class PipelineTracker:
                         mcp_events.pop(i)
                         break
 
-        mcp_events.append({
-            **event,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        mcp_events.append(
+            {
+                **event,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
-    def create_stage_event_sink(self, stage: str) -> Callable[[Dict[str, Any]], None]:
+    def create_stage_event_sink(self, stage: str) -> Callable[[dict[str, Any]], None]:
         """工厂方法：创建同步事件回调，对关键事件触发非阻塞 persist。"""
         import asyncio
 
-        def sink(event: Dict[str, Any]) -> None:
+        def sink(event: dict[str, Any]) -> None:
             self.buffer_stage_event(stage, event)
             if event.get("stage") in self._PERSIST_WORTHY_STAGES:
                 try:
@@ -308,7 +309,7 @@ class PipelineTracker:
 
         return sink
 
-    async def skip_stage(self, stage: str, reason: Optional[str] = None) -> None:
+    async def skip_stage(self, stage: str, reason: str | None = None) -> None:
         """跳过阶段执行"""
         self._stages[stage] = {
             "status": "skipped",
@@ -322,9 +323,9 @@ class PipelineTracker:
             payload={"reason": reason},
         )
 
-    async def complete(self, output: Optional[Dict[str, Any]] = None) -> None:
+    async def complete(self, output: dict[str, Any] | None = None) -> None:
         """完成 Pipeline 执行"""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         self._status = "completed"
         self._output = self._normalize_dict_payload(output)
         self._duration_ms = self._calculate_duration_ms(self._started_at, now)
@@ -366,12 +367,12 @@ class PipelineTracker:
 class KnowledgeService:
     def __init__(
         self,
-        repository: Optional[KnowledgeRepository] = None,
-        embedding_fn: Optional[EmbeddingFn] = None,
-        batch_embedding_fn: Optional[BatchEmbeddingFn] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
-        reranker: Optional[Reranker] = None,
-        pipeline_dao: Optional["KnowledgeRunDao"] = None,
+        repository: KnowledgeRepository | None = None,
+        embedding_fn: EmbeddingFn | None = None,
+        batch_embedding_fn: BatchEmbeddingFn | None = None,
+        chunking_config: ChunkingConfig | None = None,
+        reranker: Reranker | None = None,
+        pipeline_dao: KnowledgeRunDao | None = None,
     ) -> None:
         self._repository = repository or KnowledgeRepository()
         self._embedding_fn = embedding_fn
@@ -398,10 +399,10 @@ class KnowledgeService:
         return tracker
 
     @staticmethod
-    async def _fail_pipeline_execution(tracker: Optional[PipelineTracker], exc: Exception) -> None:
+    async def _fail_pipeline_execution(tracker: PipelineTracker | None, exc: Exception) -> None:
         if not tracker:
             return
-        error_payload: Dict[str, Any] = {
+        error_payload: dict[str, Any] = {
             "type": type(exc).__name__,
             "message": str(exc),
         }
@@ -419,7 +420,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         url: str,
-        tracker: Optional[PipelineTracker] = None,
+        tracker: PipelineTracker | None = None,
     ) -> tuple[str, ExtractedDocumentResult]:
         """提取 URL 内容，返回 (plain_text, 完整结果)"""
         result = await extract_source(
@@ -440,7 +441,7 @@ class KnowledgeService:
         content: bytes,
         filename: str,
         content_type: str | None,
-        tracker: Optional[PipelineTracker] = None,
+        tracker: PipelineTracker | None = None,
     ) -> str:
         result = await self._extract_file_document(
             corpus_id=corpus_id,
@@ -460,7 +461,7 @@ class KnowledgeService:
         content: bytes,
         filename: str,
         content_type: str | None,
-        tracker: Optional[PipelineTracker] = None,
+        tracker: PipelineTracker | None = None,
     ) -> ExtractedDocumentResult:
         result = await extract_source(
             app_name=app_name,
@@ -500,7 +501,7 @@ class KnowledgeService:
         *,
         app_name: str,
         operation: PipelineOperation,
-        input_data: Dict[str, Any],
+        input_data: dict[str, Any],
     ) -> str:
         """创建 Pipeline 记录并返回 run_id
 
@@ -541,9 +542,9 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         text: str,
-        source_uri: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
+        source_uri: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 ingest_text Pipeline（后台任务）
 
@@ -612,8 +613,8 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         url: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 ingest_url Pipeline（后台任务）"""
         if not self._pipeline_dao:
@@ -647,12 +648,11 @@ class KnowledgeService:
                 from .exceptions import KnowledgeError
                 from .extraction import ExtractorExecutionError
 
-                url_details: Dict[str, Any] = {}
+                url_details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
                     url_details["failure_category"] = "no_extractor_configured"
                     url_details["diagnostic_summary"] = (
-                        "请配置 Data Extractor MCP 服务，"
-                        "并确保 Corpus 的 extractor_routes 配置正确。"
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
                     )
                 raise KnowledgeError(
                     code="CONTENT_FETCH_FAILED",
@@ -704,8 +704,8 @@ class KnowledgeService:
         filename: str,
         content_type: str | None,
         source_uri: str | None,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
         document_id: UUID | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 ingest_file Pipeline（后台任务）"""
@@ -756,12 +756,11 @@ class KnowledgeService:
                 from .exceptions import KnowledgeError
                 from .extraction import ExtractorExecutionError
 
-                details: Dict[str, Any] = {}
+                details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
                     details["failure_category"] = "no_extractor_configured"
                     details["diagnostic_summary"] = (
-                        "请配置 Data Extractor MCP 服务，"
-                        "并确保 Corpus 的 extractor_routes 配置正确。"
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
                     )
                 raise KnowledgeError(
                     code="CONTENT_EXTRACTION_FAILED",
@@ -851,8 +850,8 @@ class KnowledgeService:
         app_name: str,
         text: str,
         source_uri: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 replace_source Pipeline（后台任务）"""
         if not self._pipeline_dao:
@@ -917,7 +916,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
-        chunking_config: Optional[ChunkingConfig] = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 sync_source Pipeline（后台任务）"""
         if not self._pipeline_dao:
@@ -1004,7 +1003,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
-        chunking_config: Optional[ChunkingConfig] = None,
+        chunking_config: ChunkingConfig | None = None,
         document_id: UUID | None = None,
     ) -> list[KnowledgeRecord]:
         """执行 rebuild_source Pipeline（后台任务）"""
@@ -1032,8 +1031,8 @@ class KnowledgeService:
             # 阶段 1: Download
             await tracker.start_stage("download")
             try:
-                from negentropy.storage.service import DocumentStorageService
                 from negentropy.storage.gcs_client import StorageError
+                from negentropy.storage.service import DocumentStorageService
 
                 storage_service = DocumentStorageService()
                 content = await storage_service.get_document_content_by_uri(source_uri)
@@ -1042,12 +1041,15 @@ class KnowledgeService:
                     raise ValueError(f"Document not found in GCS: {source_uri}")
             except StorageError as exc:
                 from .exceptions import KnowledgeError
+
                 raise KnowledgeError(
                     code="GCS_DOWNLOAD_FAILED",
                     message=f"Failed to download content from GCS: {exc}",
                 ) from exc
 
-            await tracker.complete_stage("download", {"content_length": len(content) if content else 0, "source_uri": source_uri})
+            await tracker.complete_stage(
+                "download", {"content_length": len(content) if content else 0, "source_uri": source_uri}
+            )
 
             try:
                 filename = source_uri.split("/")[-1]
@@ -1120,7 +1122,13 @@ class KnowledgeService:
                 chunking_config=config,
                 tracker=tracker,
             )
-            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records), "document_id": str(document_id) if document_id else None})
+            await tracker.complete(
+                {
+                    "deleted_count": deleted_count,
+                    "chunk_count": len(records),
+                    "document_id": str(document_id) if document_id else None,
+                }
+            )
 
             logger.info(
                 "pipeline_execution_completed",
@@ -1138,11 +1146,11 @@ class KnowledgeService:
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
 
-    async def get_corpus_by_id(self, corpus_id: UUID) -> Optional[CorpusRecord]:
+    async def get_corpus_by_id(self, corpus_id: UUID) -> CorpusRecord | None:
         """获取指定 ID 的 Corpus"""
         return await self._repository.get_corpus_by_id(corpus_id)
 
-    async def update_corpus(self, corpus_id: UUID, spec: Dict[str, Any]) -> CorpusRecord:
+    async def update_corpus(self, corpus_id: UUID, spec: dict[str, Any]) -> CorpusRecord:
         corpus = await self._repository.update_corpus(corpus_id, spec)
         if not corpus:
             from .exceptions import CorpusNotFound
@@ -1159,9 +1167,9 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         text: str,
-        source_uri: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
+        source_uri: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """索引文本到知识库
 
@@ -1227,10 +1235,10 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         text: str,
-        source_uri: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
-        tracker: Optional[PipelineTracker] = None,
+        source_uri: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
+        tracker: PipelineTracker | None = None,
     ) -> list[KnowledgeRecord]:
         """内部方法：执行文本摄入，支持可选的 Pipeline 追踪"""
         config = chunking_config or self._chunking_config
@@ -1326,8 +1334,8 @@ class KnowledgeService:
         app_name: str,
         text: str,
         source_uri: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """替换源文本（删除旧记录 + 索引新记录）"""
         tracker = None
@@ -1415,7 +1423,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """删除指定 source_uri 的所有知识块及其关联资产
 
         Args:
@@ -1539,8 +1547,8 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         url: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        chunking_config: Optional[ChunkingConfig] = None,
+        metadata: dict[str, Any] | None = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """Fetch content from URL and ingest into knowledge base."""
         tracker = None
@@ -1598,15 +1606,18 @@ class KnowledgeService:
                 async with self._repository.session() as db:
                     # 查找刚创建的文档（通过 URL 在 metadata 中匹配）
                     from sqlalchemy import select
+
                     from negentropy.models.perception import KnowledgeDocument
 
                     result = await db.execute(
                         select(KnowledgeDocument)
                         .where(KnowledgeDocument.corpus_id == corpus_id)
-                        .where(KnowledgeDocument.gcs_uri.like(  # noqa: S608
-                            f"%{url.replace('%', '\\%').replace('_', '\\_')}%",
-                            escape="\\",
-                        ))
+                        .where(
+                            KnowledgeDocument.gcs_uri.like(  # noqa: S608
+                                f"%{url.replace('%', '\\%').replace('_', '\\_')}%",
+                                escape="\\",
+                            )
+                        )
                         .order_by(KnowledgeDocument.created_at.desc())
                         .limit(1)
                     )
@@ -1660,7 +1671,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
-        chunking_config: Optional[ChunkingConfig] = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """Sync a URL source by re-fetching and re-ingesting content.
 
@@ -1791,7 +1802,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         source_uri: str,
-        chunking_config: Optional[ChunkingConfig] = None,
+        chunking_config: ChunkingConfig | None = None,
     ) -> list[KnowledgeRecord]:
         """Rebuild a GCS source by re-downloading and re-ingesting content.
 
@@ -1846,8 +1857,8 @@ class KnowledgeService:
                 await tracker.start_stage("download")
 
             try:
-                from negentropy.storage.service import DocumentStorageService
                 from negentropy.storage.gcs_client import StorageError
+                from negentropy.storage.service import DocumentStorageService
 
                 storage_service = DocumentStorageService()
                 content = await storage_service.get_document_content_by_uri(source_uri)
@@ -1975,11 +1986,11 @@ class KnowledgeService:
         *,
         corpus_id: UUID,
         app_name: str,
-        source_uri: Optional[str] = None,
+        source_uri: str | None = None,
         limit: int = 20,
         offset: int = 0,
         include_archived: bool = False,
-    ) -> tuple[list[KnowledgeRecord], int, Dict[str, int], list[SourceSummary]]:
+    ) -> tuple[list[KnowledgeRecord], int, dict[str, int], list[SourceSummary]]:
         """List knowledge items in a corpus.
 
         Args:
@@ -2007,7 +2018,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         knowledge_id: UUID,
-    ) -> Optional[KnowledgeRecord]:
+    ) -> KnowledgeRecord | None:
         return await self._repository.get_knowledge_by_id(
             corpus_id=corpus_id,
             app_name=app_name,
@@ -2020,9 +2031,9 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         knowledge_id: UUID,
-        content: Optional[str] = None,
-        is_enabled: Optional[bool] = None,
-    ) -> Optional[KnowledgeRecord]:
+        content: str | None = None,
+        is_enabled: bool | None = None,
+    ) -> KnowledgeRecord | None:
         current = await self.get_knowledge_chunk(
             corpus_id=corpus_id,
             app_name=app_name,
@@ -2057,7 +2068,7 @@ class KnowledgeService:
         app_name: str,
         knowledge_id: UUID,
         content: str,
-        is_enabled: Optional[bool] = None,
+        is_enabled: bool | None = None,
     ) -> list[KnowledgeRecord]:
         current = await self.get_knowledge_chunk(
             corpus_id=corpus_id,
@@ -2166,7 +2177,7 @@ class KnowledgeService:
         corpus_id: UUID,
         app_name: str,
         query: str,
-        config: Optional[SearchConfig] = None,
+        config: SearchConfig | None = None,
     ) -> list[KnowledgeMatch]:
         """搜索知识库
 
@@ -2393,8 +2404,8 @@ class KnowledgeService:
         self,
         text: str,
         *,
-        source_uri: Optional[str],
-        metadata: Optional[Dict[str, Any]],
+        source_uri: str | None,
+        metadata: dict[str, Any] | None,
         chunking_config: ChunkingConfig,
     ) -> Iterable[KnowledgeChunk]:
         metadata = metadata or {}
@@ -2434,8 +2445,8 @@ class KnowledgeService:
         self,
         *,
         text: str,
-        source_uri: Optional[str],
-        metadata: Dict[str, Any],
+        source_uri: str | None,
+        metadata: dict[str, Any],
         chunking_config: ChunkingConfig,
     ) -> list[KnowledgeChunk]:
         if not isinstance(chunking_config, HierarchicalChunkingConfig):
@@ -2523,7 +2534,7 @@ class KnowledgeService:
             embeddings = await self._batch_embedding_fn([c.content for c in searchable_chunks])
             embedding_by_key = {
                 (chunk.source_uri, chunk.chunk_index): emb
-                for chunk, emb in zip(searchable_chunks, embeddings)
+                for chunk, emb in zip(searchable_chunks, embeddings, strict=True)
             }
             return [
                 KnowledgeChunk(
@@ -2569,7 +2580,7 @@ class KnowledgeService:
         limit: int,
     ) -> list[KnowledgeMatch]:
         match_list = list(matches)
-        grouped: dict[tuple[Optional[str], str], list[KnowledgeMatch]] = {}
+        grouped: dict[tuple[str | None, str], list[KnowledgeMatch]] = {}
         passthrough: list[KnowledgeMatch] = []
 
         for match in match_list:
@@ -2700,11 +2711,7 @@ class KnowledgeService:
         matches: Iterable[KnowledgeMatch],
     ) -> list[KnowledgeMatch]:
         match_list = list(matches)
-        child_ids = [
-            item.id
-            for item in match_list
-            if item.metadata.get("chunk_role") == CHUNK_ROLE_CHILD
-        ]
+        child_ids = [item.id for item in match_list if item.metadata.get("chunk_role") == CHUNK_ROLE_CHILD]
         target_ids = child_ids or [item.id for item in match_list]
         increment_retrieval_counts = getattr(self._repository, "increment_retrieval_counts", None)
         if callable(increment_retrieval_counts):
@@ -2733,7 +2740,7 @@ class KnowledgeService:
         *,
         corpus_id: UUID,
         app_name: str,
-        source_uri: Optional[str],
+        source_uri: str | None,
         records: Iterable[KnowledgeRecord],
         chunking_config: ChunkingConfig,
     ) -> None:
@@ -2765,7 +2772,7 @@ class KnowledgeService:
                 "paragraph_count": len(record_list),
                 "embedding_time_ms": None,
                 "embedded_tokens": int(total_characters / 4),
-                "last_chunked_at": datetime.now(timezone.utc).isoformat(),
+                "last_chunked_at": datetime.now(UTC).isoformat(),
             }
         }
         await storage_service.update_document_metadata(
@@ -2796,7 +2803,7 @@ class KnowledgeService:
         )
 
 
-def _guess_content_type(filename: str) -> Optional[str]:
+def _guess_content_type(filename: str) -> str | None:
     """根据文件扩展名猜测内容类型
 
     Args:

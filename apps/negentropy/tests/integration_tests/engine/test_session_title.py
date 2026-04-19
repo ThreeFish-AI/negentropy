@@ -96,35 +96,35 @@ async def test_get_session_preserves_event_sequence_for_tool_interleaving():
     session = await service.create_session(app_name=app_name, user_id=user_id)
 
     events = [
-      ADKEvent(
-        id=str(uuid.uuid4()),
-        author="assistant",
-        content={"parts": [{"text": "好的，我将搜索 AfterShip。"}]},
-      ),
-      ADKEvent(
-        id=str(uuid.uuid4()),
-        author="assistant",
-        content={
-          "parts": [
-            {
-              "functionCall": {
-                "id": "call-1",
-                "name": "google_search",
-                "args": {"q": "AfterShip"},
-              }
-            }
-          ]
-        },
-      ),
-      ADKEvent(
-        id=str(uuid.uuid4()),
-        author="assistant",
-        content={"parts": [{"text": "## AfterShip 信息摘要"}]},
-      ),
+        ADKEvent(
+            id=str(uuid.uuid4()),
+            author="assistant",
+            content={"parts": [{"text": "好的，我将搜索 AfterShip。"}]},
+        ),
+        ADKEvent(
+            id=str(uuid.uuid4()),
+            author="assistant",
+            content={
+                "parts": [
+                    {
+                        "functionCall": {
+                            "id": "call-1",
+                            "name": "google_search",
+                            "args": {"q": "AfterShip"},
+                        }
+                    }
+                ]
+            },
+        ),
+        ADKEvent(
+            id=str(uuid.uuid4()),
+            author="assistant",
+            content={"parts": [{"text": "## AfterShip 信息摘要"}]},
+        ),
     ]
 
     for event in events:
-      await service.append_event(session, event)
+        await service.append_event(session, event)
 
     fetched = await service.get_session(
         app_name=app_name,

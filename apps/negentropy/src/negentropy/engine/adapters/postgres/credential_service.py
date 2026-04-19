@@ -1,12 +1,9 @@
-from typing import Optional
-
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
-
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.auth.auth_credential import AuthCredential
 from google.adk.auth.auth_tool import AuthConfig
 from google.adk.auth.credential_service.base_credential_service import BaseCredentialService
-from google.adk.agents.callback_context import CallbackContext
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
 import negentropy.db.session as db_session
 from negentropy.models.security import Credential
@@ -30,7 +27,7 @@ class PostgresCredentialService(BaseCredentialService):
         self,
         auth_config: AuthConfig,
         callback_context: CallbackContext,
-    ) -> Optional[AuthCredential]:
+    ) -> AuthCredential | None:
         app_name = callback_context._invocation_context.app_name
         user_id = callback_context._invocation_context.user_id
         key = auth_config.credential_key

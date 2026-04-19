@@ -16,10 +16,7 @@ from negentropy.model_names import canonicalize_model_name
 
 
 def _normalize_model_name(model: str) -> str:
-    """Normalize model name for consistent Langfuse reporting.
-
-    Ensures GLM models always have the 'zai/' prefix for consistent naming.
-    """
+    """Normalize model name for consistent Langfuse reporting."""
     return canonicalize_model_name(model) or model
 
 
@@ -289,27 +286,19 @@ def patch_litellm_otel_cost() -> None:
         )
         ctx, parent_span = self._get_span_context(kwargs)
 
-        should_create_primary_span = parent_span is None or get_secret_bool(
-            "USE_OTEL_LITELLM_REQUEST_SPAN"
-        )
+        should_create_primary_span = parent_span is None or get_secret_bool("USE_OTEL_LITELLM_REQUEST_SPAN")
 
         if should_create_primary_span:
             span = self._start_primary_span(kwargs, response_obj, start_time, end_time, ctx)
             self._maybe_log_raw_request(kwargs, response_obj, start_time, end_time, span)
-            if (
-                parent_span is not None
-                and parent_span.name == proxy_span_name
-                and _is_writable_span(parent_span)
-            ):
+            if parent_span is not None and parent_span.name == proxy_span_name and _is_writable_span(parent_span):
                 self.set_attributes(parent_span, kwargs, response_obj)
         else:
             span = None
             if _is_writable_span(parent_span):
                 parent_span.set_status(Status(StatusCode.OK))
                 self.set_attributes(parent_span, kwargs, response_obj)
-                self._maybe_log_raw_request(
-                    kwargs, response_obj, start_time, end_time, parent_span
-                )
+                self._maybe_log_raw_request(kwargs, response_obj, start_time, end_time, parent_span)
 
         self._create_guardrail_span(kwargs=kwargs, context=ctx)
         self._record_metrics(kwargs, response_obj, start_time, end_time)
@@ -319,11 +308,7 @@ def patch_litellm_otel_cost() -> None:
             if _is_writable_span(log_span):
                 self._emit_semantic_logs(kwargs, response_obj, log_span)
 
-        if (
-            parent_span is not None
-            and parent_span.name == proxy_span_name
-            and _is_writable_span(parent_span)
-        ):
+        if parent_span is not None and parent_span.name == proxy_span_name and _is_writable_span(parent_span):
             parent_span.end(end_time=self._to_ns(end_time))
 
     _patched_handle_success._ne_span_guard_patched = True  # type: ignore[attr-defined]

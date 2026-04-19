@@ -4,13 +4,12 @@ RBAC (Role-Based Access Control) Module.
 Implements permission definitions and role-permission mappings.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Depends, HTTPException, status
 
 from .deps import get_current_user
 from .service import AuthUser
-
 
 # Permission definitions
 PERMISSIONS = {

@@ -371,8 +371,7 @@ async def search_web(
         return {
             "status": "failed",
             "error": (
-                "Google Search API not configured. "
-                "Please set NE_SEARCH_GOOGLE_API_KEY and NE_SEARCH_GOOGLE_CX_ID."
+                "Google Search API not configured. Please set NE_SEARCH_GOOGLE_API_KEY and NE_SEARCH_GOOGLE_CX_ID."
             ),
         }
 
@@ -421,6 +420,7 @@ async def _search_google(
     Returns:
         搜索结果列表
     """
+
     async def _do_search():
         api_key = config.google_api_key.get_secret_value()
         params = {
@@ -447,11 +447,13 @@ async def _search_google(
     # 解析结果
     results = []
     for item in data.get("items", []):
-        results.append({
-            "title": item.get("title", ""),
-            "url": item.get("link", ""),
-            "snippet": item.get("snippet", ""),
-        })
+        results.append(
+            {
+                "title": item.get("title", ""),
+                "url": item.get("link", ""),
+                "snippet": item.get("snippet", ""),
+            }
+        )
 
     # 如果需要更多结果，处理分页
     if limit > 10 and len(results) >= 10:
@@ -491,6 +493,7 @@ async def _search_google_page(
     Returns:
         搜索结果列表
     """
+
     async def _do_search():
         api_key = config.google_api_key.get_secret_value()
         params = {
@@ -516,10 +519,12 @@ async def _search_google_page(
 
     results = []
     for item in data.get("items", []):
-        results.append({
-            "title": item.get("title", ""),
-            "url": item.get("link", ""),
-            "snippet": item.get("snippet", ""),
-        })
+        results.append(
+            {
+                "title": item.get("title", ""),
+                "url": item.get("link", ""),
+                "snippet": item.get("snippet", ""),
+            }
+        )
 
     return results[:limit]

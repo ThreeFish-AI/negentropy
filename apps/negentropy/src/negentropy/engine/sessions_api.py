@@ -6,8 +6,6 @@ Session API Router
 
 from __future__ import annotations
 
-from typing import Optional
-
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
@@ -21,7 +19,7 @@ logger = get_logger("negentropy.engine.sessions_api")
 
 
 class SessionTitleUpdateRequest(BaseModel):
-    title: Optional[str] = Field(default=None, max_length=100)
+    title: str | None = Field(default=None, max_length=100)
 
 
 class SessionArchiveResponse(BaseModel):

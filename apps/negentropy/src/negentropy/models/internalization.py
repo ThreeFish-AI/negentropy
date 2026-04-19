@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, TimestampMixin, UUIDMixin, Vector
@@ -13,9 +15,7 @@ from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, TIMESTAMP, Base, Tim
 class Memory(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "memories"
 
-    thread_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
-    )
+    thread_id: Mapped[UUID | None] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL"))
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     memory_type: Mapped[str] = mapped_column(
@@ -40,9 +40,7 @@ class Memory(Base, UUIDMixin, TimestampMixin):
 class Fact(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "facts"
 
-    thread_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL")
-    )
+    thread_id: Mapped[UUID | None] = mapped_column(ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="SET NULL"))
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     fact_type: Mapped[str] = mapped_column(
@@ -57,39 +55,6 @@ class Fact(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("user_id", "app_name", "fact_type", "key", name="facts_user_key_unique"),
-        {"schema": NEGENTROPY_SCHEMA},
-    )
-
-
-class ConsolidationJob(Base, UUIDMixin):
-    __tablename__ = "consolidation_jobs"
-
-    thread_id: Mapped[UUID] = mapped_column(
-        ForeignKey(f"{NEGENTROPY_SCHEMA}.threads.id", ondelete="CASCADE"), nullable=False
-    )
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="'pending'")
-    job_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
-    error: Mapped[str | None] = mapped_column(Text)
-    started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP)
-    completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
-
-    thread: Mapped["Thread"] = relationship("Thread", back_populates="consolidation_jobs")
-
-
-class Instruction(Base, UUIDMixin):
-    __tablename__ = "instructions"
-
-    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    instruction_key: Mapped[str] = mapped_column(String(255), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
-    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("app_name", "instruction_key", "version", name="instructions_app_key_version_unique"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 

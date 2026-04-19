@@ -119,8 +119,6 @@ class TestCallWithRetry:
         async def fail_fn():
             raise ValueError("fail")
 
-        original_sleep = asyncio.sleep
-
         async def mock_sleep(duration):
             sleep_durations.append(duration)
             # 不实际等待

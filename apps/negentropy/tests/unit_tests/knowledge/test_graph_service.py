@@ -7,29 +7,26 @@ Graph Service 单元测试
 
 from __future__ import annotations
 
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
 
-from negentropy.knowledge.graph_service import (
-    GraphBuildResult,
-    GraphService,
-    GraphQueryResult,
-    get_graph_service,
-)
 from negentropy.knowledge.graph_repository import (
     BuildRunRecord,
     GraphSearchResult,
+)
+from negentropy.knowledge.graph_service import (
+    GraphBuildResult,
+    GraphQueryResult,
+    GraphService,
+    get_graph_service,
 )
 from negentropy.knowledge.types import (
     GraphBuildConfig,
     GraphEdge,
     GraphNode,
-    GraphQueryConfig,
 )
-
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -277,7 +274,7 @@ class FakeGraphRepository:
 @pytest.mark.asyncio
 async def test_build_graph_persists_canonical_model_name():
     repository = FakeGraphRepository()
-    service = GraphService(repository=repository, config=GraphBuildConfig(llm_model="glm-5"))
+    service = GraphService(repository=repository, config=GraphBuildConfig(llm_model="openai/gpt-5-mini"))
 
     result = await service.build_graph(
         corpus_id=uuid4(),
@@ -286,5 +283,5 @@ async def test_build_graph_persists_canonical_model_name():
     )
 
     assert result.status == "completed"
-    assert repository.create_build_run_kwargs["model_name"] == "zai/glm-5"
-    assert repository.create_build_run_kwargs["extractor_config"]["llm_model"] == "zai/glm-5"
+    assert repository.create_build_run_kwargs["model_name"] == "openai/gpt-5-mini"
+    assert repository.create_build_run_kwargs["extractor_config"]["llm_model"] == "openai/gpt-5-mini"

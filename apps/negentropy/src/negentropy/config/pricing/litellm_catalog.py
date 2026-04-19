@@ -1,8 +1,7 @@
 """
 LiteLLM 官方在线价目表解析。
 
-统一从 LiteLLM 官方在线价格目录读取模型单价，
-并在缺价时回退到仓库内的本地 override 配置。
+统一从 LiteLLM 官方在线价格目录读取模型单价。
 """
 
 from __future__ import annotations
@@ -13,8 +12,6 @@ from typing import Any
 import litellm
 
 from negentropy.model_names import canonicalize_model_name, pricing_lookup_model_name
-
-from .loader import get_model_pricing_usd
 
 LITELLM_MODEL_COST_URL = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
 
@@ -75,18 +72,10 @@ def get_online_model_pricing_usd(model_name: str | None) -> dict[str, float] | N
 
 
 def get_effective_model_pricing_usd(model_name: str | None) -> tuple[dict[str, float] | None, str]:
-    """统一解析模型价格：在线优先，本地兜底。"""
+    """统一解析模型价格：命中 LiteLLM 在线价目表时返回，否则返回 missing。"""
     online_pricing = get_online_model_pricing_usd(model_name)
     if online_pricing is not None:
         return online_pricing, "litellm_online_catalog"
-
-    lookup_name = pricing_lookup_model_name(model_name)
-    if lookup_name is None:
-        return None, "missing"
-
-    local_pricing = get_model_pricing_usd(lookup_name)
-    if local_pricing is not None:
-        return local_pricing, "local_override"
 
     return None, "missing"
 

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -89,9 +90,7 @@ class McpToolExecutionService:
         timeout_seconds: float | None = None,
         external_event_sink: Callable[[dict[str, Any]], None] | None = None,
     ) -> ExecutionResult:
-        tool = await self._db.scalar(
-            select(McpTool).where(McpTool.server_id == server.id, McpTool.name == tool_name)
-        )
+        tool = await self._db.scalar(select(McpTool).where(McpTool.server_id == server.id, McpTool.name == tool_name))
         initial_payload = _json_safe(arguments or {})
         run = McpToolRun(
             server_id=server.id,
@@ -191,7 +190,7 @@ class McpToolExecutionService:
                 payload={},
             )
 
-        call_started = datetime.now(timezone.utc)
+        call_started = datetime.now(UTC)
         append_event(
             "tool_called",
             "running",
@@ -232,7 +231,7 @@ class McpToolExecutionService:
         run.result_payload = result_payload
         run.error_summary = result.error
         run.duration_ms = result.duration_ms
-        run.ended_at = datetime.now(timezone.utc)
+        run.ended_at = datetime.now(UTC)
         run.status = "completed" if result.success else "failed"
         append_event(
             "result_normalized",

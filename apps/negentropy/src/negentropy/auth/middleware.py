@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Optional
 
 from fastapi import status
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -18,7 +17,7 @@ from .tokens import TokenError
 _USER_PATH_PATTERN = re.compile(r"/users/(?P<user_id>[^/]+)")
 
 
-def _extract_user_id(request: Request, body: Optional[bytes]) -> Optional[str]:
+def _extract_user_id(request: Request, body: bytes | None) -> str | None:
     header_user = request.headers.get("x-user-id")
     if header_user:
         return header_user
@@ -43,7 +42,7 @@ def _extract_user_id(request: Request, body: Optional[bytes]) -> Optional[str]:
     return None
 
 
-def _extract_token(request: Request) -> Optional[str]:
+def _extract_token(request: Request) -> str | None:
     auth_header = request.headers.get("authorization")
     if auth_header and auth_header.lower().startswith("bearer "):
         return auth_header.split(" ", 1)[1].strip()

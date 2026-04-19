@@ -17,7 +17,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Awaitable, Callable, Literal
+from collections.abc import Awaitable, Callable
+from typing import Literal
 
 from negentropy.logging import get_logger
 
@@ -667,7 +668,7 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
         return 0.0
 
     # 计算点积
-    dot_product = sum(x * y for x, y in zip(a, b))
+    dot_product = sum(x * y for x, y in zip(a, b, strict=True))
 
     # 计算向量范数
     norm_a = sum(x * x for x in a) ** 0.5

@@ -105,8 +105,12 @@ cd negentropy
 
 ```bash
 cd apps/negentropy
-cp .env.example .env          # Copy and configure environment variables
 uv sync --dev                  # Install all dependencies (including dev)
+uv run negentropy init         # Generate ~/.negentropy/config.yaml
+# Provide secrets via shell environment (or .env.local for local dev):
+#   export NE_DB_URL=postgresql+asyncpg://...
+#   export OPENAI_API_KEY=...
+#   export ANTHROPIC_API_KEY=...
 uv run alembic upgrade head    # Apply database migrations
 uv run adk web --port 8000 --reload_agents src/negentropy  # Start the engine
 ```
@@ -119,7 +123,21 @@ pnpm install                   # Install dependencies
 pnpm run dev                   # Start development server (localhost:3333)
 ```
 
-### 4. Initiate Dialogue
+### 4. Set Up Pre-commit Hooks (Recommended)
+
+Install local git hooks to auto-run format and lint before every commit, keeping CI clean:
+
+```bash
+# Install pre-commit (requires uv)
+uv tool install pre-commit
+
+# Register hooks (run once at the project root)
+pre-commit install
+```
+
+> On first commit, pre-commit will download hook environments automatically. To verify all hooks manually: `pre-commit run --all-files`
+
+### 5. Initiate Dialogue
 
 Fire up your browser, head over to `http://localhost:3333`, and start conversing with the NegentropyEngine.
 
@@ -200,6 +218,7 @@ graph TB
 
 | Document                                                 | Description                                                                                     |
 | :------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| [User Guide](./docs/user-guide.md)                       | End-user guide covering all features: chat, knowledge, memory, plugins, admin, and wiki         |
 | [Development Guide](./docs/development.md)               | Environment setup, daily workflows, db migrations, integrations, troubleshooting                |
 | [Architecture Design](./docs/framework.md)               | Deep dive into the One Root/Five Wings, pipeline choreography, design patterns, engine workings |
 | [Knowledge System](./docs/knowledges.md)                 | Detailed design and usage of the knowledge management module                                    |

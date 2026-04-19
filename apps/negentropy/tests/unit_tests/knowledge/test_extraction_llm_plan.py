@@ -62,7 +62,7 @@ async def test_build_llm_invocation_plan_supports_slots_dataclass_request(monkey
     )
 
     plan = await _build_llm_invocation_plan(
-        tool_name="convert_pdf_to_markdown",
+        tool_name="parse_pdf_to_markdown",
         tool_description="single pdf",
         input_schema=contract.root_schema,
         contract=contract,
@@ -122,7 +122,7 @@ async def test_build_llm_invocation_plan_skips_llm_for_object_file_contract(monk
     )
 
     plan = await _build_llm_invocation_plan(
-        tool_name="batch_convert_pdfs_to_markdown",
+        tool_name="parse_pdfs_to_markdown",
         tool_description="batch pdfs",
         input_schema=contract.root_schema,
         contract=contract,
@@ -151,7 +151,7 @@ async def test_build_llm_invocation_plan_returns_none_when_serialization_fails(m
     )
 
     plan = await _build_llm_invocation_plan(
-        tool_name="convert_pdf_to_markdown",
+        tool_name="parse_pdf_to_markdown",
         tool_description="single pdf",
         input_schema=contract.root_schema,
         contract=contract,
@@ -174,9 +174,7 @@ async def test_build_llm_invocation_plan_logs_info_when_json_is_invalid(monkeypa
             raise AssertionError(f"unexpected warning: {event} {kwargs}")
 
     async def fake_acompletion(**kwargs):
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="{not-json"))]
-        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="{not-json"))])
 
     monkeypatch.setattr("negentropy.knowledge.extraction.logger", FakeLogger())
     monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
@@ -191,7 +189,7 @@ async def test_build_llm_invocation_plan_logs_info_when_json_is_invalid(monkeypa
     )
 
     plan = await _build_llm_invocation_plan(
-        tool_name="convert_pdf_to_markdown",
+        tool_name="parse_pdf_to_markdown",
         tool_description="single pdf",
         input_schema=contract.root_schema,
         contract=contract,
@@ -204,7 +202,7 @@ async def test_build_llm_invocation_plan_logs_info_when_json_is_invalid(monkeypa
         (
             "extractor_llm_plan_invalid_json",
             {
-                "tool_name": "convert_pdf_to_markdown",
+                "tool_name": "parse_pdf_to_markdown",
                 "fallback_strategy": "schema_or_default_contract",
                 "reason": "invalid_json",
             },
@@ -245,7 +243,7 @@ async def test_build_llm_invocation_plan_skips_llm_when_prompt_payload_is_not_js
     )
 
     plan = await _build_llm_invocation_plan(
-        tool_name="convert_pdf_to_markdown",
+        tool_name="parse_pdf_to_markdown",
         tool_description="single pdf",
         input_schema=contract.root_schema,
         contract=contract,

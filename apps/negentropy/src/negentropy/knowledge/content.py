@@ -4,6 +4,7 @@ import re
 
 import httpx
 from bs4 import BeautifulSoup
+
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.knowledge.content")
@@ -34,6 +35,7 @@ def sanitize_filename(filename: str | None) -> str:
 # ============================================================================
 # File Content Extraction (文件内容提取)
 # ============================================================================
+
 
 async def extract_file_content(
     content: bytes,
@@ -176,7 +178,7 @@ async def fetch_content(url: str) -> str:
             response.raise_for_status()
         except httpx.HTTPError as exc:
             logger.error("fetch_content_failed", url=url, error=str(exc))
-            raise ValueError(f"Failed to fetch URL: {exc}")
+            raise ValueError(f"Failed to fetch URL: {exc}") from exc
 
     content_type = response.headers.get("content-type", "").lower()
     logger.info("fetch_content_downloaded", url=url, content_type=content_type, size=len(response.content))
@@ -184,8 +186,7 @@ async def fetch_content(url: str) -> str:
     # PDF 需通过 MCP Tool 提取，不在此函数处理
     if "application/pdf" in content_type or url.endswith(".pdf"):
         raise ValueError(
-            "PDF extraction via fetch_content is not supported. "
-            "Use extract_source() with MCP Tool instead."
+            "PDF extraction via fetch_content is not supported. Use extract_source() with MCP Tool instead."
         )
 
     # Parse HTML (default)

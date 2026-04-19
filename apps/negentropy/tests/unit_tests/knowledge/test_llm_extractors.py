@@ -9,22 +9,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 
 from negentropy.knowledge.llm_extractors import (
     CompositeEntityExtractor,
-    CompositeRelationExtractor,
-    EntityExtractionResult,
     LLMEntityExtractor,
     LLMRelationExtractor,
-    RelationExtractionResult,
 )
-from negentropy.knowledge.types import GraphEdge, GraphNode, KgEntityType, KgRelationType
-
+from negentropy.knowledge.types import GraphNode, KgEntityType, KgRelationType
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -85,13 +80,15 @@ class TestLLMEntityExtractor:
     @pytest.fixture
     def mock_llm_response(self):
         """Mock LLM 返回有效 JSON 响应"""
-        return json.dumps({
-            "entities": [
-                {"name": "Sam Altman", "type": "person", "confidence": 0.95, "description": "CEO of OpenAI"},
-                {"name": "OpenAI", "type": "organization", "confidence": 0.9},
-                {"name": "San Francisco", "type": "location", "confidence": 0.85},
-            ]
-        })
+        return json.dumps(
+            {
+                "entities": [
+                    {"name": "Sam Altman", "type": "person", "confidence": 0.95, "description": "CEO of OpenAI"},
+                    {"name": "OpenAI", "type": "organization", "confidence": 0.9},
+                    {"name": "San Francisco", "type": "location", "confidence": 0.85},
+                ]
+            }
+        )
 
     @pytest.mark.asyncio
     async def test_extract_returns_entities_from_llm(self, extractor, mock_llm_response):
@@ -127,11 +124,13 @@ class TestLLMEntityExtractor:
     @pytest.mark.asyncio
     async def test_extract_unknown_type_falls_back_to_other(self, extractor):
         """未知实体类型应回退到 'other'"""
-        response = json.dumps({
-            "entities": [
-                {"name": "Something", "type": "unknown_type", "confidence": 0.9},
-            ]
-        })
+        response = json.dumps(
+            {
+                "entities": [
+                    {"name": "Something", "type": "unknown_type", "confidence": 0.9},
+                ]
+            }
+        )
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = response
@@ -177,11 +176,13 @@ class TestLLMRelationExtractor:
 
     @pytest.fixture
     def mock_llm_response(self):
-        return json.dumps({
-            "relations": [
-                {"source": "Sam Altman", "target": "OpenAI", "type": "WORKS_FOR", "confidence": 0.9},
-            ]
-        })
+        return json.dumps(
+            {
+                "relations": [
+                    {"source": "Sam Altman", "target": "OpenAI", "type": "WORKS_FOR", "confidence": 0.9},
+                ]
+            }
+        )
 
     @pytest.mark.asyncio
     async def test_extract_returns_relations_from_llm(self, extractor, mock_entities, mock_llm_response):
@@ -201,11 +202,13 @@ class TestLLMRelationExtractor:
     @pytest.mark.asyncio
     async def test_extract_unknown_relation_type_falls_back(self, extractor, mock_entities):
         """未知关系类型应回退到 RELATED_TO"""
-        response = json.dumps({
-            "relations": [
-                {"source": "Sam Altman", "target": "OpenAI", "type": "UNKNOWN_TYPE"},
-            ]
-        })
+        response = json.dumps(
+            {
+                "relations": [
+                    {"source": "Sam Altman", "target": "OpenAI", "type": "UNKNOWN_TYPE"},
+                ]
+            }
+        )
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = response
@@ -234,7 +237,7 @@ class TestCompositeExtractors:
     @pytest.mark.asyncio
     async def test_composite_uses_llm_when_enabled(self, composite_extractor):
         """启用 LLM 时应使用 LLM 提取"""
-        with patch.object(composite_extractor._llm_extractor, 'extract') as mock_extract:
+        with patch.object(composite_extractor._llm_extractor, "extract") as mock_extract:
             mock_extract.return_value = [GraphNode(id="e1", label="Test", node_type="person")]
 
             await composite_extractor.extract("test text", _CORPUS_ID)
@@ -255,7 +258,7 @@ class TestCompositeExtractors:
     @pytest.mark.asyncio
     async def test_composite_propagates_llm_error(self, composite_extractor):
         """LLM 失败时应传播异常（不自动回退）"""
-        with patch.object(composite_extractor._llm_extractor, 'extract') as mock_extract:
+        with patch.object(composite_extractor._llm_extractor, "extract") as mock_extract:
             mock_extract.side_effect = Exception("LLM error")
 
             # 当前实现不自动回退，异常会被传播

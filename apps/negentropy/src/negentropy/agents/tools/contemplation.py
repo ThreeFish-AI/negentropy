@@ -4,7 +4,8 @@ Contemplation Faculty Tools - 沉思系部专用工具
 提供反思分析、策略规划能力，支持熵减度量。
 
 参考文献:
-[1] C. E. Shannon, "A Mathematical Theory of Communication," _Bell System Technical Journal_, vol. 27, pp. 379-423, 623-656, 1948.
+[1] C. E. Shannon, "A Mathematical Theory of Communication,"
+_Bell System Technical Journal_, vol. 27, pp. 379-423, 623-656, 1948.
 """
 
 from __future__ import annotations

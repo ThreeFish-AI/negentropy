@@ -1,37 +1,30 @@
 """
 Negentropy Configuration Module.
 
-Implements the Nested Settings Pattern for orthogonal configuration domains.
-Each sub-module represents an independent concern with its own environment variable prefix.
+Implements layered configuration loading with YAML + .env support.
 
-Multi-Environment Support:
-    Set `NE_ENV` to one of: development, testing, staging, production
-    The system will load .env files in this order (later overrides earlier):
-    1. .env
-    2. .env.local
-    3. .env.{environment}
-    4. .env.{environment}.local
+Loading priority (highest → lowest):
+    1. Environment variables  (e.g. NE_DB_POOL_SIZE=20)
+    2. .env / .env.local / .env.{env} / .env.{env}.local
+    3. CLI-specified YAML  (NE_CONFIG_PATH or ``negentropy -c path``)
+    4. ~/.negentropy/config.yaml  (user-level overrides)
+    5. config.default.yaml  (package defaults)
+    6. Field defaults in code
 
 Usage:
     from negentropy.config import settings
 
-    # Check current environment
-    settings.environment.env  # "development"
-    settings.environment.is_production  # False
-
-    # Access database configuration
-    settings.database.url
-
-    # Access logging configuration
-    settings.logging.level
+    settings.environment.env       # "development"
+    settings.database.url          # PostgresDsn
+    settings.logging.level         # LogLevel.INFO
 
 Note:
     LLM/Embedding 模型配置已迁移至 DB (model_configs 表)，
     通过 Admin UI 管理，使用 model_resolver 解析。
 """
 
-from functools import cached_property
 import os
+from functools import cached_property
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -62,23 +55,58 @@ class Settings(BaseSettings):
     This class follows the Composition over Construction principle,
     delegating to specialized sub-settings for each concern.
 
-    Environment-aware loading:
-        Settings are loaded from multiple .env files based on NE_ENV.
-        See module docstring for file resolution order.
+    Configuration sources (highest priority first):
+        env vars → .env files → YAML files → Field defaults
     """
 
     model_config = SettingsConfigDict(
         env_file=_get_env_files(),
         env_file_encoding="utf-8",
+        env_nested_delimiter="__",
         extra="ignore",
     )
+
+    def __init__(self, **kwargs):
+        # Pre-load and distribute YAML sections BEFORE sub-settings are instantiated.
+        # This populates the section registry so that each sub-settings class
+        # can read its YAML data via settings_customise_sources.
+        from ._base import set_yaml_section
+        from .yaml_loader import load_merged_yaml_config
+
+        yaml_config = load_merged_yaml_config()
+
+        for section in (
+            "app",
+            "logging",
+            "database",
+            "services",
+            "auth",
+            "search",
+            "observability",
+            "knowledge",
+        ):
+            set_yaml_section(section, yaml_config.get(section, {}))
+
+        # EnvironmentSettings reads the "environment" section; the legacy
+        # top-level "env" key (pre-refactor layout) is merged in so that
+        # user-level ~/.negentropy/config.yaml written against the old layout
+        # keeps working without migration.
+        environment_section = dict(yaml_config.get("environment") or {})
+        legacy_env = yaml_config.get("env")
+        if legacy_env is not None:
+            environment_section["env"] = legacy_env
+        if "env" not in environment_section:
+            environment_section["env"] = "development"
+        set_yaml_section("environment", environment_section)
+
+        super().__init__(**kwargs)
 
     # Environment detection (loaded first to determine other configs)
     @cached_property
     def environment(self) -> EnvironmentSettings:
         return EnvironmentSettings(_env_file=_get_env_files())
 
-    # Composed sub-settings (each loads from its own env prefix)
+    # Composed sub-settings (each loads from its own env prefix + YAML section)
     @cached_property
     def app(self) -> AppSettings:
         return AppSettings(_env_file=_get_env_files())

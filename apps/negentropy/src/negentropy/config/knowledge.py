@@ -5,7 +5,7 @@ Knowledge Configuration.
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
 class DefaultExtractorTargetSettings(BaseModel):
@@ -31,13 +31,13 @@ class DefaultExtractorRoutesSettings(BaseModel):
     url: DefaultExtractorRouteSettings = Field(
         default_factory=lambda: DefaultExtractorRouteSettings(
             primary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="convert_webpage_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_webpage_to_markdown",
                 timeout_ms=60_000,
             ),
             secondary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="batch_convert_webpages_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_webpages_to_markdown",
                 timeout_ms=120_000,
             ),
         )
@@ -45,13 +45,13 @@ class DefaultExtractorRoutesSettings(BaseModel):
     file_pdf: DefaultExtractorRouteSettings = Field(
         default_factory=lambda: DefaultExtractorRouteSettings(
             primary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="convert_pdf_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_pdf_to_markdown",
                 timeout_ms=300_000,
             ),
             secondary=DefaultExtractorTargetSettings(
-                server_name="data-extractor",
-                tool_name="batch_convert_pdfs_to_markdown",
+                server_name="negentropy-perceives",
+                tool_name="parse_pdfs_to_markdown",
                 timeout_ms=600_000,
             ),
         )
@@ -65,6 +65,7 @@ class KnowledgeSettings(BaseSettings):
         env_prefix="NE_KNOWLEDGE_",
         env_file=".env",
         env_file_encoding="utf-8",
+        env_nested_delimiter="__",
         extra="ignore",
         frozen=True,
     )
@@ -72,3 +73,22 @@ class KnowledgeSettings(BaseSettings):
     default_extractor_routes: DefaultExtractorRoutesSettings = Field(
         default_factory=DefaultExtractorRoutesSettings,
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        from ._base import YamlDictSource, get_yaml_section
+
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlDictSource(settings_cls, get_yaml_section("knowledge")),
+            file_secret_settings,
+        )

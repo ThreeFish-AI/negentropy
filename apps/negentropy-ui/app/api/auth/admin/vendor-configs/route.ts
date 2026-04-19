@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { buildAuthHeaders } from "@/lib/sso";
-import { getAuthBaseUrl } from "../../../../_config";
+import { getAuthBaseUrl } from "../../_config";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ modelId: string }> },
-) {
-  const { modelId } = await params;
+export async function GET(request: Request) {
   const baseUrl = getAuthBaseUrl();
   if (!baseUrl) {
     return NextResponse.json(
@@ -15,14 +11,11 @@ export async function POST(
     );
   }
 
-  const upstreamUrl = new URL(
-    `/auth/admin/models/${encodeURIComponent(modelId)}/set-default`,
-    baseUrl,
-  );
+  const upstreamUrl = new URL("/auth/admin/vendor-configs", baseUrl);
   let upstreamResponse: Response;
   try {
     upstreamResponse = await fetch(upstreamUrl, {
-      method: "POST",
+      method: "GET",
       headers: buildAuthHeaders(request),
       cache: "no-store",
     });
@@ -35,8 +28,15 @@ export async function POST(
 
   const text = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
+    let errorMessage = "Upstream returned non-OK status";
+    try {
+      const errorData = JSON.parse(text);
+      errorMessage = errorData.detail || errorData.error || text;
+    } catch {
+      errorMessage = text || errorMessage;
+    }
     return NextResponse.json(
-      { error: text || "Upstream returned non-OK status" },
+      { error: errorMessage },
       { status: upstreamResponse.status },
     );
   }

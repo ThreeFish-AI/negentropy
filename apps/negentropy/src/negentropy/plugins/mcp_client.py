@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Callable
+from typing import Any
 
 import anyio
 import httpx

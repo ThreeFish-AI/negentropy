@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -18,9 +18,7 @@ from negentropy.models.perception import (
     Corpus,
     CorpusVersion,
     KnowledgeDocument,
-    KnowledgeFeedback,
 )
-from negentropy.models.base import NEGENTROPY_SCHEMA
 
 logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 
@@ -36,10 +34,10 @@ class CorpusEngine:
 
     # 质量评估维度权重
     QUALITY_WEIGHTS = {
-        "coverage": 0.20,       # 文档覆盖率（预期 vs 实际）
-        "freshness": 0.15,      # 内容新鲜度（平均更新时间）
-        "diversity": 0.15,      # 来源多样性（不同 source_type 的比例）
-        "density": 0.20,        # 信息密度（平均 chunk 长度 / 文档数）
+        "coverage": 0.20,  # 文档覆盖率（预期 vs 实际）
+        "freshness": 0.15,  # 内容新鲜度（平均更新时间）
+        "diversity": 0.15,  # 来源多样性（不同 source_type 的比例）
+        "density": 0.20,  # 信息密度（平均 chunk 长度 / 文档数）
         "embedding_coverage": 0.15,  # 嵌入向量覆盖率
         "entity_density": 0.15,  # 实体密度（每文档平均实体数）
     }
@@ -60,9 +58,7 @@ class CorpusEngine:
         # 1. 文档数量
         doc_count_result = await db.execute(
             select(func.count()).select_from(
-                select(KnowledgeDocument.id)
-                .where(KnowledgeDocument.corpus_id == corpus_id)
-                .subquery()
+                select(KnowledgeDocument.id).where(KnowledgeDocument.corpus_id == corpus_id).subquery()
             )
         )
         doc_count = doc_count_result.scalar() or 0
@@ -74,7 +70,7 @@ class CorpusEngine:
                 "total_score": 0.0,
                 "scores": {},
                 "details": {"document_count": 0},
-                "assessed_at": datetime.now(timezone.utc).isoformat(),
+                "assessed_at": datetime.now(UTC).isoformat(),
                 "grade": "empty",
             }
 
@@ -92,9 +88,9 @@ class CorpusEngine:
         # 3. 新鲜度（基于 updated_at）
         freshness_result = await db.execute(
             select(
-                func.avg(
-                    func.extract("epoch", datetime.now(timezone.utc) - KnowledgeDocument.updated_at)
-                ).label("avg_age_seconds")
+                func.avg(func.extract("epoch", datetime.now(UTC) - KnowledgeDocument.updated_at)).label(
+                    "avg_age_seconds"
+                )
             ).where(KnowledgeDocument.corpus_id == corpus_id)
         )
         avg_age = freshness_result.scalar() or 0
@@ -121,10 +117,7 @@ class CorpusEngine:
         details["embedding_coverage"] = f"{embed_row[0]}/{embed_row[1]}"
 
         # 5. 综合评分
-        total_score = sum(
-            scores.get(dim, 0) * self.QUALITY_WEIGHTS.get(dim, 0)
-            for dim in self.QUALITY_WEIGHTS
-        )
+        total_score = sum(scores.get(dim, 0) * self.QUALITY_WEIGHTS.get(dim, 0) for dim in self.QUALITY_WEIGHTS)
 
         # 评级
         if total_score >= 0.8:
@@ -141,15 +134,18 @@ class CorpusEngine:
             "total_score": round(total_score, 4),
             "scores": {k: round(v, 4) for k, v in scores.items()},
             "details": details,
-            "assessed_at": datetime.now(timezone.utc).isoformat(),
+            "assessed_at": datetime.now(UTC).isoformat(),
             "grade": grade,
         }
 
-        logger.info("corpus_quality_assessed", extra={
-            "corpus_id": str(corpus_id),
-            "score": total_score,
-            "grade": grade,
-        })
+        logger.info(
+            "corpus_quality_assessed",
+            extra={
+                "corpus_id": str(corpus_id),
+                "score": total_score,
+                "grade": grade,
+            },
+        )
 
         return result
 
@@ -158,9 +154,9 @@ class CorpusEngine:
         db: AsyncSession,
         *,
         corpus_id: UUID,
-        quality_score: Optional[float] = None,
-        triggered_by: Optional[str] = None,
-        notes: Optional[str] = None,
+        quality_score: float | None = None,
+        triggered_by: str | None = None,
+        notes: str | None = None,
     ) -> CorpusVersion:
         """创建语料库版本快照
 
@@ -169,8 +165,7 @@ class CorpusEngine:
         """
         # 获取当前版本号
         last_ver_result = await db.execute(
-            select(func.max(CorpusVersion.version_number))
-            .where(CorpusVersion.corpus_id == corpus_id)
+            select(func.max(CorpusVersion.version_number)).where(CorpusVersion.corpus_id == corpus_id)
         )
         last_version = last_ver_result.scalar() or 0
         new_version = last_version + 1
@@ -178,9 +173,7 @@ class CorpusEngine:
         # 获取文档统计
         doc_count_result = await db.execute(
             select(func.count()).select_from(
-                select(KnowledgeDocument.id)
-                .where(KnowledgeDocument.corpus_id == corpus_id)
-                .subquery()
+                select(KnowledgeDocument.id).where(KnowledgeDocument.corpus_id == corpus_id).subquery()
             )
         )
         doc_count = doc_count_result.scalar() or 0
@@ -201,12 +194,15 @@ class CorpusEngine:
         db.add(snapshot)
         await db.flush()
 
-        logger.info("corpus_version_snapshot", extra={
-            "corpus_id": str(corpus_id),
-            "version": new_version,
-            "doc_count": doc_count,
-            "quality_score": quality_score,
-        })
+        logger.info(
+            "corpus_version_snapshot",
+            extra={
+                "corpus_id": str(corpus_id),
+                "version": new_version,
+                "doc_count": doc_count,
+                "quality_score": quality_score,
+            },
+        )
 
         return snapshot
 
@@ -255,9 +251,11 @@ class CorpusEngine:
         """
         # 获取同项目下其他语料库
         other_corpora = await db.execute(
-            select(Corpus).where(
+            select(Corpus)
+            .where(
                 Corpus.id != corpus_id,
-            ).limit(10)
+            )
+            .limit(10)
         )
         corpora = other_corpora.scalars().all()
 
@@ -265,19 +263,19 @@ class CorpusEngine:
         for corp in corpora:
             doc_count_res = await db.execute(
                 select(func.count()).select_from(
-                    select(KnowledgeDocument.id)
-                    .where(KnowledgeDocument.corpus_id == corp.id)
-                    .subquery()
+                    select(KnowledgeDocument.id).where(KnowledgeDocument.corpus_id == corp.id).subquery()
                 )
             )
             count = doc_count_res.scalar() or 0
             if count > 0:
-                suggestions.append({
-                    "corpus_id": str(corp.id),
-                    "name": corp.name,
-                    "description": getattr(corp, "description", None),
-                    "document_count": count,
-                    "relevance_hint": f"{count} 篇文档可参考",
-                })
+                suggestions.append(
+                    {
+                        "corpus_id": str(corp.id),
+                        "name": corp.name,
+                        "description": getattr(corp, "description", None),
+                        "document_count": count,
+                        "relevance_hint": f"{count} 篇文档可参考",
+                    }
+                )
 
         return suggestions[:limit]

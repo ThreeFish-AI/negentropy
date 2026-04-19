@@ -7,8 +7,8 @@ PostgreSQL Adapters Package
 from .fact_service import FactService
 from .memory_service import PostgresMemoryService
 from .session_service import PostgresSessionService
-from .tool_registry import ToolRegistry, ToolDefinition, FrontendTool
-from .tracing import TracingManager, PostgresSpanExporter, init_tracing, get_tracing_manager
+from .tool_registry import FrontendTool, ToolDefinition, ToolRegistry
+from .tracing import PostgresSpanExporter, TracingManager, get_tracing_manager, init_tracing
 
 __all__ = [
     "FactService",

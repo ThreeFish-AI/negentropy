@@ -27,8 +27,8 @@ Memory 是动态、个人化、受遗忘曲线影响的用户记忆，
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -41,13 +41,13 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
 
+from .adapters.postgres.memory_automation_service import MemoryAutomationUnavailableError
 from .factories.memory import (
     get_fact_service,
     get_memory_automation_service,
     get_memory_governance_service,
     get_memory_service,
 )
-from .adapters.postgres.memory_automation_service import MemoryAutomationUnavailableError
 
 logger = get_logger("negentropy.engine.api")
 router = APIRouter(prefix="/memory", tags=["memory"])
@@ -66,26 +66,26 @@ class MemoryItem(BaseModel):
     content: str
     retention_score: float
     access_count: int
-    created_at: Optional[str] = None
-    last_accessed_at: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: str | None = None
+    last_accessed_at: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class MemoryListResponse(BaseModel):
-    users: List[Dict[str, str]] = Field(default_factory=list)
-    timeline: List[MemoryItem] = Field(default_factory=list)
-    policies: Dict[str, Any] = Field(default_factory=dict)
+    users: list[dict[str, str]] = Field(default_factory=list)
+    timeline: list[MemoryItem] = Field(default_factory=list)
+    policies: dict[str, Any] = Field(default_factory=dict)
 
 
 class MemorySearchRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     user_id: str
     query: str
 
 
 class MemorySearchResponse(BaseModel):
     count: int
-    items: List[Dict[str, Any]] = Field(default_factory=list)
+    items: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class FactItem(BaseModel):
@@ -94,45 +94,45 @@ class FactItem(BaseModel):
     app_name: str
     fact_type: str
     key: str
-    value: Dict[str, Any]
+    value: dict[str, Any]
     confidence: float
-    valid_from: Optional[str] = None
-    valid_until: Optional[str] = None
-    created_at: Optional[str] = None
+    valid_from: str | None = None
+    valid_until: str | None = None
+    created_at: str | None = None
 
 
 class FactListResponse(BaseModel):
     count: int
-    items: List[FactItem] = Field(default_factory=list)
+    items: list[FactItem] = Field(default_factory=list)
 
 
 class FactSearchRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     user_id: str
     query: str
     limit: int = 10
 
 
 class AuditRequest(BaseModel):
-    app_name: Optional[str] = None
+    app_name: str | None = None
     user_id: str
-    decisions: Dict[str, str]
-    expected_versions: Optional[Dict[str, int]] = None
-    note: Optional[str] = None
-    idempotency_key: Optional[str] = None
+    decisions: dict[str, str]
+    expected_versions: dict[str, int] | None = None
+    note: str | None = None
+    idempotency_key: str | None = None
 
 
 class AuditRecordResponse(BaseModel):
     memory_id: str
     decision: str
-    version: Optional[int] = None
-    note: Optional[str] = None
-    created_at: Optional[str] = None
+    version: int | None = None
+    note: str | None = None
+    created_at: str | None = None
 
 
 class AuditResponse(BaseModel):
     status: str
-    audits: List[AuditRecordResponse] = Field(default_factory=list)
+    audits: list[AuditRecordResponse] = Field(default_factory=list)
 
 
 class MemoryDashboardResponse(BaseModel):
@@ -158,7 +158,7 @@ class MemoryAutomationJobResponse(BaseModel):
     function_name: str
     enabled: bool
     status: str
-    job_id: Optional[int] = None
+    job_id: int | None = None
     schedule: str
     command: str
     active: bool = False
@@ -168,16 +168,16 @@ class MemoryAutomationProcessResponse(BaseModel):
     key: str
     label: str
     description: str
-    config: Dict[str, Any] = Field(default_factory=dict)
-    job: Optional[MemoryAutomationJobResponse] = None
-    functions: List[MemoryAutomationFunctionResponse] = Field(default_factory=list)
+    config: dict[str, Any] = Field(default_factory=dict)
+    job: MemoryAutomationJobResponse | None = None
+    functions: list[MemoryAutomationFunctionResponse] = Field(default_factory=list)
 
 
 class MemoryAutomationCapabilitiesResponse(BaseModel):
     pg_cron_installed: bool
     pg_cron_available: bool
     management_mode: str
-    degraded_reasons: List[str] = Field(default_factory=list)
+    degraded_reasons: list[str] = Field(default_factory=list)
 
 
 class MemoryAutomationHealthResponse(BaseModel):
@@ -187,39 +187,39 @@ class MemoryAutomationHealthResponse(BaseModel):
 
 class MemoryAutomationSnapshotResponse(BaseModel):
     capabilities: MemoryAutomationCapabilitiesResponse
-    config: Dict[str, Any]
-    processes: List[MemoryAutomationProcessResponse]
-    functions: List[MemoryAutomationFunctionResponse]
-    jobs: List[MemoryAutomationJobResponse]
+    config: dict[str, Any]
+    processes: list[MemoryAutomationProcessResponse]
+    functions: list[MemoryAutomationFunctionResponse]
+    jobs: list[MemoryAutomationJobResponse]
     health: MemoryAutomationHealthResponse
 
 
 class MemoryAutomationLogItemResponse(BaseModel):
-    job_id: Optional[int] = None
-    run_id: Optional[int] = None
-    database: Optional[str] = None
-    username: Optional[str] = None
-    command: Optional[str] = None
-    status: Optional[str] = None
-    return_message: Optional[str] = None
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
+    job_id: int | None = None
+    run_id: int | None = None
+    database: str | None = None
+    username: str | None = None
+    command: str | None = None
+    status: str | None = None
+    return_message: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
 
 
 class MemoryAutomationLogsResponse(BaseModel):
     count: int
-    items: List[MemoryAutomationLogItemResponse] = Field(default_factory=list)
+    items: list[MemoryAutomationLogItemResponse] = Field(default_factory=list)
 
 
 class MemoryAutomationConfigUpdateRequest(BaseModel):
-    app_name: Optional[str] = None
-    config: Dict[str, Any]
+    app_name: str | None = None
+    config: dict[str, Any]
 
 
 class MemoryAutomationRunResponse(BaseModel):
     job_key: str
     process_label: str
-    result: Optional[int] = None
+    result: int | None = None
     snapshot: MemoryAutomationSnapshotResponse
 
 
@@ -228,11 +228,11 @@ class MemoryAutomationRunResponse(BaseModel):
 # ============================================================================
 
 
-def _resolve_app_name(app_name: Optional[str]) -> str:
+def _resolve_app_name(app_name: str | None) -> str:
     return app_name or settings.app_name
 
 
-def _iso(dt: Optional[datetime]) -> Optional[str]:
+def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
@@ -249,8 +249,8 @@ def _require_admin(user: AuthUser) -> AuthUser:
 
 @router.get("/dashboard", response_model=MemoryDashboardResponse)
 async def get_memory_dashboard(
-    app_name: Optional[str] = Query(default=None),
-    user_id: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
+    user_id: str | None = Query(default=None),
 ) -> MemoryDashboardResponse:
     """Memory 概览指标
 
@@ -278,7 +278,7 @@ async def get_memory_dashboard(
         )
 
         # Facts 数量
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         fact_count = await db.scalar(
             select(func.count()).select_from(
                 select(Fact)
@@ -322,8 +322,8 @@ async def get_memory_dashboard(
 
 @router.get("", response_model=MemoryListResponse)
 async def list_memories(
-    app_name: Optional[str] = Query(default=None),
-    user_id: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
+    user_id: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> MemoryListResponse:
     """获取 Memory 列表（含 timeline）
@@ -421,9 +421,9 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
 
 @router.get("/facts", response_model=FactListResponse)
 async def list_facts(
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     user_id: str = Query(...),
-    fact_type: Optional[str] = Query(default=None),
+    fact_type: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> FactListResponse:
     """获取用户的 Facts (语义记忆)"""
@@ -532,10 +532,10 @@ async def submit_audit(payload: AuditRequest) -> AuditResponse:
 
 @router.get("/audit/history")
 async def get_audit_history(
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     user_id: str = Query(...),
     limit: int = Query(default=100, ge=1, le=1000),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取审计历史"""
     resolved_app = _resolve_app_name(app_name)
     governance = get_memory_governance_service()
@@ -563,7 +563,7 @@ async def get_audit_history(
 
 @router.get("/automation", response_model=MemoryAutomationSnapshotResponse)
 async def get_memory_automation_snapshot(
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
     _require_admin(user)
@@ -574,7 +574,7 @@ async def get_memory_automation_snapshot(
 
 @router.get("/automation/logs", response_model=MemoryAutomationLogsResponse)
 async def get_memory_automation_logs(
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationLogsResponse:
@@ -608,7 +608,7 @@ async def update_memory_automation_config(
 @router.post("/automation/jobs/{job_key}/enable", response_model=MemoryAutomationSnapshotResponse)
 async def enable_memory_automation_job(
     job_key: str,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
     _require_admin(user)
@@ -625,7 +625,7 @@ async def enable_memory_automation_job(
 @router.post("/automation/jobs/{job_key}/disable", response_model=MemoryAutomationSnapshotResponse)
 async def disable_memory_automation_job(
     job_key: str,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
     _require_admin(user)
@@ -642,7 +642,7 @@ async def disable_memory_automation_job(
 @router.post("/automation/jobs/{job_key}/reconcile", response_model=MemoryAutomationSnapshotResponse)
 async def reconcile_memory_automation_job(
     job_key: str,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
     _require_admin(user)
@@ -659,7 +659,7 @@ async def reconcile_memory_automation_job(
 @router.post("/automation/jobs/{job_key}/run", response_model=MemoryAutomationRunResponse)
 async def run_memory_automation_job(
     job_key: str,
-    app_name: Optional[str] = Query(default=None),
+    app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationRunResponse:
     _require_admin(user)

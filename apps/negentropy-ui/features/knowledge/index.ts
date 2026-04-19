@@ -171,6 +171,7 @@ export {
   normalizeChunkingConfig,
   encodeSeparatorsForDisplay,
   decodeSeparatorsFromInput,
+  decodeLiteralEscapesIfNeeded,
   normalizeCorpusExtractorRoutes,
   createEmptyExtractorDraftTarget,
   normalizeExtractorDraftRoutes,

@@ -7,7 +7,6 @@ Graph Repository 单元测试
 
 from __future__ import annotations
 
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -17,14 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from negentropy.knowledge.graph_repository import (
     AgeGraphRepository,
     BuildRunRecord,
-    EntityRecord,
-    GraphRepository,
     GraphSearchResult,
-    RelationRecord,
     get_graph_repository,
 )
 from negentropy.knowledge.types import GraphEdge, GraphNode
-
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -105,7 +100,7 @@ class TestAgeGraphRepository:
             GraphNode(id="entity:second", label="Second", node_type="person"),
         ]
 
-        with patch.object(repository, 'create_entity') as mock_create:
+        with patch.object(repository, "create_entity") as mock_create:
             mock_create.return_value = "entity:id"
             ids = await repository.create_entities(entities, _CORPUS_ID)
 
@@ -156,7 +151,7 @@ class TestAgeGraphRepository:
     @pytest.mark.asyncio
     async def test_find_path_returns_none_if_no_direct_relation(self, repository, mock_session):
         """find_path 无直接关系时应返回 None"""
-        with patch.object(repository, 'find_neighbors') as mock_neighbors:
+        with patch.object(repository, "find_neighbors") as mock_neighbors:
             mock_neighbors.return_value = []  # No neighbors
 
             path = await repository.find_path("entity:a", "entity:b")
@@ -166,7 +161,7 @@ class TestAgeGraphRepository:
     @pytest.mark.asyncio
     async def test_find_path_returns_path_if_direct_relation(self, repository, mock_session):
         """find_path 有直接关系时应返回路径"""
-        with patch.object(repository, 'find_neighbors') as mock_neighbors:
+        with patch.object(repository, "find_neighbors") as mock_neighbors:
             mock_neighbors.return_value = [
                 GraphNode(id="entity:target-id", label="Target", node_type="person"),
             ]

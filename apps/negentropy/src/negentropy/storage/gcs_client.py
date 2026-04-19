@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 from io import BytesIO
-from typing import Optional
 
 import google.auth
 from google.cloud import storage
@@ -27,15 +26,15 @@ class GCSStorageClient:
     Implements singleton pattern for efficient client reuse.
     """
 
-    _instance: Optional["GCSStorageClient"] = None
+    _instance: GCSStorageClient | None = None
 
     def __init__(self, bucket_name: str):
         self._bucket_name = bucket_name
-        self._client: Optional[storage.Client] = None
-        self._bucket: Optional[storage.Bucket] = None
+        self._client: storage.Client | None = None
+        self._bucket: storage.Bucket | None = None
 
     @classmethod
-    def get_instance(cls) -> "GCSStorageClient":
+    def get_instance(cls) -> GCSStorageClient:
         """Get singleton instance of GCS client.
 
         Raises:
@@ -90,7 +89,7 @@ class GCSStorageClient:
         safe_filename = sanitize_filename(filename)
         return f"knowledge/{app_name}/{corpus_id}/{safe_filename}"
 
-    def upload(self, content: bytes, gcs_path: str, content_type: Optional[str] = None) -> str:
+    def upload(self, content: bytes, gcs_path: str, content_type: str | None = None) -> str:
         """Upload file content to GCS.
 
         Args:

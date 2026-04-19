@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlencode
 
 import httpx
@@ -23,13 +23,13 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 @dataclass(frozen=True)
 class AuthUser:
     user_id: str
-    email: Optional[str]
-    name: Optional[str]
-    picture: Optional[str]
+    email: str | None
+    name: str | None
+    picture: str | None
     roles: list[str]
     provider: str
     subject: str
-    domain: Optional[str]
+    domain: str | None
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class AuthService:
         if not self._settings.token_secret.get_secret_value():
             raise ValueError("NE_AUTH_TOKEN_SECRET is required")
 
-    def build_login_url(self, *, redirect: Optional[str]) -> str:
+    def build_login_url(self, *, redirect: str | None) -> str:
         self._require_google_config()
         redirect_path = redirect or self._settings.default_redirect_path
         state = self._build_state_token(redirect_path)
@@ -123,7 +123,7 @@ class AuthService:
         response.raise_for_status()
         return response.json()
 
-    async def _verify_id_token(self, id_token: Optional[str]) -> dict[str, Any]:
+    async def _verify_id_token(self, id_token: str | None) -> dict[str, Any]:
         if not id_token:
             raise ValueError("missing id_token from google")
 

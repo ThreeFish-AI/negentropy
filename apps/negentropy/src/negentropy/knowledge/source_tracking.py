@@ -14,19 +14,18 @@
 
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Optional
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.knowledge.extraction import ExtractedDocumentResult
 from negentropy.knowledge.source_dao import SourceDao
-from negentropy.models.perception import DocSource
 from negentropy.logging import get_logger
+from negentropy.models.perception import DocSource
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
 
@@ -40,12 +39,12 @@ logger = get_logger(__name__.rsplit(".", 1)[0])
 class TrackingContext:
     """来源追踪上下文（传入策略的额外信息）"""
 
-    tracker_run_id: Optional[str] = None
-    corpus_id: Optional[UUID] = None
-    app_name: Optional[str] = None
+    tracker_run_id: str | None = None
+    corpus_id: UUID | None = None
+    app_name: str | None = None
     # MCP 工具调用信息（由调用方注入）
-    mcp_tool_name: Optional[str] = None
-    mcp_server_id: Optional[UUID] = None
+    mcp_tool_name: str | None = None
+    mcp_server_id: UUID | None = None
 
 
 # =============================================================================
@@ -109,7 +108,7 @@ class SourceTrackingStrategy(ABC):
             tracking_ctx.update(extra_raw)
 
         return {
-            "extracted_at": datetime.now(timezone.utc),
+            "extracted_at": datetime.now(UTC),
             "extractor_tool_name": context.mcp_tool_name,
             "extractor_server_id": str(context.mcp_server_id) if context.mcp_server_id else None,
             "raw_metadata": {"_tracking_context": tracking_ctx},
@@ -122,7 +121,10 @@ class SourceTrackingStrategy(ABC):
         if not plain_text:
             return None
         if len(plain_text) > SourceTrackingStrategy.SUMMARY_MAX_LENGTH:
-            return plain_text[: SourceTrackingStrategy.SUMMARY_MAX_LENGTH - len(SourceTrackingStrategy.ELLIPSIS)] + SourceTrackingStrategy.ELLIPSIS
+            return (
+                plain_text[: SourceTrackingStrategy.SUMMARY_MAX_LENGTH - len(SourceTrackingStrategy.ELLIPSIS)]
+                + SourceTrackingStrategy.ELLIPSIS
+            )
         return plain_text
 
     @staticmethod
@@ -160,9 +162,7 @@ class UrlSourceTracker(SourceTrackingStrategy):
 
         # 标题优先级：metadata.title > trace.title > 从 markdown 第一行提取
         title = (
-            metadata.get("title")
-            or trace.get("title")
-            or self._extract_title_from_markdown(result.markdown_content)
+            metadata.get("title") or trace.get("title") or self._extract_title_from_markdown(result.markdown_content)
         )
 
         return {
@@ -375,12 +375,15 @@ class SourceTrackingService:
             **meta,
         )
 
-        logger.info("source_tracked", extra={
-            "doc_source_id": str(doc_source.id),
-            "document_id": str(document_id),
-            "source_type": meta.get("source_type"),
-            "title": meta.get("title"),
-        })
+        logger.info(
+            "source_tracked",
+            extra={
+                "doc_source_id": str(doc_source.id),
+                "document_id": str(document_id),
+                "source_type": meta.get("source_type"),
+                "title": meta.get("title"),
+            },
+        )
 
         return doc_source
 
@@ -404,7 +407,7 @@ class SourceTrackingService:
         self,
         db: AsyncSession,
         corpus_id: UUID,
-        source_type: Optional[str] = None,
+        source_type: str | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[DocSource], int]:

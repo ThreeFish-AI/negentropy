@@ -32,6 +32,7 @@ class MicrosandboxRunner(BaseSandboxRunner):
     async def execute(self, code: str) -> SandboxResult:
         """在 microVM 中安全执行代码"""
         import time
+
         import aiohttp
 
         start = time.time()
@@ -70,7 +71,7 @@ class MicrosandboxRunner(BaseSandboxRunner):
                 metadata=None,
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return SandboxResult(
                 success=False,
                 stdout="",

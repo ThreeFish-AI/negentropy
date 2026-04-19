@@ -20,7 +20,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
@@ -52,9 +52,9 @@ class EntityRecord:
     entity_type: str
     confidence: float
     corpus_id: UUID
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    embedding: Optional[List[float]] = None
-    created_at: Optional[datetime] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    embedding: list[float] | None = None
+    created_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -67,11 +67,11 @@ class RelationRecord:
     source_id: str
     target_id: str
     relation_type: str
-    label: Optional[str] = None
+    label: str | None = None
     confidence: float = 1.0
     weight: float = 1.0
-    evidence: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    evidence: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -85,8 +85,8 @@ class GraphSearchResult:
     semantic_score: float
     graph_score: float
     combined_score: float
-    neighbors: List[GraphNode] = field(default_factory=list)
-    path: Optional[List[str]] = None
+    neighbors: list[GraphNode] = field(default_factory=list)
+    path: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -100,11 +100,11 @@ class BuildRunRecord:
     status: str
     entity_count: int
     relation_count: int
-    extractor_config: Dict[str, Any]
-    model_name: Optional[str]
-    error_message: Optional[str]
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
+    extractor_config: dict[str, Any]
+    model_name: str | None
+    error_message: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
     created_at: datetime
 
 
@@ -142,9 +142,9 @@ class GraphRepository(ABC):
     @abstractmethod
     async def create_entities(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         corpus_id: UUID,
-    ) -> List[str]:
+    ) -> list[str]:
         """批量创建实体节点
 
         Args:
@@ -178,8 +178,8 @@ class GraphRepository(ABC):
     @abstractmethod
     async def create_relations(
         self,
-        relations: List[GraphEdge],
-    ) -> List[str]:
+        relations: list[GraphEdge],
+    ) -> list[str]:
         """批量创建关系边
 
         Args:
@@ -196,7 +196,7 @@ class GraphRepository(ABC):
         entity_id: str,
         max_depth: int = 1,
         limit: int = 100,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """查询邻居节点
 
         Args:
@@ -215,7 +215,7 @@ class GraphRepository(ABC):
         source_id: str,
         target_id: str,
         max_depth: int = 5,
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """查询两点间最短路径
 
         Args:
@@ -233,13 +233,13 @@ class GraphRepository(ABC):
         self,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: List[float],
+        query_embedding: list[float],
         query_text: str,
         limit: int = 20,
         graph_depth: int = 1,
         semantic_weight: float = 0.6,
         graph_weight: float = 0.4,
-    ) -> List[GraphSearchResult]:
+    ) -> list[GraphSearchResult]:
         """混合检索 (向量 + 图遍历)
 
         Args:
@@ -295,8 +295,8 @@ class GraphRepository(ABC):
         app_name: str,
         corpus_id: UUID,
         run_id: str,
-        extractor_config: Dict[str, Any],
-        model_name: Optional[str] = None,
+        extractor_config: dict[str, Any],
+        model_name: str | None = None,
     ) -> UUID:
         """创建构建运行记录
 
@@ -319,7 +319,7 @@ class GraphRepository(ABC):
         status: str,
         entity_count: int = 0,
         relation_count: int = 0,
-        error_message: Optional[str] = None,
+        error_message: str | None = None,
     ) -> None:
         """更新构建运行状态
 
@@ -338,7 +338,7 @@ class GraphRepository(ABC):
         corpus_id: UUID,
         app_name: str,
         limit: int = 20,
-    ) -> List[BuildRunRecord]:
+    ) -> list[BuildRunRecord]:
         """获取构建运行历史
 
         Args:
@@ -368,7 +368,7 @@ class AgeGraphRepository(GraphRepository):
     - 支持混合检索 (向量 + 图)
     """
 
-    def __init__(self, session: Optional[AsyncSession] = None) -> None:
+    def __init__(self, session: AsyncSession | None = None) -> None:
         """初始化 Repository
 
         Args:
@@ -429,9 +429,9 @@ class AgeGraphRepository(GraphRepository):
 
     async def create_entities(
         self,
-        entities: List[GraphNode],
+        entities: list[GraphNode],
         corpus_id: UUID,
-    ) -> List[str]:
+    ) -> list[str]:
         """批量创建实体节点"""
         ids = []
         for entity in entities:
@@ -520,8 +520,8 @@ class AgeGraphRepository(GraphRepository):
 
     async def create_relations(
         self,
-        relations: List[GraphEdge],
-    ) -> List[str]:
+        relations: list[GraphEdge],
+    ) -> list[str]:
         """批量创建关系边"""
         ids = []
         for relation in relations:
@@ -541,7 +541,7 @@ class AgeGraphRepository(GraphRepository):
         entity_id: str,
         max_depth: int = 1,
         limit: int = 100,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """查询邻居节点
 
         当前实现：基于 metadata 中的 related_entities 查询。
@@ -599,7 +599,7 @@ class AgeGraphRepository(GraphRepository):
         source_id: str,
         target_id: str,
         max_depth: int = 5,
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """查询两点间最短路径
 
         当前实现：返回简化路径。
@@ -619,13 +619,13 @@ class AgeGraphRepository(GraphRepository):
         self,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: List[float],
+        query_embedding: list[float],
         query_text: str,
         limit: int = 20,
         graph_depth: int = 1,
         semantic_weight: float = 0.6,
         graph_weight: float = 0.4,
-    ) -> List[GraphSearchResult]:
+    ) -> list[GraphSearchResult]:
         """混合检索 (向量 + 图遍历)"""
         session = await self._get_session()
 
@@ -777,8 +777,8 @@ class AgeGraphRepository(GraphRepository):
         app_name: str,
         corpus_id: UUID,
         run_id: str,
-        extractor_config: Dict[str, Any],
-        model_name: Optional[str] = None,
+        extractor_config: dict[str, Any],
+        model_name: str | None = None,
     ) -> UUID:
         """创建构建运行记录"""
         import json
@@ -823,7 +823,7 @@ class AgeGraphRepository(GraphRepository):
         status: str,
         entity_count: int = 0,
         relation_count: int = 0,
-        error_message: Optional[str] = None,
+        error_message: str | None = None,
     ) -> None:
         """更新构建运行状态"""
         session = await self._get_session()
@@ -864,7 +864,7 @@ class AgeGraphRepository(GraphRepository):
         corpus_id: UUID,
         app_name: str,
         limit: int = 20,
-    ) -> List[BuildRunRecord]:
+    ) -> list[BuildRunRecord]:
         """获取构建运行历史"""
         session = await self._get_session()
 
@@ -914,7 +914,7 @@ class AgeGraphRepository(GraphRepository):
 # ============================================================================
 
 
-def get_graph_repository(session: Optional[AsyncSession] = None) -> GraphRepository:
+def get_graph_repository(session: AsyncSession | None = None) -> GraphRepository:
     """获取图谱存储实例
 
     Args:

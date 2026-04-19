@@ -21,7 +21,6 @@ from pydantic import ValidationError
 
 from negentropy.knowledge.chunking import (
     _cosine_similarity,
-    _fixed_chunk,
     _recursive_chunk,
     _split_into_sentences,
     chunk_text,
@@ -176,13 +175,11 @@ class TestChunkingConfigValidation:
 
     def test_chunk_size_zero_raises_validation_error(self) -> None:
         """零分块大小应抛出验证异常"""
-        text = "abc"
         with pytest.raises(ValidationError, match="chunk_size must be at least"):
             ChunkingConfig(chunk_size=0, overlap=0)
 
     def test_negative_chunk_size_raises_validation_error(self) -> None:
         """负分块大小应抛出验证异常"""
-        text = "abc"
         with pytest.raises(ValidationError, match="chunk_size must be at least"):
             ChunkingConfig(chunk_size=-1, overlap=0)
 
@@ -225,10 +222,7 @@ class TestChunkingDeterminism:
 
 class TestHierarchicalChunking:
     def test_hierarchical_chunk_returns_child_chunks(self) -> None:
-        text = (
-            "第一章介绍系统背景。第一章继续补充实现细节。\n\n"
-            "第二章描述检索链路。第二章继续描述父子分块。"
-        )
+        text = "第一章介绍系统背景。第一章继续补充实现细节。\n\n第二章描述检索链路。第二章继续描述父子分块。"
         config = ChunkingConfig(
             strategy=ChunkingStrategy.HIERARCHICAL,
             hierarchical_parent_chunk_size=20,

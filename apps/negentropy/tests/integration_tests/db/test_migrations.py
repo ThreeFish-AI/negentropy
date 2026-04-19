@@ -7,10 +7,6 @@ from sqlalchemy import create_engine, text
 from negentropy.config import settings
 
 
-CURRENT_HEAD = "0001"
-PRESET_SEED_HEAD = "0001"  # 合并后种子数据在唯一迁移中
-
-
 def _sync_database_url() -> str:
     return str(settings.database_url).replace("postgresql+asyncpg", "postgresql+psycopg")
 
@@ -36,10 +32,11 @@ def alembic_config():
 
 
 def test_migrations_have_single_head(alembic_config: Config):
-    """Ensure the migration graph stays linear at the current head."""
+    """Ensure the migration graph stays linear — exactly one head exists."""
 
     script = ScriptDirectory.from_config(alembic_config)
-    assert script.get_heads() == [CURRENT_HEAD]
+    heads = script.get_heads()
+    assert len(heads) == 1, f"Expected single Alembic head, got: {heads}"
 
 
 def test_migrations_stairway(alembic_config: Config):
@@ -58,16 +55,17 @@ def test_migrations_stairway(alembic_config: Config):
     command.upgrade(alembic_config, "head")
 
 
-def test_data_extractor_seeded_by_migration(alembic_config: Config):
-    """Ensure the Data Extractor MCP server is present with the official preset config."""
+def test_negentropy_perceives_seeded_by_migration(alembic_config: Config):
+    """Ensure the Negentropy Perceives MCP server is present with the official preset config."""
 
     command.upgrade(alembic_config, "head")
 
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:
-            row = conn.execute(
-                text("""
+            row = (
+                conn.execute(
+                    text("""
                     SELECT
                         owner_id,
                         visibility::text AS visibility,
@@ -78,26 +76,30 @@ def test_data_extractor_seeded_by_migration(alembic_config: Config):
                         is_enabled,
                         auto_start
                     FROM negentropy.mcp_servers
-                    WHERE name = 'data-extractor'
+                    WHERE name = 'negentropy-perceives'
                 """)
-            ).mappings().one()
+                )
+                .mappings()
+                .one()
+            )
     finally:
         engine.dispose()
 
-    assert row["owner_id"] == "system:data-extractor-preset"
+    assert row["owner_id"] == "system:negentropy-perceives-preset"
     assert row["visibility"] == "PUBLIC"
-    assert row["display_name"] == "Data Extractor"
+    assert row["display_name"] == "Negentropy Perceives"
     assert row["description"] == (
-        "一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。"
+        "一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、"
+        "图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。"
     )
     assert row["transport_type"] == "http"
-    assert row["url"] == "http://localhost:8081/mcp"
+    assert row["url"] == "http://localhost:8092/mcp"
     assert row["is_enabled"] is True
     assert row["auto_start"] is True
 
 
-def test_data_extractor_seed_is_idempotent_on_re_upgrade(alembic_config: Config):
-    """Ensure the data-extractor seed survives a full downgrade → re-upgrade cycle.
+def test_negentropy_perceives_seed_is_idempotent_on_re_upgrade(alembic_config: Config):
+    """Ensure the negentropy-perceives seed survives a full downgrade → re-upgrade cycle.
 
     合并后仅有一个迁移文件，无法升级到中间版本。
     改为验证：全量升级 → 污染数据 → 全量降级 → 全量重升级后，
@@ -107,7 +109,7 @@ def test_data_extractor_seed_is_idempotent_on_re_upgrade(alembic_config: Config)
     # 1. 升级到 HEAD（创建种子数据）
     command.upgrade(alembic_config, "head")
 
-    # 2. 手动污染 data-extractor 记录
+    # 2. 手动污染 negentropy-perceives 记录
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:
@@ -129,7 +131,7 @@ def test_data_extractor_seed_is_idempotent_on_re_upgrade(alembic_config: Config)
                         auto_start = FALSE,
                         config = '{}'::jsonb,
                         updated_at = now()
-                    WHERE name = 'data-extractor'
+                    WHERE name = 'negentropy-perceives'
                 """)
             )
     finally:
@@ -145,8 +147,9 @@ def test_data_extractor_seed_is_idempotent_on_re_upgrade(alembic_config: Config)
     engine = create_engine(_sync_database_url())
     try:
         with engine.begin() as conn:
-            row = conn.execute(
-                text("""
+            row = (
+                conn.execute(
+                    text("""
                     SELECT
                         owner_id,
                         visibility::text AS visibility,
@@ -156,18 +159,22 @@ def test_data_extractor_seed_is_idempotent_on_re_upgrade(alembic_config: Config)
                         is_enabled,
                         auto_start
                     FROM negentropy.mcp_servers
-                    WHERE name = 'data-extractor'
+                    WHERE name = 'negentropy-perceives'
                 """)
-            ).mappings().one()
+                )
+                .mappings()
+                .one()
+            )
     finally:
         engine.dispose()
 
-    assert row["owner_id"] == "system:data-extractor-preset"
+    assert row["owner_id"] == "system:negentropy-perceives-preset"
     assert row["visibility"] == "PUBLIC"
-    assert row["display_name"] == "Data Extractor"
+    assert row["display_name"] == "Negentropy Perceives"
     assert row["description"] == (
-        "一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。"
+        "一款商用级 MCP Server，能够从网页和 PDF 文件中精准提取包括文本、"
+        "图片、表格、公式等内容，并将之转换为与源文档编排格式一致的 Markdown 文档。"
     )
-    assert row["url"] == "http://localhost:8081/mcp"
+    assert row["url"] == "http://localhost:8092/mcp"
     assert row["is_enabled"] is True
     assert row["auto_start"] is True

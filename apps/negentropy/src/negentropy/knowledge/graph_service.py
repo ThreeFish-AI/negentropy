@@ -18,18 +18,15 @@ import asyncio
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.config import settings
 from negentropy.logging import get_logger
 from negentropy.model_names import canonicalize_model_name
 
 from .graph_repository import (
-    AgeGraphRepository,
     BuildRunRecord,
     GraphRepository,
     GraphSearchResult,
@@ -39,7 +36,15 @@ from .llm_extractors import (
     CompositeEntityExtractor,
     CompositeRelationExtractor,
 )
-from .types import GraphBuildConfig, GraphEdge, GraphNode, GraphQueryConfig, KgEntityType, KgRelationType, KnowledgeGraphPayload
+from .types import (
+    GraphBuildConfig,
+    GraphEdge,
+    GraphNode,
+    GraphQueryConfig,
+    KgEntityType,
+    KgRelationType,
+    KnowledgeGraphPayload,
+)
 
 logger = get_logger("negentropy.knowledge.graph_service")
 
@@ -63,7 +68,7 @@ class GraphBuildResult:
     relation_count: int
     chunks_processed: int
     elapsed_seconds: float
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 @dataclass(frozen=True)
@@ -73,7 +78,7 @@ class GraphQueryResult:
     包含匹配的实体和可选的邻居信息。
     """
 
-    entities: List[GraphSearchResult]
+    entities: list[GraphSearchResult]
     total_count: int
     query_time_ms: float
 
@@ -117,9 +122,9 @@ class GraphService:
 
     def __init__(
         self,
-        repository: Optional[GraphRepository] = None,
-        session: Optional[AsyncSession] = None,
-        config: Optional[GraphBuildConfig] = None,
+        repository: GraphRepository | None = None,
+        session: AsyncSession | None = None,
+        config: GraphBuildConfig | None = None,
     ) -> None:
         """初始化图谱服务
 
@@ -148,8 +153,8 @@ class GraphService:
         self,
         corpus_id: UUID,
         app_name: str,
-        chunks: List[Dict[str, Any]],
-        config: Optional[GraphBuildConfig] = None,
+        chunks: list[dict[str, Any]],
+        config: GraphBuildConfig | None = None,
     ) -> GraphBuildResult:
         """构建知识图谱
 
@@ -196,14 +201,14 @@ class GraphService:
             await self._repository.clear_graph(corpus_id)
 
             # 分批处理
-            all_entities: List[GraphNode] = []
-            all_relations: List[GraphEdge] = []
+            all_entities: list[GraphNode] = []
+            all_relations: list[GraphEdge] = []
             chunks_processed = 0
 
             batch_size = build_config.batch_size
             semaphore = asyncio.Semaphore(build_config.max_concurrency)
 
-            async def process_chunk(chunk: Dict[str, Any]) -> tuple[List[GraphNode], List[GraphEdge]]:
+            async def process_chunk(chunk: dict[str, Any]) -> tuple[list[GraphNode], list[GraphEdge]]:
                 """处理单个知识块"""
                 async with semaphore:
                     text = chunk.get("content", "")
@@ -252,7 +257,7 @@ class GraphService:
                     chunks_processed += 1
 
             # 去重实体（基于 label）
-            unique_entities: Dict[str, GraphNode] = {}
+            unique_entities: dict[str, GraphNode] = {}
             for entity in all_entities:
                 if entity.label and entity.label not in unique_entities:
                     unique_entities[entity.label] = entity
@@ -260,7 +265,7 @@ class GraphService:
             entities_to_save = list(unique_entities.values())
 
             # 持久化实体
-            entity_ids = await self._repository.create_entities(
+            await self._repository.create_entities(
                 entities_to_save,
                 corpus_id,
             )
@@ -360,8 +365,8 @@ class GraphService:
         corpus_id: UUID,
         app_name: str,
         query: str,
-        query_embedding: List[float],
-        config: Optional[GraphQueryConfig] = None,
+        query_embedding: list[float],
+        config: GraphQueryConfig | None = None,
     ) -> GraphQueryResult:
         """混合检索图谱
 
@@ -492,7 +497,7 @@ class GraphService:
         entity_id: str,
         max_depth: int = 2,
         limit: int = 100,
-    ) -> List[GraphNode]:
+    ) -> list[GraphNode]:
         """查询实体邻居
 
         Args:
@@ -528,7 +533,7 @@ class GraphService:
         source_id: str,
         target_id: str,
         max_depth: int = 5,
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """查询两点间最短路径
 
         Args:
@@ -572,7 +577,7 @@ class GraphService:
         corpus_id: UUID,
         app_name: str,
         limit: int = 20,
-    ) -> List[BuildRunRecord]:
+    ) -> list[BuildRunRecord]:
         """获取构建历史
 
         Args:
@@ -623,8 +628,8 @@ class GraphService:
 
 
 def get_graph_service(
-    session: Optional[AsyncSession] = None,
-    config: Optional[GraphBuildConfig] = None,
+    session: AsyncSession | None = None,
+    config: GraphBuildConfig | None = None,
 ) -> GraphService:
     """获取图谱服务实例
 

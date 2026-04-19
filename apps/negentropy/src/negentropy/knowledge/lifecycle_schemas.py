@@ -7,11 +7,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 
 # =============================================================================
 # Phase 2: 来源追踪 Schemas
@@ -26,24 +25,24 @@ class DocSourceResponse(BaseModel):
     id: UUID
     document_id: UUID
     source_type: str
-    source_url: Optional[str] = None
-    original_url: Optional[str] = None
-    title: Optional[str] = None
-    author: Optional[str] = None
-    extracted_summary: Optional[str] = None
-    extraction_duration_ms: Optional[int] = None
-    extracted_at: Optional[datetime] = None
-    extractor_tool_name: Optional[str] = None
-    extractor_server_id: Optional[str] = None
-    raw_metadata: Dict[str, Any] = Field(default_factory=dict)
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    source_url: str | None = None
+    original_url: str | None = None
+    title: str | None = None
+    author: str | None = None
+    extracted_summary: str | None = None
+    extraction_duration_ms: int | None = None
+    extracted_at: datetime | None = None
+    extractor_tool_name: str | None = None
+    extractor_server_id: str | None = None
+    raw_metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class DocSourceListResponse(BaseModel):
     """来源列表响应"""
 
-    items: List[DocSourceResponse]
+    items: list[DocSourceResponse]
     total: int
     offset: int
     limit: int
@@ -55,11 +54,11 @@ class DocumentProvenanceResponse(BaseModel):
     document_id: UUID
     filename: str
     file_hash: str
-    content_type: Optional[str] = None
+    content_type: str | None = None
     status: str
     markdown_extract_status: str
     # 来源信息
-    source: Optional[DocSourceResponse] = None
+    source: DocSourceResponse | None = None
 
 
 # =============================================================================
@@ -71,12 +70,12 @@ class CatalogNodeCreateRequest(BaseModel):
     """创建目录节点请求"""
 
     name: str = Field(..., min_length=1, max_length=255)
-    slug: Optional[str] = Field(None, max_length=255)
-    parent_id: Optional[UUID] = None
+    slug: str | None = Field(None, max_length=255)
+    parent_id: UUID | None = None
     node_type: str = "category"  # category | collection | document_ref
-    description: Optional[str] = None
+    description: str | None = None
     sort_order: int = 0
-    config: Dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("node_type")
     @classmethod
@@ -90,13 +89,13 @@ class CatalogNodeCreateRequest(BaseModel):
 class CatalogNodeUpdateRequest(BaseModel):
     """更新目录节点请求"""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    slug: Optional[str] = Field(None, max_length=255)
-    parent_id: Optional[UUID] = None
-    node_type: Optional[str] = None
-    description: Optional[str] = None
-    sort_order: Optional[int] = None
-    config: Optional[Dict[str, Any]] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    slug: str | None = Field(None, max_length=255)
+    parent_id: UUID | None = None
+    node_type: str | None = None
+    description: str | None = None
+    sort_order: int | None = None
+    config: dict[str, Any] | None = None
 
 
 class CatalogNodeResponse(BaseModel):
@@ -106,15 +105,15 @@ class CatalogNodeResponse(BaseModel):
 
     id: UUID
     corpus_id: UUID
-    parent_id: Optional[UUID]
+    parent_id: UUID | None
     name: str
     slug: str
     node_type: str
-    description: Optional[str] = None
+    description: str | None = None
     sort_order: int
-    config: Dict[str, Any] = Field(default_factory=dict)
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    config: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     # 展开字段
     depth: int = 0
     children_count: int = 0
@@ -124,7 +123,7 @@ class CatalogNodeResponse(BaseModel):
 class CatalogTreeResponse(BaseModel):
     """目录树响应（扁平化列表）"""
 
-    tree: List[CatalogNodeResponse]
+    tree: list[CatalogNodeResponse]
     total_nodes: int
     max_depth: int
 
@@ -132,14 +131,14 @@ class CatalogTreeResponse(BaseModel):
 class AssignDocumentRequest(BaseModel):
     """归类文档请求"""
 
-    document_ids: List[UUID] = Field(..., min_length=1)
+    document_ids: list[UUID] = Field(..., min_length=1)
 
 
 class CategorySuggestionResponse(BaseModel):
     """分类建议响应"""
 
     document_id: UUID
-    suggestions: List[Dict[str, Any]] = Field(default_factory=list)
+    suggestions: list[dict[str, Any]] = Field(default_factory=list)
     # [{"node_id": uuid, "node_name": str, "confidence": float, "reason": str}]
 
 
@@ -153,8 +152,8 @@ class WikiPublicationCreateRequest(BaseModel):
 
     corpus_id: UUID
     name: str = Field(..., min_length=1, max_length=255)
-    slug: Optional[str] = Field(None, max_length=255)
-    description: Optional[str] = None
+    slug: str | None = Field(None, max_length=255)
+    description: str | None = None
     theme: str = "default"  # default | book | docs
 
     @field_validator("theme")
@@ -169,12 +168,12 @@ class WikiPublicationCreateRequest(BaseModel):
 class WikiPublicationUpdateRequest(BaseModel):
     """更新 Wiki 发布请求"""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    theme: Optional[str] = None
-    navigation_config: Optional[Dict[str, Any]] = None
-    custom_css: Optional[str] = None
-    custom_js: Optional[str] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = None
+    theme: str | None = None
+    navigation_config: dict[str, Any] | None = None
+    custom_css: str | None = None
+    custom_js: str | None = None
 
 
 class WikiPublicationResponse(BaseModel):
@@ -186,14 +185,14 @@ class WikiPublicationResponse(BaseModel):
     corpus_id: UUID
     name: str
     slug: str
-    description: Optional[str]
+    description: str | None
     status: str
     theme: str
-    navigation_config: Dict[str, Any] = Field(default_factory=dict)
+    navigation_config: dict[str, Any] = Field(default_factory=dict)
     version: int
-    published_at: Optional[datetime]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    published_at: datetime | None
+    created_at: datetime | None
+    updated_at: datetime | None
     # 展开字段
     entries_count: int = 0
 
@@ -201,7 +200,7 @@ class WikiPublicationResponse(BaseModel):
 class WikiPublicationListResponse(BaseModel):
     """Wiki 发布列表响应"""
 
-    items: List[WikiPublicationResponse]
+    items: list[WikiPublicationResponse]
     total: int
 
 
@@ -214,10 +213,10 @@ class WikiEntryResponse(BaseModel):
     publication_id: UUID
     document_id: UUID
     entry_slug: str
-    entry_title: Optional[str]
+    entry_title: str | None
     is_index_page: bool
-    entry_order: Optional[str]
-    created_at: Optional[datetime]
+    entry_order: str | None
+    created_at: datetime | None
 
 
 class WikiEntryContentResponse(BaseModel):
@@ -226,8 +225,8 @@ class WikiEntryContentResponse(BaseModel):
     entry_id: UUID
     document_id: UUID
     entry_slug: str
-    entry_title: Optional[str]
-    markdown_content: Optional[str] = None
+    entry_title: str | None
+    markdown_content: str | None = None
     document_filename: str = ""
 
 
@@ -235,7 +234,7 @@ class WikiNavTreeResponse(BaseModel):
     """Wiki 导航树响应"""
 
     publication_id: UUID
-    nav_tree: Dict[str, Any]  # 嵌套树结构
+    nav_tree: dict[str, Any]  # 嵌套树结构
 
 
 class WikiPublishActionResponse(BaseModel):
@@ -244,7 +243,7 @@ class WikiPublishActionResponse(BaseModel):
     publication_id: UUID
     status: str
     version: int
-    published_at: Optional[datetime]
+    published_at: datetime | None
     entries_count: int
     message: str
 
@@ -257,32 +256,32 @@ class WikiPublishActionResponse(BaseModel):
 class UnifiedSearchRequest(BaseModel):
     """通用检索请求"""
 
-    app_name: Optional[str] = None
+    app_name: str | None = None
     query: str = Field(..., min_length=1, max_length=1000)
     mode: str = "auto"  # auto | semantic | keyword | hybrid | rrf | graph_hybrid
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
 
     # 分面过滤
-    corpus_ids: Optional[List[UUID]] = None
-    corpus_names: Optional[List[str]] = None
-    source_types: Optional[List[str]] = None
-    entity_types: Optional[List[str]] = None
-    date_range: Optional[List[str]] = None  # [from_date, to_date] ISO format
-    tags: Optional[List[str]] = None
-    min_confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    custom_metadata_filter: Optional[Dict[str, Any]] = None
+    corpus_ids: list[UUID] | None = None
+    corpus_names: list[str] | None = None
+    source_types: list[str] | None = None
+    entity_types: list[str] | None = None
+    date_range: list[str] | None = None  # [from_date, to_date] ISO format
+    tags: list[str] | None = None
+    min_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    custom_metadata_filter: dict[str, Any] | None = None
 
     # 搜索调优
-    semantic_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    keyword_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    semantic_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    keyword_weight: float | None = Field(default=None, ge=0.0, le=1.0)
     rerank_enabled: bool = True
     rerank_top_k: int = Field(default=10, ge=1, le=50)
 
     # 上下文感知
-    conversation_history: Optional[List[Dict[str, Any]]] = None
-    session_id: Optional[str] = None
-    agent_id: Optional[str] = None
+    conversation_history: list[dict[str, Any]] | None = None
+    session_id: str | None = None
+    agent_id: str | None = None
 
     # 扩展选项
     include_citations: bool = False
@@ -304,10 +303,10 @@ class UnifiedSearchResponse(BaseModel):
     mode_used: str
     total_matches: int
     total_estimated: int
-    facets: Dict[str, Dict[str, int]] = Field(default_factory=dict)
-    results: List[Dict[str, Any]] = Field(default_factory=list)  # UnifiedSearchResultItem dict
+    facets: dict[str, dict[str, int]] = Field(default_factory=dict)
+    results: list[dict[str, Any]] = Field(default_factory=list)  # UnifiedSearchResultItem dict
     query_time_ms: float = 0.0
-    suggestions: Optional[List[str]] = None
+    suggestions: list[str] | None = None
 
 
 class FacetValue(BaseModel):
@@ -321,14 +320,14 @@ class FacetValue(BaseModel):
 class FacetResponse(BaseModel):
     """分面可用值响应"""
 
-    facets: Dict[str, List[FacetValue]]
+    facets: dict[str, list[FacetValue]]
 
 
 class TrendingRequest(BaseModel):
     """趋势查询请求"""
 
-    app_name: Optional[str] = None
-    corpus_ids: Optional[List[UUID]] = None
+    app_name: str | None = None
+    corpus_ids: list[UUID] | None = None
     period: str = "7d"  # 24h | 7d | 30d | 90d
     limit: int = Field(default=10, ge=1, le=50)
     metric: str = "retrieval_count"  # retrieval_count | feedback_positive | click_through
@@ -360,8 +359,8 @@ class CorpusQualityResponse(BaseModel):
     density_score: float
     embedding_coverage: float
     entity_density: float
-    detail: Dict[str, Any] = Field(default_factory=dict)
-    assessed_at: Optional[datetime] = None
+    detail: dict[str, Any] = Field(default_factory=dict)
+    assessed_at: datetime | None = None
 
 
 class CorpusVersionResponse(BaseModel):
@@ -374,17 +373,17 @@ class CorpusVersionResponse(BaseModel):
     version_number: int
     document_count: int
     chunk_count: int
-    quality_score: Optional[float]
+    quality_score: float | None
     trigger_type: str
     status: str
-    diff_summary: Optional[Dict[str, Any]]
-    build_run_id: Optional[str]
-    created_at: Optional[datetime]
+    diff_summary: dict[str, Any] | None
+    build_run_id: str | None
+    created_at: datetime | None
 
 
 class CorpusVersionListResponse(BaseModel):
     """语料版本列表响应"""
 
-    items: List[CorpusVersionResponse]
+    items: list[CorpusVersionResponse]
     total: int
     current_version: int = 0

@@ -1,9 +1,6 @@
-import sys
-import os
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import PropertyMock, patch
 
 from negentropy.engine.factories.artifacts import get_artifact_service, reset_artifact_service
-from negentropy.config import settings
 
 
 def test_inmemory_factory():

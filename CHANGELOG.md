@@ -1,0 +1,35 @@
+# Changelog
+
+本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
+
+## [Unreleased]
+
+### Removed
+
+- 删除 `apps/negentropy/.env.example`（197 行）：其承载的全部非密钥配置项已在 `config.default.yaml` 中以结构化 YAML 形式表达，密钥类条目改为通过 shell 环境变量或 `.env.local` 提供。
+- 下线 ZAI（Zhipu AI GLM）专属的 LiteLLM 集成链路：
+  - 删除 `LlmVendor.ZAI` 枚举项；
+  - 删除 `apps/negentropy/src/negentropy/config/pricing/glm_pricing.json` 与 `config/pricing/loader.py`、`config/pricing/models.py`（本地定价覆盖链路已由 LiteLLM 在线价目表统一收敛）；
+  - 删除 `engine/bootstrap.py` 中 `NE_API_KEY → ZAI_API_KEY` 的环境变量映射；
+  - 删除 `config/model_resolver.py` 中针对 ZAI vendor 的 thinking 处理分支；
+  - `model_names.canonicalize_model_name()` 下线 GLM→zai 特化规则，退化为通用幂等 no-op（保留函数签名以维持上游调用正交性）。
+
+### Changed
+
+- 默认 LLM 模型由 `zai/glm-5` 切换为 `openai/gpt-5-mini`；模型 vendor（OpenAI / Anthropic / Gemini 等）通过 Admin → Model 页动态配置，数据源为 `model_configs` 表。
+- 激进重构 `apps/negentropy/src/negentropy/config/config.default.yaml`：
+  - 引入 `_constants` YAML anchor/alias 块，消除 ≥7 处魔法数字/字符串重复；
+  - 顶级 `env:` 重组为 `environment.env`，与其他 8 个子块结构对齐（对 legacy 顶级 `env:` 保留向后兼容回退）；
+  - `database.url` 去凭证化为模板值 `postgresql+asyncpg://USER:PASSWORD@localhost:5432/negentropy`；
+  - `auth.cookie_secure` 注释增加「生产必须为 true」警示；
+  - 头部注释增补密钥类环境变量清单（OpenAI / Anthropic / Gemini / Langfuse / Google Search 等）。
+- 为 9 个 Settings 类（主 `Settings` + 8 子 Settings）启用 Pydantic `env_nested_delimiter="__"`，支持扁平环境变量覆盖深层嵌套字段，例如 `NE_KNOWLEDGE_DEFAULT_EXTRACTOR_ROUTES__URL__PRIMARY__TIMEOUT_MS=90000`。
+- 文档统一推荐 `uv run negentropy init` 生成 `~/.negentropy/config.yaml`，密钥通过 shell 环境变量或 `.env.local` 注入。
+
+### Breaking
+
+- 合并 `0001_init_schema.py` / `0002_add_vendor_configs.py` 为单一 `0001_init_schema.py`（revision id 重置为 `0001`）；升级路径：**需先 `DROP SCHEMA negentropy CASCADE` 再 `uv run alembic upgrade head`**（项目处于早期阶段，无线上负担，不做自动兼容）。
+- 移除 6 个孤岛型 ORM 与对应表：`SandboxExecution`、`Instruction`、`ConsolidationJob`、`Run`、`Message`、`Snapshot`；两轮审计下均为业务零引用，遵循熵减原则。配套裁撤 `Thread.{runs,messages,snapshots,consolidation_jobs}` 与 `Event.messages` 五个 relationship。业务表数由 42 降为 37。
+- 新迁移不包含任何种子数据（`model_configs` / `mcp_servers` 预设）；默认配置改由应用侧初始化流程（如 `negentropy init` 或管理员首次登录）承担。
+- 用户级 `~/.negentropy/config.yaml` 或部署脚本中若配置了 `zai/*` 模型，需在 Admin → Model 页迁移至 OpenAI / Anthropic / Gemini 等 vendor 重新配置；历史 DB 中 `vendor=zai` 的 `model_configs` 记录不会被自动清理，但调用时将因缺失解析逻辑而返回「模型未配置」。
+- 下线 `NE_API_KEY → ZAI_API_KEY` 映射；依赖该映射的部署需改为直接设置各 vendor 原生环境变量（如 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`）。

@@ -3,7 +3,6 @@ from google.adk.agents import LlmAgent
 from .._model import create_model
 from ..tools.common import log_activity
 from ..tools.contemplation import analyze_context, create_plan
-from negentropy.config import settings
 
 _DESCRIPTION = (
     "Handles: deep analysis, strategic planning, root cause analysis, second-order thinking, risk assessment. "

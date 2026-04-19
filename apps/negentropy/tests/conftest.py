@@ -1,9 +1,9 @@
-import typing as t
 import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from negentropy.config import settings
-from negentropy.db import session as db_session
 from negentropy.db import deps as db_deps
+from negentropy.db import session as db_session
 
 
 @pytest.fixture(scope="function")

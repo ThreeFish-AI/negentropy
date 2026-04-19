@@ -3,7 +3,7 @@ Sandbox package initialization
 Exposes the factory function for creating sandbox runners.
 """
 
-from .base import SandboxBackend, SandboxConfig, BaseSandboxRunner
+from .base import BaseSandboxRunner, SandboxBackend, SandboxConfig
 
 
 def create_sandbox_runner(

@@ -8,8 +8,9 @@ import inspect
 import json
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -123,7 +124,7 @@ class ToolRegistry:
     ) -> list[ToolDefinition]:
         """获取可用工具列表"""
         async with db_session.AsyncSessionLocal() as db:
-            stmt = select(Tool).where(Tool.app_name == self._app_name, Tool.is_active == True)
+            stmt = select(Tool).where(Tool.app_name == self._app_name, Tool.is_active.is_(True))
             result = await db.execute(stmt)
             rows = result.scalars().all()
 
