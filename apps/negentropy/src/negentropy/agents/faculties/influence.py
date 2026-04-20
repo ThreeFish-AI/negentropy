@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 
-from .._model import create_model
+from .._model import create_subagent_model
 from ..tools.common import log_activity
 from ..tools.influence import publish_content, send_notification
 
@@ -58,7 +58,7 @@ def create_influence_agent(*, output_key: str | None = None) -> LlmAgent:
     """
     return LlmAgent(
         name="InfluenceFaculty",
-        model=create_model(),
+        model=create_subagent_model(agent_name="InfluenceFaculty"),
         description=_DESCRIPTION,
         instruction=_INSTRUCTION,
         tools=[log_activity, publish_content, send_notification],

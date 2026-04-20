@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 
-from .._model import create_model
+from .._model import create_subagent_model
 from ..tools.action import execute_code, read_file, write_file
 from ..tools.common import log_activity
 
@@ -57,7 +57,7 @@ def create_action_agent(*, output_key: str | None = None) -> LlmAgent:
     """
     return LlmAgent(
         name="ActionFaculty",
-        model=create_model(),
+        model=create_subagent_model(agent_name="ActionFaculty"),
         description=_DESCRIPTION,
         instruction=_INSTRUCTION,
         tools=[log_activity, execute_code, read_file, write_file],

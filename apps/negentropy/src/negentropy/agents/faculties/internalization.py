@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 
-from .._model import create_model
+from .._model import create_subagent_model
 from ..tools.common import log_activity
 from ..tools.internalization import save_to_memory, update_knowledge_graph
 
@@ -59,7 +59,7 @@ def create_internalization_agent(*, output_key: str | None = None) -> LlmAgent:
     """
     return LlmAgent(
         name="InternalizationFaculty",
-        model=create_model(),
+        model=create_subagent_model(agent_name="InternalizationFaculty"),
         description=_DESCRIPTION,
         instruction=_INSTRUCTION,
         tools=[log_activity, save_to_memory, update_knowledge_graph],
