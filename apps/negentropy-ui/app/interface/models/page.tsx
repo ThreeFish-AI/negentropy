@@ -438,7 +438,7 @@ export default function ModelsPage() {
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 items-start gap-4">
                 {VENDOR_SETUP_CONFIG.map((vc) => {
                   const config = vendorConfigs.find((c) => c.vendor === vc.value);
                   const isConfigured = config?.configured ?? false;
