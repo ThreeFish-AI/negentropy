@@ -3,6 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { AdminNav } from "@/components/ui/AdminNav";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { VendorModelsDisclosure } from "@/components/admin/VendorModelsDisclosure";
+import {
+  MODEL_KINDS,
+  type ModelConfigRecord,
+  type ModelKind,
+} from "@/types/admin-models";
 
 interface VendorConfigData {
   vendor: string;
@@ -48,27 +54,6 @@ interface PingResult {
   message: string;
   latency_ms?: number;
 }
-
-type ModelKind = "llm" | "embedding" | "rerank";
-
-interface ModelConfigRecord {
-  id: string;
-  model_type: ModelKind;
-  display_name: string;
-  vendor: string;
-  model_name: string;
-  is_default: boolean;
-  enabled: boolean;
-  config: Record<string, unknown>;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-const MODEL_KINDS: { value: ModelKind; label: string }[] = [
-  { value: "llm", label: "LLM" },
-  { value: "embedding", label: "Embedding" },
-  { value: "rerank", label: "Rerank" },
-];
 
 export default function ModelsPage() {
   const [loading, setLoading] = useState(true);
@@ -460,6 +445,11 @@ export default function ModelsPage() {
                           {isConfigured ? "Edit" : "Setup"}
                         </button>
                       </div>
+                      <VendorModelsDisclosure
+                        vendor={vc.value}
+                        vendorLabel={vc.label}
+                        models={registeredModels}
+                      />
                     </div>
                   );
                 })}
