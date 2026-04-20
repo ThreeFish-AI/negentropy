@@ -14,6 +14,10 @@ import { StateSnapshot } from "../components/ui/StateSnapshot";
 import { CHAT_CONTENT_RAIL_CLASS } from "../components/ui/chat-layout";
 import { useSessionListService } from "@/features/session/hooks/useSessionListService";
 import { useSessionService } from "@/features/session/hooks/useSessionService";
+import {
+  fetchModelConfigs,
+  type ModelConfigItem,
+} from "@/features/knowledge/utils/knowledge-api";
 
 import { useAgentSubscription, type AgentLike } from "@/hooks/useAgentSubscription";
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
@@ -36,6 +40,7 @@ export type HomeBodyAgent = AgentLike & {
   isRunning: boolean;
   addMessage: (message: Message) => void;
   runAgent: (params: { runId: string }) => Promise<unknown>;
+  forwardedProps?: Record<string, unknown>;
 };
 
 /**
@@ -74,6 +79,9 @@ export function HomeBody({
   const [inputValue, setInputValue] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
+  const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
+  const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(null);
+  const perThreadLlmRef = useRef<Record<string, string | null>>({});
   const rawEventHandlerRef = useRef<((event: BaseEvent) => void) | undefined>(
     undefined,
   );
@@ -304,6 +312,10 @@ export function HomeBody({
         activeSession.label === createSessionLabel(sessionId);
       try {
         setConnectionWithMetrics("connecting");
+        agent.forwardedProps = {
+          ...(agent.forwardedProps ?? {}),
+          selected_llm_model: selectedLlmModel ?? null,
+        };
         await agent.runAgent({
           runId,
         });
@@ -331,6 +343,7 @@ export function HomeBody({
       loadSessions,
       scheduleTitleRefresh,
       addLog,
+      selectedLlmModel,
     ],
   );
 
@@ -410,6 +423,65 @@ export function HomeBody({
     }
     void loadSessionDetail(sessionId);
   }, [sessionId, loadSessionDetail]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const items = await fetchModelConfigs({
+          modelType: "llm",
+          enabled: true,
+        });
+        if (!cancelled) {
+          setLlmModels(items);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          addLog("warn", "llm_options_fetch_failed", {
+            message: String(error),
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [addLog]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setSelectedLlmModel(null);
+      return;
+    }
+    if (sessionId in perThreadLlmRef.current) {
+      setSelectedLlmModel(perThreadLlmRef.current[sessionId] ?? null);
+      return;
+    }
+    setSelectedLlmModel(null);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      return;
+    }
+    if (sessionId in perThreadLlmRef.current) {
+      return;
+    }
+    const raw = snapshotForDisplay?.["selected_llm_model"];
+    const initial = typeof raw === "string" && raw ? raw : null;
+    perThreadLlmRef.current[sessionId] = initial;
+    setSelectedLlmModel(initial);
+  }, [sessionId, snapshotForDisplay]);
+
+  const handleSelectedLlmModelChange = useCallback(
+    (next: string | null) => {
+      setSelectedLlmModel(next);
+      if (sessionId) {
+        perThreadLlmRef.current[sessionId] = next;
+      }
+    },
+    [sessionId],
+  );
 
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
@@ -539,6 +611,9 @@ export function HomeBody({
                   effectiveConnection === "blocked" ||
                   pendingConfirmations > 0
                 }
+                models={llmModels}
+                selectedLlmModel={selectedLlmModel}
+                onSelectedLlmModelChange={handleSelectedLlmModelChange}
               />
             </div>
           </div>

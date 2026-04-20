@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from negentropy.auth.deps import get_current_user
 from negentropy.auth.service import AuthUser
 from negentropy.config import settings
+from negentropy.config.model_resolver import invalidate_cache as invalidate_model_cache
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.model_config import ModelConfig
@@ -1430,6 +1431,7 @@ async def update_subagent(
         if not agent:
             raise HTTPException(status_code=404, detail="SubAgent not found")
 
+        original_name = agent.name
         incoming = payload.model_dump(exclude_unset=True)
         confirm_builtin_rename = bool(incoming.pop("confirm_builtin_rename", False))
 
@@ -1496,6 +1498,9 @@ async def update_subagent(
             raise HTTPException(status_code=409, detail=f"SubAgent update conflict: {exc}") from exc
         await db.refresh(agent)
 
+    invalidate_model_cache(prefix=f"subagent:{original_name}")
+    if agent.name != original_name:
+        invalidate_model_cache(prefix=f"subagent:{agent.name}")
     return _subagent_to_response(agent)
 
 
@@ -1513,8 +1518,11 @@ async def delete_subagent(
         agent = await db.get(SubAgent, agent_id)
         if not agent:
             raise HTTPException(status_code=404, detail="SubAgent not found")
+        deleted_name = agent.name
         await db.delete(agent)
         await db.commit()
+
+    invalidate_model_cache(prefix=f"subagent:{deleted_name}")
 
 
 def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:

@@ -118,6 +118,20 @@ export async function POST(request: Request) {
     );
   }
 
+  const forwardedProps =
+    (body.forwardedProps && typeof body.forwardedProps === "object"
+      ? (body.forwardedProps as Record<string, unknown>)
+      : null) ?? null;
+  const stateDelta: Record<string, unknown> = {};
+  if (forwardedProps && "selected_llm_model" in forwardedProps) {
+    const raw = forwardedProps.selected_llm_model;
+    if (typeof raw === "string" && raw.length > 0) {
+      stateDelta.selected_llm_model = raw;
+    } else if (raw === null) {
+      stateDelta.selected_llm_model = null;
+    }
+  }
+
   const headers = extractForwardHeaders(request);
   headers.set("content-type", "application/json");
   headers.set("accept", "text/event-stream");
@@ -125,23 +139,27 @@ export async function POST(request: Request) {
   let upstreamResponse: Response;
   try {
     const upstreamUrl = new URL("/run_sse", baseUrl);
+    const upstreamBody: Record<string, unknown> = {
+      app_name: appName,
+      user_id: userId,
+      session_id: sessionId,
+      new_message: {
+        role: "user",
+        parts: [{ text: latestUserText }],
+      },
+      streaming: true,
+      metadata: {
+        client_run_id: body.runId,
+        client_thread_id: body.threadId,
+      },
+    };
+    if (Object.keys(stateDelta).length > 0) {
+      upstreamBody.state_delta = stateDelta;
+    }
     upstreamResponse = await fetch(upstreamUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        app_name: appName,
-        user_id: userId,
-        session_id: sessionId,
-        new_message: {
-          role: "user",
-          parts: [{ text: latestUserText }],
-        },
-        streaming: true,
-        metadata: {
-          client_run_id: body.runId,
-          client_thread_id: body.threadId,
-        },
-      }),
+      body: JSON.stringify(upstreamBody),
       cache: "no-store",
     });
   } catch (error) {
