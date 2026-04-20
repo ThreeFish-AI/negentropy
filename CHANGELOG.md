@@ -26,7 +26,15 @@
 
 ### Changed
 
-- 默认 LLM 模型由 `zai/glm-5` 切换为 `openai/gpt-5-mini`；模型 vendor（OpenAI / Anthropic / Gemini 等）通过 Admin → Model 页动态配置，数据源为 `model_configs` 表。
+- Admin / Models → Interface / Models 信息架构迁移，同时彻底清除 `plugins` 命名残留，校正 Interface 二级导航顺序，并让 Dashboard 与 Nav 顺序严格对齐：
+  - **IA 迁移**：Models 页（供应商凭证 + 模型注册 + Ping）归属从 Admin 迁到 Interface，二级路径 `/admin/models` → `/interface/models`；Admin 模块只保留 Users / Roles 治理职责，`AdminNav` 同步移除 Models 条目。
+  - **命名统一**：UI 路径 `/plugins/*` → `/interface/*`、前端源码目录 `app/plugins/` → `app/interface/`、API 代理 `app/api/plugins/` → `app/api/interface/`、后端模块 `negentropy/plugins/` → `negentropy/interface/`（路由前缀 `/plugins` → `/interface`）、组件 `PluginsNav` → `InterfaceNav`、类型 `types/admin-models.ts` → `types/interface-models.ts`、组件 `components/admin/VendorModelsDisclosure.tsx` → `components/interface/VendorModelsDisclosure.tsx`；所有 `PluginStatsResponse` / `PluginsPage` / `PluginsLayout` 等符号同步更名为 `InterfaceStatsResponse` / `InterfacePage` / `InterfaceLayout`，不再残留 legacy `plugins` 概念。
+  - **端点迁移**：原 `auth/api.py` 承载的 6 条 Models 路由（`/auth/admin/{vendor-configs,model-configs,models/ping}`）整体摘出至 `negentropy/interface/models_api.py`，前缀统一为 `/interface/models/*`；前端代理同步迁入 `app/api/interface/models/{vendor-configs,configs,ping}/`，`auth/api.py` 侧旧端点连同辅助函数一并移除。
+  - **导航与 Dashboard 对齐**：`InterfaceNav` NAV_ITEMS 顺序改为 `Dashboard → Models → SubAgents → MCP → Skills`（SubAgents 上移至 MCP 之前）；`/interface` Dashboard 新增 Models StatCard（`total` / `enabled` / `vendors`）与「Manage Models」Quick Link，卡片 / Quick Link 顺序严格对齐 Nav。
+  - **权限双层守卫（保守策略）**：Models 权限父项向 `interface:*` 命名看齐（`rbac.PERMISSIONS` 新增 `interface:read` / `interface:write`，`user` 角色获得 `interface:read`/`interface:write`，`admin` 角色以 `interface:*` 通配覆盖），但后端仍保留 `"admin" in current_user.roles` 的 role 校验（403），并在前端 `InterfaceNav` / Dashboard Models 入口基于 `useAuth().user.roles` 条件渲染，`/interface/models/page.tsx` 内部以 `useEffect` 重定向守卫兜底，避免非 admin 绕过入口直接访问。
+  - **后端 `/interface/stats` 扩展**：聚合响应新增 `models: { total, enabled, vendors }` 字段，`total` 来自 `ModelConfigRecord` 总数、`enabled` 按 `ModelConfigRecord.enabled=True` 计数、`vendors` 为启用 `VendorConfig` 的数量。
+  - **测试同步**：`tests/unit/plugins/` → `tests/unit/interface/` 整目录迁入；`PluginsNav.test.tsx` → `InterfaceNav.test.tsx` 并新增 Models 入口 admin/非 admin 可见性、NAV_ITEMS 顺序断言；`InterfacePage.test.tsx` 新增 Models StatCard 与 Quick Link 的条件渲染断言；后端 `tests/unit_tests/interface/test_models_api.py` / `test_models_ping.py` 从 auth 目录迁入并把 URL 断言改为 `/interface/models/*`，`test_deps_and_rbac.py` 同步更新 `interface:write` 断言。
+- 默认 LLM 模型由 `zai/glm-5` 切换为 `openai/gpt-5-mini`；模型 vendor（OpenAI / Anthropic / Gemini 等）通过 Interface → Models 页动态配置，数据源为 `model_configs` 表。
 - 激进重构 `apps/negentropy/src/negentropy/config/config.default.yaml`：
   - 引入 `_constants` YAML anchor/alias 块，消除 ≥7 处魔法数字/字符串重复；
   - 顶级 `env:` 重组为 `environment.env`，与其他 8 个子块结构对齐（对 legacy 顶级 `env:` 保留向后兼容回退）；

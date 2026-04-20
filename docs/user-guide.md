@@ -24,7 +24,7 @@
 3. [对话交互](#3-对话交互)
 4. [知识库管理](#4-知识库管理)
 5. [记忆系统使用](#5-记忆系统使用)
-6. [插件系统使用](#6-插件系统使用)
+6. [Interface 能力接入](#6-interface-能力接入)
 7. [管理后台](#7-管理后台)
 8. [Wiki 知识发布](#8-wiki-知识发布)
 9. [常见问题](#9-常见问题)
@@ -172,7 +172,7 @@ uv run negentropy init    # 写入 ~/.negentropy/config.yaml
 #   export NE_DB_URL=postgresql+asyncpg://user:pass@localhost:5432/negentropy
 #   export OPENAI_API_KEY=your-openai-key
 #   export ANTHROPIC_API_KEY=your-anthropic-key
-# 模型 vendor（OpenAI / Anthropic / Gemini 等）通过 Admin → Model 页动态配置
+# 模型 vendor（OpenAI / Anthropic / Gemini 等）通过 Interface → Models 页动态配置
 
 # 6. 应用数据库迁移
 uv run alembic upgrade head
@@ -279,7 +279,7 @@ graph TB
 | **Home**      | `/`          | 所有用户 | Agent 对话 |
 | **Knowledge** | `/knowledge` | 所有用户 | 知识库管理 |
 | **Memory**    | `/memory`    | 所有用户 | 记忆系统   |
-| **Interface** | `/plugins`   | 所有用户 | 插件管理   |
+| **Interface** | `/interface` | 所有用户 | 能力接入（Models / SubAgents / MCP / Skills） |
 | **Admin**     | `/admin`     | 仅 admin | 管理后台   |
 
 ### 3.2 发起对话
@@ -684,27 +684,30 @@ flowchart TD
 
 ---
 
-## 6. 插件系统使用
+## 6. Interface 能力接入
 
-插件系统扩展了 Negentropy 的能力边界，支持接入外部工具、技能和子智能体。
+Interface 模块将 Negentropy 的能力接入面板统一在同一顶层导航之下，覆盖模型（Models）、子智能体（SubAgents）、MCP 服务器（MCP Servers）与技能（Skills）四个正交维度。
 
 ### 6.1 模块导航
 
 进入 **Interface** 模块后，左侧导航栏提供以下子页面：
 
-| 导航项          | 路径                 | 功能           |
-| :-------------- | :------------------- | :------------- |
-| **Dashboard**   | `/plugins`           | 插件仪表盘     |
-| **MCP Servers** | `/plugins/mcp`       | MCP 服务器管理 |
-| **Skills**      | `/plugins/skills`    | 技能管理       |
-| **SubAgents**   | `/plugins/subagents` | 子智能体管理   |
+| 导航项          | 路径                   | 功能                           | 权限 |
+| :-------------- | :--------------------- | :----------------------------- | :--- |
+| **Dashboard**   | `/interface`           | Interface 仪表盘（含统计卡片） | 所有用户 |
+| **Models**      | `/interface/models`    | 供应商凭证 + 模型注册 + Ping   | 仅 admin |
+| **SubAgents**   | `/interface/subagents` | 子智能体管理                   | 所有用户 |
+| **MCP Servers** | `/interface/mcp`       | MCP 服务器管理                 | 所有用户 |
+| **Skills**      | `/interface/skills`    | 技能管理                       | 所有用户 |
 
-### 6.2 插件仪表盘
+> 说明：Models 页在顶部导航、Dashboard StatCard 与 Quick Links 中对 admin 以外用户隐藏；直接拼接 URL 访问 `/interface/models` 会被页内守卫重定向至 `/interface`。
 
-仪表盘展示插件系统的全局统计和快捷操作：
+### 6.2 Interface 仪表盘
 
-- **统计卡片**：MCP Servers 数量 / Skills 数量 / SubAgents 数量（含各自启用数）
-- **快捷链接**：Register MCP Server / Create Skill / Configure SubAgent
+仪表盘展示 Interface 模块的全局统计和快捷操作：
+
+- **统计卡片**：Models（仅 admin）/ SubAgents / MCP Servers / Skills（均含各自启用数）
+- **快捷链接**：Manage Models（仅 admin）/ Configure SubAgent / Register MCP Server / Create Skill
 
 ### 6.3 MCP Server 管理
 
@@ -799,26 +802,11 @@ flowchart TB
     class WebSearch,API,DB ext
 ```
 
----
+### 6.6 Models 管理（仅 admin）
 
-## 7. 管理后台
+Models 页允许管理员在 Interface 模块下配置系统使用的 LLM、Embedding 和 Rerank 模型。
 
-管理后台（Admin）提供系统级配置能力，包括用户管理、模型配置和角色权限管理。
-
-> ⚠️ Admin 模块仅对具有 **admin** 角色的用户可见。用户通过 Google OAuth SSO 登录后，系统根据其角色分配访问权限。详细配置请参阅 [SSO 集成](./sso.md)。
-
-### 7.1 用户管理
-
-用户管理页面展示当前系统中的所有用户：
-
-- **当前用户信息卡片**：头像、姓名、邮箱、角色徽章
-- **用户列表**：展示所有用户及其角色
-- **角色切换**：在 `admin` 和 `user` 之间切换用户角色
-- **权限说明**：展示 admin 和 user 两种角色的权限范围
-
-### 7.2 模型管理
-
-模型管理页面允许管理员配置系统使用的 LLM、Embedding 和 Rerank 模型。
+> 🔐 Models 页仅对具有 **admin** 角色的用户可见：顶部导航、Dashboard StatCard 与 Quick Links 对非 admin 隐藏；即便直接拼接 `/interface/models` URL 访问，也会被页内守卫重定向至 `/interface`。
 
 #### 模型类型
 
@@ -836,7 +824,6 @@ flowchart TB
 | :-------- | :------------------ |
 | OpenAI    | GPT 系列            |
 | Anthropic | Claude 系列         |
-| ZAI       | 智谱 AI（GLM 系列） |
 | Vertex AI | Google Cloud AI     |
 | DeepSeek  | DeepSeek 系列       |
 | Ollama    | 本地模型            |
@@ -871,7 +858,26 @@ flowchart TD
 | **删除**      | 移除模型配置                        |
 | **Ping 测试** | 验证模型 API 的连通性，显示响应延迟 |
 
-### 7.3 角色权限管理
+---
+
+## 7. 管理后台
+
+管理后台（Admin）提供系统级治理能力，包括用户管理与角色权限管理。
+
+> ⚠️ Admin 模块仅对具有 **admin** 角色的用户可见。用户通过 Google OAuth SSO 登录后，系统根据其角色分配访问权限。详细配置请参阅 [SSO 集成](./sso.md)。
+
+> 🔀 **模型管理已迁移**：原「Admin / Models」已迁移至「Interface / Models」，详见 §6.6；Admin 模块不再承载模型配置职责。
+
+### 7.1 用户管理
+
+用户管理页面展示当前系统中的所有用户：
+
+- **当前用户信息卡片**：头像、姓名、邮箱、角色徽章
+- **用户列表**：展示所有用户及其角色
+- **角色切换**：在 `admin` 和 `user` 之间切换用户角色
+- **权限说明**：展示 admin 和 user 两种角色的权限范围
+
+### 7.2 角色权限管理
 
 角色权限管理页面以矩阵形式展示各角色的权限配置：
 
@@ -935,7 +941,7 @@ Wiki 采用 **SSG (Static Site Generation) + ISR (Incremental Static Regeneratio
 1. 确认后端服务已启动（`http://localhost:8000`）
 2. 查看连接状态指示器是否从 `idle` 变为 `connecting`
 3. 检查右侧 LogBufferPanel 是否有错误日志
-4. 确认 LLM 模型配置正确（Admin > Models，Ping 测试通过）
+4. 确认 LLM 模型配置正确（Interface > Models，Ping 测试通过）
 
 **Q: 标题栏显示「等待确认」无法继续？**
 
@@ -957,7 +963,7 @@ Wiki 采用 **SSG (Static Site Generation) + ISR (Incremental Static Regeneratio
 1. 确认文档摄取状态为 Completed（在 Pipeline Runs 中查看）
 2. 检查分块策略配置是否适合你的文档类型
 3. 尝试调整搜索查询，使用更具体的关键词
-4. 确认 Embedding 模型配置正确（Admin > Models）
+4. 确认 Embedding 模型配置正确（Interface > Models）
 
 **Q: 如何选择合适的分块策略？**
 
@@ -1001,7 +1007,7 @@ Admin 模块需要 `admin` 角色。联系系统管理员为你的账户分配 a
 
 **Q: 如何切换默认模型？**
 
-进入 Admin > Models，找到目标模型，点击「设为默认」按钮。每种模型类型（LLM/Embedding/Rerank）可独立设置默认模型。
+进入 Interface > Models，找到目标模型，点击「设为默认」按钮。每种模型类型（LLM/Embedding/Rerank）可独立设置默认模型。
 
 ### 9.5 Wiki 相关
 
