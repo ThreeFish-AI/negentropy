@@ -1,6 +1,9 @@
 from google.adk.agents import LlmAgent
+from google.adk.agents.callback_context import CallbackContext
+from google.adk.models.llm_request import LlmRequest
 
-from ._model import create_model
+from ._dynamic_model import set_selected_root_llm
+from ._model import create_root_model
 from .faculties.action import action_agent
 from .faculties.contemplation import contemplation_agent
 from .faculties.influence import influence_agent
@@ -13,10 +16,28 @@ from .pipelines.standard import (
 )
 from .tools.common import log_activity
 
+
+def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest) -> None:
+    """将 Home 选择的 `selected_llm_model` 从 session.state 注入 ContextVar。
+
+    ADK `/run_sse` 将前端传入的 `state_delta.selected_llm_model` 合并进
+    `Thread.state`，随后 `callback_context.state` 暴露同步视图；此回调读取后置入
+    `ContextVar`，供 `DynamicRootLiteLlm.generate_content_async` 在单轮内按此覆盖模型。
+    """
+    _ = llm_request  # 未直接使用 llm_request；以参数位接入 ADK 规范
+    try:
+        state = callback_context.state
+        selected = state.get("selected_llm_model") if state is not None else None
+    except Exception:
+        selected = None
+    set_selected_root_llm(selected if isinstance(selected, str) else None)
+
+
 root_agent = LlmAgent(
     name="NegentropyEngine",
     # Model configured via unified settings (see config/llm.py)
-    model=create_model(),
+    model=create_root_model(),
+    before_model_callback=_pick_root_model,
     description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
     instruction="""
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的 **「本我」(The Self)**。
