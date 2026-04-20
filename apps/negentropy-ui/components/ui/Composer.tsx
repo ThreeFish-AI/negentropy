@@ -1,3 +1,7 @@
+import type { ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
+
+import { LlmModelSelect } from "./LlmModelSelect";
+
 type ComposerProps = {
   value: string;
   onChange: (value: string) => void;
@@ -5,6 +9,9 @@ type ComposerProps = {
   disabled: boolean;
   isGenerating?: boolean;
   isBlocked?: boolean;
+  models?: ModelConfigItem[];
+  selectedLlmModel?: string | null;
+  onSelectedLlmModelChange?: (value: string | null) => void;
 };
 
 export function Composer({
@@ -14,7 +21,11 @@ export function Composer({
   disabled,
   isGenerating,
   isBlocked,
+  models,
+  selectedLlmModel,
+  onSelectedLlmModelChange,
 }: ComposerProps) {
+  const showModelSelect = Boolean(models && onSelectedLlmModelChange);
   return (
     <form
       className="mt-6 rounded-2xl border border-border bg-card p-4"
@@ -38,8 +49,20 @@ export function Composer({
           }
         }}
       />
-      <div className="mt-3 flex items-center justify-between">
-        <p className="text-xs text-muted">Shift+Enter 换行</p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          {showModelSelect && (
+            <LlmModelSelect
+              models={models ?? []}
+              value={selectedLlmModel ?? ""}
+              onChange={(v) => onSelectedLlmModelChange?.(v === "" ? null : v)}
+              placeholder="Default"
+              allowClear
+              ariaLabel="选择主 Agent 使用的 LLM"
+            />
+          )}
+          <p className="text-xs text-muted truncate">Shift+Enter 换行</p>
+        </div>
         <button
           type="button"
           className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background disabled:opacity-40 transition-all flex items-center gap-2"
