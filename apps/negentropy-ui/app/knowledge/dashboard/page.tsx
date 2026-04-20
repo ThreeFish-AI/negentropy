@@ -120,7 +120,6 @@ export default function KnowledgeDashboardPage() {
   useEffect(() => {
     if (!hasInitialLoad) return;
     if (page !== 1) return;
-    if (hasRunningRuns(pipelinesPayload?.runs)) return;
 
     let active = true;
     let tick = 0;
