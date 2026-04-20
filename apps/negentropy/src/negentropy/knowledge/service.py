@@ -694,6 +694,141 @@ class KnowledgeService:
             # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
             return []
 
+    async def execute_ingest_url_document_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        url: str,
+        chunking_config: ChunkingConfig | None = None,
+        user_id: str | None = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 ingest_url (as_document=True) Pipeline（后台任务）
+
+        将 URL 提取、文档存储、分块和向量化全部在后台完成。
+        Pipeline 记录在 API 层已提前创建，此处 resume 后继续执行。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="ingest_url",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="ingest_url",
+            url=url,
+            as_document=True,
+        )
+
+        try:
+            # Stage 1: 提取 URL 内容
+            try:
+                text, extraction_result = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=url,
+                    tracker=tracker,
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+                from .extraction import ExtractorExecutionError
+
+                url_details: dict[str, Any] = {}
+                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
+                    url_details["failure_category"] = "no_extractor_configured"
+                    url_details["diagnostic_summary"] = (
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED",
+                    message=f"Failed to fetch content from URL: {exc}",
+                    details=url_details or None,
+                ) from exc
+
+            if not text:
+                raise ValueError("No content extracted from URL")
+
+            # Stage 2: 文档存储
+            await tracker.start_stage("document_store")
+            from negentropy.storage.service import DocumentStorageService
+
+            from .extraction import build_url_document_filename, persist_extracted_assets
+
+            storage_service = DocumentStorageService()
+            raw_name = build_url_document_filename(url)
+            markdown_bytes = extraction_result.markdown_content.encode("utf-8")
+            doc_record, is_new_doc = await storage_service.upload_and_store(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                content=markdown_bytes,
+                filename=raw_name,
+                content_type="text/markdown",
+                metadata={"source_type": "url", "origin_url": url},
+                created_by=user_id,
+            )
+            await storage_service.save_markdown_content(
+                document_id=doc_record.id,
+                markdown_content=extraction_result.markdown_content,
+                markdown_gcs_uri=doc_record.gcs_uri,
+            )
+            stored_assets = await persist_extracted_assets(
+                document_id=doc_record.id,
+                assets=extraction_result.assets,
+                tracker=tracker,
+            )
+            await tracker.complete_stage(
+                "document_store",
+                {
+                    "document_id": str(doc_record.id),
+                    "duplicate_document": not is_new_doc,
+                    "stored_assets": len(stored_assets) if stored_assets else 0,
+                },
+            )
+
+            # Stage 3: 分块 + 向量化
+            meta = normalize_source_metadata(source_uri=url, metadata=None)
+            meta["source_type"] = "url"
+            meta["origin_url"] = url
+            meta["document_id"] = str(doc_record.id)
+            meta["extractor_trace"] = extraction_result.trace
+            if stored_assets:
+                meta["extracted_assets"] = stored_assets
+
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=url,
+                metadata=meta,
+                chunking_config=chunking_config or self._chunking_config,
+                tracker=tracker,
+            )
+            await tracker.complete({"chunk_count": len(records), "document_id": str(doc_record.id)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+                document_id=str(doc_record.id),
+                operation="ingest_url",
+                as_document=True,
+            )
+            return records
+
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
+            return []
+
     async def execute_ingest_file_pipeline(
         self,
         *,
@@ -995,6 +1130,129 @@ class KnowledgeService:
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             raise
+
+    async def execute_sync_document_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        document_id: UUID,
+        source_uri: str,
+        chunking_config: ChunkingConfig | None = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 sync_document Pipeline（后台任务）
+
+        在后台完成 URL 重新提取、Markdown 存储和索引替换。
+        Pipeline 记录在 API 层已提前创建，此处 resume 后继续执行。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="replace_source",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="sync_document",
+            source_uri=source_uri,
+            document_id=str(document_id),
+        )
+
+        try:
+            # Stage 1: 从 URL 重新提取内容
+            try:
+                text, extraction_result = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=source_uri,
+                    tracker=tracker,
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+                from .extraction import ExtractorExecutionError
+
+                url_details: dict[str, Any] = {}
+                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
+                    url_details["failure_category"] = "no_extractor_configured"
+                    url_details["diagnostic_summary"] = (
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED",
+                    message=f"Failed to fetch content from URL: {exc}",
+                    details=url_details or None,
+                ) from exc
+
+            if not text:
+                raise ValueError("No content extracted from URL during sync")
+
+            # Stage 2: 保存 Markdown 和资产
+            await tracker.start_stage("markdown_store")
+            from .extraction import store_extracted_document_artifacts
+
+            _, stored_assets = await store_extracted_document_artifacts(
+                document_id=document_id,
+                extracted=extraction_result,
+                tracker=tracker,
+            )
+            await tracker.complete_stage(
+                "markdown_store",
+                {
+                    "document_id": str(document_id),
+                    "markdown_length": len(extraction_result.markdown_content),
+                    "stored_assets": len(stored_assets) if stored_assets else 0,
+                },
+            )
+
+            # Stage 3: 删除旧知识记录
+            await tracker.start_stage("delete")
+            deleted_count = await self._repository.delete_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+            )
+            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
+
+            # Stage 4+: 分块 + 向量化
+            meta = normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"source_type": "url", "origin_url": source_uri, "document_id": str(document_id)},
+            )
+            meta["extractor_trace"] = extraction_result.trace
+            if stored_assets:
+                meta["extracted_assets"] = stored_assets
+
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=meta,
+                chunking_config=chunking_config or self._chunking_config,
+                tracker=tracker,
+            )
+            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+                operation="sync_document",
+            )
+            return records
+
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
+            return []
 
     async def execute_rebuild_source_pipeline(
         self,

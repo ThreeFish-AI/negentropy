@@ -39,12 +39,9 @@ from .exceptions import (
     VersionConflict,
 )
 from .extraction import (
-    ROUTE_URL,
-    build_url_document_filename,
     extract_source,
     get_chunking_config_only,
     merge_corpus_config,
-    persist_extracted_assets,
     resolve_source_kind,
     store_extracted_document_artifacts,
 )
@@ -1005,55 +1002,8 @@ async def ingest_url(
             corpus_config=corpus_config,
         )
 
-        # URL 文档模式: 先落库为 Document，再异步入索引
+        # URL 文档模式: 先创建 Pipeline 记录，提取和存储全部在后台完成
         if payload.as_document:
-            from negentropy.storage.service import DocumentStorageService
-
-            extraction_result = await extract_source(
-                app_name=resolved_app,
-                corpus_id=corpus_id,
-                corpus_config=corpus_config,
-                source_kind=ROUTE_URL,
-                url=payload.url,
-            )
-            markdown_text = extraction_result.markdown_content
-            if not markdown_text:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={"code": "EMPTY_CONTENT", "message": "No content extracted from URL"},
-                )
-
-            raw_name = build_url_document_filename(payload.url)
-            markdown_bytes = markdown_text.encode("utf-8")
-
-            storage_service = DocumentStorageService()
-            doc_record, is_new_doc = await storage_service.upload_and_store(
-                corpus_id=corpus_id,
-                app_name=resolved_app,
-                content=markdown_bytes,
-                filename=raw_name,
-                content_type="text/markdown",
-                metadata={"source_type": "url", "origin_url": payload.url},
-                created_by=user.user_id if user else None,
-            )
-            await storage_service.save_markdown_content(
-                document_id=doc_record.id,
-                markdown_content=markdown_text,
-                markdown_gcs_uri=doc_record.gcs_uri,
-            )
-            stored_assets = await persist_extracted_assets(
-                document_id=doc_record.id,
-                assets=extraction_result.assets,
-            )
-
-            meta = normalize_source_metadata(source_uri=payload.url, metadata=payload.metadata)
-            meta["source_type"] = "url"
-            meta["origin_url"] = payload.url
-            meta["document_id"] = str(doc_record.id)
-            meta["extractor_trace"] = extraction_result.trace
-            if stored_assets:
-                meta["extracted_assets"] = stored_assets
-
             run_id = await service.create_pipeline(
                 app_name=resolved_app,
                 operation="ingest_url",
@@ -1061,35 +1011,30 @@ async def ingest_url(
                     "corpus_id": str(corpus_id),
                     "url": payload.url,
                     "as_document": True,
-                    "document_id": str(doc_record.id),
-                    "duplicate_document": not is_new_doc,
                     "chunking_config": chunking_config_summary(chunking_config),
                 },
             )
 
             background_tasks.add_task(
-                service.execute_ingest_text_pipeline,
+                service.execute_ingest_url_document_pipeline,
                 run_id=run_id,
                 corpus_id=corpus_id,
                 app_name=resolved_app,
-                text=extraction_result.plain_text,
-                source_uri=payload.url,
-                metadata=meta,
+                url=payload.url,
                 chunking_config=chunking_config,
+                user_id=user.user_id if user else None,
             )
 
             logger.info(
                 "api_ingest_url_document_queued",
                 corpus_id=str(corpus_id),
                 run_id=run_id,
-                document_id=str(doc_record.id),
-                duplicate_document=not is_new_doc,
             )
 
             return AsyncPipelineResponse(
                 run_id=run_id,
                 status="running",
-                message=f"URL ingest task started (document_id={doc_record.id}). Check Pipeline page for progress.",
+                message="URL ingest task started. Check Pipeline page for progress.",
             )
 
         # 默认 URL 摄取模式: 与旧逻辑一致
@@ -2221,35 +2166,10 @@ async def sync_document(
 
     service = _get_service()
     corpus = await service.get_corpus_by_id(corpus_id)
-    extraction_result = await extract_source(
-        app_name=resolved_app,
-        corpus_id=corpus_id,
-        corpus_config=corpus.config if corpus else {},
-        source_kind=ROUTE_URL,
-        url=source_uri,
-    )
-    markdown_text = extraction_result.markdown_content
-    if not markdown_text:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "EMPTY_CONTENT", "message": "No content extracted from URL"},
-        )
-
-    _, stored_assets = await store_extracted_document_artifacts(
-        document_id=document_id,
-        extracted=extraction_result,
-    )
     chunking_config = _resolve_chunking_config_from_doc_request(
         payload=payload,
         corpus_config=corpus.config if corpus else {},
     )
-    metadata = normalize_source_metadata(
-        source_uri=source_uri,
-        metadata={"source_type": "url", "origin_url": source_uri, "document_id": str(document_id)},
-    )
-    metadata["extractor_trace"] = extraction_result.trace
-    if stored_assets:
-        metadata["extracted_assets"] = stored_assets
     run_id = await service.create_pipeline(
         app_name=resolved_app,
         operation="replace_source",
@@ -2262,13 +2182,12 @@ async def sync_document(
         },
     )
     background_tasks.add_task(
-        service.execute_replace_source_pipeline,
+        service.execute_sync_document_pipeline,
         run_id=run_id,
         corpus_id=corpus_id,
         app_name=resolved_app,
-        text=extraction_result.plain_text,
+        document_id=document_id,
         source_uri=source_uri,
-        metadata=metadata,
         chunking_config=chunking_config,
     )
     return AsyncPipelineResponse(
