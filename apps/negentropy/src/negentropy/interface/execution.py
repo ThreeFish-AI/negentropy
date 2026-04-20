@@ -19,7 +19,7 @@ from negentropy.storage.gcs_client import GCSStorageClient
 
 from .mcp_client import McpClientService, McpToolCallResult
 
-logger = get_logger("negentropy.plugins.execution")
+logger = get_logger("negentropy.interface.execution")
 
 RUN_ORIGIN_TRIAL_UI = "trial_ui"
 RUN_ORIGIN_KNOWLEDGE_EXTRACTION = "knowledge_extraction"

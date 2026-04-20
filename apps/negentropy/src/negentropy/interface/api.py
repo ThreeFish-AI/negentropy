@@ -1,5 +1,5 @@
 """
-Plugins API 模块。
+Interface API 模块。
 
 提供 MCP Server、Skill、SubAgent 的 CRUD 端点。
 """
@@ -20,6 +20,7 @@ from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.model_config import ModelConfig
 from negentropy.models.plugin import (
     McpServer,
     McpTool,
@@ -32,12 +33,13 @@ from negentropy.models.plugin import (
     Skill,
     SubAgent,
 )
+from negentropy.models.vendor_config import VendorConfig
 
 from .execution import McpToolExecutionService
 from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
 
-logger = get_logger("negentropy.plugins.api")
-router = APIRouter(prefix="/plugins", tags=["plugins"])
+logger = get_logger("negentropy.interface.api")
+router = APIRouter(prefix="/interface", tags=["interface"])
 
 
 def _resolve_app_name(app_name: str | None) -> str:
@@ -55,6 +57,7 @@ class StatsResponse(BaseModel):
     mcp_servers: dict[str, int]
     skills: dict[str, int]
     subagents: dict[str, int]
+    models: dict[str, int]
 
 
 class PermissionGrantRequest(BaseModel):
@@ -399,10 +402,24 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
         )
         subagent_enabled = subagent_enabled_result or 0
 
+        # Models (Vendor configs + Model configs)
+        # 仅 admin 可读，非 admin 以全 0 占位以便前端按角色决定是否展示
+        if "admin" in user.roles:
+            vendor_total = await db.scalar(select(func.count()).select_from(VendorConfig)) or 0
+            model_total = await db.scalar(select(func.count()).select_from(ModelConfig)) or 0
+            model_enabled = (
+                await db.scalar(select(func.count()).select_from(ModelConfig).where(ModelConfig.enabled.is_(True))) or 0
+            )
+        else:
+            vendor_total = 0
+            model_total = 0
+            model_enabled = 0
+
     return StatsResponse(
         mcp_servers={"total": mcp_total, "enabled": mcp_enabled},
         skills={"total": skill_total, "enabled": skill_enabled},
         subagents={"total": subagent_total, "enabled": subagent_enabled},
+        models={"total": model_total, "enabled": model_enabled, "vendors": vendor_total},
     )
 
 

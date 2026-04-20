@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from negentropy.auth.api import _ping_llm
+from negentropy.interface.models_api import _ping_llm
 
 
 def _mock_response(content: str = "pong") -> MagicMock:

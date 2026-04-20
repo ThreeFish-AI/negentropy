@@ -26,7 +26,7 @@ from mcp.client.streamable_http import streamablehttp_client
 from negentropy.logging import get_logger
 from negentropy.logging.io import ExternalProcessLogStream, derive_external_process_source
 
-logger = get_logger("negentropy.plugins.mcp_client")
+logger = get_logger("negentropy.interface.mcp_client")
 stderr_logger = get_logger("stderr")
 
 # 连接/发现阶段超时（秒）

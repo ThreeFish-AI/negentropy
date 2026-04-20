@@ -7,11 +7,11 @@ from negentropy.agents.faculties import (
     internalization_agent,
     perception_agent,
 )
-from negentropy.model_names import canonicalize_model_name
-from negentropy.plugins.subagent_presets import (
+from negentropy.interface.subagent_presets import (
     NEGENTROPY_SUBAGENT_NAMES,
     build_negentropy_subagent_payloads,
 )
+from negentropy.model_names import canonicalize_model_name
 
 
 def _tool_names(agent) -> list[str]:

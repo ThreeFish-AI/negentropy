@@ -1,4 +1,4 @@
-"""单元测试：/admin/model-configs CRUD 端点。
+"""单元测试：/interface/models/configs CRUD 端点。
 
 覆盖权限校验、唯一约束冲突、is_default 互斥、有引用时 DELETE 冲突。
 使用 unittest.mock 绕过 DB 层，验证路由层逻辑正确性。
@@ -46,7 +46,7 @@ def _non_admin_user():
 @pytest.mark.asyncio
 async def test_list_model_configs_requires_admin(_non_admin_user):
     """非 admin 用户应被 403 拒绝。"""
-    from negentropy.auth.api import list_model_configs
+    from negentropy.interface.models_api import list_model_configs
 
     with pytest.raises(Exception) as exc_info:
         await list_model_configs(current_user=_non_admin_user)
@@ -55,7 +55,7 @@ async def test_list_model_configs_requires_admin(_non_admin_user):
 
 @pytest.mark.asyncio
 async def test_create_model_configs_requires_admin(_non_admin_user):
-    from negentropy.auth.api import ModelConfigCreateRequest, create_model_config
+    from negentropy.interface.models_api import ModelConfigCreateRequest, create_model_config
 
     payload = ModelConfigCreateRequest(
         model_type="llm",
@@ -70,7 +70,7 @@ async def test_create_model_configs_requires_admin(_non_admin_user):
 
 @pytest.mark.asyncio
 async def test_validate_model_type_rejects_invalid():
-    from negentropy.auth.api import _validate_model_type
+    from negentropy.interface.models_api import _validate_model_type
 
     with pytest.raises(Exception) as exc_info:
         _validate_model_type("invalid_type")
@@ -79,7 +79,7 @@ async def test_validate_model_type_rejects_invalid():
 
 @pytest.mark.asyncio
 async def test_validate_model_type_accepts_valid():
-    from negentropy.auth.api import _validate_model_type
+    from negentropy.interface.models_api import _validate_model_type
     from negentropy.models.model_config import ModelType
 
     assert _validate_model_type("llm") == ModelType.LLM
@@ -90,7 +90,7 @@ async def test_validate_model_type_accepts_valid():
 def test_model_config_to_dict():
     from datetime import datetime
 
-    from negentropy.auth.api import _model_config_to_dict
+    from negentropy.interface.models_api import _model_config_to_dict
     from negentropy.models.model_config import ModelType
 
     mc = MagicMock()

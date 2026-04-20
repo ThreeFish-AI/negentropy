@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 import anyio
 import pytest
 
+from negentropy.interface.mcp_client import McpClientService, logged_stdio_client
 from negentropy.logging.io import ExternalProcessLogStream
-from negentropy.plugins.mcp_client import McpClientService, logged_stdio_client
 
 
 @pytest.mark.asyncio
@@ -68,8 +68,8 @@ async def test_discover_stdio_uses_logged_stdio_client(monkeypatch: pytest.Monke
         async def list_tools(self):
             return _ToolsResult()
 
-    monkeypatch.setattr("negentropy.plugins.mcp_client.logged_stdio_client", fake_logged_stdio_client)
-    monkeypatch.setattr("negentropy.plugins.mcp_client.ClientSession", lambda read, write: _Session())
+    monkeypatch.setattr("negentropy.interface.mcp_client.logged_stdio_client", fake_logged_stdio_client)
+    monkeypatch.setattr("negentropy.interface.mcp_client.ClientSession", lambda read, write: _Session())
 
     service = McpClientService(timeout_seconds=5)
     result = await service.discover_tools(
@@ -122,8 +122,8 @@ async def test_call_tool_stdio_passes_structured_errlog(monkeypatch: pytest.Monk
             captured["read_timeout_seconds"] = read_timeout_seconds
             return _Result()
 
-    monkeypatch.setattr("negentropy.plugins.mcp_client.logged_stdio_client", fake_logged_stdio_client)
-    monkeypatch.setattr("negentropy.plugins.mcp_client.ClientSession", lambda read, write: _Session())
+    monkeypatch.setattr("negentropy.interface.mcp_client.logged_stdio_client", fake_logged_stdio_client)
+    monkeypatch.setattr("negentropy.interface.mcp_client.ClientSession", lambda read, write: _Session())
 
     service = McpClientService(timeout_seconds=5)
     result = await service.call_tool(
@@ -168,8 +168,8 @@ async def test_call_tool_stdio_preserves_non_dict_structured_content(monkeypatch
             _ = (tool_name, arguments, read_timeout_seconds)
             return _Result()
 
-    monkeypatch.setattr("negentropy.plugins.mcp_client.logged_stdio_client", fake_logged_stdio_client)
-    monkeypatch.setattr("negentropy.plugins.mcp_client.ClientSession", lambda read, write: _Session())
+    monkeypatch.setattr("negentropy.interface.mcp_client.logged_stdio_client", fake_logged_stdio_client)
+    monkeypatch.setattr("negentropy.interface.mcp_client.ClientSession", lambda read, write: _Session())
 
     service = McpClientService(timeout_seconds=5)
     result = await service.call_tool(
@@ -218,8 +218,8 @@ async def test_call_tool_stdio_emits_whitebox_events_and_stderr(monkeypatch: pyt
             _ = (tool_name, arguments, read_timeout_seconds)
             return _Result()
 
-    monkeypatch.setattr("negentropy.plugins.mcp_client.logged_stdio_client", fake_logged_stdio_client)
-    monkeypatch.setattr("negentropy.plugins.mcp_client.ClientSession", lambda read, write: _Session())
+    monkeypatch.setattr("negentropy.interface.mcp_client.logged_stdio_client", fake_logged_stdio_client)
+    monkeypatch.setattr("negentropy.interface.mcp_client.ClientSession", lambda read, write: _Session())
 
     service = McpClientService(timeout_seconds=5)
     result = await service.call_tool(
@@ -299,10 +299,10 @@ async def test_logged_stdio_client_pipes_stderr_and_forwards_logs(monkeypatch: p
                 raise StopAsyncIteration from None
             return chunk.decode(self.encoding, errors=self.errors)
 
-    monkeypatch.setattr("negentropy.plugins.mcp_client.anyio.open_process", fake_open_process)
-    monkeypatch.setattr("negentropy.plugins.mcp_client.mcp_stdio._get_executable_command", lambda command: command)
-    monkeypatch.setattr("negentropy.plugins.mcp_client.mcp_stdio.get_default_environment", lambda: {"PATH": "x"})
-    monkeypatch.setattr("negentropy.plugins.mcp_client.mcp_stdio.TextReceiveStream", _TextReceiveStream)
+    monkeypatch.setattr("negentropy.interface.mcp_client.anyio.open_process", fake_open_process)
+    monkeypatch.setattr("negentropy.interface.mcp_client.mcp_stdio._get_executable_command", lambda command: command)
+    monkeypatch.setattr("negentropy.interface.mcp_client.mcp_stdio.get_default_environment", lambda: {"PATH": "x"})
+    monkeypatch.setattr("negentropy.interface.mcp_client.mcp_stdio.TextReceiveStream", _TextReceiveStream)
 
     server_params = type(
         "_Params",
