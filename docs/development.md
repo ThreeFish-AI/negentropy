@@ -103,7 +103,7 @@ negentropy/
 │   │   │   ├── models/                # 数据模型（ORM）
 │   │   │   ├── knowledge/             # 知识管理
 │   │   │   ├── auth/                  # 认证与授权
-│   │   │   ├── plugins/               # 插件系统
+│   │   │   ├── interface/             # Interface 模块（Models / SubAgents / MCP / Skills）
 │   │   │   ├── storage/               # 存储抽象层
 │   │   │   └── db/migrations/         # 数据库迁移
 │   │   ├── tests/                     # 测试目录

@@ -23,7 +23,7 @@ export const mainNavConfig: MainNavItem[] = [
   },
   {
     title: "Interface",
-    href: "/plugins",
+    href: "/interface",
   },
   {
     title: "Admin",

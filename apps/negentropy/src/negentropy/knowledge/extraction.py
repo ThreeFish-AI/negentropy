@@ -15,9 +15,9 @@ import litellm
 from sqlalchemy import select, update
 
 from negentropy.db.session import AsyncSessionLocal
+from negentropy.interface.execution import RUN_ORIGIN_KNOWLEDGE_EXTRACTION, McpToolExecutionService
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool
-from negentropy.plugins.execution import RUN_ORIGIN_KNOWLEDGE_EXTRACTION, McpToolExecutionService
 from negentropy.serialization import to_json_compatible, to_json_compatible_strict
 from negentropy.storage.service import DocumentStorageService
 
@@ -1716,7 +1716,7 @@ def _tool_has_usable_schema(tool: McpTool | None) -> bool:
 
 class DataExtractorProvider:
     def __init__(self) -> None:
-        from negentropy.plugins.mcp_client import McpClientService
+        from negentropy.interface.mcp_client import McpClientService
 
         self._client = McpClientService()
 

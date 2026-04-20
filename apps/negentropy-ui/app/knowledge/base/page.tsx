@@ -1654,7 +1654,7 @@ function CorpusSettingsPanel({
     let active = true;
 
     const loadServers = async () => {
-      const response = await fetch("/api/plugins/mcp/servers");
+      const response = await fetch("/api/interface/mcp/servers");
       if (!response.ok) {
         throw new Error("Failed to load MCP servers");
       }
@@ -1670,7 +1670,7 @@ function CorpusSettingsPanel({
 
       const toolEntries = await Promise.all(
         enabledServers.map(async (server) => {
-          const toolsResponse = await fetch(`/api/plugins/mcp/servers/${server.id}/tools`);
+          const toolsResponse = await fetch(`/api/interface/mcp/servers/${server.id}/tools`);
           if (!toolsResponse.ok) {
             return [server.id, []] as const;
           }

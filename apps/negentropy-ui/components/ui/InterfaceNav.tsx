@@ -1,0 +1,64 @@
+"use client";
+
+import { useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { MCP_HUB_LABEL } from "@/app/interface/copy";
+import { useNavigation } from "@/components/providers/NavigationProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
+
+type NavItem = { href: string; label: string; adminOnly?: boolean };
+
+const NAV_ITEMS: NavItem[] = [
+  { href: "/interface", label: "Dashboard" },
+  { href: "/interface/models", label: "Models", adminOnly: true },
+  { href: "/interface/subagents", label: "SubAgents" },
+  { href: "/interface/mcp", label: MCP_HUB_LABEL },
+  { href: "/interface/skills", label: "Skills" },
+];
+
+export function InterfaceNav({
+  title,
+}: {
+  title: string;
+  description?: string;
+}) {
+  const pathname = usePathname();
+  const { setNavigationInfo } = useNavigation();
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes("admin") ?? false;
+
+  useEffect(() => {
+    setNavigationInfo({ moduleLabel: "Interface", pageTitle: title });
+    return () => {
+      setNavigationInfo(null);
+    };
+  }, [title, setNavigationInfo]);
+
+  const isActive = (href: string) =>
+    href === "/interface" ? pathname === "/interface" : pathname.startsWith(href);
+
+  const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+
+  return (
+    <div className="border-b border-border bg-card px-6 py-1">
+      <div className="flex flex-wrap items-center justify-end gap-4">
+        <nav className="flex flex-wrap items-center gap-1 bg-muted/50 p-1 rounded-full">
+          {visibleItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`px-4 py-1 rounded-full text-xs font-semibold transition-colors ${
+                isActive(item.href)
+                  ? "bg-foreground text-background shadow-sm ring-1 ring-border"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+}
