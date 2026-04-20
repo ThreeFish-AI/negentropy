@@ -366,7 +366,7 @@ export function primeKnowledgeBasePageLocalMocks(
 
   mocks.fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url === "/api/plugins/mcp/servers") {
+    if (url === "/api/interface/mcp/servers") {
       return {
         ok: true,
         json: async () =>
@@ -374,7 +374,7 @@ export function primeKnowledgeBasePageLocalMocks(
       } as Response;
     }
 
-    if (url === `/api/plugins/mcp/servers/${knowledgeBasePageMcpOptionFixtures.defaultServer.id}/tools`) {
+    if (url === `/api/interface/mcp/servers/${knowledgeBasePageMcpOptionFixtures.defaultServer.id}/tools`) {
       return {
         ok: true,
         json: async () =>

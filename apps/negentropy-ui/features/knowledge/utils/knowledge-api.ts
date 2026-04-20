@@ -986,7 +986,7 @@ export async function fetchModelConfigs(params?: {
   if (params?.modelType) qs.set("model_type", params.modelType);
   if (params?.enabled !== undefined) qs.set("enabled", String(params.enabled));
   const query = qs.toString();
-  const res = await fetch(`/api/auth/admin/model-configs${query ? `?${query}` : ""}`, {
+  const res = await fetch(`/api/interface/models/configs${query ? `?${query}` : ""}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch model configs: ${res.statusText}`);
