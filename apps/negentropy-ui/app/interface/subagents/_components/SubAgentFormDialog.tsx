@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { LlmModelSelect } from "@/components/ui/LlmModelSelect";
+import { fetchModelConfigs, type ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
 
 interface SubAgent {
   id: string;
@@ -63,6 +65,7 @@ export function SubAgentFormDialog({
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<NegentropyTemplate[]>([]);
   const [selectedTemplateName, setSelectedTemplateName] = useState("");
+  const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
 
   const applyTemplate = (template: NegentropyTemplate) => {
     setFormData({
@@ -117,6 +120,24 @@ export function SubAgentFormDialog({
     }
     setError(null);
   }, [agent, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await fetchModelConfigs({ modelType: "llm", enabled: true });
+        if (mounted) {
+          setLlmModels(list);
+        }
+      } catch {
+        // keep silent; select will fall back to Default-only option
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open || agent) return;
@@ -351,12 +372,14 @@ export function SubAgentFormDialog({
                     <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                       Model
                     </label>
-                    <input
-                      type="text"
+                    <LlmModelSelect
+                      models={llmModels}
                       value={formData.model}
-                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                      onChange={(v) => setFormData({ ...formData, model: v })}
+                      allowClear
+                      placeholder="Default"
+                      ariaLabel="SubAgent 使用的 LLM"
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      placeholder="claude-sonnet-4"
                     />
                   </div>
                   <div>
