@@ -247,6 +247,7 @@ apps/negentropy-ui/.yarn/*
 
 # Temp files
 .temp/
+.playwright-mcp/
 
 # Custom
 .claude/
