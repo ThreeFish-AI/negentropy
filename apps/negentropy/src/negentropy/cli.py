@@ -62,7 +62,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         "--host",
         host,
         "--reload_agents",
-        "src/negentropy",
+        "src",
     ]
 
     return subprocess.call(cmd, env=env)
