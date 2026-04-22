@@ -15,7 +15,10 @@ export default async function WikiHomePage() {
     const result = await wikiApi.listPublications();
     publications = result.items;
   } catch (err) {
-    console.error("[Wiki] Failed to fetch publications:", err);
+    console.warn(
+      "[Wiki] Failed to fetch publications（后端不可达时回落为空列表，由 ISR 在首次请求时自愈）:",
+      err,
+    );
   }
 
   return (
