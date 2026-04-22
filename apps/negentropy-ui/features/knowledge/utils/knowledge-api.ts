@@ -2239,12 +2239,21 @@ export async function fetchCatalogNodes(params: {
   return res.json();
 }
 
-/** 创建目录节点 */
+/** 创建目录节点
+ *
+ * 后端契约（knowledge/api.py:3731-3735）：
+ *   POST /knowledge/catalog/nodes?corpus_id=<uuid>
+ *   body: CatalogNodeCreateRequest { name, slug?, parent_id?, node_type?, description?, sort_order?, config? }
+ * 即 `corpus_id` 是 Query 参数而非 body 字段；body schema 不包含 corpus_id。
+ * 此处显式将 corpus_id 从入参中剥离到 query string 以对齐契约；其他字段保留在 body 中。
+ */
 export async function createCatalogNode(params: CreateCatalogNodeParams): Promise<CatalogNode> {
-  const res = await fetch("/api/knowledge/catalog", {
+  const { corpus_id, ...body } = params;
+  const qs = new URLSearchParams({ corpus_id }).toString();
+  const res = await fetch(`/api/knowledge/catalog?${qs}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Failed to create catalog node: ${res.statusText}`);
   return res.json();

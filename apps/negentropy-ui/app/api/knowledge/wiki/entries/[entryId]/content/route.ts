@@ -5,5 +5,5 @@ export async function GET(
   { params }: { params: Promise<{ entryId: string }> },
 ) {
   const { entryId } = await params;
-  return proxyGet(request, `/wiki/entries/${entryId}/content`);
+  return proxyGet(request, `/knowledge/wiki/entries/${entryId}/content`);
 }

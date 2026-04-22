@@ -121,6 +121,8 @@ export async function proxyPost(request: Request, path: string) {
   }
 
   const upstreamUrl = new URL(path, baseUrl);
+  const incomingUrl = new URL(request.url);
+  upstreamUrl.search = incomingUrl.search;
   const headers = extractForwardHeaders(request);
   headers.set("content-type", "application/json");
 
@@ -160,6 +162,8 @@ export async function proxyPostFormData(request: Request, path: string) {
 
   const formData = await request.formData();
   const upstreamUrl = new URL(path, baseUrl);
+  const incomingUrl = new URL(request.url);
+  upstreamUrl.search = incomingUrl.search;
   const headers = extractForwardHeaders(request);
 
   let upstreamResponse: Response;
@@ -208,6 +212,8 @@ export async function proxyPatch(request: Request, path: string) {
   }
 
   const upstreamUrl = new URL(path, baseUrl);
+  const incomingUrl = new URL(request.url);
+  upstreamUrl.search = incomingUrl.search;
   const headers = extractForwardHeaders(request);
   headers.set("content-type", "application/json");
 

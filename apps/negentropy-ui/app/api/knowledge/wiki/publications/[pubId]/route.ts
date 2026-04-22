@@ -5,7 +5,7 @@ export async function GET(
   { params }: { params: Promise<{ pubId: string }> },
 ) {
   const { pubId } = await params;
-  return proxyGet(request, `/wiki/publications/${pubId}`);
+  return proxyGet(request, `/knowledge/wiki/publications/${pubId}`);
 }
 
 export async function PATCH(
@@ -13,7 +13,7 @@ export async function PATCH(
   { params }: { params: Promise<{ pubId: string }> },
 ) {
   const { pubId } = await params;
-  return proxyPatch(request, `/wiki/publications/${pubId}`);
+  return proxyPatch(request, `/knowledge/wiki/publications/${pubId}`);
 }
 
 export async function DELETE(
@@ -21,5 +21,5 @@ export async function DELETE(
   { params }: { params: Promise<{ pubId: string }> },
 ) {
   const { pubId } = await params;
-  return proxyDelete(request, `/wiki/publications/${pubId}`);
+  return proxyDelete(request, `/knowledge/wiki/publications/${pubId}`);
 }

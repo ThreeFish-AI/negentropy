@@ -5,5 +5,5 @@ export async function DELETE(
   { params }: { params: Promise<{ nodeId: string; docId: string }> },
 ) {
   const { nodeId, docId } = await params;
-  return proxyDelete(request, `/catalog/nodes/${nodeId}/documents/${docId}`);
+  return proxyDelete(request, `/knowledge/catalog/nodes/${nodeId}/documents/${docId}`);
 }

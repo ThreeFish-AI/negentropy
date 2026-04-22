@@ -5,5 +5,5 @@ export async function GET(
   { params }: { params: Promise<{ pubId: string }> },
 ) {
   const { pubId } = await params;
-  return proxyGet(request, `/wiki/publications/${pubId}/nav-tree`);
+  return proxyGet(request, `/knowledge/wiki/publications/${pubId}/nav-tree`);
 }
