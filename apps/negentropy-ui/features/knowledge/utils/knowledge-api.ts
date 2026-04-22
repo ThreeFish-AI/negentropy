@@ -2293,13 +2293,15 @@ export async function fetchCatalogNodeDocuments(
   return res.json();
 }
 
-/** 将文档分配到目录节点 */
+/** 将文档分配到目录节点（通过批量端点） */
 export async function assignDocumentToNode(
   nodeId: string,
   docId: string,
 ): Promise<void> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_ids: [docId] }),
   });
   if (!res.ok) throw new Error(`Failed to assign document: ${res.statusText}`);
 }

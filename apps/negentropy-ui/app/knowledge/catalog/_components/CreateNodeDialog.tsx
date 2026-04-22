@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   CatalogNodeType,
   createCatalogNode,
   CatalogNode,
 } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
+
+function slugify(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-") || "untitled"
+  );
+}
 
 interface CreateNodeDialogProps {
   open: boolean;
@@ -25,8 +35,22 @@ export function CreateNodeDialog({
 }: CreateNodeDialogProps) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
   const [nodeType, setNodeType] = useState<CatalogNodeType>("category");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!slugEdited && name) {
+      setSlug(slugify(name));
+    }
+  }, [name, slugEdited]);
+
+  const handleReset = useCallback(() => {
+    setName("");
+    setSlug("");
+    setSlugEdited(false);
+    setNodeType("category");
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!name.trim() || !slug.trim()) return;
@@ -41,15 +65,14 @@ export function CreateNodeDialog({
       });
       toast.success(`节点「${name}」已创建`);
       onCreated(node);
-      setName("");
-      setSlug("");
+      handleReset();
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "创建失败");
     } finally {
       setSubmitting(false);
     }
-  }, [name, slug, nodeType, corpusId, parentId, onCreated, onClose]);
+  }, [name, slug, nodeType, corpusId, parentId, onCreated, onClose, handleReset]);
 
   if (!open) return null;
 
@@ -81,14 +104,18 @@ export function CreateNodeDialog({
             </label>
             <input
               value={slug}
-              onChange={(e) =>
+              onChange={(e) => {
+                setSlugEdited(true);
                 setSlug(
                   e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
-                )
-              }
+                );
+              }}
               placeholder="node-slug"
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
+            <p className="mt-1 text-[11px] text-muted">
+              仅支持小写字母、数字与短横线；将作为 URL 片段与 Wiki 层级标识。
+            </p>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted mb-1">

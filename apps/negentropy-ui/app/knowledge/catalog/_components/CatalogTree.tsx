@@ -41,19 +41,9 @@ export function CatalogTree({
     });
   }, [nodes, expandedIds]);
 
-  if (nodes.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <FolderOpen className="h-12 w-12 text-muted/30 mb-3" />
-        <p className="text-sm text-muted">暂无目录节点</p>
-        <p className="text-xs text-muted/60 mt-1">点击上方按钮创建根节点</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col">
-      {/* Root-level add button */}
+      {/* Root-level add button — always visible */}
       <button
         onClick={() => onAddChild("")}
         className="flex items-center gap-1.5 mb-2 px-2 py-1.5 text-xs text-muted hover:text-foreground transition-colors rounded-md hover:bg-muted/30"
@@ -62,21 +52,28 @@ export function CatalogTree({
         添加根节点
       </button>
 
-      {/* Tree rows */}
-      <div className="overflow-y-auto rounded-lg border border-border bg-card">
-        {visibleNodes.map((node) => (
-          <CatalogTreeNode
-            key={node.id}
-            node={node}
-            depth={node.depth ?? 0}
-            isExpanded={expandedIds.has(node.id)}
-            hasChildren={(childrenCountMap.get(node.id) ?? 0) > 0}
-            isSelected={selectedNodeId === node.id}
-            onToggle={onToggleExpand}
-            onSelect={(n) => onSelectNode(n)}
-          />
-        ))}
-      </div>
+      {nodes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <FolderOpen className="h-12 w-12 text-muted/30 mb-3" />
+          <p className="text-sm text-muted">暂无目录节点</p>
+          <p className="text-xs text-muted/60 mt-1">点击上方按钮创建根节点</p>
+        </div>
+      ) : (
+        <div className="overflow-y-auto rounded-lg border border-border bg-card">
+          {visibleNodes.map((node) => (
+            <CatalogTreeNode
+              key={node.id}
+              node={node}
+              depth={node.depth ?? 0}
+              isExpanded={expandedIds.has(node.id)}
+              hasChildren={(childrenCountMap.get(node.id) ?? 0) > 0}
+              isSelected={selectedNodeId === node.id}
+              onToggle={onToggleExpand}
+              onSelect={(n) => onSelectNode(n)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
