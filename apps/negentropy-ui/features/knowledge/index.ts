@@ -92,6 +92,18 @@ export {
   fetchCatalogNodeDocuments,
   assignDocumentToNode,
   unassignDocumentFromNode,
+  // Wiki Publishing
+  fetchWikiPublications,
+  fetchWikiPublication,
+  createWikiPublication,
+  updateWikiPublication,
+  deleteWikiPublication,
+  publishWiki,
+  unpublishWiki,
+  fetchWikiEntries,
+  fetchWikiNavTree,
+  fetchWikiEntryContent,
+  syncWikiEntriesFromCatalog,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -168,6 +180,20 @@ export type {
   CatalogTreeResponse,
   CatalogNodesResponse,
   CatalogNodeDocumentsResponse,
+  // Wiki Publishing
+  WikiPublicationStatus,
+  WikiTheme,
+  WikiPublication,
+  WikiPublicationListResponse,
+  CreateWikiPublicationParams,
+  UpdateWikiPublicationParams,
+  WikiEntry,
+  WikiEntryContent,
+  WikiNavTreeItem,
+  WikiNavTreeResponse,
+  WikiPublishActionResponse,
+  SyncFromCatalogParams,
+  SyncFromCatalogResponse,
 } from "./utils/knowledge-api";
 
 export {

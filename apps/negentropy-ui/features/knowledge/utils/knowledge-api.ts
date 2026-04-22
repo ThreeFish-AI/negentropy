@@ -2316,3 +2316,230 @@ export async function unassignDocumentFromNode(
   });
   if (!res.ok) throw new Error(`Failed to unassign document: ${res.statusText}`);
 }
+
+// ============================================================================
+// Wiki Publishing Types
+// ============================================================================
+
+export type WikiPublicationStatus = "draft" | "published" | "archived";
+export type WikiTheme = "default" | "book" | "docs";
+
+export interface WikiPublication {
+  id: string;
+  corpus_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: WikiPublicationStatus;
+  theme: WikiTheme;
+  navigation_config: Record<string, unknown>;
+  version: number;
+  published_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  entries_count: number;
+}
+
+export interface WikiPublicationListResponse {
+  items: WikiPublication[];
+  total: number;
+}
+
+export interface CreateWikiPublicationParams {
+  corpus_id: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  theme?: WikiTheme;
+}
+
+export interface UpdateWikiPublicationParams {
+  name?: string;
+  description?: string;
+  theme?: WikiTheme;
+  navigation_config?: Record<string, unknown>;
+  custom_css?: string;
+  custom_js?: string;
+}
+
+export interface WikiEntry {
+  id: string;
+  publication_id: string;
+  document_id: string;
+  entry_slug: string;
+  entry_title: string | null;
+  is_index_page: boolean;
+  entry_order: string | null;
+  created_at: string | null;
+}
+
+export interface WikiEntryContent {
+  entry_id: string;
+  document_id: string;
+  entry_slug: string;
+  entry_title: string | null;
+  markdown_content: string | null;
+  document_filename: string;
+}
+
+export interface WikiNavTreeItem {
+  entry_id: string | null;
+  document_id: string | null;
+  slug: string;
+  title: string;
+  children: WikiNavTreeItem[];
+}
+
+export interface WikiNavTreeResponse {
+  publication_id: string;
+  nav_tree: WikiNavTreeItem[];
+}
+
+export interface WikiPublishActionResponse {
+  publication_id: string;
+  status: WikiPublicationStatus;
+  version: number;
+  published_at: string | null;
+  entries_count: number;
+  message: string;
+}
+
+export interface SyncFromCatalogParams {
+  catalog_node_ids: string[];
+}
+
+export interface SyncFromCatalogResponse {
+  synced_count: number;
+  errors: string[];
+  removed_count: number;
+}
+
+// ============================================================================
+// Wiki Publishing API Functions
+// ============================================================================
+
+/** 列出 Wiki 发布记录 */
+export async function fetchWikiPublications(params?: {
+  corpusId?: string;
+  status?: WikiPublicationStatus;
+  offset?: number;
+  limit?: number;
+}): Promise<WikiPublicationListResponse> {
+  const query = new URLSearchParams();
+  if (params?.corpusId) query.set("corpus_id", params.corpusId);
+  if (params?.status) query.set("status", params.status);
+  if (params?.offset != null) query.set("offset", String(params.offset));
+  if (params?.limit != null) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/wiki/publications${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki publications: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取单个 Wiki 发布 */
+export async function fetchWikiPublication(pubId: string): Promise<WikiPublication> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki publication: ${res.statusText}`);
+  return res.json();
+}
+
+/** 创建 Wiki 发布 */
+export async function createWikiPublication(
+  params: CreateWikiPublicationParams,
+): Promise<WikiPublication> {
+  const res = await fetch(`/api/knowledge/wiki/publications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to create wiki publication: ${res.statusText}`);
+  return res.json();
+}
+
+/** 更新 Wiki 发布 */
+export async function updateWikiPublication(
+  pubId: string,
+  params: UpdateWikiPublicationParams,
+): Promise<WikiPublication> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to update wiki publication: ${res.statusText}`);
+  return res.json();
+}
+
+/** 删除 Wiki 发布 */
+export async function deleteWikiPublication(pubId: string): Promise<void> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to delete wiki publication: ${res.statusText}`);
+}
+
+/** 发布 Wiki（draft/published → published，递增版本号） */
+export async function publishWiki(pubId: string): Promise<WikiPublishActionResponse> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/publish`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to publish wiki: ${res.statusText}`);
+  return res.json();
+}
+
+/** 取消发布（published → draft） */
+export async function unpublishWiki(pubId: string): Promise<WikiPublishActionResponse> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/unpublish`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to unpublish wiki: ${res.statusText}`);
+  return res.json();
+}
+
+/** 列出 Wiki 发布的条目 */
+export async function fetchWikiEntries(pubId: string): Promise<WikiEntry[]> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/entries`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki entries: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取 Wiki 导航树 */
+export async function fetchWikiNavTree(pubId: string): Promise<WikiNavTreeResponse> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/nav-tree`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki nav tree: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取 Wiki 条目内容（含 Markdown） */
+export async function fetchWikiEntryContent(entryId: string): Promise<WikiEntryContent> {
+  const res = await fetch(`/api/knowledge/wiki/entries/${entryId}/content`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki entry content: ${res.statusText}`);
+  return res.json();
+}
+
+/** 从 Catalog 全量同步文档到 Wiki（幂等：未覆盖条目会被删除） */
+export async function syncWikiEntriesFromCatalog(
+  pubId: string,
+  params: SyncFromCatalogParams,
+): Promise<SyncFromCatalogResponse> {
+  const res = await fetch(
+    `/api/knowledge/wiki/publications/${pubId}/sync-from-catalog`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    },
+  );
+  if (!res.ok) throw new Error(`Failed to sync wiki from catalog: ${res.statusText}`);
+  return res.json();
+}
