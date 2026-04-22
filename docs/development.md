@@ -486,8 +486,6 @@ NEXT_PUBLIC_AGUI_APP_NAME=negentropy
 NEXT_PUBLIC_AGUI_USER_ID=dev-user
 ```
 
-> **迁移守护**：若 `AGUI_BASE_URL` 指向历史本地端口（如 `:6600` / `:6666`）且 `NODE_ENV !== "production"`，BFF 会打印一次性迁移告警并将端口重写为 `:3292`；生产环境仅告警、不改写，以便运维显式修复。详见 `apps/negentropy-ui/lib/server/backend-url.ts`。
-
 ### 8.4 安全约束
 
 - 后端配置默认值由 `config.default.yaml` 承载；密钥仅通过 shell 环境变量或 `.env.local` 提供，**严禁**写入 YAML 或仓库

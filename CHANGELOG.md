@@ -24,6 +24,7 @@
   - 删除 `engine/bootstrap.py` 中 `NE_API_KEY → ZAI_API_KEY` 的环境变量映射；
   - 删除 `config/model_resolver.py` 中针对 ZAI vendor 的 thinking 处理分支；
   - `model_names.canonicalize_model_name()` 下线 GLM→zai 特化规则，退化为通用幂等 no-op（保留函数签名以维持上游调用正交性）。
+- 彻底删除 `apps/negentropy-ui/lib/server/backend-url.ts` 的「历史端口迁移守护」（`LEGACY_LOCAL_PORTS` / `applyLegacyPortMigration` / `isLegacyLocalhostUrl` / `__resetLegacyPortWarningsForTests`）及其在 `.env.example`、`docs/development.md`、`tests/unit/lib/server/backend-url.test.ts` 中的关联配对：迁移守护本意为兼容 `:6600` / `:6666` → `:3292` 过渡期，但已完成迁移后继续残留反而构成熵源（让历史端口持续在代码、文档、测试夹具中循环出现，并与运维侧 `.env` 残留互相掩盖，导致「以为 PR 引入端口回退」的误判）。`3292` 为唯一权威端口；若本地 `.env` / `.env.local` 或 Google Cloud Console OAuth 授权重定向 URI 白名单仍残留 `:6600` / `:6666`，请一次性更新至 `:3292`（运维提示已同步进 `docs/sso.md`）。
 
 ### Changed
 
