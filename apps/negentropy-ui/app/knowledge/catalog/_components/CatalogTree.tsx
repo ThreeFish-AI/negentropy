@@ -70,6 +70,7 @@ export function CatalogTree({
               isSelected={selectedNodeId === node.id}
               onToggle={onToggleExpand}
               onSelect={(n) => onSelectNode(n)}
+              onAddChild={onAddChild}
             />
           ))}
         </div>
