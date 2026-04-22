@@ -38,11 +38,14 @@ export interface WikiEntry {
 }
 
 export interface WikiNavTreeItem {
-  entry_id: string;
+  /** 叶节点为 entry UUID；容器节点（仅因层级而合成）为 null */
+  entry_id: string | null;
   entry_slug: string;
   entry_title: string;
   is_index_page: boolean;
-  document_id: string;
+  /** 叶节点的源文档；容器节点为 null */
+  document_id: string | null;
+  children?: WikiNavTreeItem[];
 }
 
 export interface WikiEntryContent {

@@ -67,6 +67,7 @@ export default function CatalogPage() {
         <main className="flex-1 min-w-0 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
           <NodeDetailPanel
             node={selectedNode}
+            corpusId={corpusId ?? ""}
             onUpdate={refresh}
             onDelete={handleDeleted}
           />

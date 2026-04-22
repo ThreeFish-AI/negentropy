@@ -248,6 +248,20 @@ class WikiPublishActionResponse(BaseModel):
     message: str
 
 
+class SyncFromCatalogRequest(BaseModel):
+    """从目录同步到 Wiki 的请求"""
+
+    catalog_node_ids: list[UUID] = Field(..., min_length=1)
+
+
+class SyncFromCatalogResponse(BaseModel):
+    """从目录同步到 Wiki 的响应"""
+
+    synced_count: int = 0
+    errors: list[str] = Field(default_factory=list)
+    removed_count: int = 0
+
+
 # =============================================================================
 # Phase 5: 统一检索 Schemas
 # =============================================================================

@@ -7,6 +7,7 @@ import {
   Folder,
   FolderOpen,
   FileText,
+  Plus,
 } from "./icons";
 
 const NODE_TYPE_ICONS: Record<CatalogNodeType, typeof Folder> = {
@@ -29,6 +30,7 @@ interface CatalogTreeNodeProps {
   isSelected: boolean;
   onToggle: (nodeId: string) => void;
   onSelect: (node: CatalogNode) => void;
+  onAddChild?: (parentId: string) => void;
 }
 
 export function CatalogTreeNode({
@@ -39,15 +41,24 @@ export function CatalogTreeNode({
   isSelected,
   onToggle,
   onSelect,
+  onAddChild,
 }: CatalogTreeNodeProps) {
   const Icon = NODE_TYPE_ICONS[node.node_type] || Folder;
   const color = NODE_TYPE_COLORS[node.node_type] || "text-zinc-400";
   const padding = depth * 20;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(node)}
-      className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted/50 rounded-md ${
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(node);
+        }
+      }}
+      className={`group flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted/50 rounded-md cursor-pointer ${
         isSelected
           ? "bg-primary/10 text-primary ring-1 ring-primary/20"
           : "text-foreground"
@@ -83,6 +94,22 @@ export function CatalogTreeNode({
       <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted">
         {node.node_type}
       </span>
-    </button>
+
+      {/* Add child button — hover 可见 */}
+      {onAddChild && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddChild(node.id);
+          }}
+          aria-label={`在「${node.name}」下添加子节点`}
+          title="添加子节点"
+          className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity rounded-sm p-0.5 hover:bg-primary/10 text-muted hover:text-primary"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
   );
 }

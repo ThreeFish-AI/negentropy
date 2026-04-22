@@ -8,15 +8,18 @@ import {
 } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
 import { Pencil, Trash2 } from "./icons";
+import { DocumentAssignmentSection } from "./DocumentAssignmentSection";
 
 interface NodeDetailPanelProps {
   node: CatalogNode | null;
+  corpusId: string;
   onUpdate: () => void;
   onDelete: () => void;
 }
 
 export function NodeDetailPanel({
   node,
+  corpusId,
   onUpdate,
   onDelete,
 }: NodeDetailPanelProps) {
@@ -54,7 +57,7 @@ export function NodeDetailPanel({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
       <div className="border-b border-border px-5 py-4">
         <div className="flex items-start justify-between">
@@ -161,6 +164,9 @@ export function NodeDetailPanel({
           <span>{node.sort_order}</span>
         </div>
       </div>
+
+      {/* Document assignment */}
+      <DocumentAssignmentSection nodeId={node.id} corpusId={corpusId} />
     </div>
   );
 }

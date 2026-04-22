@@ -332,22 +332,104 @@ class WikiDao:
     ) -> list[dict]:
         """获取发布的导航树结构
 
-        基于 entries 的 entry_order 字段构建层级导航。
-        如果 navigation_config 为空，则基于 entries 自动生成扁平列表。
+        基于 entries 的 entry_order 字段（Materialized Path）构建嵌套层级导航。
+        如果 entry_order 为空，则回退为扁平列表。
         """
+        import json
+
         entries = await WikiDao.get_entries(db, publication_id)
 
-        nav_items = []
-        for entry in entries:
-            nav_items.append(
-                {
-                    "entry_id": str(entry.id),
-                    "entry_slug": entry.entry_slug,
-                    "entry_title": entry.entry_title or entry.entry_slug,
-                    "is_index_page": entry.is_index_page,
-                    "order_path": entry.entry_order,
-                    "document_id": str(entry.document_id),
-                }
-            )
+        def _insert_into_tree(root_items: list[dict], item: dict, order_path: list[str]) -> None:
+            """将条目按 order_path 嵌入到树结构中"""
+            if len(order_path) <= 1:
+                root_items.append(item)
+                return
 
-        return nav_items
+            # 查找或创建父级容器节点
+            parent_path = order_path[:-1]
+            parent_slug = "/".join(parent_path)
+
+            def _find_or_create_parent(children: list[dict]) -> dict:
+                for child in children:
+                    if child.get("_path") == parent_slug:
+                        return child
+                    nested = _find_or_create_parent(child.get("children", []))
+                    if nested:
+                        return nested
+                # 创建目录容器节点
+                container = {
+                    "entry_id": None,
+                    "entry_slug": parent_slug,
+                    "entry_title": parent_path[-1],
+                    "is_index_page": False,
+                    "document_id": None,
+                    "_path": parent_slug,
+                    "children": [],
+                }
+                children.append(container)
+                return container
+
+            parent = _find_or_create_parent(root_items)
+            if parent:
+                parent.setdefault("children", []).append(item)
+            else:
+                root_items.append(item)
+
+        root_items: list[dict] = []
+        for entry in entries:
+            order_path = entry.entry_order
+            if isinstance(order_path, str):
+                try:
+                    order_path = json.loads(order_path)
+                except (json.JSONDecodeError, TypeError):
+                    order_path = [entry.entry_slug]
+
+            item = {
+                "entry_id": str(entry.id),
+                "entry_slug": entry.entry_slug,
+                "entry_title": entry.entry_title or entry.entry_slug,
+                "is_index_page": entry.is_index_page,
+                "document_id": str(entry.document_id),
+                "children": [],
+            }
+
+            if order_path and len(order_path) > 1:
+                _insert_into_tree(root_items, item, order_path)
+            else:
+                root_items.append(item)
+
+        # 递归移除内部 _path 字段
+        def _clean_internal(items: list[dict]) -> None:
+            for item in items:
+                item.pop("_path", None)
+                _clean_internal(item.get("children", []))
+
+        _clean_internal(root_items)
+        return root_items
+
+    @staticmethod
+    async def remove_stale_entries(
+        db: AsyncSession,
+        publication_id: UUID,
+        keep_document_ids: set[str],
+    ) -> int:
+        """移除不再属于同步范围的条目（幂等性保证）"""
+        from sqlalchemy import delete as sql_delete
+
+        if not keep_document_ids:
+            result = await db.execute(
+                sql_delete(WikiPublicationEntry).where(
+                    WikiPublicationEntry.publication_id == publication_id,
+                )
+            )
+        else:
+            result = await db.execute(
+                sql_delete(WikiPublicationEntry).where(
+                    WikiPublicationEntry.publication_id == publication_id,
+                    WikiPublicationEntry.document_id.notin_(
+                        [UUID(did) for did in keep_document_ids],
+                    ),
+                )
+            )
+        await db.flush()
+        return result.rowcount

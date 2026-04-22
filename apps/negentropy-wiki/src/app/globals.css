@@ -247,6 +247,22 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
   font-weight: 600;
 }
 
+.wiki-nav-group {
+  display: block;
+  padding: 0.4rem 0.6rem 0.2rem;
+  font-size: 0.78em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wiki-text-secondary);
+}
+
+.wiki-nav-sublist {
+  margin-left: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--wiki-border);
+}
+
 /* ====== 首页样式 ====== */
 
 .wiki-home-container {
@@ -369,6 +385,25 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
 
 .wiki-text-hint {
   color: var(--wiki-text-secondary);
+}
+
+.wiki-pending-card {
+  margin: 2rem 0;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid var(--wiki-border);
+  border-left: 4px solid var(--wiki-accent);
+  border-radius: 0.5rem;
+  background: var(--wiki-bg-secondary);
+}
+
+.wiki-pending-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1em;
+}
+
+.wiki-pending-card p {
+  margin: 0.5rem 0;
+  line-height: 1.7;
 }
 
 /* ====== 文档内容页 ====== */

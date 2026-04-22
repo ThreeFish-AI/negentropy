@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  CatalogNodeType,
-  createCatalogNode,
-  CatalogNode,
+  createWikiPublication,
+  WikiPublication,
+  WikiTheme,
 } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
 
@@ -18,25 +18,24 @@ function slugify(text: string): string {
   );
 }
 
-interface CreateNodeDialogProps {
+interface CreateWikiPublicationDialogProps {
   open: boolean;
-  parentId: string | null;
   corpusId: string;
   onClose: () => void;
-  onCreated: (node: CatalogNode) => void;
+  onCreated: (pub: WikiPublication) => void;
 }
 
-export function CreateNodeDialog({
+export function CreateWikiPublicationDialog({
   open,
-  parentId,
   corpusId,
   onClose,
   onCreated,
-}: CreateNodeDialogProps) {
+}: CreateWikiPublicationDialogProps) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
-  const [nodeType, setNodeType] = useState<CatalogNodeType>("category");
+  const [description, setDescription] = useState("");
+  const [theme, setTheme] = useState<WikiTheme>("default");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -49,22 +48,23 @@ export function CreateNodeDialog({
     setName("");
     setSlug("");
     setSlugEdited(false);
-    setNodeType("category");
+    setDescription("");
+    setTheme("default");
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!name.trim() || !slug.trim()) return;
+    if (!name.trim() || !slug.trim() || !corpusId) return;
     setSubmitting(true);
     try {
-      const node = await createCatalogNode({
+      const pub = await createWikiPublication({
         corpus_id: corpusId,
         name: name.trim(),
         slug: slug.trim(),
-        parent_id: parentId ?? undefined,
-        node_type: nodeType,
+        description: description.trim() || undefined,
+        theme,
       });
-      toast.success(`节点「${name}」已创建`);
-      onCreated(node);
+      toast.success(`发布「${pub.name}」已创建`);
+      onCreated(pub);
       handleReset();
       onClose();
     } catch (err) {
@@ -72,7 +72,7 @@ export function CreateNodeDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [name, slug, nodeType, corpusId, parentId, onCreated, onClose, handleReset]);
+  }, [name, slug, description, theme, corpusId, onCreated, onClose, handleReset]);
 
   if (!open) return null;
 
@@ -85,7 +85,7 @@ export function CreateNodeDialog({
         className="bg-card rounded-xl shadow-xl border border-border p-6 w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold mb-4">创建目录节点</h3>
+        <h3 className="text-base font-semibold mb-4">新建 Wiki 发布</h3>
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
@@ -94,7 +94,7 @@ export function CreateNodeDialog({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="节点名称"
+              placeholder="例如：工程 Wiki"
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -110,27 +110,37 @@ export function CreateNodeDialog({
                   e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
                 );
               }}
-              placeholder="node-slug"
+              placeholder="engineering"
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <p className="mt-1 text-[11px] text-muted">
-              仅支持小写字母、数字与短横线；将作为 URL 片段与 Wiki 层级标识。
+              作为站点 URL 前缀，例如 /{slug || "engineering"}/...
             </p>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              类型
+              描述
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="简要说明本发布的目标受众与内容范围"
+              rows={2}
+              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted mb-1">
+              主题
             </label>
             <select
-              value={nodeType}
-              onChange={(e) =>
-                setNodeType(e.target.value as CatalogNodeType)
-              }
+              value={theme}
+              onChange={(e) => setTheme(e.target.value as WikiTheme)}
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none"
             >
-              <option value="category">分类</option>
-              <option value="collection">集合</option>
-              <option value="document_ref">文档引用</option>
+              <option value="default">默认</option>
+              <option value="book">图书（Book）</option>
+              <option value="docs">文档（Docs）</option>
             </select>
           </div>
         </div>
@@ -143,7 +153,7 @@ export function CreateNodeDialog({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || !slug.trim()}
+            disabled={submitting || !name.trim() || !slug.trim() || !corpusId}
             className="px-4 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? "创建中..." : "创建"}
