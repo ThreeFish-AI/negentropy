@@ -85,6 +85,8 @@ export async function proxyPost(request: Request, path: string) {
   }
 
   const upstreamUrl = new URL(path, baseUrl);
+  const incomingUrl = new URL(request.url);
+  upstreamUrl.search = incomingUrl.search;
   const headers = extractForwardHeaders(request);
   headers.set("content-type", "application/json");
 

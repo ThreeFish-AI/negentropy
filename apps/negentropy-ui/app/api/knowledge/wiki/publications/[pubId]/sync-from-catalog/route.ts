@@ -5,5 +5,5 @@ export async function POST(
   { params }: { params: Promise<{ pubId: string }> },
 ) {
   const { pubId } = await params;
-  return proxyPost(request, `/wiki/publications/${pubId}/sync-from-catalog`);
+  return proxyPost(request, `/knowledge/wiki/publications/${pubId}/sync-from-catalog`);
 }
