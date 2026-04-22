@@ -155,11 +155,13 @@ pnpm build
 ### 5.2 本地预览
 
 ```bash
-# 启动构建后的应用
+# 启动构建后的应用（由 scripts/start-production.mjs 注入 PORT=3092、HOSTNAME=localhost）
 pnpm start
 
-# 访问 http://localhost:3000
+# 访问 http://localhost:3092（可通过 `PORT` 环境变量覆盖，与 `dev` 默认端口保持一致）
 ```
+
+> `pnpm start` 内部通过 `scripts/start-production.mjs` 包装 Next.js standalone 入口：在临时目录中 symlink 回填 `.next/static/` 与 `public/`（standalone 模式不会自动拷贝这两类静态资产），并注入默认端口，避免裸 `node .next/standalone/server.js` 因 cwd 漂移导致 `/_next/static/*` 被动态路由 `[pubSlug]/[...entrySlug]` 吞并的回归。
 
 ### 5.3 Docker 部署
 
@@ -174,12 +176,16 @@ RUN pnpm build
 
 FROM node:20-alpine
 WORKDIR /app
+# standalone 产物不包含 .next/static 与 public，需显式 COPY 至 server.js 邻近路径
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-EXPOSE 3000
+ENV PORT=3092 HOSTNAME=0.0.0.0
+EXPOSE 3092
 CMD ["node", "server.js"]
 ```
+
+> 容器镜像通过 `COPY` 直接把静态资产放到 standalone 目录下（与宿主机 `scripts/start-production.mjs` 的 symlink 同构），因此容器内可直接运行 `node server.js`，无需额外执行 wrapper 脚本。
 
 ### 5.4 生产环境检查清单
 
@@ -253,7 +259,7 @@ CMD ["node", "server.js"]
 
 | 问题 | 可能原因 | 解决方案 |
 |------|---------|---------|
-| 构建失败 "Failed to fetch publications" | 后端 API 不可达 | 检查 `WIKI_API_BASE` 配置和网络连通性 |
+| 构建期告警 "Failed to fetch publications" | 后端 API 不可达（WARN 级，不阻断构建） | 后端暂不可达时 SSG 渲染空首页，首次请求由 ISR 自动自愈（5 分钟窗口）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性 |
 | 页面显示 "Wiki 未找到" | Publication 未发布或 slug 错误 | 检查后端 Publication 状态 |
 | 页面内容不更新 | ISR 缓存未过期 | 等待 5 分钟或重新部署 |
 | 深色模式样式异常 | 浏览器未启用深色模式 | 检查系统深色模式设置 |
