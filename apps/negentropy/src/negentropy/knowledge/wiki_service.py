@@ -189,43 +189,116 @@ class WikiPublishingService:
         *,
         publication_id: UUID,
         catalog_node_ids: list[UUID],
-    ) -> int:
-        """从目录节点批量同步文档到 Wiki 条目
+    ) -> dict:
+        """从目录节点全量同步文档到 Wiki 条目（幂等）
 
-        遍历指定目录节点下的所有文档，自动创建 Entry 映射。
-        返回新增/更新的条目数量。
+        遍历指定目录节点的完整子树，将所有就绪文档自动创建 Entry 映射。
+        设置 entry_order 为 Materialized Path（层级路径数组）以支持层级导航。
+
+        **全量同步语义**：未覆盖到的既有条目将被移除，仅保留本次选中的文档。
 
         Args:
             publication_id: 目标发布 ID
-            catalog_node_ids: 要同步的目录节点 ID 列表
+            catalog_node_ids: 要同步的根目录节点 ID 列表
 
         Returns:
-            同步的条目数
+            {
+                "synced_count": int,
+                "errors": list[str],       # 前缀：skip:<doc_id>:<reason> / renamed:<doc_id>:<old>->:<new>
+                "removed_count": int,
+            }
         """
+        import json
+
         from negentropy.knowledge.catalog_dao import CatalogDao
 
         synced = 0
-        for node_id in catalog_node_ids:
-            docs, _ = await CatalogDao.get_node_documents(db, node_id, limit=500)
-            for doc in docs:
-                entry_slug = self._slugify(doc.filename or f"doc-{doc.id}")
-                await WikiDao.upsert_entry(
-                    db,
-                    publication_id=publication_id,
-                    document_id=doc.id,
-                    entry_slug=entry_slug,
-                    entry_title=(doc.metadata_ or {}).get("title") or doc.filename,
-                )
-                synced += 1
+        errors: list[str] = []
+        synced_doc_ids: set[str] = set()
+        seen_slugs: set[str] = set()
+
+        for root_node_id in catalog_node_ids:
+            subtree = await CatalogDao.get_subtree(db, root_node_id)
+            if not subtree:
+                errors.append(f"node:{root_node_id}:empty_subtree")
+                continue
+
+            node_map = {str(n["id"]): n for n in subtree}
+
+            for node in subtree:
+                # 构建从根到当前节点的层级 slug 路径（基于循环变量做环检测）
+                path_slugs: list[str] = []
+                current = node
+                visited: set[str] = set()
+                while current:
+                    cur_id = str(current["id"])
+                    if cur_id in visited:
+                        errors.append(f"node:{cur_id}:cycle_detected")
+                        break
+                    visited.add(cur_id)
+                    path_slugs.insert(0, current["slug"])
+                    parent_id = current.get("parent_id")
+                    if not parent_id:
+                        break
+                    current = node_map.get(str(parent_id))
+
+                hierarchical_slug = "/".join(path_slugs)
+
+                # 获取该节点下的文档
+                docs, _ = await CatalogDao.get_node_documents(db, node["id"], limit=500)
+                for doc in docs:
+                    # 跳过未完成 markdown 提取的文档
+                    if getattr(doc, "markdown_extract_status", None) != "completed":
+                        errors.append(f"skip:{doc.id}:markdown_not_ready")
+                        continue
+                    if not getattr(doc, "markdown_content", None):
+                        errors.append(f"skip:{doc.id}:no_content")
+                        continue
+
+                    doc_slug = self._slugify(doc.filename or f"doc-{doc.id}")
+                    base_slug = f"{hierarchical_slug}/{doc_slug}" if hierarchical_slug else doc_slug
+
+                    # slug 冲突兜底：追加 -2、-3...，避免违反 uq_wiki_entry_pub_slug
+                    final_slug = base_slug
+                    dedup_idx = 2
+                    while final_slug in seen_slugs:
+                        final_slug = f"{base_slug}-{dedup_idx}"
+                        dedup_idx += 1
+                    if final_slug != base_slug:
+                        errors.append(f"renamed:{doc.id}:{base_slug}->:{final_slug}")
+                    seen_slugs.add(final_slug)
+
+                    final_doc_segment = final_slug.split("/")[-1]
+                    entry_order = json.dumps(path_slugs + [final_doc_segment])
+
+                    await WikiDao.upsert_entry(
+                        db,
+                        publication_id=publication_id,
+                        document_id=doc.id,
+                        entry_slug=final_slug,
+                        entry_title=(doc.metadata_ or {}).get("title") or doc.filename,
+                        entry_order=entry_order,
+                    )
+                    synced_doc_ids.add(str(doc.id))
+                    synced += 1
+
+        # 移除不再属于任何指定目录节点的条目（幂等性保证）
+        removed = await WikiDao.remove_stale_entries(
+            db,
+            publication_id=publication_id,
+            keep_document_ids=synced_doc_ids,
+        )
 
         logger.info(
             "wiki_entries_synced_from_catalog",
             extra={
                 "publication_id": str(publication_id),
                 "synced_count": synced,
+                "removed_count": removed,
+                "errors_count": len(errors),
             },
         )
-        return synced
+        return {"synced_count": synced, "errors": errors, "removed_count": removed}
 
     # ------------------------------------------------------------------
     # 工具方法
@@ -233,11 +306,10 @@ class WikiPublishingService:
 
     @staticmethod
     def _slugify(text: str) -> str:
-        """将文本转换为 URL-friendly slug"""
+        """将文本转换为 URL-friendly slug（严格 ASCII，对齐 wiki slug 校验正则）"""
         import unicodedata
 
-        normalized = unicodedata.normalize("NFKC", text)
-        slug = re.sub(r"[^\w\s-]", "", normalized.lower())
-        slug = re.sub(r"[\s_]+", "-", slug).strip("-")
+        normalized = unicodedata.normalize("NFKC", text or "").lower()
+        slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
         slug = re.sub(r"-{2,}", "-", slug)
         return slug or "untitled"

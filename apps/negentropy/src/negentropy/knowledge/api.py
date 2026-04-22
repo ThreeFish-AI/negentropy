@@ -79,6 +79,12 @@ from .lifecycle_schemas import (
     DocSourceResponse as _DocSourceResp,
 )
 from .lifecycle_schemas import (
+    SyncFromCatalogRequest as _SyncFromCatalogReq,
+)
+from .lifecycle_schemas import (
+    SyncFromCatalogResponse as _SyncFromCatalogResp,
+)
+from .lifecycle_schemas import (
     # Phase 5: 统一检索与语料质量 Schemas
     UnifiedSearchRequest as _UnifiedSearchReq,
 )
@@ -4141,6 +4147,49 @@ async def get_wiki_entries(pub_id: UUID):
     ]
 
     return {"items": items, "total": len(items)}
+
+
+@router.post(
+    "/wiki/publications/{pub_id}/sync-from-catalog",
+    response_model=_SyncFromCatalogResp,
+)
+async def sync_wiki_from_catalog(
+    pub_id: UUID,
+    body: _SyncFromCatalogReq,
+) -> _SyncFromCatalogResp:
+    """从 Catalog 节点全量同步文档到 Wiki Publication（幂等）
+
+    递归遍历指定目录节点子树，对状态为 completed 的文档建立 Wiki 条目映射，
+    并以 Materialized Path 形式写入 ``entry_order`` 以支撑层级导航。
+
+    **全量同步语义**：不属于本次 ``catalog_node_ids`` 子树的既有条目会被删除。
+    同步完成后 SSG 依赖 ISR 窗口自动拉取，非即时可见。
+    """
+    wiki_svc = _get_wiki_service()
+
+    async with AsyncSessionLocal() as db:
+        pub = await wiki_svc.get_publication(db, pub_id)
+        if pub is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Wiki publication not found",
+            )
+        result = await wiki_svc.sync_entries_from_catalog(
+            db,
+            publication_id=pub_id,
+            catalog_node_ids=body.catalog_node_ids,
+        )
+        await db.commit()
+
+    logger.info(
+        "api_wiki_sync_from_catalog",
+        pub_id=str(pub_id),
+        synced_count=result["synced_count"],
+        removed_count=result["removed_count"],
+        errors_count=len(result["errors"]),
+    )
+
+    return _SyncFromCatalogResp(**result)
 
 
 @router.get("/wiki/publications/{pub_id}/nav-tree")
