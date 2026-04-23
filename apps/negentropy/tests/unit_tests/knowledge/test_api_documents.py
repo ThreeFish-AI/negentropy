@@ -20,6 +20,34 @@ from negentropy.knowledge.types import ChunkingStrategy, KnowledgeRecord
 from .conftest import FakeKnowledgeService, FakeStorageService
 
 
+class _FakeSessionManager:
+    def __init__(self, session):
+        self._session = session
+
+    async def __aenter__(self):
+        return self._session
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeExecuteResult:
+    def __init__(self, value):
+        self._value = value
+
+    def scalar_one_or_none(self):
+        return self._value
+
+
+class _FakeApiSession:
+    def __init__(self, values):
+        self._values = list(values)
+
+    async def execute(self, stmt):
+        _ = stmt
+        return _FakeExecuteResult(self._values.pop(0))
+
+
 @pytest.mark.asyncio
 async def test_list_document_chunks_success(monkeypatch):
     corpus_id = uuid4()
@@ -185,18 +213,21 @@ async def test_sync_document_success(monkeypatch):
         "store_extracted_document_artifacts",
         fake_store_extracted_document_artifacts,
     )
+    fake_service.execute_sync_document_pipeline = AsyncMock(return_value=None)
+
+    background_tasks = BackgroundTasks()
 
     result = await knowledge_api.sync_document(
         corpus_id=corpus_id,
         document_id=document_id,
         payload=knowledge_api.DocumentActionRequest(app_name="negentropy"),
-        background_tasks=BackgroundTasks(),
+        background_tasks=background_tasks,
     )
 
     assert result.status == "running"
     assert result.run_id == "run-test-001"
-    assert fake_storage.saved_markdown is not None
     assert fake_service.pipeline_calls[-1]["input_data"]["sync_document"] is True
+    assert len(background_tasks.tasks) == 1
 
 
 @pytest.mark.asyncio
@@ -329,6 +360,70 @@ async def test_rebuild_document_file_requires_gcs(monkeypatch):
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail["code"] == "INVALID_DOCUMENT_SOURCE"
+
+
+@pytest.mark.asyncio
+async def test_get_document_provenance_uses_original_filename(monkeypatch):
+    document_id = uuid4()
+    doc = SimpleNamespace(
+        id=document_id,
+        original_filename="architecture-overview.pdf",
+        file_hash="abc123",
+        content_type="application/pdf",
+        status="active",
+        markdown_extract_status="completed",
+    )
+    doc_source = SimpleNamespace(
+        id=uuid4(),
+        document_id=document_id,
+        source_type="file_pdf",
+        source_url=None,
+        original_url=None,
+        title=None,
+        author=None,
+        extracted_summary=None,
+        extraction_duration_ms=None,
+        extracted_at=None,
+        extractor_tool_name=None,
+        extractor_server_id=None,
+        raw_metadata={},
+        created_at=None,
+        updated_at=None,
+    )
+    fake_service = FakeKnowledgeService()
+    fake_service.source_tracker = SimpleNamespace(get_provenance=AsyncMock(return_value=doc_source))
+
+    monkeypatch.setattr(knowledge_api, "_get_service", lambda: fake_service)
+    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", lambda: _FakeSessionManager(_FakeApiSession([doc])))
+
+    result = await knowledge_api.get_document_provenance(document_id=document_id)
+
+    assert result.filename == "architecture-overview.pdf"
+    assert result.document_id == document_id
+
+
+@pytest.mark.asyncio
+async def test_get_node_documents_uses_original_filename(monkeypatch):
+    node_id = uuid4()
+    fake_doc = SimpleNamespace(
+        id=uuid4(),
+        original_filename="design-spec.md",
+        metadata_={},
+        status="active",
+        created_at=None,
+    )
+    fake_catalog_service = SimpleNamespace(
+        get_node_documents=AsyncMock(return_value=([fake_doc], 1)),
+    )
+
+    monkeypatch.setattr(knowledge_api, "_get_catalog_service", lambda: fake_catalog_service)
+    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", lambda: _FakeSessionManager(SimpleNamespace()))
+
+    result = await knowledge_api.get_node_documents(node_id=node_id)
+
+    assert result["total"] == 1
+    assert result["items"][0]["filename"] == "design-spec.md"
+    assert result["items"][0]["title"] == "design-spec.md"
 
 
 @pytest.mark.asyncio

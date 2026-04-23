@@ -3603,7 +3603,7 @@ async def get_document_provenance(
 
     return DocumentProvenanceResponse(
         document_id=document_id,
-        filename=doc.filename or "",
+        filename=doc.original_filename or "",
         file_hash=doc.file_hash or "",
         content_type=doc.content_type,
         status=doc.status or "unknown",
@@ -3905,8 +3905,8 @@ async def get_node_documents(
         items.append(
             {
                 "id": str(doc.id),
-                "filename": doc.filename,
-                "title": (doc.metadata_ or {}).get("title") or doc.filename,
+                "filename": doc.original_filename,
+                "title": (doc.metadata_ or {}).get("title") or doc.original_filename,
                 "status": doc.status,
                 "created_at": doc.created_at.isoformat() if doc.created_at else None,
             }
