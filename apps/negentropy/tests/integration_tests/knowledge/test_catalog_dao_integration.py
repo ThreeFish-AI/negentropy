@@ -20,6 +20,32 @@ import pytest
 from negentropy.knowledge.catalog_dao import CatalogDao
 
 # ===================================================================
+# 辅助工厂
+# ===================================================================
+
+
+async def _make_catalog(session_factory, *, app_name: str = "negentropy", suffix: str = "") -> UUID:
+    """创建 DocCatalog 并返回其 ID。"""
+
+    from negentropy.models.perception import DocCatalog
+
+    factory = session_factory if not callable(session_factory.__class__.__call__) else session_factory
+    async with factory() as session:
+        catalog = DocCatalog(
+            app_name=app_name,
+            name=f"test-catalog{suffix}",
+            slug=f"test-catalog{suffix}",
+            visibility="INTERNAL",
+            version=1,
+            is_archived=False,
+        )
+        session.add(catalog)
+        await session.flush()
+        await session.commit()
+        return catalog.id
+
+
+# ===================================================================
 # Fixtures — 测试数据构建
 # ===================================================================
 
@@ -52,7 +78,39 @@ async def sample_corpus(db_engine):
 
 
 @pytest.fixture
-async def catalog_tree(db_engine, sample_corpus):
+async def sample_catalog(db_engine, sample_corpus):
+    """创建与 sample_corpus 同 app_name 的全局 DocCatalog，返回其 ID。"""
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    from negentropy.models.perception import DocCatalog
+
+    session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    catalog_id: UUID | None = None
+    async with session_factory() as session:
+        catalog = DocCatalog(
+            app_name="negentropy",
+            name="integration-test-catalog",
+            slug="integration-test-catalog",
+            visibility="INTERNAL",
+            version=1,
+            is_archived=False,
+        )
+        session.add(catalog)
+        await session.flush()
+        await session.commit()
+        catalog_id = catalog.id
+
+    yield catalog_id
+
+    async with session_factory() as s:
+        obj = await s.get(DocCatalog, catalog_id)
+        if obj is not None:
+            await s.delete(obj)
+            await s.commit()
+
+
+@pytest.fixture
+async def catalog_tree(db_engine, sample_corpus, sample_catalog):
     """构建 3 层目录树用于 CTE 测试。
 
     结构::
@@ -69,34 +127,34 @@ async def catalog_tree(db_engine, sample_corpus):
     async with session_factory() as session:
         root = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus,
+            catalog_id=sample_catalog,
             name="Root",
             slug="root",
         )
         cat_a = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus,
+            catalog_id=sample_catalog,
             name="Category A",
             slug="cat-a",
             parent_id=root.id,
         )
         cat_b = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus,
+            catalog_id=sample_catalog,
             name="Category B",
             slug="cat-b",
             parent_id=root.id,
         )
         sub_a1 = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus,
+            catalog_id=sample_catalog,
             name="SubCategory A1",
             slug="sub-a1",
             parent_id=cat_a.id,
         )
         sub_a2 = await CatalogDao.create_node(
             session,
-            corpus_id=sample_corpus,
+            catalog_id=sample_catalog,
             name="SubCategory A2",
             slug="sub-a2",
             parent_id=cat_a.id,
@@ -104,6 +162,7 @@ async def catalog_tree(db_engine, sample_corpus):
         await session.commit()
 
         return {
+            "catalog_id": sample_catalog,
             "corpus_id": sample_corpus,
             "root": root,
             "cat_a": cat_a,
@@ -162,7 +221,7 @@ class TestCatalogTreeCte:
     """get_tree() Recursive CTE 查询的集成测试"""
 
     @pytest.mark.asyncio
-    async def test_get_tree_flat_structure_single_root(self, db_engine, sample_corpus):
+    async def test_get_tree_flat_structure_single_root(self, db_engine, sample_catalog):
         """单根节点：depth=0，path=[root_id]"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -170,13 +229,13 @@ class TestCatalogTreeCte:
         async with session_factory() as session:
             root = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Solo Root",
                 slug="solo-root",
             )
             await session.commit()
 
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
+            tree = await CatalogDao.get_tree(session, catalog_id=sample_catalog)
 
         assert len(tree) == 1
         assert tree[0]["id"] == root.id
@@ -186,7 +245,7 @@ class TestCatalogTreeCte:
         assert tree[0]["path"] == [root.id]
 
     @pytest.mark.asyncio
-    async def test_get_tree_two_level_hierarchy(self, db_engine, sample_corpus):
+    async def test_get_tree_two_level_hierarchy(self, db_engine, sample_catalog):
         """两层层级结构：根 depth=0，子节点 depth=1，path 累积正确"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -194,20 +253,20 @@ class TestCatalogTreeCte:
         async with session_factory() as session:
             root = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Root",
                 slug="root-2l",
             )
             child = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Child",
                 slug="child-2l",
                 parent_id=root.id,
             )
             await session.commit()
 
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
+            tree = await CatalogDao.get_tree(session, catalog_id=sample_catalog)
 
         assert len(tree) == 2
         # 按 depth 排序：先根后子
@@ -230,7 +289,7 @@ class TestCatalogTreeCte:
 
         session_factory = catalog_tree["session"]
         async with session_factory() as session:
-            tree = await CatalogDao.get_tree(session, corpus_id=catalog_tree["corpus_id"])
+            tree = await CatalogDao.get_tree(session, catalog_id=catalog_tree["catalog_id"])
 
         # 应返回全部 5 个节点
         assert len(tree) == 5
@@ -264,7 +323,7 @@ class TestCatalogTreeCte:
         ]
 
     @pytest.mark.asyncio
-    async def test_get_tree_multiple_roots(self, db_engine, sample_corpus):
+    async def test_get_tree_multiple_roots(self, db_engine, sample_catalog):
         """多个根节点（parent_id=None）应全部出现在结果中"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -272,32 +331,32 @@ class TestCatalogTreeCte:
         async with session_factory() as session:
             r1 = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Root Alpha",
                 slug="root-alpha",
             )
             r2 = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Root Beta",
                 slug="root-beta",
             )
             await session.commit()
 
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
+            tree = await CatalogDao.get_tree(session, catalog_id=sample_catalog)
 
         assert len(tree) == 2
         root_ids = {row["id"] for row in tree if row["depth"] == 0}
         assert root_ids == {r1.id, r2.id}
 
     @pytest.mark.asyncio
-    async def test_get_tree_empty_corpus_returns_empty_list(self, db_engine, sample_corpus):
-        """空语料库（无任何节点）应返回空列表"""
+    async def test_get_tree_empty_catalog_returns_empty_list(self, db_engine, sample_catalog):
+        """空 catalog（无任何节点）应返回空列表"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         async with session_factory() as session:
-            tree = await CatalogDao.get_tree(session, corpus_id=sample_corpus)
+            tree = await CatalogDao.get_tree(session, catalog_id=sample_catalog)
 
         assert tree == []
 
@@ -309,7 +368,7 @@ class TestCatalogTreeCte:
         async with session_factory() as session:
             tree = await CatalogDao.get_tree(
                 session,
-                corpus_id=catalog_tree["corpus_id"],
+                catalog_id=catalog_tree["catalog_id"],
                 max_depth=1,
             )
 
@@ -324,7 +383,7 @@ class TestCatalogTreeCte:
 
         session_factory = catalog_tree["session"]
         async with session_factory() as session:
-            tree = await CatalogDao.get_tree(session, corpus_id=catalog_tree["corpus_id"])
+            tree = await CatalogDao.get_tree(session, catalog_id=catalog_tree["catalog_id"])
 
         # 提取排序键用于断言
         order_keys = [(row["depth"], row["sort_order"], row["name"]) for row in tree]
@@ -407,7 +466,7 @@ class TestCatalogSubtreeCte:
         assert subtree[0]["depth"] == 0
 
     @pytest.mark.asyncio
-    async def test_get_subtree_nonexistent_node_returns_empty(self, db_engine, sample_corpus):
+    async def test_get_subtree_nonexistent_node_returns_empty(self, db_engine, sample_catalog):
         """不存在的节点 ID 应返回空列表"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -428,7 +487,7 @@ class TestCatalogCrudIntegration:
     """CatalogDao 节点 CRUD 操作的端到端集成测试"""
 
     @pytest.mark.asyncio
-    async def test_create_and_retrieve_node_roundtrip(self, db_engine, sample_corpus):
+    async def test_create_and_retrieve_node_roundtrip(self, db_engine, sample_catalog):
         """创建节点后通过 get_node 取回，字段一致"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -436,7 +495,7 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             created = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Roundtrip Node",
                 slug="roundtrip-node",
                 parent_id=None,
@@ -454,14 +513,14 @@ class TestCatalogCrudIntegration:
         assert fetched is not None
         assert fetched.id == created.id
         assert fetched.name == "Roundtrip Node"
-        assert fetched.slug == "roundtrip-node"
-        assert fetched.node_type == "collection"
+        assert fetched.slug_override == "roundtrip-node"
+        assert fetched.node_type == "COLLECTION"
         assert fetched.description == "Test description"
-        assert fetched.sort_order == 42
+        assert fetched.position == 42
         assert fetched.config == {"key": "value"}
 
     @pytest.mark.asyncio
-    async def test_update_node_partial_update(self, db_engine, sample_corpus):
+    async def test_update_node_partial_update(self, db_engine, sample_catalog):
         """update_node 仅修改指定字段，未指定字段保持不变"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -469,7 +528,7 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             node = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Original Name",
                 slug="original-slug",
                 sort_order=5,
@@ -487,12 +546,12 @@ class TestCatalogCrudIntegration:
 
         assert updated is not None
         assert updated.name == "Updated Name"
-        assert updated.sort_order == 99
+        assert updated.position == 99
         # 未更新的字段保持原值
-        assert updated.slug == "original-slug"
+        assert updated.slug_override == "original-slug"
 
     @pytest.mark.asyncio
-    async def test_delete_node_cascades_children(self, db_engine, sample_corpus):
+    async def test_delete_node_cascades_children(self, db_engine, sample_catalog):
         """删除父节点后，子节点应被级联删除"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -500,13 +559,13 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             parent = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Parent",
                 slug="cascade-parent",
             )
             child = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Child",
                 slug="cascade-child",
                 parent_id=parent.id,
@@ -529,7 +588,7 @@ class TestCatalogCrudIntegration:
         assert child_gone is None
 
     @pytest.mark.asyncio
-    async def test_create_node_with_parent_sets_parent_id(self, db_engine, sample_corpus):
+    async def test_create_node_with_parent_sets_parent_id(self, db_engine, sample_catalog):
         """创建带 parent_id 的节点应正确设置外键关系"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -537,30 +596,30 @@ class TestCatalogCrudIntegration:
         async with session_factory() as session:
             parent = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Parent Node",
                 slug="parent-node",
             )
             child = await CatalogDao.create_node(
                 session,
-                corpus_id=sample_corpus,
+                catalog_id=sample_catalog,
                 name="Child Node",
                 slug="child-node",
                 parent_id=parent.id,
             )
             await session.commit()
 
-        assert child.parent_id == parent.id
+        assert child.parent_entry_id == parent.id
 
         # 通过 get_node 验证关系可追溯
         async with session_factory() as session:
             fetched_child = await CatalogDao.get_node(session, child.id)
 
         assert fetched_child is not None
-        assert fetched_child.parent_id == parent.id
+        assert fetched_child.parent_entry_id == parent.id
 
     @pytest.mark.asyncio
-    async def test_delete_nonexistent_node_returns_false(self, db_engine, sample_corpus):
+    async def test_delete_nonexistent_node_returns_false(self, db_engine, sample_catalog):
         """删除不存在的节点应幂等返回 False"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -595,17 +654,17 @@ class TestCatalogMembershipIntegration:
         async with session_factory() as session:
             membership = await CatalogDao.assign_document(
                 session,
-                catalog_node_id=node_id,
+                catalog_entry_id=node_id,
                 document_id=doc_id,
             )
             await session.commit()
 
-        assert membership.catalog_node_id == node_id
+        assert membership.parent_entry_id == node_id
         assert membership.document_id == doc_id
 
         # 2. verify assignment exists via get_node_documents
         async with session_factory() as session:
-            docs, total = await CatalogDao.get_node_documents(session, catalog_node_id=node_id)
+            docs, total = await CatalogDao.get_node_documents(session, catalog_entry_id=node_id)
 
         assert total >= 1
 
@@ -613,7 +672,7 @@ class TestCatalogMembershipIntegration:
         async with session_factory() as session:
             removed = await CatalogDao.unassign_document(
                 session,
-                catalog_node_id=node_id,
+                catalog_entry_id=node_id,
                 document_id=doc_id,
             )
             await session.commit()
@@ -622,7 +681,7 @@ class TestCatalogMembershipIntegration:
 
         # 4. verify removal
         async with session_factory() as session:
-            docs_after, total_after = await CatalogDao.get_node_documents(session, catalog_node_id=node_id)
+            docs_after, total_after = await CatalogDao.get_node_documents(session, catalog_entry_id=node_id)
 
         assert total_after < total
 
@@ -638,7 +697,7 @@ class TestCatalogMembershipIntegration:
         async with session_factory() as session:
             first = await CatalogDao.assign_document(
                 session,
-                catalog_node_id=node_id,
+                catalog_entry_id=node_id,
                 document_id=doc_id,
             )
             await session.commit()
@@ -646,7 +705,7 @@ class TestCatalogMembershipIntegration:
         async with session_factory() as session:
             second = await CatalogDao.assign_document(
                 session,
-                catalog_node_id=node_id,
+                catalog_entry_id=node_id,
                 document_id=doc_id,
             )
             await session.commit()
@@ -667,20 +726,20 @@ class TestCatalogMembershipIntegration:
             for doc_id in sample_documents:
                 await CatalogDao.assign_document(
                     session,
-                    catalog_node_id=node_id,
+                    catalog_entry_id=node_id,
                     document_id=doc_id,
                 )
             await session.commit()
 
         # 分页取第 1 条
         async with session_factory() as session:
-            page1, _ = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=0, limit=1)
+            page1, _ = await CatalogDao.get_node_documents(session, catalog_entry_id=node_id, offset=0, limit=1)
 
         assert len(page1) == 1
 
         # 分页取第 2 条
         async with session_factory() as session:
-            page2, _ = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=1, limit=1)
+            page2, _ = await CatalogDao.get_node_documents(session, catalog_entry_id=node_id, offset=1, limit=1)
 
         assert len(page2) == 1
         # 两页的文档应不同
@@ -698,15 +757,15 @@ class TestCatalogMembershipIntegration:
             for doc_id in sample_documents:
                 await CatalogDao.assign_document(
                     session,
-                    catalog_node_id=node_id,
+                    catalog_entry_id=node_id,
                     document_id=doc_id,
                 )
             await session.commit()
 
         # 不同分页参数下的 total 应一致
         async with session_factory() as session:
-            _, total_full = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=0, limit=50)
-            _, total_paged = await CatalogDao.get_node_documents(session, catalog_node_id=node_id, offset=1, limit=1)
+            _, total_full = await CatalogDao.get_node_documents(session, catalog_entry_id=node_id, offset=0, limit=50)
+            _, total_paged = await CatalogDao.get_node_documents(session, catalog_entry_id=node_id, offset=1, limit=1)
 
         assert total_full == total_paged
         assert total_full == len(sample_documents)
@@ -724,7 +783,7 @@ class TestCatalogMembershipIntegration:
             for node_id in target_nodes:
                 await CatalogDao.assign_document(
                     session,
-                    catalog_node_id=node_id,
+                    catalog_entry_id=node_id,
                     document_id=doc_id,
                 )
             await session.commit()
