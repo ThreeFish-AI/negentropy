@@ -198,7 +198,6 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
 
     __tablename__ = "wiki_publications"
 
-    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -214,10 +213,10 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Phase 1: Catalog 全局化过渡字段（Phase 3 才会施加 NOT NULL 并移除 corpus_id）
-    catalog_id: Mapped[UUID | None] = mapped_column(fk("doc_catalogs", ondelete="RESTRICT"), nullable=True)
-    app_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    publish_mode: Mapped[str | None] = mapped_column(
+    # Phase 3: Catalog 全局化（NOT NULL，corpus_id 已移除）
+    catalog_id: Mapped[UUID] = mapped_column(fk("doc_catalogs", ondelete="RESTRICT"), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    publish_mode: Mapped[str] = mapped_column(
         SAEnum(
             "LIVE",
             "SNAPSHOT",
@@ -225,10 +224,10 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
             schema=NEGENTROPY_SCHEMA,
             create_type=False,
         ),
-        nullable=True,
+        nullable=False,
         server_default="LIVE",
     )
-    visibility: Mapped[str | None] = mapped_column(
+    visibility: Mapped[str] = mapped_column(
         SAEnum(
             "PRIVATE",
             "INTERNAL",
@@ -237,13 +236,12 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
             schema=NEGENTROPY_SCHEMA,
             create_type=False,
         ),
-        nullable=True,
+        nullable=False,
         server_default="INTERNAL",
     )
     snapshot_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    corpus: Mapped["Corpus"] = relationship(back_populates="wiki_publications")
-    catalog: Mapped["DocCatalog | None"] = relationship(back_populates="publications")
+    catalog: Mapped["DocCatalog"] = relationship(back_populates="publications")
     entries: Mapped[list["WikiPublicationEntry"]] = relationship(
         back_populates="publication",
         cascade="all, delete-orphan",
@@ -259,19 +257,10 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
     )
 
     __table_args__ = (
-        UniqueConstraint("corpus_id", "slug", name="uq_wiki_pub_corpus_slug"),
-        Index("ix_wiki_publications_corpus_id", "corpus_id"),
+        UniqueConstraint("catalog_id", "slug", name="uq_wiki_pub_catalog_slug"),
         Index("ix_wiki_publications_status", "status"),
-        Index(
-            "ix_wiki_publications_catalog_id",
-            "catalog_id",
-            postgresql_where="catalog_id IS NOT NULL",
-        ),
-        Index(
-            "ix_wiki_publications_app_name",
-            "app_name",
-            postgresql_where="app_name IS NOT NULL",
-        ),
+        Index("ix_wiki_publications_catalog_id", "catalog_id"),
+        Index("ix_wiki_publications_app_name", "app_name"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -541,8 +530,8 @@ class KnowledgeFeedback(Base, UUIDMixin, TimestampMixin):
 # =============================================================================
 # Phase 6: Catalog 全局化（MediaWiki N:M + GitBook 订阅式发布）
 # ---
-# 与既有 DocCatalogNode / DocCatalogMembership 并行存在，承担过渡期职责。
-# Phase 2 backfill 完成、Phase 3 施加约束并移除旧表后，以下模型成为 SSOT。
+# Phase 3 enforce 已完成（commit 0005）：legacy doc_catalog_nodes / doc_catalog_memberships 已 DROP。
+# 以下模型为 SSOT：DocCatalog（全局顶层）→ DocCatalogEntry（N:M 关联）→ WikiPublication（发布订阅）。
 # =============================================================================
 
 

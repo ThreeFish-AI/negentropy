@@ -40,7 +40,7 @@ class WikiPublishingService:
         self,
         db: AsyncSession,
         *,
-        corpus_id: UUID,
+        catalog_id: UUID,
         name: str,
         slug: str | None = None,
         description: str | None = None,
@@ -50,7 +50,7 @@ class WikiPublishingService:
 
         Args:
             db: 数据库会话
-            corpus_id: 关联的语料库 ID
+            catalog_id: 关联的 Catalog ID
             name: 发布名称（如 "技术文档 Wiki"）
             slug: URL 友好标识（不传则从 name 自动生成）
             description: 描述文本
@@ -73,7 +73,7 @@ class WikiPublishingService:
 
         return await WikiDao.create_publication(
             db,
-            corpus_id=corpus_id,
+            catalog_id=catalog_id,
             name=name,
             slug=slug,
             description=description,
@@ -88,13 +88,13 @@ class WikiPublishingService:
         self,
         db: AsyncSession,
         *,
-        corpus_id: UUID | None = None,
+        catalog_id: UUID | None = None,
         status: str | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[WikiPublication], int]:
         """列出发布记录"""
-        return await WikiDao.list_publications(db, corpus_id=corpus_id, status=status, offset=offset, limit=limit)
+        return await WikiDao.list_publications(db, catalog_id=catalog_id, status=status, offset=offset, limit=limit)
 
     async def update_publication(
         self,
