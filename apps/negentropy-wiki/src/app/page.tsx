@@ -24,6 +24,14 @@ export default async function WikiHomePage() {
   return (
     <main className="wiki-main wiki-home-container">
       <div className="wiki-home-hero">
+        {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+        <img
+          src="/logo.png"
+          alt="Negentropy"
+          className="wiki-home-logo"
+          width={96}
+          height={96}
+        />
         <h1 className="wiki-home-title">Negentropy Wiki</h1>
         <p className="wiki-home-subtitle">
           知识库发布站点 — 浏览已发布的文档集合
