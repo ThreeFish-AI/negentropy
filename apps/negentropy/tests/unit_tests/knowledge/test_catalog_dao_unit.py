@@ -159,6 +159,30 @@ class TestCatalogNodeCrud:
     """CatalogDao 节点 CRUD 方法的单元测试"""
 
     @pytest.mark.asyncio
+    async def test_create_node_logs_with_non_reserved_extra_keys(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """create_node 日志应避免覆写 LogRecord 保留字段。"""
+        corpus_id = uuid4()
+        session = FakeAsyncSessionForCatalog()
+        captured: dict[str, Any] = {}
+
+        def fake_info(event: str, *, extra: dict[str, Any]) -> None:
+            captured["event"] = event
+            captured["extra"] = extra
+
+        monkeypatch.setattr("negentropy.knowledge.catalog_dao.logger.info", fake_info)
+
+        await CatalogDao.create_node(
+            session,
+            corpus_id=corpus_id,
+            name="Root Category",
+            slug="root-category",
+        )
+
+        assert captured["event"] == "catalog_node_created"
+        assert captured["extra"]["node_name"] == "Root Category"
+        assert "name" not in captured["extra"]
+
+    @pytest.mark.asyncio
     async def test_create_node_adds_to_session_and_flushes(self) -> None:
         """create_node 应调用 db.add + db.flush，且节点字段正确设置"""
         corpus_id = uuid4()

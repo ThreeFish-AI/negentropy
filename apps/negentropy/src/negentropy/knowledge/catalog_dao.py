@@ -68,7 +68,7 @@ class CatalogDao:
             extra={
                 "id": str(node.id),
                 "corpus_id": str(corpus_id),
-                "name": name,
+                "node_name": name,
                 "slug": slug,
                 "parent_id": str(parent_id) if parent_id else None,
             },
