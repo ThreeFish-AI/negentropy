@@ -12,14 +12,14 @@ import { DocumentAssignmentSection } from "./DocumentAssignmentSection";
 
 interface NodeDetailPanelProps {
   node: CatalogNode | null;
-  corpusId: string;
+  catalogId: string;
   onUpdate: () => void;
   onDelete: () => void;
 }
 
 export function NodeDetailPanel({
   node,
-  corpusId,
+  catalogId,
   onUpdate,
   onDelete,
 }: NodeDetailPanelProps) {
@@ -166,7 +166,7 @@ export function NodeDetailPanel({
       </div>
 
       {/* Document assignment */}
-      <DocumentAssignmentSection nodeId={node.id} corpusId={corpusId} />
+      <DocumentAssignmentSection nodeId={node.id} catalogId={catalogId} />
     </div>
   );
 }

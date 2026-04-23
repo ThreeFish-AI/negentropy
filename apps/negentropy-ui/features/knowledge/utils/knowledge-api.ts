@@ -2149,10 +2149,35 @@ export async function upsertPipelines(params: {
 
 export type CatalogNodeType = "category" | "collection" | "document_ref";
 
-/** 目录节点 — 对齐后端 DocCatalogNode + CTE 扩展字段 */
+/** 全局 Catalog 元数据 — 对齐后端 DocCatalog ORM */
+export interface DocCatalog {
+  id: string;
+  name: string;
+  slug: string;
+  app_name: string;
+  description: string | null;
+  visibility: "private" | "internal" | "public";
+  is_archived: boolean;
+  version: number;
+  owner_id: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DocCatalogListResponse {
+  items: DocCatalog[];
+  total: number;
+}
+
+export interface DocCatalogDocumentsResponse {
+  items: KnowledgeDocument[];
+  total: number;
+}
+
+/** 目录节点 — 对齐后端 DocCatalogEntry + CTE 扩展字段 */
 export interface CatalogNode {
   id: string;
-  corpus_id: string;
+  catalog_id: string;
   name: string;
   slug: string;
   parent_id: string | null;
@@ -2173,7 +2198,7 @@ export interface CatalogNode {
 }
 
 export interface CreateCatalogNodeParams {
-  corpus_id: string;
+  catalog_id: string;
   name: string;
   slug: string;
   parent_id?: string | null;
@@ -2212,8 +2237,8 @@ export interface CatalogNodeDocumentsResponse {
 // ============================================================================
 
 /** 获取目录树（CTE 扁平化列表，含 depth/path） */
-export async function fetchCatalogTree(corpusId: string): Promise<CatalogNode[]> {
-  const res = await fetch(`/api/knowledge/catalog/tree/${corpusId}`, {
+export async function fetchCatalogTree(catalogId: string): Promise<CatalogNode[]> {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/tree`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch catalog tree: ${res.statusText}`);
@@ -2223,12 +2248,12 @@ export async function fetchCatalogTree(corpusId: string): Promise<CatalogNode[]>
 
 /** 获取目录节点列表（分页） */
 export async function fetchCatalogNodes(params: {
-  corpus_id?: string;
+  catalog_id?: string;
   limit?: number;
   offset?: number;
 }): Promise<CatalogNodesResponse> {
   const query = new URLSearchParams();
-  if (params.corpus_id) query.set("corpus_id", params.corpus_id);
+  if (params.catalog_id) query.set("catalog_id", params.catalog_id);
   if (params.limit != null) query.set("limit", String(params.limit));
   if (params.offset != null) query.set("offset", String(params.offset));
   const qs = query.toString();
@@ -2241,16 +2266,12 @@ export async function fetchCatalogNodes(params: {
 
 /** 创建目录节点
  *
- * 后端契约（knowledge/api.py:3731-3735）：
- *   POST /knowledge/catalog/nodes?corpus_id=<uuid>
- *   body: CatalogNodeCreateRequest { name, slug?, parent_id?, node_type?, description?, sort_order?, config? }
- * 即 `corpus_id` 是 Query 参数而非 body 字段；body schema 不包含 corpus_id。
- * 此处显式将 corpus_id 从入参中剥离到 query string 以对齐契约；其他字段保留在 body 中。
+ * 后端契约（knowledge/api.py POST /catalogs/{catalog_id}/entries）：
+ *   catalog_id 作为路径参数；body 中其他字段。
  */
 export async function createCatalogNode(params: CreateCatalogNodeParams): Promise<CatalogNode> {
-  const { corpus_id, ...body } = params;
-  const qs = new URLSearchParams({ corpus_id }).toString();
-  const res = await fetch(`/api/knowledge/catalog?${qs}`, {
+  const { catalog_id, ...body } = params;
+  const res = await fetch(`/api/knowledge/catalogs/${catalog_id}/entries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -2326,6 +2347,41 @@ export async function unassignDocumentFromNode(
   if (!res.ok) throw new Error(`Failed to unassign document: ${res.statusText}`);
 }
 
+/** 列出全局 Catalog（按 app_name 过滤） */
+export async function fetchCatalogs(params?: {
+  appName?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<DocCatalogListResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.limit != null) query.set("limit", String(params.limit));
+  if (params?.offset != null) query.set("offset", String(params.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/catalogs${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch catalogs: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取 Catalog 下可用文档（跨 corpus，用于 AddDocumentsDialog） */
+export async function fetchCatalogDocuments(
+  catalogId: string,
+  params?: { limit?: number; offset?: number },
+): Promise<DocCatalogDocumentsResponse> {
+  const query = new URLSearchParams();
+  if (params?.limit != null) query.set("limit", String(params.limit));
+  if (params?.offset != null) query.set("offset", String(params.offset));
+  const qs = query.toString();
+  const res = await fetch(
+    `/api/knowledge/catalogs/${catalogId}/documents${qs ? `?${qs}` : ""}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`Failed to fetch catalog documents: ${res.statusText}`);
+  return res.json();
+}
+
 // ============================================================================
 // Wiki Publishing Types
 // ============================================================================
@@ -2333,9 +2389,13 @@ export async function unassignDocumentFromNode(
 export type WikiPublicationStatus = "draft" | "published" | "archived";
 export type WikiTheme = "default" | "book" | "docs";
 
+export type WikiPublishMode = "live" | "snapshot";
+
 export interface WikiPublication {
   id: string;
-  corpus_id: string;
+  catalog_id: string;
+  app_name: string;
+  publish_mode: WikiPublishMode;
   name: string;
   slug: string;
   description: string | null;
@@ -2355,11 +2415,12 @@ export interface WikiPublicationListResponse {
 }
 
 export interface CreateWikiPublicationParams {
-  corpus_id: string;
+  catalog_id: string;
   name: string;
   slug?: string;
   description?: string;
   theme?: WikiTheme;
+  publish_mode?: WikiPublishMode;
 }
 
 export interface UpdateWikiPublicationParams {
@@ -2429,13 +2490,13 @@ export interface SyncFromCatalogResponse {
 
 /** 列出 Wiki 发布记录 */
 export async function fetchWikiPublications(params?: {
-  corpusId?: string;
+  catalogId?: string;
   status?: WikiPublicationStatus;
   offset?: number;
   limit?: number;
 }): Promise<WikiPublicationListResponse> {
   const query = new URLSearchParams();
-  if (params?.corpusId) query.set("corpus_id", params.corpusId);
+  if (params?.catalogId) query.set("catalog_id", params.catalogId);
   if (params?.status) query.set("status", params.status);
   if (params?.offset != null) query.set("offset", String(params.offset));
   if (params?.limit != null) query.set("limit", String(params.limit));

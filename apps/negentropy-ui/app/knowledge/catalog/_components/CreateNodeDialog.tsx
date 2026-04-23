@@ -21,7 +21,7 @@ function slugify(text: string): string {
 interface CreateNodeDialogProps {
   open: boolean;
   parentId: string | null;
-  corpusId: string;
+  catalogId: string;
   onClose: () => void;
   onCreated: (node: CatalogNode) => void;
 }
@@ -29,7 +29,7 @@ interface CreateNodeDialogProps {
 export function CreateNodeDialog({
   open,
   parentId,
-  corpusId,
+  catalogId,
   onClose,
   onCreated,
 }: CreateNodeDialogProps) {
@@ -57,7 +57,7 @@ export function CreateNodeDialog({
     setSubmitting(true);
     try {
       const node = await createCatalogNode({
-        corpus_id: corpusId,
+        catalog_id: catalogId,
         name: name.trim(),
         slug: slug.trim(),
         parent_id: parentId ?? undefined,
@@ -72,7 +72,7 @@ export function CreateNodeDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [name, slug, nodeType, corpusId, parentId, onCreated, onClose, handleReset]);
+  }, [name, slug, nodeType, catalogId, parentId, onCreated, onClose, handleReset]);
 
   if (!open) return null;
 

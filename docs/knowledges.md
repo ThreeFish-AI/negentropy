@@ -543,9 +543,127 @@ Memory 运行时能力分为两层：
 > [!NOTE]
 > 管理员 (`admin` 角色) 可访问 Memory Dashboard 与 Memory Automation 控制面；调度能力是否可写取决于 `pg_cron` 是否可安装且可访问，详见 [memory.md](./memory.md)。
 
-## 13. 测试覆盖
+## 13. Catalog / Wiki Publication 三层正交架构
 
-### 13.1 单元测试
+> 本节记录 Phase 3 Catalog 全局化重构（commits `ebe5a91`–`59be678`）落地后的架构状态。
+
+### 13.1 设计背景与动机
+
+原始设计中，`doc_catalog_nodes.corpus_id NOT NULL` 将 **Catalog（目录组织视图）** 强绑定到 **Corpus（存储/检索单元）**，违反 **Orthogonal Decomposition（正交分解）** 原则：
+
+- Corpus 本应是「存储 / 检索 / embedding」单元；
+- Catalog 本应是「人类可读的组织视图」（N:M，可跨 Corpus 聚合文档）；
+- Publication 本应是「发布 / 展示」单元（软链接订阅 Catalog）。
+
+三层被压缩到一根 `corpus_id` 外键，导致用户无法跨 Corpus 聚合文档，Wiki 发布也被迫 corpus-scoped。
+
+**业界范式参照**（IEEE）：
+
+- **MediaWiki Category N:M**<sup>[[6]](#ref6-catalog)</sup>：Catalog 与 Corpus 完全正交，Page 可属多 Category；
+- **GitBook Site→Space 订阅**<sup>[[7]](#ref7-catalog)</sup>：Publication 以软链接订阅内容源，支持 live / snapshot 两种模式；
+- **Confluence Include Page 权限规则**<sup>[[8]](#ref8-catalog)</sup>：权限以源为准，聚合侧只能做交集，不能放大访问域。
+
+### 13.2 数据模型（三层正交 ER）
+
+```mermaid
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+erDiagram
+    Corpus {
+        uuid id PK
+        string app_name
+        string name
+    }
+    KnowledgeDocument {
+        uuid id PK
+        uuid corpus_id FK
+        string app_name
+        string original_filename
+    }
+    DocCatalog {
+        uuid id PK
+        string app_name
+        string name
+        string slug
+        string visibility
+        bool is_archived
+    }
+    DocCatalogEntry {
+        uuid id PK
+        uuid catalog_id FK
+        uuid parent_entry_id FK
+        uuid document_id FK
+        uuid source_corpus_id
+        string node_type
+        string name
+        string slug_override
+        int position
+        string status
+    }
+    WikiPublication {
+        uuid id PK
+        uuid catalog_id FK
+        string app_name
+        string name
+        string slug
+        string status
+        string publish_mode
+        int version
+    }
+
+    Corpus ||--o{ KnowledgeDocument : "owns"
+    DocCatalog ||--o{ DocCatalogEntry : "contains"
+    DocCatalogEntry }o--o{ KnowledgeDocument : "references (N:M)"
+    DocCatalogEntry ||--o{ DocCatalogEntry : "parent_entry_id (tree)"
+    WikiPublication }o--|| DocCatalog : "subscribes"
+```
+
+**核心不变量**：
+
+| 层次 | 实体 | 职责 | 关键约束 |
+|------|------|------|---------|
+| 存储层 | `Corpus` + `KnowledgeDocument` | 物理存储、embedding、检索 | `app_name` 租户隔离，SSOT |
+| 组织层 | `DocCatalog` + `DocCatalogEntry` | 人类可读目录树，N:M 软引用 | `catalog.app_name` 创建后不可变 |
+| 发布层 | `WikiPublication` | 订阅 Catalog，生成公开站点 | `publication.app_name == catalog.app_name` |
+
+### 13.3 权限模型（三级取交集）
+
+```
+viewer 读取 Publication Entry 的权限 =
+    viewer 对 document.corpus 有读权限
+    ∩ catalog 可见性 allow
+    ∩ publication 可见性 allow
+```
+
+**关键拦截点**（`catalog_service.py:315-319`）：向 Catalog 添加文档时，强制断言 `document.corpus.app_name == catalog.app_name`，违反则抛 `PermissionError("cross-app assignment forbidden")`。
+
+### 13.4 失效语义（Orphaned Entry）
+
+| 触发源 | 响应 | 用户可见行为 |
+|--------|------|------------|
+| Document 物理删除 | `catalog_entries.document_id` SET NULL, `status = orphaned` | Wiki 渲染为占位「该文档已失效」 |
+| Corpus 被删除 | 级联所有 entries `status = orphaned` | 同上 |
+| Catalog 归档 | `is_archived = true`，新增 entry 被拒绝 | 标记「归档」 |
+
+### 13.5 Wiki 发布模式
+
+| 模式 | 行为 | 适用场景 |
+|------|------|---------|
+| `live`（默认） | 实时跟随 Catalog/Document 变更；SSG ISR 事件驱动增量刷新 | 日常在线文档 |
+| `snapshot` | 发布时冻结 `(catalog_entries, document_versions)` 到 `wiki_publication_snapshots`；后续变更不影响 | 合规留档、版本里程碑 |
+
+**版本语义**：每次 `publish()` 递增 `version`；`unpublish()` → `draft`；`archive()` → `archived`（不可逆）。
+
+### 13.6 数据库迁移（三阶段）
+
+| Revision | 内容 | 策略 |
+|---------|------|------|
+| `0003` | 新建 `doc_catalogs` / `doc_catalog_entries` / `wiki_publication_snapshots` 骨架 | 纯加法，无锁 |
+| `0004` | Backfill：从 `doc_catalog_nodes` 平移到 `doc_catalog_entries`；回填 `wiki_publications.catalog_id` | chunked batch，500 行/批 |
+| `0005` | Enforce：施加 NOT NULL 约束、UNIQUE(catalog_id, slug)；DROP `doc_catalog_nodes` / `doc_catalog_memberships` / `corpus_id` | 含 downgrade 守卫（跨 corpus catalog 拒绝降级） |
+
+## 14. 测试覆盖
+
+### 14.1 单元测试
 
 ```bash
 cd apps/negentropy
@@ -556,9 +674,40 @@ uv run pytest tests/unit_tests/engine/ -v            # Memory 治理
 - **Knowledge**: chunking / types / reranking 测试
 - **Memory Governance**: 遗忘曲线（新鲜记忆/高频访问/长期未访问/指数衰减公式/边界值/自定义 λ）
 
-### 13.2 集成测试（需要 PostgreSQL）
+### 14.2 集成测试（需要 PostgreSQL）
 
 ```bash
 uv run pytest tests/integration_tests/knowledge/ -v
 uv run pytest tests/integration_tests/engine/adapters/postgres/ -v
 ```
+
+**Catalog 专项集成测试**（Phase 3 新增）：
+
+| 文件 | 覆盖范围 |
+|------|---------|
+| [`test_catalog_dao_integration.py`](../apps/negentropy/tests/integration_tests/knowledge/test_catalog_dao_integration.py) | `CatalogDao` CRUD、树遍历、文档归入/移除 |
+| [`test_catalog_cross_corpus.py`](../apps/negentropy/tests/integration_tests/knowledge/test_catalog_cross_corpus.py) | 跨 app_name 权限拒绝、catalog 隔离、orphaned entry |
+| [`test_wiki_publish_modes.py`](../apps/negentropy/tests/integration_tests/knowledge/test_wiki_publish_modes.py) | WikiPublishingService 完整生命周期、版本递增、slug/theme 校验 |
+
+### 14.3 性能基准（`tests/performance_tests/knowledge/`）
+
+```bash
+uv run pytest tests/performance_tests/knowledge/test_catalog_tree_perf.py -v
+```
+
+| 指标 | 阈值 | 备注 |
+|------|------|------|
+| `get_tree()` 平均（84 节点） | < 50ms | 含 warmup，5 次平均 |
+| `get_tree()` P99 | < 100ms | |
+| `get_subtree()` 平均 | < 20ms | |
+| `list_catalogs()` 平均 | < 10ms | |
+
+---
+
+## 参考文献（Catalog 架构）
+
+<a id="ref6-catalog"></a>[6] Wikimedia Foundation, "Help:Category," *Wikipedia*, 2025. [Online]. Available: https://en.wikipedia.org/wiki/Help:Category
+
+<a id="ref7-catalog"></a>[7] GitBook, "Collections," *GitBook Documentation*, 2025. [Online]. Available: https://docs.gitbook.com/creating-content/content-structure/collection
+
+<a id="ref8-catalog"></a>[8] Atlassian, "Include Page Macro," *Confluence Data Center Documentation*, 2024. [Online]. Available: https://confluence.atlassian.com/doc/include-page-macro-139514.html

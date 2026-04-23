@@ -123,28 +123,40 @@ class FakeAsyncSessionForCatalog:
 
 
 def _make_node(**overrides: Any) -> SimpleNamespace:
-    """快速构建 DocCatalogNode 的 SimpleNamespace 替身。"""
+    """快速构建 DocCatalogEntry 的 SimpleNamespace 替身。"""
     defaults: dict[str, Any] = {
         "id": uuid4(),
-        "corpus_id": uuid4(),
+        "catalog_id": uuid4(),
         "name": "Test Node",
-        "slug": "test-node",
-        "parent_id": None,
-        "node_type": "category",
+        "slug_override": "test-node",
+        "parent_entry_id": None,
+        "node_type": "CATEGORY",
         "description": None,
-        "sort_order": 0,
+        "position": 0,
         "config": {},
+        "status": "ACTIVE",
+        "document_id": None,
+        "source_corpus_id": None,
     }
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
 
 
-def _make_membership(**overrides: Any) -> SimpleNamespace:
-    """快速构建 DocCatalogMembership 的 SimpleNamespace 替身。"""
+def _make_doc_ref(**overrides: Any) -> SimpleNamespace:
+    """快速构建 DOCUMENT_REF 型 DocCatalogEntry 的 SimpleNamespace 替身。"""
     defaults: dict[str, Any] = {
         "id": uuid4(),
-        "catalog_node_id": uuid4(),
+        "catalog_id": uuid4(),
+        "name": "doc.pdf",
+        "slug_override": None,
+        "parent_entry_id": uuid4(),
+        "node_type": "DOCUMENT_REF",
+        "description": None,
+        "position": 0,
+        "config": {},
+        "status": "ACTIVE",
         "document_id": uuid4(),
+        "source_corpus_id": uuid4(),
     }
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
@@ -161,7 +173,7 @@ class TestCatalogNodeCrud:
     @pytest.mark.asyncio
     async def test_create_node_logs_with_non_reserved_extra_keys(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """create_node 日志应避免覆写 LogRecord 保留字段。"""
-        corpus_id = uuid4()
+        catalog_id = uuid4()
         session = FakeAsyncSessionForCatalog()
         captured: dict[str, Any] = {}
 
@@ -173,7 +185,7 @@ class TestCatalogNodeCrud:
 
         await CatalogDao.create_node(
             session,
-            corpus_id=corpus_id,
+            catalog_id=catalog_id,
             name="Root Category",
             slug="root-category",
         )
@@ -185,12 +197,12 @@ class TestCatalogNodeCrud:
     @pytest.mark.asyncio
     async def test_create_node_adds_to_session_and_flushes(self) -> None:
         """create_node 应调用 db.add + db.flush，且节点字段正确设置"""
-        corpus_id = uuid4()
+        catalog_id = uuid4()
         session = FakeAsyncSessionForCatalog()
 
         node = await CatalogDao.create_node(
             session,
-            corpus_id=corpus_id,
+            catalog_id=catalog_id,
             name="Root Category",
             slug="root-category",
             parent_id=None,
@@ -203,32 +215,32 @@ class TestCatalogNodeCrud:
         assert len(session.added) == 1
         assert session.flush_count == 1
         created = session.added[0]
-        assert created.corpus_id == corpus_id
+        assert created.catalog_id == catalog_id
         assert created.name == "Root Category"
-        assert created.slug == "root-category"
-        assert created.parent_id is None
-        assert created.node_type == "category"
+        assert created.slug_override == "root-category"
+        assert created.parent_entry_id is None
+        assert created.node_type == "CATEGORY"
         assert created.description == "Top level category"
-        assert created.sort_order == 1
+        assert created.position == 1
         assert created.config == {"theme": "dark"}
         assert node is created
 
     @pytest.mark.asyncio
     async def test_create_node_default_values(self) -> None:
-        """create_node 未传可选字段时应使用默认值：node_type=category, sort_order=0, config={}"""
-        corpus_id = uuid4()
+        """create_node 未传可选字段时应使用默认值：node_type=CATEGORY, position=0, config={}"""
+        catalog_id = uuid4()
         session = FakeAsyncSessionForCatalog()
 
         await CatalogDao.create_node(
             session,
-            corpus_id=corpus_id,
+            catalog_id=catalog_id,
             name="Default Node",
             slug="default-node",
         )
 
         created = session.added[0]
-        assert created.node_type == "category"
-        assert created.sort_order == 0
+        assert created.node_type == "CATEGORY"
+        assert created.position == 0
         assert created.config == {}
 
     @pytest.mark.asyncio
@@ -249,21 +261,21 @@ class TestCatalogNodeCrud:
 
     @pytest.mark.asyncio
     async def test_get_node_by_slug_executes_select(self) -> None:
-        """get_node_by_slug 应按 corpus_id + slug 执行 select"""
-        corpus_id = uuid4()
+        """get_node_by_slug 应按 catalog_id + slug_override 执行 select"""
+        catalog_id = uuid4()
         slug = "my-slug"
-        expected_node = _make_node(corpus_id=corpus_id, slug=slug)
+        expected_node = _make_node(catalog_id=catalog_id, slug_override=slug)
         session = FakeAsyncSessionForCatalog(
             execute_responses=[
                 _FakeResult(scalar_value=expected_node),
             ]
         )
 
-        result = await CatalogDao.get_node_by_slug(session, corpus_id, slug)
+        result = await CatalogDao.get_node_by_slug(session, catalog_id, slug)
 
         assert result is expected_node
-        assert result.corpus_id == corpus_id
-        assert result.slug == slug
+        assert result.catalog_id == catalog_id
+        assert result.slug_override == slug
 
     @pytest.mark.asyncio
     async def test_update_node_only_updates_non_none_fields(self) -> None:
@@ -272,8 +284,8 @@ class TestCatalogNodeCrud:
         original = _make_node(
             id=node_id,
             name="Old Name",
-            slug="old-slug",
-            sort_order=0,
+            slug_override="old-slug",
+            position=0,
             description=None,
         )
         session = FakeAsyncSessionForCatalog(
@@ -297,10 +309,10 @@ class TestCatalogNodeCrud:
 
         assert updated is original
         assert updated.name == "New Name"
-        assert updated.sort_order == 10
+        assert updated.position == 10
         assert updated.description == "Desc"
         # 未传入的字段保持原值
-        assert updated.slug == "old-slug"
+        assert updated.slug_override == "old-slug"
 
     @pytest.mark.asyncio
     async def test_update_node_returns_none_for_missing(self) -> None:
@@ -367,85 +379,89 @@ class TestCatalogMembership:
 
     @pytest.mark.asyncio
     async def test_assign_document_creates_membership(self) -> None:
-        """assign_document 应创建新的 DocCatalogMembership 并 flush"""
-        catalog_node_id = uuid4()
+        """assign_document 应创建新的 DOCUMENT_REF 子条目并 flush"""
+        catalog_entry_id = uuid4()
+        catalog_id = uuid4()
         document_id = uuid4()
+        corpus_id = uuid4()
+        parent_entry = _make_node(id=catalog_entry_id, catalog_id=catalog_id)
+        doc = SimpleNamespace(id=document_id, corpus_id=corpus_id, original_filename="doc.pdf")
         session = FakeAsyncSessionForCatalog(
             execute_responses=[
-                # 查询已存在记录 → 无
+                # 1. 查询已存在 DOCUMENT_REF → 无
                 _FakeResult(scalar_value=None),
+                # 2. get_node(parent) → 父条目
+                _FakeResult(scalar_value=parent_entry),
+                # 3. KnowledgeDocument 查询
+                _FakeResult(scalar_value=doc),
             ]
         )
 
-        membership = await CatalogDao.assign_document(
+        result = await CatalogDao.assign_document(
             session,
-            catalog_node_id=catalog_node_id,
+            catalog_entry_id=catalog_entry_id,
             document_id=document_id,
         )
 
         assert len(session.added) == 1
         assert session.flush_count == 1
         created = session.added[0]
-        assert created.catalog_node_id == catalog_node_id
+        assert created.parent_entry_id == catalog_entry_id
         assert created.document_id == document_id
-        assert membership is created
+        assert created.node_type == "DOCUMENT_REF"
+        assert created.source_corpus_id == corpus_id
+        assert result is created
 
     @pytest.mark.asyncio
     async def test_assign_document_idempotent_returns_existing(self) -> None:
-        """assign_document 幂等性：已存在记录时直接返回，不重复创建"""
-        catalog_node_id = uuid4()
+        """assign_document 幂等性：已存在 DOCUMENT_REF 时直接返回，不重复创建"""
+        catalog_entry_id = uuid4()
         document_id = uuid4()
-        existing = _make_membership(
-            catalog_node_id=catalog_node_id,
-            document_id=document_id,
-        )
+        existing = _make_doc_ref(parent_entry_id=catalog_entry_id, document_id=document_id)
         session = FakeAsyncSessionForCatalog(
             execute_responses=[
-                # 查询已存在记录 → 有
+                # 查询已存在 DOCUMENT_REF → 有
                 _FakeResult(scalar_value=existing),
             ]
         )
 
-        membership = await CatalogDao.assign_document(
+        result = await CatalogDao.assign_document(
             session,
-            catalog_node_id=catalog_node_id,
+            catalog_entry_id=catalog_entry_id,
             document_id=document_id,
         )
 
-        assert membership is existing
+        assert result is existing
         assert len(session.added) == 0  # 不应新增
         assert session.flush_count == 0  # 不应 flush
 
     @pytest.mark.asyncio
     async def test_unassign_document_deletes_membership(self) -> None:
-        """unassign_document 应删除已有 membership 并返回 True"""
-        catalog_node_id = uuid4()
+        """unassign_document 应删除已有 DOCUMENT_REF 子条目并返回 True"""
+        catalog_entry_id = uuid4()
         document_id = uuid4()
-        membership = _make_membership(
-            catalog_node_id=catalog_node_id,
-            document_id=document_id,
-        )
+        doc_ref = _make_doc_ref(parent_entry_id=catalog_entry_id, document_id=document_id)
         session = FakeAsyncSessionForCatalog(
             execute_responses=[
-                _FakeResult(scalar_value=membership),
+                _FakeResult(scalar_value=doc_ref),
             ]
         )
 
         result = await CatalogDao.unassign_document(
             session,
-            catalog_node_id=catalog_node_id,
+            catalog_entry_id=catalog_entry_id,
             document_id=document_id,
         )
 
         assert result is True
         assert len(session.deleted) == 1
-        assert session.deleted[0] is membership
+        assert session.deleted[0] is doc_ref
         assert session.flush_count == 1
 
     @pytest.mark.asyncio
     async def test_unassign_document_returns_false_when_missing(self) -> None:
         """unassign_document 在记录不存在时应返回 False"""
-        catalog_node_id = uuid4()
+        catalog_entry_id = uuid4()
         document_id = uuid4()
         session = FakeAsyncSessionForCatalog(
             execute_responses=[
@@ -455,7 +471,7 @@ class TestCatalogMembership:
 
         result = await CatalogDao.unassign_document(
             session,
-            catalog_node_id=catalog_node_id,
+            catalog_entry_id=catalog_entry_id,
             document_id=document_id,
         )
 
@@ -466,7 +482,7 @@ class TestCatalogMembership:
     @pytest.mark.asyncio
     async def test_get_node_documents_returns_tuple(self) -> None:
         """get_node_documents 应返回 (docs_list, total_count) 元组"""
-        catalog_node_id = uuid4()
+        catalog_entry_id = uuid4()
         doc1 = SimpleNamespace(id=uuid4(), title="Doc A")
         doc2 = SimpleNamespace(id=uuid4(), title="Doc B")
         session = FakeAsyncSessionForCatalog(
@@ -482,7 +498,7 @@ class TestCatalogMembership:
 
         documents, total = await CatalogDao.get_node_documents(
             session,
-            catalog_node_id=catalog_node_id,
+            catalog_entry_id=catalog_entry_id,
         )
 
         assert isinstance(documents, list)

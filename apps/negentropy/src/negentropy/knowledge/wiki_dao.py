@@ -35,7 +35,7 @@ class WikiDao:
     async def create_publication(
         db: AsyncSession,
         *,
-        corpus_id: UUID,
+        catalog_id: UUID,
         name: str,
         slug: str,
         description: str | None = None,
@@ -46,7 +46,7 @@ class WikiDao:
     ) -> WikiPublication:
         """创建 Wiki 发布记录（初始状态为 draft）"""
         pub = WikiPublication(
-            corpus_id=corpus_id,
+            catalog_id=catalog_id,
             name=name,
             slug=slug,
             description=description,
@@ -63,7 +63,7 @@ class WikiDao:
             "wiki_publication_created",
             extra={
                 "id": str(pub.id),
-                "corpus_id": str(corpus_id),
+                "catalog_id": str(catalog_id),
                 "publication_name": name,
                 "slug": slug,
             },
@@ -77,11 +77,11 @@ class WikiDao:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_publication_by_slug(db: AsyncSession, corpus_id: UUID, slug: str) -> WikiPublication | None:
-        """按 corpus + slug 获取发布记录"""
+    async def get_publication_by_slug(db: AsyncSession, catalog_id: UUID, slug: str) -> WikiPublication | None:
+        """按 catalog + slug 获取发布记录"""
         result = await db.execute(
             select(WikiPublication).where(
-                WikiPublication.corpus_id == corpus_id,
+                WikiPublication.catalog_id == catalog_id,
                 WikiPublication.slug == slug,
             )
         )
@@ -91,7 +91,7 @@ class WikiDao:
     async def list_publications(
         db: AsyncSession,
         *,
-        corpus_id: UUID | None = None,
+        catalog_id: UUID | None = None,
         status: str | None = None,
         offset: int = 0,
         limit: int = 50,
@@ -101,9 +101,9 @@ class WikiDao:
 
         count_base = select(func.count()).select_from(WikiPublication)
 
-        if corpus_id is not None:
-            query = query.where(WikiPublication.corpus_id == corpus_id)
-            count_base = count_base.where(WikiPublication.corpus_id == corpus_id)
+        if catalog_id is not None:
+            query = query.where(WikiPublication.catalog_id == catalog_id)
+            count_base = count_base.where(WikiPublication.catalog_id == catalog_id)
         if status is not None:
             query = query.where(WikiPublication.status == status)
             count_base = count_base.where(WikiPublication.status == status)

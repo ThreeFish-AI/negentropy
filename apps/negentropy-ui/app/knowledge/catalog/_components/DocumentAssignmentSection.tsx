@@ -12,12 +12,12 @@ import { AddDocumentsDialog } from "./AddDocumentsDialog";
 
 interface DocumentAssignmentSectionProps {
   nodeId: string;
-  corpusId: string;
+  catalogId: string;
 }
 
 export function DocumentAssignmentSection({
   nodeId,
-  corpusId,
+  catalogId,
 }: DocumentAssignmentSectionProps) {
   const [docs, setDocs] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export function DocumentAssignmentSection({
         </h3>
         <button
           onClick={() => setAdding(true)}
-          disabled={!corpusId}
+          disabled={!catalogId}
           className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border text-muted hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="h-3 w-3" />
@@ -104,10 +104,10 @@ export function DocumentAssignmentSection({
         </ul>
       )}
 
-      {adding && corpusId && (
+      {adding && catalogId && (
         <AddDocumentsDialog
           nodeId={nodeId}
-          corpusId={corpusId}
+          catalogId={catalogId}
           existingDocIds={new Set(docs.map((d) => d.id))}
           onClose={() => setAdding(false)}
           onAdded={handleAdded}

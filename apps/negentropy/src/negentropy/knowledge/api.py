@@ -3629,10 +3629,10 @@ def _get_catalog_service() -> CatalogService:
 
 
 def _to_catalog_node_resp(row: dict, *, children_count: int = 0, document_count: int = 0) -> _CatalogNodeResp:
-    """将 DAO 树查询行转换为 API 响应 Schema"""
+    """将 DAO 树查询行（dict）转换为 API 响应 Schema"""
     return _CatalogNodeResp(
         id=row["id"],
-        corpus_id=UUID("00000000-0000-0000-0000-000000000000"),  # tree query 不返回 corpus_id，由调用方补充
+        catalog_id=row["catalog_id"],
         parent_id=row.get("parent_id"),
         name=row["name"],
         slug=row["slug"],
@@ -3646,20 +3646,42 @@ def _to_catalog_node_resp(row: dict, *, children_count: int = 0, document_count:
     )
 
 
+def _entry_orm_to_resp(
+    entry: Any, *, depth: int = 0, children_count: int = 0, document_count: int = 0
+) -> _CatalogNodeResp:
+    """将 DocCatalogEntry ORM 对象转换为 API 响应 Schema"""
+    from negentropy.knowledge.catalog_dao import _ENUM_TO_NODE_TYPE, _compute_slug
+
+    return _CatalogNodeResp(
+        id=entry.id,
+        catalog_id=entry.catalog_id,
+        parent_id=entry.parent_entry_id,
+        name=entry.name,
+        slug=_compute_slug(entry.name, entry.slug_override),
+        node_type=_ENUM_TO_NODE_TYPE.get(entry.node_type, entry.node_type) if entry.node_type else "category",
+        description=entry.description,
+        sort_order=entry.position or 0,
+        config=entry.config or {},
+        depth=depth,
+        children_count=children_count,
+        document_count=document_count,
+    )
+
+
 # --- 目录树查询 ---
 
 
-@router.get("/catalog/tree/{corpus_id}")
+@router.get("/catalog/tree/{catalog_id}")
 async def get_catalog_tree(
-    corpus_id: UUID,
+    catalog_id: UUID,
 ) -> CatalogTreeResponse:
-    """获取语料库完整目录树
+    """获取 Catalog 完整目录树
 
     返回扁平化的节点列表，每个节点含 depth（层级深度）和 path（祖先路径），
     前端可根据这些信息构建树形 UI 组件。
 
     Args:
-        corpus_id: 语料库 ID
+        catalog_id: Catalog ID
 
     Returns:
         目录树节点列表及统计信息
@@ -3667,7 +3689,7 @@ async def get_catalog_tree(
     catalog_svc = _get_catalog_service()
 
     async with AsyncSessionLocal() as db:
-        tree_data = await catalog_svc.get_tree(db, corpus_id)
+        tree_data = await catalog_svc.get_tree(db, catalog_id)
 
     # 计算每个节点的子节点数
     id_to_children_count: dict[UUID, int] = {}
@@ -3688,7 +3710,7 @@ async def get_catalog_tree(
 
     logger.info(
         "api_get_catalog_tree",
-        corpus_id=str(corpus_id),
+        catalog_id=str(catalog_id),
         total_nodes=len(items),
         max_depth=max_depth,
     )
@@ -3708,7 +3730,7 @@ async def get_catalog_node(node_id: UUID) -> _CatalogNodeResp:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
 
     logger.info("api_get_catalog_node", node_id=str(node_id))
-    return _CatalogNodeResp.model_validate(node)
+    return _entry_orm_to_resp(node)
 
 
 @router.get("/catalog/subtree/{node_id}")
@@ -3731,7 +3753,7 @@ async def get_catalog_subtree(node_id: UUID) -> CatalogTreeResponse:
 @router.post("/catalog/nodes")
 async def create_catalog_node(
     body: _CatalogNodeCreateReq,
-    corpus_id: UUID = Query(..., description="所属语料库 ID"),
+    catalog_id: UUID = Query(..., description="所属 Catalog ID"),
 ) -> _CatalogNodeResp:
     """创建目录节点
 
@@ -3744,7 +3766,7 @@ async def create_catalog_node(
         try:
             node = await catalog_svc.create_node(
                 db,
-                corpus_id=corpus_id,
+                catalog_id=catalog_id,
                 name=body.name,
                 slug=body.slug,
                 parent_id=body.parent_id,
@@ -3757,10 +3779,8 @@ async def create_catalog_node(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         await db.commit()
 
-    logger.info("api_create_catalog_node", node_id=str(node.id), corpus_id=str(corpus_id))
-    resp = _CatalogNodeResp.model_validate(node)
-    resp.corpus_id = corpus_id
-    return resp
+    logger.info("api_create_catalog_node", node_id=str(node.id), catalog_id=str(catalog_id))
+    return _entry_orm_to_resp(node)
 
 
 @router.patch("/catalog/nodes/{node_id}")
@@ -3788,7 +3808,7 @@ async def update_catalog_node(
         await db.commit()
 
     logger.info("api_update_catalog_node", node_id=str(node_id))
-    return _CatalogNodeResp.model_validate(node)
+    return _entry_orm_to_resp(node)
 
 
 @router.delete("/catalog/nodes/{node_id}")
@@ -3832,7 +3852,7 @@ async def move_catalog_node(
     logger.info(
         "api_move_catalog_node", node_id=str(node_id), new_parent_id=str(new_parent_id) if new_parent_id else "root"
     )
-    return _CatalogNodeResp.model_validate(node)
+    return _entry_orm_to_resp(node)
 
 
 # --- 文档归属管理 ---
@@ -3853,7 +3873,7 @@ async def assign_documents_to_node(
             try:
                 await catalog_svc.assign_document(db, node_id, doc_id)
                 assigned_count += 1
-            except ValueError as exc:
+            except (ValueError, PermissionError) as exc:
                 errors.append(f"{doc_id}: {exc}")
 
         await db.commit()
@@ -3972,7 +3992,7 @@ async def create_wiki_publication(
         try:
             pub = await wiki_svc.create_publication(
                 db,
-                corpus_id=body.corpus_id,
+                catalog_id=body.catalog_id,
                 name=body.name,
                 slug=body.slug,
                 description=body.description,
@@ -3982,7 +4002,7 @@ async def create_wiki_publication(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         await db.commit()
 
-    logger.info("api_create_wiki_pub", pub_id=str(pub.id), corpus_id=str(body.corpus_id))
+    logger.info("api_create_wiki_pub", pub_id=str(pub.id), catalog_id=str(body.catalog_id))
     resp = _WikiPubResp.model_validate(pub)
     resp.entries_count = 0
     return resp
@@ -3990,7 +4010,7 @@ async def create_wiki_publication(
 
 @router.get("/wiki/publications")
 async def list_wiki_publications(
-    corpus_id: UUID | None = Query(default=None),
+    catalog_id: UUID | None = Query(default=None),
     status: str | None = Query(default=None),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
@@ -4000,7 +4020,7 @@ async def list_wiki_publications(
 
     async with AsyncSessionLocal() as db:
         pubs, total = await wiki_svc.list_publications(
-            db, corpus_id=corpus_id, status=status, offset=offset, limit=limit
+            db, catalog_id=catalog_id, status=status, offset=offset, limit=limit
         )
 
     items = []

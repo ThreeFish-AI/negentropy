@@ -83,6 +83,8 @@ export {
   clearCorpusGraph,
   fetchGraphBuildHistory,
   // Catalog Management
+  fetchCatalogs,
+  fetchCatalogDocuments,
   fetchCatalogTree,
   fetchCatalogNodes,
   createCatalogNode,
@@ -174,6 +176,9 @@ export type {
   GraphBuildHistoryResult,
   // Catalog Management
   CatalogNodeType,
+  DocCatalog,
+  DocCatalogListResponse,
+  DocCatalogDocumentsResponse,
   CatalogNode,
   CreateCatalogNodeParams,
   UpdateCatalogNodeParams,
@@ -182,6 +187,7 @@ export type {
   CatalogNodeDocumentsResponse,
   // Wiki Publishing
   WikiPublicationStatus,
+  WikiPublishMode,
   WikiTheme,
   WikiPublication,
   WikiPublicationListResponse,

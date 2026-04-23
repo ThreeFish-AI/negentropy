@@ -9,9 +9,6 @@ from .observability import Trace
 from .perception import (
     Corpus,
     CorpusVersion,
-    DocCatalogMembership,
-    # Phase 3: 目录编目
-    DocCatalogNode,
     # Phase 2: 来源追踪
     DocSource,
     # Phase 5: 知识图谱增强
@@ -63,9 +60,7 @@ __all__ = [
     "KnowledgeDocument",
     # Phase 2: 来源追踪
     "DocSource",
-    # Phase 3: 目录编目
-    "DocCatalogNode",
-    "DocCatalogMembership",
+    # Phase 6: Catalog 全局化（Phase 3 后 DocCatalogNode/Membership 已 DROP）
     # Phase 4: Wiki 发布
     "WikiPublication",
     "WikiPublicationEntry",
