@@ -12,11 +12,11 @@
 
 Negentropy Wiki 是 Negentropy 平台的知识库文档发布站点，负责将后端知识库中已发布的内容以静态网站形式对外展示。
 
-| 组件 | 角色 | 技术栈 |
-|------|------|-------|
-| **negentropy** | 后端引擎（知识库管理） | Python + FastAPI |
-| **negentropy-ui** | 用户交互界面 | Next.js + React |
-| **negentropy-wiki** | 文档发布站点（本组件） | Next.js + SSG |
+| 组件                | 角色                   | 技术栈           |
+| ------------------- | ---------------------- | ---------------- |
+| **negentropy**      | 后端引擎（知识库管理） | Python + FastAPI |
+| **negentropy-ui**   | 用户交互界面           | Next.js + React  |
+| **negentropy-wiki** | 文档发布站点（本组件） | Next.js + SSG    |
 
 ### 1.2 核心特性
 
@@ -60,11 +60,11 @@ flowchart LR
 
 ### 2.2 路由结构
 
-| 路由 | 页面文件 | 功能 |
-|------|---------|------|
-| `/` | `src/app/page.tsx` | 首页：列出所有已发布的 Publication |
-| `/:pubSlug` | `src/app/[pubSlug]/page.tsx` | Publication 首页：导航树 + 文档索引 |
-| `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染 |
+| 路由                   | 页面文件                                 | 功能                                |
+| ---------------------- | ---------------------------------------- | ----------------------------------- |
+| `/`                    | `src/app/page.tsx`                       | 首页：列出所有已发布的 Publication  |
+| `/:pubSlug`            | `src/app/[pubSlug]/page.tsx`             | Publication 首页：导航树 + 文档索引 |
+| `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染           |
 
 ### 2.3 数据流
 
@@ -86,18 +86,18 @@ flowchart LR
 
 ### 3.1 环境变量
 
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `WIKI_API_BASE` | `http://localhost:8000` | 后端 API 基础地址 |
+| 变量名          | 默认值                  | 说明              |
+| --------------- | ----------------------- | ----------------- |
+| `WIKI_API_BASE` | `http://localhost:3092` | 后端 API 基础地址 |
 
 ### 3.2 依赖版本
 
-| 依赖 | 版本 | 用途 |
-|------|------|------|
-| `next` | ^15.2.0 | Next.js 框架 |
-| `react` | ^19.0.0 | UI 库 |
-| `typescript` | ^5.7.0 | 类型检查 |
-| `vitest` | ^4.1.3 | 单元测试（dev） |
+| 依赖         | 版本    | 用途            |
+| ------------ | ------- | --------------- |
+| `next`       | ^15.2.0 | Next.js 框架    |
+| `react`      | ^19.0.0 | UI 库           |
+| `typescript` | ^5.7.0  | 类型检查        |
+| `vitest`     | ^4.1.3  | 单元测试（dev） |
 
 ---
 
@@ -208,11 +208,11 @@ CMD ["node", "server.js"]
 
 ### 6.2 缓存更新场景
 
-| 场景 | 行为 |
-|------|------|
+| 场景                 | 行为                                    |
+| -------------------- | --------------------------------------- |
 | 后端新增 Publication | 下次构建时自动收录，或通过 ISR 自然更新 |
-| 后端更新内容 | 5 分钟内 ISR 自动刷新 |
-| 需要立即生效 | 重新部署或清除 CDN 缓存 |
+| 后端更新内容         | 5 分钟内 ISR 自动刷新                   |
+| 需要立即生效         | 重新部署或清除 CDN 缓存                 |
 
 ---
 
@@ -220,11 +220,11 @@ CMD ["node", "server.js"]
 
 ### 7.1 可用主题
 
-| 主题名 | 风格 | 侧边栏宽度 | 内容区宽度 |
-|--------|------|-----------|-----------|
-| `default` | Notion/Vercel | 280px | 800px |
-| `book` | GitBook | 300px | 900px |
-| `docs` | Docusaurus | 260px | 1024px |
+| 主题名    | 风格          | 侧边栏宽度 | 内容区宽度 |
+| --------- | ------------- | ---------- | ---------- |
+| `default` | Notion/Vercel | 280px      | 800px      |
+| `book`    | GitBook       | 300px      | 900px      |
+| `docs`    | Docusaurus    | 260px      | 1024px     |
 
 ### 7.2 主题切换
 
@@ -257,13 +257,13 @@ CMD ["node", "server.js"]
 
 ### 8.1 常见问题
 
-| 问题 | 可能原因 | 解决方案 |
-|------|---------|---------|
+| 问题                                      | 可能原因                               | 解决方案                                                                                                                              |
+| ----------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | 构建期告警 "Failed to fetch publications" | 后端 API 不可达（WARN 级，不阻断构建） | 后端暂不可达时 SSG 渲染空首页，首次请求由 ISR 自动自愈（5 分钟窗口）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性 |
-| 页面显示 "Wiki 未找到" | Publication 未发布或 slug 错误 | 检查后端 Publication 状态 |
-| 页面内容不更新 | ISR 缓存未过期 | 等待 5 分钟或重新部署 |
-| 深色模式样式异常 | 浏览器未启用深色模式 | 检查系统深色模式设置 |
-| Markdown 渲染异常 | 不支持的语法 | 检查 markdown.ts 支持的语法子集 |
+| 页面显示 "Wiki 未找到"                    | Publication 未发布或 slug 错误         | 检查后端 Publication 状态                                                                                                             |
+| 页面内容不更新                            | ISR 缓存未过期                         | 等待 5 分钟或重新部署                                                                                                                 |
+| 深色模式样式异常                          | 浏览器未启用深色模式                   | 检查系统深色模式设置                                                                                                                  |
+| Markdown 渲染异常                         | 不支持的语法                           | 检查 markdown.ts 支持的语法子集                                                                                                       |
 
 ### 8.2 日志查看
 
@@ -297,17 +297,17 @@ curl ${WIKI_API_BASE}/knowledge/wiki/publications?status=published
 
 ## 10. 关键文件速查
 
-| 文件 | 用途 |
-|------|------|
-| `src/app/layout.tsx` | 根布局、元数据、主题设置 |
-| `src/app/page.tsx` | 首页组件 |
-| `src/app/[pubSlug]/page.tsx` | Publication 页面 |
-| `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页 |
-| `src/lib/wiki-api.ts` | API 客户端 |
-| `src/lib/markdown.ts` | Markdown 渲染器 |
-| `src/app/globals.css` | 全局样式、主题变量 |
-| `next.config.ts` | Next.js 配置、API 代理 |
-| `vitest.config.ts` | 测试配置 |
+| 文件                                     | 用途                     |
+| ---------------------------------------- | ------------------------ |
+| `src/app/layout.tsx`                     | 根布局、元数据、主题设置 |
+| `src/app/page.tsx`                       | 首页组件                 |
+| `src/app/[pubSlug]/page.tsx`             | Publication 页面         |
+| `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页               |
+| `src/lib/wiki-api.ts`                    | API 客户端               |
+| `src/lib/markdown.ts`                    | Markdown 渲染器          |
+| `src/app/globals.css`                    | 全局样式、主题变量       |
+| `next.config.ts`                         | Next.js 配置、API 代理   |
+| `vitest.config.ts`                       | 测试配置                 |
 
 ---
 
