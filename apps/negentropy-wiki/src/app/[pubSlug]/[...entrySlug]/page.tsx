@@ -86,8 +86,17 @@ export default async function WikiEntryPage({ params }: Props) {
       {/* 侧边栏导航 */}
       <aside className="wiki-sidebar">
         <div className="wiki-sidebar-header">
-          <Link href={`/${pubSlug}`} className="wiki-sidebar-back">
-            ← {publication.name}
+          <Link
+            href={`/${pubSlug}`}
+            className="wiki-sidebar-back wiki-sidebar-brand"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+            <img
+              src="/logo.png"
+              alt="Negentropy"
+              className="wiki-sidebar-logo"
+            />
+            <span className="wiki-sidebar-title">← {publication.name}</span>
           </Link>
         </div>
         {navItems.length > 0 && (

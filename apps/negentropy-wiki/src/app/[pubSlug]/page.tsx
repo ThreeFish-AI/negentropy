@@ -78,7 +78,17 @@ export default async function WikiPublicationPage({ params }: Props) {
     <div className="wiki-layout">
       {/* 侧边栏导航 */}
       <aside className="wiki-sidebar">
-        <div className="wiki-sidebar-header">{publication.name}</div>
+        <div className="wiki-sidebar-header">
+          <div className="wiki-sidebar-brand">
+            {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+            <img
+              src="/logo.png"
+              alt="Negentropy"
+              className="wiki-sidebar-logo"
+            />
+            <span className="wiki-sidebar-title">{publication.name}</span>
+          </div>
+        </div>
         {publication.description && (
           <p className="wiki-sidebar-desc">{publication.description}</p>
         )}

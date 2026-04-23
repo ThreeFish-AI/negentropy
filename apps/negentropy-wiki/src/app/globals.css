@@ -492,6 +492,40 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
   text-decoration: none;
 }
 
+/* ====== Logo 展示 ====== */
+
+.wiki-home-logo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 1.25rem;
+  border-radius: 20px;
+  object-fit: contain;
+}
+
+.wiki-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.wiki-sidebar-logo {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.wiki-sidebar-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ====== 响应式 ====== */
 
 @media (max-width: 768px) {
