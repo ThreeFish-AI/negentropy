@@ -51,17 +51,6 @@ class Corpus(Base, UUIDMixin, TimestampMixin):
     knowledge_items: Mapped[list["Knowledge"]] = relationship(back_populates="corpus", cascade="all, delete-orphan")
     documents: Mapped[list["KnowledgeDocument"]] = relationship(back_populates="corpus", cascade="all, delete-orphan")
 
-    # Phase 3: 目录节点
-    catalog_nodes: Mapped[list["DocCatalogNode"]] = relationship(
-        back_populates="corpus",
-        cascade="all, delete-orphan",
-        order_by="DocCatalogNode.sort_order",
-    )
-    # Phase 4: Wiki 发布
-    wiki_publications: Mapped[list["WikiPublication"]] = relationship(
-        back_populates="corpus",
-        cascade="all, delete-orphan",
-    )
     # Phase 5: 版本快照
     versions: Mapped[list["CorpusVersion"]] = relationship(
         back_populates="corpus",
@@ -191,75 +180,6 @@ class DocSource(Base, UUIDMixin, TimestampMixin):
     __table_args__ = (
         Index("ix_doc_sources_document_id", "document_id"),
         Index("ix_doc_sources_source_type", "source_type"),
-        {"schema": NEGENTROPY_SCHEMA},
-    )
-
-
-# =============================================================================
-# Phase 3: 目录编目系统
-# =============================================================================
-
-
-class DocCatalogNode(Base, UUIDMixin, TimestampMixin):
-    """目录节点 — 层级目录树
-
-    采用 Adjacency List 模式（parent_id 自引用）实现层级结构。
-    通过 PostgreSQL WITH RECURSIVE CTE 支持高效树查询。
-
-    node_type:
-      - category: 纯分类容器
-      - collection: 有序集合（自定义排序语义）
-      - document_ref: 直接指向某篇文档的叶子节点
-    """
-
-    __tablename__ = "doc_catalog_nodes"
-
-    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
-    parent_id: Mapped[UUID | None] = mapped_column(fk("doc_catalog_nodes", ondelete="SET NULL"), nullable=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    slug: Mapped[str] = mapped_column(String(255), nullable=False)  # URL-friendly 标识
-    node_type: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="category"
-    )  # category | collection | document_ref
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
-
-    parent: Mapped["DocCatalogNode | None"] = relationship(remote_side="DocCatalogNode.id", back_populates="children")
-    children: Mapped[list["DocCatalogNode"]] = relationship(
-        back_populates="parent",
-        cascade="all, delete-orphan",
-        order_by="DocCatalogNode.sort_order",
-    )
-    corpus: Mapped["Corpus"] = relationship(back_populates="catalog_nodes")
-
-    __table_args__ = (
-        UniqueConstraint("corpus_id", "parent_id", "name", name="uq_catalog_sibling_name"),
-        UniqueConstraint("corpus_id", "slug", name="uq_catalog_corpus_slug"),
-        Index("ix_doc_catalog_nodes_corpus_id", "corpus_id"),
-        Index("ix_doc_catalog_nodes_parent_id", "parent_id"),
-        {"schema": NEGENTROPY_SCHEMA},
-    )
-
-
-class DocCatalogMembership(Base, UUIDMixin, TimestampMixin):
-    """目录-文档多对多关联表
-
-    一个文档可属于多个目录节点（如同时出现在分类和日期集合中）。
-    使用独立关联表而非 JSONB 数组以支持查询效率与级联删除。
-    """
-
-    __tablename__ = "doc_catalog_memberships"
-
-    catalog_node_id: Mapped[UUID] = mapped_column(fk("doc_catalog_nodes", ondelete="CASCADE"), nullable=False)
-    document_id: Mapped[UUID] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=False)
-
-    catalog_node: Mapped["DocCatalogNode"] = relationship()
-    document: Mapped["KnowledgeDocument"] = relationship()
-
-    __table_args__ = (
-        UniqueConstraint("catalog_node_id", "document_id", name="uq_catalog_membership_unique"),
-        Index("ix_catalog_memberships_document_id", "document_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
