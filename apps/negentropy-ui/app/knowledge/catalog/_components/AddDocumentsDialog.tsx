@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  fetchDocuments,
+  fetchCatalogDocuments,
   assignDocumentToNode,
   KnowledgeDocument,
 } from "@/features/knowledge";
@@ -10,7 +10,7 @@ import { toast } from "@/lib/activity-toast";
 
 interface AddDocumentsDialogProps {
   nodeId: string;
-  corpusId: string;
+  catalogId: string;
   existingDocIds: Set<string>;
   onClose: () => void;
   onAdded: () => void;
@@ -18,7 +18,7 @@ interface AddDocumentsDialogProps {
 
 export function AddDocumentsDialog({
   nodeId,
-  corpusId,
+  catalogId,
   existingDocIds,
   onClose,
   onAdded,
@@ -34,7 +34,7 @@ export function AddDocumentsDialog({
     const load = async () => {
       setLoading(true);
       try {
-        const res = await fetchDocuments(corpusId, { limit: 200 });
+        const res = await fetchCatalogDocuments(catalogId, { limit: 200 });
         if (!cancelled) setDocs(res.items ?? []);
       } catch (err) {
         if (!cancelled) {
@@ -48,7 +48,7 @@ export function AddDocumentsDialog({
     return () => {
       cancelled = true;
     };
-  }, [corpusId]);
+  }, [catalogId]);
 
   const filtered = useMemo(() => {
     const kw = keyword.trim().toLowerCase();

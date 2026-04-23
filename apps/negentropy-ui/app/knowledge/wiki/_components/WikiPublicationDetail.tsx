@@ -244,7 +244,7 @@ export function WikiPublicationDetail({
 
       <CatalogNodeSelectorDialog
         open={selectorOpen}
-        corpusId={publication.corpus_id}
+        corpusId={publication.catalog_id}
         onClose={() => setSelectorOpen(false)}
         onConfirm={handleSyncConfirm}
         submitting={submitting}

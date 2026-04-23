@@ -2,14 +2,14 @@
 
 import { useState, useCallback } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { CorpusSelector } from "./_components/CorpusSelector";
+import { CatalogSelector } from "./_components/CatalogSelector";
 import { CatalogTree } from "./_components/CatalogTree";
 import { NodeDetailPanel } from "./_components/NodeDetailPanel";
 import { CreateNodeDialog } from "./_components/CreateNodeDialog";
 import { useCatalogTree } from "./hooks/useCatalogTree";
 
 export default function CatalogPage() {
-  const [corpusId, setCorpusId] = useState<string | null>(null);
+  const [catalogId, setCatalogId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export default function CatalogPage() {
     refresh,
     toggleExpand,
     selectNode,
-  } = useCatalogTree({ corpusId });
+  } = useCatalogTree({ catalogId });
 
   const handleAddChild = useCallback((parentId: string) => {
     setAddParentId(parentId === "" ? null : parentId);
@@ -45,7 +45,7 @@ export default function CatalogPage() {
       <div className="flex min-h-0 flex-1 px-6 py-4 gap-4">
         {/* Sidebar: Tree */}
         <aside className="w-[300px] shrink-0 flex flex-col gap-3 overflow-hidden">
-          <CorpusSelector value={corpusId} onChange={setCorpusId} />
+          <CatalogSelector value={catalogId} onChange={setCatalogId} />
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -67,7 +67,7 @@ export default function CatalogPage() {
         <main className="flex-1 min-w-0 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
           <NodeDetailPanel
             node={selectedNode}
-            corpusId={corpusId ?? ""}
+            catalogId={catalogId ?? ""}
             onUpdate={refresh}
             onDelete={handleDeleted}
           />
@@ -77,7 +77,7 @@ export default function CatalogPage() {
       <CreateNodeDialog
         open={dialogOpen}
         parentId={addParentId}
-        corpusId={corpusId ?? ""}
+        catalogId={catalogId ?? ""}
         onClose={() => {
           setDialogOpen(false);
           setAddParentId(null);

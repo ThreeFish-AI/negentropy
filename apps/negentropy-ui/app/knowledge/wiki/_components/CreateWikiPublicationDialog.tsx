@@ -20,14 +20,14 @@ function slugify(text: string): string {
 
 interface CreateWikiPublicationDialogProps {
   open: boolean;
-  corpusId: string;
+  catalogId: string;
   onClose: () => void;
   onCreated: (pub: WikiPublication) => void;
 }
 
 export function CreateWikiPublicationDialog({
   open,
-  corpusId,
+  catalogId,
   onClose,
   onCreated,
 }: CreateWikiPublicationDialogProps) {
@@ -53,11 +53,11 @@ export function CreateWikiPublicationDialog({
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!name.trim() || !slug.trim() || !corpusId) return;
+    if (!name.trim() || !slug.trim() || !catalogId) return;
     setSubmitting(true);
     try {
       const pub = await createWikiPublication({
-        corpus_id: corpusId,
+        catalog_id: catalogId,
         name: name.trim(),
         slug: slug.trim(),
         description: description.trim() || undefined,
@@ -72,7 +72,7 @@ export function CreateWikiPublicationDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [name, slug, description, theme, corpusId, onCreated, onClose, handleReset]);
+  }, [name, slug, description, theme, catalogId, onCreated, onClose, handleReset]);
 
   if (!open) return null;
 
@@ -153,7 +153,7 @@ export function CreateWikiPublicationDialog({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || !slug.trim() || !corpusId}
+            disabled={submitting || !name.trim() || !slug.trim() || !catalogId}
             className="px-4 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? "创建中..." : "创建"}

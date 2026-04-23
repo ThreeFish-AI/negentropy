@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { CorpusSelector } from "../catalog/_components/CorpusSelector";
+import { CatalogSelector } from "../catalog/_components/CatalogSelector";
 import {
   fetchWikiPublications,
   WikiPublication,
@@ -13,21 +13,21 @@ import { WikiPublicationDetail } from "./_components/WikiPublicationDetail";
 import { CreateWikiPublicationDialog } from "./_components/CreateWikiPublicationDialog";
 
 export default function WikiPage() {
-  const [corpusId, setCorpusId] = useState<string | null>(null);
+  const [catalogId, setCatalogId] = useState<string | null>(null);
   const [publications, setPublications] = useState<WikiPublication[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
   const loadPublications = useCallback(async () => {
-    if (!corpusId) {
+    if (!catalogId) {
       setPublications([]);
       setSelectedId(null);
       return;
     }
     setLoading(true);
     try {
-      const resp = await fetchWikiPublications({ corpusId });
+      const resp = await fetchWikiPublications({ catalogId });
       setPublications(resp.items);
       setSelectedId((prev) =>
         prev && resp.items.some((p) => p.id === prev) ? prev : null,
@@ -37,7 +37,7 @@ export default function WikiPage() {
     } finally {
       setLoading(false);
     }
-  }, [corpusId]);
+  }, [catalogId]);
 
   useEffect(() => {
     loadPublications();
@@ -65,11 +65,11 @@ export default function WikiPage() {
 
       <div className="flex min-h-0 flex-1 px-6 py-4 gap-4">
         <aside className="w-[320px] shrink-0 flex flex-col gap-3 overflow-hidden">
-          <CorpusSelector value={corpusId} onChange={setCorpusId} />
+          <CatalogSelector value={catalogId} onChange={setCatalogId} />
 
           <button
             onClick={() => setCreateOpen(true)}
-            disabled={!corpusId}
+            disabled={!catalogId}
             className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             + 新建发布
@@ -94,7 +94,7 @@ export default function WikiPage() {
 
       <CreateWikiPublicationDialog
         open={createOpen}
-        corpusId={corpusId ?? ""}
+        catalogId={catalogId ?? ""}
         onClose={() => setCreateOpen(false)}
         onCreated={handleCreated}
       />

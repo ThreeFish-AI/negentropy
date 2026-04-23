@@ -4,23 +4,23 @@ import { useState, useCallback, useEffect } from "react";
 import { CatalogNode, fetchCatalogTree } from "@/features/knowledge";
 
 interface UseCatalogTreeOptions {
-  corpusId: string | null;
+  catalogId: string | null;
 }
 
-export function useCatalogTree({ corpusId }: UseCatalogTreeOptions) {
+export function useCatalogTree({ catalogId }: UseCatalogTreeOptions) {
   const [nodes, setNodes] = useState<CatalogNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!corpusId) {
+    if (!catalogId) {
       setNodes([]);
       return;
     }
     setLoading(true);
     try {
-      const data = await fetchCatalogTree(corpusId);
+      const data = await fetchCatalogTree(catalogId);
       setNodes(data);
       // Auto-expand first level
       const rootIds = data
@@ -33,7 +33,7 @@ export function useCatalogTree({ corpusId }: UseCatalogTreeOptions) {
     } finally {
       setLoading(false);
     }
-  }, [corpusId]);
+  }, [catalogId]);
 
   useEffect(() => {
     refresh();

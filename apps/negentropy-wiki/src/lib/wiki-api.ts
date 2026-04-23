@@ -16,7 +16,9 @@ const API_BASE =
 
 export interface WikiPublication {
   id: string;
-  corpus_id: string;
+  catalog_id: string;
+  app_name: string;
+  publish_mode: "live" | "snapshot";
   name: string;
   slug: string;
   description: string | null;
@@ -31,10 +33,11 @@ export interface WikiPublication {
 
 export interface WikiEntry {
   id: string;
-  document_id: string;
+  document_id: string | null;
   entry_slug: string;
   entry_title: string | null;
   is_index_page: boolean;
+  status?: "active" | "orphaned" | "hidden";
 }
 
 export interface WikiNavTreeItem {

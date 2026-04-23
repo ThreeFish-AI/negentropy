@@ -1,5 +1,6 @@
 import {
   wikiApi,
+  type WikiEntry,
   type WikiEntryContent,
   type WikiNavTreeItem,
   type WikiPublication,
@@ -22,7 +23,7 @@ interface Props {
   params: Promise<{ pubSlug: string; entrySlug: string[] }>;
 }
 
-type LoadStatus = "ok" | "missing" | "pending";
+type LoadStatus = "ok" | "missing" | "pending" | "orphaned";
 
 function joinSlug(entrySlug: string[] | string): string {
   return Array.isArray(entrySlug) ? entrySlug.join("/") : entrySlug;
@@ -49,21 +50,45 @@ export default async function WikiEntryPage({ params }: Props) {
   try {
     publication = await wikiApi.findPublicationBySlug(pubSlug);
     if (publication) {
-      const navResult = await wikiApi.getNavTree(publication.id);
+      const [navResult, entriesResult] = await Promise.all([
+        wikiApi.getNavTree(publication.id),
+        wikiApi.getEntries(publication.id),
+      ]);
       navItems = navResult.nav_tree?.items || [];
 
-      const entryId = await wikiApi.findEntryId(publication.id, slug);
-      if (entryId) {
-        content = await wikiApi.getEntryContent(entryId);
-        if (content && content.markdown_content && content.markdown_content.trim()) {
-          status = "ok";
+      const entry: WikiEntry | undefined = entriesResult.items.find(
+        (e) => e.entry_slug === slug,
+      );
+      if (entry) {
+        if (entry.status === "orphaned" || entry.document_id === null) {
+          status = "orphaned";
         } else {
-          status = "pending";
+          content = await wikiApi.getEntryContent(entry.id);
+          if (content && content.markdown_content && content.markdown_content.trim()) {
+            status = "ok";
+          } else {
+            status = "pending";
+          }
         }
       }
     }
   } catch (err) {
     console.warn(`[Wiki] Failed to load entry "${pubSlug}/${slug}":`, err);
+  }
+
+  if (status === "orphaned") {
+    return (
+      <main className="wiki-main wiki-not-found">
+        <h1>该文档已失效</h1>
+        <p className="wiki-not-found-hint">
+          文档 &quot;{slug}&quot; 的源文件已被移除或转移，条目暂时无法访问。
+        </p>
+        <div className="wiki-not-found-actions">
+          <Link href={`/${pubSlug}`}>← 返回 {pubSlug}</Link>
+          <Link href="/">返回首页</Link>
+        </div>
+      </main>
+    );
   }
 
   if (!publication || status === "missing") {
