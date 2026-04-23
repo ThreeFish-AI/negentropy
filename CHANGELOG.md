@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+### Changed（破坏性变更）
+
+- **[BREAKING] Catalog 全局化三阶段重构（corpus_id → catalog_id）**：
+  - `doc_catalog_nodes` 与 `doc_catalog_memberships` 表已被 `doc_catalog_entries`（N:M 全局关联表）替代；`doc_catalogs` 成为独立的全局顶层实体，不再依附 Corpus。
+  - `wiki_publications.corpus_id` 列已移除，替换为 `catalog_id` + `app_name` + `publish_mode`（`live` | `snapshot`）+ `visibility`；`UNIQUE(corpus_id, slug)` 约束已更换为 `UNIQUE(catalog_id, slug)`。
+  - 所有创建 Wiki Publication 的 API 请求需将 `corpus_id` 字段替换为 `catalog_id`；`GET /wiki/publications` 的 `corpusId` 查询参数同样变更为 `catalogId`。
+  - 前端 BFF 代理路由：旧版 `GET /api/knowledge/catalog/tree/{corpusId}` 已返回 `410 Gone`；请改用 `GET /api/knowledge/catalogs/{catalogId}/tree`。
+  - `CatalogDao.create_node` / `get_tree` / `assign_document` / `unassign_document` 等方法的 `corpus_id` 参数已替换为 `catalog_id` 或 `catalog_entry_id`，详见 [catalog_dao.py](../apps/negentropy/src/negentropy/knowledge/catalog_dao.py)。
+
+  **迁移指南**：
+  1. 执行数据库迁移：`cd apps/negentropy && uv run alembic upgrade head`（三阶段 Revision 0003→0004→0005 顺序应用）。
+  2. 若需降级，先检查是否存在跨 Corpus 的 Catalog（Revision 0005 downgrade 守卫会拒绝含跨 corpus entries 的降级并抛 `RuntimeError`）。
+  3. 前端：将所有 `corpusId` props / state / API 参数重命名为 `catalogId`，并确认 BFF 代理已对齐新路由（`/catalogs/` 前缀）。
+  4. Wiki SSG：`WikiPublication` 接口的 `corpus_id` 字段已替换为 `catalog_id`；`publish_mode` 字段新增。
+
 ### Fixed
 
 - 修复 `apps/negentropy-wiki` `pnpm build` / `pnpm start` 三类联动异常，使 Wiki 发布链路（UI 在线发布 → 5 分钟 ISR 自动回刷）在本地/容器运行时的可观测语义与 Negentropy UI 端到端对齐：
