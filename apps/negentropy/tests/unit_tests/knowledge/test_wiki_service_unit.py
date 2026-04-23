@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -112,6 +113,29 @@ class TestWikiCreatePublicationValidation:
         )
         assert session.flush_count >= 1
 
+    @pytest.mark.asyncio
+    async def test_create_publication_logs_with_non_reserved_extra_keys(self, monkeypatch):
+        """wiki publication 创建日志不应覆写 LogRecord 保留字段。"""
+        service = WikiPublishingService()
+        session = _FakeAsyncSession()
+        captured: dict[str, object] = {}
+
+        def fake_info(event: str, *, extra: dict[str, object]) -> None:
+            captured["event"] = event
+            captured["extra"] = extra
+
+        monkeypatch.setattr("negentropy.knowledge.wiki_dao.logger.info", fake_info)
+
+        await service.create_publication(
+            session,
+            corpus_id=uuid4(),
+            name="Architecture Wiki",
+        )
+
+        assert captured["event"] == "wiki_publication_created"
+        assert captured["extra"]["publication_name"] == "Architecture Wiki"
+        assert "name" not in captured["extra"]
+
 
 # ---------------------------------------------------------------------------
 # update_publication theme 校验
@@ -169,6 +193,60 @@ class TestWikiDelegationMethods:
         session = _FakeAsyncSession()
         result = await service.delete_publication(session, pub_id=uuid4())
         assert result is False  # FakeAsyncSession.execute 返回 None → 删除失败
+
+
+class TestWikiCatalogSync:
+    """sync_entries_from_catalog 的字段映射回归。"""
+
+    @pytest.mark.asyncio
+    async def test_sync_entries_from_catalog_uses_original_filename(self, monkeypatch):
+        service = WikiPublishingService()
+        publication_id = uuid4()
+        root_node_id = uuid4()
+        doc_id = uuid4()
+        fake_db = _FakeAsyncSession()
+        captured: dict[str, object] = {}
+
+        async def fake_get_subtree(db, node_id):
+            _ = db
+            assert node_id == root_node_id
+            return [{"id": root_node_id, "parent_id": None, "slug": "root"}]
+
+        async def fake_get_node_documents(db, catalog_node_id, limit=500):
+            _ = (db, limit)
+            assert catalog_node_id == root_node_id
+            doc = SimpleNamespace(
+                id=doc_id,
+                original_filename="System Design.pdf",
+                markdown_extract_status="completed",
+                markdown_content="# System Design",
+                metadata_={},
+            )
+            return [doc], 1
+
+        async def fake_upsert_entry(db, **kwargs):
+            _ = db
+            captured.update(kwargs)
+
+        async def fake_remove_stale_entries(db, publication_id, keep_document_ids):
+            _ = (db, publication_id, keep_document_ids)
+            return 0
+
+        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
+        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents)
+        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries)
+
+        result = await service.sync_entries_from_catalog(
+            fake_db,
+            publication_id=publication_id,
+            catalog_node_ids=[root_node_id],
+        )
+
+        assert result["synced_count"] == 1
+        assert captured["document_id"] == doc_id
+        assert captured["entry_slug"].endswith("system-design-pdf")
+        assert captured["entry_title"] == "System Design.pdf"
 
 
 # ---------------------------------------------------------------------------

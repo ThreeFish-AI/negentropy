@@ -255,7 +255,7 @@ class WikiPublishingService:
                         errors.append(f"skip:{doc.id}:no_content")
                         continue
 
-                    doc_slug = self._slugify(doc.filename or f"doc-{doc.id}")
+                    doc_slug = self._slugify(doc.original_filename or f"doc-{doc.id}")
                     base_slug = f"{hierarchical_slug}/{doc_slug}" if hierarchical_slug else doc_slug
 
                     # slug 冲突兜底：追加 -2、-3...，避免违反 uq_wiki_entry_pub_slug
@@ -276,7 +276,7 @@ class WikiPublishingService:
                         publication_id=publication_id,
                         document_id=doc.id,
                         entry_slug=final_slug,
-                        entry_title=(doc.metadata_ or {}).get("title") or doc.filename,
+                        entry_title=(doc.metadata_ or {}).get("title") or doc.original_filename,
                         entry_order=entry_order,
                     )
                     synced_doc_ids.add(str(doc.id))

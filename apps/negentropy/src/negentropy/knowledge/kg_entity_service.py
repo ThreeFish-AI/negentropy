@@ -91,7 +91,7 @@ class KgEntityService:
                 "kg_entity_updated",
                 extra={
                     "entity_id": str(existing_rec.id),
-                    "name": name,
+                    "entity_name": name,
                     "mention_count": existing_rec.mention_count,
                 },
             )
@@ -128,7 +128,7 @@ class KgEntityService:
             "kg_entity_created",
             extra={
                 "entity_id": str(new_entity.id),
-                "name": name,
+                "entity_name": name,
                 "entity_type": entity_type,
                 "corpus_id": str(corpus_id) if corpus_id else None,
             },

@@ -147,6 +147,29 @@ class TestSyncEntityFromKnowledge:
         mention = db.added[1]
         assert mention.knowledge_chunk_id is None
 
+    async def test_sync_create_logs_with_non_reserved_extra_keys(self, service, db, monkeypatch):
+        """创建实体日志不应使用 LogRecord 保留字段 name。"""
+        captured: dict[str, object] = {}
+
+        def fake_info(event: str, *, extra: dict[str, object]) -> None:
+            captured["event"] = event
+            captured["extra"] = extra
+
+        monkeypatch.setattr("negentropy.knowledge.kg_entity_service.logger.info", fake_info)
+
+        await service.sync_entity_from_knowledge(
+            db,
+            knowledge_id=_KNOWLEDGE_ID,
+            name="Alice",
+            entity_type="PERSON",
+            confidence=0.85,
+            corpus_id=_CORPUS_ID,
+        )
+
+        assert captured["event"] == "kg_entity_created"
+        assert captured["extra"]["entity_name"] == "Alice"
+        assert "name" not in captured["extra"]
+
     # -- 2. 更新已有实体 — 置信度升级 --
 
     async def test_sync_updates_existing_entity_confidence_upgrade(self, service, db):
@@ -205,6 +228,32 @@ class TestSyncEntityFromKnowledge:
             )
 
         assert existing.mention_count == 4
+
+    async def test_sync_update_logs_with_non_reserved_extra_keys(self, service, db, monkeypatch):
+        """更新实体日志不应使用 LogRecord 保留字段 name。"""
+        existing = _make_entity_ns(name="Dave", mention_count=3)
+        db.entities.append(existing)
+        captured: dict[str, object] = {}
+
+        def fake_debug(event: str, *, extra: dict[str, object]) -> None:
+            captured["event"] = event
+            captured["extra"] = extra
+
+        monkeypatch.setattr("negentropy.knowledge.kg_entity_service.logger.debug", fake_debug)
+
+        with patch.object(db, "execute", new_callable=_MockExecuteReturn, return_value=existing):
+            await service.sync_entity_from_knowledge(
+                db,
+                knowledge_id=_KNOWLEDGE_ID,
+                name="Dave",
+                entity_type="PERSON",
+                confidence=0.7,
+                corpus_id=_CORPUS_ID,
+            )
+
+        assert captured["event"] == "kg_entity_updated"
+        assert captured["extra"]["entity_name"] == "Dave"
+        assert "name" not in captured["extra"]
 
     # -- 5. 属性合并 --
 

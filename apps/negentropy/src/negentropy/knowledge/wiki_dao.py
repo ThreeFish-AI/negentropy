@@ -64,7 +64,7 @@ class WikiDao:
             extra={
                 "id": str(pub.id),
                 "corpus_id": str(corpus_id),
-                "name": name,
+                "publication_name": name,
                 "slug": slug,
             },
         )
@@ -301,7 +301,7 @@ class WikiDao:
         result = await db.execute(
             select(
                 WikiPublicationEntry.document_id,
-                KnowledgeDocument.filename,
+                KnowledgeDocument.original_filename,
                 KnowledgeDocument.markdown_content,
                 KnowledgeDocument.metadata_,
             )
