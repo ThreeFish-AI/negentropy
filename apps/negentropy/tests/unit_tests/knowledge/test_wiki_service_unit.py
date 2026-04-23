@@ -84,7 +84,7 @@ class TestWikiCreatePublicationValidation:
         with pytest.raises(ValueError, match="Invalid theme"):
             await service.create_publication(
                 _FakeAsyncSession(),
-                corpus_id=uuid4(),
+                catalog_id=uuid4(),
                 name="Test",
                 theme="invalid-theme",
             )
@@ -95,7 +95,7 @@ class TestWikiCreatePublicationValidation:
         with pytest.raises(ValueError, match="Invalid slug format"):
             await service.create_publication(
                 _FakeAsyncSession(),
-                corpus_id=uuid4(),
+                catalog_id=uuid4(),
                 name="Test",
                 slug="Invalid Slug!",
             )
@@ -108,7 +108,7 @@ class TestWikiCreatePublicationValidation:
         # 不抛异常即视为成功（内部会调用 WikiDao.create_publication）
         await service.create_publication(
             session,
-            corpus_id=uuid4(),
+            catalog_id=uuid4(),
             name="My Wiki Publication",
         )
         assert session.flush_count >= 1
@@ -128,7 +128,7 @@ class TestWikiCreatePublicationValidation:
 
         await service.create_publication(
             session,
-            corpus_id=uuid4(),
+            catalog_id=uuid4(),
             name="Architecture Wiki",
         )
 

@@ -104,7 +104,7 @@ class CatalogNodeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    corpus_id: UUID
+    catalog_id: UUID
     parent_id: UUID | None
     name: str
     slug: str
@@ -150,7 +150,7 @@ class CategorySuggestionResponse(BaseModel):
 class WikiPublicationCreateRequest(BaseModel):
     """创建 Wiki 发布请求"""
 
-    corpus_id: UUID
+    catalog_id: UUID
     name: str = Field(..., min_length=1, max_length=255)
     slug: str | None = Field(None, max_length=255)
     description: str | None = None
@@ -182,7 +182,7 @@ class WikiPublicationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    corpus_id: UUID
+    catalog_id: UUID
     name: str
     slug: str
     description: str | None
