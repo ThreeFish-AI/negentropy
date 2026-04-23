@@ -2,9 +2,23 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy import (
+    Enum as SAEnum,
+)
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
 
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, UUIDMixin, Vector, fk
 
@@ -280,8 +294,46 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Phase 1: Catalog 全局化过渡字段（Phase 3 才会施加 NOT NULL 并移除 corpus_id）
+    catalog_id: Mapped[UUID | None] = mapped_column(fk("doc_catalogs", ondelete="RESTRICT"), nullable=True)
+    app_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    publish_mode: Mapped[str | None] = mapped_column(
+        SAEnum(
+            "LIVE",
+            "SNAPSHOT",
+            name="wikipublishmode",
+            schema=NEGENTROPY_SCHEMA,
+            create_type=False,
+        ),
+        nullable=True,
+        server_default="LIVE",
+    )
+    visibility: Mapped[str | None] = mapped_column(
+        SAEnum(
+            "PRIVATE",
+            "INTERNAL",
+            "PUBLIC",
+            name="wikipublicationvisibility",
+            schema=NEGENTROPY_SCHEMA,
+            create_type=False,
+        ),
+        nullable=True,
+        server_default="INTERNAL",
+    )
+    snapshot_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     corpus: Mapped["Corpus"] = relationship(back_populates="wiki_publications")
+    catalog: Mapped["DocCatalog | None"] = relationship(back_populates="publications")
     entries: Mapped[list["WikiPublicationEntry"]] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+    )
+    snapshots: Mapped[list["WikiPublicationSnapshot"]] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        order_by="WikiPublicationSnapshot.version.desc()",
+    )
+    slug_redirects: Mapped[list["WikiSlugRedirect"]] = relationship(
         back_populates="publication",
         cascade="all, delete-orphan",
     )
@@ -290,6 +342,16 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
         UniqueConstraint("corpus_id", "slug", name="uq_wiki_pub_corpus_slug"),
         Index("ix_wiki_publications_corpus_id", "corpus_id"),
         Index("ix_wiki_publications_status", "status"),
+        Index(
+            "ix_wiki_publications_catalog_id",
+            "catalog_id",
+            postgresql_where="catalog_id IS NOT NULL",
+        ),
+        Index(
+            "ix_wiki_publications_app_name",
+            "app_name",
+            postgresql_where="app_name IS NOT NULL",
+        ),
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -552,5 +614,190 @@ class KnowledgeFeedback(Base, UUIDMixin, TimestampMixin):
         Index("ix_kb_feedback_session", "session_id"),
         Index("ix_kb_feedback_type", "feedback_type"),
         Index("ix_kb_feedback_created", "created_at"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+# =============================================================================
+# Phase 6: Catalog 全局化（MediaWiki N:M + GitBook 订阅式发布）
+# ---
+# 与既有 DocCatalogNode / DocCatalogMembership 并行存在，承担过渡期职责。
+# Phase 2 backfill 完成、Phase 3 施加约束并移除旧表后，以下模型成为 SSOT。
+# =============================================================================
+
+
+class DocCatalog(Base, UUIDMixin, TimestampMixin):
+    """Catalog 顶层元数据（全局正交于 Corpus）
+
+    - 承载 Wiki/Site 级别的组织视图；不存储文档物理数据（SSOT 在 Corpus.KnowledgeDocument）
+    - `app_name` 租户隔离维度，**创建后不可变**（service 层断言 + 约束）
+    - 软归档：`is_archived=true` 后仅可读，拒绝新增 entry
+    - `version` 字段承担乐观锁
+    """
+
+    __tablename__ = "doc_catalogs"
+
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(255), nullable=False)
+    owner_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    visibility: Mapped[str] = mapped_column(
+        SAEnum(
+            "PRIVATE",
+            "INTERNAL",
+            "PUBLIC",
+            name="catalogvisibility",
+            schema=NEGENTROPY_SCHEMA,
+        ),
+        nullable=False,
+        server_default="INTERNAL",
+    )
+    is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
+
+    entries: Mapped[list["DocCatalogEntry"]] = relationship(
+        back_populates="catalog",
+        cascade="all, delete-orphan",
+        order_by="DocCatalogEntry.position",
+    )
+    publications: Mapped[list["WikiPublication"]] = relationship(back_populates="catalog")
+
+    __table_args__ = (
+        UniqueConstraint("app_name", "slug", name="uq_doc_catalogs_app_slug"),
+        Index("ix_doc_catalogs_app_name", "app_name"),
+        Index("ix_doc_catalogs_owner_id", "owner_id"),
+        Index(
+            "ix_doc_catalogs_is_archived",
+            "is_archived",
+            postgresql_where="is_archived = false",
+        ),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class DocCatalogEntry(Base, UUIDMixin, TimestampMixin):
+    """Catalog 条目：融合「目录节点树」与「文档软引用」的单一实体
+
+    - `parent_entry_id` 同 catalog 内自引用，支持树结构（Adjacency List，CTE 递归）
+    - `document_id` 软引用源文档；`ON DELETE SET NULL` + status=ORPHANED 表达失效语义
+    - `source_corpus_id` 冗余字段：承担权限快速校验（避免 join knowledge_documents）
+    - `slug_override` 允许同一文档在不同 catalog 有独立 slug（Docusaurus sidebar.id 启发）
+    """
+
+    __tablename__ = "doc_catalog_entries"
+
+    catalog_id: Mapped[UUID] = mapped_column(fk("doc_catalogs", ondelete="CASCADE"), nullable=False)
+    parent_entry_id: Mapped[UUID | None] = mapped_column(fk("doc_catalog_entries", ondelete="CASCADE"), nullable=True)
+    document_id: Mapped[UUID | None] = mapped_column(fk("knowledge_documents", ondelete="SET NULL"), nullable=True)
+    source_corpus_id: Mapped[UUID | None] = mapped_column(fk("corpus", ondelete="SET NULL"), nullable=True)
+    node_type: Mapped[str] = mapped_column(
+        SAEnum(
+            "CATEGORY",
+            "COLLECTION",
+            "DOCUMENT_REF",
+            name="catalogentrynodetype",
+            schema=NEGENTROPY_SCHEMA,
+        ),
+        nullable=False,
+        server_default="CATEGORY",
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug_override: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    status: Mapped[str] = mapped_column(
+        SAEnum(
+            "ACTIVE",
+            "ORPHANED",
+            "HIDDEN",
+            name="catalogentrystatus",
+            schema=NEGENTROPY_SCHEMA,
+        ),
+        nullable=False,
+        server_default="ACTIVE",
+    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
+
+    catalog: Mapped["DocCatalog"] = relationship(back_populates="entries")
+    parent: Mapped["DocCatalogEntry | None"] = relationship(remote_side="DocCatalogEntry.id", back_populates="children")
+    children: Mapped[list["DocCatalogEntry"]] = relationship(
+        back_populates="parent",
+        cascade="all, delete-orphan",
+        order_by="DocCatalogEntry.position",
+    )
+    document: Mapped["KnowledgeDocument | None"] = relationship()
+    source_corpus: Mapped["Corpus | None"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("catalog_id", "parent_entry_id", "name", name="uq_catalog_entry_sibling_name"),
+        Index("ix_doc_catalog_entries_catalog_status", "catalog_id", "status"),
+        Index("ix_doc_catalog_entries_parent", "parent_entry_id"),
+        Index(
+            "ix_doc_catalog_entries_document",
+            "document_id",
+            postgresql_where="document_id IS NOT NULL",
+        ),
+        Index(
+            "ix_doc_catalog_entries_source_corpus",
+            "source_corpus_id",
+            postgresql_where="source_corpus_id IS NOT NULL",
+        ),
+        Index(
+            "uq_catalog_entry_sibling_slug_override",
+            "catalog_id",
+            "parent_entry_id",
+            "slug_override",
+            unique=True,
+            postgresql_where="slug_override IS NOT NULL",
+        ),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class WikiPublicationSnapshot(Base, UUIDMixin):
+    """Publication 快照（snapshot 模式）
+
+    冻结 `(catalog_entries, document_versions)` 到不可变 JSONB，供合规/留档场景使用。
+    只追加，不更新；重新生成快照 = 新版本行。
+    """
+
+    __tablename__ = "wiki_publication_snapshots"
+
+    publication_id: Mapped[UUID] = mapped_column(fk("wiki_publications", ondelete="CASCADE"), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    frozen_entries: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, server_default="[]")
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    publication: Mapped["WikiPublication"] = relationship(back_populates="snapshots")
+
+    __table_args__ = (
+        UniqueConstraint("publication_id", "version", name="uq_wiki_pub_snapshot_version"),
+        Index("ix_wiki_publication_snapshots_publication", "publication_id"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class WikiSlugRedirect(Base, UUIDMixin):
+    """历史 slug → 当前 slug 的 301 重定向映射（GitBook 启发）
+
+    当 catalog 节点 slug_override 变化或 publication slug 变化时，
+    同步追加记录以保持链接稳定性。
+    """
+
+    __tablename__ = "wiki_slug_redirects"
+
+    publication_id: Mapped[UUID] = mapped_column(fk("wiki_publications", ondelete="CASCADE"), nullable=False)
+    old_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    new_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    publication: Mapped["WikiPublication"] = relationship(back_populates="slug_redirects")
+
+    __table_args__ = (
+        UniqueConstraint("publication_id", "old_path", name="uq_wiki_slug_redirect_pub_old"),
+        Index("ix_wiki_slug_redirects_lookup", "publication_id", "old_path"),
         {"schema": NEGENTROPY_SCHEMA},
     )
