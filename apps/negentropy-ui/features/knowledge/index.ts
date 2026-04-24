@@ -84,6 +84,7 @@ export {
   fetchGraphBuildHistory,
   // Catalog Management
   fetchCatalogs,
+  createCatalog,
   fetchCatalogDocuments,
   fetchCatalogTree,
   fetchCatalogNodes,

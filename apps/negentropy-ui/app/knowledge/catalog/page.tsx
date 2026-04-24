@@ -2,13 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { CatalogSelector } from "./_components/CatalogSelector";
 import { CatalogTree } from "./_components/CatalogTree";
 import { CatalogTreeToolbar } from "./_components/CatalogTreeToolbar";
 import { CatalogContextMenu } from "./_components/CatalogContextMenu";
 import { NodeDetailPanel } from "./_components/NodeDetailPanel";
 import { CreateNodeDialog } from "./_components/CreateNodeDialog";
 import { useCatalogTree } from "./hooks/useCatalogTree";
+import { useSingletonCatalog } from "./hooks/useSingletonCatalog";
 import { CatalogNode, deleteCatalogNode } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
 
@@ -25,7 +25,7 @@ interface DragState {
 }
 
 export default function CatalogPage() {
-  const [catalogId, setCatalogId] = useState<string | null>(null);
+  const { catalogId, loading: catalogLoading, error: catalogError } = useSingletonCatalog();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,7 +42,7 @@ export default function CatalogPage() {
     selectedNode,
     selectedNodeId,
     expandedIds,
-    loading,
+    loading: treeLoading,
     refresh,
     toggleExpand,
     selectNode,
@@ -66,7 +66,6 @@ export default function CatalogPage() {
     refresh();
   }, [selectNode, refresh]);
 
-  // Context menu handlers
   const handleContextMenu = useCallback(
     (_node: CatalogNode | null, e: React.MouseEvent) => {
       e.preventDefault();
@@ -122,7 +121,6 @@ export default function CatalogPage() {
     setEditingNodeId(null);
   }, []);
 
-  // Drag handlers
   const handleDragStart = useCallback((nodeId: string) => {
     setDragState({ draggedId: nodeId, targetId: null, position: null });
   }, []);
@@ -130,15 +128,11 @@ export default function CatalogPage() {
   const handleDragOver = useCallback(
     (targetId: string, e: React.DragEvent) => {
       if (!dragState.draggedId) return;
-
-      // Prevent dropping on self
       if (dragState.draggedId === targetId) return;
 
-      // Prevent dropping on descendant (cycle detection)
       const draggedNode = nodes.find((n) => n.id === dragState.draggedId);
       if (draggedNode?.path?.includes(targetId)) return;
 
-      // Calculate drop zone based on mouse position
       const rect = (e.target as HTMLElement).closest("[draggable]")?.getBoundingClientRect();
       if (!rect) return;
 
@@ -153,11 +147,7 @@ export default function CatalogPage() {
         position = "inside";
       }
 
-      setDragState((prev) => ({
-        ...prev,
-        targetId,
-        position,
-      }));
+      setDragState((prev) => ({ ...prev, targetId, position }));
     },
     [dragState.draggedId, nodes],
   );
@@ -180,7 +170,6 @@ export default function CatalogPage() {
       let newSortOrder: number;
 
       if (dragState.position === "inside") {
-        // Nest inside target
         newParentId = targetId;
         const targetChildren = nodes.filter((n) => n.parent_id === targetId);
         const maxSort = targetChildren.length
@@ -188,7 +177,6 @@ export default function CatalogPage() {
           : 0;
         newSortOrder = maxSort + 1000;
       } else {
-        // Insert before/after target (sibling)
         newParentId = targetNode.parent_id;
         const siblings = nodes
           .filter((n) => n.parent_id === targetNode.parent_id)
@@ -224,16 +212,15 @@ export default function CatalogPage() {
       <div className="flex min-h-0 flex-1 px-6 py-4 gap-4">
         {/* Sidebar: Tree */}
         <aside className="w-[300px] shrink-0 flex flex-col gap-2 overflow-hidden">
-          <CatalogSelector value={catalogId} onChange={setCatalogId} />
-
-          {!catalogId ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-dashed border-border">
-              <p className="text-sm text-muted">请先选择目录</p>
-              <p className="text-xs text-muted/60 mt-1">
-                从上方下拉选择一个目录以管理节点
-              </p>
+          {catalogLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-sm text-muted">加载目录...</p>
             </div>
-          ) : loading ? (
+          ) : catalogError ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-dashed border-destructive/50">
+              <p className="text-sm text-destructive">{catalogError}</p>
+            </div>
+          ) : treeLoading ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-sm text-muted">加载中...</p>
             </div>
