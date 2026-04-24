@@ -40,9 +40,6 @@ class WikiDao:
         slug: str,
         description: str | None = None,
         theme: str = "default",
-        navigation_config: dict | None = None,
-        custom_css: str | None = None,
-        custom_js: str | None = None,
     ) -> WikiPublication:
         """创建 Wiki 发布记录（初始状态为 draft）"""
         pub = WikiPublication(
@@ -52,9 +49,6 @@ class WikiDao:
             description=description,
             status="draft",
             theme=theme,
-            navigation_config=navigation_config or {},
-            custom_css=custom_css,
-            custom_js=custom_js,
             version=1,
         )
         db.add(pub)
@@ -134,9 +128,6 @@ class WikiDao:
             "description",
             "status",
             "theme",
-            "navigation_config",
-            "custom_css",
-            "custom_js",
         }
         for key, value in kwargs.items():
             if key in allowed_fields and value is not None:

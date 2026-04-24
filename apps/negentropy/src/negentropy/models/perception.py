@@ -207,9 +207,6 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
     theme: Mapped[str] = mapped_column(
         String(20), nullable=False, default="default", server_default="'default'"
     )  # default | book | docs
-    navigation_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
-    custom_css: Mapped[str | None] = mapped_column(Text, nullable=True)
-    custom_js: Mapped[str | None] = mapped_column(Text, nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

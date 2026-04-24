@@ -2410,7 +2410,6 @@ export interface WikiPublication {
   description: string | null;
   status: WikiPublicationStatus;
   theme: WikiTheme;
-  navigation_config: Record<string, unknown>;
   version: number;
   published_at: string | null;
   created_at: string | null;
@@ -2436,9 +2435,6 @@ export interface UpdateWikiPublicationParams {
   name?: string;
   description?: string;
   theme?: WikiTheme;
-  navigation_config?: Record<string, unknown>;
-  custom_css?: string;
-  custom_js?: string;
 }
 
 export interface WikiEntry {

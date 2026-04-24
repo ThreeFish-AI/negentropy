@@ -140,7 +140,6 @@ class WikiPublicationRecord:
     description: str | None
     status: str  # WikiStatus value
     theme: str  # WikiTheme value
-    navigation_config: dict[str, Any] = field(default_factory=dict)
     version: int = 1
     published_at: datetime | None = None
     created_at: datetime | None = None
