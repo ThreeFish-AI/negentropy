@@ -2270,6 +2270,12 @@ export async function fetchCatalogNodes(params: {
  */
 export async function createCatalogNode(params: CreateCatalogNodeParams): Promise<CatalogNode> {
   const { catalog_id, ...body } = params;
+  // 防御性校验：catalog_id 若为空字符串，模板字符串会降级出 `/api/knowledge/catalogs//entries`，
+  // 经 Next.js URL 归一化后等效命中 `[catalogId]/route.ts`（catalogId="entries"），该路由无 POST 导致 405。
+  // 在此前置显式报错，避免低可观测性的静默漂移。
+  if (!catalog_id) {
+    throw new Error("catalog_id is required to create a catalog node");
+  }
   const res = await fetch(`/api/knowledge/catalogs/${catalog_id}/entries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
