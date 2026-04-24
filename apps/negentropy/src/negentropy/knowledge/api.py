@@ -4108,13 +4108,11 @@ async def list_wiki_publications(
             db, catalog_id=catalog_id, status=status, offset=offset, limit=limit
         )
 
-    items = []
-    for pub in pubs:
-        resp = _WikiPubResp.model_validate(pub)
-        # 获取条目数（懒加载，避免 N+1）
-        entries_count = len(pub.entries) if hasattr(pub, "entries") and pub.entries else 0
-        resp.entries_count = entries_count
-        items.append(resp)
+        items = []
+        for pub in pubs:
+            resp = _WikiPubResp.model_validate(pub)
+            resp.entries_count = len(pub.entries) if pub.entries else 0
+            items.append(resp)
 
     return _WikiPubListResp(items=items, total=total)
 
@@ -4127,11 +4125,12 @@ async def get_wiki_publication(pub_id: UUID) -> _WikiPubResp:
     async with AsyncSessionLocal() as db:
         pub = await wiki_svc.get_publication(db, pub_id)
 
-    if pub is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
+        if pub is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
 
-    resp = _WikiPubResp.model_validate(pub)
-    resp.entries_count = len(pub.entries) if hasattr(pub, "entries") and pub.entries else 0
+        resp = _WikiPubResp.model_validate(pub)
+        resp.entries_count = len(pub.entries) if pub.entries else 0
+
     return resp
 
 
