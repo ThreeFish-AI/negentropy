@@ -217,9 +217,6 @@ class WikiPublicationUpdateRequest(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = None
     theme: str | None = None
-    navigation_config: dict[str, Any] | None = None
-    custom_css: str | None = None
-    custom_js: str | None = None
 
 
 class WikiPublicationResponse(BaseModel):
@@ -234,7 +231,6 @@ class WikiPublicationResponse(BaseModel):
     description: str | None
     status: str
     theme: str
-    navigation_config: dict[str, Any] = Field(default_factory=dict)
     version: int
     published_at: datetime | None
     created_at: datetime | None
