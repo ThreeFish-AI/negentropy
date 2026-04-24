@@ -218,3 +218,29 @@
   3. 数据库降级路径属于「灾难演练」类能力，默认应具备「空 DB → 正常 DB → 重度污染 DB」的三级可测性；未来若扩展 corpus / catalog 结构，建议在 `test_migrations_stairway` 外补充一组携带真实类 fixture（含不可表达关系）的回归用例，覆盖非空 DB 路径。
 
 ---
+
+## ISSUE-013 新建 Corpus 的 Document Extraction Settings 下拉全部未配置（预置 MCP Tools 未与 Server 对称落地）
+
+- **表因**：用户在 `/knowledge/base` 点击「创建」新建 Corpus 后，进入 Settings Tab 的 **Document Extraction Settings** 面板，**URL 文档** 与 **PDF 文档** 的主/备下拉框全部显示「未配置」；预期应当预置 4 个默认 MCP 工具 `parse_webpage_to_markdown` / `parse_webpages_to_markdown` / `parse_pdf_to_markdown` / `parse_pdfs_to_markdown`（均来自 `negentropy-perceives` MCP Server）。后端日志中仅能看到重复的 `knowledge_default_extractor_tool_not_found` WARN，接口 200 成功但 `config.extractor_routes.{url,file_pdf}.targets = []`。
+- **根因**：**预置数据与依赖它的应用逻辑未对称交付**，链路共四层，前三层都正确：
+  1. **配置层（正确）**：`apps/negentropy/src/negentropy/config/knowledge.py:28-58` 已定义 `DefaultExtractorRoutesSettings` Pydantic 模型，内含 4 个 `(server_name, tool_name)` 对（URL 60s/120s、PDF 300s/600s）；
+  2. **API 层（正确）**：`apps/negentropy/src/negentropy/knowledge/api.py:682-703` 的 `create_corpus()` 在请求未显式传入 `extractor_routes` 时调用 `_resolve_default_extractor_routes()`；
+  3. **解析层（正确但刚性依赖 DB）**：`_resolve_default_extractor_routes()` 位于 `knowledge/api.py:541-625`，L578-586 查询 `mcp_tools` 表验证 4 个工具存在且 `is_enabled=TRUE`——`extractor_routes.*.targets[].server_id` 是 UUID 外键，不能凭空捏造；如 `mcp_tools` 表中无对应记录，L601-608 仅 WARN 并 `continue`，最终返回 `{"url": {"targets": []}, "file_pdf": {"targets": []}}`；
+  4. **种子迁移缺口（Bug）**：迁移 `0002_seed_negentropy_perceives.py` 只做了 MCP **Server** 的幂等 upsert（`INSERT INTO mcp_servers ... ON CONFLICT (name)`），**4 个 MCP Tool 行从未被任何迁移/启动脚本预插入**；现有唯一落地路径是管理员进入 `/interface/mcp` 手动点击「Load Tools」→ `POST /interface/mcp/servers/{id}/tools/load` → `McpClientService.discover_tools()` 通过 HTTP 连接 `http://localhost:2992/mcp`（`interface/api.py:700-760`），才会把工具行同步进 DB。全新部署执行 `alembic upgrade head` 后，用户（尤其本地开发者在 `negentropy-perceives` 尚未启动、或未手动点 Load Tools 的情况下）首次创建 Corpus 会稳定命中空 `targets` 的退化路径。
+- **处理方式**（Option A：最小干预 + 正交分解）：
+  1. 新增 Alembic 迁移 `apps/negentropy/src/negentropy/db/migrations/versions/0006_seed_negentropy_perceives_tools.py`，`revision = "0006"` / `down_revision = "0005"`；与 `0002` 的「预置 Server（纯 DML）」语义对称承载「预置 Tool（纯 DML）」；
+  2. `upgrade()` 单条 `INSERT ... SELECT s.id, t.name, t.title, t.description, TRUE FROM mcp_servers s CROSS JOIN (VALUES ...) WHERE s.name = 'negentropy-perceives' ON CONFLICT (server_id, name) DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, is_enabled=EXCLUDED.is_enabled, updated_at=now()`，幂等 upsert 4 行。仅写 `server_id` / `name` / `title` / `description` / `is_enabled`，JSONB 结构字段 `input_schema` / `output_schema` / `icons` / `annotations` / `execution` / `meta` 交由 `0001` 中已声明的 `server_default`（`{}`/`[]`）兜底，后续 live discovery 的 UPDATE 分支 `interface/api.py:730-741` 会按真实 schema 覆盖——与 live UPSERT 天然兼容，不会重复插入（UNIQUE 约束 `mcp_tools_server_name_unique` 兜底）；
+  3. `downgrade()` 精准 DELETE 这 4 行并以 `server_id IN (SELECT id FROM mcp_servers WHERE name = 'negentropy-perceives')` 限定影响面，不触碰 schema，不牵连 live discovery 写入的其它工具；
+  4. `_resolve_default_extractor_routes()` / `create_corpus()` / 前端 `normalizeExtractorDraftRoutes()` 全部零改动；已存在的 Corpus 记录不做 backfill（超出用户诉求范围，遵循最小干预）；
+  5. Stairway 集成测试 `tests/integration_tests/db/test_migrations.py::test_migrations_stairway` 的 `upgrade → downgrade → upgrade` 回环自动覆盖 0006 的幂等性与对称性，是本次修复的天然回归闸门。
+- **后续防范**（核心经验）：
+  1. **预置数据应与依赖它的应用逻辑一起交付**——当应用层逻辑对某张表的存在性 / 数据完整性做刚性校验（外键、UNIQUE、`is_enabled` 过滤），配套种子迁移必须与应用层变更同批交付，不能把数据落地寄托于运行时 live discovery、手动运维动作或 Agent 启动链路等非确定性通路；
+  2. **对称原则**：一个逻辑实体由多张表协同表达时（如 MCP Server + Tools、Corpus + default extractor_routes），种子迁移应与 ORM 外键一样形成成对出现的结构；预置 N:M 子表时尤其要以 `CROSS JOIN (VALUES ...)` + `WHERE parent = '...'` 构造，避免引用完整性飘移；
+  3. **幂等范式复用**：新增种子迁移一律以 `INSERT ... ON CONFLICT (unique_key) DO UPDATE` 而非裸 `INSERT`，与 live discovery 的 UPSERT 分支保持语义一致，支持多次 `upgrade head` 或在既有部署上重放安全；
+  4. **审查 checklist 新增**：Review 新迁移时搜索 `rg -n "_resolve_default_|knowledge_default_extractor_tool_not_found"` 可定位「依赖 DB 预置数据」的刚性校验点，交叉核对当前 head 的 seed 迁移是否覆盖全部刚性前提；
+  5. **时序错配是常见熵源**：`live discovery` / `auto_start=True` / 后端启动钩子 等「非确定性自愈」通路不应作为首次功能落地的唯一链路；确定性的迁移应作为第一梯队，运行时自愈仅作兜底修正。
+- **同类问题影响**：
+  1. 任何「后端从 DB 读配置 → 未命中则降级为空」的调用链路都存在相同风险面：建议审计 `knowledge/`、`interface/`、`memory/` 三个域内是否有类似「预期预置但未写入 seed 迁移」的条目（如未来可能新增的 `default_skills`、`default_subagents`、`default_memory_schemas` 等）；
+  2. 前端 UI 对「后端返回空列表」的宽容渲染是双刃剑——它不会打破页面，但让本该显著的数据缺口退化为静默的 UX 漂移（用户不知道是「本就无默认值」还是「默认值丢了」）。一个可选的 Proactive Navigation 方向是：未来在 `Document Extraction Settings` 面板检测到 `targets=[]` 且后端配置中存在默认路由声明但未落地时，额外显示一条提示引导用户「前往 /interface/mcp 重载工具」——本次不扩大爆炸半径，纳入长期备忘。
+
+---
