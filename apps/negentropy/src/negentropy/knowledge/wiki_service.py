@@ -41,6 +41,7 @@ class WikiPublishingService:
         db: AsyncSession,
         *,
         catalog_id: UUID,
+        app_name: str,
         name: str,
         slug: str | None = None,
         description: str | None = None,
@@ -51,6 +52,7 @@ class WikiPublishingService:
         Args:
             db: 数据库会话
             catalog_id: 关联的 Catalog ID
+            app_name: 应用名称（从 Catalog 推导）
             name: 发布名称（如 "技术文档 Wiki"）
             slug: URL 友好标识（不传则从 name 自动生成）
             description: 描述文本
@@ -74,6 +76,7 @@ class WikiPublishingService:
         return await WikiDao.create_publication(
             db,
             catalog_id=catalog_id,
+            app_name=app_name,
             name=name,
             slug=slug,
             description=description,

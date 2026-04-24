@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { CatalogSelector } from "../catalog/_components/CatalogSelector";
+import { useSingletonCatalog } from "../catalog/hooks/useSingletonCatalog";
 import {
   fetchWikiPublications,
   WikiPublication,
@@ -13,7 +13,7 @@ import { WikiPublicationDetail } from "./_components/WikiPublicationDetail";
 import { CreateWikiPublicationDialog } from "./_components/CreateWikiPublicationDialog";
 
 export default function WikiPage() {
-  const [catalogId, setCatalogId] = useState<string | null>(null);
+  const { catalogId, loading: catalogLoading, error: catalogError } = useSingletonCatalog();
   const [publications, setPublications] = useState<WikiPublication[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,22 +65,32 @@ export default function WikiPage() {
 
       <div className="flex min-h-0 flex-1 px-6 py-4 gap-4">
         <aside className="w-[320px] shrink-0 flex flex-col gap-3 overflow-hidden">
-          <CatalogSelector value={catalogId} onChange={setCatalogId} />
+          {catalogLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-sm text-muted">加载目录...</p>
+            </div>
+          ) : catalogError ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-dashed border-destructive/50">
+              <p className="text-sm text-destructive">{catalogError}</p>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setCreateOpen(true)}
+                disabled={!catalogId}
+                className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              >
+                + 新建发布
+              </button>
 
-          <button
-            onClick={() => setCreateOpen(true)}
-            disabled={!catalogId}
-            className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
-          >
-            + 新建发布
-          </button>
-
-          <WikiPublicationList
-            publications={publications}
-            selectedId={selectedId}
-            onSelect={(pub) => setSelectedId(pub.id)}
-            loading={loading}
-          />
+              <WikiPublicationList
+                publications={publications}
+                selectedId={selectedId}
+                onSelect={(pub) => setSelectedId(pub.id)}
+                loading={loading}
+              />
+            </>
+          )}
         </aside>
 
         <main className="flex-1 min-w-0 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">

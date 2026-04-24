@@ -85,6 +85,7 @@ class TestWikiCreatePublicationValidation:
             await service.create_publication(
                 _FakeAsyncSession(),
                 catalog_id=uuid4(),
+                app_name="negentropy",
                 name="Test",
                 theme="invalid-theme",
             )
@@ -96,6 +97,7 @@ class TestWikiCreatePublicationValidation:
             await service.create_publication(
                 _FakeAsyncSession(),
                 catalog_id=uuid4(),
+                app_name="negentropy",
                 name="Test",
                 slug="Invalid Slug!",
             )
@@ -109,6 +111,7 @@ class TestWikiCreatePublicationValidation:
         await service.create_publication(
             session,
             catalog_id=uuid4(),
+            app_name="negentropy",
             name="My Wiki Publication",
         )
         assert session.flush_count >= 1
@@ -129,6 +132,7 @@ class TestWikiCreatePublicationValidation:
         await service.create_publication(
             session,
             catalog_id=uuid4(),
+            app_name="negentropy",
             name="Architecture Wiki",
         )
 

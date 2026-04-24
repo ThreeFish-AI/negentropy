@@ -36,6 +36,7 @@ class WikiDao:
         db: AsyncSession,
         *,
         catalog_id: UUID,
+        app_name: str,
         name: str,
         slug: str,
         description: str | None = None,
@@ -44,6 +45,7 @@ class WikiDao:
         """创建 Wiki 发布记录（初始状态为 draft）"""
         pub = WikiPublication(
             catalog_id=catalog_id,
+            app_name=app_name,
             name=name,
             slug=slug,
             description=description,
