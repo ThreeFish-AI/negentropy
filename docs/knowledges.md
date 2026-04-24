@@ -546,6 +546,7 @@ Memory 运行时能力分为两层：
 ## 13. Catalog / Wiki Publication 三层正交架构
 
 > 本节记录 Phase 3 Catalog 全局化重构（commits `ebe5a91`–`59be678`）落地后的架构状态。
+> **下游收敛**：Phase 4 在本节 N:M schema 之上叠加「每 app 1 个 active Catalog + 每 Catalog 1 个 LIVE WikiPublication」聚合根不变量，详见 [§15 单实例 Catalog 收敛（Phase 4）](#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量)。
 
 ### 13.1 设计背景与动机
 
@@ -711,3 +712,157 @@ uv run pytest tests/performance_tests/knowledge/test_catalog_tree_perf.py -v
 <a id="ref7-catalog"></a>[7] GitBook, "Collections," *GitBook Documentation*, 2025. [Online]. Available: https://docs.gitbook.com/creating-content/content-structure/collection
 
 <a id="ref8-catalog"></a>[8] Atlassian, "Include Page Macro," *Confluence Data Center Documentation*, 2024. [Online]. Available: https://confluence.atlassian.com/doc/include-page-macro-139514.html
+
+---
+
+## 15. 单实例 Catalog 收敛（Phase 4，在 N:M 之上叠加聚合根不变量）
+
+> **状态**：Accepted（ADR 等价）
+> **上游**：见 [§13 Catalog / Wiki Publication 三层正交架构](#13-catalog--wiki-publication-三层正交架构)
+> **关联运维**：见 [`negentropy-wiki-ops.md` §12 单实例 Catalog 与 Wiki 发布版本管理运维](./negentropy-wiki-ops.md#12-单实例-catalog-与-wiki-发布版本管理运维)
+> **关联 Issue**：见 [`issue.md` ISSUE-015](./issue.md#issue-015)
+
+### 15.1 设计动机
+
+Phase 3 将 Catalog 从 Corpus 解耦后，schema 层支持 `(app_name, slug)` 维度下任意多 Catalog（DOCUMENT_REF 表为软引用 N:M），但**实际产品形态只需要一个聚合根**：
+
+- **UX 摩擦**：`/knowledge/catalog`、`/knowledge/wiki` 入口的 `<CatalogSelector>` 是冷启动路径上的隐式断点——首次进入时未选 Catalog 则全页空载；同时 KnowledgeNav（7 个固定 tab）与 Sidebar（5 个一级条目）都未按 Catalog 拆分，使「选 Catalog」沦为不可观测的全局态。
+- **聚合根缺位**：Wiki 的「多主题/多菜单/多子菜单」语义本可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载，无需借助多个并列 Catalog 行表达层级。
+- **业界范式收敛**：Confluence Space<sup>[[9-catalog]](#ref9-catalog)</sup>、GitBook Book<sup>[[7-catalog]](#ref7-catalog)</sup>、Notion Workspace<sup>[[10-catalog]](#ref10-catalog)</sup> 均采用「单容器 + 多层页面树」范式——容器是聚合根（DDD<sup>[[11-catalog]](#ref11-catalog)</sup>），层级由 Composite Pattern<sup>[[12-catalog]](#ref12-catalog)</sup> 承载。
+
+### 15.2 决策
+
+> **每个 `app_name` 至多存在 1 个 active Catalog（聚合根），其内部 `CatalogNode` 多层树承担多主题/多菜单语义；每个 Catalog 至多存在 1 个 LIVE WikiPublication，但保留 ARCHIVED/SNAPSHOT 多版本以支持回退。**
+
+约束以 PostgreSQL **partial unique index** 表达——保留底层 N:M schema 不动，仅在「active」子集上叠加单例不变量：
+
+```sql
+-- 每个 app 至多 1 个未归档 Catalog
+CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton
+  ON doc_catalogs(app_name)
+  WHERE is_archived = false;
+
+-- 每个 Catalog 至多 1 个 LIVE Publication（ARCHIVED/SNAPSHOT 不受限）
+CREATE UNIQUE INDEX uq_wiki_pub_catalog_active
+  ON wiki_publications(catalog_id)
+  WHERE status = 'LIVE';
+```
+
+并新增 `doc_catalogs.merged_into_id UUID NULL`（自引用 ON DELETE SET NULL），承载 tombstone 溯源指针<sup>[[13-catalog]](#ref13-catalog)</sup>。
+
+### 15.3 与 Phase 3 的关系（叠加，不是回退）
+
+| 维度 | Phase 3（已落地） | Phase 4（本节，叠加） |
+|------|-----------------|------------------|
+| Catalog 与 Corpus 关系 | 完全解耦，正交 | **不变** |
+| `doc_catalog_documents` N:M | 一个 document_id 可挂多 entry | **不变** |
+| `(app_name, slug)` 唯一约束 | 允许同 app 多 Catalog | **保留**（向后兼容） |
+| Active Catalog 数量 | 不约束 | **新增** partial unique → ≤1 |
+| WikiPublication 多版本 | 同 catalog 内允许多 publication | **保留** |
+| LIVE Publication 数量 | 不约束 | **新增** partial unique → ≤1 |
+
+**核心要义**：Phase 4 是 Phase 3 设计的**收敛态**，而非否定。底层 N:M schema、跨 catalog 文档引用能力、多版本 Wiki 发布机制全部保留——只在「active 子集」上加一条不变量，使 Catalog 成为合规的聚合根（Aggregate Root, DDD<sup>[[11-catalog]](#ref11-catalog)</sup>）。
+
+### 15.4 数据合并语义（多 Catalog → 单聚合根）
+
+Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行环境通常存在 ≥3 个 Catalog（对应 negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade）。Phase 4 采用**根节点合并为子树（Root-as-Subtree Merge）**策略实现无损迁移：
+
+```mermaid
+flowchart LR
+    subgraph BEFORE["Phase 3 现状（多 Catalog 并列）"]
+        direction TB
+        C1["Catalog A<br/>negentropy-perceives"]
+        C2["Catalog B<br/>negentropy-wiki"]
+        C3["Catalog C<br/>negentropy-aurelius-clade"]
+        C1 --> N1["Node 1.1"]
+        C1 --> N2["Node 1.2"]
+        C2 --> N3["Node 2.1"]
+        C3 --> N4["Node 3.1"]
+    end
+
+    subgraph AFTER["Phase 4 收敛后（单聚合根）"]
+        direction TB
+        S["Catalog Survivor<br/>app_name=negentropy<br/>(active)"]
+        S --> V0["原 Survivor 顶层"]
+        S --> V1["Virtual Root<br/>(legacy-B)"]
+        S --> V2["Virtual Root<br/>(legacy-C)"]
+        V0 --> M1["Node 1.1"]
+        V0 --> M2["Node 1.2"]
+        V1 --> M3["Node 2.1"]
+        V2 --> M4["Node 3.1"]
+
+        T1["Catalog B<br/>(tombstone)<br/>merged_into_id→Survivor"]
+        T2["Catalog C<br/>(tombstone)<br/>merged_into_id→Survivor"]
+    end
+
+    BEFORE -.合并迁移.-> AFTER
+
+    classDef survivor fill:#1f6feb,stroke:#388bfd,color:#ffffff,font-weight:bold;
+    classDef virtual fill:#8957e5,stroke:#a371f7,color:#ffffff;
+    classDef tombstone fill:#6e7681,stroke:#8b949e,color:#f0f6fc,stroke-dasharray: 5 5;
+    classDef original fill:#238636,stroke:#3fb950,color:#ffffff;
+    classDef foreign fill:#bf8700,stroke:#d29922,color:#ffffff;
+
+    class S,V0 survivor;
+    class V1,V2 virtual;
+    class T1,T2 tombstone;
+    class C1,N1,N2,M1,M2 original;
+    class C2,C3,N3,N4,M3,M4 foreign;
+```
+
+合并算法关键步骤（详见 [`negentropy-wiki-ops.md` §12.2 Phase B runbook](./negentropy-wiki-ops.md#122-phase-b-merge-runbook)）：
+
+1. **Survivor 选择**：按 `(app_name, is_archived=false) ORDER BY created_at ASC LIMIT 1`。
+2. **Virtual Root 注入**：为每个被合并 Catalog 在 survivor 顶层创建一个 `node_type='CATEGORY'` 的虚拟节点，slug 加 `legacy-<short_hash>` 后缀避免冲突。
+3. **子树嫁接**：将被合并 Catalog 的所有顶层 entry 的 `parent_entry_id` 重指向 virtual root，整树 `catalog_id` 一次性 UPDATE 到 survivor。
+4. **WikiPublication 重指向**：`catalog_id` 改写到 survivor，状态为 `LIVE` 的降级为 `ARCHIVED`（保留多版本回退），`navigation_config` JSONB 内的 catalog_id 引用同步 rewrite。
+5. **Tombstone**：源 Catalog 设 `is_archived=true, merged_into_id=survivor.id`，**严禁物理删除**（与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。
+6. **守恒断言**：迁移末尾 SELECT 校验 `count(doc_catalog_entries)` 与 `count(DISTINCT document_id)` 守恒。
+
+**回退性**：Phase A（仅加索引/列）的 downgrade 完全可逆；**Phase B（合并）声明 `DESTRUCTIVE_DOWNGRADE = true`，downgrade 不会反向拆分子树**——回退依赖 Phase B 执行前的强制 `pg_dump` 快照。
+
+### 15.5 业界范式映射
+
+| 项目 | 聚合根 | 层级承载机制 | Phase 4 对应 |
+|------|--------|------------|------------|
+| Confluence<sup>[[9-catalog]](#ref9-catalog)</sup> | Space | Page tree (parent-child) | DocCatalog + CatalogNode |
+| GitBook<sup>[[7-catalog]](#ref7-catalog)</sup> | Book / Collection | SUMMARY.md 多级标题 | DocCatalog + 三级 CatalogNode |
+| Notion<sup>[[10-catalog]](#ref10-catalog)</sup> | Workspace | Subpage 嵌套 | DocCatalog + 自引用树 |
+| MediaWiki<sup>[[6-catalog]](#ref6-catalog)</sup> | Wiki instance | Category graph | （多对多形态，本项目不采用） |
+
+我们的 Wiki 多主题/菜单/子菜单语义与 Confluence Space 的「Space → Page → Subpage」最为接近，三级 `CatalogNode` 即可完整承载，无需借助多 Catalog 平行扩展。
+
+### 15.6 风险与缓解
+
+| 风险 | 缓解 |
+|------|-----|
+| 并发 `POST /catalogs` race | partial unique index 兜底 + service 层捕获 `IntegrityError` 降级为 ensure 语义 |
+| 嫁接后超过 `MAX_TREE_DEPTH=6` | Phase B 前预检 SQL 扫描所有 catalog 树深度，超限**中止迁移**人工介入 |
+| Slug 命名冲突 | 自动追加 `-legacy-<hash>` 后缀 + 写入迁移日志，不静默覆盖 |
+| `navigation_config` JSONB 残留旧 catalog_id | Phase B 步骤 4 显式 jsonb rewrite |
+| 旧客户端继续 `POST /catalogs` | 返回 409 + `existing_catalog_id` + 6 周宽限期；OpenAPI 标 deprecated |
+| 跨 corpus 文档归属冲突 | DOCUMENT_REF 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 合法；UI 提示去重不强制 |
+
+### 15.7 验证清单
+
+- **Schema**：`\d+ doc_catalogs` 含 partial unique index `uq_doc_catalogs_app_singleton`；直接 `INSERT` 第二条 active 行抛 `UniqueViolation`。
+- **守恒**：迁移前后 `SELECT COUNT(*) FROM doc_catalog_entries` 与 `SELECT COUNT(DISTINCT document_id) FROM doc_catalog_documents` 不变。
+- **API**：`GET /catalogs/resolve?app_name=negentropy` 返回单一 Catalog；`POST /catalogs` 在 active 已存在时返回 409。
+- **UI**：`/knowledge/catalog` 与 `/knowledge/wiki` 不再出现 `<select>`，改为只读 `<CatalogBadge>`。
+- **覆盖**：参见新增测试 `apps/negentropy/tests/integration_tests/knowledge/test_catalog_singleton.py`（Phase 4 落地时同步引入）。
+
+---
+
+## 参考文献（Catalog 架构 - Phase 4 增补）
+
+<a id="ref9-catalog"></a>[9] Atlassian, "Spaces overview," *Confluence Cloud Documentation*, 2025. [Online]. Available: https://support.atlassian.com/confluence-cloud/docs/use-spaces-to-organize-your-work/
+
+<a id="ref10-catalog"></a>[10] Notion Labs, "Workspaces, teamspaces, and pages," *Notion Help Center*, 2025. [Online]. Available: https://www.notion.so/help/workspaces-teamspaces-and-pages
+
+<a id="ref11-catalog"></a>[11] E. Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*. Boston, MA: Addison-Wesley, 2003, ch. 6 ("Aggregates"), pp. 125–135.
+
+<a id="ref12-catalog"></a>[12] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software*. Reading, MA: Addison-Wesley, 1994, ch. 4 ("Composite"), pp. 163–173.
+
+<a id="ref13-catalog"></a>[13] M. Kleppmann, *Designing Data-Intensive Applications*. Sebastopol, CA: O'Reilly Media, 2017, ch. 5 ("Replication"), pp. 151–197.
+
+<a id="ref14-catalog"></a>[14] P. J. Sadalage and M. Fowler, "Evolutionary Database Design," *martinfowler.com*, 2016. [Online]. Available: https://martinfowler.com/articles/evodb.html

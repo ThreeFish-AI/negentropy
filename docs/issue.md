@@ -273,3 +273,26 @@
   3. ISSUE-001（空态吞主操作）与本次 ISSUE-014（入口门禁缺失）提示：**UI 入口与上下文依赖的关系需要显式建模**——每个主操作按钮应能回答「我需要哪些前置上下文（catalogId / nodeId / permission / onboarding 状态）」，任何一项缺失时 UI 需显式阻断（disabled / 隐藏 / 引导占位），不能依赖下游（API 层 / 后端）兜底报错。
 
 ---
+
+<a id="issue-015"></a>
+## ISSUE-015 Knowledge / Catalog 与 Wiki 入口的 Catalog 选择器冗余 → 单实例 Catalog 收敛（Phase 4）
+
+- **表因**：用户在 `/knowledge/catalog` 与 `/knowledge/wiki` 两个入口顶部均看到「目录：选择目录」`<CatalogSelector>` 组件组；首次进入未选择 catalog 时整页空载，显著的 UX 摩擦点；同时 KnowledgeNav 的 7 个固定 tab、Sidebar 的 5 个一级条目均未按 catalog 分支，使「选 catalog」沦为不可观测的全局态。截图来自 `/knowledge/catalog`（参见 [`apps/negentropy-ui/app/knowledge/catalog/page.tsx:11-89`](../apps/negentropy-ui/app/knowledge/catalog/page.tsx) 与 [`apps/negentropy-ui/app/knowledge/wiki/page.tsx:5,15-68`](../apps/negentropy-ui/app/knowledge/wiki/page.tsx)）。
+- **根因**：**产品形态与 schema 表达力不对称**——Phase 3 Catalog 全局化重构（[`knowledges.md` §13](./knowledges.md#13-catalog--wiki-publication-三层正交架构)）将 Catalog 从 Corpus 解耦为 N:M，schema 层支持「同 app 多 Catalog」（仅 `UNIQUE(app_name, slug)`，无单例约束）；但实际产品语义只需要一个聚合根，「多主题/多菜单/多子菜单」可由 `CatalogNode.parent_entry_id` 自引用 + `MAX_TREE_DEPTH=6` 完整承载。Migration 0004 在 Phase 2 backfill 时按「1 corpus → 1 catalog」1:1 映射，运行时通常存在 ≥3 个 Catalog（negentropy-perceives / negentropy-wiki / negentropy-aurelius-clade），UI 因此被迫暴露 `<CatalogSelector>` 让用户在多 Catalog 之间切换。本质是**缺失的聚合根不变量**，而非组件实现 bug——直接删 selector 会导致前端无法解析当前 catalog。
+- **处理方式**（Expand → Backfill → Contract 三段式无破坏迁移）：
+  1. **架构沉淀**（本次 PR）：[`knowledges.md` §15 单实例 Catalog 收敛（Phase 4）](./knowledges.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量) 作为 ADR 等价记录，明确「Phase 4 在 Phase 3 N:M schema 之上叠加聚合根不变量，不是回退」；[`negentropy-wiki-ops.md` §12](./negentropy-wiki-ops.md#12-单实例-catalog-与-wiki-发布版本管理运维) 沉淀 Phase B merge runbook（含 `pg_dump` 强制备份、守恒断言、回退 SQL）；
+  2. **Phase A Migration 0007**（独立 PR）：纯加法——`CREATE UNIQUE INDEX uq_doc_catalogs_app_singleton ON doc_catalogs(app_name) WHERE is_archived=false`、`CREATE UNIQUE INDEX uq_wiki_pub_catalog_active ON wiki_publications(catalog_id) WHERE status='LIVE'`、`ALTER TABLE doc_catalogs ADD COLUMN merged_into_id UUID NULL REFERENCES doc_catalogs(id) ON DELETE SET NULL`。downgrade 完全可逆；
+  3. **Phase B Migration 0008**（独立 PR + 强制 `pg_dump` 备份）：按「根节点合并为子树」策略——按 `(app_name) ORDER BY created_at ASC LIMIT 1` 选 survivor，其它 catalog 的顶层 entry 嫁接到 survivor 顶层新建的虚拟 `CATEGORY` 节点（slug 加 `legacy-<short_hash>` 后缀避免冲突），整树 `catalog_id` UPDATE 到 survivor，WikiPublication 的 LIVE 降级为 ARCHIVED 并重指向，`navigation_config` JSONB 中的 catalog_id 显式 rewrite，源 catalog 设 `is_archived=true, merged_into_id=survivor.id`（**严禁物理删除**，与 [AGENTS.md 数据库管理规范](../CLAUDE.md) 一致）。声明 `DESTRUCTIVE_DOWNGRADE = true`，回退依赖快照；
+  4. **后端 API**（独立 PR）：新增 `GET /catalogs/resolve?app_name=X`（幂等读，404 表示不存在）、`POST /catalogs/ensure`（upsert-or-get），`POST /catalogs` 加 guard：active 已存在则 409 `catalog_already_exists` 并返回 `existing_catalog_id`；`DELETE /catalogs/{id}` 改为 `is_archived=true` 软删；`CatalogService.create_catalog` 在事务内 `SELECT ... FOR UPDATE` + 捕获 `IntegrityError` 降级为 ensure 语义防御并发 race。`fetchCatalogs` 保留并标 `@deprecated` 给旧客户端 6 周宽限期；
+  5. **前端**（独立 PR）：新增 `features/knowledge/hooks/useAppCatalog.ts` 调 `resolveCatalog(APP_NAME)` + SWR 缓存（404 fallback ensure），新增只读 `<CatalogBadge>` 显示 catalog name + tooltip（slug / app_name），`/knowledge/catalog` 与 `/knowledge/wiki` 删除 `<CatalogSelector>` 与 `useState<string|null>` 守卫；树渲染、节点 CRUD、Wiki 详情面板等组件全部不动，只换上游数据源。
+- **后续防范**：
+  1. **新增聚合根类实体时优先表达「单例」语义**——若产品形态明确只需一个聚合根，schema 应在 `Expand` 阶段就附带 partial unique index 表达不变量；本次因 Phase 3 优先解耦正交性、未同步约束 active 数量，导致 UX 摩擦反向倒推 schema 收敛。Review 新增聚合表时检查「(tenant_key) WHERE active=true」式 partial unique index 是否就位；
+  2. **三段式迁移的强约束**：Expand（加约束/列）→ Backfill（数据合并）→ Contract（删除冗余）必须严格分离为独立 PR，每步可独立回滚；任何 destructive backfill 强制前置 `pg_dump`，downgrade 显式声明 `DESTRUCTIVE_DOWNGRADE` 标记；
+  3. **跨 catalog 嫁接时的 `MAX_TREE_DEPTH` 预检**：Composite 树类合并必须在 Phase B 前扫描所有子树深度，超限即中止迁移人工介入；杜绝迁移过程中触发应用层校验异常导致部分提交；
+  4. **slug/JSONB 引用的 rewrite 完整性**：本次 navigation_config JSONB 残留旧 catalog_id 是典型的「引用泄漏」，新增/合并聚合根类迁移时必须 `grep` 全表 JSONB / TEXT 列搜索旧主键引用，确保无残留；
+  5. **UI 入口的「冷启动空载」是聚合根缺失的早期信号**——任何要求用户在首屏选「全局上下文」的 selector，都应反思「这个上下文是否本应单例化或自动解析」。
+- **同类问题影响**：
+  1. **Memory 域**（`MemoryEntry` 与未来可能的 `MemoryNamespace`）：若引入类似的「全局上下文」概念，应优先以 partial unique index 表达单例不变量，避免重蹈 UX selector 覆辙；
+  2. **Interface 域**（`McpServer` 当前已支持多实例但 `auto_start=True` 实际只期望 1 个 manager）：本次单实例约束的 `partial unique` 范式可作为模板复用；
+  3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki-ops.md` §12.3](./negentropy-wiki-ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
+  4. **跨 corpus 文档归属**：`doc_catalog_documents` 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 是合法行为；UI 提示去重但不强制——这是 Phase 3 N:M 解耦的天然结果，Phase 4 单例化不影响该自由度。
