@@ -220,7 +220,7 @@ def downgrade() -> None:
             e.parent_entry_id,
             e.name,
             COALESCE(e.slug_override, LOWER(e.name)),
-            LOWER(e.node_type),
+            LOWER(e.node_type::text),
             e.description,
             e.position,
             COALESCE(e.config, '{}'::jsonb),
@@ -235,6 +235,11 @@ def downgrade() -> None:
     )
 
     # 3c) 回填 doc_catalog_memberships（DOCUMENT_REF entries）
+    #     通过 JOIN doc_catalog_nodes 保证 parent_entry_id 已落回 legacy 节点表；
+    #     这与 Phase 2 upgrade（0004 L172-174）中 "membership → node → catalog" 的
+    #     JOIN 链路严格对称。若 DOCUMENT_REF 的 parent_entry_id 指向另一个 DOCUMENT_REF
+    #     （legacy schema 无法表达的文档嵌套），则被过滤并跳过 —— 与跨 corpus 守卫
+    #     同样属于"legacy 无法表达的前向语义"，不可表达即不可回填。
     op.execute(
         sa.text("""
         INSERT INTO negentropy.doc_catalog_memberships (
@@ -247,6 +252,7 @@ def downgrade() -> None:
             e.created_at,
             e.updated_at
         FROM negentropy.doc_catalog_entries e
+        JOIN negentropy.doc_catalog_nodes n ON n.id = e.parent_entry_id
         WHERE e.node_type = 'DOCUMENT_REF'
           AND e.document_id IS NOT NULL
           AND NOT EXISTS (
