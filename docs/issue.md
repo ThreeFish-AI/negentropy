@@ -296,3 +296,16 @@
   2. **Interface 域**（`McpServer` 当前已支持多实例但 `auto_start=True` 实际只期望 1 个 manager）：本次单实例约束的 `partial unique` 范式可作为模板复用；
   3. **Wiki 多版本回退**：本次保留 `WikiPublication` 的 ARCHIVED/SNAPSHOT 多版本是有意为之（详见 [`wiki-ops.md` §12.3](./negentropy-wiki-ops.md#123-wikipublication-多版本与回退)），未来若引入 `KnowledgeBase` / `Skill` 类似的「发布版本」语义可参照该模式（active 单例 + 历史多版本归档）；
   4. **跨 corpus 文档归属**：`doc_catalog_documents` 是软引用 N:M，同 document_id 在 survivor 下出现多 entry 是合法行为；UI 提示去重但不强制——这是 Phase 3 N:M 解耦的天然结果，Phase 4 单例化不影响该自由度。
+
+## ISSUE-016 Wiki 发布创建 500（app_name NOT NULL 违约）+ Wiki 页 CatalogSelector 移除
+
+- **表因**：Wiki 页「新建 Wiki 发布」->「创建」触发 `POST /api/knowledge/wiki/publications → 500 Internal Server Error`（前端提示 `Failed to create wiki publication: Internal Server Error`）。
+- **根因**：Phase 3 Catalog 全局化迁移（[`perception.py`](../apps/negentropy/src/negentropy/models/perception.py) `WikiPublication` 模型 L215）为 `wiki_publications` 表新增 `app_name: VARCHAR(255) NOT NULL`（无 `server_default`），但创建链 `api.py:4068-4075` → `wiki_service.py:39-81` → `wiki_dao.py:45-53` 三处均未设置该字段，PostgreSQL INSERT 时 NOT NULL 违约触发 500。`DocCatalog` 模型（L546）已持有 `app_name` 字段，但 API handler 未从 catalog 查询推导。
+- **处理方式**（最小干预）：
+  1. **后端**：在 `create_wiki_publication` handler 中通过 `db.get(DocCatalog, body.catalog_id)` 查询目录，提取 `catalog.app_name`，透传至 service → DAO 层显式写入 ORM 对象（`WikiPublication(app_name=catalog.app_name, ...)`）；catalog 不存在返回 404（与 `get_catalog_documents` handler 模式一致）。
+  2. **前端**：移除 Wiki 页 `CatalogSelector` 组件，改用 `useSingletonCatalog()` hook 自动绑定唯一根目录（与 Catalog 页对齐，完成 ISSUE-015 Phase 4 前端收敛中 Wiki 部分的落地）。
+  3. **Pydantic schema / 前端 dialog 零改动**：`app_name` 由服务端从 catalog 推导，无需前端传入。
+- **后续防范**：
+  1. **新增 NOT NULL 列时必须审计创建链**：当 Alembic 迁移为现有表新增 `NOT NULL` 列（无 `server_default`）时，必须同步审计该表所有 INSERT 路径（API → Service → DAO），确保新列在 ORM 构造时被显式赋值；本次 Phase 3 迁移仅更新了 ORM 模型和迁移脚本，遗漏了 DAO 层的构造函数。
+  2. **DAO 层 ORM 构造应与模型定义对称检查**：在 `db.add(entity)` 前检查 `entity.__table__.columns` 中所有 `nullable=False` 且无 `server_default` 的列是否已赋值，可作为 lint 规则或 pre-commit hook 实现。
+- **同类问题影响**：`WikiPublication` 的 `publish_mode` / `visibility` 列也有 `nullable=False`，但因有 `server_default` 所以由数据库兜底，未触发 500。其他 Phase 3 迁移新增的 NOT NULL 列应做同类审计。

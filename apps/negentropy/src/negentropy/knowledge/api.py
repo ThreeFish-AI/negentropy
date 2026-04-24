@@ -4064,10 +4064,20 @@ async def create_wiki_publication(
     wiki_svc = _get_wiki_service()
 
     async with AsyncSessionLocal() as db:
+        from negentropy.models.perception import DocCatalog
+
+        catalog = await db.get(DocCatalog, body.catalog_id)
+        if catalog is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "CATALOG_NOT_FOUND", "message": "Catalog not found"},
+            )
+
         try:
             pub = await wiki_svc.create_publication(
                 db,
                 catalog_id=body.catalog_id,
+                app_name=catalog.app_name,
                 name=body.name,
                 slug=body.slug,
                 description=body.description,
