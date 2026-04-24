@@ -58,6 +58,9 @@ from .lifecycle_schemas import (  # noqa: F401
     WikiPublishActionResponse,
 )
 from .lifecycle_schemas import (
+    CatalogCreateRequest as _CatalogCreateReq,
+)
+from .lifecycle_schemas import (
     CatalogNodeCreateRequest as _CatalogNodeCreateReq,
 )
 from .lifecycle_schemas import (
@@ -65,6 +68,12 @@ from .lifecycle_schemas import (
 )
 from .lifecycle_schemas import (
     CatalogNodeUpdateRequest as _CatalogNodeUpdateReq,
+)
+from .lifecycle_schemas import (
+    CatalogResponse as _CatalogResp,
+)
+from .lifecycle_schemas import (
+    CatalogUpdateRequest as _CatalogUpdateReq,
 )
 from .lifecycle_schemas import (
     CorpusQualityResponse as _CorpusQualityResp,
@@ -3668,100 +3677,173 @@ def _entry_orm_to_resp(
     )
 
 
-# --- 目录树查询 ---
+def _catalog_orm_to_resp(catalog: Any) -> _CatalogResp:
+    vis = catalog.visibility or "INTERNAL"
+    return _CatalogResp(
+        id=catalog.id,
+        name=catalog.name,
+        slug=catalog.slug,
+        app_name=catalog.app_name,
+        description=catalog.description,
+        visibility=vis.lower() if isinstance(vis, str) else "INTERNAL",
+        is_archived=catalog.is_archived or False,
+        version=catalog.version or 1,
+        owner_id=catalog.owner_id,
+        config=catalog.config or {},
+        created_at=catalog.created_at,
+        updated_at=catalog.updated_at,
+    )
 
 
-@router.get("/catalog/tree/{catalog_id}")
-async def get_catalog_tree(
-    catalog_id: UUID,
-) -> CatalogTreeResponse:
-    """获取 Catalog 完整目录树
+# =============================================================================
+# Phase 3 补全: /catalogs RESTful 路由（对标 BFF 代理约定）
+# =============================================================================
 
-    返回扁平化的节点列表，每个节点含 depth（层级深度）和 path（祖先路径），
-    前端可根据这些信息构建树形 UI 组件。
 
-    Args:
-        catalog_id: Catalog ID
-
-    Returns:
-        目录树节点列表及统计信息
-    """
-    catalog_svc = _get_catalog_service()
-
-    async with AsyncSessionLocal() as db:
-        tree_data = await catalog_svc.get_tree(db, catalog_id)
-
-    # 计算每个节点的子节点数
+def _build_tree_response(tree_data: list[dict]) -> CatalogTreeResponse:
+    """复用：将 CTE 扁平列表转为 CatalogTreeResponse（含 children_count）"""
     id_to_children_count: dict[UUID, int] = {}
     for node in tree_data:
         pid = node.get("parent_id")
         if pid is not None:
             id_to_children_count[pid] = id_to_children_count.get(pid, 0) + 1
-
-    items = [
-        _to_catalog_node_resp(
-            node,
-            children_count=id_to_children_count.get(node["id"], 0),
-        )
-        for node in tree_data
-    ]
-
+    items = [_to_catalog_node_resp(node, children_count=id_to_children_count.get(node["id"], 0)) for node in tree_data]
     max_depth = max((n.get("depth", 0) for n in tree_data), default=0) if tree_data else 0
-
-    logger.info(
-        "api_get_catalog_tree",
-        catalog_id=str(catalog_id),
-        total_nodes=len(items),
-        max_depth=max_depth,
-    )
-
     return CatalogTreeResponse(tree=items, total_nodes=len(items), max_depth=max_depth)
 
 
-@router.get("/catalog/nodes/{node_id}")
-async def get_catalog_node(node_id: UUID) -> _CatalogNodeResp:
-    """获取单个目录节点详情"""
+# --- Catalog CRUD ---
+
+
+@router.get("/catalogs")
+async def list_catalogs(
+    app_name: str | None = Query(default=None),
+    include_archived: bool = Query(default=False),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """列出 Catalog（支持 app_name 过滤）"""
     catalog_svc = _get_catalog_service()
-
     async with AsyncSessionLocal() as db:
-        node = await catalog_svc.get_node(db, node_id)
+        catalogs, total = await catalog_svc.list_catalogs(
+            db,
+            app_name=app_name,
+            include_archived=include_archived,
+            offset=offset,
+            limit=limit,
+        )
+    items = [_catalog_orm_to_resp(c) for c in catalogs]
+    logger.info("api_list_catalogs", total=total)
+    return {"items": items, "total": total, "offset": offset, "limit": limit}
 
-    if node is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
 
-    logger.info("api_get_catalog_node", node_id=str(node_id))
-    return _entry_orm_to_resp(node)
-
-
-@router.get("/catalog/subtree/{node_id}")
-async def get_catalog_subtree(node_id: UUID) -> CatalogTreeResponse:
-    """获取以指定节点为根的子树"""
+@router.post("/catalogs")
+async def create_catalog(body: _CatalogCreateReq) -> _CatalogResp:
+    """创建 Catalog"""
     catalog_svc = _get_catalog_service()
-
     async with AsyncSessionLocal() as db:
-        subtree_data = await catalog_svc.get_subtree(db, node_id)
+        try:
+            catalog = await catalog_svc.create_catalog(
+                db,
+                app_name=body.app_name,
+                name=body.name,
+                slug=body.slug,
+                owner_id=body.owner_id,
+                description=body.description,
+                visibility=body.visibility.upper(),
+                config=body.config if body.config else None,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        await db.commit()
+    logger.info("api_create_catalog", catalog_id=str(catalog.id))
+    return _catalog_orm_to_resp(catalog)
 
-    items = [_to_catalog_node_resp(n) for n in subtree_data]
-    max_depth = max((n.get("depth", 0) for n in subtree_data), default=0) if subtree_data else 0
 
-    return CatalogTreeResponse(tree=items, total_nodes=len(items), max_depth=max_depth)
+@router.get("/catalogs/{catalog_id}")
+async def get_catalog(catalog_id: UUID) -> _CatalogResp:
+    """获取单个 Catalog 详情"""
+    catalog_svc = _get_catalog_service()
+    async with AsyncSessionLocal() as db:
+        catalog = await catalog_svc.get_catalog(db, catalog_id)
+    if catalog is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog not found")
+    logger.info("api_get_catalog", catalog_id=str(catalog_id))
+    return _catalog_orm_to_resp(catalog)
 
 
-# --- 目录节点 CRUD ---
+@router.patch("/catalogs/{catalog_id}")
+async def update_catalog(
+    catalog_id: UUID,
+    body: _CatalogUpdateReq,
+) -> _CatalogResp:
+    """更新 Catalog 属性"""
+    catalog_svc = _get_catalog_service()
+    update_kwargs = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
+    if not update_kwargs:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+    if "visibility" in update_kwargs:
+        update_kwargs["visibility"] = update_kwargs["visibility"].upper()
+    async with AsyncSessionLocal() as db:
+        try:
+            catalog = await catalog_svc.update_catalog(db, catalog_id, **update_kwargs)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        if catalog is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog not found")
+        await db.commit()
+    logger.info("api_update_catalog", catalog_id=str(catalog_id))
+    return _catalog_orm_to_resp(catalog)
 
 
-@router.post("/catalog/nodes")
-async def create_catalog_node(
+@router.delete("/catalogs/{catalog_id}")
+async def delete_catalog(catalog_id: UUID):
+    """删除 Catalog（级联删除所有条目）"""
+    catalog_svc = _get_catalog_service()
+    async with AsyncSessionLocal() as db:
+        deleted = await catalog_svc.delete_catalog(db, catalog_id)
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog not found")
+        await db.commit()
+    logger.info("api_delete_catalog", catalog_id=str(catalog_id))
+    return {"detail": "Catalog deleted", "catalog_id": str(catalog_id)}
+
+
+# --- Catalog Tree ---
+
+
+@router.get("/catalogs/{catalog_id}/tree")
+async def get_catalog_tree_v2(catalog_id: UUID) -> CatalogTreeResponse:
+    """获取 Catalog 完整目录树"""
+    catalog_svc = _get_catalog_service()
+    async with AsyncSessionLocal() as db:
+        tree_data = await catalog_svc.get_tree(db, catalog_id)
+    resp = _build_tree_response(tree_data)
+    logger.info("api_get_catalog_tree_v2", catalog_id=str(catalog_id), total_nodes=resp.total_nodes)
+    return resp
+
+
+# --- Catalog Entry CRUD ---
+
+
+@router.get("/catalogs/{catalog_id}/entries")
+async def list_catalog_entries(catalog_id: UUID) -> CatalogTreeResponse:
+    """列出 Catalog 下所有条目"""
+    catalog_svc = _get_catalog_service()
+    async with AsyncSessionLocal() as db:
+        tree_data = await catalog_svc.get_tree(db, catalog_id)
+    resp = _build_tree_response(tree_data)
+    logger.info("api_list_catalog_entries", catalog_id=str(catalog_id), total=len(resp.tree))
+    return resp
+
+
+@router.post("/catalogs/{catalog_id}/entries")
+async def create_catalog_entry(
+    catalog_id: UUID,
     body: _CatalogNodeCreateReq,
-    catalog_id: UUID = Query(..., description="所属 Catalog ID"),
 ) -> _CatalogNodeResp:
-    """创建目录节点
-
-    支持创建 category / collection / document_ref 三种类型的节点。
-    可选指定 parent_id 构建层级关系。
-    """
+    """创建目录条目（catalog_id 从路径获取）"""
     catalog_svc = _get_catalog_service()
-
     async with AsyncSessionLocal() as db:
         try:
             node = await catalog_svc.create_node(
@@ -3778,185 +3860,185 @@ async def create_catalog_node(
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
         await db.commit()
-
-    logger.info("api_create_catalog_node", node_id=str(node.id), catalog_id=str(catalog_id))
+    logger.info("api_create_catalog_entry", node_id=str(node.id), catalog_id=str(catalog_id))
     return _entry_orm_to_resp(node)
 
 
-@router.patch("/catalog/nodes/{node_id}")
-async def update_catalog_node(
-    node_id: UUID,
+@router.get("/catalogs/{catalog_id}/entries/{entry_id}")
+async def get_catalog_entry(
+    catalog_id: UUID,
+    entry_id: UUID,
+) -> _CatalogNodeResp:
+    """获取单个目录条目详情"""
+    catalog_svc = _get_catalog_service()
+    async with AsyncSessionLocal() as db:
+        node = await catalog_svc.get_node(db, entry_id)
+    if node is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog entry not found")
+    logger.info("api_get_catalog_entry", entry_id=str(entry_id))
+    return _entry_orm_to_resp(node)
+
+
+@router.patch("/catalogs/{catalog_id}/entries/{entry_id}")
+async def update_catalog_entry(
+    catalog_id: UUID,
+    entry_id: UUID,
     body: _CatalogNodeUpdateReq,
 ) -> _CatalogNodeResp:
-    """更新目录节点属性"""
+    """更新目录条目属性"""
     catalog_svc = _get_catalog_service()
-
     async with AsyncSessionLocal() as db:
-        # 过滤掉 None 值，只传递实际更新的字段
         update_kwargs = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
         if not update_kwargs:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
-
         try:
-            node = await catalog_svc.update_node(db, node_id, **update_kwargs)
+            node = await catalog_svc.update_node(db, entry_id, **update_kwargs)
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-
         if node is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
-
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog entry not found")
         await db.commit()
-
-    logger.info("api_update_catalog_node", node_id=str(node_id))
+    logger.info("api_update_catalog_entry", entry_id=str(entry_id))
     return _entry_orm_to_resp(node)
 
 
-@router.delete("/catalog/nodes/{node_id}")
-async def delete_catalog_node(node_id: UUID):
-    """删除目录节点（级联删除所有子节点和文档关联）"""
+@router.delete("/catalogs/{catalog_id}/entries/{entry_id}")
+async def delete_catalog_entry(
+    catalog_id: UUID,
+    entry_id: UUID,
+):
+    """删除目录条目（级联删除子节点和文档关联）"""
     catalog_svc = _get_catalog_service()
-
     async with AsyncSessionLocal() as db:
-        deleted = await catalog_svc.delete_node(db, node_id)
+        deleted = await catalog_svc.delete_node(db, entry_id)
         if not deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog entry not found")
         await db.commit()
+    logger.info("api_delete_catalog_entry", entry_id=str(entry_id))
+    return {"detail": "Catalog entry deleted", "entry_id": str(entry_id)}
 
-    logger.info("api_delete_catalog_node", node_id=str(node_id))
-    return {"detail": "Catalog node deleted", "node_id": str(node_id)}
+
+# --- Catalog Documents ---
 
 
-@router.post("/catalog/nodes/{node_id}/move")
-async def move_catalog_node(
-    node_id: UUID,
-    new_parent_id: UUID | None = Query(default=None),
-) -> _CatalogNodeResp:
-    """移动目录节点到新的父节点下
+@router.get("/catalogs/{catalog_id}/documents")
+async def get_catalog_documents(
+    catalog_id: UUID,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """获取 Catalog 下所有条目关联的文档列表"""
+    from sqlalchemy import distinct
+    from sqlalchemy import select as sa_select
 
-    传入 new_parent_id=null 可将节点提升为根节点。
-    自动检测并防止循环引用。
-    """
-    catalog_svc = _get_catalog_service()
+    from negentropy.models.perception import DocCatalogEntry, KnowledgeDocument
 
     async with AsyncSessionLocal() as db:
-        try:
-            node = await catalog_svc.move_node(db, node_id, new_parent_id=new_parent_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        stmt = sa_select(distinct(DocCatalogEntry.document_id)).where(
+            DocCatalogEntry.catalog_id == catalog_id, DocCatalogEntry.document_id.isnot(None)
+        )
+        result = await db.execute(stmt)
+        doc_ids = [row[0] for row in result.all()]
 
-        if node is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Catalog node not found")
+        if not doc_ids:
+            return {"items": [], "total": 0, "offset": offset, "limit": limit}
 
-        await db.commit()
+        doc_stmt = (
+            sa_select(KnowledgeDocument)
+            .where(KnowledgeDocument.id.in_(doc_ids))
+            .order_by(KnowledgeDocument.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        doc_result = await db.execute(doc_stmt)
+        documents = doc_result.scalars().all()
 
-    logger.info(
-        "api_move_catalog_node", node_id=str(node_id), new_parent_id=str(new_parent_id) if new_parent_id else "root"
-    )
-    return _entry_orm_to_resp(node)
+    items = [
+        {
+            "id": str(doc.id),
+            "corpus_id": str(doc.corpus_id),
+            "filename": doc.original_filename,
+            "title": (doc.metadata_ or {}).get("title") or doc.original_filename,
+            "status": doc.status,
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        }
+        for doc in documents
+    ]
+    logger.info("api_get_catalog_documents", catalog_id=str(catalog_id), total=len(doc_ids))
+    return {"items": items, "total": len(doc_ids), "offset": offset, "limit": limit}
 
 
-# --- 文档归属管理 ---
+# --- Entry Documents ---
 
 
-@router.post("/catalog/nodes/{node_id}/documents")
-async def assign_documents_to_node(
-    node_id: UUID,
+@router.get("/catalogs/{catalog_id}/entries/{entry_id}/documents")
+async def get_entry_documents(
+    catalog_id: UUID,
+    entry_id: UUID,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """获取目录条目下的文档列表（分页）"""
+    catalog_svc = _get_catalog_service()
+    async with AsyncSessionLocal() as db:
+        documents, total = await catalog_svc.get_node_documents(db, entry_id, offset=offset, limit=limit)
+    items = [
+        {
+            "id": str(doc.id),
+            "filename": doc.original_filename,
+            "title": (doc.metadata_ or {}).get("title") or doc.original_filename,
+            "status": doc.status,
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        }
+        for doc in documents
+    ]
+    logger.info("api_get_entry_documents", entry_id=str(entry_id), total=total)
+    return {"items": items, "total": total, "offset": offset, "limit": limit}
+
+
+@router.post("/catalogs/{catalog_id}/entries/{entry_id}/documents")
+async def assign_documents_to_entry(
+    catalog_id: UUID,
+    entry_id: UUID,
     body: AssignDocumentRequest,
 ):
-    """将一批文档归入目录节点（幂等操作）"""
+    """将一批文档归入目录条目（幂等操作）"""
     catalog_svc = _get_catalog_service()
-
     async with AsyncSessionLocal() as db:
         assigned_count = 0
         errors: list[str] = []
         for doc_id in body.document_ids:
             try:
-                await catalog_svc.assign_document(db, node_id, doc_id)
+                await catalog_svc.assign_document(db, entry_id, doc_id)
                 assigned_count += 1
             except (ValueError, PermissionError) as exc:
                 errors.append(f"{doc_id}: {exc}")
-
         await db.commit()
-
-    logger.info("api_assign_documents", node_id=str(node_id), assigned=assigned_count, errors=len(errors))
-
-    result = {"assigned_count": assigned_count, "total_requested": len(body.document_ids)}
+    logger.info("api_assign_documents_to_entry", entry_id=str(entry_id), assigned=assigned_count, errors=len(errors))
+    result: dict[str, Any] = {"assigned_count": assigned_count, "total_requested": len(body.document_ids)}
     if errors:
         result["errors"] = errors
     return result
 
 
-@router.delete("/catalog/nodes/{node_id}/documents/{document_id}")
-async def unassign_document_from_node(
-    node_id: UUID,
+@router.delete("/catalogs/{catalog_id}/entries/{entry_id}/documents/{document_id}")
+async def unassign_document_from_entry(
+    catalog_id: UUID,
+    entry_id: UUID,
     document_id: UUID,
 ):
-    """从目录节点移除文档归属"""
+    """从目录条目移除文档归属"""
     catalog_svc = _get_catalog_service()
-
     async with AsyncSessionLocal() as db:
-        removed = await catalog_svc.unassign_document(db, node_id, document_id)
+        removed = await catalog_svc.unassign_document(db, entry_id, document_id)
         await db.commit()
-
     if not removed:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document {document_id} not found in catalog node {node_id}",
+            detail=f"Document {document_id} not found in catalog entry {entry_id}",
         )
-
-    logger.info("api_unassign_document", node_id=str(node_id), document_id=str(document_id))
-    return {"detail": "Document unassigned from catalog node"}
-
-
-@router.get("/catalog/nodes/{node_id}/documents")
-async def get_node_documents(
-    node_id: UUID,
-    offset: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
-):
-    """获取目录节点下的文档列表（分页）"""
-    catalog_svc = _get_catalog_service()
-
-    async with AsyncSessionLocal() as db:
-        documents, total = await catalog_svc.get_node_documents(db, node_id, offset=offset, limit=limit)
-
-    items = []
-    for doc in documents:
-        items.append(
-            {
-                "id": str(doc.id),
-                "filename": doc.original_filename,
-                "title": (doc.metadata_ or {}).get("title") or doc.original_filename,
-                "status": doc.status,
-                "created_at": doc.created_at.isoformat() if doc.created_at else None,
-            }
-        )
-
-    logger.info("api_get_node_documents", node_id=str(node_id), total=total)
-    return {"items": items, "total": total, "offset": offset, "limit": limit}
-
-
-@router.get("/documents/{document_id}/catalog-nodes")
-async def get_document_catalog_nodes(document_id: UUID):
-    """获取文档所属的所有目录节点"""
-    catalog_svc = _get_catalog_service()
-
-    async with AsyncSessionLocal() as db:
-        nodes = await catalog_svc.get_document_nodes(db, document_id)
-
-    items = [
-        {
-            "id": str(n.id),
-            "name": n.name,
-            "slug": n.slug,
-            "node_type": n.node_type,
-            "parent_id": str(n.parent_id) if n.parent_id else None,
-        }
-        for n in nodes
-    ]
-
-    logger.info("api_get_document_catalog_nodes", document_id=str(document_id), count=len(items))
-    return {"items": items}
+    logger.info("api_unassign_document_from_entry", entry_id=str(entry_id), document_id=str(document_id))
+    return {"detail": "Document unassigned from catalog entry"}
 
 
 # =============================================================================

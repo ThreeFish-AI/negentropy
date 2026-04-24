@@ -2248,16 +2248,15 @@ export async function fetchCatalogTree(catalogId: string): Promise<CatalogNode[]
 
 /** 获取目录节点列表（分页） */
 export async function fetchCatalogNodes(params: {
-  catalog_id?: string;
+  catalog_id: string;
   limit?: number;
   offset?: number;
 }): Promise<CatalogNodesResponse> {
   const query = new URLSearchParams();
-  if (params.catalog_id) query.set("catalog_id", params.catalog_id);
   if (params.limit != null) query.set("limit", String(params.limit));
   if (params.offset != null) query.set("offset", String(params.offset));
   const qs = query.toString();
-  const res = await fetch(`/api/knowledge/catalog${qs ? `?${qs}` : ""}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${params.catalog_id}/entries${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch catalog nodes: ${res.statusText}`);
@@ -2281,18 +2280,19 @@ export async function createCatalogNode(params: CreateCatalogNodeParams): Promis
 }
 
 /** 获取单个目录节点详情 */
-export async function fetchCatalogNode(nodeId: string): Promise<CatalogNode> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { cache: "no-store" });
+export async function fetchCatalogNode(catalogId: string, nodeId: string): Promise<CatalogNode> {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch catalog node: ${res.statusText}`);
   return res.json();
 }
 
 /** 更新目录节点 */
 export async function updateCatalogNode(
+  catalogId: string,
   nodeId: string,
   params: UpdateCatalogNodeParams,
 ): Promise<CatalogNode> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -2302,13 +2302,14 @@ export async function updateCatalogNode(
 }
 
 /** 删除目录节点 */
-export async function deleteCatalogNode(nodeId: string): Promise<void> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { method: "DELETE" });
+export async function deleteCatalogNode(catalogId: string, nodeId: string): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete catalog node: ${res.statusText}`);
 }
 
 /** 获取目录节点下的文档列表（分页） */
 export async function fetchCatalogNodeDocuments(
+  catalogId: string,
   nodeId: string,
   options?: { limit?: number; offset?: number },
 ): Promise<CatalogNodeDocumentsResponse> {
@@ -2316,7 +2317,7 @@ export async function fetchCatalogNodeDocuments(
   if (options?.limit != null) query.set("limit", String(options.limit));
   if (options?.offset != null) query.set("offset", String(options.offset));
   const qs = query.toString();
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents${qs ? `?${qs}` : ""}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}/documents${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch node documents: ${res.statusText}`);
@@ -2325,10 +2326,11 @@ export async function fetchCatalogNodeDocuments(
 
 /** 将文档分配到目录节点（通过批量端点） */
 export async function assignDocumentToNode(
+  catalogId: string,
   nodeId: string,
   docId: string,
 ): Promise<void> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}/documents`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ document_ids: [docId] }),
@@ -2338,10 +2340,11 @@ export async function assignDocumentToNode(
 
 /** 从目录节点移除文档 */
 export async function unassignDocumentFromNode(
+  catalogId: string,
   nodeId: string,
   docId: string,
 ): Promise<void> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}/documents/${docId}`, {
     method: "DELETE",
   });
   if (!res.ok) throw new Error(`Failed to unassign document: ${res.statusText}`);
