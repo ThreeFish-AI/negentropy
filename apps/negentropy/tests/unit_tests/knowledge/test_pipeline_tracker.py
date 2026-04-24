@@ -120,13 +120,14 @@ async def test_async_rebuild_pipeline_failure_persists_input_and_terminal_timest
         },
     )
 
-    with pytest.raises(RuntimeError, match="delete failed"):
-        await service.execute_rebuild_source_pipeline(
-            run_id=run_id,
-            corpus_id=corpus_id,
-            app_name=app_name,
-            source_uri=source_uri,
-        )
+    result = await service.execute_rebuild_source_pipeline(
+        run_id=run_id,
+        corpus_id=corpus_id,
+        app_name=app_name,
+        source_uri=source_uri,
+    )
+
+    assert result == []
 
     record = dao.records[(app_name, run_id)]
     payload = record.payload
@@ -239,13 +240,14 @@ async def test_async_rebuild_pipeline_does_not_delete_existing_source_when_extra
         },
     )
 
-    with pytest.raises(Exception, match="Failed to extract content"):
-        await service.execute_rebuild_source_pipeline(
-            run_id=run_id,
-            corpus_id=corpus_id,
-            app_name=app_name,
-            source_uri=source_uri,
-        )
+    result = await service.execute_rebuild_source_pipeline(
+        run_id=run_id,
+        corpus_id=corpus_id,
+        app_name=app_name,
+        source_uri=source_uri,
+    )
+
+    assert result == []
 
     record = dao.records[(app_name, run_id)]
     assert repository.delete_called is False
@@ -309,3 +311,45 @@ async def test_async_ingest_file_pipeline_marks_run_failed_when_extracted_docume
     record = dao.records[(app_name, run_id)]
     assert record.status == "failed"
     assert record.payload["stages"]["extract_gate"]["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_ensure_finalized_noop_when_completed():
+    """ensure_finalized 应在 tracker 已处于 completed 状态时为 noop。"""
+    dao = FakePipelineDao()
+    tracker = PipelineTracker(dao=dao, app_name="negentropy", operation="ingest_text")
+    await tracker.start({"source_uri": "memory://doc"})
+    await tracker.complete({"record_count": 0})
+
+    await tracker.ensure_finalized()
+    record = dao.records[("negentropy", tracker.run_id)]
+    assert record.status == "completed"
+
+
+@pytest.mark.asyncio
+async def test_ensure_finalized_marks_running_as_failed():
+    """ensure_finalized 应将 running 状态的 tracker 标记为 failed。"""
+    dao = FakePipelineDao()
+    tracker = PipelineTracker(dao=dao, app_name="negentropy", operation="ingest_text")
+    await tracker.start({"source_uri": "memory://doc"})
+
+    await tracker.ensure_finalized()
+    record = dao.records[("negentropy", tracker.run_id)]
+    assert record.status == "failed"
+    assert record.payload["error"]["type"] == "PipelineFinalizationSafetyNet"
+
+
+@pytest.mark.asyncio
+async def test_ensure_finalized_handles_db_failure_gracefully():
+    """ensure_finalized 在 DB 持久化失败时不应抛出异常。"""
+    dao = FakePipelineDao()
+    tracker = PipelineTracker(dao=dao, app_name="negentropy", operation="ingest_text")
+    await tracker.start({"source_uri": "memory://doc"})
+
+    async def failing_upsert(**kwargs):
+        raise RuntimeError("DB connection lost")
+
+    dao.upsert_pipeline_run = failing_upsert
+
+    # 不应抛出异常
+    await tracker.ensure_finalized()

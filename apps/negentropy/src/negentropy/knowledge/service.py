@@ -340,6 +340,27 @@ class PipelineTracker:
             },
         )
 
+    async def ensure_finalized(self, error: dict[str, Any] | None = None) -> None:
+        """安全网：若 tracker 尚未处于终态（completed/failed），强制写入 failed。
+
+        在 finally 块中调用，确保无论原始异常是否被成功处理，
+        tracker 状态都不会永远停留在 running。
+        """
+        if self._status in ("completed", "failed"):
+            return
+        try:
+            error_payload = error or {
+                "type": "PipelineFinalizationSafetyNet",
+                "message": "Pipeline did not reach a terminal state; forcibly finalized.",
+            }
+            await self.fail(error_payload)
+        except Exception:
+            self._log_stage_event(
+                "pipeline_finalization_safety_net_failed",
+                level="warning",
+                status=self._status,
+            )
+
     async def _persist(self) -> None:
         """持久化 Pipeline 状态"""
         payload = {
@@ -604,7 +625,12 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_ingest_url_pipeline(
         self,
@@ -693,6 +719,11 @@ class KnowledgeService:
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
             # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
             return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_ingest_url_document_pipeline(
         self,
@@ -828,6 +859,11 @@ class KnowledgeService:
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_ingest_file_pipeline(
         self,
@@ -976,6 +1012,11 @@ class KnowledgeService:
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
             # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
             return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_replace_source_pipeline(
         self,
@@ -1042,7 +1083,12 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_sync_source_pipeline(
         self,
@@ -1129,7 +1175,12 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_sync_document_pipeline(
         self,
@@ -1253,6 +1304,11 @@ class KnowledgeService:
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_rebuild_source_pipeline(
         self,
@@ -1399,7 +1455,12 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
