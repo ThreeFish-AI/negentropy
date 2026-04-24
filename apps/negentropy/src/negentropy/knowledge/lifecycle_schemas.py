@@ -134,6 +134,52 @@ class AssignDocumentRequest(BaseModel):
     document_ids: list[UUID] = Field(..., min_length=1)
 
 
+# =============================================================================
+# Catalog CRUD Schemas
+# =============================================================================
+
+
+class CatalogCreateRequest(BaseModel):
+    """创建 Catalog 请求"""
+
+    name: str = Field(..., min_length=1, max_length=255)
+    slug: str | None = Field(None, max_length=255)
+    app_name: str = Field(..., min_length=1, max_length=255)
+    owner_id: str | None = None
+    description: str | None = None
+    visibility: str = "INTERNAL"
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class CatalogUpdateRequest(BaseModel):
+    """更新 Catalog 请求"""
+
+    name: str | None = Field(None, min_length=1, max_length=255)
+    slug: str | None = Field(None, max_length=255)
+    description: str | None = None
+    visibility: str | None = None
+    config: dict[str, Any] | None = None
+
+
+class CatalogResponse(BaseModel):
+    """Catalog 响应"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    slug: str
+    app_name: str
+    description: str | None = None
+    visibility: str = "INTERNAL"
+    is_archived: bool = False
+    version: int = 1
+    owner_id: str | None = None
+    config: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 class CategorySuggestionResponse(BaseModel):
     """分类建议响应"""
 

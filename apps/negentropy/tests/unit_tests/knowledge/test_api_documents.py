@@ -403,8 +403,9 @@ async def test_get_document_provenance_uses_original_filename(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_node_documents_uses_original_filename(monkeypatch):
-    node_id = uuid4()
+async def test_get_entry_documents_uses_original_filename(monkeypatch):
+    catalog_id = uuid4()
+    entry_id = uuid4()
     fake_doc = SimpleNamespace(
         id=uuid4(),
         original_filename="design-spec.md",
@@ -419,7 +420,7 @@ async def test_get_node_documents_uses_original_filename(monkeypatch):
     monkeypatch.setattr(knowledge_api, "_get_catalog_service", lambda: fake_catalog_service)
     monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", lambda: _FakeSessionManager(SimpleNamespace()))
 
-    result = await knowledge_api.get_node_documents(node_id=node_id)
+    result = await knowledge_api.get_entry_documents(catalog_id=catalog_id, entry_id=entry_id)
 
     assert result["total"] == 1
     assert result["items"][0]["filename"] == "design-spec.md"

@@ -26,14 +26,14 @@ export function DocumentAssignmentSection({
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchCatalogNodeDocuments(nodeId, { limit: 200 });
+      const res = await fetchCatalogNodeDocuments(catalogId, nodeId, { limit: 200 });
       setDocs(res.documents ?? []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "加载文档失败");
     } finally {
       setLoading(false);
     }
-  }, [nodeId]);
+  }, [catalogId, nodeId]);
 
   useEffect(() => {
     void refresh();
@@ -43,14 +43,14 @@ export function DocumentAssignmentSection({
     async (docId: string, filename: string) => {
       if (!confirm(`从本节点移除「${filename}」？文档本身不会被删除。`)) return;
       try {
-        await unassignDocumentFromNode(nodeId, docId);
+        await unassignDocumentFromNode(catalogId, nodeId, docId);
         toast.success("已移除");
         await refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "移除失败");
       }
     },
-    [nodeId, refresh],
+    [catalogId, nodeId, refresh],
   );
 
   const handleAdded = useCallback(() => {

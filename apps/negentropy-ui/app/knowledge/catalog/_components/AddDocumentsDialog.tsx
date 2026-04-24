@@ -73,7 +73,7 @@ export function AddDocumentsDialog({
     try {
       // 并发分配；后端端点已改为批量，这里通过单次循环逐项调用以复用既有 API
       const results = await Promise.allSettled(
-        Array.from(selected).map((id) => assignDocumentToNode(nodeId, id)),
+        Array.from(selected).map((id) => assignDocumentToNode(catalogId, nodeId, id)),
       );
       const failures = results.filter((r) => r.status === "rejected");
       if (failures.length) {
@@ -88,7 +88,7 @@ export function AddDocumentsDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [selected, nodeId, onAdded, onClose]);
+  }, [selected, catalogId, nodeId, onAdded, onClose]);
 
   return (
     <div

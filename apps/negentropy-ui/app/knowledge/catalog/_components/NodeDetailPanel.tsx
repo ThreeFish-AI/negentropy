@@ -36,7 +36,7 @@ export function NodeDetailPanel({
 
   const handleSaveDesc = async () => {
     try {
-      await updateCatalogNode(node.id, { description: descValue || undefined });
+      await updateCatalogNode(catalogId, node.id, { description: descValue || undefined });
       toast.success("描述已更新");
       setEditingDesc(false);
       onUpdate();
@@ -48,7 +48,7 @@ export function NodeDetailPanel({
   const handleDelete = async () => {
     if (!confirm(`确定删除「${node.name}」？子节点将一并删除。`)) return;
     try {
-      await deleteCatalogNode(node.id);
+      await deleteCatalogNode(catalogId, node.id);
       toast.success("节点已删除");
       onDelete();
     } catch (err) {
