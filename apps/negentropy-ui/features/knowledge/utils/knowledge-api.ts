@@ -2374,6 +2374,22 @@ export async function fetchCatalogs(params?: {
   return res.json();
 }
 
+/** 创建全局 Catalog */
+export async function createCatalog(params: {
+  app_name: string;
+  name: string;
+  slug: string;
+  visibility?: string;
+}): Promise<DocCatalog> {
+  const res = await fetch("/api/knowledge/catalogs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to create catalog: ${res.statusText}`);
+  return res.json();
+}
+
 /** 获取 Catalog 下可用文档（跨 corpus，用于 AddDocumentsDialog） */
 export async function fetchCatalogDocuments(
   catalogId: string,
