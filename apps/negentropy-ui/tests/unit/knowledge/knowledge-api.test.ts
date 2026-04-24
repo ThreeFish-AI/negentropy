@@ -1,6 +1,7 @@
 import {
   buildExtractorRoutesFromDraft,
   buildCorpusConfig,
+  createCatalogNode,
   createEmptyExtractorDraftTarget,
   createDefaultChunkingConfig,
   encodeSeparatorsForDisplay,
@@ -352,6 +353,75 @@ describe("fetchCorpus", () => {
         ],
       },
     });
+  });
+});
+
+// ============================================================================
+// createCatalogNode — 空 catalog_id 防御式校验
+// ============================================================================
+
+describe("createCatalogNode", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("catalog_id 为空字符串时应抛错且不发起网络请求", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch");
+
+    await expect(
+      createCatalogNode({
+        catalog_id: "",
+        name: "Root",
+        slug: "root",
+        node_type: "category",
+      }),
+    ).rejects.toThrow(/catalog_id is required/);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("catalog_id 合法时应命中 /api/knowledge/catalogs/<id>/entries 且 body 不含 catalog_id", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "11111111-1111-1111-1111-111111111111",
+          catalog_id: "22222222-2222-2222-2222-222222222222",
+          name: "Root",
+          slug: "root",
+          node_type: "category",
+          parent_id: null,
+          sort_order: 0,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await createCatalogNode({
+      catalog_id: "22222222-2222-2222-2222-222222222222",
+      name: "Root",
+      slug: "root",
+      node_type: "category",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchSpy.mock.calls[0] ?? [];
+    expect(url).toBe(
+      "/api/knowledge/catalogs/22222222-2222-2222-2222-222222222222/entries",
+    );
+    expect(init).toMatchObject({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    const parsedBody = JSON.parse((init?.body as string) ?? "{}");
+    expect(parsedBody).toEqual({
+      name: "Root",
+      slug: "root",
+      node_type: "category",
+    });
+    expect(parsedBody).not.toHaveProperty("catalog_id");
   });
 });
 

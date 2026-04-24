@@ -13,6 +13,7 @@
 - **处理方式**：将操作区（`添加根节点` 按钮）拆为常驻 DOM，空态仅负责展示文案；同时让「添加子节点」hover 可见、事件 `stopPropagation` 与节点选中解耦。
 - **后续防范**：UI 空态绝不允许隐藏“唯一可用主动作”。任何 early return 分支在评审时必须明确核对“有没有误伤用户入口”。
 - **同类问题影响**：所有「列表 + 主动作」页面（Documents、Corpus、Wiki Publications 等）都需按此模式复核。
+- **2026-04-24 回归复盘（见 ISSUE-014）**：当时把「空态隐藏主操作」当作入口缺失修复，将「添加根节点」按钮从「nodes 为空时才显示」改为「恒常可见」——但**未区分 `nodes=[]`（已选 Catalog 且树为空）与 `parent_context=null`（尚未选中 Catalog）这两个正交维度**，致「添加根节点」按钮在未选 Catalog 语境下亦暴露，叠加 URL 模板字符串空段 + Next.js 动态路由归一化的跨组件漂移，两年半后再次以 `405 Method Not Allowed` 的形态复活。**教训**：空态修复必须同时审视所有前置上下文维度（父对象是否存在 / 祖父对象是否选中 / 权限是否足够），不能把「数据为空」与「上下文缺失」合并为同一分支。
 
 ---
 
@@ -242,5 +243,33 @@
 - **同类问题影响**：
   1. 任何「后端从 DB 读配置 → 未命中则降级为空」的调用链路都存在相同风险面：建议审计 `knowledge/`、`interface/`、`memory/` 三个域内是否有类似「预期预置但未写入 seed 迁移」的条目（如未来可能新增的 `default_skills`、`default_subagents`、`default_memory_schemas` 等）；
   2. 前端 UI 对「后端返回空列表」的宽容渲染是双刃剑——它不会打破页面，但让本该显著的数据缺口退化为静默的 UX 漂移（用户不知道是「本就无默认值」还是「默认值丢了」）。一个可选的 Proactive Navigation 方向是：未来在 `Document Extraction Settings` 面板检测到 `targets=[]` 且后端配置中存在默认路由声明但未落地时，额外显示一条提示引导用户「前往 /interface/mcp 重载工具」——本次不扩大爆炸半径，纳入长期备忘。
+
+---
+
+## ISSUE-014 Catalog 未选目录时「创建根节点」触发 405（URL 空路径段 + Next.js 动态路由归一化）
+
+- **表因**：用户在 `/knowledge/catalog` **未从 CatalogSelector 选择目录**的状态下，点击左侧「添加根节点」按钮，弹出 `CreateNodeDialog` 填写 name + slug 后点击「创建」，前端 Toast 报错 `Failed to create catalog node: Method Not Allowed`；DevTools Network 面板可见 `POST http://localhost:3192/api/knowledge/catalogs/entries → 405`。
+- **根因**：**前端入口门禁缺失 × URL 模板字符串空段降级 × Next.js 动态路由归一化** 三重耦合：
+  1. **入口门禁缺失**：`apps/negentropy-ui/app/knowledge/catalog/page.tsx:12` 中 `const [catalogId, setCatalogId] = useState<string | null>(null)` 初值为 `null`；L48-63 的 aside 条件渲染仅区分 `loading` / `!loading`，**未区分 `catalogId` 是否已选中**，始终无条件渲染 `CatalogTree`。叠加 ISSUE-001（commit `731894b`）为修复「空态吞主操作」而将「添加根节点」按钮改为**恒常可见**，两次修复叠加致使用户在未选 Catalog 语境下仍能看到并点击该入口；
+  2. **参数降级**：`page.tsx:77-86` 的 `<CreateNodeDialog catalogId={catalogId ?? ""} ... />` 将 `null` 强制降级为 `""`，把「状态无效」的语义污染为「字段存在但为空串」；
+  3. **URL 空段漂移**：`features/knowledge/utils/knowledge-api.ts:createCatalogNode` 的 `` fetch(`/api/knowledge/catalogs/${catalog_id}/entries`) `` 模板字符串在 `catalog_id=""` 时实际产出 `/api/knowledge/catalogs//entries`；Next.js App Router 的 URL 路径归一化将连续 `//` 合并为 `/`，归一化后等效命中 `app/api/knowledge/catalogs/[catalogId]/route.ts`（`catalogId="entries"`），而该路由文件仅导出 `GET` / `PATCH` / `DELETE`，无 `POST` 处理器 → `405 Method Not Allowed`，且错误信息完全不暗示根因（既不提 `catalogId` 缺失、也不提目标 route 错位），排查成本极高。
+- **处理方式**（Minimal Change + Defense in Depth 三层纵深防御）：
+  1. **Layer 1（UX 入口门禁 / 主修复）**：`app/knowledge/catalog/page.tsx` aside 区条件渲染新增 `!catalogId` 分支，渲染 dashed-border「请先选择目录」空态占位并**屏蔽 `CatalogTree` 渲染**，「添加根节点」按钮自然不可达；原 `loading ? ... : <CatalogTree />` 改为三元嵌套 `!catalogId ? <Empty /> : loading ? <Loading /> : <CatalogTree />`；保留「已选 Catalog 但 `nodes=[]`」时 `CatalogTree` 内部已有的空态入口（ISSUE-001 语义保持）；
+  2. **Layer 2（API 客户端前置校验 / 纵深防御）**：`features/knowledge/utils/knowledge-api.ts:createCatalogNode` 入口增加 `if (!catalog_id) throw new Error("catalog_id is required to create a catalog node")` 守卫，把「URL 归一化后静默漂移为 405」这类低可观测性缺陷前置为**显式错误**，防范未来其他入口（programmatic 调用、测试夹具、未来新增 UI 面板）重蹈覆辙；其它 Catalog API 函数（`fetchCatalogNodes` / `updateCatalogNode` / `deleteCatalogNode` / `fetchCatalogNode` / `fetchCatalogNodeDocuments` / `assignDocumentToNode` / `unassignDocumentFromNode`）暂不扩散改造，仅在 Node 侧上下文完整后可达，遵循最小干预；
+  3. **Layer 3（回归测试）**：`apps/negentropy-ui/tests/unit/knowledge/knowledge-api.test.ts` 新增 `describe("createCatalogNode")` 与 2 条用例：① 空 `catalog_id` 抛 `catalog_id is required` 错误且 `fetch` 调用次数断言为 0（锁定 Layer 2 守卫）；② 合法 UUID 精确命中 `POST /api/knowledge/catalogs/<uuid>/entries`、body 不含 `catalog_id` 字段（锁定既有契约不回归）。
+- **不改动清单**（明确边界）：
+  1. 后端 `apps/negentropy/src/negentropy/knowledge/api.py` 路由 / 契约正确，零改动；
+  2. BFF 代理 `app/api/knowledge/catalogs/[catalogId]/entries/route.ts` 代理正确，零改动；
+  3. `CatalogTree.tsx` / `CatalogTreeNode.tsx` / `CreateNodeDialog.tsx` 已正确实现「已选 Catalog 下的操作」语义，零改动；
+  4. 其它 Catalog API 客户端函数保持原样，不扩散守卫改造。
+- **后续防范**：
+  1. **正交维度审查**：UI 空态 / 门禁修复必须同时审视所有前置上下文维度——`data=[]`（数据层空）、`parent_context=null`（父级选择缺失）、`permission=denied`（权限不足）三者正交，不能合并为同一分支。ISSUE-001 与 ISSUE-014 构成典型「修复 A 缺陷引入 B 缺陷」的反模式，应在空态分支 Review 时强制 checklist 遍历正交维度；
+  2. **ID 参数化 fetch 的空值守卫范式**：模板字符串默认降级为 URL 空段 + 框架路由归一化是低可观测性缺陷的温床（错误码与根因无关联）。建议在 `knowledge-api.ts` / `memory-api.ts` / `interface-api.ts` 所有**以 ID 作为路径段**的 fetch 入口处统一前置 `if (!id) throw new Error("<id_name> is required ...")`；长期可抽取 `assertNonEmptyPathSegment(name, value)` helper 在 Wiki / Catalog / Memory / Interface 等域复用；
+  3. **URL 归一化审查**：所有 `fetch(\`/api/.../${var}/.../\`)` 形态的调用在 code review 时应标注 `var` 的可为空性；Next.js App Router 的连续 `//` 合并行为（以及反向的「尾部 `/` 剥离」）是框架层面难以规避的隐式契约，必须由调用侧防护；
+  4. **405 的归因定式**：今后遇到 `405 Method Not Allowed` 时，除检查前端 method 与后端 handler 对齐外，**必须**额外核对 URL 路径是否因变量空串导致落到了错误的动态段——这是 Next.js App Router 独有的第三类根因。
+- **同类问题影响**：
+  1. 审计全仓其余「ID 参数化 fetch」调用：可用 `rg -n "fetch\\(\`/api/.*\\\$\\{" apps/negentropy-ui/` 找出候选面，重点检查入参为 `xxxId ?? ""` 或未判空的模板字符串调用；
+  2. Wiki 发布、Memory 写入、Interface MCP Server 操作等域存在同型 ID 路径参数化 fetch，此次仅对 `createCatalogNode` 做了守卫（最小干预），后续若出现类似症状可优先以 Layer 2 范式快速兜底；
+  3. ISSUE-001（空态吞主操作）与本次 ISSUE-014（入口门禁缺失）提示：**UI 入口与上下文依赖的关系需要显式建模**——每个主操作按钮应能回答「我需要哪些前置上下文（catalogId / nodeId / permission / onboarding 状态）」，任何一项缺失时 UI 需显式阻断（disabled / 隐藏 / 引导占位），不能依赖下游（API 层 / 后端）兜底报错。
 
 ---

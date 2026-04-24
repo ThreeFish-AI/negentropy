@@ -47,7 +47,14 @@ export default function CatalogPage() {
         <aside className="w-[300px] shrink-0 flex flex-col gap-3 overflow-hidden">
           <CatalogSelector value={catalogId} onChange={setCatalogId} />
 
-          {loading ? (
+          {!catalogId ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center rounded-lg border border-dashed border-border">
+              <p className="text-sm text-muted">请先选择目录</p>
+              <p className="text-xs text-muted/60 mt-1">
+                从上方下拉选择一个目录以管理节点
+              </p>
+            </div>
+          ) : loading ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-sm text-muted">加载中...</p>
             </div>
