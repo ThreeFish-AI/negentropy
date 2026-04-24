@@ -863,6 +863,62 @@ flowchart LR
 
 <a id="ref12-catalog"></a>[12] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software*. Reading, MA: Addison-Wesley, 1994, ch. 4 ("Composite"), pp. 163–173.
 
+## 16. Catalog UI 维护组件设计
+
+### 16.1 设计目标
+
+参考 VS Code File Explorer、Notion Sidebar、Confluence Page Tree 等业界经典模式，为 Catalog 页面（`/knowledge/catalog`）补全树维护交互能力，使其具备完整的 CRUD、搜索过滤、拖拽排序和右键上下文菜单。
+
+### 16.2 组件架构
+
+```mermaid
+graph TD
+    subgraph Page["CatalogPage (page.tsx)"]
+        Sel["CatalogSelector"]
+        TB["CatalogTreeToolbar"]
+        Tree["CatalogTree"]
+        Detail["NodeDetailPanel"]
+        Dialog["CreateNodeDialog"]
+        CtxMenu["CatalogContextMenu"]
+    end
+
+    subgraph Hooks["Hooks"]
+        UCT["useCatalogTree"]
+    end
+
+    TB -->|search / collapse / add root| Page
+    Tree -->|onSelect / onToggle / onAddChild| Page
+    Tree -->|onContextMenu| CtxMenu
+    CtxMenu -->|rename / delete / copy ID| Page
+    Tree -->|drag events| Page
+    Page --> UCT
+```
+
+### 16.3 新增组件
+
+| 组件 | 路径 | 职责 |
+|------|------|------|
+| `CatalogTreeToolbar` | `_components/CatalogTreeToolbar.tsx` | 树工具栏：搜索输入框、全部折叠、添加根节点 |
+| `CatalogContextMenu` | `_components/CatalogContextMenu.tsx` | 右键上下文菜单：添加子节点、重命名、复制 ID、删除 |
+| `EmptyCatalogState` | `_components/EmptyCatalogState.tsx` | 空 Catalog 引导状态 |
+
+### 16.4 关键交互
+
+- **工具栏搜索**：按节点名称大小写不敏感过滤，匹配节点及其祖先保留显示，匹配文本 `<mark>` 高亮
+- **全部折叠/展开**：操作 `expandedIds` Set，分别清空或填充所有非叶节点 ID
+- **右键上下文菜单**：`position: fixed` 定位于鼠标坐标，点击外部或 Escape 关闭；节点右键显示添加子节点/重命名/复制 ID/删除，空白区域右键显示添加根节点/全部展开/全部折叠
+- **内联重命名**：双击节点名称或从上下文菜单选择「重命名」，节点名称 `<span>` 替换为 `<input>`，Enter 保存、Escape 取消、Blur 保存
+- **拖拽排序**：HTML5 Drag and Drop API，三区域放置检测（before 25% / inside 50% / after 25%），分数插入算法避免批量 sort_order 更新，循环检测阻止将节点拖入自身后代
+
+### 16.5 修改组件
+
+| 组件 | 变更 |
+|------|------|
+| `CatalogTreeNode` | 添加右键菜单触发、内联编辑 input、拖拽属性与事件、hover MoreHorizontal 按钮替代原 "+" 按钮 |
+| `CatalogTree` | 搜索过滤逻辑、匹配文本高亮、使用 EmptyCatalogState |
+| `useCatalogTree` | 新增 `expandAll()`、`collapseAll()`、`renameNode()`、`moveNode()` |
+| `page.tsx` | 集成工具栏、上下文菜单、搜索状态、编辑状态、拖拽状态管理 |
+
 <a id="ref13-catalog"></a>[13] M. Kleppmann, *Designing Data-Intensive Applications*. Sebastopol, CA: O'Reilly Media, 2017, ch. 5 ("Replication"), pp. 151–197.
 
 <a id="ref14-catalog"></a>[14] P. J. Sadalage and M. Fowler, "Evolutionary Database Design," *martinfowler.com*, 2016. [Online]. Available: https://martinfowler.com/articles/evodb.html
