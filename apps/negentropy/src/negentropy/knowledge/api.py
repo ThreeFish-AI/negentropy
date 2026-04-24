@@ -3925,47 +3925,47 @@ async def delete_catalog_entry(
 async def get_catalog_documents(
     catalog_id: UUID,
     offset: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=200, ge=1, le=200),
 ):
-    """获取 Catalog 下所有条目关联的文档列表"""
-    from sqlalchemy import distinct
-    from sqlalchemy import select as sa_select
+    """获取 Catalog 作用域下可分配的候选文档列表
 
-    from negentropy.models.perception import DocCatalogEntry, KnowledgeDocument
+    语义：返回与 catalog 同 app_name 下 status='active' 的全部 KnowledgeDocument，
+    供 UI 「添加文档到节点」对话框作为候选集。已归属文档由 UI 侧基于 existingDocIds
+    灰出（见 AddDocumentsDialog.tsx / DocumentAssignmentSection.tsx）。
+
+    跨 app 不可见：与 catalog_service.assign_document 的 app_name 同源断言对齐
+    （ISSUE-011 Phase 3 不变量）。
+    """
+    from negentropy.models.perception import DocCatalog
+    from negentropy.storage.service import DocumentStorageService
 
     async with AsyncSessionLocal() as db:
-        stmt = sa_select(distinct(DocCatalogEntry.document_id)).where(
-            DocCatalogEntry.catalog_id == catalog_id, DocCatalogEntry.document_id.isnot(None)
-        )
-        result = await db.execute(stmt)
-        doc_ids = [row[0] for row in result.all()]
+        catalog = await db.get(DocCatalog, catalog_id)
+        if catalog is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "CATALOG_NOT_FOUND", "message": "Catalog not found"},
+            )
+        catalog_app = catalog.app_name  # app_name 创建后不可变（perception.py DocCatalog 约束）
 
-        if not doc_ids:
-            return {"items": [], "total": 0, "offset": offset, "limit": limit}
+    storage_service = DocumentStorageService()
+    docs, total = await storage_service.list_documents(
+        corpus_id=None,
+        app_name=catalog_app,
+        limit=limit,
+        offset=offset,
+    )
+    unique_user_ids = list({doc.created_by for doc in docs if doc.created_by})
+    name_map = await _resolve_user_display_names(unique_user_ids)
+    items = [_build_document_response(doc, name_map) for doc in docs]
 
-        doc_stmt = (
-            sa_select(KnowledgeDocument)
-            .where(KnowledgeDocument.id.in_(doc_ids))
-            .order_by(KnowledgeDocument.created_at.desc())
-            .offset(offset)
-            .limit(limit)
-        )
-        doc_result = await db.execute(doc_stmt)
-        documents = doc_result.scalars().all()
-
-    items = [
-        {
-            "id": str(doc.id),
-            "corpus_id": str(doc.corpus_id),
-            "filename": doc.original_filename,
-            "title": (doc.metadata_ or {}).get("title") or doc.original_filename,
-            "status": doc.status,
-            "created_at": doc.created_at.isoformat() if doc.created_at else None,
-        }
-        for doc in documents
-    ]
-    logger.info("api_get_catalog_documents", catalog_id=str(catalog_id), total=len(doc_ids))
-    return {"items": items, "total": len(doc_ids), "offset": offset, "limit": limit}
+    logger.info(
+        "api_get_catalog_documents",
+        catalog_id=str(catalog_id),
+        total=total,
+        app_name=catalog_app,
+    )
+    return {"items": items, "total": total, "offset": offset, "limit": limit}
 
 
 # --- Entry Documents ---
@@ -3978,22 +3978,15 @@ async def get_entry_documents(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ):
-    """获取目录条目下的文档列表（分页）"""
+    """获取目录条目下已归属的文档列表（分页）"""
     catalog_svc = _get_catalog_service()
     async with AsyncSessionLocal() as db:
         documents, total = await catalog_svc.get_node_documents(db, entry_id, offset=offset, limit=limit)
-    items = [
-        {
-            "id": str(doc.id),
-            "filename": doc.original_filename,
-            "title": (doc.metadata_ or {}).get("title") or doc.original_filename,
-            "status": doc.status,
-            "created_at": doc.created_at.isoformat() if doc.created_at else None,
-        }
-        for doc in documents
-    ]
+    unique_user_ids = list({doc.created_by for doc in documents if doc.created_by})
+    name_map = await _resolve_user_display_names(unique_user_ids)
+    items = [_build_document_response(doc, name_map) for doc in documents]
     logger.info("api_get_entry_documents", entry_id=str(entry_id), total=total)
-    return {"items": items, "total": total, "offset": offset, "limit": limit}
+    return {"documents": items, "total": total, "offset": offset, "limit": limit}
 
 
 @router.post("/catalogs/{catalog_id}/entries/{entry_id}/documents")

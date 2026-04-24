@@ -166,6 +166,7 @@
 - **同类问题影响**：
   1. Catalog / Wiki 之外，任何直接读取 `KnowledgeDocument` 属性的 provenance、export、render、sync 路径都需优先检查是否误用了 `filename`；
   2. 这类问题具有”写路径正常、读路径崩溃”的二阶特征，UI 上常表现为操作成功后刷新列表/详情时才报错，排查时应优先检查响应序列化逻辑而非数据库写入。
+  3. **2026-04-24 回归事件**：Phase 3 `/catalogs/*` RESTful 路由补齐（commit `3b88bec`）以内联 dict 构造 document list 响应（`knowledge/api.py` 中 `get_catalog_documents` 与 `get_entry_documents` 两处），再次偏离 ISSUE-010 原修复，UI 观测症状为 Catalog「添加文档到节点」对话框只显示 1 条且文件名为空、节点「归属文档 (N)」常显 0。除字段漂移外，`get_catalog_documents` 更把「候选文档」错写为「已归属文档」查询，属语义级回归；`get_entry_documents` 响应外壳键从约定的 `documents` 漂成 `items`。**强制复用规则**：所有返回 `KnowledgeDocument` 或其列表的端点，必须复用 `_build_document_response()` + `DocumentResponse` pydantic schema；严禁在 route handler 内以内联 dict 构造 document 响应。后续 CI 可加 AST 静态检查：`knowledge/api.py` 中不允许出现 `"filename":` / `"file_hash":` 等裸字面量键作为 `KnowledgeDocument` 序列化入口。此外，「候选文档 / 已归属文档」属正交概念，任何新端点的语义应在 docstring 首行与前端调用方 JSDoc 双向锚定，防止下次再次倒置。
 
 ---
 
