@@ -411,3 +411,223 @@ class TestCatalogIsolation:
                 if obj is not None:
                     await s.delete(obj)
             await s.commit()
+
+
+# ===================================================================
+# TestGetCatalogDocuments — ISSUE-010 回归：候选文档列表契约
+# ===================================================================
+
+
+@pytest.fixture
+def patch_handler_sessions(db_engine, monkeypatch):
+    """将 knowledge.api 与 storage.service 内 `from X import AsyncSessionLocal`
+    造成的名称绑定重定向到测试引擎，使 handler 直调可命中测试 DB。
+
+    conftest.patch_db_globals 仅覆盖 db.session / db.deps 命名空间，
+    无法影响已以 `from X import Y` 形式绑定在其他模块的引用——此 fixture
+    形成互补。
+    """
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    from negentropy.knowledge import api as knowledge_api
+    from negentropy.storage import service as storage_service_module
+
+    test_session_local = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", test_session_local)
+    monkeypatch.setattr(storage_service_module, "AsyncSessionLocal", test_session_local)
+    return test_session_local
+
+
+@pytest.fixture
+async def three_docs_in_negentropy(db_engine, negentropy_corpus):
+    """在 negentropy_corpus 下创建 3 个 active KnowledgeDocument（不同文件名/hash）。"""
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    from negentropy.models.perception import KnowledgeDocument
+
+    session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    doc_ids: list[UUID] = []
+    filenames = [
+        "Context Engineering 2.0 - The Context of Context Engineering.pdf",
+        "harness-design-long-running-apps.md",
+        "2603.05344v3.pdf",
+    ]
+    async with session_factory() as session:
+        for idx, fn in enumerate(filenames):
+            doc = KnowledgeDocument(
+                corpus_id=negentropy_corpus,
+                app_name="negentropy",
+                file_hash=f"{idx:064x}"[-64:],  # 64-hex-char, unique per doc
+                original_filename=fn,
+                gcs_uri=f"gs://test/doc_{idx}",
+                content_type="application/pdf" if fn.endswith(".pdf") else "text/markdown",
+                file_size=1024 * (idx + 1),
+            )
+            session.add(doc)
+            await session.flush()
+            doc_ids.append(doc.id)
+        await session.commit()
+
+    yield doc_ids
+
+    async with session_factory() as s:
+        for did in doc_ids:
+            obj = await s.get(KnowledgeDocument, did)
+            if obj is not None:
+                await s.delete(obj)
+        await s.commit()
+
+
+class TestGetCatalogDocuments:
+    """GET /catalogs/{catalog_id}/documents 候选文档契约"""
+
+    @pytest.mark.asyncio
+    async def test_returns_app_scoped_active_docs_with_full_fields(
+        self,
+        patch_handler_sessions,
+        negentropy_catalog,
+        three_docs_in_negentropy,
+        doc_in_other_app,
+    ):
+        """候选集 = catalog.app_name 下全部 active 文档；字段与 KnowledgeDocument 接口对齐；
+        跨 app 文档不可见。"""
+        from negentropy.knowledge import api as knowledge_api
+
+        result = await knowledge_api.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
+
+        assert result["total"] == 3
+        assert len(result["items"]) == 3
+
+        returned_ids = {str(item.id) for item in result["items"]}
+        expected_ids = {str(d) for d in three_docs_in_negentropy}
+        assert returned_ids == expected_ids, "应仅返回 negentropy app 下的文档"
+        assert str(doc_in_other_app) not in returned_ids, "跨 app 的文档必须被过滤掉"
+
+        # 字段完整性（对齐前端 KnowledgeDocument 接口，回归 ISSUE-010）
+        for item in result["items"]:
+            assert item.original_filename, "original_filename 必须非空（UI 直接显示）"
+            assert item.app_name == "negentropy"
+            assert item.file_hash
+            assert item.gcs_uri
+            assert item.file_size
+            assert item.created_at
+            assert item.markdown_extract_status  # 默认 "pending"
+
+    @pytest.mark.asyncio
+    async def test_excludes_soft_deleted(
+        self,
+        db_engine,
+        patch_handler_sessions,
+        negentropy_catalog,
+        three_docs_in_negentropy,
+    ):
+        """status='deleted' 的文档必须从候选集排除。"""
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.knowledge import api as knowledge_api
+        from negentropy.models.perception import KnowledgeDocument
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with session_factory() as session:
+            doc = await session.get(KnowledgeDocument, three_docs_in_negentropy[0])
+            doc.status = "deleted"
+            await session.commit()
+
+        result = await knowledge_api.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
+        assert result["total"] == 2
+        assert all(item.id != three_docs_in_negentropy[0] for item in result["items"])
+
+    @pytest.mark.asyncio
+    async def test_404_on_unknown_catalog(self, patch_handler_sessions):
+        """未知 catalog_id 必须返回 HTTP 404 + CATALOG_NOT_FOUND code。"""
+        from uuid import uuid4
+
+        from fastapi import HTTPException
+
+        from negentropy.knowledge import api as knowledge_api
+
+        with pytest.raises(HTTPException) as exc_info:
+            await knowledge_api.get_catalog_documents(catalog_id=uuid4(), offset=0, limit=200)
+        assert exc_info.value.status_code == 404
+        detail = exc_info.value.detail
+        assert isinstance(detail, dict)
+        assert detail.get("code") == "CATALOG_NOT_FOUND"
+
+    @pytest.mark.asyncio
+    async def test_archived_catalog_still_returns_candidates(
+        self,
+        db_engine,
+        patch_handler_sessions,
+        negentropy_catalog,
+        three_docs_in_negentropy,
+    ):
+        """归档的 catalog 仍应返回候选文档（归档 gating 在「分配」动作，不在「列候选」动作）。"""
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.knowledge import api as knowledge_api
+        from negentropy.models.perception import DocCatalog
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with session_factory() as session:
+            catalog = await session.get(DocCatalog, negentropy_catalog)
+            catalog.is_archived = True
+            await session.commit()
+
+        result = await knowledge_api.get_catalog_documents(catalog_id=negentropy_catalog, offset=0, limit=200)
+        assert result["total"] == 3
+
+
+class TestGetEntryDocuments:
+    """GET /catalogs/{catalog_id}/entries/{entry_id}/documents 已归属文档契约"""
+
+    @pytest.mark.asyncio
+    async def test_returns_assigned_docs_with_original_filename_key(
+        self,
+        db_engine,
+        patch_handler_sessions,
+        negentropy_catalog,
+        doc_in_negentropy,
+    ):
+        """响应外壳为 {documents, total}；单项必须含 original_filename（非空）——
+        回归 ISSUE-010 字段漂移，锁定 DocumentAssignmentSection.tsx 的显示契约。"""
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.knowledge import api as knowledge_api
+        from negentropy.knowledge.catalog_dao import CatalogDao
+        from negentropy.knowledge.catalog_service import CatalogService
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        service = CatalogService()
+
+        # 创建节点并归入 1 个文档
+        async with session_factory() as session:
+            node = await CatalogDao.create_node(
+                session,
+                catalog_id=negentropy_catalog,
+                name="Assigned Node",
+                slug="assigned-node",
+            )
+            await session.commit()
+            node_id = node.id
+
+        async with session_factory() as session:
+            await service.assign_document(session, catalog_node_id=node_id, document_id=doc_in_negentropy)
+            await session.commit()
+
+        result = await knowledge_api.get_entry_documents(
+            catalog_id=negentropy_catalog, entry_id=node_id, offset=0, limit=50
+        )
+
+        # 响应外壳断言：key 必须是 "documents"（对齐前端 CatalogNodeDocumentsResponse）
+        assert "documents" in result
+        assert "items" not in result, "修复后响应 key 应从 items 迁移至 documents"
+        assert result["total"] == 1
+        assert len(result["documents"]) == 1
+
+        item = result["documents"][0]
+        # 字段契约（对齐前端 KnowledgeDocument.original_filename 读取）
+        assert item.id == doc_in_negentropy
+        assert item.original_filename == "valid_doc.pdf"
+        assert item.app_name == "negentropy"
+        assert item.file_hash
+        assert item.gcs_uri
