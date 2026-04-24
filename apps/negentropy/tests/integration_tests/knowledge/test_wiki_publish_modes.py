@@ -100,6 +100,7 @@ class TestWikiPublicationLifecycle:
             pub = await service.create_publication(
                 session,
                 catalog_id=wiki_catalog,
+                app_name="negentropy",
                 name="Test Publication",
                 slug="test-pub-draft",
             )
@@ -123,6 +124,7 @@ class TestWikiPublicationLifecycle:
             pub = await service.create_publication(
                 session,
                 catalog_id=wiki_catalog,
+                app_name="negentropy",
                 name="Test Publication Publish",
                 slug="test-pub-publish",
             )
@@ -151,6 +153,7 @@ class TestWikiPublicationLifecycle:
             pub = await service.create_publication(
                 session,
                 catalog_id=wiki_catalog,
+                app_name="negentropy",
                 name="Test Pub Version",
                 slug="test-pub-version",
             )
@@ -185,6 +188,7 @@ class TestWikiPublicationLifecycle:
             pub = await service.create_publication(
                 session,
                 catalog_id=wiki_catalog,
+                app_name="negentropy",
                 name="Test Pub Unpublish",
                 slug="test-pub-unpublish",
             )
@@ -216,6 +220,7 @@ class TestWikiPublicationLifecycle:
             pub = await service.create_publication(
                 session,
                 catalog_id=wiki_catalog,
+                app_name="negentropy",
                 name="Test Pub Archive",
                 slug="test-pub-archive",
             )
@@ -243,6 +248,7 @@ class TestWikiPublicationLifecycle:
             pub = await service.create_publication(
                 session,
                 catalog_id=wiki_catalog,
+                app_name="negentropy",
                 name="Test Pub Delete",
                 slug="test-pub-delete",
             )
@@ -297,11 +303,15 @@ class TestWikiPublicationCatalogBinding:
 
         # 在 wiki_catalog 下创建 2 个 publication
         async with session_factory() as session:
-            await service.create_publication(session, catalog_id=wiki_catalog, name="Pub A", slug="pub-a-list")
-            await service.create_publication(session, catalog_id=wiki_catalog, name="Pub B", slug="pub-b-list")
+            await service.create_publication(
+                session, catalog_id=wiki_catalog, app_name="negentropy", name="Pub A", slug="pub-a-list"
+            )
+            await service.create_publication(
+                session, catalog_id=wiki_catalog, app_name="negentropy", name="Pub B", slug="pub-b-list"
+            )
             # 在 other catalog 下创建 1 个
             await service.create_publication(
-                session, catalog_id=other_catalog_id, name="Pub C Other", slug="pub-c-other-list"
+                session, catalog_id=other_catalog_id, app_name="negentropy", name="Pub C Other", slug="pub-c-other-list"
             )
             await session.commit()
 
@@ -334,6 +344,7 @@ class TestWikiPublicationCatalogBinding:
                 await service.create_publication(
                     session,
                     catalog_id=wiki_catalog,
+                    app_name="negentropy",
                     name="Bad Slug Pub",
                     slug="UPPER_CASE_SLUG",
                 )
@@ -353,6 +364,7 @@ class TestWikiPublicationCatalogBinding:
                 await service.create_publication(
                     session,
                     catalog_id=wiki_catalog,
+                    app_name="negentropy",
                     name="Bad Theme Pub",
                     slug="bad-theme-pub",
                     theme="unknown-theme",
