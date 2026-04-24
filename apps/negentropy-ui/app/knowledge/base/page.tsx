@@ -9,7 +9,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
   buildExtractorRoutesFromDraft,
@@ -517,7 +517,6 @@ function ChunkingStrategyPanel({
 }
 
 export default function KnowledgeBasePage() {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -609,9 +608,15 @@ export default function KnowledgeBasePage() {
           params.delete(key);
         }
       });
-      router.replace(`${pathname}?${params.toString()}`);
+      // 使用 window.history.replaceState 绕过 Next.js 路由缓存去重机制
+      window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+      // 直接同步 React 状态，不依赖 useEffect 响应 searchParams 变化
+      setViewMode((params.get("view") as ViewMode) || "overview");
+      setSelectedCorpusId(params.get("corpusId"));
+      setCorpusTab((params.get("tab") as CorpusTab) || "documents");
+      setSelectedDocumentId(params.get("documentId"));
     },
-    [pathname, router, searchParams],
+    [pathname, searchParams],
   );
 
   useEffect(() => {
@@ -628,7 +633,8 @@ export default function KnowledgeBasePage() {
     setSelectedCorpusId(nextCorpusId);
     setCorpusTab(nextTab);
     setSelectedDocumentId(nextDocId);
-  }, [searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 使用 toString() 按内容比较，避免对象引用不变导致不触发
+  }, [searchParams.toString()]);
 
   useEffect(() => {
     if (selectedCorpusId) {
