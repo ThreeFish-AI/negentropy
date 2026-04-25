@@ -142,17 +142,17 @@ class TestWikiDelegationMethods:
     async def test_publish_delegates_to_dao(self):
         service = WikiPublishingService()
         session = _FakeAsyncSession()
-        # 正常调用不抛异常（DAO 层由 FakeAsyncSession 兜底）
-        result = await service.publish(session, pub_id=uuid4())
-        # WikiDao.publish 可能返回 None（无匹配记录），这是合法的
-        assert result is None
+        pub, revalidation = await service.publish(session, pub_id=uuid4())
+        assert pub is None
+        assert revalidation == "not_configured"
 
     @pytest.mark.asyncio
     async def test_unpublish_delegates_to_dao(self):
         service = WikiPublishingService()
         session = _FakeAsyncSession()
-        result = await service.unpublish(session, pub_id=uuid4())
-        assert result is None
+        pub, revalidation = await service.unpublish(session, pub_id=uuid4())
+        assert pub is None
+        assert revalidation == "not_configured"
 
     @pytest.mark.asyncio
     async def test_archive_delegates_to_dao(self):

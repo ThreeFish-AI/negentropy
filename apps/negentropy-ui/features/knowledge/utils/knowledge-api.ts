@@ -2490,6 +2490,8 @@ export interface WikiNavTreeResponse {
   nav_tree: { items: WikiNavTreeItem[] };
 }
 
+export type WikiRevalidationStatus = "dispatched" | "failed" | "not_configured";
+
 export interface WikiPublishActionResponse {
   publication_id: string;
   status: WikiPublicationStatus;
@@ -2497,6 +2499,7 @@ export interface WikiPublishActionResponse {
   published_at: string | null;
   entries_count: number;
   message: string;
+  revalidation?: WikiRevalidationStatus;
 }
 
 export interface SyncFromCatalogParams {

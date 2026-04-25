@@ -288,6 +288,7 @@ class WikiPublishActionResponse(BaseModel):
     published_at: datetime | None
     entries_count: int
     message: str
+    revalidation: str = "not_configured"  # Literal["dispatched", "failed", "not_configured"]
 
 
 class SyncFromCatalogRequest(BaseModel):

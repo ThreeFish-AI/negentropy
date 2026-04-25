@@ -119,11 +119,15 @@ class WikiPublishingService:
     # 发布操作 (状态流转)
     # ------------------------------------------------------------------
 
-    async def publish(self, db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
+    async def publish(self, db: AsyncSession, pub_id: UUID) -> tuple[WikiPublication | None, str]:
         """触发发布：draft/published → published，递增版本号。
 
         - ``publish_mode == 'SNAPSHOT'``：同步冻结 entries 到 snapshots 表。
         - 配置了 ``wiki_revalidate.url``：异步通知 SSG 主动 ISR revalidate（失败仅 WARN）。
+
+        Returns:
+            ``(publication, revalidation_status)`` — revalidation_status 为
+            ``"dispatched"`` / ``"failed"`` / ``"not_configured"``。
         """
         try:
             pub = await WikiDao.publish(db, pub_id)
@@ -131,30 +135,37 @@ class WikiPublishingService:
             logger.warning("wiki_publish_failed", pub_id=str(pub_id), error=str(exc))
             raise
 
+        revalidation = "not_configured"
+
         if pub is not None and pub.publish_mode == "SNAPSHOT":
             await self._freeze_snapshot(db, pub)
 
         if pub is not None:
-            await trigger_wiki_revalidate(
+            revalidation = await trigger_wiki_revalidate(
                 publication_id=pub.id,
                 pub_slug=pub.slug,
                 app_name=pub.app_name,
                 event="publish",
             )
 
-        return pub
+        return pub, revalidation
 
-    async def unpublish(self, db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
-        """取消发布：published → draft，并通知 SSG 主动 revalidate。"""
+    async def unpublish(self, db: AsyncSession, pub_id: UUID) -> tuple[WikiPublication | None, str]:
+        """取消发布：published → draft，并通知 SSG 主动 revalidate。
+
+        Returns:
+            ``(publication, revalidation_status)``。
+        """
         pub = await WikiDao.unpublish(db, pub_id)
+        revalidation = "not_configured"
         if pub is not None:
-            await trigger_wiki_revalidate(
+            revalidation = await trigger_wiki_revalidate(
                 publication_id=pub.id,
                 pub_slug=pub.slug,
                 app_name=pub.app_name,
                 event="unpublish",
             )
-        return pub
+        return pub, revalidation
 
     async def archive(self, db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
         """归档发布：任意状态 → archived"""

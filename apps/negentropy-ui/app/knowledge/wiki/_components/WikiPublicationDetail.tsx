@@ -9,11 +9,13 @@ import {
   unpublishWiki,
   WikiNavTreeItem,
   WikiPublication,
+  WikiRevalidationStatus,
 } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
 import { WikiStatusBadge } from "./WikiStatusBadge";
 import { WikiEntriesList } from "./WikiEntriesList";
 import { CatalogNodeSelectorDialog } from "./CatalogNodeSelectorDialog";
+import { WikiPublishPipeline } from "./WikiPublishPipeline";
 
 interface WikiPublicationDetailProps {
   publication: WikiPublication | null;
@@ -33,8 +35,17 @@ export function WikiPublicationDetail({
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectorMode, setSelectorMode] = useState<SyncMode>("sync-only");
   const [submitting, setSubmitting] = useState(false);
+  const [pipelineRevalidation, setPipelineRevalidation] = useState<WikiRevalidationStatus | null>(null);
+  const [pipelineActive, setPipelineActive] = useState(false);
+  const [pipelineTargetVersion, setPipelineTargetVersion] = useState<number | null>(null);
 
   const pubId = publication?.id;
+
+  useEffect(() => {
+    setPipelineActive(false);
+    setPipelineRevalidation(null);
+    setPipelineTargetVersion(null);
+  }, [pubId]);
 
   const loadNavTree = useCallback(async () => {
     if (!pubId) return;
@@ -60,11 +71,15 @@ export function WikiPublicationDetail({
   const handlePublish = useCallback(async () => {
     if (!pubId) return;
     setSubmitting(true);
+    setPipelineActive(true);
     try {
       const resp = await publishWiki(pubId);
+      setPipelineRevalidation(resp.revalidation ?? null);
+      setPipelineTargetVersion(resp.version);
       toast.success(`发布成功：v${resp.version}，${resp.entries_count} 个条目`);
       onChanged();
     } catch (err) {
+      setPipelineActive(false);
       toast.error(err instanceof Error ? err.message : "发布失败");
     } finally {
       setSubmitting(false);
@@ -75,11 +90,15 @@ export function WikiPublicationDetail({
     if (!pubId) return;
     if (!confirm("确定取消发布吗？站点将回退为草稿状态。")) return;
     setSubmitting(true);
+    setPipelineActive(true);
     try {
-      await unpublishWiki(pubId);
+      const resp = await unpublishWiki(pubId);
+      setPipelineRevalidation(resp.revalidation ?? null);
+      setPipelineTargetVersion(resp.version);
       toast.success("已取消发布");
       onChanged();
     } catch (err) {
+      setPipelineActive(false);
       toast.error(err instanceof Error ? err.message : "取消发布失败");
     } finally {
       setSubmitting(false);
@@ -111,6 +130,7 @@ export function WikiPublicationDetail({
     async (catalogNodeIds: string[]) => {
       if (!pubId) return;
       setSubmitting(true);
+      setPipelineActive(false);
       try {
         const resp = await syncWikiEntriesFromCatalog(pubId, {
           catalog_node_ids: catalogNodeIds,
@@ -127,12 +147,17 @@ export function WikiPublicationDetail({
         setSelectorOpen(false);
         await loadNavTree();
         if (selectorMode === "sync-and-publish") {
+          setPipelineActive(true);
           const pubResp = await publishWiki(pubId);
+          setPipelineRevalidation(pubResp.revalidation ?? null);
+          setPipelineTargetVersion(pubResp.version);
           toast.success(`发布成功：v${pubResp.version}`);
         }
         onChanged();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "同步失败");
+        setPipelineActive(false);
+        const msg = selectorMode === "sync-and-publish" ? "操作失败" : "同步失败";
+        toast.error(err instanceof Error ? err.message : msg);
       } finally {
         setSubmitting(false);
       }
@@ -221,10 +246,17 @@ export function WikiPublicationDetail({
           </button>
         </div>
 
-        <p className="mt-3 text-[11px] text-muted">
-          💡 发布后 SSG 站点通过 ISR（5 分钟窗口）异步拉取，非即时可见；
-          已提取的 Markdown 才会同步为条目。
-        </p>
+        {pipelineActive && pipelineRevalidation !== null ? (
+          <WikiPublishPipeline
+            revalidation={pipelineRevalidation}
+            targetVersion={pipelineTargetVersion ?? undefined}
+            pubSlug={publication.slug}
+          />
+        ) : (
+          <p className="mt-3 text-[11px] text-muted">
+            已提取的 Markdown 才会同步为条目。
+          </p>
+        )}
       </div>
 
       {/* Entries */}
