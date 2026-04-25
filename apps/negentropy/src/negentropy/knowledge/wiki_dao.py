@@ -14,6 +14,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from negentropy.models.perception import (
     KnowledgeDocument,
@@ -68,8 +69,10 @@ class WikiDao:
 
     @staticmethod
     async def get_publication(db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
-        """按 ID 获取发布记录"""
-        result = await db.execute(select(WikiPublication).where(WikiPublication.id == pub_id))
+        """按 ID 获取发布记录（eager-load entries 以兼容 async 序列化）"""
+        result = await db.execute(
+            select(WikiPublication).options(selectinload(WikiPublication.entries)).where(WikiPublication.id == pub_id)
+        )
         return result.scalar_one_or_none()
 
     @staticmethod
@@ -92,8 +95,12 @@ class WikiDao:
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[WikiPublication], int]:
-        """列出发布记录（支持过滤和分页）"""
-        query = select(WikiPublication)
+        """列出发布记录（支持过滤和分页）
+
+        eager-load entries 关系，规避 async SQLAlchemy 中
+        `pub.entries` 首次属性访问触发隐式 IO 导致 MissingGreenlet 的缺陷。
+        """
+        query = select(WikiPublication).options(selectinload(WikiPublication.entries))
 
         count_base = select(func.count()).select_from(WikiPublication)
 
