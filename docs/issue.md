@@ -349,3 +349,38 @@
   3. **错误抛点发生在子组件 render 阶段时 try/catch 接不住**：`WikiPublicationDetail` 已用 `try/catch + toast.error` 包裹 `fetchWikiNavTree`，但本次 `TypeError` 在子组件 render 阶段抛出，`useEffect` 内的 try/catch 接不住——这是另一阶问题（要么类型契约层面收敛、要么引入「局部 ErrorBoundary」缩小爆炸半径）。本次以「类型契约对齐」根治，未引入局部 boundary（避免设计扩散），但记录该方向作为未来 Wiki 详情区独立 boundary 的备选。
   4. **同型问题排查**：在 `apps/negentropy-ui/features/*/utils/*-api.ts` 下凡声明 `*Response` 接口的端点，需以「后端 Pydantic schema + 后端测试 + SSG 类型」三方对齐验证，不得仅凭 UI 主观「猜想契约」。
 - **同类问题影响**：与 ISSUE-010「KnowledgeDocument 文件名字段漂移」同型——均为前端「想当然简化版」覆盖后端真实字段名导致渲染降级；本次进一步暴露「同 SSOT 多消费者」的双源漂移风险，应在 Wiki / Catalog / Knowledge 跨域端点逐一审计。
+
+---
+
+## ISSUE-018 BFF `proxyPost` 强制 JSON body 阻塞所有空 body 动作端点
+
+- **表因**：UI 上点击 Wiki「仅发布」/「取消发布」无任何反应；直接调 `POST /api/knowledge/wiki/publications/{id}/publish` 返回 400 `KNOWLEDGE_BAD_REQUEST: Invalid JSON body: SyntaxError: Unexpected end of JSON input`。同型问题潜伏在 Memory 域 `automation/jobs/{key}/{enable|disable|run|reconcile}` 与 Interface 域 `mcp/servers/{id}/tools` 等所有「动作型 POST」端点。
+- **根因**：`apps/negentropy-ui/app/api/{knowledge,memory,interface}/_proxy.ts::proxyPost` 三处实现均在转发前**强制 `await request.json()`**，对空 body 立即抛 `SyntaxError` 并以 400 短路，根本未到达后端。后端 `POST /publish` / `POST /unpublish` 等接口本身**无请求体**（FastAPI handler 无 body 参数），与 BFF 假设错配。
+- **处理方式**：
+  1. 改写三个 `_proxy.ts::proxyPost`：`const rawBody = await request.text()` → 空白则 `forwardBody = undefined`、`headers` 不附 `content-type`；非空则 `JSON.parse(rawBody)` 校验后透传。同时保留对非法 JSON 的 400 短路（行为兼容）。
+  2. 新增 `apps/negentropy-ui/tests/unit/knowledge/proxy-empty-body.test.ts` 三例锁定：空 body 透传 / 合法 JSON 透传 / 非法 JSON 拒绝。
+- **后续防范**：
+  1. BFF 代理层应「能转发就转发」，**不预设 body 结构**——动作型端点（`/{publish,unpublish,enable,disable,run,reconcile,...}`）历来无请求体，假设有 body 等于在每个新增端点处埋雷。
+  2. 同型扫荡：本次同步修复 knowledge / memory / interface 三个 _proxy；新增 BFF proxy 文件需走同源模板，避免回退到旧逻辑。
+  3. UI 端「按下按钮无反应」类问题排查清单中应**优先检查 Network 标签页 4xx/5xx**，而非默认归因于 React 状态。
+- **同类问题影响**：所有「动作型 POST」HTTP 路由（PR 标记 `:action` 后缀的端点都是高风险候选）。本次同步给三个 _proxy 模板修复，未来新增 proxy 不应再复现。
+
+---
+
+## ISSUE-019 Wiki `CatalogNodeSelectorDialog` useEffect 依赖陷阱致无限 fetch 循环
+
+- **表因**：用户在 `/knowledge/wiki` 详情页点击「从 Catalog 同步」，弹出对话框始终停留在「加载中…」；浏览器 Network 标签短时间内对同一 URL 累积 100+ 请求，最终触发 `net::ERR_INSUFFICIENT_RESOURCES`。Console 报「Failed to fetch」toast 刷屏。
+- **根因**：经典 React `useCallback` 依赖陷阱链：
+  1. 父组件 `WikiPublicationDetail.tsx:245-259` 渲染 `<CatalogNodeSelectorDialog>` 时**未传 `initialSelectedIds` prop**。
+  2. 子组件 `CatalogNodeSelectorDialog.tsx` 默认值 `initialSelectedIds: string[] = []` 在每次 render 都是**新数组引用**。
+  3. 子组件 `resetSelection = useCallback(..., [initialSelectedIds])` 因依赖每 render 变化 → callback 引用变化。
+  4. `useEffect(..., [open, loadTree, resetSelection])` 因 `resetSelection` 引用变 → 副作用重跑 → `loadTree` → `setNodes(...)` → 父子重新 render → 回到第 2 步形成闭环。
+- **处理方式**：
+  1. 在模块顶层声明 `const EMPTY_SELECTION: readonly string[] = Object.freeze([])` 作为稳定空数组引用，作为 `initialSelectedIds` 默认值。
+  2. 重写 `useEffect` 仅依赖 `[open, corpusId]`，effect 内**内联**调用 `fetchCatalogTree` 并 `setSelectedIds(new Set(initialSelectedIds))`；删除 `resetSelection` callback。`initialSelectedIds` 作为「open 切换瞬时快照」消费——以 `eslint-disable-next-line react-hooks/exhaustive-deps` 显式声明，避免后续维护者误加回依赖再次复发。
+  3. 引入 `apps/negentropy-ui/components/ui/BaseModal.tsx`（顺手抽象），提供 Escape 关闭与 backdrop 关闭统一行为；`CatalogNodeSelectorDialog` 与 `CreateWikiPublicationDialog` 同步改造，去除两处对话框模板重复。
+- **后续防范**：
+  1. **`useCallback` 依赖中含 prop 默认数组/对象**是 React 经典反模式；评审 PR 时遇到 `useCallback([propWithArrayDefault])` 必须红灯。
+  2. 模式建议：`useEffect` 与 `useCallback` 依赖中**禁止**直接依赖未稳定化的 callback 引用；优先「effect 内内联 + ESLint disable + 注释解释为什么」，而非「层层 useCallback 包装」。
+  3. **dialog/modal 容器抽象**应统一处理 keyboard / backdrop 关闭与生命周期；新增对话框直接复用 `BaseModal`，不再各自维护壳层逻辑。
+- **同类问题影响**：所有 `useEffect` 依赖中含 `useCallback` 而 callback 又依赖 prop 数组/对象的组件（特别是 `Dialog` / `Form` 类），同型扫荡时关注 `[*, fooCallback]` 与 `useCallback(fn, [propArr])` 的组合。

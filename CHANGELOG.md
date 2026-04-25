@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Wiki SSG ISR 主动 revalidate webhook（`/api/revalidate`）**：后端 `negentropy.knowledge.revalidate.trigger_wiki_revalidate` 在 publish/unpublish 完成后异步通知 SSG 立即重渲染相关路径，无需等 5 分钟 ISR 窗口被动刷新；可选 HMAC-SHA256 签名（`X-Negentropy-Signature: sha256=…`）配合共享密钥 `WIKI_REVALIDATE_SECRET`；webhook 失败仅 WARN 不阻塞发布主链路。
+- **Wiki Snapshot 发布模式实装**：`WikiPublishingService.publish` 在 `publish_mode == 'SNAPSHOT'` 时冻结当前 entries 到 `wiki_publication_snapshots` 表（含 `frozen_entries` JSONB + `WikiPublication.snapshot_version` 同步指针），LIVE 模式行为不变。
+- **`negentropy.knowledge.slug` 模块（前后端 SSOT）**：收敛历史三处重复实现（`wiki_service._slugify` / `catalog_service._slugify` / `catalog_dao._compute_slug`）为单一权威工具；前端 `apps/negentropy-ui/features/knowledge/utils/wiki-slug.ts` 镜像同源正则；`SLUG_PATTERN` 字符串值通过前后端测试断言锁定不漂移。
+- **`negentropy.knowledge.wiki_tree` 模块**：从 `wiki_dao.get_nav_tree` 抽离 ~80 行嵌套树构建逻辑为纯函数 `build_nav_tree(entries) -> list[dict]`，DAO 层只承担"查 entries"职责。容器节点合成、`entry_path` 多形态归一（`list[str]` / JSON 字符串 / None）、深度边界等场景由独立单测覆盖。
+- **`apps/negentropy-ui/components/ui/BaseModal.tsx`**：通用模态对话框基类，提供 Escape 关闭 + click-outside 关闭 + size 档位（`sm`/`md`/`lg`）。`CatalogNodeSelectorDialog` 与 `CreateWikiPublicationDialog` 同步采用，去除两处对话框模板重复。
+
+### Changed
+
+- **[BREAKING] `wiki_publication_entries.entry_order` 列重命名为 `entry_path`**（migration 0009）：原命名易被误读为"排序权重"，但实际存储的是导航树层级路径（Materialized Path，`list[str]` 序列化为 JSON）。本次同步重命名 DB 列、ORM 字段、Pydantic schema、前端 TypeScript `WikiEntry` 接口；migration upgrade/downgrade 均为零数据丢失的纯重命名操作。
+  - **迁移指南**：`uv run alembic upgrade head` 即可；如有外部脚本直读 DB 列名 `entry_order`，需同步改为 `entry_path`（同 PR 已覆盖前后端全部消费方）。
+- **`WikiPublishingService.sync_entries_from_catalog` 拆分为正交助手**：原 116 行混合"Catalog 子树遍历"与"Wiki 条目映射"两个职责；现拆为 `_collect_subtree_documents()`（仅与 Catalog 交互）+ `_build_path_slugs()`（纯函数环检测）+ `_apply_entry_mappings()`（仅与 Wiki 表交互）。主方法收敛为 ~25 行协调器，三个助手独立可测。
+- **`WikiPublication` model docstring 补强语义**：为 `app_name`（SSG 多租户隔离键，从 catalog 派生不可变）/ `publish_mode`（LIVE 滚动 vs SNAPSHOT 冻结）/ `visibility`（PRIVATE/INTERNAL/PUBLIC）/ `snapshot_version`（SNAPSHOT 模式指针）补充语义说明，避免命名歧义衍生的功能误用。
+
+### Fixed
+
+- **修复 Wiki `CatalogNodeSelectorDialog` useEffect 依赖陷阱致无限 fetch 循环（详见 docs/issue.md ISSUE-019）**：父组件 `WikiPublicationDetail.tsx` 未传 `initialSelectedIds` prop → 默认值 `[]` 每 render 新引用 → `resetSelection = useCallback(..., [initialSelectedIds])` 引用变化 → `useEffect([open, loadTree, resetSelection])` 副作用重跑 → 触发 `fetchCatalogTree` → setState → 再 render → 闭环。修复：模块顶层稳定常量 `EMPTY_SELECTION` + `useEffect([open, corpusId])` effect 内联 reset 逻辑 + 显式 ESLint disable 解释为何不依赖 `initialSelectedIds`。
+- **修复 BFF `proxyPost` 强制 JSON body 阻塞所有空 body 动作端点（详见 docs/issue.md ISSUE-018）**：UI 上点击 Wiki「仅发布」/「取消发布」无反应；根因为 `apps/negentropy-ui/app/api/{knowledge,memory,interface}/_proxy.ts::proxyPost` 三处实现均强制 `await request.json()`，对空 body 立即 400 短路。修复：改为 `request.text()` + 空白短路 + 非空才 JSON 校验透传；同步覆盖 knowledge / memory / interface 三个 BFF proxy。新增 `apps/negentropy-ui/tests/unit/knowledge/proxy-empty-body.test.ts` 锁定回归。
+
 ### Changed（破坏性变更）
 
 - **[BREAKING] Catalog 全局化三阶段重构（corpus_id → catalog_id）**：

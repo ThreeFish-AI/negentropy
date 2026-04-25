@@ -1,9 +1,11 @@
 """WikiPublishingService 单元测试
 
 验证 Wiki 发布服务层的核心逻辑：
-- _slugify 纯函数的各种输入场景
 - create_publication 的参数校验 (theme/slug)
 - update_publication 的 theme 校验
+- 同步链路助手函数（_build_path_slugs / _apply_entry_mappings）
+
+注：``slugify`` 工具的纯函数单测迁移到独立 ``test_slug.py``（slug.py 模块抽取后的 SSOT）。
 """
 
 from __future__ import annotations
@@ -36,38 +38,6 @@ try:
     )
 except Exception:
     pass
-
-
-# ---------------------------------------------------------------------------
-# _slugify 纯函数全场景覆盖
-# ---------------------------------------------------------------------------
-
-
-class TestWikiSlugify:
-    """_slugify 静态方法的全场景覆盖"""
-
-    def test_slugify_basic_text(self):
-        assert WikiPublishingService._slugify("Hello World") == "hello-world"
-
-    def test_slugify_chinese_text(self):
-        result = WikiPublishingService._slugify("技术文档")
-        assert isinstance(result, str)
-        assert len(result) > 0
-
-    def test_slugify_already_valid_slug(self):
-        assert WikiPublishingService._slugify("my-page") == "my-page"
-
-    def test_slugify_special_chars_removed(self):
-        assert WikiPublishingService._slugify("Hello!! World@@") == "hello-world"
-
-    def test_slugify_multiple_spaces_collapsed(self):
-        assert WikiPublishingService._slugify("Hello   World") == "hello-world"
-
-    def test_slugify_empty_string_returns_untitled(self):
-        assert WikiPublishingService._slugify("") == "untitled"
-
-    def test_slugify_only_special_chars(self):
-        assert WikiPublishingService._slugify("!@#$%") == "untitled"
 
 
 # ---------------------------------------------------------------------------

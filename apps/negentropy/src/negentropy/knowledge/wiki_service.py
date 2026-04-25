@@ -11,12 +11,13 @@ Wiki 发布 — 服务层
 
 from __future__ import annotations
 
-import re
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.knowledge.revalidate import trigger_wiki_revalidate
+from negentropy.knowledge.slug import is_valid_slug, slugify
 from negentropy.knowledge.wiki_dao import WikiDao
 from negentropy.logging import get_logger
 from negentropy.models.perception import WikiPublication, WikiPublicationEntry
@@ -68,9 +69,9 @@ class WikiPublishingService:
             raise ValueError(f"Invalid theme: {theme!r}. Must be one of {VALID_THEMES}")
 
         if not slug:
-            slug = self._slugify(name)
+            slug = slugify(name)
 
-        if not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", slug):
+        if not is_valid_slug(slug):
             raise ValueError(f"Invalid slug format: {slug!r}")
 
         return await WikiDao.create_publication(
@@ -119,20 +120,82 @@ class WikiPublishingService:
     # ------------------------------------------------------------------
 
     async def publish(self, db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
-        """触发发布：draft/published → published，递增版本号"""
+        """触发发布：draft/published → published，递增版本号。
+
+        - ``publish_mode == 'SNAPSHOT'``：同步冻结 entries 到 snapshots 表。
+        - 配置了 ``wiki_revalidate.url``：异步通知 SSG 主动 ISR revalidate（失败仅 WARN）。
+        """
         try:
-            return await WikiDao.publish(db, pub_id)
+            pub = await WikiDao.publish(db, pub_id)
         except ValueError as exc:
             logger.warning("wiki_publish_failed", pub_id=str(pub_id), error=str(exc))
             raise
 
+        if pub is not None and pub.publish_mode == "SNAPSHOT":
+            await self._freeze_snapshot(db, pub)
+
+        if pub is not None:
+            await trigger_wiki_revalidate(
+                publication_id=pub.id,
+                pub_slug=pub.slug,
+                app_name=pub.app_name,
+                event="publish",
+            )
+
+        return pub
+
     async def unpublish(self, db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
-        """取消发布：published → draft"""
-        return await WikiDao.unpublish(db, pub_id)
+        """取消发布：published → draft，并通知 SSG 主动 revalidate。"""
+        pub = await WikiDao.unpublish(db, pub_id)
+        if pub is not None:
+            await trigger_wiki_revalidate(
+                publication_id=pub.id,
+                pub_slug=pub.slug,
+                app_name=pub.app_name,
+                event="unpublish",
+            )
+        return pub
 
     async def archive(self, db: AsyncSession, pub_id: UUID) -> WikiPublication | None:
         """归档发布：任意状态 → archived"""
         return await WikiDao.archive(db, pub_id)
+
+    async def _freeze_snapshot(
+        self,
+        db: AsyncSession,
+        pub: WikiPublication,
+    ) -> None:
+        """SNAPSHOT 模式：冻结当前 entries 到 wiki_publication_snapshots。
+
+        frozen_entries 仅冻结条目映射元数据（id/slug/title/path/is_index_page/
+        document_id），不冗余 markdown 内容——SSG 仍从 ``KnowledgeDocument``
+        按 document_id 拉取，避免快照表膨胀。
+        """
+        entries = await WikiDao.get_entries(db, pub.id)
+        frozen = [
+            {
+                "entry_id": str(e.id),
+                "entry_slug": e.entry_slug,
+                "entry_title": e.entry_title,
+                "entry_path": e.entry_path,
+                "is_index_page": bool(e.is_index_page),
+                "document_id": str(e.document_id),
+            }
+            for e in entries
+        ]
+        await WikiDao.create_snapshot(
+            db,
+            publication_id=pub.id,
+            version=pub.version,
+            frozen_entries=frozen,
+            metadata={"app_name": pub.app_name, "theme": pub.theme},
+        )
+        logger.info(
+            "wiki_snapshot_frozen",
+            pub_id=str(pub.id),
+            version=pub.version,
+            entries_count=len(frozen),
+        )
 
     # ------------------------------------------------------------------
     # Entry 管理
@@ -193,99 +256,26 @@ class WikiPublishingService:
         publication_id: UUID,
         catalog_node_ids: list[UUID],
     ) -> dict:
-        """从目录节点全量同步文档到 Wiki 条目（幂等）
+        """从目录节点全量同步文档到 Wiki 条目（幂等）。
 
-        遍历指定目录节点的完整子树，将所有就绪文档自动创建 Entry 映射。
-        设置 entry_order 为 Materialized Path（层级路径数组）以支持层级导航。
+        协调器：先 :meth:`_collect_subtree_documents` 摊平 Catalog 子树为
+        ``(path_slugs, doc)`` 元组流，再 :meth:`_apply_entry_mappings` 将其映射为
+        Wiki Entry 并去除孤立条目。两阶段拆分使"Catalog 遍历"与"Wiki 映射"两个
+        正交职责可独立测试与演进。
 
         **全量同步语义**：未覆盖到的既有条目将被移除，仅保留本次选中的文档。
 
-        Args:
-            publication_id: 目标发布 ID
-            catalog_node_ids: 要同步的根目录节点 ID 列表
-
         Returns:
-            {
-                "synced_count": int,
-                "errors": list[str],       # 前缀：skip:<doc_id>:<reason> / renamed:<doc_id>:<old>->:<new>
-                "removed_count": int,
-            }
+            ``{"synced_count": int, "errors": list[str], "removed_count": int}``
+            ``errors`` 前缀语义：``skip:<doc_id>:<reason>`` /
+            ``renamed:<doc_id>:<old>->:<new>`` / ``node:<id>:<reason>``。
         """
-        import json
+        plans, errors = await self._collect_subtree_documents(db, catalog_node_ids)
+        synced, mapping_errors, synced_doc_ids = await self._apply_entry_mappings(
+            db, publication_id=publication_id, plans=plans
+        )
+        errors.extend(mapping_errors)
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
-
-        synced = 0
-        errors: list[str] = []
-        synced_doc_ids: set[str] = set()
-        seen_slugs: set[str] = set()
-
-        for root_node_id in catalog_node_ids:
-            subtree = await CatalogDao.get_subtree(db, root_node_id)
-            if not subtree:
-                errors.append(f"node:{root_node_id}:empty_subtree")
-                continue
-
-            node_map = {str(n["id"]): n for n in subtree}
-
-            for node in subtree:
-                # 构建从根到当前节点的层级 slug 路径（基于循环变量做环检测）
-                path_slugs: list[str] = []
-                current = node
-                visited: set[str] = set()
-                while current:
-                    cur_id = str(current["id"])
-                    if cur_id in visited:
-                        errors.append(f"node:{cur_id}:cycle_detected")
-                        break
-                    visited.add(cur_id)
-                    path_slugs.insert(0, current["slug"])
-                    parent_id = current.get("parent_id")
-                    if not parent_id:
-                        break
-                    current = node_map.get(str(parent_id))
-
-                hierarchical_slug = "/".join(path_slugs)
-
-                # 获取该节点下的文档
-                docs, _ = await CatalogDao.get_node_documents(db, node["id"], limit=500)
-                for doc in docs:
-                    # 跳过未完成 markdown 提取的文档
-                    if getattr(doc, "markdown_extract_status", None) != "completed":
-                        errors.append(f"skip:{doc.id}:markdown_not_ready")
-                        continue
-                    if not getattr(doc, "markdown_content", None):
-                        errors.append(f"skip:{doc.id}:no_content")
-                        continue
-
-                    doc_slug = self._slugify(doc.original_filename or f"doc-{doc.id}")
-                    base_slug = f"{hierarchical_slug}/{doc_slug}" if hierarchical_slug else doc_slug
-
-                    # slug 冲突兜底：追加 -2、-3...，避免违反 uq_wiki_entry_pub_slug
-                    final_slug = base_slug
-                    dedup_idx = 2
-                    while final_slug in seen_slugs:
-                        final_slug = f"{base_slug}-{dedup_idx}"
-                        dedup_idx += 1
-                    if final_slug != base_slug:
-                        errors.append(f"renamed:{doc.id}:{base_slug}->:{final_slug}")
-                    seen_slugs.add(final_slug)
-
-                    final_doc_segment = final_slug.split("/")[-1]
-                    entry_order = json.dumps(path_slugs + [final_doc_segment])
-
-                    await WikiDao.upsert_entry(
-                        db,
-                        publication_id=publication_id,
-                        document_id=doc.id,
-                        entry_slug=final_slug,
-                        entry_title=(doc.metadata_ or {}).get("title") or doc.original_filename,
-                        entry_order=entry_order,
-                    )
-                    synced_doc_ids.add(str(doc.id))
-                    synced += 1
-
-        # 移除不再属于任何指定目录节点的条目（幂等性保证）
         removed = await WikiDao.remove_stale_entries(
             db,
             publication_id=publication_id,
@@ -303,16 +293,120 @@ class WikiPublishingService:
         )
         return {"synced_count": synced, "errors": errors, "removed_count": removed}
 
-    # ------------------------------------------------------------------
-    # 工具方法
-    # ------------------------------------------------------------------
+    async def _collect_subtree_documents(
+        self,
+        db: AsyncSession,
+        catalog_node_ids: list[UUID],
+    ) -> tuple[list[tuple[list[str], Any]], list[str]]:
+        """遍历每个根节点子树，摊平为 ``[(path_slugs, doc), ...]`` 序列。
+
+        返回扁平的同步计划与遍历期错误（环检测、空子树）。仅与 Catalog 交互，
+        不触碰 Wiki 表，便于独立单测。
+        """
+        from negentropy.knowledge.catalog_dao import CatalogDao
+
+        plans: list[tuple[list[str], Any]] = []
+        errors: list[str] = []
+
+        for root_node_id in catalog_node_ids:
+            subtree = await CatalogDao.get_subtree(db, root_node_id)
+            if not subtree:
+                errors.append(f"node:{root_node_id}:empty_subtree")
+                continue
+
+            node_map = {str(n["id"]): n for n in subtree}
+
+            for node in subtree:
+                path_slugs, cycle_node_id = self._build_path_slugs(node, node_map)
+                if cycle_node_id is not None:
+                    errors.append(f"node:{cycle_node_id}:cycle_detected")
+                    continue
+
+                docs, _ = await CatalogDao.get_node_documents(db, node["id"], limit=500)
+                for doc in docs:
+                    plans.append((path_slugs, doc))
+
+        return plans, errors
 
     @staticmethod
-    def _slugify(text: str) -> str:
-        """将文本转换为 URL-friendly slug（严格 ASCII，对齐 wiki slug 校验正则）"""
-        import unicodedata
+    def _build_path_slugs(
+        node: dict,
+        node_map: dict[str, dict],
+    ) -> tuple[list[str], str | None]:
+        """从指定 node 沿 parent_id 链回溯到根，构造 slug 路径。
 
-        normalized = unicodedata.normalize("NFKC", text or "").lower()
-        slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
-        slug = re.sub(r"-{2,}", "-", slug)
-        return slug or "untitled"
+        Returns:
+            ``(path_slugs, cycle_node_id)``。``cycle_node_id`` 非 None 时表示在该
+            节点处检测到环，调用方应跳过。
+        """
+        path_slugs: list[str] = []
+        visited: set[str] = set()
+        current: dict | None = node
+        while current is not None:
+            cur_id = str(current["id"])
+            if cur_id in visited:
+                return path_slugs, cur_id
+            visited.add(cur_id)
+            path_slugs.insert(0, current["slug"])
+            parent_id = current.get("parent_id")
+            if not parent_id:
+                break
+            current = node_map.get(str(parent_id))
+        return path_slugs, None
+
+    async def _apply_entry_mappings(
+        self,
+        db: AsyncSession,
+        *,
+        publication_id: UUID,
+        plans: list[tuple[list[str], Any]],
+    ) -> tuple[int, list[str], set[str]]:
+        """对 ``plans`` 应用 Wiki Entry 映射写入；处理 markdown 就绪 + slug 冲突。
+
+        Returns:
+            ``(synced_count, errors, synced_doc_ids)``。
+        """
+        import json
+
+        synced = 0
+        errors: list[str] = []
+        synced_doc_ids: set[str] = set()
+        seen_slugs: set[str] = set()
+
+        for path_slugs, doc in plans:
+            if getattr(doc, "markdown_extract_status", None) != "completed":
+                errors.append(f"skip:{doc.id}:markdown_not_ready")
+                continue
+            if not getattr(doc, "markdown_content", None):
+                errors.append(f"skip:{doc.id}:no_content")
+                continue
+
+            hierarchical_slug = "/".join(path_slugs)
+            doc_slug = slugify(doc.original_filename or f"doc-{doc.id}")
+            base_slug = f"{hierarchical_slug}/{doc_slug}" if hierarchical_slug else doc_slug
+
+            # slug 冲突兜底：追加 -2、-3...，避免违反 uq_wiki_entry_pub_slug。
+            final_slug = base_slug
+            dedup_idx = 2
+            while final_slug in seen_slugs:
+                final_slug = f"{base_slug}-{dedup_idx}"
+                dedup_idx += 1
+            if final_slug != base_slug:
+                errors.append(f"renamed:{doc.id}:{base_slug}->:{final_slug}")
+            seen_slugs.add(final_slug)
+
+            final_doc_segment = final_slug.split("/")[-1]
+            entry_path = json.dumps(path_slugs + [final_doc_segment])
+
+            await WikiDao.upsert_entry(
+                db,
+                publication_id=publication_id,
+                document_id=doc.id,
+                entry_slug=final_slug,
+                entry_title=(doc.metadata_ or {}).get("title") or doc.original_filename,
+                entry_path=entry_path,
+            )
+            synced_doc_ids.add(str(doc.id))
+            synced += 1
+
+        return synced, errors, synced_doc_ids
