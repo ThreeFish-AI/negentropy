@@ -50,6 +50,10 @@
 - 补齐 `opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0` 依赖，消除 ADK `adk_web_server` 启动期 `Unable to import GoogleGenAiSdkInstrumentor` WARNING，恢复 Google GenAI SDK 的 OTel 自动埋点，与现有 Langfuse OTel 链路打通。
 - 站点级安静化两类先于 `negentropy.bootstrap` 触发的上游启动噪声（`AuthlibDeprecationWarning: authlib.jose module is deprecated` 与 `[EXPERIMENTAL] feature FeatureName.PLUGGABLE_AUTH is enabled`）：通过 `apps/negentropy/src/_negentropy_silence.pth`（hatchling `force-include` 至 site-packages 根）+ `negentropy/_silence_upstream_warnings.py` 在解释器 site 初始化期替换 `warnings.showwarning`，按消息子串白名单丢弃噪声；不影响任何其他告警通道，对 `authlib.deprecate` 的 `simplefilter("always", AuthlibDeprecationWarning)` 免疫（在 filter 之后的 showwarning 层拦截）。
 
+### Refactor
+
+- 同型问题扫荡：审计 `apps/negentropy/src/negentropy/knowledge/` 下所有 async DAO 的懒加载契约（承 ISSUE-010 三阶修复，PR #407）。基于业界通行的「契约审计」模式（[SQLAlchemy 2.0 Async Loading 文档](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html#preventing-implicit-io-when-using-asyncsession)）穷举式核对 handler / Pydantic 序列化路径上的关系访问。仅发现 `WikiDao.get_publication_by_slug` 一处一致性缺口（当前无调用方，但与 `get_publication` / `list_publications` 同构，未来调用即复现 ISSUE-010 三阶），已补 `selectinload(WikiPublication.entries)`；同步在 `WikiDao` / `CatalogDao` / `SourceDao` 类 docstring 中明示「async 懒加载契约」，沉淀「为何安全 / 何时需补 eager-load」的隐式知识（项目当前安全依赖于「标量优先序列化 + 显式 JOIN/CTE + 服务层独立查询」三类结构性回避模式，未在代码注释中明示，易被未来维护者忽略）。`Base.AsyncAttrs` / 关系级 `lazy="selectin"` 全局改造作为未来选项保留（爆炸半径过大，本次按最小干预原则不推进）。零功能行为变更，零回归风险；`docs/issue.md` ISSUE-010 三阶段落末尾追加「同型扫荡审计结论」沉淀清单。
+
 ### Removed
 
 - 删除 `apps/negentropy/.env.example`（197 行）：其承载的全部非密钥配置项已在 `config.default.yaml` 中以结构化 YAML 形式表达，密钥类条目改为通过 shell 环境变量或 `.env.local` 提供。
