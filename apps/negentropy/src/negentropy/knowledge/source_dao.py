@@ -19,7 +19,14 @@ logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 
 
 class SourceDao:
-    """DocSource 数据访问对象"""
+    """DocSource 数据访问对象
+
+    async 懒加载契约（详见 ISSUE-010 三阶）：``DocSource.document`` 单向关系
+    当前未在任何 handler / 序列化路径中访问。若未来 handler 需要通过
+    ``source.document`` 反向关联文档，**必须**在 DAO 查询层挂
+    ``selectinload(DocSource.document)`` / ``joinedload(...)``，否则会触发
+    ``sqlalchemy.exc.MissingGreenlet``。
+    """
 
     @staticmethod
     async def create(

@@ -26,7 +26,15 @@ logger = logging.getLogger(__name__.rsplit(".", 1)[0])
 
 
 class WikiDao:
-    """Wiki 发布数据访问对象"""
+    """Wiki 发布数据访问对象
+
+    async 懒加载契约（详见 ISSUE-010 三阶）：所有返回 ``WikiPublication`` ORM
+    对象的查询必须挂 ``selectinload(WikiPublication.entries)``，否则 handler /
+    序列化路径（如 ``len(pub.entries)``）首次属性访问会触发
+    ``sqlalchemy.exc.MissingGreenlet``。新增方法或新增 handler 若需访问
+    ``snapshots`` / ``slug_redirects`` / ``catalog`` 等关系，需同步声明对应的
+    eager loading option。
+    """
 
     # ------------------------------------------------------------------
     # Publication CRUD
@@ -77,9 +85,15 @@ class WikiDao:
 
     @staticmethod
     async def get_publication_by_slug(db: AsyncSession, catalog_id: UUID, slug: str) -> WikiPublication | None:
-        """按 catalog + slug 获取发布记录"""
+        """按 catalog + slug 获取发布记录（eager-load entries 以兼容 async 序列化）
+
+        当前虽无调用方，但与 ``get_publication`` / ``list_publications`` 同构，
+        预先满足类级 async 懒加载契约，避免未来 handler 调用时复现 ISSUE-010 三阶。
+        """
         result = await db.execute(
-            select(WikiPublication).where(
+            select(WikiPublication)
+            .options(selectinload(WikiPublication.entries))
+            .where(
                 WikiPublication.catalog_id == catalog_id,
                 WikiPublication.slug == slug,
             )

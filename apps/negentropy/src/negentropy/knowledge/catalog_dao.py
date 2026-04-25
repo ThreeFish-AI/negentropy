@@ -39,7 +39,16 @@ def _compute_slug(name: str, slug_override: str | None) -> str:
 
 
 class CatalogDao:
-    """DocCatalog 顶层 CRUD + DocCatalogEntry 节点操作"""
+    """DocCatalog 顶层 CRUD + DocCatalogEntry 节点操作
+
+    async 懒加载契约（详见 ISSUE-010 三阶）：当前所有 handler 对 ``DocCatalog`` /
+    ``DocCatalogEntry`` 仅访问标量列、或通过 ``get_tree``（递归 CTE）/
+    ``get_node_documents``（显式 JOIN）返回 dict / 显式查询结果，避开关系遍历。
+    新增 handler 若需访问 ``catalog.entries`` / ``entry.children`` /
+    ``entry.document`` / ``entry.source_corpus`` 等关系，**必须**在对应 DAO 查询层
+    挂 ``selectinload(...)`` / ``joinedload(...)``，否则会触发
+    ``sqlalchemy.exc.MissingGreenlet``。
+    """
 
     # ------------------------------------------------------------------
     # DocCatalog 顶层 CRUD
