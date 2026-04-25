@@ -2474,16 +2474,19 @@ export interface WikiEntryContent {
 }
 
 export interface WikiNavTreeItem {
+  /** 叶节点为 entry UUID；容器节点（仅因层级合成）为 null */
   entry_id: string | null;
+  /** 叶节点的源文档；容器节点为 null */
   document_id: string | null;
-  slug: string;
-  title: string;
-  children: WikiNavTreeItem[];
+  entry_slug: string;
+  entry_title: string;
+  is_index_page: boolean;
+  children?: WikiNavTreeItem[];
 }
 
 export interface WikiNavTreeResponse {
   publication_id: string;
-  nav_tree: WikiNavTreeItem[];
+  nav_tree: { items: WikiNavTreeItem[] };
 }
 
 export interface WikiPublishActionResponse {

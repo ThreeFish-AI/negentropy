@@ -20,22 +20,19 @@ interface FlatItem {
 function flattenNavTree(
   items: WikiNavTreeItem[],
   depth: number,
-  pathPrefix: string,
   out: FlatItem[],
 ): void {
   for (const item of items) {
-    const slugPath = pathPrefix
-      ? `${pathPrefix}/${item.slug}`
-      : item.slug;
     out.push({
-      key: `${item.entry_id ?? "container"}:${slugPath}:${depth}`,
+      key: `${item.entry_id ?? "container"}:${item.entry_slug}:${depth}`,
       depth,
-      title: item.title,
-      slug: slugPath,
+      title: item.entry_title || item.entry_slug,
+      slug: item.entry_slug,
       isContainer: item.entry_id === null,
     });
-    if (item.children.length > 0) {
-      flattenNavTree(item.children, depth + 1, slugPath, out);
+    const children = item.children ?? [];
+    if (children.length > 0) {
+      flattenNavTree(children, depth + 1, out);
     }
   }
 }
@@ -47,7 +44,7 @@ export function WikiEntriesList({
 }: WikiEntriesListProps) {
   const flat = useMemo(() => {
     const out: FlatItem[] = [];
-    flattenNavTree(navTree, 0, "", out);
+    flattenNavTree(navTree, 0, out);
     return out;
   }, [navTree]);
 

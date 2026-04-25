@@ -41,7 +41,7 @@ export function WikiPublicationDetail({
     setNavLoading(true);
     try {
       const resp = await fetchWikiNavTree(pubId);
-      setNavTree(resp.nav_tree);
+      setNavTree(resp.nav_tree?.items ?? []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "导航树加载失败");
     } finally {
