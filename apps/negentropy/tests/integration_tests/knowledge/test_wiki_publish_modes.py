@@ -369,3 +369,119 @@ class TestWikiPublicationCatalogBinding:
                     slug="bad-theme-pub",
                     theme="unknown-theme",
                 )
+
+
+# ===================================================================
+# TestWikiPublicationEntriesEagerLoading — entries 关系 eager-load 回归
+# ===================================================================
+
+
+class TestWikiPublicationEntriesEagerLoading:
+    """回归 ISSUE-010 三阶问题：async SQLAlchemy 中 pub.entries 必须 eager-load。
+
+    若 DAO 查询不挂 selectinload(WikiPublication.entries)，handler 在
+    `len(pub.entries)` 处会以 sqlalchemy.exc.MissingGreenlet 失败 → 500。
+    """
+
+    @pytest.mark.asyncio
+    async def test_list_publications_entries_accessible_after_query(self, db_engine, wiki_corpus, wiki_catalog):
+        """list_publications 返回的对象必须可直接读取 entries（已 eager-loaded）"""
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.knowledge.wiki_dao import WikiDao
+        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.models.perception import KnowledgeDocument
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        service = WikiPublishingService()
+
+        # 准备：corpus + document + publication + entry
+        async with session_factory() as session:
+            doc = KnowledgeDocument(
+                corpus_id=wiki_corpus,
+                app_name="negentropy",
+                file_hash="entries-eager-load-hash",
+                original_filename="entries-eager-load.md",
+                gcs_uri="gs://test/entries-eager-load.md",
+                file_size=42,
+            )
+            session.add(doc)
+            await session.flush()
+            doc_id = doc.id
+
+            pub = await service.create_publication(
+                session,
+                catalog_id=wiki_catalog,
+                app_name="negentropy",
+                name="Pub With Entries",
+                slug="pub-with-entries-eager",
+            )
+            await session.flush()
+            await WikiDao.upsert_entry(
+                session,
+                publication_id=pub.id,
+                document_id=doc_id,
+                entry_slug="entry-1",
+                entry_title="Entry 1",
+            )
+            await session.commit()
+            pub_id = pub.id
+
+        # 核心断言：list 返回后访问 entries 不抛 MissingGreenlet，且计数正确
+        async with session_factory() as session:
+            pubs, total = await service.list_publications(session, catalog_id=wiki_catalog)
+
+        assert total >= 1
+        target = next((p for p in pubs if p.id == pub_id), None)
+        assert target is not None
+        # 修复前此处会抛 sqlalchemy.exc.MissingGreenlet
+        assert len(target.entries) == 1
+        assert target.entries[0].entry_slug == "entry-1"
+
+    @pytest.mark.asyncio
+    async def test_get_publication_entries_accessible_after_query(self, db_engine, wiki_corpus, wiki_catalog):
+        """get_publication 返回的对象必须可直接读取 entries（已 eager-loaded）"""
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.knowledge.wiki_dao import WikiDao
+        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.models.perception import KnowledgeDocument
+
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        service = WikiPublishingService()
+
+        async with session_factory() as session:
+            doc = KnowledgeDocument(
+                corpus_id=wiki_corpus,
+                app_name="negentropy",
+                file_hash="get-pub-eager-hash",
+                original_filename="get-pub-eager.md",
+                gcs_uri="gs://test/get-pub-eager.md",
+                file_size=42,
+            )
+            session.add(doc)
+            await session.flush()
+            doc_id = doc.id
+
+            pub = await service.create_publication(
+                session,
+                catalog_id=wiki_catalog,
+                app_name="negentropy",
+                name="Pub Get Eager",
+                slug="pub-get-eager",
+            )
+            await session.flush()
+            await WikiDao.upsert_entry(
+                session,
+                publication_id=pub.id,
+                document_id=doc_id,
+                entry_slug="entry-x",
+            )
+            await session.commit()
+            pub_id = pub.id
+
+        async with session_factory() as session:
+            fetched = await service.get_publication(session, pub_id)
+
+        assert fetched is not None
+        assert len(fetched.entries) == 1
