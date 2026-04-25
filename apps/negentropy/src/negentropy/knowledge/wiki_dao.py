@@ -20,6 +20,7 @@ from negentropy.models.perception import (
     KnowledgeDocument,
     WikiPublication,
     WikiPublicationEntry,
+    WikiPublicationSnapshot,
 )
 
 logger = logging.getLogger(__name__.rsplit(".", 1)[0])
@@ -230,10 +231,13 @@ class WikiDao:
         document_id: UUID,
         entry_slug: str,
         entry_title: str | None = None,
-        entry_order: dict | None = None,
+        entry_path: str | None = None,
         is_index_page: bool = False,
     ) -> WikiPublicationEntry:
-        """创建或更新条目映射（幂等：同一 publication+document 组合只保留一条）"""
+        """创建或更新条目映射（幂等：同一 publication+document 组合只保留一条）。
+
+        ``entry_path``：``list[str]`` 序列化后的 JSON 字符串（Materialized Path）。
+        """
         existing = await db.execute(
             select(WikiPublicationEntry).where(
                 WikiPublicationEntry.publication_id == publication_id,
@@ -246,7 +250,7 @@ class WikiDao:
             # 更新现有记录
             rec.entry_slug = entry_slug
             rec.entry_title = entry_title
-            rec.entry_order = entry_order
+            rec.entry_path = entry_path
             rec.is_index_page = is_index_page
         else:
             rec = WikiPublicationEntry(
@@ -254,7 +258,7 @@ class WikiDao:
                 document_id=document_id,
                 entry_slug=entry_slug,
                 entry_title=entry_title,
-                entry_order=entry_order,
+                entry_path=entry_path,
                 is_index_page=is_index_page,
             )
             db.add(rec)
@@ -279,7 +283,11 @@ class WikiDao:
         db: AsyncSession,
         publication_id: UUID,
     ) -> list[WikiPublicationEntry]:
-        """获取发布的所有条目（按 entry_order 排序）"""
+        """获取发布的所有条目（按 is_index_page 优先 + entry_slug 字典序）。
+
+        导航树嵌套合成委托给 :func:`negentropy.knowledge.wiki_tree.build_nav_tree`，
+        本方法仅返回平铺结果以保持 DAO 层职责单一。
+        """
         result = await db.execute(
             select(WikiPublicationEntry)
             .where(WikiPublicationEntry.publication_id == publication_id)
@@ -336,7 +344,7 @@ class WikiDao:
         }
 
     # ------------------------------------------------------------------
-    # 导航树
+    # 导航树（薄委托）
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -344,82 +352,15 @@ class WikiDao:
         db: AsyncSession,
         publication_id: UUID,
     ) -> list[dict]:
-        """获取发布的导航树结构
+        """获取发布的导航树结构。
 
-        基于 entries 的 entry_order 字段（Materialized Path）构建嵌套层级导航。
-        如果 entry_order 为空，则回退为扁平列表。
+        DAO 层仅承担"查 entries"，嵌套合成逻辑委托给纯函数
+        :func:`negentropy.knowledge.wiki_tree.build_nav_tree`，便于单测覆盖。
         """
-        import json
+        from negentropy.knowledge.wiki_tree import build_nav_tree
 
         entries = await WikiDao.get_entries(db, publication_id)
-
-        def _insert_into_tree(root_items: list[dict], item: dict, order_path: list[str]) -> None:
-            """将条目按 order_path 嵌入到树结构中"""
-            if len(order_path) <= 1:
-                root_items.append(item)
-                return
-
-            # 查找或创建父级容器节点
-            parent_path = order_path[:-1]
-            parent_slug = "/".join(parent_path)
-
-            def _find_or_create_parent(children: list[dict]) -> dict:
-                for child in children:
-                    if child.get("_path") == parent_slug:
-                        return child
-                    nested = _find_or_create_parent(child.get("children", []))
-                    if nested:
-                        return nested
-                # 创建目录容器节点
-                container = {
-                    "entry_id": None,
-                    "entry_slug": parent_slug,
-                    "entry_title": parent_path[-1],
-                    "is_index_page": False,
-                    "document_id": None,
-                    "_path": parent_slug,
-                    "children": [],
-                }
-                children.append(container)
-                return container
-
-            parent = _find_or_create_parent(root_items)
-            if parent:
-                parent.setdefault("children", []).append(item)
-            else:
-                root_items.append(item)
-
-        root_items: list[dict] = []
-        for entry in entries:
-            order_path = entry.entry_order
-            if isinstance(order_path, str):
-                try:
-                    order_path = json.loads(order_path)
-                except (json.JSONDecodeError, TypeError):
-                    order_path = [entry.entry_slug]
-
-            item = {
-                "entry_id": str(entry.id),
-                "entry_slug": entry.entry_slug,
-                "entry_title": entry.entry_title or entry.entry_slug,
-                "is_index_page": entry.is_index_page,
-                "document_id": str(entry.document_id),
-                "children": [],
-            }
-
-            if order_path and len(order_path) > 1:
-                _insert_into_tree(root_items, item, order_path)
-            else:
-                root_items.append(item)
-
-        # 递归移除内部 _path 字段
-        def _clean_internal(items: list[dict]) -> None:
-            for item in items:
-                item.pop("_path", None)
-                _clean_internal(item.get("children", []))
-
-        _clean_internal(root_items)
-        return root_items
+        return build_nav_tree(entries)
 
     @staticmethod
     async def remove_stale_entries(
@@ -447,3 +388,36 @@ class WikiDao:
             )
         await db.flush()
         return result.rowcount
+
+    # ------------------------------------------------------------------
+    # Snapshot 冻结（SNAPSHOT 发布模式）
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def create_snapshot(
+        db: AsyncSession,
+        *,
+        publication_id: UUID,
+        version: int,
+        frozen_entries: list[dict[str, Any]],
+        metadata: dict[str, Any] | None = None,
+    ) -> WikiPublicationSnapshot:
+        """冻结当前 entries 到 ``WikiPublicationSnapshot``（仅追加）。
+
+        ``WikiPublication.snapshot_version`` 同步指向最新冻结版本，便于 SSG
+        在 SNAPSHOT 模式下直接以 ``snapshot_version`` 取定版内容。
+        """
+        snap = WikiPublicationSnapshot(
+            publication_id=publication_id,
+            version=version,
+            frozen_entries=frozen_entries,
+            metadata_=metadata or {},
+        )
+        db.add(snap)
+        await db.flush()
+        # 同步主表 snapshot_version 指针。
+        pub = await WikiDao.get_publication(db, publication_id)
+        if pub is not None:
+            pub.snapshot_version = version
+            await db.flush()
+        return snap

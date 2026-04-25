@@ -192,8 +192,24 @@ class DocSource(Base, UUIDMixin, TimestampMixin):
 class WikiPublication(Base, UUIDMixin, TimestampMixin):
     """Wiki 发布快照
 
-    表示一个 Corpus 的发布视图。每次 publish 创建/更新一个版本化快照，
-    Wiki SSG 应用基于此数据构建静态站点。
+    表示一个 Catalog 的发布视图，Wiki SSG 应用基于此数据构建静态站点。
+
+    字段语义补强（避免历史命名歧义）：
+
+    - ``app_name``：从关联 :class:`DocCatalog` 派生的应用归属，作为 SSG 多租户路由
+      的隔离键（同一 SSG 实例内，不同 ``app_name`` 的发布互不串扰）。**冗余但
+      不可变**：值在 ``create_publication`` 时由后端从 catalog 拷入，不接受外部
+      PATCH，确保每篇 entry 路径定位稳定（详见 ISSUE-016 修复）。
+    - ``publish_mode``：发布行为模式。
+        - ``LIVE``：SSG 通过 ISR 主动拉取最新 ``entries``，内容随源文档变更滚动；
+        - ``SNAPSHOT``：发布时冻结当前 ``entries`` 到 :class:`WikiPublicationSnapshot`，
+          后续源文档变更不影响已发布版本（适合外发/合规归档场景）。
+    - ``visibility``：访问域控制。
+        - ``PRIVATE``：仅 owner / admin；
+        - ``INTERNAL``：登录用户；
+        - ``PUBLIC``：匿名访问（SSG 公开站点）。
+      与 ``publish_mode`` 正交：``visibility`` 控制谁能访问，``publish_mode`` 控制
+      访问到的内容是否会随源更新。
     """
 
     __tablename__ = "wiki_publications"
@@ -212,7 +228,9 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
 
     # Phase 3: Catalog 全局化（NOT NULL，corpus_id 已移除）
     catalog_id: Mapped[UUID] = mapped_column(fk("doc_catalogs", ondelete="RESTRICT"), nullable=False)
+    # 应用归属（SSG 多租户路由隔离键，从 catalog 派生且不可变；详见类 docstring）。
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # 发布模式：LIVE = ISR 滚动拉取最新 entries；SNAPSHOT = 发布时冻结 entries 到 snapshots 表。
     publish_mode: Mapped[str] = mapped_column(
         SAEnum(
             "LIVE",
@@ -224,6 +242,7 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
         nullable=False,
         server_default="LIVE",
     )
+    # 访问域：PRIVATE / INTERNAL / PUBLIC（与 publish_mode 正交，控制"谁能访问"）。
     visibility: Mapped[str] = mapped_column(
         SAEnum(
             "PRIVATE",
@@ -236,6 +255,7 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
         nullable=False,
         server_default="INTERNAL",
     )
+    # SNAPSHOT 模式下指向最新冻结快照的 version；LIVE 模式恒为 NULL。
     snapshot_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     catalog: Mapped["DocCatalog"] = relationship(back_populates="publications")
@@ -266,9 +286,12 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     """Wiki 发布条目映射
 
     轻量映射表，记录每篇文档在 Wiki 中的展示元数据：
-    - entry_slug / entry_title: 可覆盖原始文档的标识和标题
-    - is_index_page: 标记是否为该 Publication 的首页
-    - entry_order: 在导航树中的位置路径 (JSON path)
+
+    - ``entry_slug`` / ``entry_title``：可覆盖原始文档的 URL 段与标题。
+    - ``is_index_page``：标记是否为该 Publication 首页。
+    - ``entry_path``：在导航树中的层级路径（Materialized Path，``list[str]`` 序列化为
+      JSON 字符串存储）。历史名 ``entry_order`` 已重命名（见 migration 0009），
+      "order" 名称易误读为排序权重，实为路径——故规范化为 ``entry_path``。
     """
 
     __tablename__ = "wiki_publication_entries"
@@ -277,7 +300,8 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     document_id: Mapped[UUID] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=False)
     entry_slug: Mapped[str] = mapped_column(String(255), nullable=False)
     entry_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    entry_order: Mapped[str | None] = mapped_column(JSONB)  # JSON path in nav tree
+    # Materialized Path：list[str] 以 JSON 字符串形式存储；历史列名 entry_order。
+    entry_path: Mapped[str | None] = mapped_column("entry_path", JSONB)
     is_index_page: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     publication: Mapped["WikiPublication"] = relationship(back_populates="entries")

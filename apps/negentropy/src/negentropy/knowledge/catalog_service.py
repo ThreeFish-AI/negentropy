@@ -13,20 +13,17 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.knowledge.catalog_dao import CatalogDao
+from negentropy.knowledge.slug import is_valid_slug, slugify
 from negentropy.logging import get_logger
 from negentropy.models.perception import DocCatalog, DocCatalogEntry, KnowledgeDocument
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
-
-# slug 合法字符集（URL-friendly）
-_SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class CatalogService:
@@ -67,9 +64,9 @@ class CatalogService:
             ValueError: slug 格式错误或租户内重复
         """
         if not slug:
-            slug = self._slugify(name)
+            slug = slugify(name)
 
-        if not _SLUG_PATTERN.match(slug):
+        if not is_valid_slug(slug):
             raise ValueError(
                 f"Invalid slug format: {slug!r}. Must contain only lowercase alphanumeric characters and hyphens."
             )
@@ -117,7 +114,7 @@ class CatalogService:
         if "app_name" in kwargs:
             raise ValueError("app_name is immutable and cannot be changed after creation")
         if "slug" in kwargs and kwargs["slug"]:
-            if not _SLUG_PATTERN.match(kwargs["slug"]):
+            if not is_valid_slug(kwargs["slug"]):
                 raise ValueError(f"Invalid slug format: {kwargs['slug']!r}")
         return await CatalogDao.update_catalog(db, catalog_id, **kwargs)
 
@@ -172,9 +169,9 @@ class CatalogService:
 
         # 自动生成 slug
         if not slug:
-            slug = self._slugify(name)
+            slug = slugify(name)
 
-        if not _SLUG_PATTERN.match(slug):
+        if not is_valid_slug(slug):
             raise ValueError(
                 f"Invalid slug format: {slug!r}. Must contain only lowercase alphanumeric characters and hyphens."
             )
@@ -214,7 +211,7 @@ class CatalogService:
     ) -> DocCatalogEntry | None:
         """更新目录节点"""
         if "slug" in kwargs and kwargs["slug"]:
-            if not _SLUG_PATTERN.match(kwargs["slug"]):
+            if not is_valid_slug(kwargs["slug"]):
                 raise ValueError(f"Invalid slug format: {kwargs['slug']!r}")
         return await CatalogDao.update_node(db, node_id, **kwargs)
 
@@ -346,16 +343,3 @@ class CatalogService:
     ) -> list[DocCatalogEntry]:
         """获取文档所属的所有目录节点"""
         return await CatalogDao.get_document_nodes(db, document_id)
-
-    # ------------------------------------------------------------------
-    # 工具方法
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _slugify(text: str) -> str:
-        """将文本转换为 URL-friendly slug"""
-        import unicodedata
-
-        normalized = unicodedata.normalize("NFKC", text or "").lower()
-        slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
-        return re.sub(r"-{2,}", "-", slug) or "untitled"

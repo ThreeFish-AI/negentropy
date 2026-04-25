@@ -4264,7 +4264,7 @@ async def sync_wiki_from_catalog(
     """从 Catalog 节点全量同步文档到 Wiki Publication（幂等）
 
     递归遍历指定目录节点子树，对状态为 completed 的文档建立 Wiki 条目映射，
-    并以 Materialized Path 形式写入 ``entry_order`` 以支撑层级导航。
+    并以 Materialized Path 形式写入 ``entry_path`` 以支撑层级导航。
 
     **全量同步语义**：不属于本次 ``catalog_node_ids`` 子树的既有条目会被删除。
     同步完成后 SSG 依赖 ISR 窗口自动拉取，非即时可见。
@@ -4300,8 +4300,8 @@ async def sync_wiki_from_catalog(
 async def get_wiki_nav_tree(pub_id: UUID) -> WikiNavTreeResponse:
     """获取 Wiki 导航树结构
 
-    供 SSG 构建时生成侧边栏导航。基于 entries 自动构建扁平列表，
-    前端可根据 entry_order 字段自行组装层级树。
+    供 SSG 构建时生成侧边栏导航。后端基于 ``entry_path``（Materialized Path）合成
+    嵌套树并以 ``{items: [...]}`` 信封返回（详见 ISSUE-017 四阶契约对齐）。
     """
     wiki_svc = _get_wiki_service()
 

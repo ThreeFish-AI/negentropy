@@ -257,7 +257,7 @@ class WikiEntryResponse(BaseModel):
     entry_slug: str
     entry_title: str | None
     is_index_page: bool
-    entry_order: str | None
+    entry_path: str | None
     created_at: datetime | None
 
 

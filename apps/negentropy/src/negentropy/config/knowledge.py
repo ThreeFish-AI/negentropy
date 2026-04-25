@@ -4,7 +4,7 @@ Knowledge Configuration.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 
@@ -58,6 +58,30 @@ class DefaultExtractorRoutesSettings(BaseModel):
     )
 
 
+class WikiRevalidateSettings(BaseModel):
+    """Wiki SSG ISR 主动 revalidate 触发配置。
+
+    publish/unpublish 完成后，后端会向 ``url`` 发起 POST 通知 SSG 立即重渲染
+    （相比仅靠 5 分钟 ISR 窗口被动等更新，UX 更新鲜）。
+
+    所有字段可选；未配置 ``url`` 则跳过 webhook（行为与原有"被动 ISR"等价，
+    不阻塞发布主链路）。
+    """
+
+    url: str | None = Field(
+        default=None,
+        description="SSG revalidate 端点完整 URL，例如 https://wiki.example.com/api/revalidate",
+    )
+    secret: SecretStr | None = Field(
+        default=None,
+        description="HMAC 签名密钥；与 SSG 路由共享。未配置则跳过签名头。",
+    )
+    timeout_seconds: float = Field(
+        default=5.0,
+        description="单次 POST 超时秒数。失败仅 WARN 不阻塞发布。",
+    )
+
+
 class KnowledgeSettings(BaseSettings):
     """Knowledge 相关后台配置。"""
 
@@ -72,6 +96,9 @@ class KnowledgeSettings(BaseSettings):
 
     default_extractor_routes: DefaultExtractorRoutesSettings = Field(
         default_factory=DefaultExtractorRoutesSettings,
+    )
+    wiki_revalidate: WikiRevalidateSettings = Field(
+        default_factory=WikiRevalidateSettings,
     )
 
     @classmethod

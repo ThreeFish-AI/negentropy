@@ -2460,7 +2460,8 @@ export interface WikiEntry {
   entry_slug: string;
   entry_title: string | null;
   is_index_page: boolean;
-  entry_order: string | null;
+  /** Materialized Path（list[str] 序列化为 JSON 字符串）。后端列名 entry_path（migration 0009）。 */
+  entry_path: string | null;
   created_at: string | null;
 }
 

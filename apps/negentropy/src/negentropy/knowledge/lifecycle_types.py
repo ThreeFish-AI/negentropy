@@ -156,7 +156,7 @@ class WikiEntryRecord:
     entry_slug: str
     entry_title: str | None
     is_index_page: bool = False
-    entry_order: str | None = None
+    entry_path: str | None = None
     created_at: datetime | None = None
 
 
