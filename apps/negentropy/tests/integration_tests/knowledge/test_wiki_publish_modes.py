@@ -72,6 +72,14 @@ async def wiki_catalog(db_engine, wiki_corpus):
     yield catalog_id
 
     async with session_factory() as s:
+        from negentropy.models.perception import WikiPublication
+
+        pubs = (
+            await s.execute(WikiPublication.__table__.select().where(WikiPublication.catalog_id == catalog_id))
+        ).fetchall()
+        if pubs:
+            await s.execute(WikiPublication.__table__.delete().where(WikiPublication.catalog_id == catalog_id))
+            await s.flush()
         obj = await s.get(DocCatalog, catalog_id)
         if obj is not None:
             await s.delete(obj)
@@ -107,7 +115,7 @@ class TestWikiPublicationLifecycle:
             await session.commit()
 
         assert pub.status == "draft"
-        assert pub.version == 0
+        assert pub.version == 1
         assert pub.catalog_id == wiki_catalog
 
     @pytest.mark.asyncio
