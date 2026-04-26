@@ -283,21 +283,47 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
 
 
 class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
-    """Wiki 发布条目映射
+    """Wiki 发布条目映射（CONTAINER 容器节点 + DOCUMENT 文档节点双轨）
 
-    轻量映射表，记录每篇文档在 Wiki 中的展示元数据：
+    自 0011 起：
+      - **CONTAINER**：对应 Catalog FOLDER 节点，``document_id IS NULL``、
+        ``catalog_node_id`` 指向 ``DocCatalogEntry.id``；``entry_title`` 取自
+        Catalog 节点的 ``name``，导航树作为不可点击的可展开标题。
+      - **DOCUMENT**：对应文档条目，``document_id`` 必填、``catalog_node_id`` 必空；
+        导航树作为可链接的叶子。
 
-    - ``entry_slug`` / ``entry_title``：可覆盖原始文档的 URL 段与标题。
-    - ``is_index_page``：标记是否为该 Publication 首页。
-    - ``entry_path``：在导航树中的层级路径（Materialized Path，``list[str]`` 序列化为
-      JSON 字符串存储）。历史名 ``entry_order`` 已重命名（见 migration 0009），
-      "order" 名称易误读为排序权重，实为路径——故规范化为 ``entry_path``。
+    数据库 CHECK 约束 ``ck_wiki_entry_kind_payload`` 保证两态 payload 互斥；
+    Partial Unique Index 分别在 CONTAINER / DOCUMENT 两态下保证：
+      - ``(publication_id, document_id) WHERE entry_kind='DOCUMENT'`` 唯一；
+      - ``(publication_id, catalog_node_id) WHERE entry_kind='CONTAINER'`` 唯一。
+
+    其它字段：
+      - ``entry_slug`` / ``entry_title``：URL 段与标题（CONTAINER 取 Catalog 节点 name）。
+      - ``is_index_page``：标记是否为该 Publication 首页（仅 DOCUMENT 有意义）。
+      - ``entry_path``：导航树层级路径（Materialized Path，list[str] JSON 串）。
     """
 
     __tablename__ = "wiki_publication_entries"
 
     publication_id: Mapped[UUID] = mapped_column(fk("wiki_publications", ondelete="CASCADE"), nullable=False)
-    document_id: Mapped[UUID] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=False)
+    # CONTAINER 行 document_id 为 NULL；DOCUMENT 行 catalog_node_id 为 NULL；CHECK 约束保证互斥。
+    document_id: Mapped[UUID | None] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=True)
+    # ON DELETE CASCADE：CHECK 约束要求 CONTAINER 行 catalog_node_id 非空，
+    # SET NULL 会反向阻止 FOLDER 删除（详见 0011 迁移 docstring「FK 行为」段）。
+    catalog_node_id: Mapped[UUID | None] = mapped_column(
+        fk("doc_catalog_entries", ondelete="CASCADE"),
+        nullable=True,
+    )
+    entry_kind: Mapped[str] = mapped_column(
+        SAEnum(
+            "CONTAINER",
+            "DOCUMENT",
+            name="wiki_entry_kind",
+            schema=NEGENTROPY_SCHEMA,
+        ),
+        nullable=False,
+        server_default="DOCUMENT",
+    )
     entry_slug: Mapped[str] = mapped_column(String(255), nullable=False)
     entry_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Materialized Path：list[str] 以 JSON 字符串形式存储；历史列名 entry_order。
@@ -305,11 +331,15 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     is_index_page: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     publication: Mapped["WikiPublication"] = relationship(back_populates="entries")
-    document: Mapped["KnowledgeDocument"] = relationship()
+    document: Mapped["KnowledgeDocument | None"] = relationship()
+    catalog_node: Mapped["DocCatalogEntry | None"] = relationship()
 
     __table_args__ = (
         UniqueConstraint("publication_id", "entry_slug", name="uq_wiki_entry_pub_slug"),
-        UniqueConstraint("publication_id", "document_id", name="uq_wiki_entry_pub_doc"),
+        # uq_wiki_entry_pub_doc_active / uq_wiki_entry_pub_node_active 是 partial
+        # unique index（CONTAINER / DOCUMENT 分态唯一），由 0011 显式创建；ORM 不
+        # 在此声明，避免 alembic autogenerate 误判。
+        # CHECK 约束 ck_wiki_entry_kind_payload 同样由 0011 显式创建。
         {"schema": NEGENTROPY_SCHEMA},
     )
 
@@ -622,16 +652,23 @@ class DocCatalogEntry(Base, UUIDMixin, TimestampMixin):
     parent_entry_id: Mapped[UUID | None] = mapped_column(fk("doc_catalog_entries", ondelete="CASCADE"), nullable=True)
     document_id: Mapped[UUID | None] = mapped_column(fk("knowledge_documents", ondelete="SET NULL"), nullable=True)
     source_corpus_id: Mapped[UUID | None] = mapped_column(fk("corpus", ondelete="SET NULL"), nullable=True)
+    # 节点类型（自 0010 收敛）：
+    #   - ``FOLDER``：用户可见的目录容器，合并自历史 CATEGORY + COLLECTION；
+    #   - ``DOCUMENT_REF``：系统内部软引用，由 ``CatalogDao.assign_document`` 自动创建。
+    #
+    # ``CATEGORY`` / ``COLLECTION`` 在 PG ENUM 中作为"死值"保留（无法 DROP VALUE），
+    # 应用层禁止写入；新代码统一使用 FOLDER。
     node_type: Mapped[str] = mapped_column(
         SAEnum(
             "CATEGORY",
             "COLLECTION",
+            "FOLDER",
             "DOCUMENT_REF",
             name="catalogentrynodetype",
             schema=NEGENTROPY_SCHEMA,
         ),
         nullable=False,
-        server_default="CATEGORY",
+        server_default="FOLDER",
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug_override: Mapped[str | None] = mapped_column(String(255), nullable=True)

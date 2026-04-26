@@ -2147,7 +2147,18 @@ export async function upsertPipelines(params: {
 // Catalog Types (目录编册 — 对齐后端 catalog_dao.py)
 // ============================================================================
 
-export type CatalogNodeType = "category" | "collection" | "document_ref";
+/**
+ * 目录节点类型（对齐后端 0010 收敛）：
+ *   - `folder`：用户可见的目录容器（合并自历史 CATEGORY + COLLECTION）；
+ *   - `document_ref`：系统内部软引用，仅由 `assign_document` 自动创建，UI 不暴露创建入口。
+ *
+ * 历史值 `category` / `collection` 仍可能从老 API 响应中返回，前端按 `folder` 兜底渲染。
+ */
+export type CatalogNodeType =
+  | "folder"
+  | "document_ref"
+  | "category" // legacy
+  | "collection"; // legacy
 
 /** 全局 Catalog 元数据 — 对齐后端 DocCatalog ORM */
 export interface DocCatalog {
@@ -2474,11 +2485,21 @@ export interface WikiEntryContent {
   document_filename: string;
 }
 
+/**
+ * Wiki 导航树 item（自 0011 起）。
+ *
+ * 历史「容器节点 entry_id=null」语义现仅在缺失 CONTAINER 条目时回退；
+ * 正常路径下 CONTAINER 条目持有真实 entry_id 与 catalog_node_id。
+ */
 export interface WikiNavTreeItem {
-  /** 叶节点为 entry UUID；容器节点（仅因层级合成）为 null */
+  /** 叶/容器条目的 entry UUID；仅在缺 CONTAINER 时回退为 null */
   entry_id: string | null;
   /** 叶节点的源文档；容器节点为 null */
   document_id: string | null;
+  /** 容器节点关联的 Catalog 节点 ID；DOCUMENT 节点为 null */
+  catalog_node_id?: string | null;
+  /** 条目类型；老响应缺省时按 `document_id` 是否非空推导 */
+  entry_kind?: "CONTAINER" | "DOCUMENT";
   entry_slug: string;
   entry_title: string;
   is_index_page: boolean;

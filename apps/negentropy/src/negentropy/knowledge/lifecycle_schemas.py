@@ -67,12 +67,17 @@ class DocumentProvenanceResponse(BaseModel):
 
 
 class CatalogNodeCreateRequest(BaseModel):
-    """创建目录节点请求"""
+    """创建目录节点请求
+
+    自 0010 起：``folder`` 是唯一用户可创建类型；历史 ``category`` / ``collection``
+    自动归一为 FOLDER；``document_ref`` 仅由 :func:`assign_document` 自动创建，
+    禁止经此入口写入。
+    """
 
     name: str = Field(..., min_length=1, max_length=255)
     slug: str | None = Field(None, max_length=255)
     parent_id: UUID | None = None
-    node_type: str = "category"  # category | collection | document_ref
+    node_type: str = "folder"
     description: str | None = None
     sort_order: int = 0
     config: dict[str, Any] = Field(default_factory=dict)
@@ -80,14 +85,21 @@ class CatalogNodeCreateRequest(BaseModel):
     @field_validator("node_type")
     @classmethod
     def validate_node_type(cls, v: str) -> str:
-        allowed = {"category", "collection", "document_ref"}
+        # 拒绝 document_ref：仅 assign_document 可创建
+        if v == "document_ref":
+            raise ValueError("node_type 'document_ref' must be created via assign_document; not allowed in create")
+        allowed = {"folder", "category", "collection"}
         if v not in allowed:
-            raise ValueError(f"node_type must be one of {allowed}, got '{v}'")
+            raise ValueError(f"node_type must be one of {sorted(allowed)}, got '{v}'")
         return v
 
 
 class CatalogNodeUpdateRequest(BaseModel):
-    """更新目录节点请求"""
+    """更新目录节点请求
+
+    ``node_type`` 字段已从用户路径移除——节点类型在创建后不可变更。保留字段定义
+    用于历史调用方兼容（运行时被 service 层忽略）。
+    """
 
     name: str | None = Field(None, min_length=1, max_length=255)
     slug: str | None = Field(None, max_length=255)

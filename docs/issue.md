@@ -443,3 +443,43 @@
   1. **wiki app 与 negentropy-ui 的 markdown stack 仍未 SSOT**：本次 wiki app 独立持有 `react-markdown` 依赖；未来若 `negentropy-ui` 同步升级到 v10 或引入 KaTeX 等，应评估抽 `packages/markdown-config` 共享插件链。
   2. **TOC 同型可在 Knowledge / Memory 长文档页复用**：`apps/negentropy-ui/features/knowledge/components/DocumentMarkdownRenderer.tsx` 可考虑同源 `WikiToc` 实现，但目标用户场景（管理后台 vs 公开阅读）差异大，本次不主动外推。
   3. **左栏树折叠语义**：`WikiNavTree` 与 `apps/negentropy-ui/app/knowledge/catalog/_components/CatalogTree.tsx` 同样面对「层级数据 + 当前选中」语义，但前者只读、后者编辑，未来若产生第三个同型场景再考虑抽 SSOT。
+
+---
+
+## ISSUE-023 Catalog 节点类型语义冗余 + Wiki 树状结构压平假象
+
+- **表因**：
+  1. `/knowledge/catalog` 创建对话框「类型」字段提供「分类 / 集合 / 文档引用」三选项，无 tooltip 与说明；
+  2. CATEGORY 与 COLLECTION 在 ORM、DAO、Service、Sync 各层无任何功能差异（仅前端图标颜色不同），违反「正交地提取概念主体」；
+  3. DOCUMENT_REF 暴露在用户创建路径，手动选择会写入 `document_id IS NULL` 的孤立条目，破坏 `assign_document` 不变量；
+  4. Catalog 树形结构同步到 Wiki 后呈现「压平」假象——`WikiPublicationEntry` 仅为文档建条目（`document_id NOT NULL`），FOLDER 容器节点无对应 Wiki 条目；`wiki_tree.py::_ensure_container` 用 path slug 字符串当 title 合成虚拟容器，丢失 Catalog 节点的 `name` / `description` / `id` 等元数据；空 FOLDER 子树（无后代文档）在 Wiki 端彻底消失。
+- **根因（结构性，非 bug）**：
+  1. **类型枚举冗余**：`DocCatalogEntry.node_type` 三值（CATEGORY / COLLECTION / DOCUMENT_REF）中前两者语义与行为完全等价；DOCUMENT_REF 是 N:M 文档归属的内部软引用，不应作为用户面类型；
+  2. **Wiki 模型职责越位**：`WikiPublicationEntry` 把"文档映射"与"导航树容器"两职责压缩到一张表，`document_id NOT NULL` 强约束导致容器节点无处持久化；
+  3. **build_nav_tree 信息源不足**：仅消费 `entry_path` 字符串数组，不消费 Catalog 节点的真实元数据，被迫合成虚拟容器。
+- **处理方式**（5 个 PR 串联，含 2 次迁移）：
+  1. **PR-1 / Migration 0010 `catalog_node_type_unify_folder`**：枚举增 FOLDER 值；`UPDATE doc_catalog_entries SET node_type='FOLDER' WHERE node_type IN ('CATEGORY','COLLECTION')`；CATEGORY / COLLECTION 在 PG ENUM 中作为"死值"保留（PG 不支持 DROP VALUE）；应用层显式拒绝 `document_ref` 经 `create_node` 写入；前后端 `_NODE_TYPE_TO_ENUM` / `CatalogNodeType` 同步收敛；`update_node` 静默忽略 `node_type` 字段（类型不可变）；
+  2. **PR-2 重构 `catalog_dao` 三模块拆分**：`catalog_dao.py`（510 → 169 行）保留 Catalog 顶层 CRUD + `CatalogDao` Façade（多继承聚合 `CatalogNodeDao` + `CatalogAssignmentDao`）；新增 `catalog_node_dao.py`（节点 CRUD + 树查询）/ `catalog_assignment_dao.py`（DOCUMENT_REF 软引用）；外部调用面零改动（``CatalogDao.create_node`` / ``CatalogDao.assign_document`` 等仍可用）；
+  3. **PR-3 / Migration 0011 `wiki_entry_container_kind`**：新建 ENUM `wiki_entry_kind('CONTAINER','DOCUMENT')`；`WikiPublicationEntry` 加 `entry_kind` / `catalog_node_id`、`document_id` 改 nullable；CHECK 约束 `ck_wiki_entry_kind_payload` 保证两态 payload 互斥；partial unique index `uq_wiki_entry_pub_doc_active` / `uq_wiki_entry_pub_node_active` 替换原 `uq_wiki_entry_pub_doc`；`wiki_service.sync_entries_from_catalog` 重写为产出 container_plans + document_plans 两条流，分别经 `upsert_container_entry` / `upsert_entry` 写入；`wiki_tree.build_nav_tree` 改为优先消费 CONTAINER 真实元数据，缺失时降级合成（`_synthetic=True`）；
+  4. **PR-4 前端创建对话框收敛**：移除「类型」select 控件（FOLDER 是唯一类型）；说明文案指引用户经节点详情页「挂载文档」按钮触发 `assign_document`；`CatalogTreeNode` 图标 / 徽标改用 NODE_TYPE_LABELS（中文「目录」/「文档」），历史 `category` / `collection` 兜底为 folder 视觉；
+  5. **PR-5 Wiki SSG 与 UI 双侧消费 entry_kind**：`negentropy-wiki/lib/wiki-api.ts` 新增 `WikiNavTreeItem.entry_kind` / `catalog_node_id` 字段 + `isContainerItem` 工具函数；`WikiNavTree.tsx` / `WikiEntriesList.tsx` 改用 `entry_kind` 判断容器（向后兼容旧响应：缺省时按 `document_id` 兜底）。
+- **PR-3 复审收尾（同 PR 内修复，非新增 migration）**：
+  1. **CONTAINER / DOCUMENT entry_slug 跨类型冲突**：`_apply_container_mappings` 与 `_apply_document_mappings` 原各自维护独立 `seen_slugs`，但 `uq_wiki_entry_pub_slug` 是跨 `entry_kind` 的全局唯一约束——当父目录下既存在子 FOLDER `b` 又存在 slugify 后等于 `b` 的兄弟文档（如 `b.md`）时，DOCUMENT 端会以同 slug `IntegrityError` 命中、整次同步事务回滚。处理：将 `seen_slugs` 提升为同步会话级共享集合（在 `sync_entries_from_catalog` 初始化），CONTAINER 写入时先 `add`，DOCUMENT 端复用同一集合走 `-2/-3` 后缀兜底链（产出 `renamed:<doc_id>:<old>->:<new>` 错误标记便于运营观测）；CONTAINER 端同样补 `renamed:node:<id>:...` 标记保证 dedup 完全可观测；
+  2. **`catalog_node_id` FK 行为与 CHECK 约束矛盾**：原 `ON DELETE SET NULL` 与 `ck_wiki_entry_kind_payload`（CONTAINER 必填 `catalog_node_id`）天然冲突——级联 NULL 会触发 CHECK 失败、PG 反向阻止 Catalog FOLDER 删除（`delete_node` / `delete_catalog` 路径在已发布场景下 `IntegrityError`）。处理：迁移 0011 与 ORM `WikiPublicationEntry.catalog_node_id` 同步改为 `ON DELETE CASCADE`，与 publication 级 CASCADE 链路对齐——FOLDER 删除时其 CONTAINER 条目随之清理，不产生孤儿行。
+- **测试覆盖**：
+  - 后端：`test_catalog_node_type_unify.py`（FOLDER 默认 / DOCUMENT_REF 拒绝 / 历史值归一）、`test_catalog_dao_facade.py`（Façade 多继承契约）、扩展 `test_wiki_tree.py::TestBuildNavTreeContainerEntries`（5 例：显式 CONTAINER 替换合成、空容器子树可见、缺 CONTAINER 合成回退、混序输入正确装配、合成标记清理）、新增 `test_wiki_service_unit.py::TestWikiCatalogSync::test_sync_dedup_shares_slug_namespace_across_kinds`（FOLDER 与同名兄弟文档撞 slug 时走 `-2` 兜底，并产出 renamed 标记）；
+  - 前端 UI：`catalog-create-node-dialog.test.tsx`（不渲染 select / 调用 node_type='folder' / 提示文案）、`catalog-tree-node-icons.test.tsx`（folder / document_ref / 历史值兜底）；
+  - SSG：`wiki-nav-tree-kind.test.ts`（5 例：entry_kind 优先 / document_id 兜底 / 合成容器识别）。
+- **后续防范**：
+  1. **Negative Prompt：枚举不要做"代码无差异的同义值"**——若两枚举值在 ORM / DAO / Service / 同步 / API / 前端任意一层都无行为差异，则它们是同一概念，应合并为一值；UI 需要的视觉区分由独立维度（图标 / 标签 / 状态）承担，不应升级为类型枚举；
+  2. **Negative Prompt：内部实现细节不要暴露至用户路径**——`DOCUMENT_REF` 是 N:M 软引用的实现细节（同 `assign_document` 内部使用），错误暴露至 UI 创建对话框会让用户写入孤立条目；类似情况包括 tombstone 标记、status 字段、内部 cache key 等；
+  3. **Wiki 模型双职责拆分**：`WikiPublicationEntry` 现明确支持 CONTAINER + DOCUMENT 两类条目，CHECK 约束保证 payload 一致性；类似的"映射 + 元数据"双职责场景（如 `KgEntityMention` / `WikiPublicationSnapshot`）应警惕被压缩到单一外键导致结构压平；
+  4. **PG ENUM 治理范式**：扩张枚举值采用 `autocommit_block + ADD VALUE IF NOT EXISTS`；不可 DROP VALUE 的限制要求"应用层禁止写入 + 在迁移注释明确死值"——参考 ISSUE-013 的 enum cast 处理同源；
+  5. **PR 拆分纪律**：5 个 PR 严格按 Expand → Backfill → Contract 分离，每个均独立可合并 / 回滚；migration 0010 / 0011 解耦的好处在 PR-3 rebase 时验证。
+  6. **Negative Prompt：dedup 集合必须与「唯一约束的实际作用域」对齐**——多 writer 共写一张表时，每个 writer 各持本地 `seen_*` 集合是常见反模式；只要 DB 端的 unique constraint 是跨 writer 的全局视图，dedup 就必须提升为协调器级别的共享集合，否则跨类型冲突在小流量下被掩盖、在数据规模上线后才以 IntegrityError 暴露；
+  7. **Negative Prompt：FK 的 ON DELETE 行为必须与 CHECK 约束的可达状态求交集**——`ON DELETE SET NULL` 把 FK 列写成 NULL，若 NULL 不在 CHECK 约束的合法状态集合内，PG 会反向阻止父表删除；引入新的 partial CHECK 约束时，应同步检查所有引用此列的 FK ondelete 策略（CASCADE / RESTRICT / NO ACTION 是更安全的默认，SET NULL 仅在「NULL 是 CHECK 合法状态」时使用）。
+- **同类问题影响**：
+  1. **`WikiPublicationEntry.is_index_page`** 当前仍按 DOCUMENT 语义解读；后续若让 CONTAINER 也支持"挂 landing 页"（Docusaurus `link.type=doc` 模式），可在 CONTAINER 行复用 `is_index_page` 表达"该容器有 landing 文档绑定"；
+  2. **negentropy-wiki SSG 路由** `[pubSlug]/[...entrySlug]/page.tsx` 当前不消费 CONTAINER 条目（只渲染 DOCUMENT），未来若需为 CONTAINER 提供 landing 页路由，需扩展 `getEntryContent` 行为；
+  3. **CATEGORY / COLLECTION 死值清理**：长期看可在 PG 17+ 评估 `ALTER TYPE ... RENAME VALUE` 或重建 enum 的 follow-up；当前应用层禁写已足够，不引入额外迁移风险；
+  4. **catalog_dao 拆分范式可复用**：`memory_dao` / `interface_dao` 等 500+ 行的 DAO 若呈现"顶层 CRUD + 子实体 CRUD + N:M 关联"三类职责，可参照本次 Façade 多继承范式按职责正交分解。

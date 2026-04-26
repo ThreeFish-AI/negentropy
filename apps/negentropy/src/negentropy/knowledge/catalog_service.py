@@ -138,12 +138,16 @@ class CatalogService:
         name: str,
         slug: str | None = None,
         parent_id: UUID | None = None,
-        node_type: str = "category",
+        node_type: str = "folder",
         description: str | None = None,
         sort_order: int = 0,
         config: dict | None = None,
     ) -> DocCatalogEntry:
-        """创建目录节点
+        """创建目录节点（FOLDER 是唯一用户可创建类型）
+
+        自 0010 起：
+          - ``FOLDER`` 为唯一合法用户面类型；历史 ``category`` / ``collection`` 自动归一为 FOLDER；
+          - ``DOCUMENT_REF`` 仅由 :meth:`assign_document` 自动创建，**禁止**经此入口写入。
 
         Args:
             db: 数据库会话
@@ -151,7 +155,7 @@ class CatalogService:
             name: 节点名称
             slug: URL 友好标识（不传则从 name 自动生成）
             parent_id: 父节点 ID（None 表示根节点）
-            node_type: 节点类型 (category/collection/document_ref)
+            node_type: 节点类型；接受 ``"folder"`` / ``"category"`` / ``"collection"``，统一归一为 FOLDER
             description: 描述文本
             sort_order: 排序权重
             config: JSONB 配置字典
@@ -160,12 +164,14 @@ class CatalogService:
             创建的节点对象
 
         Raises:
-            ValueError: node_type 不合法、slug 格式错误或父节点不属于同一 catalog
+            ValueError: node_type 为 ``document_ref`` 或非法、slug 格式错误、或父节点不属于同一 catalog
         """
-        # 校验 node_type
-        valid_types = {"category", "collection", "document_ref"}
-        if node_type not in valid_types:
-            raise ValueError(f"Invalid node_type: {node_type!r}. Must be one of {valid_types}")
+        # 校验 node_type：拒绝 DOCUMENT_REF 经用户路径创建（仅 assign_document 内部使用）
+        if node_type == "document_ref":
+            raise ValueError("node_type 'document_ref' must be created via assign_document; not allowed in create_node")
+        legal_inputs = {"folder", "category", "collection"}
+        if node_type not in legal_inputs:
+            raise ValueError(f"Invalid node_type: {node_type!r}. Must be one of {sorted(legal_inputs)}")
 
         # 自动生成 slug
         if not slug:
@@ -209,10 +215,15 @@ class CatalogService:
         node_id: UUID,
         **kwargs: Any,
     ) -> DocCatalogEntry | None:
-        """更新目录节点"""
+        """更新目录节点
+
+        ``node_type`` 在 0010 后**不允许变更**——FOLDER 与 DOCUMENT_REF 的语义边界在
+        创建时即确定。若调用方仍传入 ``node_type``，本方法静默忽略（兼容历史前端）。
+        """
         if "slug" in kwargs and kwargs["slug"]:
             if not is_valid_slug(kwargs["slug"]):
                 raise ValueError(f"Invalid slug format: {kwargs['slug']!r}")
+        kwargs.pop("node_type", None)  # 静默忽略类型变更
         return await CatalogDao.update_node(db, node_id, **kwargs)
 
     async def delete_node(self, db: AsyncSession, node_id: UUID) -> bool:

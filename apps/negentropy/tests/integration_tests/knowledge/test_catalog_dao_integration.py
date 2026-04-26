@@ -499,7 +499,7 @@ class TestCatalogCrudIntegration:
                 name="Roundtrip Node",
                 slug="roundtrip-node",
                 parent_id=None,
-                node_type="collection",
+                node_type="folder",
                 description="Test description",
                 sort_order=42,
                 config={"key": "value"},
@@ -514,7 +514,7 @@ class TestCatalogCrudIntegration:
         assert fetched.id == created.id
         assert fetched.name == "Roundtrip Node"
         assert fetched.slug_override == "roundtrip-node"
-        assert fetched.node_type == "COLLECTION"
+        assert fetched.node_type == "FOLDER"
         assert fetched.description == "Test description"
         assert fetched.position == 42
         assert fetched.config == {"key": "value"}

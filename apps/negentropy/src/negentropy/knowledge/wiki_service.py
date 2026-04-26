@@ -267,30 +267,44 @@ class WikiPublishingService:
         publication_id: UUID,
         catalog_node_ids: list[UUID],
     ) -> dict:
-        """从目录节点全量同步文档到 Wiki 条目（幂等）。
+        """从目录节点全量同步容器 + 文档到 Wiki 条目（幂等）。
 
-        协调器：先 :meth:`_collect_subtree_documents` 摊平 Catalog 子树为
-        ``(path_slugs, doc)`` 元组流，再 :meth:`_apply_entry_mappings` 将其映射为
+        协调器：先 :meth:`_collect_subtree_plans` 摊平 Catalog 子树为
+        ``(container_plans, document_plans)`` 两类计划流，再
+        :meth:`_apply_entry_mappings` 将其分别映射为 CONTAINER / DOCUMENT 类型
         Wiki Entry 并去除孤立条目。两阶段拆分使"Catalog 遍历"与"Wiki 映射"两个
         正交职责可独立测试与演进。
 
-        **全量同步语义**：未覆盖到的既有条目将被移除，仅保留本次选中的文档。
+        **全量同步语义**：未覆盖到的既有条目（含 CONTAINER 与 DOCUMENT）将被移除。
 
         Returns:
-            ``{"synced_count": int, "errors": list[str], "removed_count": int}``
+            ``{"synced_count": int, "container_count": int, "errors": list[str],
+              "removed_count": int}``。
             ``errors`` 前缀语义：``skip:<doc_id>:<reason>`` /
             ``renamed:<doc_id>:<old>->:<new>`` / ``node:<id>:<reason>``。
         """
-        plans, errors = await self._collect_subtree_documents(db, catalog_node_ids)
-        synced, mapping_errors, synced_doc_ids = await self._apply_entry_mappings(
-            db, publication_id=publication_id, plans=plans
+        container_plans, document_plans, errors = await self._collect_subtree_plans(db, catalog_node_ids)
+
+        # 共享 slug 命名空间：``uq_wiki_entry_pub_slug`` 跨 entry_kind 全局唯一，
+        # CONTAINER 与 DOCUMENT 不能各自维护 dedup 集合（否则 FOLDER `b` 与同级
+        # 文档 ``b.md`` 会写入相同 slug 触发 IntegrityError）。
+        seen_slugs: set[str] = set()
+
+        container_count, container_errors, synced_node_ids = await self._apply_container_mappings(
+            db, publication_id=publication_id, plans=container_plans, seen_slugs=seen_slugs
         )
-        errors.extend(mapping_errors)
+        errors.extend(container_errors)
+
+        synced, doc_errors, synced_doc_ids = await self._apply_document_mappings(
+            db, publication_id=publication_id, plans=document_plans, seen_slugs=seen_slugs
+        )
+        errors.extend(doc_errors)
 
         removed = await WikiDao.remove_stale_entries(
             db,
             publication_id=publication_id,
             keep_document_ids=synced_doc_ids,
+            keep_container_node_ids=synced_node_ids,
         )
 
         logger.info(
@@ -298,25 +312,36 @@ class WikiPublishingService:
             extra={
                 "publication_id": str(publication_id),
                 "synced_count": synced,
+                "container_count": container_count,
                 "removed_count": removed,
                 "errors_count": len(errors),
             },
         )
-        return {"synced_count": synced, "errors": errors, "removed_count": removed}
+        return {
+            "synced_count": synced,
+            "container_count": container_count,
+            "errors": errors,
+            "removed_count": removed,
+        }
 
-    async def _collect_subtree_documents(
+    async def _collect_subtree_plans(
         self,
         db: AsyncSession,
         catalog_node_ids: list[UUID],
-    ) -> tuple[list[tuple[list[str], Any]], list[str]]:
-        """遍历每个根节点子树，摊平为 ``[(path_slugs, doc), ...]`` 序列。
+    ) -> tuple[list[tuple[list[str], dict]], list[tuple[list[str], Any]], list[str]]:
+        """遍历每个根节点子树，摊平为容器计划 + 文档计划两类序列。
 
-        返回扁平的同步计划与遍历期错误（环检测、空子树）。仅与 Catalog 交互，
-        不触碰 Wiki 表，便于独立单测。
+        Returns:
+            ``(container_plans, document_plans, errors)`` ——
+              - ``container_plans``：``[(path_slugs, node_dict), ...]``，每个
+                FOLDER 节点对应一条；
+              - ``document_plans``：``[(path_slugs_with_parent_segment, doc), ...]``；
+              - ``errors``：遍历期错误（环检测、空子树）。
         """
         from negentropy.knowledge.catalog_dao import CatalogDao
 
-        plans: list[tuple[list[str], Any]] = []
+        container_plans: list[tuple[list[str], dict]] = []
+        document_plans: list[tuple[list[str], Any]] = []
         errors: list[str] = []
 
         for root_node_id in catalog_node_ids:
@@ -333,11 +358,13 @@ class WikiPublishingService:
                     errors.append(f"node:{cycle_node_id}:cycle_detected")
                     continue
 
+                container_plans.append((path_slugs, node))
+
                 docs, _ = await CatalogDao.get_node_documents(db, node["id"], limit=500)
                 for doc in docs:
-                    plans.append((path_slugs, doc))
+                    document_plans.append((path_slugs, doc))
 
-        return plans, errors
+        return container_plans, document_plans, errors
 
     @staticmethod
     def _build_path_slugs(
@@ -365,14 +392,74 @@ class WikiPublishingService:
             current = node_map.get(str(parent_id))
         return path_slugs, None
 
-    async def _apply_entry_mappings(
+    async def _apply_container_mappings(
+        self,
+        db: AsyncSession,
+        *,
+        publication_id: UUID,
+        plans: list[tuple[list[str], dict]],
+        seen_slugs: set[str],
+    ) -> tuple[int, list[str], set[str]]:
+        """为每个 FOLDER 节点写入 CONTAINER 类型 Wiki Entry。
+
+        ``entry_slug`` 取 path 拼接（与 DOCUMENT 同形态）；``entry_title`` 取
+        Catalog 节点的 ``name``，弥补"用 slug 段当 title"的 UX 缺口。
+
+        ``seen_slugs`` 由调用方注入并与 :meth:`_apply_document_mappings` 共享，
+        以保证 CONTAINER / DOCUMENT 跨类型也能命中 ``uq_wiki_entry_pub_slug``
+        全局唯一约束的 dedup 兜底（``-2/-3`` 后缀）。
+
+        Returns:
+            ``(container_count, errors, synced_node_ids)``。
+        """
+        import json
+
+        count = 0
+        errors: list[str] = []
+        synced_node_ids: set[str] = set()
+
+        for path_slugs, node in plans:
+            if not path_slugs:
+                errors.append(f"node:{node.get('id')}:empty_path")
+                continue
+
+            base_slug = "/".join(path_slugs)
+            final_slug = base_slug
+            dedup_idx = 2
+            while final_slug in seen_slugs:
+                final_slug = f"{base_slug}-{dedup_idx}"
+                dedup_idx += 1
+            if final_slug != base_slug:
+                errors.append(f"renamed:node:{node.get('id')}:{base_slug}->:{final_slug}")
+            seen_slugs.add(final_slug)
+
+            entry_path = json.dumps(path_slugs)
+
+            await WikiDao.upsert_container_entry(
+                db,
+                publication_id=publication_id,
+                catalog_node_id=node["id"],
+                entry_slug=final_slug,
+                entry_title=node.get("name") or path_slugs[-1],
+                entry_path=entry_path,
+            )
+            synced_node_ids.add(str(node["id"]))
+            count += 1
+
+        return count, errors, synced_node_ids
+
+    async def _apply_document_mappings(
         self,
         db: AsyncSession,
         *,
         publication_id: UUID,
         plans: list[tuple[list[str], Any]],
+        seen_slugs: set[str],
     ) -> tuple[int, list[str], set[str]]:
-        """对 ``plans`` 应用 Wiki Entry 映射写入；处理 markdown 就绪 + slug 冲突。
+        """对 DOCUMENT 计划应用 Wiki Entry 映射；处理 markdown 就绪 + slug 冲突。
+
+        ``seen_slugs`` 与 :meth:`_apply_container_mappings` 共享，CONTAINER 先
+        登记 slug，DOCUMENT 端遇冲突则走 ``-2/-3`` 后缀兜底。
 
         Returns:
             ``(synced_count, errors, synced_doc_ids)``。
@@ -382,7 +469,6 @@ class WikiPublishingService:
         synced = 0
         errors: list[str] = []
         synced_doc_ids: set[str] = set()
-        seen_slugs: set[str] = set()
 
         for path_slugs, doc in plans:
             if getattr(doc, "markdown_extract_status", None) != "completed":
