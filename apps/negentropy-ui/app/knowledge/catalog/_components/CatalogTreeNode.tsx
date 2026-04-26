@@ -7,20 +7,34 @@ import {
   ChevronRight,
   ChevronDown,
   Folder,
-  FolderOpen,
   FileText,
 } from "./icons";
 
+/**
+ * 节点类型 → 图标 / 颜色 / 徽标文案
+ *
+ * 历史值 `category` / `collection` 在 0010 起被后端归并为 `folder`，
+ * 但旧 API 响应仍可能携带这些值；此处统一兜底为 folder 视觉。
+ */
 const NODE_TYPE_ICONS: Record<CatalogNodeType, typeof Folder> = {
-  category: Folder,
-  collection: FolderOpen,
+  folder: Folder,
   document_ref: FileText,
+  category: Folder, // legacy → folder
+  collection: Folder, // legacy → folder
 };
 
 const NODE_TYPE_COLORS: Record<CatalogNodeType, string> = {
-  category: "text-amber-500",
-  collection: "text-blue-500",
+  folder: "text-amber-500",
   document_ref: "text-zinc-400",
+  category: "text-amber-500",
+  collection: "text-amber-500",
+};
+
+const NODE_TYPE_LABELS: Record<CatalogNodeType, string> = {
+  folder: "目录",
+  document_ref: "文档",
+  category: "目录",
+  collection: "目录",
 };
 
 interface CatalogTreeNodeProps {
@@ -220,10 +234,10 @@ export function CatalogTreeNode({
           </span>
         )}
 
-        {/* Type badge */}
+        {/* Type badge — 中文标签（自 PR-4 起替换 enum 值原文显示） */}
         {!isEditing && (
           <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted shrink-0">
-            {node.node_type}
+            {NODE_TYPE_LABELS[node.node_type] ?? "目录"}
           </span>
         )}
 
