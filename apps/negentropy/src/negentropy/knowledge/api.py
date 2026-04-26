@@ -11,6 +11,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError  # noqa: F401
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from negentropy.auth.deps import get_optional_user
 from negentropy.auth.service import AuthUser
@@ -4060,12 +4061,21 @@ async def create_wiki_publication(
     """创建新的 Wiki 发布记录
 
     初始状态为 draft，需调用 publish 端点后 SSG 应用才能拉取数据。
+
+    错误码：
+      - 404 ``CATALOG_NOT_FOUND``：catalog_id 不存在；
+      - 400 ``WIKI_PUB_INVALID_PARAM``：theme/slug 等参数不合法；
+      - 409 ``WIKI_PUB_CATALOG_LIVE_CONFLICT``：该 catalog 已存在 1 个 LIVE 发布
+        （`uq_wiki_pub_catalog_active` 部分唯一索引：每 catalog 仅允许 1 个 LIVE）；
+      - 409 ``WIKI_PUB_SLUG_CONFLICT``：该 catalog 下 slug 重复
+        （`uq_wiki_pub_catalog_slug` 唯一约束）。
     """
+    from negentropy.knowledge.slug import slugify
+    from negentropy.models.perception import DocCatalog, WikiPublication
+
     wiki_svc = _get_wiki_service()
 
     async with AsyncSessionLocal() as db:
-        from negentropy.models.perception import DocCatalog
-
         catalog = await db.get(DocCatalog, body.catalog_id)
         if catalog is None:
             raise HTTPException(
@@ -4073,6 +4083,73 @@ async def create_wiki_publication(
                 detail={"code": "CATALOG_NOT_FOUND", "message": "Catalog not found"},
             )
 
+        # ------------------------------------------------------------------
+        # 业务前置检查（消解 99% 冲突场景，错误信息最清晰）
+        # ------------------------------------------------------------------
+        live_existing = (
+            await db.execute(
+                select(WikiPublication.id, WikiPublication.name, WikiPublication.slug)
+                .where(
+                    WikiPublication.catalog_id == body.catalog_id,
+                    WikiPublication.publish_mode == "LIVE",
+                )
+                .limit(1)
+            )
+        ).first()
+        if live_existing is not None:
+            existing_id, existing_name, existing_slug = live_existing
+            logger.warning(
+                "wiki_pub_conflict_live",
+                catalog_id=str(body.catalog_id),
+                existing_publication_id=str(existing_id),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "WIKI_PUB_CATALOG_LIVE_CONFLICT",
+                    "message": "该 Catalog 已有一个生效中的 Wiki 发布，请先归档旧发布或在已有发布上编辑。",
+                    "details": {
+                        "catalog_id": str(body.catalog_id),
+                        "existing_publication_id": str(existing_id),
+                        "existing_publication_name": existing_name,
+                        "existing_publication_slug": existing_slug,
+                    },
+                },
+            )
+
+        # 与 service 内部 slug 归一化逻辑保持一致（避免双重 slugify）
+        normalized_slug = body.slug or slugify(body.name)
+        slug_existing_id = await db.scalar(
+            select(WikiPublication.id)
+            .where(
+                WikiPublication.catalog_id == body.catalog_id,
+                WikiPublication.slug == normalized_slug,
+            )
+            .limit(1)
+        )
+        if slug_existing_id is not None:
+            logger.warning(
+                "wiki_pub_conflict_slug",
+                catalog_id=str(body.catalog_id),
+                slug=normalized_slug,
+                existing_publication_id=str(slug_existing_id),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "WIKI_PUB_SLUG_CONFLICT",
+                    "message": f"该 Catalog 下已存在 slug 为 '{normalized_slug}' 的 Wiki 发布，请更换 slug 后重试。",
+                    "details": {
+                        "catalog_id": str(body.catalog_id),
+                        "slug": normalized_slug,
+                        "existing_publication_id": str(slug_existing_id),
+                    },
+                },
+            )
+
+        # ------------------------------------------------------------------
+        # 创建 + commit；用 IntegrityError 兜底竞态 / 未来新约束
+        # ------------------------------------------------------------------
         try:
             pub = await wiki_svc.create_publication(
                 db,
@@ -4084,8 +4161,43 @@ async def create_wiki_publication(
                 theme=body.theme,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-        await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "WIKI_PUB_INVALID_PARAM", "message": str(exc)},
+            ) from exc
+
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            err_text = str(exc.orig) if exc.orig is not None else str(exc)
+            if "uq_wiki_pub_catalog_active" in err_text:
+                code = "WIKI_PUB_CATALOG_LIVE_CONFLICT"
+                message = "该 Catalog 已有一个生效中的 Wiki 发布，请先归档旧发布或在已有发布上编辑。"
+            elif "uq_wiki_pub_catalog_slug" in err_text:
+                code = "WIKI_PUB_SLUG_CONFLICT"
+                message = f"该 Catalog 下已存在 slug 为 '{normalized_slug}' 的 Wiki 发布，请更换 slug 后重试。"
+            else:
+                code = "WIKI_PUB_CONFLICT"
+                message = "Wiki 发布创建冲突，请刷新后重试。"
+            logger.warning(
+                "wiki_pub_conflict_integrity",
+                catalog_id=str(body.catalog_id),
+                slug=normalized_slug,
+                code=code,
+                error=err_text,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": code,
+                    "message": message,
+                    "details": {
+                        "catalog_id": str(body.catalog_id),
+                        "slug": normalized_slug,
+                    },
+                },
+            ) from exc
 
     logger.info("api_create_wiki_pub", pub_id=str(pub.id), catalog_id=str(body.catalog_id))
     resp = _WikiPubResp.model_validate(pub)
