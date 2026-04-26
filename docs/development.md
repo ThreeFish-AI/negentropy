@@ -103,7 +103,7 @@ negentropy/
 │   │   │   ├── models/                # 数据模型（ORM）
 │   │   │   ├── knowledge/             # 知识管理
 │   │   │   ├── auth/                  # 认证与授权
-│   │   │   ├── plugins/               # 插件系统
+│   │   │   ├── interface/             # Interface 模块（Models / SubAgents / MCP / Skills）
 │   │   │   ├── storage/               # 存储抽象层
 │   │   │   └── db/migrations/         # 数据库迁移
 │   │   ├── tests/                     # 测试目录
@@ -485,8 +485,6 @@ AGUI_BASE_URL=http://localhost:3292
 NEXT_PUBLIC_AGUI_APP_NAME=negentropy
 NEXT_PUBLIC_AGUI_USER_ID=dev-user
 ```
-
-> **迁移守护**：若 `AGUI_BASE_URL` 指向历史本地端口（如 `:6600` / `:6666`）且 `NODE_ENV !== "production"`，BFF 会打印一次性迁移告警并将端口重写为 `:3292`；生产环境仅告警、不改写，以便运维显式修复。详见 `apps/negentropy-ui/lib/server/backend-url.ts`。
 
 ### 8.4 安全约束
 

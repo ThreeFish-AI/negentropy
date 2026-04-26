@@ -15,9 +15,9 @@ import litellm
 from sqlalchemy import select, update
 
 from negentropy.db.session import AsyncSessionLocal
+from negentropy.interface.execution import RUN_ORIGIN_KNOWLEDGE_EXTRACTION, McpToolExecutionService
 from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool
-from negentropy.plugins.execution import RUN_ORIGIN_KNOWLEDGE_EXTRACTION, McpToolExecutionService
 from negentropy.serialization import to_json_compatible, to_json_compatible_strict
 from negentropy.storage.service import DocumentStorageService
 
@@ -201,6 +201,19 @@ def extract_route_config(raw: dict[str, Any] | None) -> dict[str, Any]:
         return {}
     routes = raw.get(EXTRACTOR_ROUTES_KEY)
     return routes if isinstance(routes, dict) else {}
+
+
+def _extract_corpus_llm_config_id(raw: dict[str, Any] | None) -> str | None:
+    """从 corpus.config['models'] 提取 llm_config_id；无则返回 None。"""
+    if not isinstance(raw, dict):
+        return None
+    models = raw.get("models")
+    if not isinstance(models, dict):
+        return None
+    value = models.get("llm_config_id")
+    if value is None:
+        return None
+    return str(value)
 
 
 def resolve_targets(raw: dict[str, Any] | None, source_kind: SourceKind) -> list[McpToolTarget]:
@@ -1419,6 +1432,7 @@ async def _build_llm_invocation_plan(
     request: CanonicalExtractionRequest,
     source_candidates: list[SourceCandidate],
     validation_error: ValidationErrorSummary | None = None,
+    llm_config_id: str | None = None,
 ) -> AdaptiveToolInvocationPlan | None:
     if not isinstance(input_schema, dict):
         return None
@@ -1500,9 +1514,15 @@ async def _build_llm_invocation_plan(
         return None
 
     try:
-        from negentropy.config.model_resolver import resolve_llm_config
+        from negentropy.config.model_resolver import (
+            resolve_llm_config,
+            resolve_llm_config_by_id,
+        )
 
-        _llm_name, _llm_kwargs = await resolve_llm_config()
+        if llm_config_id:
+            _llm_name, _llm_kwargs = await resolve_llm_config_by_id(llm_config_id)
+        else:
+            _llm_name, _llm_kwargs = await resolve_llm_config()
         # 过滤掉与显式参数冲突的键
         _safe_kwargs = {k: v for k, v in _llm_kwargs.items() if k not in ("model", "messages", "response_format")}
         response = await litellm.acompletion(
@@ -1696,7 +1716,7 @@ def _tool_has_usable_schema(tool: McpTool | None) -> bool:
 
 class DataExtractorProvider:
     def __init__(self) -> None:
-        from negentropy.plugins.mcp_client import McpClientService
+        from negentropy.interface.mcp_client import McpClientService
 
         self._client = McpClientService()
 
@@ -1716,6 +1736,9 @@ class DataExtractorProvider:
         targets = resolve_targets(corpus_config, source_kind)
         if not targets:
             raise ValueError(f"No extractor route configured for source kind: {source_kind}")
+
+        # Corpus 级 LLM 覆盖：用于 extractor_llm_plan 的 MCP 参数规划阶段。
+        llm_config_id = _extract_corpus_llm_config_id(corpus_config)
 
         if tracker:
             await tracker.start_stage("extract_resolve")
@@ -1746,6 +1769,7 @@ class DataExtractorProvider:
                 content_type=content_type,
                 tracker=tracker,
                 stage_name=stage_name,
+                llm_config_id=llm_config_id,
             )
             attempts.append(attempt["attempt"])
 
@@ -1811,6 +1835,7 @@ class DataExtractorProvider:
         content_type: str | None,
         tracker: Any | None = None,
         stage_name: str | None = None,
+        llm_config_id: str | None = None,
     ) -> dict[str, Any]:
         # 超时兜底: 当 target 未显式配置 timeout_ms 时，按 source_kind 填充合理默认值
         if not target.timeout_ms:
@@ -1930,6 +1955,7 @@ class DataExtractorProvider:
                     request=request,
                     source_candidates=source_candidates,
                     validation_error=validation_error,
+                    llm_config_id=llm_config_id,
                 )
                 if plan is None:
                     if index == 0:

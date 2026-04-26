@@ -72,6 +72,8 @@ export {
   replaceDocument,
   archiveDocument,
   unarchiveDocument,
+  // Model Configs
+  fetchModelConfigs,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,
@@ -81,6 +83,9 @@ export {
   clearCorpusGraph,
   fetchGraphBuildHistory,
   // Catalog Management
+  fetchCatalogs,
+  createCatalog,
+  fetchCatalogDocuments,
   fetchCatalogTree,
   fetchCatalogNodes,
   createCatalogNode,
@@ -90,6 +95,18 @@ export {
   fetchCatalogNodeDocuments,
   assignDocumentToNode,
   unassignDocumentFromNode,
+  // Wiki Publishing
+  fetchWikiPublications,
+  fetchWikiPublication,
+  createWikiPublication,
+  updateWikiPublication,
+  deleteWikiPublication,
+  publishWiki,
+  unpublishWiki,
+  fetchWikiEntries,
+  fetchWikiNavTree,
+  fetchWikiEntryContent,
+  syncWikiEntriesFromCatalog,
 } from "./utils/knowledge-api";
 
 // ============================================================================
@@ -118,6 +135,8 @@ export type {
   ExtractorDraftTarget,
   ExtractorDraftRoute,
   ExtractorDraftRoutes,
+  ModelConfigItem,
+  CorpusModelsConfig,
   KnowledgeMatch,
   KnowledgeGraphPayload,
   KnowledgePipelinesPayload,
@@ -158,12 +177,31 @@ export type {
   GraphBuildHistoryResult,
   // Catalog Management
   CatalogNodeType,
+  DocCatalog,
+  DocCatalogListResponse,
+  DocCatalogDocumentsResponse,
   CatalogNode,
   CreateCatalogNodeParams,
   UpdateCatalogNodeParams,
   CatalogTreeResponse,
   CatalogNodesResponse,
   CatalogNodeDocumentsResponse,
+  // Wiki Publishing
+  WikiPublicationStatus,
+  WikiPublishMode,
+  WikiTheme,
+  WikiPublication,
+  WikiPublicationListResponse,
+  CreateWikiPublicationParams,
+  UpdateWikiPublicationParams,
+  WikiEntry,
+  WikiEntryContent,
+  WikiNavTreeItem,
+  WikiNavTreeResponse,
+  WikiPublishActionResponse,
+  WikiRevalidationStatus,
+  SyncFromCatalogParams,
+  SyncFromCatalogResponse,
 } from "./utils/knowledge-api";
 
 export {
@@ -172,6 +210,7 @@ export {
   encodeSeparatorsForDisplay,
   decodeSeparatorsFromInput,
   decodeLiteralEscapesIfNeeded,
+  separatorsArrayEqual,
   normalizeCorpusExtractorRoutes,
   createEmptyExtractorDraftTarget,
   normalizeExtractorDraftRoutes,
@@ -225,6 +264,8 @@ export { PipelineRunDetailPanel } from "./components/PipelineRunDetailPanel";
 export { PipelineStatusBadge } from "./components/PipelineStatusBadge";
 export { PipelineStagesBar } from "./components/PipelineStagesBar";
 export { DocumentViewDialog } from "./components/DocumentViewDialog";
+export { SeparatorsTextarea } from "./components/SeparatorsTextarea";
+export type { SeparatorsTextareaProps } from "./components/SeparatorsTextarea";
 
 // ============================================================================
 // Utils (Pipeline Helpers)

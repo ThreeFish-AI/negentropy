@@ -46,10 +46,11 @@
   2. **Temp Management**: 临时产物（执行计划等）一律收敛至 `.temp/` 并及时清理；
   3. **Link Validity**: 确保所有引用的 URL 可访问且具备明确的上下文价值；
   4. **Git Commit**: 在需要提交变更到 Git 时，一律使用 Shell 调用 Claude Code 的自定义 Slash Command: `/commit` 进行 git commit 操作（若环境中未安装 Claude Code，则直接读取 `~/.claude/commands/commit.md`，按照其中的规则进行 git commit 操作）。不要执行 Rebase。
+  5. **Issue**: 在 docs/issue.md 中维护你处理过的 Issue 摘要（问题描述、表因根因、处理方式、后续防范、同类问题影响与处理注意实现等），便于同类问题的跨上下文处理；注意识别相同 Issue，不要同 Issue 多处维护。
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/yarn，**必须**统一使用 `pnpm` 进行包管理与脚本执行。
-- **Database Management**: 谨慎操作，数据迁移、测试等操作严禁将现有数据删除。
+- **Database Management**: 谨慎操作，数据迁移、测试等操作严禁将现有数据删除，谨慎操作数据迁移的回滚，防止数据被清理。
 
 ## Documentation Standards (文档规范)
 

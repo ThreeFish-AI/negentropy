@@ -9,7 +9,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "@/lib/activity-toast";
 import {
   buildExtractorRoutesFromDraft,
@@ -43,12 +43,15 @@ import {
   deleteDocument,
   createDefaultChunkingConfig,
   normalizeChunkingConfig,
-  encodeSeparatorsForDisplay,
-  decodeSeparatorsFromInput,
+  SeparatorsTextarea,
   PipelineStatusBadge,
+  fetchModelConfigs,
+  ModelConfigItem,
+  CorpusModelsConfig,
 } from "@/features/knowledge";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { AddSourceDialog } from "./_components/AddSourceDialog";
 import { CorpusFormDialog } from "./_components/CorpusFormDialog";
@@ -345,13 +348,10 @@ function ChunkingStrategyPanel({
             </label>
             <label className="text-xs md:col-span-2">
               <div className="mb-1 text-muted">Separators（每行一个）</div>
-              <textarea
-                value={encodeSeparatorsForDisplay(config.separators)}
-                onChange={(e) =>
-                  updateConfig({
-                    ...config,
-                    separators: decodeSeparatorsFromInput(e.target.value),
-                  })
+              <SeparatorsTextarea
+                value={config.separators}
+                onChange={(separators) =>
+                  updateConfig({ ...config, separators })
                 }
                 rows={3}
                 placeholder={"\\n"}
@@ -487,13 +487,10 @@ function ChunkingStrategyPanel({
           </div>
           <label className="text-xs">
             <div className="mb-1 text-muted">Separators（每行一个）</div>
-            <textarea
-              value={encodeSeparatorsForDisplay(config.separators)}
-              onChange={(e) =>
-                updateConfig({
-                  ...config,
-                  separators: decodeSeparatorsFromInput(e.target.value),
-                })
+            <SeparatorsTextarea
+              value={config.separators}
+              onChange={(separators) =>
+                updateConfig({ ...config, separators })
               }
               rows={3}
               placeholder={"\\n"}
@@ -520,7 +517,6 @@ function ChunkingStrategyPanel({
 }
 
 export default function KnowledgeBasePage() {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -612,9 +608,15 @@ export default function KnowledgeBasePage() {
           params.delete(key);
         }
       });
-      router.replace(`${pathname}?${params.toString()}`);
+      // 使用 window.history.replaceState 绕过 Next.js 路由缓存去重机制
+      window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+      // 直接同步 React 状态，不依赖 useEffect 响应 searchParams 变化
+      setViewMode((params.get("view") as ViewMode) || "overview");
+      setSelectedCorpusId(params.get("corpusId"));
+      setCorpusTab((params.get("tab") as CorpusTab) || "documents");
+      setSelectedDocumentId(params.get("documentId"));
     },
-    [pathname, router, searchParams],
+    [pathname, searchParams],
   );
 
   useEffect(() => {
@@ -631,7 +633,8 @@ export default function KnowledgeBasePage() {
     setSelectedCorpusId(nextCorpusId);
     setCorpusTab(nextTab);
     setSelectedDocumentId(nextDocId);
-  }, [searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 使用 toString() 按内容比较，避免对象引用不变导致不触发
+  }, [searchParams.toString()]);
 
   useEffect(() => {
     if (selectedCorpusId) {
@@ -1036,9 +1039,13 @@ export default function KnowledgeBasePage() {
   const handleSaveCorpusSettings = async (config: Record<string, unknown>) => {
     if (!selectedCorpus) return;
     try {
-      await updateCorpus(selectedCorpus.id, { config });
+      const result = await updateCorpus(selectedCorpus.id, { config });
       await loadCorpus(selectedCorpus.id);
-      toast.success("Settings saved");
+      if (result?.rebuild_triggered?.count) {
+        toast.success(`Settings saved · ${result.rebuild_triggered.count} 条重建任务已入队`);
+      } else {
+        toast.success("Settings saved");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save settings failed");
     }
@@ -1641,11 +1648,19 @@ function CorpusSettingsPanel({
   const [servers, setServers] = useState<Array<{ id: string; name: string; display_name: string | null; is_enabled: boolean }>>([]);
   const [toolsByServer, setToolsByServer] = useState<Record<string, Array<{ name: string; display_name: string | null; is_enabled: boolean }>>>({});
 
+  // Models settings
+  const corpusModels = ((corpus.config || {}) as Record<string, unknown>).models as CorpusModelsConfig | undefined;
+  const [llmConfigId, setLlmConfigId] = useState<string | "">(corpusModels?.llm_config_id ?? "");
+  const [embeddingConfigId, setEmbeddingConfigId] = useState<string | "">(corpusModels?.embedding_config_id ?? "");
+  const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
+  const [embeddingModels, setEmbeddingModels] = useState<ModelConfigItem[]>([]);
+  const [confirmDimensionDialog, setConfirmDimensionDialog] = useState<{ pending: Record<string, unknown>; newDims?: number; oldDims?: number } | null>(null);
+
   useEffect(() => {
     let active = true;
 
     const loadServers = async () => {
-      const response = await fetch("/api/plugins/mcp/servers");
+      const response = await fetch("/api/interface/mcp/servers");
       if (!response.ok) {
         throw new Error("Failed to load MCP servers");
       }
@@ -1661,7 +1676,7 @@ function CorpusSettingsPanel({
 
       const toolEntries = await Promise.all(
         enabledServers.map(async (server) => {
-          const toolsResponse = await fetch(`/api/plugins/mcp/servers/${server.id}/tools`);
+          const toolsResponse = await fetch(`/api/interface/mcp/servers/${server.id}/tools`);
           if (!toolsResponse.ok) {
             return [server.id, []] as const;
           }
@@ -1686,10 +1701,42 @@ function CorpusSettingsPanel({
     };
   }, []);
 
+  useEffect(() => {
+    void fetchModelConfigs({ modelType: "llm", enabled: true })
+      .then(setLlmModels)
+      .catch(() => {});
+    void fetchModelConfigs({ modelType: "embedding", enabled: true })
+      .then(setEmbeddingModels)
+      .catch(() => {});
+  }, []);
+
+  const modelsConfig: CorpusModelsConfig = {
+    llm_config_id: llmConfigId || undefined,
+    embedding_config_id: embeddingConfigId || undefined,
+  };
+
   const handleSubmit = async () => {
-    await onSave(
-      buildCorpusConfig(formConfig, buildExtractorRoutesFromDraft(extractorDraftRoutes)),
+    const config = buildCorpusConfig(
+      formConfig,
+      buildExtractorRoutesFromDraft(extractorDraftRoutes),
+      modelsConfig,
     );
+
+    // 维度变更校验
+    const oldEid = corpusModels?.embedding_config_id;
+    const newEid = embeddingConfigId || undefined;
+    if (oldEid !== newEid && newEid && corpus.knowledge_count > 0) {
+      const oldItem = embeddingModels.find((m) => m.id === oldEid);
+      const newItem = embeddingModels.find((m) => m.id === newEid);
+      const oldDims = oldItem?.config?.dimensions as number | undefined;
+      const newDims = newItem?.config?.dimensions as number | undefined;
+      if (oldDims != null && newDims != null && oldDims !== newDims) {
+        setConfirmDimensionDialog({ pending: config, oldDims, newDims });
+        return;
+      }
+    }
+
+    await onSave(config);
   };
 
   return (
@@ -1700,6 +1747,100 @@ function CorpusSettingsPanel({
         title="Chunking Settings"
         description="保存后作为该 Corpus 的默认分块配置。"
       />
+
+      {/* Models Settings */}
+      <div className="rounded-2xl border border-border bg-background p-4">
+        <h3 className="text-sm font-semibold">Models Settings</h3>
+        <p className="mt-1 text-xs text-muted">
+          Embedding Model 影响 Embedding Indexing / Vector Search；LLM Model 影响 URL 与 PDF 文档抽取调用 MCP 时的 Plan LLM。
+        </p>
+
+        <div className="mt-3 grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+              Embedding Model
+            </label>
+            <select
+              value={embeddingConfigId}
+              onChange={(e) => setEmbeddingConfigId(e.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            >
+              <option value="">(使用全局默认)</option>
+              {embeddingModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.display_name} · {m.vendor}/{m.model_name}
+                </option>
+              ))}
+            </select>
+            {embeddingConfigId && (() => {
+              const sel = embeddingModels.find((m) => m.id === embeddingConfigId);
+              const dims = typeof sel?.config?.dimensions === "number" ? sel.config.dimensions : null;
+              return dims != null ? (
+                <span className="mt-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  {dims} dims
+                </span>
+              ) : null;
+            })()}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+              LLM Model
+            </label>
+            <select
+              value={llmConfigId}
+              onChange={(e) => setLlmConfigId(e.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            >
+              <option value="">(使用全局默认)</option>
+              {llmModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.display_name} · {m.vendor}/{m.model_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Dimension change confirm dialog */}
+      {confirmDimensionDialog && (
+        <OverlayDismissLayer
+          open
+          onClose={() => setConfirmDimensionDialog(null)}
+          containerClassName="p-4"
+          contentClassName="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+          contentProps={{ role: "dialog", "aria-modal": true }}
+        >
+          <h3 className="text-base font-semibold text-red-600 dark:text-red-400 mb-2">
+            Embedding 维度变更确认
+          </h3>
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">
+            切换 Embedding Model 会导致现有{" "}
+            <strong>{corpus.knowledge_count}</strong> 个 Knowledge 块的向量维度不匹配
+            （{confirmDimensionDialog.oldDims} → {confirmDimensionDialog.newDims} dims），
+            保存后系统将自动触发重建流水线，耗时取决于文档数量。
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              onClick={() => setConfirmDimensionDialog(null)}
+              className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            >
+              取消
+            </button>
+            <button
+              onClick={async () => {
+                const { pending } = confirmDimensionDialog;
+                setConfirmDimensionDialog(null);
+                await onSave(pending);
+              }}
+              className="px-4 py-2 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-500"
+            >
+              确认继续
+            </button>
+          </div>
+        </OverlayDismissLayer>
+      )}
 
       <div className="rounded-2xl border border-border bg-background p-4">
         <div className="flex items-start justify-between gap-4">

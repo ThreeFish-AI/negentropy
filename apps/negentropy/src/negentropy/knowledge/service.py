@@ -340,6 +340,27 @@ class PipelineTracker:
             },
         )
 
+    async def ensure_finalized(self, error: dict[str, Any] | None = None) -> None:
+        """安全网：若 tracker 尚未处于终态（completed/failed），强制写入 failed。
+
+        在 finally 块中调用，确保无论原始异常是否被成功处理，
+        tracker 状态都不会永远停留在 running。
+        """
+        if self._status in ("completed", "failed"):
+            return
+        try:
+            error_payload = error or {
+                "type": "PipelineFinalizationSafetyNet",
+                "message": "Pipeline did not reach a terminal state; forcibly finalized.",
+            }
+            await self.fail(error_payload)
+        except Exception:
+            self._log_stage_event(
+                "pipeline_finalization_safety_net_failed",
+                level="warning",
+                status=self._status,
+            )
+
     async def _persist(self) -> None:
         """持久化 Pipeline 状态"""
         payload = {
@@ -604,7 +625,12 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_ingest_url_pipeline(
         self,
@@ -693,6 +719,151 @@ class KnowledgeService:
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
             # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
             return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+
+    async def execute_ingest_url_document_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        url: str,
+        chunking_config: ChunkingConfig | None = None,
+        user_id: str | None = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 ingest_url (as_document=True) Pipeline（后台任务）
+
+        将 URL 提取、文档存储、分块和向量化全部在后台完成。
+        Pipeline 记录在 API 层已提前创建，此处 resume 后继续执行。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="ingest_url",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="ingest_url",
+            url=url,
+            as_document=True,
+        )
+
+        try:
+            # Stage 1: 提取 URL 内容
+            try:
+                text, extraction_result = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=url,
+                    tracker=tracker,
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+                from .extraction import ExtractorExecutionError
+
+                url_details: dict[str, Any] = {}
+                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
+                    url_details["failure_category"] = "no_extractor_configured"
+                    url_details["diagnostic_summary"] = (
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED",
+                    message=f"Failed to fetch content from URL: {exc}",
+                    details=url_details or None,
+                ) from exc
+
+            if not text:
+                raise ValueError("No content extracted from URL")
+
+            # Stage 2: 文档存储
+            await tracker.start_stage("document_store")
+            from negentropy.storage.service import DocumentStorageService
+
+            from .extraction import build_url_document_filename, persist_extracted_assets
+
+            storage_service = DocumentStorageService()
+            raw_name = build_url_document_filename(url)
+            markdown_bytes = extraction_result.markdown_content.encode("utf-8")
+            doc_record, is_new_doc = await storage_service.upload_and_store(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                content=markdown_bytes,
+                filename=raw_name,
+                content_type="text/markdown",
+                metadata={"source_type": "url", "origin_url": url},
+                created_by=user_id,
+            )
+            await storage_service.save_markdown_content(
+                document_id=doc_record.id,
+                markdown_content=extraction_result.markdown_content,
+                markdown_gcs_uri=doc_record.gcs_uri,
+            )
+            stored_assets = await persist_extracted_assets(
+                document_id=doc_record.id,
+                assets=extraction_result.assets,
+                tracker=tracker,
+            )
+            await tracker.complete_stage(
+                "document_store",
+                {
+                    "document_id": str(doc_record.id),
+                    "duplicate_document": not is_new_doc,
+                    "stored_assets": len(stored_assets) if stored_assets else 0,
+                },
+            )
+
+            # Stage 3: 分块 + 向量化
+            meta = normalize_source_metadata(source_uri=url, metadata=None)
+            meta["source_type"] = "url"
+            meta["origin_url"] = url
+            meta["document_id"] = str(doc_record.id)
+            meta["extractor_trace"] = extraction_result.trace
+            if stored_assets:
+                meta["extracted_assets"] = stored_assets
+
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=url,
+                metadata=meta,
+                chunking_config=chunking_config or self._chunking_config,
+                tracker=tracker,
+            )
+            await tracker.complete({"chunk_count": len(records), "document_id": str(doc_record.id)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+                document_id=str(doc_record.id),
+                operation="ingest_url",
+                as_document=True,
+            )
+            return records
+
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_ingest_file_pipeline(
         self,
@@ -841,6 +1012,11 @@ class KnowledgeService:
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
             # 后台任务中的 re-raise 会导致 uvicorn 打印完整异常堆栈。
             return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_replace_source_pipeline(
         self,
@@ -907,7 +1083,12 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_sync_source_pipeline(
         self,
@@ -994,7 +1175,140 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
+
+    async def execute_sync_document_pipeline(
+        self,
+        *,
+        run_id: str,
+        corpus_id: UUID,
+        app_name: str,
+        document_id: UUID,
+        source_uri: str,
+        chunking_config: ChunkingConfig | None = None,
+    ) -> list[KnowledgeRecord]:
+        """执行 sync_document Pipeline（后台任务）
+
+        在后台完成 URL 重新提取、Markdown 存储和索引替换。
+        Pipeline 记录在 API 层已提前创建，此处 resume 后继续执行。
+        """
+        if not self._pipeline_dao:
+            raise ValueError("pipeline_dao is required for async pipeline operations")
+
+        tracker = PipelineTracker(
+            dao=self._pipeline_dao,
+            app_name=app_name,
+            operation="replace_source",
+            run_id=run_id,
+        )
+        await self._resume_async_pipeline_tracker(tracker)
+
+        logger.info(
+            "pipeline_execution_started",
+            run_id=run_id,
+            corpus_id=str(corpus_id),
+            operation="sync_document",
+            source_uri=source_uri,
+            document_id=str(document_id),
+        )
+
+        try:
+            # Stage 1: 从 URL 重新提取内容
+            try:
+                text, extraction_result = await self._extract_url_content(
+                    corpus_id=corpus_id,
+                    app_name=app_name,
+                    url=source_uri,
+                    tracker=tracker,
+                )
+            except ValueError as exc:
+                from .exceptions import KnowledgeError
+                from .extraction import ExtractorExecutionError
+
+                url_details: dict[str, Any] = {}
+                if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
+                    url_details["failure_category"] = "no_extractor_configured"
+                    url_details["diagnostic_summary"] = (
+                        "请配置 Negentropy Perceives MCP 服务，并确保 Corpus 的 extractor_routes 配置正确。"
+                    )
+                raise KnowledgeError(
+                    code="CONTENT_FETCH_FAILED",
+                    message=f"Failed to fetch content from URL: {exc}",
+                    details=url_details or None,
+                ) from exc
+
+            if not text:
+                raise ValueError("No content extracted from URL during sync")
+
+            # Stage 2: 保存 Markdown 和资产
+            await tracker.start_stage("markdown_store")
+            from .extraction import store_extracted_document_artifacts
+
+            _, stored_assets = await store_extracted_document_artifacts(
+                document_id=document_id,
+                extracted=extraction_result,
+                tracker=tracker,
+            )
+            await tracker.complete_stage(
+                "markdown_store",
+                {
+                    "document_id": str(document_id),
+                    "markdown_length": len(extraction_result.markdown_content),
+                    "stored_assets": len(stored_assets) if stored_assets else 0,
+                },
+            )
+
+            # Stage 3: 删除旧知识记录
+            await tracker.start_stage("delete")
+            deleted_count = await self._repository.delete_knowledge_by_source(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                source_uri=source_uri,
+            )
+            await tracker.complete_stage("delete", {"deleted_count": deleted_count})
+
+            # Stage 4+: 分块 + 向量化
+            meta = normalize_source_metadata(
+                source_uri=source_uri,
+                metadata={"source_type": "url", "origin_url": source_uri, "document_id": str(document_id)},
+            )
+            meta["extractor_trace"] = extraction_result.trace
+            if stored_assets:
+                meta["extracted_assets"] = stored_assets
+
+            records = await self._ingest_text_with_tracker(
+                corpus_id=corpus_id,
+                app_name=app_name,
+                text=text,
+                source_uri=source_uri,
+                metadata=meta,
+                chunking_config=chunking_config or self._chunking_config,
+                tracker=tracker,
+            )
+            await tracker.complete({"deleted_count": deleted_count, "chunk_count": len(records)})
+
+            logger.info(
+                "pipeline_execution_completed",
+                run_id=run_id,
+                corpus_id=str(corpus_id),
+                record_count=len(records),
+                operation="sync_document",
+            )
+            return records
+
+        except Exception as exc:
+            await self._fail_pipeline_execution(tracker, exc)
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def execute_rebuild_source_pipeline(
         self,
@@ -1141,7 +1455,12 @@ class KnowledgeService:
 
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
-            raise
+            return []
+        finally:
+            try:
+                await tracker.ensure_finalized()
+            except Exception:
+                pass
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)
@@ -1242,6 +1561,9 @@ class KnowledgeService:
     ) -> list[KnowledgeRecord]:
         """内部方法：执行文本摄入，支持可选的 Pipeline 追踪"""
         config = chunking_config or self._chunking_config
+        # Corpus 级 Embedding 模型解析：存在则按需构建 fn，否则回退 service 默认。
+        corpus_record = await self._repository.get_corpus_by_id(corpus_id)
+        corpus_config_dict: dict[str, Any] | None = dict(corpus_record.config or {}) if corpus_record else None
 
         # 阶段 1: Chunking
         if tracker:
@@ -1270,11 +1592,11 @@ class KnowledgeService:
         )
 
         # 阶段 2: Embedding
-        if self._embedding_fn:
+        if self._embedding_fn or self._extract_embedding_config_id(corpus_config_dict):
             if tracker:
                 await tracker.start_stage("embed")
 
-            chunks = await self._attach_embeddings(chunks)
+            chunks = await self._attach_embeddings(chunks, corpus_config=corpus_config_dict)
 
             if tracker:
                 await tracker.complete_stage(
@@ -2141,7 +2463,10 @@ class KnowledgeService:
                 },
                 embedding=item.embedding,
             )
-            for item in await self._attach_embeddings(chunks)
+            for item in await self._attach_embeddings(
+                chunks,
+                corpus_config=dict(corpus.config or {}) if corpus else None,
+            )
         ]
         records = await self._repository.add_knowledge(
             corpus_id=corpus_id,
@@ -2520,18 +2845,48 @@ class KnowledgeService:
 
         return chunks
 
-    async def _attach_embeddings(self, chunks: Iterable[KnowledgeChunk]) -> list[KnowledgeChunk]:
+    @staticmethod
+    def _extract_embedding_config_id(corpus_config: dict[str, Any] | None) -> str | None:
+        """从 corpus.config['models'] 提取 embedding_config_id；无则返回 None。"""
+        if not corpus_config:
+            return None
+        models = corpus_config.get("models") if isinstance(corpus_config, dict) else None
+        if not isinstance(models, dict):
+            return None
+        value = models.get("embedding_config_id")
+        if value is None:
+            return None
+        return str(value)
+
+    async def _attach_embeddings(
+        self,
+        chunks: Iterable[KnowledgeChunk],
+        *,
+        corpus_config: dict[str, Any] | None = None,
+    ) -> list[KnowledgeChunk]:
         chunk_list = list(chunks)
 
         if not chunk_list:
             return []
 
+        embedding_config_id = self._extract_embedding_config_id(corpus_config)
+
+        # Corpus 指定了 embedding 模型 → 按需构建一次性 fn；否则使用 service 级默认 fn。
+        if embedding_config_id is not None:
+            from .embedding import build_batch_embedding_fn, build_embedding_fn
+
+            batch_fn = build_batch_embedding_fn(embedding_config_id)
+            single_fn = build_embedding_fn(embedding_config_id)
+        else:
+            batch_fn = self._batch_embedding_fn
+            single_fn = self._embedding_fn
+
         # 优先使用批量向量化（一次 API 调用完成所有 chunk）
-        if self._batch_embedding_fn:
+        if batch_fn:
             searchable_chunks = [c for c in chunk_list if self._is_searchable_chunk(c)]
             if not searchable_chunks:
                 return chunk_list
-            embeddings = await self._batch_embedding_fn([c.content for c in searchable_chunks])
+            embeddings = await batch_fn([c.content for c in searchable_chunks])
             embedding_by_key = {
                 (chunk.source_uri, chunk.chunk_index): emb
                 for chunk, emb in zip(searchable_chunks, embeddings, strict=True)
@@ -2548,14 +2903,14 @@ class KnowledgeService:
             ]
 
         # 回退到逐条向量化
-        if not self._embedding_fn:
+        if not single_fn:
             return chunk_list
 
         enriched: list[KnowledgeChunk] = []
         for chunk in chunk_list:
             embedding = None
             if self._is_searchable_chunk(chunk):
-                embedding = await self._embedding_fn(chunk.content)
+                embedding = await single_fn(chunk.content)
             enriched.append(
                 KnowledgeChunk(
                     content=chunk.content,

@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 
-from .._model import create_model
+from .._model import create_subagent_model
 from ..tools.common import log_activity
 from ..tools.contemplation import analyze_context, create_plan
 
@@ -58,7 +58,7 @@ def create_contemplation_agent(*, output_key: str | None = None) -> LlmAgent:
     """
     return LlmAgent(
         name="ContemplationFaculty",
-        model=create_model(),
+        model=create_subagent_model(agent_name="ContemplationFaculty"),
         description=_DESCRIPTION,
         instruction=_INSTRUCTION,
         tools=[log_activity, analyze_context, create_plan],

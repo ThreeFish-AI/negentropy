@@ -77,23 +77,34 @@ export async function proxyPost(request: Request, path: string) {
     return errorResponse("MEMORY_INTERNAL_ERROR", "MEMORY_BASE_URL is not configured", 500);
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch (error) {
-    return errorResponse("MEMORY_BAD_REQUEST", `Invalid JSON body: ${String(error)}`, 400);
+  // 容忍空 body：动作型端点（job enable / disable / run / reconcile）通常无请求体。
+  const rawBody = await request.text();
+  let forwardBody: string | undefined;
+  if (rawBody.trim().length === 0) {
+    forwardBody = undefined;
+  } else {
+    try {
+      JSON.parse(rawBody);
+    } catch (error) {
+      return errorResponse("MEMORY_BAD_REQUEST", `Invalid JSON body: ${String(error)}`, 400);
+    }
+    forwardBody = rawBody;
   }
 
   const upstreamUrl = new URL(path, baseUrl);
+  const incomingUrl = new URL(request.url);
+  upstreamUrl.search = incomingUrl.search;
   const headers = extractForwardHeaders(request);
-  headers.set("content-type", "application/json");
+  if (forwardBody !== undefined) {
+    headers.set("content-type", "application/json");
+  }
 
   let upstreamResponse: Response;
   try {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify(body),
+      body: forwardBody,
       cache: "no-store",
     });
   } catch (error) {

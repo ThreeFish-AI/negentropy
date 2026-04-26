@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from types import SimpleNamespace
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -106,6 +107,10 @@ class FakeRepository:
         family_ids: Iterable[str],
     ) -> list[KnowledgeMatch]:
         return list(self.parent_results)
+
+    async def get_corpus_by_id(self, corpus_id: UUID):
+        _ = corpus_id
+        return SimpleNamespace(config={})
 
 
 async def _embedding_fn(text: str) -> list[float]:

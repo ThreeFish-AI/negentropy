@@ -67,12 +67,17 @@ class DocumentProvenanceResponse(BaseModel):
 
 
 class CatalogNodeCreateRequest(BaseModel):
-    """创建目录节点请求"""
+    """创建目录节点请求
+
+    自 0010 起：``folder`` 是唯一用户可创建类型；历史 ``category`` / ``collection``
+    自动归一为 FOLDER；``document_ref`` 仅由 :func:`assign_document` 自动创建，
+    禁止经此入口写入。
+    """
 
     name: str = Field(..., min_length=1, max_length=255)
     slug: str | None = Field(None, max_length=255)
     parent_id: UUID | None = None
-    node_type: str = "category"  # category | collection | document_ref
+    node_type: str = "folder"
     description: str | None = None
     sort_order: int = 0
     config: dict[str, Any] = Field(default_factory=dict)
@@ -80,14 +85,21 @@ class CatalogNodeCreateRequest(BaseModel):
     @field_validator("node_type")
     @classmethod
     def validate_node_type(cls, v: str) -> str:
-        allowed = {"category", "collection", "document_ref"}
+        # 拒绝 document_ref：仅 assign_document 可创建
+        if v == "document_ref":
+            raise ValueError("node_type 'document_ref' must be created via assign_document; not allowed in create")
+        allowed = {"folder", "category", "collection"}
         if v not in allowed:
-            raise ValueError(f"node_type must be one of {allowed}, got '{v}'")
+            raise ValueError(f"node_type must be one of {sorted(allowed)}, got '{v}'")
         return v
 
 
 class CatalogNodeUpdateRequest(BaseModel):
-    """更新目录节点请求"""
+    """更新目录节点请求
+
+    ``node_type`` 字段已从用户路径移除——节点类型在创建后不可变更。保留字段定义
+    用于历史调用方兼容（运行时被 service 层忽略）。
+    """
 
     name: str | None = Field(None, min_length=1, max_length=255)
     slug: str | None = Field(None, max_length=255)
@@ -104,7 +116,7 @@ class CatalogNodeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    corpus_id: UUID
+    catalog_id: UUID
     parent_id: UUID | None
     name: str
     slug: str
@@ -134,6 +146,52 @@ class AssignDocumentRequest(BaseModel):
     document_ids: list[UUID] = Field(..., min_length=1)
 
 
+# =============================================================================
+# Catalog CRUD Schemas
+# =============================================================================
+
+
+class CatalogCreateRequest(BaseModel):
+    """创建 Catalog 请求"""
+
+    name: str = Field(..., min_length=1, max_length=255)
+    slug: str | None = Field(None, max_length=255)
+    app_name: str = Field(..., min_length=1, max_length=255)
+    owner_id: str | None = None
+    description: str | None = None
+    visibility: str = "INTERNAL"
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class CatalogUpdateRequest(BaseModel):
+    """更新 Catalog 请求"""
+
+    name: str | None = Field(None, min_length=1, max_length=255)
+    slug: str | None = Field(None, max_length=255)
+    description: str | None = None
+    visibility: str | None = None
+    config: dict[str, Any] | None = None
+
+
+class CatalogResponse(BaseModel):
+    """Catalog 响应"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    slug: str
+    app_name: str
+    description: str | None = None
+    visibility: str = "INTERNAL"
+    is_archived: bool = False
+    version: int = 1
+    owner_id: str | None = None
+    config: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
 class CategorySuggestionResponse(BaseModel):
     """分类建议响应"""
 
@@ -150,7 +208,7 @@ class CategorySuggestionResponse(BaseModel):
 class WikiPublicationCreateRequest(BaseModel):
     """创建 Wiki 发布请求"""
 
-    corpus_id: UUID
+    catalog_id: UUID
     name: str = Field(..., min_length=1, max_length=255)
     slug: str | None = Field(None, max_length=255)
     description: str | None = None
@@ -171,9 +229,6 @@ class WikiPublicationUpdateRequest(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = None
     theme: str | None = None
-    navigation_config: dict[str, Any] | None = None
-    custom_css: str | None = None
-    custom_js: str | None = None
 
 
 class WikiPublicationResponse(BaseModel):
@@ -182,13 +237,12 @@ class WikiPublicationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    corpus_id: UUID
+    catalog_id: UUID
     name: str
     slug: str
     description: str | None
     status: str
     theme: str
-    navigation_config: dict[str, Any] = Field(default_factory=dict)
     version: int
     published_at: datetime | None
     created_at: datetime | None
@@ -215,7 +269,7 @@ class WikiEntryResponse(BaseModel):
     entry_slug: str
     entry_title: str | None
     is_index_page: bool
-    entry_order: str | None
+    entry_path: str | None
     created_at: datetime | None
 
 
@@ -246,6 +300,21 @@ class WikiPublishActionResponse(BaseModel):
     published_at: datetime | None
     entries_count: int
     message: str
+    revalidation: str = "not_configured"  # Literal["dispatched", "failed", "not_configured"]
+
+
+class SyncFromCatalogRequest(BaseModel):
+    """从目录同步到 Wiki 的请求"""
+
+    catalog_node_ids: list[UUID] = Field(..., min_length=1)
+
+
+class SyncFromCatalogResponse(BaseModel):
+    """从目录同步到 Wiki 的响应"""
+
+    synced_count: int = 0
+    errors: list[str] = Field(default_factory=list)
+    removed_count: int = 0
 
 
 # =============================================================================

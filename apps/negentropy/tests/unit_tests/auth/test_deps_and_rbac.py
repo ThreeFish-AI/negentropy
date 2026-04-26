@@ -129,4 +129,4 @@ def test_permission_and_role_catalog_helpers_return_copies() -> None:
 
 def test_get_user_permissions_expands_wildcards_and_sorts() -> None:
     assert get_user_permissions(["admin"]) == sorted(get_all_permissions().keys())
-    assert "plugins:write" in get_user_permissions(["user"])
+    assert "interface:write" in get_user_permissions(["user"])

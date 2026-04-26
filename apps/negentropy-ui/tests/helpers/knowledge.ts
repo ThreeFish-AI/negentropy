@@ -9,7 +9,9 @@ import {
   normalizeChunkingConfig,
   normalizeCorpusExtractorRoutes,
   normalizeExtractorDraftRoutes,
+  separatorsArrayEqual,
 } from "@/features/knowledge/utils/knowledge-api";
+import { SeparatorsTextarea } from "@/features/knowledge/components/SeparatorsTextarea";
 import {
   buildPipelineErrorDetails,
   calculateStageWidth,
@@ -55,6 +57,7 @@ export interface KnowledgeFeatureMockSet {
   unarchiveDocumentMock: VitestMock;
   downloadDocumentMock: VitestMock;
   deleteDocumentMock: VitestMock;
+  fetchModelConfigsMock: VitestMock;
 }
 
 export interface KnowledgeFeatureTestHarness {
@@ -87,6 +90,7 @@ export function createKnowledgeFeatureMockSet(): KnowledgeFeatureMockSet {
     unarchiveDocumentMock: vi.fn(),
     downloadDocumentMock: vi.fn(),
     deleteDocumentMock: vi.fn(),
+    fetchModelConfigsMock: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -123,12 +127,14 @@ export function createKnowledgeConfigTestExports() {
     createDefaultChunkingConfig,
     encodeSeparatorsForDisplay,
     decodeSeparatorsFromInput,
+    separatorsArrayEqual,
     normalizeChunkingConfig,
     normalizeCorpusExtractorRoutes,
     createEmptyExtractorDraftTarget,
     normalizeExtractorDraftRoutes,
     buildExtractorRoutesFromDraft,
     buildCorpusConfig,
+    SeparatorsTextarea,
     OPERATION_LABELS,
     STAGE_LABELS,
     getPipelineStatusColor,
@@ -180,6 +186,7 @@ export function createKnowledgeFeatureTestHarness(
       unarchiveDocument: (...args: unknown[]) => mocks.unarchiveDocumentMock(...args),
       downloadDocument: (...args: unknown[]) => mocks.downloadDocumentMock(...args),
       deleteDocument: (...args: unknown[]) => mocks.deleteDocumentMock(...args),
+      fetchModelConfigs: (...args: unknown[]) => mocks.fetchModelConfigsMock(...args),
       ...createKnowledgeConfigTestExports(),
       ...overrides,
     },

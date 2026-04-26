@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-/** 后端 API 基础地址（可通过环境变量覆盖） */
-const API_BASE = process.env.WIKI_API_BASE || "http://localhost:8000";
+/** 后端 API 基础地址（可通过环境变量覆盖；默认与 negentropy `cli.py` 监听端口 3292 对齐） */
+const API_BASE = process.env.WIKI_API_BASE || "http://localhost:3292";
 
 const nextConfig: NextConfig = {
   output: "standalone",

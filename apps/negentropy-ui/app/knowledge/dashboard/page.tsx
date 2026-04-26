@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
@@ -68,6 +68,7 @@ export default function KnowledgeDashboardPage() {
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const bootstrapBaselineRef = useRef<RunsSnapshot | null>(null);
 
   const applyPipelinesPayload = useCallback((data: KnowledgePipelinesPayload) => {
     setPipelinesPayload(data);
@@ -93,25 +94,31 @@ export default function KnowledgeDashboardPage() {
 
   useEffect(() => {
     let active = true;
+
     (async () => {
       try {
-        const [dashData, pipeData] = await Promise.all([
-          fetchDashboard(APP_NAME),
-          fetchPipelines(APP_NAME, {
-            limit: PAGE_SIZE,
-            offset: (page - 1) * PAGE_SIZE,
-          }),
-        ]);
+        const pipeData = await fetchPipelines(APP_NAME, {
+          limit: PAGE_SIZE,
+          offset: (page - 1) * PAGE_SIZE,
+        });
         if (!active) return;
-        setDashboardData(dashData);
         applyPipelinesPayload(pipeData);
+        bootstrapBaselineRef.current = createRunsSnapshot(pipeData.runs);
         setHasInitialLoad(true);
       } catch (err) {
-        if (active) {
-          setError(String(err));
-        }
+        if (active) setError(String(err));
       }
     })();
+
+    (async () => {
+      try {
+        const dashData = await fetchDashboard(APP_NAME);
+        if (active) setDashboardData(dashData);
+      } catch (err) {
+        if (active) setError(String(err));
+      }
+    })();
+
     return () => {
       active = false;
     };
@@ -120,11 +127,10 @@ export default function KnowledgeDashboardPage() {
   useEffect(() => {
     if (!hasInitialLoad) return;
     if (page !== 1) return;
-    if (hasRunningRuns(pipelinesPayload?.runs)) return;
 
     let active = true;
     let tick = 0;
-    const baseline = createRunsSnapshot(pipelinesPayload?.runs);
+    const baseline = bootstrapBaselineRef.current ?? createRunsSnapshot(pipelinesPayload?.runs);
 
     const intervalId = setInterval(async () => {
       tick += 1;
@@ -158,7 +164,8 @@ export default function KnowledgeDashboardPage() {
       active = false;
       clearInterval(intervalId);
     };
-  }, [applyPipelinesPayload, hasInitialLoad, pipelinesPayload?.runs, page]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: pipelinesPayload?.runs removed to prevent unstable cleanup/restart cycle
+  }, [applyPipelinesPayload, hasInitialLoad, page]);
 
   useEffect(() => {
     if (page !== 1) return;

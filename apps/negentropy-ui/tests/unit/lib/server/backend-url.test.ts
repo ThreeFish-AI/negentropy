@@ -1,9 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   DEFAULT_BACKEND_BASE_URL,
-  LEGACY_LOCAL_PORTS,
-  __resetLegacyPortWarningsForTests,
   getAguiBaseUrl,
   getAuthBaseUrl,
   getKnowledgeBaseUrl,
@@ -25,20 +23,12 @@ function clearBackendEnv(): void {
 }
 
 describe("backend-url SSOT helper", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-  let warnSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     clearBackendEnv();
-    __resetLegacyPortWarningsForTests();
-    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    warnSpy.mockRestore();
     clearBackendEnv();
-    process.env.NODE_ENV = originalNodeEnv;
-    __resetLegacyPortWarningsForTests();
   });
 
   describe("默认值", () => {
@@ -52,10 +42,6 @@ describe("backend-url SSOT helper", () => {
     it("env 仅包含空白字符时视作未配置并回落默认值", () => {
       process.env.AGUI_BASE_URL = "   ";
       expect(getAguiBaseUrl()).toBe(DEFAULT_BACKEND_BASE_URL);
-    });
-
-    it("LEGACY_LOCAL_PORTS 应包含历史使用过的 6600 与 6666", () => {
-      expect(LEGACY_LOCAL_PORTS).toEqual(expect.arrayContaining(["6600", "6666"]));
     });
   });
 
@@ -100,81 +86,6 @@ describe("backend-url SSOT helper", () => {
       process.env.AGUI_BASE_URL = "http://agui-internal:3292";
       expect(getKnowledgeBaseUrl()).toBe("http://agui-internal:3292");
       expect(getMemoryBaseUrl()).toBe("http://agui-internal:3292");
-    });
-  });
-
-  describe("非 localhost URL 不受迁移守护影响", () => {
-    it("自定义 host + 旧端口不应被改写、不应告警", () => {
-      process.env.AGUI_BASE_URL = "http://backend.example.com:6600";
-      expect(getAguiBaseUrl()).toBe("http://backend.example.com:6600");
-      expect(warnSpy).not.toHaveBeenCalled();
-    });
-
-    it("localhost 但端口不在 LEGACY 列表时不应被改写", () => {
-      process.env.AGUI_BASE_URL = "http://localhost:8080";
-      expect(getAguiBaseUrl()).toBe("http://localhost:8080");
-      expect(warnSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("legacy port 迁移守护（开发模式）", () => {
-    beforeEach(() => {
-      process.env.NODE_ENV = "development";
-    });
-
-    it("localhost:6600 应被重写为 :3292 并打印一次迁移告警", () => {
-      process.env.AGUI_BASE_URL = "http://localhost:6600";
-
-      const resolved = getAguiBaseUrl();
-
-      expect(resolved).toBe("http://localhost:3292");
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy.mock.calls[0]?.[0]).toContain("AGUI_BASE_URL=http://localhost:6600");
-      expect(warnSpy.mock.calls[0]?.[0]).toContain(":6600");
-      expect(warnSpy.mock.calls[0]?.[0]).toContain(":3292");
-    });
-
-    it("127.0.0.1:6666 也应被识别为 legacy 并重写", () => {
-      process.env.AGUI_BASE_URL = "http://127.0.0.1:6666";
-
-      expect(getAguiBaseUrl()).toBe("http://127.0.0.1:3292");
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it("同一 URL 重复调用只告警一次（去重）", () => {
-      process.env.AGUI_BASE_URL = "http://localhost:6600";
-
-      getAguiBaseUrl();
-      getAguiBaseUrl();
-      getAguiBaseUrl();
-
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it("不同 source label 各自独立告警", () => {
-      process.env.AUTH_BASE_URL = "http://localhost:6600";
-      process.env.AGUI_BASE_URL = "http://localhost:6600";
-
-      getAuthBaseUrl();
-      getAguiBaseUrl();
-
-      // AUTH_BASE_URL + AGUI_BASE_URL 两个来源 × 同一 URL => 两次告警
-      expect(warnSpy).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe("legacy port 迁移守护（生产模式）", () => {
-    beforeEach(() => {
-      process.env.NODE_ENV = "production";
-    });
-
-    it("localhost:6600 在生产环境仅告警、不改写", () => {
-      process.env.AGUI_BASE_URL = "http://localhost:6600";
-
-      const resolved = getAguiBaseUrl();
-
-      expect(resolved).toBe("http://localhost:6600");
-      expect(warnSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -1,13 +1,16 @@
 """WikiPublishingService 单元测试
 
 验证 Wiki 发布服务层的核心逻辑：
-- _slugify 纯函数的各种输入场景
 - create_publication 的参数校验 (theme/slug)
 - update_publication 的 theme 校验
+- 同步链路助手函数（_build_path_slugs / _apply_entry_mappings）
+
+注：``slugify`` 工具的纯函数单测迁移到独立 ``test_slug.py``（slug.py 模块抽取后的 SSOT）。
 """
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -38,38 +41,6 @@ except Exception:
 
 
 # ---------------------------------------------------------------------------
-# _slugify 纯函数全场景覆盖
-# ---------------------------------------------------------------------------
-
-
-class TestWikiSlugify:
-    """_slugify 静态方法的全场景覆盖"""
-
-    def test_slugify_basic_text(self):
-        assert WikiPublishingService._slugify("Hello World") == "hello-world"
-
-    def test_slugify_chinese_text(self):
-        result = WikiPublishingService._slugify("技术文档")
-        assert isinstance(result, str)
-        assert len(result) > 0
-
-    def test_slugify_already_valid_slug(self):
-        assert WikiPublishingService._slugify("my-page") == "my-page"
-
-    def test_slugify_special_chars_removed(self):
-        assert WikiPublishingService._slugify("Hello!! World@@") == "hello-world"
-
-    def test_slugify_multiple_spaces_collapsed(self):
-        assert WikiPublishingService._slugify("Hello   World") == "hello-world"
-
-    def test_slugify_empty_string_returns_untitled(self):
-        assert WikiPublishingService._slugify("") == "untitled"
-
-    def test_slugify_only_special_chars(self):
-        assert WikiPublishingService._slugify("!@#$%") == "untitled"
-
-
-# ---------------------------------------------------------------------------
 # create_publication 参数校验
 # ---------------------------------------------------------------------------
 
@@ -83,7 +54,8 @@ class TestWikiCreatePublicationValidation:
         with pytest.raises(ValueError, match="Invalid theme"):
             await service.create_publication(
                 _FakeAsyncSession(),
-                corpus_id=uuid4(),
+                catalog_id=uuid4(),
+                app_name="negentropy",
                 name="Test",
                 theme="invalid-theme",
             )
@@ -94,7 +66,8 @@ class TestWikiCreatePublicationValidation:
         with pytest.raises(ValueError, match="Invalid slug format"):
             await service.create_publication(
                 _FakeAsyncSession(),
-                corpus_id=uuid4(),
+                catalog_id=uuid4(),
+                app_name="negentropy",
                 name="Test",
                 slug="Invalid Slug!",
             )
@@ -107,10 +80,35 @@ class TestWikiCreatePublicationValidation:
         # 不抛异常即视为成功（内部会调用 WikiDao.create_publication）
         await service.create_publication(
             session,
-            corpus_id=uuid4(),
+            catalog_id=uuid4(),
+            app_name="negentropy",
             name="My Wiki Publication",
         )
         assert session.flush_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_create_publication_logs_with_non_reserved_extra_keys(self, monkeypatch):
+        """wiki publication 创建日志不应覆写 LogRecord 保留字段。"""
+        service = WikiPublishingService()
+        session = _FakeAsyncSession()
+        captured: dict[str, object] = {}
+
+        def fake_info(event: str, *, extra: dict[str, object]) -> None:
+            captured["event"] = event
+            captured["extra"] = extra
+
+        monkeypatch.setattr("negentropy.knowledge.wiki_dao.logger.info", fake_info)
+
+        await service.create_publication(
+            session,
+            catalog_id=uuid4(),
+            app_name="negentropy",
+            name="Architecture Wiki",
+        )
+
+        assert captured["event"] == "wiki_publication_created"
+        assert captured["extra"]["publication_name"] == "Architecture Wiki"
+        assert "name" not in captured["extra"]
 
 
 # ---------------------------------------------------------------------------
@@ -144,17 +142,17 @@ class TestWikiDelegationMethods:
     async def test_publish_delegates_to_dao(self):
         service = WikiPublishingService()
         session = _FakeAsyncSession()
-        # 正常调用不抛异常（DAO 层由 FakeAsyncSession 兜底）
-        result = await service.publish(session, pub_id=uuid4())
-        # WikiDao.publish 可能返回 None（无匹配记录），这是合法的
-        assert result is None
+        pub, revalidation = await service.publish(session, pub_id=uuid4())
+        assert pub is None
+        assert revalidation == "not_configured"
 
     @pytest.mark.asyncio
     async def test_unpublish_delegates_to_dao(self):
         service = WikiPublishingService()
         session = _FakeAsyncSession()
-        result = await service.unpublish(session, pub_id=uuid4())
-        assert result is None
+        pub, revalidation = await service.unpublish(session, pub_id=uuid4())
+        assert pub is None
+        assert revalidation == "not_configured"
 
     @pytest.mark.asyncio
     async def test_archive_delegates_to_dao(self):
@@ -169,6 +167,146 @@ class TestWikiDelegationMethods:
         session = _FakeAsyncSession()
         result = await service.delete_publication(session, pub_id=uuid4())
         assert result is False  # FakeAsyncSession.execute 返回 None → 删除失败
+
+
+class TestWikiCatalogSync:
+    """sync_entries_from_catalog 的字段映射回归。"""
+
+    @pytest.mark.asyncio
+    async def test_sync_entries_from_catalog_uses_original_filename(self, monkeypatch):
+        service = WikiPublishingService()
+        publication_id = uuid4()
+        root_node_id = uuid4()
+        doc_id = uuid4()
+        fake_db = _FakeAsyncSession()
+        captured: dict[str, object] = {}
+
+        async def fake_get_subtree(db, node_id):
+            _ = db
+            assert node_id == root_node_id
+            return [{"id": root_node_id, "parent_id": None, "slug": "root"}]
+
+        async def fake_get_node_documents(db, catalog_node_id, limit=500):
+            _ = (db, limit)
+            assert catalog_node_id == root_node_id
+            doc = SimpleNamespace(
+                id=doc_id,
+                original_filename="System Design.pdf",
+                markdown_extract_status="completed",
+                markdown_content="# System Design",
+                metadata_={},
+            )
+            return [doc], 1
+
+        async def fake_upsert_entry(db, **kwargs):
+            _ = db
+            captured.update(kwargs)
+
+        async def fake_upsert_container_entry(db, **kwargs):
+            _ = (db, kwargs)  # 容器条目写入路径在 0011 后已加入；本用例只断言 DOCUMENT 行为，不捕获
+
+        async def fake_remove_stale_entries(db, publication_id, keep_document_ids, keep_container_node_ids=None):
+            _ = (db, publication_id, keep_document_ids, keep_container_node_ids)
+            return 0
+
+        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
+        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents)
+        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr(
+            "negentropy.knowledge.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+        )
+        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries)
+
+        result = await service.sync_entries_from_catalog(
+            fake_db,
+            publication_id=publication_id,
+            catalog_node_ids=[root_node_id],
+        )
+
+        assert result["synced_count"] == 1
+        assert captured["document_id"] == doc_id
+        assert captured["entry_slug"].endswith("system-design-pdf")
+        assert captured["entry_title"] == "System Design.pdf"
+
+    @pytest.mark.asyncio
+    async def test_sync_dedup_shares_slug_namespace_across_kinds(self, monkeypatch):
+        """CONTAINER 与 DOCUMENT 的 entry_slug 共享同一全局唯一空间。
+
+        回归：当 FOLDER ``eng``（CONTAINER slug=``parent/eng``）与 ``parent`` 下
+        slugify 后等于 ``eng`` 的兄弟文档同时存在时，DOCUMENT 端必须复用 CONTAINER
+        已登记的 ``seen_slugs`` 走 ``-2`` 后缀兜底，否则 IntegrityError 命中
+        ``uq_wiki_entry_pub_slug``、整次同步事务回滚。
+        """
+        service = WikiPublishingService()
+        publication_id = uuid4()
+        parent_id = uuid4()
+        eng_folder_id = uuid4()
+        doc_id = uuid4()
+        fake_db = _FakeAsyncSession()
+
+        document_writes: list[dict[str, object]] = []
+        container_writes: list[dict[str, object]] = []
+
+        async def fake_get_subtree(db, node_id):
+            _ = db
+            assert node_id == parent_id
+            return [
+                {"id": parent_id, "parent_id": None, "slug": "parent", "name": "Parent"},
+                {"id": eng_folder_id, "parent_id": parent_id, "slug": "eng", "name": "Engineering"},
+            ]
+
+        async def fake_get_node_documents(db, catalog_node_id, limit=500):
+            _ = (db, limit)
+            if catalog_node_id == parent_id:
+                # 兄弟文档 "eng" — slugify 后与 FOLDER `eng` 的 slug 撞车。
+                doc = SimpleNamespace(
+                    id=doc_id,
+                    original_filename="eng",
+                    markdown_extract_status="completed",
+                    markdown_content="# Eng",
+                    metadata_={},
+                )
+                return [doc], 1
+            return [], 0
+
+        async def fake_upsert_entry(db, **kwargs):
+            _ = db
+            document_writes.append(kwargs)
+
+        async def fake_upsert_container_entry(db, **kwargs):
+            _ = db
+            container_writes.append(kwargs)
+
+        async def fake_remove_stale_entries(db, publication_id, keep_document_ids, keep_container_node_ids=None):
+            _ = (db, publication_id, keep_document_ids, keep_container_node_ids)
+            return 0
+
+        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
+        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents)
+        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr(
+            "negentropy.knowledge.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+        )
+        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries)
+
+        result = await service.sync_entries_from_catalog(
+            fake_db,
+            publication_id=publication_id,
+            catalog_node_ids=[parent_id],
+        )
+
+        # CONTAINER 写入两条：parent / parent/eng
+        container_slugs = sorted(c["entry_slug"] for c in container_writes)
+        assert container_slugs == ["parent", "parent/eng"], container_slugs
+
+        # DOCUMENT 写入应被 dedup 为 parent/eng-2（CONTAINER 已占用 parent/eng）
+        assert len(document_writes) == 1
+        assert document_writes[0]["entry_slug"] == "parent/eng-2", document_writes[0]
+        assert document_writes[0]["document_id"] == doc_id
+
+        # 错误流应记录 renamed 标记，便于运营可观测
+        renamed_events = [e for e in result["errors"] if e.startswith("renamed:")]
+        assert any(f"{doc_id}" in e and "parent/eng->" in e for e in renamed_events), result["errors"]
 
 
 # ---------------------------------------------------------------------------

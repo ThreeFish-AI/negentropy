@@ -139,7 +139,7 @@ describe("KnowledgeDashboardPage polling", () => {
       await vi.advanceTimersByTimeAsync(10000);
     });
     await settle();
-    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(3);
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(4);
   });
 
   it("桌面端使用固定双栏 grid，并为长内容提供收敛样式", async () => {

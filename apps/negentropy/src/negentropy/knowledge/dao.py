@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy import update as sql_update
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
@@ -90,6 +92,48 @@ class KnowledgeRunDao:
             )
             result = await db.execute(stmt)
             return list(result.scalars().all())
+
+    async def finalize_stale_pipeline_runs(
+        self,
+        *,
+        app_name: str | None = None,
+        stale_threshold_minutes: int = 30,
+    ) -> int:
+        """将超过阈值的 running 状态 Pipeline 标记为 failed。
+
+        Returns:
+            int: 被终结的 Pipeline 数量。
+        """
+        cutoff = datetime.now(UTC) - timedelta(minutes=stale_threshold_minutes)
+        async with self._session_factory() as db:
+            conditions = [
+                KnowledgePipelineRun.status == "running",
+                KnowledgePipelineRun.updated_at < cutoff,
+            ]
+            if app_name is not None:
+                conditions.append(KnowledgePipelineRun.app_name == app_name)
+
+            stmt = (
+                sql_update(KnowledgePipelineRun)
+                .where(*conditions)
+                .values(
+                    status="failed",
+                    payload=KnowledgePipelineRun.payload.op("||")(
+                        {
+                            "error": {
+                                "type": "StalePipelineReconciliation",
+                                "message": (
+                                    f"Pipeline was running for over {stale_threshold_minutes}"
+                                    " minutes and was forcibly marked as failed."
+                                ),
+                            }
+                        }
+                    ),
+                )
+            )
+            result = await db.execute(stmt)
+            await db.commit()
+            return result.rowcount
 
     async def upsert_pipeline_run(
         self,

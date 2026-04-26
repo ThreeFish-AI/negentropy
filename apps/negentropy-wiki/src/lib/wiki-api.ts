@@ -7,8 +7,8 @@
 
 const API_BASE =
   typeof process !== "undefined"
-    ? process.env.WIKI_API_BASE || "http://localhost:8000"
-    : "http://localhost:8000";
+    ? process.env.WIKI_API_BASE || "http://localhost:3292"
+    : "http://localhost:3292";
 
 // ---------------------------------------------------------------------------
 // 类型定义
@@ -16,7 +16,9 @@ const API_BASE =
 
 export interface WikiPublication {
   id: string;
-  corpus_id: string;
+  catalog_id: string;
+  app_name: string;
+  publish_mode: "live" | "snapshot";
   name: string;
   slug: string;
   description: string | null;
@@ -31,18 +33,43 @@ export interface WikiPublication {
 
 export interface WikiEntry {
   id: string;
-  document_id: string;
+  document_id: string | null;
   entry_slug: string;
   entry_title: string | null;
   is_index_page: boolean;
+  status?: "active" | "orphaned" | "hidden";
 }
 
+/**
+ * Wiki 导航树 item（自后端 0011 起 CONTAINER 条目持久化）。
+ *
+ * - DOCUMENT 节点：`entry_kind='DOCUMENT'`、`document_id` 必非空、`catalog_node_id` 为空；
+ * - CONTAINER 节点：`entry_kind='CONTAINER'`、`document_id` 为空、`catalog_node_id` 指向 Catalog 节点；
+ * - 兼容路径：缺 `entry_kind` 时按 `document_id` 是否非空推导（兼容旧响应）；
+ * - 历史合成容器：`entry_id=null`、`entry_kind='CONTAINER'`（仅在缺 CONTAINER 条目时回退）。
+ */
 export interface WikiNavTreeItem {
-  entry_id: string;
+  /** entry UUID；仅在缺失 CONTAINER 条目的合成回退节点上为 null */
+  entry_id: string | null;
   entry_slug: string;
   entry_title: string;
   is_index_page: boolean;
-  document_id: string;
+  /** 叶节点的源文档；容器节点为 null */
+  document_id: string | null;
+  /** 容器节点关联的 Catalog 节点 ID；DOCUMENT 节点为 null */
+  catalog_node_id?: string | null;
+  /** 条目类型；老响应缺省时按 `document_id` 是否非空推导 */
+  entry_kind?: "CONTAINER" | "DOCUMENT";
+  children?: WikiNavTreeItem[];
+}
+
+/**
+ * 判定 item 是否为容器节点。
+ * 优先用 `entry_kind`；缺省时按 `document_id` 是否为空兜底。
+ */
+export function isContainerItem(item: WikiNavTreeItem): boolean {
+  if (item.entry_kind) return item.entry_kind === "CONTAINER";
+  return item.document_id === null;
 }
 
 export interface WikiEntryContent {

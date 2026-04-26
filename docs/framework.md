@@ -353,11 +353,11 @@ SequentialAgent(
 - **代码**：[`engine/bootstrap.py`](../apps/negentropy/src/negentropy/engine/bootstrap.py)
 - **权衡**：牺牲了类型安全性换取集成灵活性；需随 ADK 版本升级验证兼容性
 
-### 5.8 Plugin Architecture（插件架构）
+### 5.8 Interface Architecture（能力接入架构）
 
-- **应用**：可扩展的插件系统，支持子智能体、MCP 服务和技能的动态注册
+- **应用**：可扩展的 Interface 模块，支持模型（Models）、子智能体（SubAgents）、MCP 服务、技能（Skills）的动态注册与接入
 - **动机**：开放封闭原则 (OCP)——对扩展开放，对修改封闭
-- **代码**：[`plugins/`](../apps/negentropy/src/negentropy/plugins/)
+- **代码**：[`interface/`](../apps/negentropy/src/negentropy/interface/)
 
 ---
 
@@ -379,7 +379,7 @@ flowchart TD
     F --> G["Patch AdkWebServer.get_fast_api_app"]
 
     G -.->|"延迟执行：服务启动时"| H["注入 Negentropy 中间件<br>TracingInitMiddleware · AuthMiddleware"]
-    H --> I["挂载 API 路由<br>/knowledge · /memory · /plugins · /auth"]
+    H --> I["挂载 API 路由<br>/knowledge · /memory · /interface · /auth"]
     I --> J["注册 startup 事件<br>预热模型配置缓存"]
 
     classDef boot fill:#3B82F6,stroke:#1E40AF,color:#FFF
@@ -597,10 +597,9 @@ apps/negentropy-ui/app/
 │   ├── health/            # 健康检查
 │   ├── knowledge/         # 知识 API 代理
 │   ├── memory/            # 记忆 API 代理
-│   └── plugins/           # 插件 API 代理
+│   └── interface/         # Interface API 代理
 ├── admin/                 # 管理功能
-│   ├── roles/             # 角色管理
-│   └── models/            # 模型管理
+│   └── roles/             # 角色管理（Models 已迁至 /interface/models）
 ├── knowledge/             # 知识管理
 │   ├── catalog/           # 知识目录
 │   └── apis/              # API 文档
@@ -610,7 +609,8 @@ apps/negentropy-ui/app/
 │   ├── automation/        # 自动化配置
 │   ├── facts/             # 事实记忆
 │   └── timeline/          # 时间线
-└── plugins/               # 插件管理
+└── interface/             # Interface 能力接入
+    ├── models/            # 模型与供应商配置（仅 admin）
     ├── subagents/         # 子代理配置
     ├── mcp/               # MCP 服务管理
     └── skills/            # 技能管理
@@ -881,7 +881,7 @@ graph LR
 | **新工具** | 在 `agents/tools/` 下实现，注册到对应系部的 `tools` 列表 | `agents/tools/` |
 | **新存储后端** | 在 `engine/adapters/` 下实现 ADK 服务接口，更新工厂函数 | `engine/adapters/` |
 | **新 LLM 提供商** | 通过 LiteLLM 路由注册，配置 `model_configs` 表 | `config/model_resolver.py` |
-| **新插件** | 通过插件系统注册（子智能体 / MCP 服务 / 技能） | `plugins/` |
+| **新能力接入** | 通过 Interface 模块注册（Models / SubAgents / MCP 服务 / Skills） | `interface/` |
 | **新配置域** | 创建 `config/new_domain.py`，在 `Settings` 中组合 | `config/` |
 
 ### 11.2 近期演进方向
@@ -891,7 +891,7 @@ graph LR
 1. **知识图谱深化**：`kg_schema_extension.sql` 表明知识图谱模块尚在扩展阶段，预期将增强实体关系建模
 2. **记忆自动化成熟**：`hippocampus_schema.sql` 中的巩固任务机制为记忆自动衰减与巩固提供了基础
 3. **多模型策略**：`model_resolver.py` 的 Strategy 模式支持未来按任务类型动态路由不同 LLM
-4. **插件生态**：`plugins/` 模块的 API 端点已就绪，预期将支持第三方插件注册
+4. **Interface 能力接入生态**：`interface/` 模块的 API 端点已就绪，预期将支持第三方 Models / SubAgents / MCP / Skills 注册
 
 ---
 

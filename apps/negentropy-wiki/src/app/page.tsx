@@ -1,3 +1,5 @@
+import { unstable_noStore as noStore } from "next/cache";
+
 import { wikiApi, type WikiPublication } from "@/lib/wiki-api";
 
 // ISR: 5 分钟增量再验证
@@ -15,12 +17,26 @@ export default async function WikiHomePage() {
     const result = await wikiApi.listPublications();
     publications = result.items;
   } catch (err) {
-    console.error("[Wiki] Failed to fetch publications:", err);
+    // 失败本次响应不写入 ISR cache，避免空列表毒化 5 分钟；
+    // 回落为 per-request SSR 一次/请求，后端恢复后下次访问即可正常重建 ISR cache。
+    noStore();
+    console.warn(
+      "[Wiki] Failed to fetch publications（已退化为 per-request SSR，恢复后自动重建 ISR）:",
+      err,
+    );
   }
 
   return (
     <main className="wiki-main wiki-home-container">
       <div className="wiki-home-hero">
+        {/* eslint-disable-next-line @next/next/no-img-element -- next.config.ts 已设 images.unoptimized，next/image 在此无优化收益 */}
+        <img
+          src="/logo.png"
+          alt="Negentropy"
+          className="wiki-home-logo"
+          width={96}
+          height={96}
+        />
         <h1 className="wiki-home-title">Negentropy Wiki</h1>
         <p className="wiki-home-subtitle">
           知识库发布站点 — 浏览已发布的文档集合

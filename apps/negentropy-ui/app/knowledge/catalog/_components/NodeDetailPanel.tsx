@@ -8,15 +8,18 @@ import {
 } from "@/features/knowledge";
 import { toast } from "@/lib/activity-toast";
 import { Pencil, Trash2 } from "./icons";
+import { DocumentAssignmentSection } from "./DocumentAssignmentSection";
 
 interface NodeDetailPanelProps {
   node: CatalogNode | null;
+  catalogId: string;
   onUpdate: () => void;
   onDelete: () => void;
 }
 
 export function NodeDetailPanel({
   node,
+  catalogId,
   onUpdate,
   onDelete,
 }: NodeDetailPanelProps) {
@@ -33,7 +36,7 @@ export function NodeDetailPanel({
 
   const handleSaveDesc = async () => {
     try {
-      await updateCatalogNode(node.id, { description: descValue || undefined });
+      await updateCatalogNode(catalogId, node.id, { description: descValue || undefined });
       toast.success("描述已更新");
       setEditingDesc(false);
       onUpdate();
@@ -45,7 +48,7 @@ export function NodeDetailPanel({
   const handleDelete = async () => {
     if (!confirm(`确定删除「${node.name}」？子节点将一并删除。`)) return;
     try {
-      await deleteCatalogNode(node.id);
+      await deleteCatalogNode(catalogId, node.id);
       toast.success("节点已删除");
       onDelete();
     } catch (err) {
@@ -54,7 +57,7 @@ export function NodeDetailPanel({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
       <div className="border-b border-border px-5 py-4">
         <div className="flex items-start justify-between">
@@ -161,6 +164,9 @@ export function NodeDetailPanel({
           <span>{node.sort_order}</span>
         </div>
       </div>
+
+      {/* Document assignment */}
+      <DocumentAssignmentSection nodeId={node.id} catalogId={catalogId} />
     </div>
   );
 }

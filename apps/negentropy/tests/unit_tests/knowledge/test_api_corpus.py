@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from fastapi import BackgroundTasks
 
 from negentropy.knowledge import api as knowledge_api
 
@@ -209,6 +210,7 @@ async def test_update_corpus_serializes_chunking_strategy_to_string(monkeypatch)
                 "hierarchical_child_overlap": 150,
             }
         ),
+        background_tasks=BackgroundTasks(),
     )
 
     update_call = fake_service.update_corpus_calls[0]

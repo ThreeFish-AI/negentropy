@@ -108,6 +108,9 @@ def intercept_third_party_loggers() -> None:
     litellm_logger.propagate = False
     litellm_logger.setLevel(logging.CRITICAL)
 
+    # Note: 故意不静默 openai._base_client / httpx loggers —
+    # 它们的 INFO 级 "Retrying request" 日志对排查 Ping 请求放大等问题至关重要。
+
     # 3. Patch Uvicorn's configuration logic to prevent it from hijacking
     # the root logger or re-adding handlers we just removed.
     try:

@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 
-from .._model import create_model
+from .._model import create_subagent_model
 from ..tools.common import log_activity
 from ..tools.perception import search_knowledge_base, search_web
 
@@ -54,7 +54,7 @@ def create_perception_agent(*, output_key: str | None = None) -> LlmAgent:
     """
     return LlmAgent(
         name="PerceptionFaculty",
-        model=create_model(),
+        model=create_subagent_model(agent_name="PerceptionFaculty"),
         description=_DESCRIPTION,
         instruction=_INSTRUCTION,
         tools=[log_activity, search_knowledge_base, search_web],

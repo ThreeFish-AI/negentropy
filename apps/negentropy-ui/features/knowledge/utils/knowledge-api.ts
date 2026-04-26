@@ -147,6 +147,24 @@ function normalizeSeparatorsArray(value: unknown, fallback: string[]): string[] 
   return (value as unknown[]).map((s) => decodeLiteralEscapesIfNeeded(String(s)));
 }
 
+/**
+ * 逐元素比较两个 separators 数组的语义等价性。
+ *
+ * 用于受控文本域判别「外部 value 变化」是自身键入 round-trip 的回写还是真外部更新
+ * （策略切换重置 defaults 等），避免以数组引用为判据导致的无谓重同步。
+ */
+export function separatorsArrayEqual(
+  a: readonly string[],
+  b: readonly string[],
+): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 export function createDefaultChunkingConfig(
   strategy: ChunkingStrategy = "recursive",
 ): ChunkingConfig {
@@ -501,6 +519,7 @@ export interface CorpusRecord {
   description?: string;
   knowledge_count: number;
   config?: Record<string, unknown>;
+  rebuild_triggered?: { count: number; run_ids: string[] } | null;
 }
 
 export type ExtractorSourceKind = "url" | "file_pdf";
@@ -523,6 +542,22 @@ export type CorpusExtractorTargets = McpExtractorTargetConfig[];
 export type ExtractorDraftTarget = McpExtractorTargetConfig;
 export type ExtractorDraftRoute = [ExtractorDraftTarget, ExtractorDraftTarget];
 export type ExtractorDraftRoutes = Record<CorpusExtractorRouteKey, ExtractorDraftRoute>;
+
+export interface ModelConfigItem {
+  id: string;
+  model_type: "llm" | "embedding" | "rerank";
+  display_name: string;
+  vendor: string;
+  model_name: string;
+  is_default: boolean;
+  enabled: boolean;
+  config: Record<string, unknown>;
+}
+
+export interface CorpusModelsConfig {
+  llm_config_id?: string | null;
+  embedding_config_id?: string | null;
+}
 
 export interface CorpusExtractorRoutes {
   url?: CorpusExtractorRouteConfig;
@@ -640,14 +675,22 @@ export function buildExtractorRoutesFromDraft(
 export function buildCorpusConfig(
   chunkingConfig: ChunkingConfig,
   extractorRoutes?: CorpusExtractorRoutes | NormalizedCorpusExtractorRoutes,
+  models?: CorpusModelsConfig | null,
 ): Record<string, unknown> {
-  return {
+  const result: Record<string, unknown> = {
     ...(chunkingConfig as unknown as Record<string, unknown>),
     extractor_routes: {
       url: { targets: extractorRoutes?.url?.targets || [] },
       file_pdf: { targets: extractorRoutes?.file_pdf?.targets || [] },
     },
   };
+  if (models) {
+    const clean: Record<string, string> = {};
+    if (models.llm_config_id) clean.llm_config_id = models.llm_config_id;
+    if (models.embedding_config_id) clean.embedding_config_id = models.embedding_config_id;
+    if (Object.keys(clean).length > 0) result.models = clean;
+  }
+  return result;
 }
 
 export interface KnowledgeMatch {
@@ -934,6 +977,22 @@ export async function fetchDashboard(
 // ============================================================================
 // Corpus (Knowledge Base)
 // ============================================================================
+
+export async function fetchModelConfigs(params?: {
+  modelType?: string;
+  enabled?: boolean;
+}): Promise<ModelConfigItem[]> {
+  const qs = new URLSearchParams();
+  if (params?.modelType) qs.set("model_type", params.modelType);
+  if (params?.enabled !== undefined) qs.set("enabled", String(params.enabled));
+  const query = qs.toString();
+  const res = await fetch(`/api/interface/models/configs${query ? `?${query}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch model configs: ${res.statusText}`);
+  const data = await res.json();
+  return data.items || [];
+}
 
 export async function fetchCorpora(appName?: string): Promise<CorpusRecord[]> {
   const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
@@ -2088,12 +2147,48 @@ export async function upsertPipelines(params: {
 // Catalog Types (目录编册 — 对齐后端 catalog_dao.py)
 // ============================================================================
 
-export type CatalogNodeType = "category" | "collection" | "document_ref";
+/**
+ * 目录节点类型（对齐后端 0010 收敛）：
+ *   - `folder`：用户可见的目录容器（合并自历史 CATEGORY + COLLECTION）；
+ *   - `document_ref`：系统内部软引用，仅由 `assign_document` 自动创建，UI 不暴露创建入口。
+ *
+ * 历史值 `category` / `collection` 仍可能从老 API 响应中返回，前端按 `folder` 兜底渲染。
+ */
+export type CatalogNodeType =
+  | "folder"
+  | "document_ref"
+  | "category" // legacy
+  | "collection"; // legacy
 
-/** 目录节点 — 对齐后端 DocCatalogNode + CTE 扩展字段 */
+/** 全局 Catalog 元数据 — 对齐后端 DocCatalog ORM */
+export interface DocCatalog {
+  id: string;
+  name: string;
+  slug: string;
+  app_name: string;
+  description: string | null;
+  visibility: "private" | "internal" | "public";
+  is_archived: boolean;
+  version: number;
+  owner_id: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DocCatalogListResponse {
+  items: DocCatalog[];
+  total: number;
+}
+
+export interface DocCatalogDocumentsResponse {
+  items: KnowledgeDocument[];
+  total: number;
+}
+
+/** 目录节点 — 对齐后端 DocCatalogEntry + CTE 扩展字段 */
 export interface CatalogNode {
   id: string;
-  corpus_id: string;
+  catalog_id: string;
   name: string;
   slug: string;
   parent_id: string | null;
@@ -2114,7 +2209,7 @@ export interface CatalogNode {
 }
 
 export interface CreateCatalogNodeParams {
-  corpus_id: string;
+  catalog_id: string;
   name: string;
   slug: string;
   parent_id?: string | null;
@@ -2153,8 +2248,8 @@ export interface CatalogNodeDocumentsResponse {
 // ============================================================================
 
 /** 获取目录树（CTE 扁平化列表，含 depth/path） */
-export async function fetchCatalogTree(corpusId: string): Promise<CatalogNode[]> {
-  const res = await fetch(`/api/knowledge/catalog/tree/${corpusId}`, {
+export async function fetchCatalogTree(catalogId: string): Promise<CatalogNode[]> {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/tree`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch catalog tree: ${res.statusText}`);
@@ -2164,46 +2259,57 @@ export async function fetchCatalogTree(corpusId: string): Promise<CatalogNode[]>
 
 /** 获取目录节点列表（分页） */
 export async function fetchCatalogNodes(params: {
-  corpus_id?: string;
+  catalog_id: string;
   limit?: number;
   offset?: number;
 }): Promise<CatalogNodesResponse> {
   const query = new URLSearchParams();
-  if (params.corpus_id) query.set("corpus_id", params.corpus_id);
   if (params.limit != null) query.set("limit", String(params.limit));
   if (params.offset != null) query.set("offset", String(params.offset));
   const qs = query.toString();
-  const res = await fetch(`/api/knowledge/catalog${qs ? `?${qs}` : ""}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${params.catalog_id}/entries${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch catalog nodes: ${res.statusText}`);
   return res.json();
 }
 
-/** 创建目录节点 */
+/** 创建目录节点
+ *
+ * 后端契约（knowledge/api.py POST /catalogs/{catalog_id}/entries）：
+ *   catalog_id 作为路径参数；body 中其他字段。
+ */
 export async function createCatalogNode(params: CreateCatalogNodeParams): Promise<CatalogNode> {
-  const res = await fetch("/api/knowledge/catalog", {
+  const { catalog_id, ...body } = params;
+  // 防御性校验：catalog_id 若为空字符串，模板字符串会降级出 `/api/knowledge/catalogs//entries`，
+  // 经 Next.js URL 归一化后等效命中 `[catalogId]/route.ts`（catalogId="entries"），该路由无 POST 导致 405。
+  // 在此前置显式报错，避免低可观测性的静默漂移。
+  if (!catalog_id) {
+    throw new Error("catalog_id is required to create a catalog node");
+  }
+  const res = await fetch(`/api/knowledge/catalogs/${catalog_id}/entries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Failed to create catalog node: ${res.statusText}`);
   return res.json();
 }
 
 /** 获取单个目录节点详情 */
-export async function fetchCatalogNode(nodeId: string): Promise<CatalogNode> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { cache: "no-store" });
+export async function fetchCatalogNode(catalogId: string, nodeId: string): Promise<CatalogNode> {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch catalog node: ${res.statusText}`);
   return res.json();
 }
 
 /** 更新目录节点 */
 export async function updateCatalogNode(
+  catalogId: string,
   nodeId: string,
   params: UpdateCatalogNodeParams,
 ): Promise<CatalogNode> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -2213,13 +2319,14 @@ export async function updateCatalogNode(
 }
 
 /** 删除目录节点 */
-export async function deleteCatalogNode(nodeId: string): Promise<void> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}`, { method: "DELETE" });
+export async function deleteCatalogNode(catalogId: string, nodeId: string): Promise<void> {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete catalog node: ${res.statusText}`);
 }
 
 /** 获取目录节点下的文档列表（分页） */
 export async function fetchCatalogNodeDocuments(
+  catalogId: string,
   nodeId: string,
   options?: { limit?: number; offset?: number },
 ): Promise<CatalogNodeDocumentsResponse> {
@@ -2227,31 +2334,331 @@ export async function fetchCatalogNodeDocuments(
   if (options?.limit != null) query.set("limit", String(options.limit));
   if (options?.offset != null) query.set("offset", String(options.offset));
   const qs = query.toString();
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents${qs ? `?${qs}` : ""}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}/documents${qs ? `?${qs}` : ""}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch node documents: ${res.statusText}`);
   return res.json();
 }
 
-/** 将文档分配到目录节点 */
+/** 将文档分配到目录节点（通过批量端点） */
 export async function assignDocumentToNode(
+  catalogId: string,
   nodeId: string,
   docId: string,
 ): Promise<void> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}/documents`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_ids: [docId] }),
   });
   if (!res.ok) throw new Error(`Failed to assign document: ${res.statusText}`);
 }
 
 /** 从目录节点移除文档 */
 export async function unassignDocumentFromNode(
+  catalogId: string,
   nodeId: string,
   docId: string,
 ): Promise<void> {
-  const res = await fetch(`/api/knowledge/catalog/${nodeId}/documents/${docId}`, {
+  const res = await fetch(`/api/knowledge/catalogs/${catalogId}/entries/${nodeId}/documents/${docId}`, {
     method: "DELETE",
   });
   if (!res.ok) throw new Error(`Failed to unassign document: ${res.statusText}`);
+}
+
+/** 列出全局 Catalog（按 app_name 过滤） */
+export async function fetchCatalogs(params?: {
+  appName?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<DocCatalogListResponse> {
+  const query = new URLSearchParams();
+  if (params?.appName) query.set("app_name", params.appName);
+  if (params?.limit != null) query.set("limit", String(params.limit));
+  if (params?.offset != null) query.set("offset", String(params.offset));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/catalogs${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch catalogs: ${res.statusText}`);
+  return res.json();
+}
+
+/** 创建全局 Catalog */
+export async function createCatalog(params: {
+  app_name: string;
+  name: string;
+  slug: string;
+  visibility?: string;
+}): Promise<DocCatalog> {
+  const res = await fetch("/api/knowledge/catalogs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to create catalog: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取 Catalog 下可用文档（跨 corpus，用于 AddDocumentsDialog） */
+export async function fetchCatalogDocuments(
+  catalogId: string,
+  params?: { limit?: number; offset?: number },
+): Promise<DocCatalogDocumentsResponse> {
+  const query = new URLSearchParams();
+  if (params?.limit != null) query.set("limit", String(params.limit));
+  if (params?.offset != null) query.set("offset", String(params.offset));
+  const qs = query.toString();
+  const res = await fetch(
+    `/api/knowledge/catalogs/${catalogId}/documents${qs ? `?${qs}` : ""}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`Failed to fetch catalog documents: ${res.statusText}`);
+  return res.json();
+}
+
+// ============================================================================
+// Wiki Publishing Types
+// ============================================================================
+
+export type WikiPublicationStatus = "draft" | "published" | "archived";
+export type WikiTheme = "default" | "book" | "docs";
+
+export type WikiPublishMode = "live" | "snapshot";
+
+export interface WikiPublication {
+  id: string;
+  catalog_id: string;
+  app_name: string;
+  publish_mode: WikiPublishMode;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: WikiPublicationStatus;
+  theme: WikiTheme;
+  version: number;
+  published_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  entries_count: number;
+}
+
+export interface WikiPublicationListResponse {
+  items: WikiPublication[];
+  total: number;
+}
+
+export interface CreateWikiPublicationParams {
+  catalog_id: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  theme?: WikiTheme;
+  publish_mode?: WikiPublishMode;
+}
+
+export interface UpdateWikiPublicationParams {
+  name?: string;
+  description?: string;
+  theme?: WikiTheme;
+}
+
+export interface WikiEntry {
+  id: string;
+  publication_id: string;
+  document_id: string;
+  entry_slug: string;
+  entry_title: string | null;
+  is_index_page: boolean;
+  /** Materialized Path（list[str] 序列化为 JSON 字符串）。后端列名 entry_path（migration 0009）。 */
+  entry_path: string | null;
+  created_at: string | null;
+}
+
+export interface WikiEntryContent {
+  entry_id: string;
+  document_id: string;
+  entry_slug: string;
+  entry_title: string | null;
+  markdown_content: string | null;
+  document_filename: string;
+}
+
+/**
+ * Wiki 导航树 item（自 0011 起）。
+ *
+ * 历史「容器节点 entry_id=null」语义现仅在缺失 CONTAINER 条目时回退；
+ * 正常路径下 CONTAINER 条目持有真实 entry_id 与 catalog_node_id。
+ */
+export interface WikiNavTreeItem {
+  /** 叶/容器条目的 entry UUID；仅在缺 CONTAINER 时回退为 null */
+  entry_id: string | null;
+  /** 叶节点的源文档；容器节点为 null */
+  document_id: string | null;
+  /** 容器节点关联的 Catalog 节点 ID；DOCUMENT 节点为 null */
+  catalog_node_id?: string | null;
+  /** 条目类型；老响应缺省时按 `document_id` 是否非空推导 */
+  entry_kind?: "CONTAINER" | "DOCUMENT";
+  entry_slug: string;
+  entry_title: string;
+  is_index_page: boolean;
+  children?: WikiNavTreeItem[];
+}
+
+export interface WikiNavTreeResponse {
+  publication_id: string;
+  nav_tree: { items: WikiNavTreeItem[] };
+}
+
+export type WikiRevalidationStatus = "dispatched" | "failed" | "not_configured";
+
+export interface WikiPublishActionResponse {
+  publication_id: string;
+  status: WikiPublicationStatus;
+  version: number;
+  published_at: string | null;
+  entries_count: number;
+  message: string;
+  revalidation?: WikiRevalidationStatus;
+}
+
+export interface SyncFromCatalogParams {
+  catalog_node_ids: string[];
+}
+
+export interface SyncFromCatalogResponse {
+  synced_count: number;
+  errors: string[];
+  removed_count: number;
+}
+
+// ============================================================================
+// Wiki Publishing API Functions
+// ============================================================================
+
+/** 列出 Wiki 发布记录 */
+export async function fetchWikiPublications(params?: {
+  catalogId?: string;
+  status?: WikiPublicationStatus;
+  offset?: number;
+  limit?: number;
+}): Promise<WikiPublicationListResponse> {
+  const query = new URLSearchParams();
+  if (params?.catalogId) query.set("catalog_id", params.catalogId);
+  if (params?.status) query.set("status", params.status);
+  if (params?.offset != null) query.set("offset", String(params.offset));
+  if (params?.limit != null) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  const res = await fetch(`/api/knowledge/wiki/publications${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki publications: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取单个 Wiki 发布 */
+export async function fetchWikiPublication(pubId: string): Promise<WikiPublication> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki publication: ${res.statusText}`);
+  return res.json();
+}
+
+/** 创建 Wiki 发布 */
+export async function createWikiPublication(
+  params: CreateWikiPublicationParams,
+): Promise<WikiPublication> {
+  const res = await fetch(`/api/knowledge/wiki/publications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to create wiki publication: ${res.statusText}`);
+  return res.json();
+}
+
+/** 更新 Wiki 发布 */
+export async function updateWikiPublication(
+  pubId: string,
+  params: UpdateWikiPublicationParams,
+): Promise<WikiPublication> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(`Failed to update wiki publication: ${res.statusText}`);
+  return res.json();
+}
+
+/** 删除 Wiki 发布 */
+export async function deleteWikiPublication(pubId: string): Promise<void> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`Failed to delete wiki publication: ${res.statusText}`);
+}
+
+/** 发布 Wiki（draft/published → published，递增版本号） */
+export async function publishWiki(pubId: string): Promise<WikiPublishActionResponse> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/publish`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to publish wiki: ${res.statusText}`);
+  return res.json();
+}
+
+/** 取消发布（published → draft） */
+export async function unpublishWiki(pubId: string): Promise<WikiPublishActionResponse> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/unpublish`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to unpublish wiki: ${res.statusText}`);
+  return res.json();
+}
+
+/** 列出 Wiki 发布的条目 */
+export async function fetchWikiEntries(pubId: string): Promise<WikiEntry[]> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/entries`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki entries: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取 Wiki 导航树 */
+export async function fetchWikiNavTree(pubId: string): Promise<WikiNavTreeResponse> {
+  const res = await fetch(`/api/knowledge/wiki/publications/${pubId}/nav-tree`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki nav tree: ${res.statusText}`);
+  return res.json();
+}
+
+/** 获取 Wiki 条目内容（含 Markdown） */
+export async function fetchWikiEntryContent(entryId: string): Promise<WikiEntryContent> {
+  const res = await fetch(`/api/knowledge/wiki/entries/${entryId}/content`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch wiki entry content: ${res.statusText}`);
+  return res.json();
+}
+
+/** 从 Catalog 全量同步文档到 Wiki（幂等：未覆盖条目会被删除） */
+export async function syncWikiEntriesFromCatalog(
+  pubId: string,
+  params: SyncFromCatalogParams,
+): Promise<SyncFromCatalogResponse> {
+  const res = await fetch(
+    `/api/knowledge/wiki/publications/${pubId}/sync-from-catalog`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    },
+  );
+  if (!res.ok) throw new Error(`Failed to sync wiki from catalog: ${res.statusText}`);
+  return res.json();
 }
