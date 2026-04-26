@@ -408,3 +408,38 @@
   1. 端口治理范式参考 [ISSUE-005](#issue-005-废弃端口守护成为熵源)：所有"兼容旧值的运行时守护"应有退役期；本次直接修正默认值不引入兼容层。
   2. 其他 SSG 入口（`apps/negentropy-wiki/src/app/[pubSlug]/page.tsx`、`[pubSlug]/[...entrySlug]/page.tsx`）当前 catch 分支策略需同步审视，未来若引入相同的"fetch 失败兜底渲染"语义，应同步引入 `unstable_noStore()` 或迁出到 client-side fallback（建议 follow-up 专项审视，非本次范围）。
   3. **未来专项 ISSUE-021（占位）**：`apps/{negentropy-wiki,negentropy-ui}/scripts/start-production.mjs` 启动前应扫描 `.temp/<app>-runtime-*` 残留，清理非目录占位与超阈值 mtime 子目录；wiki+ui 同型缺口建议抽 `packages/next-standalone-runner` SSOT。本次按最小干预暂不动，仅以 ops §8.1 workaround 文档化。
+
+---
+
+## ISSUE-022 Wiki 详情页三栏布局 + 章目录（TOC）+ 折叠树形导航
+
+- **触发场景**：用户访问 `apps/negentropy-wiki` 详情页（`/:pubSlug/*entrySlug`），仅有「左侧导航 + 中间正文」两栏，左栏 `WikiNavTree` 始终全量铺开，右侧空白（CSS 层 `.wiki-toc` 仅占位注释「客户端动态生成」未实施），且 `lib/markdown.ts` 正则渲染**不注入 heading id**，长文档难以定位章节。
+- **根因（结构性缺口，非 bug）**：
+  1. **左栏可读性**：`WikiNavTree.tsx` 是无状态 Server Component，递归渲染 ul/li 时所有容器节点同时铺开，深层 nav tree 视觉噪声放大；与 Catalog 页独立维护视觉风格，未沿用业界 GitBook/VuePress 的「祖先链优先展开」范式。
+  2. **TOC 缺位**：`globals.css` 已为 `.wiki-toc` 预留样式占位，但 page 层没有可用 headings 数据源 —— 正则 markdown 渲染器（`renderMarkdown`）不输出 heading id，TOC 无法稳定锚点；改进路径已在 `markdown.ts` 注释中写明（升级 react-markdown + remark-gfm + rehype-katex），但未推进。
+  3. **三栏布局缺失**：`.wiki-layout` 沿用 flex 两栏，无右栏槽位；`data-toc` 状态管理需要客户端能力，但页面是 Server Component。
+- **处理方式**（基于 ISSUE-017 SSOT 契约 / ISSUE-020 ISR 不变量约束的无副作用增量改造）：
+  1. **依赖升级（最小集合）**：`apps/negentropy-wiki/package.json` 引入 `react-markdown ^10.1.0`（与 `negentropy-ui` 已在用版本对齐）+ `remark-gfm ^4.0.1` + `rehype-slug ^6.0.0` + `unified ^11` + `remark-parse ^11` + `mdast-util-to-string ^4` + `unist-util-visit ^5` + `github-slugger ^2`；devDeps 增 `@testing-library/react ^16.3.2` + `jsdom ^28.0.0`。
+  2. **正交分解三个新模块**：
+     - `src/lib/markdown-headings.ts::extractHeadings(md, { skipH1=true })` —— 服务端纯函数，用 `unified + remarkParse + remarkGfm` 解析 mdast，单实例 `GithubSlugger` **按文档顺序对每个 heading 都调用一次 `slug(text)`**（必须先 slug 后过滤），保证与 `rehype-slug` 注入的 `id` 严格一致（同库同顺序计数，重复文本均得 `intro-1/-2`）。
+     - `src/components/WikiLayoutShell.tsx`（client）—— 三栏外壳；React Context 持有 `tocCollapsed` 状态并写到根 `<div class="wiki-layout" data-toc="...">`；通过 `useEffect` 读 LS（`wiki:toc:collapsed`），首次 render 输出 `collapsed=false` 与 SSR 一致避免 hydration mismatch。
+     - `src/components/WikiToc.tsx`（client）—— TOC；通过 `useTocLayout()` 消费 Shell Context 的 `collapsed/toggle`；`IntersectionObserver` 实现 scroll-spy（`rootMargin: 0px 0px -70% 0px`），点击平滑滚动并 `history.replaceState` 写 hash；空 headings 时 `return null`。
+  3. **既有组件最小改造**：
+     - `WikiNavTree.tsx` 转 client，新增纯函数 `computeAncestorSlugs(items, activeSlug)` 派生初始 `expanded` Set；用户手动 toggle 后写入；ARIA `role=tree/treeitem/group`、`aria-expanded`、`aria-current="page"`；只读语义不引入 Catalog 的拖拽/编辑。
+     - `[pubSlug]/[...entrySlug]/page.tsx` 用 `WikiLayoutShell` 装配三栏；正文以 `<ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>` 替换 `dangerouslySetInnerHTML + renderMarkdown`；`hasToc` 由 `headings.length >= 2` 判定。
+     - `[pubSlug]/page.tsx` 同样包 `WikiLayoutShell` 但 `hasToc=false`，保持折叠风格一致。
+  4. **样式 contractive 升级**：`.wiki-layout` flex → CSS Grid 三态（`expanded`/`collapsed`/`none` 切换 `grid-template-columns`）；新增 `.wiki-toc-aside`/`.wiki-toc-rail`/`.wiki-toc-list/.wiki-toc-item.depth-{2,3,4}.active`；heading 加 `scroll-margin-top: 4.5rem` 兼容 sticky 顶栏；补 react-markdown 列表/任务框/表格样式；移动端（≤768px）三栏退化为单栏，TOC `display:none`（不引入悬浮抽屉，避免范围扩散）。
+  5. **测试替换**：删除 `tests/lib/markdown.test.ts`（断言旧正则输出，与新实现不兼容），新增 `markdown-headings.test.ts`（H1 过滤 / 重复标题去重 / 中文 slug / 顺序 / 内联格式剥离）+ `WikiNavTree.test.tsx`（祖先链派生）+ `WikiToc.test.tsx`（折叠态切换 / LS 持久化 / data-toc 写入 / 空 headings 不渲染，含 IntersectionObserver stub）；`vitest.config.ts` 增 `environment: "jsdom"` + 收纳 `*.test.tsx`。
+- **关键设计决策（业界范式锚定）**：
+  1. **三栏 = CSS Grid 而非 flex**：`grid-template-columns: var(--wiki-sidebar-width) minmax(0, 1fr) var(--wiki-toc-width)`，第三列宽度由 `data-toc` 三态切换；`minmax(0, 1fr)` 中栏避免子内容撑开（典型 flex `min-width: auto` 陷阱），与 Vercel docs / Notion 同型。
+  2. **Layout Shell 持有 TOC 状态**：避免 `WikiToc` 通过 `document.querySelector` 修改 layout 根的 `data-toc` 黑魔法；React Context 是组件间状态共享的正交分解（参考 ISSUE-019 教训：状态应通过组件树正向传递而非旁路 DOM）。
+  3. **服务端抽 headings + 客户端 TOC**：抽取在 SSG/ISR 阶段完成（命中 ISR 缓存后零成本），TOC 客户端只做 IntersectionObserver scroll-spy 与 LS 持久化，最小客户端 bundle 增量。
+  4. **slug 算法一致性**：`rehype-slug` 内部即用 `github-slugger`，自定义 `extractHeadings` **必须**用同实例同顺序逐个 slug，否则重复标题序号会漂移（与 ISSUE-017 SSOT 契约同源思路：双消费者必须共享同一计算契约）。
+- **后续防范**：
+  1. **客户端组件首次 render 输出必须与 SSR 一致**：所有 client 组件首次 render `collapsed=false` / `expanded=ancestors`，`useEffect` 内才读 LS / 写 LS，避免 React 19 hydration mismatch（参考 React docs `useSyncExternalStore` 的同源原则）。
+  2. **新增 BFF 代理 / SSG 数据源时端口默认值合约**：本次未引入新 fetch，但若 follow-up 增加 `/api/headings/{entryId}` 等端点，必须沿用 ISSUE-020 的端口 SSOT 范式（`backend-url.ts:DEFAULT_BACKEND_BASE_URL` + 校验脚本）。
+  3. **`react-markdown` 升级路径预留**：当前未引入 `rehype-pretty-code` 或 `shiki`（语法高亮）、`rehype-katex`（数学公式）、`rehype-autolink-headings`（heading 旁的锚点链接），后续如需可在 `[...entrySlug]/page.tsx` 的 `rehypePlugins` 中链式增量引入；优先评估 `negentropy-ui` 既有 `markdown-plugins.ts` 是否能抽 SSOT 共享。
+- **同类问题影响**：
+  1. **wiki app 与 negentropy-ui 的 markdown stack 仍未 SSOT**：本次 wiki app 独立持有 `react-markdown` 依赖；未来若 `negentropy-ui` 同步升级到 v10 或引入 KaTeX 等，应评估抽 `packages/markdown-config` 共享插件链。
+  2. **TOC 同型可在 Knowledge / Memory 长文档页复用**：`apps/negentropy-ui/features/knowledge/components/DocumentMarkdownRenderer.tsx` 可考虑同源 `WikiToc` 实现，但目标用户场景（管理后台 vs 公开阅读）差异大，本次不主动外推。
+  3. **左栏树折叠语义**：`WikiNavTree` 与 `apps/negentropy-ui/app/knowledge/catalog/_components/CatalogTree.tsx` 同样面对「层级数据 + 当前选中」语义，但前者只读、后者编辑，未来若产生第三个同型场景再考虑抽 SSOT。
