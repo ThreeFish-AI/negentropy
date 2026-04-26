@@ -329,14 +329,29 @@ class WikiPublishingService:
         db: AsyncSession,
         catalog_node_ids: list[UUID],
     ) -> tuple[list[tuple[list[str], dict]], list[tuple[list[str], Any]], list[str]]:
-        """遍历每个根节点子树，摊平为容器计划 + 文档计划两类序列。
+        """遍历最小覆盖根集，摊平为容器计划 + 文档计划两类序列。
+
+        当用户在选择对话框中同时勾选祖先与后代节点时（如 ``Harness-Engineering``
+        与其子目录 ``Paper`` 并选），原本应共享同一棵树的节点会被独立当作多个
+        同步根：第二轮以 ``Paper`` 为根的 ``get_subtree`` 不含其父节点，
+        :meth:`_build_path_slugs` 沿 ``parent_id`` 回溯时在 ``node_map`` 中找不到祖先
+        而提前终止，``Paper`` 的 ``path_slugs`` 退化为 ``["paper"]``，进而通过
+        ``upsert_container_entry`` ``(publication_id, catalog_node_id)`` 唯一键覆盖
+        首轮已正确写入的 ``["harness-engineering", "paper"]``，最终被
+        ``build_nav_tree`` 视为独立顶层根（``len(path) <= 1``）。
+
+        本函数因此先做 **最小覆盖根集（minimal antichain）** 过滤：若某入选节点是
+        另一入选节点的后代，则丢弃后代，仅保留处于其外层的祖先作为遍历根，确保
+        每个 FOLDER 仅在一棵子树语境下生成 plans，``entry_path`` 与 Catalog 原生
+        父子层级保持一致。
 
         Returns:
             ``(container_plans, document_plans, errors)`` ——
               - ``container_plans``：``[(path_slugs, node_dict), ...]``，每个
                 FOLDER 节点对应一条；
               - ``document_plans``：``[(path_slugs_with_parent_segment, doc), ...]``；
-              - ``errors``：遍历期错误（环检测、空子树）。
+              - ``errors``：遍历期错误（``empty_subtree`` / ``cycle_detected`` /
+                ``descendant_of:<ancestor_id>`` 表示因祖先并选而被丢弃）。
         """
         from negentropy.knowledge.catalog_dao import CatalogDao
 
@@ -344,12 +359,37 @@ class WikiPublishingService:
         document_plans: list[tuple[list[str], Any]] = []
         errors: list[str] = []
 
+        # P1: 拉取每个候选根的子树，缓存以避免在去重阶段重复 IO。
+        # dict 键去重天然处理同一 ID 重复传入的情况。
+        subtrees_by_root: dict[str, list[dict]] = {}
         for root_node_id in catalog_node_ids:
+            rid = str(root_node_id)
+            if rid in subtrees_by_root:
+                continue
             subtree = await CatalogDao.get_subtree(db, root_node_id)
             if not subtree:
                 errors.append(f"node:{root_node_id}:empty_subtree")
                 continue
+            subtrees_by_root[rid] = subtree
 
+        # P2: 计算最小覆盖根集。若 rid 出现在另一根的后代集合中，则丢弃 rid。
+        descendants_by_root: dict[str, set[str]] = {
+            rid: {str(n["id"]) for n in subtree if str(n["id"]) != rid} for rid, subtree in subtrees_by_root.items()
+        }
+        minimal_root_ids: list[str] = []
+        for rid in subtrees_by_root:
+            ancestor = next(
+                (other for other in subtrees_by_root if other != rid and rid in descendants_by_root[other]),
+                None,
+            )
+            if ancestor is not None:
+                errors.append(f"node:{rid}:descendant_of:{ancestor}")
+                continue
+            minimal_root_ids.append(rid)
+
+        # P3: 仅对最小根集生成 plans，下游 _apply_* 接口与契约不变。
+        for root_id in minimal_root_ids:
+            subtree = subtrees_by_root[root_id]
             node_map = {str(n["id"]): n for n in subtree}
 
             for node in subtree:
