@@ -285,13 +285,18 @@ class WikiPublishingService:
         """
         container_plans, document_plans, errors = await self._collect_subtree_plans(db, catalog_node_ids)
 
+        # 共享 slug 命名空间：``uq_wiki_entry_pub_slug`` 跨 entry_kind 全局唯一，
+        # CONTAINER 与 DOCUMENT 不能各自维护 dedup 集合（否则 FOLDER `b` 与同级
+        # 文档 ``b.md`` 会写入相同 slug 触发 IntegrityError）。
+        seen_slugs: set[str] = set()
+
         container_count, container_errors, synced_node_ids = await self._apply_container_mappings(
-            db, publication_id=publication_id, plans=container_plans
+            db, publication_id=publication_id, plans=container_plans, seen_slugs=seen_slugs
         )
         errors.extend(container_errors)
 
         synced, doc_errors, synced_doc_ids = await self._apply_document_mappings(
-            db, publication_id=publication_id, plans=document_plans
+            db, publication_id=publication_id, plans=document_plans, seen_slugs=seen_slugs
         )
         errors.extend(doc_errors)
 
@@ -393,11 +398,16 @@ class WikiPublishingService:
         *,
         publication_id: UUID,
         plans: list[tuple[list[str], dict]],
+        seen_slugs: set[str],
     ) -> tuple[int, list[str], set[str]]:
         """为每个 FOLDER 节点写入 CONTAINER 类型 Wiki Entry。
 
         ``entry_slug`` 取 path 拼接（与 DOCUMENT 同形态）；``entry_title`` 取
         Catalog 节点的 ``name``，弥补"用 slug 段当 title"的 UX 缺口。
+
+        ``seen_slugs`` 由调用方注入并与 :meth:`_apply_document_mappings` 共享，
+        以保证 CONTAINER / DOCUMENT 跨类型也能命中 ``uq_wiki_entry_pub_slug``
+        全局唯一约束的 dedup 兜底（``-2/-3`` 后缀）。
 
         Returns:
             ``(container_count, errors, synced_node_ids)``。
@@ -407,7 +417,6 @@ class WikiPublishingService:
         count = 0
         errors: list[str] = []
         synced_node_ids: set[str] = set()
-        seen_slugs: set[str] = set()
 
         for path_slugs, node in plans:
             if not path_slugs:
@@ -420,6 +429,8 @@ class WikiPublishingService:
             while final_slug in seen_slugs:
                 final_slug = f"{base_slug}-{dedup_idx}"
                 dedup_idx += 1
+            if final_slug != base_slug:
+                errors.append(f"renamed:node:{node.get('id')}:{base_slug}->:{final_slug}")
             seen_slugs.add(final_slug)
 
             entry_path = json.dumps(path_slugs)
@@ -443,8 +454,12 @@ class WikiPublishingService:
         *,
         publication_id: UUID,
         plans: list[tuple[list[str], Any]],
+        seen_slugs: set[str],
     ) -> tuple[int, list[str], set[str]]:
         """对 DOCUMENT 计划应用 Wiki Entry 映射；处理 markdown 就绪 + slug 冲突。
+
+        ``seen_slugs`` 与 :meth:`_apply_container_mappings` 共享，CONTAINER 先
+        登记 slug，DOCUMENT 端遇冲突则走 ``-2/-3`` 后缀兜底。
 
         Returns:
             ``(synced_count, errors, synced_doc_ids)``。
@@ -454,7 +469,6 @@ class WikiPublishingService:
         synced = 0
         errors: list[str] = []
         synced_doc_ids: set[str] = set()
-        seen_slugs: set[str] = set()
 
         for path_slugs, doc in plans:
             if getattr(doc, "markdown_extract_status", None) != "completed":

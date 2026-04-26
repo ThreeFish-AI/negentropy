@@ -463,8 +463,11 @@
   3. **PR-3 / Migration 0011 `wiki_entry_container_kind`**：新建 ENUM `wiki_entry_kind('CONTAINER','DOCUMENT')`；`WikiPublicationEntry` 加 `entry_kind` / `catalog_node_id`、`document_id` 改 nullable；CHECK 约束 `ck_wiki_entry_kind_payload` 保证两态 payload 互斥；partial unique index `uq_wiki_entry_pub_doc_active` / `uq_wiki_entry_pub_node_active` 替换原 `uq_wiki_entry_pub_doc`；`wiki_service.sync_entries_from_catalog` 重写为产出 container_plans + document_plans 两条流，分别经 `upsert_container_entry` / `upsert_entry` 写入；`wiki_tree.build_nav_tree` 改为优先消费 CONTAINER 真实元数据，缺失时降级合成（`_synthetic=True`）；
   4. **PR-4 前端创建对话框收敛**：移除「类型」select 控件（FOLDER 是唯一类型）；说明文案指引用户经节点详情页「挂载文档」按钮触发 `assign_document`；`CatalogTreeNode` 图标 / 徽标改用 NODE_TYPE_LABELS（中文「目录」/「文档」），历史 `category` / `collection` 兜底为 folder 视觉；
   5. **PR-5 Wiki SSG 与 UI 双侧消费 entry_kind**：`negentropy-wiki/lib/wiki-api.ts` 新增 `WikiNavTreeItem.entry_kind` / `catalog_node_id` 字段 + `isContainerItem` 工具函数；`WikiNavTree.tsx` / `WikiEntriesList.tsx` 改用 `entry_kind` 判断容器（向后兼容旧响应：缺省时按 `document_id` 兜底）。
+- **PR-3 复审收尾（同 PR 内修复，非新增 migration）**：
+  1. **CONTAINER / DOCUMENT entry_slug 跨类型冲突**：`_apply_container_mappings` 与 `_apply_document_mappings` 原各自维护独立 `seen_slugs`，但 `uq_wiki_entry_pub_slug` 是跨 `entry_kind` 的全局唯一约束——当父目录下既存在子 FOLDER `b` 又存在 slugify 后等于 `b` 的兄弟文档（如 `b.md`）时，DOCUMENT 端会以同 slug `IntegrityError` 命中、整次同步事务回滚。处理：将 `seen_slugs` 提升为同步会话级共享集合（在 `sync_entries_from_catalog` 初始化），CONTAINER 写入时先 `add`，DOCUMENT 端复用同一集合走 `-2/-3` 后缀兜底链（产出 `renamed:<doc_id>:<old>->:<new>` 错误标记便于运营观测）；CONTAINER 端同样补 `renamed:node:<id>:...` 标记保证 dedup 完全可观测；
+  2. **`catalog_node_id` FK 行为与 CHECK 约束矛盾**：原 `ON DELETE SET NULL` 与 `ck_wiki_entry_kind_payload`（CONTAINER 必填 `catalog_node_id`）天然冲突——级联 NULL 会触发 CHECK 失败、PG 反向阻止 Catalog FOLDER 删除（`delete_node` / `delete_catalog` 路径在已发布场景下 `IntegrityError`）。处理：迁移 0011 与 ORM `WikiPublicationEntry.catalog_node_id` 同步改为 `ON DELETE CASCADE`，与 publication 级 CASCADE 链路对齐——FOLDER 删除时其 CONTAINER 条目随之清理，不产生孤儿行。
 - **测试覆盖**：
-  - 后端：`test_catalog_node_type_unify.py`（FOLDER 默认 / DOCUMENT_REF 拒绝 / 历史值归一）、`test_catalog_dao_facade.py`（Façade 多继承契约）、扩展 `test_wiki_tree.py::TestBuildNavTreeContainerEntries`（5 例：显式 CONTAINER 替换合成、空容器子树可见、缺 CONTAINER 合成回退、混序输入正确装配、合成标记清理）；
+  - 后端：`test_catalog_node_type_unify.py`（FOLDER 默认 / DOCUMENT_REF 拒绝 / 历史值归一）、`test_catalog_dao_facade.py`（Façade 多继承契约）、扩展 `test_wiki_tree.py::TestBuildNavTreeContainerEntries`（5 例：显式 CONTAINER 替换合成、空容器子树可见、缺 CONTAINER 合成回退、混序输入正确装配、合成标记清理）、新增 `test_wiki_service_unit.py::TestWikiCatalogSync::test_sync_dedup_shares_slug_namespace_across_kinds`（FOLDER 与同名兄弟文档撞 slug 时走 `-2` 兜底，并产出 renamed 标记）；
   - 前端 UI：`catalog-create-node-dialog.test.tsx`（不渲染 select / 调用 node_type='folder' / 提示文案）、`catalog-tree-node-icons.test.tsx`（folder / document_ref / 历史值兜底）；
   - SSG：`wiki-nav-tree-kind.test.ts`（5 例：entry_kind 优先 / document_id 兜底 / 合成容器识别）。
 - **后续防范**：
@@ -473,6 +476,8 @@
   3. **Wiki 模型双职责拆分**：`WikiPublicationEntry` 现明确支持 CONTAINER + DOCUMENT 两类条目，CHECK 约束保证 payload 一致性；类似的"映射 + 元数据"双职责场景（如 `KgEntityMention` / `WikiPublicationSnapshot`）应警惕被压缩到单一外键导致结构压平；
   4. **PG ENUM 治理范式**：扩张枚举值采用 `autocommit_block + ADD VALUE IF NOT EXISTS`；不可 DROP VALUE 的限制要求"应用层禁止写入 + 在迁移注释明确死值"——参考 ISSUE-013 的 enum cast 处理同源；
   5. **PR 拆分纪律**：5 个 PR 严格按 Expand → Backfill → Contract 分离，每个均独立可合并 / 回滚；migration 0010 / 0011 解耦的好处在 PR-3 rebase 时验证。
+  6. **Negative Prompt：dedup 集合必须与「唯一约束的实际作用域」对齐**——多 writer 共写一张表时，每个 writer 各持本地 `seen_*` 集合是常见反模式；只要 DB 端的 unique constraint 是跨 writer 的全局视图，dedup 就必须提升为协调器级别的共享集合，否则跨类型冲突在小流量下被掩盖、在数据规模上线后才以 IntegrityError 暴露；
+  7. **Negative Prompt：FK 的 ON DELETE 行为必须与 CHECK 约束的可达状态求交集**——`ON DELETE SET NULL` 把 FK 列写成 NULL，若 NULL 不在 CHECK 约束的合法状态集合内，PG 会反向阻止父表删除；引入新的 partial CHECK 约束时，应同步检查所有引用此列的 FK ondelete 策略（CASCADE / RESTRICT / NO ACTION 是更安全的默认，SET NULL 仅在「NULL 是 CHECK 合法状态」时使用）。
 - **同类问题影响**：
   1. **`WikiPublicationEntry.is_index_page`** 当前仍按 DOCUMENT 语义解读；后续若让 CONTAINER 也支持"挂 landing 页"（Docusaurus `link.type=doc` 模式），可在 CONTAINER 行复用 `is_index_page` 表达"该容器有 landing 文档绑定"；
   2. **negentropy-wiki SSG 路由** `[pubSlug]/[...entrySlug]/page.tsx` 当前不消费 CONTAINER 条目（只渲染 DOCUMENT），未来若需为 CONTAINER 提供 landing 页路由，需扩展 `getEntryContent` 行为；

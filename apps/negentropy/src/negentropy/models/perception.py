@@ -308,8 +308,10 @@ class WikiPublicationEntry(Base, UUIDMixin, TimestampMixin):
     publication_id: Mapped[UUID] = mapped_column(fk("wiki_publications", ondelete="CASCADE"), nullable=False)
     # CONTAINER 行 document_id 为 NULL；DOCUMENT 行 catalog_node_id 为 NULL；CHECK 约束保证互斥。
     document_id: Mapped[UUID | None] = mapped_column(fk("knowledge_documents", ondelete="CASCADE"), nullable=True)
+    # ON DELETE CASCADE：CHECK 约束要求 CONTAINER 行 catalog_node_id 非空，
+    # SET NULL 会反向阻止 FOLDER 删除（详见 0011 迁移 docstring「FK 行为」段）。
     catalog_node_id: Mapped[UUID | None] = mapped_column(
-        fk("doc_catalog_entries", ondelete="SET NULL"),
+        fk("doc_catalog_entries", ondelete="CASCADE"),
         nullable=True,
     )
     entry_kind: Mapped[str] = mapped_column(

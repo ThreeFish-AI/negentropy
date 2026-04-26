@@ -29,6 +29,13 @@ Create Date: 2026-04-26 00:30:00.000000+00:00
 
   存量行（全是 DOCUMENT 类型）默认值正确，零数据修改。
 
+FK 行为（``catalog_node_id`` ON DELETE CASCADE）：
+  CHECK 约束 ``ck_wiki_entry_kind_payload`` 要求 CONTAINER 行 ``catalog_node_id``
+  非空，因此不能用 ``SET NULL``——级联 NULL 会触发 CHECK 失败、PG 反向阻止
+  Catalog FOLDER 删除（``delete_node`` / ``delete_catalog`` IntegrityError）。
+  采用 CASCADE：FOLDER 删除时其 CONTAINER 条目随之清理，与 publication 级
+  ``ON DELETE CASCADE`` 链路对齐，不再产生孤儿行。
+
 Downgrade 策略：
   - 反向 DROP 索引 / CHECK / 列 / 枚举；
   - 若已写入 CONTAINER 行，downgrade 前会校验失败（需先手工删除 CONTAINER 行）。
@@ -65,7 +72,9 @@ def upgrade() -> None:
     # =========================================================================
     # Phase 2：新增列
     #   - entry_kind：默认 'DOCUMENT'，向前兼容存量行
-    #   - catalog_node_id：FK to doc_catalog_entries，CONTAINER 模式必填
+    #   - catalog_node_id：FK to doc_catalog_entries，CONTAINER 模式必填；
+    #     ON DELETE CASCADE — CHECK 约束要求 CONTAINER 必填 catalog_node_id，
+    #     SET NULL 会反向阻止 FOLDER 删除（详见模块 docstring「FK 行为」段）。
     # =========================================================================
     op.execute(
         sa.text("""
@@ -79,7 +88,7 @@ def upgrade() -> None:
         sa.text("""
             ALTER TABLE negentropy.wiki_publication_entries
             ADD COLUMN IF NOT EXISTS catalog_node_id UUID
-                REFERENCES negentropy.doc_catalog_entries(id) ON DELETE SET NULL
+                REFERENCES negentropy.doc_catalog_entries(id) ON DELETE CASCADE
         """)
     )
 
