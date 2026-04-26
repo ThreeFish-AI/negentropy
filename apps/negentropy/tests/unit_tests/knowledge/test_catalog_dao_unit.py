@@ -130,7 +130,7 @@ def _make_node(**overrides: Any) -> SimpleNamespace:
         "name": "Test Node",
         "slug_override": "test-node",
         "parent_entry_id": None,
-        "node_type": "CATEGORY",
+        "node_type": "FOLDER",
         "description": None,
         "position": 0,
         "config": {},
@@ -206,8 +206,8 @@ class TestCatalogNodeCrud:
             name="Root Category",
             slug="root-category",
             parent_id=None,
-            node_type="category",
-            description="Top level category",
+            node_type="folder",
+            description="Top level folder",
             sort_order=1,
             config={"theme": "dark"},
         )
@@ -219,15 +219,15 @@ class TestCatalogNodeCrud:
         assert created.name == "Root Category"
         assert created.slug_override == "root-category"
         assert created.parent_entry_id is None
-        assert created.node_type == "CATEGORY"
-        assert created.description == "Top level category"
+        assert created.node_type == "FOLDER"
+        assert created.description == "Top level folder"
         assert created.position == 1
         assert created.config == {"theme": "dark"}
         assert node is created
 
     @pytest.mark.asyncio
     async def test_create_node_default_values(self) -> None:
-        """create_node 未传可选字段时应使用默认值：node_type=CATEGORY, position=0, config={}"""
+        """create_node 未传可选字段时应使用默认值：node_type=FOLDER, position=0, config={}"""
         catalog_id = uuid4()
         session = FakeAsyncSessionForCatalog()
 
@@ -239,9 +239,25 @@ class TestCatalogNodeCrud:
         )
 
         created = session.added[0]
-        assert created.node_type == "CATEGORY"
+        assert created.node_type == "FOLDER"
         assert created.position == 0
         assert created.config == {}
+
+    @pytest.mark.asyncio
+    async def test_create_node_legacy_category_mapped_to_folder(self) -> None:
+        """传入历史值 'category' / 'collection' 应自动映射为 FOLDER（兼容老前端）"""
+        catalog_id = uuid4()
+
+        for legacy_input in ("category", "collection"):
+            session = FakeAsyncSessionForCatalog()
+            await CatalogDao.create_node(
+                session,
+                catalog_id=catalog_id,
+                name=f"legacy-{legacy_input}",
+                slug=f"legacy-{legacy_input}",
+                node_type=legacy_input,
+            )
+            assert session.added[0].node_type == "FOLDER", f"legacy input {legacy_input!r} 应映射为 FOLDER"
 
     @pytest.mark.asyncio
     async def test_get_node_executes_select_by_id(self) -> None:

@@ -3667,7 +3667,7 @@ def _entry_orm_to_resp(
         parent_id=entry.parent_entry_id,
         name=entry.name,
         slug=_compute_slug(entry.name, entry.slug_override),
-        node_type=_ENUM_TO_NODE_TYPE.get(entry.node_type, entry.node_type) if entry.node_type else "category",
+        node_type=_ENUM_TO_NODE_TYPE.get(entry.node_type, entry.node_type) if entry.node_type else "folder",
         description=entry.description,
         sort_order=entry.position or 0,
         config=entry.config or {},

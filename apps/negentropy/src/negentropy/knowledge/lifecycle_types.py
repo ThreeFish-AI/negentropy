@@ -54,11 +54,19 @@ class DocSourceRecord:
 
 
 class CatalogNodeType(Enum):
-    """目录节点类型"""
+    """目录节点类型
 
-    CATEGORY = "category"  # 纯分类容器
-    COLLECTION = "collection"  # 有序集合
-    DOCUMENT_REF = "document_ref"  # 文档引用叶子节点
+    自 0010 起：``FOLDER`` 是唯一用户可见类型；``DOCUMENT_REF`` 仅由
+    ``CatalogDao.assign_document`` 自动创建。``CATEGORY`` / ``COLLECTION`` 保留
+    用于历史数据读取兼容（向 FOLDER 兜底），不应在新代码中写入。
+    """
+
+    FOLDER = "folder"  # 用户可见的目录容器（合并自 CATEGORY + COLLECTION）
+    DOCUMENT_REF = "document_ref"  # 文档软引用（系统内部，仅 assign_document 创建）
+
+    # 历史值兼容（仅用于读路径）
+    CATEGORY = "category"
+    COLLECTION = "collection"
 
 
 @dataclass(frozen=True)
