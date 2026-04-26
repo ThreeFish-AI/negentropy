@@ -82,6 +82,9 @@ export function HomeBody({
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(null);
   const perThreadLlmRef = useRef<Record<string, string | null>>({});
+  // 「无 session 时」用户预先选择的模型，待 startNewSession 后转入 perThreadLlmRef[newId]。
+  // undefined = 无 pending；null = 用户主动清空；string = 选定模型。
+  const pendingLlmRef = useRef<string | null | undefined>(undefined);
   const rawEventHandlerRef = useRef<((event: BaseEvent) => void) | undefined>(
     undefined,
   );
@@ -450,11 +453,21 @@ export function HomeBody({
 
   useEffect(() => {
     if (!sessionId) {
-      setSelectedLlmModel(null);
+      // 离开 session：保留 pending 选择，避免「无 session 选模型」的瞬时回退。
+      setSelectedLlmModel(pendingLlmRef.current ?? null);
       return;
     }
     if (sessionId in perThreadLlmRef.current) {
       setSelectedLlmModel(perThreadLlmRef.current[sessionId] ?? null);
+      pendingLlmRef.current = undefined;
+      return;
+    }
+    if (pendingLlmRef.current !== undefined) {
+      // 新 sessionId 第一次出现：把 pending 转入 perThreadLlmRef，让 Effect 2 跳过 snapshot 覆盖。
+      const carried = pendingLlmRef.current;
+      perThreadLlmRef.current[sessionId] = carried;
+      setSelectedLlmModel(carried ?? null);
+      pendingLlmRef.current = undefined;
       return;
     }
     setSelectedLlmModel(null);
@@ -478,6 +491,10 @@ export function HomeBody({
       setSelectedLlmModel(next);
       if (sessionId) {
         perThreadLlmRef.current[sessionId] = next;
+        pendingLlmRef.current = undefined;
+      } else {
+        // 用户在「无 session」状态下选模型：暂存到 pending，等 startNewSession 后由 Effect 1 转移。
+        pendingLlmRef.current = next;
       }
     },
     [sessionId],
