@@ -126,6 +126,12 @@ search:
 
 # --- Knowledge 配置 ---
 knowledge:
+  # Wiki SSG ISR 主动 revalidate webhook：publish/unpublish 完成后向 SSG 通知立即重渲染。
+  # 未配置 url → 退化为「被动 ISR」（SSG 自身 5 分钟窗口刷新），不阻塞发布主链路。
+  # secret 通过环境变量 NE_KNOWLEDGE_WIKI_REVALIDATE__SECRET 注入（生产必填，本地可空）。
+  wiki_revalidate:
+    url: http://localhost:3092/api/revalidate
+    timeout_seconds: 5.0
   default_extractor_routes:
     url:
       primary:

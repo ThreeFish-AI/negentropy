@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 
-const API_BASE = process.env.WIKI_API_BASE || "http://localhost:8000";
+const API_BASE = process.env.WIKI_API_BASE || "http://localhost:3292";
 
 export async function GET(request: Request) {
   const slug = new URL(request.url).searchParams.get("slug");

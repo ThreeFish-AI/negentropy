@@ -1,3 +1,5 @@
+import { unstable_noStore as noStore } from "next/cache";
+
 import { wikiApi, type WikiPublication } from "@/lib/wiki-api";
 
 // ISR: 5 分钟增量再验证
@@ -15,8 +17,11 @@ export default async function WikiHomePage() {
     const result = await wikiApi.listPublications();
     publications = result.items;
   } catch (err) {
+    // 失败本次响应不写入 ISR cache，避免空列表毒化 5 分钟；
+    // 回落为 per-request SSR 一次/请求，后端恢复后下次访问即可正常重建 ISR cache。
+    noStore();
     console.warn(
-      "[Wiki] Failed to fetch publications（后端不可达时回落为空列表，由 ISR 在首次请求时自愈）:",
+      "[Wiki] Failed to fetch publications（已退化为 per-request SSR，恢复后自动重建 ISR）:",
       err,
     );
   }
