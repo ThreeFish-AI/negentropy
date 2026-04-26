@@ -819,6 +819,14 @@ export default function KnowledgeBasePage() {
       setRetrievalResults(res.items);
       setRetrievalDocked(true);
       setIsCorpusPanelExpanded(false);
+      if (res.errors && res.errors.length > 0) {
+        // 部分 Corpus 检索失败：展示成功项 + 顶部警示，避免静默丢失
+        const summary = res.errors
+          .map((e) => `[${e.corpusId.slice(0, 8)}] ${e.message}`)
+          .join("; ")
+          .slice(0, 200);
+        toast.warning(`部分语料检索失败：${summary}`);
+      }
     } catch (err) {
       setRetrievalError(err instanceof Error ? err.message : "Retrieve failed");
     } finally {

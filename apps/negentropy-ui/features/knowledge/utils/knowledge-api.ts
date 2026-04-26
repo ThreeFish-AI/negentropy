@@ -836,9 +836,15 @@ export interface AsyncPipelineResult {
   message: string;
 }
 
+export interface SearchResultError {
+  corpusId: string;
+  message: string;
+}
+
 export interface SearchResults {
   count: number;
   items: KnowledgeMatch[];
+  errors?: SearchResultError[];
 }
 
 export interface GraphUpsertResult {
@@ -1825,16 +1831,37 @@ export async function searchAcrossCorpora(
   );
 
   const mergedItems: KnowledgeMatch[] = [];
-  settled.forEach((item) => {
+  const errors: SearchResultError[] = [];
+  settled.forEach((item, idx) => {
     if (item.status === "fulfilled") {
       mergedItems.push(...item.value);
+    } else {
+      const corpusId = corpusIds[idx];
+      const reason = item.reason;
+      const message =
+        reason instanceof Error
+          ? reason.message
+          : typeof reason === "string"
+            ? reason
+            : "Unknown error";
+      errors.push({ corpusId, message });
     }
   });
+
+  // 全部失败 → 抛聚合错误，让调用方走错误路径
+  if (errors.length === corpusIds.length && corpusIds.length > 0) {
+    const merged = errors
+      .map((e) => `[${e.corpusId.slice(0, 8)}] ${e.message}`)
+      .join("; ");
+    throw new Error(merged.slice(0, 200));
+  }
+
   mergedItems.sort((a, b) => (b.combined_score ?? 0) - (a.combined_score ?? 0));
 
   return {
     count: mergedItems.length,
     items: params.limit ? mergedItems.slice(0, params.limit) : mergedItems,
+    ...(errors.length > 0 ? { errors } : {}),
   };
 }
 

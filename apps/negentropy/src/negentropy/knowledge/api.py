@@ -266,7 +266,16 @@ def _map_exception_to_http(exc: KnowledgeError) -> HTTPException:
             detail={"code": exc.code, "message": str(exc), "details": exc.details},
         )
 
-    if isinstance(exc, (EmbeddingFailed, SearchError)):
+    if isinstance(exc, EmbeddingFailed):
+        # 上游 Embedding 服务故障（vendor 4xx/5xx、连接异常等）：
+        # 语义上属于 Bad Gateway 而非内部错误，便于前端区分"自身可重试"与"上游修复后再试"。
+        logger.error("infrastructure_error", details=exc.details)
+        return HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={"code": exc.code, "message": str(exc), "details": exc.details},
+        )
+
+    if isinstance(exc, SearchError):
         logger.error("infrastructure_error", details=exc.details)
         return HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
