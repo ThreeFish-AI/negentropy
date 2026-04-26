@@ -50,7 +50,9 @@
       "dompurify": ">=3.4.0",
       "lodash-es": ">=4.18.1",
       "picomatch": ">=4.0.4",
-      "follow-redirects": ">=1.16.0"
+      "follow-redirects": ">=1.16.0",
+      "postcss": ">=8.5.10",
+      "uuid": ">=14.0.0"
     }
   },
   "devDependencies": {
