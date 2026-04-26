@@ -347,6 +347,9 @@ class SubAgentResponse(BaseModel):
     source: str = "user_defined"
     is_builtin: bool = False
     is_enabled: bool
+    # `kind` 来源于 ``config.adk_config.kind``：``"root"`` 标记 Negentropy 主 Agent，
+    # ``"subagent"``（默认）适用于 Faculty 与用户自定义子 Agent。前端按此置顶 + Root 徽章。
+    kind: str = "subagent"
 
     class Config:
         from_attributes = True
@@ -1264,12 +1267,15 @@ async def sync_negentropy_subagents(
     user: AuthUser = Depends(get_current_user),
 ) -> NegentropySubAgentSyncResponse:
     """
-    将代码中的 5 个 Faculty SubAgent 同步到插件表。
+    将代码中的 **主 Agent (NegentropyEngine) + 5 个 Faculty SubAgent** 同步到插件表。
 
     幂等语义：
     - 已存在且归属当前用户：更新为最新代码定义；
     - 已存在但归属其他用户：跳过；
     - 不存在：创建。
+
+    Sync 完成后批量失效 ``subagent:`` 前缀缓存，使 ``DynamicRootLiteLlm`` /
+    ``DynamicSubagentLiteLlm`` 与 ``InstructionProvider`` 立即看到 DB 最新值。
     """
     from .subagent_presets import build_negentropy_subagent_payloads
 
@@ -1339,6 +1345,9 @@ async def sync_negentropy_subagents(
 
         for agent in touched_agents:
             await db.refresh(agent)
+
+    # 批量失效，让运行时 model + instruction 立即看到 Sync 后的 DB 值。
+    invalidate_model_cache(prefix="subagent:")
 
     return NegentropySubAgentSyncResponse(
         created=created_count,
@@ -1529,6 +1538,8 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
     config = _json_dict(agent.config)
     source = _resolve_subagent_source(config)
     adk_config = _extract_adk_config(agent)
+    raw_kind = adk_config.get("kind") if isinstance(adk_config, dict) else None
+    kind = raw_kind if raw_kind in ("root", "subagent") else "subagent"
     return SubAgentResponse(
         id=agent.id,
         owner_id=agent.owner_id,
@@ -1546,6 +1557,7 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
         source=source,
         is_builtin=source == "negentropy_builtin",
         is_enabled=agent.is_enabled,
+        kind=kind,
     )
 
 
