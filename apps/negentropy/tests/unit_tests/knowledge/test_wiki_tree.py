@@ -22,15 +22,21 @@ def _entry(
     entry_path: object,
     entry_title: str | None = None,
     is_index_page: bool = False,
+    entry_kind: str = "DOCUMENT",
+    catalog_node_id: object | None = None,
 ) -> SimpleNamespace:
-    """生成测试用 entry-like 对象（支持鸭子类型）。"""
+    """生成测试用 entry-like 对象（DOCUMENT 默认；指定 entry_kind=CONTAINER 时切换语义）。"""
     return SimpleNamespace(
         id=uuid4(),
-        document_id=uuid4(),
+        document_id=uuid4() if entry_kind == "DOCUMENT" else None,
+        catalog_node_id=catalog_node_id
+        if catalog_node_id is not None
+        else (None if entry_kind == "DOCUMENT" else uuid4()),
         entry_slug=entry_slug,
         entry_title=entry_title or entry_slug,
         is_index_page=is_index_page,
         entry_path=entry_path,
+        entry_kind=entry_kind,
     )
 
 
@@ -133,3 +139,82 @@ class TestBuildNavTree:
         )
         tree = build_nav_tree([e])
         assert tree[0]["is_index_page"] is True
+
+
+class TestBuildNavTreeContainerEntries:
+    """0011 引入 CONTAINER 类型条目后的导航树合成行为锁定。"""
+
+    def test_explicit_container_entry_replaces_synthetic(self):
+        """CONTAINER 条目存在时应承载真实 entry_id 与 entry_title（而非 slug 段）。"""
+        container = _entry(
+            entry_slug="docs",
+            entry_title="官方文档",
+            entry_path=["docs"],
+            entry_kind="CONTAINER",
+        )
+        leaf = _entry(entry_slug="docs/install", entry_path=["docs", "install"])
+
+        tree = build_nav_tree([container, leaf])
+
+        assert len(tree) == 1
+        c = tree[0]
+        assert c["entry_kind"] == "CONTAINER"
+        assert c["entry_id"] == str(container.id), "CONTAINER 条目 entry_id 应非 None"
+        assert c["entry_title"] == "官方文档", "应使用 Catalog 节点 name 而非 slug 段"
+        assert c["catalog_node_id"] == str(container.catalog_node_id)
+        assert len(c["children"]) == 1
+        assert c["children"][0]["entry_kind"] == "DOCUMENT"
+
+    def test_empty_container_subtree_remains_visible(self):
+        """无后代文档的 CONTAINER 子树仍出现在导航树中（消除"空容器消失"问题）。"""
+        c1 = _entry(entry_slug="root", entry_path=["root"], entry_kind="CONTAINER", entry_title="根目录")
+        c2 = _entry(entry_slug="root/empty", entry_path=["root", "empty"], entry_kind="CONTAINER", entry_title="空集")
+
+        tree = build_nav_tree([c1, c2])
+        assert len(tree) == 1
+        assert tree[0]["entry_title"] == "根目录"
+        assert len(tree[0]["children"]) == 1
+        assert tree[0]["children"][0]["entry_title"] == "空集"
+        assert tree[0]["children"][0]["children"] == []
+
+    def test_synthetic_fallback_when_container_missing(self):
+        """历史数据无 CONTAINER 条目时应降级合成（兼容性）。"""
+        leaf = _entry(entry_slug="legacy/doc", entry_path=["legacy", "doc"])
+        tree = build_nav_tree([leaf])
+        assert len(tree) == 1
+        c = tree[0]
+        assert c["entry_id"] is None, "缺 CONTAINER 时合成节点 entry_id 应为 None"
+        assert c["entry_kind"] == "CONTAINER"
+        assert c["entry_title"] == "legacy"
+
+    def test_container_and_documents_kept_in_correct_order(self):
+        """同层 CONTAINER 与 DOCUMENT 共存时，CONTAINER 节点先注册（保证父在子前）。"""
+        container = _entry(
+            entry_slug="docs/eng",
+            entry_path=["docs", "eng"],
+            entry_kind="CONTAINER",
+            entry_title="工程",
+        )
+        leaf = _entry(entry_slug="docs/eng/intro", entry_path=["docs", "eng", "intro"])
+
+        tree = build_nav_tree([leaf, container])  # 故意乱序输入
+
+        # docs（合成）→ eng（CONTAINER 真实）→ intro（DOCUMENT）
+        assert tree[0]["entry_slug"] == "docs"
+        eng = tree[0]["children"][0]
+        assert eng["entry_kind"] == "CONTAINER"
+        assert eng["entry_id"] == str(container.id)
+        assert eng["entry_title"] == "工程"
+        assert eng["children"][0]["entry_slug"] == "docs/eng/intro"
+
+    def test_synthetic_marker_stripped_from_output(self):
+        """合成的 _synthetic 标记应在最终输出前清理。"""
+        leaf = _entry(entry_slug="a/b", entry_path=["a", "b"])
+        tree = build_nav_tree([leaf])
+
+        def _walk(items):
+            for it in items:
+                assert "_synthetic" not in it
+                _walk(it.get("children", []))
+
+        _walk(tree)

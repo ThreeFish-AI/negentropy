@@ -12,6 +12,7 @@ from datetime import UTC
 from typing import Any
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -234,14 +235,16 @@ class WikiDao:
         entry_path: str | None = None,
         is_index_page: bool = False,
     ) -> WikiPublicationEntry:
-        """创建或更新条目映射（幂等：同一 publication+document 组合只保留一条）。
+        """创建或更新 DOCUMENT 类型条目（幂等：同一 publication+document 组合只保留一条）。
 
         ``entry_path``：``list[str]`` 序列化后的 JSON 字符串（Materialized Path）。
+        ``entry_kind`` 始终设为 ``"DOCUMENT"``；``catalog_node_id`` 必为 NULL。
         """
         existing = await db.execute(
             select(WikiPublicationEntry).where(
                 WikiPublicationEntry.publication_id == publication_id,
                 WikiPublicationEntry.document_id == document_id,
+                WikiPublicationEntry.entry_kind == "DOCUMENT",
             )
         )
         rec = existing.scalar_one_or_none()
@@ -260,6 +263,53 @@ class WikiDao:
                 entry_title=entry_title,
                 entry_path=entry_path,
                 is_index_page=is_index_page,
+                entry_kind="DOCUMENT",
+            )
+            db.add(rec)
+
+        await db.flush()
+        return rec
+
+    @staticmethod
+    async def upsert_container_entry(
+        db: AsyncSession,
+        *,
+        publication_id: UUID,
+        catalog_node_id: UUID,
+        entry_slug: str,
+        entry_title: str | None,
+        entry_path: str | None,
+    ) -> WikiPublicationEntry:
+        """创建或更新 CONTAINER 类型条目（幂等：同一 publication+catalog_node 组合只保留一条）。
+
+        CONTAINER 条目对应 Catalog 中的 FOLDER 节点，提供导航树容器的元数据载体
+        （title、description、entry_id），消除"用 slug 字符串合成虚拟容器"的痛点。
+
+        ``document_id`` 强制为 NULL；``entry_kind=CONTAINER``。
+        """
+        existing = await db.execute(
+            select(WikiPublicationEntry).where(
+                WikiPublicationEntry.publication_id == publication_id,
+                WikiPublicationEntry.catalog_node_id == catalog_node_id,
+                WikiPublicationEntry.entry_kind == "CONTAINER",
+            )
+        )
+        rec = existing.scalar_one_or_none()
+
+        if rec is not None:
+            rec.entry_slug = entry_slug
+            rec.entry_title = entry_title
+            rec.entry_path = entry_path
+        else:
+            rec = WikiPublicationEntry(
+                publication_id=publication_id,
+                document_id=None,
+                catalog_node_id=catalog_node_id,
+                entry_slug=entry_slug,
+                entry_title=entry_title,
+                entry_path=entry_path,
+                is_index_page=False,
+                entry_kind="CONTAINER",
             )
             db.add(rec)
 
@@ -367,23 +417,49 @@ class WikiDao:
         db: AsyncSession,
         publication_id: UUID,
         keep_document_ids: set[str],
+        keep_container_node_ids: set[str] | None = None,
     ) -> int:
-        """移除不再属于同步范围的条目（幂等性保证）"""
+        """移除不再属于同步范围的条目（幂等性保证）。
+
+        分别保留 ``DOCUMENT`` 类型中 document_id ∈ keep_document_ids 与
+        ``CONTAINER`` 类型中 catalog_node_id ∈ keep_container_node_ids 的行；
+        其余删除。
+        """
+        from sqlalchemy import and_, or_
         from sqlalchemy import delete as sql_delete
 
-        if not keep_document_ids:
+        keep_doc_uuids = [UUID(did) for did in keep_document_ids] if keep_document_ids else []
+        keep_node_uuids = [UUID(nid) for nid in keep_container_node_ids] if keep_container_node_ids else []
+
+        # 构造保留条件：DOCUMENT 行 document_id ∈ doc_keep，或 CONTAINER 行 catalog_node_id ∈ node_keep
+        keep_clauses = []
+        if keep_doc_uuids:
+            keep_clauses.append(
+                and_(
+                    WikiPublicationEntry.entry_kind == "DOCUMENT",
+                    WikiPublicationEntry.document_id.in_(keep_doc_uuids),
+                )
+            )
+        if keep_node_uuids:
+            keep_clauses.append(
+                and_(
+                    WikiPublicationEntry.entry_kind == "CONTAINER",
+                    WikiPublicationEntry.catalog_node_id.in_(keep_node_uuids),
+                )
+            )
+
+        if not keep_clauses:
             result = await db.execute(
                 sql_delete(WikiPublicationEntry).where(
                     WikiPublicationEntry.publication_id == publication_id,
                 )
             )
         else:
+            keep_predicate = or_(*keep_clauses) if len(keep_clauses) > 1 else keep_clauses[0]
             result = await db.execute(
                 sql_delete(WikiPublicationEntry).where(
                     WikiPublicationEntry.publication_id == publication_id,
-                    WikiPublicationEntry.document_id.notin_(
-                        [UUID(did) for did in keep_document_ids],
-                    ),
+                    sa.not_(keep_predicate),
                 )
             )
         await db.flush()

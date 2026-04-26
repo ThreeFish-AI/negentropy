@@ -202,13 +202,19 @@ class TestWikiCatalogSync:
             _ = db
             captured.update(kwargs)
 
-        async def fake_remove_stale_entries(db, publication_id, keep_document_ids):
-            _ = (db, publication_id, keep_document_ids)
+        async def fake_upsert_container_entry(db, **kwargs):
+            _ = (db, kwargs)  # 容器条目写入路径在 0011 后已加入；本用例只断言 DOCUMENT 行为，不捕获
+
+        async def fake_remove_stale_entries(db, publication_id, keep_document_ids, keep_container_node_ids=None):
+            _ = (db, publication_id, keep_document_ids, keep_container_node_ids)
             return 0
 
         monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents)
         monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr(
+            "negentropy.knowledge.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+        )
         monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries)
 
         result = await service.sync_entries_from_catalog(
