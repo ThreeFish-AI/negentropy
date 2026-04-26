@@ -384,3 +384,27 @@
   2. 模式建议：`useEffect` 与 `useCallback` 依赖中**禁止**直接依赖未稳定化的 callback 引用；优先「effect 内内联 + ESLint disable + 注释解释为什么」，而非「层层 useCallback 包装」。
   3. **dialog/modal 容器抽象**应统一处理 keyboard / backdrop 关闭与生命周期；新增对话框直接复用 `BaseModal`，不再各自维护壳层逻辑。
 - **同类问题影响**：所有 `useEffect` 依赖中含 `useCallback` 而 callback 又依赖 prop 数组/对象的组件（特别是 `Dialog` / `Form` 类），同型扫荡时关注 `[*, fooCallback]` 与 `useCallback(fn, [propArr])` 的组合。
+
+---
+
+## ISSUE-020 Wiki SSG 默认后端端口与负载端口不一致 + webhook 默认未配置 联合致「同步并发布后首页一直空」
+
+- **表因**：用户在 http://localhost:3192/knowledge/wiki 点击「同步并发布」 v5 后，刷新 http://localhost:3092/ 始终显示「暂无已发布的 Wiki」；本地 `pnpm dev` 启动 wiki SSG 时反复输出 `[Wiki] Failed to fetch publications: TypeError: fetch failed { code: 'ECONNREFUSED' }`，并伴随 `Failed to update prerender cache for /index [Error: ENOTDIR ...]` 噪声。
+- **根因**：三因并发，构成「端口错配 → 空列表写盘 → 自愈失效」自我强化闭环：
+  1. **端口默认值跨进程漂移**：`apps/negentropy/src/negentropy/cli.py:51,91` 后端默认监听 `3292`（项目端口 SSOT），`apps/negentropy-ui/lib/server/backend-url.ts:DEFAULT_BACKEND_BASE_URL` 已对齐 `3292`；但 `apps/negentropy-wiki/{src/lib/wiki-api.ts:10, next.config.ts:4, src/app/api/content-status/route.ts:10}` 三处 `WIKI_API_BASE` 默认值仍为 `http://localhost:8000`（早期遗留），且仓库无 `apps/negentropy-wiki/.env*` 覆盖文件，致 SSG fetch 永远 ECONNREFUSED。
+  2. **webhook 默认通路被动失活**：`apps/negentropy/src/negentropy/config/knowledge.py:71` `WikiRevalidateSettings.url: str | None = None`；`apps/negentropy/src/negentropy/config/config.default.yaml` 的 `knowledge:` 块未声明 `wiki_revalidate.url` 默认值；`apps/negentropy/src/negentropy/knowledge/revalidate.py:69-71` 检测到 `not cfg.url` 即返回 `"not_configured"` 不阻塞发布——结果数据库写入 v5 成功但 SSG 端从未被通知。
+  3. **ISR 缓存毒化**：`apps/negentropy-wiki/src/app/page.tsx:14-22` catch 后 `publications=[]`，叠加 `page.tsx:3` `export const revalidate = 300`，致空数组被 Next.js 持久化为 ISR 静态产物缓存 5 分钟；webhook 主动 revalidate 也仅 mark cache stale，下次请求若 fetch 仍失败（端口错配未修），再次写入空数组，闭环。
+- **次生噪声**：`Failed to update prerender cache [ENOTDIR]` 路径形如 `.temp/negentropy-wiki-runtime-WLDJQT/.next/server` —— 来自 `apps/negentropy-wiki/scripts/start-production.mjs:38-46` 在 `pnpm start` 时创建的临时运行时目录；SIGINT/SIGTERM 走 cleanup 但异常退出（kill -9、容器 OOM）会残留。本次仅文档化 workaround（`rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev），代码治理延后。
+- **处理方式**（最小干预 + SSOT 对齐）：
+  1. 三处 `WIKI_API_BASE` 默认值统一改为 `http://localhost:3292`，与 `cli.py` + `backend-url.ts` 同源；不引入「废弃端口守护」（参考 ISSUE-005 教训：废弃值即熵源）。
+  2. `config.default.yaml` 的 `knowledge:` 块新增 `wiki_revalidate.url: http://localhost:3092/api/revalidate` + `timeout_seconds: 5.0`；secret 仍由 `NE_KNOWLEDGE_WIKI_REVALIDATE__SECRET` 环境变量注入（生产必填，本地容错）。`WikiRevalidateSettings` schema 零改动，`tests/unit_tests/knowledge/test_revalidate.py` 5 例用例显式构造 cfg 不依赖默认值，回归零风险。
+  3. `page.tsx` catch 分支引入 `unstable_noStore()`（Next.js 15 next ^15.5.15 已稳定支持）：失败本次响应不写入 ISR cache，回落为 per-request SSR 一次/请求；后端恢复后下次访问即可正常重建 ISR cache。`export const revalidate = 300` 保留，成功路径仍享 ISR；与 AGENTS.md 「Evolutionary Design」一致——把失败转化为可观测、可自愈的反馈环。
+  4. `docs/negentropy-wiki-ops.md` §3.1 表格、§4.3 后端联调、§8.1 故障排除三处文档同步校正端口与排查步骤。
+- **后续防范**：
+  1. **跨进程默认值即合约**：所有跨进程默认端口、URL、密钥需在初始化时声明 SSOT 出处（参考 `apps/negentropy-ui/lib/server/backend-url.ts:DEFAULT_BACKEND_BASE_URL` 范式）；CR 评审涉及 `process.env.X || "http://localhost:NNNN"` 模板时，必须显式核对该端口是否与项目唯一端口分配表一致。
+  2. **「降级为兜底空」的 catch 必须配套缓存失效声明**：任何 `catch (err) { return [] }` 模式在 SSG/ISR 上下文中都属潜在自愈陷阱；catch 块需配合 `unstable_noStore()` 或显式 `throw` 让上层错误边界接管，禁止"静默写盘空数组"。
+  3. **CHANGELOG 写作纪律**：默认值变更属"行为契约变更"，必须在 `### Changed` 段（或 `### Fixed` 配合 changelog 表述）显式登记并提示用户更新本地配置覆盖。
+- **同类问题影响**：
+  1. 端口治理范式参考 [ISSUE-005](#issue-005-废弃端口守护成为熵源)：所有"兼容旧值的运行时守护"应有退役期；本次直接修正默认值不引入兼容层。
+  2. 其他 SSG 入口（`apps/negentropy-wiki/src/app/[pubSlug]/page.tsx`、`[pubSlug]/[...entrySlug]/page.tsx`）当前 catch 分支策略需同步审视，未来若引入相同的"fetch 失败兜底渲染"语义，应同步引入 `unstable_noStore()` 或迁出到 client-side fallback（建议 follow-up 专项审视，非本次范围）。
+  3. **未来专项 ISSUE-021（占位）**：`apps/{negentropy-wiki,negentropy-ui}/scripts/start-production.mjs` 启动前应扫描 `.temp/<app>-runtime-*` 残留，清理非目录占位与超阈值 mtime 子目录；wiki+ui 同型缺口建议抽 `packages/next-standalone-runner` SSOT。本次按最小干预暂不动，仅以 ops §8.1 workaround 文档化。

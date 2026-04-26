@@ -86,9 +86,9 @@ flowchart LR
 
 ### 3.1 环境变量
 
-| 变量名          | 默认值                  | 说明              |
-| --------------- | ----------------------- | ----------------- |
-| `WIKI_API_BASE` | `http://localhost:3092` | 后端 API 基础地址 |
+| 变量名          | 默认值                  | 说明                                                          |
+| --------------- | ----------------------- | ------------------------------------------------------------- |
+| `WIKI_API_BASE` | `http://localhost:3292` | 后端 negentropy 引擎地址（与 `cli.py` 默认监听端口对齐）      |
 
 ### 3.2 依赖版本
 
@@ -135,7 +135,7 @@ async rewrites() {
 }
 ```
 
-确保后端服务运行在 `WIKI_API_BASE` 指定的地址（默认 `localhost:8000`）。
+确保后端服务运行在 `WIKI_API_BASE` 指定的地址（默认 `localhost:3292`，与 `apps/negentropy/src/negentropy/cli.py` 默认监听端口同源）。
 
 ---
 
@@ -260,6 +260,7 @@ CMD ["node", "server.js"]
 | 问题                                      | 可能原因                               | 解决方案                                                                                                                              |
 | ----------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | 构建期告警 "Failed to fetch publications" | 后端 API 不可达（WARN 级，不阻断构建） | 后端暂不可达时 SSG 渲染空首页，首次请求由 ISR 自动自愈（5 分钟窗口）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性 |
+| 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（详见 [docs/issue.md ISSUE-020](./issue.md#issue-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
 | 页面显示 "Wiki 未找到"                    | Publication 未发布或 slug 错误         | 检查后端 Publication 状态                                                                                                             |
 | 页面内容不更新                            | ISR 缓存未过期                         | 等待 5 分钟或重新部署                                                                                                                 |
 | 深色模式样式异常                          | 浏览器未启用深色模式                   | 检查系统深色模式设置                                                                                                                  |

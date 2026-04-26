@@ -7,8 +7,8 @@
 
 const API_BASE =
   typeof process !== "undefined"
-    ? process.env.WIKI_API_BASE || "http://localhost:8000"
-    : "http://localhost:8000";
+    ? process.env.WIKI_API_BASE || "http://localhost:3292"
+    : "http://localhost:3292";
 
 // ---------------------------------------------------------------------------
 // 类型定义
