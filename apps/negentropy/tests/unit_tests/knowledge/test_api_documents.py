@@ -408,10 +408,20 @@ async def test_get_entry_documents_uses_original_filename(monkeypatch):
     entry_id = uuid4()
     fake_doc = SimpleNamespace(
         id=uuid4(),
+        corpus_id=uuid4(),
+        app_name="negentropy",
         original_filename="design-spec.md",
+        file_hash="",
+        gcs_uri="",
+        content_type=None,
+        file_size=0,
         metadata_={},
         status="active",
         created_at=None,
+        created_by=None,
+        markdown_extract_status="pending",
+        markdown_extracted_at=None,
+        markdown_extract_error=None,
     )
     fake_catalog_service = SimpleNamespace(
         get_node_documents=AsyncMock(return_value=([fake_doc], 1)),
@@ -423,8 +433,7 @@ async def test_get_entry_documents_uses_original_filename(monkeypatch):
     result = await knowledge_api.get_entry_documents(catalog_id=catalog_id, entry_id=entry_id)
 
     assert result["total"] == 1
-    assert result["items"][0]["filename"] == "design-spec.md"
-    assert result["items"][0]["title"] == "design-spec.md"
+    assert result["documents"][0].original_filename == "design-spec.md"
 
 
 @pytest.mark.asyncio

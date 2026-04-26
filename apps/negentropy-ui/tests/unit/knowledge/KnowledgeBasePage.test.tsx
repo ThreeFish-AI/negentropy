@@ -349,6 +349,7 @@ describe("KnowledgeBasePage", () => {
 
   it("点击文档标题仍然进入 document-chunks 视图", async () => {
     const user = userEvent.setup();
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState");
 
     render(<KnowledgeBasePage />);
 
@@ -358,12 +359,18 @@ describe("KnowledgeBasePage", () => {
 
     await user.click(screen.getByRole("button", { name: /Context Engineering\.pdf/ }));
 
-    expect(replaceMock).toHaveBeenCalledWith(
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
       expect.stringContaining("tab=document-chunks"),
     );
-    expect(replaceMock).toHaveBeenCalledWith(
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      null,
+      "",
       expect.stringContaining("documentId=doc-1"),
     );
+
+    replaceStateSpy.mockRestore();
   });
 
   it("点击文档 Delete 后会打开删除确认框，并可取消", async () => {

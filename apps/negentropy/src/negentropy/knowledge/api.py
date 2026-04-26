@@ -4179,12 +4179,13 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
     """触发发布：将 draft/published 状态转为 published，递增版本号
 
     SSG 应用 (apps/negentropy-wiki) 在 ISR 再验证窗口内会自动拉取最新数据。
+    响应中的 revalidation 字段反映 ISR 主动通知的状态。
     """
     wiki_svc = _get_wiki_service()
 
     async with AsyncSessionLocal() as db:
         try:
-            pub = await wiki_svc.publish(db, pub_id)
+            pub, revalidation_status = await wiki_svc.publish(db, pub_id)
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -4203,6 +4204,7 @@ async def publish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         published_at=pub.published_at,
         entries_count=len(entries),
         message=f"Published successfully (v{pub.version})",
+        revalidation=revalidation_status,
     )
 
 
@@ -4212,7 +4214,7 @@ async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
     wiki_svc = _get_wiki_service()
 
     async with AsyncSessionLocal() as db:
-        pub = await wiki_svc.unpublish(db, pub_id)
+        pub, revalidation_status = await wiki_svc.unpublish(db, pub_id)
         if pub is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wiki publication not found")
         entries = await wiki_svc.get_entries(db, pub_id)
@@ -4225,6 +4227,7 @@ async def unpublish_wiki(pub_id: UUID) -> WikiPublishActionResponse:
         published_at=pub.published_at,
         entries_count=len(entries),
         message="Unpublished successfully",
+        revalidation=revalidation_status,
     )
 
 

@@ -302,7 +302,7 @@ class TestCatalogIsolation:
     """多个 catalog 之间的树隔离测试"""
 
     @pytest.mark.asyncio
-    async def test_trees_of_different_catalogs_are_isolated(self, db_engine, negentropy_corpus):
+    async def test_trees_of_different_catalogs_are_isolated(self, db_engine):
         """两个不同 catalog 的目录树互不干扰"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -315,7 +315,7 @@ class TestCatalogIsolation:
 
         async with session_factory() as session:
             cat_a = DocCatalog(
-                app_name="negentropy",
+                app_name="test-isolation-a",
                 name="Catalog A",
                 slug="catalog-isolation-a",
                 visibility="INTERNAL",
@@ -323,7 +323,7 @@ class TestCatalogIsolation:
                 is_archived=False,
             )
             cat_b = DocCatalog(
-                app_name="negentropy",
+                app_name="test-isolation-b",
                 name="Catalog B",
                 slug="catalog-isolation-b",
                 visibility="INTERNAL",
@@ -361,7 +361,7 @@ class TestCatalogIsolation:
             await s.commit()
 
     @pytest.mark.asyncio
-    async def test_get_tree_different_catalog_does_not_return_nodes_of_other(self, db_engine, negentropy_corpus):
+    async def test_get_tree_different_catalog_does_not_return_nodes_of_other(self, db_engine):
         """get_tree(catalog_id=X) 不应返回属于其他 catalog 的节点"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -372,7 +372,7 @@ class TestCatalogIsolation:
 
         async with session_factory() as session:
             cat_x = DocCatalog(
-                app_name="negentropy",
+                app_name="test-isolation-x",
                 name="Catalog X",
                 slug="catalog-isolation-x",
                 visibility="INTERNAL",
@@ -380,7 +380,7 @@ class TestCatalogIsolation:
                 is_archived=False,
             )
             cat_y = DocCatalog(
-                app_name="negentropy",
+                app_name="test-isolation-y",
                 name="Catalog Y",
                 slug="catalog-isolation-y",
                 visibility="INTERNAL",

@@ -199,6 +199,7 @@ export type {
   WikiNavTreeItem,
   WikiNavTreeResponse,
   WikiPublishActionResponse,
+  WikiRevalidationStatus,
   SyncFromCatalogParams,
   SyncFromCatalogResponse,
 } from "./utils/knowledge-api";

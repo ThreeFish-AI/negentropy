@@ -72,6 +72,14 @@ async def wiki_catalog(db_engine, wiki_corpus):
     yield catalog_id
 
     async with session_factory() as s:
+        from negentropy.models.perception import WikiPublication
+
+        pubs = (
+            await s.execute(WikiPublication.__table__.select().where(WikiPublication.catalog_id == catalog_id))
+        ).fetchall()
+        if pubs:
+            await s.execute(WikiPublication.__table__.delete().where(WikiPublication.catalog_id == catalog_id))
+            await s.flush()
         obj = await s.get(DocCatalog, catalog_id)
         if obj is not None:
             await s.delete(obj)
@@ -107,7 +115,7 @@ class TestWikiPublicationLifecycle:
             await session.commit()
 
         assert pub.status == "draft"
-        assert pub.version == 0
+        assert pub.version == 1
         assert pub.catalog_id == wiki_catalog
 
     @pytest.mark.asyncio
@@ -132,7 +140,7 @@ class TestWikiPublicationLifecycle:
             pub_id = pub.id
 
         async with session_factory() as session:
-            published = await service.publish(session, pub_id)
+            published, _ = await service.publish(session, pub_id)
             await session.commit()
 
         assert published is not None
@@ -162,13 +170,13 @@ class TestWikiPublicationLifecycle:
 
         # 第 1 次发布
         async with session_factory() as session:
-            v1 = await service.publish(session, pub_id)
+            v1, _ = await service.publish(session, pub_id)
             await session.commit()
         version_1 = v1.version
 
         # 第 2 次发布（重新发布）
         async with session_factory() as session:
-            v2 = await service.publish(session, pub_id)
+            v2, _ = await service.publish(session, pub_id)
             await session.commit()
         version_2 = v2.version
 
@@ -200,7 +208,7 @@ class TestWikiPublicationLifecycle:
             await session.commit()
 
         async with session_factory() as session:
-            unpublished = await service.unpublish(session, pub_id)
+            unpublished, _ = await service.unpublish(session, pub_id)
             await session.commit()
 
         assert unpublished is not None
@@ -286,10 +294,10 @@ class TestWikiPublicationCatalogBinding:
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
 
-        # 创建第二个 catalog
+        # 创建第二个 catalog（使用不同 app_name 规避 singleton 约束）
         async with session_factory() as session:
             other = DocCatalog(
-                app_name="negentropy",
+                app_name="test-other-app",
                 name="other-catalog-list",
                 slug="other-catalog-list",
                 visibility="INTERNAL",
@@ -301,29 +309,36 @@ class TestWikiPublicationCatalogBinding:
             await session.commit()
             other_catalog_id = other.id
 
-        # 在 wiki_catalog 下创建 2 个 publication
+        # 每个 catalog 仅允许 1 个 LIVE publication（uq_wiki_pub_catalog_active 约束）
         async with session_factory() as session:
             await service.create_publication(
                 session, catalog_id=wiki_catalog, app_name="negentropy", name="Pub A", slug="pub-a-list"
             )
-            await service.create_publication(
-                session, catalog_id=wiki_catalog, app_name="negentropy", name="Pub B", slug="pub-b-list"
-            )
             # 在 other catalog 下创建 1 个
             await service.create_publication(
-                session, catalog_id=other_catalog_id, app_name="negentropy", name="Pub C Other", slug="pub-c-other-list"
+                session,
+                catalog_id=other_catalog_id,
+                app_name="test-other-app",
+                name="Pub C Other",
+                slug="pub-c-other-list",
             )
             await session.commit()
 
-        # 按 wiki_catalog 过滤
+        # 按 wiki_catalog 过滤：仅返回 wiki_catalog 下的 publication（不含 other catalog 的）
         async with session_factory() as session:
             pubs, total = await service.list_publications(session, catalog_id=wiki_catalog)
 
-        assert total >= 2
+        assert total >= 1
         assert all(p.catalog_id == wiki_catalog for p in pubs)
+        assert any(p.slug == "pub-a-list" for p in pubs)
+        assert not any(p.slug == "pub-c-other-list" for p in pubs)
 
-        # cleanup other catalog
+        # cleanup other catalog（先清空对应 publication 以避免 NOT NULL 约束）
         async with session_factory() as s:
+            from negentropy.models.perception import WikiPublication
+
+            await s.execute(WikiPublication.__table__.delete().where(WikiPublication.catalog_id == other_catalog_id))
+            await s.flush()
             obj = await s.get(DocCatalog, other_catalog_id)
             if obj is not None:
                 await s.delete(obj)

@@ -406,7 +406,7 @@ class TestCatalogSubtreeCte:
         session_factory = catalog_tree["session"]
         leaf_id = catalog_tree["sub_a1"].id
         async with session_factory() as session:
-            subtree = await CatalogDao.get_subtree(session, node_id=leaf_id)
+            subtree = await CatalogDao.get_subtree(session, entry_id=leaf_id)
 
         assert len(subtree) == 1
         assert subtree[0]["id"] == leaf_id
@@ -420,7 +420,7 @@ class TestCatalogSubtreeCte:
         session_factory = catalog_tree["session"]
         anchor_id = catalog_tree["cat_a"].id
         async with session_factory() as session:
-            subtree = await CatalogDao.get_subtree(session, node_id=anchor_id)
+            subtree = await CatalogDao.get_subtree(session, entry_id=anchor_id)
 
         # CatA + SubA1 + SubA2
         assert len(subtree) == 3
@@ -443,7 +443,7 @@ class TestCatalogSubtreeCte:
         session_factory = catalog_tree["session"]
         anchor_id = catalog_tree["cat_a"].id
         async with session_factory() as session:
-            subtree = await CatalogDao.get_subtree(session, node_id=anchor_id)
+            subtree = await CatalogDao.get_subtree(session, entry_id=anchor_id)
 
         subtree_ids = {row["id"] for row in subtree}
         # CatB 是兄弟节点，不应出现
@@ -458,7 +458,7 @@ class TestCatalogSubtreeCte:
         session_factory = catalog_tree["session"]
         anchor_id = catalog_tree["cat_a"].id
         async with session_factory() as session:
-            subtree = await CatalogDao.get_subtree(session, node_id=anchor_id, max_depth=0)
+            subtree = await CatalogDao.get_subtree(session, entry_id=anchor_id, max_depth=0)
 
         # max_depth=0 → 仅锚点自身
         assert len(subtree) == 1
@@ -473,7 +473,7 @@ class TestCatalogSubtreeCte:
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         fake_id = uuid4()
         async with session_factory() as session:
-            subtree = await CatalogDao.get_subtree(session, node_id=fake_id)
+            subtree = await CatalogDao.get_subtree(session, entry_id=fake_id)
 
         assert subtree == []
 
@@ -791,6 +791,6 @@ class TestCatalogMembershipIntegration:
         async with session_factory() as session:
             nodes = await CatalogDao.get_document_nodes(session, document_id=doc_id)
 
-        returned_ids = {n.id for n in nodes}
+        returned_ids = {n.parent_entry_id for n in nodes}
         assert returned_ids == set(target_nodes)
         assert len(nodes) == 2

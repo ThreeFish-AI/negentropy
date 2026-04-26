@@ -1,10 +1,10 @@
 """``negentropy.knowledge.revalidate`` 单元测试
 
 覆盖：
-- 未配置 ``url`` → no-op，返回 False
-- 调用成功（2xx）→ 返回 True
-- 远端 5xx → 返回 False（仅 WARN 不抛）
-- httpx 抛异常 → 返回 False（仅 WARN 不抛）
+- 未配置 ``url`` → 返回 "not_configured"
+- 调用成功（2xx）→ 返回 "dispatched"
+- 远端 5xx → 返回 "failed"（仅 WARN 不抛）
+- httpx 抛异常 → 返回 "failed"（仅 WARN 不抛）
 - 配置 secret 时附带 HMAC-SHA256 签名头
 
 注：``KnowledgeSettings`` frozen=True 使直接 monkeypatch 属性失败；故测试通过
@@ -42,19 +42,19 @@ def _stub_cfg(*, url: str | None, secret_value: str | None = None) -> WikiRevali
 
 
 @pytest.mark.asyncio
-async def test_no_url_returns_false(monkeypatch):
+async def test_no_url_returns_not_configured(monkeypatch):
     monkeypatch.setattr(revalidate, "_get_cfg", lambda: _stub_cfg(url=None))
-    ok = await revalidate.trigger_wiki_revalidate(
+    result = await revalidate.trigger_wiki_revalidate(
         publication_id=uuid4(),
         pub_slug="wiki",
         app_name="negentropy",
         event="publish",
     )
-    assert ok is False
+    assert result == "not_configured"
 
 
 @pytest.mark.asyncio
-async def test_success_returns_true(monkeypatch):
+async def test_success_returns_dispatched(monkeypatch):
     monkeypatch.setattr(revalidate, "_get_cfg", lambda: _stub_cfg(url="http://wiki.test/api/revalidate"))
     captured: dict = {}
 
@@ -72,13 +72,13 @@ async def test_success_returns_true(monkeypatch):
             return httpx.Response(200, request=httpx.Request("POST", url))
 
     monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: _StubClient())
-    ok = await revalidate.trigger_wiki_revalidate(
+    result = await revalidate.trigger_wiki_revalidate(
         publication_id=uuid4(),
         pub_slug="wiki",
         app_name="negentropy",
         event="publish",
     )
-    assert ok is True
+    assert result == "dispatched"
     assert captured["url"] == "http://wiki.test/api/revalidate"
     assert b'"event":"publish"' in captured["body"]
     # 未配 secret 时不附签名头
@@ -86,7 +86,7 @@ async def test_success_returns_true(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_5xx_returns_false_no_raise(monkeypatch):
+async def test_5xx_returns_failed_no_raise(monkeypatch):
     monkeypatch.setattr(revalidate, "_get_cfg", lambda: _stub_cfg(url="http://wiki.test/api/revalidate"))
 
     class _StubClient:
@@ -100,17 +100,17 @@ async def test_5xx_returns_false_no_raise(monkeypatch):
             return httpx.Response(503, request=httpx.Request("POST", url))
 
     monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: _StubClient())
-    ok = await revalidate.trigger_wiki_revalidate(
+    result = await revalidate.trigger_wiki_revalidate(
         publication_id=uuid4(),
         pub_slug="wiki",
         app_name="negentropy",
         event="publish",
     )
-    assert ok is False
+    assert result == "failed"
 
 
 @pytest.mark.asyncio
-async def test_exception_returns_false_no_raise(monkeypatch):
+async def test_exception_returns_failed_no_raise(monkeypatch):
     monkeypatch.setattr(revalidate, "_get_cfg", lambda: _stub_cfg(url="http://wiki.test/api/revalidate"))
 
     class _StubClient:
@@ -124,13 +124,13 @@ async def test_exception_returns_false_no_raise(monkeypatch):
             raise httpx.ConnectError("simulated network error")
 
     monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: _StubClient())
-    ok = await revalidate.trigger_wiki_revalidate(
+    result = await revalidate.trigger_wiki_revalidate(
         publication_id=uuid4(),
         pub_slug="wiki",
         app_name="negentropy",
         event="publish",
     )
-    assert ok is False
+    assert result == "failed"
 
 
 @pytest.mark.asyncio

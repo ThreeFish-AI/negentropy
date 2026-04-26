@@ -51,7 +51,7 @@ async def trigger_wiki_revalidate(
     pub_slug: str,
     app_name: str,
     event: str,
-) -> bool:
+) -> str:
     """向 SSG 通知 Wiki 发布变更，要求其立即 revalidate 相关路径。
 
     Args:
@@ -61,12 +61,14 @@ async def trigger_wiki_revalidate(
         event: ``publish`` / ``unpublish``（SSG 可据此选择 revalidatePath/Tag 策略）。
 
     Returns:
-        ``True`` 表示 SSG 接收成功；``False`` 表示未配置或调用失败（已记 WARN）。
+        ``"dispatched"`` — SSG 接收成功；
+        ``"failed"`` — 调用失败（已记 WARN）；
+        ``"not_configured"`` — 未配置 webhook URL。
     """
     cfg = _get_cfg()
     if not cfg.url:
         # 未配置：等价"被动 ISR"，发布主链路无需感知。
-        return False
+        return "not_configured"
 
     payload: dict[str, Any] = {
         "event": event,
@@ -91,14 +93,14 @@ async def trigger_wiki_revalidate(
                 status=resp.status_code,
                 wiki_event=event,
             )
-            return False
+            return "failed"
         logger.info(
             "wiki_revalidate_dispatched",
             pub_id=str(publication_id),
             wiki_event=event,
             status=resp.status_code,
         )
-        return True
+        return "dispatched"
     except Exception as exc:  # noqa: BLE001 - 主动吞噬：webhook 失败不阻塞发布
         logger.warning(
             "wiki_revalidate_failed",
@@ -106,4 +108,4 @@ async def trigger_wiki_revalidate(
             wiki_event=event,
             error=str(exc),
         )
-        return False
+        return "failed"
