@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTocLayout } from "./WikiLayoutShell";
 import type { TocHeading } from "@/lib/markdown-headings";
 
@@ -51,18 +51,13 @@ export function WikiToc({ headings }: WikiTocProps) {
       },
     );
 
-    const targets: HTMLElement[] = [];
     for (const h of headings) {
       const el = document.getElementById(h.slug);
-      if (el) {
-        observer.observe(el);
-        targets.push(el);
-      }
+      if (el) observer.observe(el);
     }
 
     return () => {
       observer.disconnect();
-      void targets;
     };
   }, [headings]);
 
@@ -85,21 +80,19 @@ export function WikiToc({ headings }: WikiTocProps) {
     }
   };
 
-  const items = useMemo(() => headings, [headings]);
-
-  if (items.length === 0) return null;
+  if (headings.length === 0) return null;
 
   if (collapsed) {
     return (
       <button
         type="button"
         className="wiki-toc-rail"
-        aria-label={`展开目录（共 ${items.length} 项）`}
+        aria-label={`展开目录（共 ${headings.length} 项）`}
         aria-expanded="false"
         onClick={toggle}
       >
         <ListIcon />
-        <span className="wiki-toc-rail-count">{items.length}</span>
+        <span className="wiki-toc-rail-count">{headings.length}</span>
       </button>
     );
   }
@@ -119,7 +112,7 @@ export function WikiToc({ headings }: WikiTocProps) {
         </button>
       </div>
       <ul className="wiki-toc-list">
-        {items.map((h) => (
+        {headings.map((h) => (
           <li
             key={h.slug}
             className={`wiki-toc-item depth-${h.depth}${

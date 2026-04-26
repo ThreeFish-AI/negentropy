@@ -7,18 +7,11 @@ describe("extractHeadings", () => {
     expect(extractHeadings("   \n  ")).toEqual([]);
   });
 
-  it("filters out H1 by default and keeps H2/H3/H4", () => {
+  it("keeps only H2/H3/H4 and filters H1/H5/H6", () => {
     const md = `# Title\n\n## Intro\n\n### Why\n\n#### Detail\n\n##### Skipped\n\n###### Skipped\n`;
     const headings = extractHeadings(md);
     expect(headings.map((h) => h.depth)).toEqual([2, 3, 4]);
     expect(headings.map((h) => h.text)).toEqual(["Intro", "Why", "Detail"]);
-  });
-
-  it("preserves H1 when skipH1=false", () => {
-    const md = `# Title\n\n## Intro\n`;
-    const headings = extractHeadings(md, { skipH1: false });
-    // 注意：实现仍过滤 depth<2，所以 H1 不会进入结果——这是预期：TOC 不展示 H1。
-    expect(headings.map((h) => h.depth)).toEqual([2]);
   });
 
   it("dedupes repeated heading text the same way as rehype-slug", () => {
