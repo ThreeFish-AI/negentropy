@@ -23,12 +23,16 @@ function flattenNavTree(
   out: FlatItem[],
 ): void {
   for (const item of items) {
+    // 自 0011：容器节点判断改用 entry_kind（向后兼容旧响应：按 document_id 兜底）
+    const isContainer =
+      item.entry_kind === "CONTAINER" ||
+      (item.entry_kind === undefined && item.document_id === null);
     out.push({
       key: `${item.entry_id ?? "container"}:${item.entry_slug}:${depth}`,
       depth,
       title: item.entry_title || item.entry_slug,
       slug: item.entry_slug,
-      isContainer: item.entry_id === null,
+      isContainer,
     });
     const children = item.children ?? [];
     if (children.length > 0) {

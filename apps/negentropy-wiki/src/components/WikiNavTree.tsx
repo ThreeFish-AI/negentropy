@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, type KeyboardEvent } from "react";
-import type { WikiNavTreeItem } from "@/lib/wiki-api";
+import { isContainerItem, type WikiNavTreeItem } from "@/lib/wiki-api";
 
 /**
  * 计算「当前页祖先链」的 entry_slug 集合，用于初始化展开态。
@@ -93,7 +93,8 @@ function WikiNavNode({
 }: WikiNavNodeProps) {
   const children = item.children ?? [];
   const hasChildren = children.length > 0;
-  const isContainer = item.entry_id === null;
+  // 自 0011：容器节点判断改用 entry_kind（向后兼容旧响应：按 document_id 兜底）。
+  const isContainer = isContainerItem(item);
   const isActive = !!activeSlug && item.entry_slug === activeSlug;
   const isOpen = expanded.has(item.entry_slug);
 
