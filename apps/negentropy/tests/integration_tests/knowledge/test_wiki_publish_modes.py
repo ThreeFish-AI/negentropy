@@ -309,13 +309,10 @@ class TestWikiPublicationCatalogBinding:
             await session.commit()
             other_catalog_id = other.id
 
-        # 在 wiki_catalog 下创建 2 个 publication
+        # 每个 catalog 仅允许 1 个 LIVE publication（uq_wiki_pub_catalog_active 约束）
         async with session_factory() as session:
             await service.create_publication(
                 session, catalog_id=wiki_catalog, app_name="negentropy", name="Pub A", slug="pub-a-list"
-            )
-            await service.create_publication(
-                session, catalog_id=wiki_catalog, app_name="negentropy", name="Pub B", slug="pub-b-list"
             )
             # 在 other catalog 下创建 1 个
             await service.create_publication(
@@ -327,12 +324,14 @@ class TestWikiPublicationCatalogBinding:
             )
             await session.commit()
 
-        # 按 wiki_catalog 过滤
+        # 按 wiki_catalog 过滤：仅返回 wiki_catalog 下的 publication（不含 other catalog 的）
         async with session_factory() as session:
             pubs, total = await service.list_publications(session, catalog_id=wiki_catalog)
 
-        assert total >= 2
+        assert total >= 1
         assert all(p.catalog_id == wiki_catalog for p in pubs)
+        assert any(p.slug == "pub-a-list" for p in pubs)
+        assert not any(p.slug == "pub-c-other-list" for p in pubs)
 
         # cleanup other catalog（先清空对应 publication 以避免 NOT NULL 约束）
         async with session_factory() as s:
