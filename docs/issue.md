@@ -483,3 +483,26 @@
   2. **negentropy-wiki SSG 路由** `[pubSlug]/[...entrySlug]/page.tsx` 当前不消费 CONTAINER 条目（只渲染 DOCUMENT），未来若需为 CONTAINER 提供 landing 页路由，需扩展 `getEntryContent` 行为；
   3. **CATEGORY / COLLECTION 死值清理**：长期看可在 PG 17+ 评估 `ALTER TYPE ... RENAME VALUE` 或重建 enum 的 follow-up；当前应用层禁写已足够，不引入额外迁移风险；
   4. **catalog_dao 拆分范式可复用**：`memory_dao` / `interface_dao` 等 500+ 行的 DAO 若呈现"顶层 CRUD + 子实体 CRUD + N:M 关联"三类职责，可参照本次 Façade 多继承范式按职责正交分解。
+
+---
+
+## ISSUE-024 GitHub Dependabot 6 项告警一次性收敛（litellm RCE/SSTI/SQLi + postcss XSS + uuid 越界）
+
+- **表因**：GitHub Security 面板 ([dependabot alerts](https://github.com/ThreeFish-AI/negentropy/security/dependabot)) 上报 6 个开放告警——1 critical（litellm SQL 注入）、2 high（litellm SSTI、MCP stdio 认证后 RCE）、3 medium（postcss `</style>` XSS × 2 / uuid v3·v5·v6 buf 越界 × 1）。
+- **根因**：
+  1. **直接依赖小版本滞后**：`apps/negentropy/pyproject.toml` 约束 `litellm>=1.83.0`，`uv.lock` 锁在 `1.83.0`；上游已发布 `1.83.7` 修补三类漏洞，本仓未及时跟进；
+  2. **间接依赖被上游锁住**：`postcss` 由 next/tailwind/vite 间接引入；`uuid@11.1.0` 由 `@ag-ui/client@0.0.47` 间接引入并已被显式 pin 在 negentropy-ui 的 `pnpm.overrides` 中——上游不发新版则间接依赖永远滞留漏洞版本。
+- **处理方式**（最小干预 + Verification Before Done）：
+  1. **litellm**：`pyproject.toml` 安全下限上调到 `litellm>=1.83.7`（不仅是 lock 层，把约束固化在配置层防降级）；`uv lock --upgrade-package litellm` 实际解析到 `1.83.14`；执行 `uv run pytest tests/unit_tests` 全量 660 个单测全绿，含 `model_resolver_gemini_api_base` / `model_resolver_openai_api_base` / `models_ping` / `pricing_catalog` / `instrumentation` 等 litellm 高敏路径；保留 `normalize_api_base_for_litellm()`（针对 1.83.x Gemini `/v1beta` 与 OpenAI `/v1` 路径构造缺陷的补丁）——测试证明 1.83.14 与该补丁仍兼容，无需附加版本探测；
+  2. **postcss（双 app）**：在 `apps/negentropy-ui/package.json` 已有 `pnpm.overrides` 中追加 `"postcss": ">=8.5.10"`；为 `apps/negentropy-wiki/package.json` 新增 `pnpm.overrides` 区块同样固定到 `>=8.5.10`；`pnpm install` 后两 app 实际解析到 `postcss@8.5.11`；`pnpm test` 与 `pnpm build` 全部通过（wiki 5.4s 通过 next build，ui 通过完整路由 prerender）；
+  3. **uuid**：仅在 `apps/negentropy-ui/package.json` 的 `pnpm.overrides` 追加 `"uuid": ">=14.0.0"`（wiki 不依赖 uuid）；跨 3 个 major（v11→v12 ESM-only / v13 移除默认 export / v14 修补本 CVE）的强制升级风险点是 `@ag-ui/client@0.0.47` 内部对 uuid 旧 API 的引用——`pnpm test`（441/441 通过，含 `agui-session-response` / `useAgentSubscription` / `ndjson-agent` 等触达 `@ag-ui/client` 的链路）+ `pnpm build`（完整路由 prerender 含 chat/agent 关联页面）双重验证未发现回归。
+- **后续防范**：
+  1. **Negative Prompt：直接依赖的安全下限要在配置层声明，不要只靠 lock 文件兜底**——`pyproject.toml` / `package.json` 是对人/对未来 contributor 的契约，lock 仅是当下解析快照；新人 reset lock 后会回到旧版本则形同虚设；
+  2. **`pnpm.overrides` 是间接依赖 CVE 的标准范式**——上游不发新版时通过 override 强制升级即可；本次范式（在 ui 已有 overrides 区块上增量追加；为 wiki 从无到有新建 overrides 区块）可作为后续同类 CVE 处理模板；
+  3. **跨 major 强制升级必须三重验证（test + build + 关键路径冒烟）**——uuid v11→v14 跨 3 major 是高风险变更，仅靠 lock 解析成功不构成"安全"信号；
+  4. **保留即使升级后仍可能需要的兼容补丁**——本次未删 `normalize_api_base_for_litellm`，仅由测试证明它在 1.83.14 仍兼容；上游 fix 与本地补丁的潜在双重叠加（如 `/v1/v1`）需通过断言测试（已存在）守住；
+  5. **建议下一步**：评估引入 `.github/dependabot.yml` 自动化 + 周度依赖安全检查（本 PR 不做，避免爆炸半径扩大）。
+- **同类问题影响**：
+  1. 任何后续间接依赖 CVE（特别是 npm 生态被 framework 锁住的传递依赖），首选 `pnpm.overrides` 升级而非 framework 整体升级；
+  2. litellm 是高频迭代的上游，建议每月观察 1 次 changelog；其 1.83.x 系列的路径构造缺陷由本仓 `normalize_api_base_for_litellm` 补丁兜底，未来若 litellm 2.x 发布需重测该补丁；
+  3. `@ag-ui/client@0.0.47` 在 ui 的 overrides 中显式 pin，长期需关注上游是否发布修订版本以减少 override 长链。

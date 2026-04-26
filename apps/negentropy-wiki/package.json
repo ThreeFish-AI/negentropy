@@ -23,6 +23,11 @@
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0"
   },
+  "pnpm": {
+    "overrides": {
+      "postcss": ">=8.5.10"
+    }
+  },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.13.0",
