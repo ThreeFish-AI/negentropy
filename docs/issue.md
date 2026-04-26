@@ -506,3 +506,24 @@
   1. 任何后续间接依赖 CVE（特别是 npm 生态被 framework 锁住的传递依赖），首选 `pnpm.overrides` 升级而非 framework 整体升级；
   2. litellm 是高频迭代的上游，建议每月观察 1 次 changelog；其 1.83.x 系列的路径构造缺陷由本仓 `normalize_api_base_for_litellm` 补丁兜底，未来若 litellm 2.x 发布需重测该补丁；
   3. `@ag-ui/client@0.0.47` 在 ui 的 overrides 中显式 pin，长期需关注上游是否发布修订版本以减少 override 长链。
+
+## ISSUE-025 Wiki 新建发布因 Catalog Singleton 唯一约束触发 500 InternalServerError
+
+- **表因**：Wiki 页「新建 Wiki 发布」对话框点击「创建」时，对已存在 LIVE 发布的 Catalog 二次提交 → `POST /api/knowledge/wiki/publications → 500 Internal Server Error`，前端 toast 仅显示无信息含量的「Failed to create wiki publication: Internal Server Error」。
+- **根因**：[`apps/negentropy/src/negentropy/knowledge/api.py::create_wiki_publication`](../apps/negentropy/src/negentropy/knowledge/api.py) 的 `try/except` 仅捕获 `ValueError`（参数校验），未覆盖 `sqlalchemy.exc.IntegrityError`。DB 端两条相关约束（[`uq_wiki_pub_catalog_active`](../apps/negentropy/src/negentropy/db/migrations/versions/0007_catalog_singleton_phase_a.py) 部分唯一索引 `WHERE publish_mode='LIVE'` —— Phase A 设计的「每 catalog 仅允许 1 个 LIVE 发布」与 [`uq_wiki_pub_catalog_slug`](../apps/negentropy/src/negentropy/models/perception.py) 复合唯一约束）在违反时抛 `UniqueViolationError`，沿 SQLAlchemy → ASGI 中间件栈直接漏出，未被翻译为 4xx 业务响应；前端 [`createWikiPublication`](../apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts) 仅读 `res.statusText`、不解析响应体，最终用户看不到任何排障线索。本次问题与 [ISSUE-016](#issue-016) 同型（同一端点、不同根因），属「错误处理缺失」而非「约束错误」。
+- **处理方式**（**最小干预 + 双层防御 + 与 `_map_exception_to_http` 同形 SSOT 错误结构**）：
+  1. **后端业务前置检查**：在 `create_wiki_publication` 拿到 `catalog` 后、调用 `wiki_svc.create_publication` 前，新增两次轻量 `select(...).limit(1)` 查询（参考 `interface/api.py:1358-1360` 既有 SubAgent 创建端点写法）：
+     - 同 catalog 的 LIVE 发布命中 → `409` + `WIKI_PUB_CATALOG_LIVE_CONFLICT`，details 携带既有发布 `id` / `name` / `slug` 引导用户跳转编辑或归档；
+     - 同 (catalog, slug) 命中 → `409` + `WIKI_PUB_SLUG_CONFLICT`；
+     - slug 归一化复用 `negentropy.knowledge.slug.slugify`（与 service 内部一致，避免双重 slugify）。
+  2. **`IntegrityError` 兜底**：包裹 `await db.commit()` 捕获 `sqlalchemy.exc.IntegrityError`（参考 `interface/api.py:1391-1395` 既有写法），按 `exc.orig` 字符串中约束名映射回相同的 409 code，覆盖竞态与未来新增约束场景；命中时显式 `await db.rollback()`。
+  3. **错误体统一**：与 `_map_exception_to_http`（[`api.py:238-287`](../apps/negentropy/src/negentropy/knowledge/api.py)）同形 `{code, message, details}`；中文 message 直接面向用户。
+  4. **前端透传**：`apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts::createWikiPublication` 改为复用 `handleKnowledgeError<T>` —— 既有 `parseKnowledgeError` 已能解析 `detail.message` / `detail.code` 嵌套结构（[`knowledge-api.ts:919-947`](../apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts)）；`CreateWikiPublicationDialog` 的 `toast.error(err.message)` 自然显示中文友好提示，UI 层零改动。
+  5. **测试**：`tests/integration_tests/knowledge/test_wiki_publish_modes.py` 新增 `TestCreateWikiPublicationApiConflict` 三例（LIVE 冲突 / SLUG 冲突 / `CATALOG_NOT_FOUND` 回归），引入 `isolated_wiki_catalog` fixture 用 `test-wiki-pub-conflict-<uuid>` 派生独立 app_name 规避 dev DB 的 [`uq_doc_catalogs_app_singleton`](../apps/negentropy/src/negentropy/db/migrations/versions/0007_catalog_singleton_phase_a.py) 约束（即 [ISSUE-015](#issue-015) 单实例 Catalog 收敛副作用）。
+- **后续防范**：
+  1. **Negative Prompt：DB 唯一约束必须有 application-level 友好降级路径**——任何 `UniqueConstraint` / `CREATE UNIQUE INDEX`（含 partial）写入路径都应在端点层做「业务前置检查 + IntegrityError 兜底」双层防御；前置检查给出最清晰错误消息，IntegrityError 兜底覆盖竞态。仅靠数据库约束兜底会让用户拿到 500 + 无信息含量错误，违反 AGENTS.md「Feedback Loops」原则。
+  2. **同型扫荡审计**：本仓库其他端点（`apps/negentropy/src/negentropy/{knowledge,interface,memory,auth}/api.py`）凡涉及 `db.add(...)` + `db.commit()` 组合的 INSERT / UPDATE 路径，应一并审计 `IntegrityError` 是否被显式捕获并翻译为 4xx；现已知 `interface/api.py:1336/1393/1496` 三处 SubAgent 端点已有正确写法可作为模板复用。
+  3. **前端 fetch helper 写作纪律**：所有 `fetch().then(res => !res.ok ? throw new Error(res.statusText) : ...)` 形式均存在「丢响应体」缺陷，应改为 `handleKnowledgeError<T>` / `parseKnowledgeError` 统一路径；后续可在 `apps/negentropy-ui/features/*/utils/*-api.ts` 全文检索「`statusText`」做一次性扫荡。
+- **同类问题影响**：
+  1. **同 endpoint 历史漏洞**：[ISSUE-016](#issue-016) 已修复 `app_name NOT NULL` 缺失导致的 500，本次修复 `uq_wiki_pub_catalog_active` 触发的 500，二者同因不同果——「endpoint 缺失结构化错误处理」是结构性问题，不是单次 bugfix。
+  2. **`update_wiki_publication` / `archive` / 等同类端点**未做约束冲突防御，未来若新增约束（如 `theme` 唯一性、跨 app 互斥），会复现同型问题；建议在 service / DAO 层统一接入领域异常 + 端点层 `_map_exception_to_http` 路径（本次按最小干预原则未推进，记录为可观测的债务）。

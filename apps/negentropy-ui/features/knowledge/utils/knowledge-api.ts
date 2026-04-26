@@ -2566,7 +2566,11 @@ export async function fetchWikiPublication(pubId: string): Promise<WikiPublicati
   return res.json();
 }
 
-/** 创建 Wiki 发布 */
+/** 创建 Wiki 发布
+ *
+ * 错误体由 `parseKnowledgeError` 解析后端 `{code, message, details}` 结构，
+ * 例如 409 `WIKI_PUB_CATALOG_LIVE_CONFLICT` / `WIKI_PUB_SLUG_CONFLICT` 会带上
+ * 中文 message 透传到上层 toast。 */
 export async function createWikiPublication(
   params: CreateWikiPublicationParams,
 ): Promise<WikiPublication> {
@@ -2575,8 +2579,7 @@ export async function createWikiPublication(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
   });
-  if (!res.ok) throw new Error(`Failed to create wiki publication: ${res.statusText}`);
-  return res.json();
+  return handleKnowledgeError<WikiPublication>(res);
 }
 
 /** 更新 Wiki 发布 */
