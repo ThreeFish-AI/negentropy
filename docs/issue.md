@@ -483,3 +483,47 @@
   2. **negentropy-wiki SSG 路由** `[pubSlug]/[...entrySlug]/page.tsx` 当前不消费 CONTAINER 条目（只渲染 DOCUMENT），未来若需为 CONTAINER 提供 landing 页路由，需扩展 `getEntryContent` 行为；
   3. **CATEGORY / COLLECTION 死值清理**：长期看可在 PG 17+ 评估 `ALTER TYPE ... RENAME VALUE` 或重建 enum 的 follow-up；当前应用层禁写已足够，不引入额外迁移风险；
   4. **catalog_dao 拆分范式可复用**：`memory_dao` / `interface_dao` 等 500+ 行的 DAO 若呈现"顶层 CRUD + 子实体 CRUD + N:M 关联"三类职责，可参照本次 Façade 多继承范式按职责正交分解。
+
+---
+
+## ISSUE-024 GitHub Dependabot 6 项告警一次性收敛（litellm RCE/SSTI/SQLi + postcss XSS + uuid 越界）
+
+- **表因**：GitHub Security 面板 ([dependabot alerts](https://github.com/ThreeFish-AI/negentropy/security/dependabot)) 上报 6 个开放告警——1 critical（litellm SQL 注入）、2 high（litellm SSTI、MCP stdio 认证后 RCE）、3 medium（postcss `</style>` XSS × 2 / uuid v3·v5·v6 buf 越界 × 1）。
+- **根因**：
+  1. **直接依赖小版本滞后**：`apps/negentropy/pyproject.toml` 约束 `litellm>=1.83.0`，`uv.lock` 锁在 `1.83.0`；上游已发布 `1.83.7` 修补三类漏洞，本仓未及时跟进；
+  2. **间接依赖被上游锁住**：`postcss` 由 next/tailwind/vite 间接引入；`uuid@11.1.0` 由 `@ag-ui/client@0.0.47` 间接引入并已被显式 pin 在 negentropy-ui 的 `pnpm.overrides` 中——上游不发新版则间接依赖永远滞留漏洞版本。
+- **处理方式**（最小干预 + Verification Before Done）：
+  1. **litellm**：`pyproject.toml` 安全下限上调到 `litellm>=1.83.7`（不仅是 lock 层，把约束固化在配置层防降级）；`uv lock --upgrade-package litellm` 实际解析到 `1.83.14`；执行 `uv run pytest tests/unit_tests` 全量 660 个单测全绿，含 `model_resolver_gemini_api_base` / `model_resolver_openai_api_base` / `models_ping` / `pricing_catalog` / `instrumentation` 等 litellm 高敏路径；保留 `normalize_api_base_for_litellm()`（针对 1.83.x Gemini `/v1beta` 与 OpenAI `/v1` 路径构造缺陷的补丁）——测试证明 1.83.14 与该补丁仍兼容，无需附加版本探测；
+  2. **postcss（双 app）**：在 `apps/negentropy-ui/package.json` 已有 `pnpm.overrides` 中追加 `"postcss": ">=8.5.10"`；为 `apps/negentropy-wiki/package.json` 新增 `pnpm.overrides` 区块同样固定到 `>=8.5.10`；`pnpm install` 后两 app 实际解析到 `postcss@8.5.11`；`pnpm test` 与 `pnpm build` 全部通过（wiki 5.4s 通过 next build，ui 通过完整路由 prerender）；
+  3. **uuid**：仅在 `apps/negentropy-ui/package.json` 的 `pnpm.overrides` 追加 `"uuid": ">=14.0.0"`（wiki 不依赖 uuid）；跨 3 个 major（v11→v12 ESM-only / v13 移除默认 export / v14 修补本 CVE）的强制升级风险点是 `@ag-ui/client@0.0.47` 内部对 uuid 旧 API 的引用——`pnpm test`（441/441 通过，含 `agui-session-response` / `useAgentSubscription` / `ndjson-agent` 等触达 `@ag-ui/client` 的链路）+ `pnpm build`（完整路由 prerender 含 chat/agent 关联页面）双重验证未发现回归。
+- **后续防范**：
+  1. **Negative Prompt：直接依赖的安全下限要在配置层声明，不要只靠 lock 文件兜底**——`pyproject.toml` / `package.json` 是对人/对未来 contributor 的契约，lock 仅是当下解析快照；新人 reset lock 后会回到旧版本则形同虚设；
+  2. **`pnpm.overrides` 是间接依赖 CVE 的标准范式**——上游不发新版时通过 override 强制升级即可；本次范式（在 ui 已有 overrides 区块上增量追加；为 wiki 从无到有新建 overrides 区块）可作为后续同类 CVE 处理模板；
+  3. **跨 major 强制升级必须三重验证（test + build + 关键路径冒烟）**——uuid v11→v14 跨 3 major 是高风险变更，仅靠 lock 解析成功不构成"安全"信号；
+  4. **保留即使升级后仍可能需要的兼容补丁**——本次未删 `normalize_api_base_for_litellm`，仅由测试证明它在 1.83.14 仍兼容；上游 fix 与本地补丁的潜在双重叠加（如 `/v1/v1`）需通过断言测试（已存在）守住；
+  5. **建议下一步**：评估引入 `.github/dependabot.yml` 自动化 + 周度依赖安全检查（本 PR 不做，避免爆炸半径扩大）。
+- **同类问题影响**：
+  1. 任何后续间接依赖 CVE（特别是 npm 生态被 framework 锁住的传递依赖），首选 `pnpm.overrides` 升级而非 framework 整体升级；
+  2. litellm 是高频迭代的上游，建议每月观察 1 次 changelog；其 1.83.x 系列的路径构造缺陷由本仓 `normalize_api_base_for_litellm` 补丁兜底，未来若 litellm 2.x 发布需重测该补丁；
+  3. `@ag-ui/client@0.0.47` 在 ui 的 overrides 中显式 pin，长期需关注上游是否发布修订版本以减少 override 长链。
+
+## ISSUE-025 Wiki 新建发布因 Catalog Singleton 唯一约束触发 500 InternalServerError
+
+- **表因**：Wiki 页「新建 Wiki 发布」对话框点击「创建」时，对已存在 LIVE 发布的 Catalog 二次提交 → `POST /api/knowledge/wiki/publications → 500 Internal Server Error`，前端 toast 仅显示无信息含量的「Failed to create wiki publication: Internal Server Error」。
+- **根因**：[`apps/negentropy/src/negentropy/knowledge/api.py::create_wiki_publication`](../apps/negentropy/src/negentropy/knowledge/api.py) 的 `try/except` 仅捕获 `ValueError`（参数校验），未覆盖 `sqlalchemy.exc.IntegrityError`。DB 端两条相关约束（[`uq_wiki_pub_catalog_active`](../apps/negentropy/src/negentropy/db/migrations/versions/0007_catalog_singleton_phase_a.py) 部分唯一索引 `WHERE publish_mode='LIVE'` —— Phase A 设计的「每 catalog 仅允许 1 个 LIVE 发布」与 [`uq_wiki_pub_catalog_slug`](../apps/negentropy/src/negentropy/models/perception.py) 复合唯一约束）在违反时抛 `UniqueViolationError`，沿 SQLAlchemy → ASGI 中间件栈直接漏出，未被翻译为 4xx 业务响应；前端 [`createWikiPublication`](../apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts) 仅读 `res.statusText`、不解析响应体，最终用户看不到任何排障线索。本次问题与 [ISSUE-016](#issue-016) 同型（同一端点、不同根因），属「错误处理缺失」而非「约束错误」。
+- **处理方式**（**最小干预 + 双层防御 + 与 `_map_exception_to_http` 同形 SSOT 错误结构**）：
+  1. **后端业务前置检查**：在 `create_wiki_publication` 拿到 `catalog` 后、调用 `wiki_svc.create_publication` 前，新增两次轻量 `select(...).limit(1)` 查询（参考 `interface/api.py:1358-1360` 既有 SubAgent 创建端点写法）：
+     - 同 catalog 的 LIVE 发布命中 → `409` + `WIKI_PUB_CATALOG_LIVE_CONFLICT`，details 携带既有发布 `id` / `name` / `slug` 引导用户跳转编辑或归档；
+     - 同 (catalog, slug) 命中 → `409` + `WIKI_PUB_SLUG_CONFLICT`；
+     - slug 归一化复用 `negentropy.knowledge.slug.slugify`（与 service 内部一致，避免双重 slugify）。
+  2. **`IntegrityError` 兜底**：包裹 `await db.commit()` 捕获 `sqlalchemy.exc.IntegrityError`（参考 `interface/api.py:1391-1395` 既有写法），按 `exc.orig` 字符串中约束名映射回相同的 409 code，覆盖竞态与未来新增约束场景；命中时显式 `await db.rollback()`。
+  3. **错误体统一**：与 `_map_exception_to_http`（[`api.py:238-287`](../apps/negentropy/src/negentropy/knowledge/api.py)）同形 `{code, message, details}`；中文 message 直接面向用户。
+  4. **前端透传**：`apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts::createWikiPublication` 改为复用 `handleKnowledgeError<T>` —— 既有 `parseKnowledgeError` 已能解析 `detail.message` / `detail.code` 嵌套结构（[`knowledge-api.ts:919-947`](../apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts)）；`CreateWikiPublicationDialog` 的 `toast.error(err.message)` 自然显示中文友好提示，UI 层零改动。
+  5. **测试**：`tests/integration_tests/knowledge/test_wiki_publish_modes.py` 新增 `TestCreateWikiPublicationApiConflict` 三例（LIVE 冲突 / SLUG 冲突 / `CATALOG_NOT_FOUND` 回归），引入 `isolated_wiki_catalog` fixture 用 `test-wiki-pub-conflict-<uuid>` 派生独立 app_name 规避 dev DB 的 [`uq_doc_catalogs_app_singleton`](../apps/negentropy/src/negentropy/db/migrations/versions/0007_catalog_singleton_phase_a.py) 约束（即 [ISSUE-015](#issue-015) 单实例 Catalog 收敛副作用）。
+- **后续防范**：
+  1. **Negative Prompt：DB 唯一约束必须有 application-level 友好降级路径**——任何 `UniqueConstraint` / `CREATE UNIQUE INDEX`（含 partial）写入路径都应在端点层做「业务前置检查 + IntegrityError 兜底」双层防御；前置检查给出最清晰错误消息，IntegrityError 兜底覆盖竞态。仅靠数据库约束兜底会让用户拿到 500 + 无信息含量错误，违反 AGENTS.md「Feedback Loops」原则。
+  2. **同型扫荡审计**：本仓库其他端点（`apps/negentropy/src/negentropy/{knowledge,interface,memory,auth}/api.py`）凡涉及 `db.add(...)` + `db.commit()` 组合的 INSERT / UPDATE 路径，应一并审计 `IntegrityError` 是否被显式捕获并翻译为 4xx；现已知 `interface/api.py:1336/1393/1496` 三处 SubAgent 端点已有正确写法可作为模板复用。
+  3. **前端 fetch helper 写作纪律**：所有 `fetch().then(res => !res.ok ? throw new Error(res.statusText) : ...)` 形式均存在「丢响应体」缺陷，应改为 `handleKnowledgeError<T>` / `parseKnowledgeError` 统一路径；后续可在 `apps/negentropy-ui/features/*/utils/*-api.ts` 全文检索「`statusText`」做一次性扫荡。
+- **同类问题影响**：
+  1. **同 endpoint 历史漏洞**：[ISSUE-016](#issue-016) 已修复 `app_name NOT NULL` 缺失导致的 500，本次修复 `uq_wiki_pub_catalog_active` 触发的 500，二者同因不同果——「endpoint 缺失结构化错误处理」是结构性问题，不是单次 bugfix。
+  2. **`update_wiki_publication` / `archive` / 等同类端点**未做约束冲突防御，未来若新增约束（如 `theme` 唯一性、跨 app 互斥），会复现同型问题；建议在 service / DAO 层统一接入领域异常 + 端点层 `_map_exception_to_http` 路径（本次按最小干预原则未推进，记录为可观测的债务）。

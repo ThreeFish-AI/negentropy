@@ -500,3 +500,192 @@ class TestWikiPublicationEntriesEagerLoading:
 
         assert fetched is not None
         assert len(fetched.entries) == 1
+
+
+# ===================================================================
+# TestCreateWikiPublicationApiConflict — POST /wiki/publications 409 转换
+# ===================================================================
+
+
+@pytest.fixture
+def patch_knowledge_api_session(db_engine, monkeypatch):
+    """将 knowledge.api 内 `from db.session import AsyncSessionLocal` 重定向到测试引擎。
+
+    conftest.patch_db_globals 仅覆盖 db.session/db.deps 命名空间，不影响已通过
+    `from X import Y` 形式静态绑定到其他模块的引用——本 fixture 形成互补，
+    与 test_catalog_cross_corpus.patch_handler_sessions 同源。
+    """
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    from negentropy.knowledge import api as knowledge_api
+
+    test_session_local = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    monkeypatch.setattr(knowledge_api, "AsyncSessionLocal", test_session_local)
+    return test_session_local
+
+
+@pytest.fixture
+async def isolated_wiki_catalog(db_engine):
+    """使用唯一 app_name 的隔离 DocCatalog，规避 uq_doc_catalogs_app_singleton 约束。
+
+    `wiki_catalog` 固定 app_name='negentropy'，在共享 dev DB 上会与既有 catalog 冲突；
+    本 fixture 用 ``test-wiki-pub-conflict-<uuid>`` 派生独立 app_name。
+    """
+    from uuid import uuid4
+
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    from negentropy.models.perception import DocCatalog, WikiPublication
+
+    unique_app = f"test-wiki-pub-conflict-{uuid4().hex[:8]}"
+    session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+    catalog_id: UUID | None = None
+    async with session_factory() as session:
+        catalog = DocCatalog(
+            app_name=unique_app,
+            name=f"{unique_app}-catalog",
+            slug=unique_app,
+            visibility="INTERNAL",
+            version=1,
+            is_archived=False,
+        )
+        session.add(catalog)
+        await session.flush()
+        await session.commit()
+        catalog_id = catalog.id
+
+    yield catalog_id, unique_app
+
+    async with session_factory() as s:
+        await s.execute(WikiPublication.__table__.delete().where(WikiPublication.catalog_id == catalog_id))
+        await s.flush()
+        obj = await s.get(DocCatalog, catalog_id)
+        if obj is not None:
+            await s.delete(obj)
+        await s.commit()
+
+
+class TestCreateWikiPublicationApiConflict:
+    """POST /knowledge/wiki/publications 409 路径回归
+
+    覆盖 ISSUE-024 修复：原本 `uq_wiki_pub_catalog_active` /
+    `uq_wiki_pub_catalog_slug` 唯一约束触发后会以 500 InternalServerError 抛
+    出（IntegrityError 漏出），现按业务前置检查 + IntegrityError 兜底改为
+    `409 Conflict` + `{code, message, details}` 结构化响应。
+    """
+
+    @pytest.mark.asyncio
+    async def test_second_live_publication_on_same_catalog_returns_409(
+        self, patch_knowledge_api_session, isolated_wiki_catalog
+    ):
+        """同一 catalog 第二次创建发布 → 409 + WIKI_PUB_CATALOG_LIVE_CONFLICT"""
+        from fastapi import HTTPException
+
+        from negentropy.knowledge.api import create_wiki_publication
+        from negentropy.knowledge.lifecycle_schemas import WikiPublicationCreateRequest
+
+        catalog_id, _app_name = isolated_wiki_catalog
+
+        # 先建一个 LIVE 发布
+        first_resp = await create_wiki_publication(
+            WikiPublicationCreateRequest(
+                catalog_id=catalog_id,
+                name="First Pub",
+                slug="first-live-pub",
+            )
+        )
+        assert first_resp.id is not None
+
+        # 第二次创建 → 命中 LIVE singleton 约束
+        with pytest.raises(HTTPException) as exc_info:
+            await create_wiki_publication(
+                WikiPublicationCreateRequest(
+                    catalog_id=catalog_id,
+                    name="Second Pub",
+                    slug="second-live-pub",
+                )
+            )
+
+        exc = exc_info.value
+        assert exc.status_code == 409
+        assert isinstance(exc.detail, dict)
+        assert exc.detail.get("code") == "WIKI_PUB_CATALOG_LIVE_CONFLICT"
+        assert "生效中" in exc.detail.get("message", "")
+        details = exc.detail.get("details") or {}
+        assert details.get("catalog_id") == str(catalog_id)
+        assert details.get("existing_publication_id") == str(first_resp.id)
+
+    @pytest.mark.asyncio
+    async def test_duplicate_slug_on_same_catalog_returns_409(
+        self, patch_knowledge_api_session, db_engine, isolated_wiki_catalog
+    ):
+        """同 catalog 下 slug 重复 → 409 + WIKI_PUB_SLUG_CONFLICT
+
+        构造场景：先建 LIVE 发布 + 改 publish_mode 为 SNAPSHOT 让出 LIVE 槽位，
+        再用同 slug 二次创建——此时 LIVE 检查不命中，slug 唯一约束命中。
+        """
+        from fastapi import HTTPException
+        from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+        from negentropy.knowledge.api import create_wiki_publication
+        from negentropy.knowledge.lifecycle_schemas import WikiPublicationCreateRequest
+        from negentropy.models.perception import WikiPublication
+
+        catalog_id, _app_name = isolated_wiki_catalog
+
+        first_resp = await create_wiki_publication(
+            WikiPublicationCreateRequest(
+                catalog_id=catalog_id,
+                name="Slug Conflict Pub",
+                slug="dup-slug-pub",
+            )
+        )
+
+        # 把第一个发布改成 SNAPSHOT 模式，让出 uq_wiki_pub_catalog_active 槽位
+        session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
+        async with session_factory() as session:
+            obj = await session.get(WikiPublication, first_resp.id)
+            assert obj is not None
+            obj.publish_mode = "SNAPSHOT"
+            await session.commit()
+
+        with pytest.raises(HTTPException) as exc_info:
+            await create_wiki_publication(
+                WikiPublicationCreateRequest(
+                    catalog_id=catalog_id,
+                    name="Another Same Slug",
+                    slug="dup-slug-pub",
+                )
+            )
+
+        exc = exc_info.value
+        assert exc.status_code == 409
+        assert isinstance(exc.detail, dict)
+        assert exc.detail.get("code") == "WIKI_PUB_SLUG_CONFLICT"
+        details = exc.detail.get("details") or {}
+        assert details.get("slug") == "dup-slug-pub"
+        assert details.get("existing_publication_id") == str(first_resp.id)
+
+    @pytest.mark.asyncio
+    async def test_invalid_catalog_returns_404(self, patch_knowledge_api_session):
+        """catalog_id 不存在 → 404 CATALOG_NOT_FOUND（回归未损）"""
+        from uuid import uuid4
+
+        from fastapi import HTTPException
+
+        from negentropy.knowledge.api import create_wiki_publication
+        from negentropy.knowledge.lifecycle_schemas import WikiPublicationCreateRequest
+
+        with pytest.raises(HTTPException) as exc_info:
+            await create_wiki_publication(
+                WikiPublicationCreateRequest(
+                    catalog_id=uuid4(),
+                    name="Ghost Catalog Pub",
+                    slug="ghost-catalog-pub",
+                )
+            )
+
+        exc = exc_info.value
+        assert exc.status_code == 404
+        assert isinstance(exc.detail, dict)
+        assert exc.detail.get("code") == "CATALOG_NOT_FOUND"

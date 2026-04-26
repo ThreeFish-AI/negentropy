@@ -32,7 +32,7 @@ dependencies = [
     "pyyaml>=6.0.2",                # YAML parser for configuration files
     
     # LLM & AI Services
-    "litellm>=1.83.0",              # Unified interface for various LLM providers
+    "litellm>=1.83.7",              # Unified interface for various LLM providers (>=1.83.7 修复 SQLi/SSTI/MCP-RCE，对应 GHSA-9566-... / 90 / 88 / 89)
     
     # Google Cloud Services
     "google-cloud-storage>=3.8.0",  # Object storage for artifacts
