@@ -627,3 +627,61 @@
   1. **Sync 诊断**：若再次出现「sync 计数与预期不符」，检查后端版本是否包含 `build_negentropy_root_agent_payload()`，以及 DB 中是否存在 `owner_id` 不匹配的旧行；
   2. **Root Agent 只读约束**：当前 SubAgents 页对 root Agent 的 Edit/Delete 操作未做只读限制（root Agent 的结构定义由代码硬编码，编辑 instruction/model 通过 InstructionProvider/DynamicModel 在运行时生效，但 sub_agents/tools 等结构性字段不可通过 UI 变更）。建议后续在 UI 层对 `kind === "root"` 卡片禁用 Delete、对结构性字段标灰。
 - **同类问题影响**：若后续新增 Pipeline Agent（如 `KnowledgeAcquisitionPipeline`、`ProblemSolvingPipeline`、`ValueDeliveryPipeline`）到 sync payload 中，需同步更新 toast 预期计数（从 6 增至 9）。
+
+---
+
+## ISSUE-031 Home 对话子任务 title 生成 `litellm.AuthenticationError`：缓存 miss 后回退到无 api_key 的硬编码默认
+
+- **表因**：用户在 Home 页发送 "Ping, give me a pong"，主对话回复正常，但后端日志反复出现 `WARNING engine.summarization | title_generation_failed error=litellm.AuthenticationError: AuthenticationError: OpenAIException - The api_key client option must be set ...`。前端会话标题始终显示首条 user 消息截断版（fallback），不出现 LLM 生成的语义化标题。
+- **根因**：`apps/negentropy/src/negentropy/engine/summarization.py::SessionSummarizer.__init__` 是同步方法，调用 `get_cached_llm_config()`（`config/model_resolver.py:68`）从内存缓存读默认 LLM 配置；缓存 TTL 仅 60s（`_CACHE_TTL=60.0`，`model_resolver.py:29`），bootstrap 启动时 `_warm_model_config_cache` 预热后即开始倒计时。缓存 miss 时回退到 `get_fallback_llm_config()` → 硬编码 `_DEFAULT_LLM_KWARGS = {"temperature": 0.7, "drop_params": True}`（`model_resolver.py:33-36`），**不含 `api_key`**。LiteLLM 在 `_build_completion_args` 时未拿到凭证，直接抛 `AuthenticationError`。这与 commit `8ce35d5 fix(agent-llm)` 修复的 `DynamicRootLiteLlm` 是同源问题——主对话路径已切换到 `await resolve_llm_config()` 走 DB 凭证，但 title 生成这条子对话路径未同步覆盖。
+- **二阶影响**：
+  1. 后台任务静默失败：`_generate_title_for_session` 仅 `logger.warning` 不抛异常，前端无明确错误反馈；
+  2. 体感：每个新会话首条消息后约 60s（缓存窗口外）触发一次 warning，干扰排障；
+  3. 配置漂移盲区：用户修改 vendor_configs 后立即测 title 生成可能恰好命中缓存窗口而表现正常，下次冷启动反而失败——故障复现具有时间窗口性，难诊断。
+- **处理方式**（最小干预 + 异步边界对称化）：
+  1. **`SessionSummarizer.__init__` 重构**：签名改为 `def __init__(self, model: LiteLlm)`，仅承担「持有已构造模型实例」职责，不再做凭证解析；
+  2. **新增 `@classmethod async def create(cls)` 工厂**：内部 `name, kwargs = await resolve_llm_config()`（`model_resolver.py:104`，与 `_dynamic_model.py:132` 同 SoT），`kwargs = dict(kwargs)` 防御性浅拷贝，注入 `max_tokens=20`，返回 `cls(LiteLlm(name, **kwargs))`；
+  3. **调用方切换**：`apps/negentropy/src/negentropy/engine/adapters/postgres/session_service.py:291` 把 `summarizer = SessionSummarizer()` 改为 `await SessionSummarizer.create()`，外层 try/except 已覆盖；
+  4. **测试**：新增 `tests/unit_tests/engine/test_summarization.py` 3 例，分别锁定「`create()` 走 `resolve_llm_config` 注入凭证 + max_tokens」「kwargs 防御性拷贝不污染上游」「`__init__` 仅接收实例」。
+- **后续防范**：
+  1. **凡是「构造 LLM 客户端」的代码路径必须走 async resolver**：grep `LiteLlm(`、`get_cached_llm_config`、`get_fallback_llm_config`，若仍存在 `__init__` 同步路径，需评估是否同样存在 cache miss 回退到无凭证默认的风险；
+  2. **硬编码 fallback 的边界守则**：`_DEFAULT_LLM_KWARGS` 不含 `api_key` 是合理的（避免硬编码密钥），但意味着 fallback 路径**必然**无法直接发起 LLM 请求——任何消费 fallback 的代码必须有显式凭证注入流程（典型如 vendor_configs 表读写）；如未来引入"完全无凭证场景"（mock 模式 / dry-run），需独立 sentinel 而非依赖 fallback 兜底；
+  3. **缓存 miss 不应是隐性失败**：`get_cached_llm_config` 返回 `None` 时调用方应明确路径选择（要么 await resolve，要么返回错误），不应 silently fall through 到 fallback；
+  4. **commit `8ce35d5` 模式补全审计**：`_dynamic_model.py` 的 `await resolve_llm_config()` 修复模式应推广到所有「默认模型路径」的消费点，非仅 root agent 与 title generator。
+- **同类问题影响**：
+  1. 任何继承自 `LiteLlm` 或在同步 `__init__` 中构造 LLM 客户端的代码（`SubAgent` 工厂、`KnowledgeQA` 抽取器、未来的 `Pipeline Agent`）；
+  2. Embedding 端：`build_embedding_fn` 路径若有同步 cache miss 回退到不含凭证的硬编码默认，存在同类风险，需独立审计；
+  3. 跨 Agent 复用同一 ContextVar 的场景，若 ContextVar 在子任务中被清空（如 `_generate_title_for_session` 离开主请求 ContextVar 链路）也会触发"凭证消失"——本次修复对 title 路径恰好通过 `resolve_llm_config()` 直读 DB 绕开了 ContextVar 依赖，可作为同类场景模板。
+
+---
+
+## ISSUE-032 OTLP HTTP `_log_exporter` / `_metric_exporter` 反复 404：ADK 把 `OTEL_EXPORTER_OTLP_ENDPOINT` 当三件套总开关、Langfuse 仅承接 traces
+
+- **表因**：Home 页发起对话期间，后端日志反复出现 `ERROR http._log_exporter | Failed to export logs batch code: 404, reason: <!DOCTYPE html>...Langfuse Icon...statusCode":404`——返回的是 Langfuse 前端 SPA 的 404 错误页（包含 `_next/static/...`、`Langfuse Icon`、`Loading...` 等大段 HTML），每条日志数 KB，每分钟级反复输出污染日志可读性。Metrics 路径同源 404 但触发频率较低（`enable_metrics=False` 时仅在 ADK 系统 metric 偶发触发）。
+- **根因**：契约错配 + 框架自动注册行为：
+  1. `apps/negentropy/src/negentropy/engine/bootstrap.py:50` 设置 `OTEL_EXPORTER_OTLP_ENDPOINT=<langfuse_host>/api/public/otel`，本意仅供 LiteLLM `"otel"` callback 在 `_normalize_otel_endpoint` 时拼成 `/v1/traces` 上报 traces；
+  2. 上游 ADK `google/adk/cli/adk_web_server.py:524-533` 的 `_otel_env_vars_enabled()` 把这个 env var 视为「启用 OTLP 三件套」的总开关，调用 `_setup_telemetry_from_env()` → `maybe_set_otel_providers()` → `_get_otel_exporters()`（`google/adk/telemetry/setup.py:131-154`）；
+  3. `_get_otel_exporters()` 在该 env var 存在时**无差别**追加三个 processor：`OTLPSpanExporter`（traces，正常）、`OTLPMetricExporter`（metrics，404）、`OTLPLogExporter`（logs，404）；
+  4. `OTLPLogExporter` 默认行为（`opentelemetry/exporter/otlp/proto/http/_log_exporter/__init__.py:87-92`）：未配置 `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` 时回退到 `OTEL_EXPORTER_OTLP_ENDPOINT` 并通过 `_append_logs_path` 追加 `/v1/logs` → 命中 `https://cloud.langfuse.com/api/public/otel/v1/logs`；
+  5. Langfuse 仅支持 `/api/public/otel/v1/traces`，不存在 `/v1/logs` / `/v1/metrics` 接口 → SPA 路由回退到 `/_error` 页面 → 返回 404 + 整段 HTML；
+  6. `opentelemetry-instrumentation-google-genai`（CHANGELOG `feat(adk-genai-otel)` 引入）的 `instrumentor.py:53-54` 通过 `get_logger_provider().get_logger(...)` 主动写入 GenAI events，激活了上面的 logs 上报路径——所以每个对话都触发一批 404；
+  7. `set_logger_provider` / `set_meter_provider` 由 `Once`-lock 保护（`opentelemetry/_logs/_internal/__init__.py:276-305`）：首次调用胜出，后续调用静默忽略（仅 warning）。
+- **二阶影响**：
+  1. 日志噪声严重影响排障——大段 HTML 反复刷屏；
+  2. 网络消耗：每秒级 OTLP batch flush 持续向 Langfuse 上报无用数据；
+  3. 用户误以为 Langfuse 配置错误（实际 traces 链路完全正常）。
+- **处理方式**（手术刀式 + 最小干预）：
+  1. **抢占 Once-lock**：在 `bootstrap.py` 设置 OTel env vars 之后、ADK Web Server 实例化之前，新增 `_install_noop_otel_logs_metrics_providers()` helper：用「无 processor / 无 reader」的 SDK `LoggerProvider()` 与 `MeterProvider(metric_readers=[])` 作为占位 provider，调用 `set_logger_provider` / `set_meter_provider`；
+  2. **效果**：ADK 后续 `_setup_telemetry_from_env` 路径下的 `set_*_provider` 调用因 `Once`-lock 静默 no-op，OTLPLogExporter / OTLPMetricExporter 虽被构造但其所属 LoggerProvider / MeterProvider 永远不会成为 global 实例，从而**整条 logs/metrics 上报链路被阻断**；
+  3. **traces 链路完全不动**：TracerProvider 由 ADK / LiteLLM 自行 `set_tracer_provider`（首次胜出），`OTEL_EXPORTER_OTLP_HEADERS`（Basic Auth）仍生效，traces 正常进入 Langfuse；
+  4. **测试**：新增 `tests/unit_tests/observability/test_otel_noop_providers.py` 3 例，子进程隔离 OTel 全局状态，分别验证「LoggerProvider 是 SDK 实例且 0 processor」「MeterProvider 是 SDK 实例且 0 reader」「后续 set_logger_provider 因 Once-lock 不替换」。
+- **为何不选"改用 `OTEL_ENDPOINT`"方案**：LiteLLM 确实可从 `OTEL_ENDPOINT`（line 114 fallback）读端点，但 ADK 完全不识别 `OTEL_ENDPOINT`，会让 `_otel_env_vars_enabled()` 返回 False → traces/metrics/logs 三件套全不注册——虽然消除了 logs 404，但 ADK 的 `ApiServerSpanExporter`（in-memory trace UI 后端）也失效，副作用过大。手术刀式（仅抑制 logs/metrics）才符合 Boundary Management 原则。
+- **后续防范**：
+  1. **OTel global provider 抢占模式**：当系统内有多个 OTel consumer（LiteLLM / ADK / Langfuse / Phoenix / SigNoz）且各自对 logs/metrics/traces 三件套支持矩阵不同时，必须显式管理"谁先 set_*_provider"；推荐统一在应用 bootstrap 早期抢注期望行为的 provider，避免依赖隐式注册顺序；
+  2. **环境变量契约审计**：上游框架（ADK / OpenLLMetry / OpenInference）对 `OTEL_EXPORTER_OTLP_*` 的解释可能与单纯 OTel SDK 不同（如 ADK 把它当三件套总开关），引入新框架时需独立验证；
+  3. **后端兼容性矩阵明文化**：在 `negentropy.config.observability` 文档化「Langfuse 仅支持 traces」「Phoenix 支持 logs+traces」「SigNoz 支持三件套」等契约，避免重复踩坑；
+  4. **未来若需启用 GenAI events**：把当前 `_install_noop_otel_logs_metrics_providers` 替换为带 `BatchLogRecordProcessor(<目标 backend exporter>)` 的实质 LoggerProvider 即可，本次抢占模式天然支持平滑升级（Once-lock 仍保证唯一注册）。
+- **同类问题影响**：
+  1. 任何上游框架基于 env var 自动启用次级遥测路径（如 `OTEL_RESOURCE_ATTRIBUTES`、`OTEL_PROPAGATORS`）的场景；
+  2. 多 SDK 共存的 instrumentation 环境（`opentelemetry-instrumentation-*` 各自调用 `get_*_provider()`）；
+  3. 升级 google-adk / google-genai-instrumentation / litellm 版本时，需复核它们对 logs/metrics 的处理是否变更（如未来 LiteLLM `enable_metrics=True` 默认开启，需同步审计）。
