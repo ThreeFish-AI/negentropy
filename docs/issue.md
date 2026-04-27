@@ -603,3 +603,27 @@
 - **同类问题影响**：
   1. **chunking 阶段** `semantic_chunk_async`（service.py:2783）仍直接使用 `self._embedding_fn`，属于 index-time 另一支路；若 Hierarchical 模式需要按 corpus 配切 embedding 模型，需同法修补；
   2. **LLM 模型对称性**：`KnowledgeQA` / `extractor` 路径中 LLM 模型的 corpus 级解析是否对称，需独立审计。
+
+---
+
+## ISSUE-029 Home Ping 500 复发：文档侧 `--reload_agents` 未同步 `cli.py` 修复
+
+- **表因**：用户在 Home 页发送 "Ping, give me a pong"，前端无响应；后端日志 `POST /run_sse` 返回 500，异常 `ValueError: Agent not found: 'negentropy'. No matching directory or module exists in '.../src/negentropy/negentropy'`。
+- **根因**：`cli.py` 的 `agents_dir` 已在 commit `35204ff` 从 `src/negentropy` 修正为 `src`（通过 `Path(__file__)` 推导绝对路径，免疫 cwd 漂移），但 `README.md`、`docs/zh-CN/README.md`、`docs/development.md`、`docs/user-guide.md` 共 4 个文件 7 处启动命令仍写 `uv run adk web --port 8000 --reload_agents src/negentropy`。用户照文档启动后端复现旧 bug。
+- **二阶影响**：错误 `agents_dir` 导致 `src/services.py`（ADK `load_services_module` 桥接）不被加载，`apply_adk_patches()` 完全不执行 → 5 条扩展路由（`/auth`、`/knowledge`、`/memory`、`/interface`、`/sessions`）缺失，所有自定义中间件（`TracingInitMiddleware`、`AuthMiddleware`）不挂载，LiteLLM OTel callback 不注册，模型配置缓存不预热。错误命令的爆炸半径远不止 500。
+- **处理方式**：将所有文档中的 `uv run adk web ... --reload_agents src/negentropy` 统一替换为 `uv run negentropy serve ...`。CLI 包装器在 [`cli.py`](../apps/negentropy/src/negentropy/cli.py) 用 `Path(__file__)` 锚定 agents_dir，是单一事实源（SSOT），用户无需记忆易错的 `--reload_agents` 参数值。
+- **后续防范**：
+  1. **代码与文档 SSOT 联动**：修改 `cli.py` 的启动参数或默认值后，**必须**同步 grep 全仓文档（`grep -rn "adk web\|reload_agents" --include="*.md" .`）确保一致性；
+  2. **启动命令归口**：文档中一律推荐 `uv run negentropy serve`，不再直接暴露 `adk web` 命令；
+  3. **CHANGELOG 自检**：涉及 CLI/启动参数的 PR 在 CHANGELOG 条目中显式标注「文档已同步」或「仅代码侧」。
+- **同类问题影响**：其他被 CLI 包装的底层命令（如未来可能的 `uv run negentropy migrate` 包装 `alembic upgrade head`），若文档仍直接引用底层命令且参数有差异，同样存在漂移风险。
+
+## ISSUE-030 SubAgents 主 Agent（NegentropyEngine）同步防回归
+
+- **表因**：用户在 SubAgents 页点击 "Sync Negentropy" 后，toast 显示 "Synced: created 0, updated 5, skipped 0"，页面仅出现 5 个子 Agent 卡片，缺少主 Agent（NegentropyEngine）。
+- **根因**：用户运行的是旧版后端（commit `35204ff feat(agent-defs)` 之前）。旧版 `build_negentropy_subagent_payloads()` 仅返回 5 个 subagent payload，不含 root Agent。当前代码已修正：`subagent_presets.py` 返回 6 个 payload（1 root + 5 subagent），前端 `SubAgentCard.tsx` 有 Root 徽章，`page.tsx` 有 root 置顶排序。用新代码重新 sync 后 DB 会 `created=1`（root）+ `updated=5`（subagents），主 Agent 卡片正常出现。
+- **处理方式**：纯文档侧修复（同步启动命令），消除用户复现旧 bug 的路径。运行时代码已正确，无需修改。
+- **后续防范**：
+  1. **Sync 诊断**：若再次出现「sync 计数与预期不符」，检查后端版本是否包含 `build_negentropy_root_agent_payload()`，以及 DB 中是否存在 `owner_id` 不匹配的旧行；
+  2. **Root Agent 只读约束**：当前 SubAgents 页对 root Agent 的 Edit/Delete 操作未做只读限制（root Agent 的结构定义由代码硬编码，编辑 instruction/model 通过 InstructionProvider/DynamicModel 在运行时生效，但 sub_agents/tools 等结构性字段不可通过 UI 变更）。建议后续在 UI 层对 `kind === "root"` 卡片禁用 Delete、对结构性字段标灰。
+- **同类问题影响**：若后续新增 Pipeline Agent（如 `KnowledgeAcquisitionPipeline`、`ProblemSolvingPipeline`、`ValueDeliveryPipeline`）到 sync payload 中，需同步更新 toast 预期计数（从 6 增至 9）。
