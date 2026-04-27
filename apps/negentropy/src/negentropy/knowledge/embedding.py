@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
+from urllib.parse import urlparse
 from uuid import UUID
 
 from negentropy.logging import get_logger
@@ -21,6 +22,33 @@ from negentropy.logging import get_logger
 from .exceptions import EmbeddingFailed
 
 logger = get_logger("negentropy.knowledge.embedding")
+
+
+def _api_base_host(api_base: Any) -> str:
+    """从 api_base 提取 host 用于日志（脱敏 path/query/credentials）。"""
+    if not isinstance(api_base, str) or not api_base:
+        return ""
+    try:
+        parsed = urlparse(api_base)
+        return parsed.netloc or parsed.path or ""
+    except Exception:
+        return ""
+
+
+def _extract_upstream_text(exc: BaseException) -> str:
+    """从 litellm 抛出的异常链中提取上游原始响应文本（已被 litellm 脱敏 URL）。"""
+    cur: BaseException | None = exc
+    seen: set[int] = set()
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        text = getattr(cur, "text", None) or getattr(cur, "message", None)
+        if isinstance(text, str) and text:
+            return text[:500]
+        if isinstance(text, (bytes, bytearray)):
+            return text.decode("utf-8", errors="replace")[:500]
+        cur = cur.__cause__ or cur.__context__
+    return ""
+
 
 EmbeddingFn = Callable[[str], Awaitable[list[float]]]
 BatchEmbeddingFn = Callable[[list[str]], Awaitable[list[list[float]]]]
@@ -161,6 +189,15 @@ def build_embedding_fn(embedding_config_id: UUID | str | None = None) -> Embeddi
 
         model_name, extra_kwargs = await _resolve_embedding(embedding_config_id)
 
+        logger.debug(
+            "embedding_request",
+            model=model_name,
+            api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+            input_count=1,
+            text_preview=cleaned[:50],
+            kwargs_keys=sorted(k for k in extra_kwargs.keys() if k != "api_key"),
+        )
+
         try:
             import litellm
 
@@ -176,7 +213,14 @@ def build_embedding_fn(embedding_config_id: UUID | str | None = None) -> Embeddi
                 context=f"embed({cleaned[:50]}...)",
             )
         except (TimeoutError, Exception) as exc:
-            logger.error("embedding_request_failed", model=model_name, exc_info=exc)
+            upstream_text = _extract_upstream_text(exc)
+            logger.error(
+                "embedding_request_failed",
+                model=model_name,
+                api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+                upstream_response_text=upstream_text,
+                exc_info=exc,
+            )
             raise EmbeddingFailed(
                 text_preview=cleaned[:100],
                 model=model_name,
@@ -241,6 +285,14 @@ def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> B
             batch_results: list[list[float]] = [[] for _ in batch_texts]
 
             if non_empty_texts:
+                logger.debug(
+                    "batch_embedding_request",
+                    model=model_name,
+                    api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+                    input_count=len(non_empty_texts),
+                    text_preview=non_empty_texts[0][:50],
+                    kwargs_keys=sorted(k for k in extra_kwargs.keys() if k != "api_key"),
+                )
                 try:
                     import litellm
 
@@ -260,9 +312,12 @@ def build_batch_embedding_fn(embedding_config_id: UUID | str | None = None) -> B
                         context=f"batch_embed({len(non_empty_texts)} texts)",
                     )
                 except (TimeoutError, Exception) as exc:
+                    upstream_text = _extract_upstream_text(exc)
                     logger.error(
                         "batch_embedding_request_failed",
                         model=model_name,
+                        api_base_host=_api_base_host(extra_kwargs.get("api_base")),
+                        upstream_response_text=upstream_text,
                         batch_size=len(non_empty_texts),
                         exc_info=exc,
                     )

@@ -527,3 +527,27 @@
 - **同类问题影响**：
   1. **同 endpoint 历史漏洞**：[ISSUE-016](#issue-016) 已修复 `app_name NOT NULL` 缺失导致的 500，本次修复 `uq_wiki_pub_catalog_active` 触发的 500，二者同因不同果——「endpoint 缺失结构化错误处理」是结构性问题，不是单次 bugfix。
   2. **`update_wiki_publication` / `archive` / 等同类端点**未做约束冲突防御，未来若新增约束（如 `theme` 唯一性、跨 app 互斥），会复现同型问题；建议在 service / DAO 层统一接入领域异常 + 端点层 `_map_exception_to_http` 路径（本次按最小干预原则未推进，记录为可观测的债务）。
+
+---
+
+## ISSUE-026 Knowledge Base Retrieve 全屏空白：前端聚合层静默吞噬 rejection × 后端 hybrid 缺降级路径
+
+- **表因**：用户在 `/knowledge/base` 页输入查询词、勾选 Corpus、选择 hybrid 模式，点 Retrieve 后**结果区完全空白且无任何错误提示**。后端日志可见 `POST /knowledge/base/{id}/search → 500` 与 `infrastructure_error`（litellm 调 Gemini `:batchEmbedContents` 上游返 `400 {"error":{"message":"request body doesn't contain valid prompts"}}`）。
+- **根因**（双层 Bug，缺一不可）：
+  1. **前端**（`apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts::searchAcrossCorpora` 旧实现）：`Promise.allSettled` 后只读取 `fulfilled` 分支，`rejected` 直接 `forEach` 跳过、调用方收到 `{count:0, items:[]}` —— 当**全部** Corpus 均失败（或仅勾选一个）时无错误抛出。`handleRetrieve`（`app/knowledge/base/page.tsx`）走"成功路径"，`setRetrievalResults([])` 致 UI 空白且不触发 `retrievalError` banner。
+  2. **后端**（`apps/negentropy/src/negentropy/knowledge/service.py::search` 旧实现）：hybrid / rrf 模式下 `await self._embedding_fn(query)` **未捕获 `EmbeddingFailed`**，外部 Embedding 上游故障直接传播为 500，丧失"keyword 仍可用"的优雅降级。`api.py::_map_exception_to_http` 将 `EmbeddingFailed` 与 `SearchError` 合并映射到 500，前端无法区分"自身错误（重试无意义）"与"上游错误（修复后再试）"。
+- **处理方式**（分层防御 + 诊断仪器化）：
+  1. **前端**：`searchAcrossCorpora` 改为聚合三态：全部 fulfilled → 原结果；部分 rejected → 返回 `errors[]` 字段 + 成功项；全部 rejected → 抛聚合错误（合并 reasons，限长 200 字符）。`SearchResults` 类型扩展可选 `errors?: SearchResultError[]`。`handleRetrieve` 在 `errors` 非空时通过 `toast.warning` 透出原因，避免静默丢失。
+  2. **后端 service**：hybrid 模式 `try { embedding_fn(query) } catch EmbeddingFailed` → `query_embedding=None` 走既有 keyword-only 守卫；rrf 模式失败时走与 `not embedding_fn` 等价的 keyword 回退路径；semantic 模式仍传播 `EmbeddingFailed`（纯语义无降级语义）。**复用**已有 `_repository.keyword_search` / `_hydrate_match_metadata` / `_lift_hierarchical_matches`，零新接口。
+  3. **后端 api**：拆分 `_map_exception_to_http` 中 `EmbeddingFailed` 分支映射到 `502 Bad Gateway`（保留 `code="EMBEDDING_FAILED"`）；`SearchError` 维持 500。
+  4. **诊断仪器化**：`embedding.py::embed/batch_embed` 调用 litellm 前后增加结构化日志：`api_base_host`（脱敏 path/credentials 仅留 host）、`input_count`、`text_preview`、`kwargs_keys`；失败时附加 `upstream_response_text`（从 `MaskedHTTPStatusError.text` 沿异常链 `__cause__/__context__` 提取，已被 litellm 脱敏 URL，限长 500 字节）。后续同类问题用户可一眼定位"实际请求到了哪个 host + 上游原始错误"，无需 `litellm._turn_on_debug()` 全开。
+  5. **测试锁定**：新增 `tests/unit_tests/knowledge/test_search_resilience.py`（5 例：hybrid/rrf 降级、semantic 传播、`EmbeddingFailed→502`、`SearchError→500`）+ `tests/unit/knowledge/searchAcrossCorpora.test.ts`（3 例：全 fulfilled / 部分 rejected / 全 rejected）。
+- **后续防范**：
+  1. **`Promise.allSettled` 必须聚合 rejection**：本仓库前端任何 `Promise.allSettled` 调用点都必须显式处理 `rejected` 分支（聚合抛错或 errors[] 暴露），**禁止**仅 `if (status === "fulfilled")` 的"沉默扫描"模式。建议在 `apps/negentropy-ui/features/*/utils/*-api.ts` 全文检索 `Promise.allSettled` 与 `status === "fulfilled"` 做一次性扫荡。
+  2. **外部依赖错误码语义**：调用 vendor / 上游 API 失败应映射到 `502 Bad Gateway`（不是 500），让前端能区分"我自己的 bug"与"对端坏了"。本次以 `EmbeddingFailed` 为模板，后续 `Reranker / LLMExtractor / EntityExtraction` 等同类外部依赖失败应同步对齐。
+  3. **hybrid / 多源融合检索必须保留至少一条降级路径**：任何"语义 + 关键词"融合模式当语义信号不可用时应自动退化为关键词，反之亦然。本次 `service.py::search` 已落实 hybrid 与 rrf 两种降级；新增检索模式（如未来 `cross_encoder_rerank`）需走同等"任一信号失效仍可返回结果"的契约。
+  4. **诊断信号优先于"加日志再说"**：embedding / vendor 调用类的失败日志必须包含 `api_base_host`（脱敏）+ `upstream_response_text`，否则用户拿到日志也无法定位上游归属（vendor / 自建代理 / 网关）。这次将该模式落到 `embedding.py`，可作为新增 vendor 调用模板。
+- **同类问题影响**：
+  1. **前端聚合层**：`fetchCatalogTree` / `searchGraph` / 任何 `Promise.allSettled` + 多 corpus / 多 source 聚合的端点都需复盘是否有相同"沉默丢失 rejected"反模式。
+  2. **后端外部依赖错误码**：`Reranker.rerank` / `LLMExtractor.extract` / `EntityExtractionError` / `RelationExtractionError` 等同型 `InfrastructureError` 子类目前仍走默认 500 通道，后续可统一上调到 502（与 `EmbeddingFailed` 对齐）。
+  3. **环境侧排查（独立于代码修复）**：本次错误响应 JSON `{"error":{"message":"..."}}` 缺失 Google 官方必有的 `code/status` 字段，强烈倾向是 `NATIVE_GEMINI_BASE_URL` 被覆写到了非官方代理（如 `gemini-balance` / `one-api`）的 native API 模拟，其 `:batchEmbedContents` 校验不完整。用户可执行 `echo $NATIVE_GEMINI_BASE_URL` 与 `curl -H "x-goog-api-key: $KEY" -H "Content-Type: application/json" -d '{"requests":[{"model":"models/text-embedding-004","content":{"parts":[{"text":"hi"}]}}]}' http://localhost:3392/api/gemini/v1beta/models/text-embedding-004:batchEmbedContents` 直接抓上游响应定位。本次代码修复**不消除**根因故障（仍需用户配置侧排查），但**消除**"故障 → 无声空白"链路，确保用户可见可诊断。

@@ -2534,9 +2534,26 @@ class KnowledgeService:
 
         # RRF 模式: 使用专门的 RRF 检索方法
         if config.mode == "rrf":
-            if not self._embedding_fn:
-                logger.warning("rrf_search_failed_no_embedding", corpus_id=str(corpus_id))
-                # 回退到关键词检索
+            from .exceptions import EmbeddingFailed
+
+            query_embedding = None
+            if self._embedding_fn:
+                try:
+                    query_embedding = await self._embedding_fn(query)
+                except EmbeddingFailed as exc:
+                    logger.warning(
+                        "rrf_embedding_failed_falling_back_to_keyword",
+                        corpus_id=str(corpus_id),
+                        reason=exc.details.get("reason", str(exc)),
+                    )
+
+            if query_embedding is None:
+                if not self._embedding_fn:
+                    logger.warning(
+                        "rrf_search_failed_no_embedding",
+                        corpus_id=str(corpus_id),
+                    )
+                # 回退到关键词检索（embedding 不可用 / embedding 失败）
                 keyword_matches = await self._repository.keyword_search(
                     corpus_id=corpus_id,
                     app_name=app_name,
@@ -2567,7 +2584,6 @@ class KnowledgeService:
                     matches=keyword_matches,
                 )
 
-            query_embedding = await self._embedding_fn(query)
             results = await self._repository.rrf_search(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -2607,7 +2623,22 @@ class KnowledgeService:
         # 其他模式: semantic, keyword, hybrid
         query_embedding = None
         if config.mode in ("semantic", "hybrid") and self._embedding_fn:
-            query_embedding = await self._embedding_fn(query)
+            from .exceptions import EmbeddingFailed
+
+            try:
+                query_embedding = await self._embedding_fn(query)
+            except EmbeddingFailed as exc:
+                # hybrid 优雅降级：失败时仅以 keyword 检索回退；
+                # semantic 显式失败传播：纯语义模式无意义降级。
+                if config.mode == "hybrid":
+                    logger.warning(
+                        "hybrid_embedding_failed_falling_back_to_keyword",
+                        corpus_id=str(corpus_id),
+                        reason=exc.details.get("reason", str(exc)),
+                    )
+                    query_embedding = None
+                else:
+                    raise
 
         semantic_matches: list[KnowledgeMatch] = []
         keyword_matches: list[KnowledgeMatch] = []
