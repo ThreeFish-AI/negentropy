@@ -581,3 +581,25 @@
 - **同类问题影响**：
   1. 凡通过自动化脚本生成 ICO 的入口（包括未来可能的 `apps/*/src/app/favicon.ico`、`apps/*/src/app/icon.{png,svg}`、`apps/*/src/app/apple-icon.png`）均需复核是否走 padding+多档流程；
   2. 已发布 Wiki Publication 的 OpenGraph / Twitter Card 图（如未来引入 `apps/negentropy-wiki/src/app/opengraph-image.{png,jpg}`）同样存在「非方形源图直接交付」风险，建议在引入前预设统一的资产生成脚本（`scripts/build-icons.mjs` 或 `scripts/build-icons.py`）作为单一事实源。
+
+---
+
+## ISSUE-028 Knowledge Base Retrieve 查询时未使用 Corpus 自配 Embedding 模型，导致 query/index 模型不一致
+
+- **表因**：用户在 Corpus Settings 页已显式选定 `Embedding Model = openai/text-embedding-3-small`（1536 维），执行 Retrieve（hybrid 模式）时后端仍使用全局默认 `gemini/text-embedding-004`，该模型经 `localhost:3392` 翻译代理对 Gemini `batchEmbedContents` 实现不全，返回 `400 "request body doesn't contain valid prompts"`，重试 3 次失败 → HTTP 500（ISSUE-026 的 keyword 兜底已在后续 commit 落地，但 embedding 模型选择的契约缺口仍存在）。
+- **根因**：**索引侧与查询侧 embedding fn 解析路径不对称**：
+  1. **索引侧**（`service.py::_attach_embeddings`，line 2906-2913）：读 `corpus.config['models']['embedding_config_id']`，命中则 `build_batch_embedding_fn(embedding_config_id)`，走 corpus 自身配置；
+  2. **查询侧**（`service.py::search`，line 2540-2542 / 2625-2629）：直接使用实例化时锁定的 `self._embedding_fn`（全局默认 fn），**从未读 corpus.config**。
+  后果：索引产物按 OpenAI 1536 维生成，查询走全局默认 gemini/text-embedding-004（768 维）→ 模型不一致 + 上游链路故障双重失败。
+- **处理方式**（最小干预 + 索引/查询对称化）：
+  1. 新增 `_resolve_embedding_fn(corpus_config)` 私有方法（紧邻 `_extract_embedding_config_id`），复用 `build_embedding_fn` + `_extract_embedding_config_id`，corpus pin 优先 → 退回 service 默认 fn；
+  2. `search()` 入口新增 `corpus_config = await self._get_corpus_config(corpus_id)` + `embedding_fn = self._resolve_embedding_fn(corpus_config)`；
+  3. rrf / hybrid / semantic 三分支的 `self._embedding_fn` 替换为本地变量 `embedding_fn`；
+  4. ISSUE-026 的 `EmbeddingFailed → keyword 兜底`、`502 映射`、诊断日志（`api_base_host` + `upstream_response_text`）原样保留，零回归；
+  5. 配套 5 例单元测试：corpus pin 命中 / 落空 / hybrid keyword 兜底 / rrf 走 pin / semantic 失败上抛，回归 ISSUE-026 的 5 例全部绿色。
+- **后续防范**：
+  1. **索引/查询 fn 解析必须对称**：任何新增"按 corpus 选择 fn"的场景（如 reranker fn、LLM extractor fn）需同时检查 `_attach_embeddings` 索引侧与 `search` 查询侧是否共用同一条判别逻辑。建议将 `_resolve_embedding_fn` 模式推广为通用 `_resolve_fn_for_corpus(corpus_config, fn_type)` 助手。
+  2. **corpus 级配置消费审计**：新增 corpus.config 子键（如 `models.reranker_config_id`）时，需逐路径确认 `search()`、`_attach_embeddings()`、`semantic_chunk_async()` 三处消费点均覆盖。
+- **同类问题影响**：
+  1. **chunking 阶段** `semantic_chunk_async`（service.py:2783）仍直接使用 `self._embedding_fn`，属于 index-time 另一支路；若 Hierarchical 模式需要按 corpus 配切 embedding 模型，需同法修补；
+  2. **LLM 模型对称性**：`KnowledgeQA` / `extractor` 路径中 LLM 模型的 corpus 级解析是否对称，需独立审计。

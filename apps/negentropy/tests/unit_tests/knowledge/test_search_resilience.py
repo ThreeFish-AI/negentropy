@@ -67,6 +67,8 @@ def service(stub_repository: _StubRepository) -> KnowledgeService:
     svc._hydrate_match_metadata = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
     svc._lift_hierarchical_matches = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
     svc._record_match_retrievals = AsyncMock(side_effect=lambda **kw: kw["matches"])  # type: ignore[method-assign]
+    # search() 现按 corpus.config.embedding_config_id 选 fn；本测固定走 service 默认 fn。
+    svc._get_corpus_config = AsyncMock(return_value={})  # type: ignore[method-assign]
     return svc
 
 
