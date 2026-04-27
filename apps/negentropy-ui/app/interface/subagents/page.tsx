@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { SubAgentCard } from "./_components/SubAgentCard";
@@ -23,6 +23,8 @@ interface SubAgent {
   source: string;
   is_builtin: boolean;
   is_enabled: boolean;
+  // "root" = Negentropy 主 Agent；"subagent"（默认）= Faculty 或用户自定义子 Agent
+  kind?: "root" | "subagent";
 }
 
 interface SyncResponse {
@@ -116,6 +118,18 @@ export default function SubAgentsPage() {
     setEditingAgent(null);
   };
 
+  // Root Agent 置顶；其余按 name 字典序保持稳定，避免 fetchAgents 顺序波动。
+  const sortedAgents = useMemo(() => {
+    const rank = (agent: SubAgent) => (agent.kind === "root" ? 0 : 1);
+    return [...agents].sort((a, b) => {
+      const diff = rank(a) - rank(b);
+      if (diff !== 0) {
+        return diff;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [agents]);
+
   const handleFormSubmit = async (data: Record<string, unknown>) => {
     try {
       const url = editingAgent
@@ -165,7 +179,7 @@ export default function SubAgentsPage() {
                     "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium",
                   )}
                 >
-                  {syncing ? "Syncing..." : "Sync Negentropy 5"}
+                  {syncing ? "Syncing..." : "Sync Negentropy"}
                 </button>
                 <button
                   onClick={handleCreate}
@@ -196,7 +210,7 @@ export default function SubAgentsPage() {
                     onClick={handleSyncNegentropy}
                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
                   >
-                    Sync Negentropy 5 →
+                    Sync Negentropy →
                   </button>
                   <button
                     onClick={handleCreate}
@@ -211,7 +225,7 @@ export default function SubAgentsPage() {
                 data-testid="subagents-grid"
                 className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
               >
-                {agents.map((agent) => (
+                {sortedAgents.map((agent) => (
                   <div key={agent.id} className="h-[176px]" data-testid="subagent-grid-item">
                     <SubAgentCard
                       agent={agent}

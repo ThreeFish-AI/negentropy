@@ -82,6 +82,12 @@ export function HomeBody({
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(null);
   const perThreadLlmRef = useRef<Record<string, string | null>>({});
+  // 「无 session 时」用户预先选择的模型，待 startNewSession 后转入 perThreadLlmRef[newId]。
+  // undefined = 无 pending；null = 用户主动清空；string = 选定模型。
+  const pendingLlmRef = useRef<string | null | undefined>(undefined);
+  // pending 仅对「startNewSession 创建出来的新 id」生效；首次进入既有 session 不消费。
+  // 由 startNewSessionWithLlmTarget 在拿到新 id 时写入，Effect 1 命中后清零。
+  const pendingLlmTargetIdRef = useRef<string | null>(null);
   const rawEventHandlerRef = useRef<((event: BaseEvent) => void) | undefined>(
     undefined,
   );
@@ -178,6 +184,16 @@ export function HomeBody({
     setConnectionWithMetrics,
     onClearActiveSession: resetActiveSessionView,
   });
+
+  // 仅对「startNewSession 创建出来的新 id」消费 pending 模型选择；
+  // 通过同一入口包装内联调用与 SessionList 的 onNewSession 回调，避免遗漏路径。
+  const startNewSessionWithLlmTarget = useCallback(async () => {
+    const newId = await startNewSession();
+    if (newId) {
+      pendingLlmTargetIdRef.current = newId;
+    }
+    return newId;
+  }, [startNewSession]);
 
   useEffect(() => {
     rawEventHandlerRef.current = (event) => {
@@ -371,7 +387,7 @@ export function HomeBody({
       setScrollToBottomTrigger((prev) => prev + 1);
       setIsCreatingSession(true);
       try {
-        const newId = await startNewSession();
+        const newId = await startNewSessionWithLlmTarget();
         if (newId) {
           pendingForSessionRef.current = newId;
         } else {
@@ -450,13 +466,32 @@ export function HomeBody({
 
   useEffect(() => {
     if (!sessionId) {
-      setSelectedLlmModel(null);
+      // 离开 session：保留 pending 选择，避免「无 session 选模型」的瞬时回退。
+      setSelectedLlmModel(pendingLlmRef.current ?? null);
       return;
     }
     if (sessionId in perThreadLlmRef.current) {
       setSelectedLlmModel(perThreadLlmRef.current[sessionId] ?? null);
+      // 进入已知 session：丢弃 pending，避免后续被错误消费。
+      pendingLlmRef.current = undefined;
+      pendingLlmTargetIdRef.current = null;
       return;
     }
+    if (
+      pendingLlmRef.current !== undefined &&
+      pendingLlmTargetIdRef.current === sessionId
+    ) {
+      // startNewSession 创建的新 id：转移 pending，让 Effect 2 跳过 snapshot 覆盖。
+      const carried = pendingLlmRef.current;
+      perThreadLlmRef.current[sessionId] = carried;
+      setSelectedLlmModel(carried ?? null);
+      pendingLlmRef.current = undefined;
+      pendingLlmTargetIdRef.current = null;
+      return;
+    }
+    // 首次进入既有 session：丢弃 pending，让 Effect 2 用 snapshot 初始化。
+    pendingLlmRef.current = undefined;
+    pendingLlmTargetIdRef.current = null;
     setSelectedLlmModel(null);
   }, [sessionId]);
 
@@ -478,6 +513,10 @@ export function HomeBody({
       setSelectedLlmModel(next);
       if (sessionId) {
         perThreadLlmRef.current[sessionId] = next;
+        pendingLlmRef.current = undefined;
+      } else {
+        // 用户在「无 session」状态下选模型：暂存到 pending，等 startNewSession 后由 Effect 1 转移。
+        pendingLlmRef.current = next;
       }
     },
     [sessionId],
@@ -520,7 +559,7 @@ export function HomeBody({
               view={sessionListView}
               onSwitchView={setSessionListView}
               onSelect={handleSessionChange}
-              onNewSession={startNewSession}
+              onNewSession={startNewSessionWithLlmTarget}
               onRename={renameSession}
               onArchive={archiveSession}
               onUnarchive={unarchiveSession}

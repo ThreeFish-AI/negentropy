@@ -2,6 +2,7 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.llm_request import LlmRequest
 
+from ._dynamic_instruction import make_instruction_provider
 from ._dynamic_model import set_selected_root_llm
 from ._model import create_root_model
 from .faculties.action import action_agent
@@ -33,13 +34,7 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
     set_selected_root_llm(selected if isinstance(selected, str) else None)
 
 
-root_agent = LlmAgent(
-    name="NegentropyEngine",
-    # Model configured via unified settings (see config/llm.py)
-    model=create_root_model(),
-    before_model_callback=_pick_root_model,
-    description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
-    instruction="""
+_ROOT_INSTRUCTION = """
 你是 **NegentropyEngine** (熵减引擎)，是 Negentropy 系统唯一的 **「本我」(The Self)**。
 
 ## 核心哲学：熵减 (Entropy Reduction)
@@ -129,7 +124,18 @@ root_agent = LlmAgent(
 - **最小干预 (Minimal Intervention)**：不要过度设计。使用最简的系部路径解决问题（奥卡姆剃刀）。
 - **单一事实源 (Single Source of Truth)**：依赖 `InternalizationFaculty` 获取历史上下文，而非仅依赖你短暂的上下文窗口。
 - **优先流水线 (Pipeline First)**：对于多步骤任务，优先使用预定义流水线。
-""",
+"""
+
+
+root_agent = LlmAgent(
+    name="NegentropyEngine",
+    # Model configured via unified settings (see config/llm.py)
+    model=create_root_model(),
+    before_model_callback=_pick_root_model,
+    description="熵减系统的「本我」，通过协调五大系部的能力，持续实现自我进化。",
+    # Instruction 由 sub_agents.system_prompt 经 InstructionProvider 在运行时解析；
+    # DB 未命中或失败时回退到 _ROOT_INSTRUCTION 常量，永不阻塞请求。
+    instruction=make_instruction_provider("NegentropyEngine", _ROOT_INSTRUCTION),
     tools=[log_activity],
     sub_agents=[
         perception_agent,

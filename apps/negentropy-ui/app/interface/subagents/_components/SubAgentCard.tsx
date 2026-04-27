@@ -17,6 +17,7 @@ interface SubAgent {
   source: string;
   is_builtin: boolean;
   is_enabled: boolean;
+  kind?: "root" | "subagent";
 }
 
 interface SubAgentCardProps {
@@ -72,6 +73,14 @@ export function SubAgentCard({ agent, onEdit, onDelete }: SubAgentCardProps) {
           <span className="inline-flex shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
             {agent.visibility}
           </span>
+          {agent.kind === "root" && (
+            <span
+              className="inline-flex shrink-0 items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+              title="Negentropy 主 Agent，编辑后通过 InstructionProvider 在运行时生效"
+            >
+              Root
+            </span>
+          )}
           {agent.is_builtin && (
             <span className="inline-flex min-w-0 items-center truncate rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
               Negentropy Built-in
