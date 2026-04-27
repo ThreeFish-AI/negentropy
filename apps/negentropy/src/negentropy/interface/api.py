@@ -853,10 +853,15 @@ async def load_mcp_server_tools(
                 db.add(new_template)
                 updated_templates.append(new_template)
 
-        # 删除 server 不再声明的 templates（保持 DB 与 server 声明一致）
-        for stale_uri, stale_tpl in existing_template_map.items():
-            if stale_uri not in seen_uri_templates:
-                await db.delete(stale_tpl)
+        # 仅在 server 权威返回 templates 列表时才裁剪 stale 行：
+        # ``_discover_on_transport`` 对 ``list_resource_templates`` 的所有异常都
+        # 会静默兜底返回空列表（兼容旧 server / 瞬态错误），若此处直接 prune 会
+        # 把首次错误后的 DB 模板表清空，与 tools 同步"只增量更新、不裁剪"的语义
+        # 不对称。``resource_templates_listed`` 区分"权威空列表"与"未支持/错误"。
+        if result.resource_templates_listed:
+            for stale_uri, stale_tpl in existing_template_map.items():
+                if stale_uri not in seen_uri_templates:
+                    await db.delete(stale_tpl)
 
         await db.commit()
 

@@ -83,6 +83,8 @@ async def test_discover_includes_resource_templates(monkeypatch: pytest.MonkeyPa
     assert result.success is True
     assert len(result.tools) == 1
     assert len(result.resource_templates) == 1
+    # 权威返回 → 上游可裁剪 stale 行
+    assert result.resource_templates_listed is True
     tpl = result.resource_templates[0]
     assert tpl.uri_template == "perceives://pdf/{job_id}/{filename}"
     assert tpl.name == "pdf-image"
@@ -122,6 +124,8 @@ async def test_discover_tolerates_missing_resources_capability(monkeypatch: pyte
     assert result.success is True
     assert len(result.tools) == 1
     assert result.resource_templates == []  # 静默兜底
+    # 关键：未支持/错误时必须为 False，避免上游把它当作"权威空列表"裁剪 stale 行
+    assert result.resource_templates_listed is False
 
 
 @pytest.mark.asyncio

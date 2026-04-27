@@ -191,6 +191,10 @@ class McpConnectionResult:
     success: bool
     tools: list[McpToolInfo] = field(default_factory=list)
     resource_templates: list[McpResourceTemplateInfo] = field(default_factory=list)
+    # 仅当 ``resources/templates/list`` 调用成功返回时为 True；旧 server 未声明
+    # resources capability、瞬态网络抖动等场景下保持 False。调用方据此区分
+    # "权威空列表"（可裁剪 stale 行）与"未支持/错误"（必须保留 stale 行）。
+    resource_templates_listed: bool = False
     error: str | None = None
     duration_ms: int = 0
 
@@ -389,8 +393,10 @@ class McpClientService:
 
                     # Resource Templates 发现：旧 server 不声明 resources capability
                     # 时 list_resource_templates 会抛错，此处静默兜底，确保 tools 发现
-                    # 不被资源能力可选性所阻断（向后兼容）。
+                    # 不被资源能力可选性所阻断（向后兼容）。``resource_templates_listed``
+                    # 区分"权威空列表"与"未支持/错误"，供上游判断是否可裁剪 stale 行。
                     resource_templates: list[McpResourceTemplateInfo] = []
+                    resource_templates_listed = False
                     try:
                         templates_result = await session.list_resource_templates()
                         for tpl in templates_result.resourceTemplates:
@@ -405,6 +411,7 @@ class McpClientService:
                                     meta=getattr(tpl, "meta", None) or {},
                                 )
                             )
+                        resource_templates_listed = True
                     except Exception as exc:
                         logger.debug(
                             "list_resource_templates_skipped",
@@ -417,7 +424,12 @@ class McpClientService:
                         f"Discovered {len(tools)} tools and {len(resource_templates)} resource templates "
                         f"via {transport_type} from {transport_source}"
                     )
-                    return McpConnectionResult(success=True, tools=tools, resource_templates=resource_templates)
+                    return McpConnectionResult(
+                        success=True,
+                        tools=tools,
+                        resource_templates=resource_templates,
+                        resource_templates_listed=resource_templates_listed,
+                    )
 
     # ── 公开入口方法 ────────────────────────────────────────────────
 
