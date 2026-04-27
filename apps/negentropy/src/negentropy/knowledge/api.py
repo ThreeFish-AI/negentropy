@@ -244,6 +244,7 @@ def _map_exception_to_http(exc: KnowledgeError) -> HTTPException:
     - 404: 资源不存在
     - 409: 版本冲突
     - 500: 服务器内部错误
+    - 502: 上游服务错误（vendor / Embedding 等外部依赖）
     """
     if isinstance(exc, CorpusNotFound):
         logger.warning("corpus_not_found", details=exc.details)
