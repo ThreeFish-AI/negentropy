@@ -23,6 +23,7 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.model_config import ModelConfig
 from negentropy.models.plugin import (
+    McpResourceTemplate,
     McpServer,
     McpTool,
     McpToolRun,
@@ -132,6 +133,7 @@ class McpServerResponse(BaseModel):
     auto_start: bool = False
     config: dict[str, Any] = Field(default_factory=dict)
     tool_count: int = 0
+    resource_template_count: int = 0
 
     class Config:
         from_attributes = True
@@ -170,12 +172,34 @@ class McpToolUpdateRequest(BaseModel):
     is_enabled: bool | None = None
 
 
+class McpResourceTemplateResponse(BaseModel):
+    """MCP Resource Template 响应模型（仅 Templates，不含动态实例）"""
+
+    id: UUID | None = None
+    uri_template: str
+    name: str | None = None
+    title: str | None = None
+    description: str | None = None
+    mime_type: str | None = None
+    annotations: dict[str, Any] = Field(default_factory=dict)
+    meta: dict[str, Any] = Field(default_factory=dict)
+    is_enabled: bool = True
+
+    class Config:
+        from_attributes = True
+
+
 class LoadToolsResponse(BaseModel):
-    """Load Tools 操作响应"""
+    """Load Tools 操作响应（capability 全量同步：tools + resource_templates）。
+
+    保留 ``LoadToolsResponse`` 命名以维持向后兼容（旧前端可继续读取 ``tools``
+    字段）；新增 ``resource_templates`` 字段在旧消费方处会被忽略。
+    """
 
     success: bool
     server_id: UUID
     tools: list[McpToolResponse] = Field(default_factory=list)
+    resource_templates: list[McpResourceTemplateResponse] = Field(default_factory=list)
     duration_ms: int = 0
     error: str | None = None
 
@@ -440,17 +464,35 @@ async def list_mcp_servers(user: AuthUser = Depends(get_current_user)) -> list[M
         if not visible_ids:
             return []
 
-        stmt = (
-            select(McpServer, func.count(McpTool.id))
-            .outerjoin(McpTool, McpTool.server_id == McpServer.id)
-            .where(McpServer.id.in_(visible_ids))
-            .group_by(McpServer.id)
-            .order_by(McpServer.created_at.desc())
+        # tool_count 与 resource_template_count 分两段查询：避免单条 SQL 的
+        # JOIN 笛卡尔积导致两类计数互相膨胀。
+        tool_count_stmt = (
+            select(McpTool.server_id, func.count(McpTool.id))
+            .where(McpTool.server_id.in_(visible_ids))
+            .group_by(McpTool.server_id)
         )
-        result = await db.execute(stmt)
-        rows = result.all()
+        tool_count_rows = (await db.execute(tool_count_stmt)).all()
+        tool_count_map: dict[UUID, int] = {row[0]: row[1] for row in tool_count_rows}
 
-    return [_mcp_server_to_response(server, count) for server, count in rows]
+        template_count_stmt = (
+            select(McpResourceTemplate.server_id, func.count(McpResourceTemplate.id))
+            .where(McpResourceTemplate.server_id.in_(visible_ids))
+            .group_by(McpResourceTemplate.server_id)
+        )
+        template_count_rows = (await db.execute(template_count_stmt)).all()
+        template_count_map: dict[UUID, int] = {row[0]: row[1] for row in template_count_rows}
+
+        servers_stmt = select(McpServer).where(McpServer.id.in_(visible_ids)).order_by(McpServer.created_at.desc())
+        servers = (await db.execute(servers_stmt)).scalars().all()
+
+    return [
+        _mcp_server_to_response(
+            server,
+            tool_count_map.get(server.id, 0),
+            template_count_map.get(server.id, 0),
+        )
+        for server in servers
+    ]
 
 
 @router.post("/mcp/servers", response_model=McpServerResponse, status_code=status.HTTP_201_CREATED)
@@ -499,20 +541,16 @@ async def get_mcp_server(
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
-        stmt = (
-            select(McpServer, func.count(McpTool.id))
-            .outerjoin(McpTool, McpTool.server_id == McpServer.id)
-            .where(McpServer.id == server_id)
-            .group_by(McpServer.id)
+        server = await db.get(McpServer, server_id)
+        if not server:
+            raise HTTPException(status_code=404, detail="Server not found")
+
+        tool_count = await db.scalar(select(func.count(McpTool.id)).where(McpTool.server_id == server_id))
+        template_count = await db.scalar(
+            select(func.count(McpResourceTemplate.id)).where(McpResourceTemplate.server_id == server_id)
         )
-        result = await db.execute(stmt)
-        row = result.first()
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Server not found")
-
-    server, count = row
-    return _mcp_server_to_response(server, count)
+    return _mcp_server_to_response(server, tool_count or 0, template_count or 0)
 
 
 @router.patch("/mcp/servers/{server_id}", response_model=McpServerResponse)
@@ -573,7 +611,11 @@ async def delete_mcp_server(
         await db.commit()
 
 
-def _mcp_server_to_response(server: McpServer, tool_count: int) -> McpServerResponse:
+def _mcp_server_to_response(
+    server: McpServer,
+    tool_count: int,
+    resource_template_count: int = 0,
+) -> McpServerResponse:
     return McpServerResponse(
         id=server.id,
         owner_id=server.owner_id,
@@ -591,6 +633,7 @@ def _mcp_server_to_response(server: McpServer, tool_count: int) -> McpServerResp
         auto_start=server.auto_start,
         config=server.config or {},
         tool_count=tool_count or 0,
+        resource_template_count=resource_template_count or 0,
     )
 
 
@@ -610,6 +653,21 @@ def _mcp_tool_to_response(tool: McpTool) -> McpToolResponse:
         meta=tool.meta or {},
         is_enabled=tool.is_enabled,
         call_count=tool.call_count or 0,
+    )
+
+
+def _mcp_resource_template_to_response(template: McpResourceTemplate) -> McpResourceTemplateResponse:
+    """将 McpResourceTemplate 模型转换为响应模型"""
+    return McpResourceTemplateResponse(
+        id=template.id,
+        uri_template=template.uri_template,
+        name=template.name,
+        title=template.title,
+        description=template.description,
+        mime_type=template.mime_type,
+        annotations=template.annotations or {},
+        meta=template.meta or {},
+        is_enabled=template.is_enabled,
     )
 
 
@@ -681,14 +739,13 @@ async def load_mcp_server_tools(
     server_id: UUID,
     user: AuthUser = Depends(get_current_user),
 ) -> LoadToolsResponse:
-    """
-    连接 MCP Server 并加载其 Tools 列表。
+    """连接 MCP Server 并加载其 capability（tools + resource_templates）。
 
     此操作会：
-    1. 连接到 MCP Server
-    2. 获取所有 Tools
-    3. 同步到数据库（新增/更新）
-    4. 返回 Tools 列表
+    1. 连接到 MCP Server；
+    2. 获取所有 Tools 与 Resource Templates；
+    3. 同步到数据库（新增/更新；旧 server 无 resources capability 时静默兜底）；
+    4. 返回完整 capability。
     """
     from .mcp_client import McpClientService
 
@@ -719,6 +776,7 @@ async def load_mcp_server_tools(
                 success=False,
                 server_id=server_id,
                 tools=[],
+                resource_templates=[],
                 duration_ms=result.duration_ms,
                 error=result.error,
             )
@@ -760,18 +818,69 @@ async def load_mcp_server_tools(
                 db.add(new_tool)
                 updated_tools.append(new_tool)
 
+        # 5. 同步 Resource Templates 到数据库（以 uri_template 为键）
+        existing_templates_result = await db.execute(
+            select(McpResourceTemplate).where(McpResourceTemplate.server_id == server_id)
+        )
+        existing_templates = existing_templates_result.scalars().all()
+        existing_template_map = {t.uri_template: t for t in existing_templates}
+
+        updated_templates: list[McpResourceTemplate] = []
+        seen_uri_templates: set[str] = set()
+        for template_info in result.resource_templates:
+            seen_uri_templates.add(template_info.uri_template)
+            if template_info.uri_template in existing_template_map:
+                existing_tpl = existing_template_map[template_info.uri_template]
+                existing_tpl.name = template_info.name
+                existing_tpl.title = template_info.title
+                existing_tpl.description = template_info.description
+                existing_tpl.mime_type = template_info.mime_type
+                existing_tpl.annotations = template_info.annotations
+                existing_tpl.meta = template_info.meta
+                updated_templates.append(existing_tpl)
+            else:
+                new_template = McpResourceTemplate(
+                    server_id=server_id,
+                    uri_template=template_info.uri_template,
+                    name=template_info.name,
+                    title=template_info.title,
+                    description=template_info.description,
+                    mime_type=template_info.mime_type,
+                    annotations=template_info.annotations,
+                    meta=template_info.meta,
+                    is_enabled=True,
+                )
+                db.add(new_template)
+                updated_templates.append(new_template)
+
+        # 仅在 server 权威返回 templates 列表时才裁剪 stale 行：
+        # ``_discover_on_transport`` 对 ``list_resource_templates`` 的所有异常都
+        # 会静默兜底返回空列表（兼容旧 server / 瞬态错误），若此处直接 prune 会
+        # 把首次错误后的 DB 模板表清空，与 tools 同步"只增量更新、不裁剪"的语义
+        # 不对称。``resource_templates_listed`` 区分"权威空列表"与"未支持/错误"。
+        if result.resource_templates_listed:
+            for stale_uri, stale_tpl in existing_template_map.items():
+                if stale_uri not in seen_uri_templates:
+                    await db.delete(stale_tpl)
+
         await db.commit()
 
-        # 5. 刷新以获取 ID
+        # 6. 刷新以获取 ID
         for tool in updated_tools:
             await db.refresh(tool)
+        for tpl in updated_templates:
+            await db.refresh(tpl)
 
-        logger.info(f"Loaded {len(updated_tools)} tools from MCP server {server.name}")
+        logger.info(
+            f"Loaded {len(updated_tools)} tools and {len(updated_templates)} resource templates "
+            f"from MCP server {server.name}"
+        )
 
         return LoadToolsResponse(
             success=True,
             server_id=server_id,
             tools=[_mcp_tool_to_response(t) for t in updated_tools],
+            resource_templates=[_mcp_resource_template_to_response(t) for t in updated_templates],
             duration_ms=result.duration_ms,
         )
 
@@ -791,6 +900,33 @@ async def list_mcp_server_tools(
         tools = result.scalars().all()
 
         return [_mcp_tool_to_response(t) for t in tools]
+
+
+@router.get(
+    "/mcp/servers/{server_id}/resource-templates",
+    response_model=list[McpResourceTemplateResponse],
+)
+async def list_mcp_server_resource_templates(
+    server_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> list[McpResourceTemplateResponse]:
+    """列出指定 MCP Server 已发现的 Resource Templates。
+
+    动态实例化的 FileResource（带 ``<job_id>``）不入库，故此处仅返回模板。
+    """
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        result = await db.execute(
+            select(McpResourceTemplate)
+            .where(McpResourceTemplate.server_id == server_id)
+            .order_by(McpResourceTemplate.uri_template)
+        )
+        templates = result.scalars().all()
+
+        return [_mcp_resource_template_to_response(t) for t in templates]
 
 
 @router.patch("/mcp/servers/{server_id}/tools/{tool_id}", response_model=McpToolResponse)
