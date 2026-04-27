@@ -551,3 +551,33 @@
   1. **前端聚合层**：`fetchCatalogTree` / `searchGraph` / 任何 `Promise.allSettled` + 多 corpus / 多 source 聚合的端点都需复盘是否有相同"沉默丢失 rejected"反模式。
   2. **后端外部依赖错误码**：`Reranker.rerank` / `LLMExtractor.extract` / `EntityExtractionError` / `RelationExtractionError` 等同型 `InfrastructureError` 子类目前仍走默认 500 通道，后续可统一上调到 502（与 `EmbeddingFailed` 对齐）。
   3. **环境侧排查（独立于代码修复）**：本次错误响应 JSON `{"error":{"message":"..."}}` 缺失 Google 官方必有的 `code/status` 字段，强烈倾向是 `NATIVE_GEMINI_BASE_URL` 被覆写到了非官方代理（如 `gemini-balance` / `one-api`）的 native API 模拟，其 `:batchEmbedContents` 校验不完整。用户可执行 `echo $NATIVE_GEMINI_BASE_URL` 与 `curl -H "x-goog-api-key: $KEY" -H "Content-Type: application/json" -d '{"requests":[{"model":"models/text-embedding-004","content":{"parts":[{"text":"hi"}]}}]}' http://localhost:3392/api/gemini/v1beta/models/text-embedding-004:batchEmbedContents` 直接抓上游响应定位。本次代码修复**不消除**根因故障（仍需用户配置侧排查），但**消除**"故障 → 无声空白"链路，确保用户可见可诊断。
+
+---
+
+## ISSUE-027 negentropy-wiki 站点 favicon.ico 不生效，浏览器回落默认地球图标
+
+- **表因**：访问已发布的 Wiki 站点（`apps/negentropy-wiki`）时，浏览器标签页未显示 Negentropy 品牌图标，回落为默认地球图标；标签内文字「Negentropy」可见，但图标缺位影响品牌识别。
+- **根因**：`apps/negentropy-wiki/src/app/favicon.ico` 是**畸形 ICO 文件**——
+  1. 通过 `file(1)` 检验：`MS Windows icon resource - 1 icon, 256x-1, 32 bits/pixel`，仅含**单一分辨率**条目，且高度字节为 `0xFF`（=255）而非合法的 `0x00`（=256）；十六进制头部 `0000 0100 0100 00ff …` 第 7 字节即为高度，确认编码异常。
+  2. 内嵌 BMP DIB 高度为 510（ICO 规范该字段为图像两倍高），即实际像素为 256×255 非方形；
+  3. 文件体积 269,342 字节（远超合理 favicon 体量），暗示是源 PNG 直接外裹 ICO 头未做尺寸归一与多档生成；
+  4. 源图 `apps/negentropy-wiki/public/logo.png` 本身是 800×798 非方形 PNG，转换工具未做 padding/裁切便直接吐出畸形 ICO。
+
+  现代浏览器（Chrome / Firefox / Safari）对此类「单分辨率 + 非方形 + 高度字段错误」组合解析失败，按规范回退默认图标。
+- **已排除的伪因**（避免下次走同样弯路）：
+  1. 中间件 / 代理拦截：`apps/negentropy-wiki/next.config.ts` 仅 rewrites `/api/:path*`，不涉及 `/favicon.ico`；
+  2. 顶层动态路由 `[pubSlug]/page.tsx` 拦截：Next.js App Router 文件系统型 metadata（`favicon.ico` / `icon.{ts,png}`）优先级**高于**任何 `[slug]` dynamic segment，本机 `curl -I /favicon.ico` 返回 `image/x-icon`、`curl -I /<random-slug>` 返回 HTML，证明无误命中；
+  3. standalone 构建产物缺失：`pnpm build` 后 `.next/standalone/.next/server/app/favicon.ico/route.js` 与同级 `favicon.ico.body` / `favicon.ico.meta` 均存在，`start-production.mjs` 通过 `server` 子目录链接已涵盖；
+  4. layout.tsx 元数据冲突：`metadata.icons.apple = "/logo.png"` 仅追加 `<link rel="apple-touch-icon">`，不影响 `<link rel="icon">` 自动注入。
+- **处理方式**（最小干预 + 复用驱动）：
+  1. 用 `uv run --with 'pillow>=11' --no-project python` 调 Pillow 对 `public/logo.png` 做 `ImageOps.pad` 居中透明 padding 至方形（800×800），再 `Image.save(format="ICO", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])` 一次性生成多分辨率 ICO，覆盖原 `src/app/favicon.ico`；
+  2. 不动 `layout.tsx` / `next.config.ts` / `start-production.mjs`，保留 App Router 自动注入路径；
+  3. 验证链：`file ...favicon.ico` 显示 `6 icons, 16x16 ... 256x256 PNG image data` ✓；`pnpm build && pnpm start` 后 `curl -I http://localhost:3092/favicon.ico` 返回 `200 / image/x-icon / 118192 bytes` ✓；首页 HTML 自动注入 `<link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16"/>` ✓。
+- **后续防范**：
+  1. **ICO 必须方形 + 多分辨率**：任何 favicon.ico 入库前需走 `file <path>` 自检，至少包含 16×16 / 32×32 两档，且尺寸为方形；非方形源图必须先 padding 或裁切为正方形再转换；
+  2. **优先复用 Pillow 流水线**：本仓库后续新增/替换 favicon 时，沿用本次 Pillow `ImageOps.pad` + `save(format="ICO", sizes=[…])` 模板，禁止使用未经 padding 的「原图直裹 ICO 头」流程；
+  3. **PR 自证截图**：涉及 favicon 等品牌资产的 PR 必须附「浏览器 tab 截图（替换前 / 替换后）」与 `file` 命令输出截图，避免依赖肉眼判断；
+  4. **参照样板**：`apps/negentropy-ui/app/favicon.ico` 为 9 档多分辨率正确范本（`file` 输出含 `9 icons, 16x16 ... 32 bits/pixel`），可作为对照基线。
+- **同类问题影响**：
+  1. 凡通过自动化脚本生成 ICO 的入口（包括未来可能的 `apps/*/src/app/favicon.ico`、`apps/*/src/app/icon.{png,svg}`、`apps/*/src/app/apple-icon.png`）均需复核是否走 padding+多档流程；
+  2. 已发布 Wiki Publication 的 OpenGraph / Twitter Card 图（如未来引入 `apps/negentropy-wiki/src/app/opengraph-image.{png,jpg}`）同样存在「非方形源图直接交付」风险，建议在引入前预设统一的资产生成脚本（`scripts/build-icons.mjs` 或 `scripts/build-icons.py`）作为单一事实源。
