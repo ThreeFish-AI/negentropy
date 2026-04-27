@@ -257,6 +257,9 @@ async def _resolve_subagent_row(agent_name: str | None) -> tuple[str | None, str
         return None
 
     if loaded is None:
+        # 行不存在 / 未启用 → 同样写入空占位，让 60s TTL 覆盖负命中场景，
+        # 避免每次 LLM 请求重复触发 DB 查询。
+        _cache[cache_key] = ("", {"i": ""}, now)
         return None
     model_value, instruction_value = loaded
 
