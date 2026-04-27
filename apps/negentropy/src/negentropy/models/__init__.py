@@ -2,7 +2,7 @@ from .action import Tool, ToolExecution
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
 from .internalization import Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
-from .mcp import McpServer, McpTool
+from .mcp import McpResourceTemplate, McpServer, McpTool
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset
 from .model_config import ModelConfig, ModelType
 from .observability import Trace
@@ -82,6 +82,7 @@ __all__ = [
     # MCP
     "McpServer",
     "McpTool",
+    "McpResourceTemplate",
     # MCP Runtime
     "McpToolRun",
     "McpToolRunEvent",

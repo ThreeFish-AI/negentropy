@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -17,7 +17,7 @@ from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool, McpToolRun, McpToolRunEvent, McpTrialAsset
 from negentropy.storage.gcs_client import GCSStorageClient
 
-from .mcp_client import McpClientService, McpToolCallResult
+from .mcp_client import McpClientService, McpResourceContent, McpToolCallResult
 
 logger = get_logger("negentropy.interface.execution")
 
@@ -31,6 +31,11 @@ class ExecutionResult:
     run: McpToolRun
     events: list[McpToolRunEvent]
     call_result: McpToolCallResult
+    # 同会话内拉取的动态资源（resource_link URI -> 资源载荷）。仅在调用方
+    # 显式开启 ``resolve_resource_links`` 时才有数据；否则保持空字典。
+    resolved_resources: dict[str, McpResourceContent] = field(default_factory=dict)
+    # 资源拉取部分失败时的错误记录（uri -> error），不阻断主流程。
+    resource_errors: dict[str, str] = field(default_factory=dict)
 
 
 class McpToolExecutionService:
@@ -89,6 +94,8 @@ class McpToolExecutionService:
         origin: str = RUN_ORIGIN_TRIAL_UI,
         timeout_seconds: float | None = None,
         external_event_sink: Callable[[dict[str, Any]], None] | None = None,
+        resolve_resource_links: bool = False,
+        resource_concurrency: int = 4,
     ) -> ExecutionResult:
         tool = await self._db.scalar(select(McpTool).where(McpTool.server_id == server.id, McpTool.name == tool_name))
         initial_payload = _json_safe(arguments or {})
@@ -198,20 +205,46 @@ class McpToolExecutionService:
             payload={"transport_type": server.transport_type},
         )
 
+        resolved_resources: dict[str, McpResourceContent] = {}
+        resource_errors: dict[str, str] = {}
+        # 仅在调用方显式开启且 client 真实支持 resource resolution 时使用同会话路径；
+        # 否则回退到既有 call_tool（保持向后兼容，覆盖测试桩 / 旧 client）。
+        use_resource_resolution = resolve_resource_links and hasattr(self._client, "call_tool_and_resolve_resources")
         try:
-            result = await self._client.call_tool(
-                transport_type=server.transport_type,
-                tool_name=tool_name,
-                arguments=normalized_arguments,
-                command=server.command,
-                args=server.args,
-                env=server.env,
-                url=server.url,
-                headers=server.headers,
-                timeout_seconds=timeout_seconds,
-                event_callback=handle_client_event,
-                stderr_callback=handle_stderr,
-            )
+            if use_resource_resolution:
+                # 关键不变量：动态 FileResource 的生命周期与 tool 会话绑定，
+                # 必须在同一会话内立即拉取，避免事后失链。
+                bundle = await self._client.call_tool_and_resolve_resources(
+                    transport_type=server.transport_type,
+                    tool_name=tool_name,
+                    arguments=normalized_arguments,
+                    command=server.command,
+                    args=server.args,
+                    env=server.env,
+                    url=server.url,
+                    headers=server.headers,
+                    timeout_seconds=timeout_seconds,
+                    resource_concurrency=resource_concurrency,
+                    event_callback=handle_client_event,
+                    stderr_callback=handle_stderr,
+                )
+                result = bundle.tool_result
+                resolved_resources = bundle.resources
+                resource_errors = bundle.resource_errors
+            else:
+                result = await self._client.call_tool(
+                    transport_type=server.transport_type,
+                    tool_name=tool_name,
+                    arguments=normalized_arguments,
+                    command=server.command,
+                    args=server.args,
+                    env=server.env,
+                    url=server.url,
+                    headers=server.headers,
+                    timeout_seconds=timeout_seconds,
+                    event_callback=handle_client_event,
+                    stderr_callback=handle_stderr,
+                )
             tool_called = True
         except Exception as exc:  # noqa: BLE001
             result = McpToolCallResult(success=False, error=str(exc))
@@ -256,7 +289,13 @@ class McpToolExecutionService:
                 logger.warning("mcp_trial_temp_cleanup_failed", path=str(path))
 
         await self._db.refresh(run)
-        return ExecutionResult(run=run, events=events, call_result=result)
+        return ExecutionResult(
+            run=run,
+            events=events,
+            call_result=result,
+            resolved_resources=resolved_resources,
+            resource_errors=resource_errors,
+        )
 
     async def _apply_asset_refs(
         self,
