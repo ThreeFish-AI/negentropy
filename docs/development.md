@@ -63,7 +63,7 @@
 cd apps/negentropy
 uv sync --dev                          # 安装全部依赖（含开发依赖）
 uv run alembic upgrade head            # 应用数据库迁移至最新版本
-uv run adk web --port 8000 --reload_agents src/negentropy  # ADK Web 启动
+uv run negentropy serve --port 8000  # 启动引擎（封装 adk web，自动锚定正确 agents_dir）
 ```
 
 ### 1.3 前端安装与首次启动
@@ -155,7 +155,7 @@ flowchart LR
     Start[克隆项目] --> SetupBE[后端: uv sync --dev]
     Start --> SetupFE[前端: pnpm install]
 
-    SetupBE --> DevBE[后端: uv run adk web<br>--reload_agents]
+    SetupBE --> DevBE[后端: uv run negentropy serve]
     SetupFE --> DevFE[前端: pnpm run dev<br>localhost:3192]
 
     DevBE --> |热重载| DevBE
@@ -170,7 +170,7 @@ flowchart LR
 
 **日常开发循环**：
 
-1. 后端代码修改后，ADK Web 自动通过 `--reload_agents` 热重载
+1. 后端代码修改后，ADK Web 自动通过 `uv run negentropy serve`（内部 `--reload_agents src`）热重载
 2. 前端代码修改后，Next.js 自动热重载
 3. 前后端通过 AG-UI Protocol（SSE/HTTP）进行通信
 
@@ -190,7 +190,7 @@ flowchart LR
 cd apps/negentropy
 
 # ADK Web 模式（推荐，支持 AG-UI Protocol）
-uv run adk web --port 8000 --reload_agents src/negentropy
+uv run negentropy serve --port 8000
 
 # FastAPI 独立模式
 uv run fastapi dev

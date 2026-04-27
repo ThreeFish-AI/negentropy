@@ -112,7 +112,7 @@ uv run negentropy init         # 生成 ~/.negentropy/config.yaml
 #   export OPENAI_API_KEY=...
 #   export ANTHROPIC_API_KEY=...
 uv run alembic upgrade head    # 应用数据库迁移
-uv run adk web --port 8000 --reload_agents src/negentropy  # 启动引擎
+uv run negentropy serve --port 8000  # 启动引擎
 ```
 
 ### 3. 启动前端

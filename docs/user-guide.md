@@ -178,7 +178,7 @@ uv run negentropy init    # 写入 ~/.negentropy/config.yaml
 uv run alembic upgrade head
 
 # 7. 启动引擎（开发模式，支持热重载）
-uv run adk web --port 8000 --reload_agents src/negentropy
+uv run negentropy serve --port 8000
 ```
 
 > 后端服务启动后可访问 `http://localhost:8000`，API 文档自动生成于 `/docs`。

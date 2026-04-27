@@ -24,6 +24,7 @@ from typing import Any
 from google.adk.models.lite_llm import LiteLlm
 
 from negentropy.config.model_resolver import (
+    resolve_llm_config,
     resolve_llm_config_by_model_name,
     resolve_subagent_model_name,
 )
@@ -109,20 +110,26 @@ class _DynamicLiteLlm(LiteLlm):
 
 
 class DynamicRootLiteLlm(_DynamicLiteLlm):
-    """根 Agent 使用的动态 LiteLlm：从 ContextVar 读取 Home 选择的模型 ID。"""
+    """根 Agent 使用的动态 LiteLlm：从 ContextVar 读取 Home 选择的模型 ID。
+
+    当 Home 未选择具体模型（ContextVar 为空）时，通过 ``resolve_llm_config()``
+    从 DB 获取默认模型的完整凭证（含 api_key），避免回退到构造时的无凭证实例。
+    """
 
     async def _resolve_override(self) -> tuple[str, dict[str, Any]] | None:
         selected = _selected_root_llm.get()
-        if not selected:
-            return None
-        resolved = await resolve_llm_config_by_model_name(selected)
-        if resolved is None:
-            _logger.warning(
-                "dynamic_root_llm_unknown_model",
-                selected_model=selected,
-            )
-            return None
-        return resolved
+        if selected:
+            resolved = await resolve_llm_config_by_model_name(selected)
+            if resolved is None:
+                _logger.warning(
+                    "dynamic_root_llm_unknown_model",
+                    selected_model=selected,
+                )
+            return resolved
+
+        # Home 选了 "Default" — 从 DB 解析默认模型凭证（含 api_key），
+        # 避免回退到构造时无 api_key 的硬编码实例。
+        return await resolve_llm_config()
 
 
 class DynamicSubagentLiteLlm(_DynamicLiteLlm):
@@ -136,14 +143,15 @@ class DynamicSubagentLiteLlm(_DynamicLiteLlm):
     async def _resolve_override(self) -> tuple[str, dict[str, Any]] | None:
         agent_name = getattr(self, "_agent_name", None)
         model_id = await resolve_subagent_model_name(agent_name)
-        if not model_id:
-            return None
-        resolved = await resolve_llm_config_by_model_name(model_id)
-        if resolved is None:
+        if model_id:
+            resolved = await resolve_llm_config_by_model_name(model_id)
+            if resolved is not None:
+                return resolved
             _logger.warning(
                 "dynamic_subagent_llm_unknown_model",
                 agent_name=agent_name,
                 requested_model=model_id,
             )
-            return None
-        return resolved
+
+        # SubAgent 未配置 model 或 model 解析失败 — 从 DB 解析默认模型凭证。
+        return await resolve_llm_config()
