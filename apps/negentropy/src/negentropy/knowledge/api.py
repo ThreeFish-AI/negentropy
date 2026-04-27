@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import re
 import urllib.parse
 from io import BytesIO
 from typing import TYPE_CHECKING, Any
@@ -18,7 +19,7 @@ from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
-from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument
+from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument, WikiPublicationEntry
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
 
@@ -4434,6 +4435,91 @@ async def get_wiki_nav_tree(pub_id: UUID) -> WikiNavTreeResponse:
         nav_tree = await wiki_svc.get_nav_tree(db, pub_id)
 
     return WikiNavTreeResponse(publication_id=pub_id, nav_tree={"items": nav_tree})
+
+
+_ASSET_FILENAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+@router.get("/wiki/documents/{document_id}/assets/{filename}")
+async def get_wiki_document_asset(document_id: UUID, filename: str):
+    """公开访问 Wiki 文档的衍生资产（图片等）。
+
+    专为 Wiki Markdown 渲染设计：URL 中只需 ``document_id`` + ``filename``，
+    不暴露 ``corpus_id`` / ``app_name`` / GCS bucket，便于 Markdown 链接保持
+    简洁稳定。鉴权策略：与 ``/wiki/entries/{entry_id}/content`` 保持一致——
+    Wiki 整体已通过 ``WikiPublication`` 的发布状态控制可见性，单条资产无需
+    额外校验。
+
+    安全防御：
+      - filename 严格白名单 ``^[A-Za-z0-9._-]+$``，禁止 ``..`` / ``/``；
+      - 仅查询单文档 GCS 派生路径下的资产，无路径穿越窗口。
+    """
+    if not _ASSET_FILENAME_PATTERN.match(filename) or len(filename) > 180:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_ASSET_NAME",
+                "message": "Asset filename contains invalid characters or exceeds length limit",
+            },
+        )
+
+    from negentropy.storage.gcs_client import StorageError
+    from negentropy.storage.service import DocumentStorageService
+
+    storage_service = DocumentStorageService()
+
+    async with AsyncSessionLocal() as db:
+        # 鉴权策略：document 必须至少被一个 WikiPublicationEntry 引用，避免持
+        # 任意 KnowledgeDocument.id 即可拖走未发布文档的派生资产。该校验与
+        # ``get_wiki_entry_content`` 通过 entry → publication 的间接归属
+        # 一致：可被引用的 doc 才在 wiki 暴露面之内。
+        scope_stmt = (
+            select(KnowledgeDocument)
+            .join(WikiPublicationEntry, WikiPublicationEntry.document_id == KnowledgeDocument.id)
+            .where(KnowledgeDocument.id == document_id)
+            .limit(1)
+        )
+        doc = (await db.execute(scope_stmt)).scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DOCUMENT_NOT_FOUND", "message": "Document not found"},
+        )
+
+    gcs_path = DocumentStorageService._build_asset_gcs_path(
+        app_name=doc.app_name,
+        corpus_id=doc.corpus_id,
+        document_id=doc.id,
+        filename=filename,
+    )
+
+    try:
+        gcs_client = storage_service._get_gcs_client()
+        gcs_uri = f"gs://{gcs_client._bucket_name}/{gcs_path}"
+        content = gcs_client.download(gcs_uri)
+    except (StorageError, ValueError) as exc:
+        logger.warning(
+            "wiki_asset_download_failed",
+            doc_id=str(document_id),
+            asset_name=filename,
+            error=str(exc),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "ASSET_NOT_FOUND", "message": "Requested asset not found"},
+        ) from exc
+
+    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    return StreamingResponse(
+        BytesIO(content),
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Content-Length": str(len(content)),
+        },
+    )
 
 
 @router.get("/wiki/entries/{entry_id}/content")

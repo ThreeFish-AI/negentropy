@@ -388,6 +388,78 @@ def _guess_image_content_type(filename: str) -> str:
     return mapping.get(suffix, "application/octet-stream")
 
 
+def _extract_resource_link_assets(
+    content_items: list[Any],
+    markdown_content: str,
+    resolved_resources: dict[str, Any],
+) -> list[ExtractionAsset]:
+    """从 MCP content_items 中提取 ResourceLink 并配对同会话拉取的资源载荷。
+
+    ResourceLink 仅携带 ``uri`` / ``mimeType`` / ``name``，实际二进制由调用方通过
+    ``resources/read`` 在同会话内拉取（``resolved_resources``）。
+
+    命名约定：与 ``_extract_image_assets_from_content_items`` 一致——按 result.content
+    中 ``resource_link`` 出现顺序与 Markdown image refs 一一对应；ResourceLink
+    自带的 ``name`` 字段次之；最后用 ``resource-N.<ext>`` 兜底。
+    """
+    link_items: list[Any] = []
+    for item in content_items or []:
+        if getattr(item, "type", None) == "resource_link":
+            uri = getattr(item, "uri", None)
+            if uri:
+                link_items.append(item)
+
+    if not link_items:
+        return []
+
+    image_refs = _extract_markdown_image_refs(markdown_content)
+    assets: list[ExtractionAsset] = []
+    for index, link in enumerate(link_items):
+        uri = str(link.uri)
+        mime_type = getattr(link, "mimeType", None) or "application/octet-stream"
+        link_name = getattr(link, "name", None)
+
+        # 命名优先级：Markdown 引用顺序 > ResourceLink.name > 兜底序号
+        if index < len(image_refs):
+            asset_name = image_refs[index]
+        elif isinstance(link_name, str) and link_name.strip():
+            asset_name = Path(link_name).name
+        else:
+            ext = _mime_to_extension(mime_type)
+            asset_name = f"resource-{index + 1}{ext}"
+
+        resource_payload = resolved_resources.get(uri)
+        if resource_payload is None:
+            # 部分失败：保留 asset 元数据但不写 GCS（data_base64 与 local_path 均空）
+            assets.append(
+                ExtractionAsset(
+                    name=asset_name,
+                    content_type=mime_type,
+                    metadata={
+                        "source": "resource_link",
+                        "origin_uri": uri,
+                        "resource_read_failed": True,
+                    },
+                )
+            )
+            continue
+
+        assets.append(
+            ExtractionAsset(
+                name=asset_name,
+                content_type=getattr(resource_payload, "mime_type", None) or mime_type,
+                data_base64=getattr(resource_payload, "blob_base64", None),
+                text=getattr(resource_payload, "text", None),
+                metadata={
+                    "source": "resource_link",
+                    "origin_uri": uri,
+                },
+            )
+        )
+
+    return assets
+
+
 def _extract_image_assets_from_content_items(
     content_items: list[Any],
     markdown_content: str,
@@ -2028,7 +2100,7 @@ class DataExtractorProvider:
                             ),
                         }
 
-                result = await self._call_tool_with_plan(
+                result, resolved_resources, resource_errors = await self._call_tool_with_plan(
                     server=server,
                     target=target,
                     plan=plan,
@@ -2047,6 +2119,9 @@ class DataExtractorProvider:
                         if result.success
                         else ("validation_error" if _is_validation_error(result.error) else "tool_error"),
                         "duration_ms": result.duration_ms,
+                        "resource_links_total": len(resolved_resources) + len(resource_errors),
+                        "resource_read_success": len(resolved_resources),
+                        "resource_read_failed": len(resource_errors),
                     }
                 )
                 if result.success:
@@ -2057,6 +2132,8 @@ class DataExtractorProvider:
                         plan=plan,
                         invocation_trace=invocation_trace,
                         contract=contract,
+                        resolved_resources=resolved_resources,
+                        resource_errors=resource_errors,
                     )
 
                 if not _is_validation_error(result.error):
@@ -2112,7 +2189,15 @@ class DataExtractorProvider:
         plan: AdaptiveToolInvocationPlan,
         tracker: Any | None = None,
         stage_name: str | None = None,
-    ) -> Any:
+    ) -> tuple[Any, dict[str, Any], dict[str, str]]:
+        """调用 MCP 工具并在同会话内拉取所有 ResourceLink 动态资源。
+
+        返回 (call_result, resolved_resources, resource_errors)：
+        - call_result: 工具调用的返回（与既有 ``execute_tool`` 一致）；
+        - resolved_resources: ``perceives://...`` 动态 URI 到 ``McpResourceContent``
+          的映射（同会话内拉取，避免事后失链）；
+        - resource_errors: 单条资源拉取失败的 ``uri -> error`` 记录（warn 容错）。
+        """
         event_sink = None
         if tracker and stage_name:
             event_sink = tracker.create_stage_event_sink(stage_name)
@@ -2127,8 +2212,13 @@ class DataExtractorProvider:
                 origin=RUN_ORIGIN_KNOWLEDGE_EXTRACTION,
                 timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
                 external_event_sink=event_sink,
+                resolve_resource_links=True,
             )
-            return execution.call_result
+            return (
+                execution.call_result,
+                execution.resolved_resources,
+                execution.resource_errors,
+            )
 
     def _build_success_result(
         self,
@@ -2139,6 +2229,8 @@ class DataExtractorProvider:
         plan: AdaptiveToolInvocationPlan,
         invocation_trace: list[dict[str, Any]],
         contract: NormalizedToolContract,
+        resolved_resources: dict[str, Any] | None = None,
+        resource_errors: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         attempt = ExtractionAttempt(
             server_id=str(target.server_id),
@@ -2186,23 +2278,42 @@ class DataExtractorProvider:
                 ),
             }
 
+        # 资源拉取部分失败时，将状态写入 metadata 供下游 UI 提示。
+        partial_resource_failure = bool(resource_errors)
+        resource_link_assets = _extract_resource_link_assets(
+            content_items=result.content,
+            markdown_content=markdown,
+            resolved_resources=resolved_resources or {},
+        )
+
+        merged_assets = _merge_extraction_assets(
+            _merge_extraction_assets(
+                _merge_extraction_assets(
+                    _normalize_assets(payload.get("assets")),
+                    _extract_enhanced_image_assets(payload),
+                ),
+                resource_link_assets,
+            ),
+            _extract_image_assets_from_content_items(result.content, markdown),
+        )
+
+        extra_metadata: dict[str, Any] = {
+            **(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}),
+            "adapter_name": plan.adapter_name,
+        }
+        if partial_resource_failure:
+            extra_metadata["partial_failure"] = True
+            extra_metadata["partial_failure_count"] = len(resource_errors or {})
+            extra_metadata["resource_read_failures"] = list((resource_errors or {}).keys())
+
         return {
             "success": True,
             "attempt": attempt,
             "result": ExtractedDocumentResult(
                 plain_text=plain_text,
                 markdown_content=markdown,
-                metadata={
-                    **(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}),
-                    "adapter_name": plan.adapter_name,
-                },
-                assets=_merge_extraction_assets(
-                    _merge_extraction_assets(
-                        _normalize_assets(payload.get("assets")),
-                        _extract_enhanced_image_assets(payload),
-                    ),
-                    _extract_image_assets_from_content_items(result.content, markdown),
-                ),
+                metadata=extra_metadata,
+                assets=merged_assets,
                 trace={
                     "adapter_name": plan.adapter_name,
                     "adapter_schema_summary": plan.diagnostics,
@@ -2211,6 +2322,9 @@ class DataExtractorProvider:
                     "normalization_error": normalization_error,
                     "normalized_payload_shape": sorted(payload.keys()) if isinstance(payload, dict) else [],
                     "llm_fallback_used": any(item.get("reasoning_source") == "llm" for item in invocation_trace),
+                    "resource_link_total": len(resolved_resources or {}) + len(resource_errors or {}),
+                    "resource_link_resolved": len(resolved_resources or {}),
+                    "resource_link_failed": len(resource_errors or {}),
                 },
             ),
         }
@@ -2353,21 +2467,88 @@ async def persist_extracted_assets(
     return stored_assets
 
 
+def _rewrite_markdown_image_links(
+    *,
+    markdown_content: str,
+    assets: list[ExtractionAsset],
+    document_id: UUID,
+) -> str:
+    """将 Markdown 中相对路径图片引用重写为后端代理 URL。
+
+    重写规则：
+      - 仅替换相对路径（``http``/``https``/``data``/``blob`` 不变）；
+      - 仅替换基名命中可成功落地 asset 的引用（避免悬空链接）；
+      - 替换为 ``/api/documents/{document_id}/assets/{filename}``，与 wiki
+        前端 ``next.config.ts`` rewrite ``/api/* -> /knowledge/wiki/*`` 配合，
+        最终命中后端 ``/knowledge/wiki/documents/{document_id}/assets/{filename}``
+        公开端点（参见 ``api.py::get_wiki_document_asset``）。
+
+    部分失败容错：``resource_read_failed`` 的 asset 不入重写候选集；其原始
+    引用保持不变，作为占位（与 "warn + 占位" 策略对齐）。
+    """
+    if not markdown_content:
+        return markdown_content
+
+    available_filenames: set[str] = set()
+    for asset in assets:
+        if asset.metadata.get("resource_read_failed"):
+            continue
+        if not (asset.data_base64 or asset.local_path or asset.uri):
+            continue
+        if asset.name:
+            available_filenames.add(asset.name)
+
+    if not available_filenames:
+        return markdown_content
+
+    base_url = f"/api/documents/{document_id}/assets/"
+
+    def _replace(match: re.Match[str]) -> str:
+        full = match.group(0)
+        src_raw = match.group(1)
+        src = src_raw.strip()
+        if src.startswith(("http://", "https://", "data:", "blob:", "/")):
+            return full
+        filename = src.split("/")[-1].split("\\")[-1]
+        if not filename or filename not in available_filenames:
+            return full
+        # 用 capture group 在原字符串中的精确偏移做替换，避免当 alt 文本恰好
+        # 包含与 src 同名的子串时（如 `![img1.png](img1.png)`）误替换 alt。
+        src_start_in_full = match.start(1) - match.start(0)
+        src_end_in_full = match.end(1) - match.start(0)
+        return full[:src_start_in_full] + f"{base_url}{filename}" + full[src_end_in_full:]
+
+    return _MARKDOWN_IMAGE_RE.sub(_replace, markdown_content)
+
+
 async def store_extracted_document_artifacts(
     *,
     document_id: UUID,
     extracted: ExtractedDocumentResult,
     tracker: Any | None = None,
 ) -> tuple[str | None, list[dict[str, Any]]]:
-    """统一保存提取后的 Markdown 与图片资产。"""
+    """统一保存提取后的 Markdown 与图片资产。
+
+    流程：
+      1. 用可成功落地的 assets 把 Markdown 中相对路径图片引用重写为
+         ``/api/documents/{document_id}/assets/{filename}``；
+      2. 把重写后的 Markdown 同时写入 GCS derived 目录与 DB 字段（保持单一事实源）；
+      3. 把 assets 持久化到 GCS ``derived/{document_id}/assets/``。
+    """
+    rewritten_markdown = _rewrite_markdown_image_links(
+        markdown_content=extracted.markdown_content,
+        assets=extracted.assets,
+        document_id=document_id,
+    )
+
     storage_service = DocumentStorageService()
     markdown_gcs_uri = await storage_service.upload_markdown_derivative(
         document_id=document_id,
-        markdown_content=extracted.markdown_content,
+        markdown_content=rewritten_markdown,
     )
     await storage_service.save_markdown_content(
         document_id=document_id,
-        markdown_content=extracted.markdown_content,
+        markdown_content=rewritten_markdown,
         markdown_gcs_uri=markdown_gcs_uri,
     )
     stored_assets = await persist_extracted_assets(
