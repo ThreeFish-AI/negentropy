@@ -2532,14 +2532,19 @@ class KnowledgeService:
             query_preview=query_preview,
         )
 
+        # 与 _attach_embeddings 索引侧对称：优先使用 corpus 自配的 embedding 模型，
+        # 落空再退回 service 默认 fn。修复 query/index embedding 模型不一致 (ISSUE-028)。
+        corpus_config = await self._get_corpus_config(corpus_id)
+        embedding_fn = self._resolve_embedding_fn(corpus_config)
+
         # RRF 模式: 使用专门的 RRF 检索方法
         if config.mode == "rrf":
             from .exceptions import EmbeddingFailed
 
             query_embedding = None
-            if self._embedding_fn:
+            if embedding_fn:
                 try:
-                    query_embedding = await self._embedding_fn(query)
+                    query_embedding = await embedding_fn(query)
                 except EmbeddingFailed as exc:
                     logger.warning(
                         "rrf_embedding_failed_falling_back_to_keyword",
@@ -2548,7 +2553,7 @@ class KnowledgeService:
                     )
 
             if query_embedding is None:
-                if not self._embedding_fn:
+                if not embedding_fn:
                     logger.warning(
                         "rrf_search_failed_no_embedding",
                         corpus_id=str(corpus_id),
@@ -2622,11 +2627,11 @@ class KnowledgeService:
 
         # 其他模式: semantic, keyword, hybrid
         query_embedding = None
-        if config.mode in ("semantic", "hybrid") and self._embedding_fn:
+        if config.mode in ("semantic", "hybrid") and embedding_fn:
             from .exceptions import EmbeddingFailed
 
             try:
-                query_embedding = await self._embedding_fn(query)
+                query_embedding = await embedding_fn(query)
             except EmbeddingFailed as exc:
                 # hybrid 优雅降级：失败时仅以 keyword 检索回退；
                 # semantic 显式失败传播：纯语义模式无意义降级。
@@ -2888,6 +2893,21 @@ class KnowledgeService:
         if value is None:
             return None
         return str(value)
+
+    def _resolve_embedding_fn(self, corpus_config: dict[str, Any] | None) -> EmbeddingFn | None:
+        """根据 corpus.config['models']['embedding_config_id'] 选择 embedding fn。
+
+        与 ``_attach_embeddings`` 索引侧路径对称：corpus 显式 pin → 一次性构建 corpus 专属
+        闭包（``build_embedding_fn`` 内部走 ``model_resolver._cache`` 的 60s TTL ``embedding:<uuid>``
+        键，重复 search 命中即免 DB 查询）；未 pin → 退回 ``self._embedding_fn``（service 启动时
+        锁定的全局默认 fn），保留既有"未配置 corpus 走默认"语义。
+        """
+        embedding_config_id = self._extract_embedding_config_id(corpus_config)
+        if embedding_config_id is not None:
+            from .embedding import build_embedding_fn
+
+            return build_embedding_fn(embedding_config_id)
+        return self._embedding_fn
 
     async def _attach_embeddings(
         self,
