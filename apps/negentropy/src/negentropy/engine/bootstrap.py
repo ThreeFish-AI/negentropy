@@ -37,26 +37,41 @@ configure_logging(
 logger = get_logger("negentropy.bootstrap")
 
 
-def _install_noop_otel_logs_metrics_providers() -> None:
-    """抢注空 LoggerProvider 与 MeterProvider，阻断 ADK 自动 OTLP logs/metrics 上报。
+def _disable_adk_otel_logs_metrics_exporters() -> None:
+    """让 ADK ``_get_otel_exporters`` 只返回 traces 的 ``span_processors``。
 
-    Langfuse 仅承接 ``/v1/traces``。ADK 上游 ``_get_otel_exporters()`` 在
-    ``OTEL_EXPORTER_OTLP_ENDPOINT`` 存在时会无差别注册 ``OTLPSpanExporter``、
-    ``OTLPMetricExporter``、``OTLPLogExporter`` 三件套——后两者对 ``/v1/metrics``
-    与 ``/v1/logs`` 的上报会命中 Langfuse 404（SPA 错误页）。
+    Langfuse 仅承接 ``/v1/traces``；ADK 上游 ``_get_otel_exporters()`` 在
+    ``OTEL_EXPORTER_OTLP_ENDPOINT`` 存在时会无差别构造 ``OTLPSpanExporter``、
+    ``OTLPMetricExporter``、``OTLPLogExporter`` 三件套——后两者对 Langfuse
+    ``/v1/metrics`` 与 ``/v1/logs`` 的上报会命中 SPA 404 错误页。
 
-    OTel SDK 的 ``set_logger_provider`` / ``set_meter_provider`` 由
-    ``Once``-lock 保护：首次调用胜出。本函数抢先以「无 processor / 无 reader」
-    的 SDK provider 占位，ADK 后续 ``set_*_provider`` 会静默 no-op，从而阻断
-    logs/metrics 路径；traces 链路（TracerProvider）不动，仍由 ADK 接管。
+    本 patch 在 ``OTelHooks`` 拼装入口处把 ``metric_readers`` 与
+    ``log_record_processors`` 永久置空，使 ADK ``maybe_set_otel_providers``
+    的 ``if metric_readers:`` / ``if log_record_processors:`` 分支天然短路——
+    根源避免 ``set_logger_provider`` / ``set_meter_provider`` 被调用，从而消除
+    "Overriding of current ... is not allowed" WARNING；
+    ``span_processors``（traces 链路）不变，traces 仍正常上报到 Langfuse。
+
+    未来若启用支持 logs/metrics 的后端（SigNoz、Phoenix 等），改为返回
+    ``hooks`` 全部内容即可平滑切换。
     """
-    from opentelemetry import _logs as otel_logs_api
-    from opentelemetry import metrics as otel_metrics_api
-    from opentelemetry.sdk._logs import LoggerProvider as NoExporterLoggerProvider
-    from opentelemetry.sdk.metrics import MeterProvider as NoExporterMeterProvider
+    from google.adk.telemetry import setup as adk_otel_setup
 
-    otel_logs_api.set_logger_provider(NoExporterLoggerProvider())
-    otel_metrics_api.set_meter_provider(NoExporterMeterProvider(metric_readers=[]))
+    if getattr(adk_otel_setup._get_otel_exporters, "_negentropy_patched", False):
+        return
+
+    original = adk_otel_setup._get_otel_exporters
+
+    def _patched_get_otel_exporters():
+        hooks = original()
+        return adk_otel_setup.OTelHooks(
+            span_processors=hooks.span_processors,
+            metric_readers=[],
+            log_record_processors=[],
+        )
+
+    _patched_get_otel_exporters._negentropy_patched = True  # type: ignore[attr-defined]
+    adk_otel_setup._get_otel_exporters = _patched_get_otel_exporters
 
 
 # Configure OpenTelemetry environment variables for LiteLLM's "otel" callback
@@ -77,7 +92,7 @@ if langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langf
     basic_auth = base64.b64encode(credentials.encode()).decode()
     os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"Authorization=Basic {basic_auth}"
 
-    _install_noop_otel_logs_metrics_providers()
+    _disable_adk_otel_logs_metrics_exporters()
 
     logger.info(f"Configured LiteLLM OTel callback to use Langfuse: {base_endpoint}/api/public/otel")
 else:
