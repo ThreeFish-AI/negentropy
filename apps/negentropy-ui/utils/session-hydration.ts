@@ -54,7 +54,10 @@ function eventKey(event: BaseEvent): string {
   const runId = getEventRunId(event) || "";
   const messageId = getEventMessageId(event) || "";
   const toolCallId = getEventToolCallId(event) || "";
-  const timestamp = normalizeTimestamp(event.timestamp);
+  // ISSUE-040 H4: 全部事件类型在涉及 timestamp 时统一走 toFixed(3)，避免浮点抖动
+  // 在不同 hydration 路径产出不一样的 key（如 1001.1 vs 1001.10000002384），
+  // 进而触发同一逻辑事件被保留双份、刷新后排序漂移。
+  const timestampKey = normalizeTimestamp(event.timestamp).toFixed(3);
 
   switch (event.type) {
     case EventType.TEXT_MESSAGE_START:
@@ -74,7 +77,7 @@ function eventKey(event: BaseEvent): string {
         threadId,
         runId,
         messageId,
-        normalizeTimestamp(event.timestamp).toFixed(3),
+        timestampKey,
       ].join("|");
     case EventType.TEXT_MESSAGE_END:
       return [type, threadId, runId, messageId].join("|");
@@ -116,15 +119,25 @@ function eventKey(event: BaseEvent): string {
         String(getEventErrorMessage(event) || ""),
       ].join("|");
     case EventType.CUSTOM:
+      // CUSTOM 事件附带毫秒级 timestamp 作 key，避免同一 (eventType, data) 在不同
+      // 时刻被合并为同一份；典型场景：ne.a2ui.thought / ne.a2ui.link 多次发出。
       return [
         type,
         threadId,
         runId,
         String(getCustomEventType(event) || ""),
         JSON.stringify(getCustomEventData(event) ?? null),
+        timestampKey,
       ].join("|");
+    case EventType.STEP_STARTED:
+    case EventType.STEP_FINISHED: {
+      const stepId = String(
+        (event as Record<string, unknown>).stepId || "",
+      );
+      return [type, threadId, runId, stepId].join("|");
+    }
     default:
-      return [type, threadId, runId, messageId, toolCallId, String(timestamp)].join(
+      return [type, threadId, runId, messageId, toolCallId, timestampKey].join(
         "|",
       );
   }

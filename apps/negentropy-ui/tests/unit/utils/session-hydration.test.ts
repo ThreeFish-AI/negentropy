@@ -850,4 +850,45 @@ describe("session-hydration", () => {
     expect(runStartedEvents).toHaveLength(1);
     expect(runStartedEvents[0]).toBe(realtimeRunStarted);
   });
+
+  // ISSUE-040 H4: eventKey 浮点抖动保护应推广到所有事件类型（不再仅 TEXT_MESSAGE_CONTENT）
+  it("eventKey 在 STEP_FINISHED 浮点抖动下仍稳定", () => {
+    const stepFinishedA = createTestEvent({
+      type: EventType.STEP_FINISHED,
+      threadId: "session-1",
+      runId: "run-1",
+      stepId: "synth-step-1",
+      timestamp: 1001.1,
+    });
+    const stepFinishedB = createTestEvent({
+      type: EventType.STEP_FINISHED,
+      threadId: "session-1",
+      runId: "run-1",
+      stepId: "synth-step-1",
+      timestamp: 1001.10000002384, // 浮点表示抖动，但 stepId 相同
+    });
+    const merged = mergeEvents([stepFinishedA], [stepFinishedB]);
+    expect(merged).toHaveLength(1);
+  });
+
+  it("eventKey 对 ne.a2ui.thought 等 CUSTOM 事件不再因浮点抖动重复保留", () => {
+    const thoughtA = createTestEvent({
+      type: EventType.CUSTOM,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1001.0,
+      eventType: "ne.a2ui.thought",
+      data: { text: "thinking..." },
+    } as unknown as Parameters<typeof createTestEvent>[0]);
+    const thoughtB = createTestEvent({
+      type: EventType.CUSTOM,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1001.000001, // 同毫秒级浮点抖动
+      eventType: "ne.a2ui.thought",
+      data: { text: "thinking..." },
+    } as unknown as Parameters<typeof createTestEvent>[0]);
+    const merged = mergeEvents([thoughtA], [thoughtB]);
+    expect(merged).toHaveLength(1);
+  });
 });

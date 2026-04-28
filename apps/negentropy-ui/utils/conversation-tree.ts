@@ -1233,6 +1233,13 @@ export function buildConversationTree(
       return;
     }
 
+    // ISSUE-040 H3: 优先复用 ledger 中已有的 sourceOrder，避免把 snapshot-only
+     // 消息（仅靠 MESSAGES_SNAPSHOT 进入 ledger、未走 TEXT_MESSAGE_START）误推
+     // 到事件流末尾，从而破坏 compareLedgerEntriesByTime 的 tiebreaker。
+    const fallbackSourceOrder =
+      typeof snapshotMessage?.sourceOrder === "number"
+        ? snapshotMessage.sourceOrder
+        : orderedEvents.length + fallbackIndex;
     let fallbackTurn =
       (runId && turns.get(runId)) || findFallbackTurnByTimestamp(turns, timestamp);
     if (runId && !fallbackTurn) {
@@ -1246,7 +1253,7 @@ export function buildConversationTree(
           timestamp,
         }),
         undefined,
-        orderedEvents.length + fallbackIndex,
+        fallbackSourceOrder,
       );
       fallbackTurn = turns.get(runId) || null;
     }
@@ -1259,7 +1266,7 @@ export function buildConversationTree(
       runId: fallbackTurn?.runId || runId,
       messageId: canonicalMessageId,
       timestamp,
-      sourceOrder: orderedEvents.length + fallbackIndex,
+      sourceOrder: fallbackSourceOrder,
       title: role === "user" ? "用户消息" : "助手消息",
       role,
       payload: {
