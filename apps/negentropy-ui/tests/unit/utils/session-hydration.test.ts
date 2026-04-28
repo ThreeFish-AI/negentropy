@@ -818,4 +818,36 @@ describe("session-hydration", () => {
     expect(contentEvents).toHaveLength(1);
     expect(contentEvents[0]?.timestamp).toBe(1001);
   });
+
+  it("mergeEventsWithRealtimePriority：生命周期事件 eventKey 冲突时 realtime 覆盖 hydrated", () => {
+    // RUN_STARTED 在 step 3 走 LIFECYCLE 直通分支（不被 messageId 过滤），
+    // 且 eventKey 不含 messageId / toolCallId，threadId+runId+timestamp 完全一致时
+    // realtime 与 hydrated 会在 mergeEvents 的 Map 中冲突。参数顺序交换为
+    // (filteredHydrated, realtime) 后，realtime 处于 incoming 位、后写入胜出。
+    // 用对象引用断言保留的是 realtime 版本，是验证参数交换生效的最直接证据。
+    const realtimeRunStarted = createTestEvent({
+      type: EventType.RUN_STARTED,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1000,
+    });
+    const hydratedRunStarted = createTestEvent({
+      type: EventType.RUN_STARTED,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1000,
+    });
+
+    const merged = mergeEventsWithRealtimePriority(
+      [realtimeRunStarted],
+      [hydratedRunStarted],
+      [],
+      [],
+    );
+    const runStartedEvents = merged.filter(
+      (event) => event.type === EventType.RUN_STARTED,
+    );
+    expect(runStartedEvents).toHaveLength(1);
+    expect(runStartedEvents[0]).toBe(realtimeRunStarted);
+  });
 });
