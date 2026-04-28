@@ -496,6 +496,130 @@ describe("session-hydration", () => {
     expect(merged.some((event) => event.type === EventType.RUN_FINISHED)).toBe(true);
   });
 
+  it("mergeEventsWithRealtimePriority 在 messageId 不同且时间跨度 >8 秒时也能丢弃 hydrated 文本事件", () => {
+    // 长耗时回复（>8s）下，realtime ledger 的 createdAt 取首个 partial 时间戳，
+    // hydration ledger 的 createdAt 取终态时间戳，二者跨度超过 8 秒。
+    // 期望：内容严格相等时仍能命中语义等价，hydrated 文本事件被丢弃。
+    const realtimeContent = "Pong:\n\n- 已收到回执\n- 后续步骤";
+    const realtimeEvents: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "session-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-a1",
+        role: "assistant",
+        timestamp: 1000.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-a1",
+        delta: realtimeContent,
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-a1",
+        timestamp: 1002,
+      }),
+    ];
+
+    const hydratedEvents: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-final-f",
+        role: "assistant",
+        timestamp: 1015,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-final-f",
+        delta: realtimeContent,
+        timestamp: 1015.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-final-f",
+        timestamp: 1017,
+      }),
+      createTestEvent({
+        type: EventType.RUN_FINISHED,
+        threadId: "session-1",
+        runId: "run-1",
+        timestamp: 1018,
+      }),
+    ];
+
+    const realtimeLedger = [
+      {
+        id: "msg-a1",
+        threadId: "session-1",
+        runId: "run-1",
+        resolvedRole: "assistant" as const,
+        resolutionSource: "explicit_role" as const,
+        content: realtimeContent,
+        createdAt: new Date(1000 * 1000), // T1，首个 partial 时间
+        streaming: false,
+        lifecycle: "closed" as const,
+        origin: "realtime" as const,
+        sourceEventTypes: ["TEXT_MESSAGE_END"],
+        relatedMessageIds: ["msg-a1"],
+      },
+    ];
+
+    const hydratedLedger = [
+      {
+        id: "msg-final-f",
+        threadId: "session-1",
+        runId: "run-1",
+        resolvedRole: "assistant" as const,
+        resolutionSource: "fallback_assistant" as const,
+        content: realtimeContent,
+        createdAt: new Date(1015 * 1000), // Tf，终态时间，跨度 15 秒
+        streaming: false,
+        lifecycle: "closed" as const,
+        origin: "fallback" as const,
+        sourceEventTypes: ["TEXT_MESSAGE_END"],
+        relatedMessageIds: ["msg-final-f"],
+      },
+    ];
+
+    const merged = mergeEventsWithRealtimePriority(
+      realtimeEvents,
+      hydratedEvents,
+      realtimeLedger,
+      hydratedLedger,
+    );
+
+    // hydrated 的 TEXT_MESSAGE_* 三件套被语义等价匹配后丢弃
+    expect(
+      merged.filter((event) => event.type === EventType.TEXT_MESSAGE_START).length,
+    ).toBe(1);
+    expect(
+      merged.filter((event) => event.type === EventType.TEXT_MESSAGE_CONTENT).length,
+    ).toBe(1);
+    expect(
+      merged.filter((event) => event.type === EventType.TEXT_MESSAGE_END).length,
+    ).toBe(1);
+    // 生命周期事件 RUN_FINISHED 仍被保留
+    expect(merged.some((event) => event.type === EventType.RUN_FINISHED)).toBe(true);
+  });
+
   it("不同 messageId 但语义等价的 hydrated 事件不会产生重复", () => {
     const realtimeEvents: AgUiEvent[] = [
       createTestEvent({

@@ -398,6 +398,88 @@ describe("buildConversationTree", () => {
     );
   });
 
+  it("hydrated 文本事件 messageId 不同且节点已收尾时复用同一节点不重复成段", () => {
+    // 长耗时回复在 ledger 去重失败的极端情况下：realtime 节点已 closed
+    // (streaming=false)，hydrated TEXT_MESSAGE_* 跨越 8s 窗到达且 messageId
+    // 不同。期望 findMatchingTextNodeId 通过严格内容相等命中并复用，避免在
+    // turn 下挂出第二个 type=text 子节点。
+    const fullContent = "Pong:\n\n- 已收到回执\n- 后续步骤";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live-a1",
+        role: "assistant",
+        timestamp: 1000.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live-a1",
+        delta: fullContent,
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-live-a1",
+        timestamp: 1002,
+      }),
+      // 模拟 hydration 终态事件被错误保留（不同 messageId、跨越 15 秒），
+      // 不传 messageLedger，让 buildMessageLedger 自建后形成两条 entry。
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final-f",
+        role: "assistant",
+        timestamp: 1015,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final-f",
+        delta: fullContent,
+        timestamp: 1015.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final-f",
+        timestamp: 1017,
+      }),
+      createTestEvent({
+        type: EventType.RUN_FINISHED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1018,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    expect(tree.roots).toHaveLength(1);
+    const textChildren = tree.roots[0].children.filter(
+      (child) => child.type === "text",
+    );
+    expect(textChildren).toHaveLength(1);
+    expect(textChildren[0]?.payload.streaming).toBe(false);
+    expect(textChildren[0]?.payload.content).toBe(fullContent);
+    expect(textChildren[0]?.relatedMessageIds).toEqual(
+      expect.arrayContaining(["assistant-live-a1", "assistant-final-f"]),
+    );
+  });
+
   it("技术节点会按真实时序保留在主消息之间，而不是被类型排序打乱", () => {
     const events: AgUiEvent[] = [
       createTestEvent({

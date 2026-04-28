@@ -370,7 +370,18 @@ function findMatchingTextNodeId(
       continue;
     }
     if (node.payload.streaming !== true) {
-      continue;
+      // 防御性收敛：当 hydrated TEXT_MESSAGE_* 因 messageId 不同而到达此处，
+      // 而 realtime 节点已收尾，且二者内容严格相等时，仍允许复用同一节点，
+      // 避免在已 closed 的同内容节点旁新建第二个节点。仅对 assistant 路径
+      // 放宽，user 仍要求节点处于流式态以避免误并历史用户消息。
+      const existingContent = String(node.payload.content || "").trim();
+      if (
+        input.role !== "assistant" ||
+        !existingContent ||
+        existingContent !== normalizedContent
+      ) {
+        continue;
+      }
     }
     if (hasTechnicalChildren(node)) {
       continue;

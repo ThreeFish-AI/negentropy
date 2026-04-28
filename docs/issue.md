@@ -627,3 +627,25 @@
   1. **Sync 诊断**：若再次出现「sync 计数与预期不符」，检查后端版本是否包含 `build_negentropy_root_agent_payload()`，以及 DB 中是否存在 `owner_id` 不匹配的旧行；
   2. **Root Agent 只读约束**：当前 SubAgents 页对 root Agent 的 Edit/Delete 操作未做只读限制（root Agent 的结构定义由代码硬编码，编辑 instruction/model 通过 InstructionProvider/DynamicModel 在运行时生效，但 sub_agents/tools 等结构性字段不可通过 UI 变更）。建议后续在 UI 层对 `kind === "root"` 卡片禁用 Delete、对结构性字段标灰。
 - **同类问题影响**：若后续新增 Pipeline Agent（如 `KnowledgeAcquisitionPipeline`、`ProblemSolvingPipeline`、`ValueDeliveryPipeline`）到 sync payload 中，需同步更新 toast 预期计数（从 6 增至 9）。
+
+---
+
+## ISSUE-031 Home 页长耗时回复双气泡 + 首条未格式化（语义去重 8s 时间窗在 ADK partial/final 非对称下失效）
+
+- **表因**：用户在 Home 主聊天页发送 "Ping, give me a pong" 后，Agent 同一条回复被渲染为两个独立气泡：第一个气泡处于"流式中"视觉态（amber 虚线边框 / `border-dashed border-amber-300/70`）且内容以未格式化纯文本呈现；第二个气泡才以正常 Markdown 渲染。
+- **根因**（多层级联）：
+  1. **ADK 持久化与实时流的非对称性**：ADK 流式产出多条 `partial=true` 增量片段 + 一条 `partial=false` 终态事件，但仅持久化终态事件。`AdkMessageStreamNormalizer.consume()` (`apps/negentropy-ui/lib/adk.ts:131`) 用首个 partial 的 `payload.id` 锁定 openMessage 的 `messageId`；hydration 重放时只看到终态事件，于是用终态自身的 `payload.id` 创建新 openMessage。**realtime ledger entry id ≠ hydration ledger entry id**。
+  2. **语义去重的 8s 时间窗硬拒绝**：`apps/negentropy-ui/utils/message-ledger.ts::isSemanticEquivalentEntry` 通过内容近似 + 8s 时间窗匹配 messageId 不同的实时/历史 entry。但 realtime 的 `createdAt = MIN(所有 partial 时间戳) = T1`（流式开始），hydration 的 `createdAt = Tf`（流式结束）。当生成耗时 `Tf - T1 > 8s`（多段落 / 列表型答复极易越过），硬拒绝触发，去重失败。
+  3. **失败级联**：`mergeEventsWithRealtimePriority`（`session-hydration.ts:175`）依赖语义等价 → hydrated 文本事件未过滤；`mergeMessageLedger`（`message-ledger.ts:412`）同样失败 → ledger 双 entry；`buildConversationTree`（`conversation-tree.ts:576`）的 `findMatchingTextNodeId` 第 372 行硬过滤 `streaming !== true` 节点，已收尾的 realtime 节点被跳过 → 走 fallback 分支新建 `message:F` 节点 → `walkTurnNode`（`chat-display.ts:500`）在同一 turn 下产出双 assistant 气泡。
+- **处理方式**（最小干预 + 正交分解）：
+  1. **主修复**：`isSemanticEquivalentEntry` 在 trim 后内容**严格相等**时跳过 8s 时间窗硬拒绝（`message-ledger.ts:99-108`）。同 threadId+runId+role+strict-equal 已收敛 → 不可能是两条独立消息。
+  2. **防御性收敛**：`findMatchingTextNodeId` 在 assistant 路径下，当现有节点已收尾但内容严格相等时仍允许复用（`conversation-tree.ts:368-393`），避免 hydrated CONTENT 落入 fallback 分支。user 路径仍要求流式态，避免误并历史用户消息。
+  3. **回归测试**：`message-ledger.test.ts` / `session-hydration.test.ts` / `conversation-tree.test.ts` 各新增一条覆盖 ">8s 跨度 + messageId 不同 + 内容严格相等" 的端到端用例。
+- **后续防范**：
+  1. **时间窗参数化警惕**：任何"基于固定时间窗的等价/去重"判定（如这里的 8s）都隐含「事件链路在该时间内完成」假设。当上游链路存在「分段产出 + 终态合并」模式（ADK partial/final、流式 LLM 的 chunk 合并、批量 ETL 的 staging→commit）时，应用层时间窗必须考虑分段间隔可能超过预期阈值，优先采用「内容严格相等 + 业务键收敛」做主判别，时间窗仅作辅助。
+  2. **正交分解修复**：UI 重复渲染问题应在三层（ledger 去重、events 过滤、tree 节点匹配）独立加固，而非单点修补，避免某层规则更新后另两层退化为兜底失效。
+  3. **Realtime/Hydration 对称性审计**：实时流与历史回放共用同一组 normalizer + ledger + tree 构建器是 SSOT 的体现；任何分支引入的"仅在某条路径生效"的 ID 生成 / 时间戳映射 / 结构变换，都应同步在另一路径补齐对称行为。
+- **同类问题影响**：
+  1. ADK 之外其他流式来源（如 OpenAI / Anthropic streaming SDK 直连）若遵循 partial/final 分别持久化的模式，触发同样的 messageId 漂移；本次修复对它们同样生效。
+  2. 工具调用链路：`openMessage` 在 `messageShouldFlushAfterPayload` 触发 flush 时关闭。若 tool call 前后两段同内容 assistant 文本被 flush 切分为独立 message，同样会因 messageId 不同被本次的「严格内容相等」逻辑收敛——这是预期行为（同 turn 同内容理应合一）。
+  3. 后续若引入 reranker / re-extract 阶段对消息 content 做规范化重写，需重新评估「严格内容相等」的命中率；必要时在 `isEquivalentMessageContent` 已有的容错下扩展（含/被含 + Jaccard）。
