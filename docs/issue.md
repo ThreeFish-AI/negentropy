@@ -906,3 +906,23 @@
   2. 任何 ag-ui v0.0.47 之上的封装库若构造 STEP_FINISHED，**必须**显式传 `stepName`，否则整个 run 静默被中断；
   3. 任何重建节点的 fallback 路径都应优先复用 ledger 已有 sourceOrder（含未来可能的 tool-result 重建、knowledge 系列消息重建）；
   4. **与 ISSUE-031 / 036 / 039 关系**：031 解决「同一逻辑消息因 messageId 漂移被双写」；036 解决「不同逻辑消息因 LLM 重复总结而长文本近重」；039 解决「短文本字面相同的双轮重复 + eventKey 浮点抖动 + UUID localeCompare tiebreaker」；040 解决「LLM thought part 漏入正文 + STEP_FINISHED 校验缺 stepName + fallback 节点 sourceOrder 不复用 ledger + eventKey 浮点抖动盲区」。四者正交、互不替代，共同构成 Home 双气泡 / 推理头 / 排序防御链。
+
+### Q3 长尾闭环：sort tiebreaker 字典序污染 lifecycle 顺序（040 增量补丁）
+
+- **表因（首轮 040 PR 后未消除）**：「多消息→刷新」场景下，user1 → assistant1 → user2 → assistant2 在 hydration 后被打散为 user1 → user2 → assistant1 → assistant2，turn 边界跨 messageId 错位。
+- **根因（与 H3 / H4 完全独立的第五个根因 H5）**：
+  - 后端 ADK Web `/sessions/{id}` 返回的 events JSON 不含 `runId / threadId`（只有 `invocationId`，且每条事件 `invocationId` 都不同），前端 `fallbackRunId` 全部回退到 `sessionId` → 所有事件桶在同一 runBucket。
+  - 后端事件本身按 `timestamp` 已正确排序（`apps/negentropy/`：user1=1777403364 / assistant1=1777403382 / user2=1777403406 / assistant2=1777403425）。
+  - 但 `apps/negentropy-ui/utils/session-hydration.ts:386-392` 的 sort 在 `timestamp` 相等时回退到 `eventKey().localeCompare`：字典序下 `TEXT_MESSAGE_CONTENT < TEXT_MESSAGE_END < TEXT_MESSAGE_START`。
+  - `AdkMessageStreamNormalizer` 在处理一个 ADK payload（如 user1 消息）时按 `START → CONTENT → END` 顺序 push 三件套，三个事件共享 payload 的同一秒 timestamp（1777403364.145）；sort 后乱序为 `CONTENT → END → START`。
+  - 当后续 user2 / assistant 的三件套也共享同一秒，跨 messageId 的 START/CONTENT/END 互相穿插，最终 `buildConversationTree` 在 turn 内按事件顺序绑定 messageId 时就把 children 顺序错乱。
+  - 同样的字典序污染存在于 `mergeEvents` (`session-hydration.ts:146-158`)，最后一步 `mergeEvents([], normalizedEvents)` 会**再次**把刚排好的事件按字典序乱序。
+- **处理方式（最小干预）**：
+  1. **`apps/negentropy-ui/utils/session-hydration.ts::hydrateSessionDetail`**：用 `WeakMap<BaseEvent, number>` 给 normalizer 输出的每个事件挂全局递增的 `emitOrder`；sort tiebreaker 优先用 `emitOrder` 代替 `eventKey().localeCompare`，保留 normalizer 推入顺序作为权威 lifecycle / turn 序。
+  2. **`apps/negentropy-ui/utils/session-hydration.ts::mergeEvents`**：`[...base, ...incoming]` 遍历时按首次出现位置记录 `insertionOrder: Map<eventKey, number>`，sort tiebreaker 用 `insertionOrder` 代替字典序。这样调用方建立的逻辑顺序在 dedup 后仍稳定保留。
+  3. **回归测试**：`tests/unit/utils/session-hydration.test.ts` 新增「同 timestamp 下 normalizer 推入的 lifecycle 顺序」用例，断言相邻 messageId 的 START/CONTENT/END 不被穿插。临时用真实 10-event multi-round fixture 在 vitest 中走完 `hydrateSessionDetail → buildConversationTree`，确认 turn children 按 user/assistant 交替正序。
+- **后续防范**：
+  1. **任何 sort tiebreaker 不得用 `eventKey().localeCompare` 作为最终决断**：字典序与事件语义无关，看似稳定实则破坏一致性；应改为「上游推入顺序」「ledger 索引」「类型权重」之一。
+  2. **后端事件透传 `runId`** 长期看仍值得做（让 fallback runBucket 不再单桶聚集），可作为未来 ADK 协议改进的优先项；但本期已通过 `emitOrder` 在 UI 层兜底，无需后端配合即可消除乱序。
+  3. **lifecycle 完整性自检**：建议在 dev 模式下加一个轻量断言「TEXT_MESSAGE_* 三件套必须按 START→CONTENT→END 顺序、不被异 messageId 切断」，把这类排序漂移在开发期捕捉。
+- **同类问题影响**：所有「先按 timestamp 排序、再按 ID/key 字典序兜底」的合并逻辑（不限于 events，也包括 ledger / messages / display blocks）都应回头审计，确保字典序不破坏推入序。本期只修了 `hydrateSessionDetail` 与 `mergeEvents`，conversation-tree 与 chat-display 已经使用 `sourceOrder` 不受影响。

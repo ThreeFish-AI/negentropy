@@ -891,4 +891,60 @@ describe("session-hydration", () => {
     const merged = mergeEvents([thoughtA], [thoughtB]);
     expect(merged).toHaveLength(1);
   });
+
+  // ISSUE-040 Q3 残留乱序：sort tiebreaker 必须保留 lifecycle 推入顺序，
+  // 不能在 timestamp 相等时按 eventKey 字典序回退（CONTENT < END < START）。
+  it("hydrateSessionDetail 保留同 timestamp 下 normalizer 推入的 lifecycle 顺序", () => {
+    // 后端 ADK web events 历史回放经常一秒落库多条 (functionCall / functionResponse / 同期文本)，
+    // 三件套时间戳相等。此前 sort 用 eventKey().localeCompare 兜底会把 TEXT_MESSAGE_*
+    // 三件套打散为 CONTENT, END, START，导致前端展现层 turn 边界穿插漂移。
+    const sameTs = 1000;
+    const result = hydrateSessionDetail(
+      [
+        {
+          id: "user-1",
+          author: "user",
+          timestamp: sameTs,
+          content: { parts: [{ text: "Ping." }] },
+        },
+        {
+          id: "asst-1",
+          author: "NegentropyEngine",
+          timestamp: sameTs,
+          content: { parts: [{ text: "Pong." }] },
+        },
+      ],
+      "session-q3",
+    );
+    // 提取 TEXT_MESSAGE_* 序列，断言：每个 messageId 内 START → CONTENT → END
+    // 三件套相邻且不被另一 messageId 切断。
+    const textEvents = result.events.filter(
+      (event) =>
+        event.type === EventType.TEXT_MESSAGE_START ||
+        event.type === EventType.TEXT_MESSAGE_CONTENT ||
+        event.type === EventType.TEXT_MESSAGE_END,
+    );
+    // 用 (messageId, lifecycle) 的相对序号映射断言不再交错。
+    let lastMessageId = "";
+    let lifecycleStage = -1; // -1=before, 0=START, 1=CONTENT, 2=END
+    for (const event of textEvents) {
+      const mid = (event as unknown as { messageId: string }).messageId;
+      if (mid !== lastMessageId) {
+        // 进入新 messageId：lifecycle 重置，必须以 START 开头
+        expect(event.type).toBe(EventType.TEXT_MESSAGE_START);
+        lastMessageId = mid;
+        lifecycleStage = 0;
+        continue;
+      }
+      if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
+        // CONTENT 必须跟在 START 之后（同 messageId 内）
+        expect(lifecycleStage).toBeGreaterThanOrEqual(0);
+        expect(lifecycleStage).toBeLessThanOrEqual(1);
+        lifecycleStage = 1;
+      } else if (event.type === EventType.TEXT_MESSAGE_END) {
+        expect(lifecycleStage).toBeGreaterThanOrEqual(1);
+        lifecycleStage = 2;
+      }
+    }
+  });
 });

@@ -145,17 +145,36 @@ function eventKey(event: BaseEvent): string {
 
 export function mergeEvents(baseEvents: BaseEvent[], incomingEvents: BaseEvent[]): BaseEvent[] {
   const merged = new Map<string, BaseEvent>();
+  // ISSUE-040 Q3 残留乱序：如果同 timestamp 时回退到 `eventKey().localeCompare`，
+  // 会把上游已正确排序的 lifecycle 序（START → CONTENT → END）按字典序打乱
+  // 为 (CONTENT < END < START)。改为以「在 [...base, ...incoming] 中的最早出现
+  // 索引」作为稳定 tiebreaker，保留调用方已建立的逻辑顺序。
+  const insertionOrder = new Map<string, number>();
+  let nextOrder = 0;
   [...baseEvents, ...incomingEvents].forEach((event) => {
-    merged.set(eventKey(event), event);
+    const key = eventKey(event);
+    if (!insertionOrder.has(key)) {
+      insertionOrder.set(key, nextOrder++);
+    }
+    merged.set(key, event);
   });
 
-  return [...merged.values()].sort((a, b) => {
-    const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
-    if (timeDiff !== 0) {
-      return timeDiff;
-    }
-    return eventKey(a).localeCompare(eventKey(b));
-  });
+  return [...merged.entries()]
+    .sort((a, b) => {
+      const [keyA, eventA] = a;
+      const [keyB, eventB] = b;
+      const timeDiff = normalizeTimestamp(eventA.timestamp) - normalizeTimestamp(eventB.timestamp);
+      if (timeDiff !== 0) {
+        return timeDiff;
+      }
+      const orderA = insertionOrder.get(keyA) ?? Number.MAX_SAFE_INTEGER;
+      const orderB = insertionOrder.get(keyB) ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return keyA.localeCompare(keyB);
+    })
+    .map(([, event]) => event);
 }
 
 const LIFECYCLE_EVENT_TYPES = new Set([
@@ -347,15 +366,33 @@ export function hydrateSessionDetail(
   const runBuckets = new Map<string, BaseEvent[]>();
   const runNormalizers = new Map<string, AdkMessageStreamNormalizer>();
 
+  // ISSUE-040 Q3 残留乱序根因：normalizer 已按 lifecycle 顺序产出
+  // (START → CONTENT → END)，但下方的 sort 在 timestamp 相等时回退到
+  // `eventKey().localeCompare` —— 字典序下 CONTENT < END < START，会把同一
+  // 逻辑消息的 lifecycle 顺序打乱（如下方 repro 所示）；当多条消息共享同一秒
+  // 时间戳（后端 ADK 落库精度受限），跨 messageId 的 START/CONTENT/END 还会
+  // 互相穿插，造成「user1 → assistant1 → user2 → assistant2」刷新后被打散
+  // 为 「user1 → user2 → assistant1 → assistant2」这类 turn 边界漂移。
+  //
+  // 修复：用 WeakMap 给每个 normalizer 输出的事件挂一个全局递增的 emitOrder，
+  // sort tiebreaker 用 emitOrder 代替 eventKey 字典序，保持 normalizer 推入
+  // 顺序作为权威 lifecycle / turn 序。emitOrder 仅在本 hydration 调用内有效。
+  const emitOrderByEvent = new WeakMap<BaseEvent, number>();
+  let emitCounter = 0;
+
   payloads.forEach((payload) => {
     const runId = fallbackRunId(payload, sessionId);
     const threadId = fallbackThreadId(payload, sessionId);
     const normalizer =
       runNormalizers.get(runId) || new AdkMessageStreamNormalizer();
     runNormalizers.set(runId, normalizer);
-    const events = normalizer.consume(payload, { threadId, runId }).map((event) =>
-      normalizeAguiEvent(resolveEventRunAndThread(event, { threadId, runId })),
-    );
+    const events = normalizer.consume(payload, { threadId, runId }).map((event) => {
+      const normalized = normalizeAguiEvent(
+        resolveEventRunAndThread(event, { threadId, runId }),
+      );
+      emitOrderByEvent.set(normalized, emitCounter++);
+      return normalized;
+    });
     const bucket = runBuckets.get(runId) || [];
     bucket.push(...events);
     runBuckets.set(runId, bucket);
@@ -373,13 +410,16 @@ export function hydrateSessionDetail(
         }
         return getEventThreadId(event) || null;
       }, null) || sessionId;
-    events.push(
-      ...normalizer
-        .flushRun(runId, threadId, normalizeTimestamp(events[events.length - 1]?.timestamp) + 0.001)
-        .map((event) =>
-          normalizeAguiEvent(resolveEventRunAndThread(event, { threadId, runId })),
-        ),
-    );
+    const flushedEvents = normalizer
+      .flushRun(runId, threadId, normalizeTimestamp(events[events.length - 1]?.timestamp) + 0.001)
+      .map((event) => {
+        const normalized = normalizeAguiEvent(
+          resolveEventRunAndThread(event, { threadId, runId }),
+        );
+        emitOrderByEvent.set(normalized, emitCounter++);
+        return normalized;
+      });
+    events.push(...flushedEvents);
   });
 
   const normalizedEvents = [...runBuckets.entries()].flatMap(([runId, events]) => {
@@ -387,6 +427,15 @@ export function hydrateSessionDetail(
       const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
       if (timeDiff !== 0) {
         return timeDiff;
+      }
+      // emitOrder tiebreaker：保持 normalizer 推入顺序（lifecycle / turn 边界
+      // 的权威来源）。未在 emitOrderByEvent 中的事件（极罕见，理论上仅由本
+      // 函数下方合成的 RUN_STARTED / RUN_FINISHED 注入，但它们会带 ±0.001
+      // 时间漂移让 timestamp 比较先决出胜负）回退到 eventKey 字典序兜底。
+      const aOrder = emitOrderByEvent.get(a) ?? Number.MAX_SAFE_INTEGER;
+      const bOrder = emitOrderByEvent.get(b) ?? Number.MAX_SAFE_INTEGER;
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
       }
       return eventKey(a).localeCompare(eventKey(b));
     });
