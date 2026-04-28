@@ -707,3 +707,48 @@
   1. 任何上游框架基于 env var 自动启用次级遥测路径（如 `OTEL_RESOURCE_ATTRIBUTES`、`OTEL_PROPAGATORS`）的场景；
   2. 多 SDK 共存的 instrumentation 环境（`opentelemetry-instrumentation-*` 各自调用 `get_*_provider()`）；
   3. 升级 google-adk / google-genai-instrumentation / litellm 版本时，需复核它们对 logs/metrics 的处理是否变更（如未来 LiteLLM `enable_metrics=True` 默认开启，需同步审计）。
+
+---
+
+## ISSUE-032 Home 页主动导航 prompt 在 tool 调用前后双轮 LLM 产出近重复 assistant 文本（双气泡复发）
+
+- **表因**：用户在 Home 页发送 "Ping, give me a pong"（短回复）也会看到两份高度相似的 assistant 答复气泡。ISSUE-031 的修复（基于 ledger 时间窗 + closed 节点匹配）虽已合并并部署，但本场景双气泡仍复发——证明并非「同一 messageId 的双副本」。
+- **根因**（与 ISSUE-031 完全正交的另一类来源）：
+  1. **Root Agent prompt `## 主动导航` 强约束**：`apps/negentropy/src/negentropy/agents/agent.py:_ROOT_INSTRUCTION` 要求 LLM 「完成任何任务后必须：1. 总结已完成的工作；2. 分析后续需求；3. 提出下一步建议；4. 让用户决定」。
+  2. **Root Agent 持有 `log_activity` 工具**：`agent.py:139` 注册了 `log_activity` 作为 root 工具，LLM 倾向于在每次回答前/后发起一次审计日志调用。
+  3. **ADK 双轮 LLM 调用模式**：第一轮 LLM 产出「文本回复 + tool_call(log_activity)」 → tool 同步执行 → 第二轮 LLM 在 tool 结果上下文里被再次唤起，主动导航 prompt 让它再产出一段「已完成 + 后续 + 建议」总结。两轮各自带独立的 `messageId`、各自走 `TEXT_MESSAGE_START/CONTENT/END` 三件套，UI 忠实地把两段文本以并列 segment 渲染在同一个 `assistant-reply` bubble 内 → 视觉上呈双气泡。
+  4. **两段内容字面差异极小**：第一轮往往返回中间产物（如 `"ong"`），第二轮在 tool 反馈后才修正为 `"Pong"`，但「可能的后续需求 / 下一步建议」整段几乎逐字复述——两段 bigram Jaccard 相似度 ≥ 50%。
+- **处理方式**（最小干预的 UI 兜底；不动 agent prompt 与工具集合，避免触发更大爆炸半径）：
+  1. **`apps/negentropy-ui/utils/chat-display.ts::dedupeRedundantTextSegments`**：在 `buildAssistantReplyBlock` 出口处，对同一 reply 内的多个 text segment 做字符二元组（character bigrams，同时适配中英文）Jaccard 相似度计算；当后段与某前段相似度 ≥ 0.5 且双方长度 ≥ 30 时，丢弃该前段、保留信息更完备的最终段。tool-group / reasoning / error 等非文本片段顺序不动。
+  2. **`assistant-reply.message.content` 联动**：折叠后的 `textParts` 用作 `MessageActions` 复制时的内容来源，避免被复制时仍能拿到旧的冗余文本。
+  3. **threshold 选型保守**：30 字符兜底过滤了「先查询资料」→「查询完成」一类合理短中间消息；0.5 Jaccard 的高门槛要求双方在 bigram 集合层面有过半交集，规避了两段同主题但语义不同（搜索 → 结论）的误折叠。
+- **后续防范**：
+  1. **agent 层延伸优化（独立专项，本次不做）**：可在 root agent prompt 中加一条「若已经在第一轮回复给出了完整总结，tool 调用后不要再重复主动导航，仅简短补充新增信息」；或将 `log_activity` 从 root 移除、仅留给 sub-agent 内部审计——能从源头消除双轮产出近重复总结的诱因；
+  2. **UI 兜底层只处理「视觉层冗余」，不处理「语义重复」**：阈值刻意保守，宁可漏折叠、不可误折叠；如发现仍被漏掉的真重复，应优先在 agent 端解决而非降低阈值；
+  3. **diagnostic 抓手**：未来若再出现双气泡，先 `gh api repos/.../sessions/{id}/events` 拉真实事件流，确认是否仍是双 LLM 轮次（messageId 不同）还是其他全新模式。
+- **同类问题影响**：
+  1. 任何 sub-agent（Perception / Influence 等）若也在自身 prompt 中嵌入「最终总结」要求，且持有可被强制调用的工具，都可能复制同一模式；
+  2. 若未来 UI 改造让 segments 从「按 turn 聚合」转为「按 sub-agent 分桶」，本次的折叠算法需配套迁移，否则跨桶重复无法被命中；
+  3. **与 ISSUE-031 关系**：031 解决的是「同一逻辑消息因 messageId 漂移被双写到 ledger」，032 解决的是「不同逻辑消息因 LLM 重复总结而内容近重」。两者正交、互不替代，必须同时存在才能覆盖「Ping/Pong 短回复 + 长耗时回复」全部双气泡场景。
+
+---
+
+## ISSUE-033 Home 页 LLM 模型选择在「未 Send 即刷新」场景下回退到 default
+
+- **表因**：用户在 Home 页 Composer 选定 `gpt-5.4-mini`（或任意非默认模型），但**尚未点击 Send**，刷新页面后下拉框回退到 default。
+- **根因**：
+  1. **后端事实源是 `session.state.selected_llm_model`**（`apps/negentropy-ui/app/api/agui/route.ts` 在 `/run_sse` 时把 `forwardedProps.selected_llm_model` 翻译为 `state_delta.selected_llm_model`，由 ADK 写入 session.state），与 root agent 的 `before_model_callback` (`agent.py::_pick_root_model`) 配合在每轮内按此覆盖模型；
+  2. **写入只在 Send 时发生**：`doSend` 触发 `agent.runAgent` 时才会把 `forwardedProps` 推给后端 `/run_sse`，进而落到 `state_delta`。如果用户「选了模型但还没 Send」，后端 state 不更新；
+  3. **前端内存态在刷新时丢失**：`home-body.tsx::perThreadLlmRef` 是 `useRef`，刷新即被重建为空 `{}`；
+  4. **Effect 2 (`useEffect([sessionId, snapshotForDisplay])`)** 在 `perThreadLlmRef[sessionId]` 缺席时回退到 `snapshotForDisplay?.selected_llm_model`——而后端 snapshot 此时本就没有，于是回到 `null`（即 default）。
+- **处理方式**（最小干预 + 双源镜像，不引入新的后端 API）：
+  1. **`apps/negentropy-ui/app/home-body.tsx`** 顶部新增 `LOCAL_LLM_MODEL_KEY_PREFIX = "negentropy:home:llm-model:"` 与 `readPersistedLlmModel` / `writePersistedLlmModel` 两个轻量 helper（按 sessionId 命名空间隔离，typeof window 守卫 SSR）；
+  2. **handleSelectedLlmModelChange**：用户每次切换模型时立刻 `writePersistedLlmModel(sessionId, next)`，落盘到 localStorage；空选择写 `null` 触发 removeItem；
+  3. **Effect 1（sessionId 切换）**：进入既有 session 时优先 `readPersistedLlmModel(sessionId)`；命中则把 `perThreadLlmRef[sessionId]` 与 `selectedLlmModel` 一并设到该值，未命中再让 Effect 2 走 snapshot 兜底；
+  4. **Effect 2（snapshot 命中）**：snapshot 命中时除了写 `perThreadLlmRef`，同步把值回写 localStorage——保证「后端 state ↔ localStorage」互为镜像，下次刷新可走纯本地快路径；
+  5. **保留既有 `forwardedProps.selected_llm_model` 链路**：用户实际 Send 后仍会写后端 state，确保跨设备一致性最终收敛。
+- **后续防范**：
+  1. **localStorage entropy 兜底**：当前 key 前缀按 sessionId 划分，长期会累积。后续可以加一个轻量的 LRU 清理（比如启动时遍历 key、删除超过 90 天未访问的）；本期最小干预先不做；
+  2. **跨设备一致性**：localStorage 仅本浏览器持久化。若用户在 A 浏览器选了模型却未 Send 就切到 B 浏览器刷新，B 浏览器读不到。修复路径是后端新增 `PATCH /sessions/{id}/state/selected_llm_model`（沿用 `sessions_api.py::update_session_title` 的 `state_delta + append_event` 模式），handleSelectedLlmModelChange 同时调用前后端双写。本期视用户反馈再决定是否上 backend；
+  3. **SSR 安全**：所有 localStorage 访问都做 `typeof window === "undefined"` 守卫，避免 Next.js server build 阶段崩溃；try/catch 包裹避免 SecurityError（如 Safari 隐私模式）。
+- **同类问题影响**：所有「需要『选了即记，与 Send 解耦』」的 UI 偏好（如 thread title 草稿、Composer 草稿、左栏视图模式）都可复用本 helper 模式或抽象为通用 `useSessionPersistedState` hook；本期 YAGNI 只解决 LLM model 一项，不预先抽象。

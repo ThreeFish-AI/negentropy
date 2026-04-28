@@ -35,6 +35,47 @@ import type {
 export const AGENT_ID = "negentropy";
 export const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
+/**
+ * Per-session LLM 模型选择的本地持久化键（按 sessionId 命名空间隔离）。
+ *
+ * 选型理由（最小干预 + 单一事实源）：
+ * - 后端通过 `state_delta.selected_llm_model` 在用户 Send 时写入 session.state，
+ *   做为跨设备的事实源（参见 app/api/agui/route.ts）；
+ * - 但「选择模型却尚未发送消息」时，后端 state 不会更新，刷新即丢失选择；
+ * - localStorage 在浏览器侧立即落盘，覆盖刷新场景，与后端 state 互为镜像（任意
+ *   一方有值即可命中），不引入新的后端 API 表面。
+ */
+const LOCAL_LLM_MODEL_KEY_PREFIX = "negentropy:home:llm-model:";
+
+function readPersistedLlmModel(sessionId: string | null): string | null {
+  if (!sessionId || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(
+      `${LOCAL_LLM_MODEL_KEY_PREFIX}${sessionId}`,
+    );
+    return typeof raw === "string" && raw.length > 0 ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedLlmModel(
+  sessionId: string | null,
+  value: string | null,
+): void {
+  if (!sessionId || typeof window === "undefined") return;
+  try {
+    const key = `${LOCAL_LLM_MODEL_KEY_PREFIX}${sessionId}`;
+    if (value && value.length > 0) {
+      window.localStorage.setItem(key, value);
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // localStorage 不可用时静默降级到内存态。
+  }
+}
+
 /** Agent 类型：兼容 NdjsonHttpAgent 与测试 Mock */
 export type HomeBodyAgent = AgentLike & {
   isRunning: boolean;
@@ -485,14 +526,22 @@ export function HomeBody({
       const carried = pendingLlmRef.current;
       perThreadLlmRef.current[sessionId] = carried;
       setSelectedLlmModel(carried ?? null);
+      writePersistedLlmModel(sessionId, carried ?? null);
       pendingLlmRef.current = undefined;
       pendingLlmTargetIdRef.current = null;
       return;
     }
-    // 首次进入既有 session：丢弃 pending，让 Effect 2 用 snapshot 初始化。
+    // 首次进入既有 session：优先从 localStorage 还原（覆盖「选了模型但未 Send 即刷新」
+    // 场景），未命中再让 Effect 2 用后端 snapshot 初始化。
     pendingLlmRef.current = undefined;
     pendingLlmTargetIdRef.current = null;
-    setSelectedLlmModel(null);
+    const persisted = readPersistedLlmModel(sessionId);
+    if (persisted) {
+      perThreadLlmRef.current[sessionId] = persisted;
+      setSelectedLlmModel(persisted);
+    } else {
+      setSelectedLlmModel(null);
+    }
   }, [sessionId]);
 
   useEffect(() => {
@@ -506,6 +555,11 @@ export function HomeBody({
     const initial = typeof raw === "string" && raw ? raw : null;
     perThreadLlmRef.current[sessionId] = initial;
     setSelectedLlmModel(initial);
+    // 后端 snapshot 与 localStorage 互为镜像：snapshot 命中即把值同步回 localStorage，
+    // 让后续刷新可直接走 Effect 1 的本地快路径。
+    if (initial) {
+      writePersistedLlmModel(sessionId, initial);
+    }
   }, [sessionId, snapshotForDisplay]);
 
   const handleSelectedLlmModelChange = useCallback(
@@ -514,6 +568,8 @@ export function HomeBody({
       if (sessionId) {
         perThreadLlmRef.current[sessionId] = next;
         pendingLlmRef.current = undefined;
+        // 即时落盘到 localStorage，让刷新页面时（即便用户尚未 Send）也能复原选择。
+        writePersistedLlmModel(sessionId, next);
       } else {
         // 用户在「无 session」状态下选模型：暂存到 pending，等 startNewSession 后由 Effect 1 转移。
         pendingLlmRef.current = next;
