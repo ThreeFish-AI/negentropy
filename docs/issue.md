@@ -707,3 +707,43 @@
   1. 任何上游框架基于 env var 自动启用次级遥测路径（如 `OTEL_RESOURCE_ATTRIBUTES`、`OTEL_PROPAGATORS`）的场景；
   2. 多 SDK 共存的 instrumentation 环境（`opentelemetry-instrumentation-*` 各自调用 `get_*_provider()`）；
   3. 升级 google-adk / google-genai-instrumentation / litellm 版本时，需复核它们对 logs/metrics 的处理是否变更（如未来 LiteLLM `enable_metrics=True` 默认开启，需同步审计）。
+
+## ISSUE-034 ADK Web 启动期两条 OTel `Overriding of current ... Provider` WARNING：抢占式 set provider 副作用 → 改为 patch ADK `_get_otel_exporters` 根因抑制
+
+- **表因**：`uv run adk web --port <p> --reload_agents src` 启动期 stderr 反复出现：
+  ```
+  WARNING |     metrics._internal | Overriding of current MeterProvider is not allowed
+  WARNING |       _logs._internal | Overriding of current LoggerProvider is not allowed
+  ```
+  污染启动日志可读性，且每次启动都触发，给排障带来噪声。
+- **根因**：ISSUE-033 的"抢占式 set provider"修复方案的天然副作用：
+  1. `apps/negentropy/src/negentropy/engine/bootstrap.py:40-59` 旧 `_install_noop_otel_logs_metrics_providers()` 在导入早期主动 `set_logger_provider(NoExporterLoggerProvider())` / `set_meter_provider(NoExporterMeterProvider(metric_readers=[]))`；
+  2. ADK Web 启动 `_setup_telemetry_from_env()` → `maybe_set_otel_providers()` → 第二次调用 `set_logger_provider` / `set_meter_provider`；
+  3. OTel SDK 的 `Once`-lock 保护使第二次调用静默失败，但**仍会通过 `_logger.warning` 打印** "Overriding of current ... is not allowed"（参见 `opentelemetry/_logs/_internal/__init__.py` 与 `opentelemetry/metrics/_internal/__init__.py` 的 `_set_*_provider` 实现）。
+- **二阶影响**：日志噪声 + 误导用户怀疑配置错误（实际 traces 链路完全正常，logs/metrics 也按 ISSUE-033 设计被阻断）。
+- **处理方式**（治本，最小干预）：把"抢占 SDK provider"替换为"patch ADK 上游 OTel 拼装入口"，ADK 根本不再调用 `set_logger_provider` / `set_meter_provider`：
+  1. `bootstrap.py` 删除 `_install_noop_otel_logs_metrics_providers()`，新增 `_disable_adk_otel_logs_metrics_exporters()`；
+  2. 该 helper monkey-patch `google.adk.telemetry.setup._get_otel_exporters`：调用原函数后强制把 `metric_readers` / `log_record_processors` 置空、保留 `span_processors`；
+  3. ADK `maybe_set_otel_providers` 内部 `if metric_readers:` / `if log_record_processors:` 分支由此短路（参见 `google/adk/telemetry/setup.py:102, 113`），`set_*_provider` 根本不被调用 → WARNING 从源头消除；
+  4. `span_processors`（traces 链路）保留原 `BatchSpanProcessor(OTLPSpanExporter())`，traces 仍正常上报到 Langfuse `/v1/traces`；
+  5. 加 `_negentropy_patched` 属性做幂等保护，与 `apply_adk_patches()` 中既有惯用法（如 `AdkWebServer.get_fast_api_app._negentropy_patched`）一致；
+  6. 测试更新 `tests/unit_tests/observability/test_otel_noop_providers.py` 3 例（子进程隔离 OTel 全局状态）：
+     - patch 后 `_get_otel_exporters()` 返回的 `metric_readers` / `log_record_processors` 为空、`span_processors` 仍为 1 个 `BatchSpanProcessor`；
+     - patch 幂等（重复调用函数对象不变）；
+     - 模拟调用 `maybe_set_otel_providers` 后全局 `LoggerProvider` / `MeterProvider` 仍是默认 ProxyProvider（**不是** SDK 实例），证明 set 调用未发生。
+- **行为对照**：
+  | 调用 | 修复前 | 修复后 |
+  |------|--------|--------|
+  | `_logs.set_logger_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
+  | `metrics.set_meter_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
+  | `trace.set_tracer_provider` | ADK 1 次（含 OTLP traces + ApiServerSpanExporter） | 不变 |
+  | `opentelemetry-instrumentation-google-genai` 写 GenAI events | 拿到 NoExporter SDK LoggerProvider（无 processor，丢弃） | 拿到默认 ProxyLoggerProvider（同样 NoOp 丢弃） |
+  | LiteLLM `"otel"` callback 上报 traces | → Langfuse `/v1/traces` | 不变 |
+- **后续防范**：
+  1. **OTel 抢占模式陷阱**：抢占式 `set_*_provider` 虽能利用 `Once`-lock 阻断后续注册，但**SDK 仍会输出 WARNING**——治本方案应当是阻止上游"想 set"，而非依赖"set 失败 + 静默吞错"；
+  2. **优先 patch 上游拼装入口**：当框架（ADK）在某个唯一入口（`_get_otel_exporters`）拼装多类 telemetry hooks 时，patch 该入口比 patch 各 `set_*_provider` 调用更精准；
+  3. **平滑升级到完整 OTLP 三件套**：未来若启用 SigNoz / Phoenix 等支持 logs+metrics 的 backend，把 `_disable_adk_otel_logs_metrics_exporters()` 改为有条件地透传 `metric_readers` / `log_record_processors` 即可（建议联动 `negentropy.config.observability` 加 `suppress_otlp_logs_metrics: bool` 开关）；
+  4. **ADK 升级兼容审计**：本 patch 直接替换 `_get_otel_exporters` 函数对象并依赖 `OTelHooks` dataclass 的 `span_processors` / `metric_readers` / `log_record_processors` 字段名。`google-adk` 升级时（`pyproject.toml` line 27 已锁版本范围）需 grep 该函数与 dataclass 是否变更。
+- **同类问题影响**：
+  1. 任何"抢占 OTel global provider"模式都会在上游再次 set 时触发 WARNING——但凡 SDK 依赖此类副作用的代码都应回归"上游 patch"思路；
+  2. 类似 `opentelemetry-instrumentation-*` 系列在 `OTel SDK` 之上做隐式 set 的场景（如 `langfuse.openai`、`openinference` 自动埋点），引入时需复核其是否走 `set_*_provider` 路径。
