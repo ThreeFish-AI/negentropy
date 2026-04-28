@@ -249,5 +249,9 @@ apps/negentropy-ui/.yarn/*
 .temp/
 .playwright-mcp/
 
+# Playwright auth artifacts (browser session reuse) — see docs/agents/browser-validation.md
+apps/negentropy-ui/.auth/
+apps/negentropy-ui/.userdata/
+
 # Custom
 .claude/
