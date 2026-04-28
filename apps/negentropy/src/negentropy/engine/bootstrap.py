@@ -56,8 +56,10 @@ def _disable_adk_otel_logs_metrics_exporters() -> None:
     ``_get_otel_span_exporter()`` 构造 traces 通道，根源避免 OTLP metrics /
     logs exporter 被构造（既消除 WARNING，也省掉无效 daemon 线程）。
 
-    未来若启用支持 logs/metrics 的后端（SigNoz、Phoenix 等），改为返回
-    ``hooks`` 全部内容即可平滑切换。
+    未来若启用支持 logs/metrics 的后端（SigNoz、Phoenix 等），切回 ADK 全量
+    上报的正确路径是：恢复对 ``adk_otel_setup._get_otel_exporters`` 原函数的
+    调用（保留为闭包变量），或直接构造完整 ``OTelHooks``（含 metric_readers /
+    log_record_processors）后返回。
     """
     import opentelemetry.sdk.environment_variables as otel_env
     from google.adk.telemetry import setup as adk_otel_setup
