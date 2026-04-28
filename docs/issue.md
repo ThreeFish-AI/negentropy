@@ -710,7 +710,78 @@
 
 ---
 
-## ISSUE-032 Home 页主动导航 prompt 在 tool 调用前后双轮 LLM 产出近重复 assistant 文本（双气泡复发）
+## ISSUE-034 ADK Web 启动期两条 OTel `Overriding of current ... Provider` WARNING：抢占式 set provider 副作用 → 改为 patch ADK `_get_otel_exporters` 根因抑制
+
+- **表因**：`uv run adk web --port <p> --reload_agents src` 启动期 stderr 反复出现：
+  ```
+  WARNING |     metrics._internal | Overriding of current MeterProvider is not allowed
+  WARNING |       _logs._internal | Overriding of current LoggerProvider is not allowed
+  ```
+  污染启动日志可读性，且每次启动都触发，给排障带来噪声。
+- **根因**：ISSUE-033 的"抢占式 set provider"修复方案的天然副作用：
+  1. `apps/negentropy/src/negentropy/engine/bootstrap.py:40-59` 旧 `_install_noop_otel_logs_metrics_providers()` 在导入早期主动 `set_logger_provider(NoExporterLoggerProvider())` / `set_meter_provider(NoExporterMeterProvider(metric_readers=[]))`；
+  2. ADK Web 启动 `_setup_telemetry_from_env()` → `maybe_set_otel_providers()` → 第二次调用 `set_logger_provider` / `set_meter_provider`；
+  3. OTel SDK 的 `Once`-lock 保护使第二次调用静默失败，但**仍会通过 `_logger.warning` 打印** "Overriding of current ... is not allowed"（参见 `opentelemetry/_logs/_internal/__init__.py` 与 `opentelemetry/metrics/_internal/__init__.py` 的 `_set_*_provider` 实现）。
+- **二阶影响**：日志噪声 + 误导用户怀疑配置错误（实际 traces 链路完全正常，logs/metrics 也按 ISSUE-033 设计被阻断）。
+- **处理方式**（治本，最小干预）：把"抢占 SDK provider"替换为"patch ADK 上游 OTel 拼装入口"，ADK 根本不再调用 `set_logger_provider` / `set_meter_provider`：
+  1. `bootstrap.py` 删除 `_install_noop_otel_logs_metrics_providers()`，新增 `_disable_adk_otel_logs_metrics_exporters()`；
+  2. 该 helper monkey-patch `google.adk.telemetry.setup._get_otel_exporters`：调用原函数后强制把 `metric_readers` / `log_record_processors` 置空、保留 `span_processors`；
+  3. ADK `maybe_set_otel_providers` 内部 `if metric_readers:` / `if log_record_processors:` 分支由此短路（参见 `google/adk/telemetry/setup.py:102, 113`），`set_*_provider` 根本不被调用 → WARNING 从源头消除；
+  4. `span_processors`（traces 链路）保留原 `BatchSpanProcessor(OTLPSpanExporter())`，traces 仍正常上报到 Langfuse `/v1/traces`；
+  5. 加 `_negentropy_patched` 属性做幂等保护，与 `apply_adk_patches()` 中既有惯用法（如 `AdkWebServer.get_fast_api_app._negentropy_patched`）一致；
+  6. 测试更新 `tests/unit_tests/observability/test_otel_noop_providers.py` 3 例（子进程隔离 OTel 全局状态）：
+     - patch 后 `_get_otel_exporters()` 返回的 `metric_readers` / `log_record_processors` 为空、`span_processors` 仍为 1 个 `BatchSpanProcessor`；
+     - patch 幂等（重复调用函数对象不变）；
+     - 模拟调用 `maybe_set_otel_providers` 后全局 `LoggerProvider` / `MeterProvider` 仍是默认 ProxyProvider（**不是** SDK 实例），证明 set 调用未发生。
+- **行为对照**：
+  | 调用 | 修复前 | 修复后 |
+  |------|--------|--------|
+  | `_logs.set_logger_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
+  | `metrics.set_meter_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
+  | `trace.set_tracer_provider` | ADK 1 次（含 OTLP traces + ApiServerSpanExporter） | 不变 |
+  | `opentelemetry-instrumentation-google-genai` 写 GenAI events | 拿到 NoExporter SDK LoggerProvider（无 processor，丢弃） | 拿到默认 ProxyLoggerProvider（同样 NoOp 丢弃） |
+  | LiteLLM `"otel"` callback 上报 traces | → Langfuse `/v1/traces` | 不变 |
+- **后续防范**：
+  1. **OTel 抢占模式陷阱**：抢占式 `set_*_provider` 虽能利用 `Once`-lock 阻断后续注册，但**SDK 仍会输出 WARNING**——治本方案应当是阻止上游"想 set"，而非依赖"set 失败 + 静默吞错"；
+  2. **优先 patch 上游拼装入口**：当框架（ADK）在某个唯一入口（`_get_otel_exporters`）拼装多类 telemetry hooks 时，patch 该入口比 patch 各 `set_*_provider` 调用更精准；
+  3. **平滑升级到完整 OTLP 三件套**：未来若启用 SigNoz / Phoenix 等支持 logs+metrics 的 backend，把 `_disable_adk_otel_logs_metrics_exporters()` 改为有条件地透传 `metric_readers` / `log_record_processors` 即可（建议联动 `negentropy.config.observability` 加 `suppress_otlp_logs_metrics: bool` 开关）；
+  4. **ADK 升级兼容审计**：本 patch 直接替换 `_get_otel_exporters` 函数对象并依赖 `OTelHooks` dataclass 的 `span_processors` / `metric_readers` / `log_record_processors` 字段名。`google-adk` 升级时（`pyproject.toml` line 27 已锁版本范围）需 grep 该函数与 dataclass 是否变更。
+- **同类问题影响**：
+  1. 任何"抢占 OTel global provider"模式都会在上游再次 set 时触发 WARNING——但凡 SDK 依赖此类副作用的代码都应回归"上游 patch"思路；
+  2. 类似 `opentelemetry-instrumentation-*` 系列在 `OTel SDK` 之上做隐式 set 的场景（如 `langfuse.openai`、`openinference` 自动埋点），引入时需复核其是否走 `set_*_provider` 路径。
+
+---
+
+## ISSUE-035 AI Agent 在 sandbox 浏览器中走项目 Google OAuth 被同意屏拦截：登录态不可复用导致验证链路中断
+
+- **表因**：AI Agent（Claude / Antigravity）在沙箱形态浏览器（Playwright 默认 `chromium.launch()` 启的空白 profile）中打开 [`localhost:3192`](http://localhost:3192) 触发项目自带的 Google OAuth 流（`/auth/google/login` → `accounts.google.com` → `/auth/google/callback`，参见 [docs/sso.md](./sso.md)），跳转到 `accounts.google.com` 后因该浏览器无任何 Google 登录态，被同意屏 / reCAPTCHA / 二步验证拦截，验证链路在此中断；用户被迫多次手动接管或放弃验证。
+- **根因**：双重契约错配：
+  1. **会话来源错配**：默认 sandbox 浏览器的 cookie store / device fingerprint / IP 风险评分均与用户日常 Chrome 不同，Google 风控将其视为可疑设备；即便用户在沙箱内输入正确账密，亦极易被强制拉起二次验证或拒绝；
+  2. **工具选型缺位**：项目 [CLAUDE.md（即 AGENTS.md）](../CLAUDE.md) 此前未约定"涉及登录态的浏览器验证应优先使用与用户常用 Chrome 共享会话的工具"，AI Agent 默认走 sandbox 即陷入上述风控；
+  3. **Playwright E2E 同样缺位**：`apps/negentropy-ui/playwright.config.ts` 之前无 `setup` project / `storageState` / `userDataDir` 复用机制，凡涉及真实 OAuth 的 E2E 都需重复人工登录或退化为 mock，长期削弱端到端覆盖。
+- **处理方式**：
+  1. **协议落地**：[CLAUDE.md › 术 › Browser Validation Protocol](../CLAUDE.md) 新增子节，明确"涉及登录态的浏览器验证必须复用用户常用 Chrome 会话"，首选 `mcp__claude-in-chrome__*`，退化为 `mcp__chrome_devtools__*` + Chrome `--remote-debugging-port`，禁止在 sandbox 浏览器中通过 Google 同意屏；
+  2. **详尽文档**：新建 [docs/agents/browser-validation.md](./agents/browser-validation.md)，含三种 MCP 浏览器工具的能力对照、Mermaid 选型决策图、三步连通性自检脚本、storageState 工作时序、风控应对、IEEE 引用；
+  3. **Playwright 改造**：
+     - `apps/negentropy-ui/playwright.config.ts` 在 `PLAYWRIGHT_AUTH=1` 时启用两个新 project：`setup`（`/.*\.setup\.ts$/`，强制 headless: false）与 `chromium-authenticated`（`dependencies: ['setup']`，注入 `storageState`），可选 `PLAYWRIGHT_USER_DATA_DIR` 走 `--user-data-dir` 复用本地 profile；
+     - `STORAGE_STATE` 默认 `apps/negentropy-ui/.auth/user.json`，可被 `PLAYWRIGHT_STORAGE_STATE` 覆盖；
+     - 现有 `chromium` project 的 `testIgnore` 同时排除 `/.*\.setup\.ts$/` 与 `/.*\.authed\.spec\.ts$/`，**不依赖** setup，保护现有 mock 风格 e2e 与 CI 行为完全不变，且防止 AUTH 开启时 authed spec 被无 storageState 的项目重复执行；
+     - 新增 `apps/negentropy-ui/tests/e2e/auth.setup.ts`：打开 `/auth/google/login`、等用户在弹出页手动完成登录、`waitForURL` 同时约束 host（`127.0.0.1` / `localhost`）与离开 `/auth/google/*`、断言 `/api/auth/me` 返回 2xx、写入 storageState；登录窗口超时 5 分钟。
+  4. **凭证防泄漏**：根 `.gitignore` 追加 `apps/negentropy-ui/.auth/` 与 `apps/negentropy-ui/.userdata/`，会话产物只落本地。
+- **后续防范**：
+  1. **AI Agent 默认行为收口**：协议已写入 AGENTS.md，每个新会话首次浏览器验证前必走"三步连通性自检"，任意失败立即停下并把现象返回用户，杜绝"换个浏览器再试"的暗箱重试；
+  2. **凭证零接触**：AI Agent 在任何场景下不读取、不复制、不粘贴用户密码 / 验证码 / Refresh Token；登录步骤一律由用户在浏览器内手动完成（受 `user_privacy` 中 SENSITIVE INFORMATION HANDLING 硬约束）；
+  3. **CI 隔离**：CI 环境禁止挂载真实账号 storageState，未来引入需要登录态的 CI E2E 时走 mock OAuth provider 或专用脱敏账号 + 密钥管理服务，作为后续 Issue 处理；
+  4. **风控避让**：自检 Step 2 与 Step 3 间留 ≥ 3s 间隔；setup project 不在自动循环中重复触发，避免短时高频跳转 Google 同意屏招致风控误报；
+  5. **waitForURL 跨域陷阱**：OAuth 链路涉及跨 origin 跳转时，`waitForURL` 谓词必须同时约束 host，否则会在跳往 IdP 瞬间被误判为流程结束；本次修复已在 `auth.setup.ts` 落地。
+- **同类问题影响**：
+  1. 所有依赖外部第三方登录的链路（Microsoft / Apple / GitHub OAuth、企业 SSO、内部 SaaS 密钥）在 sandbox 浏览器中均会遭遇同质风控，应统一按本协议复用真实浏览器会话；
+  2. 任何"AI Agent 帮我跑一下登录后页面"的请求都应先看协议工具选型矩阵；
+  3. 跨 profile 复制 storageState / Cookie 的方案在 Google / 微软等高风控供应商上不可靠，不建议作为退化方案。
+
+---
+
+## ISSUE-036 Home 页主动导航 prompt 在 tool 调用前后双轮 LLM 产出近重复 assistant 文本（双气泡复发）
 
 - **表因**：用户在 Home 页发送 "Ping, give me a pong"（短回复）也会看到两份高度相似的 assistant 答复气泡。ISSUE-031 的修复（基于 ledger 时间窗 + closed 节点匹配）虽已合并并部署，但本场景双气泡仍复发——证明并非「同一 messageId 的双副本」。
 - **根因**（与 ISSUE-031 完全正交的另一类来源）：
@@ -729,11 +800,11 @@
 - **同类问题影响**：
   1. 任何 sub-agent（Perception / Influence 等）若也在自身 prompt 中嵌入「最终总结」要求，且持有可被强制调用的工具，都可能复制同一模式；
   2. 若未来 UI 改造让 segments 从「按 turn 聚合」转为「按 sub-agent 分桶」，本次的折叠算法需配套迁移，否则跨桶重复无法被命中；
-  3. **与 ISSUE-031 关系**：031 解决的是「同一逻辑消息因 messageId 漂移被双写到 ledger」，032 解决的是「不同逻辑消息因 LLM 重复总结而内容近重」。两者正交、互不替代，必须同时存在才能覆盖「Ping/Pong 短回复 + 长耗时回复」全部双气泡场景。
+  3. **与 ISSUE-031 关系**：031 解决的是「同一逻辑消息因 messageId 漂移被双写到 ledger」，036 解决的是「不同逻辑消息因 LLM 重复总结而内容近重」。两者正交、互不替代，必须同时存在才能覆盖「Ping/Pong 短回复 + 长耗时回复」全部双气泡场景。
 
 ---
 
-## ISSUE-033 Home 页 LLM 模型选择在「未 Send 即刷新」场景下回退到 default
+## ISSUE-037 Home 页 LLM 模型选择在「未 Send 即刷新」场景下回退到 default
 
 - **表因**：用户在 Home 页 Composer 选定 `gpt-5.4-mini`（或任意非默认模型），但**尚未点击 Send**，刷新页面后下拉框回退到 default。
 - **根因**：

@@ -1,8 +1,12 @@
-"""验证 bootstrap._install_noop_otel_logs_metrics_providers() 抢注 NoOp Logger/Meter Provider。
+"""验证 bootstrap._disable_adk_otel_logs_metrics_exporters() 抑制 ADK 自动注册 OTLP logs/metrics。
 
-OTel SDK 的 ``set_logger_provider`` / ``set_meter_provider`` 由 ``Once`` 锁保护，
-首次调用全局胜出；后续调用仅打 warning。本组测试在子进程中运行——避免污染主测试
-进程的 OTel 全局状态、并隔离每个用例的 Once 锁。
+ADK ``google.adk.telemetry.setup.maybe_set_otel_providers`` 内部调用唯一拼装入口
+``_get_otel_exporters()``：在 ``OTEL_EXPORTER_OTLP_ENDPOINT`` 存在时无差别构造
+``OTLPSpanExporter``、``OTLPMetricExporter``、``OTLPLogExporter`` 三件套。Langfuse 仅
+承接 ``/v1/traces``，后两者上报会命中 SPA 404。
+
+本组测试在子进程中运行——避免污染主测试进程的 OTel 全局状态、并隔离每个用例的
+``Once`` 锁初始状态。
 """
 
 from __future__ import annotations
@@ -23,70 +27,87 @@ def _run_in_subprocess(script: str) -> str:
     return result.stdout
 
 
-def test_install_noop_logger_provider_yields_sdk_provider_without_processors():
-    """安装后 get_logger_provider() 返回 SDK LoggerProvider，且不挂任何 LogRecordProcessor。"""
+def test_patch_disables_metric_and_log_exporters_but_keeps_traces():
+    """patch 后 _get_otel_exporters 返回 traces span_processor，但 metric_readers / log_record_processors 为空。"""
     output = _run_in_subprocess(
         """
-        from negentropy.engine.bootstrap import _install_noop_otel_logs_metrics_providers
-        from opentelemetry import _logs
-        from opentelemetry.sdk._logs import LoggerProvider
+        import os
+        os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = 'http://localhost:4318'
 
-        _install_noop_otel_logs_metrics_providers()
-        provider = _logs.get_logger_provider()
-        assert isinstance(provider, LoggerProvider), f"expected SDK LoggerProvider, got {type(provider)}"
-        # _multi_log_record_processor 是 SDK LoggerProvider 内部聚合所有 processor 的入口
-        # 此时未注册任何 processor，下属列表应为空。
-        processors = list(provider._multi_log_record_processor._log_record_processors)
-        assert processors == [], f"expected zero processors, got {processors}"
-        print("logger_ok")
+        from negentropy.engine.bootstrap import _disable_adk_otel_logs_metrics_exporters
+        from google.adk.telemetry import setup as adk_setup
+
+        _disable_adk_otel_logs_metrics_exporters()
+
+        # patch 标记必须可见（用于幂等保护与外部断言）
+        assert getattr(adk_setup._get_otel_exporters, '_negentropy_patched', False), 'missing _negentropy_patched flag'
+
+        hooks = adk_setup._get_otel_exporters()
+        # traces 链路保留：env var 存在时返回 1 个 BatchSpanProcessor(OTLPSpanExporter)
+        assert len(hooks.span_processors) == 1, f'expected 1 span processor, got {hooks.span_processors!r}'
+        # logs / metrics 永久置空——ADK maybe_set_otel_providers 的 if 分支由此短路
+        assert hooks.metric_readers == [], f'expected zero metric readers, got {hooks.metric_readers!r}'
+        assert hooks.log_record_processors == [], f'expected zero log processors, got {hooks.log_record_processors!r}'
+        print('exporters_ok')
         """
     )
-    assert "logger_ok" in output
+    assert "exporters_ok" in output
 
 
-def test_install_noop_meter_provider_yields_sdk_provider_without_readers():
-    """安装后 get_meter_provider() 返回 SDK MeterProvider，且不挂任何 MetricReader。"""
+def test_patch_is_idempotent():
+    """重复调用 patch helper 不应叠加替换、不应重复 wrap 原函数。"""
     output = _run_in_subprocess(
         """
-        from negentropy.engine.bootstrap import _install_noop_otel_logs_metrics_providers
-        from opentelemetry import metrics
-        from opentelemetry.sdk.metrics import MeterProvider
+        import os
+        os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = 'http://localhost:4318'
 
-        _install_noop_otel_logs_metrics_providers()
-        provider = metrics.get_meter_provider()
-        assert isinstance(provider, MeterProvider), f"expected SDK MeterProvider, got {type(provider)}"
-        readers = list(provider._sdk_config.metric_readers)
-        assert readers == [], f"expected zero metric readers, got {readers}"
-        print("meter_ok")
+        from negentropy.engine.bootstrap import _disable_adk_otel_logs_metrics_exporters
+        from google.adk.telemetry import setup as adk_setup
+
+        _disable_adk_otel_logs_metrics_exporters()
+        first = adk_setup._get_otel_exporters
+
+        _disable_adk_otel_logs_metrics_exporters()
+        second = adk_setup._get_otel_exporters
+
+        # 第二次调用必须 no-op：函数对象保持同一引用
+        assert first is second, 'patch is not idempotent — wrapped twice'
+        print('idempotent_ok')
         """
     )
-    assert "meter_ok" in output
+    assert "idempotent_ok" in output
 
 
-def test_subsequent_set_logger_provider_is_noop_due_to_once_lock():
-    """抢注后第二次 set_logger_provider（模拟 ADK _setup_telemetry_from_env）必须无效。"""
+def test_adk_maybe_set_otel_providers_does_not_touch_logger_meter_globals():
+    """模拟 ADK 启动期调用 maybe_set_otel_providers，验证全局 LoggerProvider/MeterProvider 未被 SDK 实例覆盖。
+
+    若未应用 patch，ADK 会调用 ``set_logger_provider`` / ``set_meter_provider`` 注册 SDK
+    实例（带 OTLPLogExporter / OTLPMetricExporter），这是历史 WARNING 的根源。本用例验证
+    patch 后这两个全局调用根本不会发生——全局保持默认 ProxyProvider（NoOp）。
+    """
     output = _run_in_subprocess(
         """
-        from negentropy.engine.bootstrap import _install_noop_otel_logs_metrics_providers
-        from opentelemetry import _logs
-        from opentelemetry.sdk._logs import LoggerProvider
-        from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, ConsoleLogExporter
+        import os
+        os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = 'http://localhost:4318'
 
-        _install_noop_otel_logs_metrics_providers()
-        first = _logs.get_logger_provider()
+        from negentropy.engine.bootstrap import _disable_adk_otel_logs_metrics_exporters
+        from google.adk.telemetry import setup as adk_setup
+        from opentelemetry import _logs, metrics
+        from opentelemetry.sdk._logs import LoggerProvider as SdkLoggerProvider
+        from opentelemetry.sdk.metrics import MeterProvider as SdkMeterProvider
 
-        # 模拟 ADK 上游的 set_logger_provider 调用——构造一个带 OTLP 风格 processor 的新 provider
-        intruder = LoggerProvider()
-        intruder.add_log_record_processor(BatchLogRecordProcessor(ConsoleLogExporter()))
-        _logs.set_logger_provider(intruder)
+        _disable_adk_otel_logs_metrics_exporters()
 
-        # Once-lock：第二次 set 静默失败，全局仍是第一个 NoOp provider
-        after = _logs.get_logger_provider()
-        assert after is first, "second set_logger_provider must NOT replace the first"
-        # 并且首个 provider 仍然没有 processor
-        processors = list(after._multi_log_record_processor._log_record_processors)
-        assert processors == [], f"NoOp provider must remain processor-less; got {processors}"
-        print("once_lock_ok")
+        # 模拟 ADK 上游调用 maybe_set_otel_providers（无额外 hooks，只走 _get_otel_exporters 路径）
+        adk_setup.maybe_set_otel_providers(otel_hooks_to_setup=None)
+
+        # 关键断言：全局 LoggerProvider / MeterProvider 必须仍是默认 ProxyProvider 而非 SDK 实例
+        # （ADK if 分支因 list 为空而短路，set_*_provider 根本未被调用）
+        assert not isinstance(_logs.get_logger_provider(), SdkLoggerProvider), \
+            f'LoggerProvider must remain default ProxyLoggerProvider, got {type(_logs.get_logger_provider())}'
+        assert not isinstance(metrics.get_meter_provider(), SdkMeterProvider), \
+            f'MeterProvider must remain default ProxyMeterProvider, got {type(metrics.get_meter_provider())}'
+        print('no_set_provider_ok')
         """
     )
-    assert "once_lock_ok" in output
+    assert "no_set_provider_ok" in output
