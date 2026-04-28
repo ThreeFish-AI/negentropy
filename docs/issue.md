@@ -823,3 +823,17 @@
   2. **跨设备一致性**：localStorage 仅本浏览器持久化。若用户在 A 浏览器选了模型却未 Send 就切到 B 浏览器刷新，B 浏览器读不到。修复路径是后端新增 `PATCH /sessions/{id}/state/selected_llm_model`（沿用 `sessions_api.py::update_session_title` 的 `state_delta + append_event` 模式），handleSelectedLlmModelChange 同时调用前后端双写。本期视用户反馈再决定是否上 backend；
   3. **SSR 安全**：所有 localStorage 访问都做 `typeof window === "undefined"` 守卫，避免 Next.js server build 阶段崩溃；try/catch 包裹避免 SecurityError（如 Safari 隐私模式）。
 - **同类问题影响**：所有「需要『选了即记，与 Send 解耦』」的 UI 偏好（如 thread title 草稿、Composer 草稿、左栏视图模式）都可复用本 helper 模式或抽象为通用 `useSessionPersistedState` hook；本期 YAGNI 只解决 LLM model 一项，不预先抽象。
+
+---
+
+## ISSUE-038 ADK Web 启动期 OTel `Cannot call collect on a MetricReader` 周期 WARNING：被丢弃的 PeriodicExportingMetricReader 守护线程
+
+- **表因**：`uv run adk web` 启动后每 60s 出现 `WARNING | _internal.export | Cannot call collect on a MetricReader until it is registered on a MeterProvider`，与 ISSUE-034 处理的 `Overriding of current ... Provider` 完全不同。
+- **根因**：ISSUE-034 的 `_patched_get_otel_exporters` 调用 `original()` 后再把 `metric_readers` / `log_record_processors` 置空，但上游 `_get_otel_exporters` 在 `OTEL_EXPORTER_OTLP_ENDPOINT` 存在时已无条件构造 `PeriodicExportingMetricReader(OTLPMetricExporter())`（`google/adk/telemetry/setup.py:163-166`）——`__init__` 立即启动每 60s 守护线程（`opentelemetry/sdk/metrics/_internal/export/__init__.py:494`）；reader 因未注册到 MeterProvider，`_collect` 为 None，每次 tick 触发 WARNING（同文件 line 334-336）。
+- **二阶影响**：日志噪声 + 多余 daemon 线程占用资源；与 ISSUE-034 修复后"治标"印象矛盾。
+- **处理方式**：`_patched_get_otel_exporters` 不再调用 `original()`，直接复用 `adk_otel_setup._get_otel_span_exporter()` 只构造 traces span processor（`bootstrap.py:40-88`），根源避免 OTLP metrics / logs exporter 被实例化。测试新增 `test_patch_does_not_construct_orphan_metric_or_log_exporters` 用 sentinel 化 `_get_otel_metrics_exporter` / `_get_otel_logs_exporter` 验证零调用。
+- **后续防范**：
+  1. **patch 上游工厂时优先全量重写返回值**而非"调用后裁剪"，避免副作用进入对象生命周期；
+  2. 凡 `__init__` 启动后台线程的 OTel 组件（`PeriodicExportingMetricReader`、`BatchLogRecordProcessor`、`BatchSpanProcessor`）一经实例化即等同"已激活"，不可只靠"不返回"屏蔽；
+  3. ADK 升级时审计 `_get_otel_span_exporter` / `OTelHooks` 字段。
+- **同类问题影响**：所有"调用上游工厂后再丢弃部分返回"的 patch 都需检查工厂是否在构造路径上启动后台线程。
