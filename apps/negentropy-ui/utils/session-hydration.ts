@@ -66,12 +66,15 @@ function eventKey(event: BaseEvent): string {
         String((event as Record<string, unknown>).role || ""),
       ].join("|");
     case EventType.TEXT_MESSAGE_CONTENT:
+      // 固定 3 位小数（毫秒级）以稳定去重键：避免 1001.1 与 1001.10000002384
+      // 因浮点精度差异生成不同 key，导致 mergeEvents 把同一逻辑事件保留两份、
+      // 进而造成刷新后排序漂移与片段重复。
       return [
         type,
         threadId,
         runId,
         messageId,
-        String(normalizeTimestamp(event.timestamp)),
+        normalizeTimestamp(event.timestamp).toFixed(3),
       ].join("|");
     case EventType.TEXT_MESSAGE_END:
       return [type, threadId, runId, messageId].join("|");
@@ -240,8 +243,10 @@ export function mergeEventsWithRealtimePriority(
     return true;
   });
 
-  // 4. 使用既有 mergeEvents 合并
-  return mergeEvents(realtimeEvents, filteredHydratedEvents);
+  // 4. 使用既有 mergeEvents 合并；将 realtime 放在 incoming 位，使其覆盖 hydrated
+  //    版本（mergeEvents 内部 [...base, ...incoming].forEach(set) 时 incoming 后写入
+  //    并赢得 key 冲突）。realtime 流式时间戳精度更高、链路更近源，应作为权威。
+  return mergeEvents(filteredHydratedEvents, realtimeEvents);
 }
 
 export function hasSameEventSequence(left: BaseEvent[], right: BaseEvent[]): boolean {

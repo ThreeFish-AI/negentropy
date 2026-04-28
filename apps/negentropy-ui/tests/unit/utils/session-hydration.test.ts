@@ -755,4 +755,67 @@ describe("session-hydration", () => {
     );
     expect(contentEvents).toHaveLength(1);
   });
+
+  it("eventKey 在浮点精度抖动下仍稳定（toFixed(3) 毫秒级）", () => {
+    // 1001.1 与 1001.10000002384 因浮点表示差异在历史实现中会生成不同 key，
+    // 导致 mergeEvents 把同一逻辑事件保留两份；toFixed(3) 后两者归并为一条。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hello",
+        timestamp: 1001.1,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hello",
+        timestamp: 1001.10000002384,
+      }),
+    ];
+
+    const merged = mergeEvents([], events);
+    const contentEvents = merged.filter(
+      (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
+    );
+    expect(contentEvents).toHaveLength(1);
+  });
+
+  it("mergeEventsWithRealtimePriority：当 realtime 与 hydrated 的 messageId 相同时保留 realtime 时间戳", () => {
+    // realtime 在 t=1001 收到 TEXT_MESSAGE_CONTENT；hydrated 后同 messageId 但
+    // 后端时间戳 t=1500（精度损失/异源时钟）。函数语义为「realtime 优先」，
+    // 应保留 realtime 时间戳，以稳定后续按 timestamp 的排序。
+    const realtime: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hi",
+        timestamp: 1001,
+      }),
+    ];
+    const hydrated: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hi",
+        timestamp: 1500,
+      }),
+    ];
+
+    const merged = mergeEventsWithRealtimePriority(realtime, hydrated, [], []);
+    const contentEvents = merged.filter(
+      (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
+    );
+    // 已被语义匹配过滤掉 hydrated 的同 messageId 事件；保留 realtime 版本
+    expect(contentEvents).toHaveLength(1);
+    expect(contentEvents[0]?.timestamp).toBe(1001);
+  });
 });

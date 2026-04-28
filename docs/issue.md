@@ -823,3 +823,33 @@
   2. **跨设备一致性**：localStorage 仅本浏览器持久化。若用户在 A 浏览器选了模型却未 Send 就切到 B 浏览器刷新，B 浏览器读不到。修复路径是后端新增 `PATCH /sessions/{id}/state/selected_llm_model`（沿用 `sessions_api.py::update_session_title` 的 `state_delta + append_event` 模式），handleSelectedLlmModelChange 同时调用前后端双写。本期视用户反馈再决定是否上 backend；
   3. **SSR 安全**：所有 localStorage 访问都做 `typeof window === "undefined"` 守卫，避免 Next.js server build 阶段崩溃；try/catch 包裹避免 SecurityError（如 Safari 隐私模式）。
 - **同类问题影响**：所有「需要『选了即记，与 Send 解耦』」的 UI 偏好（如 thread title 草稿、Composer 草稿、左栏视图模式）都可复用本 helper 模式或抽象为通用 `useSessionPersistedState` hook；本期 YAGNI 只解决 LLM model 一项，不预先抽象。
+
+---
+
+## ISSUE-038 Home 双气泡盲区（短回复）+ 刷新后消息乱序
+
+- **表因**：
+  1. 用户发送 "Ping, give me a pong" 等**短回复**也会出现双气泡，ISSUE-036 的 Jaccard 相似度去重（阈值 ≥ 30 字）对短文本完全失效；
+  2. 刷新页面后消息有时不按实际时间线排序，「用户消息」与「Agent 消息」相对位置漂移。
+- **根因**：
+  1. **Jaccard 去重盲区**：`utils/chat-display.ts::dedupeRedundantTextSegments` 仅在双方均 ≥ 30 字时触发字符二元组相似度计算。ADK 双轮 LLM 模式（tool 调用前后两轮文本）下，"Pong!"、"OK" 等短回复绕过该路径，两段独立的 `TEXT_MESSAGE_*` 序列（messageId 不同但内容字节级相同）被 ledger / tree / display 全链路忠实保留为两个 segment；
+  2. **mergeEventsWithRealtimePriority 参数顺序反了**：`utils/session-hydration.ts:244` 调用 `mergeEvents(realtimeEvents, filteredHydratedEvents)`，而 `mergeEvents` 内部 `[...base, ...incoming].forEach(merged.set)` 后写入者赢得冲突——意味着 hydrated 事件覆盖 realtime 事件。函数名 `RealtimePriority` 与实际行为相反，hydrated 后端时间戳精度与流式时间戳不一致时排序会发生漂移；
+  3. **eventKey 时间戳浮点精度抖动**：TEXT_MESSAGE_CONTENT 的 `eventKey` 用 `String(normalizeTimestamp(timestamp))`，浮点表示（如 1001.1 vs 1001.10000002384）会生成不同字符串 → 同一逻辑事件被保留两份；
+  4. **UUID localeCompare 作 sort tiebreaker**：所有 `.sort()` 在 createdAt 相等时退化为 `id.localeCompare`，UUID 字典序无时间语义。
+- **处理方式**（UI / 数据层最小干预，不动 agent prompt 与协议）：
+  1. **`utils/chat-display.ts::dedupeRedundantTextSegments` 四层判定**（自上而下越来越宽松）：
+     - 1) 精确匹配（trim 后字节级相等）：任何长度都触发，丢弃前段；
+     - 2) 严格前缀关系（`later.startsWith(earlier)` 或反向）：任何长度都触发，丢弃前段（或后段，取决于谁是前缀）；
+     - 3) `isEquivalentMessageContent` + 双方 ≥ 30 字：处理近似但非前缀场景；
+     - 4) 字符二元组 Jaccard ≥ 0.5 + 双方 ≥ 30 字：原 ISSUE-036 兜底逻辑保留。
+  2. **`utils/session-hydration.ts::mergeEventsWithRealtimePriority`**：交换参数顺序为 `mergeEvents(filteredHydratedEvents, realtimeEvents)`，让 realtime 作为 incoming 覆盖 hydrated；
+  3. **`utils/session-hydration.ts::eventKey`**：TEXT_MESSAGE_CONTENT 时间戳改用 `.toFixed(3)`（毫秒精度），消除浮点抖动；
+  4. **`types/common.ts::MessageLedgerEntry` 新增可选 `sourceOrder?: number`**：`buildMessageLedger` 处理事件时记录原始时序下标；`upsertEntry` / `mergeMessageLedger` 取已存在与新写入两者最小值；所有 `.sort` 的 tiebreaker 改为 `createdAt → sourceOrder → id.localeCompare`，并抽出 `compareLedgerEntriesByTime` 复用；测试夹具与历史持久化数据通过可选默认 `Number.MAX_SAFE_INTEGER` 保持向后兼容。
+- **后续防范**：
+  1. **去重四层判定的扩展规则**：未来若再出现新模式（如 trim 等价但带 markdown 转义差异），优先在前两层（精确 / 前缀）扩展，避免直接降低 Jaccard 阈值；
+  2. **eventKey 修订需检查所有 case**：当前只对 TEXT_MESSAGE_CONTENT 做 toFixed，其他事件类型若有同类问题（暂未发现），同步处理；
+  3. **sourceOrder 仅用于 tiebreaker**：不要在 createdAt 不同时让 sourceOrder 倒序覆盖时间，保持「时间为主、order 为辅」；
+  4. **回归测试**：新增三类用例覆盖——短文本精确匹配、前缀含尾部追加、同 createdAt 的 sourceOrder 排序。
+- **同类问题影响**：
+  1. 任何 `id.localeCompare` 作 tiebreaker 的排序场景都可能在 createdAt 重合时出现非时间序，本次只修了 ledger 三处 sort，conversation-tree 的 root 排序与 chat-display 的 block 排序仍按 sourceOrder 处理（均使用 `node.sourceOrder`，已稳）；
+  2. **与 ISSUE-031 / 036 关系**：031 解决「同一逻辑消息因 messageId 漂移被双写到 ledger」；036 解决「不同逻辑消息因 LLM 重复总结而长文本近重」；038 解决「短文本字面相同的双轮重复 + 跨刷新事件序漂移」。三者正交、互不替代，形成完整去重 / 排序防御链。

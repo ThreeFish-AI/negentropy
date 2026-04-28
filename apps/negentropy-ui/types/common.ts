@@ -126,6 +126,15 @@ export type MessageLedgerEntry = {
   author?: string;
   sourceEventTypes: string[];
   relatedMessageIds: string[];
+  /**
+   * 事件在原始时序中的位置（buildMessageLedger 处理 events 的下标）。
+   * 当多个 ledger 条目 createdAt 相等时，作为 tiebreaker 提供确定性时间序排序，
+   * 避免退化为 UUID localeCompare 的随机顺序。
+   *
+   * 设为可选以保持对现有测试夹具与历史持久化数据的向后兼容；排序处统一以
+   * `Number.MAX_SAFE_INTEGER` 作为缺省回退，确保未填充该字段的条目仍可比较。
+   */
+  sourceOrder?: number;
 };
 
 export type SessionProjectionState = {

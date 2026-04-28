@@ -15,6 +15,7 @@ import type {
 import type { ChatMessage, ToolCallStatus } from "@/types/common";
 import { buildNodeSummary, safeJsonParse } from "@/utils/conversation-summary";
 import { isNonCriticalError } from "@/utils/error-filter";
+import { isEquivalentMessageContent } from "@/utils/message";
 
 const displayBlockTypeOrder: Record<ChatDisplayBlock["kind"], number> = {
   message: 0,
@@ -399,18 +400,29 @@ function bigramJaccard(a: string, b: string): number {
 }
 
 const REDUNDANT_TEXT_SIMILARITY_THRESHOLD = 0.5;
-const REDUNDANT_TEXT_MIN_LENGTH = 30;
+const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
 
 /**
- * 折叠同一 assistant-reply 内的「冗余文本片段」：
- * - 当后一段文本与前一段文本字符二元组 Jaccard ≥ 0.5 且双方长度 ≥ 30 时，
- *   仅保留**后一段**（通常是主动导航 prompt 在工具调用后产出的「最终总结」，
- *   信息更完备且时间更新）。
- * - 工具组（tool-group）等非文本片段的相对顺序原样保留。
+ * 折叠同一 assistant-reply 内的「冗余文本片段」，四层判定（自上而下越来越宽松,
+ * 也越来越保守，全部命中后丢弃前段，因为工具反馈后的「后段」通常是更完备的最终版本）：
  *
- * 这是 UI 层的兜底防御：不修改 conversation tree，也不影响 ledger 去重；只在
- * 渲染阶段消除「LLM 重复总结」造成的视觉双气泡。短回复（<30 字）或差异度大
- * 的相邻文本（如「先查询资料」→「查询完成」）原样保留，避免误删合理中间消息。
+ * 1. **精确匹配**：trim 后两段完全相等 → 丢弃前段（不限长度）。
+ *    覆盖典型场景：ADK 双轮 LLM 模式下短回复（如 "Pong!"）被切成两个独立
+ *    `TEXT_MESSAGE_*` 序列，messageId 不同但内容字节级相同。
+ * 2. **严格前缀**：后段以前段开头（如 "Pong!" → "Pong!\n\n下一步建议..."）→
+ *    丢弃前段（不限长度）。覆盖第二轮 LLM 在首轮基础上追加补充信息的场景。
+ * 3. **等价内容**：`isEquivalentMessageContent` 命中（含 containment + 长度比 0.8 +
+ *    word jaccard 兜底）且双方均 ≥ 30 字 → 丢弃前段。覆盖中等长度的近似但非前缀
+ *    场景（如标点/空白差异）。
+ * 4. **字符二元组 Jaccard**：双方均 ≥ 30 字且 Jaccard ≥ 0.5 → 丢弃前段。
+ *    覆盖「主动导航 prompt 在工具前后各产出一段几乎相同总结」的长回复场景。
+ *
+ * 工具组（tool-group）等非文本片段的相对顺序原样保留。
+ *
+ * 这是 UI 层的兜底防御，不修改 conversation tree、不影响 ledger 去重，仅在
+ * 渲染阶段消除视觉双气泡。短回复（<30 字）若内容确实不同（如「先查询资料」→
+ * 「查询完成」）由于精确/前缀均不命中、等价与 Jaccard 因长度阈值不进入，会被
+ * 原样保留，避免误删合理中间消息。
  */
 function dedupeRedundantTextSegments(
   segments: AssistantReplyDisplaySegment[],
@@ -428,7 +440,7 @@ function dedupeRedundantTextSegments(
     const laterSegment = segments[laterIdx];
     if (laterSegment.kind !== "text") continue;
     const laterContent = laterSegment.content.trim();
-    if (laterContent.length < REDUNDANT_TEXT_MIN_LENGTH) continue;
+    if (!laterContent) continue;
 
     for (let j = 0; j < i; j += 1) {
       const earlierIdx = textIndices[j];
@@ -436,8 +448,49 @@ function dedupeRedundantTextSegments(
       const earlierSegment = segments[earlierIdx];
       if (earlierSegment.kind !== "text") continue;
       const earlierContent = earlierSegment.content.trim();
-      if (earlierContent.length < REDUNDANT_TEXT_MIN_LENGTH) continue;
+      if (!earlierContent) continue;
 
+      // 四层判定均统一为「丢弃前段」：
+      // 在 LLM 双轮（tool 调用前后）产出近似总结的场景下，后段一般是经工具反馈
+      // 修正后的最终版本（见 ISSUE-036），保留后段更符合用户预期的「最新答复」。
+
+      // 1. 精确匹配：任何长度都触发。
+      if (earlierContent === laterContent) {
+        droppedIndices.add(earlierIdx);
+        continue;
+      }
+
+      // 2. 严格前缀关系：后段以前段为开头（如 "Pong!" → "Pong!\n\n下一步建议..."）。
+      //    短文本场景的核心情形：第二轮 LLM 在第一轮基础上「追加」补充信息。
+      //    要求双方非空，避免 "" 被任意串视为前缀。
+      if (laterContent.startsWith(earlierContent)) {
+        droppedIndices.add(earlierIdx);
+        continue;
+      }
+      if (earlierContent.startsWith(laterContent)) {
+        // 罕见：后段是前段前缀（被截短），保留信息更完备的前段。
+        droppedIndices.add(laterIdx);
+        break;
+      }
+
+      // 3. 等价内容（containment + 长度比 0.8 + word jaccard 兜底）。
+      //    覆盖前缀关系不成立但内容近似的较长文本场景。
+      if (
+        isEquivalentMessageContent(earlierContent, laterContent) &&
+        Math.min(earlierContent.length, laterContent.length) >=
+          REDUNDANT_TEXT_JACCARD_MIN_LENGTH
+      ) {
+        droppedIndices.add(earlierIdx);
+        continue;
+      }
+
+      // 4. 字符二元组 Jaccard 兜底：双方均 ≥ 30 字，避免误删短文本。
+      if (
+        earlierContent.length < REDUNDANT_TEXT_JACCARD_MIN_LENGTH ||
+        laterContent.length < REDUNDANT_TEXT_JACCARD_MIN_LENGTH
+      ) {
+        continue;
+      }
       const similarity = bigramJaccard(earlierContent, laterContent);
       if (similarity >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
         droppedIndices.add(earlierIdx);
