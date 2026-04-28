@@ -111,3 +111,45 @@ def test_adk_maybe_set_otel_providers_does_not_touch_logger_meter_globals():
         """
     )
     assert "no_set_provider_ok" in output
+
+
+def test_patch_does_not_construct_orphan_metric_or_log_exporters():
+    """patch 后 _get_otel_exporters 不应触达 _get_otel_metrics_exporter / _get_otel_logs_exporter。
+
+    旧实现调用 ``original()`` 会构造 PeriodicExportingMetricReader
+    （立即启动 60s 守护线程）+ BatchLogRecordProcessor（worker 线程），
+    reader 因从未注册到 MeterProvider，每 tick 触发
+    ``Cannot call collect on a MetricReader ...`` WARNING。本用例
+    sentinel 化两个上游构造器，断言它们零调用。
+    """
+    output = _run_in_subprocess(
+        """
+        import os
+        os.environ['OTEL_EXPORTER_OTLP_ENDPOINT'] = 'http://localhost:4318'
+
+        from google.adk.telemetry import setup as adk_setup
+
+        called = {'metrics': 0, 'logs': 0}
+
+        def _boom_metrics():
+            called['metrics'] += 1
+            raise AssertionError('metrics exporter must not be constructed')
+
+        def _boom_logs():
+            called['logs'] += 1
+            raise AssertionError('logs exporter must not be constructed')
+
+        adk_setup._get_otel_metrics_exporter = _boom_metrics
+        adk_setup._get_otel_logs_exporter = _boom_logs
+
+        from negentropy.engine.bootstrap import _disable_adk_otel_logs_metrics_exporters
+        _disable_adk_otel_logs_metrics_exporters()
+
+        hooks = adk_setup._get_otel_exporters()
+        assert called['metrics'] == 0, called
+        assert called['logs'] == 0, called
+        assert len(hooks.span_processors) == 1
+        print('no_orphan_ok')
+        """
+    )
+    assert "no_orphan_ok" in output

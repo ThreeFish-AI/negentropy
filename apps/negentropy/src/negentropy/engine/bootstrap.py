@@ -38,34 +38,39 @@ logger = get_logger("negentropy.bootstrap")
 
 
 def _disable_adk_otel_logs_metrics_exporters() -> None:
-    """让 ADK ``_get_otel_exporters`` 只返回 traces 的 ``span_processors``。
+    """让 ADK ``_get_otel_exporters`` 仅构造 traces 的 ``span_processors``。
 
     Langfuse 仅承接 ``/v1/traces``；ADK 上游 ``_get_otel_exporters()`` 在
     ``OTEL_EXPORTER_OTLP_ENDPOINT`` 存在时会无差别构造 ``OTLPSpanExporter``、
     ``OTLPMetricExporter``、``OTLPLogExporter`` 三件套——后两者对 Langfuse
     ``/v1/metrics`` 与 ``/v1/logs`` 的上报会命中 SPA 404 错误页。
 
-    本 patch 在 ``OTelHooks`` 拼装入口处把 ``metric_readers`` 与
-    ``log_record_processors`` 永久置空，使 ADK ``maybe_set_otel_providers``
-    的 ``if metric_readers:`` / ``if log_record_processors:`` 分支天然短路——
-    根源避免 ``set_logger_provider`` / ``set_meter_provider`` 被调用，从而消除
-    "Overriding of current ... is not allowed" WARNING；
-    ``span_processors``（traces 链路）不变，traces 仍正常上报到 Langfuse。
+    旧实现调用 ``original()`` 后再丢弃 ``metric_readers`` /
+    ``log_record_processors``——但 ``PeriodicExportingMetricReader`` /
+    ``BatchLogRecordProcessor`` 实例已经被构造且各自启动了守护线程，
+    导致 reader 从未注册到 MeterProvider 时仍每 60s 触发
+    ``Cannot call collect on a MetricReader ...`` WARNING。
+
+    本实现绕过 ``original()``，仅当 ``OTEL_EXPORTER_OTLP_ENDPOINT`` /
+    ``OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`` 存在时调用上游
+    ``_get_otel_span_exporter()`` 构造 traces 通道，根源避免 OTLP metrics /
+    logs exporter 被构造（既消除 WARNING，也省掉无效 daemon 线程）。
 
     未来若启用支持 logs/metrics 的后端（SigNoz、Phoenix 等），改为返回
     ``hooks`` 全部内容即可平滑切换。
     """
+    import opentelemetry.sdk.environment_variables as otel_env
     from google.adk.telemetry import setup as adk_otel_setup
 
     if getattr(adk_otel_setup._get_otel_exporters, "_negentropy_patched", False):
         return
 
-    original = adk_otel_setup._get_otel_exporters
-
     def _patched_get_otel_exporters():
-        hooks = original()
+        span_processors = []
+        if os.getenv(otel_env.OTEL_EXPORTER_OTLP_ENDPOINT) or os.getenv(otel_env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT):
+            span_processors.append(adk_otel_setup._get_otel_span_exporter())
         return adk_otel_setup.OTelHooks(
-            span_processors=hooks.span_processors,
+            span_processors=span_processors,
             metric_readers=[],
             log_record_processors=[],
         )
