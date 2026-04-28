@@ -434,4 +434,207 @@ describe("buildChatDisplayBlocks", () => {
       expect(toolGroup.status).toBe("error");
     }
   });
+
+  it("折叠 LLM 在主动导航 prompt 下双轮产出的高度冗余 assistant 文本", () => {
+    // 场景：root agent 的 `## 主动导航` 让 LLM 在 tool 调用前后各产出一段「已完成 +
+    // 后续建议」总结，两段内容在大部分要点上重复（仅在引用值上略有差异）。期望 UI
+    // 折叠较早的冗余段，仅保留信息更完备的最终段，避免双气泡。
+    const earlierContent =
+      "Pong:\n\n已完成：我已再次响应你的 ping，返回了 \"ong\"。\n\n可能的后续需求（简要）：\n- 连续 ping-pong 测试\n- 自动化心跳监控\n- 性能测量（往返延迟）\n\n下一步建议：\n1. 我可以立即发送 N 个连续的 pong（请选择 N）以便你测试连通性。\n2. 我可以帮你制定一个周期性心跳脚本示例（适合长期监控）。\n3. 我可以马上帮你针对延迟做近距离测量（适合性能诊断）。\n\n请选择 1、2、3 或告诉我其他需求。Pong.";
+    const laterContent =
+      "已完成：我已再次响应你的 ping，返回了 \"Pong\"。\n\n可能的后续需求（简要）：\n- 连续 ping-pong 测试\n- 自动化心跳监控\n- 性能测量（往返延迟）\n\n下一步建议：\n1. 我可以立即发送 N 个连续的 pong（请选择 N）以便你测试连通性。\n2. 我可以帮你制定一个周期性心跳脚本示例（适合长期监控）。\n3. 我可以马上帮你针对延迟做近距离测量（适合性能诊断）。\n\n请选择 1、2、3 或告诉我其他需求。";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        delta: earlierContent,
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        toolCallId: "tool-1",
+        toolCallName: "log_activity",
+        timestamp: 1004,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_RESULT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        toolCallId: "tool-1",
+        content: "{\"status\":\"ok\"}",
+        timestamp: 1005,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        role: "assistant",
+        timestamp: 1006,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        delta: laterContent,
+        timestamp: 1007,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        timestamp: 1008,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const textSegments = reply.segments.filter(
+        (segment) => segment.kind === "text",
+      );
+      expect(textSegments).toHaveLength(1);
+      if (textSegments[0]?.kind === "text") {
+        // 保留信息更完备的「最终段」：包含 "Pong" 而非中间产物 "ong"
+        expect(textSegments[0].content).toContain("\"Pong\"");
+        expect(textSegments[0].content).not.toContain("\"ong\"");
+      }
+      // 工具组仍保留并出现在 reply 中
+      expect(
+        reply.segments.some((segment) => segment.kind === "tool-group"),
+      ).toBe(true);
+      // assistant-reply.message.content 反映折叠后的内容（用于复制等动作）
+      expect(reply.message.content).toContain("\"Pong\"");
+      expect(reply.message.content).not.toContain("\"ong\"");
+    }
+  });
+
+  it("差异度大的连续 assistant 文本（如「先查询资料」→「查询完成」）不被折叠", () => {
+    // 防误删合理中间消息：bigram Jaccard 应远低于 0.5 阈值，两段都保留。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta:
+          "先查询资料：我会调用搜索工具拉取与该话题相关的最新公开信息，重点关注权威来源与近三个月动态。",
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        toolCallId: "tool-1",
+        toolCallName: "google_search",
+        timestamp: 1004,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_RESULT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        toolCallId: "tool-1",
+        content: "{\"items\":[{\"title\":\"AfterShip\"}]}",
+        timestamp: 1005,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-2",
+        role: "assistant",
+        timestamp: 1006,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-2",
+        delta:
+          "查询完成。AfterShip 是一家提供物流追踪与售后体验自动化的全球化 SaaS，覆盖电商履约的核心链路。",
+        timestamp: 1007,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-2",
+        timestamp: 1008,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const textSegments = reply.segments.filter(
+        (segment) => segment.kind === "text",
+      );
+      // 两段内容主题不同，bigram 重合远低于阈值，应都保留
+      expect(textSegments).toHaveLength(2);
+      expect(textSegments[0]?.kind === "text" ? textSegments[0].content : "").toContain(
+        "先查询资料",
+      );
+      expect(textSegments[1]?.kind === "text" ? textSegments[1].content : "").toContain(
+        "查询完成",
+      );
+    }
+  });
 });

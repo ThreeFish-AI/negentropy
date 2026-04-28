@@ -370,8 +370,90 @@ function appendReplySegment(builder: ReplyBuilder, segment: AssistantReplyDispla
   }
 }
 
+/**
+ * 字符二元组（character bigrams），同时适配中英文：中文无空格分词、英文按字符切分。
+ * 用于检测两段助手文本是否「冗余地复述了同一段内容」（典型场景：主动导航 prompt
+ * 让 LLM 在 tool 调用前后各产出一段几乎相同的总结）。
+ */
+function computeCharBigrams(text: string): Set<string> {
+  const normalized = text.replace(/\s+/g, "");
+  const grams = new Set<string>();
+  for (let i = 0; i + 1 < normalized.length; i += 1) {
+    grams.add(normalized.slice(i, i + 2));
+  }
+  return grams;
+}
+
+function bigramJaccard(a: string, b: string): number {
+  const aGrams = computeCharBigrams(a);
+  const bGrams = computeCharBigrams(b);
+  if (aGrams.size === 0 || bGrams.size === 0) {
+    return 0;
+  }
+  let intersection = 0;
+  for (const gram of aGrams) {
+    if (bGrams.has(gram)) intersection += 1;
+  }
+  const union = aGrams.size + bGrams.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+const REDUNDANT_TEXT_SIMILARITY_THRESHOLD = 0.5;
+const REDUNDANT_TEXT_MIN_LENGTH = 30;
+
+/**
+ * 折叠同一 assistant-reply 内的「冗余文本片段」：
+ * - 当后一段文本与前一段文本字符二元组 Jaccard ≥ 0.5 且双方长度 ≥ 30 时，
+ *   仅保留**后一段**（通常是主动导航 prompt 在工具调用后产出的「最终总结」，
+ *   信息更完备且时间更新）。
+ * - 工具组（tool-group）等非文本片段的相对顺序原样保留。
+ *
+ * 这是 UI 层的兜底防御：不修改 conversation tree，也不影响 ledger 去重；只在
+ * 渲染阶段消除「LLM 重复总结」造成的视觉双气泡。短回复（<30 字）或差异度大
+ * 的相邻文本（如「先查询资料」→「查询完成」）原样保留，避免误删合理中间消息。
+ */
+function dedupeRedundantTextSegments(
+  segments: AssistantReplyDisplaySegment[],
+): AssistantReplyDisplaySegment[] {
+  const textIndices = segments
+    .map((segment, index) => (segment.kind === "text" ? index : -1))
+    .filter((index) => index >= 0);
+  if (textIndices.length < 2) {
+    return segments;
+  }
+
+  const droppedIndices = new Set<number>();
+  for (let i = 1; i < textIndices.length; i += 1) {
+    const laterIdx = textIndices[i];
+    const laterSegment = segments[laterIdx];
+    if (laterSegment.kind !== "text") continue;
+    const laterContent = laterSegment.content.trim();
+    if (laterContent.length < REDUNDANT_TEXT_MIN_LENGTH) continue;
+
+    for (let j = 0; j < i; j += 1) {
+      const earlierIdx = textIndices[j];
+      if (droppedIndices.has(earlierIdx)) continue;
+      const earlierSegment = segments[earlierIdx];
+      if (earlierSegment.kind !== "text") continue;
+      const earlierContent = earlierSegment.content.trim();
+      if (earlierContent.length < REDUNDANT_TEXT_MIN_LENGTH) continue;
+
+      const similarity = bigramJaccard(earlierContent, laterContent);
+      if (similarity >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
+        droppedIndices.add(earlierIdx);
+      }
+    }
+  }
+
+  if (droppedIndices.size === 0) {
+    return segments;
+  }
+  return segments.filter((_, index) => !droppedIndices.has(index));
+}
+
 function buildAssistantReplyBlock(builder: ReplyBuilder): AssistantReplyDisplayBlock {
-  const streaming = builder.segments.some(
+  const dedupedSegments = dedupeRedundantTextSegments(builder.segments);
+  const streaming = dedupedSegments.some(
     (segment) =>
       segment.kind === "text"
         ? segment.streaming
@@ -379,6 +461,10 @@ function buildAssistantReplyBlock(builder: ReplyBuilder): AssistantReplyDisplayB
           ? segment.status === "running"
           : false,
   );
+  const dedupedTextParts = dedupedSegments
+    .filter((segment): segment is ReplyTextDisplaySegment => segment.kind === "text")
+    .map((segment) => segment.content)
+    .filter((content) => content.trim().length > 0);
   const messageId =
     builder.anchorMessageId || `assistant-reply:${builder.turnId}:${builder.anchorNodeId}`;
   return {
@@ -390,14 +476,14 @@ function buildAssistantReplyBlock(builder: ReplyBuilder): AssistantReplyDisplayB
     message: {
       id: messageId,
       role: "assistant",
-      content: builder.textParts.join("\n\n"),
+      content: dedupedTextParts.join("\n\n"),
       author: builder.author,
       timestamp: builder.timestamp,
       runId: builder.runId,
       threadId: builder.threadId,
       streaming,
     },
-    segments: builder.segments,
+    segments: dedupedSegments,
   };
 }
 
