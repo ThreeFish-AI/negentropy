@@ -55,7 +55,7 @@ def test_install_noop_meter_provider_yields_sdk_provider_without_readers():
         _install_noop_otel_logs_metrics_providers()
         provider = metrics.get_meter_provider()
         assert isinstance(provider, MeterProvider), f"expected SDK MeterProvider, got {type(provider)}"
-        readers = list(provider._sdk_config.metric_readers) if hasattr(provider, "_sdk_config") else []
+        readers = list(provider._sdk_config.metric_readers)
         assert readers == [], f"expected zero metric readers, got {readers}"
         print("meter_ok")
         """
