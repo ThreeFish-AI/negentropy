@@ -97,7 +97,12 @@ export function isSemanticEquivalentEntry(
   }
 
   const maxWindowMs = 8_000;
+  // 长耗时回复（如多段落 / 列表型答复）下，realtime 取首个 partial 时间戳、
+  // hydration 取终态时间戳，两者跨度可能大于 8s。当 trim 后内容严格相等且
+  // threadId+runId+role 已收敛时，可视为同一逻辑消息，跳过时间窗硬拒绝。
+  const strictlyEqualContent = leftContent === rightContent;
   if (
+    !strictlyEqualContent &&
     Math.abs(left.createdAt.getTime() - right.createdAt.getTime()) > maxWindowMs
   ) {
     return false;
