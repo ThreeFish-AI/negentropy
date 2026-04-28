@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { mergeMessageLedger } from "@/utils/message-ledger";
+import { EventType } from "@ag-ui/core";
+import { buildMessageLedger, mergeMessageLedger } from "@/utils/message-ledger";
+import { createTestEvent } from "@/tests/helpers/agui";
+import type { AgUiEvent } from "@/types/agui";
 
 describe("message-ledger", () => {
   it("允许 hydration 终态补全已 closed 的实时 assistant 截断内容", () => {
@@ -141,5 +144,61 @@ describe("message-ledger", () => {
       "assistant-live",
       "assistant-final",
     ]);
+  });
+
+  it("buildMessageLedger 在 createdAt 相同的事件下用 sourceOrder 保持原始时间序", () => {
+    // 两条 user/assistant 消息 timestamp 完全相同；UUID 字典序与原始事件序刚好相反。
+    // 引入 sourceOrder 后，排序应仍然按事件出现顺序而非 UUID localeCompare。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "z-message",
+        role: "user",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "z-message",
+        delta: "z first",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "z-message",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "a-message",
+        role: "assistant",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "a-message",
+        delta: "a second",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "a-message",
+        timestamp: 1000,
+      }),
+    ];
+
+    const ledger = buildMessageLedger({ events });
+    expect(ledger.map((entry) => entry.id)).toEqual(["z-message", "a-message"]);
   });
 });

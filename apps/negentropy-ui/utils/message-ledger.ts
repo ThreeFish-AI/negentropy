@@ -258,9 +258,13 @@ export function buildMessageLedger(input: {
 
   const upsertEntry = (
     key: string,
-    next: Omit<MessageLedgerEntry, "sourceEventTypes" | "relatedMessageIds"> & {
+    next: Omit<
+      MessageLedgerEntry,
+      "sourceEventTypes" | "relatedMessageIds" | "sourceOrder"
+    > & {
       sourceEventTypes?: string[];
       relatedMessageIds?: string[];
+      sourceOrder?: number;
     },
   ) => {
     const existing = entries.get(key);
@@ -270,6 +274,10 @@ export function buildMessageLedger(input: {
         content: next.content,
         sourceEventTypes: next.sourceEventTypes || [],
         relatedMessageIds: next.relatedMessageIds || [],
+        sourceOrder:
+          next.sourceOrder !== undefined && Number.isFinite(next.sourceOrder)
+            ? next.sourceOrder
+            : Number.MAX_SAFE_INTEGER,
       });
       return;
     }
@@ -293,6 +301,12 @@ export function buildMessageLedger(input: {
     if (existing.origin !== next.origin && next.origin !== "realtime") {
       existing.origin = next.origin;
     }
+    if (next.sourceOrder !== undefined && Number.isFinite(next.sourceOrder)) {
+      const existingOrder = existing.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+      if (next.sourceOrder < existingOrder) {
+        existing.sourceOrder = next.sourceOrder;
+      }
+    }
     (next.sourceEventTypes || []).forEach((eventType) => {
       if (!existing.sourceEventTypes.includes(eventType)) {
         existing.sourceEventTypes.push(eventType);
@@ -315,7 +329,7 @@ export function buildMessageLedger(input: {
     return String(a.type).localeCompare(String(b.type));
   });
 
-  orderedEvents.forEach((event) => {
+  orderedEvents.forEach((event, eventIndex) => {
     if (
       event.type !== EventType.TEXT_MESSAGE_START &&
       event.type !== EventType.TEXT_MESSAGE_CONTENT &&
@@ -363,6 +377,7 @@ export function buildMessageLedger(input: {
       author: getEventAuthor(event),
       sourceEventTypes: [String(event.type)],
       relatedMessageIds: [messageId],
+      sourceOrder: eventIndex,
     });
   });
 
@@ -380,7 +395,7 @@ export function buildMessageLedger(input: {
           author: message.author,
         }) as Message,
     ),
-  ].forEach((message) => {
+  ].forEach((message, fallbackIndex) => {
     const key = getMessageIdentityKey(message);
     const resolved = resolveMessageRole({
       explicitRole: typeof message.role === "string" ? message.role : undefined,
@@ -400,18 +415,30 @@ export function buildMessageLedger(input: {
       author: getMessageAuthor(message),
       sourceEventTypes: [snapshotMessageById.has(message.id) ? String(EventType.MESSAGES_SNAPSHOT) : "fallback.message"],
       relatedMessageIds: [message.id],
+      // 事件序之后追加 fallback / snapshot，保留 origin 间稳定相对序。
+      sourceOrder: orderedEvents.length + fallbackIndex,
     });
   });
 
   return [...entries.values()]
     .filter((entry) => entry.content.trim().length > 0)
-    .sort((a, b) => {
-      const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
-      if (timeDiff !== 0) {
-        return timeDiff;
-      }
-      return a.id.localeCompare(b.id);
-    });
+    .sort(compareLedgerEntriesByTime);
+}
+
+function compareLedgerEntriesByTime(
+  a: MessageLedgerEntry,
+  b: MessageLedgerEntry,
+): number {
+  const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
+  if (timeDiff !== 0) {
+    return timeDiff;
+  }
+  const aOrder = a.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+  const bOrder = b.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+  if (aOrder !== bOrder) {
+    return aOrder - bOrder;
+  }
+  return a.id.localeCompare(b.id);
 }
 
 export function mergeMessageLedger(
@@ -455,6 +482,12 @@ export function mergeMessageLedger(
     } else if (existing.origin !== entry.origin) {
       existing.origin = entry.origin;
     }
+    if (entry.sourceOrder !== undefined && Number.isFinite(entry.sourceOrder)) {
+      const existingOrder = existing.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+      if (entry.sourceOrder < existingOrder) {
+        existing.sourceOrder = entry.sourceOrder;
+      }
+    }
     if (!existing.relatedMessageIds.includes(entry.id)) {
       existing.relatedMessageIds.push(entry.id);
     }
@@ -470,24 +503,12 @@ export function mergeMessageLedger(
     });
   });
 
-  return [...merged.values()].sort((a, b) => {
-    const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
-    if (timeDiff !== 0) {
-      return timeDiff;
-    }
-    return a.id.localeCompare(b.id);
-  });
+  return [...merged.values()].sort(compareLedgerEntriesByTime);
 }
 
 export function ledgerEntriesToMessages(entries: MessageLedgerEntry[]): Message[] {
   return [...entries]
-    .sort((a, b) => {
-      const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
-      if (timeDiff !== 0) {
-        return timeDiff;
-      }
-      return a.id.localeCompare(b.id);
-    })
+    .sort(compareLedgerEntriesByTime)
     .map((entry) =>
     createAgUiMessage({
       id: entry.id,

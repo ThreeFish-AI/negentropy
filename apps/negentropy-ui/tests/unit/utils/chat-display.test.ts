@@ -541,6 +541,199 @@ describe("buildChatDisplayBlocks", () => {
     }
   });
 
+  it("ADK 双轮模式产生的短回复双气泡（messageId 不同 + 内容字节级相同）应折叠为单段", () => {
+    // 场景：ADK tool 调用前后两轮 LLM 各产出 "Pong!"，messageId 不同 → ledger /
+    // tree 各形成独立 text 节点。Jaccard 阈值（≥30 字）短回复完全绕过；
+    // 精确匹配路径需要兜底。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        delta: "Pong!",
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        toolCallId: "tool-1",
+        toolCallName: "log_activity",
+        timestamp: 1004,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_RESULT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        toolCallId: "tool-1",
+        content: "{\"status\":\"ok\"}",
+        timestamp: 1005,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        role: "assistant",
+        timestamp: 1006,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        delta: "Pong!",
+        timestamp: 1007,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        timestamp: 1008,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const textSegments = reply.segments.filter(
+        (segment) => segment.kind === "text",
+      );
+      expect(textSegments).toHaveLength(1);
+      if (textSegments[0]?.kind === "text") {
+        expect(textSegments[0].content).toBe("Pong!");
+      }
+      // 工具组保持位置可见
+      expect(
+        reply.segments.some((segment) => segment.kind === "tool-group"),
+      ).toBe(true);
+    }
+  });
+
+  it("一段为另一段的前缀/包含关系（含尾部追加内容）也应折叠为最终段", () => {
+    // 场景：tool 调用前后第二段在第一段基础上追加换行与「下一步建议…」段落，
+    // 二者构成包含关系。containment 路径（isEquivalentMessageContent）应触发折叠，
+    // 仅保留信息更完备的后段。
+    const earlierContent = "Pong!";
+    const laterContent =
+      "Pong!\n\n下一步建议：1) 连续 ping-pong 测试 2) 自动化心跳监控 3) 性能测量";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        delta: earlierContent,
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        toolCallId: "tool-1",
+        toolCallName: "log_activity",
+        timestamp: 1004,
+      }),
+      createTestEvent({
+        type: EventType.TOOL_CALL_RESULT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-pre",
+        toolCallId: "tool-1",
+        content: "{\"status\":\"ok\"}",
+        timestamp: 1005,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        role: "assistant",
+        timestamp: 1006,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        delta: laterContent,
+        timestamp: 1007,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-post",
+        timestamp: 1008,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const textSegments = reply.segments.filter(
+        (segment) => segment.kind === "text",
+      );
+      expect(textSegments).toHaveLength(1);
+      if (textSegments[0]?.kind === "text") {
+        expect(textSegments[0].content).toBe(laterContent);
+      }
+    }
+  });
+
   it("差异度大的连续 assistant 文本（如「先查询资料」→「查询完成」）不被折叠", () => {
     // 防误删合理中间消息：bigram Jaccard 应远低于 0.5 阈值，两段都保留。
     const events: AgUiEvent[] = [
