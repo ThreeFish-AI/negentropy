@@ -36,6 +36,29 @@ configure_logging(
 # Initialize logger AFTER configure_logging
 logger = get_logger("negentropy.bootstrap")
 
+
+def _install_noop_otel_logs_metrics_providers() -> None:
+    """抢注空 LoggerProvider 与 MeterProvider，阻断 ADK 自动 OTLP logs/metrics 上报。
+
+    Langfuse 仅承接 ``/v1/traces``。ADK 上游 ``_get_otel_exporters()`` 在
+    ``OTEL_EXPORTER_OTLP_ENDPOINT`` 存在时会无差别注册 ``OTLPSpanExporter``、
+    ``OTLPMetricExporter``、``OTLPLogExporter`` 三件套——后两者对 ``/v1/metrics``
+    与 ``/v1/logs`` 的上报会命中 Langfuse 404（SPA 错误页）。
+
+    OTel SDK 的 ``set_logger_provider`` / ``set_meter_provider`` 由
+    ``Once``-lock 保护：首次调用胜出。本函数抢先以「无 processor / 无 reader」
+    的 SDK provider 占位，ADK 后续 ``set_*_provider`` 会静默 no-op，从而阻断
+    logs/metrics 路径；traces 链路（TracerProvider）不动，仍由 ADK 接管。
+    """
+    from opentelemetry import _logs as otel_logs_api
+    from opentelemetry import metrics as otel_metrics_api
+    from opentelemetry.sdk._logs import LoggerProvider as NoExporterLoggerProvider
+    from opentelemetry.sdk.metrics import MeterProvider as NoExporterMeterProvider
+
+    otel_logs_api.set_logger_provider(NoExporterLoggerProvider())
+    otel_metrics_api.set_meter_provider(NoExporterMeterProvider(metric_readers=[]))
+
+
 # Configure OpenTelemetry environment variables for LiteLLM's "otel" callback
 # This MUST be done before importing litellm, as the callback reads these at import time
 langfuse = settings.observability
@@ -53,6 +76,8 @@ if langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langf
     credentials = f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
     basic_auth = base64.b64encode(credentials.encode()).decode()
     os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"Authorization=Basic {basic_auth}"
+
+    _install_noop_otel_logs_metrics_providers()
 
     logger.info(f"Configured LiteLLM OTel callback to use Langfuse: {base_endpoint}/api/public/otel")
 else:

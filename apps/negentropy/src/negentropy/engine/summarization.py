@@ -17,21 +17,38 @@ from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.summarization")
 
+# Title 生成对长度做硬约束（max_tokens=20）；与 LiteLlm 默认参数合并后注入。
+_TITLE_MAX_TOKENS = 20
+
 
 class SessionSummarizer:
-    """Uses LLM to summarize conversation history into a short title."""
+    """Uses LLM to summarize conversation history into a short title.
 
-    def __init__(self):
-        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+    凭证解析与 LiteLlm 构造由 ``create()`` 工厂统一在异步边界内完成，避免
+    同步 ``__init__`` 在缓存未命中时回退到无 ``api_key`` 的硬编码默认值导致
+    ``litellm.AuthenticationError``（与 ``DynamicRootLiteLlm._resolve_override``
+    走同一 SoT：``resolve_llm_config()`` 从 DB 读取）。
+    """
 
-        cached = get_cached_llm_config()
-        if cached:
-            name, kwargs = cached
-        else:
-            name, kwargs = get_fallback_llm_config()
-        kwargs["max_tokens"] = 20
+    def __init__(self, model: LiteLlm) -> None:
+        self.model = model
         logger.debug("session_summarizer_initialized")
-        self.model = LiteLlm(name, **kwargs)
+
+    @classmethod
+    async def create(cls) -> "SessionSummarizer":
+        """异步工厂：从 DB 解析默认 LLM 配置（含 api_key）后构造 LiteLlm。
+
+        与 commit 8ce35d5 修复 ``DynamicRootLiteLlm`` 的范式一致——所有默认
+        模型路径统一走 ``resolve_llm_config()``，不再回退到无凭证的硬编码值。
+        """
+        from negentropy.config.model_resolver import resolve_llm_config
+
+        name, kwargs = await resolve_llm_config()
+        # 防御性浅拷贝：resolver 内部已 copy（model_resolver.py:80/90/448），
+        # 这里再独立一份避免对调用方/缓存层的契约耦合，max_tokens 不污染上游 dict。
+        kwargs = dict(kwargs)
+        kwargs["max_tokens"] = _TITLE_MAX_TOKENS
+        return cls(LiteLlm(name, **kwargs))
 
     async def generate_title(self, history: list[types.Content]) -> str | None:
         """
