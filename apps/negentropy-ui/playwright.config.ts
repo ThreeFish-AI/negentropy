@@ -20,7 +20,7 @@ const userDataLaunchOptions = USER_DATA_DIR
 const baseProjects = [
   {
     name: "chromium",
-    testIgnore: /.*\.setup\.ts$/,
+    testIgnore: [/.*\.setup\.ts$/, /.*\.authed\.spec\.ts$/],
     use: { ...devices["Desktop Chrome"] },
   },
 ];

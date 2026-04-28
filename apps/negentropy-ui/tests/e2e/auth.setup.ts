@@ -14,10 +14,13 @@ setup("通过 Google OAuth 登录并持久化会话", async ({ page }) => {
   await page.goto("/auth/google/login");
 
   // 用户在弹出的 Google 页面手动完成账号选择 / 二步验证后，浏览器会回跳到 baseURL。
-  // 此处仅断言"已离开 /auth/google/* 路径"，不强约束最终着陆页，便于项目改路由时无需同步调整。
-  await page.waitForURL((url) => !url.pathname.startsWith("/auth/google"), {
-    timeout: LOGIN_TIMEOUT_MS,
-  });
+  // 必须同时约束 host，避免在跳往 accounts.google.com 的瞬间被误判为"已离开 /auth/google"。
+  await page.waitForURL(
+    (url) =>
+      (url.host.startsWith("127.0.0.1") || url.host.startsWith("localhost")) &&
+      !url.pathname.startsWith("/auth/google"),
+    { timeout: LOGIN_TIMEOUT_MS },
+  );
 
   // 二次校验登录态：项目自带 /api/auth/me 应返回当前用户。
   const meResponse = await page.request.get("/api/auth/me");
