@@ -342,7 +342,7 @@ SequentialAgent(
 ### 5.6 Nested Settings Pattern（嵌套配置模式）
 
 - **应用**：Pydantic Settings 正交配置域组合
-- **动机**：每个配置域独立管理，支持环境感知的 `.env` 文件分层加载
+- **动机**：每个配置域独立管理，支持 YAML 分层加载 + Shell 环境变量覆盖
 - **代码**：[`config/__init__.py`](../apps/negentropy/src/negentropy/config/__init__.py)
 - **出处**：Composition over Inheritance<sup>[[5]](#ref5)</sup>
 
@@ -452,35 +452,36 @@ graph LR
 
 ```python
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=_get_env_files(), extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore")
 
     @cached_property
     def environment(self) -> EnvironmentSettings:   # NE_ENV 环境检测
-        return EnvironmentSettings(_env_file=_get_env_files())
+        return EnvironmentSettings()
 
     @cached_property
     def database(self) -> DatabaseSettings:         # 数据库连接
-        return DatabaseSettings(_env_file=_get_env_files())
+        return DatabaseSettings()
 
     # ... logging, observability, services, auth, search, knowledge 同理
 ```
 
 每个子配置拥有独立的环境变量前缀，互不干扰。
 
-### 7.2 环境分层加载
+### 7.2 YAML 分层加载
 
-设置 `NE_ENV` 环境变量（默认 `development`）后，系统按以下优先级加载 `.env` 文件（后者覆盖前者）：
+后端按以下优先级加载配置（高优先级覆盖低优先级）：
 
-1. `.env`
-2. `.env.local`
-3. `.env.{environment}`
-4. `.env.{environment}.local`
+1. **Shell 环境变量**（最高优先级）
+2. **`config.local.yaml`**（cwd 相对路径，已 gitignore）
+3. **CLI 指定 YAML**（`NE_CONFIG_PATH` 环境变量或 `-c` 参数）
+4. **`~/.negentropy/config.yaml`**（用户级配置）
+5. **`config.default.yaml`**（包级默认值）
 
 ### 7.3 配置域清单
 
 | 配置域 | 源文件 | 环境变量前缀 | 职责 |
 | :----- | :----- | :----------- | :--- |
-| `EnvironmentSettings` | [`config/environment.py`](../apps/negentropy/src/negentropy/config/environment.py) | `NE_` | 环境检测与 `.env` 文件解析 |
+| `EnvironmentSettings` | [`config/environment.py`](../apps/negentropy/src/negentropy/config/environment.py) | `NE_` | 环境检测与 YAML 配置加载 |
 | `AppSettings` | [`config/app.py`](../apps/negentropy/src/negentropy/config/app.py) | `NE_` | 应用名称等基础配置 |
 | `LoggingSettings` | [`config/logging.py`](../apps/negentropy/src/negentropy/config/logging.py) | `NE_LOG_` | 日志级别、格式、输出 sink |
 | `ObservabilitySettings` | [`config/observability.py`](../apps/negentropy/src/negentropy/config/observability.py) | `LANGFUSE_` | Langfuse 追踪配置 |
@@ -492,7 +493,7 @@ class Settings(BaseSettings):
 
 ### 7.4 LLM 模型解析链路
 
-模型配置已从 `.env` 迁移至数据库 (`model_configs` 表)，通过 Admin UI 管理：
+模型配置已从配置文件迁移至数据库 (`model_configs` 表)，通过 Admin UI 管理：
 
 ```
 Admin UI → model_configs 表 → model_resolver.py → create_model() → LiteLlm 实例

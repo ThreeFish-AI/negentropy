@@ -9,7 +9,7 @@
 #
 # 优先级（从高到低）:
 #   1. 环境变量（如 NE_DB_POOL_SIZE=20；嵌套键使用 __ 分隔，见下方说明）
-#   2. .env / .env.<environment> / .env.local（本地覆盖，保留向后兼容）
+#   2. config.local.yaml（cwd 下运行时配置，gitignored，存放机密与 per-deployment 覆盖）
 #   3. CLI 指定 YAML（-c path 或 NE_CONFIG_PATH）
 #   4. ~/.negentropy/config.yaml（用户级）
 #   5. 本文件（项目默认）
@@ -18,7 +18,7 @@
 # 嵌套路径覆盖（env_nested_delimiter="__"）:
 #   NE_KNOWLEDGE_DEFAULT_EXTRACTOR_ROUTES__URL__PRIMARY__TIMEOUT_MS=90000
 #
-# 密钥类配置（SecretStr / 凭证）请通过环境变量或本地 .env.local 设置，
+# 密钥类配置（SecretStr / 凭证）请通过环境变量或 config.local.yaml 设置，
 # 切勿写入本 YAML 或提交至仓库。常用密钥环境变量清单:
 #   - NE_AUTH_TOKEN_SECRET
 #   - NE_AUTH_GOOGLE_CLIENT_SECRET
@@ -55,14 +55,13 @@ logging:
   gcloud_log_name: negentropy
   console_timestamp_format: "%Y-%m-%d %H:%M:%S"
   console_level_width: 8
-  console_logger_width: 32
+  console_logger_width: 21
   console_separator: " | "
 
 # --- 数据库配置 ---
 database:
-  # 本地示例 URL。生产部署通过 NE_DB_URL 覆盖；本地凭证请使用 .env.local 或
-  # shell export，切勿把真实用户名/密码提交到仓库。
-  url: "postgresql+asyncpg://USER:PASSWORD@localhost:5432/negentropy"
+  # 本地开发 URL。生产部署通过 NE_DB_URL 或 config.local.yaml 覆盖。
+  url: "postgresql+asyncpg://aigc:@localhost:5432/negentropy"
   pool_size: 5
   max_overflow: 10
   pool_recycle: 3600
@@ -70,19 +69,19 @@ database:
 
 # --- 可观测性配置 ---
 observability:
-  langfuse_host: "https://cloud.langfuse.com"
+  langfuse_host: "https://langfuse.automizely.me"
   langfuse_enabled: true
   # langfuse_public_key: 通过环境变量 NE_OBSERVABILITY_LANGFUSE_PUBLIC_KEY 设置
   # langfuse_secret_key: 通过环境变量 NE_OBSERVABILITY_LANGFUSE_SECRET_KEY 设置
 
 # --- ADK 服务配置 ---
 services:
-  credential_backend: inmemory             # inmemory | postgres | session
-  memory_backend: inmemory                 # inmemory | vertexai | postgres
-  session_backend: inmemory                # inmemory | vertexai | database | postgres
-  artifact_backend: inmemory               # inmemory | gcs
-  # gcs_bucket_name: null                  # GCS bucket（artifact_backend=gcs 时必填）
-  # vertex_project_id: null                # VertexAI 项目 ID
+  credential_backend: postgres              # inmemory | postgres | session
+  memory_backend: postgres                  # inmemory | vertexai | postgres
+  session_backend: postgres                 # inmemory | vertexai | database | postgres
+  artifact_backend: gcs                     # inmemory | gcs
+  gcs_bucket_name: negentropy               # GCS bucket（artifact_backend=gcs 时必填）
+  vertex_project_id: aftership-team-data    # VertexAI 项目 ID
   # vertex_location: null                  # VertexAI 区域
   # vertex_agent_engine_id: null           # VertexAI Agent Engine ID
 
@@ -90,10 +89,10 @@ services:
 auth:
   enabled: true
   mode: optional                           # off | optional | strict
-  # token_secret: 通过环境变量 NE_AUTH_TOKEN_SECRET 设置
-  # google_client_id: null
-  # google_client_secret: 通过环境变量 NE_AUTH_GOOGLE_CLIENT_SECRET 设置
-  # google_redirect_uri: null
+  # token_secret: 通过环境变量 NE_AUTH_TOKEN_SECRET 或 config.local.yaml 设置
+  google_client_id: "424524901788-h16ev3a8f872r6qcc5ov407g6fttmptv.apps.googleusercontent.com"
+  # google_client_secret: 通过环境变量 NE_AUTH_GOOGLE_CLIENT_SECRET 或 config.local.yaml 设置
+  google_redirect_uri: "http://localhost:3292/auth/google/callback"
   google_scopes:
     - openid
     - email
@@ -106,7 +105,7 @@ auth:
   state_ttl_seconds: 600
   allowed_domains: []
   allowed_emails: []
-  admin_emails: []
+  admin_emails: ["threefish.ai@gmail.com"]
   user_id_strategy: sub                    # sub | email
   default_redirect_path: "/"
 
@@ -117,8 +116,8 @@ search:
   #   API Key 获取: https://developers.google.com/custom-search/v1/introduction
   #   CX ID 获取:  https://programmablesearchengine.google.com/controlpanel/all
   #   免费配额:    100 queries/day，超额需在 Google Cloud Console 启用计费
-  # google_api_key: 通过环境变量 NE_SEARCH_GOOGLE_API_KEY 设置
-  # google_cx_id: null
+  # google_api_key: 通过环境变量 NE_SEARCH_GOOGLE_API_KEY 或 config.local.yaml 设置
+  google_cx_id: d5ee76f9215be4ee9
   max_retries: 3
   timeout_seconds: 10.0
   base_backoff_seconds: 1.0

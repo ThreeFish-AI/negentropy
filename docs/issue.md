@@ -926,3 +926,20 @@
   2. **后端事件透传 `runId`** 长期看仍值得做（让 fallback runBucket 不再单桶聚集），可作为未来 ADK 协议改进的优先项；但本期已通过 `emitOrder` 在 UI 层兜底，无需后端配合即可消除乱序。
   3. **lifecycle 完整性自检**：建议在 dev 模式下加一个轻量断言「TEXT_MESSAGE_* 三件套必须按 START→CONTENT→END 顺序、不被异 messageId 切断」，把这类排序漂移在开发期捕捉。
 - **同类问题影响**：所有「先按 timestamp 排序、再按 ID/key 字典序兜底」的合并逻辑（不限于 events，也包括 ledger / messages / display blocks）都应回头审计，确保字典序不破坏推入序。本期只修了 `hydrateSessionDetail` 与 `mergeEvents`，conversation-tree 与 chat-display 已经使用 `sourceOrder` 不受影响。
+
+---
+
+## ISSUE-041 `.env*` 配置文件体系废弃，统一 YAML 三级配置
+
+- **表因**：`apps/negentropy/.env` 中 ~60% 项与 `config.default.yaml` 默认值重复；~15% 为已废弃 `NE_LLM_*` / `ZAI_*`（模型配置已迁至 DB）；~25% 为 per-deployment 值与机密，与 YAML 体系并行形成双入口熵源。OAuth redirect URI 仍残留在已废弃端口 6600（ISSUE-005 / CHANGELOG #96 教训）。
+- **根因**：历史遗留 `.env` 文件在 YAML 配置体系重构后未及时清理，两者并存导致：(1) 新开发者不确定配置该写哪里；(2) `.env` 中废弃值（如 `zai` vendor）持续误导；(3) 密钥以明文散落在 `.env` 中，虽有 `.gitignore` 保护但审计追踪性差。
+- **处理方式（SSOT 收敛）**：
+  1. **移除全部 `.env*` 加载链路**：10 个 Python 配置模块删除 `env_file` / `env_file_encoding` / `_get_env_files()` / `get_env_files()` / `env_files` property。
+  2. **引入 `config.local.yaml`**：cwd 相对路径，gitignored，作为运行时机密 + per-deployment 覆盖。YAML 优先级链：`env vars > config.local.yaml > NE_CONFIG_PATH > ~/.negentropy/config.yaml > config.default.yaml > Field defaults`。
+  3. **`config.default.yaml` 值对齐**：合并 `.env` 全部非机密差异值（含端口 6600→3292 校正），使随包默认值即可零配置启动开发环境。
+  4. **主项目 `.env` 删除**：提示用户创建 `config.local.yaml` 填入机密。
+- **后续防范**：
+  1. **配置变更必须走 YAML 链**：任何新增配置项仅在 `config.default.yaml` 添加默认值 + 对应 Pydantic Settings 字段，严禁引入新的 `.env` 文件加载。
+  2. **机密管理**：`SecretStr` 字段只能通过 shell env var 或 `config.local.yaml` 注入，代码 review 时对 YAML 中的明文密钥保持零容忍。
+  3. **端口 SSOT**：`:3292` 为后端唯一权威端口，任何新配置或文档中出现的其他端口（6600/6666/8000/3000）必须立即校正。
+- **同类问题影响**：所有「双配置源并存」（如 `.env` + YAML、YAML + DB model_configs）的场景都应定期审计，确保每类配置有且仅有一个 SSOT。本次治理了 `.env` ↔ YAML 双源，此前 ISSUE-020 治理了端口双源，模型配置双源已在 ISSUE-023 系列中通过 DB 迁移解决。
