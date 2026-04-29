@@ -160,3 +160,79 @@ class WikiApiClient {
 }
 
 export const wikiApi = new WikiApiClient();
+
+// ---------------------------------------------------------------------------
+// 导航视图派生（供 Header tabs / Sidebar 子树切片复用）
+// ---------------------------------------------------------------------------
+
+/**
+ * DFS 找首个可达 DOCUMENT 节点的 entry_slug。
+ *
+ * 用于 Header CONTAINER tab 的跳转目标——把第一篇文档作为该 section 的"封面"。
+ * `null` 表示该子树整体没有任何 DOCUMENT，调用方应渲染为禁用 tab。
+ */
+export function findFirstDocumentSlug(item: WikiNavTreeItem): string | null {
+  if (!isContainerItem(item)) return item.entry_slug;
+  for (const child of item.children ?? []) {
+    const slug = findFirstDocumentSlug(child);
+    if (slug) return slug;
+  }
+  return null;
+}
+
+/**
+ * 反查包含 `currentSlug` 的第一层节点 slug。
+ *
+ * - `currentSlug` 为空（如 `/{pubSlug}` 根页）→ 返回首项 slug，落实"默认首项激活"语义；
+ * - `currentSlug` 非空但树中找不到（异常路径）→ 返回首项 slug 兜底；
+ * - 树为空 → `undefined`。
+ */
+export function findActiveTopLevelSlug(
+  items: WikiNavTreeItem[],
+  currentSlug?: string,
+): string | undefined {
+  if (!items.length) return undefined;
+  if (!currentSlug) return items[0].entry_slug;
+
+  const hits = (node: WikiNavTreeItem): boolean => {
+    if (node.entry_slug === currentSlug) return true;
+    return (node.children ?? []).some(hits);
+  };
+  for (const top of items) {
+    if (hits(top)) return top.entry_slug;
+  }
+  return items[0].entry_slug;
+}
+
+export interface WikiSectionView {
+  /** Header tabs 数据源（即原始第一层） */
+  headerItems: WikiNavTreeItem[];
+  /** 当前激活的第一层节点 slug */
+  activeTopSlug: string | undefined;
+  /** 当前激活的第一层节点对象（便于上层取 children / 渲染禁用态） */
+  activeItem: WikiNavTreeItem | undefined;
+  /** Sidebar 待渲染子树（即激活节点的 children；原第二层及以下） */
+  sidebarItems: WikiNavTreeItem[];
+}
+
+/**
+ * 单一事实源：从 navItems 与 currentSlug 派生 Header / Sidebar 视图。
+ *
+ * 用于 `/{pubSlug}` 与 `/{pubSlug}/{...entrySlug}` 两条路由共享视图切片，
+ * 杜绝两端各自重复实现 active 反查与子树切片。
+ */
+export function resolveSectionView(
+  items: WikiNavTreeItem[],
+  currentSlug?: string,
+): WikiSectionView {
+  const activeTopSlug = findActiveTopLevelSlug(items, currentSlug);
+  const activeItem = activeTopSlug
+    ? items.find((it) => it.entry_slug === activeTopSlug)
+    : undefined;
+  return {
+    headerItems: items,
+    activeTopSlug,
+    activeItem,
+    sidebarItems: activeItem?.children ?? [],
+  };
+}
