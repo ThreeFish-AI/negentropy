@@ -30,6 +30,7 @@ import {
 } from "@/utils/conversation-summary";
 import {
   accumulateTextContent,
+  bigramJaccardSimilarity,
   isEquivalentMessageContent,
   normalizeMessageContent,
 } from "@/utils/message";
@@ -535,6 +536,13 @@ function sortNodeChildren(node: MutableNode) {
   node.children.forEach(sortNodeChildren);
 }
 
+// ISSUE-041: 用于 synthetic turn 折叠时的内容相似度阈值，与 chat-display
+// 的 dedupeRedundantTextSegments 保持一致（≥30 字 + Jaccard ≥ 0.5）。
+// 应对场景：realtime 流式捕获 partial（如 LLM 中途产出 `""` 占位）vs
+// hydration 最终态（如 `"pong"` 已填充），两者非 prefix 关系但同一逻辑。
+const SYNTHETIC_TURN_TEXT_SIMILARITY_THRESHOLD = 0.5;
+const SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH = 30;
+
 function findSubsumingTextNode(
   turn: MutableNode,
   candidate: MutableNode,
@@ -550,10 +558,48 @@ function findSubsumingTextNode(
         return false;
       }
       const childContent = String(child.payload.content || "").trim();
-      if (!childContent.startsWith(candidateContent)) {
-        return false;
+      if (!childContent) return false;
+      // 1) 严格前缀（child 包含 candidate 作为前缀） + 等价性兜底
+      if (
+        childContent.startsWith(candidateContent) &&
+        isEquivalentMessageContent(childContent, candidateContent)
+      ) {
+        return true;
       }
-      return isEquivalentMessageContent(childContent, candidateContent);
+      // 2) ISSUE-041: 反向前缀（candidate 包含 child 作为前缀） —— 当 hydration
+      // 终态 candidate 比 realtime child 更完整时（长尾 partial 截断场景）。
+      if (
+        candidateContent.startsWith(childContent) &&
+        isEquivalentMessageContent(childContent, candidateContent)
+      ) {
+        return true;
+      }
+      // 3) ISSUE-041: 子串包含 —— 当 realtime child 因双轮 LLM partial+final 拼接
+      // 而比 candidate 更长时（如 child = "partial...final" 而 candidate = "final"）。
+      // 此处不要求长度比 0.8（与 isEquivalentMessageContent 的 includes 分支区分），
+      // 仅要求短的一侧 ≥ 30 字以避免误折叠极短文本。
+      const shorterLen = Math.min(childContent.length, candidateContent.length);
+      if (
+        shorterLen >= SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH &&
+        (childContent.includes(candidateContent) ||
+          candidateContent.includes(childContent))
+      ) {
+        return true;
+      }
+      // 4) ISSUE-041: 字符二元组 Jaccard ≥ 0.5 + 双方 ≥ 30 字 —— 应对
+      // realtime partial（中间留空）与 hydration final（中间填充）非 prefix /
+      // 非 includes 但语义同一的场景；与 dedupeRedundantTextSegments 第四层
+      // 判定对齐，作为最后兜底。
+      const longerLen = Math.max(childContent.length, candidateContent.length);
+      if (
+        shorterLen >= SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH &&
+        longerLen >= SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH &&
+        bigramJaccardSimilarity(childContent, candidateContent) >=
+          SYNTHETIC_TURN_TEXT_SIMILARITY_THRESHOLD
+      ) {
+        return true;
+      }
+      return false;
     }) || null
   );
 }
@@ -567,6 +613,34 @@ function isSyntheticTurnNode(node: MutableNode): boolean {
   return Boolean(node.threadId) && node.runId === node.threadId;
 }
 
+// ISSUE-041: 合成 turn 内可被「无条件吸收」的元数据节点类型集合 —— 这些类型
+// 仅承载审计 / 状态信息，不在 walkTurnNode 渲染为独立可见块；当它们与同
+// threadId 的真 runId 已配对的同 stepId / toolCallId 重复时，合并丢弃即可。
+// 仅 text / tool-call / tool-result / error 才需要走更严格的 subsumption 检查。
+const SYNTHETIC_TURN_ABSORBABLE_TYPES: ReadonlySet<ConversationNodeType> = new Set([
+  "reasoning",
+  "step",
+  "state-delta",
+  "state-snapshot",
+  "custom",
+  "raw",
+  "event",
+  "activity",
+]);
+
+function isAbsorbableSyntheticChild(child: MutableNode): boolean {
+  return SYNTHETIC_TURN_ABSORBABLE_TYPES.has(child.type);
+}
+
+function turnsOverlapInTime(a: MutableNode, b: MutableNode, toleranceSec = 60): boolean {
+  const aStart = a.timeRange.start;
+  const aEnd = a.timeRange.end;
+  const bStart = b.timeRange.start;
+  const bEnd = b.timeRange.end;
+  // 两 turn 时间区间重叠（含 ±tolerance 容差）：a 终点 ≥ b 起点-容差 且 b 终点 ≥ a 起点-容差
+  return aEnd >= bStart - toleranceSec && bEnd >= aStart - toleranceSec;
+}
+
 function collapseSyntheticTurnDuplicates(roots: MutableNode[]): MutableNode[] {
   const concreteTurns = roots.filter(
     (node) => node.type === "turn" && !isSyntheticTurnNode(node),
@@ -576,19 +650,36 @@ function collapseSyntheticTurnDuplicates(roots: MutableNode[]): MutableNode[] {
     if (!isSyntheticTurnNode(node)) return true;
     if (node.children.length === 0) return false; // 空合成 turn 直接丢弃
 
+    // ISSUE-041: 同 threadId 下若存在与本 synthetic turn 时间区间重叠的
+    // concrete turn，则 synthetic turn 必然是 post-run hydration 对该 concrete
+    // run 的重放（前端 fallbackRunId 把 sessionId 当作合成 runId）—— 内容必为
+    // 重复的 assistant 文本/工具/推理副本，整体合并到 concrete turn 即可，
+    // 无需逐 child 做 subsumption 匹配（streaming partial vs hydration final
+    // 的内容差异不再阻断合并）。
+    const overlappingConcrete = concreteTurns.find(
+      (turn) =>
+        turn.threadId === node.threadId && turnsOverlapInTime(turn, node, 60),
+    );
+    if (overlappingConcrete) {
+      // 兜底安全检查：若 synthetic turn 含 user 角色文本（极罕见——通常只有
+      // assistant 端的 hydration 副本），保留以免误丢用户消息。
+      const hasUniqueUserContent = node.children.some(
+        (child) =>
+          child.type === "text" && child.role === "user" && !isAbsorbableSyntheticChild(child),
+      );
+      if (!hasUniqueUserContent) {
+        return false; // 合并丢弃 synthetic turn
+      }
+    }
+
+    // 后备路径：无时间重叠的 concrete turn 时，仍走精细 per-child subsumption。
     return !node.children.every((child) => {
-      // reasoning / step 类型在合成 turn 内可被无条件吸收（它们本身只是元数据）
-      if (child.type === "reasoning" || child.type === "step") return true;
+      if (isAbsorbableSyntheticChild(child)) return true;
       if (child.type !== "text") return false;
-      // 仅 assistant / developer text 允许被合成 turn 吸收
       if (child.role !== "assistant" && child.role !== "developer") return false;
-      // ISSUE-041: 时间窗按 child.timestamp 与 concrete turn 的 timeRange 比较，
-      // 而非 synthetic turn 的全局 timeRange.start —— 多轮场景下 synthetic turn
-      // 的时间跨度可能横跨多个 concrete turn，全局比较会错放过期外 turn。
       const childTimestamp = child.timestamp;
       return concreteTurns.some((turn) => {
         if (turn.threadId !== node.threadId) return false;
-        // child 时间戳应落在 concrete turn 时间范围内（±30s 容差）
         const turnStart = turn.timeRange.start;
         const turnEnd = turn.timeRange.end;
         if (childTimestamp < turnStart - 30) return false;
