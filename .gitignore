@@ -226,7 +226,8 @@ out/
 *.pem
 
 # Runtime local config (secrets + per-deployment overrides)
-apps/negentropy/config.local.yaml
+# Match at any depth to cover all cwd scenarios (see yaml_loader.get_local_config_path)
+config.local.yaml
 
 npm-debug.log*
 yarn-debug.log*
