@@ -296,7 +296,7 @@ cd apps/negentropy
 uv sync --dev                          # 确保本地环境与 pyproject.toml 一致
 ```
 
-确保 PostgreSQL 服务运行中，连接配置（`database_url`）已在 `.env` 或 `config/database.py` 中正确加载。
+确保 PostgreSQL 服务运行中，连接配置（`database_url`）已在 `config.local.yaml` 或 `config/database.py` 中正确加载。
 
 ### 6.2 基础设施元定义
 
@@ -446,20 +446,30 @@ app.add_middleware(
 
 ## 8. 环境变量管理
 
-### 8.1 分层加载策略
+### 8.1 YAML 分层加载策略
 
-设置 `NE_ENV` 环境变量（默认 `development`）后，后端按以下优先级加载 `.env` 文件（后者覆盖前者）：
+后端按以下优先级加载配置（高优先级覆盖低优先级）：
 
-1. `.env`
-2. `.env.local`
-3. `.env.{environment}`
-4. `.env.{environment}.local`
+1. **Shell 环境变量**（最高优先级，支持 `env_nested_delimiter="__"` 覆盖深层嵌套字段）
+2. **`config.local.yaml`**（cwd 相对路径，已 gitignore，用于本地密钥/覆盖）
+3. **CLI 指定 YAML**（`NE_CONFIG_PATH` 环境变量或 `-c` 参数）
+4. **`~/.negentropy/config.yaml`**（用户级配置，由 `negentropy init` 生成）
+5. **`config.default.yaml`**（包级默认值，单一事实源，提交至版本库）
 
-### 8.2 后端环境变量
+> 密钥/敏感项**严禁**写入 YAML 文件或提交到仓库，应通过 shell 环境变量或 `config.local.yaml`（仅本地）提供。
 
-后端配置以 `apps/negentropy/src/negentropy/config/config.default.yaml` 为单一事实源。密钥/敏感项通过 shell 环境变量（或 `.env.local`）覆盖，遵循六级优先级：环境变量 → `.env` → CLI YAML（`-c`）→ `~/.negentropy/config.yaml` → 包默认 YAML → 代码默认。支持 `env_nested_delimiter="__"` 覆盖深层嵌套字段。
+### 8.2 后端配置
+
+后端配置以 `apps/negentropy/src/negentropy/config/config.default.yaml` 为单一事实源。密钥/敏感项通过 shell 环境变量或 `config.local.yaml` 覆盖。支持 `env_nested_delimiter="__"` 覆盖深层嵌套字段。
 
 ```bash
+# 首次使用：生成用户级配置文件
+uv run negentropy init    # 写入 ~/.negentropy/config.yaml
+
+# 本地覆盖：创建 config.local.yaml（已被 .gitignore 排除）
+cp src/negentropy/config/config.default.yaml config.local.yaml
+# 编辑 config.local.yaml 填入本地配置
+
 # 核心配置（通过 shell 环境变量覆盖 YAML 默认值）
 export NE_DB_URL=postgresql+asyncpg://localhost:5432/negentropy
 export NE_ENV=development
@@ -488,10 +498,10 @@ NEXT_PUBLIC_AGUI_USER_ID=dev-user
 
 ### 8.4 安全约束
 
-- 后端配置默认值由 `config.default.yaml` 承载；密钥仅通过 shell 环境变量或 `.env.local` 提供，**严禁**写入 YAML 或仓库
-- `.env.local` / `.env.{environment}.local` 仅用于本地覆盖，不得提交
+- 后端配置默认值由 `config.default.yaml` 承载；密钥仅通过 shell 环境变量或 `config.local.yaml` 提供，**严禁**写入版本库
+- `config.local.yaml` 仅用于本地覆盖，已 `.gitignore` 排除，不得提交
 - 前端 `.env.example` 仅作模板，`.env.local` / `.env.production` 用于环境覆盖
-- `.gitignore` 必须排除 `.env`、`.env.local`、`.env.*.local`
+- `.gitignore` 必须排除 `config.local.yaml`、`.env`、`.env.local`、`.env.*.local`
 
 ---
 
@@ -503,7 +513,7 @@ NEXT_PUBLIC_AGUI_USER_ID=dev-user
 - [ ] 所有测试通过（`uv run pytest` + `pnpm run test`）
 - [ ] Linter 无报错（`ruff check` + `pnpm run lint`）
 - [ ] 类型检查通过（`pnpm run typecheck`）
-- [ ] 后端默认配置已同步（`config.default.yaml`），前端环境变量模板已同步（`.env.example`）
+- [ ] 后端默认配置已同步（`config.default.yaml`），前端环境变量模板已同步（`.env.example`）；后端本地覆盖通过 `config.local.yaml`
 - [ ] `.gitignore` 正确排除敏感文件
 - [ ] 文档已同步更新
 
@@ -522,7 +532,7 @@ NEXT_PUBLIC_AGUI_USER_ID=dev-user
 | :--------------- | :----------------------- | :--------------------------- | :------------------------------------------ |
 | **依赖版本漂移** | 本地可运行，CI 失败      | 锁文件未提交或不同步         | 强制提交 `uv.lock` 与 `pnpm-lock.yaml`      |
 | **端口冲突**     | `Address already in use` | 多实例并发或未正确清理       | 脚本中增加端口检测与自动清理逻辑            |
-| **环境变量泄漏** | 密钥出现在日志中         | `.env` 文件误提交            | `.gitignore` 严格排除，Pre-commit Hook 检查 |
+| **环境变量泄漏** | 密钥出现在日志中         | 配置文件误提交               | `.gitignore` 严格排除 `config.local.yaml`，Pre-commit Hook 检查 |
 | **跨域问题**     | 浏览器报错 `CORS`        | 开发环境未配置代理           | 后端启用 CORS 中间件，前端配置 BFF 代理     |
 | **虚拟环境丢失** | `uv run` 找不到模块      | `.venv` 被 `.gitignore` 忽略 | 执行 `uv sync` 恢复                         |
 

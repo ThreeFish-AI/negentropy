@@ -225,6 +225,9 @@ out/
 .DS_Store
 *.pem
 
+# Runtime local config (secrets + per-deployment overrides)
+apps/negentropy/config.local.yaml
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
