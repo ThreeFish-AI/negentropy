@@ -641,53 +641,102 @@ function turnsOverlapInTime(a: MutableNode, b: MutableNode, toleranceSec = 60): 
   return aEnd >= bStart - toleranceSec && bEnd >= aStart - toleranceSec;
 }
 
-function collapseSyntheticTurnDuplicates(roots: MutableNode[]): MutableNode[] {
-  const concreteTurns = roots.filter(
-    (node) => node.type === "turn" && !isSyntheticTurnNode(node),
-  );
+function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
+  const turnRoots = roots.filter((node) => node.type === "turn");
+  if (turnRoots.length <= 1) return roots;
 
-  return roots.filter((node) => {
-    if (!isSyntheticTurnNode(node)) return true;
-    if (node.children.length === 0) return false; // 空合成 turn 直接丢弃
+  // 按 threadId 分组
+  const turnsByThread = new Map<string, MutableNode[]>();
+  turnRoots.forEach((turn) => {
+    const tid = turn.threadId || DEFAULT_THREAD_ID;
+    const bucket = turnsByThread.get(tid) || [];
+    bucket.push(turn);
+    turnsByThread.set(tid, bucket);
+  });
 
-    // ISSUE-041: 同 threadId 下若存在与本 synthetic turn 时间区间重叠的
-    // concrete turn，则 synthetic turn 必然是 post-run hydration 对该 concrete
-    // run 的重放（前端 fallbackRunId 把 sessionId 当作合成 runId）—— 内容必为
-    // 重复的 assistant 文本/工具/推理副本，整体合并到 concrete turn 即可，
-    // 无需逐 child 做 subsumption 匹配（streaming partial vs hydration final
-    // 的内容差异不再阻断合并）。
-    const overlappingConcrete = concreteTurns.find(
-      (turn) =>
-        turn.threadId === node.threadId && turnsOverlapInTime(turn, node, 60),
-    );
-    if (overlappingConcrete) {
-      // 兜底安全检查：若 synthetic turn 含 user 角色文本（极罕见——通常只有
-      // assistant 端的 hydration 副本），保留以免误丢用户消息。
-      const hasUniqueUserContent = node.children.some(
-        (child) =>
-          child.type === "text" && child.role === "user" && !isAbsorbableSyntheticChild(child),
+  const turnsToRemove = new Set<string>();
+
+  turnsByThread.forEach((threadTurns) => {
+    if (threadTurns.length <= 1) return;
+
+    // 排序：concrete turn 优先于 synthetic，children 多的优先于少的
+    const sorted = [...threadTurns].sort((a, b) => {
+      const aSynthetic = isSyntheticTurnNode(a) ? 1 : 0;
+      const bSynthetic = isSyntheticTurnNode(b) ? 1 : 0;
+      if (aSynthetic !== bSynthetic) return aSynthetic - bSynthetic;
+      return b.children.length - a.children.length;
+    });
+
+    // 对每个非优先 turn，检查是否被优先 turn 完全覆盖
+    for (let i = 1; i < sorted.length; i++) {
+      const candidate = sorted[i];
+      if (candidate.children.length === 0) {
+        turnsToRemove.add(candidate.id);
+        continue;
+      }
+
+      // 安全检查：含 user 角色文本的 turn 不折叠，避免误丢用户消息
+      const hasUserText = candidate.children.some(
+        (child) => child.type === "text" && child.role === "user",
       );
-      if (!hasUniqueUserContent) {
-        return false; // 合并丢弃 synthetic turn
+      if (hasUserText) continue;
+
+      // 寻找可覆盖 candidate 的 keeper turn
+      let collapsed = false;
+      for (let j = 0; j < i; j++) {
+        if (turnsToRemove.has(sorted[j].id)) continue;
+        const keeper = sorted[j];
+        if (!turnsOverlapInTime(keeper, candidate, 120)) continue;
+
+        // ISSUE-041: 双 concrete turn（都不是 synthetic）不折叠——两个真 runId
+        // 的 turn 可能是后端多 run 场景（如人工审批后重新启动），折叠会误丢合法 turn。
+        // 仅当 candidate 或 keeper 至少一方为 synthetic 时才允许内容级折叠。
+        const bothConcrete = !isSyntheticTurnNode(candidate) && !isSyntheticTurnNode(keeper);
+        if (bothConcrete) continue;
+
+        // 检查 candidate 所有非元数据 children 是否被 keeper 覆盖
+        const allCovered = candidate.children.every((child) => {
+          if (isAbsorbableSyntheticChild(child)) return true;
+          if (child.type === "text" && (child.role === "assistant" || child.role === "developer")) {
+            return Boolean(findSubsumingTextNode(keeper, child));
+          }
+          // tool-call / error: 按 toolCallId 或内容匹配
+          return keeper.children.some(
+            (keeperChild) =>
+              keeperChild.type === child.type &&
+              (keeperChild.toolCallId === child.toolCallId ||
+                (child.type === "error" &&
+                  String(keeperChild.payload?.message || "") ===
+                    String(child.payload?.message || ""))),
+          );
+        });
+
+        if (allCovered) {
+          turnsToRemove.add(candidate.id);
+          collapsed = true;
+          break;
+        }
+      }
+
+      // 后备路径：synthetic turn 的时间窗整体吸收（与原 collapseSyntheticTurnDuplicates
+      // 一致——synthetic turn 必然是 hydration 重放，无条件合并）
+      if (!collapsed && isSyntheticTurnNode(candidate)) {
+        const hasKeeper = sorted.some(
+          (turn, idx) =>
+            idx < i &&
+            !turnsToRemove.has(turn.id) &&
+            turn.threadId === candidate.threadId &&
+            turnsOverlapInTime(turn, candidate, 120),
+        );
+        if (hasKeeper) {
+          turnsToRemove.add(candidate.id);
+        }
       }
     }
-
-    // 后备路径：无时间重叠的 concrete turn 时，仍走精细 per-child subsumption。
-    return !node.children.every((child) => {
-      if (isAbsorbableSyntheticChild(child)) return true;
-      if (child.type !== "text") return false;
-      if (child.role !== "assistant" && child.role !== "developer") return false;
-      const childTimestamp = child.timestamp;
-      return concreteTurns.some((turn) => {
-        if (turn.threadId !== node.threadId) return false;
-        const turnStart = turn.timeRange.start;
-        const turnEnd = turn.timeRange.end;
-        if (childTimestamp < turnStart - 30) return false;
-        if (childTimestamp > turnEnd + 30) return false;
-        return Boolean(findSubsumingTextNode(turn, child));
-      });
-    });
   });
+
+  if (turnsToRemove.size === 0) return roots;
+  return roots.filter((node) => !turnsToRemove.has(node.id));
 }
 
 export function buildConversationTree(
@@ -1409,7 +1458,7 @@ export function buildConversationTree(
     attachNode(nodeIndex, roots, turns, link.childId, link.parentId);
   });
 
-  const prunedRoots = collapseSyntheticTurnDuplicates(
+  const prunedRoots = collapseOverlappingTurns(
     roots
     .map((node) => pruneNode(node))
     .filter((node): node is MutableNode => node !== null),

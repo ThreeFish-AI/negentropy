@@ -802,5 +802,77 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
     return left.id.localeCompare(right.id);
   });
 
-  return blocks;
+  return dedupeAdjacentAssistantBlocks(blocks);
+}
+
+// ISSUE-041: 跨 turn 的 assistant-reply block 去重。当 Layer 1
+// (collapseOverlappingTurns) 因两个 concrete turn 都非 synthetic 而无法折叠时，
+// 这里作为安全网——对时间窗内内容高度相似的相邻 assistant-reply block 保留更完整的一个。
+const CROSS_BLOCK_TIME_WINDOW_MS = 120_000;
+const CROSS_BLOCK_JACCARD_MIN_LENGTH = 30;
+
+function extractAssistantBlockText(block: ChatDisplayBlock): string {
+  if (block.kind !== "assistant-reply") return "";
+  return (block as AssistantReplyDisplayBlock).segments
+    .filter((s) => s.kind === "text")
+    .map((s) => s.content || "")
+    .join("")
+    .trim();
+}
+
+function dedupeAdjacentAssistantBlocks(blocks: ChatDisplayBlock[]): ChatDisplayBlock[] {
+  const assistantBlocks = blocks.filter(
+    (b): b is AssistantReplyDisplayBlock => b.kind === "assistant-reply",
+  );
+  if (assistantBlocks.length < 2) return blocks;
+
+  const droppedIds = new Set<string>();
+
+  for (let i = 1; i < assistantBlocks.length; i++) {
+    const later = assistantBlocks[i];
+    const laterText = extractAssistantBlockText(later);
+    if (!laterText) continue;
+
+    for (let j = 0; j < i; j++) {
+      if (droppedIds.has(assistantBlocks[j].id)) continue;
+      const earlier = assistantBlocks[j];
+      const earlierText = extractAssistantBlockText(earlier);
+      if (!earlierText) continue;
+
+      // 时间窗外的 block 一定是不同 turn，跳过
+      if (Math.abs(later.timestamp - earlier.timestamp) > CROSS_BLOCK_TIME_WINDOW_MS) continue;
+
+      // 内容覆盖判定：如果一方是另一方的超集/子集，保留更完整的
+      const shorterLen = Math.min(earlierText.length, laterText.length);
+
+      // 精确匹配
+      if (earlierText === laterText) {
+        droppedIds.add(earlier.id);
+        break;
+      }
+      // 前缀关系：保留更长（更完整）的
+      if (laterText.startsWith(earlierText)) {
+        droppedIds.add(earlier.id);
+        break;
+      }
+      if (earlierText.startsWith(laterText)) {
+        droppedIds.add(later.id);
+        break;
+      }
+      // 子串包含 + Jaccard 兜底（≥30 字）
+      if (shorterLen >= CROSS_BLOCK_JACCARD_MIN_LENGTH) {
+        if (earlierText.includes(laterText) || laterText.includes(earlierText)) {
+          droppedIds.add(earlierText.length <= laterText.length ? earlier.id : later.id);
+          break;
+        }
+        if (bigramJaccard(earlierText, laterText) >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
+          droppedIds.add(earlierText.length <= laterText.length ? earlier.id : later.id);
+          break;
+        }
+      }
+    }
+  }
+
+  if (droppedIds.size === 0) return blocks;
+  return blocks.filter((b) => !droppedIds.has(b.id));
 }
