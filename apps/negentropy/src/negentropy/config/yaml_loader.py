@@ -7,6 +7,7 @@ Priority order (lowest → highest):
     1. config.default.yaml  (package defaults, shipped with wheel)
     2. ~/.negentropy/config.yaml  (user-level overrides)
     3. NE_CONFIG_PATH env var  (CLI-specified custom config, cross-process)
+    4. config.local.yaml  (runtime overrides, cwd-relative, gitignored)
 """
 
 from __future__ import annotations
@@ -23,6 +24,13 @@ import yaml
 
 USER_CONFIG_DIR = Path.home() / ".negentropy"
 USER_CONFIG_FILE = USER_CONFIG_DIR / "config.yaml"
+
+LOCAL_CONFIG_FILENAME = "config.local.yaml"
+
+
+def get_local_config_path() -> Path:
+    """运行时配置文件路径（cwd 下，gitignored，存放机密与 per-deployment 覆盖）。"""
+    return Path.cwd() / LOCAL_CONFIG_FILENAME
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +70,11 @@ def get_yaml_file_paths() -> list[Path]:
         cli_path = Path(cli_config).resolve()
         if cli_path.is_file():
             paths.append(cli_path)
+
+    # 4. Runtime local config (cwd-relative, gitignored, highest YAML priority)
+    local_path = get_local_config_path()
+    if local_path.is_file():
+        paths.append(local_path)
 
     return paths
 

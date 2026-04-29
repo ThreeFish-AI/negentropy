@@ -231,7 +231,7 @@ NEXT_PUBLIC_AGUI_BASE_URL=https://<backend-host>
 NEXT_PUBLIC_AGUI_APP_NAME=negentropy
 ```
 
-> **运维提示**：若本地曾使用历史端口（如 `:6600` / `:6666`），升级到 `:3292` 后需同步更新：本地 `.env` / `.env.local` 中的 `NE_AUTH_GOOGLE_REDIRECT_URI`、Google Cloud Console OAuth 客户端的「已授权的重定向 URI」白名单。
+> **运维提示**：若本地曾使用历史端口（如 `:6600` / `:6666`），升级到 `:3292` 后需同步更新：`config.local.yaml` 或 shell 环境变量中的 `NE_AUTH_GOOGLE_REDIRECT_URI`、Google Cloud Console OAuth 客户端的「已授权的重定向 URI」白名单。
 
 ## 9. 安全与运维要点
 

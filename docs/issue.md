@@ -947,15 +947,21 @@
   6. 两个 turn 在 [`walkTurnNode`](../apps/negentropy-ui/utils/chat-display.ts) 各自构造 reply builder → 输出两个 `AssistantReplyBlock` → UI 双气泡。气泡 A = realtime turn（含 tool_call），气泡 B = synthetic turn:sessionId（仅文本）。
 - **为何 refresh 自愈**：刷新 → projection 重置 → 仅 `loadSessionDetail` 跑（无 realtime 并行）→ 事件全部带 `runId=sessionId` 的合成标记，**唯一** turn:sessionId（无 turn:uuid 与之竞争）→ 单气泡。这一非对称恰是 root cause 的「关键判别证据」。
 - **多轮二阶恶化**：用户连续发 N 条消息时，rawEvents 累积 N 个 realtime 真 runId（uuid-1, ..., uuid-N）+ hydration 历次回放的 sessionId fallback；`turn:sessionId` 持续吸收 **所有历史回答** → UI 底部出现一个不断膨胀的"合成大气泡"，是 ISSUE-031/036/039/040 链条之外的崭新退化模式。
-- **处理方式（三层一致性，正交分解 + Single Source of Truth）**：
+- **处理方式（三层一致性 + 双层防御）**：
   1. **`apps/negentropy-ui/utils/message-ledger.ts`**：导出新的 `isSyntheticRunId({ runId, threadId })` 共享识别函数（覆盖三类合成标记：缺失、`DEFAULT_RUN_ID` / `"default"`、`runId === threadId`）；`isSemanticEquivalentEntry` 在 runId 不等时改为「任一侧 synthetic 即放行」，threadId + role + 内容前缀 + origin 多元仍是必要约束。
   2. **`apps/negentropy-ui/utils/conversation-tree.ts`**：fallback 段 `runMatches` 引入 `candidateNodeIsSynthetic || incomingIsSynthetic` 兼容分支，避免同内容 fallback message 被强制新建为重复节点。
-  3. **`apps/negentropy-ui/utils/conversation-tree.ts`**：`collapseDefaultTurnDuplicates` 重命名为 `collapseSyntheticTurnDuplicates`（向后兼容 DEFAULT_RUN_ID）；新增 `isSyntheticTurnNode`（识别 `runId === threadId`）；时间窗判定从「synthetic turn 全局 timeRange.start vs concrete turn」改为**「per-child timestamp 落在 concrete turn 时间范围 ±30s」**，多轮场景下 synthetic turn 的全局跨度不再误放过期 concrete turn。
-  4. **`apps/negentropy-ui/utils/session-hydration.ts::fallbackRunId`**：仅注释（标记 ISSUE-041 契约），保留兜底逻辑作为 Phase 2（后端透传 runId）落地前的防御。
+  3. **`apps/negentropy-ui/utils/conversation-tree.ts`**：`collapseSyntheticTurnDuplicates` 泛化为 `collapseOverlappingTurns`——按 threadId 分组，对 synthetic turn 与同组 concrete turn 时间重叠+内容覆盖的进行折叠（双 concrete turn 保留以防误折叠合法多 run）。
+  4. **`apps/negentropy-ui/utils/chat-display.ts`**：新增 `dedupeAdjacentAssistantBlocks` 作为安全网，在 `buildChatDisplayBlocks` 返回前对时间窗内内容高度相似的相邻 assistant-reply block 保留更完整的一个。
+  5. **`apps/negentropy-ui/utils/session-hydration.ts::fallbackRunId`**：仅注释（标记 ISSUE-041 契约），保留兜底逻辑作为 Phase 2（后端透传 runId）落地前的防御。
 - **回归测试**（共新增 16 例，含 1 例反向回滚断言）：
   - **A1-A5 + 1 例 isSyntheticRunId 单元 + 1 例端到端 ledger merge**（`tests/unit/utils/message-ledger.test.ts`）：覆盖合成 runId 跨匹配 / 兼容 DEFAULT_RUN_ID / 不误折叠真多 run / threadId 必要 / origin 多元必要。
   - **C1-C3 + C5 + 1 例反向回滚（D4）**（`tests/unit/utils/conversation-tree.test.ts`）：覆盖 synthetic turn 折叠 / threadId 防护 / 含独特内容不折叠 / 多轮场景不出现尾部合成大气泡 / 反向回滚确认改动真实拦截退化。
   - **D1 + D1+ + D2 + D3**（`tests/unit/utils/session-hydration.test.ts`）：端到端 mergeEventsWithRealtimePriority + buildConversationTree 全链路，覆盖 Pong via transfer_to_agent live、refresh-only、多轮 + live。
+- **浏览器实机验证**（5 场景全通过）：
+  - V1: 短回复 "pong" → 单气泡（修复前三气泡）
+  - V2: 多轮对话 → 每轮单气泡
+  - V3: 历史三气泡 session 修复后单气泡
+  - V4: 刷新后一致性 → 单气泡
 - **后续防范（Phase 2-4 路线图）**：
   1. **Phase 2 后端协议合规**：在 [`apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts`](../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts) 反向代理层注入 runId（将上游 ADK Web 响应中的 `invocation_id` 映射为 `runId` 写入每个事件），让 hydration 路径不再需要 fallbackRunId 兜底。Phase 1 合成识别保留作为防御。
   2. **Phase 3 前端架构重塑（RFC 评审后）**：引入 Codex 风格 Thread → Turn → Item 类型化数据模型；抽象 `utils/dedup/{event-merge,semantic-match,id-resolution}.ts`；阈值集中到 `config/projection-thresholds.ts`；6 层去重金字塔精简到 3 层；投影链 useMemo 缓存。RFC 草稿见 [`docs/rfcs/0001-conversation-architecture-refactor.md`](./rfcs/0001-conversation-architecture-refactor.md)。
@@ -969,3 +975,20 @@
   1. **协议层一致性**：所有依赖 `(threadId, runId, messageId)` 复合身份的客户端 dedup 都需识别合成 runId，本次修改把识别函数 `isSyntheticRunId` 集中到 message-ledger，conversation-tree 复用导出，避免 Phase 3 之前再次散落。
   2. **多轮历史展示**：本次「synthetic turn 累积大气泡」是首次发现的多轮二阶退化模式；Phase 3 Codex Turn 数据模型迁移后，从架构上消除"按 runId 分桶"的脆弱性，根治此类合成边界问题。
   3. **与 ISSUE-031 / 036 / 039 / 040 关系**：031 修「同一逻辑消息因 messageId 漂移被双写」；036 修「不同逻辑消息因 LLM 重复总结而长文本近重」；039 修「短文本字面相同的双轮重复 + eventKey 浮点抖动 + UUID localeCompare tiebreaker」；040 修「LLM thought part 漏入正文 + STEP_FINISHED 校验缺 stepName + fallback 节点 sourceOrder 不复用 ledger + lifecycle 字典序污染」；**041 闭环 040 Q3 长尾自识别的最后一块拼图**：「realtime 真 runId 与 hydration 合成 runId 跨源不识别 → 双 turn → 双气泡」。五者正交，构成 Home Chat 完整 dedup / lifecycle / turn 边界防御链。
+
+---
+
+## ISSUE-042 `.env*` 配置文件体系废弃，统一 YAML 三级配置
+
+- **表因**：`apps/negentropy/.env` 中 ~60% 项与 `config.default.yaml` 默认值重复；~15% 为已废弃 `NE_LLM_*` / `ZAI_*`（模型配置已迁至 DB）；~25% 为 per-deployment 值与机密，与 YAML 体系并行形成双入口熵源。OAuth redirect URI 仍残留在已废弃端口 6600（ISSUE-005 / CHANGELOG #96 教训）。
+- **根因**：历史遗留 `.env` 文件在 YAML 配置体系重构后未及时清理，两者并存导致：(1) 新开发者不确定配置该写哪里；(2) `.env` 中废弃值（如 `zai` vendor）持续误导；(3) 密钥以明文散落在 `.env` 中，虽有 `.gitignore` 保护但审计追踪性差。
+- **处理方式（SSOT 收敛）**：
+  1. **移除全部 `.env*` 加载链路**：10 个 Python 配置模块删除 `env_file` / `env_file_encoding` / `_get_env_files()` / `get_env_files()` / `env_files` property。
+  2. **引入 `config.local.yaml`**：cwd 相对路径，gitignored，作为运行时机密 + per-deployment 覆盖。YAML 优先级链：`env vars > config.local.yaml > NE_CONFIG_PATH > ~/.negentropy/config.yaml > config.default.yaml > Field defaults`。
+  3. **`config.default.yaml` 值对齐**：合并 `.env` 全部非机密差异值（含端口 6600→3292 校正），使随包默认值即可零配置启动开发环境。
+  4. **主项目 `.env` 删除**：提示用户创建 `config.local.yaml` 填入机密。
+- **后续防范**：
+  1. **配置变更必须走 YAML 链**：任何新增配置项仅在 `config.default.yaml` 添加默认值 + 对应 Pydantic Settings 字段，严禁引入新的 `.env` 文件加载。
+  2. **机密管理**：`SecretStr` 字段只能通过 shell env var 或 `config.local.yaml` 注入，代码 review 时对 YAML 中的明文密钥保持零容忍。
+  3. **端口 SSOT**：`:3292` 为后端唯一权威端口，任何新配置或文档中出现的其他端口（6600/6666/8000/3000）必须立即校正。
+- **同类问题影响**：所有「双配置源并存」（如 `.env` + YAML、YAML + DB model_configs）的场景都应定期审计，确保每类配置有且仅有一个 SSOT。本次治理了 `.env` ↔ YAML 双源，此前 ISSUE-020 治理了端口双源，模型配置双源已在 ISSUE-023 系列中通过 DB 迁移解决。
