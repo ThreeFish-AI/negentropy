@@ -37,6 +37,19 @@ type SnapshotMessage = {
 const DEFAULT_THREAD_ID = "default";
 const DEFAULT_RUN_ID = "default-run";
 
+// ISSUE-041: 后端 ADK Web `/sessions/{id}` 不透传 runId 时，前端
+// `session-hydration.ts::fallbackRunId` 会回退到 threadId 或 sessionId，导致
+// 同一逻辑消息在 realtime（真 runId）与 hydrated（合成 runId）两路下身份割裂，
+// 进而在 conversation-tree 产出两个独立 turn → UI 双气泡。
+// 下游 dedup / fallback / collapse 必须借助本辅助识别合成 runId，将其视为
+// runId 维度上的"无身份"占位符，允许与真 runId 兼并。
+export function isSyntheticRunId(entry: { runId?: string; threadId?: string }): boolean {
+  if (!entry.runId) return true;
+  if (entry.runId === DEFAULT_RUN_ID) return true;
+  if (entry.runId === "default") return true;
+  return Boolean(entry.threadId) && entry.runId === entry.threadId;
+}
+
 function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" | "runId">): string {
   return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
 }
@@ -68,8 +81,17 @@ export function isSemanticEquivalentEntry(
   if (left.threadId !== right.threadId) {
     return false;
   }
-  if ((left.runId || DEFAULT_RUN_ID) !== (right.runId || DEFAULT_RUN_ID)) {
-    return false;
+  const leftRun = left.runId || DEFAULT_RUN_ID;
+  const rightRun = right.runId || DEFAULT_RUN_ID;
+  if (leftRun !== rightRun) {
+    // ISSUE-041: 当一侧来自 hydration 的合成 runId（runId === threadId 或
+    // 等同 DEFAULT_RUN_ID），不应阻断与 realtime 真 runId 的语义合并。
+    // threadId + role + 内容前缀 + origin 多元 已构成充分身份约束。
+    const leftIsSynthetic = isSyntheticRunId({ runId: left.runId, threadId: left.threadId });
+    const rightIsSynthetic = isSyntheticRunId({ runId: right.runId, threadId: right.threadId });
+    if (!leftIsSynthetic && !rightIsSynthetic) {
+      return false;
+    }
   }
   if (left.resolvedRole !== right.resolvedRole) {
     return false;

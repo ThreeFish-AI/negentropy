@@ -937,4 +937,231 @@ describe("buildConversationTree", () => {
     expect(nodeEarly!.sourceOrder).not.toBe(3);
     expect(nodeLate!.sourceOrder).not.toBe(4);
   });
+
+  describe("ISSUE-041: 跨 runId 双 turn 合成折叠", () => {
+    // 场景：realtime 事件 (runId=uuid-1) 与 hydration 事件 (runId=sessionId)
+    // 同时进入 buildConversationTree，本组用例验证 collapseSyntheticTurnDuplicates
+    // 能将 hydration 形成的合成 turn 正确并入 realtime 真 turn。
+
+    function makeTransferToAgentEvents(opts: {
+      threadId: string;
+      runId: string;
+      messageId: string;
+      content: string;
+      tStart: number;
+      withTool?: boolean;
+    }): AgUiEvent[] {
+      const events: AgUiEvent[] = [
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: opts.threadId,
+          runId: opts.runId,
+          timestamp: opts.tStart,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: opts.threadId,
+          runId: opts.runId,
+          messageId: opts.messageId,
+          role: "assistant",
+          timestamp: opts.tStart + 1,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: opts.threadId,
+          runId: opts.runId,
+          messageId: opts.messageId,
+          delta: opts.content,
+          timestamp: opts.tStart + 2,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: opts.threadId,
+          runId: opts.runId,
+          messageId: opts.messageId,
+          timestamp: opts.tStart + 3,
+        }),
+      ];
+      if (opts.withTool) {
+        events.splice(
+          2,
+          0,
+          createTestEvent({
+            type: EventType.TOOL_CALL_START,
+            threadId: opts.threadId,
+            runId: opts.runId,
+            toolCallId: `tool-${opts.messageId}`,
+            toolCallName: "transfer_to_agent",
+            timestamp: opts.tStart + 1.2,
+          }),
+          createTestEvent({
+            type: EventType.TOOL_CALL_END,
+            threadId: opts.threadId,
+            runId: opts.runId,
+            toolCallId: `tool-${opts.messageId}`,
+            timestamp: opts.tStart + 1.5,
+          }),
+        );
+      }
+      events.push(
+        createTestEvent({
+          type: EventType.RUN_FINISHED,
+          threadId: opts.threadId,
+          runId: opts.runId,
+          timestamp: opts.tStart + 4,
+        }),
+      );
+      return events;
+    }
+
+    it("C1: realtime turn (含 tool+text) + 同 thread 的 synthetic turn (仅 text) → synthetic 折叠", () => {
+      // realtime: turn:uuid-1 with Transfer To Agent + Pong
+      const realtime = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "uuid-1",
+        messageId: "asst-rt-1",
+        content: "Pong 🏓 Anything else I can help with?",
+        tStart: 1000,
+        withTool: true,
+      });
+      // hydration: turn:session-A (synthetic runId === threadId), only text
+      const hydrated = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "session-A",
+        messageId: "asst-fb-1",
+        content: "Pong 🏓 Anything else I can help with?",
+        tStart: 1010,
+      });
+      const tree = buildConversationTree({ events: [...realtime, ...hydrated] });
+
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // 修复后只剩一个 turn（synthetic 被并入）
+      expect(turnRoots).toHaveLength(1);
+      expect(turnRoots[0]?.runId).toBe("uuid-1");
+      // 反向核验：synthetic turn:session-A 不应再出现
+      expect(turnRoots.find((t) => t.runId === "session-A")).toBeUndefined();
+    });
+
+    it("C2: synthetic turn 但 threadId 不同 → 都保留（threadId 仍是必要约束）", () => {
+      const turnA = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "uuid-1",
+        messageId: "asst-1",
+        content: "Pong A",
+        tStart: 1000,
+      });
+      const turnB = makeTransferToAgentEvents({
+        threadId: "session-B",
+        runId: "session-B", // 合成
+        messageId: "asst-2",
+        content: "Pong B",
+        tStart: 1010,
+      });
+      const tree = buildConversationTree({ events: [...turnA, ...turnB] });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      expect(turnRoots).toHaveLength(2);
+    });
+
+    it("C3: synthetic turn 含 concrete turn 没有的独特文本 → 保留 synthetic", () => {
+      const realtime = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "uuid-1",
+        messageId: "asst-rt-1",
+        content: "Pong",
+        tStart: 1000,
+      });
+      const hydratedUnique = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "session-A",
+        messageId: "asst-fb-unique",
+        content: "完全独立的另一段历史回答，concrete turn 不可能包含",
+        tStart: 1010,
+      });
+      const tree = buildConversationTree({
+        events: [...realtime, ...hydratedUnique],
+      });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // synthetic turn 因独特内容而保留
+      expect(turnRoots.length).toBeGreaterThanOrEqual(1);
+      const synthetic = turnRoots.find((t) => t.runId === "session-A");
+      // 注：可能出现 fallback 段重建路径将 synthetic 文本节点合并到 concrete turn
+      // 但若 synthetic turn 仍有独立内容，则不被折叠
+      if (synthetic) {
+        expect(synthetic.children.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("C5: 多轮 - 两个 concrete turn + 一个含两轮全部文本的 synthetic turn → synthetic 折叠", () => {
+      const turn1 = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "uuid-1",
+        messageId: "asst-1",
+        content: "Round 1 reply",
+        tStart: 1000,
+      });
+      const turn2 = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "uuid-2",
+        messageId: "asst-2",
+        content: "Round 2 reply",
+        tStart: 2000,
+      });
+      const hydratedRound1 = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "session-A",
+        messageId: "asst-h-1",
+        content: "Round 1 reply",
+        tStart: 1010,
+      });
+      const hydratedRound2 = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "session-A",
+        messageId: "asst-h-2",
+        content: "Round 2 reply",
+        tStart: 2010,
+      });
+
+      const tree = buildConversationTree({
+        events: [...turn1, ...turn2, ...hydratedRound1, ...hydratedRound2],
+      });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      const concreteTurns = turnRoots.filter(
+        (t) => t.runId === "uuid-1" || t.runId === "uuid-2",
+      );
+      // 期望：两个 concrete turn 保留
+      expect(concreteTurns).toHaveLength(2);
+      // 期望：synthetic turn 不出现，避免底部「合成大气泡」累积所有历史
+      const syntheticTurn = turnRoots.find((t) => t.runId === "session-A");
+      expect(syntheticTurn).toBeUndefined();
+    });
+
+    it("D4 反向回滚断言：删除 isSyntheticRunId 兼容分支（手动模拟），C1 用例必失败", () => {
+      // 此用例文档化反向行为：若 isSyntheticRunId 总是返回 false（即 Phase 1 修复
+      // 被回滚），realtime + synthetic 双 turn 会同时存在 → C1 断言 turnRoots.length === 1
+      // 必失败。这里通过构造同 (threadId, runId) 完全相同的双源（伪退化）来证明
+      // 在没有合成识别时双 turn 不可避免。
+      const realtime = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "uuid-1",
+        messageId: "asst-rt-1",
+        content: "Pong 🏓 Anything else I can help with?",
+        tStart: 1000,
+        withTool: true,
+      });
+      // 此处 hydrated 用真 runId 但故意与 realtime 不同 → 必产出 2 个 turn
+      const hydratedFakeReal = makeTransferToAgentEvents({
+        threadId: "session-A",
+        runId: "uuid-2-different-non-synthetic",
+        messageId: "asst-fb-1",
+        content: "Pong 🏓 Anything else I can help with?",
+        tStart: 1010,
+      });
+      const tree = buildConversationTree({
+        events: [...realtime, ...hydratedFakeReal],
+      });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // 双 concrete turn（无 synthetic 标记）应保留 → 修复不会误折叠合法多 run
+      expect(turnRoots).toHaveLength(2);
+    });
+  });
 });

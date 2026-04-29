@@ -926,3 +926,46 @@
   2. **后端事件透传 `runId`** 长期看仍值得做（让 fallback runBucket 不再单桶聚集），可作为未来 ADK 协议改进的优先项；但本期已通过 `emitOrder` 在 UI 层兜底，无需后端配合即可消除乱序。
   3. **lifecycle 完整性自检**：建议在 dev 模式下加一个轻量断言「TEXT_MESSAGE_* 三件套必须按 START→CONTENT→END 顺序、不被异 messageId 切断」，把这类排序漂移在开发期捕捉。
 - **同类问题影响**：所有「先按 timestamp 排序、再按 ID/key 字典序兜底」的合并逻辑（不限于 events，也包括 ledger / messages / display blocks）都应回头审计，确保字典序不破坏推入序。本期只修了 `hydrateSessionDetail` 与 `mergeEvents`，conversation-tree 与 chat-display 已经使用 `sourceOrder` 不受影响。
+
+---
+
+## ISSUE-041 Home 双气泡复发：realtime + post-run hydration 跨 runId 双 turn 分裂（ISSUE-040 Q3 长尾的具体复发与根治）
+
+- **表因**：用户在 Home 输入「Ping, give me a pong.」一次，UI 渲染**两个独立 Assistant 气泡**：
+  1. 气泡 A（前）：推理头 → `Transfer To Agent` 工具调用块 → 推理头 → `Pong 🏓 Anything else I can help with?` → 推理头
+  2. 气泡 B（后）：推理头 → 推理头 → `Pong 🏓 Anything else I can help with?`（**无** Transfer To Agent 块）
+  - **关键诊断信号**：手动刷新页面后双气泡消失、恢复单气泡。这一非对称证明根因在 realtime ↔ hydration 合并路径，而非 ISSUE-031/036/039/040 治理过的同 runId 内复制。
+- **根因**（与 ISSUE-040 Q3 长尾自识别一致，但未在 040 PR 中修复）：
+  1. **后端协议违规**：ADK Web `/sessions/{id}/events` 返回的 events JSON **不含 `runId`**（仅含 `invocation_id`，且每条事件 invocation_id 都不同）；AG-UI 协议规范明确要求 `runId` 是 REQUIRED 字段。
+  2. **前端 fallback 触发合成 runId**：`session-hydration.ts::fallbackRunId` 在 `payload.runId` 缺失时回退到 `payload.threadId || sessionId`，导致所有 hydrated 事件被赋 `runId === sessionId`（合成回退标记）。
+  3. **三层 dedup 全部硬性要求 runId 严格相等**：
+     - L1 [`message-ledger.ts::isSemanticEquivalentEntry:71-73`](../apps/negentropy-ui/utils/message-ledger.ts) — `(left.runId || DEFAULT_RUN_ID) !== (right.runId || DEFAULT_RUN_ID)` 直接 return false
+     - L2 [`conversation-tree.ts:1195-1204` 的 fallback 段 runMatches](../apps/negentropy-ui/utils/conversation-tree.ts) — 不识别合成 runId
+     - L3 [`conversation-tree.ts::collapseDefaultTurnDuplicates:561-585`](../apps/negentropy-ui/utils/conversation-tree.ts) — 仅折叠 `runId === DEFAULT_RUN_ID`，对 `runId === threadId` 的合成 turn 视而不见
+  4. 实时流 `runId=uuid-actual` 与 hydration `runId=sessionId` 在 [`buildConversationTree::ensureTurn`](../apps/negentropy-ui/utils/conversation-tree.ts) 被分桶为两个独立 `turn:${runId}` 节点。
+  5. [`mergeEventsWithRealtimePriority::filteredHydratedEvents`](../apps/negentropy-ui/utils/session-hydration.ts) 对 `TOOL_CALL_*` 走 toolCallId 过滤，realtime 与 hydrated 共享 toolCallId → hydrated 工具调用被正确过滤；但 `TEXT_MESSAGE_*` 走 `isSemanticEquivalentEntry` 语义匹配，runId 不等卡死 → hydrated 文本未被过滤、滞留在 `turn:sessionId` 内。
+  6. 两个 turn 在 [`walkTurnNode`](../apps/negentropy-ui/utils/chat-display.ts) 各自构造 reply builder → 输出两个 `AssistantReplyBlock` → UI 双气泡。气泡 A = realtime turn（含 tool_call），气泡 B = synthetic turn:sessionId（仅文本）。
+- **为何 refresh 自愈**：刷新 → projection 重置 → 仅 `loadSessionDetail` 跑（无 realtime 并行）→ 事件全部带 `runId=sessionId` 的合成标记，**唯一** turn:sessionId（无 turn:uuid 与之竞争）→ 单气泡。这一非对称恰是 root cause 的「关键判别证据」。
+- **多轮二阶恶化**：用户连续发 N 条消息时，rawEvents 累积 N 个 realtime 真 runId（uuid-1, ..., uuid-N）+ hydration 历次回放的 sessionId fallback；`turn:sessionId` 持续吸收 **所有历史回答** → UI 底部出现一个不断膨胀的"合成大气泡"，是 ISSUE-031/036/039/040 链条之外的崭新退化模式。
+- **处理方式（三层一致性，正交分解 + Single Source of Truth）**：
+  1. **`apps/negentropy-ui/utils/message-ledger.ts`**：导出新的 `isSyntheticRunId({ runId, threadId })` 共享识别函数（覆盖三类合成标记：缺失、`DEFAULT_RUN_ID` / `"default"`、`runId === threadId`）；`isSemanticEquivalentEntry` 在 runId 不等时改为「任一侧 synthetic 即放行」，threadId + role + 内容前缀 + origin 多元仍是必要约束。
+  2. **`apps/negentropy-ui/utils/conversation-tree.ts`**：fallback 段 `runMatches` 引入 `candidateNodeIsSynthetic || incomingIsSynthetic` 兼容分支，避免同内容 fallback message 被强制新建为重复节点。
+  3. **`apps/negentropy-ui/utils/conversation-tree.ts`**：`collapseDefaultTurnDuplicates` 重命名为 `collapseSyntheticTurnDuplicates`（向后兼容 DEFAULT_RUN_ID）；新增 `isSyntheticTurnNode`（识别 `runId === threadId`）；时间窗判定从「synthetic turn 全局 timeRange.start vs concrete turn」改为**「per-child timestamp 落在 concrete turn 时间范围 ±30s」**，多轮场景下 synthetic turn 的全局跨度不再误放过期 concrete turn。
+  4. **`apps/negentropy-ui/utils/session-hydration.ts::fallbackRunId`**：仅注释（标记 ISSUE-041 契约），保留兜底逻辑作为 Phase 2（后端透传 runId）落地前的防御。
+- **回归测试**（共新增 16 例，含 1 例反向回滚断言）：
+  - **A1-A5 + 1 例 isSyntheticRunId 单元 + 1 例端到端 ledger merge**（`tests/unit/utils/message-ledger.test.ts`）：覆盖合成 runId 跨匹配 / 兼容 DEFAULT_RUN_ID / 不误折叠真多 run / threadId 必要 / origin 多元必要。
+  - **C1-C3 + C5 + 1 例反向回滚（D4）**（`tests/unit/utils/conversation-tree.test.ts`）：覆盖 synthetic turn 折叠 / threadId 防护 / 含独特内容不折叠 / 多轮场景不出现尾部合成大气泡 / 反向回滚确认改动真实拦截退化。
+  - **D1 + D1+ + D2 + D3**（`tests/unit/utils/session-hydration.test.ts`）：端到端 mergeEventsWithRealtimePriority + buildConversationTree 全链路，覆盖 Pong via transfer_to_agent live、refresh-only、多轮 + live。
+- **后续防范（Phase 2-4 路线图）**：
+  1. **Phase 2 后端协议合规**：在 [`apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts`](../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts) 反向代理层注入 runId（将上游 ADK Web 响应中的 `invocation_id` 映射为 `runId` 写入每个事件），让 hydration 路径不再需要 fallbackRunId 兜底。Phase 1 合成识别保留作为防御。
+  2. **Phase 3 前端架构重塑（RFC 评审后）**：引入 Codex 风格 Thread → Turn → Item 类型化数据模型；抽象 `utils/dedup/{event-merge,semantic-match,id-resolution}.ts`；阈值集中到 `config/projection-thresholds.ts`；6 层去重金字塔精简到 3 层；投影链 useMemo 缓存。RFC 草稿见 [`docs/rfcs/0001-conversation-architecture-refactor.md`](./rfcs/0001-conversation-architecture-refactor.md)。
+  3. **Phase 4 UI 交互能力增强**：Reasoning Panel + Sub-Agent 嵌套卡片 / 工具进度 + 中断/审批门 / Conversation Branching + Timeline 增强。Backlog 见 [`docs/rfcs/0002-ui-interaction-enhancements.md`](./rfcs/0002-ui-interaction-enhancements.md)。
+  4. **dev 模式 lifecycle 完整性 invariant 断言**（建议）：在 `useSessionProjection` 加轻量断言「同 threadId 下若同时存在 synthetic turn 与 concrete turn，前者的 assistant text 必须全被后者包含」，把这类合成 turn 退化在开发期捕捉。
+- **诊断抓手（未来再复发时）**：
+  1. 浏览器开发者工具抓 `/api/agui/sessions/{id}` 响应 JSON，确认事件是否含 `runId` 字段；不含则属本 issue 复发或 Phase 2 退化。
+  2. 在 `useSessionProjection` 加 dev-only `console.debug` 打印 `rawEvents.map(e => e.runId)`，观察是否同时存在 `uuid-*` 与 `sessionId`；若是则 synthetic 折叠失效。
+  3. `gh api repos/.../sessions/{id}/events` 拉真实事件流，对照 buildConversationTree fixture 重现。
+- **同类问题影响**：
+  1. **协议层一致性**：所有依赖 `(threadId, runId, messageId)` 复合身份的客户端 dedup 都需识别合成 runId，本次修改把识别函数 `isSyntheticRunId` 集中到 message-ledger，conversation-tree 复用导出，避免 Phase 3 之前再次散落。
+  2. **多轮历史展示**：本次「synthetic turn 累积大气泡」是首次发现的多轮二阶退化模式；Phase 3 Codex Turn 数据模型迁移后，从架构上消除"按 runId 分桶"的脆弱性，根治此类合成边界问题。
+  3. **与 ISSUE-031 / 036 / 039 / 040 关系**：031 修「同一逻辑消息因 messageId 漂移被双写」；036 修「不同逻辑消息因 LLM 重复总结而长文本近重」；039 修「短文本字面相同的双轮重复 + eventKey 浮点抖动 + UUID localeCompare tiebreaker」；040 修「LLM thought part 漏入正文 + STEP_FINISHED 校验缺 stepName + fallback 节点 sourceOrder 不复用 ledger + lifecycle 字典序污染」；**041 闭环 040 Q3 长尾自识别的最后一块拼图**：「realtime 真 runId 与 hydration 合成 runId 跨源不识别 → 双 turn → 双气泡」。五者正交，构成 Home Chat 完整 dedup / lifecycle / turn 边界防御链。

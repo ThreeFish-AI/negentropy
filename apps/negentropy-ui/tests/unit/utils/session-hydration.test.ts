@@ -11,6 +11,7 @@ import {
   ledgerEntriesToMessages,
   mergeMessageLedger,
 } from "@/utils/message-ledger";
+import { buildConversationTree } from "@/utils/conversation-tree";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 
@@ -946,5 +947,296 @@ describe("session-hydration", () => {
         lifecycleStage = 2;
       }
     }
+  });
+
+  describe("ISSUE-041: realtime + hydration 跨 runId 双气泡端到端", () => {
+    // 端到端场景：模拟用户单次 Send「Ping, give me a pong.」后
+    // realtime 流（runId=uuid-actual）+ post-run hydration（runId=sessionId fallback）
+    // 同时进入投影。期望最终 mergeEventsWithRealtimePriority 输出 + buildConversationTree
+    // 仅产出 1 个 turn（synthetic 被合并）。
+
+    function buildPongRealtimeAndHydration(opts: {
+      threadId: string;
+      realtimeRunId: string;
+      pongText: string;
+    }): {
+      realtimeEvents: AgUiEvent[];
+      hydratedEvents: AgUiEvent[];
+      realtimeLedger: ReturnType<typeof buildSyntheticLedger>;
+      hydratedLedger: ReturnType<typeof buildSyntheticLedger>;
+    } {
+      const realtimeEvents: AgUiEvent[] = [
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          timestamp: 1000,
+        }),
+        createTestEvent({
+          type: EventType.TOOL_CALL_START,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          toolCallId: "transfer-1",
+          toolCallName: "transfer_to_agent",
+          timestamp: 1001,
+        }),
+        createTestEvent({
+          type: EventType.TOOL_CALL_END,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          toolCallId: "transfer-1",
+          timestamp: 1002,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          messageId: `assistant-${opts.realtimeRunId}-0`,
+          role: "assistant",
+          timestamp: 1003,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          messageId: `assistant-${opts.realtimeRunId}-0`,
+          delta: opts.pongText,
+          timestamp: 1004,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          messageId: `assistant-${opts.realtimeRunId}-0`,
+          timestamp: 1005,
+        }),
+        createTestEvent({
+          type: EventType.RUN_FINISHED,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          timestamp: 1006,
+        }),
+      ];
+
+      // hydration: synthetic runId === threadId, only TEXT_MESSAGE_* (no tool)
+      const hydratedEvents: AgUiEvent[] = [
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: opts.threadId,
+          runId: opts.threadId, // synthetic fallback
+          messageId: `assistant-${opts.threadId}-0`,
+          role: "assistant",
+          timestamp: 1010,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: opts.threadId,
+          runId: opts.threadId,
+          messageId: `assistant-${opts.threadId}-0`,
+          delta: opts.pongText,
+          timestamp: 1011,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: opts.threadId,
+          runId: opts.threadId,
+          messageId: `assistant-${opts.threadId}-0`,
+          timestamp: 1012,
+        }),
+      ];
+
+      const realtimeLedger = buildSyntheticLedger({
+        id: `assistant-${opts.realtimeRunId}-0`,
+        threadId: opts.threadId,
+        runId: opts.realtimeRunId,
+        content: opts.pongText,
+        createdAt: new Date(1003 * 1000),
+        origin: "realtime",
+      });
+
+      const hydratedLedger = buildSyntheticLedger({
+        id: `assistant-${opts.threadId}-0`,
+        threadId: opts.threadId,
+        runId: opts.threadId,
+        content: opts.pongText,
+        createdAt: new Date(1010 * 1000),
+        origin: "fallback",
+      });
+
+      return { realtimeEvents, hydratedEvents, realtimeLedger, hydratedLedger };
+    }
+
+    function buildSyntheticLedger(args: {
+      id: string;
+      threadId: string;
+      runId: string;
+      content: string;
+      createdAt: Date;
+      origin: "realtime" | "snapshot" | "fallback";
+    }) {
+      return [
+        {
+          id: args.id,
+          threadId: args.threadId,
+          runId: args.runId,
+          resolvedRole: "assistant" as const,
+          resolutionSource:
+            args.origin === "realtime"
+              ? ("explicit_role" as const)
+              : ("fallback_assistant" as const),
+          content: args.content,
+          createdAt: args.createdAt,
+          streaming: false,
+          lifecycle: "closed" as const,
+          origin: args.origin,
+          sourceEventTypes: ["TEXT_MESSAGE_END"],
+          relatedMessageIds: [args.id],
+        },
+      ];
+    }
+
+    it("D1: Pong via transfer_to_agent live → mergeEventsWithRealtimePriority 丢弃 synthetic 文本", () => {
+      const pongText = "Pong 🏓 Anything else I can help with?";
+      const { realtimeEvents, hydratedEvents, realtimeLedger, hydratedLedger } =
+        buildPongRealtimeAndHydration({
+          threadId: "session-issue041",
+          realtimeRunId: "uuid-actual",
+          pongText,
+        });
+
+      const merged = mergeEventsWithRealtimePriority(
+        realtimeEvents,
+        hydratedEvents,
+        realtimeLedger,
+        hydratedLedger,
+      );
+
+      // 期望：合并后 TEXT_MESSAGE_* 仅有 realtime 一份（synthetic 被语义匹配丢弃）
+      expect(
+        merged.filter((event) => event.type === EventType.TEXT_MESSAGE_START).length,
+      ).toBe(1);
+      expect(
+        merged.filter((event) => event.type === EventType.TEXT_MESSAGE_CONTENT).length,
+      ).toBe(1);
+      expect(
+        merged.filter((event) => event.type === EventType.TEXT_MESSAGE_END).length,
+      ).toBe(1);
+      // 工具调用保留（仅 realtime 含）
+      expect(merged.some((e) => e.type === EventType.TOOL_CALL_START)).toBe(true);
+    });
+
+    it("D1+: 完整链路 buildConversationTree 仅产出 1 个 turn（synthetic 折叠）", () => {
+      const pongText = "Pong 🏓 Anything else I can help with?";
+      const { realtimeEvents, hydratedEvents, realtimeLedger, hydratedLedger } =
+        buildPongRealtimeAndHydration({
+          threadId: "session-issue041",
+          realtimeRunId: "uuid-actual",
+          pongText,
+        });
+
+      const merged = mergeEventsWithRealtimePriority(
+        realtimeEvents,
+        hydratedEvents,
+        realtimeLedger,
+        hydratedLedger,
+      );
+
+      // 调用 buildConversationTree 在合并事件上构造 tree
+      const tree = buildConversationTree({ events: merged });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // 仅剩 realtime 的 concrete turn
+      expect(turnRoots).toHaveLength(1);
+      expect(turnRoots[0]?.runId).toBe("uuid-actual");
+    });
+
+    it("D2: refresh-only（仅 hydration，无 realtime）→ 1 个 turn 含完整内容", () => {
+      const pongText = "Pong 🏓 Anything else I can help with?";
+      const { hydratedEvents, hydratedLedger } = buildPongRealtimeAndHydration({
+        threadId: "session-issue041",
+        realtimeRunId: "uuid-actual",
+        pongText,
+      });
+
+      // 仅传入 hydratedEvents，realtime 为空
+      const merged = mergeEventsWithRealtimePriority(
+        [],
+        hydratedEvents,
+        [],
+        hydratedLedger,
+      );
+
+      const tree = buildConversationTree({ events: merged });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // 单 synthetic turn 保留（无 concrete turn 可对照折叠）
+      expect(turnRoots).toHaveLength(1);
+    });
+
+    it("D3: 多轮 + live → 每轮 1:1 对应 1 个 turn，无尾部合成大气泡", () => {
+      const pongText1 = "Round 1 reply";
+      const pongText2 = "Round 2 reply";
+      const round1 = buildPongRealtimeAndHydration({
+        threadId: "session-issue041",
+        realtimeRunId: "uuid-r1",
+        pongText: pongText1,
+      });
+      const round2 = buildPongRealtimeAndHydration({
+        threadId: "session-issue041",
+        realtimeRunId: "uuid-r2",
+        pongText: pongText2,
+      });
+
+      // 调整 round2 的时间戳避免与 round1 冲突
+      const shiftedRound2Realtime = round2.realtimeEvents.map((e) => ({
+        ...e,
+        timestamp: ((e as unknown as { timestamp: number }).timestamp + 100),
+      }));
+      const shiftedRound2Hydrated = round2.hydratedEvents.map((e) => ({
+        ...e,
+        timestamp: ((e as unknown as { timestamp: number }).timestamp + 100),
+        // hydration 同 threadId 共享 synthetic runId
+      }));
+
+      const allRealtime = [
+        ...round1.realtimeEvents,
+        ...shiftedRound2Realtime,
+      ] as AgUiEvent[];
+      const allHydrated = [
+        ...round1.hydratedEvents,
+        ...shiftedRound2Hydrated,
+      ] as AgUiEvent[];
+
+      const allRealtimeLedger = [
+        ...round1.realtimeLedger,
+        ...round2.realtimeLedger.map((entry) => ({
+          ...entry,
+          createdAt: new Date(entry.createdAt.getTime() + 100 * 1000),
+        })),
+      ];
+      const allHydratedLedger = [
+        ...round1.hydratedLedger,
+        ...round2.hydratedLedger.map((entry) => ({
+          ...entry,
+          createdAt: new Date(entry.createdAt.getTime() + 100 * 1000),
+        })),
+      ];
+
+      const merged = mergeEventsWithRealtimePriority(
+        allRealtime,
+        allHydrated,
+        allRealtimeLedger,
+        allHydratedLedger,
+      );
+
+      const tree = buildConversationTree({ events: merged });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      const concreteTurns = turnRoots.filter(
+        (t) => t.runId === "uuid-r1" || t.runId === "uuid-r2",
+      );
+      // 期望：两个 concrete turn 1:1 对应 2 个 round
+      expect(concreteTurns).toHaveLength(2);
+      // 期望：synthetic turn (= threadId) 不出现，避免底部合成大气泡累积
+      const syntheticTurn = turnRoots.find((t) => t.runId === "session-issue041");
+      expect(syntheticTurn).toBeUndefined();
+    });
   });
 });

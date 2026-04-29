@@ -34,7 +34,7 @@ import {
   normalizeMessageContent,
 } from "@/utils/message";
 import { isNonCriticalError } from "@/utils/error-filter";
-import { buildMessageLedger } from "@/utils/message-ledger";
+import { buildMessageLedger, isSyntheticRunId } from "@/utils/message-ledger";
 
 type MutableNode = ConversationNode;
 
@@ -558,28 +558,43 @@ function findSubsumingTextNode(
   );
 }
 
-function collapseDefaultTurnDuplicates(roots: MutableNode[]): MutableNode[] {
+function isSyntheticTurnNode(node: MutableNode): boolean {
+  if (node.type !== "turn") return false;
+  if (!node.runId || node.runId === DEFAULT_RUN_ID) return true;
+  // ISSUE-041: hydration 在后端 ADK Web 不透传 runId 时回退到 threadId / sessionId，
+  // 形成 `runId === threadId` 的合成 turn；这类 turn 没有独立 run 语义，可被
+  // 同 threadId 的真 runId turn 兼并。
+  return Boolean(node.threadId) && node.runId === node.threadId;
+}
+
+function collapseSyntheticTurnDuplicates(roots: MutableNode[]): MutableNode[] {
   const concreteTurns = roots.filter(
-    (node) => node.type === "turn" && node.runId && node.runId !== DEFAULT_RUN_ID,
+    (node) => node.type === "turn" && !isSyntheticTurnNode(node),
   );
 
   return roots.filter((node) => {
-    if (node.type !== "turn" || node.runId !== DEFAULT_RUN_ID) {
-      return true;
-    }
-    if (node.children.length === 0) {
-      return false;
-    }
+    if (!isSyntheticTurnNode(node)) return true;
+    if (node.children.length === 0) return false; // 空合成 turn 直接丢弃
 
     return !node.children.every((child) => {
-      if (child.type !== "text" || child.role !== "assistant") {
-        return false;
-      }
-      return concreteTurns.some(
-        (turn) =>
-          Math.abs(turn.timeRange.start - node.timeRange.start) <= 30 &&
-          Boolean(findSubsumingTextNode(turn, child)),
-      );
+      // reasoning / step 类型在合成 turn 内可被无条件吸收（它们本身只是元数据）
+      if (child.type === "reasoning" || child.type === "step") return true;
+      if (child.type !== "text") return false;
+      // 仅 assistant / developer text 允许被合成 turn 吸收
+      if (child.role !== "assistant" && child.role !== "developer") return false;
+      // ISSUE-041: 时间窗按 child.timestamp 与 concrete turn 的 timeRange 比较，
+      // 而非 synthetic turn 的全局 timeRange.start —— 多轮场景下 synthetic turn
+      // 的时间跨度可能横跨多个 concrete turn，全局比较会错放过期外 turn。
+      const childTimestamp = child.timestamp;
+      return concreteTurns.some((turn) => {
+        if (turn.threadId !== node.threadId) return false;
+        // child 时间戳应落在 concrete turn 时间范围内（±30s 容差）
+        const turnStart = turn.timeRange.start;
+        const turnEnd = turn.timeRange.end;
+        if (childTimestamp < turnStart - 30) return false;
+        if (childTimestamp > turnEnd + 30) return false;
+        return Boolean(findSubsumingTextNode(turn, child));
+      });
     });
   });
 }
@@ -1192,13 +1207,20 @@ export function buildConversationTree(
       if (!contentMatches) return false;
       // user 消息跳过 runId 匹配：乐观消息用前端 UUID，AGUI 事件用后端 UUID，必然不同
       const existingRunId = node.runId || undefined;
+      // ISSUE-041: 任一侧为合成 runId（runId === threadId 或 DEFAULT_RUN_ID）时
+      // 视为兼容，避免 hydrated fallback message 与 realtime text 节点身份割裂、
+      // 走入 duplicateNode 不命中分支后再被新建为重复节点。
+      const candidateNodeIsSynthetic = isSyntheticRunId({ runId: existingRunId, threadId: node.threadId });
+      const incomingIsSynthetic = isSyntheticRunId({ runId, threadId });
       const runMatches =
         role === "user" ||
         existingRunId === runId ||
         existingRunId === DEFAULT_RUN_ID ||
         runId === DEFAULT_RUN_ID ||
         !existingRunId ||
-        !runId;
+        !runId ||
+        candidateNodeIsSynthetic ||
+        incomingIsSynthetic;
       if (!runMatches) {
         return false;
       }
@@ -1296,7 +1318,7 @@ export function buildConversationTree(
     attachNode(nodeIndex, roots, turns, link.childId, link.parentId);
   });
 
-  const prunedRoots = collapseDefaultTurnDuplicates(
+  const prunedRoots = collapseSyntheticTurnDuplicates(
     roots
     .map((node) => pruneNode(node))
     .filter((node): node is MutableNode => node !== null),
