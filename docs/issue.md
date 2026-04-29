@@ -867,3 +867,62 @@
 - **同类问题影响**：
   1. 任何 `id.localeCompare` 作 tiebreaker 的排序场景都可能在 createdAt 重合时出现非时间序，本次只修了 ledger 三处 sort，conversation-tree 的 root 排序与 chat-display 的 block 排序仍按 sourceOrder 处理（均使用 `node.sourceOrder`，已稳）；
   2. **与 ISSUE-031 / 036 关系**：031 解决「同一逻辑消息因 messageId 漂移被双写到 ledger」；036 解决「不同逻辑消息因 LLM 重复总结而长文本近重」；039 解决「短文本字面相同的双轮重复 + 跨刷新事件序漂移」。三者正交、互不替代，形成完整去重 / 排序防御链。
+
+---
+
+## ISSUE-040 Home 三连症：思考独白溢出 / 推理头常驻 / 刷新乱序残留
+
+- **表因**：用户在 Home 多轮发送相同 `Ping, give me a pong.` 后看到三类问题共存：
+  1. **(Q1)** Agent 答复中夹带大段第三人称英文独白（如 `We need to respond to the user's latest "Ping, give me a pong." The system requires following the orchestration rules ...`），并伴随历史多轮总结的累积复述；
+  2. **(Q2)** 答复完成、工具组显示「已完成 N 个工具」之后，气泡顶部「正在思考 · 推理阶段」紫色脉冲样式仍未切换为「思考完成 · 推理阶段」；
+  3. **(Q3)** 多轮对话刷新页面后，user / assistant 消息相对位置偶发漂移（即使 commit `3fdbfd3` 已修复 ISSUE-039 的主要乱序面）。
+- **根因**（与 ISSUE-031/036/039 正交，分四组）：
+  1. **H1（Q1 主因）：reasoning/thought 部件未过滤**。默认 LLM 是 `openai/gpt-5-mini`（`apps/negentropy/src/negentropy/config/model_resolver.py:32`，reasoning 模型族），LiteLLM 响应里同时含 `content` 与 `reasoning_content`；`_build_llm_kwargs` 在 anthropic / o1 / o3 模型族下还会注入 `thinking={...}` 或 `reasoning_effort=...`（`config/model_resolver.py:641-657`）。前端 `extractTextParts`（`apps/negentropy-ui/lib/adk.ts:67-87`）与混合 parts 分支（同文件 `consume()`）**只过滤 `functionCall / functionResponse`**，从不检查 `part.thought` 或 `part.type === "thinking" | "thought" | "reasoning" | "reasoning_summary" | "reasoning_text"`。ADK schema 是 `passthrough` 但未声明 `thought`（`lib/adk/schema.ts:23-30`），所以 thought part 静默漏过，被原样拼接到 `TEXT_MESSAGE_CONTENT`。既有 `dedupeRedundantTextSegments`（`utils/chat-display.ts:427-505`）的 4 层判定无法在「字面/前缀/Jaccard」上覆盖此场景——必须在源头剔除。
+  2. **H2（Q2 主因）：`createStepFinishedEvent` 未携带 `stepName`**。`@ag-ui/client@0.0.47` 的事件校验器在 `STEP_STARTED` 时用 `t.stepName` 入栈、在 `STEP_FINISHED` 时同样用 `t.stepName` 比对（`@ag-ui/client/dist/index.mjs` 的 `M = e => t => ...` 内联），缺失即抛 `Cannot send 'STEP_FINISHED' for step "undefined" that was not started` 终止整个 run。本仓库的 `lib/agui/factories.ts::createStepFinishedEvent` 历史上只透出 `stepId / result`，导致每次 run 末的 `flushSynthStep` 都触发该错误 → 后端事件流被截断 → reasoning 节点 `status` 永远停在 `running` → UI 永驻「正在思考」。**这一项与 H1 完全独立**：即使没有 thought 溢出，也会因 STEP 校验失败而卡头部。
+  3. **H3（Q3 主因 a）：fallback 段重建消息节点的 `sourceOrder` 不复用 ledger**。`utils/conversation-tree.ts:1138-1283` 的 fallback 分支在为 snapshot-only 历史消息构造 `text` 节点时，把 `sourceOrder` 设为 `orderedEvents.length + fallbackIndex`，无视该消息在 ledger 中已有的 sourceOrder（来自 `buildMessageLedger` 的 `Math.min` 收敛）。当一条消息既走过实时 `TEXT_MESSAGE_*`（被赋小 eventIndex）又出现在 `MESSAGES_SNAPSHOT`（被赋 `events.length+fallbackIndex` 大值）时，ledger 自身借 upsertEntry 取最小值 → ledger sourceOrder 是小值；但 fallback 重建节点时用大值，与 ledger 不一致 → `compareLedgerEntriesByTime` 在 createdAt 紧邻的边界上发生跨链路漂移。
+  4. **H4（Q3 主因 b）：`eventKey` 浮点抖动保护仅覆盖 `TEXT_MESSAGE_CONTENT`**。`utils/session-hydration.ts::eventKey` 历史上只对 `TEXT_MESSAGE_CONTENT` 做 `.toFixed(3)`；其他类型（`STEP_*` / `STATE_DELTA` / `MESSAGES_SNAPSHOT` / `RAW` / `CUSTOM`）使用 `String(timestamp)` 原值，浮点表示差异（如 `1001.1` vs `1001.10000002384`）会生成不同 key，触发 `mergeEvents` 把同一逻辑事件保留双份。
+- **处理方式**（按假设逐项落地，所有改动只在 UI / 适配层）：
+  1. **H1**：
+     - **`apps/negentropy-ui/lib/adk/schema.ts`**：`adkContentPartSchema` 显式声明 `thought: z.boolean().optional()`，让透传字段不再静默丢；
+     - **`apps/negentropy-ui/lib/adk.ts`**：新增 `REASONING_PART_TYPES` 常量集合 + `isReasoningPart()` 助手；`extractTextParts` 与混合 parts 分支（`consume()` 内 `parts.forEach`）一并跳过 reasoning part；推理文本路由到 `createCustomEvent("ne.a2ui.thought", { text })` 自定义事件作审计痕迹（不进入 conversation-tree 默认渲染面）。
+     - 单元回归：`tests/unit/adk.test.ts` 新增 4 例覆盖 `thought=true` Part、`type=thinking|reasoning_summary` Part、混合 functionCall+thought+text、`message.content` 数组中的推理 Part。
+  2. **H2**：
+     - **`apps/negentropy-ui/lib/agui/factories.ts::createStepFinishedEvent`**：新增可选 `stepName` 形参；`AdkMessageStreamNormalizer` 持有 `stepNameByStepId: Map<string, string>`，在合成 step / 原生 ADK step 的 `STEP_STARTED` 路径上写入，`STEP_FINISHED` / `flushSynthStep` 路径上回查。
+     - 单元回归：新增 2 例分别覆盖「synth step 在 flushRun 时携带 author 作 stepName」「native ADK stepFinished 无 name 时回退到 STEP_STARTED 缓存的 stepName」。
+  3. **H3**：
+     - **`apps/negentropy-ui/utils/conversation-tree.ts:1138-1283`**：在 fallback 节点构造前 `lookup snapshotMessage?.sourceOrder`，命中复用、未命中再回退 `orderedEvents.length + fallbackIndex`。
+     - 测试夹具补一例确认 fallback sourceOrder 能从 ledger 继承。
+  4. **H4**：
+     - **`apps/negentropy-ui/utils/session-hydration.ts::eventKey`**：把 `normalizeTimestamp(t).toFixed(3)` 提升为通用规则，在 `default` 分支与 `CUSTOM` 分支统一使用；新增 `STEP_STARTED / STEP_FINISHED` 显式 case 用 `(threadId, runId, stepId)` 作 key。
+     - 单元回归：新增 2 例覆盖 `STEP_FINISHED` 浮点抖动 + `ne.a2ui.thought` CUSTOM 事件浮点抖动稳定去重。
+- **后续防范**：
+  1. **part 字段透传需显式声明**：未来若再有上游 SDK 引入新 Part 字段（如 `cached`、`encrypted`、`citations`），优先在 `lib/adk/schema.ts` 显式声明 + `extractTextParts` 决定语义，而不是依赖 `passthrough` 漏过；
+  2. **ag-ui / 类似事件协议升级时审计 validator key**：v0.0.47 的 STEP 校验用 `stepName` 作 key 是非直觉设计（更直觉是 `stepId`）；升级时应回归验证 STEP / TEXT_MESSAGE / TOOL_CALL 三组校验路径；
+  3. **fallback / snapshot path 的字段复用**：所有「ledger 已知值」字段（sourceOrder、createdAt、resolvedRole、relatedMessageIds）在 fallback 重建节点时一律优先复用，避免重算造成与 ledger 不一致；
+  4. **eventKey 修订需对所有事件类型扫一遍**：`.toFixed(3)` 的稳定语义最好默认开启而非按类型逐个加；
+  5. **Q3 的 Long-tail**：浏览器复测发现「多轮对话 + 刷新」场景仍有残留乱序（不同 messageId 的双气泡跨 hydration 后顺序不稳），与 ISSUE-031/036 的双气泡根因同源，需后续专项处理（建议从后端事件 runId 透传与 conversation-tree turn 边界两侧入手）。本期 ISSUE-040 已锚定问题、不再扩大爆炸半径。
+- **同类问题影响**：
+  1. 任何「上游 SDK 新增可选 Part 字段 + 前端 passthrough」组合，都可能让该字段漏入用户可见文本，需显式声明 + 语义判定；
+  2. 任何 ag-ui v0.0.47 之上的封装库若构造 STEP_FINISHED，**必须**显式传 `stepName`，否则整个 run 静默被中断；
+  3. 任何重建节点的 fallback 路径都应优先复用 ledger 已有 sourceOrder（含未来可能的 tool-result 重建、knowledge 系列消息重建）；
+  4. **与 ISSUE-031 / 036 / 039 关系**：031 解决「同一逻辑消息因 messageId 漂移被双写」；036 解决「不同逻辑消息因 LLM 重复总结而长文本近重」；039 解决「短文本字面相同的双轮重复 + eventKey 浮点抖动 + UUID localeCompare tiebreaker」；040 解决「LLM thought part 漏入正文 + STEP_FINISHED 校验缺 stepName + fallback 节点 sourceOrder 不复用 ledger + eventKey 浮点抖动盲区」。四者正交、互不替代，共同构成 Home 双气泡 / 推理头 / 排序防御链。
+
+### Q3 长尾闭环：sort tiebreaker 字典序污染 lifecycle 顺序（040 增量补丁）
+
+- **表因（首轮 040 PR 后未消除）**：「多消息→刷新」场景下，user1 → assistant1 → user2 → assistant2 在 hydration 后被打散为 user1 → user2 → assistant1 → assistant2，turn 边界跨 messageId 错位。
+- **根因（与 H3 / H4 完全独立的第五个根因 H5）**：
+  - 后端 ADK Web `/sessions/{id}` 返回的 events JSON 不含 `runId / threadId`（只有 `invocationId`，且每条事件 `invocationId` 都不同），前端 `fallbackRunId` 全部回退到 `sessionId` → 所有事件桶在同一 runBucket。
+  - 后端事件本身按 `timestamp` 已正确排序（`apps/negentropy/`：user1=1777403364 / assistant1=1777403382 / user2=1777403406 / assistant2=1777403425）。
+  - 但 `apps/negentropy-ui/utils/session-hydration.ts:386-392` 的 sort 在 `timestamp` 相等时回退到 `eventKey().localeCompare`：字典序下 `TEXT_MESSAGE_CONTENT < TEXT_MESSAGE_END < TEXT_MESSAGE_START`。
+  - `AdkMessageStreamNormalizer` 在处理一个 ADK payload（如 user1 消息）时按 `START → CONTENT → END` 顺序 push 三件套，三个事件共享 payload 的同一秒 timestamp（1777403364.145）；sort 后乱序为 `CONTENT → END → START`。
+  - 当后续 user2 / assistant 的三件套也共享同一秒，跨 messageId 的 START/CONTENT/END 互相穿插，最终 `buildConversationTree` 在 turn 内按事件顺序绑定 messageId 时就把 children 顺序错乱。
+  - 同样的字典序污染存在于 `mergeEvents` (`session-hydration.ts:146-158`)，最后一步 `mergeEvents([], normalizedEvents)` 会**再次**把刚排好的事件按字典序乱序。
+- **处理方式（最小干预）**：
+  1. **`apps/negentropy-ui/utils/session-hydration.ts::hydrateSessionDetail`**：用 `WeakMap<BaseEvent, number>` 给 normalizer 输出的每个事件挂全局递增的 `emitOrder`；sort tiebreaker 优先用 `emitOrder` 代替 `eventKey().localeCompare`，保留 normalizer 推入顺序作为权威 lifecycle / turn 序。
+  2. **`apps/negentropy-ui/utils/session-hydration.ts::mergeEvents`**：`[...base, ...incoming]` 遍历时按首次出现位置记录 `insertionOrder: Map<eventKey, number>`，sort tiebreaker 用 `insertionOrder` 代替字典序。这样调用方建立的逻辑顺序在 dedup 后仍稳定保留。
+  3. **回归测试**：`tests/unit/utils/session-hydration.test.ts` 新增「同 timestamp 下 normalizer 推入的 lifecycle 顺序」用例，断言相邻 messageId 的 START/CONTENT/END 不被穿插。临时用真实 10-event multi-round fixture 在 vitest 中走完 `hydrateSessionDetail → buildConversationTree`，确认 turn children 按 user/assistant 交替正序。
+- **后续防范**：
+  1. **任何 sort tiebreaker 不得用 `eventKey().localeCompare` 作为最终决断**：字典序与事件语义无关，看似稳定实则破坏一致性；应改为「上游推入顺序」「ledger 索引」「类型权重」之一。
+  2. **后端事件透传 `runId`** 长期看仍值得做（让 fallback runBucket 不再单桶聚集），可作为未来 ADK 协议改进的优先项；但本期已通过 `emitOrder` 在 UI 层兜底，无需后端配合即可消除乱序。
+  3. **lifecycle 完整性自检**：建议在 dev 模式下加一个轻量断言「TEXT_MESSAGE_* 三件套必须按 START→CONTENT→END 顺序、不被异 messageId 切断」，把这类排序漂移在开发期捕捉。
+- **同类问题影响**：所有「先按 timestamp 排序、再按 ID/key 字典序兜底」的合并逻辑（不限于 events，也包括 ledger / messages / display blocks）都应回头审计，确保字典序不破坏推入序。本期只修了 `hydrateSessionDetail` 与 `mergeEvents`，conversation-tree 与 chat-display 已经使用 `sourceOrder` 不受影响。

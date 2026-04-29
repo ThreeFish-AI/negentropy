@@ -64,10 +64,33 @@ function getPayloadRole(payload: AdkEventPayload): NormalizedRole {
   );
 }
 
+// ADK / google-genai 透传的「推理 / 思考」Part 识别：
+// - `thought === true`：Gemini thinking、Claude extended thinking 等显式标记；
+// - `type` ∈ {thinking, thought, reasoning, reasoning_summary, reasoning_text}：
+//   各供应商在 part-level 区分推理与正文的常见 type 值。
+// 这类 part 不应进入 TEXT_MESSAGE_CONTENT 流，否则会以「LLM 思考独白」形式
+// 污染用户可见答复（参见 docs/issue.md::ISSUE-040）。
+const REASONING_PART_TYPES = new Set([
+  "thinking",
+  "thought",
+  "reasoning",
+  "reasoning_summary",
+  "reasoning_text",
+]);
+
+function isReasoningPart(part: {
+  thought?: boolean;
+  type?: string;
+}): boolean {
+  if (part.thought === true) return true;
+  if (part.type && REASONING_PART_TYPES.has(part.type)) return true;
+  return false;
+}
+
 function extractTextParts(payload: AdkEventPayload): string[] {
   if (payload.content?.parts) {
     return payload.content.parts
-      .filter((p) => !p.functionResponse && !p.functionCall)
+      .filter((p) => !p.functionResponse && !p.functionCall && !isReasoningPart(p))
       .map((p) => p.text || "")
       .filter(Boolean);
   }
@@ -78,12 +101,28 @@ function extractTextParts(payload: AdkEventPayload): string[] {
     }
     if (Array.isArray(payload.message.content)) {
       return payload.message.content
+        .filter((p) => !isReasoningPart(p))
         .map((p) => p.text || "")
         .filter(Boolean);
     }
   }
 
   return [];
+}
+
+function extractReasoningTexts(payload: AdkEventPayload): string[] {
+  const texts: string[] = [];
+  if (payload.content?.parts) {
+    payload.content.parts.forEach((p) => {
+      if (isReasoningPart(p) && p.text) texts.push(p.text);
+    });
+  }
+  if (payload.message && Array.isArray(payload.message.content)) {
+    payload.message.content.forEach((p) => {
+      if (isReasoningPart(p) && p.text) texts.push(p.text);
+    });
+  }
+  return texts;
 }
 
 function hasToolCalls(payload: AdkEventPayload): boolean {
@@ -135,6 +174,11 @@ export class AdkMessageStreamNormalizer {
   private synthStepId: string | null = null;
   private synthStepAuthor: string | null = null;
   private synthStepCounter = 0;
+  // ISSUE-040 H2: 跟踪 stepId → stepName 映射，在 STEP_FINISHED 时把同名字段
+  // 透出给 ag-ui 校验器（v0.0.47 的 `STEP_FINISHED` validator 用 `stepName` 比对，
+  // 缺失会触发 `Cannot send 'STEP_FINISHED' for step "undefined" that was not
+  // started`，导致整个 run 被中断、推理头永驻）。
+  private stepNameByStepId = new Map<string, string>();
   private lastCommon: {
     threadId: string;
     runId: string;
@@ -174,11 +218,16 @@ export class AdkMessageStreamNormalizer {
     common: { threadId: string; runId: string; timestamp: number },
   ) {
     if (!this.synthStepId) return;
+    const stepName =
+      this.stepNameByStepId.get(this.synthStepId) ||
+      this.synthStepAuthor ||
+      this.synthStepId;
     events.push(
       createStepFinishedEvent(
         { ...common, messageId: `flush:${this.synthStepId}` },
         this.synthStepId,
         null,
+        stepName,
       ),
       createCustomEvent(
         { ...common, messageId: `flush:${this.synthStepId}` },
@@ -186,6 +235,7 @@ export class AdkMessageStreamNormalizer {
         { stepId: this.synthStepId, phase: "finished" },
       ),
     );
+    this.stepNameByStepId.delete(this.synthStepId);
     this.synthStepId = null;
     this.synthStepAuthor = null;
   }
@@ -218,7 +268,29 @@ export class AdkMessageStreamNormalizer {
     const role = getPayloadRole(payload);
     const isToolResponsePart = payload.content?.parts?.some((p) => p.functionResponse);
     const hasMixedContentParts = payload.content?.parts?.some((p) => p.functionCall) &&
-      payload.content?.parts?.some((p) => !p.functionCall && !p.functionResponse && (p.text || "").trim());
+      payload.content?.parts?.some(
+        (p) =>
+          !p.functionCall &&
+          !p.functionResponse &&
+          !isReasoningPart(p) &&
+          (p.text || "").trim(),
+      );
+
+    // 推理 / 思考 Part 落到独立 ne.a2ui.thought 自定义事件作为审计痕迹，
+    // 不进入 TEXT_MESSAGE_* 流；conversation-tree 默认不渲染该自定义事件，
+    // 避免污染答复气泡，可用于后续 reasoning 面板。
+    const reasoningTexts = extractReasoningTexts(payload);
+    if (reasoningTexts.length > 0) {
+      reasoningTexts.forEach((text) => {
+        events.push(
+          createCustomEvent(
+            { ...common, messageId: payload.id },
+            "ne.a2ui.thought",
+            { text },
+          ),
+        );
+      });
+    }
 
     if (role !== "assistant" || messageShouldFlushAfterPayload(payload)) {
       this.flushAssistantMessage(events, common);
@@ -259,6 +331,9 @@ export class AdkMessageStreamNormalizer {
       parts.forEach((part) => {
         if (part.functionResponse) {
           return; // functionResponse 在下方单独处理
+        }
+        if (isReasoningPart(part)) {
+          return; // 推理内容已通过 ne.a2ui.thought 审计事件透传，不进 TEXT_MESSAGE
         }
         if (part.functionCall) {
           // 先 flush 前面积攒的文本并关闭当前消息
@@ -548,11 +623,16 @@ export class AdkMessageStreamNormalizer {
       if (author && author !== "user" && author !== this.synthStepAuthor) {
         // 关闭前一个合成 step
         if (this.synthStepId) {
+          const prevStepName =
+            this.stepNameByStepId.get(this.synthStepId) ||
+            this.synthStepAuthor ||
+            this.synthStepId;
           events.push(
             createStepFinishedEvent(
               { ...common, messageId: payload.id },
               this.synthStepId,
               null,
+              prevStepName,
             ),
             createCustomEvent(
               { ...common, messageId: payload.id },
@@ -560,10 +640,12 @@ export class AdkMessageStreamNormalizer {
               { stepId: this.synthStepId, phase: "finished" },
             ),
           );
+          this.stepNameByStepId.delete(this.synthStepId);
         }
         // 开启新的合成 step
         this.synthStepId = `synth-step:${author}:${common.runId}:${this.synthStepCounter++}`;
         this.synthStepAuthor = author;
+        this.stepNameByStepId.set(this.synthStepId, author);
         events.push(
           createStepStartedEvent(
             { ...common, messageId: payload.id },
@@ -585,6 +667,10 @@ export class AdkMessageStreamNormalizer {
     };
 
     if (payload.actions?.stepStarted) {
+      this.stepNameByStepId.set(
+        payload.actions.stepStarted.id,
+        payload.actions.stepStarted.name,
+      );
       events.push(
         createStepStartedEvent(
           {
@@ -612,16 +698,21 @@ export class AdkMessageStreamNormalizer {
     }
 
     if (payload.actions?.stepFinished) {
+      const finishedStepId = payload.actions.stepFinished.id;
+      const finishedStepName =
+        this.stepNameByStepId.get(finishedStepId) || finishedStepId;
       events.push(
         createStepFinishedEvent(
           {
             ...common,
             messageId: payload.id,
           },
-          payload.actions.stepFinished.id,
+          finishedStepId,
           payload.actions.stepFinished.result,
+          finishedStepName,
         ),
       );
+      this.stepNameByStepId.delete(finishedStepId);
       events.push(
         createCustomEvent(
           {
@@ -630,7 +721,7 @@ export class AdkMessageStreamNormalizer {
           },
           "ne.a2ui.reasoning",
           {
-            stepId: payload.actions.stepFinished.id,
+            stepId: finishedStepId,
             phase: "finished",
             result: payload.actions.stepFinished.result,
           },
