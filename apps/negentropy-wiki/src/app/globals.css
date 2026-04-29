@@ -184,11 +184,15 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
   background: var(--wiki-sidebar-bg);
   border-right: 1px solid var(--wiki-border);
   position: sticky;
-  top: var(--wiki-header-height);
-  height: calc(100vh - var(--wiki-header-height));
+  top: 0;
+  height: 100vh;
   overflow-y: auto;
   padding: 1.5rem 1rem;
   min-width: 0;
+}
+.wiki-layout[data-header] .wiki-sidebar {
+  top: var(--wiki-header-height);
+  height: calc(100vh - var(--wiki-header-height));
 }
 
 .wiki-main {
@@ -201,12 +205,16 @@ hr { border: none; border-top: 1px solid var(--wiki-border); margin: 2em 0; }
 
 .wiki-toc-aside {
   position: sticky;
-  top: var(--wiki-header-height);
+  top: 0;
   align-self: start;
-  height: calc(100vh - var(--wiki-header-height));
+  height: 100vh;
   overflow-y: auto;
   border-left: 1px solid var(--wiki-border);
   background: var(--wiki-bg);
+}
+.wiki-layout[data-header] .wiki-toc-aside {
+  top: var(--wiki-header-height);
+  height: calc(100vh - var(--wiki-header-height));
 }
 
 /* ====== 顶部 Header（catalog 第一层提升为 tabs）======

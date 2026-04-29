@@ -109,7 +109,7 @@ export function WikiLayoutShell({
   return (
     <TocContext.Provider value={ctxValue}>
       {header}
-      <div className="wiki-layout" data-toc={dataToc}>
+      <div className="wiki-layout" data-toc={dataToc} data-header={header ? "" : undefined}>
         <aside className="wiki-sidebar">{sidebar}</aside>
         <main className="wiki-main">{children}</main>
         {hasToc && <aside className="wiki-toc-aside">{toc}</aside>}
