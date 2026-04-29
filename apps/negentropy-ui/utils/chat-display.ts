@@ -15,7 +15,10 @@ import type {
 import type { ChatMessage, ToolCallStatus } from "@/types/common";
 import { buildNodeSummary, safeJsonParse } from "@/utils/conversation-summary";
 import { isNonCriticalError } from "@/utils/error-filter";
-import { isEquivalentMessageContent } from "@/utils/message";
+import {
+  bigramJaccardSimilarity,
+  isEquivalentMessageContent,
+} from "@/utils/message";
 
 const displayBlockTypeOrder: Record<ChatDisplayBlock["kind"], number> = {
   message: 0,
@@ -371,34 +374,6 @@ function appendReplySegment(builder: ReplyBuilder, segment: AssistantReplyDispla
   }
 }
 
-/**
- * 字符二元组（character bigrams），同时适配中英文：中文无空格分词、英文按字符切分。
- * 用于检测两段助手文本是否「冗余地复述了同一段内容」（典型场景：主动导航 prompt
- * 让 LLM 在 tool 调用前后各产出一段几乎相同的总结）。
- */
-function computeCharBigrams(text: string): Set<string> {
-  const normalized = text.replace(/\s+/g, "");
-  const grams = new Set<string>();
-  for (let i = 0; i + 1 < normalized.length; i += 1) {
-    grams.add(normalized.slice(i, i + 2));
-  }
-  return grams;
-}
-
-function bigramJaccard(a: string, b: string): number {
-  const aGrams = computeCharBigrams(a);
-  const bGrams = computeCharBigrams(b);
-  if (aGrams.size === 0 || bGrams.size === 0) {
-    return 0;
-  }
-  let intersection = 0;
-  for (const gram of aGrams) {
-    if (bGrams.has(gram)) intersection += 1;
-  }
-  const union = aGrams.size + bGrams.size - intersection;
-  return union === 0 ? 0 : intersection / union;
-}
-
 const REDUNDANT_TEXT_SIMILARITY_THRESHOLD = 0.5;
 const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
 
@@ -491,7 +466,7 @@ function dedupeRedundantTextSegments(
       ) {
         continue;
       }
-      const similarity = bigramJaccard(earlierContent, laterContent);
+      const similarity = bigramJaccardSimilarity(earlierContent, laterContent);
       if (similarity >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
         droppedIndices.add(earlierIdx);
       }
@@ -808,7 +783,9 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
 // ISSUE-041: 跨 turn 的 assistant-reply block 去重。当 Layer 1
 // (collapseOverlappingTurns) 因两个 concrete turn 都非 synthetic 而无法折叠时，
 // 这里作为安全网——对时间窗内内容高度相似的相邻 assistant-reply block 保留更完整的一个。
-const CROSS_BLOCK_TIME_WINDOW_MS = 120_000;
+// ISSUE-041: ChatDisplayBlock.timestamp 来源于 node.timeRange.start（秒级），
+// 此处单位为秒，与 conversation-tree::turnsOverlapInTime 的 toleranceSec 对齐。
+const CROSS_BLOCK_TIME_WINDOW_SEC = 120;
 const CROSS_BLOCK_JACCARD_MIN_LENGTH = 30;
 
 function extractAssistantBlockText(block: ChatDisplayBlock): string {
@@ -840,7 +817,7 @@ function dedupeAdjacentAssistantBlocks(blocks: ChatDisplayBlock[]): ChatDisplayB
       if (!earlierText) continue;
 
       // 时间窗外的 block 一定是不同 turn，跳过
-      if (Math.abs(later.timestamp - earlier.timestamp) > CROSS_BLOCK_TIME_WINDOW_MS) continue;
+      if (Math.abs(later.timestamp - earlier.timestamp) > CROSS_BLOCK_TIME_WINDOW_SEC) continue;
 
       // 内容覆盖判定：如果一方是另一方的超集/子集，保留更完整的
       const shorterLen = Math.min(earlierText.length, laterText.length);
@@ -865,7 +842,7 @@ function dedupeAdjacentAssistantBlocks(blocks: ChatDisplayBlock[]): ChatDisplayB
           droppedIds.add(earlierText.length <= laterText.length ? earlier.id : later.id);
           break;
         }
-        if (bigramJaccard(earlierText, laterText) >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
+        if (bigramJaccardSimilarity(earlierText, laterText) >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
           droppedIds.add(earlierText.length <= laterText.length ? earlier.id : later.id);
           break;
         }
