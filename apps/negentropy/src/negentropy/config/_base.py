@@ -5,7 +5,7 @@ Provides :class:`YamlDictSource` — a custom :class:`PydanticBaseSettingsSource
 that feeds pre-parsed YAML data into sub-settings as a *low-priority* source,
 ensuring the canonical priority chain:
 
-    init > env vars > .env files > YAML > field defaults
+    init > env vars > YAML chain > field defaults
 """
 
 from __future__ import annotations
