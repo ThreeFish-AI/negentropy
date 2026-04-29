@@ -858,44 +858,83 @@ describe("buildConversationTree", () => {
 
   // ISSUE-040 H3：fallback 段创建的消息节点 sourceOrder 应来自 ledger（即对应
   // ledger 条目的 sourceOrder），而非每次按 events.length + fallbackIndex 重算。
-  // 这避免了同时通过 events 与 snapshot 命中同一消息时，节点 sourceOrder 与 ledger
-  // sourceOrder 不一致而触发跨链路排序漂移。
-  it("fallback 阶段重建节点的 sourceOrder 来自 ledger 而非按 events.length 重算", () => {
+  // 通过让「snapshot 数组顺序」与「ledger 时间序」错位，迫使两套公式给出不同
+  // 的 sourceOrder，从而真正回归保护 H3 修复（旧实现按 fallbackIndex 重算会与
+  // ledger 错位，跨链路排序漂移）。
+  it("fallback 阶段重建节点的 sourceOrder 来自 ledger 而非按 fallbackIndex 重算", () => {
+    // 关键：snapshot.messages 数组顺序 [msg-late, msg-early]
+    //   → message-ledger 第二轮 snapshot loop 按数组顺序赋 sourceOrder：
+    //     msg-late = orderedEvents.length + 0 = 3
+    //     msg-early = orderedEvents.length + 1 = 4
+    //   → ledger 按 createdAt 排序后回到 [msg-early, msg-late]
+    //   → conversation-tree fallback 路径 mergedFallbackMessages 顺序也是
+    //     [msg-early, msg-late]（因 effectiveMessageLedger 已按时间排序）
+    //
+    //   旧实现（按 fallbackIndex 重算）：
+    //     msg-early node = orderedEvents.length + 0 = 3
+    //     msg-late  node = orderedEvents.length + 1 = 4
+    //
+    //   新实现（复用 ledger.sourceOrder）：
+    //     msg-early node = 4（来自 snapshot 数组次位）
+    //     msg-late  node = 3（来自 snapshot 数组首位）
+    //
+    //   两个公式产出的具体数值在两条消息之间是「互换」的，可作为强差异断言。
     const events: AgUiEvent[] = [
       createTestEvent({
         type: EventType.RUN_STARTED,
         threadId: "thread-1",
         runId: "run-1",
-        timestamp: 1000,
+        timestamp: 900,
       }),
       createTestEvent({
         type: EventType.MESSAGES_SNAPSHOT,
         threadId: "thread-1",
         runId: "run-1",
         messageId: "snapshot-1",
-        timestamp: 1001,
+        timestamp: 1000,
         messages: [
           {
-            id: "msg-user",
+            id: "msg-late",
             role: "user",
-            content: "Need help",
+            content: "Late message",
             threadId: "thread-1",
             runId: "run-1",
-            createdAt: "1970-01-01T00:16:41.000Z",
+            createdAt: "2026-04-29T00:00:02.000Z",
+          },
+          {
+            id: "msg-early",
+            role: "user",
+            content: "Early message",
+            threadId: "thread-1",
+            runId: "run-1",
+            createdAt: "2026-04-29T00:00:01.000Z",
           },
         ],
+      }),
+      createTestEvent({
+        type: EventType.RUN_FINISHED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1100,
       }),
     ];
 
     const tree = buildConversationTree({ events });
 
-    const userNode = tree.roots[0].children.find((n) => n.role === "user");
-    expect(userNode).toBeTruthy();
-    // events.length === 2，旧实现会把 sourceOrder 推到 ≥2 的位置（fallback 重算）。
-    // 新实现复用 ledger 中 snapshot 消息的 sourceOrder（同样为 events.length + 0 = 2，
-    // 因这是单 snapshot 单条，恰巧相等；但若 ledger 经合并已落到更小值，节点应跟随）。
-    // 这里不强测具体数值，仅确认两边同源（都来自 ledger）。
-    expect(typeof userNode!.sourceOrder).toBe("number");
-    expect(Number.isFinite(userNode!.sourceOrder)).toBe(true);
+    const allNodes = tree.roots.flatMap((turn) => turn.children);
+    const nodeLate = allNodes.find((n) => n.messageId === "msg-late");
+    const nodeEarly = allNodes.find((n) => n.messageId === "msg-early");
+    expect(nodeLate).toBeTruthy();
+    expect(nodeEarly).toBeTruthy();
+
+    // 关键断言：sourceOrder 必须与「snapshot 数组中的位置」一致（来自 ledger），
+    // 而不是「mergedFallbackMessages 中的位置」（即旧 fallbackIndex 重算结果）。
+    expect(nodeLate!.sourceOrder).toBe(3);
+    expect(nodeEarly!.sourceOrder).toBe(4);
+
+    // 反向核验：旧实现下 nodeEarly.sourceOrder == 3，nodeLate.sourceOrder == 4，
+    // 与 ledger sourceOrder 错位。当前断言可有效拦截退化。
+    expect(nodeEarly!.sourceOrder).not.toBe(3);
+    expect(nodeLate!.sourceOrder).not.toBe(4);
   });
 });
