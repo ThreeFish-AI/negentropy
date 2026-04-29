@@ -233,6 +233,35 @@ export function isEquivalentMessageContent(
 }
 
 /**
+ * ISSUE-041: 字符二元组 Jaccard 相似度。原由 chat-display.ts 私有持有，
+ * 现提升为共享工具，供 conversation-tree.ts::findSubsumingTextNode 在
+ * 「realtime 流式 partial vs hydration final」内容差异（非 prefix 关系）
+ * 场景下识别同一逻辑消息。Phase 3 RFC 0001 将进一步抽取到 utils/dedup/。
+ */
+export function computeCharBigrams(text: string): Set<string> {
+  const normalized = text.replace(/\s+/g, "");
+  const grams = new Set<string>();
+  for (let i = 0; i + 1 < normalized.length; i += 1) {
+    grams.add(normalized.slice(i, i + 2));
+  }
+  return grams;
+}
+
+export function bigramJaccardSimilarity(a: string, b: string): number {
+  const aGrams = computeCharBigrams(a);
+  const bGrams = computeCharBigrams(b);
+  if (aGrams.size === 0 || bGrams.size === 0) {
+    return 0;
+  }
+  let intersection = 0;
+  for (const gram of aGrams) {
+    if (bGrams.has(gram)) intersection += 1;
+  }
+  const union = aGrams.size + bGrams.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+/**
  * 合并相邻的助手消息
  *
  * 合并策略（基于 runId 区分场景）：

@@ -30,11 +30,12 @@ import {
 } from "@/utils/conversation-summary";
 import {
   accumulateTextContent,
+  bigramJaccardSimilarity,
   isEquivalentMessageContent,
   normalizeMessageContent,
 } from "@/utils/message";
 import { isNonCriticalError } from "@/utils/error-filter";
-import { buildMessageLedger } from "@/utils/message-ledger";
+import { buildMessageLedger, isSyntheticRunId } from "@/utils/message-ledger";
 
 type MutableNode = ConversationNode;
 
@@ -535,6 +536,13 @@ function sortNodeChildren(node: MutableNode) {
   node.children.forEach(sortNodeChildren);
 }
 
+// ISSUE-041: 用于 synthetic turn 折叠时的内容相似度阈值，与 chat-display
+// 的 dedupeRedundantTextSegments 保持一致（≥30 字 + Jaccard ≥ 0.5）。
+// 应对场景：realtime 流式捕获 partial（如 LLM 中途产出 `""` 占位）vs
+// hydration 最终态（如 `"pong"` 已填充），两者非 prefix 关系但同一逻辑。
+const SYNTHETIC_TURN_TEXT_SIMILARITY_THRESHOLD = 0.5;
+const SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH = 30;
+
 function findSubsumingTextNode(
   turn: MutableNode,
   candidate: MutableNode,
@@ -550,38 +558,185 @@ function findSubsumingTextNode(
         return false;
       }
       const childContent = String(child.payload.content || "").trim();
-      if (!childContent.startsWith(candidateContent)) {
-        return false;
+      if (!childContent) return false;
+      // 1) 严格前缀（child 包含 candidate 作为前缀） + 等价性兜底
+      if (
+        childContent.startsWith(candidateContent) &&
+        isEquivalentMessageContent(childContent, candidateContent)
+      ) {
+        return true;
       }
-      return isEquivalentMessageContent(childContent, candidateContent);
+      // 2) ISSUE-041: 反向前缀（candidate 包含 child 作为前缀） —— 当 hydration
+      // 终态 candidate 比 realtime child 更完整时（长尾 partial 截断场景）。
+      if (
+        candidateContent.startsWith(childContent) &&
+        isEquivalentMessageContent(childContent, candidateContent)
+      ) {
+        return true;
+      }
+      // 3) ISSUE-041: 子串包含 —— 当 realtime child 因双轮 LLM partial+final 拼接
+      // 而比 candidate 更长时（如 child = "partial...final" 而 candidate = "final"）。
+      // 此处不要求长度比 0.8（与 isEquivalentMessageContent 的 includes 分支区分），
+      // 仅要求短的一侧 ≥ 30 字以避免误折叠极短文本。
+      const shorterLen = Math.min(childContent.length, candidateContent.length);
+      if (
+        shorterLen >= SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH &&
+        (childContent.includes(candidateContent) ||
+          candidateContent.includes(childContent))
+      ) {
+        return true;
+      }
+      // 4) ISSUE-041: 字符二元组 Jaccard ≥ 0.5 + 双方 ≥ 30 字 —— 应对
+      // realtime partial（中间留空）与 hydration final（中间填充）非 prefix /
+      // 非 includes 但语义同一的场景；与 dedupeRedundantTextSegments 第四层
+      // 判定对齐，作为最后兜底。
+      const longerLen = Math.max(childContent.length, candidateContent.length);
+      if (
+        shorterLen >= SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH &&
+        longerLen >= SYNTHETIC_TURN_TEXT_JACCARD_MIN_LENGTH &&
+        bigramJaccardSimilarity(childContent, candidateContent) >=
+          SYNTHETIC_TURN_TEXT_SIMILARITY_THRESHOLD
+      ) {
+        return true;
+      }
+      return false;
     }) || null
   );
 }
 
-function collapseDefaultTurnDuplicates(roots: MutableNode[]): MutableNode[] {
-  const concreteTurns = roots.filter(
-    (node) => node.type === "turn" && node.runId && node.runId !== DEFAULT_RUN_ID,
-  );
+function isSyntheticTurnNode(node: MutableNode): boolean {
+  if (node.type !== "turn") return false;
+  if (!node.runId || node.runId === DEFAULT_RUN_ID) return true;
+  // ISSUE-041: hydration 在后端 ADK Web 不透传 runId 时回退到 threadId / sessionId，
+  // 形成 `runId === threadId` 的合成 turn；这类 turn 没有独立 run 语义，可被
+  // 同 threadId 的真 runId turn 兼并。
+  return Boolean(node.threadId) && node.runId === node.threadId;
+}
 
-  return roots.filter((node) => {
-    if (node.type !== "turn" || node.runId !== DEFAULT_RUN_ID) {
-      return true;
-    }
-    if (node.children.length === 0) {
-      return false;
-    }
+// ISSUE-041: 合成 turn 内可被「无条件吸收」的元数据节点类型集合 —— 这些类型
+// 仅承载审计 / 状态信息，不在 walkTurnNode 渲染为独立可见块；当它们与同
+// threadId 的真 runId 已配对的同 stepId / toolCallId 重复时，合并丢弃即可。
+// 仅 text / tool-call / tool-result / error 才需要走更严格的 subsumption 检查。
+const SYNTHETIC_TURN_ABSORBABLE_TYPES: ReadonlySet<ConversationNodeType> = new Set([
+  "reasoning",
+  "step",
+  "state-delta",
+  "state-snapshot",
+  "custom",
+  "raw",
+  "event",
+  "activity",
+]);
 
-    return !node.children.every((child) => {
-      if (child.type !== "text" || child.role !== "assistant") {
-        return false;
-      }
-      return concreteTurns.some(
-        (turn) =>
-          Math.abs(turn.timeRange.start - node.timeRange.start) <= 30 &&
-          Boolean(findSubsumingTextNode(turn, child)),
-      );
-    });
+function isAbsorbableSyntheticChild(child: MutableNode): boolean {
+  return SYNTHETIC_TURN_ABSORBABLE_TYPES.has(child.type);
+}
+
+function turnsOverlapInTime(a: MutableNode, b: MutableNode, toleranceSec = 60): boolean {
+  const aStart = a.timeRange.start;
+  const aEnd = a.timeRange.end;
+  const bStart = b.timeRange.start;
+  const bEnd = b.timeRange.end;
+  // 两 turn 时间区间重叠（含 ±tolerance 容差）：a 终点 ≥ b 起点-容差 且 b 终点 ≥ a 起点-容差
+  return aEnd >= bStart - toleranceSec && bEnd >= aStart - toleranceSec;
+}
+
+function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
+  const turnRoots = roots.filter((node) => node.type === "turn");
+  if (turnRoots.length <= 1) return roots;
+
+  // 按 threadId 分组
+  const turnsByThread = new Map<string, MutableNode[]>();
+  turnRoots.forEach((turn) => {
+    const tid = turn.threadId || DEFAULT_THREAD_ID;
+    const bucket = turnsByThread.get(tid) || [];
+    bucket.push(turn);
+    turnsByThread.set(tid, bucket);
   });
+
+  const turnsToRemove = new Set<string>();
+
+  turnsByThread.forEach((threadTurns) => {
+    if (threadTurns.length <= 1) return;
+
+    // 排序：concrete turn 优先于 synthetic，children 多的优先于少的
+    const sorted = [...threadTurns].sort((a, b) => {
+      const aSynthetic = isSyntheticTurnNode(a) ? 1 : 0;
+      const bSynthetic = isSyntheticTurnNode(b) ? 1 : 0;
+      if (aSynthetic !== bSynthetic) return aSynthetic - bSynthetic;
+      return b.children.length - a.children.length;
+    });
+
+    // 对每个非优先 turn，检查是否被优先 turn 完全覆盖
+    for (let i = 1; i < sorted.length; i++) {
+      const candidate = sorted[i];
+      if (candidate.children.length === 0) {
+        turnsToRemove.add(candidate.id);
+        continue;
+      }
+
+      // 安全检查：含 user 角色文本的 turn 不折叠，避免误丢用户消息
+      const hasUserText = candidate.children.some(
+        (child) => child.type === "text" && child.role === "user",
+      );
+      if (hasUserText) continue;
+
+      // 寻找可覆盖 candidate 的 keeper turn
+      let collapsed = false;
+      for (let j = 0; j < i; j++) {
+        if (turnsToRemove.has(sorted[j].id)) continue;
+        const keeper = sorted[j];
+        if (!turnsOverlapInTime(keeper, candidate, 120)) continue;
+
+        // ISSUE-041: 双 concrete turn（都不是 synthetic）不折叠——两个真 runId
+        // 的 turn 可能是后端多 run 场景（如人工审批后重新启动），折叠会误丢合法 turn。
+        // 仅当 candidate 或 keeper 至少一方为 synthetic 时才允许内容级折叠。
+        const bothConcrete = !isSyntheticTurnNode(candidate) && !isSyntheticTurnNode(keeper);
+        if (bothConcrete) continue;
+
+        // 检查 candidate 所有非元数据 children 是否被 keeper 覆盖
+        const allCovered = candidate.children.every((child) => {
+          if (isAbsorbableSyntheticChild(child)) return true;
+          if (child.type === "text" && (child.role === "assistant" || child.role === "developer")) {
+            return Boolean(findSubsumingTextNode(keeper, child));
+          }
+          // tool-call / error: 按 toolCallId 或内容匹配
+          return keeper.children.some(
+            (keeperChild) =>
+              keeperChild.type === child.type &&
+              (keeperChild.toolCallId === child.toolCallId ||
+                (child.type === "error" &&
+                  String(keeperChild.payload?.message || "") ===
+                    String(child.payload?.message || ""))),
+          );
+        });
+
+        if (allCovered) {
+          turnsToRemove.add(candidate.id);
+          collapsed = true;
+          break;
+        }
+      }
+
+      // 后备路径：synthetic turn 的时间窗整体吸收（与原 collapseSyntheticTurnDuplicates
+      // 一致——synthetic turn 必然是 hydration 重放，无条件合并）
+      if (!collapsed && isSyntheticTurnNode(candidate)) {
+        const hasKeeper = sorted.some(
+          (turn, idx) =>
+            idx < i &&
+            !turnsToRemove.has(turn.id) &&
+            turn.threadId === candidate.threadId &&
+            turnsOverlapInTime(turn, candidate, 120),
+        );
+        if (hasKeeper) {
+          turnsToRemove.add(candidate.id);
+        }
+      }
+    }
+  });
+
+  if (turnsToRemove.size === 0) return roots;
+  return roots.filter((node) => !turnsToRemove.has(node.id));
 }
 
 export function buildConversationTree(
@@ -1192,13 +1347,20 @@ export function buildConversationTree(
       if (!contentMatches) return false;
       // user 消息跳过 runId 匹配：乐观消息用前端 UUID，AGUI 事件用后端 UUID，必然不同
       const existingRunId = node.runId || undefined;
+      // ISSUE-041: 任一侧为合成 runId（runId === threadId 或 DEFAULT_RUN_ID）时
+      // 视为兼容，避免 hydrated fallback message 与 realtime text 节点身份割裂、
+      // 走入 duplicateNode 不命中分支后再被新建为重复节点。
+      const candidateNodeIsSynthetic = isSyntheticRunId({ runId: existingRunId, threadId: node.threadId });
+      const incomingIsSynthetic = isSyntheticRunId({ runId, threadId });
       const runMatches =
         role === "user" ||
         existingRunId === runId ||
         existingRunId === DEFAULT_RUN_ID ||
         runId === DEFAULT_RUN_ID ||
         !existingRunId ||
-        !runId;
+        !runId ||
+        candidateNodeIsSynthetic ||
+        incomingIsSynthetic;
       if (!runMatches) {
         return false;
       }
@@ -1296,7 +1458,7 @@ export function buildConversationTree(
     attachNode(nodeIndex, roots, turns, link.childId, link.parentId);
   });
 
-  const prunedRoots = collapseDefaultTurnDuplicates(
+  const prunedRoots = collapseOverlappingTurns(
     roots
     .map((node) => pruneNode(node))
     .filter((node): node is MutableNode => node !== null),
