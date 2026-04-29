@@ -214,6 +214,7 @@ describe("message-ledger", () => {
     // 与 isSemanticEquivalentEntry 的协同放宽行为。
 
     const baseRealtime = {
+      id: "assistant-uuid-actual-run-1-0",
       threadId: "session-abc",
       runId: "uuid-actual-run-1",
       resolvedRole: "assistant" as const,
