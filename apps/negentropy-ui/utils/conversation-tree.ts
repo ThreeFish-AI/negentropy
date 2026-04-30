@@ -718,18 +718,38 @@ function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
         }
       }
 
-      // 后备路径：synthetic turn 的时间窗整体吸收（与原 collapseSyntheticTurnDuplicates
-      // 一致——synthetic turn 必然是 hydration 重放，无条件合并）
+      // 后备路径：synthetic turn 的时间窗整体吸收——仅在 candidate 所有
+      // 非元数据 children 都被某个同 threadId 的 keeper 覆盖时才触发。
+      // 若 candidate 含独特内容（如 hydration 捕获的历史轮次不在
+      // realtime 中），保留不折叠。
       if (!collapsed && isSyntheticTurnNode(candidate)) {
-        const hasKeeper = sorted.some(
+        const keepers = sorted.filter(
           (turn, idx) =>
             idx < i &&
             !turnsToRemove.has(turn.id) &&
             turn.threadId === candidate.threadId &&
             turnsOverlapInTime(turn, candidate, 120),
         );
-        if (hasKeeper) {
-          turnsToRemove.add(candidate.id);
+        if (keepers.length > 0) {
+          const allCovered = candidate.children.every((child) => {
+            if (isAbsorbableSyntheticChild(child)) return true;
+            if (child.type === "text" && (child.role === "assistant" || child.role === "developer")) {
+              return keepers.some((k) => Boolean(findSubsumingTextNode(k, child)));
+            }
+            return keepers.some((k) =>
+              k.children.some(
+                (keeperChild) =>
+                  keeperChild.type === child.type &&
+                  (keeperChild.toolCallId === child.toolCallId ||
+                    (child.type === "error" &&
+                      String(keeperChild.payload?.message || "") ===
+                        String(child.payload?.message || ""))),
+              ),
+            );
+          });
+          if (allCovered) {
+            turnsToRemove.add(candidate.id);
+          }
         }
       }
     }

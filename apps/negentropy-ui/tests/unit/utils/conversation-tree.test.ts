@@ -1081,14 +1081,11 @@ describe("buildConversationTree", () => {
         events: [...realtime, ...hydratedUnique],
       });
       const turnRoots = tree.roots.filter((n) => n.type === "turn");
-      // synthetic turn 因独特内容而保留
-      expect(turnRoots.length).toBeGreaterThanOrEqual(1);
+      // synthetic turn 因独特内容而保留，不应被折叠
+      expect(turnRoots).toHaveLength(2);
       const synthetic = turnRoots.find((t) => t.runId === "session-A");
-      // 注：可能出现 fallback 段重建路径将 synthetic 文本节点合并到 concrete turn
-      // 但若 synthetic turn 仍有独立内容，则不被折叠
-      if (synthetic) {
-        expect(synthetic.children.length).toBeGreaterThan(0);
-      }
+      expect(synthetic).toBeDefined();
+      expect(synthetic!.children.length).toBeGreaterThan(0);
     });
 
     it("C5: 多轮 - 两个 concrete turn + 一个含两轮全部文本的 synthetic turn → synthetic 折叠", () => {
