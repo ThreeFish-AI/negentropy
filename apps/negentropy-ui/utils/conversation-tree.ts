@@ -606,7 +606,7 @@ function findSubsumingTextNode(
 
 function isSyntheticTurnNode(node: MutableNode): boolean {
   if (node.type !== "turn") return false;
-  if (!node.runId || node.runId === DEFAULT_RUN_ID) return true;
+  if (!node.runId || node.runId === DEFAULT_RUN_ID || node.runId === "default") return true;
   // ISSUE-041: hydration 在后端 ADK Web 不透传 runId 时回退到 threadId / sessionId，
   // 形成 `runId === threadId` 的合成 turn；这类 turn 没有独立 run 语义，可被
   // 同 threadId 的真 runId turn 兼并。
