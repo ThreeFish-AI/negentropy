@@ -14,6 +14,9 @@
 0. [范围与事实源](#0-范围与事实源single-source-of-truth)
 1. [引言与项目定位](#1-引言与项目定位)
 2. [学术认知框架：Agent Memory 分类体系](#2-学术认知框架agent-memory-分类体系)
+   - [2.4 工业实践深度对标：Claude Code 记忆架构](#24-工业实践深度对标claude-code-记忆架构)
+   - [2.5 工业实践深度对标：Agent Harness 设计模式](#25-工业实践深度对标agent-harness-设计模式)
+   - [2.6 Negentropy 差异化定位总结](#26-negentropy-差异化定位总结)
 3. [系统架构](#3-系统架构)
 4. [记忆形成 (Memory Formation)](#4-记忆形成-memory-formation)
 5. [记忆演化 (Memory Evolution)](#5-记忆演化-memory-evolution)
@@ -193,6 +196,91 @@ Negentropy 的 Memory 实现并非基于独立中间件，而是采用 **Postgre
 | **混合检索** | Semantic + BM25 + ilike | Vector + Graph | Vector + Graph | Semantic + BM25 + Graph | Vector |
 
 **Negentropy 的差异化定位**：不引入外部图数据库或独立记忆服务，而是在 PostgreSQL 16+ 上实现向量检索(pgvector)、图存储(Apache AGE)、全文检索(tsvector)、定时调度(pg_cron) 的统一方案，降低运维复杂度和数据一致性风险。
+
+### 2.4 工业实践深度对标：Claude Code 记忆架构
+
+本节基于 [ThreeFish-AI/claude-code](https://github.com/ThreeFish-AI/claude-code)（Claude Code 可运行版逆向工程）和 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code)（从零构建 Agent Harness）的源码分析，提炼可指导 Negentropy 记忆模块的关键设计模式。
+
+#### 2.4.1 AutoDream 记忆整理机制
+
+Claude Code 的 AutoDream 是一个后台记忆整合机制，在会话间自动审查、组织和修剪持久化记忆文件。
+
+**四阶段整理流程**（`src/services/autoDream/consolidationPrompt.ts`）：
+
+1. **Orient（定位）**：`ls` 记忆目录，读取 `MEMORY.md` 索引，浏览现有文件避免重复
+2. **Gather（采集）**：按优先级收集新信号（日志 > 过时记忆 > 会话记录），使用窄关键词 grep 而非全文读取
+3. **Consolidate（整合）**：合并新信号到现有文件（而非创建近似重复），转相对日期为绝对日期，删除被推翻的事实
+4. **Prune（修剪）**：`MEMORY.md` ≤200 行 / 25KB，每条 ≤150 字符
+
+**三重门控调度**（`src/services/autoDream/autoDream.ts`）：
+
+```mermaid
+flowchart TD
+    G1["Gate 1: 全局开关<br/>isAutoMemoryEnabled()"] --> G2["Gate 2: 时间门控<br/>hoursSince ≥ 24h"]
+    G2 --> G3["Gate 3: 会话门控<br/>sessionsTouched ≥ 5"]
+    G3 --> Lock["Lock: PID 锁 + mtime<br/>防并发 / 1h 过期"]
+    Lock --> Fork["Forked Agent<br/>受限工具权限"]
+
+    style G1 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G2 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G3 fill:#FEF3C7,stroke:#92400E,color:#000
+    style Lock fill:#FEE2E2,stroke:#991B1B,color:#000
+    style Fork fill:#D1FAE5,stroke:#065F46,color:#000
+```
+
+**Negentropy 适配**：PostgreSQL 方案中，Orient 阶段映射为 `_is_duplicate()` 的 cosine similarity 检测；Consolidate 映射为 `_simple_consolidate` 的分段提取+去重；Prune 映射为 `retention_score` 驱动的 `cleanup_low_value_memories()`。门控策略映射到 `AsyncScheduler` 的应用层调度器回退。
+
+#### 2.4.2 三层上下文压缩策略
+
+Claude Code 采用三层递进压缩策略管理有限上下文窗口：
+
+| 层级 | 触发条件 | API 调用 | 来源 |
+|:--|:--|:--|:--|
+| **MicroCompact** | 每轮静默 | 否 | `src/services/compact/microCompact.ts` |
+| **Session Memory Compact** | 自动触发 | 否（用已提取的 SM） | `src/services/compact/sessionMemoryCompact.ts` |
+| **传统 API 摘要** | 手动 / 回退 | 是 | `src/services/compact/compact.ts` |
+
+MicroCompact 维护一个白名单（`COMPACTABLE_TOOLS`），将超过时间窗口的工具输出替换为 `[Old tool result content cleared]`。Session Memory Compact 使用已提取的 Session Memory 作为压缩摘要，**无需额外 API 调用**。
+
+**Negentropy 适配**：映射到 `ContextAssembler` 的 token 预算管理——先注入高优先级 Facts（Layer 1），再用最近 Memories 填充（Layer 2），最后用对话历史补充（Layer 3）。
+
+#### 2.4.3 记忆四类型分类法
+
+Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes.ts`）：
+
+| 类型 | 存储内容 | 关键约束 |
+|:--|:--|:--|
+| `user` | 用户角色、偏好、技术背景 | 只存无法从项目状态推导的信息 |
+| `feedback` | 工作方式纠正和确认 | 双通道：纠正 + 确认 |
+| `project` | 非代码可推导的项目上下文 | 含 Why + How to apply |
+| `reference` | 外部系统指针 | 轻量级指针，非数据副本 |
+
+**漂移防御**（`TRUSTING_RECALL_SECTION`）：系统 Prompt 中设有"Before recommending from memory"——记忆命名了特定函数/文件/标记时，必须先验证其是否仍存在。
+
+**Negentropy 适配**：直接映射到 `facts` 表的 `fact_type` 字段（`preference/profile/rule/custom`），与四类型高度对齐。
+
+### 2.5 工业实践深度对标：Agent Harness 设计模式
+
+基于 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 的渐进式 Agent 构建教程，提炼以下设计模式：
+
+**三层压缩管线**（`agents/s06_context_compact.py`）：MicroCompact（替换旧工具输出）→ AutoCompact（token 超阈值时 LLM 摘要）→ ManualCompact（用户手动触发）。Transcripts 保存完整历史到磁盘，"Nothing is truly lost — just moved out of active context."
+
+**Skill 按需加载**（`agents/s05_skill_loading.py`）：两层注入——系统提示放 skill 名称（~100 tokens/skill），tool_result 按需加载完整 body（~2000 tokens）。
+
+**Task Graph 持久化**（`agents/s07_task_system.py`）：JSON 文件 DAG，`blockedBy` 依赖边，`pending → in_progress → completed` 状态机，完成时自动解除依赖。
+
+**Negentropy 吸收**：MicroCompact 思路应用于巩固管线的分段策略（保留最近 K 条完整，旧消息缩略）；Task Graph 模式已在项目 `TaskCreate`/`TaskUpdate` 中实现。
+
+### 2.6 Negentropy 差异化定位总结
+
+| 维度 | Claude Code | mem0 / LangChain | Negentropy |
+|:--|:--|:--|:--|
+| **存储** | 纯文件系统 | 多后端（向量/图/内存） | PostgreSQL 单栈 |
+| **遗忘** | Prune 手动管理 | 无衰减 / 手动管理 | Ebbinghaus 仿生遗忘曲线 |
+| **治理** | — | — | GDPR 审计（Retain/Delete/Anonymize） |
+| **调度** | GrowthBook 远程配置 + PID 锁 | 应用层调度 | pg_cron + 应用层 AsyncScheduler 回退 |
+| **检索** | Sonnet 侧查询筛选 | 向量 / 图 / 混合 | 四级回退（Hybrid→Vector→BM25→ILIKE） |
+| **事实提取** | LLM extractMemories | LLM / 模式匹配 | 模式匹配（Phase 1）→ LLM 增强（P1） |
 
 ---
 
