@@ -2032,6 +2032,59 @@ export interface GraphBuildHistoryResult {
   runs: GraphBuildRunRecord[];
 }
 
+// ============================================================================
+// Graph Entity Types
+// ============================================================================
+
+export interface GraphEntityItem {
+  id: string;
+  name: string;
+  entity_type: string;
+  confidence: number;
+  mention_count: number;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface GraphEntityListResponse {
+  count: number;
+  items: GraphEntityItem[];
+}
+
+export interface GraphEntityRelationItem {
+  id: string;
+  direction: "outgoing" | "incoming";
+  relation_type: string;
+  weight: number;
+  confidence: number;
+  evidence_text?: string;
+  peer_entity_id: string;
+  peer_entity_name: string;
+  peer_entity_type: string;
+}
+
+export interface GraphEntityDetailResponse {
+  id: string;
+  name: string;
+  entity_type: string;
+  confidence: number;
+  mention_count: number;
+  description?: string;
+  aliases?: Record<string, unknown>;
+  properties?: Record<string, unknown>;
+  is_active: boolean;
+  relations: GraphEntityRelationItem[];
+}
+
+export interface GraphStatsResponse {
+  total_entities: number;
+  edge_count: number;
+  by_type: Record<string, number>;
+  avg_confidence: number;
+  density: number;
+  avg_degree: number;
+}
+
 /**
  * 构建知识图谱
  * 从语料库的知识块中提取实体和关系，构建知识图谱。
@@ -2141,6 +2194,60 @@ export async function fetchGraphBuildHistory(
 
   const res = await fetch(
     `/api/knowledge/base/${corpusId}/graph/history?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 获取语料库的实体列表
+ */
+export async function fetchGraphEntities(
+  corpusId: string,
+  params?: {
+    entity_type?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<GraphEntityListResponse> {
+  const query = new URLSearchParams();
+  if (params?.entity_type) query.set("entity_type", params.entity_type);
+  if (params?.search) query.set("search", params.search);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/entities?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 获取实体详情（含关系列表）
+ */
+export async function fetchGraphEntityDetail(
+  corpusId: string,
+  entityId: string,
+): Promise<GraphEntityDetailResponse> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/entities/${entityId}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 获取图谱统计信息
+ */
+export async function fetchGraphStats(
+  corpusId: string,
+  appName?: string,
+): Promise<GraphStatsResponse> {
+  const query = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/stats${query}`,
     { cache: "no-store" },
   );
   return handleKnowledgeError(res);

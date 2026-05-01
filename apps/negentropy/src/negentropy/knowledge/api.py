@@ -48,6 +48,7 @@ from .extraction import (
     store_extracted_document_artifacts,
 )
 from .graph_service import GraphService, get_graph_service
+from .kg_entity_service import KgEntityService
 
 # Phase 2-4: 生命周期管理 Schemas
 from .lifecycle_schemas import (  # noqa: F401
@@ -134,11 +135,15 @@ from .schemas import (  # noqa: F401
     DocumentResponse,
     GraphBuildRequest,
     GraphBuildResponse,
+    GraphEntityDetailResponse,
+    GraphEntityItem,
+    GraphEntityListResponse,
     GraphNeighborsRequest,
     GraphPathRequest,
     GraphPayload,
     GraphSearchRequest,
     GraphSearchResponse,
+    GraphStatsResponse,
     GraphUpsertRequest,
     IngestRequest,
     IngestUrlRequest,
@@ -3365,6 +3370,71 @@ async def get_graph_build_history(
             for run in runs
         ],
     }
+
+
+# ============================================================================
+# Graph Entity Endpoints
+# ============================================================================
+
+_kg_entity_service: KgEntityService | None = None
+
+
+def _get_kg_entity_service() -> KgEntityService:
+    global _kg_entity_service
+    if _kg_entity_service is None:
+        _kg_entity_service = KgEntityService()
+    return _kg_entity_service
+
+
+@router.get("/base/{corpus_id}/graph/entities", response_model=GraphEntityListResponse)
+async def list_graph_entities(
+    corpus_id: UUID,
+    entity_type: str | None = Query(default=None),
+    search: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> GraphEntityListResponse:
+    """获取语料库的实体列表
+
+    支持按类型筛选和名称搜索。
+    """
+    entity_svc = _get_kg_entity_service()
+    async with AsyncSessionLocal() as db:
+        items, total = await entity_svc.list_entities(
+            db,
+            corpus_id=corpus_id,
+            entity_type=entity_type,
+            search=search,
+            limit=limit,
+            offset=offset,
+        )
+    return GraphEntityListResponse(count=total, items=[GraphEntityItem(**i) for i in items])
+
+
+@router.get("/base/{corpus_id}/graph/entities/{entity_id}", response_model=GraphEntityDetailResponse)
+async def get_graph_entity_detail(
+    corpus_id: UUID,
+    entity_id: UUID,
+) -> GraphEntityDetailResponse:
+    """获取实体详情（含关系列表）"""
+    entity_svc = _get_kg_entity_service()
+    async with AsyncSessionLocal() as db:
+        detail = await entity_svc.get_entity_detail(db, entity_id=entity_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return GraphEntityDetailResponse(**detail)
+
+
+@router.get("/base/{corpus_id}/graph/stats", response_model=GraphStatsResponse)
+async def get_graph_stats(
+    corpus_id: UUID,
+    app_name: str | None = Query(default=None),
+) -> GraphStatsResponse:
+    """获取图谱统计信息"""
+    resolved_app = _resolve_app_name(app_name)
+    graph_service = _get_graph_service()
+    stats = await graph_service.get_stats(corpus_id=corpus_id, app_name=resolved_app)
+    return GraphStatsResponse(**stats)
 
 
 # ============================================================================

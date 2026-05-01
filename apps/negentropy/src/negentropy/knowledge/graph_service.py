@@ -594,6 +594,71 @@ class GraphService:
             limit=limit,
         )
 
+    async def get_stats(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+    ) -> dict[str, Any]:
+        """获取图谱统计信息
+
+        Returns:
+            统计字典（total_entities, by_type, avg_confidence, edge_count）
+        """
+        from sqlalchemy import func as sql_func
+        from sqlalchemy import select as sql_select
+
+        from negentropy.db.session import AsyncSessionLocal
+        from negentropy.models.perception import KgEntity, KgRelation
+
+        async with AsyncSessionLocal() as db:
+            # Total entities
+            total_result = await db.execute(
+                sql_select(sql_func.count())
+                .select_from(KgEntity)
+                .where(KgEntity.corpus_id == corpus_id, KgEntity.is_active == True)  # noqa: E712
+            )
+            total_entities = total_result.scalar_one()
+
+            # By type
+            by_type_result = await db.execute(
+                sql_select(KgEntity.entity_type, sql_func.count())
+                .where(KgEntity.corpus_id == corpus_id, KgEntity.is_active == True)  # noqa: E712
+                .group_by(KgEntity.entity_type)
+            )
+            by_type = {row[0]: row[1] for row in by_type_result.all()}
+
+            # Avg confidence
+            avg_result = await db.execute(
+                sql_select(sql_func.avg(KgEntity.confidence)).where(
+                    KgEntity.corpus_id == corpus_id,
+                    KgEntity.is_active,  # noqa: E712
+                )  # noqa: E712
+            )
+            avg_confidence = float(avg_result.scalar() or 0)
+
+            # Edge count
+            edge_result = await db.execute(
+                sql_select(sql_func.count())
+                .select_from(KgRelation)
+                .where(KgRelation.corpus_id == corpus_id, KgRelation.is_active == True)  # noqa: E712
+            )
+            edge_count = edge_result.scalar_one()
+
+            # Density: edges / (entities * (entities - 1))
+            density = 0.0
+            if total_entities > 1:
+                max_edges = total_entities * (total_entities - 1)
+                density = round(edge_count / max_edges, 4)
+
+            return {
+                "total_entities": total_entities,
+                "edge_count": edge_count,
+                "by_type": by_type,
+                "avg_confidence": round(avg_confidence, 3),
+                "density": density,
+                "avg_degree": round(2 * edge_count / total_entities, 1) if total_entities > 0 else 0,
+            }
+
     async def clear_graph(
         self,
         corpus_id: UUID,

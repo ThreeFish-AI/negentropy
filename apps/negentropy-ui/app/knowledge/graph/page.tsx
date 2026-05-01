@@ -1,14 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
-import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
-  fetchGraph,
-  KnowledgeGraphPayload,
-  upsertGraph,
+  type GraphBuildRunRecord,
+  type GraphSearchResultItem,
+  type KnowledgeGraphPayload,
+  buildKnowledgeGraph,
+  fetchCorpusGraph,
 } from "@/features/knowledge";
+
+import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
+import { CorpusSelector } from "./_components/CorpusSelector";
+import { EntityDetailPanel } from "./_components/EntityDetailPanel";
+import { EntityListPanel } from "./_components/EntityListPanel";
+import { GraphStatsPanel } from "./_components/GraphStatsPanel";
+import { NeighborExplorer } from "./_components/NeighborExplorer";
+import { PathExplorer } from "./_components/PathExplorer";
+import { SearchBar } from "./_components/SearchBar";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -23,39 +33,97 @@ type GraphNodePos = GraphNode & {
   fy?: number | null;
 };
 
+const NODE_COLORS: Record<string, string> = {
+  person: "#3B82F6",
+  organization: "#10B981",
+  location: "#F59E0B",
+  event: "#EF4444",
+  concept: "#8B5CF6",
+  product: "#EC4899",
+  document: "#6366F1",
+  other: "#6B7280",
+};
+
+function nodeColor(type?: string): string {
+  return NODE_COLORS[type ?? "other"] ?? NODE_COLORS.other;
+}
+
 export default function KnowledgeGraphPage() {
+  const [corpusId, setCorpusId] = useState<string | null>(null);
   const [payload, setPayload] = useState<KnowledgeGraphPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [retryQueue, setRetryQueue] = useState<KnowledgeGraphPayload[]>([]);
+  const [viewTab, setViewTab] = useState<"graph" | "entities">("graph");
+  const [entityDetailId, setEntityDetailId] = useState<string | null>(null);
+  const [building, setBuilding] = useState(false);
+  const [searchResults, setSearchResults] = useState<GraphSearchResultItem[] | null>(null);
+  const [buildError, setBuildError] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
   >(null);
 
+  const loadGraph = useCallback(
+    async (cid: string) => {
+      setError(null);
+      try {
+        const data = await fetchCorpusGraph(cid, APP_NAME, true);
+        setPayload(data);
+      } catch (err) {
+        setError(String(err));
+        setPayload(null);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    let active = true;
-    fetchGraph(APP_NAME)
-      .then((data) => {
-        if (active) {
-          setPayload(data);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setError(String(err));
-        }
+    if (corpusId) {
+      loadGraph(corpusId);
+    } else {
+      setPayload(null);
+      setError(null);
+    }
+  }, [corpusId, loadGraph]);
+
+  const handleBuild = useCallback(async () => {
+    if (!corpusId) return;
+    setBuilding(true);
+    setBuildError(null);
+    try {
+      const result = await buildKnowledgeGraph(corpusId, {
+        enable_llm_extraction: true,
       });
-    return () => {
-      active = false;
-    };
-  }, []);
+      if (result.status === "failed") {
+        setBuildError(result.error_message ?? "构建失败");
+      }
+      await loadGraph(corpusId);
+    } catch (err) {
+      setBuildError(String(err));
+    } finally {
+      setBuilding(false);
+    }
+  }, [corpusId, loadGraph]);
 
   const nodes = useMemo(() => (payload?.nodes || []) as GraphNode[], [payload]);
   const edges = useMemo(() => (payload?.edges || []) as GraphEdge[], [payload]);
-  const runs = payload?.runs || [];
-  const latestRun = (runs[0] || {}) as { run_id?: string; version?: number };
+
+  const runs = useMemo(() => {
+    const raw = payload?.runs || [];
+    return raw.map(
+      (r): GraphBuildRunRecord => ({
+        id: (r as Record<string, unknown>).id as string ?? r.run_id ?? "",
+        run_id: r.run_id ?? "",
+        status: r.status ?? "unknown",
+        entity_count: (r as Record<string, unknown>).entity_count as number ?? 0,
+        relation_count: (r as Record<string, unknown>).relation_count as number ?? 0,
+        started_at: (r as Record<string, unknown>).started_at as string,
+        completed_at: (r as Record<string, unknown>).completed_at as string,
+        model_name: (r as Record<string, unknown>).model_name as string,
+        error_message: (r as Record<string, unknown>).error_message as string,
+      }),
+    );
+  }, [payload]);
 
   const [layout, setLayout] = useState<GraphNodePos[]>([]);
 
@@ -78,14 +146,16 @@ export default function KnowledgeGraphPage() {
       const { select } = await import("d3-selection");
       const { zoom } = await import("d3-zoom");
 
-      const width = 360;
-      const height = 360;
+      const container = svgRef.current.parentElement;
+      const width = container?.clientWidth ?? 700;
+      const height = Math.max(400, container?.clientHeight ?? 500);
+
       const nodeMap = new Map<string, GraphNodePos>();
       nodes.forEach((node) => {
         nodeMap.set(node.id, {
           ...node,
-          x: width / 2 + (Math.random() - 0.5) * 120,
-          y: height / 2 + (Math.random() - 0.5) * 120,
+          x: width / 2 + (Math.random() - 0.5) * 200,
+          y: height / 2 + (Math.random() - 0.5) * 200,
           vx: 0,
           vy: 0,
         });
@@ -98,22 +168,22 @@ export default function KnowledgeGraphPage() {
           if (!source || !target) return null;
           return { source, target, label: edge.label };
         })
-        .filter((edge) => edge !== null) as {
+        .filter(Boolean) as {
         source: GraphNodePos;
         target: GraphNodePos;
         label?: string;
       }[];
 
       const simulation = forceSimulation(nodesArr)
-        .force("charge", forceManyBody().strength(-240))
+        .force("charge", forceManyBody().strength(-200))
         .force(
           "link",
           forceLink(links)
             .id((d) => (d as GraphNodePos).id)
-            .distance(120),
+            .distance(100),
         )
         .force("center", forceCenter(width / 2, height / 2))
-        .force("collide", forceCollide(20))
+        .force("collide", forceCollide(18))
         .alphaDecay(0.03);
       simulationRef.current = simulation;
 
@@ -121,7 +191,7 @@ export default function KnowledgeGraphPage() {
       const g = svg.select("g.graph-layer");
       svg.call(
         zoom<SVGSVGElement, unknown>()
-          .scaleExtent([0.5, 2.5])
+          .scaleExtent([0.3, 4])
           .on("zoom", (event) => {
             g.attr("transform", event.transform.toString());
           }),
@@ -139,7 +209,6 @@ export default function KnowledgeGraphPage() {
         simulation.stop();
       };
     };
-
     run();
     return () => {
       active = false;
@@ -148,9 +217,7 @@ export default function KnowledgeGraphPage() {
   }, [nodes, edges]);
 
   useEffect(() => {
-    if (!svgRef.current || !simulationRef.current || !layout.length) {
-      return;
-    }
+    if (!svgRef.current || !simulationRef.current || !layout.length) return;
     let active = true;
     const run = async () => {
       const { select } = await import("d3-selection");
@@ -189,6 +256,15 @@ export default function KnowledgeGraphPage() {
   const selectedNode =
     layout.find((node) => node.id === selectedNodeId) || null;
 
+  const entityStats = useMemo(() => {
+    const byType: Record<string, number> = {};
+    nodes.forEach((n) => {
+      const t = n.type || "other";
+      byType[t] = (byType[t] || 0) + 1;
+    });
+    return { total: nodes.length, edges: edges.length, byType };
+  }, [nodes, edges]);
+
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
@@ -196,48 +272,101 @@ export default function KnowledgeGraphPage() {
         description="实体关系视图与构建历史"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
+        <div className="flex min-h-0 flex-1 gap-6 px-6 py-4">
+          {/* Main content area */}
           <div className="min-h-0 min-w-0 flex-[2.2] overflow-y-auto">
-            <div className="pb-4 pr-2">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="space-y-4 pb-4 pr-2">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between">
+                <CorpusSelector value={corpusId} onChange={setCorpusId} />
+                <div className="flex items-center gap-3">
+                  <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <button
+                      onClick={() => setViewTab("graph")}
+                      className={`px-3 py-1 text-xs font-medium ${
+                        viewTab === "graph"
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                      } rounded-l-lg`}
+                    >
+                      可视化
+                    </button>
+                    <button
+                      onClick={() => setViewTab("entities")}
+                      className={`px-3 py-1 text-xs font-medium ${
+                        viewTab === "entities"
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                      } rounded-r-lg`}
+                    >
+                      实体列表
+                    </button>
+                  </div>
+                  {building && (
+                    <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">
+                      正在构建...
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Content Area */}
+              {viewTab === "graph" && corpusId && (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <SearchBar
+                  corpusId={corpusId}
+                  onResults={setSearchResults}
+                  onClear={() => setSearchResults(null)}
+                />
+                {searchResults && searchResults.length > 0 && (
+                  <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                    {searchResults.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setSelectedNodeId(item.entity.id)}
+                        className="flex items-center justify-between rounded border border-zinc-100 dark:border-zinc-800 px-2 py-1 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                      >
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300">
+                          {item.entity.label || item.entity.id.slice(0, 8)}
+                        </span>
+                        <span className="text-[10px] text-zinc-400">
+                          {item.combined_score.toFixed(3)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              )}
+              {viewTab === "graph" ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     Graph Canvas
                   </h2>
-                  <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-                    <span>点击节点查看详情</span>
-                    <button
-                      className={outlineButtonClassName("neutral", "rounded-full px-3 py-1 text-[11px]")}
-                      onClick={async () => {
-                        if (!payload) return;
-                        setSaveStatus("saving");
-                        try {
-                          const runId = latestRun.run_id || crypto.randomUUID();
-                          await upsertGraph({
-                            app_name: APP_NAME,
-                            run_id: runId,
-                            status: "completed",
-                            graph: payload,
-                            expected_version: latestRun.version,
-                            idempotency_key: crypto.randomUUID(),
-                          });
-                          setSaveStatus("saved");
-                        } catch (err) {
-                          setSaveStatus(`error:${String(err)}`);
-                          setRetryQueue((prev) => [...prev, payload]);
-                        }
-                      }}
-                    >
-                      写回图谱
-                    </button>
-                  </div>
+                  {entityStats.total > 0 && (
+                    <div className="flex gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
+                      <span>{entityStats.total} 实体</span>
+                      <span>{entityStats.edges} 关系</span>
+                    </div>
+                  )}
                 </div>
-                <div className="mt-4 flex h-[360px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
-                  {layout.length ? (
+                <div className="mt-3 flex h-[500px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
+                  {!corpusId ? (
+                    <div className="text-center">
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                        请选择语料库
+                      </p>
+                    </div>
+                  ) : error ? (
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      加载失败：{error}
+                    </p>
+                  ) : layout.length ? (
                     <svg
                       ref={svgRef}
-                      width={360}
-                      height={360}
+                      width="100%"
+                      height="100%"
                       className="rounded-xl bg-white/60 dark:bg-zinc-800/60"
                     >
                       <g className="graph-layer">
@@ -248,9 +377,7 @@ export default function KnowledgeGraphPage() {
                           const target = layout.find(
                             (node) => node.id === edge.target,
                           );
-                          if (!source || !target) {
-                            return null;
-                          }
+                          if (!source || !target) return null;
                           return (
                             <g key={`${edge.source}-${edge.target}-${index}`}>
                               <line
@@ -259,118 +386,210 @@ export default function KnowledgeGraphPage() {
                                 x2={target.x}
                                 y2={target.y}
                                 stroke="#d4d4d8"
-                                strokeWidth={1.4}
+                                strokeWidth={1}
+                                strokeOpacity={0.6}
                               />
-                              {edge.label ? (
+                              {edge.label && (
                                 <text
                                   x={(source.x + target.x) / 2}
                                   y={(source.y + target.y) / 2}
-                                  fontSize={9}
-                                  fill="#71717a"
+                                  fontSize={8}
+                                  fill="#a1a1aa"
+                                  textAnchor="middle"
                                 >
                                   {edge.label}
                                 </text>
-                              ) : null}
+                              )}
                             </g>
                           );
                         })}
                         {layout.map((node) => (
-                          <g key={node.id} onClick={() => setSelectedNodeId(node.id)}>
+                          <g
+                            key={node.id}
+                            onClick={() => setSelectedNodeId(node.id)}
+                            className="cursor-pointer"
+                          >
                             <circle
                               cx={node.x}
                               cy={node.y}
-                              r={selectedNodeId === node.id ? 18 : 14}
-                              fill={
-                                selectedNodeId === node.id ? "#18181b" : "#3f3f46"
+                              r={selectedNodeId === node.id ? 12 : 8}
+                              fill={nodeColor(node.type)}
+                              stroke={
+                                selectedNodeId === node.id
+                                  ? "#18181b"
+                                  : "none"
+                              }
+                              strokeWidth={selectedNodeId === node.id ? 2 : 0}
+                              fillOpacity={
+                                selectedNodeId === node.id ? 1 : 0.85
                               }
                             />
                             <text
                               x={node.x}
-                              y={node.y + 30}
-                              fontSize={10}
+                              y={node.y + 20}
+                              fontSize={9}
                               textAnchor="middle"
-                              fill="#27272a"
+                              fill="#52525b"
+                              className="dark:fill-zinc-400"
                             >
-                              {node.label || node.id}
+                              {node.label || node.id.slice(0, 8)}
                             </text>
                           </g>
                         ))}
                       </g>
                     </svg>
                   ) : (
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">暂无图谱数据</p>
+                    <div className="text-center space-y-3">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        暂无图谱数据
+                      </p>
+                      <BuildPanel
+                        building={building}
+                        corpusId={corpusId}
+                        lastBuildError={buildError}
+                        onBuild={handleBuild}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
+              ) : (
+              /* Entity List View */
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
+                  实体列表
+                </h2>
+                {corpusId ? (
+                  <EntityListPanel
+                    corpusId={corpusId}
+                    onSelectEntity={setEntityDetailId}
+                    selectedEntityId={entityDetailId}
+                  />
+                ) : (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center py-8">
+                    请选择语料库
+                  </p>
+                )}
+              </div>
+              )}
             </div>
           </div>
-          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+
+          {/* Sidebar */}
+          <aside className="min-h-0 min-w-0 w-72 flex-shrink-0 overflow-y-auto">
             <div className="space-y-4 pb-4 pr-2">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Entity Detail
-                </h2>
-                {selectedNode ? (
-                  <div className="mt-3 text-xs text-zinc-600 dark:text-zinc-400">
-                    <p>ID: {selectedNode.id}</p>
-                    <p>Label: {selectedNode.label || "-"}</p>
-                    <p>Type: {selectedNode.type || "-"}</p>
+              {/* Build action (when graph exists) */}
+              {corpusId && (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    构建
+                  </h3>
+                  <div className="mt-2">
+                    <BuildPanel
+                      building={building}
+                      corpusId={corpusId}
+                      lastBuildError={buildError}
+                      onBuild={handleBuild}
+                    />
                   </div>
-                ) : (
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">暂无实体选中</p>
-                )}
-              </div>
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Build Runs</h2>
-                {runs.length ? (
-                  <div className="mt-3 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
-                    {runs.map((run, index) => (
-                      <div
-                        key={index}
-                        className="rounded-lg border border-zinc-200 p-2 dark:border-zinc-700"
-                      >
-                        {JSON.stringify(run)}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">暂无构建记录</p>
-                )}
-              </div>
-              {retryQueue.length ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-700 shadow-sm dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
-                  <p className="font-semibold">待重试写回：{retryQueue.length}</p>
-                  <button
-                    className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"
-                    onClick={async () => {
-                      const next = retryQueue[0];
-                      if (!next) return;
-                      setSaveStatus("retrying");
-                      try {
-                        const runId = latestRun.run_id || crypto.randomUUID();
-                        await upsertGraph({
-                          app_name: APP_NAME,
-                          run_id: runId,
-                          status: "completed",
-                          graph: next,
-                          expected_version: latestRun.version,
-                          idempotency_key: crypto.randomUUID(),
-                        });
-                        setRetryQueue((prev) => prev.slice(1));
-                        setSaveStatus("saved");
-                      } catch (err) {
-                        setSaveStatus(`error:${String(err)}`);
-                      }
-                    }}
-                  >
-                    重试写回
-                  </button>
                 </div>
-              ) : null}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-                {error
-                  ? `加载失败：${error}`
-                  : `状态源：${payload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
+              )}
+
+              {/* Entity Detail */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  实体详情
+                </h3>
+                {viewTab === "graph" ? (
+                  selectedNode ? (
+                  <div className="mt-3 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-3 w-3 rounded-full"
+                        style={{ backgroundColor: nodeColor(selectedNode.type) }}
+                      />
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                        {selectedNode.label || selectedNode.id.slice(0, 8)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <span className="text-zinc-500">ID</span>
+                      <span className="font-mono text-[10px]">
+                        {selectedNode.id.slice(0, 12)}...
+                      </span>
+                      <span className="text-zinc-500">类型</span>
+                      <span>{selectedNode.type || "-"}</span>
+                    </div>
+                  </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                      点击节点查看详情
+                    </p>
+                  )
+                ) : corpusId ? (
+                  <div className="mt-2">
+                    <EntityDetailPanel
+                      corpusId={corpusId}
+                      entityId={entityDetailId}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    选择语料库后查看实体
+                  </p>
+                )}
+              </div>
+
+              {/* Graph Stats */}
+              {corpusId && (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    图谱统计
+                  </h3>
+                  <div className="mt-2">
+                    <GraphStatsPanel corpusId={corpusId} />
+                  </div>
+                </div>
+              )}
+
+              {/* Build History */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  构建历史
+                </h3>
+                <BuildHistoryList runs={runs} />
+              </div>
+
+              {/* Path Explorer */}
+              {corpusId && (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  路径探索
+                </h3>
+                <div className="mt-2">
+                  <PathExplorer
+                    corpusId={corpusId}
+                    onPathFound={() => {}}
+                  />
+                </div>
+              </div>
+              )}
+
+              {/* Neighbor Explorer */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  邻居遍历
+                </h3>
+                <div className="mt-2">
+                  <NeighborExplorer
+                    entityId={viewTab === "graph" ? selectedNodeId : entityDetailId}
+                    entityName={
+                      viewTab === "graph"
+                        ? layout.find((n) => n.id === selectedNodeId)?.label
+                        : undefined
+                    }
+                  />
+                </div>
               </div>
             </div>
           </aside>

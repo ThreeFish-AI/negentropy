@@ -82,6 +82,9 @@ export {
   findGraphPath,
   clearCorpusGraph,
   fetchGraphBuildHistory,
+  fetchGraphEntities,
+  fetchGraphEntityDetail,
+  fetchGraphStats,
   // Catalog Management
   fetchCatalogs,
   createCatalog,
@@ -175,6 +178,11 @@ export type {
   GraphPathResult,
   GraphBuildRunRecord,
   GraphBuildHistoryResult,
+  GraphEntityItem,
+  GraphEntityListResponse,
+  GraphEntityRelationItem,
+  GraphEntityDetailResponse,
+  GraphStatsResponse,
   // Catalog Management
   CatalogNodeType,
   DocCatalog,

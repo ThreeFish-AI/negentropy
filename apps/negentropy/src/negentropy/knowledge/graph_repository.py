@@ -542,35 +542,72 @@ class AgeGraphRepository(GraphRepository):
         max_depth: int = 1,
         limit: int = 100,
     ) -> list[GraphNode]:
-        """查询邻居节点
+        """查询邻居节点（基于 kg_relations 递归 CTE 多跳遍历）
 
-        当前实现：基于 metadata 中的 related_entities 查询。
+        通过 kg_entities + kg_relations 表进行图遍历，
+        支持 1-max_depth 跳的邻居查询。
         """
         session = await self._get_session()
+        clean_id = entity_id.replace("entity:", "")
 
-        # 简化实现：从 metadata 中获取关联实体
         query = text(f"""
-            SELECT id, content, entity_type, metadata, entity_confidence
-            FROM {self._schema}.knowledge
-            WHERE entity_type IS NOT NULL
-              AND metadata->'related_entities' IS NOT NULL
-              AND (
-                  id::text IN (
-                      SELECT jsonb_array_elements(metadata->'related_entities')->>'target_id'
-                      FROM {self._schema}.knowledge
-                      WHERE id::text = :entity_id
-                  )
-                  OR metadata->'related_entities' @> jsonb_build_array(
-                      jsonb_build_object('target_id', :entity_id)
-                  )
-              )
+            WITH RECURSIVE neighbor_tree AS (
+                -- Base: direct neighbors of the seed entity
+                SELECT
+                    r.target_id AS neighbor_id,
+                    r.source_id AS via_id,
+                    1 AS distance
+                FROM {self._schema}.kg_relations r
+                WHERE r.source_id = :entity_id AND r.is_active = true
+
+                UNION
+
+                SELECT
+                    r.source_id AS neighbor_id,
+                    r.target_id AS via_id,
+                    1 AS distance
+                FROM {self._schema}.kg_relations r
+                WHERE r.target_id = :entity_id AND r.is_active = true
+
+                UNION ALL
+
+                -- Recursive: expand from known neighbors
+                SELECT
+                    r.target_id AS neighbor_id,
+                    r.source_id AS via_id,
+                    nt.distance + 1 AS distance
+                FROM {self._schema}.kg_relations r
+                JOIN neighbor_tree nt ON r.source_id = nt.neighbor_id
+                WHERE r.is_active = true
+                  AND nt.distance < :max_depth
+                  AND r.target_id != :entity_id
+
+                UNION ALL
+
+                SELECT
+                    r.source_id AS neighbor_id,
+                    r.target_id AS via_id,
+                    nt.distance + 1 AS distance
+                FROM {self._schema}.kg_relations r
+                JOIN neighbor_tree nt ON r.target_id = nt.neighbor_id
+                WHERE r.is_active = true
+                  AND nt.distance < :max_depth
+                  AND r.source_id != :entity_id
+            )
+            SELECT DISTINCT ON (e.id)
+                e.id, e.name, e.entity_type, e.confidence, e.properties
+            FROM neighbor_tree nt
+            JOIN {self._schema}.kg_entities e ON e.id = nt.neighbor_id
+            WHERE e.is_active = true
+            ORDER BY e.id, nt.distance
             LIMIT :limit
         """)
 
         result = await session.execute(
             query,
             {
-                "entity_id": entity_id.replace("entity:", ""),
+                "entity_id": clean_id,
+                "max_depth": max_depth,
                 "limit": limit,
             },
         )
@@ -578,10 +615,13 @@ class AgeGraphRepository(GraphRepository):
         neighbors = []
         for row in result:
             neighbor = GraphNode(
-                id=f"entity:{row.id}",
-                label=row.content[:100] if row.content else None,
+                id=str(row.id),
+                label=row.name,
                 node_type=row.entity_type,
-                metadata=row.metadata or {},
+                metadata={
+                    "confidence": float(row.confidence) if row.confidence else 0,
+                    **(row.properties or {}),
+                },
             )
             neighbors.append(neighbor)
 
@@ -600,20 +640,71 @@ class AgeGraphRepository(GraphRepository):
         target_id: str,
         max_depth: int = 5,
     ) -> list[str] | None:
-        """查询两点间最短路径
+        """查询两点间最短路径（基于 kg_relations 递归 CTE BFS）
 
-        当前实现：返回简化路径。
-        未来：使用 Apache AGE Cypher shortestPath()。
+        使用广度优先搜索在 kg_relations 表上查找最短路径。
         """
-        # 简化实现：如果存在直接关系，返回路径
-        neighbors = await self.find_neighbors(source_id, max_depth=1)
-
+        session = await self._get_session()
+        source_clean = source_id.replace("entity:", "")
         target_clean = target_id.replace("entity:", "")
-        for neighbor in neighbors:
-            if target_clean in neighbor.id:
-                return [source_id, target_id]
 
-        return None
+        if source_clean == target_clean:
+            return [source_clean]
+
+        query = text(f"""
+            WITH RECURSIVE path_search AS (
+                -- Base case: all edges from source
+                SELECT
+                    source_id,
+                    target_id,
+                    ARRAY[source_id] AS path,
+                    1 AS depth
+                FROM {self._schema}.kg_relations
+                WHERE source_id = :source_id AND is_active = true
+
+                UNION ALL
+
+                -- Recursive case: extend path
+                SELECT
+                    r.source_id,
+                    r.target_id,
+                    ps.path || r.target_id,
+                    ps.depth + 1
+                FROM {self._schema}.kg_relations r
+                JOIN path_search ps ON r.source_id = ps.target_id
+                WHERE r.is_active = true
+                  AND ps.depth < :max_depth
+                  AND r.target_id != ALL(ps.path)
+            )
+            SELECT path || target_id AS full_path
+            FROM path_search
+            WHERE target_id = :target_id
+            ORDER BY depth
+            LIMIT 1
+        """)
+
+        result = await session.execute(
+            query,
+            {
+                "source_id": source_clean,
+                "target_id": target_clean,
+                "max_depth": max_depth,
+            },
+        )
+
+        row = result.first()
+        if row is None:
+            return None
+
+        path = [str(pid) for pid in row.full_path]
+        logger.debug(
+            "path_found",
+            source_id=source_id,
+            target_id=target_id,
+            path_length=len(path),
+        )
+
+        return path
 
     async def hybrid_search(
         self,
