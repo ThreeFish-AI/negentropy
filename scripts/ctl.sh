@@ -64,9 +64,10 @@ pid_file() { echo "$RUN_DIR/$1.pid"; }
 log_file() { echo "$RUN_DIR/$1.log"; }
 
 is_running() {
-  local pid pid_file="$RUN_DIR/$1.pid"
-  [[ -f "$pid_file" ]] || return 1
-  pid="$(cat "$pid_file")"
+  local pid pf
+  pf="$(pid_file "$1")"
+  [[ -f "$pf" ]] || return 1
+  pid="$(cat "$pf")"
   kill -0 "$pid" 2>/dev/null
 }
 
@@ -80,6 +81,7 @@ wait_for_health() {
     if curl -sfLo /dev/null "http://localhost:${port}/" 2>/dev/null; then
       return 0
     fi
+    is_running "$name" || return 1
     sleep 1
     ((i++))
   done
@@ -275,6 +277,16 @@ cmd_restart() {
 # ── 子命令: logs ─────────────────────────────────────────────────────────────────
 cmd_logs() {
   local target="${1:-all}"
+  if [[ "$target" != "all" ]]; then
+    local valid=false
+    for svc in "${ALL_SERVICES[@]}"; do
+      [[ "$target" == "$svc" ]] && valid=true && break
+    done
+    if ! $valid; then
+      log_error "未知服务 '${target}'，可用: ${ALL_SERVICES[*]}"
+      exit 1
+    fi
+  fi
   if [[ "$target" == "all" ]]; then
     tail -f "$(log_file backend)" "$(log_file ui)" "$(log_file wiki)" 2>/dev/null \
       || log_error "无日志文件，请先启动服务"
