@@ -6,27 +6,9 @@ import {
   fetchGraphEntities,
 } from "@/features/knowledge";
 
-const ENTITY_TYPES = [
-  "person",
-  "organization",
-  "location",
-  "event",
-  "concept",
-  "product",
-  "document",
-  "other",
-];
+import { ENTITY_TYPE_COLORS } from "./constants";
 
-const TYPE_COLORS: Record<string, string> = {
-  person: "#3B82F6",
-  organization: "#10B981",
-  location: "#F59E0B",
-  event: "#EF4444",
-  concept: "#8B5CF6",
-  product: "#EC4899",
-  document: "#6366F1",
-  other: "#6B7280",
-};
+const ENTITY_TYPES = Object.keys(ENTITY_TYPE_COLORS);
 
 interface EntityListPanelProps {
   corpusId: string;
@@ -164,7 +146,7 @@ export function EntityListPanel({
                         className="inline-block h-2 w-2 rounded-full"
                         style={{
                           backgroundColor:
-                            TYPE_COLORS[entity.entity_type] ?? TYPE_COLORS.other,
+                            ENTITY_TYPE_COLORS[entity.entity_type] ?? ENTITY_TYPE_COLORS.other,
                         }}
                       />
                       <span className="text-zinc-600 dark:text-zinc-400">

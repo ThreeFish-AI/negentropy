@@ -3419,7 +3419,7 @@ async def get_graph_entity_detail(
     """获取实体详情（含关系列表）"""
     entity_svc = _get_kg_entity_service()
     async with AsyncSessionLocal() as db:
-        detail = await entity_svc.get_entity_detail(db, entity_id=entity_id)
+        detail = await entity_svc.get_entity_detail(db, entity_id=entity_id, corpus_id=corpus_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="Entity not found")
     return GraphEntityDetailResponse(**detail)
@@ -3431,9 +3431,9 @@ async def get_graph_stats(
     app_name: str | None = Query(default=None),
 ) -> GraphStatsResponse:
     """获取图谱统计信息"""
-    resolved_app = _resolve_app_name(app_name)
     graph_service = _get_graph_service()
-    stats = await graph_service.get_stats(corpus_id=corpus_id, app_name=resolved_app)
+    async with AsyncSessionLocal() as db:
+        stats = await graph_service.get_stats(db, corpus_id=corpus_id)
     return GraphStatsResponse(**stats)
 
 

@@ -19,6 +19,7 @@ import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
+import { entityColor } from "./_components/constants";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -32,21 +33,6 @@ type GraphNodePos = GraphNode & {
   fx?: number | null;
   fy?: number | null;
 };
-
-const NODE_COLORS: Record<string, string> = {
-  person: "#3B82F6",
-  organization: "#10B981",
-  location: "#F59E0B",
-  event: "#EF4444",
-  concept: "#8B5CF6",
-  product: "#EC4899",
-  document: "#6366F1",
-  other: "#6B7280",
-};
-
-function nodeColor(type?: string): string {
-  return NODE_COLORS[type ?? "other"] ?? NODE_COLORS.other;
-}
 
 export default function KnowledgeGraphPage() {
   const [corpusId, setCorpusId] = useState<string | null>(null);
@@ -413,7 +399,7 @@ export default function KnowledgeGraphPage() {
                               cx={node.x}
                               cy={node.y}
                               r={selectedNodeId === node.id ? 12 : 8}
-                              fill={nodeColor(node.type)}
+                              fill={entityColor(node.type)}
                               stroke={
                                 selectedNodeId === node.id
                                   ? "#18181b"
@@ -506,7 +492,7 @@ export default function KnowledgeGraphPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-block h-3 w-3 rounded-full"
-                        style={{ backgroundColor: nodeColor(selectedNode.type) }}
+                        style={{ backgroundColor: entityColor(selectedNode.type) }}
                       />
                       <span className="font-medium text-zinc-900 dark:text-zinc-100">
                         {selectedNode.label || selectedNode.id.slice(0, 8)}

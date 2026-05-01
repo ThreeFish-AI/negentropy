@@ -680,7 +680,7 @@ class AgeGraphRepository(GraphRepository):
                 SELECT
                     r.source_id,
                     r.target_id,
-                    ps.path || r.target_id,
+                    ps.path || ps.target_id,
                     ps.depth + 1
                 FROM {self._schema}.kg_relations r
                 JOIN path_search ps ON r.source_id = ps.target_id
@@ -694,7 +694,7 @@ class AgeGraphRepository(GraphRepository):
                 SELECT
                     r.target_id AS source_id,
                     r.source_id AS target_id,
-                    ps.path || r.source_id,
+                    ps.path || ps.target_id,
                     ps.depth + 1
                 FROM {self._schema}.kg_relations r
                 JOIN path_search ps ON r.target_id = ps.target_id

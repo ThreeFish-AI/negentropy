@@ -6,16 +6,7 @@ import {
   fetchGraphEntityDetail,
 } from "@/features/knowledge";
 
-const TYPE_COLORS: Record<string, string> = {
-  person: "#3B82F6",
-  organization: "#10B981",
-  location: "#F59E0B",
-  event: "#EF4444",
-  concept: "#8B5CF6",
-  product: "#EC4899",
-  document: "#6366F1",
-  other: "#6B7280",
-};
+import { ENTITY_TYPE_COLORS } from "./constants";
 
 interface EntityDetailPanelProps {
   corpusId: string;
@@ -93,7 +84,7 @@ export function EntityDetailPanel({
           className="inline-block h-3 w-3 rounded-full"
           style={{
             backgroundColor:
-              TYPE_COLORS[currentDetail.entity_type] ?? TYPE_COLORS.other,
+              ENTITY_TYPE_COLORS[currentDetail.entity_type] ?? ENTITY_TYPE_COLORS.other,
           }}
         />
         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -176,8 +167,8 @@ export function EntityDetailPanel({
                     className="inline-block h-2 w-2 rounded-full"
                     style={{
                       backgroundColor:
-                        TYPE_COLORS[rel.peer_entity_type] ??
-                        TYPE_COLORS.other,
+                        ENTITY_TYPE_COLORS[rel.peer_entity_type] ??
+                        ENTITY_TYPE_COLORS.other,
                     }}
                   />
                   <span className="text-xs text-zinc-600 dark:text-zinc-400">

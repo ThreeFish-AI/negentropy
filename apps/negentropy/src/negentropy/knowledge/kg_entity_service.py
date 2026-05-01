@@ -403,8 +403,13 @@ class KgEntityService:
         self,
         db: AsyncSession,
         entity_id: UUID,
+        *,
+        corpus_id: UUID | None = None,
     ) -> dict | None:
         """获取实体详情含关系
+
+        Args:
+            corpus_id: 可选语料库过滤，传入后仅返回该语料库下的实体
 
         Returns:
             实体详情 dict 或 None（未找到）
@@ -414,9 +419,13 @@ class KgEntityService:
 
         from negentropy.models.perception import KgEntity, KgRelation
 
+        filters = [KgEntity.id == entity_id]
+        if corpus_id is not None:
+            filters.append(KgEntity.corpus_id == corpus_id)
+
         result = await db.execute(
             sql_select(KgEntity)
-            .where(KgEntity.id == entity_id)
+            .where(*filters)
             .options(
                 selectinload(KgEntity.outgoing_relations).selectinload(KgRelation.target_entity),
                 selectinload(KgEntity.incoming_relations).selectinload(KgRelation.source_entity),
