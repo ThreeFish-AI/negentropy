@@ -177,21 +177,26 @@ class TestAgeGraphRepository:
 
     @pytest.mark.asyncio
     async def test_clear_graph_resets_entity_fields(self, repository, mock_session):
-        """clear_graph 应重置实体相关字段"""
+        """clear_graph 应重置一等公民表和 knowledge 表"""
         mock_result = MagicMock()
         mock_result.rowcount = 5
         mock_session.execute.return_value = mock_result
 
         count = await repository.clear_graph(_CORPUS_ID)
 
-        mock_session.execute.assert_called_once()
+        # 3 calls: delete kg_relations, delete kg_entities, update knowledge
+        assert mock_session.execute.call_count == 3
         mock_session.commit.assert_called_once()
         assert count == 5
 
     @pytest.mark.asyncio
     async def test_get_graph_returns_nodes_and_edges(self, repository, mock_session):
-        """get_graph 应返回节点和边"""
-        # Mock entities query result
+        """get_graph 应从一等公民表优先读取，回退到 JSONB"""
+        # 第一阶段：一等公民表返回空（触发回退）
+        empty_result = MagicMock()
+        empty_result.__iter__ = lambda self: iter([])
+
+        # 第二阶段：JSONB 回退路径返回数据
         mock_row = MagicMock()
         mock_row.id = "entity-id"
         mock_row.content = "Entity content"
@@ -199,9 +204,10 @@ class TestAgeGraphRepository:
         mock_row.metadata = {"related_entities": [{"target_id": "other-id", "relation_type": "WORKS_FOR"}]}
         mock_row.entity_confidence = 0.9
 
-        mock_result = MagicMock()
-        mock_result.__iter__ = lambda self: iter([mock_row])
-        mock_session.execute.return_value = mock_result
+        jsonb_result = MagicMock()
+        jsonb_result.__iter__ = lambda self: iter([mock_row])
+
+        mock_session.execute.side_effect = [empty_result, jsonb_result]
 
         graph = await repository.get_graph(_CORPUS_ID, "test_app")
 

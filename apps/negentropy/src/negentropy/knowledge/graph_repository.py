@@ -454,39 +454,66 @@ class AgeGraphRepository(GraphRepository):
     ) -> str:
         """创建关系边
 
-        当前实现：将关系存储在 knowledge 表的 metadata 中。
-        未来：使用 Apache AGE Cypher 创建关系。
+        写入 kg_relations 一等公民表（SSoT），同时保留 knowledge.metadata JSONB
+        作为过渡期兼容。参见 Kleppmann §11 事务内双写模式。
         """
+        import json as _json
+
         session = await self._get_session()
 
-        # 将关系信息存储到源实体的 metadata 中
+        clean_source = source_id.replace("entity:", "")
+        clean_target = target_id.replace("entity:", "")
+        confidence = relation.metadata.get("confidence", 1.0)
+        evidence = relation.metadata.get("evidence")
+
+        # 1. 写入 kg_relations 一等公民表
+        insert_query = text(f"""
+            INSERT INTO {self._schema}.kg_relations
+                (source_id, target_id, corpus_id, app_name, relation_type,
+                 weight, confidence, evidence_text, metadata, is_active)
+            SELECT :source_id, :target_id, k.corpus_id, k.app_name,
+                   :relation_type, :weight, :confidence, :evidence, :metadata::jsonb, true
+            FROM {self._schema}.knowledge k
+            WHERE k.id = :source_id
+            ON CONFLICT DO NOTHING
+        """)
+
+        await session.execute(
+            insert_query,
+            {
+                "source_id": clean_source,
+                "target_id": clean_target,
+                "relation_type": relation.edge_type or "RELATED_TO",
+                "weight": relation.weight or 1.0,
+                "confidence": confidence,
+                "evidence": evidence,
+                "metadata": _json.dumps(relation.metadata or {}),
+            },
+        )
+
+        # 2. 过渡期：同时写入 JSONB（兼容旧读取路径）
         relation_data = {
-            "target_id": target_id,
+            "target_id": clean_target,
             "relation_type": relation.edge_type,
-            "confidence": relation.metadata.get("confidence", 1.0),
-            "evidence": relation.metadata.get("evidence"),
+            "confidence": confidence,
+            "evidence": evidence,
         }
 
-        # 获取当前 related_entities 列表
-        query = text(f"""
+        select_query = text(f"""
             SELECT metadata->'related_entities' as related
             FROM {self._schema}.knowledge
             WHERE id = :source_id
         """)
 
-        result = await session.execute(query, {"source_id": source_id.replace("entity:", "")})
+        result = await session.execute(select_query, {"source_id": clean_source})
         row = result.fetchone()
 
         related_entities = []
         if row and row.related:
-            import json
+            related_entities = _json.loads(row.related) if isinstance(row.related, str) else row.related
 
-            related_entities = json.loads(row.related) if isinstance(row.related, str) else row.related
-
-        # 添加新关系
         related_entities.append(relation_data)
 
-        # 更新 metadata
         update_query = text(f"""
             UPDATE {self._schema}.knowledge
             SET metadata = COALESCE(metadata, '{{}}'::jsonb) ||
@@ -494,13 +521,11 @@ class AgeGraphRepository(GraphRepository):
             WHERE id = :source_id
         """)
 
-        import json
-
         await session.execute(
             update_query,
             {
-                "source_id": source_id.replace("entity:", ""),
-                "related": json.dumps(related_entities),
+                "source_id": clean_source,
+                "related": _json.dumps(related_entities),
             },
         )
 
@@ -806,10 +831,120 @@ class AgeGraphRepository(GraphRepository):
         corpus_id: UUID,
         app_name: str,
     ) -> KnowledgeGraphPayload:
-        """获取完整图谱"""
+        """获取完整图谱
+
+        优先从 kg_entities + kg_relations 一等公民表读取。
+        若一等公民表为空（旧数据迁移前），回退到 knowledge.metadata JSONB。
+        """
         session = await self._get_session()
 
-        # 获取所有实体
+        # 尝试从一等公民表读取
+        nodes, edges = await self._load_graph_from_first_class_tables(
+            session,
+            corpus_id,
+            app_name,
+        )
+
+        # 回退：从 knowledge.metadata JSONB 读取（兼容旧数据）
+        if not nodes:
+            nodes, edges = await self._load_graph_from_jsonb(
+                session,
+                corpus_id,
+                app_name,
+            )
+
+        logger.info(
+            "graph_loaded",
+            corpus_id=str(corpus_id),
+            node_count=len(nodes),
+            edge_count=len(edges),
+        )
+
+        return KnowledgeGraphPayload(nodes=nodes, edges=edges)
+
+    async def _load_graph_from_first_class_tables(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,
+    ) -> tuple[list[GraphNode], list[GraphEdge]]:
+        """从 kg_entities + kg_relations 一等公民表加载图谱"""
+        # 加载实体
+        entities_query = text(f"""
+            SELECT id, name, canonical_name, entity_type, confidence,
+                   mention_count, description, properties
+            FROM {self._schema}.kg_entities
+            WHERE corpus_id = :corpus_id AND is_active = true
+            ORDER BY mention_count DESC NULLS LAST
+        """)
+
+        result = await session.execute(
+            entities_query,
+            {"corpus_id": str(corpus_id)},
+        )
+
+        nodes = []
+        entity_ids = set()
+        for row in result:
+            nodes.append(
+                GraphNode(
+                    id=f"entity:{row.id}",
+                    label=row.name or row.canonical_name,
+                    node_type=row.entity_type,
+                    metadata={
+                        "confidence": row.confidence,
+                        "mention_count": row.mention_count,
+                        "description": row.description,
+                        **(row.properties or {}),
+                    },
+                )
+            )
+            entity_ids.add(str(row.id))
+
+        if not nodes:
+            return [], []
+
+        # 加载关系
+        relations_query = text(f"""
+            SELECT r.source_id, r.target_id, r.relation_type,
+                   r.weight, r.confidence, r.evidence_text
+            FROM {self._schema}.kg_relations r
+            WHERE r.corpus_id = :corpus_id AND r.is_active = true
+        """)
+
+        result = await session.execute(
+            relations_query,
+            {"corpus_id": str(corpus_id)},
+        )
+
+        edges = []
+        for row in result:
+            source_str = str(row.source_id)
+            target_str = str(row.target_id)
+            # 只包含两端实体都在结果中的边
+            if source_str in entity_ids and target_str in entity_ids:
+                edges.append(
+                    GraphEdge(
+                        source=f"entity:{source_str}",
+                        target=f"entity:{target_str}",
+                        edge_type=row.relation_type,
+                        weight=row.weight or 1.0,
+                        metadata={
+                            "confidence": row.confidence,
+                            "evidence": row.evidence_text,
+                        },
+                    )
+                )
+
+        return nodes, edges
+
+    async def _load_graph_from_jsonb(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,
+    ) -> tuple[list[GraphNode], list[GraphEdge]]:
+        """从 knowledge.metadata JSONB 加载图谱（旧数据回退路径）"""
         entities_query = text(f"""
             SELECT id, content, entity_type, metadata, entity_confidence
             FROM {self._schema}.knowledge
@@ -820,10 +955,7 @@ class AgeGraphRepository(GraphRepository):
 
         result = await session.execute(
             entities_query,
-            {
-                "corpus_id": str(corpus_id),
-                "app_name": app_name,
-            },
+            {"corpus_id": str(corpus_id), "app_name": app_name},
         )
 
         nodes = []
@@ -838,53 +970,64 @@ class AgeGraphRepository(GraphRepository):
             )
             nodes.append(node)
 
-            # 从 metadata 中提取关系
             if row.metadata and "related_entities" in row.metadata:
                 for rel in row.metadata["related_entities"]:
-                    edge = GraphEdge(
-                        source=f"entity:{row.id}",
-                        target=rel.get("target_id", ""),
-                        edge_type=rel.get("relation_type", "RELATED_TO"),
-                        weight=rel.get("confidence", 1.0),
-                        metadata={"evidence": rel.get("evidence")},
+                    edges.append(
+                        GraphEdge(
+                            source=f"entity:{row.id}",
+                            target=rel.get("target_id", ""),
+                            edge_type=rel.get("relation_type", "RELATED_TO"),
+                            weight=rel.get("confidence", 1.0),
+                            metadata={"evidence": rel.get("evidence")},
+                        )
                     )
-                    edges.append(edge)
 
-        logger.info(
-            "graph_loaded",
-            corpus_id=str(corpus_id),
-            node_count=len(nodes),
-            edge_count=len(edges),
-        )
-
-        return KnowledgeGraphPayload(nodes=nodes, edges=edges)
+        return nodes, edges
 
     async def clear_graph(
         self,
         corpus_id: UUID,
     ) -> int:
-        """清除语料库的图谱数据"""
+        """清除语料库的图谱数据
+
+        同时清理 kg_entities、kg_relations 一等公民表和 knowledge.metadata JSONB。
+        """
         session = await self._get_session()
 
-        # 重置实体相关字段
-        query = text(f"""
-            UPDATE {self._schema}.knowledge
-            SET entity_type = NULL,
-                entity_confidence = NULL,
-                metadata = metadata - 'related_entities'
-            WHERE corpus_id = :corpus_id
-              AND entity_type IS NOT NULL
-        """)
+        # 1. 清理一等公民表
+        await session.execute(
+            text(f"DELETE FROM {self._schema}.kg_relations WHERE corpus_id = :cid"),
+            {"cid": str(corpus_id)},
+        )
+        entity_result = await session.execute(
+            text(f"DELETE FROM {self._schema}.kg_entities WHERE corpus_id = :cid"),
+            {"cid": str(corpus_id)},
+        )
+        entity_count = entity_result.rowcount or 0
 
-        result = await session.execute(query, {"corpus_id": str(corpus_id)})
+        # 2. 重置 knowledge 表的实体字段
+        knowledge_result = await session.execute(
+            text(f"""
+                UPDATE {self._schema}.knowledge
+                SET entity_type = NULL,
+                    entity_confidence = NULL,
+                    metadata = metadata - 'related_entities'
+                WHERE corpus_id = :corpus_id
+                  AND entity_type IS NOT NULL
+            """),
+            {"corpus_id": str(corpus_id)},
+        )
+        knowledge_count = knowledge_result.rowcount or 0
+
         await session.commit()
 
-        count = result.rowcount
+        count = max(entity_count, knowledge_count)
 
         logger.info(
             "graph_cleared",
             corpus_id=str(corpus_id),
-            nodes_cleared=count,
+            entities_cleared=entity_count,
+            knowledge_cleared=knowledge_count,
         )
 
         return count

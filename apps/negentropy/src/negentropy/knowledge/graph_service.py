@@ -300,6 +300,53 @@ class GraphService:
             # 持久化关系
             await self._repository.create_relations(valid_relations)
 
+            # 同步到一等公民表 (kg_entities / kg_relations)
+            # 参见 Kleppmann DDIA §11: 事务内双写保证 SSoT 一致性
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .kg_entity_service import KgEntityService
+
+                kg_service = KgEntityService()
+                node_dicts = [
+                    {
+                        "id": e.id.replace("entity:", ""),
+                        "label": e.label,
+                        "node_type": e.node_type,
+                        "confidence": e.metadata.get("confidence", 1.0),
+                        "metadata": e.metadata,
+                    }
+                    for e in entities_to_save
+                ]
+                edge_dicts = [
+                    {
+                        "source": r.source.replace("entity:", ""),
+                        "target": r.target.replace("entity:", ""),
+                        "edge_type": r.edge_type,
+                        "label": r.label,
+                        "weight": r.weight,
+                        "evidence_text": r.metadata.get("evidence"),
+                    }
+                    for r in valid_relations
+                ]
+                async with AsyncSessionLocal() as sync_db:
+                    sync_result = await kg_service.batch_sync_from_graph_build(
+                        sync_db,
+                        nodes=node_dicts,
+                        edges=edge_dicts,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                    )
+                    logger.info(
+                        "kg_first_class_sync",
+                        **sync_result,
+                    )
+            except Exception as sync_exc:
+                logger.warning(
+                    "kg_first_class_sync_failed",
+                    error=str(sync_exc),
+                )
+
             elapsed = time.time() - start_time
 
             # 更新构建运行状态
