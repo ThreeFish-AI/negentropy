@@ -615,7 +615,7 @@ class AgeGraphRepository(GraphRepository):
         neighbors = []
         for row in result:
             neighbor = GraphNode(
-                id=str(row.id),
+                id=f"entity:{row.id}",
                 label=row.name,
                 node_type=row.entity_type,
                 metadata={

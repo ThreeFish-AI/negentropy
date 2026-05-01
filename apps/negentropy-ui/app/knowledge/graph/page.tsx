@@ -583,11 +583,6 @@ export default function KnowledgeGraphPage() {
                 <div className="mt-2">
                   <NeighborExplorer
                     entityId={viewTab === "graph" ? selectedNodeId : entityDetailId}
-                    entityName={
-                      viewTab === "graph"
-                        ? layout.find((n) => n.id === selectedNodeId)?.label
-                        : undefined
-                    }
                   />
                 </div>
               </div>

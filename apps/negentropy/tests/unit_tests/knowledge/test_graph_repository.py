@@ -151,27 +151,29 @@ class TestAgeGraphRepository:
     @pytest.mark.asyncio
     async def test_find_path_returns_none_if_no_direct_relation(self, repository, mock_session):
         """find_path 无直接关系时应返回 None"""
-        with patch.object(repository, "find_neighbors") as mock_neighbors:
-            mock_neighbors.return_value = []  # No neighbors
+        mock_result = MagicMock()
+        mock_result.first.return_value = None
+        mock_session.execute.return_value = mock_result
 
-            path = await repository.find_path("entity:a", "entity:b")
+        path = await repository.find_path("entity:a", "entity:b")
 
-            assert path is None
+        assert path is None
 
     @pytest.mark.asyncio
     async def test_find_path_returns_path_if_direct_relation(self, repository, mock_session):
         """find_path 有直接关系时应返回路径"""
-        with patch.object(repository, "find_neighbors") as mock_neighbors:
-            mock_neighbors.return_value = [
-                GraphNode(id="entity:target-id", label="Target", node_type="person"),
-            ]
+        mock_row = MagicMock()
+        mock_row.full_path = ["source-id", "target-id"]
+        mock_result = MagicMock()
+        mock_result.first.return_value = mock_row
+        mock_session.execute.return_value = mock_result
 
-            path = await repository.find_path("entity:source-id", "entity:target-id")
+        path = await repository.find_path("entity:source-id", "entity:target-id")
 
-            assert path is not None
-            assert len(path) == 2
-            assert "source" in path[0]
-            assert "target" in path[1]
+        assert path is not None
+        assert len(path) == 2
+        assert "source" in path[0]
+        assert "target" in path[1]
 
     @pytest.mark.asyncio
     async def test_clear_graph_resets_entity_fields(self, repository, mock_session):
