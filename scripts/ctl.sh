@@ -106,7 +106,7 @@ start_service() {
   fi
 
   log_info "启动 ${name} (port ${port})..."
-  (cd "$REPO_ROOT/$dir" && eval "$cmd") >> "$(log_file "$name")" 2>&1 &
+  (cd "$REPO_ROOT/$dir" && exec $cmd) >> "$(log_file "$name")" 2>&1 &
   echo $! > "$(pid_file "$name")"
 
   if wait_for_health "$name" "$port"; then
