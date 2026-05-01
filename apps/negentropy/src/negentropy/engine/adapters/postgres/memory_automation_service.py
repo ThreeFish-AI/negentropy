@@ -318,10 +318,12 @@ class MemoryAutomationService:
         effective_config = config or await self.get_effective_config(app_name=app_name)
         await self._reconcile_functions(config=effective_config)
         capabilities = await self._get_capabilities()
-        if not capabilities["pg_cron_available"]:
-            return
-        for job_key in JOB_TEMPLATES:
-            await self._reconcile_single_job(job_key=job_key, config=effective_config)
+        if capabilities["pg_cron_available"]:
+            for job_key in JOB_TEMPLATES:
+                await self._reconcile_single_job(job_key=job_key, config=effective_config)
+        else:
+            # pg_cron 不可用时，启动应用层调度器回退
+            await self._start_async_scheduler_fallback(app_name=app_name, config=effective_config)
 
     async def run_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
@@ -354,6 +356,67 @@ class MemoryAutomationService:
             "pg_cron_installed": capabilities["pg_cron_installed"],
             "managed_jobs": {job["job_key"]: job["status"] for job in jobs},
         }
+
+    async def _start_async_scheduler_fallback(self, *, app_name: str, config: dict[str, Any]) -> None:
+        """当 pg_cron 不可用时，启动应用层调度器回退
+
+        借鉴 Claude Code AutoDream 的门控策略：
+        - 时间门控：每个任务按配置的 cron 间隔换算为秒数
+        - 锁：通过 SQL 函数内部的逻辑保证（单次执行不并发）
+        """
+        from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
+
+        if not hasattr(self, "_async_scheduler"):
+            self._async_scheduler: AsyncScheduler | None = None
+
+        # 如果调度器已运行，先停止
+        if self._async_scheduler and self._async_scheduler.is_running:
+            self._async_scheduler.stop()
+
+        scheduler = AsyncScheduler(poll_interval=60)
+
+        retention = config["retention"]
+        consolidation = config["consolidation"]
+
+        # cleanup_memories: 默认每天执行一次
+        if retention.get("auto_cleanup_enabled"):
+
+            async def _cleanup():
+                sql = f"SELECT {NEGENTROPY_SCHEMA}.cleanup_low_value_memories()"
+                async with AsyncSessionLocal() as db:
+                    await db.execute(text(sql))
+                    await db.commit()
+
+            scheduler.register(
+                key="cleanup_memories",
+                callback=_cleanup,
+                interval_seconds=86400,  # 24h
+            )
+
+        # trigger_consolidation: 默认每小时执行一次
+        if consolidation.get("enabled"):
+
+            async def _consolidate():
+                lookback = consolidation.get("lookback_interval", "1 hour")
+                sql = f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation('{_escape_sql_literal(lookback)}')"
+                async with AsyncSessionLocal() as db:
+                    await db.execute(text(sql))
+                    await db.commit()
+
+            scheduler.register(
+                key="trigger_consolidation",
+                callback=_consolidate,
+                interval_seconds=3600,  # 1h
+            )
+
+        if scheduler.registered_jobs:
+            scheduler.start()
+            self._async_scheduler = scheduler
+            logger.info(
+                "async_scheduler_started",
+                app_name=app_name,
+                jobs=scheduler.registered_jobs,
+            )
 
     async def _load_stored_config(self, *, app_name: str) -> dict[str, Any]:
         async with AsyncSessionLocal() as db:

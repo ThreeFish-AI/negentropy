@@ -279,8 +279,20 @@ async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolC
     """回退到 ADK MemoryService 搜索
 
     当知识库为空或检索失败时，使用 MemoryService 作为回退方案。
-    遵循研究文档中的 Fallback 模式。
+    同时通过 ContextAssembler 注入记忆上下文增强检索。
     """
+    # 先尝试通过 ContextAssembler 获取记忆摘要
+    memory_context = ""
+    try:
+        from negentropy.engine.adapters.postgres.context_assembler import ContextAssembler
+
+        assembler = ContextAssembler()
+        memory_context = await assembler.get_memory_summary(
+            user_id=getattr(tool_context, "user_id", ""),
+            app_name=settings.app_name,
+        )
+    except Exception as exc:
+        logger.debug("context_assembler_fallback", error=str(exc))
     if not (tool_context and hasattr(tool_context, "search_memory")):
         return {
             "status": "success",
@@ -288,6 +300,7 @@ async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolC
             "count": 0,
             "results": [],
             "search_mode": "memory_fallback",
+            "memory_context": memory_context,
         }
 
     memory_results = tool_context.search_memory(query)
@@ -327,6 +340,7 @@ async def _fallback_to_memory_search(query: str, limit: int, tool_context: ToolC
         "count": len(fallback),
         "results": fallback,
         "search_mode": "memory_fallback",
+        "memory_context": memory_context,
     }
 
 

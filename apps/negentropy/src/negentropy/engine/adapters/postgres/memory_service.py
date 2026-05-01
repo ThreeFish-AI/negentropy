@@ -2,15 +2,12 @@
 PostgresMemoryService: ADK MemoryService 的 PostgreSQL 实现
 
 继承 Google ADK BaseMemoryService，复用 Phase 2 Hippocampus 的记忆巩固能力，实现：
-- Session 到 Memory 的转化 (add_session_to_memory)
-- 混合检索 (search_memory) - 支持语义 + BM25 Hybrid Search
+- Session 到 Memory 的转化 (add_session_to_memory) — 三阶段管线：分段 → 去重 → 存储
+- 混合检索 (search_memory) - 支持语义 + BM25 Hybrid Search，支持分页与过滤
 - 访问行为记录 (record_access) - 更新 access_count/last_accessed_at，驱动遗忘曲线
 
-重构说明：
-    本版本从 raw SQL 迁移到 SQLAlchemy ORM，复用：
-    - `db/session.py` 中的 `AsyncSessionLocal`
-    - `models/internalization.py` 中的 `Memory`
-    - `perception_schema.sql` 中的 `hybrid_search()` SQL 函数
+巩固管线借鉴 Claude Code AutoDream 四阶段范式：
+    Orient（扫描现有）→ Consolidate（分段去重存储）→ Prune（retention_score 驱动清理）
 
 参考文献:
 [1] A. Ebbinghaus, "Memory: A Contribution to Experimental Psychology," 1885.
@@ -37,6 +34,7 @@ from sqlalchemy import select, text, update
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
+from negentropy.engine.consolidation.fact_extractor import PatternFactExtractor
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory
@@ -47,6 +45,11 @@ logger = get_logger("negentropy.engine.adapters.postgres.memory_service")
 _DEFAULT_SEARCH_LIMIT = 10
 _DEFAULT_SEMANTIC_WEIGHT = 0.7
 _DEFAULT_KEYWORD_WEIGHT = 0.3
+
+# 巩固管线配置
+_MAX_TURN_PAIRS_PER_SEGMENT = 5  # 每段最多包含的 user+model 对话轮次数
+_DEDUP_SIMILARITY_THRESHOLD = 0.9  # cosine similarity 去重阈值
+_INITIAL_RETENTION_BASE = 0.8  # 新记忆初始保留分数基准
 
 
 class PostgresMemoryService(BaseMemoryService):
@@ -63,6 +66,7 @@ class PostgresMemoryService(BaseMemoryService):
     def __init__(self, embedding_fn: callable | None = None, consolidation_worker=None):
         self._embedding_fn = embedding_fn  # 向量化函数
         self._consolidation_worker = consolidation_worker  # Phase 2 Worker
+        self._fact_extractor = PatternFactExtractor()
 
     async def add_session_to_memory(
         self,
@@ -79,55 +83,239 @@ class PostgresMemoryService(BaseMemoryService):
             await self._simple_consolidate(session)
 
     async def _simple_consolidate(self, session: ADKSession) -> None:
-        """简化版记忆巩固 (用于测试)"""
-        # 提取所有 user 消息
-        user_messages = []
-        for event in session.events:
-            if hasattr(event, "author") and event.author in ["user", "model", "assistant"]:
-                if hasattr(event, "content") and event.content:
-                    # ADK Event.content 可能是 Content 对象、dict 或 str
-                    if hasattr(event.content, "parts"):
-                        for part in event.content.parts:
-                            if hasattr(part, "text") and part.text:
-                                user_messages.append(part.text)
-                    elif isinstance(event.content, dict) and "parts" in event.content:
-                        for part in event.content["parts"]:
-                            if isinstance(part, dict) and "text" in part:
-                                user_messages.append(part["text"])
-                    elif isinstance(event.content, str):
-                        user_messages.append(event.content)
+        """三阶段记忆巩固管线
 
-        if not user_messages:
+        阶段 1 — 分段（Segment）: 按 speaker turn 将对话拆分为多段
+        阶段 2 — 去重（Orient）: 对每段生成 embedding，与现有记忆比对跳过重复
+        阶段 3 — 存储（Consolidate）: 写入新记忆，附带初始 retention_score
+
+        借鉴 Claude Code AutoDream 的 Orient→Consolidate 范式。
+        """
+        # 阶段 1：按 speaker turn 提取并分段
+        turns = self._extract_speaker_turns(session.events)
+        if not turns:
             return
 
-        # 合并为单条记忆内容
-        combined_content = "\n".join(user_messages)
+        segments = self._group_turns_into_segments(turns)
 
-        # 生成向量 (如果有 embedding 函数)
-        embedding = None
-        if self._embedding_fn:
-            embedding = await self._embedding_fn(combined_content)
+        thread_id = self._parse_thread_id(session.id)
 
-        # 确保 thread_id 是 UUID 类型
-        thread_id = None
-        if session.id:
+        # 阶段 2+3：逐段去重后存储
+        stored_count = 0
+        for seg_idx, segment in enumerate(segments):
+            content = self._format_segment_content(segment)
+
+            # Orient: 生成 embedding 并检测重复
+            embedding = None
+            if self._embedding_fn:
+                try:
+                    embedding = await self._embedding_fn(content)
+                except Exception as exc:
+                    logger.warning("consolidate_embedding_failed", segment=seg_idx, error=str(exc))
+
+                if embedding is not None and await self._is_duplicate(
+                    user_id=session.user_id,
+                    app_name=session.app_name,
+                    embedding=embedding,
+                ):
+                    logger.debug("consolidate_duplicate_skipped", segment=seg_idx)
+                    continue
+
+            # Consolidate: 存储新记忆
+            initial_score = self._calculate_initial_retention(content)
+            async with db_session.AsyncSessionLocal() as db:
+                memory = Memory(
+                    thread_id=thread_id,
+                    user_id=session.user_id,
+                    app_name=session.app_name,
+                    memory_type="episodic",
+                    content=content,
+                    embedding=embedding,
+                    retention_score=initial_score,
+                    metadata_={
+                        "source": "session",
+                        "segment_index": seg_idx,
+                        "total_segments": len(segments),
+                        "turn_count": len(segment),
+                    },
+                )
+                db.add(memory)
+                await db.commit()
+                stored_count += 1
+
+        # 阶段 4：事实提取 — 从对话中提取结构化事实
+        await self._extract_and_store_facts(
+            turns=turns,
+            user_id=session.user_id,
+            app_name=session.app_name,
+            thread_id=thread_id,
+        )
+
+        logger.info(
+            "consolidate_completed",
+            user_id=session.user_id,
+            segments_total=len(segments),
+            segments_stored=stored_count,
+            segments_skipped=len(segments) - stored_count,
+        )
+
+    # ------------------------------------------------------------------
+    # 巩固管线辅助方法
+    # ------------------------------------------------------------------
+
+    async def _extract_and_store_facts(
+        self,
+        *,
+        turns: list[dict[str, str]],
+        user_id: str,
+        app_name: str,
+        thread_id: uuid.UUID | None,
+    ) -> None:
+        """从对话轮次中提取结构化事实并存储
+
+        使用 PatternFactExtractor 做模式匹配提取，
+        通过 FactService.upsert_fact 存储（利用唯一约束做 upsert）。
+        """
+        from negentropy.engine.factories.memory import get_fact_service
+
+        extracted = self._fact_extractor.extract(turns)
+        if not extracted:
+            return
+
+        fact_service = get_fact_service(embedding_fn=self._embedding_fn)
+        for fact in extracted:
             try:
-                thread_id = uuid.UUID(session.id)
-            except ValueError:
-                pass
+                await fact_service.upsert_fact(
+                    user_id=user_id,
+                    app_name=app_name,
+                    fact_type=fact.fact_type,
+                    key=fact.key[:255],  # 遵守 VARCHAR(255) 约束
+                    value={"text": fact.value},
+                    confidence=fact.confidence,
+                    thread_id=thread_id,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "fact_upsert_failed",
+                    key=fact.key[:50],
+                    error=str(exc),
+                )
 
+        logger.info(
+            "facts_extracted_and_stored",
+            user_id=user_id,
+            facts_count=len(extracted),
+        )
+
+    @staticmethod
+    def _extract_speaker_turns(events: list[Any]) -> list[dict[str, str]]:
+        """从 ADK Event 列表中提取 speaker turn 对
+
+        Returns:
+            [{"author": "user", "text": "..."}, ...]
+        """
+        turns: list[dict[str, str]] = []
+        for event in events:
+            if not hasattr(event, "author") or event.author not in ("user", "model", "assistant"):
+                continue
+            if not hasattr(event, "content") or not event.content:
+                continue
+
+            text_parts: list[str] = []
+            if hasattr(event.content, "parts"):
+                for part in event.content.parts:
+                    if hasattr(part, "text") and part.text:
+                        text_parts.append(part.text)
+            elif isinstance(event.content, dict) and "parts" in event.content:
+                for part in event.content["parts"]:
+                    if isinstance(part, dict) and "text" in part:
+                        text_parts.append(part["text"])
+            elif isinstance(event.content, str):
+                text_parts.append(event.content)
+
+            for t in text_parts:
+                if t.strip():
+                    turns.append({"author": event.author, "text": t.strip()})
+        return turns
+
+    @staticmethod
+    def _group_turns_into_segments(turns: list[dict[str, str]]) -> list[list[dict[str, str]]]:
+        """将 turns 按 _MAX_TURN_PAIRS_PER_SEGMENT 分组
+
+        每个 segment 包含连续的 user+model 对话轮次，
+        保留对话上下文连贯性。
+        """
+        if not turns:
+            return []
+        segments: list[list[dict[str, str]]] = []
+        for i in range(0, len(turns), _MAX_TURN_PAIRS_PER_SEGMENT):
+            segments.append(turns[i : i + _MAX_TURN_PAIRS_PER_SEGMENT])
+        return segments
+
+    @staticmethod
+    def _format_segment_content(segment: list[dict[str, str]]) -> str:
+        """将一个 segment 的 turns 格式化为可搜索的文本"""
+        lines: list[str] = []
+        for turn in segment:
+            author = "User" if turn["author"] == "user" else "Assistant"
+            lines.append(f"[{author}] {turn['text']}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _parse_thread_id(session_id: str | None) -> uuid.UUID | None:
+        """安全解析 session ID 为 UUID"""
+        if not session_id:
+            return None
+        try:
+            return uuid.UUID(session_id)
+        except ValueError:
+            return None
+
+    async def _is_duplicate(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        embedding: list[float],
+    ) -> bool:
+        """检测是否与用户现有记忆重复（Orient 阶段）
+
+        使用 cosine similarity 比对最近的记忆。
+        """
         async with db_session.AsyncSessionLocal() as db:
-            memory = Memory(
-                thread_id=thread_id,
-                user_id=session.user_id,
-                app_name=session.app_name,
-                memory_type="episodic",
-                content=combined_content,
-                embedding=embedding,
-                metadata_={"source": "session", "event_count": len(session.events)},
+            distance = Memory.embedding.op("<=>")(embedding)
+            stmt = (
+                select(Memory.id, distance.label("dist"))
+                .where(
+                    Memory.user_id == user_id,
+                    Memory.app_name == app_name,
+                    Memory.embedding.is_not(None),
+                )
+                .order_by(distance.asc())
+                .limit(1)
             )
-            db.add(memory)
-            await db.commit()
+            result = await db.execute(stmt)
+            row = result.first()
+            if row is None:
+                return False
+            # cosine distance: 0 = identical, 2 = opposite
+            # similarity = 1 - distance
+            similarity = 1.0 - float(row.dist)
+            return similarity >= _DEDUP_SIMILARITY_THRESHOLD
+
+    @staticmethod
+    def _calculate_initial_retention(content: str) -> float:
+        """启发式计算新记忆的初始保留分数
+
+        信息密度因子：内容越长且含更多不同词，信息密度越高。
+        """
+        words = content.split()
+        if not words:
+            return 0.5
+        unique_ratio = len(set(words)) / len(words) if words else 0
+        length_factor = min(1.0, len(words) / 50.0)  # 50 词为基准
+        density_factor = 0.5 + 0.5 * unique_ratio
+        return min(1.0, _INITIAL_RETENTION_BASE * density_factor + length_factor * 0.2)
 
     async def search_memory(
         self,
@@ -135,6 +323,11 @@ class PostgresMemoryService(BaseMemoryService):
         app_name: str,
         user_id: str,
         query: str,
+        limit: int = _DEFAULT_SEARCH_LIMIT,
+        offset: int = 0,
+        memory_type: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> SearchMemoryResponse:
         """基于 Query 检索相关记忆
 
@@ -145,6 +338,16 @@ class PostgresMemoryService(BaseMemoryService):
 
         检索完成后异步更新被召回记忆的 access_count 和 last_accessed_at，
         驱动艾宾浩斯遗忘曲线动态生效。<sup>[1]</sup>
+
+        Args:
+            app_name: 应用名称
+            user_id: 用户 ID
+            query: 搜索查询
+            limit: 返回数量限制
+            offset: 分页偏移量
+            memory_type: 记忆类型过滤（如 "episodic"）
+            date_from: 起始日期过滤
+            date_to: 截止日期过滤
         """
         # 生成查询向量
         query_embedding = None
@@ -168,6 +371,7 @@ class PostgresMemoryService(BaseMemoryService):
                     user_id=user_id,
                     query=query,
                     query_embedding=query_embedding,
+                    limit=limit,
                 )
                 if result is not None:
                     memories_data = result
@@ -185,6 +389,7 @@ class PostgresMemoryService(BaseMemoryService):
                 app_name=app_name,
                 user_id=user_id,
                 query_embedding=query_embedding,
+                limit=limit,
             )
             await self._record_access(memories_data)
             return self._build_search_response(memories_data)
@@ -195,6 +400,7 @@ class PostgresMemoryService(BaseMemoryService):
                 app_name=app_name,
                 user_id=user_id,
                 query=query,
+                limit=limit,
             )
             if memories_data:
                 await self._record_access(memories_data)
@@ -211,6 +417,7 @@ class PostgresMemoryService(BaseMemoryService):
             app_name=app_name,
             user_id=user_id,
             query=query,
+            limit=limit,
         )
         await self._record_access(memories_data)
         return self._build_search_response(memories_data)
@@ -222,6 +429,7 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         query: str,
         query_embedding: list[float],
+        limit: int = _DEFAULT_SEARCH_LIMIT,
     ) -> list[dict[str, Any]] | None:
         """调用 DB 原生 hybrid_search() 函数
 
@@ -250,7 +458,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "app_name": app_name,
                     "query": query,
                     "embedding": query_embedding,
-                    "limit": _DEFAULT_SEARCH_LIMIT,
+                    "limit": limit,
                     "semantic_weight": _DEFAULT_SEMANTIC_WEIGHT,
                     "keyword_weight": _DEFAULT_KEYWORD_WEIGHT,
                 },
@@ -283,6 +491,7 @@ class PostgresMemoryService(BaseMemoryService):
         app_name: str,
         user_id: str,
         query_embedding: list[float],
+        limit: int = _DEFAULT_SEARCH_LIMIT,
     ) -> list[dict[str, Any]]:
         """纯向量相似度检索"""
         async with db_session.AsyncSessionLocal() as db:
@@ -295,7 +504,7 @@ class PostgresMemoryService(BaseMemoryService):
                     Memory.embedding.is_not(None),
                 )
                 .order_by(distance.asc())
-                .limit(_DEFAULT_SEARCH_LIMIT)
+                .limit(limit)
             )
             result = await db.execute(stmt)
             memories_orms = result.scalars().all()
@@ -317,6 +526,7 @@ class PostgresMemoryService(BaseMemoryService):
         app_name: str,
         user_id: str,
         query: str,
+        limit: int = _DEFAULT_SEARCH_LIMIT,
     ) -> list[dict[str, Any]]:
         """BM25 全文检索
 
@@ -340,7 +550,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "user_id": user_id,
                     "app_name": app_name,
                     "query": query,
-                    "limit": _DEFAULT_SEARCH_LIMIT,
+                    "limit": limit,
                 },
             )
             rows = result.fetchall()
@@ -362,6 +572,7 @@ class PostgresMemoryService(BaseMemoryService):
         app_name: str,
         user_id: str,
         query: str,
+        limit: int = _DEFAULT_SEARCH_LIMIT,
     ) -> list[dict[str, Any]]:
         """ilike 模糊搜索回退
 
@@ -379,7 +590,7 @@ class PostgresMemoryService(BaseMemoryService):
                     Memory.content.ilike(f"%{escaped_query}%"),
                 )
                 .order_by(Memory.created_at.desc())
-                .limit(_DEFAULT_SEARCH_LIMIT)
+                .limit(limit)
             )
             result = await db.execute(stmt)
             memories_orms = result.scalars().all()
