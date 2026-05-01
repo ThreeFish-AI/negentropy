@@ -34,7 +34,7 @@ from sqlalchemy import select, text, update
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
-from negentropy.engine.consolidation.fact_extractor import PatternFactExtractor
+from negentropy.engine.consolidation.llm_fact_extractor import LLMFactExtractor
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory
@@ -66,7 +66,7 @@ class PostgresMemoryService(BaseMemoryService):
     def __init__(self, embedding_fn: callable | None = None, consolidation_worker=None):
         self._embedding_fn = embedding_fn  # 向量化函数
         self._consolidation_worker = consolidation_worker  # Phase 2 Worker
-        self._fact_extractor = PatternFactExtractor()
+        self._fact_extractor = LLMFactExtractor()
 
     async def add_session_to_memory(
         self,
@@ -673,6 +673,21 @@ class PostgresMemoryService(BaseMemoryService):
                 "memory_access_recorded",
                 memory_count=len(memory_ids),
             )
+
+            # 异步记录检索事件（fire-and-forget，不影响主路径）
+            try:
+                from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+                tracker = RetrievalTracker()
+                # 提取查询上下文（使用调用方的 query 参数不可直接获取，此处仅记录 memory_ids）
+                await tracker.log_retrieval(
+                    user_id=memories_data[0].get("user_id", ""),
+                    app_name=memories_data[0].get("app_name", ""),
+                    query="",  # query 在 _record_access 层不可用，由调用方记录
+                    memory_ids=memory_ids,
+                )
+            except Exception:
+                pass  # 检索日志不应影响访问记录
         except Exception as exc:
             # 访问记录失败不应影响检索结果返回
             logger.warning(

@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import UUID as SA_UUID
 from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -93,3 +94,58 @@ class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
         ),
         {"schema": NEGENTROPY_SCHEMA},
     )
+
+
+class MemorySummary(Base, UUIDMixin, TimestampMixin):
+    """用户记忆画像摘要缓存
+
+    MemorySummarizer 生成的结构化用户画像摘要，供 ContextAssembler 注入。
+
+    参考文献:
+    [1] S. J. Sara, "Reconsolidation and the stability of memory traces,"
+        Current Opinion in Neurobiology, vol. 35, pp. 110-115, 2015.
+    """
+
+    __tablename__ = "memory_summaries"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="user_profile", server_default="'user_profile'"
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    token_count: Mapped[int | None] = mapped_column(Integer)
+    source_memory_count: Mapped[int | None] = mapped_column(Integer)
+    source_fact_count: Mapped[int | None] = mapped_column(Integer)
+    model_used: Mapped[str | None] = mapped_column(String(255))
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "app_name", "summary_type", name="memory_summaries_user_type_unique"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class MemoryRetrievalLog(Base, UUIDMixin):
+    """记忆检索效果反馈日志
+
+    追踪"检索了什么→是否被使用→是否有帮助"的反馈闭环。
+
+    参考文献:
+    [1] J. J. Rocchio, "Relevance feedback in information retrieval,"
+        in The SMART Retrieval System, Prentice-Hall, 1971, pp. 313-323.
+    """
+
+    __tablename__ = "memory_retrieval_logs"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    thread_id: Mapped[UUID | None] = mapped_column(SA_UUID)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    retrieved_memory_ids: Mapped[list] = mapped_column(ARRAY(SA_UUID), nullable=False)
+    retrieved_fact_ids: Mapped[list | None] = mapped_column(ARRAY(SA_UUID))
+    was_referenced: Mapped[bool | None] = mapped_column()
+    reference_count: Mapped[int | None] = mapped_column(Integer, default=0, server_default="0")
+    outcome_feedback: Mapped[str | None] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)

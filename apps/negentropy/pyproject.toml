@@ -22,7 +22,6 @@ dependencies = [
     "psycopg[binary]>=3.2.0",       # Synchronous PostgreSQL driver (for OTel)
     "sqlalchemy[asyncio]>=2.0.46",  # SQL Toolkit and ORM
     "alembic>=1.18.3",              # Database migration tool
-    
     # Core Infrastructure
     "google-adk>=1.28.1",           # GHSA-rg7c-g689-fr3x: code injection + missing auth on adk web/api_server eval endpoints
     "opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0",  # ADK GenAI SDK OTel 自动埋点 (消除 adk_web_server 启动期 WARNING)
@@ -30,20 +29,18 @@ dependencies = [
     "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
     "pydantic-settings[yaml]>=2.12.0",  # Configuration management with YAML support
     "pyyaml>=6.0.2",                # YAML parser for configuration files
-    
     # LLM & AI Services
     "litellm>=1.83.7",              # Unified interface for various LLM providers (>=1.83.7 修复 SQLi/SSTI/MCP-RCE，对应 GHSA-9566-... / 90 / 88 / 89)
-    
     # Google Cloud Services
     "google-cloud-storage>=3.8.0",  # Object storage for artifacts
     "google-auth>=2.48.0",          # Authentication for Google services
     "google-cloud-logging>=3.13.0", # Cloud Logging integration
     "httpx>=0.27.0",                # Async HTTP client for OAuth
-    
     # Utilities
     "structlog>=25.5.0",            # Structured logging for machine-readability
     "orjson>=3.11.6",               # Fast JSON serialization
     "beautifulsoup4>=4.12.3",       # HTML parsing
+    "tiktoken>=0.9.0",              # BPE token counter for accurate context budgeting
 ]
 
 [project.scripts]

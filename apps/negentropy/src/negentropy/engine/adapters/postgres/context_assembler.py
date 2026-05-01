@@ -22,6 +22,7 @@ from sqlalchemy import select, text
 
 import negentropy.db.session as db_session
 from negentropy.engine.factories.memory import get_fact_service
+from negentropy.engine.utils.token_counter import TokenCounter
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory
@@ -139,9 +140,12 @@ class ContextAssembler:
                 "budget": {"max_tokens": max_tokens},
             }
 
+        context_text = row.context_text or ""
+        accurate_tokens = await self._accurate_token_count(context_text)
+
         return {
-            "memory_context": row.context_text or "",
-            "token_count": row.token_estimate or 0,
+            "memory_context": context_text,
+            "token_count": accurate_tokens,
             "budget": {
                 "max_tokens": max_tokens,
                 "memory_tokens": memory_tokens,
@@ -157,8 +161,22 @@ class ContextAssembler:
     ) -> str:
         """获取用户记忆摘要（轻量接口，用于注入到查询上下文）
 
-        不依赖 SQL 函数，直接查询最近的记忆和事实。
+        优先返回 MemorySummarizer 生成的结构化画像摘要；
+        无摘要或生成失败时降级到原始内容拼接。
         """
+        # 优先尝试结构化摘要
+        try:
+            from negentropy.engine.factories.memory import get_memory_summarizer
+
+            summarizer = get_memory_summarizer()
+            summary = await summarizer.get_or_generate_summary(user_id=user_id, app_name=app_name)
+            if summary and summary.content:
+                logger.debug("using_cached_summary", user_id=user_id)
+                return summary.content
+        except Exception as exc:
+            logger.debug("summary_fallback_to_raw", user_id=user_id, error=str(exc))
+
+        # 降级到原始拼接
         parts: list[str] = []
 
         # 获取最近的记忆
@@ -194,3 +212,10 @@ class ContextAssembler:
             context_length=len(context),
         )
         return context
+
+    async def _accurate_token_count(self, text: str) -> int:
+        """使用 tiktoken BPE 编码器精确计数（替代 LENGTH/4 估算）"""
+        try:
+            return await TokenCounter.count_tokens_async(text)
+        except Exception:
+            return len(text) // 4
