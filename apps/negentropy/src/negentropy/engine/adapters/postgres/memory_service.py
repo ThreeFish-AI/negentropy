@@ -374,6 +374,7 @@ class PostgresMemoryService(BaseMemoryService):
                     query=query,
                     query_embedding=query_embedding,
                     limit=limit,
+                    offset=offset,
                 )
                 if result is not None:
                     memories_data = result
@@ -392,6 +393,7 @@ class PostgresMemoryService(BaseMemoryService):
                 user_id=user_id,
                 query_embedding=query_embedding,
                 limit=limit,
+                offset=offset,
                 memory_type=memory_type,
                 date_from=date_from,
                 date_to=date_to,
@@ -406,6 +408,7 @@ class PostgresMemoryService(BaseMemoryService):
                 user_id=user_id,
                 query=query,
                 limit=limit,
+                offset=offset,
             )
             if memories_data:
                 await self._record_access(memories_data)
@@ -423,6 +426,7 @@ class PostgresMemoryService(BaseMemoryService):
             user_id=user_id,
             query=query,
             limit=limit,
+            offset=offset,
             memory_type=memory_type,
             date_from=date_from,
             date_to=date_to,
@@ -438,6 +442,7 @@ class PostgresMemoryService(BaseMemoryService):
         query: str,
         query_embedding: list[float],
         limit: int = _DEFAULT_SEARCH_LIMIT,
+        offset: int = 0,
     ) -> list[dict[str, Any]] | None:
         """调用 DB 原生 hybrid_search() 函数
 
@@ -466,7 +471,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "app_name": app_name,
                     "query": query,
                     "embedding": query_embedding,
-                    "limit": limit,
+                    "limit": limit + offset,
                     "semantic_weight": _DEFAULT_SEMANTIC_WEIGHT,
                     "keyword_weight": _DEFAULT_KEYWORD_WEIGHT,
                 },
@@ -483,6 +488,7 @@ class PostgresMemoryService(BaseMemoryService):
             result_count=len(rows),
         )
 
+        rows = rows[offset:]
         return [
             {
                 "id": str(row.id),
@@ -500,6 +506,7 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         query_embedding: list[float],
         limit: int = _DEFAULT_SEARCH_LIMIT,
+        offset: int = 0,
         memory_type: str | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
@@ -519,7 +526,7 @@ class PostgresMemoryService(BaseMemoryService):
             if date_to:
                 conditions.append(Memory.created_at <= date_to)
 
-            stmt = select(Memory).where(*conditions).order_by(distance.asc()).limit(limit)
+            stmt = select(Memory).where(*conditions).order_by(distance.asc()).offset(offset).limit(limit)
             result = await db.execute(stmt)
             memories_orms = result.scalars().all()
 
@@ -541,6 +548,7 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         query: str,
         limit: int = _DEFAULT_SEARCH_LIMIT,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         """BM25 全文检索
 
@@ -554,7 +562,7 @@ class PostgresMemoryService(BaseMemoryService):
               AND app_name = :app_name
               AND search_vector @@ plainto_tsquery('english', :query)
             ORDER BY rank_score DESC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
         """)
 
         async with db_session.AsyncSessionLocal() as db:
@@ -565,6 +573,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "app_name": app_name,
                     "query": query,
                     "limit": limit,
+                    "offset": offset,
                 },
             )
             rows = result.fetchall()
@@ -587,6 +596,7 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         query: str,
         limit: int = _DEFAULT_SEARCH_LIMIT,
+        offset: int = 0,
         memory_type: str | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
@@ -611,7 +621,7 @@ class PostgresMemoryService(BaseMemoryService):
             if date_to:
                 conditions.append(Memory.created_at <= date_to)
 
-            stmt = select(Memory).where(*conditions).order_by(Memory.created_at.desc()).limit(limit)
+            stmt = select(Memory).where(*conditions).order_by(Memory.created_at.desc()).offset(offset).limit(limit)
             result = await db.execute(stmt)
             memories_orms = result.scalars().all()
 

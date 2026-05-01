@@ -49,6 +49,7 @@ class AsyncScheduler:
         self._jobs: dict[str, ScheduledJob] = {}
         self._task: asyncio.Task | None = None
         self._running = False
+        self._inflight: set[asyncio.Task] = set()
 
     def register(
         self,
@@ -84,11 +85,14 @@ class AsyncScheduler:
         logger.info("scheduler_started", jobs=list(self._jobs.keys()))
 
     def stop(self) -> None:
-        """停止调度循环"""
+        """停止调度循环，同时取消所有在途任务"""
         self._running = False
         if self._task and not self._task.done():
             self._task.cancel()
         self._task = None
+        for t in list(self._inflight):
+            t.cancel()
+        self._inflight.clear()
         logger.info("scheduler_stopped")
 
     @property
@@ -108,7 +112,9 @@ class AsyncScheduler:
                     continue
                 elapsed = now - job.last_run_at
                 if elapsed >= job.interval_seconds:
-                    asyncio.create_task(self._execute_job(job))
+                    t = asyncio.create_task(self._execute_job(job))
+                    self._inflight.add(t)
+                    t.add_done_callback(self._inflight.discard)
             await asyncio.sleep(self._poll_interval)
 
     async def _execute_job(self, job: ScheduledJob) -> None:
@@ -119,6 +125,9 @@ class AsyncScheduler:
         try:
             await job.callback()
             logger.debug("scheduler_job_completed", key=job.key)
+        except asyncio.CancelledError:
+            job.last_run_at = prev_run_at
+            raise
         except Exception as exc:
             job.last_run_at = prev_run_at  # 回退，允许尽快重试
             logger.warning(

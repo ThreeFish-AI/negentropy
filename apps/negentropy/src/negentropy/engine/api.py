@@ -402,9 +402,21 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
     date_from = None
     date_to = None
     if payload.date_from:
-        date_from = datetime.fromisoformat(payload.date_from)
+        try:
+            date_from = datetime.fromisoformat(payload.date_from)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid date_from format: {payload.date_from}",
+            ) from exc
     if payload.date_to:
-        date_to = datetime.fromisoformat(payload.date_to)
+        try:
+            date_to = datetime.fromisoformat(payload.date_to)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid date_to format: {payload.date_to}",
+            ) from exc
 
     memory_service = get_memory_service()
     result = await memory_service.search_memory(
