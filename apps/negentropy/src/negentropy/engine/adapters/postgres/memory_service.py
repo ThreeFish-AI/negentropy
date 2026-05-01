@@ -146,12 +146,15 @@ class PostgresMemoryService(BaseMemoryService):
                 stored_count += 1
 
         # 阶段 4：事实提取 — 从对话中提取结构化事实
-        await self._extract_and_store_facts(
-            turns=turns,
-            user_id=session.user_id,
-            app_name=session.app_name,
-            thread_id=thread_id,
-        )
+        try:
+            await self._extract_and_store_facts(
+                turns=turns,
+                user_id=session.user_id,
+                app_name=session.app_name,
+                thread_id=thread_id,
+            )
+        except Exception as exc:
+            logger.warning("fact_extraction_stage_failed", error=str(exc))
 
         logger.info(
             "consolidate_completed",
