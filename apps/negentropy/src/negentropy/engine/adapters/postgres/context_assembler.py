@@ -18,11 +18,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 import negentropy.db.session as db_session
+from negentropy.engine.factories.memory import get_fact_service
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
+from negentropy.models.internalization import Memory
 
 logger = get_logger("negentropy.engine.adapters.postgres.context_assembler")
 
@@ -160,11 +162,7 @@ class ContextAssembler:
         parts: list[str] = []
 
         # 获取最近的记忆
-        from negentropy.models.internalization import Memory
-
         async with db_session.AsyncSessionLocal() as db:
-            from sqlalchemy import select
-
             stmt = (
                 select(Memory)
                 .where(Memory.user_id == user_id, Memory.app_name == app_name)
@@ -180,8 +178,6 @@ class ContextAssembler:
                 parts.append(f"[Memory] {snippet}")
 
         # 获取活跃事实
-        from negentropy.engine.factories.memory import get_fact_service
-
         fact_service = get_fact_service()
         facts = await fact_service.list_facts(user_id=user_id, app_name=app_name, limit=10)
 

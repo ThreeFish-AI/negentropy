@@ -83,11 +83,12 @@ class PostgresMemoryService(BaseMemoryService):
             await self._simple_consolidate(session)
 
     async def _simple_consolidate(self, session: ADKSession) -> None:
-        """三阶段记忆巩固管线
+        """四阶段记忆巩固管线
 
         阶段 1 — 分段（Segment）: 按 speaker turn 将对话拆分为多段
         阶段 2 — 去重（Orient）: 对每段生成 embedding，与现有记忆比对跳过重复
         阶段 3 — 存储（Consolidate）: 写入新记忆，附带初始 retention_score
+        阶段 4 — 事实提取（Extract）: 从对话中提取结构化事实并存储
 
         借鉴 Claude Code AutoDream 的 Orient→Consolidate 范式。
         """
@@ -391,6 +392,9 @@ class PostgresMemoryService(BaseMemoryService):
                 user_id=user_id,
                 query_embedding=query_embedding,
                 limit=limit,
+                memory_type=memory_type,
+                date_from=date_from,
+                date_to=date_to,
             )
             await self._record_access(memories_data)
             return self._build_search_response(memories_data)
@@ -419,6 +423,9 @@ class PostgresMemoryService(BaseMemoryService):
             user_id=user_id,
             query=query,
             limit=limit,
+            memory_type=memory_type,
+            date_from=date_from,
+            date_to=date_to,
         )
         await self._record_access(memories_data)
         return self._build_search_response(memories_data)
@@ -493,20 +500,26 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         query_embedding: list[float],
         limit: int = _DEFAULT_SEARCH_LIMIT,
+        memory_type: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[dict[str, Any]]:
         """纯向量相似度检索"""
         async with db_session.AsyncSessionLocal() as db:
             distance = Memory.embedding.op("<=>")(query_embedding)
-            stmt = (
-                select(Memory)
-                .where(
-                    Memory.app_name == app_name,
-                    Memory.user_id == user_id,
-                    Memory.embedding.is_not(None),
-                )
-                .order_by(distance.asc())
-                .limit(limit)
-            )
+            conditions = [
+                Memory.app_name == app_name,
+                Memory.user_id == user_id,
+                Memory.embedding.is_not(None),
+            ]
+            if memory_type:
+                conditions.append(Memory.memory_type == memory_type)
+            if date_from:
+                conditions.append(Memory.created_at >= date_from)
+            if date_to:
+                conditions.append(Memory.created_at <= date_to)
+
+            stmt = select(Memory).where(*conditions).order_by(distance.asc()).limit(limit)
             result = await db.execute(stmt)
             memories_orms = result.scalars().all()
 
@@ -574,6 +587,9 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         query: str,
         limit: int = _DEFAULT_SEARCH_LIMIT,
+        memory_type: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[dict[str, Any]]:
         """ilike 模糊搜索回退
 
@@ -583,16 +599,19 @@ class PostgresMemoryService(BaseMemoryService):
         # 转义 LIKE 特殊字符，防止通配符注入
         escaped_query = re.sub(r"([%_])", r"\\\1", query)
         async with db_session.AsyncSessionLocal() as db:
-            stmt = (
-                select(Memory)
-                .where(
-                    Memory.app_name == app_name,
-                    Memory.user_id == user_id,
-                    Memory.content.ilike(f"%{escaped_query}%"),
-                )
-                .order_by(Memory.created_at.desc())
-                .limit(limit)
-            )
+            conditions = [
+                Memory.app_name == app_name,
+                Memory.user_id == user_id,
+                Memory.content.ilike(f"%{escaped_query}%"),
+            ]
+            if memory_type:
+                conditions.append(Memory.memory_type == memory_type)
+            if date_from:
+                conditions.append(Memory.created_at >= date_from)
+            if date_to:
+                conditions.append(Memory.created_at <= date_to)
+
+            stmt = select(Memory).where(*conditions).order_by(Memory.created_at.desc()).limit(limit)
             result = await db.execute(stmt)
             memories_orms = result.scalars().all()
 

@@ -114,11 +114,13 @@ class AsyncScheduler:
     async def _execute_job(self, job: ScheduledJob) -> None:
         """执行单个调度任务"""
         job.running = True
+        prev_run_at = job.last_run_at
         job.last_run_at = time.monotonic()
         try:
             await job.callback()
             logger.debug("scheduler_job_completed", key=job.key)
         except Exception as exc:
+            job.last_run_at = prev_run_at  # 回退，允许尽快重试
             logger.warning(
                 "scheduler_job_failed",
                 key=job.key,

@@ -131,26 +131,23 @@ class PatternFactExtractor:
     def _extract_from_text(self, text: str) -> list[ExtractedFact]:
         """从单条文本中提取所有匹配的事实"""
         facts: list[ExtractedFact] = []
+        facts.extend(self._match_patterns(text, _PREFERENCE_PATTERNS, "preference"))
+        facts.extend(self._match_patterns(text, _PROFILE_PATTERNS, "profile"))
+        facts.extend(self._match_patterns(text, _RULE_PATTERNS, "rule"))
+        return facts
 
-        for pattern, key_group, value_group in _PREFERENCE_PATTERNS:
+    @staticmethod
+    def _match_patterns(
+        text: str,
+        patterns: list[tuple[re.Pattern[str], int, int]],
+        fact_type: str,
+    ) -> list[ExtractedFact]:
+        """对文本应用一组正则模式，返回匹配的事实列表"""
+        facts: list[ExtractedFact] = []
+        for pattern, key_group, value_group in patterns:
             for m in pattern.finditer(text):
                 key = m.group(key_group).strip()
                 value = m.group(value_group).strip() if value_group <= pattern.groups else key
                 if key:
-                    facts.append(ExtractedFact(fact_type="preference", key=key, value=value))
-
-        for pattern, key_group, value_group in _PROFILE_PATTERNS:
-            for m in pattern.finditer(text):
-                key = m.group(key_group).strip()
-                value = m.group(value_group).strip() if value_group <= pattern.groups else key
-                if key:
-                    facts.append(ExtractedFact(fact_type="profile", key=key, value=value))
-
-        for pattern, key_group, value_group in _RULE_PATTERNS:
-            for m in pattern.finditer(text):
-                key = m.group(key_group).strip()
-                value = m.group(value_group).strip() if value_group <= pattern.groups else key
-                if key:
-                    facts.append(ExtractedFact(fact_type="rule", key=key, value=value))
-
+                    facts.append(ExtractedFact(fact_type=fact_type, key=key, value=value))
         return facts

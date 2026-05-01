@@ -438,6 +438,7 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
             }
         )
 
+    # TODO: total 应通过独立 COUNT 查询获取全量匹配数
     return MemorySearchResponse(count=len(items), total=len(items), items=items)
 
 

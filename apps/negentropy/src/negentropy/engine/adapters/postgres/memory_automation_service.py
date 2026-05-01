@@ -398,9 +398,9 @@ class MemoryAutomationService:
 
             async def _consolidate():
                 lookback = consolidation.get("lookback_interval", "1 hour")
-                sql = f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation('{_escape_sql_literal(lookback)}')"
+                sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(:lookback::interval)")
                 async with AsyncSessionLocal() as db:
-                    await db.execute(text(sql))
+                    await db.execute(sql, {"lookback": lookback})
                     await db.commit()
 
             scheduler.register(
