@@ -8,19 +8,36 @@ interface GraphStatsPanelProps {
 }
 
 export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
-  const [stats, setStats] = useState<GraphStatsResponse | null>(null);
+  const [result, setResult] = useState<{
+    corpusId: string;
+    stats: GraphStatsResponse | null;
+    error: boolean;
+  } | null>(null);
 
   useEffect(() => {
     let mounted = true;
     fetchGraphStats(corpusId)
       .then((data) => {
-        if (mounted) setStats(data);
+        if (mounted) setResult({ corpusId, stats: data, error: false });
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        if (mounted) setResult({ corpusId, stats: null, error: true });
+      });
     return () => {
       mounted = false;
     };
   }, [corpusId]);
+
+  const isCurrent = result?.corpusId === corpusId;
+  const error = isCurrent && result?.error === true;
+  const stats = isCurrent && !error ? result!.stats : null;
+
+  if (error) {
+    return (
+      <p className="text-xs text-red-500 dark:text-red-400">加载失败，请重试</p>
+    );
+  }
 
   if (!stats) {
     return (

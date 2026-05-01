@@ -7,6 +7,6 @@ export async function GET(
   const { corpusId, entityId } = await context.params;
   return proxyGet(
     request,
-    `/knowledge/base/${corpusId}/graph/entities/${entityId}`,
+    `/knowledge/base/${encodeURIComponent(corpusId)}/graph/entities/${encodeURIComponent(entityId)}`,
   );
 }

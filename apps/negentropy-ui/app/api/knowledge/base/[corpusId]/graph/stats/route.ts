@@ -5,5 +5,5 @@ export async function GET(
   context: { params: Promise<{ corpusId: string }> },
 ) {
   const { corpusId } = await context.params;
-  return proxyGet(request, `/knowledge/base/${corpusId}/graph/stats`);
+  return proxyGet(request, `/knowledge/base/${encodeURIComponent(corpusId)}/graph/stats`);
 }

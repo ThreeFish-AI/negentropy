@@ -41,11 +41,19 @@ export function EntityListPanel({
 }: EntityListPanelProps) {
   const [entities, setEntities] = useState<GraphEntityItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [entityType, setEntityType] = useState<string>("");
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [completedKey, setCompletedKey] = useState<string | null>(null);
   const limit = 30;
+
+  const fetchKey = `${entityType}:${search}:${page}`;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,19 +67,21 @@ export function EntityListPanel({
         if (!cancelled) {
           setEntities(data.items);
           setTotal(data.count);
-          setLoading(false);
+          setCompletedKey(fetchKey);
         }
       })
       .catch((err) => {
         if (!cancelled) {
           console.error(err);
-          setLoading(false);
+          setCompletedKey(fetchKey);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [corpusId, entityType, search, page]);
+  }, [corpusId, entityType, search, page, fetchKey]);
+
+  const loading = fetchKey !== completedKey;
 
   const totalPages = Math.ceil(total / limit);
 
@@ -81,9 +91,9 @@ export function EntityListPanel({
       <div className="flex items-center gap-2">
         <input
           type="text"
-          value={search}
+          value={searchInput}
           onChange={(e) => {
-            setSearch(e.target.value);
+            setSearchInput(e.target.value);
             setPage(0);
           }}
           placeholder="搜索实体..."

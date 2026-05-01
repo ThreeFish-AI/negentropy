@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { findGraphNeighbors } from "@/features/knowledge";
 
 interface NeighborExplorerProps {
@@ -16,6 +16,11 @@ export function NeighborExplorer({
   const [loading, setLoading] = useState(false);
   const [depth, setDepth] = useState(1);
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    setExpanded(false);
+    setNeighbors([]);
+  }, [entityId]);
 
   const loadNeighbors = useCallback(async () => {
     if (!entityId) return;

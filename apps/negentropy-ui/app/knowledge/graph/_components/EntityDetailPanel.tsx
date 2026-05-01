@@ -27,7 +27,7 @@ export function EntityDetailPanel({
   entityId,
 }: EntityDetailPanelProps) {
   const [detail, setDetail] = useState<GraphEntityDetailResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadedEntityId, setLoadedEntityId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"outgoing" | "incoming">(
     "outgoing",
   );
@@ -39,19 +39,23 @@ export function EntityDetailPanel({
       .then((data) => {
         if (!cancelled) {
           setDetail(data);
-          setLoading(false);
+          setLoadedEntityId(entityId);
         }
       })
       .catch((err) => {
         if (!cancelled) {
           console.error(err);
-          setLoading(false);
+          setDetail(null);
+          setLoadedEntityId(entityId);
         }
       });
     return () => {
       cancelled = true;
     };
   }, [corpusId, entityId]);
+
+  const loading = entityId !== null && loadedEntityId !== entityId;
+  const currentDetail = loadedEntityId === entityId ? detail : null;
 
   if (!entityId) {
     return (
@@ -69,7 +73,7 @@ export function EntityDetailPanel({
     );
   }
 
-  if (!detail) {
+  if (!currentDetail) {
     return (
       <p className="text-xs text-zinc-500 dark:text-zinc-400 py-4 text-center">
         未找到实体
@@ -77,8 +81,8 @@ export function EntityDetailPanel({
     );
   }
 
-  const outgoing = detail.relations.filter((r) => r.direction === "outgoing");
-  const incoming = detail.relations.filter((r) => r.direction === "incoming");
+  const outgoing = currentDetail.relations.filter((r) => r.direction === "outgoing");
+  const incoming = currentDetail.relations.filter((r) => r.direction === "incoming");
   const activeRelations = activeTab === "outgoing" ? outgoing : incoming;
 
   return (
@@ -89,11 +93,11 @@ export function EntityDetailPanel({
           className="inline-block h-3 w-3 rounded-full"
           style={{
             backgroundColor:
-              TYPE_COLORS[detail.entity_type] ?? TYPE_COLORS.other,
+              TYPE_COLORS[currentDetail.entity_type] ?? TYPE_COLORS.other,
           }}
         />
         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          {detail.name}
+          {currentDetail.name}
         </span>
       </div>
 
@@ -101,25 +105,25 @@ export function EntityDetailPanel({
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
         <span className="text-zinc-500 dark:text-zinc-400">类型</span>
         <span className="text-zinc-900 dark:text-zinc-100">
-          {detail.entity_type}
+          {currentDetail.entity_type}
         </span>
         <span className="text-zinc-500 dark:text-zinc-400">置信度</span>
         <span className="text-zinc-900 dark:text-zinc-100">
-          {detail.confidence.toFixed(2)}
+          {currentDetail.confidence.toFixed(2)}
         </span>
         <span className="text-zinc-500 dark:text-zinc-400">提及次数</span>
         <span className="text-zinc-900 dark:text-zinc-100">
-          {detail.mention_count}
+          {currentDetail.mention_count}
         </span>
         <span className="text-zinc-500 dark:text-zinc-400">状态</span>
         <span className="text-zinc-900 dark:text-zinc-100">
-          {detail.is_active ? "活跃" : "不活跃"}
+          {currentDetail.is_active ? "活跃" : "不活跃"}
         </span>
       </div>
 
-      {detail.description && (
+      {currentDetail.description && (
         <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800 p-2 text-xs text-zinc-600 dark:text-zinc-400">
-          {detail.description}
+          {currentDetail.description}
         </div>
       )}
 

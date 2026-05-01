@@ -653,7 +653,7 @@ class AgeGraphRepository(GraphRepository):
 
         query = text(f"""
             WITH RECURSIVE path_search AS (
-                -- Base case: all edges from source
+                -- Base case: forward edges from source
                 SELECT
                     source_id,
                     target_id,
@@ -664,7 +664,19 @@ class AgeGraphRepository(GraphRepository):
 
                 UNION ALL
 
-                -- Recursive case: extend path
+                -- Base case: reverse edges from source
+                SELECT
+                    target_id AS source_id,
+                    source_id AS target_id,
+                    ARRAY[:source_id] AS path,
+                    1 AS depth
+                FROM {self._schema}.kg_relations
+                WHERE target_id = :source_id AND is_active = true
+                  AND source_id != :source_id
+
+                UNION ALL
+
+                -- Recursive: forward direction
                 SELECT
                     r.source_id,
                     r.target_id,
@@ -675,6 +687,20 @@ class AgeGraphRepository(GraphRepository):
                 WHERE r.is_active = true
                   AND ps.depth < :max_depth
                   AND r.target_id != ALL(ps.path)
+
+                UNION ALL
+
+                -- Recursive: reverse direction
+                SELECT
+                    r.target_id AS source_id,
+                    r.source_id AS target_id,
+                    ps.path || r.source_id,
+                    ps.depth + 1
+                FROM {self._schema}.kg_relations r
+                JOIN path_search ps ON r.target_id = ps.target_id
+                WHERE r.is_active = true
+                  AND ps.depth < :max_depth
+                  AND r.source_id != ALL(ps.path)
             )
             SELECT path || target_id AS full_path
             FROM path_search
