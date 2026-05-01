@@ -348,3 +348,134 @@ class KgEntityService:
             }
             for row in result.all()
         ]
+
+    async def list_entities(
+        self,
+        db: AsyncSession,
+        *,
+        corpus_id: UUID,
+        entity_type: str | None = None,
+        search: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[dict], int]:
+        """分页实体列表
+
+        Returns:
+            (items, total_count)
+        """
+        from sqlalchemy import func as sql_func
+        from sqlalchemy import select as sql_select
+
+        from negentropy.models.perception import KgEntity
+
+        base = sql_select(KgEntity).where(
+            KgEntity.corpus_id == corpus_id,
+            KgEntity.is_active == True,  # noqa: E712
+        )
+
+        if entity_type:
+            base = base.where(KgEntity.entity_type == entity_type)
+        if search:
+            base = base.where(KgEntity.name.ilike(f"%{search}%"))
+
+        count_q = sql_select(sql_func.count()).select_from(base.subquery())
+        total = (await db.execute(count_q)).scalar_one()
+
+        items_q = base.order_by(KgEntity.mention_count.desc(), KgEntity.confidence.desc()).limit(limit).offset(offset)
+        rows = (await db.execute(items_q)).scalars().all()
+
+        items = [
+            {
+                "id": str(r.id),
+                "name": r.name,
+                "entity_type": r.entity_type,
+                "confidence": float(r.confidence) if r.confidence else 0,
+                "mention_count": r.mention_count,
+                "description": r.description,
+                "is_active": r.is_active,
+            }
+            for r in rows
+        ]
+        return items, total
+
+    async def get_entity_detail(
+        self,
+        db: AsyncSession,
+        entity_id: UUID,
+        *,
+        corpus_id: UUID | None = None,
+    ) -> dict | None:
+        """获取实体详情含关系
+
+        Args:
+            corpus_id: 可选语料库过滤，传入后仅返回该语料库下的实体
+
+        Returns:
+            实体详情 dict 或 None（未找到）
+        """
+        from sqlalchemy import select as sql_select
+        from sqlalchemy.orm import selectinload
+
+        from negentropy.models.perception import KgEntity, KgRelation
+
+        filters = [KgEntity.id == entity_id]
+        if corpus_id is not None:
+            filters.append(KgEntity.corpus_id == corpus_id)
+
+        result = await db.execute(
+            sql_select(KgEntity)
+            .where(*filters)
+            .options(
+                selectinload(KgEntity.outgoing_relations).selectinload(KgRelation.target_entity),
+                selectinload(KgEntity.incoming_relations).selectinload(KgRelation.source_entity),
+            )
+        )
+        entity = result.scalar_one_or_none()
+        if entity is None:
+            return None
+
+        relations: list[dict] = []
+        for rel in entity.outgoing_relations:
+            peer = rel.target_entity
+            relations.append(
+                {
+                    "id": str(rel.id),
+                    "direction": "outgoing",
+                    "relation_type": rel.relation_type,
+                    "weight": rel.weight,
+                    "confidence": rel.confidence,
+                    "evidence_text": rel.evidence_text,
+                    "peer_entity_id": str(peer.id),
+                    "peer_entity_name": peer.name,
+                    "peer_entity_type": peer.entity_type,
+                }
+            )
+        for rel in entity.incoming_relations:
+            peer = rel.source_entity
+            relations.append(
+                {
+                    "id": str(rel.id),
+                    "direction": "incoming",
+                    "relation_type": rel.relation_type,
+                    "weight": rel.weight,
+                    "confidence": rel.confidence,
+                    "evidence_text": rel.evidence_text,
+                    "peer_entity_id": str(peer.id),
+                    "peer_entity_name": peer.name,
+                    "peer_entity_type": peer.entity_type,
+                }
+            )
+
+        return {
+            "id": str(entity.id),
+            "name": entity.name,
+            "entity_type": entity.entity_type,
+            "confidence": float(entity.confidence) if entity.confidence else 0,
+            "mention_count": entity.mention_count,
+            "description": entity.description,
+            "aliases": entity.aliases,
+            "properties": entity.properties,
+            "is_active": entity.is_active,
+            "relations": relations,
+        }

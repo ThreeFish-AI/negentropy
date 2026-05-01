@@ -333,6 +333,70 @@ class GraphPathRequest(BaseModel):
 
 
 # ============================================================================
+# Graph Entity Schemas
+# ============================================================================
+
+
+class GraphEntityItem(BaseModel):
+    """实体列表条目"""
+
+    id: UUID
+    name: str
+    entity_type: str
+    confidence: float = 0.0
+    mention_count: int = 0
+    description: str | None = None
+    is_active: bool = True
+
+
+class GraphEntityListResponse(BaseModel):
+    """实体列表响应"""
+
+    count: int
+    items: list[GraphEntityItem] = Field(default_factory=list)
+
+
+class GraphEntityRelationItem(BaseModel):
+    """实体关系条目"""
+
+    id: UUID
+    direction: str  # "outgoing" | "incoming"
+    relation_type: str
+    weight: float = 1.0
+    confidence: float = 1.0
+    evidence_text: str | None = None
+    peer_entity_id: UUID
+    peer_entity_name: str
+    peer_entity_type: str
+
+
+class GraphEntityDetailResponse(BaseModel):
+    """实体详情响应"""
+
+    id: UUID
+    name: str
+    entity_type: str
+    confidence: float = 0.0
+    mention_count: int = 0
+    description: str | None = None
+    aliases: dict[str, Any] | None = None
+    properties: dict[str, Any] | None = None
+    is_active: bool = True
+    relations: list[GraphEntityRelationItem] = Field(default_factory=list)
+
+
+class GraphStatsResponse(BaseModel):
+    """图谱统计响应"""
+
+    total_entities: int = 0
+    edge_count: int = 0
+    by_type: dict[str, int] = Field(default_factory=dict)
+    avg_confidence: float = 0.0
+    density: float = 0.0
+    avg_degree: float = 0.0
+
+
+# ============================================================================
 # Document Schemas
 # ============================================================================
 

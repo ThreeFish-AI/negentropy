@@ -277,6 +277,16 @@ $$RRF(d) = \sum_{r \in R} \frac{1}{k + rank_r(d)}$$
 | 社区检测 | 🔄 Louvain (Python networkx) | 服务层编排 |
 | GraphRAG 检索 | 🔄 LightRAG 双层模式启发 | 适配现有 `SearchConfig` |
 | 时态建模 | 🔄 Graphiti 双时态模型启发 | 扩展关系属性 |
+
+### 3.6 可采纳的架构模式精炼
+
+基于对 Cognee、Graphiti、Neo4j GDS 的深度调研，提炼出以下可直接采纳的架构模式：
+
+**Cognee ECL 管道模式**：Extract-Cognify-Load 三层解耦架构<sup>[[13]](#ref13)</sup>。Extract 层负责文档解析与分块（对应 Negentropy 的感知系部），Cognify 层负责 LLM 提取、实体去重与 Schema 推断（对应 GraphProcessor + LLM 提取器），Load 层负责三层存储（图 + 向量 + 关系，对应 PostgreSQL + pgvector + AGE）。核心启示：管道的每一层应是可独立替换的策略，通过接口解耦。
+
+**Graphiti 双时态模型**<sup>[[14]](#ref14)</sup>：关系同时携带 `valid_from/valid_to`（事实有效时间）和 `created_at/expired_at`（系统记录时间）两组时态字段。事实时间用于回答"这段关系何时成立"，系统时间用于回答"系统何时知道这段关系"。Deep Memory Retrieval（DMR）准确率达 94.8%，关键在于三级实体解析（精确匹配 → 嵌入相似度 > 0.92 → LLM 推理）。Negentropy 可在 Phase 3 在 `KgRelation` 的 `first_observed_at/last_observed_at` 基础上扩展双时态字段。
+
+**Neo4j GDS 算法库**<sup>[[6]](#ref6)</sup>：提供 50+ 图算法（PageRank、Louvain、Node2Vec 等）。Negentropy 当前采用 PostgreSQL 单一技术栈，图算法通过 Python `networkx` 实现而非数据库内计算。迁移阈值：图规模 >100K 实体 / 频繁 4+ 跳查询 / 需要 50+ GDS 算法时，评估迁移到 Neo4j。
 | 向量检索 | ✅ pgvector HNSW (已有) | RRF 融合图分数 |
 
 ---
@@ -298,6 +308,12 @@ Phase 1 基础能力增强已于 2026-02 完成，主要交付物：
 | 类型定义 | [`types.py`](../apps/negentropy/src/negentropy/knowledge/types.py) | ✅ | `KgEntityType` / `KgRelationType` / `GraphSearchMode` |
 | API 端点 | [`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) | ✅ | 图谱构建/查询/检索/邻居/路径 API |
 | DB Schema | [`kg_schema_extension.sql`](./schema/kg_schema_extension.sql) | ✅ | AGE 扩展 + 枚举 + 函数 + 视图 |
+| 实体一等公民服务 | [`kg_entity_service.py`](../apps/negentropy/src/negentropy/knowledge/kg_entity_service.py) | ✅ | `KgEntityService` 双写 + 实体列表/详情 |
+| 实体浏览 API | [`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) | ✅ | `GET /graph/entities` + `GET /graph/entities/{id}` |
+| 图谱统计 API | [`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) | ✅ | `GET /graph/stats` 聚合统计 |
+| 递归 CTE 遍历 | [`graph_repository.py`](../apps/negentropy/src/negentropy/knowledge/graph_repository.py) | ✅ | `find_neighbors` / `find_path` 多跳 BFS |
+| 前端图谱页面 | [`graph/page.tsx`](../apps/negentropy-ui/app/knowledge/graph/page.tsx) | ✅ | 语料库选择 + 可视化 + 实体列表 + 搜索 |
+| 前端实体面板 | [`_components/`](../apps/negentropy-ui/app/knowledge/graph/_components/) | ✅ | EntityList + EntityDetail + SearchBar + PathExplorer |
 
 ### 4.2 当前架构
 
