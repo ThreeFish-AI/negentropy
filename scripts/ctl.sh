@@ -64,8 +64,7 @@ pid_file() { echo "$RUN_DIR/$1.pid"; }
 log_file() { echo "$RUN_DIR/$1.log"; }
 
 is_running() {
-  local pid
-  pid_file="$RUN_DIR/$1.pid"
+  local pid pid_file="$RUN_DIR/$1.pid"
   [[ -f "$pid_file" ]] || return 1
   pid="$(cat "$pid_file")"
   kill -0 "$pid" 2>/dev/null
@@ -215,7 +214,8 @@ cmd_start() {
   local ui_pid=$!
   (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm install) &
   local wiki_pid=$!
-  wait "$ui_pid" "$wiki_pid"
+  local _rc=0; wait "$ui_pid" || _rc=$?; wait "$wiki_pid" || _rc=$?
+  (( _rc )) && { log_error "前端依赖安装失败"; exit 1; }
   log_ok "前端依赖已安装"
 
   # Phase 3 — 数据库迁移
@@ -237,7 +237,8 @@ cmd_start() {
     local build_ui_pid=$!
     (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
     local build_wiki_pid=$!
-    wait "$build_ui_pid" "$build_wiki_pid"
+    local _rc=0; wait "$build_ui_pid" || _rc=$?; wait "$build_wiki_pid" || _rc=$?
+    (( _rc )) && { log_error "前端构建失败"; exit 1; }
     log_ok "前端构建完成"
   else
     log_phase "Phase 4/5: 前端构建 (跳过)"
@@ -297,7 +298,8 @@ cmd_build() {
   local pid_ui=$!
   (cd "$REPO_ROOT/apps/negentropy-wiki" && pnpm build) &
   local pid_wiki=$!
-  wait "$pid_ui" "$pid_wiki"
+  local _rc=0; wait "$pid_ui" || _rc=$?; wait "$pid_wiki" || _rc=$?
+  (( _rc )) && { log_error "前端构建失败"; exit 1; }
   log_ok "前端构建完成"
 }
 
