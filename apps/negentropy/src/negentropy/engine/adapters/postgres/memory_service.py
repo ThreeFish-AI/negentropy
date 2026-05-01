@@ -134,6 +134,7 @@ class PostgresMemoryService(BaseMemoryService):
                     retention_score=initial_score,
                     metadata_={
                         "source": "session",
+                        "event_count": len(session.events),
                         "segment_index": seg_idx,
                         "total_segments": len(segments),
                         "turn_count": len(segment),
