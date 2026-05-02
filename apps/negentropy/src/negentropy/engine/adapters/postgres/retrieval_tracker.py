@@ -96,22 +96,32 @@ class RetrievalTracker:
         since = datetime.now(UTC) - timedelta(days=days)
 
         async with db_session.AsyncSessionLocal() as db:
-            base = sa.select(MemoryRetrievalLog).where(
+            stmt = sa.select(
+                sa.func.count().label("total"),
+                sa.func.sum(sa.case((MemoryRetrievalLog.was_referenced.is_(True), 1), else_=0)).label("referenced"),
+                sa.func.sum(sa.case((MemoryRetrievalLog.outcome_feedback == "helpful", 1), else_=0)).label("helpful"),
+                sa.func.sum(sa.case((MemoryRetrievalLog.outcome_feedback == "irrelevant", 1), else_=0)).label(
+                    "irrelevant"
+                ),
+                sa.func.sum(sa.case((MemoryRetrievalLog.outcome_feedback.isnot(None), 1), else_=0)).label(
+                    "with_feedback"
+                ),
+            ).where(
                 MemoryRetrievalLog.user_id == user_id,
                 MemoryRetrievalLog.app_name == app_name,
                 MemoryRetrievalLog.created_at >= since,
             )
-            result = await db.execute(base)
-            logs = list(result.scalars().all())
+            result = await db.execute(stmt)
+            row = result.one()
 
-        total = len(logs)
+        total = row.total or 0
         if total == 0:
             return {"total_retrievals": 0, "precision_at_k": 0.0, "utilization_rate": 0.0, "noise_rate": 0.0}
 
-        referenced = sum(1 for log in logs if log.was_referenced)
-        helpful = sum(1 for log in logs if log.outcome_feedback == "helpful")
-        irrelevant = sum(1 for log in logs if log.outcome_feedback == "irrelevant")
-        with_feedback = sum(1 for log in logs if log.outcome_feedback is not None)
+        referenced = row.referenced or 0
+        helpful = row.helpful or 0
+        irrelevant = row.irrelevant or 0
+        with_feedback = row.with_feedback or 0
 
         return {
             "total_retrievals": total,

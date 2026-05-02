@@ -50,7 +50,7 @@ Instructions:
 4. Ignore greetings, small talk, and generic responses
 
 Output as JSON:
-{{"facts": [{{"type": "pref|profile|rule|custom", "key": "key", "value": "value", "confidence": 0.9}}]}}"""
+{{"facts": [{{"type": "preference|profile|rule|custom", "key": "key", "value": "value", "confidence": 0.9}}]}}"""
 
 
 class LLMFactExtractor:
