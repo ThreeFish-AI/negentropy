@@ -30,7 +30,7 @@ from negentropy.knowledge.constants import (
     DEFAULT_KEYWORD_WEIGHT,
     DEFAULT_SEMANTIC_WEIGHT,
 )
-from negentropy.knowledge.embedding import build_batch_embedding_fn, build_embedding_fn
+from negentropy.knowledge.ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
 from negentropy.knowledge.types import SearchConfig
 from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus

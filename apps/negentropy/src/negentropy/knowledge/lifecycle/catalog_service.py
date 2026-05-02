@@ -18,10 +18,11 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.catalog_dao import CatalogDao
-from negentropy.knowledge.slug import is_valid_slug, slugify
 from negentropy.logging import get_logger
 from negentropy.models.perception import DocCatalog, DocCatalogEntry, KnowledgeDocument
+
+from .catalog_dao import CatalogDao
+from .slug import is_valid_slug, slugify
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
 

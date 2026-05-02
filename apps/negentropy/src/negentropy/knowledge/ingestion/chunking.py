@@ -22,7 +22,7 @@ from typing import Literal
 
 from negentropy.logging import get_logger
 
-from .types import (
+from ..types import (
     ChunkingConfig,
     ChunkingStrategy,
     FixedChunkingConfig,

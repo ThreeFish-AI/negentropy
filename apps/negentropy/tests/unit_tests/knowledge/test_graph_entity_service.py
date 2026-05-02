@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from negentropy.knowledge.kg_entity_service import KgEntityService
+from negentropy.knowledge.graph.entity_service import KgEntityService
 
 _CORPUS_ID = UUID("00000000-0000-0000-0000-000000000001")
 

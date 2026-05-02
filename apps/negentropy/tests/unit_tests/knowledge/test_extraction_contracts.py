@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.extraction import (
+from negentropy.knowledge.ingestion.extraction import (
     ROUTE_FILE_PDF,
     ROUTE_URL,
     ExtractionAttempt,

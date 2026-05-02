@@ -206,11 +206,7 @@ class UnifiedRetrievalService:
         # 过滤条件
         if corpus_ids:
             base_query = base_query.where(KnowledgeDocument.corpus_id.in_(corpus_ids))
-        if source_types:
-            base_query = base_query.join(
-                # 需要通过 DocSource 关联过滤 source_type
-                # 简化：先不过滤，后续可扩展
-            )
+        # TODO: source_types 过滤需通过 DocSource 关联实现
         if date_from:
             base_query = base_query.where(KnowledgeDocument.created_at >= date_from)
         if date_to:
@@ -262,7 +258,7 @@ class UnifiedRetrievalService:
         query: str,
         limit: int,
     ) -> dict[str, Any]:
-        """图谱查询模式 — 搜索相关实体和关系"""
+        """图谱查询模式 — 搜索相关实体和关系，B4: 附带子图上下文"""
         from negentropy.models.perception import KgEntity
 
         search_term = f"%{query}%"
@@ -273,6 +269,42 @@ class UnifiedRetrievalService:
             .limit(limit)
         )
         entities = result.scalars().all()
+
+        # B4: 子图上下文构建 (Sun et al., PullNet, ACL 2019)
+        graph_context_text = ""
+        if entities:
+            try:
+                from negentropy.knowledge.graph.context_builder import GraphContextBuilder
+                from negentropy.knowledge.graph.repository import get_graph_repository
+
+                repo = get_graph_repository()
+                seed_entities = [
+                    {
+                        "id": str(e.id),
+                        "name": e.name,
+                        "type": e.entity_type,
+                        "score": float(e.confidence or 0),
+                    }
+                    for e in entities[:5]
+                ]
+                corpus_id = entities[0].corpus_id
+
+                async def _neighbor_fn(entity_id, cid, depth, lim):
+                    # 直接从 repository 取带边信息的 1-hop 邻居（每跳调用一次）
+                    return await repo.find_neighbor_edges(
+                        entity_id=entity_id,
+                        limit=lim,
+                    )
+
+                builder = GraphContextBuilder(max_tokens=2000, max_hops=1)
+                ctx = await builder.build_context(
+                    seed_entities=seed_entities,
+                    neighbor_fn=_neighbor_fn,
+                    corpus_id=corpus_id,
+                )
+                graph_context_text = ctx.formatted_text
+            except Exception:
+                pass  # 上下文构建失败不应中断搜索
 
         items = [
             {
@@ -286,12 +318,16 @@ class UnifiedRetrievalService:
             for e in entities
         ]
 
-        return {
+        result_dict: dict[str, Any] = {
             "items": items,
             "total": len(items),
             "mode": "graph",
             "facets": {},
         }
+        if graph_context_text:
+            result_dict["graph_context"] = graph_context_text
+
+        return result_dict
 
     async def _navigation_search(
         self,

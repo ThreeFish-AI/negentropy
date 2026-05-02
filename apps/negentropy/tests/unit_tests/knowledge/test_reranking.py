@@ -18,7 +18,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.reranking import (
+from negentropy.knowledge.retrieval.reranking import (
     CompositeReranker,
     NoopReranker,
     RerankConfig,

@@ -76,7 +76,7 @@ class TestSearchHonorsCorpusEmbeddingConfig:
 
         pinned_fn = AsyncMock(return_value=_PINNED_VECTOR)
         with patch(
-            "negentropy.knowledge.embedding.build_embedding_fn",
+            "negentropy.knowledge.ingestion.embedding.build_embedding_fn",
             return_value=pinned_fn,
         ) as build_fn:
             await svc.search(
@@ -103,7 +103,7 @@ class TestSearchHonorsCorpusEmbeddingConfig:
 
         svc._get_corpus_config = AsyncMock(return_value={})  # type: ignore[method-assign]
 
-        with patch("negentropy.knowledge.embedding.build_embedding_fn") as build_fn:
+        with patch("negentropy.knowledge.ingestion.embedding.build_embedding_fn") as build_fn:
             await svc.search(
                 corpus_id=uuid4(),
                 app_name="negentropy",
@@ -132,7 +132,7 @@ class TestSearchHonorsCorpusEmbeddingConfig:
             )
 
         with patch(
-            "negentropy.knowledge.embedding.build_embedding_fn",
+            "negentropy.knowledge.ingestion.embedding.build_embedding_fn",
             return_value=failing_pinned,
         ):
             results = await svc.search(
@@ -159,7 +159,7 @@ class TestSearchHonorsCorpusEmbeddingConfig:
 
         pinned_fn = AsyncMock(return_value=_PINNED_VECTOR)
         with patch(
-            "negentropy.knowledge.embedding.build_embedding_fn",
+            "negentropy.knowledge.ingestion.embedding.build_embedding_fn",
             return_value=pinned_fn,
         ):
             svc._reranker.rerank = AsyncMock(side_effect=lambda q, m: m)  # type: ignore[method-assign]
@@ -194,7 +194,7 @@ class TestSearchHonorsCorpusEmbeddingConfig:
             )
 
         with patch(
-            "negentropy.knowledge.embedding.build_embedding_fn",
+            "negentropy.knowledge.ingestion.embedding.build_embedding_fn",
             return_value=failing_pinned,
         ):
             with pytest.raises(EmbeddingFailed):

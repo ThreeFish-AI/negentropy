@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from negentropy.knowledge.slug import (
+from negentropy.knowledge.lifecycle.slug import (
     DEFAULT_SLUG,
     SLUG_PATTERN,
     compute_slug,

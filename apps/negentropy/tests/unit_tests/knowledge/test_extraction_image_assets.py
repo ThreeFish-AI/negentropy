@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.extraction import (
+from negentropy.knowledge.ingestion.extraction import (
     ExtractionAsset,
     _extract_base64_from_asset,
     _extract_enhanced_image_assets,
@@ -456,7 +456,7 @@ class TestPersistExtractedAssets:
         mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
         mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
 
-        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+        with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
 
         assert len(result) == 1
@@ -476,7 +476,7 @@ class TestPersistExtractedAssets:
         mock_storage = AsyncMock()
         mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
 
-        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+        with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
 
         assert result[0]["uri"] == "gs://bucket/existing/img.png"
@@ -496,7 +496,7 @@ class TestPersistExtractedAssets:
         mock_storage.get_document.return_value = SimpleNamespace(metadata_={})
         mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
 
-        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+        with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
 
         assert result[0]["uri"] == "gs://bucket/assets/img.png"
@@ -524,7 +524,7 @@ class TestPersistExtractedAssets:
         )
         mock_storage.upload_extraction_asset.return_value = "gs://bucket/assets/img.png"
 
-        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+        with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[asset])
 
         assert result == [
@@ -553,7 +553,7 @@ class TestPersistExtractedAssets:
             }
         )
 
-        with patch("negentropy.knowledge.extraction.DocumentStorageService", return_value=mock_storage):
+        with patch("negentropy.knowledge.ingestion.extraction.DocumentStorageService", return_value=mock_storage):
             result = await persist_extracted_assets(document_id=doc_id, assets=[])
 
         assert result == []

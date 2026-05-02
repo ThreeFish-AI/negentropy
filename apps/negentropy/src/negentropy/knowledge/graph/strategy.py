@@ -19,7 +19,7 @@ from uuid import UUID, uuid4
 
 from negentropy.logging import get_logger
 
-from .types import GraphEdge, GraphNode, KnowledgeGraphPayload
+from ..types import GraphEdge, GraphNode, KnowledgeGraphPayload
 
 logger = get_logger("negentropy.knowledge.graph")
 

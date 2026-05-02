@@ -27,17 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from negentropy.logging import get_logger
 from negentropy.model_names import canonicalize_model_name
 
-from .graph_repository import (
-    BuildRunRecord,
-    GraphRepository,
-    GraphSearchResult,
-    get_graph_repository,
-)
-from .llm_extractors import (
-    CompositeEntityExtractor,
-    CompositeRelationExtractor,
-)
-from .types import (
+from ..types import (
     GraphBuildConfig,
     GraphEdge,
     GraphNode,
@@ -45,6 +35,16 @@ from .types import (
     KgEntityType,
     KgRelationType,
     KnowledgeGraphPayload,
+)
+from .extractors import (
+    CompositeEntityExtractor,
+    CompositeRelationExtractor,
+)
+from .repository import (
+    BuildRunRecord,
+    GraphRepository,
+    GraphSearchResult,
+    get_graph_repository,
 )
 
 logger = get_logger("negentropy.knowledge.graph_service")
@@ -330,26 +330,18 @@ class GraphService:
                 except Exception:
                     pass  # 进度上报失败不影响构建
 
-            # 去重实体（基于 label）
-            unique_entities: dict[str, GraphNode] = {}
-            for entity in all_entities:
-                if entity.label and entity.label not in unique_entities:
-                    unique_entities[entity.label] = entity
+            # 多策略实体消解 (Fellegi & Sunter, 1969)
+            # Blocking → Exact → Alias → ANN → LLM verification
+            from .entity_resolver import EntityResolver
 
-            entities_to_save = list(unique_entities.values())
-
-            # 语义去重 (Fellegi & Sunter, 1969; Mudgal et al., 2018)
-            # 在 label 精确去重之后，利用 embedding ANN 查找语义近义实体
-            if build_config.semantic_dedup_threshold > 0 and len(entities_to_save) > 0:
-                try:
-                    await self._semantic_dedup(
-                        entities_to_save,
-                        corpus_id,
-                        build_config.semantic_dedup_threshold,
-                    )
-                except Exception as dedup_exc:
-                    build_warnings.append({"phase": "semantic_dedup", "error": str(dedup_exc)})
-                    logger.warning("semantic_dedup_failed", error=str(dedup_exc))
+            resolver = EntityResolver(
+                ann_threshold=build_config.semantic_dedup_threshold or 0.85,
+            )
+            entities_to_save = await resolver.resolve(
+                new_entities=all_entities,
+                find_similar=self._repository.find_similar_entities,
+                corpus_id=corpus_id,
+            )
 
             # 持久化实体
             await self._repository.create_entities(
@@ -384,7 +376,50 @@ class GraphService:
                     )
                     valid_relations.append(updated_relation)
 
-            # 持久化关系
+            # B2: 时态事实冲突检测 (Snodgrass & Ahn, 1985)
+            # 必须在 create_relations 之前运行：否则在「同 (s,t,type) 但 evidence 变更」的
+            # 重建场景下，先 INSERT 会因唯一约束被静默丢弃，再 expire 旧行将导致关系彻底消失。
+            # 当前流程：① 先用新关系与 DB 中既有关系比对；② 对 CONTRADICTION 互斥的旧行
+            # 提前 expire；③ 再让 create_relations 走 ON CONFLICT DO UPDATE 在原行就地刷新。
+            try:
+                from datetime import UTC, datetime
+
+                from .temporal_resolver import TemporalResolver
+
+                temporal_resolver = TemporalResolver()
+                relation_dicts_for_temporal = [
+                    {
+                        "source": r.source,
+                        "target": r.target,
+                        "edge_type": r.edge_type,
+                        "evidence": r.metadata.get("evidence", ""),
+                        "weight": r.weight,
+                    }
+                    for r in valid_relations
+                ]
+                temporal_results = await temporal_resolver.resolve_relations(
+                    new_relations=relation_dicts_for_temporal,
+                    existing_lookup=self._repository.find_existing_relations,
+                    corpus_id=corpus_id,
+                )
+                # 对 UPDATE/CONTRADICTION 的旧关系标记失效（提前到持久化之前）
+                now = datetime.now(UTC)
+                all_expire_ids = list({eid for resolved in temporal_results for eid in resolved.get("expire_ids", [])})
+                if all_expire_ids:
+                    await self._repository.expire_relations(all_expire_ids, now)
+                logger.info(
+                    "temporal_resolution_completed",
+                    relation_count=len(temporal_results),
+                )
+            except Exception as tr_exc:
+                build_warnings.append({"algorithm": "temporal_resolution", "error": str(tr_exc)})
+                logger.warning(
+                    "temporal_resolution_failed",
+                    error=str(tr_exc),
+                )
+
+            # 持久化关系（依赖 create_relation 的 ON CONFLICT DO UPDATE 语义在 UPDATE 路径
+            # 上原地覆盖 evidence，避免唯一约束 + DO NOTHING 造成的数据丢失）
             await self._repository.create_relations(valid_relations)
 
             # 同步到一等公民表 (kg_entities / kg_relations)
@@ -392,7 +427,7 @@ class GraphService:
             try:
                 from negentropy.db.session import AsyncSessionLocal
 
-                from .kg_entity_service import KgEntityService
+                from .entity_service import KgEntityService
 
                 kg_service = KgEntityService()
                 node_dicts = [
@@ -471,6 +506,26 @@ class GraphService:
                 logger.warning(
                     "louvain_computation_failed",
                     error=str(lv_exc),
+                )
+
+            # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .community_summarizer import CommunitySummarizer
+
+                summarizer = CommunitySummarizer(model=normalized_llm_model)
+                async with AsyncSessionLocal() as cs_db:
+                    cs_result = await summarizer.summarize_communities(cs_db, corpus_id)
+                    logger.info(
+                        "community_summaries_generated",
+                        **cs_result,
+                    )
+            except Exception as cs_exc:
+                build_warnings.append({"algorithm": "community_summary", "error": str(cs_exc)})
+                logger.warning(
+                    "community_summary_failed",
+                    error=str(cs_exc),
                 )
 
             elapsed = time.time() - start_time
@@ -928,7 +983,7 @@ class GraphService:
         connected_components = None
         if 0 < total_entities <= 10000:
             try:
-                from negentropy.knowledge.graph_algorithms import export_graph_to_networkx
+                from .graph_algorithms import export_graph_to_networkx
 
                 nx_graph = await export_graph_to_networkx(db, corpus_id)
                 import networkx as nx
@@ -1060,71 +1115,6 @@ class GraphService:
         )
 
         return count
-
-    async def _semantic_dedup(
-        self,
-        entities: list[GraphNode],
-        corpus_id: UUID,
-        threshold: float,
-    ) -> None:
-        """语义去重阶段：利用 embedding ANN 查找并合并近义实体
-
-        三阶段流程 (Christen, 2012)：
-        1. 阻塞 (Blocking): entity_type 预过滤
-        2. 比较 (Comparison): HNSW ANN 余弦相似度
-        3. 分类 (Classification): 阈值判定 + 合并
-        """
-        from negentropy.db.session import AsyncSessionLocal
-
-        from .embedding import build_batch_embedding_fn
-        from .kg_entity_service import KgEntityService
-
-        # 1. 批量生成实体 label 的 embedding
-        labels = [e.label for e in entities if e.label]
-        if not labels:
-            return
-
-        embed_fn = await build_batch_embedding_fn()
-        embeddings = await embed_fn(labels)
-
-        # 2. 对每个实体查找 DB 中已有的相似实体
-        merged_count = 0
-        kg_service = KgEntityService()
-
-        async with AsyncSessionLocal() as db:
-            for entity, embedding in zip(entities, embeddings, strict=False):
-                if not embedding or not entity.node_type:
-                    continue
-
-                similar = await self._repository.find_similar_entities(
-                    embedding=embedding,
-                    corpus_id=corpus_id,
-                    entity_type=entity.node_type,
-                    threshold=threshold,
-                    limit=3,
-                )
-
-                for similar_id, similar_name, _score in similar:
-                    # 找到已存在的同名实体则跳过（精确匹配已处理）
-                    if similar_name == entity.label:
-                        continue
-                    await kg_service.merge_entities(
-                        db,
-                        primary_id=similar_id,
-                        secondary_id=entity.id.replace("entity:", "") if entity.id else "",
-                        corpus_id=corpus_id,
-                    )
-                    merged_count += 1
-
-            if merged_count > 0:
-                await db.commit()
-
-        logger.info(
-            "semantic_dedup_completed",
-            corpus_id=str(corpus_id),
-            entity_count=len(entities),
-            merged_count=merged_count,
-        )
 
 
 # ============================================================================

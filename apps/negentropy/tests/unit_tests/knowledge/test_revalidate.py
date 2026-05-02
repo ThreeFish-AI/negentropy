@@ -19,7 +19,7 @@ import httpx
 import pytest
 
 from negentropy.config.knowledge import WikiRevalidateSettings
-from negentropy.knowledge import revalidate
+from negentropy.knowledge.lifecycle import revalidate
 
 
 class _FakeSecret:

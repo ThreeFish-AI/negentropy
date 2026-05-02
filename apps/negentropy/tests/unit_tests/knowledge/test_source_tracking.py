@@ -15,7 +15,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.source_tracking import (
+from negentropy.knowledge.ingestion.source_tracking import (
     FileSourceTracker,
     PdfSourceTracker,
     SourceTrackingService,
@@ -563,7 +563,7 @@ class TestSourceTrackingService:
             metadata={"source_url": "https://example.com", "title": "Test URL"},
         )
 
-        monkeypatch.setattr("negentropy.knowledge.source_tracking.SourceDao", fake_dao)
+        monkeypatch.setattr("negentropy.knowledge.ingestion.source_tracking.SourceDao", fake_dao)
         await service.track(
             fake_db,
             document_id=doc_id,
@@ -588,7 +588,7 @@ class TestSourceTrackingService:
         doc_id = uuid4()
         result = make_extracted_document_result(metadata={})
 
-        monkeypatch.setattr("negentropy.knowledge.source_tracking.SourceDao", fake_dao)
+        monkeypatch.setattr("negentropy.knowledge.ingestion.source_tracking.SourceDao", fake_dao)
         await service.track(
             fake_db,
             document_id=doc_id,
@@ -632,7 +632,7 @@ class TestSourceTrackingService:
             plain_text="Content for summary.",
         )
 
-        monkeypatch.setattr("negentropy.knowledge.source_tracking.SourceDao", fake_dao)
+        monkeypatch.setattr("negentropy.knowledge.ingestion.source_tracking.SourceDao", fake_dao)
         await service.track(
             fake_db,
             document_id=doc_id,
@@ -667,7 +667,7 @@ class TestSourceTrackingService:
             metadata={"source_url": "https://example.com", "title": "Default Ctx"},
         )
 
-        monkeypatch.setattr("negentropy.knowledge.source_tracking.SourceDao", fake_dao)
+        monkeypatch.setattr("negentropy.knowledge.ingestion.source_tracking.SourceDao", fake_dao)
         await service.track(
             fake_db,
             document_id=doc_id,

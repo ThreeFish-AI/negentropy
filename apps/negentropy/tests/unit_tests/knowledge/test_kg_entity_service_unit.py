@@ -20,7 +20,7 @@ from uuid import UUID, uuid4
 import pytest
 import sqlalchemy.orm
 
-from negentropy.knowledge.kg_entity_service import KgEntityService
+from negentropy.knowledge.graph.entity_service import KgEntityService
 from tests.unit_tests.knowledge.conftest import (
     FakeEntityDbSession,
 )
@@ -155,7 +155,7 @@ class TestSyncEntityFromKnowledge:
             captured["event"] = event
             captured["extra"] = extra
 
-        monkeypatch.setattr("negentropy.knowledge.kg_entity_service.logger.info", fake_info)
+        monkeypatch.setattr("negentropy.knowledge.graph.entity_service.logger.info", fake_info)
 
         await service.sync_entity_from_knowledge(
             db,
@@ -239,7 +239,7 @@ class TestSyncEntityFromKnowledge:
             captured["event"] = event
             captured["extra"] = extra
 
-        monkeypatch.setattr("negentropy.knowledge.kg_entity_service.logger.debug", fake_debug)
+        monkeypatch.setattr("negentropy.knowledge.graph.entity_service.logger.debug", fake_debug)
 
         with patch.object(db, "execute", new_callable=_MockExecuteReturn, return_value=existing):
             await service.sync_entity_from_knowledge(

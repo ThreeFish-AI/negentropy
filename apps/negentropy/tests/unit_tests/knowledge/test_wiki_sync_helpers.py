@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from negentropy.knowledge.wiki_service import WikiPublishingService
+from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
 
 def _node(node_id: str, slug: str, parent_id: str | None) -> dict:
@@ -84,8 +84,10 @@ def _patch_catalog_dao(
         _ = (db, limit)
         return list(docs_by_node.get(str(catalog_node_id), [])), len(docs_by_node.get(str(catalog_node_id), []))
 
-    monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
-    monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents)
+    monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
+    monkeypatch.setattr(
+        "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
+    )
 
 
 class TestCollectSubtreePlansMinimalRoots:

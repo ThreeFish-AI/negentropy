@@ -84,7 +84,7 @@ class GCSStorageClient:
         Returns:
             GCS object path
         """
-        from negentropy.knowledge.content import sanitize_filename
+        from negentropy.knowledge.ingestion.content import sanitize_filename
 
         safe_filename = sanitize_filename(filename)
         return f"knowledge/{app_name}/{corpus_id}/{safe_filename}"

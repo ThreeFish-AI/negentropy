@@ -14,9 +14,9 @@ from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import Corpus, Knowledge
 
-from .constants import RECALL_MULTIPLIER
-from .exceptions import DatabaseError, SearchError
-from .types import (
+from ..constants import RECALL_MULTIPLIER
+from ..exceptions import DatabaseError, SearchError
+from ..types import (
     CorpusRecord,
     CorpusSpec,
     KnowledgeChunk,
