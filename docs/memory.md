@@ -47,7 +47,14 @@
 | 记忆治理 | [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py) | MemoryGovernanceService — 遗忘曲线 + 审计决策 |
 | 自动化服务 | [`engine/adapters/postgres/memory_automation_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py) | MemoryAutomationService — 配置持久化 + 函数 reconcile + pg_cron |
 | 服务工厂 | [`engine/factories/memory.py`](../apps/negentropy/src/negentropy/engine/factories/memory.py) | Strategy + Factory — inmemory / postgres / vertexai |
-| API 路由 | [`engine/api.py`](../apps/negentropy/src/negentropy/engine/api.py) | Memory REST API |
+| API 路由 | [`engine/api.py`](../apps/negentropy/src/negentropy/engine/api.py) | Memory REST API + Retrieval Feedback API |
+| 摘要服务 | [`engine/adapters/postgres/summary_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/summary_service.py) | SummaryService — 摘要 CRUD + upsert |
+| 检索追踪 | [`engine/adapters/postgres/retrieval_tracker.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/retrieval_tracker.py) | RetrievalTracker — 检索效果反馈闭环 |
+| 上下文组装 | [`engine/adapters/postgres/context_assembler.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py) | ContextAssembler — Query-Aware 上下文注入 + Token 预算 |
+| LLM 事实提取 | [`engine/consolidation/llm_fact_extractor.py`](../apps/negentropy/src/negentropy/engine/consolidation/llm_fact_extractor.py) | LLMFactExtractor — LLM 结构化提取 + Pattern 降级 |
+| 记忆摘要 | [`engine/consolidation/memory_summarizer.py`](../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py) | MemorySummarizer — 用户画像摘要生成 + TTL 缓存 |
+| 共享工具 | [`engine/utils/model_config.py`](../apps/negentropy/src/negentropy/engine/utils/model_config.py) | resolve_model_config — 统一模型配置解析 |
+| Token 计数 | [`engine/utils/token_counter.py`](../apps/negentropy/src/negentropy/engine/utils/token_counter.py) | TokenCounter — tiktoken BPE 精确计数 |
 | DDL 原型 | [`docs/schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) | 仿生记忆 DDL 草案（历史参考） |
 
 ---
@@ -1621,6 +1628,34 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 <a id="ref23"></a>[23] Y. Li et al., "LightMem: Lightweight and efficient memory-augmented generation," _arXiv preprint arXiv:2510.18866_, 2025.
 
 <a id="ref24"></a>[24] EverMemOS, "A self-organizing memory operating system for structured long-horizon reasoning," 2026.
+
+### Phase 2+ 增强参考文献
+
+<a id="ref31"></a>[31] C. D. Manning, P. Raghavan, and H. Schütze, *Introduction to Information Retrieval*. Cambridge, UK: Cambridge University Press, 2008.
+
+<a id="ref32"></a>[32] G. Shani and A. Gunawardana, "Evaluating recommendation systems," in *Recommender Systems Handbook*, F. Ricci, L. Rokach, B. Shapira, and P. B. Kantor, Eds. New York, NY: Springer, 2011, pp. 257–297.
+
+<a id="ref33"></a>[33] P. F. Christiano et al., "Deep reinforcement learning from human preferences," in *Adv. Neural Inf. Process. Syst. (NeurIPS)*, vol. 30, pp. 7299–7307, 2017.
+
+<a id="ref34"></a>[34] S. Es et al., "RAGAS: Automated evaluation of retrieval augmented generation," in *ECAI 2024*, 2024.
+
+<a id="ref35"></a>[35] J. Carbonell and J. Goldstein, "The use of MMR, diversity-based reranking for reordering documents and producing summaries," in *Proc. 21st ACM SIGIR*, Melbourne, Australia, 1998, pp. 335–336.
+
+<a id="ref36"></a>[36] A. Dong, Y. Chang, Z. Zheng, H. Zha, and K. Mei, "A time machine for search engine," in *Proc. 33rd ACM SIGIR*, Geneva, Switzerland, 2010, pp. 609–616.
+
+<a id="ref37"></a>[37] A. Z. Broder, "On the resemblance and containment of documents," in *Proc. SEQUENCES*, Positano, Italy, 1997, pp. 21–29.
+
+<a id="ref38"></a>[38] M. S. Charikar, "Similarity estimation techniques from rounding algorithms," in *Proc. 34th ACM STOC*, Montreal, Canada, 2002, pp. 380–388.
+
+<a id="ref39"></a>[39] P. Indyk and R. Motwani, "Approximate nearest neighbors: Towards removing the curse of dimensionality," in *Proc. 30th ACM STOC*, Dallas, TX, 1998, pp. 604–613.
+
+<a id="ref40"></a>[40] M. R. Henzinger, "Finding near-duplicate web documents: A large-scale evaluation of algorithms," in *Proc. 29th ACM SIGIR*, Seattle, WA, 2006, pp. 284–291.
+
+<a id="ref41"></a>[41] J. Zhang et al., "Machine learning testing: Survey, landscapes, and horizons," *IEEE Trans. Softw. Eng.*, vol. 48, no. 2, pp. 508–539, Feb. 2022.
+
+<a id="ref42"></a>[42] D. Sculley et al., "Hidden technical debt in machine learning systems," in *Adv. Neural Inf. Process. Syst. (NeurIPS)*, vol. 28, pp. 2503–2511, 2015.
+
+<a id="ref43"></a>[43] T. Y. Chen, F.-C. Kuo, H. Liu, and S. L. Poon, "Metamorphic testing: A review of challenges and opportunities," *ACM Comput. Surveys*, vol. 51, no. 1, pp. 1–27, Jan. 2018.
 
 <a id="ref25"></a>[25] R. Sennrich, B. Haddow, and A. Birch, "Neural machine translation of rare words with subword units," *ACL*, 2016.
 

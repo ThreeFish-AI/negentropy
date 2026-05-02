@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
@@ -707,3 +708,77 @@ async def run_memory_automation_job(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     result["snapshot"] = MemoryAutomationSnapshotResponse.model_validate(result["snapshot"])
     return MemoryAutomationRunResponse.model_validate(result)
+
+
+# ============================================================================
+# Retrieval Feedback — 检索效果反馈闭环
+# ============================================================================
+
+
+class RetrievalFeedbackRequest(BaseModel):
+    """检索效果反馈请求（显式反馈通道）
+
+    对齐 Rocchio 相关性反馈<sup>[[27]](#ref27)</sup>和 RLHF 偏好信号收集<sup>[[33]](#ref33)</sup>。
+    """
+
+    log_id: str = Field(..., description="检索日志 ID")
+    outcome: str = Field(..., description="反馈结果: helpful | irrelevant | harmful")
+
+
+class RetrievalMetricsResponse(BaseModel):
+    """检索效果指标响应
+
+    指标定义对齐 Manning et al.<sup>[[31]](#ref31)</sup>和 Shani & Gunawardana<sup>[[32]](#ref32)</sup>。
+    """
+
+    total_retrievals: int
+    precision_at_k: float
+    utilization_rate: float
+    noise_rate: float
+
+
+@router.post("/retrieval/feedback")
+async def submit_retrieval_feedback(
+    payload: RetrievalFeedbackRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """提交检索效果反馈（显式反馈通道）
+
+    对齐 Rocchio 相关性反馈<sup>[[27]](#ref27)</sup>：用户对检索结果的
+    helpful/irrelevant/harmful 判定作为后续检索权重调整的信号源。
+    """
+    from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+    tracker = RetrievalTracker()
+    try:
+        success = await tracker.record_feedback(
+            log_id=UUID(payload.log_id),
+            outcome=payload.outcome,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Retrieval log not found")
+    return {"status": "ok"}
+
+
+@router.get("/retrieval/metrics", response_model=RetrievalMetricsResponse)
+async def get_retrieval_metrics(
+    user_id: str = Query(..., description="用户 ID"),
+    app_name: str | None = Query(default=None, description="应用名称"),
+    days: int = Query(default=30, ge=1, le=365, description="统计时间窗口（天）"),
+    user: AuthUser = Depends(get_current_user),
+) -> RetrievalMetricsResponse:
+    """获取检索效果指标
+
+    返回 Precision@K、利用率、噪声率等指标，对齐 LongMemEval 评估维度。
+    """
+    from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+    tracker = RetrievalTracker()
+    metrics = await tracker.get_effectiveness_metrics(
+        user_id=user_id,
+        app_name=_resolve_app_name(app_name),
+        days=days,
+    )
+    return RetrievalMetricsResponse(**metrics)

@@ -331,3 +331,72 @@ class FactService:
 
             result = await db.execute(stmt)
             return list(result.scalars().all())
+
+    @staticmethod
+    def _cosine_similarity(a: list[float], b: list[float]) -> float:
+        """计算两个向量的余弦相似度"""
+        dot = sum(x * y for x, y in zip(a, b, strict=True))
+        norm_a = sum(x * x for x in a) ** 0.5
+        norm_b = sum(x * x for x in b) ** 0.5
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return dot / (norm_a * norm_b)
+
+    async def merge_similar_facts(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        similarity_threshold: float = 0.85,
+    ) -> int:
+        """合并语义相似的 Facts（近重复检测<sup>[[38]](#ref38)</sup>）
+
+        加载用户全部有效 facts，两两比对 embedding 余弦相似度。
+        相似度超阈值且 type 相同 → 保留高 confidence、删除低 confidence。
+
+        Returns:
+            合并的 fact 数量
+        """
+        if not self._embedding_fn:
+            return 0
+
+        facts = await self.list_facts(user_id=user_id, app_name=app_name, limit=200)
+        if len(facts) < 2:
+            return 0
+
+        # 生成 embedding
+        embedded: list[tuple[Fact, list[float]]] = []
+        for f in facts:
+            text = f"{f.key}: {str(f.value)}"
+            try:
+                emb = await self._embedding_fn(text)
+                if emb:
+                    embedded.append((f, emb))
+            except Exception:
+                continue
+
+        merged = 0
+        seen: set[UUID] = set()
+        for i, (f1, e1) in enumerate(embedded):
+            if f1.id in seen:
+                continue
+            for j, (f2, e2) in enumerate(embedded):
+                if j <= i or f2.id in seen:
+                    continue
+                if f1.fact_type != f2.fact_type:
+                    continue
+                sim = self._cosine_similarity(e1, e2)
+                if sim >= similarity_threshold:
+                    drop = f2 if f1.confidence >= f2.confidence else f1
+                    await self.delete_fact(
+                        user_id=user_id,
+                        app_name=app_name,
+                        key=drop.key,
+                        fact_type=drop.fact_type,
+                    )
+                    seen.add(drop.id)
+                    merged += 1
+
+        if merged:
+            logger.info("facts_merged", user_id=user_id, merged_count=merged)
+        return merged
