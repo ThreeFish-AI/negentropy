@@ -3391,12 +3391,13 @@ async def list_graph_entities(
     corpus_id: UUID,
     entity_type: str | None = Query(default=None),
     search: str | None = Query(default=None),
+    sort_by: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> GraphEntityListResponse:
     """获取语料库的实体列表
 
-    支持按类型筛选和名称搜索。
+    支持按类型筛选、名称搜索和排序（importance 按重要性）。
     """
     entity_svc = _get_kg_entity_service()
     async with AsyncSessionLocal() as db:
@@ -3405,6 +3406,7 @@ async def list_graph_entities(
             corpus_id=corpus_id,
             entity_type=entity_type,
             search=search,
+            sort_by=sort_by,
             limit=limit,
             offset=offset,
         )

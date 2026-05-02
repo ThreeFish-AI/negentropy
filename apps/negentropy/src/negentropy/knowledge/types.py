@@ -709,6 +709,8 @@ class GraphQueryConfig(BaseModel):
     limit: int = 100
     semantic_weight: float = 0.6
     graph_weight: float = 0.4
+    rrf_k: int = 60
+    use_rrf: bool = True
     include_neighbors: bool = True
     neighbor_limit: int = 10
     entity_type_filter: str | None = None

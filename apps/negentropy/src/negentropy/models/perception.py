@@ -378,6 +378,9 @@ class KgEntity(Base, UUIDMixin, TimestampMixin):
     # 描述（LLM 生成或手动编辑）
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # 图算法分数（PageRank，由 compute_importance 后处理写入）
+    importance_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     # 扩展属性
     properties: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 

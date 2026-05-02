@@ -347,6 +347,24 @@ class GraphService:
                     error=str(sync_exc),
                 )
 
+            # 计算 PageRank 实体重要性 (Brin & Page, 1998)
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .graph_algorithms import compute_pagerank
+
+                async with AsyncSessionLocal() as pr_db:
+                    pr_result = await compute_pagerank(pr_db, corpus_id)
+                    logger.info(
+                        "pagerank_computed",
+                        entity_count=len(pr_result),
+                    )
+            except Exception as pr_exc:
+                logger.warning(
+                    "pagerank_computation_failed",
+                    error=str(pr_exc),
+                )
+
             elapsed = time.time() - start_time
 
             # 更新构建运行状态
@@ -448,6 +466,7 @@ class GraphService:
             graph_depth=query_config.max_depth,
             semantic_weight=query_config.semantic_weight,
             graph_weight=query_config.graph_weight,
+            rrf_k=query_config.rrf_k if query_config.use_rrf else None,
         )
 
         # 可选：加载邻居信息
@@ -695,6 +714,27 @@ class GraphService:
             max_edges = total_entities * (total_entities - 1)
             density = round(edge_count / max_edges, 4)
 
+        # Top entities by importance (PageRank)
+        top_entities_result = await db.execute(
+            sql_select(KgEntity.id, KgEntity.name, KgEntity.entity_type, KgEntity.importance_score)
+            .where(
+                KgEntity.corpus_id == corpus_id,
+                KgEntity.is_active == True,  # noqa: E712
+                KgEntity.importance_score != None,  # noqa: E711
+            )
+            .order_by(KgEntity.importance_score.desc())
+            .limit(5)
+        )
+        top_entities = [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "entity_type": row.entity_type,
+                "importance_score": round(float(row.importance_score), 6),
+            }
+            for row in top_entities_result
+        ]
+
         return {
             "total_entities": total_entities,
             "edge_count": edge_count,
@@ -702,6 +742,7 @@ class GraphService:
             "avg_confidence": round(avg_confidence, 3),
             "density": density,
             "avg_degree": round(2 * edge_count / total_entities, 1) if total_entities > 0 else 0,
+            "top_entities": top_entities,
         }
 
     async def clear_graph(

@@ -24,13 +24,14 @@ export function EntityListPanel({
   const [entities, setEntities] = useState<GraphEntityItem[]>([]);
   const [total, setTotal] = useState(0);
   const [entityType, setEntityType] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [completedKey, setCompletedKey] = useState<string | null>(null);
   const limit = 30;
 
-  const fetchKey = `${entityType}:${search}:${page}`;
+  const fetchKey = `${entityType}:${search}:${page}:${sortBy}`;
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 300);
@@ -42,6 +43,7 @@ export function EntityListPanel({
     fetchGraphEntities(corpusId, {
       entity_type: entityType || undefined,
       search: search || undefined,
+      sort_by: sortBy || undefined,
       limit,
       offset: page * limit,
     })
@@ -61,7 +63,7 @@ export function EntityListPanel({
     return () => {
       cancelled = true;
     };
-  }, [corpusId, entityType, search, page, fetchKey]);
+  }, [corpusId, entityType, search, page, sortBy, fetchKey]);
 
   const loading = fetchKey !== completedKey;
 
@@ -95,6 +97,17 @@ export function EntityListPanel({
               {t}
             </option>
           ))}
+        </select>
+        <select
+          value={sortBy}
+          onChange={(e) => {
+            setSortBy(e.target.value);
+            setPage(0);
+          }}
+          className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          <option value="">按提及数</option>
+          <option value="importance">按重要性</option>
         </select>
       </div>
 

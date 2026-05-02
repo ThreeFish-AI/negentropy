@@ -115,6 +115,32 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
           </div>
         </div>
       )}
+
+      {/* Top Entities by Importance (PageRank) */}
+      {"top_entities" in stats &&
+        Array.isArray(stats.top_entities) &&
+        stats.top_entities.length > 0 && (
+          <div>
+            <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+              Top 实体 (PageRank)
+            </p>
+            <div className="space-y-1">
+              {stats.top_entities.map(
+                (e: { name: string; entity_type: string; importance_score: number }, i: number) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-400 w-3">{i + 1}</span>
+                    <span className="text-xs text-zinc-900 dark:text-zinc-100 truncate flex-1">
+                      {e.name}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      {e.importance_score.toFixed(4)}
+                    </span>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        )}
     </div>
   );
 }

@@ -767,11 +767,181 @@ class AgeGraphRepository(GraphRepository):
         graph_depth: int = 1,
         semantic_weight: float = 0.6,
         graph_weight: float = 0.4,
+        rrf_k: int | None = None,
     ) -> list[GraphSearchResult]:
-        """混合检索 (向量 + 图遍历)"""
+        """混合检索 (向量 + 图遍历)
+
+        当 rrf_k 不为 None 时使用 Reciprocal Rank Fusion (Cormack et al., SIGIR 2009)，
+        否则使用线性加权组合。
+        """
+
         session = await self._get_session()
 
-        # 调用数据库函数 kg_hybrid_search
+        if rrf_k is not None:
+            # RRF 模式：分别查询语义和图排序，然后融合
+            results = await self._rrf_search(
+                session,
+                corpus_id,
+                app_name,
+                query_embedding,
+                query_text,
+                limit,
+                rrf_k,
+            )
+        else:
+            # 线性加权模式（向后兼容）
+            results = await self._linear_weighted_search(
+                session,
+                corpus_id,
+                app_name,
+                query_embedding,
+                query_text,
+                limit,
+                graph_depth,
+                semantic_weight,
+                graph_weight,
+            )
+
+        logger.debug(
+            "hybrid_search_completed",
+            corpus_id=str(corpus_id),
+            result_count=len(results),
+            mode="rrf" if rrf_k else "linear",
+        )
+
+        return results
+
+    async def _rrf_search(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,
+        query_embedding: list[float],
+        query_text: str,
+        limit: int,
+        rrf_k: int,
+    ) -> list[GraphSearchResult]:
+        """RRF 混合检索：score(d) = Σ 1/(k + rank_i(d))"""
+        import json as _json
+
+        schema = self._schema
+
+        # 1. 语义排序：基于向量相似度
+        semantic_query = text(f"""
+            SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                   e.metadata as properties,
+                   1 - (e.embedding <=> :embedding::vector) as semantic_score
+            FROM {schema}.kg_entities e
+            WHERE e.corpus_id = :corpus_id AND e.is_active = true
+              AND e.embedding IS NOT NULL
+            ORDER BY e.embedding <=> :embedding::vector
+            LIMIT :limit * 2
+        """)
+
+        sem_result = await session.execute(
+            semantic_query,
+            {
+                "corpus_id": str(corpus_id),
+                "embedding": _json.dumps(query_embedding),
+                "limit": limit,
+            },
+        )
+
+        # 收集语义排名
+        entity_data: dict[str, dict[str, Any]] = {}
+        sem_rank: dict[str, int] = {}
+        for i, row in enumerate(sem_result, start=1):
+            eid = str(row.id)
+            sem_rank[eid] = i
+            entity_data[eid] = {
+                "name": row.name,
+                "entity_type": row.entity_type,
+                "confidence": row.confidence,
+                "description": row.description,
+                "properties": row.properties or {},
+                "semantic_score": float(row.semantic_score),
+            }
+
+        if not entity_data:
+            return []
+
+        # 2. 图排序：基于 importance_score (PageRank)
+        graph_query = text(f"""
+            SELECT e.id, e.name, e.importance_score
+            FROM {schema}.kg_entities e
+            WHERE e.corpus_id = :corpus_id AND e.is_active = true
+              AND e.importance_score IS NOT NULL
+            ORDER BY e.importance_score DESC
+            LIMIT :limit * 2
+        """)
+
+        graph_result = await session.execute(
+            graph_query,
+            {"corpus_id": str(corpus_id), "limit": limit},
+        )
+
+        graph_rank: dict[str, int] = {}
+        for i, row in enumerate(graph_result, start=1):
+            eid = str(row.id)
+            graph_rank[eid] = i
+            if eid not in entity_data:
+                entity_data[eid] = {
+                    "name": row.name,
+                    "entity_type": "",
+                    "confidence": 0,
+                    "description": None,
+                    "properties": {},
+                    "semantic_score": 0.0,
+                }
+
+        # 3. RRF 融合
+        rrf_scores: dict[str, float] = {}
+        for eid in entity_data:
+            score = 0.0
+            if eid in sem_rank:
+                score += 1.0 / (rrf_k + sem_rank[eid])
+            if eid in graph_rank:
+                score += 1.0 / (rrf_k + graph_rank[eid])
+            rrf_scores[eid] = score
+
+        # 4. 排序并构建结果
+        sorted_ids = sorted(rrf_scores, key=rrf_scores.get, reverse=True)[:limit]
+
+        results = []
+        for eid in sorted_ids:
+            data = entity_data[eid]
+            entity = GraphNode(
+                id=f"entity:{eid}",
+                label=data["name"],
+                node_type=data.get("entity_type"),
+                metadata=data.get("properties", {}),
+            )
+            results.append(
+                GraphSearchResult(
+                    entity=entity,
+                    semantic_score=data.get("semantic_score", 0),
+                    graph_score=float(entity_data[eid].get("importance_score", 0) or 0),
+                    combined_score=rrf_scores[eid],
+                )
+            )
+
+        return results
+
+    async def _linear_weighted_search(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,
+        query_embedding: list[float],
+        query_text: str,
+        limit: int,
+        graph_depth: int,
+        semantic_weight: float,
+        graph_weight: float,
+    ) -> list[GraphSearchResult]:
+        """线性加权混合检索（向后兼容）"""
+        import json as _json
+
         query = text(f"""
             SELECT * FROM {self._schema}.kg_hybrid_search(
                 p_corpus_id := :corpus_id,
@@ -785,15 +955,13 @@ class AgeGraphRepository(GraphRepository):
             )
         """)
 
-        import json
-
         result = await session.execute(
             query,
             {
                 "corpus_id": str(corpus_id),
                 "app_name": app_name,
                 "query": query_text,
-                "embedding": json.dumps(query_embedding),
+                "embedding": _json.dumps(query_embedding),
                 "limit": limit,
                 "graph_depth": graph_depth,
                 "semantic_weight": semantic_weight,
