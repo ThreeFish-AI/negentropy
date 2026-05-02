@@ -305,8 +305,20 @@ class ContextAssembler:
         final_tokens = await self._accurate_token_count(truncated_text)
 
         # Post-join 安全校验：换行符 token 化可能导致超标，逐行回退
-        while final_tokens > budget and len(truncated_lines) > 1:
-            truncated_lines.pop()
+        while final_tokens > budget and truncated_lines:
+            if len(truncated_lines) > 1:
+                truncated_lines.pop()
+            else:
+                # 单行兜底：按字符比例截断至安全长度
+                line = truncated_lines[0]
+                if len(line) > 10:
+                    safe_chars = max(0, int(len(line) * budget / max(final_tokens, 1) * 0.9))
+                    truncated_lines[0] = line[:safe_chars] + "..." if safe_chars > 0 else ""
+                else:
+                    truncated_lines = []
+                truncated_text = "\n".join(truncated_lines)
+                final_tokens = await self._accurate_token_count(truncated_text)
+                break
             truncated_text = "\n".join(truncated_lines)
             final_tokens = await self._accurate_token_count(truncated_text)
 

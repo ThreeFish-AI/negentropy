@@ -514,10 +514,10 @@ class PostgresMemoryService(BaseMemoryService):
                 date_from=date_from,
                 date_to=date_to,
             )
-            # Vector search: relevance_score = 1 - cosine_distance
+            # 先标记 raw_score（保留原始分数），再 clamp 到 [0, 1]
+            memories_data = self._tag_search_level(memories_data, "vector", "cosine_distance")
             for m in memories_data:
                 m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
-            memories_data = self._tag_search_level(memories_data, "vector", "cosine_distance")
             await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
             self._log_search_event("vector", len(memories_data), user_id, app_name, query)
             return self._build_search_response(memories_data)
@@ -532,10 +532,10 @@ class PostgresMemoryService(BaseMemoryService):
                 offset=offset,
             )
             if memories_data:
-                # BM25 ts_rank_cd 归一化到 [0, 1]
+                # 先标记 raw_score（保留原始 ts_rank），再 clamp 到 [0, 1]
+                memories_data = self._tag_search_level(memories_data, "keyword", "ts_rank")
                 for m in memories_data:
                     m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
-                memories_data = self._tag_search_level(memories_data, "keyword", "ts_rank")
                 await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                 self._log_search_event("keyword", len(memories_data), user_id, app_name, query)
                 return self._build_search_response(memories_data)
@@ -902,7 +902,7 @@ class PostgresMemoryService(BaseMemoryService):
             timestamp = created_at.isoformat() if created_at else datetime.now(UTC).isoformat()
 
             # 传播搜索质量元数据
-            metadata = dict(m.get("metadata", {}))
+            metadata = dict(m.get("metadata") or {})
             metadata["search_level"] = m.get("search_level", "unknown")
             metadata["score_type"] = m.get("score_type", "unknown")
             metadata["raw_score"] = m.get("raw_score", 0.0)
