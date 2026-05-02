@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
 
 import negentropy.db.session as db_session
@@ -187,7 +187,10 @@ class AssociationService:
                 stmt = (
                     select(MemoryAssociation)
                     .where(
-                        MemoryAssociation.source_id.in_(frontier),
+                        or_(
+                            MemoryAssociation.source_id.in_(frontier),
+                            MemoryAssociation.target_id.in_(frontier),
+                        ),
                         MemoryAssociation.weight >= min_weight,
                         MemoryAssociation.association_type.in_(["semantic", "temporal"]),
                     )
@@ -197,10 +200,15 @@ class AssociationService:
                 assocs = res.scalars().all()
 
                 for a in assocs:
-                    if a.target_id not in visited:
-                        visited.add(a.target_id)
-                        result_ids.append(a.target_id)
-                        next_frontier.add(a.target_id)
+                    neighbors = []
+                    if a.source_id in frontier and a.target_id not in visited:
+                        neighbors.append(a.target_id)
+                    if a.target_id in frontier and a.source_id not in visited:
+                        neighbors.append(a.source_id)
+                    for neighbor_id in neighbors:
+                        visited.add(neighbor_id)
+                        result_ids.append(neighbor_id)
+                        next_frontier.add(neighbor_id)
                         if len(result_ids) >= limit:
                             break
 
@@ -241,20 +249,20 @@ class AssociationService:
 
             count = 0
             for sibling_id in sibling_ids:
-                assoc = MemoryAssociation(
-                    source_id=memory_id,
-                    target_id=sibling_id,
-                    association_type="thread_shared",
-                    weight=_THREAD_SHARED_WEIGHT,
-                    user_id=user_id,
-                    app_name=app_name,
-                )
-                db.add(assoc)
                 try:
-                    await db.flush()
-                    count += 1
+                    async with db.begin_nested():
+                        assoc = MemoryAssociation(
+                            source_id=memory_id,
+                            target_id=sibling_id,
+                            association_type="thread_shared",
+                            weight=_THREAD_SHARED_WEIGHT,
+                            user_id=user_id,
+                            app_name=app_name,
+                        )
+                        db.add(assoc)
+                        await db.flush()
+                        count += 1
                 except IntegrityError:
-                    await db.rollback()
                     continue
 
             await db.commit()
@@ -290,20 +298,20 @@ class AssociationService:
             for row in rows:
                 minutes_apart = abs((created_at - row.created_at).total_seconds()) / 60
                 weight = max(0.3, 1.0 - minutes_apart / _TEMPORAL_WINDOW_MINUTES)
-                assoc = MemoryAssociation(
-                    source_id=memory_id,
-                    target_id=row.id,
-                    association_type="temporal",
-                    weight=weight,
-                    user_id=user_id,
-                    app_name=app_name,
-                )
-                db.add(assoc)
                 try:
-                    await db.flush()
-                    count += 1
+                    async with db.begin_nested():
+                        assoc = MemoryAssociation(
+                            source_id=memory_id,
+                            target_id=row.id,
+                            association_type="temporal",
+                            weight=weight,
+                            user_id=user_id,
+                            app_name=app_name,
+                        )
+                        db.add(assoc)
+                        await db.flush()
+                        count += 1
                 except IntegrityError:
-                    await db.rollback()
                     continue
 
             await db.commit()
@@ -338,20 +346,20 @@ class AssociationService:
             for row in rows:
                 similarity = 1.0 - float(row.dist)
                 if similarity >= _SEMANTIC_SIMILARITY_THRESHOLD:
-                    assoc = MemoryAssociation(
-                        source_id=memory_id,
-                        target_id=row.id,
-                        association_type="semantic",
-                        weight=similarity,
-                        user_id=user_id,
-                        app_name=app_name,
-                    )
-                    db.add(assoc)
                     try:
-                        await db.flush()
-                        count += 1
+                        async with db.begin_nested():
+                            assoc = MemoryAssociation(
+                                source_id=memory_id,
+                                target_id=row.id,
+                                association_type="semantic",
+                                weight=similarity,
+                                user_id=user_id,
+                                app_name=app_name,
+                            )
+                            db.add(assoc)
+                            await db.flush()
+                            count += 1
                     except IntegrityError:
-                        await db.rollback()
                         continue
 
             await db.commit()

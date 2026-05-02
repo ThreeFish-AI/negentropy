@@ -148,7 +148,6 @@ class PostgresMemoryService(BaseMemoryService):
 
                 initial_score = self._calculate_initial_retention(content)
                 importance = self._calculate_initial_importance(
-                    content=content,
                     memory_type="episodic",
                 )
                 async with db.begin_nested():
@@ -495,12 +494,11 @@ class PostgresMemoryService(BaseMemoryService):
 
     @staticmethod
     def _calculate_initial_importance(
-        content: str,
         memory_type: str = "episodic",
     ) -> float:
         """初始重要性评分
 
-        新建记忆时基于内容特征和类型计算初始 importance_score。
+        新建记忆时基于类型计算初始 importance_score。
         后续由 _record_access 和自动化任务动态更新。
         """
         governance = MemoryGovernanceService()

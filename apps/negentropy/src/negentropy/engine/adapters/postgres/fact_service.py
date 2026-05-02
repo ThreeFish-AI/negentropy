@@ -475,7 +475,8 @@ class FactService:
     ) -> None:
         """检测新事实与旧值的冲突
 
-        通过 upsert 前查询的 old_value 判断是否存在冲突。
+        直接用 upsert 前查询的 old_value 构造代理 Fact，
+        因为 ON CONFLICT DO UPDATE 已将行原地更新，二次查询无法获取旧值。
         """
         if old_value is None or old_value == new_fact.value:
             return
@@ -484,25 +485,22 @@ class FactService:
 
         resolver = get_conflict_resolver()
 
-        # 构造旧事实代理用于冲突分类（只需 key/value/fact_type/confidence）
-        async with db_session.AsyncSessionLocal() as db:
-            stmt = (
-                select(Fact)
-                .where(
-                    Fact.user_id == user_id,
-                    Fact.app_name == app_name,
-                    Fact.key == new_fact.key,
-                    Fact.fact_type == new_fact.fact_type,
-                )
-                .limit(1)
-            )
-            result = await db.execute(stmt)
-            current_fact = result.scalar_one_or_none()
+        # 用预取的 old_value 构造代理对象，避免 upsert 后二次查询返回已更新的新值
+        from types import SimpleNamespace
 
-        if current_fact and current_fact.value != new_fact.value:
-            await resolver.detect_and_resolve(
-                old_fact=current_fact,
-                new_fact=new_fact,
-                user_id=user_id,
-                app_name=app_name,
-            )
+        old_fact_proxy = SimpleNamespace(
+            id=new_fact.id,
+            key=new_fact.key,
+            value=old_value,
+            fact_type=new_fact.fact_type,
+            confidence=new_fact.confidence,
+            status="active",
+            superseded_by=None,
+        )
+
+        await resolver.detect_and_resolve(
+            old_fact=old_fact_proxy,
+            new_fact=new_fact,
+            user_id=user_id,
+            app_name=app_name,
+        )

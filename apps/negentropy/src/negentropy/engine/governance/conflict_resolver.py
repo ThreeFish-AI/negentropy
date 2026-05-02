@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select, update
@@ -277,11 +278,23 @@ class ConflictResolver:
                     )
 
             elif resolution == "merge" and conflict.old_fact_id and conflict.new_fact_id:
-                # 合并：保留旧事实，将新事实的值合并到旧事实中，新事实标记为 superseded
+                # 合并：保留旧事实，将新事实的值合并到旧事实中，同名 key 拼接为列表
                 old = await db.get(Fact, conflict.old_fact_id)
                 new = await db.get(Fact, conflict.new_fact_id)
                 if old and new:
-                    merged_value = {**old.value, **new.value}
+                    merged_value: dict[str, Any] = {}
+                    all_keys = set(old.value.keys()) | set(new.value.keys())
+                    for k in all_keys:
+                        old_v = old.value.get(k)
+                        new_v = new.value.get(k)
+                        if k not in old.value:
+                            merged_value[k] = new_v
+                        elif k not in new.value:
+                            merged_value[k] = old_v
+                        elif old_v == new_v:
+                            merged_value[k] = old_v
+                        else:
+                            merged_value[k] = [old_v, new_v]
                     await db.execute(update(Fact).where(Fact.id == old.id).values(value=merged_value, status="active"))
                     await db.execute(
                         update(Fact)
