@@ -200,6 +200,11 @@ class PostgresMemoryService(BaseMemoryService):
         high64 = thread_id.int >> 64
         key1 = (high64 >> 32) & 0xFFFFFFFF
         key2 = high64 & 0xFFFFFFFF
+        # int4 是有符号 32 位，需将无符号值转换为 [-2^31, 2^31-1]
+        if key1 >= 0x80000000:
+            key1 -= 0x100000000
+        if key2 >= 0x80000000:
+            key2 -= 0x100000000
         result = await db.execute(
             text("SELECT pg_try_advisory_xact_lock(:key1, :key2)"),
             {"key1": key1, "key2": key2},
