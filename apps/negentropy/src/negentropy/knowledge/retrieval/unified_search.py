@@ -206,11 +206,7 @@ class UnifiedRetrievalService:
         # 过滤条件
         if corpus_ids:
             base_query = base_query.where(KnowledgeDocument.corpus_id.in_(corpus_ids))
-        if source_types:
-            base_query = base_query.join(
-                # 需要通过 DocSource 关联过滤 source_type
-                # 简化：先不过滤，后续可扩展
-            )
+        # TODO: source_types 过滤需通过 DocSource 关联实现
         if date_from:
             base_query = base_query.where(KnowledgeDocument.created_at >= date_from)
         if date_to:

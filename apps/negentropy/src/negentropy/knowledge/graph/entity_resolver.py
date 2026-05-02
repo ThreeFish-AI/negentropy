@@ -157,7 +157,7 @@ class EntityResolver:
         corpus_id: Any,
     ) -> set[int]:
         """Stage 2: 向量 ANN 查找 + 合并"""
-        merged: set[int] = []
+        merged: list[int] = []
 
         # 已确认为 primary 的规范化标签集合（含类型）
         primary_keys: set[str] = set()

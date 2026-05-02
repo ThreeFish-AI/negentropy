@@ -214,7 +214,7 @@ class CommunitySummarizer:
             DO UPDATE SET
                 summary_text = EXCLUDED.summary_text,
                 entity_count = EXCLUDED.entity_count,
-                relation_count = EXcluded.relation_count,
+                relation_count = EXCLUDED.relation_count,
                 top_entities = EXCLUDED.top_entities,
                 updated_at = NOW()
         """)

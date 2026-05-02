@@ -1266,6 +1266,43 @@ class AgeGraphRepository(GraphRepository):
             for row in result
         ]
 
+    async def expire_relations(
+        self,
+        relation_ids: list[str],
+        valid_to: datetime,
+    ) -> int:
+        """批量将指定关系的 valid_to 设置为给定时间 (Snodgrass & Ahn, 1985)
+
+        Args:
+            relation_ids: 需要过期的关系 ID 列表
+            valid_to: 过期时间戳
+
+        Returns:
+            更新的行数
+        """
+        if not relation_ids:
+            return 0
+
+        session = await self._get_session()
+
+        result = await session.execute(
+            text(f"""
+                UPDATE {self._schema}.kg_relations
+                SET valid_to = :valid_to
+                WHERE id = ANY(:ids)
+            """),
+            {"valid_to": valid_to, "ids": relation_ids},
+        )
+        await session.commit()
+
+        count = result.rowcount or 0
+        logger.info(
+            "relations_expired",
+            requested=len(relation_ids),
+            expired=count,
+        )
+        return count
+
     async def clear_graph(
         self,
         corpus_id: UUID,

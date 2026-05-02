@@ -403,17 +403,9 @@ class GraphService:
                 )
                 # 对 UPDATE/CONTRADICTION 的旧关系标记失效
                 now = datetime.now(UTC)
-                for resolved in temporal_results:
-                    for expire_id in resolved.get("expire_ids", []):
-                        try:
-                            session = await self._repository._get_session()
-                            sql = f"UPDATE {self._repository._schema}.kg_relations SET valid_to = :now WHERE id = :eid"
-                            await session.execute(
-                                text(sql),
-                                {"now": now, "eid": expire_id},
-                            )
-                        except Exception:
-                            pass
+                all_expire_ids = list({eid for resolved in temporal_results for eid in resolved.get("expire_ids", [])})
+                if all_expire_ids:
+                    await self._repository.expire_relations(all_expire_ids, now)
                 logger.info(
                     "temporal_resolution_completed",
                     relation_count=len(temporal_results),
