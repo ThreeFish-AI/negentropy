@@ -52,7 +52,6 @@ class ConflictResolver:
         new_fact: Fact,
         user_id: str,
         app_name: str,
-        embedding_fn: callable | None = None,
     ) -> MemoryConflict | None:
         """检测并解决事实冲突
 
@@ -61,7 +60,6 @@ class ConflictResolver:
             new_fact: 新插入的事实
             user_id: 用户 ID
             app_name: 应用名称
-            embedding_fn: 向量化函数（可选，用于 embedding-based 检测）
 
         Returns:
             MemoryConflict 记录，或 None（无冲突）

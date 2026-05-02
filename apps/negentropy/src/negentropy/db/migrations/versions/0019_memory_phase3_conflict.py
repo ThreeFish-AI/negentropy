@@ -39,6 +39,16 @@ def upgrade() -> None:
         sa.Column("superseded_by", sa.UUID(), nullable=True),
         schema=SCHEMA,
     )
+    op.create_foreign_key(
+        "fk_facts_superseded_by",
+        "facts",
+        "facts",
+        ["superseded_by"],
+        ["id"],
+        ondelete="SET NULL",
+        source_schema=SCHEMA,
+        referent_schema=SCHEMA,
+    )
     op.add_column(
         "facts",
         sa.Column("status", sa.String(20), nullable=False, server_default="active"),
@@ -81,4 +91,5 @@ def downgrade() -> None:
     op.drop_table("memory_conflicts", schema=SCHEMA)
     op.drop_column("facts", "superseded_at", schema=SCHEMA)
     op.drop_column("facts", "status", schema=SCHEMA)
+    op.drop_constraint("fk_facts_superseded_by", "facts", schema=SCHEMA)
     op.drop_column("facts", "superseded_by", schema=SCHEMA)

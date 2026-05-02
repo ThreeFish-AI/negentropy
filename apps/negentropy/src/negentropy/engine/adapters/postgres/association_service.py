@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 
 import negentropy.db.session as db_session
 from negentropy.logging import get_logger
@@ -251,7 +252,7 @@ class AssociationService:
                     )
                     db.add(assoc)
                     count += 1
-                except Exception:
+                except IntegrityError:
                     pass  # UNIQUE 约束冲突时忽略
 
             await db.commit()
@@ -298,7 +299,7 @@ class AssociationService:
                     )
                     db.add(assoc)
                     count += 1
-                except Exception:
+                except IntegrityError:
                     pass
 
             await db.commit()
@@ -344,7 +345,7 @@ class AssociationService:
                         )
                         db.add(assoc)
                         count += 1
-                    except Exception:
+                    except IntegrityError:
                         pass
 
             await db.commit()

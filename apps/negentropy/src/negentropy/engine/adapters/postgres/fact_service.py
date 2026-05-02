@@ -438,9 +438,9 @@ class FactService:
 
         查找同 user+app+type 下的旧事实（status=active），检查是否冲突。
         """
-        from negentropy.engine.governance.conflict_resolver import ConflictResolver
+        from negentropy.engine.factories.memory import get_conflict_resolver
 
-        resolver = ConflictResolver()
+        resolver = get_conflict_resolver()
 
         # 查找同 key 的旧事实（被 upsert 覆盖的）
         async with db_session.AsyncSessionLocal() as db:
@@ -452,7 +452,7 @@ class FactService:
                     Fact.key == new_fact.key,
                     Fact.fact_type == new_fact.fact_type,
                     Fact.id != new_fact.id,
-                    Fact.status == "superseded",
+                    Fact.status == "active",
                 )
                 .order_by(Fact.superseded_at.desc())
                 .limit(1)

@@ -31,7 +31,7 @@ from google.adk.memory.base_memory_service import (
 
 # ADK 官方类型
 from google.adk.sessions import Session as ADKSession
-from sqlalchemy import select, text, update
+from sqlalchemy import func, select, text, update
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
@@ -128,6 +128,7 @@ class PostgresMemoryService(BaseMemoryService):
 
         # 阶段 3（写入）：单事务执行去重 + 存储
         stored_count = 0
+        new_memory_ids: list[uuid.UUID] = []
         async with db_session.AsyncSessionLocal() as db:
             # Advisory lock: 防止同 thread 并发巩固
             if not await self._try_acquire_advisory_lock(db, thread_id):
@@ -169,6 +170,8 @@ class PostgresMemoryService(BaseMemoryService):
                         },
                     )
                     db.add(memory)
+                    await db.flush()
+                    new_memory_ids.append(memory.id)
                 stored_count += 1
 
             # 统一 commit
@@ -191,6 +194,7 @@ class PostgresMemoryService(BaseMemoryService):
                 user_id=session.user_id,
                 app_name=session.app_name,
                 thread_id=thread_id,
+                memory_ids=new_memory_ids,
             )
         except Exception as exc:
             logger.debug("auto_link_stage_failed", error=str(exc))
@@ -308,28 +312,22 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         app_name: str,
         thread_id: uuid.UUID | None,
+        memory_ids: list[uuid.UUID],
     ) -> None:
-        """巩固后自动为新记忆建立关联"""
+        """巩固后自动为本次新建的记忆建立关联"""
+        if not memory_ids:
+            return
+
         from negentropy.engine.factories.memory import get_association_service
 
         association_service = get_association_service()
 
-        # 获取此 thread 最近创建的记忆
         async with db_session.AsyncSessionLocal() as db:
-            stmt = (
-                select(Memory)
-                .where(
-                    Memory.user_id == user_id,
-                    Memory.app_name == app_name,
-                    Memory.thread_id == thread_id if thread_id else Memory.thread_id.is_(None),
-                )
-                .order_by(Memory.created_at.desc())
-                .limit(20)
-            )
+            stmt = select(Memory).where(Memory.id.in_(memory_ids))
             result = await db.execute(stmt)
-            recent_memories = result.scalars().all()
+            new_memories = result.scalars().all()
 
-        for m in recent_memories:
+        for m in new_memories:
             try:
                 await association_service.auto_link_memory(
                     memory_id=m.id,
@@ -505,7 +503,7 @@ class PostgresMemoryService(BaseMemoryService):
         新建记忆时基于内容特征和类型计算初始 importance_score。
         后续由 _record_access 和自动化任务动态更新。
         """
-        governance = MemoryGovernanceService.__new__(MemoryGovernanceService)
+        governance = MemoryGovernanceService()
         return governance.calculate_importance_score(
             access_count=0,
             memory_type=memory_type,
@@ -939,7 +937,7 @@ class PostgresMemoryService(BaseMemoryService):
                     .values(
                         access_count=Memory.access_count + 1,
                         last_accessed_at=now,
-                        importance_score=Memory.importance_score + 0.02,
+                        importance_score=func.least(1.0, Memory.importance_score + 0.02),
                     )
                 )
                 await db.execute(stmt)
