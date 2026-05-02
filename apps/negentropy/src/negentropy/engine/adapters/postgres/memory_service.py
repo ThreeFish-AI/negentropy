@@ -48,7 +48,8 @@ _DEFAULT_KEYWORD_WEIGHT = 0.3
 
 # 巩固管线配置
 _MAX_TURN_PAIRS_PER_SEGMENT = 5  # 每段最多包含的 user+model 对话轮次数
-_DEDUP_SIMILARITY_THRESHOLD = 0.9  # cosine similarity 去重阈值
+_DEDUP_SIMILARITY_THRESHOLD = 0.85  # cosine similarity 去重阈值（对齐 Henzinger<sup>[[40]](#ref40)</sup>）
+_DEDUP_JACCARD_THRESHOLD = 0.7  # Jaccard 词重叠二次校验阈值（对齐 Broder MinHash<sup>[[37]](#ref37)</sup>）
 _INITIAL_RETENTION_BASE = 0.8  # 新记忆初始保留分数基准
 
 
@@ -118,6 +119,7 @@ class PostgresMemoryService(BaseMemoryService):
                     user_id=session.user_id,
                     app_name=session.app_name,
                     embedding=embedding,
+                    content=content,
                 ):
                     logger.debug("consolidate_duplicate_skipped", segment=seg_idx)
                     continue
@@ -282,15 +284,18 @@ class PostgresMemoryService(BaseMemoryService):
         user_id: str,
         app_name: str,
         embedding: list[float],
+        content: str = "",
     ) -> bool:
         """检测是否与用户现有记忆重复（Orient 阶段）
 
-        使用 cosine similarity 比对最近的记忆。
+        两阶段去重策略<sup>[[40]](#ref40)</sup>：
+        1. Cosine similarity ≥ 0.85 → 直接判定为重复
+        2. Cosine similarity ∈ [0.80, 0.85) → Jaccard 词重叠二次校验<sup>[[37]](#ref37)</sup>
         """
         async with db_session.AsyncSessionLocal() as db:
             distance = Memory.embedding.op("<=>")(embedding)
             stmt = (
-                select(Memory.id, distance.label("dist"))
+                select(Memory.id, Memory.content, distance.label("dist"))
                 .where(
                     Memory.user_id == user_id,
                     Memory.app_name == app_name,
@@ -303,10 +308,18 @@ class PostgresMemoryService(BaseMemoryService):
             row = result.first()
             if row is None:
                 return False
-            # cosine distance: 0 = identical, 2 = opposite
-            # similarity = 1 - distance
             similarity = 1.0 - float(row.dist)
-            return similarity >= _DEDUP_SIMILARITY_THRESHOLD
+            if similarity >= _DEDUP_SIMILARITY_THRESHOLD:
+                return True
+            # 二次校验：embedding 高度相似但未达阈值时，用 Jaccard 词重叠确认
+            if similarity >= 0.80 and content and row.content:
+                words_new = set(content.lower().split())
+                words_old = set(row.content.lower().split())
+                if words_new and words_old:
+                    jaccard = len(words_new & words_old) / len(words_new | words_old)
+                    if jaccard >= _DEDUP_JACCARD_THRESHOLD:
+                        return True
+            return False
 
     @staticmethod
     def _calculate_initial_retention(content: str) -> float:
@@ -381,7 +394,7 @@ class PostgresMemoryService(BaseMemoryService):
                 )
                 if result is not None:
                     memories_data = result
-                    await self._record_access(memories_data, query=query)
+                    await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                     return self._build_search_response(memories_data)
             except Exception as exc:
                 logger.warning(
@@ -401,7 +414,7 @@ class PostgresMemoryService(BaseMemoryService):
                 date_from=date_from,
                 date_to=date_to,
             )
-            await self._record_access(memories_data, query=query)
+            await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
             return self._build_search_response(memories_data)
 
         # 策略 3: BM25 全文检索
@@ -414,7 +427,7 @@ class PostgresMemoryService(BaseMemoryService):
                 offset=offset,
             )
             if memories_data:
-                await self._record_access(memories_data, query=query)
+                await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                 return self._build_search_response(memories_data)
         except Exception as exc:
             logger.warning(
@@ -434,7 +447,7 @@ class PostgresMemoryService(BaseMemoryService):
             date_from=date_from,
             date_to=date_to,
         )
-        await self._record_access(memories_data, query=query)
+        await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
         return self._build_search_response(memories_data)
 
     async def _hybrid_search_native(
@@ -639,7 +652,14 @@ class PostgresMemoryService(BaseMemoryService):
             for m in memories_orms
         ]
 
-    async def _record_access(self, memories_data: list[dict[str, Any]], *, query: str = "") -> None:
+    async def _record_access(
+        self,
+        memories_data: list[dict[str, Any]],
+        *,
+        query: str = "",
+        user_id: str = "",
+        app_name: str = "",
+    ) -> uuid.UUID | None:
         """记录记忆访问行为
 
         批量更新被召回记忆的 access_count 和 last_accessed_at，
@@ -648,15 +668,20 @@ class PostgresMemoryService(BaseMemoryService):
         Args:
             memories_data: 被召回的记忆数据列表
             query: 原始检索查询文本（用于检索效果追踪）
+            user_id: 用户 ID（用于检索效果追踪）
+            app_name: 应用名称（用于检索效果追踪）
+
+        Returns:
+            检索日志 ID（用于显式传递给上下文组装器的反馈闭环）
 
         使用批量 UPDATE 避免 N+1 问题。
         """
         if not memories_data:
-            return
+            return None
 
         memory_ids = [uuid.UUID(m["id"]) for m in memories_data if m.get("id")]
         if not memory_ids:
-            return
+            return None
 
         try:
             async with db_session.AsyncSessionLocal() as db:
@@ -683,13 +708,13 @@ class PostgresMemoryService(BaseMemoryService):
                 from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
 
                 tracker = RetrievalTracker()
-                # 提取查询上下文（使用调用方的 query 参数不可直接获取，此处仅记录 memory_ids）
-                await tracker.log_retrieval(
-                    user_id=memories_data[0].get("user_id", ""),
-                    app_name=memories_data[0].get("app_name", ""),
+                log_id = await tracker.log_retrieval(
+                    user_id=user_id,
+                    app_name=app_name,
                     query=query,
                     memory_ids=memory_ids,
                 )
+                return log_id
             except Exception as exc:
                 logger.debug("retrieval_tracking_failed", error=str(exc))
         except Exception as exc:
