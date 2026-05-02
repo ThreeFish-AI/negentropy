@@ -49,6 +49,15 @@ _MEMORY_TYPE_MULTIPLIER: dict[str, float] = {
     "episodic": 1.0,
 }
 
+# 重要性评分类型权重（ACT-R 基础水平激活<sup>[[45]](#ref45)</sup>）
+_MEMORY_TYPE_IMPORTANCE_WEIGHT: dict[str, float] = {
+    "preference": 0.9,
+    "procedural": 0.75,
+    "fact": 0.6,
+    "episodic": 0.4,
+}
+_DEFAULT_IMPORTANCE_WEIGHT = 0.4
+
 
 @dataclass(frozen=True)
 class AuditRecord:
@@ -275,6 +284,79 @@ class MemoryGovernanceService:
         )
 
         return records
+
+    def calculate_importance_score(
+        self,
+        *,
+        access_count: int = 0,
+        memory_type: str = "episodic",
+        related_fact_count: int = 0,
+        days_since_creation: float = 0.0,
+        days_since_last_access: float = 0.0,
+    ) -> float:
+        """计算记忆重要性评分
+
+        五因子加权公式 (ACT-R 基础水平激活<sup>[[45]](#ref45)</sup> + FadeMem<sup>[[46]](#ref46)</sup>):
+
+            importance = min(1.0,
+                base_activation * 0.30 +    # ACT-R log-sum 访问间隔
+                access_frequency * 0.25 +   # log(access_count) 归一化
+                fact_support * 0.20 +       # 关联事实数 / 10
+                type_weight * 0.15 +        # preference > procedural > fact > episodic
+                recency_bonus * 0.10        # max(0, 1 - days_since_creation / 90)
+            )
+
+        Args:
+            access_count: 访问次数
+            memory_type: 记忆类型
+            related_fact_count: 关联事实数量
+            days_since_creation: 距创建天数
+            days_since_last_access: 距最后访问天数
+
+        Returns:
+            重要性评分 (0.0 - 1.0)
+        """
+        # Factor 1: 基础激活 (ACT-R 简化公式)
+        if access_count > 0:
+            base_activation = min(
+                1.0, math.log(1 + access_count) / math.log(1 + max(1, days_since_last_access + 1) ** 0.5)
+            )
+        else:
+            base_activation = 0.1
+
+        # Factor 2: 访问频率 (对数饱和)
+        access_frequency = min(1.0, math.log(1 + access_count) / math.log(101))
+
+        # Factor 3: 事实支撑 (每个事实贡献 0.1, 上限 1.0)
+        fact_support = min(1.0, related_fact_count / 10.0)
+
+        # Factor 4: 类型权重
+        type_weight = _MEMORY_TYPE_IMPORTANCE_WEIGHT.get(memory_type, _DEFAULT_IMPORTANCE_WEIGHT)
+
+        # Factor 5: 时效性加成 (90 天衰减)
+        recency_bonus = max(0.0, 1.0 - days_since_creation / 90.0)
+
+        importance = min(
+            1.0,
+            base_activation * 0.30
+            + access_frequency * 0.25
+            + fact_support * 0.20
+            + type_weight * 0.15
+            + recency_bonus * 0.10,
+        )
+
+        logger.debug(
+            "calculate_importance_score",
+            importance=importance,
+            base_activation=base_activation,
+            access_frequency=access_frequency,
+            fact_support=fact_support,
+            type_weight=type_weight,
+            recency_bonus=recency_bonus,
+            memory_type=memory_type,
+        )
+
+        return max(0.0, importance)
 
     async def calculate_retention_score(
         self,
