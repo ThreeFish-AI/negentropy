@@ -1051,7 +1051,11 @@ async def get_memory_associations(
     limit: int = Query(default=20, ge=1, le=100),
     user: AuthUser = Depends(get_current_user),
 ) -> AssociationListResponse:
-    """获取记忆/事实的关联"""
+    """获取记忆/事实的关联
+
+    Review fix：非 admin 用户只能读取归属自己 (user_id, app_name) 的关联，
+    admin 旁路（None 表示不下推过滤）。
+    """
     from uuid import UUID as UUIDType
 
     try:
@@ -1059,12 +1063,15 @@ async def get_memory_associations(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID") from None
 
+    is_admin = "admin" in user.roles
     service = get_association_service()
     assocs = await service.get_associations(
         item_id=item_uuid,
         association_type=association_type,
         direction=direction,
         limit=limit,
+        user_id=None if is_admin else user.user_id,
+        app_name=None if is_admin else settings.app_name,
     )
 
     items = [
@@ -1093,8 +1100,10 @@ async def create_association(
 
     service = get_association_service()
 
-    # 从 context 推断 user_id/app_name
-    auth_user_id = user.email if hasattr(user, "email") else "anonymous"
+    # Phase 4 — Review fix：使用 user.user_id（与 self-edit / core-block 等
+    # Self-editing Tools 端点保持一致），避免 user.email 为 None 时落空与
+    # 跨表 user_id 取值不一致引发的多租隔离失效。
+    auth_user_id = user.user_id
     app_name = settings.app_name
 
     try:
@@ -1120,7 +1129,11 @@ async def delete_association(
     association_id: str,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, str]:
-    """删除关联"""
+    """删除关联
+
+    Review fix：非 admin 用户只能删除归属自己 (user_id, app_name) 的关联；
+    跨租户的 ID 在 service 层 WHERE 匹配失败、统一以 404 兜底（避免侧信道泄露存在性）。
+    """
     from uuid import UUID as UUIDType
 
     service = get_association_service()
@@ -1130,7 +1143,12 @@ async def delete_association(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid association ID") from None
 
-    deleted = await service.delete_association(assoc_uuid)
+    is_admin = "admin" in user.roles
+    deleted = await service.delete_association(
+        assoc_uuid,
+        user_id=None if is_admin else user.user_id,
+        app_name=None if is_admin else settings.app_name,
+    )
     if not deleted:
         raise HTTPException(status_code=404, detail="Association not found")
 

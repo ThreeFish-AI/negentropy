@@ -94,8 +94,14 @@ class AssociationService:
         association_type: str | None = None,
         direction: str = "both",
         limit: int = 20,
+        user_id: str | None = None,
+        app_name: str | None = None,
     ) -> list[MemoryAssociation]:
-        """获取记忆/事实的关联"""
+        """获取记忆/事实的关联
+
+        Review fix：可选 ``user_id`` / ``app_name`` 用于水平越权防线下推；
+        ``None`` 时维持旧行为（admin / 内部调用），上游负责鉴权。
+        """
         async with db_session.AsyncSessionLocal() as db:
             conditions_out = [MemoryAssociation.source_id == item_id]
             conditions_in = [MemoryAssociation.target_id == item_id]
@@ -103,6 +109,13 @@ class AssociationService:
             if association_type:
                 conditions_out.append(MemoryAssociation.association_type == association_type)
                 conditions_in.append(MemoryAssociation.association_type == association_type)
+
+            if user_id is not None:
+                conditions_out.append(MemoryAssociation.user_id == user_id)
+                conditions_in.append(MemoryAssociation.user_id == user_id)
+            if app_name is not None:
+                conditions_out.append(MemoryAssociation.app_name == app_name)
+                conditions_in.append(MemoryAssociation.app_name == app_name)
 
             if direction in ("outgoing", "both"):
                 stmt = select(MemoryAssociation).where(*conditions_out).limit(limit)
@@ -157,10 +170,26 @@ class AssociationService:
             await db.refresh(assoc)
         return assoc
 
-    async def delete_association(self, association_id: UUID) -> bool:
-        """删除关联"""
+    async def delete_association(
+        self,
+        association_id: UUID,
+        *,
+        user_id: str | None = None,
+        app_name: str | None = None,
+    ) -> bool:
+        """删除关联
+
+        Review fix：可选 ``user_id`` / ``app_name`` 用于水平越权防线下推；
+        非 admin 调用必须传，否则任何持 token 用户拿到 UUID 即可越权删除他人关联。
+        ``None`` 时维持旧行为（admin / 内部调用）。
+        """
         async with db_session.AsyncSessionLocal() as db:
-            stmt = delete(MemoryAssociation).where(MemoryAssociation.id == association_id)
+            conditions = [MemoryAssociation.id == association_id]
+            if user_id is not None:
+                conditions.append(MemoryAssociation.user_id == user_id)
+            if app_name is not None:
+                conditions.append(MemoryAssociation.app_name == app_name)
+            stmt = delete(MemoryAssociation).where(*conditions)
             result = await db.execute(stmt)
             await db.commit()
             return result.rowcount > 0

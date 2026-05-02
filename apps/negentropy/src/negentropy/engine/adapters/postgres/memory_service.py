@@ -579,6 +579,8 @@ class PostgresMemoryService(BaseMemoryService):
                     memories_data = self._tag_search_level(result, "hybrid", "combined")
                     for m in memories_data:
                         m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
+                    # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
+                    memories_data = self._apply_intent_rerank(memories_data, query)
                     await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                     self._log_search_event("hybrid", len(memories_data), user_id, app_name, query)
                     return self._build_search_response(memories_data)
@@ -620,6 +622,8 @@ class PostgresMemoryService(BaseMemoryService):
                 memories_data = self._tag_search_level(memories_data, "keyword", "ts_rank")
                 for m in memories_data:
                     m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
+                # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
+                memories_data = self._apply_intent_rerank(memories_data, query)
                 await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                 self._log_search_event("keyword", len(memories_data), user_id, app_name, query)
                 return self._build_search_response(memories_data)
@@ -665,12 +669,18 @@ class PostgresMemoryService(BaseMemoryService):
         Returns:
             检索结果列表，失败返回 None
         """
+        # Review fix #3：JOIN memories 表把 memory_type 透出，主路径才能命中 intent 重排。
+        # Review fix #4：内部 LIMIT 加 buffer 抵消 WHERE 软删除过滤导致的丢条；
+        # Python 端按非删除计数二次截断。
+        oversample_limit = (limit + offset) * 2 + 10
         sql = text(f"""
-            SELECT id, content, semantic_score, keyword_score, combined_score, metadata
+            SELECT h.id, h.content, h.semantic_score, h.keyword_score, h.combined_score,
+                   h.metadata, m.memory_type
             FROM {NEGENTROPY_SCHEMA}.hybrid_search(
                 :user_id, :app_name, :query, :embedding::vector(1536),
                 :limit, :semantic_weight, :keyword_weight
             ) AS h
+            JOIN {NEGENTROPY_SCHEMA}.memories AS m ON m.id = h.id
             WHERE COALESCE(h.metadata->>'deleted', 'false') <> 'true'
         """)
 
@@ -682,7 +692,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "app_name": app_name,
                     "query": query,
                     "embedding": query_embedding,
-                    "limit": limit + offset,
+                    "limit": oversample_limit,
                     "semantic_weight": _DEFAULT_SEMANTIC_WEIGHT,
                     "keyword_weight": _DEFAULT_KEYWORD_WEIGHT,
                 },
@@ -692,6 +702,9 @@ class PostgresMemoryService(BaseMemoryService):
         if not rows:
             return []
 
+        # Review fix #4：先做 offset，再截到 limit，避免 over-fetch 导致单页过大。
+        rows = rows[offset : offset + limit]
+
         logger.info(
             "hybrid_search_completed",
             user_id=user_id,
@@ -699,13 +712,13 @@ class PostgresMemoryService(BaseMemoryService):
             result_count=len(rows),
         )
 
-        rows = rows[offset:]
         return [
             {
                 "id": str(row.id),
                 "content": row.content,
                 "metadata": row.metadata or {},
                 "relevance_score": float(row.combined_score),
+                "memory_type": row.memory_type,
             }
             for row in rows
         ]
@@ -767,8 +780,9 @@ class PostgresMemoryService(BaseMemoryService):
 
         利用 memories.search_vector GIN 索引进行高效全文搜索。
         """
+        # Review fix #3：透出 memory_type 让 _apply_intent_rerank 可命中。
         sql = text(f"""
-            SELECT id, content, metadata, retention_score, created_at,
+            SELECT id, content, metadata, retention_score, created_at, memory_type,
                    ts_rank_cd(search_vector, plainto_tsquery('english', :query)) AS rank_score
             FROM {NEGENTROPY_SCHEMA}.memories
             WHERE user_id = :user_id
@@ -799,6 +813,7 @@ class PostgresMemoryService(BaseMemoryService):
                 "metadata": row.metadata or {},
                 "relevance_score": float(row.rank_score) if row.rank_score else 0.0,
                 "created_at": row.created_at,
+                "memory_type": row.memory_type,
             }
             for row in rows
         ]
