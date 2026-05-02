@@ -7,6 +7,7 @@ Graph Service 单元测试
 
 from __future__ import annotations
 
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -138,6 +139,53 @@ class TestGraphService:
 
         mock_repository.clear_graph.assert_called_once_with(_CORPUS_ID)
         assert count == 5
+
+    @pytest.mark.asyncio
+    async def test_get_graph_cache_key_isolates_as_of(self, service, mock_repository):
+        """as_of 不同时缓存键应不同 — 避免脏读 (G3)"""
+        from datetime import datetime
+
+        from negentropy.knowledge.graph.service import _graph_cache
+        from negentropy.knowledge.types import KnowledgeGraphPayload
+
+        # 清空缓存避免互测污染
+        _graph_cache._store.clear()
+
+        nodes_now = [GraphNode(id="e_now", label="Now", node_type="person")]
+        nodes_past = [GraphNode(id="e_past", label="Past", node_type="person")]
+
+        async def _stub_get_graph(corpus_id, app_name, as_of=None):  # noqa: ARG001
+            return KnowledgeGraphPayload(
+                nodes=nodes_past if as_of else nodes_now,
+                edges=[],
+            )
+
+        mock_repository.get_graph.side_effect = _stub_get_graph
+
+        # 第一次：当前快照（as_of=None）
+        cur = await service.get_graph(_CORPUS_ID, "app")
+        assert cur.nodes[0].id == "e_now"
+
+        # 第二次：历史快照（as_of=2024-05-01）
+        past = await service.get_graph(
+            _CORPUS_ID,
+            "app",
+            as_of=datetime(2024, 5, 1, tzinfo=UTC),
+        )
+        assert past.nodes[0].id == "e_past"
+
+        # repository 被调用两次（不同 cache key 不命中）
+        assert mock_repository.get_graph.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_relation_timeline_delegates_to_repository(self, service, mock_repository):
+        """get_relation_timeline 应委托给 repository 并透传 bucket"""
+        mock_repository.get_relation_timeline = AsyncMock(
+            return_value=[{"date": "2024-05-01", "active_count": 7, "expired_count": 2}]
+        )
+        timeline = await service.get_relation_timeline(_CORPUS_ID, bucket="day")
+        assert len(timeline) == 1
+        mock_repository.get_relation_timeline.assert_called_once_with(corpus_id=_CORPUS_ID, bucket="day")
 
     @pytest.mark.asyncio
     async def test_get_build_history_returns_records(self, service, mock_repository):

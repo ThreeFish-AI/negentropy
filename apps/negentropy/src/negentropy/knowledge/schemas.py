@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -307,6 +308,13 @@ class GraphSearchRequest(BaseModel):
     graph_weight: float = Field(default=0.4, ge=0.0, le=1.0)
     include_neighbors: bool = True
     neighbor_limit: int = Field(default=10, ge=1, le=50)
+    as_of: datetime | None = Field(
+        default=None,
+        description=(
+            "可选时态快照时刻 (ISO-8601)；提供时仅纳入在该时刻仍有效的关系。"
+            "用于双时态时间穿梭检索 (Snodgrass & Ahn, 1985)。"
+        ),
+    )
 
 
 class GraphSearchResponse(BaseModel):
@@ -324,6 +332,10 @@ class GraphNeighborsRequest(BaseModel):
     entity_id: str
     max_depth: int = Field(default=2, ge=1, le=5)
     limit: int = Field(default=100, ge=1, le=500)
+    as_of: datetime | None = Field(
+        default=None,
+        description="可选时态快照时刻 (ISO-8601)；详见 GraphSearchRequest.as_of。",
+    )
 
 
 class GraphPathRequest(BaseModel):
@@ -333,6 +345,26 @@ class GraphPathRequest(BaseModel):
     source_id: str
     target_id: str
     max_depth: int = Field(default=5, ge=1, le=10)
+    as_of: datetime | None = Field(
+        default=None,
+        description="可选时态快照时刻 (ISO-8601)；详见 GraphSearchRequest.as_of。",
+    )
+
+
+class GraphTimelineBucket(BaseModel):
+    """关系时间轴密度直方图单点"""
+
+    date: datetime
+    active_count: int = Field(ge=0, description="该桶内 valid_from 落入的关系数")
+    expired_count: int = Field(ge=0, description="该桶内 valid_to 落入的关系数")
+
+
+class GraphTimelineResponse(BaseModel):
+    """关系时间轴密度直方图响应"""
+
+    corpus_id: UUID
+    bucket: str = Field(description="day | week | month")
+    points: list[GraphTimelineBucket] = Field(default_factory=list)
 
 
 # ============================================================================

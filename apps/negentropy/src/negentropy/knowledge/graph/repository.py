@@ -36,6 +36,36 @@ logger = get_logger("negentropy.knowledge.graph_repository")
 
 
 # ============================================================================
+# 时态过滤工具（Snodgrass & Ahn, 1985 双时轴模型 — bi-temporal）
+# ============================================================================
+#
+# 单一事实源：所有需要按 valid_from / valid_to 过滤的查询都通过本工具构造
+# WHERE 片段，确保跨 `find_neighbors / find_path / hybrid_search / get_graph`
+# 的时态语义一致；由 G3 时间穿梭检索引入。
+
+_TEMPORAL_RELATION_CLAUSE = (
+    "(:rel_alias.valid_from IS NULL OR :rel_alias.valid_from <= :as_of) "
+    "AND (:rel_alias.valid_to IS NULL OR :rel_alias.valid_to > :as_of)"
+)
+
+
+def _temporal_where_clause(rel_alias: str = "r") -> str:
+    """生成时态过滤 SQL 片段（不含前导 AND）。
+
+    Args:
+        rel_alias: kg_relations 表在 SQL 中使用的别名，如 ``r`` / ``rel``。
+
+    Returns:
+        例如：``(r.valid_from IS NULL OR r.valid_from <= :as_of)
+               AND (r.valid_to IS NULL OR r.valid_to > :as_of)``。
+
+    Note:
+        调用方需自行拼接 ``AND`` 连接前缀；绑定参数名固定为 ``:as_of``。
+    """
+    return _TEMPORAL_RELATION_CLAUSE.replace(":rel_alias", rel_alias)
+
+
+# ============================================================================
 # Data Types
 # ============================================================================
 
@@ -242,6 +272,7 @@ class GraphRepository(ABC):
         source_id: str,
         target_id: str,
         max_depth: int = 5,
+        as_of: datetime | None = None,
     ) -> list[str] | None:
         """查询两点间最短路径
 
@@ -249,6 +280,7 @@ class GraphRepository(ABC):
             source_id: 起始实体 ID
             target_id: 目标实体 ID
             max_depth: 最大路径深度
+            as_of: 可选时态快照时刻；提供时仅遍历在该时刻有效的关系
 
         Returns:
             路径节点 ID 列表，或 None（不存在路径）
@@ -266,6 +298,7 @@ class GraphRepository(ABC):
         graph_depth: int = 1,
         semantic_weight: float = 0.6,
         graph_weight: float = 0.4,
+        as_of: datetime | None = None,
     ) -> list[GraphSearchResult]:
         """混合检索 (向量 + 图遍历)
 
@@ -278,6 +311,7 @@ class GraphRepository(ABC):
             graph_depth: 图遍历深度
             semantic_weight: 语义分数权重
             graph_weight: 图分数权重
+            as_of: 可选时态快照时刻；提供时仅纳入在该时刻有效的关系
 
         Returns:
             检索结果列表
@@ -289,12 +323,14 @@ class GraphRepository(ABC):
         self,
         corpus_id: UUID,
         app_name: str,
+        as_of: datetime | None = None,
     ) -> KnowledgeGraphPayload:
         """获取完整图谱
 
         Args:
             corpus_id: 语料库 ID
             app_name: 应用名称
+            as_of: 可选时态快照时刻；提供时仅返回在该时刻有效的关系
 
         Returns:
             完整图谱数据
@@ -313,6 +349,24 @@ class GraphRepository(ABC):
 
         Returns:
             删除的节点数量
+        """
+        pass
+
+    @abstractmethod
+    async def get_relation_timeline(
+        self,
+        corpus_id: UUID,
+        bucket: str = "day",
+    ) -> list[dict[str, Any]]:
+        """按时间桶聚合关系生效/失效事件，用于前端时间轴密度直方图。
+
+        Args:
+            corpus_id: 语料库 ID
+            bucket: ``day`` / ``week`` / ``month``，对应 PostgreSQL date_trunc 单位。
+
+        Returns:
+            ``[{"date": ISO8601, "active_count": N, "expired_count": M}]`` 列表，
+            按 date 升序；空语料库返回 ``[]``。
         """
         pass
 
@@ -614,12 +668,10 @@ class AgeGraphRepository(GraphRepository):
         session = await self._get_session()
         clean_id = entity_id.replace("entity:", "")
 
-        # 时态过滤片段 (Snodgrass & Ahn, 1985)
+        # 时态过滤片段 (Snodgrass & Ahn, 1985) — 委托模块级 helper
         temporal_filter = ""
         if as_of:
-            temporal_filter = """
-                AND (r.valid_from IS NULL OR r.valid_from <= :as_of)
-                AND (r.valid_to IS NULL OR r.valid_to > :as_of)"""
+            temporal_filter = f"\n                AND {_temporal_where_clause('r')}"
 
         query = text(f"""
             WITH RECURSIVE neighbor_tree AS (
@@ -722,9 +774,7 @@ class AgeGraphRepository(GraphRepository):
 
         temporal_filter = ""
         if as_of:
-            temporal_filter = """
-                AND (r.valid_from IS NULL OR r.valid_from <= :as_of)
-                AND (r.valid_to IS NULL OR r.valid_to > :as_of)"""
+            temporal_filter = f"\n                AND {_temporal_where_clause('r')}"
 
         query = text(f"""
             WITH edges AS (
@@ -767,10 +817,12 @@ class AgeGraphRepository(GraphRepository):
         source_id: str,
         target_id: str,
         max_depth: int = 5,
+        as_of: datetime | None = None,
     ) -> list[str] | None:
         """查询两点间最短路径（基于 kg_relations 递归 CTE BFS）
 
         使用广度优先搜索在 kg_relations 表上查找最短路径。
+        ``as_of`` 提供时仅遍历在该时刻有效的关系（Snodgrass & Ahn, 1985）。
         """
         session = await self._get_session()
         source_clean = source_id.replace("entity:", "")
@@ -778,6 +830,17 @@ class AgeGraphRepository(GraphRepository):
 
         if source_clean == target_clean:
             return [source_clean]
+
+        # 时态过滤片段；CTE 中的两段 base 与两段 recursive 复用同一谓词。
+        temporal_base = ""
+        temporal_recur = ""
+        if as_of:
+            # base 段使用 kg_relations 主体，无别名 → 临时使用 kg_relations 别名
+            temporal_base = (
+                "\n                  AND (valid_from IS NULL OR valid_from <= :as_of)"
+                "\n                  AND (valid_to IS NULL OR valid_to > :as_of)"
+            )
+            temporal_recur = f"\n                  AND {_temporal_where_clause('r')}"
 
         query = text(f"""
             WITH RECURSIVE path_search AS (
@@ -788,7 +851,7 @@ class AgeGraphRepository(GraphRepository):
                     ARRAY[source_id] AS path,
                     1 AS depth
                 FROM {self._schema}.kg_relations
-                WHERE source_id = :source_id AND is_active = true
+                WHERE source_id = :source_id AND is_active = true{temporal_base}
 
                 UNION ALL
 
@@ -800,7 +863,7 @@ class AgeGraphRepository(GraphRepository):
                     1 AS depth
                 FROM {self._schema}.kg_relations
                 WHERE target_id = :source_id AND is_active = true
-                  AND source_id != :source_id
+                  AND source_id != :source_id{temporal_base}
 
                 UNION ALL
 
@@ -814,7 +877,7 @@ class AgeGraphRepository(GraphRepository):
                 JOIN path_search ps ON r.source_id = ps.target_id
                 WHERE r.is_active = true
                   AND ps.depth < :max_depth
-                  AND r.target_id != ALL(ps.path)
+                  AND r.target_id != ALL(ps.path){temporal_recur}
 
                 UNION ALL
 
@@ -828,7 +891,7 @@ class AgeGraphRepository(GraphRepository):
                 JOIN path_search ps ON r.target_id = ps.target_id
                 WHERE r.is_active = true
                   AND ps.depth < :max_depth
-                  AND r.source_id != ALL(ps.path)
+                  AND r.source_id != ALL(ps.path){temporal_recur}
             )
             SELECT path || target_id AS full_path
             FROM path_search
@@ -837,14 +900,15 @@ class AgeGraphRepository(GraphRepository):
             LIMIT 1
         """)
 
-        result = await session.execute(
-            query,
-            {
-                "source_id": source_clean,
-                "target_id": target_clean,
-                "max_depth": max_depth,
-            },
-        )
+        params: dict[str, Any] = {
+            "source_id": source_clean,
+            "target_id": target_clean,
+            "max_depth": max_depth,
+        }
+        if as_of:
+            params["as_of"] = as_of
+
+        result = await session.execute(query, params)
 
         row = result.first()
         if row is None:
@@ -871,11 +935,13 @@ class AgeGraphRepository(GraphRepository):
         semantic_weight: float = 0.6,
         graph_weight: float = 0.4,
         rrf_k: int | None = None,
+        as_of: datetime | None = None,
     ) -> list[GraphSearchResult]:
         """混合检索 (向量 + 图遍历)
 
         当 rrf_k 不为 None 时使用 Reciprocal Rank Fusion (Cormack et al., SIGIR 2009)，
-        否则使用线性加权组合。
+        否则使用线性加权组合。``as_of`` 提供时仅纳入在该时刻仍存在至少一条有效
+        关系的实体（双时态过滤；Snodgrass & Ahn, 1985）。
         """
 
         session = await self._get_session()
@@ -890,26 +956,47 @@ class AgeGraphRepository(GraphRepository):
                 query_text,
                 limit,
                 rrf_k,
+                as_of=as_of,
             )
         else:
-            # 线性加权模式（向后兼容）
-            results = await self._linear_weighted_search(
-                session,
-                corpus_id,
-                app_name,
-                query_embedding,
-                query_text,
-                limit,
-                graph_depth,
-                semantic_weight,
-                graph_weight,
-            )
+            if as_of is not None:
+                # 线性加权调用 SQL 函数 kg_hybrid_search，函数本身未感知时态；
+                # 此处不静默丢弃 as_of，而是显式自动升级为 RRF 模式以满足语义。
+                logger.info(
+                    "hybrid_search_as_of_upgraded_to_rrf",
+                    corpus_id=str(corpus_id),
+                    reason="linear_weighted_path_lacks_temporal_filter",
+                )
+                results = await self._rrf_search(
+                    session,
+                    corpus_id,
+                    app_name,
+                    query_embedding,
+                    query_text,
+                    limit,
+                    60,  # 与 unified_search 默认 rrf_k 对齐
+                    as_of=as_of,
+                )
+            else:
+                # 线性加权模式（向后兼容）
+                results = await self._linear_weighted_search(
+                    session,
+                    corpus_id,
+                    app_name,
+                    query_embedding,
+                    query_text,
+                    limit,
+                    graph_depth,
+                    semantic_weight,
+                    graph_weight,
+                )
 
         logger.debug(
             "hybrid_search_completed",
             corpus_id=str(corpus_id),
             result_count=len(results),
-            mode="rrf" if rrf_k else "linear",
+            mode="rrf" if (rrf_k or as_of) else "linear",
+            as_of=as_of.isoformat() if as_of else None,
         )
 
         return results
@@ -923,11 +1010,25 @@ class AgeGraphRepository(GraphRepository):
         query_text: str,
         limit: int,
         rrf_k: int,
+        as_of: datetime | None = None,
     ) -> list[GraphSearchResult]:
-        """RRF 混合检索：score(d) = Σ 1/(k + rank_i(d))"""
+        """RRF 混合检索：score(d) = Σ 1/(k + rank_i(d))。
+
+        ``as_of`` 提供时通过 EXISTS 子查询将实体集限制为"在该时刻仍至少有一条
+        有效关系"的实体，与图谱时态语义对齐。
+        """
         import json as _json
 
         schema = self._schema
+
+        # 时态过滤：as_of 时通过 EXISTS 子查询排除"在该时刻无任何有效关系"的实体
+        temporal_exists = ""
+        if as_of:
+            temporal_exists = (
+                f"\n              AND EXISTS (SELECT 1 FROM {schema}.kg_relations r "
+                f"WHERE (r.source_id = e.id OR r.target_id = e.id) "
+                f"AND r.is_active = true AND {_temporal_where_clause('r')})"
+            )
 
         # 1. 语义排序：基于向量相似度
         semantic_query = text(f"""
@@ -936,19 +1037,20 @@ class AgeGraphRepository(GraphRepository):
                    1 - (e.embedding <=> :embedding::vector) as semantic_score
             FROM {schema}.kg_entities e
             WHERE e.corpus_id = :corpus_id AND e.is_active = true
-              AND e.embedding IS NOT NULL
+              AND e.embedding IS NOT NULL{temporal_exists}
             ORDER BY e.embedding <=> :embedding::vector
             LIMIT :limit * 2
         """)
 
-        sem_result = await session.execute(
-            semantic_query,
-            {
-                "corpus_id": str(corpus_id),
-                "embedding": _json.dumps(query_embedding),
-                "limit": limit,
-            },
-        )
+        sem_params: dict[str, Any] = {
+            "corpus_id": str(corpus_id),
+            "embedding": _json.dumps(query_embedding),
+            "limit": limit,
+        }
+        if as_of:
+            sem_params["as_of"] = as_of
+
+        sem_result = await session.execute(semantic_query, sem_params)
 
         # 收集语义排名
         entity_data: dict[str, dict[str, Any]] = {}
@@ -973,15 +1075,16 @@ class AgeGraphRepository(GraphRepository):
             SELECT e.id, e.name, e.importance_score
             FROM {schema}.kg_entities e
             WHERE e.corpus_id = :corpus_id AND e.is_active = true
-              AND e.importance_score IS NOT NULL
+              AND e.importance_score IS NOT NULL{temporal_exists}
             ORDER BY e.importance_score DESC
             LIMIT :limit * 2
         """)
 
-        graph_result = await session.execute(
-            graph_query,
-            {"corpus_id": str(corpus_id), "limit": limit},
-        )
+        graph_params: dict[str, Any] = {"corpus_id": str(corpus_id), "limit": limit}
+        if as_of:
+            graph_params["as_of"] = as_of
+
+        graph_result = await session.execute(graph_query, graph_params)
 
         graph_rank: dict[str, int] = {}
         for i, row in enumerate(graph_result, start=1):
@@ -1105,11 +1208,15 @@ class AgeGraphRepository(GraphRepository):
         self,
         corpus_id: UUID,
         app_name: str,
+        as_of: datetime | None = None,
     ) -> KnowledgeGraphPayload:
         """获取完整图谱
 
         优先从 kg_entities + kg_relations 一等公民表读取。
         若一等公民表为空（旧数据迁移前），回退到 knowledge.metadata JSONB。
+        ``as_of`` 提供时仅返回在该时刻有效的关系（节点保留全集；连接被过滤
+        的孤立节点会被自然剔除，因为 _load_graph_from_first_class_tables 仅
+        保留两端实体在结果中的边）。
         """
         session = await self._get_session()
 
@@ -1118,10 +1225,12 @@ class AgeGraphRepository(GraphRepository):
             session,
             corpus_id,
             app_name,
+            as_of=as_of,
         )
 
         # 回退：从 knowledge.metadata JSONB 读取（兼容旧数据）
         if not nodes:
+            # JSONB 回退路径不支持时态过滤（旧数据无 valid_from/valid_to）
             nodes, edges = await self._load_graph_from_jsonb(
                 session,
                 corpus_id,
@@ -1142,11 +1251,13 @@ class AgeGraphRepository(GraphRepository):
         session: AsyncSession,
         corpus_id: UUID,
         app_name: str,  # noqa: ARG002 — kg_entities 按 corpus 去重，不受 app 维度约束
+        as_of: datetime | None = None,
     ) -> tuple[list[GraphNode], list[GraphEdge]]:
         """从 kg_entities + kg_relations 一等公民表加载图谱
 
         kg_entities 按 corpus_id 去重存储（同一实体跨 app 合并），
         因此不按 app_name 过滤，与 JSONB 回退路径按 app 过滤的行为不同。
+        ``as_of`` 提供时按 valid_from/valid_to 过滤关系。
         """
         # 加载实体
         entities_query = text(f"""
@@ -1186,18 +1297,23 @@ class AgeGraphRepository(GraphRepository):
         if not nodes:
             return [], []
 
-        # 加载关系
+        # 加载关系（支持时态过滤）
+        temporal_filter = ""
+        if as_of:
+            temporal_filter = f" AND {_temporal_where_clause('r')}"
+
         relations_query = text(f"""
             SELECT r.source_id, r.target_id, r.relation_type,
                    r.weight, r.confidence, r.evidence_text
             FROM {self._schema}.kg_relations r
-            WHERE r.corpus_id = :corpus_id AND r.is_active = true
+            WHERE r.corpus_id = :corpus_id AND r.is_active = true{temporal_filter}
         """)
 
-        result = await session.execute(
-            relations_query,
-            {"corpus_id": str(corpus_id)},
-        )
+        rel_params: dict[str, Any] = {"corpus_id": str(corpus_id)}
+        if as_of:
+            rel_params["as_of"] = as_of
+
+        result = await session.execute(relations_query, rel_params)
 
         edges = []
         for row in result:
@@ -1440,6 +1556,62 @@ class AgeGraphRepository(GraphRepository):
         )
 
         return count
+
+    async def get_relation_timeline(
+        self,
+        corpus_id: UUID,
+        bucket: str = "day",
+    ) -> list[dict[str, Any]]:
+        """聚合 valid_from / valid_to 事件为时间轴密度直方图。"""
+        if bucket not in {"day", "week", "month"}:
+            raise ValueError(f"unsupported bucket '{bucket}'; expected day|week|month")
+
+        session = await self._get_session()
+        # 同一查询返回两组事件密度：
+        #   active_count   = COUNT(valid_from at bucket)
+        #   expired_count  = COUNT(valid_to at bucket)
+        # 通过 FULL OUTER JOIN 合并左右桶，缺失日期填 0；DESC NULLS LAST + LIMIT 让
+        # 大语料库不至于返回数千行。
+        query = text(f"""
+            WITH starts AS (
+                SELECT date_trunc(:bucket, valid_from) AS bucket_date,
+                       COUNT(*) AS active_count
+                FROM {self._schema}.kg_relations
+                WHERE corpus_id = :corpus_id AND valid_from IS NOT NULL
+                GROUP BY 1
+            ),
+            ends AS (
+                SELECT date_trunc(:bucket, valid_to) AS bucket_date,
+                       COUNT(*) AS expired_count
+                FROM {self._schema}.kg_relations
+                WHERE corpus_id = :corpus_id AND valid_to IS NOT NULL
+                GROUP BY 1
+            )
+            SELECT COALESCE(s.bucket_date, e.bucket_date) AS bucket_date,
+                   COALESCE(s.active_count, 0)             AS active_count,
+                   COALESCE(e.expired_count, 0)            AS expired_count
+            FROM starts s
+            FULL OUTER JOIN ends e ON s.bucket_date = e.bucket_date
+            ORDER BY bucket_date ASC
+        """)
+
+        result = await session.execute(
+            query,
+            {"corpus_id": str(corpus_id), "bucket": bucket},
+        )
+
+        timeline: list[dict[str, Any]] = []
+        for row in result:
+            if row.bucket_date is None:
+                continue
+            timeline.append(
+                {
+                    "date": row.bucket_date.isoformat(),
+                    "active_count": int(row.active_count or 0),
+                    "expired_count": int(row.expired_count or 0),
+                }
+            )
+        return timeline
 
     async def create_build_run(
         self,

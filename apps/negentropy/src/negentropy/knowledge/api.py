@@ -4,6 +4,7 @@ import json
 import mimetypes
 import re
 import urllib.parse
+from datetime import datetime
 from io import BytesIO
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
@@ -144,6 +145,8 @@ from .schemas import (  # noqa: F401
     GraphSearchRequest,
     GraphSearchResponse,
     GraphStatsResponse,
+    GraphTimelineBucket,
+    GraphTimelineResponse,
     GraphUpsertRequest,
     IngestRequest,
     IngestUrlRequest,
@@ -3079,6 +3082,13 @@ async def get_corpus_graph(
     corpus_id: UUID,
     app_name: str | None = Query(default=None),
     include_runs: bool = Query(default=False),
+    as_of: datetime | None = Query(
+        default=None,
+        description=(
+            "可选时态快照时刻 (ISO-8601)；提供时仅返回在该时刻有效的关系。"
+            "用于双时态时间穿梭检索 (Snodgrass & Ahn, 1985)。"
+        ),
+    ),
 ) -> dict[str, Any]:
     """获取语料库的知识图谱
 
@@ -3086,6 +3096,7 @@ async def get_corpus_graph(
         corpus_id: 语料库 ID
         app_name: 应用名称
         include_runs: 是否包含构建历史
+        as_of: 可选时态快照时刻
 
     Returns:
         图谱数据（节点和边）
@@ -3097,6 +3108,7 @@ async def get_corpus_graph(
         corpus_id=str(corpus_id),
         app_name=resolved_app,
         include_runs=include_runs,
+        as_of=as_of.isoformat() if as_of else None,
     )
 
     graph_service = _get_graph_service()
@@ -3104,6 +3116,7 @@ async def get_corpus_graph(
         corpus_id=corpus_id,
         app_name=resolved_app,
         include_runs=include_runs,
+        as_of=as_of,
     )
 
     return {
@@ -3182,6 +3195,7 @@ async def search_knowledge_graph(
             query=payload.query,
             query_embedding=query_embedding,
             config=config,
+            as_of=payload.as_of,
         )
 
         logger.info(
@@ -3249,6 +3263,7 @@ async def find_entity_neighbors(
         entity_id=payload.entity_id,
         max_depth=payload.max_depth,
         limit=payload.limit,
+        as_of=payload.as_of,
     )
 
     return {
@@ -3290,6 +3305,7 @@ async def find_entity_path(
         source_id=payload.source_id,
         target_id=payload.target_id,
         max_depth=payload.max_depth,
+        as_of=payload.as_of,
     )
 
     return {
@@ -3444,6 +3460,39 @@ async def get_graph_stats(
     return GraphStatsResponse(**stats)
 
 
+@router.get("/base/{corpus_id}/graph/timeline", response_model=GraphTimelineResponse)
+async def get_graph_timeline(
+    corpus_id: UUID,
+    bucket: str = Query(
+        default="day",
+        pattern="^(day|week|month)$",
+        description="时间桶粒度：day | week | month",
+    ),
+) -> GraphTimelineResponse:
+    """获取关系时间轴密度直方图（G3 时间穿梭检索）
+
+    返回按 ``bucket`` 聚合的 valid_from 与 valid_to 事件计数，
+    供前端 TimeTravelSlider 渲染时间分布。
+    """
+    logger.debug(
+        "api_graph_timeline",
+        corpus_id=str(corpus_id),
+        bucket=bucket,
+    )
+
+    graph_service = _get_graph_service()
+    points = await graph_service.get_relation_timeline(
+        corpus_id=corpus_id,
+        bucket=bucket,
+    )
+
+    return GraphTimelineResponse(
+        corpus_id=corpus_id,
+        bucket=bucket,
+        points=[GraphTimelineBucket(**p) for p in points],
+    )
+
+
 # ============================================================================
 # API 调用统计
 # ============================================================================
@@ -3485,7 +3534,7 @@ async def get_api_stats(
     Returns:
         ApiStatsResponse: 包含总调用数、成功数、失败数和平均延迟
     """
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     from sqlalchemy import and_, or_, select
     from sqlalchemy import func as sql_func

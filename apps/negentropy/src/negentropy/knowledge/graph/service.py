@@ -18,6 +18,7 @@ import asyncio
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -612,6 +613,7 @@ class GraphService:
         query: str,
         query_embedding: list[float],
         config: GraphQueryConfig | None = None,
+        as_of: datetime | None = None,
     ) -> GraphQueryResult:
         """混合检索图谱
 
@@ -623,6 +625,7 @@ class GraphService:
             query: 查询文本
             query_embedding: 查询向量
             config: 查询配置（可选）
+            as_of: 可选时态快照时刻；提供时仅纳入在该时刻仍有效的关系
 
         Returns:
             检索结果
@@ -634,6 +637,7 @@ class GraphService:
             "graph_search_started",
             corpus_id=str(corpus_id),
             query=query[:50],
+            as_of=as_of.isoformat() if as_of else None,
         )
 
         # 执行混合检索
@@ -647,6 +651,7 @@ class GraphService:
             semantic_weight=query_config.semantic_weight,
             graph_weight=query_config.graph_weight,
             rrf_k=query_config.rrf_k if query_config.use_rrf else None,
+            as_of=as_of,
         )
 
         # 可选：加载邻居信息
@@ -687,6 +692,7 @@ class GraphService:
         corpus_id: UUID,
         app_name: str,
         include_runs: bool = False,
+        as_of: datetime | None = None,
     ) -> KnowledgeGraphPayload:
         """获取完整图谱
 
@@ -694,6 +700,7 @@ class GraphService:
             corpus_id: 语料库 ID
             app_name: 应用名称
             include_runs: 是否包含构建运行历史
+            as_of: 可选时态快照时刻；提供时仅返回在该时刻有效的关系
 
         Returns:
             完整图谱数据
@@ -702,17 +709,19 @@ class GraphService:
             "get_graph_started",
             corpus_id=str(corpus_id),
             app_name=app_name,
+            as_of=as_of.isoformat() if as_of else None,
         )
 
-        # 缓存检查
-        cache_key = f"graph:{corpus_id}"
+        # 缓存检查（as_of 维度纳入 key 后缀，确保不同时态快照不会脏读）
+        as_of_key = as_of.isoformat() if as_of else "now"
+        cache_key = f"graph:{corpus_id}|as_of={as_of_key}"
         cached = _graph_cache.get(cache_key)
         if cached is not None:
             logger.debug("get_graph_cache_hit", corpus_id=str(corpus_id))
             return cached
 
         # 获取图谱数据
-        graph = await self._repository.get_graph(corpus_id, app_name)
+        graph = await self._repository.get_graph(corpus_id, app_name, as_of=as_of)
 
         # 可选：包含构建历史
         if include_runs:
@@ -751,6 +760,7 @@ class GraphService:
         entity_id: str,
         max_depth: int = 2,
         limit: int = 100,
+        as_of: datetime | None = None,
     ) -> list[GraphNode]:
         """查询实体邻居
 
@@ -758,6 +768,7 @@ class GraphService:
             entity_id: 起始实体 ID
             max_depth: 最大遍历深度
             limit: 结果数量限制
+            as_of: 可选时态快照时刻；提供时仅遍历在该时刻有效的关系
 
         Returns:
             邻居节点列表
@@ -766,12 +777,14 @@ class GraphService:
             "find_neighbors_started",
             entity_id=entity_id,
             max_depth=max_depth,
+            as_of=as_of.isoformat() if as_of else None,
         )
 
         neighbors = await self._repository.find_neighbors(
             entity_id=entity_id,
             max_depth=max_depth,
             limit=limit,
+            as_of=as_of,
         )
 
         logger.debug(
@@ -787,6 +800,7 @@ class GraphService:
         source_id: str,
         target_id: str,
         max_depth: int = 5,
+        as_of: datetime | None = None,
     ) -> list[str] | None:
         """查询两点间最短路径
 
@@ -794,6 +808,7 @@ class GraphService:
             source_id: 起始实体 ID
             target_id: 目标实体 ID
             max_depth: 最大路径深度
+            as_of: 可选时态快照时刻；提供时仅遍历在该时刻有效的关系
 
         Returns:
             路径节点 ID 列表，或 None
@@ -802,12 +817,14 @@ class GraphService:
             "find_path_started",
             source_id=source_id,
             target_id=target_id,
+            as_of=as_of.isoformat() if as_of else None,
         )
 
         path = await self._repository.find_path(
             source_id=source_id,
             target_id=target_id,
             max_depth=max_depth,
+            as_of=as_of,
         )
 
         if path:
@@ -825,6 +842,25 @@ class GraphService:
             )
 
         return path
+
+    async def get_relation_timeline(
+        self,
+        corpus_id: UUID,
+        bucket: str = "day",
+    ) -> list[dict[str, Any]]:
+        """获取关系生效/失效事件时间轴密度直方图（G3 时间穿梭检索）。
+
+        Args:
+            corpus_id: 语料库 ID
+            bucket: ``day`` / ``week`` / ``month``
+
+        Returns:
+            ``[{"date", "active_count", "expired_count"}]`` 列表（按时间升序）
+        """
+        return await self._repository.get_relation_timeline(
+            corpus_id=corpus_id,
+            bucket=bucket,
+        )
 
     async def get_build_history(
         self,
