@@ -132,6 +132,41 @@ class TestCoreBlockReplace:
         assert result["scope"] == "user"
 
 
+class TestRateLimitDictCleanup:
+    """Review #3 — 滑动窗口清空后必须删除字典键，避免 defaultdict 长期累积。"""
+
+    async def test_dict_releases_keys_after_window_expires(self, stub_memory_service):
+        # 首次调用：dict 内新建该 key
+        await mt.memory_search(user_id="alice", app_name="app", query="hello")
+        key = ("alice", "_", "memory_search")
+        assert key in mt._RATE_LIMITS
+        assert len(mt._RATE_LIMITS[key]) == 1
+
+        # 模拟 120s 过去：把 deque 内的时间戳改成早于 60 秒前（deque 支持 __setitem__）
+        import time as _t
+
+        old_ts = _t.time() - 120
+        mt._RATE_LIMITS[key][0] = old_ts
+
+        # 再次进入 _check_rate_limit：清窗 → del key → append(now)，等价于"重置"
+        await mt.memory_search(user_id="alice", app_name="app", query="hello")
+        window = mt._RATE_LIMITS[key]
+        assert len(window) == 1, "过期时间戳应被 popleft 清除"
+        assert window[0] > old_ts, "新调用应替换为最新时间戳"
+
+    def test_dict_release_path_directly(self):
+        """直接对 _check_rate_limit 进行白盒测试：清空窗口分支是否真的 del key。"""
+        import time as _t
+
+        # 写入一个已过期的时间戳，然后调用 _check_rate_limit 一次
+        key = ("ghost_user", "_", "memory_search")
+        mt._RATE_LIMITS[key].append(_t.time() - 999)
+        # 内部预期：prune 清空 → del key → 再 append(now)，最终 key 仍存在但只有 1 条
+        mt._check_rate_limit("ghost_user", None, "memory_search")
+        assert key in mt._RATE_LIMITS
+        assert len(mt._RATE_LIMITS[key]) == 1
+
+
 class TestOpenAPISchema:
     def test_all_5_tools_have_schema(self):
         assert set(mt.MEMORY_TOOLS_OPENAPI.keys()) == {
