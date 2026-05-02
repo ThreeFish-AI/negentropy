@@ -1,8 +1,13 @@
 """Phase 4 — Memory Core Blocks（常驻摘要块） + 类型分层差异化
 
-Revision ID: 0022
-Revises: 0021
+Revision ID: 0023
+Revises: 0022
 Create Date: 2026-05-02 12:00:00.000000+00:00
+
+注：本迁移最初标记为 0022，与 feature/1.x.x 上独立合入的
+``0022_kg_temporal_and_community_summaries`` 撞号；为消除 Alembic
+multi-head（CI: "Revision 0022 is present more than once"），
+重命名为 0023 并将 down_revision 改为 0022。
 
 设计动机：
   借鉴 Letta/MemGPT 的 Hierarchical Memory（Core/Recall/Archival）设计，
@@ -27,8 +32,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0022"
-down_revision: str | None = "0021"
+revision: str = "0023"
+down_revision: str | None = "0022"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
