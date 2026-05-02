@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.graph_repository import (
+from negentropy.knowledge.graph.repository import (
     AgeGraphRepository,
     BuildRunRecord,
     GraphSearchResult,

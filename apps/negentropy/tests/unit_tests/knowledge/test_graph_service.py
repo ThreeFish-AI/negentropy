@@ -12,11 +12,11 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from negentropy.knowledge.graph_repository import (
+from negentropy.knowledge.graph.repository import (
     BuildRunRecord,
     GraphSearchResult,
 )
-from negentropy.knowledge.graph_service import (
+from negentropy.knowledge.graph.service import (
     GraphBuildResult,
     GraphQueryResult,
     GraphService,
@@ -36,7 +36,7 @@ class TestGetGraphService:
 
     def test_returns_graph_service(self):
         """应返回 GraphService 实例"""
-        with patch("negentropy.knowledge.graph_service.get_graph_repository") as mock_repo:
+        with patch("negentropy.knowledge.graph.service.get_graph_repository") as mock_repo:
             mock_repo.return_value = MagicMock()
             service = get_graph_service()
             assert isinstance(service, GraphService)
@@ -44,7 +44,7 @@ class TestGetGraphService:
     def test_accepts_optional_session(self):
         """应接受可选的 session 参数"""
         mock_session = MagicMock()
-        with patch("negentropy.knowledge.graph_service.get_graph_repository") as mock_repo:
+        with patch("negentropy.knowledge.graph.service.get_graph_repository") as mock_repo:
             mock_repo.return_value = MagicMock()
             service = get_graph_service(session=mock_session)
             assert service is not None

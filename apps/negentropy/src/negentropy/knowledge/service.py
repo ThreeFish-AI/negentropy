@@ -8,15 +8,15 @@ from uuid import UUID
 
 from negentropy.logging import get_logger
 
-from .chunking import chunk_text, semantic_chunk_async
+from .ingestion.chunking import chunk_text, semantic_chunk_async
 
 if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
 from .constants import TEXT_PREVIEW_MAX_LENGTH
-from .extraction import ROUTE_URL, ExtractedDocumentResult, extract_source, resolve_source_kind
-from .repository import KnowledgeRepository
-from .reranking import NoopReranker, Reranker
-from .source_tracking import SourceTrackingService, TrackingContext
+from .ingestion.extraction import ROUTE_URL, ExtractedDocumentResult, extract_source, resolve_source_kind
+from .ingestion.source_tracking import SourceTrackingService, TrackingContext
+from .retrieval.repository import KnowledgeRepository
+from .retrieval.reranking import NoopReranker, Reranker
 from .types import (
     ChunkingConfig,
     ChunkingStrategy,
@@ -672,7 +672,7 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 url_details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -771,7 +771,7 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 url_details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -792,7 +792,7 @@ class KnowledgeService:
             await tracker.start_stage("document_store")
             from negentropy.storage.service import DocumentStorageService
 
-            from .extraction import build_url_document_filename, persist_extracted_assets
+            from .ingestion.extraction import build_url_document_filename, persist_extracted_assets
 
             storage_service = DocumentStorageService()
             raw_name = build_url_document_filename(url)
@@ -925,7 +925,7 @@ class KnowledgeService:
 
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -966,7 +966,7 @@ class KnowledgeService:
                 await tracker.complete_stage("source_tracking")
 
             if document_id:
-                from .extraction import store_extracted_document_artifacts
+                from .ingestion.extraction import store_extracted_document_artifacts
 
                 await tracker.start_stage("markdown_store")
                 markdown_gcs_uri, _ = await store_extracted_document_artifacts(
@@ -1228,7 +1228,7 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 url_details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -1247,7 +1247,7 @@ class KnowledgeService:
 
             # Stage 2: 保存 Markdown 和资产
             await tracker.start_stage("markdown_store")
-            from .extraction import store_extracted_document_artifacts
+            from .ingestion.extraction import store_extracted_document_artifacts
 
             _, stored_assets = await store_extracted_document_artifacts(
                 document_id=document_id,
@@ -1405,7 +1405,7 @@ class KnowledgeService:
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
             if document_id:
-                from .extraction import store_extracted_document_artifacts
+                from .ingestion.extraction import store_extracted_document_artifacts
 
                 await tracker.start_stage("markdown_store")
                 markdown_gcs_uri, _ = await store_extracted_document_artifacts(
@@ -2904,7 +2904,7 @@ class KnowledgeService:
         """
         embedding_config_id = self._extract_embedding_config_id(corpus_config)
         if embedding_config_id is not None:
-            from .embedding import build_embedding_fn
+            from .ingestion.embedding import build_embedding_fn
 
             return build_embedding_fn(embedding_config_id)
         return self._embedding_fn
@@ -2924,7 +2924,7 @@ class KnowledgeService:
 
         # Corpus 指定了 embedding 模型 → 按需构建一次性 fn；否则使用 service 级默认 fn。
         if embedding_config_id is not None:
-            from .embedding import build_batch_embedding_fn, build_embedding_fn
+            from .ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
 
             batch_fn = build_batch_embedding_fn(embedding_config_id)
             single_fn = build_embedding_fn(embedding_config_id)

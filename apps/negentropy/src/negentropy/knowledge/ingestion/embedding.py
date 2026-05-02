@@ -19,7 +19,7 @@ from uuid import UUID
 
 from negentropy.logging import get_logger
 
-from .exceptions import EmbeddingFailed
+from ..exceptions import EmbeddingFailed
 
 logger = get_logger("negentropy.knowledge.embedding")
 

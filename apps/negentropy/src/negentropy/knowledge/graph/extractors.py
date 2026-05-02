@@ -29,7 +29,7 @@ from negentropy.logging import get_logger
 if TYPE_CHECKING:
     pass
 
-from .types import GraphEdge, GraphNode, KgEntityType, KgRelationType
+from ..types import GraphEdge, GraphNode, KgEntityType, KgRelationType
 
 logger = get_logger("negentropy.knowledge.llm_extractors")
 
@@ -354,7 +354,7 @@ Output as JSON with the following structure:
         Returns:
             提取的实体节点列表
         """
-        from .graph import RegexEntityExtractor
+        from .strategy import RegexEntityExtractor
 
         fallback = RegexEntityExtractor()
         return await fallback.extract(text, corpus_id)
@@ -652,7 +652,7 @@ Output as JSON with the following structure:
         Returns:
             提取的关系边列表
         """
-        from .graph import CooccurrenceRelationExtractor
+        from .strategy import CooccurrenceRelationExtractor
 
         fallback = CooccurrenceRelationExtractor()
         return await fallback.extract(entities, text)
@@ -719,7 +719,7 @@ class CompositeEntityExtractor:
             return await self._llm_extractor.extract(text, corpus_id)
 
         # 禁用 LLM 时直接使用正则
-        from .graph import RegexEntityExtractor
+        from .strategy import RegexEntityExtractor
 
         regex_extractor = RegexEntityExtractor()
         return await regex_extractor.extract(text, corpus_id)
@@ -772,7 +772,7 @@ class CompositeRelationExtractor:
             return await self._llm_extractor.extract(entities, text)
 
         # 禁用 LLM 时直接使用共现
-        from .graph import CooccurrenceRelationExtractor
+        from .strategy import CooccurrenceRelationExtractor
 
         cooccurrence_extractor = CooccurrenceRelationExtractor()
         return await cooccurrence_extractor.extract(entities, text)

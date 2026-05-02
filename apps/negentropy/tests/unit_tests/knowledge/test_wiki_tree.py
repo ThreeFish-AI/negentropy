@@ -13,7 +13,7 @@ import json
 from types import SimpleNamespace
 from uuid import uuid4
 
-from negentropy.knowledge.wiki_tree import build_nav_tree
+from negentropy.knowledge.lifecycle.wiki_tree import build_nav_tree
 
 
 def _entry(

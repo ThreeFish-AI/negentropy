@@ -30,7 +30,7 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 
-from .types import GraphEdge, GraphNode, KnowledgeGraphPayload
+from ..types import GraphEdge, GraphNode, KnowledgeGraphPayload
 
 logger = get_logger("negentropy.knowledge.graph_repository")
 

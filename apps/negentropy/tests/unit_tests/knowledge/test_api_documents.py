@@ -193,7 +193,7 @@ async def test_sync_document_success(monkeypatch):
     fake_storage = FakeStorageService(doc=doc)
     fake_service = FakeKnowledgeService()
 
-    from negentropy.knowledge.extraction import ExtractedDocumentResult
+    from negentropy.knowledge.ingestion.extraction import ExtractedDocumentResult
 
     async def fake_extract_source(**kwargs):
         return ExtractedDocumentResult(

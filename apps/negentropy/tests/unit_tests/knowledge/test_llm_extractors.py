@@ -14,7 +14,7 @@ from uuid import UUID
 
 import pytest
 
-from negentropy.knowledge.llm_extractors import (
+from negentropy.knowledge.graph.extractors import (
     CompositeEntityExtractor,
     LLMEntityExtractor,
     LLMRelationExtractor,

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 from negentropy.logging import get_logger
 
-from .types import KnowledgeMatch
+from ..types import KnowledgeMatch
 
 logger = get_logger("negentropy.knowledge.reranking")
 

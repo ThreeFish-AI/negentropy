@@ -27,17 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from negentropy.logging import get_logger
 from negentropy.model_names import canonicalize_model_name
 
-from .graph_repository import (
-    BuildRunRecord,
-    GraphRepository,
-    GraphSearchResult,
-    get_graph_repository,
-)
-from .llm_extractors import (
-    CompositeEntityExtractor,
-    CompositeRelationExtractor,
-)
-from .types import (
+from ..types import (
     GraphBuildConfig,
     GraphEdge,
     GraphNode,
@@ -45,6 +35,16 @@ from .types import (
     KgEntityType,
     KgRelationType,
     KnowledgeGraphPayload,
+)
+from .extractors import (
+    CompositeEntityExtractor,
+    CompositeRelationExtractor,
+)
+from .repository import (
+    BuildRunRecord,
+    GraphRepository,
+    GraphSearchResult,
+    get_graph_repository,
 )
 
 logger = get_logger("negentropy.knowledge.graph_service")
@@ -392,7 +392,7 @@ class GraphService:
             try:
                 from negentropy.db.session import AsyncSessionLocal
 
-                from .kg_entity_service import KgEntityService
+                from .entity_service import KgEntityService
 
                 kg_service = KgEntityService()
                 node_dicts = [
@@ -928,7 +928,7 @@ class GraphService:
         connected_components = None
         if 0 < total_entities <= 10000:
             try:
-                from negentropy.knowledge.graph_algorithms import export_graph_to_networkx
+                from .graph_algorithms import export_graph_to_networkx
 
                 nx_graph = await export_graph_to_networkx(db, corpus_id)
                 import networkx as nx
@@ -1076,8 +1076,8 @@ class GraphService:
         """
         from negentropy.db.session import AsyncSessionLocal
 
-        from .embedding import build_batch_embedding_fn
-        from .kg_entity_service import KgEntityService
+        from ..ingestion.embedding import build_batch_embedding_fn
+        from .entity_service import KgEntityService
 
         # 1. 批量生成实体 label 的 embedding
         labels = [e.label for e in entities if e.label]

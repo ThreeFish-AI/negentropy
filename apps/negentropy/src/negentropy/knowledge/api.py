@@ -29,7 +29,6 @@ from .constants import (
     DEFAULT_SEMANTIC_WEIGHT,
 )
 from .dao import KnowledgeRunDao
-from .embedding import build_batch_embedding_fn, build_embedding_fn
 from .exceptions import (
     CorpusNotFound,
     DatabaseError,
@@ -40,15 +39,16 @@ from .exceptions import (
     SearchError,
     VersionConflict,
 )
-from .extraction import (
+from .graph.entity_service import KgEntityService
+from .graph.service import GraphService, get_graph_service
+from .ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
+from .ingestion.extraction import (
     extract_source,
     get_chunking_config_only,
     merge_corpus_config,
     resolve_source_kind,
     store_extracted_document_artifacts,
 )
-from .graph_service import GraphService, get_graph_service
-from .kg_entity_service import KgEntityService
 
 # Phase 2-4: 生命周期管理 Schemas
 from .lifecycle_schemas import (  # noqa: F401
@@ -173,11 +173,11 @@ from .types import (
 )
 
 if TYPE_CHECKING:
-    from .catalog_service import CatalogService
-    from .corpus_engine import CorpusEngine
-    from .retrieval import UnifiedRetrievalService
+    from .lifecycle.catalog_service import CatalogService
+    from .lifecycle.corpus_engine import CorpusEngine
+    from .lifecycle.wiki_service import WikiPublishingService
+    from .retrieval.unified_search import UnifiedRetrievalService
     from .types import KnowledgeRecord
-    from .wiki_service import WikiPublishingService
 
 logger = get_logger("negentropy.knowledge.api")
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -1296,7 +1296,7 @@ async def ingest_file(
             except json.JSONDecodeError:
                 parsed_separators = [item.strip() for item in separators.split(",") if item.strip()]
 
-        from .content import sanitize_filename
+        from .ingestion.content import sanitize_filename
 
         # 保留用于展示的原始文件名（仅去除路径前缀并限制长度）
         raw_filename = (file.filename or "unknown").split("/")[-1].split("\\")[-1][:255] or "unknown"
@@ -3720,7 +3720,7 @@ _catalog_service: CatalogService | None = None
 def _get_catalog_service() -> CatalogService:
     global _catalog_service
     if _catalog_service is None:
-        from .catalog_service import CatalogService
+        from .lifecycle.catalog_service import CatalogService
 
         _catalog_service = CatalogService()
     return _catalog_service
@@ -3748,7 +3748,7 @@ def _entry_orm_to_resp(
     entry: Any, *, depth: int = 0, children_count: int = 0, document_count: int = 0
 ) -> _CatalogNodeResp:
     """将 DocCatalogEntry ORM 对象转换为 API 响应 Schema"""
-    from negentropy.knowledge.catalog_dao import _ENUM_TO_NODE_TYPE, _compute_slug
+    from negentropy.knowledge.lifecycle.catalog_dao import _ENUM_TO_NODE_TYPE, _compute_slug
 
     return _CatalogNodeResp(
         id=entry.id,
@@ -4133,7 +4133,7 @@ _wiki_service: WikiPublishingService | None = None
 def _get_wiki_service() -> WikiPublishingService:
     global _wiki_service
     if _wiki_service is None:
-        from .wiki_service import WikiPublishingService
+        from .lifecycle.wiki_service import WikiPublishingService
 
         _wiki_service = WikiPublishingService()
     return _wiki_service
@@ -4158,7 +4158,7 @@ async def create_wiki_publication(
       - 409 ``WIKI_PUB_SLUG_CONFLICT``：该 catalog 下 slug 重复
         （`uq_wiki_pub_catalog_slug` 唯一约束）。
     """
-    from negentropy.knowledge.slug import slugify
+    from negentropy.knowledge.lifecycle.slug import slugify
     from negentropy.models.perception import DocCatalog, WikiPublication
 
     wiki_svc = _get_wiki_service()
@@ -4636,7 +4636,7 @@ _retrieval_service: UnifiedRetrievalService | None = None
 def _get_corpus_engine() -> CorpusEngine:
     global _corpus_engine
     if _corpus_engine is None:
-        from .corpus_engine import CorpusEngine
+        from .lifecycle.corpus_engine import CorpusEngine
 
         _corpus_engine = CorpusEngine()
     return _corpus_engine
@@ -4645,7 +4645,7 @@ def _get_corpus_engine() -> CorpusEngine:
 def _get_retrieval_service() -> UnifiedRetrievalService:
     global _retrieval_service
     if _retrieval_service is None:
-        from .retrieval import UnifiedRetrievalService
+        from .retrieval.unified_search import UnifiedRetrievalService
 
         _retrieval_service = UnifiedRetrievalService()
     return _retrieval_service

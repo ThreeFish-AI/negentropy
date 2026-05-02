@@ -16,11 +16,12 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.revalidate import trigger_wiki_revalidate
-from negentropy.knowledge.slug import is_valid_slug, slugify
-from negentropy.knowledge.wiki_dao import WikiDao
 from negentropy.logging import get_logger
 from negentropy.models.perception import WikiPublication, WikiPublicationEntry
+
+from .revalidate import trigger_wiki_revalidate
+from .slug import is_valid_slug, slugify
+from .wiki_dao import WikiDao
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
 
@@ -353,7 +354,7 @@ class WikiPublishingService:
               - ``errors``：遍历期错误（``empty_subtree`` / ``cycle_detected`` /
                 ``descendant_of:<ancestor_id>`` 表示因祖先并选而被丢弃）。
         """
-        from negentropy.knowledge.catalog_dao import CatalogDao
+        from .catalog_dao import CatalogDao
 
         container_plans: list[tuple[list[str], dict]] = []
         document_plans: list[tuple[list[str], Any]] = []
