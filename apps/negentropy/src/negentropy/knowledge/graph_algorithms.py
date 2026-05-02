@@ -107,16 +107,27 @@ async def compute_pagerank(
         total = sum(ranks.values()) or 1.0
         ranks = {k: v / total for k, v in ranks.items()}
 
-    # 持久化到 kg_entities.importance_score
+    # 批量持久化到 kg_entities.importance_score
     schema = NEGENTROPY_SCHEMA
-    for entity_id_str, score in ranks.items():
+    batch_size = 500
+    rank_items = list(ranks.items())
+
+    for i in range(0, len(rank_items), batch_size):
+        chunk = rank_items[i : i + batch_size]
+        values_clause = ", ".join(f"(:eid_{j}, :score_{j})" for j in range(len(chunk)))
+        params = {"cid": str(corpus_id)}
+        for j, (entity_id_str, score) in enumerate(chunk):
+            params[f"eid_{j}"] = entity_id_str
+            params[f"score_{j}"] = score
+
         await db.execute(
             text(f"""
-                UPDATE {schema}.kg_entities
-                SET importance_score = :score
-                WHERE id = :eid AND corpus_id = :cid
+                UPDATE {schema}.kg_entities e
+                SET importance_score = v.score
+                FROM (VALUES {values_clause}) AS v(eid uuid, score float)
+                WHERE e.id = v.eid AND e.corpus_id = :cid
             """),
-            {"score": score, "eid": entity_id_str, "cid": str(corpus_id)},
+            params,
         )
 
     await db.commit()
@@ -189,23 +200,25 @@ async def compute_louvain(
     # 批量持久化
     schema = NEGENTROPY_SCHEMA
     batch_size = 500
-    entity_ids = list(partition.keys())
+    partition_items = list(partition.items())
 
-    for i in range(0, len(entity_ids), batch_size):
-        batch = entity_ids[i : i + batch_size]
-        for entity_id_str in batch:
-            await db.execute(
-                text(f"""
-                    UPDATE {schema}.kg_entities
-                    SET community_id = :cid
-                    WHERE id = :eid AND corpus_id = :corpus_id
-                """),
-                {
-                    "cid": partition[entity_id_str],
-                    "eid": entity_id_str,
-                    "corpus_id": str(corpus_id),
-                },
-            )
+    for i in range(0, len(partition_items), batch_size):
+        chunk = partition_items[i : i + batch_size]
+        values_clause = ", ".join(f"(:eid_{j}, :cid_{j})" for j in range(len(chunk)))
+        params = {"corpus_id": str(corpus_id)}
+        for j, (entity_id_str, community_id) in enumerate(chunk):
+            params[f"eid_{j}"] = entity_id_str
+            params[f"cid_{j}"] = community_id
+
+        await db.execute(
+            text(f"""
+                UPDATE {schema}.kg_entities e
+                SET community_id = v.cid
+                FROM (VALUES {values_clause}) AS v(eid uuid, cid int)
+                WHERE e.id = v.eid AND e.corpus_id = :corpus_id
+            """),
+            params,
+        )
 
     await db.commit()
 

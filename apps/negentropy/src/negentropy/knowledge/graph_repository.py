@@ -884,6 +884,7 @@ class AgeGraphRepository(GraphRepository):
         for i, row in enumerate(graph_result, start=1):
             eid = str(row.id)
             graph_rank[eid] = i
+            imp_score = float(row.importance_score) if row.importance_score else 0.0
             if eid not in entity_data:
                 entity_data[eid] = {
                     "name": row.name,
@@ -892,7 +893,10 @@ class AgeGraphRepository(GraphRepository):
                     "description": None,
                     "properties": {},
                     "semantic_score": 0.0,
+                    "importance_score": imp_score,
                 }
+            else:
+                entity_data[eid]["importance_score"] = imp_score
 
         # 3. RRF 融合
         rrf_scores: dict[str, float] = {}
@@ -1034,9 +1038,13 @@ class AgeGraphRepository(GraphRepository):
         self,
         session: AsyncSession,
         corpus_id: UUID,
-        app_name: str,
+        app_name: str,  # noqa: ARG002 — kg_entities 按 corpus 去重，不受 app 维度约束
     ) -> tuple[list[GraphNode], list[GraphEdge]]:
-        """从 kg_entities + kg_relations 一等公民表加载图谱"""
+        """从 kg_entities + kg_relations 一等公民表加载图谱
+
+        kg_entities 按 corpus_id 去重存储（同一实体跨 app 合并），
+        因此不按 app_name 过滤，与 JSONB 回退路径按 app 过滤的行为不同。
+        """
         # 加载实体
         entities_query = text(f"""
             SELECT id, name, canonical_name, entity_type, confidence,
