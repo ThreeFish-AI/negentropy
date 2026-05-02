@@ -22,10 +22,11 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.extraction import ExtractedDocumentResult
-from negentropy.knowledge.source_dao import SourceDao
 from negentropy.logging import get_logger
 from negentropy.models.perception import DocSource
+
+from .extraction import ExtractedDocumentResult
+from .source_dao import SourceDao
 
 logger = get_logger(__name__.rsplit(".", 1)[0])
 

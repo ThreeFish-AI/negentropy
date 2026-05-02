@@ -19,9 +19,10 @@ from uuid import UUID
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.slug import compute_slug as _compute_slug
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import DocCatalogEntry
+
+from .slug import compute_slug as _compute_slug
 
 logger = logging.getLogger("negentropy.knowledge")
 

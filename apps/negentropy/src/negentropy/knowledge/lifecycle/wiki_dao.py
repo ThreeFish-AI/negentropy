@@ -407,7 +407,7 @@ class WikiDao:
         DAO 层仅承担"查 entries"，嵌套合成逻辑委托给纯函数
         :func:`negentropy.knowledge.wiki_tree.build_nav_tree`，便于单测覆盖。
         """
-        from negentropy.knowledge.wiki_tree import build_nav_tree
+        from .wiki_tree import build_nav_tree
 
         entries = await WikiDao.get_entries(db, publication_id)
         return build_nav_tree(entries)

@@ -581,7 +581,7 @@ def make_extracted_document_result(
     trace: dict[str, object] | None = None,
 ):
     """工厂函数：快速构建 ExtractedDocumentResult 实例。"""
-    from negentropy.knowledge.extraction import ExtractedDocumentResult
+    from negentropy.knowledge.ingestion.extraction import ExtractedDocumentResult
 
     return ExtractedDocumentResult(
         plain_text=plain_text,
@@ -600,7 +600,7 @@ def make_tracking_context(
     mcp_server_id: UUID | None = None,
 ):
     """工厂函数：快速构建 TrackingContext 实例。"""
-    from negentropy.knowledge.source_tracking import TrackingContext
+    from negentropy.knowledge.ingestion.source_tracking import TrackingContext
 
     return TrackingContext(
         tracker_run_id=tracker_run_id,

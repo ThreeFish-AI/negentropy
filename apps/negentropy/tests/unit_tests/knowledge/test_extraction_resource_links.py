@@ -11,7 +11,7 @@
 from types import SimpleNamespace
 from uuid import UUID
 
-from negentropy.knowledge.extraction import (
+from negentropy.knowledge.ingestion.extraction import (
     ExtractionAsset,
     _extract_resource_link_assets,
     _rewrite_markdown_image_links,

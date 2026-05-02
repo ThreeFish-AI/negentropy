@@ -52,7 +52,7 @@ class TestCatalogTreePerformance:
     async def _build_tree(self, session_factory, catalog_id: UUID, depth: int = 3, branching: int = 4) -> int:
         """递归构建指定深度和分支因子的目录树，返回节点总数。"""
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
 
         total = 0
 
@@ -81,7 +81,7 @@ class TestCatalogTreePerformance:
     async def test_get_tree_100_nodes_under_50ms(self, db_engine, perf_catalog):
         """100 节点的 3 层树，get_tree() 平均耗时应 < 50ms"""
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
 
         catalog_id, session_factory = perf_catalog
 
@@ -113,7 +113,7 @@ class TestCatalogTreePerformance:
     async def test_get_subtree_under_20ms(self, db_engine, perf_catalog):
         """get_subtree() 对子树查询应 < 20ms"""
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
 
         catalog_id, session_factory = perf_catalog
 
@@ -149,7 +149,7 @@ class TestCatalogTreePerformance:
     async def test_list_catalogs_under_10ms(self, db_engine, perf_catalog):
         """list_catalogs() 应 < 10ms"""
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
 
         _, session_factory = perf_catalog
 

@@ -20,7 +20,7 @@ import pytest
 from sqlalchemy import select as sql_select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from negentropy.knowledge.kg_entity_service import KgEntityService
+from negentropy.knowledge.graph.entity_service import KgEntityService
 from negentropy.models.perception import Corpus, KgEntity, KgRelation
 
 # ---------------------------------------------------------------------------

@@ -443,6 +443,10 @@ class KgRelation(Base, UUIDMixin, TimestampMixin):
     last_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     observation_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
+    # 时态有效期 (Snodgrass & Ahn, 1985)
+    valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
@@ -455,6 +459,26 @@ class KgRelation(Base, UUIDMixin, TimestampMixin):
         Index("ix_kg_relations_target", "target_id"),
         Index("ix_kg_relations_corpus", "corpus_id"),
         Index("ix_kg_relations_type", "relation_type"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class KgCommunitySummary(Base, UUIDMixin, TimestampMixin):
+    """社区摘要 (Edge et al., Microsoft GraphRAG, 2024)"""
+
+    __tablename__ = "kg_community_summaries"
+
+    corpus_id: Mapped[UUID] = mapped_column(fk("corpus", ondelete="CASCADE"), nullable=False)
+    community_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    level: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    summary_text: Mapped[str] = mapped_column(Text, nullable=False)
+    entity_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    relation_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    top_entities: Mapped[list[str] | None] = mapped_column(JSONB)
+
+    __table_args__ = (
+        UniqueConstraint("corpus_id", "community_id", "level", name="uq_kg_community_summaries_corpus_level"),
+        Index("ix_kg_community_summaries_corpus", "corpus_id"),
         {"schema": NEGENTROPY_SCHEMA},
     )
 

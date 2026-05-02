@@ -1,30 +1,27 @@
-from .chunking import chunk_text, semantic_chunk_async
-from .graph import GraphProcessor
-from .graph_repository import (
+from .graph import (
     AgeGraphRepository,
     BuildRunRecord,
-    EntityRecord,
-    GraphRepository,
-    GraphSearchResult,
-    RelationRecord,
-    get_graph_repository,
-)
-from .graph_service import (
-    GraphBuildResult,
-    GraphQueryResult,
-    GraphService,
-    get_graph_service,
-)
-from .llm_extractors import (
     CompositeEntityExtractor,
     CompositeRelationExtractor,
     EntityExtractionResult,
+    EntityRecord,
+    GraphBuildResult,
+    GraphProcessor,
+    GraphQueryResult,
+    GraphRepository,
+    GraphSearchResult,
+    GraphService,
+    KgEntityService,
     LLMEntityExtractor,
     LLMRelationExtractor,
     RelationExtractionResult,
+    RelationRecord,
+    get_graph_repository,
+    get_graph_service,
 )
-from .repository import KnowledgeRepository
-from .reranking import (
+from .ingestion.chunking import chunk_text, semantic_chunk_async
+from .retrieval.repository import KnowledgeRepository
+from .retrieval.reranking import (
     APIReranker,
     CompositeReranker,
     LocalReranker,
@@ -107,6 +104,8 @@ __all__ = [
     "CompositeRelationExtractor",
     "EntityExtractionResult",
     "RelationExtractionResult",
+    # Entity service
+    "KgEntityService",
     # Reranking exports
     "Reranker",
     "RerankConfig",

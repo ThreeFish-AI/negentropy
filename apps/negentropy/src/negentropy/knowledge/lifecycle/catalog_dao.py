@@ -23,15 +23,16 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from negentropy.knowledge.catalog_assignment_dao import CatalogAssignmentDao
-from negentropy.knowledge.catalog_node_dao import (
+from negentropy.models.perception import DocCatalog
+
+from .catalog_assignment_dao import CatalogAssignmentDao
+from .catalog_node_dao import (
     _ENUM_TO_NODE_TYPE,
     _NODE_TYPE_TO_ENUM,
     MAX_TREE_DEPTH,
     CatalogNodeDao,
     _compute_slug,
 )
-from negentropy.models.perception import DocCatalog
 
 logger = logging.getLogger("negentropy.knowledge")
 

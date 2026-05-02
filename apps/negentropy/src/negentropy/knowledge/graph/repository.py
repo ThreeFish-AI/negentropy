@@ -30,7 +30,7 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 
-from .types import GraphEdge, GraphNode, KnowledgeGraphPayload
+from ..types import GraphEdge, GraphNode, KnowledgeGraphPayload
 
 logger = get_logger("negentropy.knowledge.graph_repository")
 
@@ -198,6 +198,7 @@ class GraphRepository(ABC):
         entity_id: str,
         max_depth: int = 1,
         limit: int = 100,
+        as_of: datetime | None = None,
     ) -> list[GraphNode]:
         """查询邻居节点
 
@@ -205,9 +206,33 @@ class GraphRepository(ABC):
             entity_id: 起始实体 ID
             max_depth: 最大遍历深度
             limit: 结果数量限制
+            as_of: 时态过滤 — 仅返回 valid_from <= as_of 且 valid_to IS NULL 或 > as_of 的关系
 
         Returns:
             邻居节点列表
+        """
+        pass
+
+    @abstractmethod
+    async def find_neighbor_edges(
+        self,
+        entity_id: str,
+        limit: int = 50,
+        as_of: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """查询 1-hop 邻居及连接边的关系信息（供子图上下文构建使用）
+
+        与 `find_neighbors` 互补：后者只返回邻居实体节点，无法承载 relation 字段；
+        本方法直接 JOIN kg_relations 与 kg_entities，每行携带边的 relation_type / evidence。
+
+        Args:
+            entity_id: 起始实体 ID（含/不含 entity: 前缀）
+            limit: 返回的邻居边数上限
+            as_of: 可选的时态过滤时间戳
+
+        Returns:
+            [{id, name, type, relation, evidence}] — 与 GraphContextBuilder 的
+            neighbor_fn 协议对齐
         """
         pass
 
@@ -469,6 +494,9 @@ class AgeGraphRepository(GraphRepository):
         evidence = relation.metadata.get("evidence")
 
         # 1. 写入 kg_relations 一等公民表
+        # 唯一约束 (source_id, target_id, relation_type) 命中时使用 DO UPDATE，
+        # 而非 DO NOTHING：否则 evidence 变更后 INSERT 被静默丢弃，再叠加
+        # TemporalResolver 的 expire 流程会导致关系被彻底抹除（既无新行又无有效旧行）。
         insert_query = text(f"""
             INSERT INTO {self._schema}.kg_relations
                 (source_id, target_id, corpus_id, app_name, relation_type,
@@ -477,7 +505,15 @@ class AgeGraphRepository(GraphRepository):
                    :relation_type, :weight, :confidence, :evidence, :metadata::jsonb, true
             FROM {self._schema}.knowledge k
             WHERE k.id = :source_id
-            ON CONFLICT DO NOTHING
+            ON CONFLICT (source_id, target_id, relation_type) DO UPDATE SET
+                weight = EXCLUDED.weight,
+                confidence = EXCLUDED.confidence,
+                evidence_text = EXCLUDED.evidence_text,
+                metadata = EXCLUDED.metadata,
+                is_active = true,
+                valid_to = NULL,
+                last_observed_at = NOW(),
+                observation_count = kg_relations.observation_count + 1
         """)
 
         await session.execute(
@@ -568,6 +604,7 @@ class AgeGraphRepository(GraphRepository):
         entity_id: str,
         max_depth: int = 1,
         limit: int = 100,
+        as_of: datetime | None = None,
     ) -> list[GraphNode]:
         """查询邻居节点（基于 kg_relations 递归 CTE 多跳遍历）
 
@@ -577,6 +614,13 @@ class AgeGraphRepository(GraphRepository):
         session = await self._get_session()
         clean_id = entity_id.replace("entity:", "")
 
+        # 时态过滤片段 (Snodgrass & Ahn, 1985)
+        temporal_filter = ""
+        if as_of:
+            temporal_filter = """
+                AND (r.valid_from IS NULL OR r.valid_from <= :as_of)
+                AND (r.valid_to IS NULL OR r.valid_to > :as_of)"""
+
         query = text(f"""
             WITH RECURSIVE neighbor_tree AS (
                 -- Base: direct neighbors of the seed entity
@@ -585,7 +629,7 @@ class AgeGraphRepository(GraphRepository):
                     r.source_id AS via_id,
                     1 AS distance
                 FROM {self._schema}.kg_relations r
-                WHERE r.source_id = :entity_id AND r.is_active = true
+                WHERE r.source_id = :entity_id AND r.is_active = true{temporal_filter}
 
                 UNION
 
@@ -594,7 +638,7 @@ class AgeGraphRepository(GraphRepository):
                     r.target_id AS via_id,
                     1 AS distance
                 FROM {self._schema}.kg_relations r
-                WHERE r.target_id = :entity_id AND r.is_active = true
+                WHERE r.target_id = :entity_id AND r.is_active = true{temporal_filter}
 
                 UNION ALL
 
@@ -605,7 +649,7 @@ class AgeGraphRepository(GraphRepository):
                     nt.distance + 1 AS distance
                 FROM {self._schema}.kg_relations r
                 JOIN neighbor_tree nt ON r.source_id = nt.neighbor_id
-                WHERE r.is_active = true
+                WHERE r.is_active = true{temporal_filter}
                   AND nt.distance < :max_depth
                   AND r.target_id != :entity_id
 
@@ -617,7 +661,7 @@ class AgeGraphRepository(GraphRepository):
                     nt.distance + 1 AS distance
                 FROM {self._schema}.kg_relations r
                 JOIN neighbor_tree nt ON r.target_id = nt.neighbor_id
-                WHERE r.is_active = true
+                WHERE r.is_active = true{temporal_filter}
                   AND nt.distance < :max_depth
                   AND r.source_id != :entity_id
             )
@@ -630,14 +674,15 @@ class AgeGraphRepository(GraphRepository):
             LIMIT :limit
         """)
 
-        result = await session.execute(
-            query,
-            {
-                "entity_id": clean_id,
-                "max_depth": max_depth,
-                "limit": limit,
-            },
-        )
+        params: dict[str, Any] = {
+            "entity_id": clean_id,
+            "max_depth": max_depth,
+            "limit": limit,
+        }
+        if as_of:
+            params["as_of"] = as_of
+
+        result = await session.execute(query, params)
 
         neighbors = []
         for row in result:
@@ -660,6 +705,62 @@ class AgeGraphRepository(GraphRepository):
         )
 
         return neighbors
+
+    async def find_neighbor_edges(
+        self,
+        entity_id: str,
+        limit: int = 50,
+        as_of: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """查询 1-hop 邻居及边信息（供 GraphContextBuilder 构建三元组）
+
+        与 find_neighbors 不同，本查询单跳 JOIN kg_relations × kg_entities，
+        每行返回邻居节点 + 连接边的 relation_type / evidence_text。
+        """
+        session = await self._get_session()
+        clean_id = entity_id.replace("entity:", "")
+
+        temporal_filter = ""
+        if as_of:
+            temporal_filter = """
+                AND (r.valid_from IS NULL OR r.valid_from <= :as_of)
+                AND (r.valid_to IS NULL OR r.valid_to > :as_of)"""
+
+        query = text(f"""
+            WITH edges AS (
+                SELECT r.target_id AS neighbor_id, r.relation_type, r.evidence_text, r.weight
+                FROM {self._schema}.kg_relations r
+                WHERE r.source_id = :entity_id AND r.is_active = true{temporal_filter}
+                UNION ALL
+                SELECT r.source_id AS neighbor_id, r.relation_type, r.evidence_text, r.weight
+                FROM {self._schema}.kg_relations r
+                WHERE r.target_id = :entity_id AND r.is_active = true{temporal_filter}
+            )
+            SELECT e.id, e.name, e.entity_type,
+                   ed.relation_type, ed.evidence_text, ed.weight
+            FROM edges ed
+            JOIN {self._schema}.kg_entities e ON e.id = ed.neighbor_id
+            WHERE e.is_active = true AND e.id != :entity_id
+            ORDER BY ed.weight DESC NULLS LAST
+            LIMIT :limit
+        """)
+
+        params: dict[str, Any] = {"entity_id": clean_id, "limit": limit}
+        if as_of:
+            params["as_of"] = as_of
+
+        result = await session.execute(query, params)
+
+        return [
+            {
+                "id": f"entity:{row.id}",
+                "name": row.name,
+                "type": row.entity_type,
+                "relation": row.relation_type,
+                "evidence": row.evidence_text or "",
+            }
+            for row in result
+        ]
 
     async def find_path(
         self,
@@ -1206,6 +1307,91 @@ class AgeGraphRepository(GraphRepository):
         )
 
         return [(str(row.id), row.name, float(row.similarity)) for row in result if float(row.similarity) >= threshold]
+
+    async def find_existing_relations(
+        self,
+        source_id: str,
+        target_id: str | None,
+        relation_type: str,
+        corpus_id: UUID,
+    ) -> list[dict[str, Any]]:
+        """查找已有关系，供 TemporalResolver 冲突检测使用 (Snodgrass & Ahn, 1985)"""
+        session = await self._get_session()
+        clean_source = source_id.replace("entity:", "")
+
+        conditions = [
+            "source_id = :source_id",
+            "relation_type = :rtype",
+            "corpus_id = :cid",
+            "is_active = true",
+        ]
+        params: dict[str, Any] = {
+            "source_id": clean_source,
+            "rtype": relation_type,
+            "cid": str(corpus_id),
+        }
+        if target_id:
+            clean_target = target_id.replace("entity:", "")
+            conditions.append("target_id = :target_id")
+            params["target_id"] = clean_target
+
+        where = " AND ".join(conditions)
+        query = text(f"""
+            SELECT id, source_id, target_id, relation_type,
+                   evidence_text, valid_from, valid_to
+            FROM {self._schema}.kg_relations
+            WHERE {where}
+        """)
+        result = await session.execute(query, params)
+        return [
+            {
+                "id": str(row.id),
+                "source_id": str(row.source_id),
+                "target_id": str(row.target_id),
+                "relation_type": row.relation_type,
+                "evidence_text": row.evidence_text,
+                "valid_from": row.valid_from.isoformat() if row.valid_from else None,
+                "valid_to": row.valid_to.isoformat() if row.valid_to else None,
+            }
+            for row in result
+        ]
+
+    async def expire_relations(
+        self,
+        relation_ids: list[str],
+        valid_to: datetime,
+    ) -> int:
+        """批量将指定关系的 valid_to 设置为给定时间 (Snodgrass & Ahn, 1985)
+
+        Args:
+            relation_ids: 需要过期的关系 ID 列表
+            valid_to: 过期时间戳
+
+        Returns:
+            更新的行数
+        """
+        if not relation_ids:
+            return 0
+
+        session = await self._get_session()
+
+        result = await session.execute(
+            text(f"""
+                UPDATE {self._schema}.kg_relations
+                SET valid_to = :valid_to
+                WHERE id = ANY(:ids)
+            """),
+            {"valid_to": valid_to, "ids": relation_ids},
+        )
+        await session.commit()
+
+        count = result.rowcount or 0
+        logger.info(
+            "relations_expired",
+            requested=len(relation_ids),
+            expired=count,
+        )
+        return count
 
     async def clear_graph(
         self,
