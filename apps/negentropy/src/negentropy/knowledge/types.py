@@ -768,6 +768,8 @@ class GraphBuildConfig(BaseModel):
     min_relation_confidence: float = 0.5
     batch_size: int = 10
     max_concurrency: int = 3
+    incremental: bool = False
+    semantic_dedup_threshold: float = 0.92
 
     @field_validator("min_entity_confidence", "min_relation_confidence")
     @classmethod
