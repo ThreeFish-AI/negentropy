@@ -396,6 +396,9 @@ class FactService:
                     )
                     seen.add(drop.id)
                     merged += 1
+                    # 锚点被删除后停止内层循环，避免用已删除事实的 embedding 继续比对
+                    if f1.id in seen:
+                        break
 
         if merged:
             logger.info("facts_merged", user_id=user_id, merged_count=merged)

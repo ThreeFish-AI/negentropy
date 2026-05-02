@@ -68,7 +68,6 @@ class PostgresMemoryService(BaseMemoryService):
         self._embedding_fn = embedding_fn  # 向量化函数
         self._consolidation_worker = consolidation_worker  # Phase 2 Worker
         self._fact_extractor = LLMFactExtractor()
-        self._last_retrieval_log_id: uuid.UUID | None = None
 
     async def add_session_to_memory(
         self,
@@ -660,7 +659,7 @@ class PostgresMemoryService(BaseMemoryService):
         query: str = "",
         user_id: str = "",
         app_name: str = "",
-    ) -> None:
+    ) -> uuid.UUID | None:
         """记录记忆访问行为
 
         批量更新被召回记忆的 access_count 和 last_accessed_at，
@@ -672,14 +671,17 @@ class PostgresMemoryService(BaseMemoryService):
             user_id: 用户 ID（用于检索效果追踪）
             app_name: 应用名称（用于检索效果追踪）
 
+        Returns:
+            检索日志 ID（用于显式传递给上下文组装器的反馈闭环）
+
         使用批量 UPDATE 避免 N+1 问题。
         """
         if not memories_data:
-            return
+            return None
 
         memory_ids = [uuid.UUID(m["id"]) for m in memories_data if m.get("id")]
         if not memory_ids:
-            return
+            return None
 
         try:
             async with db_session.AsyncSessionLocal() as db:
@@ -712,7 +714,7 @@ class PostgresMemoryService(BaseMemoryService):
                     query=query,
                     memory_ids=memory_ids,
                 )
-                self._last_retrieval_log_id = log_id
+                return log_id
             except Exception as exc:
                 logger.debug("retrieval_tracking_failed", error=str(exc))
         except Exception as exc:

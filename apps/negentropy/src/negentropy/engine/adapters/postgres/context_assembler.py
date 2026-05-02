@@ -17,6 +17,7 @@ Token 预算分配策略（借鉴 Claude Code POST_COMPACT_TOKEN_BUDGET）：
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select, text
 
@@ -62,7 +63,7 @@ class ContextAssembler:
         thread_id: str | None = None,
         query: str | None = None,
         query_embedding: list[float] | None = None,
-        memory_service: Any | None = None,
+        retrieval_log_id: UUID | None = None,
     ) -> dict[str, Any]:
         """组装记忆上下文
 
@@ -76,7 +77,7 @@ class ContextAssembler:
             thread_id: 当前会话 ID（用于获取近期历史）
             query: 当前检索查询（可选，用于 query-aware 排序）
             query_embedding: 查询向量（可选，用于语义相关性计算）
-            memory_service: PostgresMemoryService 实例（可选，用于隐式反馈标记）
+            retrieval_log_id: 检索日志 ID（可选，用于隐式反馈闭环）
 
         Returns:
             {"memory_context": str, "token_count": int, "budget": {...}}
@@ -97,16 +98,14 @@ class ContextAssembler:
             )
 
             # 隐式反馈：记忆被注入 LLM 上下文 → mark_referenced<sup>[[33]](#ref33)</sup>
-            if result.get("memory_context") and memory_service:
-                log_id = getattr(memory_service, "_last_retrieval_log_id", None)
-                if log_id:
-                    try:
-                        from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+            if result.get("memory_context") and retrieval_log_id:
+                try:
+                    from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
 
-                        tracker = RetrievalTracker()
-                        await tracker.mark_referenced(log_id)
-                    except Exception:
-                        pass  # 反馈标记不应影响上下文组装
+                    tracker = RetrievalTracker()
+                    await tracker.mark_referenced(retrieval_log_id)
+                except Exception:
+                    pass  # 反馈标记不应影响上下文组装
 
             return result
         except Exception as exc:
