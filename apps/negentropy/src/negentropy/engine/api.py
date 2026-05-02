@@ -1109,3 +1109,181 @@ async def delete_association(
         raise HTTPException(status_code=404, detail="Association not found")
 
     return {"status": "deleted", "association_id": association_id}
+
+
+# ============================================================================
+# Phase 4 — Self-editing Memory Tools & Core Block REST 端点
+#   理论：MemGPT (arXiv:2310.08560) self-editing tools + LangGraph Memory tools
+# ============================================================================
+
+
+class SelfEditWriteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    content: str
+    memory_type: str = "episodic"
+    thread_id: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class SelfEditUpdateRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    memory_id: str
+    new_content: str
+    reason: str | None = None
+    thread_id: str | None = None
+
+
+class SelfEditDeleteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    memory_id: str
+    reason: str | None = None
+    thread_id: str | None = None
+
+
+class CoreBlockUpsertRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    scope: str = "user"
+    thread_id: str | None = None
+    label: str = "persona"
+    content: str
+    updated_by: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class CoreBlockDeleteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    scope: str = "user"
+    thread_id: str | None = None
+    label: str = "persona"
+
+
+@router.post("/self-edit/write")
+async def self_edit_write(
+    payload: SelfEditWriteRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    from negentropy.engine.tools.memory_tools import memory_write
+
+    try:
+        return await memory_write(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            content=payload.content,
+            memory_type=payload.memory_type,
+            thread_id=payload.thread_id,
+            metadata=payload.metadata,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/self-edit/update")
+async def self_edit_update(
+    payload: SelfEditUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    from negentropy.engine.tools.memory_tools import memory_update
+
+    try:
+        return await memory_update(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            memory_id=payload.memory_id,
+            new_content=payload.new_content,
+            reason=payload.reason,
+            thread_id=payload.thread_id,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/self-edit/delete")
+async def self_edit_delete(
+    payload: SelfEditDeleteRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    from negentropy.engine.tools.memory_tools import memory_delete
+
+    try:
+        return await memory_delete(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            memory_id=payload.memory_id,
+            reason=payload.reason,
+            thread_id=payload.thread_id,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/core-blocks")
+async def list_core_blocks(
+    user_id: str = Query(...),
+    app_name: str | None = Query(default=None),
+    thread_id: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    items = await service.list_for_context(
+        user_id=user_id,
+        app_name=_resolve_app_name(app_name),
+        thread_id=thread_id,
+    )
+    return {"count": len(items), "items": items}
+
+
+@router.post("/core-blocks")
+async def upsert_core_block(
+    payload: CoreBlockUpsertRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    try:
+        return await service.upsert(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            scope=payload.scope,
+            thread_id=payload.thread_id,
+            label=payload.label,
+            content=payload.content,
+            updated_by=payload.updated_by or user.user_id,
+            metadata=payload.metadata,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/core-blocks")
+async def delete_core_block(
+    user_id: str = Query(...),
+    app_name: str | None = Query(default=None),
+    scope: str = Query(default="user"),
+    thread_id: str | None = Query(default=None),
+    label: str = Query(default="persona"),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    try:
+        deleted = await service.delete(
+            user_id=user_id,
+            app_name=_resolve_app_name(app_name),
+            scope=scope,
+            thread_id=thread_id,
+            label=label,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Core block not found")
+    return {"status": "deleted"}

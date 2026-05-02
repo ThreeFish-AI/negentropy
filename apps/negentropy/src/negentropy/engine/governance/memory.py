@@ -34,7 +34,10 @@ from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
 logger = get_logger("negentropy.engine.governance.memory")
 
 # 记忆类型衰减率映射（ACT-R<sup>[[45]](#ref45)</sup> + FadeMem<sup>[[46]](#ref46)</sup>）
+# Phase 4：新增 semantic（极慢衰减，对齐 CLS 互补学习理论<sup>[[2]](#ref2)</sup>）与 core（不衰减，常驻）
 _MEMORY_TYPE_DECAY_RATES: dict[str, float] = {
+    "core": 0.0,
+    "semantic": 0.005,
     "preference": 0.05,
     "procedural": 0.06,
     "fact": 0.08,
@@ -43,6 +46,8 @@ _MEMORY_TYPE_DECAY_RATES: dict[str, float] = {
 _DEFAULT_DECAY_RATE = 0.10
 
 _MEMORY_TYPE_MULTIPLIER: dict[str, float] = {
+    "core": 1.5,
+    "semantic": 1.4,
     "preference": 1.3,
     "procedural": 1.2,
     "fact": 1.15,
@@ -51,12 +56,17 @@ _MEMORY_TYPE_MULTIPLIER: dict[str, float] = {
 
 # 重要性评分类型权重（ACT-R 基础水平激活<sup>[[45]](#ref45)</sup>）
 _MEMORY_TYPE_IMPORTANCE_WEIGHT: dict[str, float] = {
+    "core": 1.0,
+    "semantic": 0.95,
     "preference": 0.9,
     "procedural": 0.75,
     "fact": 0.6,
     "episodic": 0.4,
 }
 _DEFAULT_IMPORTANCE_WEIGHT = 0.4
+
+# 已知合法的 memory_type 集合（Schema CHECK 兜底，避免脏数据）
+VALID_MEMORY_TYPES: frozenset[str] = frozenset(_MEMORY_TYPE_DECAY_RATES.keys())
 
 
 @dataclass(frozen=True)
