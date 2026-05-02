@@ -1015,18 +1015,20 @@ class GraphService:
         """综合健康评分 (0-100)
 
         权重分配:
-        - 实体覆盖度 (30%): total_entities > 100 满分
-        - 孤立率 (25%): isolated_ratio < 0.2 满分
+        - 实体覆盖度 (25%): total_entities > 100 满分
+        - 孤立率 (20%): isolated_ratio < 0.2 满分
+        - 密度 (10%): density > 0.005 满分
         - 类型均衡 (15%): shannon_entropy > 1.5 满分
         - 置信度 (15%): avg_confidence > 0.8 满分
         - 构建成功率 (15%): build_success_rate > 0.95 满分
         """
-        coverage_score = min(total_entities / 100, 1.0) * 30
-        isolation_score = max(0, 1 - isolated_ratio / 0.4) * 25
+        coverage_score = min(total_entities / 100, 1.0) * 25
+        isolation_score = max(0, 1 - isolated_ratio / 0.4) * 20
+        density_score = min(density / 0.005, 1.0) * 10
         entropy_score = min(shannon_entropy / 1.5, 1.0) * 15
         confidence_score = min(avg_confidence / 0.8, 1.0) * 15
         build_score = min(build_success_rate / 0.95, 1.0) * 15
-        return int(coverage_score + isolation_score + entropy_score + confidence_score + build_score)
+        return int(coverage_score + isolation_score + density_score + entropy_score + confidence_score + build_score)
 
     async def clear_graph(
         self,

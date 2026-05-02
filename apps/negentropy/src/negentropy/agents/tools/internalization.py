@@ -215,9 +215,9 @@ async def _sync_triple_to_kg(
             ).first()
 
             if src_row and tgt_row:
-                exists = (
+                existing = (
                     await db.execute(
-                        sql_select(KgRelation.id)
+                        sql_select(KgRelation.id, KgRelation.is_active)
                         .where(
                             KgRelation.source_id == src_row.id,
                             KgRelation.target_id == tgt_row.id,
@@ -225,9 +225,9 @@ async def _sync_triple_to_kg(
                         )
                         .limit(1)
                     )
-                ).scalar_one_or_none()
+                ).first()
 
-                if not exists:
+                if not existing:
                     rel = KgRelation(
                         source_id=src_row.id,
                         target_id=tgt_row.id,
@@ -239,6 +239,16 @@ async def _sync_triple_to_kg(
                         evidence_text="Agent internalization",
                     )
                     db.add(rel)
+                elif not existing.is_active:
+                    await db.execute(
+                        sql_update(KgRelation)
+                        .where(KgRelation.id == existing.id)
+                        .values(
+                            is_active=True,
+                            confidence=0.7,
+                            evidence_text="Agent internalization (reactivated)",
+                        )
+                    )
 
             await db.commit()
             logger.debug(
