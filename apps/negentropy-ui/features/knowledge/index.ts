@@ -85,6 +85,8 @@ export {
   fetchGraphEntities,
   fetchGraphEntityDetail,
   fetchGraphStats,
+  // Graph Phase 4 (G3 时态时间穿梭)
+  fetchGraphTimeline,
   // Catalog Management
   fetchCatalogs,
   createCatalog,
@@ -176,6 +178,8 @@ export type {
   GraphNeighborsResult,
   GraphPathParams,
   GraphPathResult,
+  GraphTimelineBucket,
+  GraphTimelineResult,
   GraphBuildRunRecord,
   GraphBuildHistoryResult,
   GraphEntityItem,

@@ -1957,6 +1957,8 @@ export interface GraphSearchParams {
   graph_weight?: number;
   include_neighbors?: boolean;
   neighbor_limit?: number;
+  /** ISO-8601 时态快照时刻；提供时仅纳入在该时刻仍有效的关系（G3 时间穿梭）。 */
+  as_of?: string;
 }
 
 export interface GraphSearchResultItem {
@@ -1987,6 +1989,8 @@ export interface GraphNeighborsParams {
   entity_id: string;
   max_depth?: number;
   limit?: number;
+  /** ISO-8601 时态快照时刻（G3）。 */
+  as_of?: string;
 }
 
 export interface GraphNeighborsResult {
@@ -2005,6 +2009,20 @@ export interface GraphPathParams {
   source_id: string;
   target_id: string;
   max_depth?: number;
+  /** ISO-8601 时态快照时刻（G3）。 */
+  as_of?: string;
+}
+
+export interface GraphTimelineBucket {
+  date: string;
+  active_count: number;
+  expired_count: number;
+}
+
+export interface GraphTimelineResult {
+  corpus_id: string;
+  bucket: "day" | "week" | "month";
+  points: GraphTimelineBucket[];
 }
 
 export interface GraphPathResult {
@@ -2117,13 +2135,29 @@ export async function fetchCorpusGraph(
   corpusId: string,
   appName?: string,
   includeRuns = false,
+  asOf?: string,
 ): Promise<KnowledgeGraphPayload> {
   const query = new URLSearchParams();
   if (appName) query.set("app_name", appName);
   if (includeRuns) query.set("include_runs", "true");
+  if (asOf) query.set("as_of", asOf);
 
   const res = await fetch(
     `/api/knowledge/base/${corpusId}/graph?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 获取关系时间轴密度直方图（G3 时间穿梭检索）
+ */
+export async function fetchGraphTimeline(
+  corpusId: string,
+  bucket: "day" | "week" | "month" = "day",
+): Promise<GraphTimelineResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/timeline?bucket=${bucket}`,
     { cache: "no-store" },
   );
   return handleKnowledgeError(res);

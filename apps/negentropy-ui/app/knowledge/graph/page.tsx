@@ -19,6 +19,7 @@ import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
+import { TimeTravelSlider } from "./_components/TimeTravelSlider";
 import { entityColor, communityColor } from "./_components/constants";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -57,6 +58,8 @@ export default function KnowledgeGraphPage() {
   const [building, setBuilding] = useState(false);
   const [searchResults, setSearchResults] = useState<GraphSearchResultItem[] | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
+  // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
+  const [asOf, setAsOf] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
@@ -66,14 +69,14 @@ export default function KnowledgeGraphPage() {
     async (cid: string) => {
       setError(null);
       try {
-        const data = await fetchCorpusGraph(cid, APP_NAME, true);
+        const data = await fetchCorpusGraph(cid, APP_NAME, true, asOf ?? undefined);
         setPayload(data);
       } catch (err) {
         setError(String(err));
         setPayload(null);
       }
     },
-    [],
+    [asOf],
   );
 
   useEffect(() => {
@@ -549,6 +552,25 @@ export default function KnowledgeGraphPage() {
                   </p>
                 )}
               </div>
+
+              {/* G3: 时间穿梭检索 — 放在 Stats 之前，作为全局时态视图开关 */}
+              {corpusId && (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    时间穿梭检索
+                  </h3>
+                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                    选定历史时刻后，图谱与邻居/路径/搜索均按 as_of 过滤
+                  </p>
+                  <div className="mt-2">
+                    <TimeTravelSlider
+                      corpusId={corpusId}
+                      asOf={asOf}
+                      onChange={setAsOf}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Graph Stats */}
               {corpusId && (

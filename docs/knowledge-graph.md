@@ -803,6 +803,34 @@ stateDiagram-v2
 2. 若为"更新"：旧边设置 `valid_to = now`，新边 `valid_from = now`
 3. 若为"矛盾"：两边共存，标记 `contradiction_flag = true`，等待人工审核
 
+#### 6.2.3 as-of 查询接口与时间轴（Phase 4 G3 已落地）
+
+**单一事实源**：所有需要按 `valid_from / valid_to` 过滤的查询都通过模块级 helper `_temporal_where_clause(rel_alias)` 构造谓词片段，绑定参数固定为 `:as_of`。这避免了在 `find_neighbors / find_path / hybrid_search / get_graph` 中重复散落 4 处时态 SQL，从源头消除"时态语义跨方法漂移"风险。
+
+**API 入口**：所有图谱读路径接受可选 `as_of` 参数（ISO-8601）：
+
+| 端点 | as_of 位置 | 行为 |
+| :--- | :--- | :--- |
+| `GET /knowledge/base/{cid}/graph` | query string | 仅返回该时刻有效关系；无连接的孤立节点自然剔除 |
+| `POST /knowledge/base/{cid}/graph/search` | request body | 通过 EXISTS 子查询过滤"在该时刻无任何活跃关系"的实体；线性加权路径会自动升级为 RRF（线性 SQL 函数不支持时态过滤） |
+| `POST /knowledge/graph/neighbors` | request body | 递归 CTE 在每跳应用时态过滤 |
+| `POST /knowledge/graph/path` | request body | BFS 的 base 段 + recursive 段共享同一谓词 |
+| `GET /knowledge/base/{cid}/graph/timeline` | — | 新增端点，返回按 `day/week/month` 桶聚合的 `valid_from`/`valid_to` 事件直方图，供前端 `TimeTravelSlider` 渲染 |
+
+**索引**：迁移 `0023_kg_temporal_index_and_summary_embedding.py` 给 `kg_relations` 增加部分索引
+
+```sql
+CREATE INDEX ix_kg_relations_valid_active
+  ON negentropy.kg_relations(corpus_id)
+  WHERE valid_to IS NULL AND is_active = true;
+```
+
+加速默认"当前时刻"查询；同时一次性 `UPDATE kg_relations SET valid_from = created_at WHERE valid_from IS NULL` 让历史关系视为从写入时刻起即生效。
+
+**缓存**：`_graph_cache` 的 key 维度从 `f"graph:{corpus_id}"` 升级为 `f"graph:{corpus_id}|as_of={iso}"`，`as_of=None` 显式落入 `as_of=now` 分桶，确保不同时刻快照不会脏读。`invalidate(prefix="graph:{corpus_id}")` 仍按前缀匹配清空所有 as_of 变体，无需逐 key 清理。
+
+**前端 UI**：`TimeTravelSlider.tsx` 拉取 `/graph/timeline` 渲染密度直方图 + range slider；用户拖动至历史桶即将 ISO 时刻通过 `onChange` 回调透传至顶层 `as_of` 状态，所有面板（图谱、邻居、路径、搜索）共享同一时刻。徽标 `as_of: YYYY-MM-DD` 在每个面板顶部显式提示当前快照。
+
 ### 6.3 增量图更新
 
 参考 LightRAG<sup>[[5]](#ref5)</sup> 的增量更新策略：
@@ -1293,6 +1321,7 @@ timeline
 | 2026-04-08 | 2.0 | **完全重写**：学术基础 (15 篇 IEEE 引用)、行业框架分析 (5 大框架)、两阶段设计 (PostgreSQL → 终极)、价值量化体系、一核五翼集成架构、实施路线图 (Phase 2-4) | Claude |
 | 2026-05-02 | 2.1 | Phase 2 状态更新（P2-3 PageRank / P2-4 Louvain / P2-5 RRF 标记已完成）；Phase 3 新增 P3-9 构建管线健壮性 / P3-10 实体语义去重 / P3-11 图谱查询缓存（均已完成）；新增参考文献 [16]-[24] 共 9 条 IEEE 引用 | Claude |
 | 2026-05-02 | 2.2 | Phase 3 新增 P3-12 GraphRAG 上下文组装集成 / P3-13 Agent→KG 三元组双向同步 / P3-14 图谱质量健康指标 / P3-15 跨语料实体重叠推荐（均已完成） | Claude |
+| 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0023 部分索引 + valid_from backfill；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
 
 ---
 
