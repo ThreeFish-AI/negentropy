@@ -227,15 +227,16 @@ class PostgresMemoryService(BaseMemoryService):
             try:
                 return await self._embedding_fn(content)
             except Exception as exc:
-                wait = 2**attempt
-                logger.warning(
-                    "consolidate_embedding_retry",
-                    segment=segment_idx,
-                    attempt=attempt + 1,
-                    wait=wait,
-                    error=str(exc),
-                )
-                await asyncio.sleep(wait)
+                if attempt < _EMBEDDING_MAX_RETRIES - 1:
+                    wait = 2**attempt
+                    logger.warning(
+                        "consolidate_embedding_retry",
+                        segment=segment_idx,
+                        attempt=attempt + 1,
+                        wait=wait,
+                        error=str(exc),
+                    )
+                    await asyncio.sleep(wait)
         logger.error("consolidate_embedding_exhausted", segment=segment_idx)
         return None
 
@@ -497,6 +498,8 @@ class PostgresMemoryService(BaseMemoryService):
                 )
                 if result is not None:
                     memories_data = self._tag_search_level(result, "hybrid", "combined")
+                    for m in memories_data:
+                        m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
                     await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                     self._log_search_event("hybrid", len(memories_data), user_id, app_name, query)
                     return self._build_search_response(memories_data)
