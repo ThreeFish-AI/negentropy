@@ -20,6 +20,7 @@ from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument, WikiPublicationEntry
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
@@ -154,6 +155,10 @@ from .schemas import (  # noqa: F401
     IngestRequest,
     IngestUrlRequest,
     KnowledgePipelinesResponse,
+    MultiHopEvidenceChainItem,
+    MultiHopEvidenceEdgeItem,
+    MultiHopReasonRequest,
+    MultiHopReasonResponse,
     PipelineRunRecordResponse,
     PipelineStageResultResponse,
     PipelinesUpsertRequest,
@@ -3461,6 +3466,147 @@ async def get_graph_stats(
     async with AsyncSessionLocal() as db:
         stats = await graph_service.get_stats(db, corpus_id=corpus_id)
     return GraphStatsResponse(**stats)
+
+
+@router.post(
+    "/base/{corpus_id}/graph/multi_hop_reason",
+    response_model=MultiHopReasonResponse,
+)
+async def multi_hop_reason_knowledge_graph(
+    corpus_id: UUID,
+    payload: MultiHopReasonRequest,
+) -> MultiHopReasonResponse:
+    """多跳推理 + Provenance 证据链（G4）
+
+    流水线：seed 抽取（若未提供）→ Personalized PageRank → top-K → 反向追溯
+    最短路径并组装三元组证据链。
+    """
+    import re
+    import time
+
+    from .graph.graph_algorithms import compute_personalized_pagerank
+    from .graph.provenance import ProvenanceBuilder, evidence_chain_to_dict
+
+    start = time.time()
+
+    # 1) seeds 推断：若未提供，按规则提取 query 中疑似实体（中英大写、引号词等）
+    seeds: list[str]
+    if payload.seed_entities:
+        seeds = list(payload.seed_entities)
+    else:
+        candidates: set[str] = set()
+        # 英文连续大写词
+        for match in re.findall(r"\b[A-Z][a-zA-Z0-9_-]+\b", payload.query):
+            candidates.add(match)
+        # 引号包围的内容（中英双引号）
+        for match in re.findall(r"[\"“「]([^\"”」]+)[\"”」]", payload.query):
+            candidates.add(match.strip())
+        seeds = sorted(candidates)
+
+    logger.info(
+        "api_multi_hop_reason_started",
+        corpus_id=str(corpus_id),
+        query=payload.query[:80],
+        seed_count=len(seeds),
+    )
+
+    # 若 seeds 为空，回退路径：使用 hybrid_search 找出 top-K 实体作为答案，避免直接 500
+    async with AsyncSessionLocal() as db:
+        if not seeds:
+            logger.info("multi_hop_reason_no_seeds_fallback", corpus_id=str(corpus_id))
+            return MultiHopReasonResponse(
+                query=payload.query,
+                seeds=[],
+                answer_entities=[],
+                evidence_chain=[],
+                latency_ms=(time.time() - start) * 1000,
+            )
+
+        # 2) seeds 解析为实体 ID（按 name 模糊匹配 kg_entities）
+        from sqlalchemy import text as sa_text
+
+        seed_ids: list[str] = []
+        for s in seeds:
+            # 优先看是否本身就是 UUID（含/不含 entity: 前缀）
+            cleaned = s.replace("entity:", "")
+            if re.fullmatch(r"[0-9a-fA-F-]{32,36}", cleaned):
+                seed_ids.append(cleaned)
+                continue
+            # 否则按 name 等值/前缀匹配
+            row = (
+                await db.execute(
+                    sa_text(f"""
+                    SELECT id FROM {NEGENTROPY_SCHEMA}.kg_entities
+                    WHERE corpus_id = :cid AND is_active = true
+                      AND (name ILIKE :exact OR name ILIKE :prefix)
+                    ORDER BY (CASE WHEN name ILIKE :exact THEN 0 ELSE 1 END), confidence DESC NULLS LAST
+                    LIMIT 1
+                """),
+                    {"cid": str(corpus_id), "exact": s, "prefix": f"{s}%"},
+                )
+            ).first()
+            if row is not None:
+                seed_ids.append(str(row.id))
+
+        if not seed_ids:
+            return MultiHopReasonResponse(
+                query=payload.query,
+                seeds=seeds,
+                answer_entities=[],
+                evidence_chain=[],
+                latency_ms=(time.time() - start) * 1000,
+            )
+
+        # 3) Personalized PageRank
+        ppr_scores = await compute_personalized_pagerank(db, corpus_id, seed_ids)
+        if not ppr_scores:
+            return MultiHopReasonResponse(
+                query=payload.query,
+                seeds=seeds,
+                answer_entities=[],
+                evidence_chain=[],
+                latency_ms=(time.time() - start) * 1000,
+            )
+
+        # 排除 seed 本身（避免占据 top-K），按 PPR 降序取 top-K
+        seed_set_lc = {sid for sid in seed_ids}
+        non_seed_ranked = sorted(
+            ((eid, score) for eid, score in ppr_scores.items() if eid not in seed_set_lc),
+            key=lambda kv: kv[1],
+            reverse=True,
+        )[: payload.top_k]
+
+        # 4) Provenance — 反向追溯证据链
+        builder = ProvenanceBuilder(max_chain_depth=payload.max_hops)
+        chains = await builder.build(db, corpus_id, non_seed_ranked, seed_ids)
+
+    answer_entities = [c.target_entity_id for c in chains]
+    evidence_payload = [evidence_chain_to_dict(c) for c in chains]
+
+    logger.info(
+        "api_multi_hop_reason_completed",
+        corpus_id=str(corpus_id),
+        seed_count=len(seed_ids),
+        top_k=len(chains),
+    )
+
+    return MultiHopReasonResponse(
+        query=payload.query,
+        seeds=seeds,
+        answer_entities=answer_entities,
+        evidence_chain=[
+            MultiHopEvidenceChainItem(
+                target_entity_id=e["target_entity_id"],
+                target_label=e["target_label"],
+                score=e["score"],
+                seed_entity_id=e["seed_entity_id"],
+                path=e["path"],
+                edges=[MultiHopEvidenceEdgeItem(**ed) for ed in e["edges"]],
+            )
+            for e in evidence_payload
+        ],
+        latency_ms=(time.time() - start) * 1000,
+    )
 
 
 @router.post(

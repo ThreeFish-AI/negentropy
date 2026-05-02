@@ -381,6 +381,45 @@ class GlobalSearchResponse(BaseModel):
     )
 
 
+class MultiHopReasonRequest(BaseModel):
+    """多跳推理请求（G4 PPR + Provenance）"""
+
+    query: str = Field(min_length=1)
+    seed_entities: list[str] = Field(
+        default_factory=list,
+        description="可选 seed 实体 ID 列表；为空时由后端按命名实体抽取自动推断",
+    )
+    top_k: int = Field(default=10, ge=1, le=50)
+    max_hops: int = Field(default=3, ge=1, le=5)
+
+
+class MultiHopEvidenceEdgeItem(BaseModel):
+    source_id: str
+    target_id: str
+    relation: str
+    evidence_text: str
+    weight: float = 1.0
+
+
+class MultiHopEvidenceChainItem(BaseModel):
+    target_entity_id: str
+    target_label: str
+    score: float
+    seed_entity_id: str | None = None
+    path: list[str] = Field(default_factory=list)
+    edges: list[MultiHopEvidenceEdgeItem] = Field(default_factory=list)
+
+
+class MultiHopReasonResponse(BaseModel):
+    """多跳推理响应"""
+
+    query: str
+    seeds: list[str] = Field(default_factory=list)
+    answer_entities: list[str] = Field(default_factory=list)
+    evidence_chain: list[MultiHopEvidenceChainItem] = Field(default_factory=list)
+    latency_ms: float
+
+
 class GraphTimelineBucket(BaseModel):
     """关系时间轴密度直方图单点"""
 

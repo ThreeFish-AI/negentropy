@@ -15,6 +15,7 @@ import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
 import { EntityListPanel } from "./_components/EntityListPanel";
+import { EvidenceChainPanel } from "./_components/EvidenceChainPanel";
 import { GlobalSearchPanel } from "./_components/GlobalSearchPanel";
 import { GraphCanvas } from "./_components/GraphCanvas";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
@@ -611,6 +612,21 @@ export default function KnowledgeGraphPage() {
                   </p>
                   <div className="mt-2">
                     <GlobalSearchPanel corpusId={corpusId} />
+                  </div>
+                </div>
+              )}
+
+              {/* G4: 多跳推理 + Provenance 证据链 */}
+              {corpusId && (
+                <div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4 shadow-sm dark:border-violet-900 dark:bg-violet-950/20">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    多跳推理（PPR）
+                  </h3>
+                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                    Personalized PageRank + 证据链（HippoRAG / NeurIPS&apos;24）
+                  </p>
+                  <div className="mt-2">
+                    <EvidenceChainPanel corpusId={corpusId} />
                   </div>
                 </div>
               )}

@@ -2165,6 +2165,59 @@ export interface GlobalSearchResult {
   summaries_dirty: boolean;
 }
 
+export interface MultiHopEvidenceEdge {
+  source_id: string;
+  target_id: string;
+  relation: string;
+  evidence_text: string;
+  weight: number;
+}
+
+export interface MultiHopEvidenceChain {
+  target_entity_id: string;
+  target_label: string;
+  score: number;
+  seed_entity_id?: string | null;
+  path: string[];
+  edges: MultiHopEvidenceEdge[];
+}
+
+export interface MultiHopReasonResult {
+  query: string;
+  seeds: string[];
+  answer_entities: string[];
+  evidence_chain: MultiHopEvidenceChain[];
+  latency_ms: number;
+}
+
+/**
+ * 多跳推理 + Provenance 证据链（G4 PPR + HippoRAG）
+ */
+export async function multiHopReasonKnowledgeGraph(
+  corpusId: string,
+  params: {
+    query: string;
+    seedEntities?: string[];
+    topK?: number;
+    maxHops?: number;
+  },
+): Promise<MultiHopReasonResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/multi_hop_reason`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: params.query,
+        seed_entities: params.seedEntities ?? [],
+        top_k: params.topK ?? 10,
+        max_hops: params.maxHops ?? 3,
+      }),
+    },
+  );
+  return handleKnowledgeError(res);
+}
+
 /**
  * GraphRAG Global Search Map-Reduce（G1）
  */

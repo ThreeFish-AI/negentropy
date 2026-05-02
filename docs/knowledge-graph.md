@@ -598,6 +598,30 @@ SELECT * FROM cypher('negentropy_kg', $$
 $$, params => '...');
 ```
 
+#### 5.3.4 Personalized PageRank 与多跳推理（Phase 4 G4 已落地）
+
+**理论锚点**：Page et al. (1999) PageRank 通过偏置 teleport 向量实现"以查询为中心"的相关性传播；HippoRAG (Gutiérrez et al., NeurIPS'24) 在多跳问答上证明 PPR + 命名实体抽取 优于密集检索 ~20%。
+
+**计算入口**：`graph_algorithms.compute_personalized_pagerank(db, corpus_id, seed_entities, alpha=0.85)`：
+- 复用 `export_graph_to_networkx`；将 seed 归一化（去 `entity:` 前缀 + 过滤不在图中的）
+- `personalization` 字典：valid seeds 平均分配权重 1/N，其余节点 0
+- `nx.PowerIterationFailedConvergence` 时降级为"种子节点 1.0、其余 0"，与 PageRank 失败降级互补
+- 不写库（不污染 `kg_entities.importance_score`），分数仅用于本次 multi_hop_reason 调用
+
+**Provenance 证据链**：`graph/provenance.py::ProvenanceBuilder` 对 PPR top-K 反向追溯：
+- 单次递归 CTE BFS 在 `kg_relations` 上找出 target → 任意 seed 的最短无向路径（默认 `max_chain_depth=5`）
+- 沿路径逐跳 JOIN `kg_relations` 获取 `relation_type` + `evidence_text` + `weight`，组装 `EvidenceEdge` 列表
+- 单一职责：仅产出"展示用"路径；时态版本由 `repository.find_path(as_of=...)` 承担，避免循环依赖
+
+**API**：`POST /base/{cid}/graph/multi_hop_reason`：
+- 入参：`{query, seed_entities[], top_k=10, max_hops=3}`；`seed_entities` 留空时按规则从 query 提取（英文大写词、引号括起的中英短语）
+- seed → entity_id 解析：UUID 直接用；否则按 `kg_entities.name ILIKE` 等值/前缀模糊匹配（按 confidence DESC 取首条）
+- 出参：`{seeds, answer_entities, evidence_chain[], latency_ms}`；evidence_chain 按 PPR 降序
+
+**Migration 0024**：`kg_query_provenance` 审计表（query/seeds/top_entities/evidence_chain/latency 留痕），用于后续抽样质检与训练数据生成。
+
+**降级路径**：seeds 提取为空 → 直接返回空 evidence_chain（不抛错）；seed 全部不在图中 → PPR 返回空字典，UI 显式提示"未发现可达路径"。
+
 ### 5.4 混合检索增强
 
 **目标**：构建 **Vector + Graph + RRF** 三层融合检索管道。
@@ -1388,6 +1412,7 @@ timeline
 | 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0023 部分索引 + valid_from backfill；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
 | 2026-05-02 | 2.4 | **Phase 4 G2 Cytoscape.js 交互可视化（已完成）**：新增前端 `GraphCanvas` 组件（cytoscape + cytoscape-fcose）；新增后端 `GET /graph/subgraph` 端点（service 层 BFS 截断；node 排序 跳数 → importance）；page.tsx 渲染引擎切换（Cytoscape vs d3-force）；双击节点触发 1 跳子图增量加载；G3 as_of 在 Cytoscape 路径下保持透传 | Claude |
 | 2026-05-02 | 2.5 | **Phase 4 G1 GraphRAG Global Search Map-Reduce（已完成）**：新增 `graph/global_search.py` (GlobalSearchService) — 嵌入查询 → 余弦排序选 top_k 社区摘要 → asyncio.Semaphore(5) 限流 Map 并发 → Reduce 聚合；`community_summarizer.py` 新增可选 `embedding_fn` 入参，落库时同步写入 summary embedding；新增 `POST /base/{cid}/graph/global_search` 端点；前端新增 `GlobalSearchPanel` 卡片（含 evidence 树 + 摘要陈旧度提示） | Claude |
+| 2026-05-02 | 2.6 | **Phase 4 G4 Personalized PageRank + Provenance（已完成）**：`graph_algorithms.py` 新增 `compute_personalized_pagerank(seed_entities)` — 偏置 teleport 向量 + dangling node 兜底；新增 `graph/provenance.py` 中 `ProvenanceBuilder` — 反向最短路径 BFS（递归 CTE）+ 三元组组装；Migration 0024 新增 `kg_query_provenance` 审计表；新增 `POST /base/{cid}/graph/multi_hop_reason` 端点（支持 seed 抽取兜底）；前端新增 `EvidenceChainPanel` 卡片（树形展开多跳证据） | Claude |
 
 ---
 
