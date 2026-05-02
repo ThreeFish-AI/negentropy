@@ -264,6 +264,31 @@ class ConflictResolver:
                         update(Fact).where(Fact.id == conflict.old_fact_id).values(status="active", superseded_by=None)
                     )
 
+            elif resolution == "keep_new" and conflict.old_fact_id:
+                # 标记旧事实为 superseded，确保新事实为 active
+                await db.execute(
+                    update(Fact)
+                    .where(Fact.id == conflict.old_fact_id)
+                    .values(status="superseded", superseded_by=conflict.new_fact_id, superseded_at=datetime.now(UTC))
+                )
+                if conflict.new_fact_id:
+                    await db.execute(
+                        update(Fact).where(Fact.id == conflict.new_fact_id).values(status="active", superseded_by=None)
+                    )
+
+            elif resolution == "merge" and conflict.old_fact_id and conflict.new_fact_id:
+                # 合并：保留旧事实，将新事实的值合并到旧事实中，新事实标记为 superseded
+                old = await db.get(Fact, conflict.old_fact_id)
+                new = await db.get(Fact, conflict.new_fact_id)
+                if old and new:
+                    merged_value = {**old.value, **new.value}
+                    await db.execute(update(Fact).where(Fact.id == old.id).values(value=merged_value, status="active"))
+                    await db.execute(
+                        update(Fact)
+                        .where(Fact.id == new.id)
+                        .values(status="superseded", superseded_by=old.id, superseded_at=datetime.now(UTC))
+                    )
+
             await db.commit()
             await db.refresh(conflict)
 

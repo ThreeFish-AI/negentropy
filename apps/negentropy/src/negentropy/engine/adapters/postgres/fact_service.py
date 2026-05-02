@@ -101,6 +101,15 @@ class FactService:
             days_since_last_access=0.0,
         )
 
+        # upsert 前查询旧值（用于冲突检测）
+        # 因为 ON CONFLICT DO UPDATE 会原地更新同一行，之后的冲突查询无法找到旧值
+        old_fact_value = await self._get_old_fact_value(
+            user_id=user_id,
+            app_name=app_name,
+            key=key,
+            fact_type=fact_type,
+        )
+
         async with db_session.AsyncSessionLocal() as db:
             stmt = (
                 pg_insert(Fact)
@@ -140,10 +149,11 @@ class FactService:
             fact_type=fact_type,
         )
 
-        # 异步冲突检测（fire-and-forget，不阻塞主路径）
+        # 冲突检测（fire-and-forget，不阻塞主路径）
         try:
             await self._detect_conflicts(
                 new_fact=fact,
+                old_value=old_fact_value,
                 user_id=user_id,
                 app_name=app_name,
             )
@@ -427,22 +437,54 @@ class FactService:
             logger.info("facts_merged", user_id=user_id, merged_count=merged)
         return merged
 
+    async def _get_old_fact_value(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        key: str,
+        fact_type: str,
+    ) -> dict[str, Any] | None:
+        """在 upsert 前查询现有事实的值
+
+        因为 ON CONFLICT DO UPDATE 会原地更新同一行（ID 不变），
+        之后的冲突查询无法找到旧值，所以必须在 upsert 前查询。
+        """
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(Fact.value)
+                .where(
+                    Fact.user_id == user_id,
+                    Fact.app_name == app_name,
+                    Fact.key == key,
+                    Fact.fact_type == fact_type,
+                )
+                .limit(1)
+            )
+            result = await db.execute(stmt)
+            row = result.first()
+            return row.value if row else None
+
     async def _detect_conflicts(
         self,
         *,
         new_fact: Fact,
+        old_value: dict[str, Any] | None,
         user_id: str,
         app_name: str,
     ) -> None:
-        """检测新事实与现有事实的冲突
+        """检测新事实与旧值的冲突
 
-        查找同 user+app+type 下的旧事实（status=active），检查是否冲突。
+        通过 upsert 前查询的 old_value 判断是否存在冲突。
         """
+        if old_value is None or old_value == new_fact.value:
+            return
+
         from negentropy.engine.factories.memory import get_conflict_resolver
 
         resolver = get_conflict_resolver()
 
-        # 查找同 key 的旧事实（被 upsert 覆盖的）
+        # 构造旧事实代理用于冲突分类（只需 key/value/fact_type/confidence）
         async with db_session.AsyncSessionLocal() as db:
             stmt = (
                 select(Fact)
@@ -451,18 +493,15 @@ class FactService:
                     Fact.app_name == app_name,
                     Fact.key == new_fact.key,
                     Fact.fact_type == new_fact.fact_type,
-                    Fact.id != new_fact.id,
-                    Fact.status == "active",
                 )
-                .order_by(Fact.superseded_at.desc())
                 .limit(1)
             )
             result = await db.execute(stmt)
-            old_fact = result.scalar_one_or_none()
+            current_fact = result.scalar_one_or_none()
 
-        if old_fact and old_fact.value != new_fact.value:
+        if current_fact and current_fact.value != new_fact.value:
             await resolver.detect_and_resolve(
-                old_fact=old_fact,
+                old_fact=current_fact,
                 new_fact=new_fact,
                 user_id=user_id,
                 app_name=app_name,

@@ -241,19 +241,21 @@ class AssociationService:
 
             count = 0
             for sibling_id in sibling_ids:
+                assoc = MemoryAssociation(
+                    source_id=memory_id,
+                    target_id=sibling_id,
+                    association_type="thread_shared",
+                    weight=_THREAD_SHARED_WEIGHT,
+                    user_id=user_id,
+                    app_name=app_name,
+                )
+                db.add(assoc)
                 try:
-                    assoc = MemoryAssociation(
-                        source_id=memory_id,
-                        target_id=sibling_id,
-                        association_type="thread_shared",
-                        weight=_THREAD_SHARED_WEIGHT,
-                        user_id=user_id,
-                        app_name=app_name,
-                    )
-                    db.add(assoc)
+                    await db.flush()
                     count += 1
                 except IntegrityError:
-                    pass  # UNIQUE 约束冲突时忽略
+                    await db.rollback()
+                    continue
 
             await db.commit()
         return count
@@ -288,19 +290,21 @@ class AssociationService:
             for row in rows:
                 minutes_apart = abs((created_at - row.created_at).total_seconds()) / 60
                 weight = max(0.3, 1.0 - minutes_apart / _TEMPORAL_WINDOW_MINUTES)
+                assoc = MemoryAssociation(
+                    source_id=memory_id,
+                    target_id=row.id,
+                    association_type="temporal",
+                    weight=weight,
+                    user_id=user_id,
+                    app_name=app_name,
+                )
+                db.add(assoc)
                 try:
-                    assoc = MemoryAssociation(
-                        source_id=memory_id,
-                        target_id=row.id,
-                        association_type="temporal",
-                        weight=weight,
-                        user_id=user_id,
-                        app_name=app_name,
-                    )
-                    db.add(assoc)
+                    await db.flush()
                     count += 1
                 except IntegrityError:
-                    pass
+                    await db.rollback()
+                    continue
 
             await db.commit()
         return count
@@ -334,19 +338,21 @@ class AssociationService:
             for row in rows:
                 similarity = 1.0 - float(row.dist)
                 if similarity >= _SEMANTIC_SIMILARITY_THRESHOLD:
+                    assoc = MemoryAssociation(
+                        source_id=memory_id,
+                        target_id=row.id,
+                        association_type="semantic",
+                        weight=similarity,
+                        user_id=user_id,
+                        app_name=app_name,
+                    )
+                    db.add(assoc)
                     try:
-                        assoc = MemoryAssociation(
-                            source_id=memory_id,
-                            target_id=row.id,
-                            association_type="semantic",
-                            weight=similarity,
-                            user_id=user_id,
-                            app_name=app_name,
-                        )
-                        db.add(assoc)
+                        await db.flush()
                         count += 1
                     except IntegrityError:
-                        pass
+                        await db.rollback()
+                        continue
 
             await db.commit()
         return count

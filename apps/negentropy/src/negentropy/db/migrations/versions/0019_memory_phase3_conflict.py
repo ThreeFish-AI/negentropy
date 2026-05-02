@@ -51,7 +51,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "facts",
-        sa.Column("status", sa.String(20), nullable=False, server_default="active"),
+        sa.Column("status", sa.String(20), nullable=False, server_default="'active'"),
         schema=SCHEMA,
     )
     op.add_column(
@@ -66,10 +66,10 @@ def upgrade() -> None:
         sa.Column("app_name", sa.String(255), nullable=False),
         sa.Column("old_fact_id", sa.UUID(), nullable=True),
         sa.Column("new_fact_id", sa.UUID(), nullable=True),
-        sa.Column("conflict_type", sa.String(50), nullable=False, server_default="contradiction"),
-        sa.Column("resolution", sa.String(50), nullable=False, server_default="supersede"),
+        sa.Column("conflict_type", sa.String(50), nullable=False, server_default="'contradiction'"),
+        sa.Column("resolution", sa.String(50), nullable=False, server_default="'supersede'"),
         sa.Column("confidence_delta", sa.Float(), nullable=True),
-        sa.Column("detected_by", sa.String(50), nullable=False, server_default="key_collision"),
+        sa.Column("detected_by", sa.String(50), nullable=False, server_default="'key_collision'"),
         sa.Column("metadata", postgresql.JSONB(), server_default="{}", nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()"), nullable=False),
