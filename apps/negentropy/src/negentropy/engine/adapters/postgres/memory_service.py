@@ -96,8 +96,10 @@ class PostgresMemoryService(BaseMemoryService):
         阶段 3 — 存储（Consolidate）: 写入新记忆，附带初始 retention_score
         阶段 4 — 事实提取（Extract）: 从对话中提取结构化事实并存储
 
-        事务安全<sup>[[44]](#ref44)</sup>：整个管线在单次事务内执行，
-        使用 SAVEPOINT 隔离每段写入，advisory lock 防止同 thread 并发巩固。
+        事务安全<sup>[[44]](#ref44)</sup>：阶段 2（embedding 生成）在事务外预计算，
+        阶段 3（写入）在单次事务内执行，使用 SAVEPOINT 隔离每段写入，
+        advisory lock 防止同 thread 并发巩固。
+        阶段 4（事实提取）由 FactService 独立事务管理，不影响主事务。
 
         借鉴 Claude Code AutoDream 的 Orient→Consolidate 范式。
         """
@@ -109,25 +111,29 @@ class PostgresMemoryService(BaseMemoryService):
         segments = self._group_turns_into_segments(turns)
         thread_id = self._parse_thread_id(session.id)
 
-        # 单事务执行整个巩固管线（ACID 保障）
+        # 阶段 2（预计算）：事务外生成 embedding，避免重试休眠期间持有锁
+        seg_data: list[tuple[int, str, list[float] | None]] = []
+        for seg_idx, segment in enumerate(segments):
+            content = self._format_segment_content(segment)
+            embedding = await self._retry_embedding(content, seg_idx)
+            if embedding is None and self._embedding_fn:
+                logger.warning("consolidate_embedding_skipped", segment=seg_idx)
+                continue
+            seg_data.append((seg_idx, content, embedding))
+
+        if not seg_data:
+            logger.info("consolidate_no_segments_after_embedding", user_id=session.user_id)
+            return
+
+        # 阶段 3（写入）：单事务执行去重 + 存储
+        stored_count = 0
         async with db_session.AsyncSessionLocal() as db:
             # Advisory lock: 防止同 thread 并发巩固
             if not await self._try_acquire_advisory_lock(db, thread_id):
                 logger.info("consolidate_skipped_concurrent", thread_id=str(thread_id))
                 return
 
-            # 阶段 2+3：逐段去重后存储（SAVEPOINT 隔离）
-            stored_count = 0
-            for seg_idx, segment in enumerate(segments):
-                content = self._format_segment_content(segment)
-
-                # Orient: 生成 embedding（指数退避重试）
-                embedding = await self._retry_embedding(content, seg_idx)
-                if embedding is None and self._embedding_fn:
-                    # Embedding 失败 — 跳过该段，不存无 embedding 记忆
-                    logger.warning("consolidate_embedding_skipped", segment=seg_idx)
-                    continue
-
+            for seg_idx, content, embedding in seg_data:
                 if embedding is not None and await self._is_duplicate(
                     db=db,
                     user_id=session.user_id,
@@ -138,7 +144,6 @@ class PostgresMemoryService(BaseMemoryService):
                     logger.debug("consolidate_duplicate_skipped", segment=seg_idx)
                     continue
 
-                # Consolidate: SAVEPOINT 隔离每段写入
                 initial_score = self._calculate_initial_retention(content)
                 async with db.begin_nested():
                     memory = Memory(
@@ -154,26 +159,25 @@ class PostgresMemoryService(BaseMemoryService):
                             "event_count": len(session.events),
                             "segment_index": seg_idx,
                             "total_segments": len(segments),
-                            "turn_count": len(segment),
+                            "turn_count": len(segments[seg_idx] if seg_idx < len(segments) else []),
                         },
                     )
                     db.add(memory)
                 stored_count += 1
 
-            # 阶段 4：事实提取（同一事务内，失败仅回滚事实，不影响记忆）
-            try:
-                await self._extract_and_store_facts(
-                    db=db,
-                    turns=turns,
-                    user_id=session.user_id,
-                    app_name=session.app_name,
-                    thread_id=thread_id,
-                )
-            except Exception as exc:
-                logger.warning("fact_extraction_stage_failed", error=str(exc))
-
-            # 统一 commit — 全有或全无
+            # 统一 commit
             await db.commit()
+
+        # 阶段 4：事实提取（FactService 独立事务，失败不影响已提交的记忆）
+        try:
+            await self._extract_and_store_facts(
+                turns=turns,
+                user_id=session.user_id,
+                app_name=session.app_name,
+                thread_id=thread_id,
+            )
+        except Exception as exc:
+            logger.warning("fact_extraction_stage_failed", error=str(exc))
 
         logger.info(
             "consolidate_completed",
@@ -238,7 +242,6 @@ class PostgresMemoryService(BaseMemoryService):
     async def _extract_and_store_facts(
         self,
         *,
-        db: Any | None = None,
         turns: list[dict[str, str]],
         user_id: str,
         app_name: str,
@@ -249,8 +252,7 @@ class PostgresMemoryService(BaseMemoryService):
         使用 PatternFactExtractor 做模式匹配提取，
         通过 FactService.upsert_fact 存储（利用唯一约束做 upsert）。
 
-        Args:
-            db: 外部 session（复用事务），None 时自行创建。
+        注意：FactService 内部管理独立 session，事实写入不参与主事务。
         """
         from negentropy.engine.factories.memory import get_fact_service
 

@@ -304,6 +304,12 @@ class ContextAssembler:
         truncated_text = "\n".join(truncated_lines)
         final_tokens = await self._accurate_token_count(truncated_text)
 
+        # Post-join 安全校验：换行符 token 化可能导致超标，逐行回退
+        while final_tokens > budget and len(truncated_lines) > 1:
+            truncated_lines.pop()
+            truncated_text = "\n".join(truncated_lines)
+            final_tokens = await self._accurate_token_count(truncated_text)
+
         return {
             "memory_context": truncated_text,
             "token_count": final_tokens,
