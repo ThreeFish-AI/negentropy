@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.logging import get_logger
@@ -800,8 +801,10 @@ class GraphService:
         """获取图谱统计信息
 
         Returns:
-            统计字典（total_entities, by_type, avg_confidence, edge_count）
+            统计字典（total_entities, by_type, avg_confidence, edge_count, health_metrics）
         """
+        import math
+
         from sqlalchemy import func as sql_func
         from sqlalchemy import select as sql_select
 
@@ -890,6 +893,63 @@ class GraphService:
         )
         community_count = community_count_result.scalar_one()
 
+        # --- 健康指标（Farber et al., 2018; Hogan et al., 2021 §7） ---
+        from negentropy.models.base import NEGENTROPY_SCHEMA
+
+        # 1. 孤立实体比例：无任何关系的实体占比
+        isolated_result = await db.execute(
+            text("""
+                SELECT COALESCE(
+                    COUNT(*) FILTER (WHERE r_count = 0)::float / NULLIF(COUNT(*), 0),
+                    0
+                ) AS isolated_ratio
+                FROM (
+                    SELECT e.id, COUNT(r.id) AS r_count
+                    FROM {schema}.kg_entities e
+                    LEFT JOIN {schema}.kg_relations r ON (
+                        (r.source_id = e.id OR r.target_id = e.id)
+                        AND r.is_active = true
+                    )
+                    WHERE e.corpus_id = :cid AND e.is_active = true
+                    GROUP BY e.id
+                ) sub
+            """).format(schema=NEGENTROPY_SCHEMA),
+            {"cid": corpus_id},
+        )
+        isolated_ratio = float(isolated_result.scalar() or 0)
+
+        # 2. Shannon 熵：类型分布均衡度（> 1.5 健康, < 1.0 告警）
+        shannon_entropy = 0.0
+        if by_type:
+            total_typed = sum(by_type.values())
+            shannon_entropy = -sum((c / total_typed) * math.log2(c / total_typed) for c in by_type.values() if c > 0)
+
+        # 3. 连通分量数：小图实时计算，大图标记 needs_refresh
+        connected_components = None
+        if 0 < total_entities <= 10000:
+            try:
+                from negentropy.knowledge.graph_algorithms import export_graph_to_networkx
+
+                nx_graph = await export_graph_to_networkx(db, corpus_id)
+                import networkx as nx
+
+                connected_components = nx.number_weakly_connected_components(nx_graph)
+            except Exception:
+                connected_components = None
+
+        # 4. 构建管道健康：最近 30 天成功率和平均时长
+        build_health = await self._get_build_health(db, corpus_id)
+
+        # 5. 综合 health_score (0-100)
+        health_score = self._compute_health_score(
+            total_entities=total_entities,
+            isolated_ratio=isolated_ratio,
+            shannon_entropy=shannon_entropy,
+            avg_confidence=avg_confidence,
+            density=density,
+            build_success_rate=build_health.get("success_rate", 1.0),
+        )
+
         return {
             "total_entities": total_entities,
             "edge_count": edge_count,
@@ -900,7 +960,73 @@ class GraphService:
             "top_entities": top_entities,
             "community_count": community_count,
             "community_distribution": community_distribution,
+            # 健康指标
+            "health": {
+                "score": health_score,
+                "level": "healthy" if health_score >= 70 else ("warning" if health_score >= 40 else "critical"),
+                "isolated_ratio": round(isolated_ratio, 3),
+                "shannon_entropy": round(shannon_entropy, 3),
+                "connected_components": connected_components,
+                "build": build_health,
+            },
         }
+
+    async def _get_build_health(
+        self,
+        db: AsyncSession,
+        corpus_id: UUID,
+    ) -> dict[str, Any]:
+        """获取构建管道健康指标（最近 30 天）"""
+        try:
+            from negentropy.models.base import NEGENTROPY_SCHEMA
+
+            result = await db.execute(
+                text("""
+                    SELECT
+                        COUNT(*) AS total,
+                        COUNT(*) FILTER (WHERE status = 'completed') AS succeeded,
+                        COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - started_at))), 0) AS avg_duration_sec
+                    FROM {schema}.kg_build_runs
+                    WHERE corpus_id = :cid
+                      AND started_at >= NOW() - INTERVAL '30 days'
+                """).format(schema=NEGENTROPY_SCHEMA),
+                {"cid": corpus_id},
+            )
+            row = result.one()
+            total = row.total or 0
+            return {
+                "total_runs": total,
+                "success_rate": round(row.succeeded / total, 3) if total > 0 else 1.0,
+                "avg_duration_sec": round(float(row.avg_duration_sec or 0), 1),
+            }
+        except Exception:
+            return {"total_runs": 0, "success_rate": 1.0, "avg_duration_sec": 0}
+
+    @staticmethod
+    def _compute_health_score(
+        *,
+        total_entities: int,
+        isolated_ratio: float,
+        shannon_entropy: float,
+        avg_confidence: float,
+        density: float,
+        build_success_rate: float,
+    ) -> int:
+        """综合健康评分 (0-100)
+
+        权重分配:
+        - 实体覆盖度 (30%): total_entities > 100 满分
+        - 孤立率 (25%): isolated_ratio < 0.2 满分
+        - 类型均衡 (15%): shannon_entropy > 1.5 满分
+        - 置信度 (15%): avg_confidence > 0.8 满分
+        - 构建成功率 (15%): build_success_rate > 0.95 满分
+        """
+        coverage_score = min(total_entities / 100, 1.0) * 30
+        isolation_score = max(0, 1 - isolated_ratio / 0.4) * 25
+        entropy_score = min(shannon_entropy / 1.5, 1.0) * 15
+        confidence_score = min(avg_confidence / 0.8, 1.0) * 15
+        build_score = min(build_success_rate / 0.95, 1.0) * 15
+        return int(coverage_score + isolation_score + entropy_score + confidence_score + build_score)
 
     async def clear_graph(
         self,

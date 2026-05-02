@@ -12,6 +12,8 @@ Token 预算分配策略（借鉴 Claude Code POST_COMPACT_TOKEN_BUDGET）：
 参考文献:
 [1] Claude Code compact.ts — POST_COMPACT_TOKEN_BUDGET 分配策略
 [2] shareAI-lab learn-claude-code s06 — 三层压缩管线
+[4] Edge et al., 2024 — From local to global: A graph RAG approach to query-focused summarization
+[5] Guo et al., 2024 — LightRAG: Simple and fast retrieval-augmented generation
 """
 
 from __future__ import annotations
@@ -237,15 +239,91 @@ class ContextAssembler:
             value_text = str(f.value)[:100]
             parts.append(f"[Fact:{f.fact_type}] {f.key}: {value_text}")
 
+        # GraphRAG 上下文注入：高重要性实体 + 1-hop 关系摘要
+        # 理论: Edge et al., 2024 GraphRAG; Guo et al., 2024 LightRAG
+        kg_parts = await self._collect_kg_context(app_name=app_name)
+        if kg_parts:
+            parts.append("[KnowledgeGraph]")
+            parts.extend(kg_parts)
+
         context = "\n".join(parts)
         logger.debug(
             "memory_summary_assembled",
             user_id=user_id,
             memories_count=len(memories),
             facts_count=len(facts),
+            kg_entities_count=len(kg_parts),
             context_length=len(context),
         )
         return context
+
+    async def _collect_kg_context(
+        self,
+        *,
+        app_name: str,
+        top_n: int = 5,
+        max_tokens: int = 200,
+    ) -> list[str]:
+        """收集 KG 高重要性实体 + 1-hop 关系摘要
+
+        从 kg_entities 按 importance_score 降序取 Top-N 实体，
+        附带其 1-hop 出向关系。KG 不可用时静默返回空列表。
+
+        参考文献:
+        [4] Edge et al., 2024 — GraphRAG Local Search 实体邻域上下文
+        [5] Guo et al., 2024 — LightRAG 双层检索 token 效率优化
+        """
+        try:
+            from sqlalchemy.orm import selectinload
+
+            from negentropy.models.perception import KgEntity, KgRelation
+
+            async with db_session.AsyncSessionLocal() as db:
+                stmt = (
+                    select(KgEntity)
+                    .where(
+                        KgEntity.app_name == app_name,
+                        KgEntity.is_active.is_(True),
+                        KgEntity.importance_score.isnot(None),
+                    )
+                    .order_by(KgEntity.importance_score.desc())
+                    .limit(top_n)
+                    .options(
+                        selectinload(KgEntity.outgoing_relations.and_(KgRelation.is_active.is_(True))).selectinload(
+                            KgRelation.target_entity
+                        )
+                    )
+                )
+                result = await db.execute(stmt)
+                entities = result.scalars().all()
+
+            if not entities:
+                return []
+
+            lines: list[str] = []
+            estimated_tokens = 0
+            for ent in entities:
+                line = f"{ent.name} ({ent.entity_type}, importance={ent.importance_score:.3f})"
+                # 附带最多 3 条出向关系
+                rels = ent.outgoing_relations[:3] if ent.outgoing_relations else []
+                if rels:
+                    rel_parts: list[str] = []
+                    for r in rels:
+                        if r.target_entity:
+                            rel_parts.append(f"--{r.relation_type}--> {r.target_entity.name}")
+                    if rel_parts:
+                        line += " " + " ".join(rel_parts)
+                line += ";"
+                token_est = len(line) // 4
+                if estimated_tokens + token_est > max_tokens:
+                    break
+                lines.append(line)
+                estimated_tokens += token_est
+
+            return lines
+        except Exception as exc:
+            logger.debug("kg_context_collection_skipped", error=str(exc))
+            return []
 
     async def _accurate_token_count(self, text: str) -> int:
         """使用 tiktoken BPE 编码器精确计数（替代 LENGTH/4 估算）"""

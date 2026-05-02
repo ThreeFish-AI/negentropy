@@ -1175,6 +1175,10 @@ timeline
 | P3-9 | 构建管线健壮性 | P1 | P2-5 | 进度追踪 + 重试 + 警告累积 | Nygard, 2018<sup>[[16]](#ref16)</sup>; Majors, 2022<sup>[[18]](#ref18)</sup> | ✅ |
 | P3-10 | 实体语义去重 | P1 | P3-5 | Embedding ANN + 实体合并 | Fellegi & Sunter, 1969<sup>[[20]](#ref20)</sup>; Mudgal et al., 2018<sup>[[22]](#ref22)</sup> | ✅ |
 | P3-11 | 图谱查询缓存 | P1 | P3-5 | TTL 缓存 + 确定性失效 | Tanenbaum & Van Steen, 2017<sup>[[24]](#ref24)</sup> | ✅ |
+| P3-12 | GraphRAG 上下文组装集成 | P0 | P2-3 | `ContextAssembler._collect_kg_context()` | Edge et al., 2024<sup>[[4]](#ref4)</sup>; Guo et al., 2024<sup>[[5]](#ref5)</sup> | ✅ |
+| P3-13 | Agent → KG 三元组双向同步 | P1 | P3-12 | `_sync_triple_to_kg()` 强化模式 | Dong et al., 2014<sup>[[23]](#ref23)</sup>; Hogan et al., 2021<sup>[[1]](#ref1)</sup> §6.3 | ✅ |
+| P3-14 | 图谱质量健康指标 | P1 | P2-3 | 孤立率 + Shannon 熵 + 连通分量 + health_score | Farber et al., 2018<sup>[[19]](#ref19)</sup>; Hogan et al., 2021<sup>[[1]](#ref1)</sup> §7 | ✅ |
+| P3-15 | 跨语料实体重叠推荐 | P1 | P2-4 | Jaccard 相似度 + 共享实体名称 | Dong et al., 2014<sup>[[23]](#ref23)</sup>; Christen, 2012<sup>[[21]](#ref21)</sup> | ✅ |
 
 **里程碑**：
 - M3.1: GraphRAG 双层检索上线（Local + Global Search）
@@ -1288,6 +1292,7 @@ timeline
 | 2026-02-15 | 1.1 | Phase 1 实现完成 | Claude |
 | 2026-04-08 | 2.0 | **完全重写**：学术基础 (15 篇 IEEE 引用)、行业框架分析 (5 大框架)、两阶段设计 (PostgreSQL → 终极)、价值量化体系、一核五翼集成架构、实施路线图 (Phase 2-4) | Claude |
 | 2026-05-02 | 2.1 | Phase 2 状态更新（P2-3 PageRank / P2-4 Louvain / P2-5 RRF 标记已完成）；Phase 3 新增 P3-9 构建管线健壮性 / P3-10 实体语义去重 / P3-11 图谱查询缓存（均已完成）；新增参考文献 [16]-[24] 共 9 条 IEEE 引用 | Claude |
+| 2026-05-02 | 2.2 | Phase 3 新增 P3-12 GraphRAG 上下文组装集成 / P3-13 Agent→KG 三元组双向同步 / P3-14 图谱质量健康指标 / P3-15 跨语料实体重叠推荐（均已完成） | Claude |
 
 ---
 
