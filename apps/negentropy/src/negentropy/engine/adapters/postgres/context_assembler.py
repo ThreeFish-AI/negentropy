@@ -17,6 +17,7 @@ Token 预算分配策略（借鉴 Claude Code POST_COMPACT_TOKEN_BUDGET）：
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select, text
 
@@ -60,13 +61,23 @@ class ContextAssembler:
         user_id: str,
         app_name: str,
         thread_id: str | None = None,
+        query: str | None = None,
+        query_embedding: list[float] | None = None,
+        retrieval_log_id: UUID | None = None,
     ) -> dict[str, Any]:
         """组装记忆上下文
+
+        Query-Aware 增强<sup>[[35]](#ref35)</sup>：当提供 query 和 query_embedding 时，
+        通过 SQL 函数的 relevance_score（cosine_similarity × retention_score）
+        实现查询相关性与时间衰减的联合排序，对齐 MMR 多样性选择思路。
 
         Args:
             user_id: 用户 ID
             app_name: 应用名称
             thread_id: 当前会话 ID（用于获取近期历史）
+            query: 当前检索查询（可选，用于 query-aware 排序）
+            query_embedding: 查询向量（可选，用于语义相关性计算）
+            retrieval_log_id: 检索日志 ID（可选，用于隐式反馈闭环）
 
         Returns:
             {"memory_context": str, "token_count": int, "budget": {...}}
@@ -82,7 +93,20 @@ class ContextAssembler:
                 max_tokens=self._max_tokens,
                 memory_tokens=memory_tokens,
                 history_tokens=history_tokens,
+                query=query,
+                query_embedding=query_embedding,
             )
+
+            # 隐式反馈：记忆被注入 LLM 上下文 → mark_referenced<sup>[[33]](#ref33)</sup>
+            if result.get("memory_context") and retrieval_log_id:
+                try:
+                    from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+                    tracker = RetrievalTracker()
+                    await tracker.mark_referenced(retrieval_log_id)
+                except Exception:
+                    pass  # 反馈标记不应影响上下文组装
+
             return result
         except Exception as exc:
             logger.warning(
@@ -109,12 +133,19 @@ class ContextAssembler:
         max_tokens: int,
         memory_tokens: int,
         history_tokens: int,
+        query: str | None = None,
+        query_embedding: list[float] | None = None,
     ) -> dict[str, Any]:
-        """调用 SQL 函数 get_context_window()"""
+        """调用 SQL 函数 get_context_window()
+
+        SQL 函数签名: get_context_window(p_user_id, p_app_name, p_query, p_query_embedding,
+                                            p_max_tokens, p_memory_ratio, p_history_ratio)
+        当 p_query 为 NULL 时退化为纯 retention_score 排序。
+        """
         sql = text(f"""
-            SELECT context_text, token_estimate
+            SELECT content, relevance_score, token_estimate
             FROM {NEGENTROPY_SCHEMA}.get_context_window(
-                :user_id, :app_name, :thread_id,
+                :user_id, :app_name, :p_query, :p_query_embedding,
                 :max_tokens, :memory_ratio, :history_ratio
             )
         """)
@@ -125,22 +156,25 @@ class ContextAssembler:
                 {
                     "user_id": user_id,
                     "app_name": app_name,
-                    "thread_id": thread_id,
+                    "p_query": query,
+                    "p_query_embedding": str(query_embedding) if query_embedding else None,
                     "max_tokens": max_tokens,
                     "memory_ratio": self._memory_ratio,
                     "history_ratio": self._history_ratio,
                 },
             )
-            row = result.first()
+            rows = result.fetchall()
 
-        if row is None:
+        if not rows:
             return {
                 "memory_context": "",
                 "token_count": 0,
                 "budget": {"max_tokens": max_tokens},
             }
 
-        context_text = row.context_text or ""
+        # 合并所有行的 content 为上下文文本
+        parts = [row.content for row in rows if row.content]
+        context_text = "\n".join(parts)
         accurate_tokens = await self._accurate_token_count(context_text)
 
         return {
