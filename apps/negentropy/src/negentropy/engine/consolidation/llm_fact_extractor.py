@@ -23,6 +23,7 @@ import json
 import litellm
 
 from negentropy.engine.consolidation.fact_extractor import ExtractedFact, PatternFactExtractor
+from negentropy.engine.utils.model_config import resolve_model_config
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.consolidation.llm_fact_extractor")
@@ -66,21 +67,10 @@ class LLMFactExtractor:
         temperature: float = 0.0,
         max_retries: int = 3,
     ) -> None:
-        self._model, self._model_kwargs = self._resolve_model_config(model)
+        self._model, self._model_kwargs = resolve_model_config(model)
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback = PatternFactExtractor()
-
-    @staticmethod
-    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        if explicit_model:
-            return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
-
-        cached = get_cached_llm_config()
-        if cached is not None:
-            return cached[0], cached[1]
-        return get_fallback_llm_config()
 
     async def extract(self, turns: list[dict[str, str]]) -> list[ExtractedFact]:
         """从对话轮次中提取事实

@@ -19,9 +19,7 @@ def _make_llm_response(content: str) -> MagicMock:
 
 @pytest.fixture
 def extractor():
-    with patch(
-        "negentropy.engine.consolidation.llm_fact_extractor.LLMFactExtractor._resolve_model_config"
-    ) as mock_resolve:
+    with patch("negentropy.engine.consolidation.llm_fact_extractor.resolve_model_config") as mock_resolve:
         mock_resolve.return_value = ("test-model", {})
         return LLMFactExtractor()
 

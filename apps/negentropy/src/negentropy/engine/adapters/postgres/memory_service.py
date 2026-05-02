@@ -381,7 +381,7 @@ class PostgresMemoryService(BaseMemoryService):
                 )
                 if result is not None:
                     memories_data = result
-                    await self._record_access(memories_data)
+                    await self._record_access(memories_data, query=query)
                     return self._build_search_response(memories_data)
             except Exception as exc:
                 logger.warning(
@@ -401,7 +401,7 @@ class PostgresMemoryService(BaseMemoryService):
                 date_from=date_from,
                 date_to=date_to,
             )
-            await self._record_access(memories_data)
+            await self._record_access(memories_data, query=query)
             return self._build_search_response(memories_data)
 
         # 策略 3: BM25 全文检索
@@ -414,7 +414,7 @@ class PostgresMemoryService(BaseMemoryService):
                 offset=offset,
             )
             if memories_data:
-                await self._record_access(memories_data)
+                await self._record_access(memories_data, query=query)
                 return self._build_search_response(memories_data)
         except Exception as exc:
             logger.warning(
@@ -434,7 +434,7 @@ class PostgresMemoryService(BaseMemoryService):
             date_from=date_from,
             date_to=date_to,
         )
-        await self._record_access(memories_data)
+        await self._record_access(memories_data, query=query)
         return self._build_search_response(memories_data)
 
     async def _hybrid_search_native(
@@ -639,11 +639,15 @@ class PostgresMemoryService(BaseMemoryService):
             for m in memories_orms
         ]
 
-    async def _record_access(self, memories_data: list[dict[str, Any]]) -> None:
+    async def _record_access(self, memories_data: list[dict[str, Any]], *, query: str = "") -> None:
         """记录记忆访问行为
 
         批量更新被召回记忆的 access_count 和 last_accessed_at，
         驱动艾宾浩斯遗忘曲线动态生效。<sup>[1]</sup>
+
+        Args:
+            memories_data: 被召回的记忆数据列表
+            query: 原始检索查询文本（用于检索效果追踪）
 
         使用批量 UPDATE 避免 N+1 问题。
         """
@@ -683,11 +687,11 @@ class PostgresMemoryService(BaseMemoryService):
                 await tracker.log_retrieval(
                     user_id=memories_data[0].get("user_id", ""),
                     app_name=memories_data[0].get("app_name", ""),
-                    query="",  # query 在 _record_access 层不可用，由调用方记录
+                    query=query,
                     memory_ids=memory_ids,
                 )
-            except Exception:
-                pass  # 检索日志不应影响访问记录
+            except Exception as exc:
+                logger.debug("retrieval_tracking_failed", error=str(exc))
         except Exception as exc:
             # 访问记录失败不应影响检索结果返回
             logger.warning(

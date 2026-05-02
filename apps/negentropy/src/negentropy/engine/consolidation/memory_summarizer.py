@@ -27,6 +27,7 @@ import sqlalchemy as sa
 import negentropy.db.session as db_session
 from negentropy.engine.adapters.postgres.summary_service import SummaryService
 from negentropy.engine.factories.memory import get_fact_service
+from negentropy.engine.utils.model_config import resolve_model_config
 from negentropy.engine.utils.token_counter import TokenCounter
 from negentropy.logging import get_logger
 from negentropy.models.internalization import Memory, MemorySummary
@@ -70,22 +71,11 @@ class MemorySummarizer:
         max_retries: int = 3,
         ttl_hours: int = _DEFAULT_TTL_HOURS,
     ) -> None:
-        self._model, self._model_kwargs = self._resolve_model_config(model)
+        self._model, self._model_kwargs = resolve_model_config(model)
         self._temperature = temperature
         self._max_retries = max_retries
         self._ttl = timedelta(hours=ttl_hours)
         self._summary_service = SummaryService()
-
-    @staticmethod
-    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        if explicit_model:
-            return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
-
-        cached = get_cached_llm_config()
-        if cached is not None:
-            return cached[0], cached[1]
-        return get_fallback_llm_config()
 
     async def get_or_generate_summary(self, user_id: str, app_name: str) -> MemorySummary | None:
         cached = await self._summary_service.get_summary(user_id=user_id, app_name=app_name)
