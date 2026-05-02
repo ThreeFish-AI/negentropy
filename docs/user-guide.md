@@ -608,6 +608,15 @@ APIs 页面提供交互式的 API 文档和测试环境：
 
 记忆系统是 Negentropy 的「长期记忆」，管理对话历史、结构化事实和记忆衰减机制。
 
+> **🧭 Phase 4 起 — 按角色分流的轻量手册**：
+> - 👤 **新人/UI 用户** → [`user-guide/memory-basics.md`](./user-guide/memory-basics.md)：5 分钟概念+UI 导航
+> - 🛠 **工程师/集成** → [`user-guide/memory-integration.md`](./user-guide/memory-integration.md)：API + Agent Tool + 评测
+> - ⚙️ **运维/管理员** → [`user-guide/memory-automation.md`](./user-guide/memory-automation.md)：pg_cron / 反馈 / 监控
+> - 🩺 **故障排除** → [`user-guide/memory-troubleshooting.md`](./user-guide/memory-troubleshooting.md)：10 大常见问题 + SQL 诊断
+> - 📚 **架构/理论** → [`memory.md`](./memory.md) + [`memory-whitepaper.md`](./memory-whitepaper.md)
+>
+> 下文 5.1–5.16 继续保留**详细 UI 操作说明**作为参考，与上述新手册形成互补（新手册偏精简、本节偏完整）。
+
 ### 5.1 模块导航
 
 进入 **Memory** 模块后，左侧导航栏提供以下子页面：
