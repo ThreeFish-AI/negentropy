@@ -14,6 +14,9 @@
 0. [范围与事实源](#0-范围与事实源single-source-of-truth)
 1. [引言与项目定位](#1-引言与项目定位)
 2. [学术认知框架：Agent Memory 分类体系](#2-学术认知框架agent-memory-分类体系)
+   - [2.4 工业实践深度对标：Claude Code 记忆架构](#24-工业实践深度对标claude-code-记忆架构)
+   - [2.5 工业实践深度对标：Agent Harness 设计模式](#25-工业实践深度对标agent-harness-设计模式)
+   - [2.6 Negentropy 差异化定位总结](#26-negentropy-差异化定位总结)
 3. [系统架构](#3-系统架构)
 4. [记忆形成 (Memory Formation)](#4-记忆形成-memory-formation)
 5. [记忆演化 (Memory Evolution)](#5-记忆演化-memory-evolution)
@@ -193,6 +196,91 @@ Negentropy 的 Memory 实现并非基于独立中间件，而是采用 **Postgre
 | **混合检索** | Semantic + BM25 + ilike | Vector + Graph | Vector + Graph | Semantic + BM25 + Graph | Vector |
 
 **Negentropy 的差异化定位**：不引入外部图数据库或独立记忆服务，而是在 PostgreSQL 16+ 上实现向量检索(pgvector)、图存储(Apache AGE)、全文检索(tsvector)、定时调度(pg_cron) 的统一方案，降低运维复杂度和数据一致性风险。
+
+### 2.4 工业实践深度对标：Claude Code 记忆架构
+
+本节基于 [ThreeFish-AI/claude-code](https://github.com/ThreeFish-AI/claude-code)（Claude Code 可运行版逆向工程）和 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code)（从零构建 Agent Harness）的源码分析，提炼可指导 Negentropy 记忆模块的关键设计模式。
+
+#### 2.4.1 AutoDream 记忆整理机制
+
+Claude Code 的 AutoDream 是一个后台记忆整合机制，在会话间自动审查、组织和修剪持久化记忆文件。
+
+**四阶段整理流程**（`src/services/autoDream/consolidationPrompt.ts`）：
+
+1. **Orient（定位）**：`ls` 记忆目录，读取 `MEMORY.md` 索引，浏览现有文件避免重复
+2. **Gather（采集）**：按优先级收集新信号（日志 > 过时记忆 > 会话记录），使用窄关键词 grep 而非全文读取
+3. **Consolidate（整合）**：合并新信号到现有文件（而非创建近似重复），转相对日期为绝对日期，删除被推翻的事实
+4. **Prune（修剪）**：`MEMORY.md` ≤200 行 / 25KB，每条 ≤150 字符
+
+**三重门控调度**（`src/services/autoDream/autoDream.ts`）：
+
+```mermaid
+flowchart TD
+    G1["Gate 1: 全局开关<br/>isAutoMemoryEnabled()"] --> G2["Gate 2: 时间门控<br/>hoursSince ≥ 24h"]
+    G2 --> G3["Gate 3: 会话门控<br/>sessionsTouched ≥ 5"]
+    G3 --> Lock["Lock: PID 锁 + mtime<br/>防并发 / 1h 过期"]
+    Lock --> Fork["Forked Agent<br/>受限工具权限"]
+
+    style G1 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G2 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G3 fill:#FEF3C7,stroke:#92400E,color:#000
+    style Lock fill:#FEE2E2,stroke:#991B1B,color:#000
+    style Fork fill:#D1FAE5,stroke:#065F46,color:#000
+```
+
+**Negentropy 适配**：PostgreSQL 方案中，Orient 阶段映射为 `_is_duplicate()` 的 cosine similarity 检测；Consolidate 映射为 `_simple_consolidate` 的分段提取+去重；Prune 映射为 `retention_score` 驱动的 `cleanup_low_value_memories()`。门控策略映射到 `AsyncScheduler` 的应用层调度器回退。
+
+#### 2.4.2 三层上下文压缩策略
+
+Claude Code 采用三层递进压缩策略管理有限上下文窗口：
+
+| 层级 | 触发条件 | API 调用 | 来源 |
+|:--|:--|:--|:--|
+| **MicroCompact** | 每轮静默 | 否 | `src/services/compact/microCompact.ts` |
+| **Session Memory Compact** | 自动触发 | 否（用已提取的 SM） | `src/services/compact/sessionMemoryCompact.ts` |
+| **传统 API 摘要** | 手动 / 回退 | 是 | `src/services/compact/compact.ts` |
+
+MicroCompact 维护一个白名单（`COMPACTABLE_TOOLS`），将超过时间窗口的工具输出替换为 `[Old tool result content cleared]`。Session Memory Compact 使用已提取的 Session Memory 作为压缩摘要，**无需额外 API 调用**。
+
+**Negentropy 适配**：映射到 `ContextAssembler` 的 token 预算管理——先注入高优先级 Facts（Layer 1），再用最近 Memories 填充（Layer 2），最后用对话历史补充（Layer 3）。
+
+#### 2.4.3 记忆四类型分类法
+
+Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes.ts`）：
+
+| 类型 | 存储内容 | 关键约束 |
+|:--|:--|:--|
+| `user` | 用户角色、偏好、技术背景 | 只存无法从项目状态推导的信息 |
+| `feedback` | 工作方式纠正和确认 | 双通道：纠正 + 确认 |
+| `project` | 非代码可推导的项目上下文 | 含 Why + How to apply |
+| `reference` | 外部系统指针 | 轻量级指针，非数据副本 |
+
+**漂移防御**（`TRUSTING_RECALL_SECTION`）：系统 Prompt 中设有"Before recommending from memory"——记忆命名了特定函数/文件/标记时，必须先验证其是否仍存在。
+
+**Negentropy 适配**：直接映射到 `facts` 表的 `fact_type` 字段（`preference/profile/rule/custom`），与四类型高度对齐。
+
+### 2.5 工业实践深度对标：Agent Harness 设计模式
+
+基于 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 的渐进式 Agent 构建教程，提炼以下设计模式：
+
+**三层压缩管线**（`agents/s06_context_compact.py`）：MicroCompact（替换旧工具输出）→ AutoCompact（token 超阈值时 LLM 摘要）→ ManualCompact（用户手动触发）。Transcripts 保存完整历史到磁盘，"Nothing is truly lost — just moved out of active context."
+
+**Skill 按需加载**（`agents/s05_skill_loading.py`）：两层注入——系统提示放 skill 名称（~100 tokens/skill），tool_result 按需加载完整 body（~2000 tokens）。
+
+**Task Graph 持久化**（`agents/s07_task_system.py`）：JSON 文件 DAG，`blockedBy` 依赖边，`pending → in_progress → completed` 状态机，完成时自动解除依赖。
+
+**Negentropy 吸收**：MicroCompact 思路应用于巩固管线的分段策略（保留最近 K 条完整，旧消息缩略）；Task Graph 模式已在项目 `TaskCreate`/`TaskUpdate` 中实现。
+
+### 2.6 Negentropy 差异化定位总结
+
+| 维度 | Claude Code | mem0 / LangChain | Negentropy |
+|:--|:--|:--|:--|
+| **存储** | 纯文件系统 | 多后端（向量/图/内存） | PostgreSQL 单栈 |
+| **遗忘** | Prune 手动管理 | 无衰减 / 手动管理 | Ebbinghaus 仿生遗忘曲线 |
+| **治理** | — | — | GDPR 审计（Retain/Delete/Anonymize） |
+| **调度** | GrowthBook 远程配置 + PID 锁 | 应用层调度 | pg_cron + 应用层 AsyncScheduler 回退 |
+| **检索** | Sonnet 侧查询筛选 | 向量 / 图 / 混合 | 四级回退（Hybrid→Vector→BM25→ILIKE） |
+| **事实提取** | LLM extractMemories | LLM / 模式匹配 | 模式匹配（Phase 1）→ LLM 增强（P1） |
 
 ---
 
@@ -417,11 +505,29 @@ sequenceDiagram
 
 ### 4.2 事实提取 (Fact Extraction)
 
+Phase 1 采用 `PatternFactExtractor`（基于正则的模式匹配），Phase 2 引入 `LLMFactExtractor`（LLM 驱动的语义提取）作为默认提取器，`PatternFactExtractor` 保留为降级后备。
+
+#### 4.2.1 两级提取策略
+
+| 级别 | 实现类 | 触发条件 | 延迟 | 置信度 |
+| :-- | :-- | :-- | :-- | :-- |
+| L1 (默认) | `LLMFactExtractor` | LLM 可用 | ~200-500ms | 0.5-1.0 (动态) |
+| L2 (降级) | `PatternFactExtractor` | LLM 不可用/失败 | <1ms | 0.7 (固定) |
+
+`LLMFactExtractor` 遵循 [`knowledge/llm_extractors.py`](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py) 的成熟模式：
+
+- 批处理（≤10 turns/批）减少 API 开销
+- JSON structured output 保证解析可靠性
+- 指数退避重试（max 3 attempts）
+- 提取失败自动降级到 L2
+
 `FactService.upsert_fact()` 基于 PostgreSQL 的 `ON CONFLICT DO UPDATE` 实现 upsert 语义：
 
 - **唯一约束**：`(user_id, app_name, fact_type, key)` — 每个用户的每个 key 只有一个有效值
 - **向量化**：Fact 可选 embedding，支持语义检索
 - **有效期管理**：`valid_from` / `valid_until` 支持时态查询（当前值 vs 历史值）
+
+参考文献 <sup>[[6]](#ref6)</sup><sup>[[29]](#ref29)</sup>。
 
 ### 4.3 巩固任务 (Consolidation Jobs)
 
@@ -548,6 +654,27 @@ flowchart LR
 | LightMem<sup>[[23]](#ref23)</sup> | 离线蒸馏/摘要 + 巩固/删除 | SessionSummarizer + consolidation_jobs | 无蒸馏 |
 | EverMemOS<sup>[[24]](#ref24)</sup> | 自组织记忆 + 自动聚类 | — | 未实现 |
 
+#### 5.4.1 摘要巩固策略 (Summary Consolidation)
+
+受认知科学记忆再巩固 (Reconsolidation) 理论<sup>[[26]](#ref26)</sup>启发，`MemorySummarizer` 定期将用户的碎片记忆和事实重蒸馏为结构化画像摘要。该策略借鉴：
+
+| 学术/工程来源 | 策略 | Negentropy 适配 |
+| :-- | :-- | :-- |
+| LightMem<sup>[[23]](#ref23)</sup> | 离线蒸馏压缩 | MemorySummarizer 定期重生成 |
+| GraphRAG<sup>[[10]](#ref10)</sup> | 层次化 Map-Reduce 摘要 | LLM 单次生成结构化画像 |
+| Claude Code CLAUDE.md | 文件持久化用户摘要 | `memory_summaries` 表缓存 |
+| Mem0 user profile<sup>[[29]](#ref29)</sup> | 聚合 preference/profile/rule | 同结构，facts + memories 双源输入 |
+| Letta self-edit<sup>[[30]](#ref30)</sup> | Agent 自主编辑 memory block | 摘要由系统自动维护，Agent 只读注入 |
+
+摘要生成流程：
+
+1. 加载用户活跃 facts + 近期高 retention 记忆
+2. LLM 生成 ~200-400 tokens 的结构化画像（角色/偏好/风格/规则）
+3. upsert 至 `memory_summaries` 表（TTL 24h 可配置）
+4. `ContextAssembler` 优先注入摘要，无摘要时降级到原始拼接
+
+参考文献 <sup>[[10]](#ref10)</sup><sup>[[23]](#ref23)</sup><sup>[[26]](#ref26)</sup><sup>[[29]](#ref29)</sup><sup>[[30]](#ref30)</sup>。
+
 ---
 
 ## 6. 记忆检索 (Memory Retrieval)
@@ -613,7 +740,7 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 | History | 50% (`history_ratio`) | events 表 | `created_at DESC`（时间倒序） |
 | System | 20% (保留) | — | 系统指令保留空间 |
 
-**Token 估算**：采用粗略估算 `LENGTH(content) / 4`，适用于英文和中英混合场景。
+**Token 估算**：采用 tiktoken BPE 编码器精确计数（Phase 1 曾使用 `LENGTH(content) / 4` 粗略估算）。Python 侧通过 [`TokenCounter`](../apps/negentropy/src/negentropy/engine/utils/token_counter.py) 工具类调用，SQL 函数 `get_context_window()` 保留 `LENGTH/4` 作为 DB 侧快速估算，Python 端后校正。参考文献 <sup>[[25]](#ref25)</sup>。
 
 ### 6.4 与学术检索范式的对标
 
@@ -623,6 +750,40 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 | 时序知识图谱 | Graphiti<sup>[[18]](#ref18)</sup> | created_at 排序 | Phase 2: Bi-temporal edges |
 | 向量+图遍历 | GraphRAG<sup>[[10]](#ref10)</sup> | 独立 (pgvector + AGE) | Phase 3: 融合检索 |
 | 虚拟上下文管理 | MemGPT/Letta<sup>[[19]](#ref19)</sup> | get_context_window | — (理念相近) |
+
+### 6.5 检索效果反馈闭环 (Retrieval Feedback Loop)
+
+基于 Rocchio 相关性反馈<sup>[[27]](#ref27)</sup>和 Learning-to-Rank<sup>[[28]](#ref28)</sup>范式，建立"检索→记录→反馈→调权"的闭环，量化记忆系统的有效性。
+
+`RetrievalTracker` 在 `search_memory()` 返回结果后自动记录检索事件，并支持显式反馈 API：
+
+```mermaid
+flowchart TD
+    Q["search_memory(query)"] --> LOG["log_retrieval<br/>(记忆 ID 列表)"]
+    LOG --> AGENT["Agent 响应"]
+    AGENT --> REF["mark_referenced<br/>(被引用的记忆)"]
+    REF --> FB["record_feedback<br/>('helpful'/'irrelevant'/'harmful')"]
+    FB --> METRICS["get_effectiveness_metrics()"]
+    METRICS --> ADJ["调整 retention_score 权重"]
+
+    classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef process fill:#F59E0B,stroke:#92400E,color:#000
+    classDef result fill:#10B981,stroke:#065F46,color:#FFF
+
+    class Q query
+    class LOG,AGENT,REF,FB process
+    class METRICS,ADJ result
+```
+
+评估维度对齐 LongMemEval<sup>[[9]](#ref9)</sup>：
+
+| 指标 | 计算公式 | 意义 |
+| :-- | :-- | :-- |
+| Precision@K | 被引用的记忆 / 检索的记忆 | 检索结果的实际利用率 |
+| Utilization Rate | 有帮助反馈 / 总反馈 | 用户认可的记忆占比 |
+| Noise Rate | 无关反馈 / 总反馈 | 无效检索的噪声占比 |
+
+参考文献 <sup>[[9]](#ref9)</sup><sup>[[27]](#ref27)</sup><sup>[[28]](#ref28)</sup>。
 
 ---
 
@@ -1445,6 +1606,10 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 
 <a id="ref19"></a>[19] Letta, "Letta platform documentation," _Letta_, 2025. [Online]. Available: https://docs.letta.com/
 
+<a id="ref29"></a>[29] Mem0, "Memory extraction and consolidation pipeline," _Mem0 Documentation_, 2025. [Online]. Available: https://docs.mem0.ai/open-source/quickstart
+
+<a id="ref30"></a>[30] Letta (MemGPT), "Self-editing memory and virtual context management," _Letta Documentation_, 2025. [Online]. Available: https://docs.letta.com/
+
 ### 基准测试
 
 <a id="ref20"></a>[20] ICLR 2026 Workshop, "MemAgents: Memory for LLM-based agentic systems," _OpenReview_, 2026.
@@ -1456,6 +1621,14 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 <a id="ref23"></a>[23] Y. Li et al., "LightMem: Lightweight and efficient memory-augmented generation," _arXiv preprint arXiv:2510.18866_, 2025.
 
 <a id="ref24"></a>[24] EverMemOS, "A self-organizing memory operating system for structured long-horizon reasoning," 2026.
+
+<a id="ref25"></a>[25] R. Sennrich, B. Haddow, and A. Birch, "Neural machine translation of rare words with subword units," *ACL*, 2016.
+
+<a id="ref26"></a>[26] S. J. Sara, "Reconsolidation and the stability of memory traces: A new perspective," *Current Opinion in Neurobiology*, vol. 35, pp. 110-115, 2015.
+
+<a id="ref27"></a>[27] J. J. Rocchio, "Relevance feedback in information retrieval," in *The SMART Retrieval System*, G. Salton, Ed. Englewood Cliffs, NJ: Prentice-Hall, 1971, pp. 313-323.
+
+<a id="ref28"></a>[28] C. J. C. Burges et al., "Learning to rank using gradient descent," *ICML*, 2005.
 
 ---
 

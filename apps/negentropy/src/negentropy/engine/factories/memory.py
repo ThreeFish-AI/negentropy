@@ -20,6 +20,8 @@ from negentropy.config import settings
 if TYPE_CHECKING:
     from negentropy.engine.adapters.postgres.fact_service import FactService
     from negentropy.engine.adapters.postgres.memory_automation_service import MemoryAutomationService
+    from negentropy.engine.adapters.postgres.summary_service import SummaryService
+    from negentropy.engine.consolidation.memory_summarizer import MemorySummarizer
     from negentropy.engine.governance.memory import MemoryGovernanceService
 
 # 类型别名：embedding 函数签名
@@ -216,6 +218,52 @@ def reset_memory_automation_service() -> None:
     _memory_automation_service_instance = None
 
 
+# ============================================================================
+# Summary Service Factory
+# ============================================================================
+
+_summary_service_instance: SummaryService | None = None
+
+
+def get_summary_service() -> SummaryService:
+    global _summary_service_instance
+
+    if _summary_service_instance is None:
+        from negentropy.engine.adapters.postgres.summary_service import SummaryService
+
+        _summary_service_instance = SummaryService()
+
+    return _summary_service_instance
+
+
+def reset_summary_service() -> None:
+    global _summary_service_instance
+    _summary_service_instance = None
+
+
+# ============================================================================
+# Memory Summarizer Factory
+# ============================================================================
+
+_memory_summarizer_instance: MemorySummarizer | None = None
+
+
+def get_memory_summarizer() -> MemorySummarizer:
+    global _memory_summarizer_instance
+
+    if _memory_summarizer_instance is None:
+        from negentropy.engine.consolidation.memory_summarizer import MemorySummarizer
+
+        _memory_summarizer_instance = MemorySummarizer()
+
+    return _memory_summarizer_instance
+
+
+def reset_memory_summarizer() -> None:
+    global _memory_summarizer_instance
+    _memory_summarizer_instance = None
+
+
 __all__ = [
     "MemoryBackend",
     "EmbeddingFn",
@@ -232,4 +280,10 @@ __all__ = [
     "reset_fact_service",
     "get_memory_automation_service",
     "reset_memory_automation_service",
+    # Summary Service
+    "get_summary_service",
+    "reset_summary_service",
+    # Memory Summarizer
+    "get_memory_summarizer",
+    "reset_memory_summarizer",
 ]
