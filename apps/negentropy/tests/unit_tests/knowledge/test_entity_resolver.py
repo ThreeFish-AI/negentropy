@@ -157,6 +157,23 @@ class TestEntityResolverExactMatch:
         assert len(result) == 1
         assert result[0].metadata["confidence"] == 0.95
 
+    async def test_keeps_higher_confidence_when_primary_idx_ge_1(self):
+        # 回归：dedup 命中发生在 primary_idx >= 1 时，应保留高置信度实体
+        # （前缀不同于第一项，使两个 OpenAI 落入与 Google 不同的 block）
+        resolver = EntityResolver()
+        entities = [
+            _make_entity("Google", "organization", confidence=0.9),
+            _make_entity("OpenAI", "organization", confidence=0.95),
+            _make_entity("OpenAI Inc.", "organization", confidence=0.7),
+        ]
+        result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
+        assert len(result) == 2
+        labels = {e.label: e.metadata["confidence"] for e in result}
+        assert "Google" in labels
+        # 关键断言：保留的是 0.95 的 OpenAI，而非 0.7 的 OpenAI Inc.
+        assert "OpenAI" in labels
+        assert labels["OpenAI"] == 0.95
+
 
 class TestEntityResolverANN:
     async def test_ann_merges_similar(self):

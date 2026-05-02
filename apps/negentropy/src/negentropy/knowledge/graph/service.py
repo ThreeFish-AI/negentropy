@@ -376,10 +376,11 @@ class GraphService:
                     )
                     valid_relations.append(updated_relation)
 
-            # 持久化关系
-            await self._repository.create_relations(valid_relations)
-
             # B2: 时态事实冲突检测 (Snodgrass & Ahn, 1985)
+            # 必须在 create_relations 之前运行：否则在「同 (s,t,type) 但 evidence 变更」的
+            # 重建场景下，先 INSERT 会因唯一约束被静默丢弃，再 expire 旧行将导致关系彻底消失。
+            # 当前流程：① 先用新关系与 DB 中既有关系比对；② 对 CONTRADICTION 互斥的旧行
+            # 提前 expire；③ 再让 create_relations 走 ON CONFLICT DO UPDATE 在原行就地刷新。
             try:
                 from datetime import UTC, datetime
 
@@ -401,7 +402,7 @@ class GraphService:
                     existing_lookup=self._repository.find_existing_relations,
                     corpus_id=corpus_id,
                 )
-                # 对 UPDATE/CONTRADICTION 的旧关系标记失效
+                # 对 UPDATE/CONTRADICTION 的旧关系标记失效（提前到持久化之前）
                 now = datetime.now(UTC)
                 all_expire_ids = list({eid for resolved in temporal_results for eid in resolved.get("expire_ids", [])})
                 if all_expire_ids:
@@ -416,6 +417,10 @@ class GraphService:
                     "temporal_resolution_failed",
                     error=str(tr_exc),
                 )
+
+            # 持久化关系（依赖 create_relation 的 ON CONFLICT DO UPDATE 语义在 UPDATE 路径
+            # 上原地覆盖 evidence，避免唯一约束 + DO NOTHING 造成的数据丢失）
+            await self._repository.create_relations(valid_relations)
 
             # 同步到一等公民表 (kg_entities / kg_relations)
             # 参见 Kleppmann DDIA §11: 事务内双写保证 SSoT 一致性

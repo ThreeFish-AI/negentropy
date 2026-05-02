@@ -494,6 +494,9 @@ class AgeGraphRepository(GraphRepository):
         evidence = relation.metadata.get("evidence")
 
         # 1. 写入 kg_relations 一等公民表
+        # 唯一约束 (source_id, target_id, relation_type) 命中时使用 DO UPDATE，
+        # 而非 DO NOTHING：否则 evidence 变更后 INSERT 被静默丢弃，再叠加
+        # TemporalResolver 的 expire 流程会导致关系被彻底抹除（既无新行又无有效旧行）。
         insert_query = text(f"""
             INSERT INTO {self._schema}.kg_relations
                 (source_id, target_id, corpus_id, app_name, relation_type,
@@ -502,7 +505,15 @@ class AgeGraphRepository(GraphRepository):
                    :relation_type, :weight, :confidence, :evidence, :metadata::jsonb, true
             FROM {self._schema}.knowledge k
             WHERE k.id = :source_id
-            ON CONFLICT DO NOTHING
+            ON CONFLICT (source_id, target_id, relation_type) DO UPDATE SET
+                weight = EXCLUDED.weight,
+                confidence = EXCLUDED.confidence,
+                evidence_text = EXCLUDED.evidence_text,
+                metadata = EXCLUDED.metadata,
+                is_active = true,
+                valid_to = NULL,
+                last_observed_at = NOW(),
+                observation_count = kg_relations.observation_count + 1
         """)
 
         await session.execute(

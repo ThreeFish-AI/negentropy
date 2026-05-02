@@ -87,8 +87,12 @@ class TemporalResolver:
 
                     if existing:
                         # 检查是否为完全相同的事实（相同端点 + 相同证据）
+                        # NB: DB NULL evidence_text 与上游 metadata.get("evidence", "") 默认空串
+                        # 之间存在 None vs "" 不对称风险，需要先归一化再比较，避免对未变化的关系
+                        # 误判为 UPDATE 触发不必要的 expire。
+                        new_evidence = evidence or ""
                         for ex in existing:
-                            if ex.get("evidence_text", "") == evidence:
+                            if (ex.get("evidence_text") or "") == new_evidence:
                                 verdict = TemporalVerdict.REINFORCE
                                 break
                         else:

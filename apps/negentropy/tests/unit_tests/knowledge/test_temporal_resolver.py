@@ -112,6 +112,21 @@ class TestTemporalVerdict:
         assert len(results) == 1
         assert results[0]["temporal_verdict"] == "reinforce"
 
+    async def test_reinforce_when_db_evidence_is_null_and_input_is_empty(self):
+        # 回归：DB evidence_text=NULL（被 dao 反序列化为 None）与上游 evidence=""（默认空串）
+        # 应被视为一致，避免对未变化的关系误触发 UPDATE → expire。
+        resolver = TemporalResolver()
+
+        async def lookup(source, target, edge_type, corpus_id):
+            return [{"id": uuid4(), "evidence_text": None, "target_id": "entity:2"}]
+
+        relations = [_make_relation(evidence="")]
+        results = await resolver.resolve_relations(relations, lookup, corpus_id=uuid4())
+
+        assert len(results) == 1
+        assert results[0]["temporal_verdict"] == "reinforce"
+        assert results[0]["expire_ids"] == []
+
     async def test_multiple_relations(self):
         resolver = TemporalResolver()
 

@@ -114,8 +114,11 @@ class EntityResolver:
                 dedup_key = f"{normalize_label(entity.label or '')}|{entity.node_type or 'other'}"
                 if dedup_key in label_type_to_primary:
                     # 合并：保留置信度更高的
+                    # _pick_primary 返回 0 表示 primary_idx 胜出（保持现有 primary），
+                    # 返回 1 表示 idx 胜出（替换 primary）。直接与 primary_idx 比较是错误的：
+                    # 仅在 primary_idx == 0 时偶然正确，否则总是触发 swap，导致丢失高置信度实体。
                     primary_idx = label_type_to_primary[dedup_key]
-                    if self._pick_primary(new_entities[primary_idx], new_entities[idx]) != primary_idx:
+                    if self._pick_primary(new_entities[primary_idx], new_entities[idx]) == 1:
                         merged_secondary.add(primary_idx)
                         label_type_to_primary[dedup_key] = idx
                     else:
