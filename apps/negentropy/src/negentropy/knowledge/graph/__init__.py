@@ -1,6 +1,9 @@
 # Re-exports for backward-compatible imports
 # e.g., `from negentropy.knowledge.graph_service import GraphService`
 #        `from negentropy.knowledge.graph_algorithms import compute_pagerank`
+from .community_summarizer import CommunitySummarizer, CommunitySummary
+from .context_builder import GraphContext, GraphContextBuilder
+from .entity_resolver import EntityResolver, blocking_key, normalize_label
 from .entity_service import KgEntityService
 from .extractors import (
     CompositeEntityExtractor,
@@ -37,6 +40,7 @@ from .strategy import (
     RegexEntityExtractor,
     RelationExtractor,
 )
+from .temporal_resolver import TemporalResolver, TemporalVerdict
 
 __all__ = [
     "GraphProcessor",
@@ -70,4 +74,17 @@ __all__ = [
     "export_graph_to_networkx",
     "compute_pagerank",
     "compute_louvain",
+    # B1: Entity Resolution
+    "EntityResolver",
+    "normalize_label",
+    "blocking_key",
+    # B2: Temporal Resolution
+    "TemporalResolver",
+    "TemporalVerdict",
+    # B3: Community Summarization
+    "CommunitySummarizer",
+    "CommunitySummary",
+    # B4: Context Building
+    "GraphContextBuilder",
+    "GraphContext",
 ]

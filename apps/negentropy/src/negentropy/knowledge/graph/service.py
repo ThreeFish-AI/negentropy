@@ -379,6 +379,52 @@ class GraphService:
             # 持久化关系
             await self._repository.create_relations(valid_relations)
 
+            # B2: 时态事实冲突检测 (Snodgrass & Ahn, 1985)
+            try:
+                from datetime import UTC, datetime
+
+                from .temporal_resolver import TemporalResolver
+
+                temporal_resolver = TemporalResolver()
+                relation_dicts_for_temporal = [
+                    {
+                        "source": r.source,
+                        "target": r.target,
+                        "edge_type": r.edge_type,
+                        "evidence": r.metadata.get("evidence", ""),
+                        "weight": r.weight,
+                    }
+                    for r in valid_relations
+                ]
+                temporal_results = await temporal_resolver.resolve_relations(
+                    new_relations=relation_dicts_for_temporal,
+                    existing_lookup=self._repository.find_existing_relations,
+                    corpus_id=corpus_id,
+                )
+                # 对 UPDATE/CONTRADICTION 的旧关系标记失效
+                now = datetime.now(UTC)
+                for resolved in temporal_results:
+                    for expire_id in resolved.get("expire_ids", []):
+                        try:
+                            session = await self._repository._get_session()
+                            sql = f"UPDATE {self._repository._schema}.kg_relations SET valid_to = :now WHERE id = :eid"
+                            await session.execute(
+                                text(sql),
+                                {"now": now, "eid": expire_id},
+                            )
+                        except Exception:
+                            pass
+                logger.info(
+                    "temporal_resolution_completed",
+                    relation_count=len(temporal_results),
+                )
+            except Exception as tr_exc:
+                build_warnings.append({"algorithm": "temporal_resolution", "error": str(tr_exc)})
+                logger.warning(
+                    "temporal_resolution_failed",
+                    error=str(tr_exc),
+                )
+
             # 同步到一等公民表 (kg_entities / kg_relations)
             # 参见 Kleppmann DDIA §11: 事务内双写保证 SSoT 一致性
             try:
@@ -463,6 +509,26 @@ class GraphService:
                 logger.warning(
                     "louvain_computation_failed",
                     error=str(lv_exc),
+                )
+
+            # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .community_summarizer import CommunitySummarizer
+
+                summarizer = CommunitySummarizer(model=normalized_llm_model)
+                async with AsyncSessionLocal() as cs_db:
+                    cs_result = await summarizer.summarize_communities(cs_db, corpus_id)
+                    logger.info(
+                        "community_summaries_generated",
+                        **cs_result,
+                    )
+            except Exception as cs_exc:
+                build_warnings.append({"algorithm": "community_summary", "error": str(cs_exc)})
+                logger.warning(
+                    "community_summary_failed",
+                    error=str(cs_exc),
                 )
 
             elapsed = time.time() - start_time

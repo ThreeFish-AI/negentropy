@@ -198,6 +198,7 @@ class GraphRepository(ABC):
         entity_id: str,
         max_depth: int = 1,
         limit: int = 100,
+        as_of: datetime | None = None,
     ) -> list[GraphNode]:
         """查询邻居节点
 
@@ -205,6 +206,7 @@ class GraphRepository(ABC):
             entity_id: 起始实体 ID
             max_depth: 最大遍历深度
             limit: 结果数量限制
+            as_of: 时态过滤 — 仅返回 valid_from <= as_of 且 valid_to IS NULL 或 > as_of 的关系
 
         Returns:
             邻居节点列表
@@ -568,6 +570,7 @@ class AgeGraphRepository(GraphRepository):
         entity_id: str,
         max_depth: int = 1,
         limit: int = 100,
+        as_of: datetime | None = None,
     ) -> list[GraphNode]:
         """查询邻居节点（基于 kg_relations 递归 CTE 多跳遍历）
 
@@ -577,6 +580,13 @@ class AgeGraphRepository(GraphRepository):
         session = await self._get_session()
         clean_id = entity_id.replace("entity:", "")
 
+        # 时态过滤片段 (Snodgrass & Ahn, 1985)
+        temporal_filter = ""
+        if as_of:
+            temporal_filter = """
+                AND (r.valid_from IS NULL OR r.valid_from <= :as_of)
+                AND (r.valid_to IS NULL OR r.valid_to > :as_of)"""
+
         query = text(f"""
             WITH RECURSIVE neighbor_tree AS (
                 -- Base: direct neighbors of the seed entity
@@ -585,7 +595,7 @@ class AgeGraphRepository(GraphRepository):
                     r.source_id AS via_id,
                     1 AS distance
                 FROM {self._schema}.kg_relations r
-                WHERE r.source_id = :entity_id AND r.is_active = true
+                WHERE r.source_id = :entity_id AND r.is_active = true{temporal_filter}
 
                 UNION
 
@@ -594,7 +604,7 @@ class AgeGraphRepository(GraphRepository):
                     r.target_id AS via_id,
                     1 AS distance
                 FROM {self._schema}.kg_relations r
-                WHERE r.target_id = :entity_id AND r.is_active = true
+                WHERE r.target_id = :entity_id AND r.is_active = true{temporal_filter}
 
                 UNION ALL
 
@@ -605,7 +615,7 @@ class AgeGraphRepository(GraphRepository):
                     nt.distance + 1 AS distance
                 FROM {self._schema}.kg_relations r
                 JOIN neighbor_tree nt ON r.source_id = nt.neighbor_id
-                WHERE r.is_active = true
+                WHERE r.is_active = true{temporal_filter}
                   AND nt.distance < :max_depth
                   AND r.target_id != :entity_id
 
@@ -617,7 +627,7 @@ class AgeGraphRepository(GraphRepository):
                     nt.distance + 1 AS distance
                 FROM {self._schema}.kg_relations r
                 JOIN neighbor_tree nt ON r.target_id = nt.neighbor_id
-                WHERE r.is_active = true
+                WHERE r.is_active = true{temporal_filter}
                   AND nt.distance < :max_depth
                   AND r.source_id != :entity_id
             )
@@ -630,14 +640,15 @@ class AgeGraphRepository(GraphRepository):
             LIMIT :limit
         """)
 
-        result = await session.execute(
-            query,
-            {
-                "entity_id": clean_id,
-                "max_depth": max_depth,
-                "limit": limit,
-            },
-        )
+        params: dict[str, Any] = {
+            "entity_id": clean_id,
+            "max_depth": max_depth,
+            "limit": limit,
+        }
+        if as_of:
+            params["as_of"] = as_of
+
+        result = await session.execute(query, params)
 
         neighbors = []
         for row in result:
@@ -1206,6 +1217,54 @@ class AgeGraphRepository(GraphRepository):
         )
 
         return [(str(row.id), row.name, float(row.similarity)) for row in result if float(row.similarity) >= threshold]
+
+    async def find_existing_relations(
+        self,
+        source_id: str,
+        target_id: str | None,
+        relation_type: str,
+        corpus_id: UUID,
+    ) -> list[dict[str, Any]]:
+        """查找已有关系，供 TemporalResolver 冲突检测使用 (Snodgrass & Ahn, 1985)"""
+        session = await self._get_session()
+        clean_source = source_id.replace("entity:", "")
+
+        conditions = [
+            "source_id = :source_id",
+            "relation_type = :rtype",
+            "corpus_id = :cid",
+            "is_active = true",
+        ]
+        params: dict[str, Any] = {
+            "source_id": clean_source,
+            "rtype": relation_type,
+            "cid": str(corpus_id),
+        }
+        if target_id:
+            clean_target = target_id.replace("entity:", "")
+            conditions.append("target_id = :target_id")
+            params["target_id"] = clean_target
+
+        where = " AND ".join(conditions)
+        query = text(f"""
+            SELECT id, source_id, target_id, relation_type,
+                   evidence_text, valid_from, valid_to
+            FROM {self._schema}.kg_relations
+            WHERE {where}
+        """)
+        result = await session.execute(query, params)
+        return [
+            {
+                "id": str(row.id),
+                "source_id": str(row.source_id),
+                "target_id": str(row.target_id),
+                "relation_type": row.relation_type,
+                "evidence_text": row.evidence_text,
+                "valid_from": row.valid_from.isoformat() if row.valid_from else None,
+                "valid_to": row.valid_to.isoformat() if row.valid_to else None,
+            }
+            for row in result
+        ]
 
     async def clear_graph(
         self,
