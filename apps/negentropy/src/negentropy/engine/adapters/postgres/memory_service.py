@@ -34,7 +34,7 @@ from sqlalchemy import select, text, update
 
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
-from negentropy.engine.consolidation.fact_extractor import PatternFactExtractor
+from negentropy.engine.consolidation.llm_fact_extractor import LLMFactExtractor
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory
@@ -66,7 +66,7 @@ class PostgresMemoryService(BaseMemoryService):
     def __init__(self, embedding_fn: callable | None = None, consolidation_worker=None):
         self._embedding_fn = embedding_fn  # 向量化函数
         self._consolidation_worker = consolidation_worker  # Phase 2 Worker
-        self._fact_extractor = PatternFactExtractor()
+        self._fact_extractor = LLMFactExtractor()
 
     async def add_session_to_memory(
         self,
@@ -381,7 +381,7 @@ class PostgresMemoryService(BaseMemoryService):
                 )
                 if result is not None:
                     memories_data = result
-                    await self._record_access(memories_data)
+                    await self._record_access(memories_data, query=query)
                     return self._build_search_response(memories_data)
             except Exception as exc:
                 logger.warning(
@@ -401,7 +401,7 @@ class PostgresMemoryService(BaseMemoryService):
                 date_from=date_from,
                 date_to=date_to,
             )
-            await self._record_access(memories_data)
+            await self._record_access(memories_data, query=query)
             return self._build_search_response(memories_data)
 
         # 策略 3: BM25 全文检索
@@ -414,7 +414,7 @@ class PostgresMemoryService(BaseMemoryService):
                 offset=offset,
             )
             if memories_data:
-                await self._record_access(memories_data)
+                await self._record_access(memories_data, query=query)
                 return self._build_search_response(memories_data)
         except Exception as exc:
             logger.warning(
@@ -434,7 +434,7 @@ class PostgresMemoryService(BaseMemoryService):
             date_from=date_from,
             date_to=date_to,
         )
-        await self._record_access(memories_data)
+        await self._record_access(memories_data, query=query)
         return self._build_search_response(memories_data)
 
     async def _hybrid_search_native(
@@ -639,11 +639,15 @@ class PostgresMemoryService(BaseMemoryService):
             for m in memories_orms
         ]
 
-    async def _record_access(self, memories_data: list[dict[str, Any]]) -> None:
+    async def _record_access(self, memories_data: list[dict[str, Any]], *, query: str = "") -> None:
         """记录记忆访问行为
 
         批量更新被召回记忆的 access_count 和 last_accessed_at，
         驱动艾宾浩斯遗忘曲线动态生效。<sup>[1]</sup>
+
+        Args:
+            memories_data: 被召回的记忆数据列表
+            query: 原始检索查询文本（用于检索效果追踪）
 
         使用批量 UPDATE 避免 N+1 问题。
         """
@@ -673,6 +677,21 @@ class PostgresMemoryService(BaseMemoryService):
                 "memory_access_recorded",
                 memory_count=len(memory_ids),
             )
+
+            # 异步记录检索事件（fire-and-forget，不影响主路径）
+            try:
+                from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+                tracker = RetrievalTracker()
+                # 提取查询上下文（使用调用方的 query 参数不可直接获取，此处仅记录 memory_ids）
+                await tracker.log_retrieval(
+                    user_id=memories_data[0].get("user_id", ""),
+                    app_name=memories_data[0].get("app_name", ""),
+                    query=query,
+                    memory_ids=memory_ids,
+                )
+            except Exception as exc:
+                logger.debug("retrieval_tracking_failed", error=str(exc))
         except Exception as exc:
             # 访问记录失败不应影响检索结果返回
             logger.warning(
