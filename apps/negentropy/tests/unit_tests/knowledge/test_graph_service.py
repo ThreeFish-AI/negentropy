@@ -270,6 +270,9 @@ class FakeGraphRepository:
         self.update_build_run_kwargs = kwargs
         return None
 
+    async def find_similar_entities(self, **kwargs):
+        return []
+
 
 @pytest.mark.asyncio
 async def test_build_graph_persists_canonical_model_name():

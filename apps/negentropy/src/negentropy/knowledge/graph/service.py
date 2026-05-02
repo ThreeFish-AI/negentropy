@@ -330,26 +330,18 @@ class GraphService:
                 except Exception:
                     pass  # 进度上报失败不影响构建
 
-            # 去重实体（基于 label）
-            unique_entities: dict[str, GraphNode] = {}
-            for entity in all_entities:
-                if entity.label and entity.label not in unique_entities:
-                    unique_entities[entity.label] = entity
+            # 多策略实体消解 (Fellegi & Sunter, 1969)
+            # Blocking → Exact → Alias → ANN → LLM verification
+            from .entity_resolver import EntityResolver
 
-            entities_to_save = list(unique_entities.values())
-
-            # 语义去重 (Fellegi & Sunter, 1969; Mudgal et al., 2018)
-            # 在 label 精确去重之后，利用 embedding ANN 查找语义近义实体
-            if build_config.semantic_dedup_threshold > 0 and len(entities_to_save) > 0:
-                try:
-                    await self._semantic_dedup(
-                        entities_to_save,
-                        corpus_id,
-                        build_config.semantic_dedup_threshold,
-                    )
-                except Exception as dedup_exc:
-                    build_warnings.append({"phase": "semantic_dedup", "error": str(dedup_exc)})
-                    logger.warning("semantic_dedup_failed", error=str(dedup_exc))
+            resolver = EntityResolver(
+                ann_threshold=build_config.semantic_dedup_threshold or 0.85,
+            )
+            entities_to_save = await resolver.resolve(
+                new_entities=all_entities,
+                find_similar=self._repository.find_similar_entities,
+                corpus_id=corpus_id,
+            )
 
             # 持久化实体
             await self._repository.create_entities(

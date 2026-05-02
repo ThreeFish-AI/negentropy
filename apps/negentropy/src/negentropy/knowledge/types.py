@@ -25,7 +25,7 @@ from .constants import (
 )
 
 SearchMode = Literal["semantic", "keyword", "hybrid", "rrf"]
-GraphSearchMode = Literal["semantic", "graph", "hybrid"]
+GraphSearchMode = Literal["semantic", "graph", "hybrid", "global"]
 
 
 class ChunkingStrategy(Enum):
@@ -714,6 +714,7 @@ class GraphQueryConfig(BaseModel):
     include_neighbors: bool = True
     neighbor_limit: int = 10
     entity_type_filter: str | None = None
+    as_of: datetime | None = None  # 时态查询：仅返回指定时间点有效的事实
 
     @field_validator("max_depth")
     @classmethod
