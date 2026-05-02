@@ -244,19 +244,119 @@ class CorpusEngine:
     ) -> list[dict]:
         """跨语料引用推荐
 
-        基于实体重叠度推荐可能相关的其他语料库中的文档。
-        简化实现：返回同项目下其他已发布语料库的摘要信息。
+        基于 kg_entities 实体重叠度（Jaccard 相似度）推荐相关语料库。
+        优先使用实体推荐；KG 数据不足时降级到文档数排序。
 
-        TODO: 实现基于 kg_entities 共享实体的智能推荐算法。
+        理论: Dong et al., 2014 Knowledge Vault 跨源实体链接;
+              Christen, 2012 Jaccard 相似度匹配。
         """
-        # 获取同项目下其他语料库
-        other_corpora = await db.execute(
-            select(Corpus)
-            .where(
-                Corpus.id != corpus_id,
+
+        from negentropy.models.base import NEGENTROPY_SCHEMA
+
+        # 尝试基于实体的智能推荐
+        entity_suggestions = await self._entity_based_suggestions(db, corpus_id, limit, NEGENTROPY_SCHEMA)
+        if entity_suggestions:
+            return entity_suggestions
+
+        # 降级：KG 数据不足，返回有文档的其他语料库
+        return await self._fallback_suggestions(db, corpus_id, limit)
+
+    async def _entity_based_suggestions(
+        self,
+        db: AsyncSession,
+        corpus_id: UUID,
+        limit: int,
+        schema: str,
+    ) -> list[dict]:
+        """基于 Jaccard 实体重叠度的推荐"""
+        from sqlalchemy import text as sql_text
+
+        try:
+            result = await db.execute(
+                sql_text("""
+                    WITH target AS (
+                        SELECT LOWER(name) AS name FROM {schema}.kg_entities
+                        WHERE corpus_id = :cid AND is_active = true AND confidence >= 0.5
+                    ),
+                    shared AS (
+                        SELECT
+                            e.corpus_id,
+                            COUNT(DISTINCT LOWER(e.name)) FILTER (WHERE t.name IS NOT NULL) AS shared_count,
+                            COUNT(DISTINCT LOWER(e.name)) AS other_total
+                        FROM {schema}.kg_entities e
+                        LEFT JOIN target t ON LOWER(e.name) = t.name
+                        WHERE e.corpus_id != :cid AND e.is_active = true AND e.confidence >= 0.5
+                        GROUP BY e.corpus_id
+                        HAVING COUNT(DISTINCT LOWER(e.name)) FILTER (WHERE t.name IS NOT NULL) > 0
+                        ORDER BY shared_count DESC
+                        LIMIT :lim
+                    ),
+                    target_total AS (
+                        SELECT COUNT(DISTINCT name) AS cnt FROM target
+                    )
+                    SELECT
+                        s.corpus_id,
+                        s.shared_count,
+                        s.other_total,
+                        tt.cnt AS target_total,
+                        s.shared_count::float / (tt.cnt + s.other_total - s.shared_count) AS jaccard
+                    FROM shared s, target_total tt
+                    ORDER BY jaccard DESC
+                """).format(schema=schema),
+                {"cid": corpus_id, "lim": limit},
             )
-            .limit(10)
-        )
+            rows = result.fetchall()
+            if not rows:
+                return []
+
+            # 获取共享实体名称（用于 relevance_hint）
+            suggestions = []
+            for row in rows:
+                shared_names_result = await db.execute(
+                    sql_text("""
+                        SELECT DISTINCT e.name
+                        FROM {schema}.kg_entities e
+                        WHERE e.corpus_id = :other_cid AND e.is_active = true
+                        AND LOWER(e.name) IN (
+                            SELECT LOWER(name) FROM {schema}.kg_entities
+                            WHERE corpus_id = :target_cid AND is_active = true
+                        )
+                        ORDER BY e.importance_score DESC NULLS LAST
+                        LIMIT 5
+                    """).format(schema=schema),
+                    {"other_cid": row.corpus_id, "target_cid": corpus_id},
+                )
+                shared_names = [r.name for r in shared_names_result.fetchall()]
+
+                corp = await db.execute(select(Corpus).where(Corpus.id == row.corpus_id))
+                corpus = corp.scalar_one_or_none()
+                if not corpus:
+                    continue
+
+                suggestions.append(
+                    {
+                        "corpus_id": str(corpus.id),
+                        "name": corpus.name,
+                        "description": getattr(corpus, "description", None),
+                        "shared_entity_count": row.shared_count,
+                        "jaccard_similarity": round(float(row.jaccard), 3),
+                        "shared_entities": shared_names,
+                        "relevance_hint": f"{row.shared_count} 个共享实体 (Jaccard={float(row.jaccard):.2f})",
+                    }
+                )
+
+            return suggestions
+        except Exception:
+            return []
+
+    async def _fallback_suggestions(
+        self,
+        db: AsyncSession,
+        corpus_id: UUID,
+        limit: int,
+    ) -> list[dict]:
+        """降级推荐：返回有文档的其他语料库"""
+        other_corpora = await db.execute(select(Corpus).where(Corpus.id != corpus_id).limit(limit * 2))
         corpora = other_corpora.scalars().all()
 
         suggestions = []
