@@ -67,7 +67,7 @@ for entry in response.memories:
 
 ## 2. <a id="self-edit-tools"></a>Self-editing Tools（REST 端点）
 
-5 个 REST 端点（均位于 `/api/memory/...` 前缀，需 Admin 鉴权）：
+5 个 REST 端点（均位于 `/api/memory/...` 前缀，受 `_require_self_or_admin` 守卫：admin 角色可操作任意 `user_id`，普通用户只能操作自身）：
 
 | 端点 | 用途 |
 |---|---|
