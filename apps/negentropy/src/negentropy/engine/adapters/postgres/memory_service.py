@@ -191,14 +191,18 @@ class PostgresMemoryService(BaseMemoryService):
     async def _try_acquire_advisory_lock(db: Any, thread_id: uuid.UUID | None) -> bool:
         """获取事务级 Advisory Lock 防止并发巩固
 
-        使用 pg_try_advisory_xact_lock，锁随事务结束自动释放。
+        使用 pg_try_advisory_xact_lock(int4, int4) 双参数形式，
+        将 UUID 高 64 位拆为两个 32 位整数，避免超出 int64 范围。
+        锁随事务结束自动释放。
         """
         if thread_id is None:
             return True
-        lock_key = thread_id.int >> 64  # 取高 64 位转为 bigint
+        high64 = thread_id.int >> 64
+        key1 = (high64 >> 32) & 0xFFFFFFFF
+        key2 = high64 & 0xFFFFFFFF
         result = await db.execute(
-            text("SELECT pg_try_advisory_xact_lock(:lock_key)"),
-            {"lock_key": lock_key},
+            text("SELECT pg_try_advisory_xact_lock(:key1, :key2)"),
+            {"key1": key1, "key2": key2},
         )
         return bool(result.scalar())
 
