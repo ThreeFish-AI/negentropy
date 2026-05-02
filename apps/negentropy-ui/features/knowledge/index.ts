@@ -85,7 +85,8 @@ export {
   fetchGraphEntities,
   fetchGraphEntityDetail,
   fetchGraphStats,
-  // Graph Phase 4 (G2 Cytoscape 子图增量 + G3 时态时间穿梭)
+  // Graph Phase 4 (G1 Global Search + G2 Cytoscape 子图增量 + G3 时态时间穿梭)
+  globalSearchKnowledgeGraph,
   fetchGraphSubgraph,
   fetchGraphTimeline,
   // Catalog Management
@@ -179,6 +180,8 @@ export type {
   GraphNeighborsResult,
   GraphPathParams,
   GraphPathResult,
+  GlobalSearchEvidenceItem,
+  GlobalSearchResult,
   GraphTimelineBucket,
   GraphTimelineResult,
   GraphBuildRunRecord,

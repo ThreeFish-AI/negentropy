@@ -788,6 +788,40 @@ flowchart TB
 2. **社区摘要存储**：`kg_community_summaries` 表，字段包含 `community_id, level, summary_text, embedding, entity_count`
 3. **增量更新策略**：新实体加入后仅重新计算受影响社区的摘要（参考 LightRAG<sup>[[5]](#ref5)</sup> 的 Union 策略）
 
+#### 6.1.4 Global Search Map-Reduce 流水线（Phase 4 G1 已落地）
+
+**模块**：`graph/global_search.py` 引入 `GlobalSearchService`，与 `community_summarizer.py` 正交分工 —— 后者负责生成与 embedding 落库，前者负责 query-focused 检索 + Map-Reduce。
+
+**流水线**：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant API as POST /global_search
+    participant SVC as GlobalSearchService
+    participant DB as kg_community_summaries
+    participant LLM as LLM
+    U->>API: query (+ max_communities)
+    API->>SVC: search(corpus_id, query, query_embedding)
+    SVC->>DB: SELECT top_k by 1-(emb<=>query)::vector
+    DB-->>SVC: candidates
+    par Map (concurrency=5)
+        SVC->>LLM: MAP_PROMPT(query, summary_i)
+        LLM-->>SVC: partial_answer_i
+    end
+    SVC->>LLM: REDUCE_PROMPT(query, partials)
+    LLM-->>SVC: final_answer
+    SVC-->>API: answer + evidence + summaries_dirty
+    API-->>U: GlobalSearchResponse
+```
+
+**关键设计**：
+- **Selection（候选筛选）**：用 query embedding 在 `kg_community_summaries.embedding` 上做 cosine 排序，避免对全部摘要做 LLM 调用；若 embedding 列尚未填充（旧数据），降级为按 `entity_count DESC` 排序，相似度兜底为 0。
+- **Map 限流**：`asyncio.Semaphore(5)`（默认）防止触达 LLM rate-limit；单 LLM 失败返回空字符串，evidence 列表自动剔除（不阻塞整体）。
+- **Reduce 预算控制**：partial answers 截断为前 20 条防止 token 预算溢出。
+- **摘要陈旧检测**：每次查询末尾对比 `kg_entities.MAX(updated_at) > kg_community_summaries.MIN(updated_at)`；若 dirty，response 中 `summaries_dirty=true`，UI 显式提示用户重跑摘要流程。
+- **Embedding 写入路径**：`CommunitySummarizer(embedding_fn=...)` 在持久化时同步写 embedding；调用方未注入 `embedding_fn` 时降级为不写（与 G3 backfill 同向兼容）。
+
 ### 6.2 时态知识图谱
 
 以 Graphiti<sup>[[6]](#ref6)</sup> 为蓝本的双时态模型设计：
@@ -1353,6 +1387,7 @@ timeline
 | 2026-05-02 | 2.2 | Phase 3 新增 P3-12 GraphRAG 上下文组装集成 / P3-13 Agent→KG 三元组双向同步 / P3-14 图谱质量健康指标 / P3-15 跨语料实体重叠推荐（均已完成） | Claude |
 | 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0023 部分索引 + valid_from backfill；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
 | 2026-05-02 | 2.4 | **Phase 4 G2 Cytoscape.js 交互可视化（已完成）**：新增前端 `GraphCanvas` 组件（cytoscape + cytoscape-fcose）；新增后端 `GET /graph/subgraph` 端点（service 层 BFS 截断；node 排序 跳数 → importance）；page.tsx 渲染引擎切换（Cytoscape vs d3-force）；双击节点触发 1 跳子图增量加载；G3 as_of 在 Cytoscape 路径下保持透传 | Claude |
+| 2026-05-02 | 2.5 | **Phase 4 G1 GraphRAG Global Search Map-Reduce（已完成）**：新增 `graph/global_search.py` (GlobalSearchService) — 嵌入查询 → 余弦排序选 top_k 社区摘要 → asyncio.Semaphore(5) 限流 Map 并发 → Reduce 聚合；`community_summarizer.py` 新增可选 `embedding_fn` 入参，落库时同步写入 summary embedding；新增 `POST /base/{cid}/graph/global_search` 端点；前端新增 `GlobalSearchPanel` 卡片（含 evidence 树 + 摘要陈旧度提示） | Claude |
 
 ---
 

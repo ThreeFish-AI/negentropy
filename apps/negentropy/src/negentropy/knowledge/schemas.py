@@ -351,6 +351,36 @@ class GraphPathRequest(BaseModel):
     )
 
 
+class GlobalSearchRequest(BaseModel):
+    """GraphRAG Global Search 请求"""
+
+    query: str = Field(min_length=1, description="用户查询文本")
+    max_communities: int = Field(default=10, ge=1, le=50, description="候选社区数上限")
+
+
+class GlobalSearchEvidenceItem(BaseModel):
+    """单个社区贡献的部分答案（Map 阶段产物）"""
+
+    community_id: int
+    partial_answer: str
+    similarity: float
+    top_entities: list[str] = Field(default_factory=list)
+
+
+class GlobalSearchResponse(BaseModel):
+    """GraphRAG Global Search 响应"""
+
+    query: str
+    answer: str
+    evidence: list[GlobalSearchEvidenceItem] = Field(default_factory=list)
+    candidates_total: int
+    latency_ms: float
+    summaries_dirty: bool = Field(
+        default=False,
+        description="社区摘要是否在最近的实体更新之后未刷新；UI 需提示用户重跑摘要流程。",
+    )
+
+
 class GraphTimelineBucket(BaseModel):
     """关系时间轴密度直方图单点"""
 

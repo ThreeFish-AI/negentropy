@@ -134,6 +134,9 @@ from .schemas import (  # noqa: F401
     DocumentMarkdownRefreshResponse,
     DocumentReplaceRequest,
     DocumentResponse,
+    GlobalSearchEvidenceItem,
+    GlobalSearchRequest,
+    GlobalSearchResponse,
     GraphBuildRequest,
     GraphBuildResponse,
     GraphEntityDetailResponse,
@@ -3458,6 +3461,68 @@ async def get_graph_stats(
     async with AsyncSessionLocal() as db:
         stats = await graph_service.get_stats(db, corpus_id=corpus_id)
     return GraphStatsResponse(**stats)
+
+
+@router.post(
+    "/base/{corpus_id}/graph/global_search",
+    response_model=GlobalSearchResponse,
+)
+async def global_search_knowledge_graph(
+    corpus_id: UUID,
+    payload: GlobalSearchRequest,
+) -> GlobalSearchResponse:
+    """GraphRAG Global Search Map-Reduce 全局问答（G1）
+
+    用社区摘要回答"汇总性问题"（如"该语料库的核心主题是什么？"）。
+    流水线：嵌入查询 → 余弦排序选 top_k 社区 → 并发 Map → Reduce 聚合。
+    """
+    from .graph.global_search import GlobalSearchService
+
+    logger.info(
+        "api_global_search_started",
+        corpus_id=str(corpus_id),
+        query=payload.query[:80],
+        max_communities=payload.max_communities,
+    )
+
+    embedding_fn = build_embedding_fn()
+    query_embedding = await embedding_fn(payload.query)
+
+    service = GlobalSearchService(max_communities=payload.max_communities)
+
+    async with AsyncSessionLocal() as db:
+        result = await service.search(
+            db,
+            corpus_id=corpus_id,
+            query=payload.query,
+            query_embedding=query_embedding,
+            max_communities=payload.max_communities,
+        )
+
+    logger.info(
+        "api_global_search_completed",
+        corpus_id=str(corpus_id),
+        evidence=len(result.evidence),
+        latency_ms=result.latency_ms,
+        summaries_dirty=result.summaries_dirty,
+    )
+
+    return GlobalSearchResponse(
+        query=result.query,
+        answer=result.answer,
+        evidence=[
+            GlobalSearchEvidenceItem(
+                community_id=e.community_id,
+                partial_answer=e.partial_answer,
+                similarity=e.similarity,
+                top_entities=e.top_entities,
+            )
+            for e in result.evidence
+        ],
+        candidates_total=result.candidates_total,
+        latency_ms=result.latency_ms,
+        summaries_dirty=result.summaries_dirty,
+    )
 
 
 @router.get("/base/{corpus_id}/graph/subgraph", response_model=dict[str, Any])

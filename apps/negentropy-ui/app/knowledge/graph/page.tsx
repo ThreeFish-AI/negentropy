@@ -15,6 +15,7 @@ import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
 import { EntityListPanel } from "./_components/EntityListPanel";
+import { GlobalSearchPanel } from "./_components/GlobalSearchPanel";
 import { GraphCanvas } from "./_components/GraphCanvas";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
@@ -598,6 +599,21 @@ export default function KnowledgeGraphPage() {
                   </p>
                 )}
               </div>
+
+              {/* G1: GraphRAG Global Search — 全局问答 */}
+              {corpusId && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    全局问答（GraphRAG）
+                  </h3>
+                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                    基于社区摘要的 Map-Reduce 全局检索，适合「汇总性问题」
+                  </p>
+                  <div className="mt-2">
+                    <GlobalSearchPanel corpusId={corpusId} />
+                  </div>
+                </div>
+              )}
 
               {/* G3: 时间穿梭检索 — 放在 Stats 之前，作为全局时态视图开关 */}
               {corpusId && (

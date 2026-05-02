@@ -2149,6 +2149,43 @@ export async function fetchCorpusGraph(
   return handleKnowledgeError(res);
 }
 
+export interface GlobalSearchEvidenceItem {
+  community_id: number;
+  partial_answer: string;
+  similarity: number;
+  top_entities: string[];
+}
+
+export interface GlobalSearchResult {
+  query: string;
+  answer: string;
+  evidence: GlobalSearchEvidenceItem[];
+  candidates_total: number;
+  latency_ms: number;
+  summaries_dirty: boolean;
+}
+
+/**
+ * GraphRAG Global Search Map-Reduce（G1）
+ */
+export async function globalSearchKnowledgeGraph(
+  corpusId: string,
+  params: { query: string; maxCommunities?: number },
+): Promise<GlobalSearchResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/global_search`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: params.query,
+        max_communities: params.maxCommunities ?? 10,
+      }),
+    },
+  );
+  return handleKnowledgeError(res);
+}
+
 /**
  * 获取以指定实体为锚点的子图（G2 Cytoscape 增量加载）
  */
