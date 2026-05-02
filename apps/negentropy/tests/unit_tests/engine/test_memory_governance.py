@@ -13,12 +13,10 @@ import pytest
 
 
 class TestRetentionScoreCalculation:
-    """遗忘曲线公式单元测试
+    """多因子遗忘曲线公式单元测试
 
-    验证指数衰减模型:
-        retention_score = min(1.0, time_decay × frequency_boost / 5.0)
-        time_decay = e^(-λ × days_elapsed)
-        frequency_boost = 1 + ln(1 + access_count)
+    验证五因子自适应模型:
+        retention = min(1.0, time_decay × frequency_boost × type_multiplier × semantic_importance / 5.0 + recency_bonus)
     """
 
     @pytest.fixture
@@ -39,9 +37,9 @@ class TestRetentionScoreCalculation:
             last_accessed_at=now,
             created_at=now,
         )
-        # 新记忆: time_decay ≈ 1.0, frequency_boost = 1 + ln(1) = 1.0
-        # retention = min(1.0, 1.0 * 1.0 / 5.0) = 0.2
-        assert 0.15 <= score <= 0.25
+        # 新记忆: time_decay=1.0, frequency_boost=1.0, type=1.0, semantic=1.0
+        # retention = 1.0 * 1.0 * 1.0 * 1.0 / 5.0 + 0.1(recency) = 0.3
+        assert 0.25 <= score <= 0.35
 
     @pytest.mark.asyncio
     async def test_frequently_accessed_memory(self, governance_service):
@@ -54,8 +52,8 @@ class TestRetentionScoreCalculation:
             created_at=now - timedelta(days=30),
         )
         # access_count=100: frequency_boost = 1 + ln(101) ≈ 5.62
-        # time_decay ≈ 1.0 (just accessed)
-        # retention = min(1.0, 1.0 * 5.62 / 5.0) = 1.0
+        # time_decay ≈ 1.0, recency_bonus ≈ 0.092
+        # retention = min(1.0, 1.0 * 5.62 * 1.0 * 1.0 / 5.0 + 0.092) = 1.0
         assert score >= 0.9
 
     @pytest.mark.asyncio
@@ -68,14 +66,13 @@ class TestRetentionScoreCalculation:
             last_accessed_at=now - timedelta(days=30),
             created_at=now - timedelta(days=30),
         )
-        # 30 days without access: time_decay = e^(-0.1 * 30) ≈ 0.05
-        # frequency_boost = 1.0
-        # retention = min(1.0, 0.05 * 1.0 / 5.0) ≈ 0.01
-        assert score < 0.1
+        # 30 days: time_decay = e^(-0.1*30) ≈ 0.05, recency_bonus ≈ 0
+        # retention ≈ 0.05 * 1.0 / 5.0 ≈ 0.01
+        assert score < 0.15
 
     @pytest.mark.asyncio
     async def test_exponential_decay_formula(self, governance_service):
-        """验证指数衰减公式的正确性"""
+        """验证指数衰减公式的正确性（含 recency_bonus）"""
         now = datetime.now()
         lambda_ = 0.1
 
@@ -88,7 +85,8 @@ class TestRetentionScoreCalculation:
                 lambda_=lambda_,
             )
             expected_decay = math.exp(-lambda_ * days)
-            expected_score = min(1.0, expected_decay * 1.0 / 5.0)
+            recency_bonus = max(0, 1.0 - days / 365.0) * 0.1
+            expected_score = min(1.0, expected_decay * 1.0 / 5.0 + recency_bonus)
             assert abs(score - expected_score) < 0.01, f"Day {days}: expected {expected_score:.4f}, got {score:.4f}"
 
     @pytest.mark.asyncio

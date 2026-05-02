@@ -97,6 +97,25 @@ class ContextAssembler:
                 query_embedding=query_embedding,
             )
 
+            # Token Budget 硬性校验：超标时按行截断
+            budget_total = memory_tokens + history_tokens
+            actual_tokens = result.get("token_count", 0)
+            if actual_tokens > budget_total:
+                result = await self._truncate_to_budget(result, budget_total)
+                logger.warning(
+                    "context_budget_overflow",
+                    actual_tokens=actual_tokens,
+                    budget=budget_total,
+                    truncated_tokens=result["token_count"],
+                )
+
+            # 丰富 budget 元数据
+            result["budget"]["actual_tokens"] = result["token_count"]
+            result["budget"]["budget_utilization"] = (
+                result["token_count"] / self._max_tokens if self._max_tokens > 0 else 0.0
+            )
+            result["budget"]["overflow"] = actual_tokens > budget_total
+
             # 隐式反馈：记忆被注入 LLM 上下文 → mark_referenced<sup>[[33]](#ref33)</sup>
             if result.get("memory_context") and retrieval_log_id:
                 try:
@@ -246,6 +265,50 @@ class ContextAssembler:
             context_length=len(context),
         )
         return context
+
+    async def _truncate_to_budget(
+        self,
+        result: dict[str, Any],
+        budget: int,
+    ) -> dict[str, Any]:
+        """按行截断上下文至 token 预算内
+
+        优先保留先召回的高相关性内容（SQL 已按 relevance_score 排序），
+        末行按字符安全截断（chars_per_token × remaining × 0.9）。
+
+        参考 MemGPT<sup>[[7]](#ref7)</sup> Virtual Context Management 的
+        分页截断策略。
+        """
+        context_text = result.get("memory_context", "")
+        if not context_text:
+            return result
+
+        lines = context_text.split("\n")
+        truncated_lines: list[str] = []
+        current_tokens = 0
+
+        for line in lines:
+            line_tokens = await self._accurate_token_count(line)
+            if current_tokens + line_tokens <= budget:
+                truncated_lines.append(line)
+                current_tokens += line_tokens
+            else:
+                remaining = budget - current_tokens
+                if remaining > 50 and line.strip():
+                    chars_per_token = len(line) / max(line_tokens, 1)
+                    safe_chars = int(remaining * chars_per_token * 0.9)
+                    if safe_chars > 0:
+                        truncated_lines.append(line[:safe_chars] + "...")
+                break
+
+        truncated_text = "\n".join(truncated_lines)
+        final_tokens = await self._accurate_token_count(truncated_text)
+
+        return {
+            "memory_context": truncated_text,
+            "token_count": final_tokens,
+            "budget": result.get("budget", {}),
+        }
 
     async def _accurate_token_count(self, text: str) -> int:
         """使用 tiktoken BPE 编码器精确计数（替代 LENGTH/4 估算）"""

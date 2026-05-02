@@ -566,21 +566,35 @@ WHERE updated_at > NOW() - p_interval
 
 记忆不是静态存储，而是一个持续演化的动态系统<sup>[[3]](#ref3)</sup>。MAGMA 架构<sup>[[8]](#ref8)</sup>提出了双流记忆演化（延迟敏感的事件摄入 + 异步结构巩固）的理念。Negentropy 当前以艾宾浩斯遗忘曲线为核心驱动记忆演化。
 
-### 5.1 艾宾浩斯遗忘曲线模型
+### 5.1 多因子自适应遗忘曲线模型
 
-基于 Ebbinghaus 遗忘曲线<sup>[[2]](#ref2)</sup>的指数衰减模型：
+基于 Ebbinghaus 遗忘曲线<sup>[[2]](#ref2)</sup>的指数衰减，扩展为 **五因子自适应模型**（ACT-R 认知架构<sup>[[45]](#ref45)</sup> + FadeMem<sup>[[46]](#ref46)</sup>）：
 
 ```
-retention_score = min(1.0, time_decay × frequency_boost / 5.0)
+retention = min(1.0, time_decay × frequency_boost × type_multiplier × semantic_importance / 5.0 + recency_bonus)
 
 其中:
-  time_decay    = e^(-λ × days_elapsed)
-  frequency_boost = 1 + ln(1 + access_count)
+  time_decay         = e^(-λ_type × days_elapsed)
+  frequency_boost    = 1 + ln(1 + access_count)
+  type_multiplier    = 记忆类型乘子（偏好 1.3 / 流程 1.2 / 事实 1.15 / 情景 1.0）
+  semantic_importance = 1 + min(0.5, related_count × 0.1)
+  recency_bonus      = max(0, 1 - days_since_creation / 365) × 0.1
 ```
 
-- **λ（衰减常数）**：默认 `0.1`，可通过 Automation Config 自定义。值越大衰减越快
+**记忆类型衰减率映射**：
+
+| 类型 | λ | 类型乘子 | 理由 |
+| :-- | :-- | :-- | :-- |
+| preference | 0.05 | 1.3 | 用户偏好应长期保持 |
+| procedural | 0.06 | 1.2 | 技能/流程较稳定 |
+| fact | 0.08 | 1.15 | 事实中等衰减 |
+| episodic | 0.10 | 1.0 | 对话片段衰减最快（基准） |
+
+- **λ_type**：记忆类型特定的衰减常数，覆盖默认 `0.1`
 - **days_elapsed**：距最后访问的天数（`last_accessed_at`）
 - **access_count**：累计访问次数。频率因子使用**对数增长**，避免高频访问过度膨胀分数
+- **related_count**：同 thread 关联的事实和记忆数量（语义重要性）
+- **recency_bonus**：1 年内创建的记忆获得额外 [0, 0.1] 加分
 - **分数范围**：[0.0, 1.0]
 
 **典型衰减曲线**（λ=0.1, access_count=0）：
@@ -594,7 +608,8 @@ retention_score = min(1.0, time_decay × frequency_boost / 5.0)
 
 **代码实现**：
 
-- Python：`MemoryGovernanceService.calculate_retention_score()` — [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py) L264-L323
+- Python：`MemoryGovernanceService.calculate_retention_score()` — [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py)
+- Python：`PostgresMemoryService._calculate_initial_retention()` — [`engine/adapters/postgres/memory_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)
 - SQL：`calculate_retention_score()` plpgsql 函数 — [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) §5
 
 ### 5.2 访问计数强化 (Retrieval-Enhanced Retention)
@@ -695,14 +710,19 @@ flowchart TD
     Q["search_memory(query)"] --> EMB{有 embedding_fn？}
 
     EMB -->|是| HYB["Level 1: Hybrid Search<br/>DB 原生 hybrid_search() 函数<br/>semantic_weight=0.7 + keyword_weight=0.3"]
-    HYB -->|成功| REC["记录访问 → 返回结果"]
+    HYB -->|成功| TAG["标记 search_level=hybrid<br/>score_type=combined"]
     HYB -->|失败/降级| VEC["Level 2: Vector Search<br/>embedding <=> query_embedding<br/>pgvector cosine distance"]
-    VEC --> REC
+    VEC --> TAG2["标记 search_level=vector<br/>score_type=cosine_distance"]
 
     EMB -->|否| BM25["Level 3: BM25 Keyword Search<br/>search_vector @@ plainto_tsquery<br/>ts_rank_cd 排序"]
-    BM25 -->|成功| REC
+    BM25 -->|成功| TAG3["标记 search_level=keyword<br/>score_type=ts_rank"]
     BM25 -->|失败/无 search_vector| ILK["Level 4: ilike Fallback<br/>content ILIKE '%escaped_query%'<br/>通配符转义防注入"]
-    ILK --> REC
+    ILK --> TAG4["标记 search_level=ilike<br/>score_type=retention_proxy"]
+
+    TAG --> REC["记录访问 → 返回结果"]
+    TAG2 --> REC
+    TAG3 --> REC
+    TAG4 --> REC
 
     classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
     classDef level1 fill:#10B981,stroke:#065F46,color:#FFF
@@ -748,6 +768,10 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 | System | 20% (保留) | — | 系统指令保留空间 |
 
 **Token 估算**：采用 tiktoken BPE 编码器精确计数（Phase 1 曾使用 `LENGTH(content) / 4` 粗略估算）。Python 侧通过 [`TokenCounter`](../apps/negentropy/src/negentropy/engine/utils/token_counter.py) 工具类调用，SQL 函数 `get_context_window()` 保留 `LENGTH/4` 作为 DB 侧快速估算，Python 端后校正。参考文献 <sup>[[25]](#ref25)</sup>。
+
+**Token Budget 硬性校验**（Phase 2++ 增强）：组装完成后校验 `token_count <= budget_total`（memory_ratio + history_ratio）。超标时按行截断（优先保留先召回的高相关性内容），并输出 `context_budget_overflow` 结构化日志。参考 MemGPT<sup>[[7]](#ref7)</sup> Virtual Context Management 的分页截断策略。
+
+**搜索结果标准化**（Phase 2++ 增强）：每条搜索结果携带 `search_level` (hybrid|vector|keyword|ilike)、`score_type` (combined|cosine_distance|ts_rank|retention_proxy) 和 `raw_score` 元数据，通过 `custom_metadata` 传播至 ADK `MemoryEntry`。参考 Observability Engineering<sup>[[48]](#ref48)</sup> 的结构化可观测性理念。
 
 ### 6.4 与学术检索范式的对标
 
@@ -1664,6 +1688,18 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 <a id="ref27"></a>[27] J. J. Rocchio, "Relevance feedback in information retrieval," in *The SMART Retrieval System*, G. Salton, Ed. Englewood Cliffs, NJ: Prentice-Hall, 1971, pp. 313-323.
 
 <a id="ref28"></a>[28] C. J. C. Burges et al., "Learning to rank using gradient descent," *ICML*, 2005.
+
+### Phase 2++ 增强参考文献
+
+<a id="ref44"></a>[44] T. Haerder and A. Reuter, "Principles of transaction-oriented database recovery," *ACM Comput. Surveys*, vol. 15, no. 4, pp. 287–317, Dec. 1983.
+
+<a id="ref45"></a>[45] J. R. Anderson et al., "An integrated theory of the mind," *Psychological Review*, vol. 111, no. 4, pp. 1036–1060, 2004.
+
+<a id="ref46"></a>[46] FadeMem, "Biologically-inspired forgetting for agent memory," *arXiv preprint arXiv:2601.18642*, 2026.
+
+<a id="ref47"></a>[47] M. Nygard, *Release It!*, 2nd ed. Raleigh, NC: Pragmatic Bookshelf, 2018.
+
+<a id="ref48"></a>[48] C. Majors, L. Fong-Jones, and G. Miranda, *Observability Engineering*. Sebastopol, CA: O'Reilly, 2022.
 
 ---
 
