@@ -2042,6 +2042,8 @@ export interface GraphEntityItem {
   entity_type: string;
   confidence: number;
   mention_count: number;
+  importance_score?: number | null;
+  community_id?: number | null;
   description?: string;
   is_active: boolean;
 }
@@ -2083,6 +2085,8 @@ export interface GraphStatsResponse {
   avg_confidence: number;
   density: number;
   avg_degree: number;
+  community_count: number;
+  community_distribution: Record<string, number>;
 }
 
 /**
@@ -2207,6 +2211,7 @@ export async function fetchGraphEntities(
   params?: {
     entity_type?: string;
     search?: string;
+    sort_by?: string;
     limit?: number;
     offset?: number;
   },
@@ -2214,6 +2219,7 @@ export async function fetchGraphEntities(
   const query = new URLSearchParams();
   if (params?.entity_type) query.set("entity_type", params.entity_type);
   if (params?.search) query.set("search", params.search);
+  if (params?.sort_by) query.set("sort_by", params.sort_by);
   if (params?.limit) query.set("limit", String(params.limit));
   if (params?.offset) query.set("offset", String(params.offset));
 

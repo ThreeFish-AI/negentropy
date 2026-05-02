@@ -356,10 +356,14 @@ class KgEntityService:
         corpus_id: UUID,
         entity_type: str | None = None,
         search: str | None = None,
+        sort_by: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[dict], int]:
         """分页实体列表
+
+        Args:
+            sort_by: "importance" 按重要性降序，默认按 mention_count 降序
 
         Returns:
             (items, total_count)
@@ -382,7 +386,15 @@ class KgEntityService:
         count_q = sql_select(sql_func.count()).select_from(base.subquery())
         total = (await db.execute(count_q)).scalar_one()
 
-        items_q = base.order_by(KgEntity.mention_count.desc(), KgEntity.confidence.desc()).limit(limit).offset(offset)
+        if sort_by == "importance":
+            items_q = base.order_by(
+                KgEntity.importance_score.desc().nullslast(),
+                KgEntity.mention_count.desc(),
+            )
+        else:
+            items_q = base.order_by(KgEntity.mention_count.desc(), KgEntity.confidence.desc())
+
+        items_q = items_q.limit(limit).offset(offset)
         rows = (await db.execute(items_q)).scalars().all()
 
         items = [
@@ -392,6 +404,8 @@ class KgEntityService:
                 "entity_type": r.entity_type,
                 "confidence": float(r.confidence) if r.confidence else 0,
                 "mention_count": r.mention_count,
+                "importance_score": float(r.importance_score) if r.importance_score else None,
+                "community_id": r.community_id,
                 "description": r.description,
                 "is_active": r.is_active,
             }
@@ -477,5 +491,6 @@ class KgEntityService:
             "aliases": entity.aliases,
             "properties": entity.properties,
             "is_active": entity.is_active,
+            "community_id": entity.community_id,
             "relations": relations,
         }

@@ -19,11 +19,17 @@ import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
-import { entityColor } from "./_components/constants";
+import { entityColor, communityColor } from "./_components/constants";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
-type GraphNode = { id: string; label?: string; type?: string };
+type GraphNode = {
+  id: string;
+  label?: string;
+  type?: string;
+  importance?: number;
+  community_id?: number | null;
+};
 type GraphEdge = { source: string; target: string; label?: string };
 type GraphNodePos = GraphNode & {
   x: number;
@@ -33,6 +39,13 @@ type GraphNodePos = GraphNode & {
   fx?: number | null;
   fy?: number | null;
 };
+
+/** 根据 PageRank importance 计算节点半径，范围 4~12px */
+function nodeRadius(importance?: number): number {
+  if (importance == null) return 6;
+  const clamped = Math.min(Math.max(importance, 0), 1);
+  return 4 + 8 * clamped;
+}
 
 export default function KnowledgeGraphPage() {
   const [corpusId, setCorpusId] = useState<string | null>(null);
@@ -398,8 +411,19 @@ export default function KnowledgeGraphPage() {
                             <circle
                               cx={node.x}
                               cy={node.y}
-                              r={selectedNodeId === node.id ? 12 : 8}
-                              fill={entityColor(node.type)}
+                              r={
+                                selectedNodeId === node.id
+                                  ? Math.max(
+                                      nodeRadius(node.importance) + 4,
+                                      12,
+                                    )
+                                  : nodeRadius(node.importance)
+                              }
+                              fill={
+                                node.community_id != null
+                                  ? communityColor(node.community_id)
+                                  : entityColor(node.type)
+                              }
                               stroke={
                                 selectedNodeId === node.id
                                   ? "#18181b"

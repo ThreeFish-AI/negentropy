@@ -6,7 +6,7 @@ import {
   fetchGraphEntities,
 } from "@/features/knowledge";
 
-import { ENTITY_TYPE_COLORS } from "./constants";
+import { ENTITY_TYPE_COLORS, communityColor } from "./constants";
 
 const ENTITY_TYPES = Object.keys(ENTITY_TYPE_COLORS);
 
@@ -24,13 +24,14 @@ export function EntityListPanel({
   const [entities, setEntities] = useState<GraphEntityItem[]>([]);
   const [total, setTotal] = useState(0);
   const [entityType, setEntityType] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [completedKey, setCompletedKey] = useState<string | null>(null);
   const limit = 30;
 
-  const fetchKey = `${entityType}:${search}:${page}`;
+  const fetchKey = `${entityType}:${search}:${page}:${sortBy}`;
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 300);
@@ -42,6 +43,7 @@ export function EntityListPanel({
     fetchGraphEntities(corpusId, {
       entity_type: entityType || undefined,
       search: search || undefined,
+      sort_by: sortBy || undefined,
       limit,
       offset: page * limit,
     })
@@ -61,7 +63,7 @@ export function EntityListPanel({
     return () => {
       cancelled = true;
     };
-  }, [corpusId, entityType, search, page, fetchKey]);
+  }, [corpusId, entityType, search, page, sortBy, fetchKey]);
 
   const loading = fetchKey !== completedKey;
 
@@ -96,6 +98,17 @@ export function EntityListPanel({
             </option>
           ))}
         </select>
+        <select
+          value={sortBy}
+          onChange={(e) => {
+            setSortBy(e.target.value);
+            setPage(0);
+          }}
+          className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          <option value="">按提及数</option>
+          <option value="importance">按重要性</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -117,6 +130,9 @@ export function EntityListPanel({
                 </th>
                 <th className="py-2 px-2 text-left font-medium text-zinc-500 dark:text-zinc-400">
                   类型
+                </th>
+                <th className="py-2 px-2 text-left font-medium text-zinc-500 dark:text-zinc-400">
+                  社区
                 </th>
                 <th className="py-2 px-2 text-right font-medium text-zinc-500 dark:text-zinc-400">
                   置信度
@@ -153,6 +169,21 @@ export function EntityListPanel({
                         {entity.entity_type}
                       </span>
                     </span>
+                  </td>
+                  <td className="py-2 px-2">
+                    {entity.community_id != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: communityColor(entity.community_id) }}
+                        />
+                        <span className="text-zinc-600 dark:text-zinc-400">
+                          C-{entity.community_id}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400">-</span>
+                    )}
                   </td>
                   <td className="py-2 px-2 text-right text-zinc-600 dark:text-zinc-400">
                     {entity.confidence.toFixed(2)}

@@ -300,6 +300,90 @@ class GraphService:
             # 持久化关系
             await self._repository.create_relations(valid_relations)
 
+            # 同步到一等公民表 (kg_entities / kg_relations)
+            # 参见 Kleppmann DDIA §11: 事务内双写保证 SSoT 一致性
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .kg_entity_service import KgEntityService
+
+                kg_service = KgEntityService()
+                node_dicts = [
+                    {
+                        "id": e.id.replace("entity:", ""),
+                        "label": e.label,
+                        "node_type": e.node_type,
+                        "confidence": e.metadata.get("confidence", 1.0),
+                        "metadata": e.metadata,
+                    }
+                    for e in entities_to_save
+                ]
+                edge_dicts = [
+                    {
+                        "source": r.source.replace("entity:", ""),
+                        "target": r.target.replace("entity:", ""),
+                        "edge_type": r.edge_type,
+                        "label": r.label,
+                        "weight": r.weight,
+                        "evidence_text": r.metadata.get("evidence"),
+                    }
+                    for r in valid_relations
+                ]
+                async with AsyncSessionLocal() as sync_db:
+                    sync_result = await kg_service.batch_sync_from_graph_build(
+                        sync_db,
+                        nodes=node_dicts,
+                        edges=edge_dicts,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                    )
+                    logger.info(
+                        "kg_first_class_sync",
+                        **sync_result,
+                    )
+            except Exception as sync_exc:
+                logger.warning(
+                    "kg_first_class_sync_failed",
+                    error=str(sync_exc),
+                )
+
+            # 计算 PageRank 实体重要性 (Brin & Page, 1998)
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .graph_algorithms import compute_pagerank
+
+                async with AsyncSessionLocal() as pr_db:
+                    pr_result = await compute_pagerank(pr_db, corpus_id)
+                    logger.info(
+                        "pagerank_computed",
+                        entity_count=len(pr_result),
+                    )
+            except Exception as pr_exc:
+                logger.warning(
+                    "pagerank_computation_failed",
+                    error=str(pr_exc),
+                )
+
+            # 计算 Louvain 社区检测 (Blondel et al., 2008)
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .graph_algorithms import compute_louvain
+
+                async with AsyncSessionLocal() as lv_db:
+                    lv_result = await compute_louvain(lv_db, corpus_id)
+                    logger.info(
+                        "louvain_computed",
+                        entity_count=len(lv_result),
+                        community_count=len(set(lv_result.values())) if lv_result else 0,
+                    )
+            except Exception as lv_exc:
+                logger.warning(
+                    "louvain_computation_failed",
+                    error=str(lv_exc),
+                )
+
             elapsed = time.time() - start_time
 
             # 更新构建运行状态
@@ -401,6 +485,7 @@ class GraphService:
             graph_depth=query_config.max_depth,
             semantic_weight=query_config.semantic_weight,
             graph_weight=query_config.graph_weight,
+            rrf_k=query_config.rrf_k if query_config.use_rrf else None,
         )
 
         # 可选：加载邻居信息
@@ -648,6 +733,50 @@ class GraphService:
             max_edges = total_entities * (total_entities - 1)
             density = round(edge_count / max_edges, 4)
 
+        # Top entities by importance (PageRank)
+        top_entities_result = await db.execute(
+            sql_select(KgEntity.id, KgEntity.name, KgEntity.entity_type, KgEntity.importance_score)
+            .where(
+                KgEntity.corpus_id == corpus_id,
+                KgEntity.is_active == True,  # noqa: E712
+                KgEntity.importance_score != None,  # noqa: E711
+            )
+            .order_by(KgEntity.importance_score.desc())
+            .limit(5)
+        )
+        top_entities = [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "entity_type": row.entity_type,
+                "importance_score": round(float(row.importance_score), 6),
+            }
+            for row in top_entities_result
+        ]
+
+        # Community distribution (Louvain)
+        community_result = await db.execute(
+            sql_select(KgEntity.community_id, sql_func.count())
+            .where(
+                KgEntity.corpus_id == corpus_id,
+                KgEntity.is_active == True,  # noqa: E712
+                KgEntity.community_id != None,  # noqa: E711
+            )
+            .group_by(KgEntity.community_id)
+            .order_by(sql_func.count().desc())
+            .limit(10)
+        )
+        community_distribution = {str(row[0]): row[1] for row in community_result.all()}
+
+        community_count_result = await db.execute(
+            sql_select(sql_func.count(sql_func.distinct(KgEntity.community_id))).where(
+                KgEntity.corpus_id == corpus_id,
+                KgEntity.is_active == True,  # noqa: E712
+                KgEntity.community_id != None,  # noqa: E711
+            )
+        )
+        community_count = community_count_result.scalar_one()
+
         return {
             "total_entities": total_entities,
             "edge_count": edge_count,
@@ -655,6 +784,9 @@ class GraphService:
             "avg_confidence": round(avg_confidence, 3),
             "density": density,
             "avg_degree": round(2 * edge_count / total_entities, 1) if total_entities > 0 else 0,
+            "top_entities": top_entities,
+            "community_count": community_count,
+            "community_distribution": community_distribution,
         }
 
     async def clear_graph(

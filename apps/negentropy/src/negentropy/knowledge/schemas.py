@@ -345,6 +345,8 @@ class GraphEntityItem(BaseModel):
     entity_type: str
     confidence: float = 0.0
     mention_count: int = 0
+    importance_score: float | None = None
+    community_id: int | None = None
     description: str | None = None
     is_active: bool = True
 
@@ -394,6 +396,9 @@ class GraphStatsResponse(BaseModel):
     avg_confidence: float = 0.0
     density: float = 0.0
     avg_degree: float = 0.0
+    top_entities: list[dict[str, Any]] = Field(default_factory=list)
+    community_count: int = 0
+    community_distribution: dict[str, int] = Field(default_factory=dict)
 
 
 # ============================================================================

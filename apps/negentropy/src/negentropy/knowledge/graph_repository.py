@@ -454,39 +454,66 @@ class AgeGraphRepository(GraphRepository):
     ) -> str:
         """创建关系边
 
-        当前实现：将关系存储在 knowledge 表的 metadata 中。
-        未来：使用 Apache AGE Cypher 创建关系。
+        写入 kg_relations 一等公民表（SSoT），同时保留 knowledge.metadata JSONB
+        作为过渡期兼容。参见 Kleppmann §11 事务内双写模式。
         """
+        import json as _json
+
         session = await self._get_session()
 
-        # 将关系信息存储到源实体的 metadata 中
+        clean_source = source_id.replace("entity:", "")
+        clean_target = target_id.replace("entity:", "")
+        confidence = relation.metadata.get("confidence", 1.0)
+        evidence = relation.metadata.get("evidence")
+
+        # 1. 写入 kg_relations 一等公民表
+        insert_query = text(f"""
+            INSERT INTO {self._schema}.kg_relations
+                (source_id, target_id, corpus_id, app_name, relation_type,
+                 weight, confidence, evidence_text, metadata, is_active)
+            SELECT :source_id, :target_id, k.corpus_id, k.app_name,
+                   :relation_type, :weight, :confidence, :evidence, :metadata::jsonb, true
+            FROM {self._schema}.knowledge k
+            WHERE k.id = :source_id
+            ON CONFLICT DO NOTHING
+        """)
+
+        await session.execute(
+            insert_query,
+            {
+                "source_id": clean_source,
+                "target_id": clean_target,
+                "relation_type": relation.edge_type or "RELATED_TO",
+                "weight": relation.weight or 1.0,
+                "confidence": confidence,
+                "evidence": evidence,
+                "metadata": _json.dumps(relation.metadata or {}),
+            },
+        )
+
+        # 2. 过渡期：同时写入 JSONB（兼容旧读取路径）
         relation_data = {
-            "target_id": target_id,
+            "target_id": clean_target,
             "relation_type": relation.edge_type,
-            "confidence": relation.metadata.get("confidence", 1.0),
-            "evidence": relation.metadata.get("evidence"),
+            "confidence": confidence,
+            "evidence": evidence,
         }
 
-        # 获取当前 related_entities 列表
-        query = text(f"""
+        select_query = text(f"""
             SELECT metadata->'related_entities' as related
             FROM {self._schema}.knowledge
             WHERE id = :source_id
         """)
 
-        result = await session.execute(query, {"source_id": source_id.replace("entity:", "")})
+        result = await session.execute(select_query, {"source_id": clean_source})
         row = result.fetchone()
 
         related_entities = []
         if row and row.related:
-            import json
+            related_entities = _json.loads(row.related) if isinstance(row.related, str) else row.related
 
-            related_entities = json.loads(row.related) if isinstance(row.related, str) else row.related
-
-        # 添加新关系
         related_entities.append(relation_data)
 
-        # 更新 metadata
         update_query = text(f"""
             UPDATE {self._schema}.knowledge
             SET metadata = COALESCE(metadata, '{{}}'::jsonb) ||
@@ -494,13 +521,11 @@ class AgeGraphRepository(GraphRepository):
             WHERE id = :source_id
         """)
 
-        import json
-
         await session.execute(
             update_query,
             {
-                "source_id": source_id.replace("entity:", ""),
-                "related": json.dumps(related_entities),
+                "source_id": clean_source,
+                "related": _json.dumps(related_entities),
             },
         )
 
@@ -742,11 +767,185 @@ class AgeGraphRepository(GraphRepository):
         graph_depth: int = 1,
         semantic_weight: float = 0.6,
         graph_weight: float = 0.4,
+        rrf_k: int | None = None,
     ) -> list[GraphSearchResult]:
-        """混合检索 (向量 + 图遍历)"""
+        """混合检索 (向量 + 图遍历)
+
+        当 rrf_k 不为 None 时使用 Reciprocal Rank Fusion (Cormack et al., SIGIR 2009)，
+        否则使用线性加权组合。
+        """
+
         session = await self._get_session()
 
-        # 调用数据库函数 kg_hybrid_search
+        if rrf_k is not None:
+            # RRF 模式：分别查询语义和图排序，然后融合
+            results = await self._rrf_search(
+                session,
+                corpus_id,
+                app_name,
+                query_embedding,
+                query_text,
+                limit,
+                rrf_k,
+            )
+        else:
+            # 线性加权模式（向后兼容）
+            results = await self._linear_weighted_search(
+                session,
+                corpus_id,
+                app_name,
+                query_embedding,
+                query_text,
+                limit,
+                graph_depth,
+                semantic_weight,
+                graph_weight,
+            )
+
+        logger.debug(
+            "hybrid_search_completed",
+            corpus_id=str(corpus_id),
+            result_count=len(results),
+            mode="rrf" if rrf_k else "linear",
+        )
+
+        return results
+
+    async def _rrf_search(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,
+        query_embedding: list[float],
+        query_text: str,
+        limit: int,
+        rrf_k: int,
+    ) -> list[GraphSearchResult]:
+        """RRF 混合检索：score(d) = Σ 1/(k + rank_i(d))"""
+        import json as _json
+
+        schema = self._schema
+
+        # 1. 语义排序：基于向量相似度
+        semantic_query = text(f"""
+            SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                   e.metadata as properties,
+                   1 - (e.embedding <=> :embedding::vector) as semantic_score
+            FROM {schema}.kg_entities e
+            WHERE e.corpus_id = :corpus_id AND e.is_active = true
+              AND e.embedding IS NOT NULL
+            ORDER BY e.embedding <=> :embedding::vector
+            LIMIT :limit * 2
+        """)
+
+        sem_result = await session.execute(
+            semantic_query,
+            {
+                "corpus_id": str(corpus_id),
+                "embedding": _json.dumps(query_embedding),
+                "limit": limit,
+            },
+        )
+
+        # 收集语义排名
+        entity_data: dict[str, dict[str, Any]] = {}
+        sem_rank: dict[str, int] = {}
+        for i, row in enumerate(sem_result, start=1):
+            eid = str(row.id)
+            sem_rank[eid] = i
+            entity_data[eid] = {
+                "name": row.name,
+                "entity_type": row.entity_type,
+                "confidence": row.confidence,
+                "description": row.description,
+                "properties": row.properties or {},
+                "semantic_score": float(row.semantic_score),
+            }
+
+        if not entity_data:
+            return []
+
+        # 2. 图排序：基于 importance_score (PageRank)
+        graph_query = text(f"""
+            SELECT e.id, e.name, e.importance_score
+            FROM {schema}.kg_entities e
+            WHERE e.corpus_id = :corpus_id AND e.is_active = true
+              AND e.importance_score IS NOT NULL
+            ORDER BY e.importance_score DESC
+            LIMIT :limit * 2
+        """)
+
+        graph_result = await session.execute(
+            graph_query,
+            {"corpus_id": str(corpus_id), "limit": limit},
+        )
+
+        graph_rank: dict[str, int] = {}
+        for i, row in enumerate(graph_result, start=1):
+            eid = str(row.id)
+            graph_rank[eid] = i
+            imp_score = float(row.importance_score) if row.importance_score else 0.0
+            if eid not in entity_data:
+                entity_data[eid] = {
+                    "name": row.name,
+                    "entity_type": "",
+                    "confidence": 0,
+                    "description": None,
+                    "properties": {},
+                    "semantic_score": 0.0,
+                    "importance_score": imp_score,
+                }
+            else:
+                entity_data[eid]["importance_score"] = imp_score
+
+        # 3. RRF 融合
+        rrf_scores: dict[str, float] = {}
+        for eid in entity_data:
+            score = 0.0
+            if eid in sem_rank:
+                score += 1.0 / (rrf_k + sem_rank[eid])
+            if eid in graph_rank:
+                score += 1.0 / (rrf_k + graph_rank[eid])
+            rrf_scores[eid] = score
+
+        # 4. 排序并构建结果
+        sorted_ids = sorted(rrf_scores, key=rrf_scores.get, reverse=True)[:limit]
+
+        results = []
+        for eid in sorted_ids:
+            data = entity_data[eid]
+            entity = GraphNode(
+                id=f"entity:{eid}",
+                label=data["name"],
+                node_type=data.get("entity_type"),
+                metadata=data.get("properties", {}),
+            )
+            results.append(
+                GraphSearchResult(
+                    entity=entity,
+                    semantic_score=data.get("semantic_score", 0),
+                    graph_score=float(entity_data[eid].get("importance_score", 0) or 0),
+                    combined_score=rrf_scores[eid],
+                )
+            )
+
+        return results
+
+    async def _linear_weighted_search(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,
+        query_embedding: list[float],
+        query_text: str,
+        limit: int,
+        graph_depth: int,
+        semantic_weight: float,
+        graph_weight: float,
+    ) -> list[GraphSearchResult]:
+        """线性加权混合检索（向后兼容）"""
+        import json as _json
+
         query = text(f"""
             SELECT * FROM {self._schema}.kg_hybrid_search(
                 p_corpus_id := :corpus_id,
@@ -760,15 +959,13 @@ class AgeGraphRepository(GraphRepository):
             )
         """)
 
-        import json
-
         result = await session.execute(
             query,
             {
                 "corpus_id": str(corpus_id),
                 "app_name": app_name,
                 "query": query_text,
-                "embedding": json.dumps(query_embedding),
+                "embedding": _json.dumps(query_embedding),
                 "limit": limit,
                 "graph_depth": graph_depth,
                 "semantic_weight": semantic_weight,
@@ -806,10 +1003,127 @@ class AgeGraphRepository(GraphRepository):
         corpus_id: UUID,
         app_name: str,
     ) -> KnowledgeGraphPayload:
-        """获取完整图谱"""
+        """获取完整图谱
+
+        优先从 kg_entities + kg_relations 一等公民表读取。
+        若一等公民表为空（旧数据迁移前），回退到 knowledge.metadata JSONB。
+        """
         session = await self._get_session()
 
-        # 获取所有实体
+        # 尝试从一等公民表读取
+        nodes, edges = await self._load_graph_from_first_class_tables(
+            session,
+            corpus_id,
+            app_name,
+        )
+
+        # 回退：从 knowledge.metadata JSONB 读取（兼容旧数据）
+        if not nodes:
+            nodes, edges = await self._load_graph_from_jsonb(
+                session,
+                corpus_id,
+                app_name,
+            )
+
+        logger.info(
+            "graph_loaded",
+            corpus_id=str(corpus_id),
+            node_count=len(nodes),
+            edge_count=len(edges),
+        )
+
+        return KnowledgeGraphPayload(nodes=nodes, edges=edges)
+
+    async def _load_graph_from_first_class_tables(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,  # noqa: ARG002 — kg_entities 按 corpus 去重，不受 app 维度约束
+    ) -> tuple[list[GraphNode], list[GraphEdge]]:
+        """从 kg_entities + kg_relations 一等公民表加载图谱
+
+        kg_entities 按 corpus_id 去重存储（同一实体跨 app 合并），
+        因此不按 app_name 过滤，与 JSONB 回退路径按 app 过滤的行为不同。
+        """
+        # 加载实体
+        entities_query = text(f"""
+            SELECT id, name, canonical_name, entity_type, confidence,
+                   mention_count, description, properties,
+                   importance_score, community_id
+            FROM {self._schema}.kg_entities
+            WHERE corpus_id = :corpus_id AND is_active = true
+            ORDER BY mention_count DESC NULLS LAST
+        """)
+
+        result = await session.execute(
+            entities_query,
+            {"corpus_id": str(corpus_id)},
+        )
+
+        nodes = []
+        entity_ids = set()
+        for row in result:
+            nodes.append(
+                GraphNode(
+                    id=f"entity:{row.id}",
+                    label=row.name or row.canonical_name,
+                    node_type=row.entity_type,
+                    metadata={
+                        "confidence": row.confidence,
+                        "mention_count": row.mention_count,
+                        "description": row.description,
+                        "importance_score": float(row.importance_score) if row.importance_score else None,
+                        "community_id": row.community_id,
+                        **(row.properties or {}),
+                    },
+                )
+            )
+            entity_ids.add(str(row.id))
+
+        if not nodes:
+            return [], []
+
+        # 加载关系
+        relations_query = text(f"""
+            SELECT r.source_id, r.target_id, r.relation_type,
+                   r.weight, r.confidence, r.evidence_text
+            FROM {self._schema}.kg_relations r
+            WHERE r.corpus_id = :corpus_id AND r.is_active = true
+        """)
+
+        result = await session.execute(
+            relations_query,
+            {"corpus_id": str(corpus_id)},
+        )
+
+        edges = []
+        for row in result:
+            source_str = str(row.source_id)
+            target_str = str(row.target_id)
+            # 只包含两端实体都在结果中的边
+            if source_str in entity_ids and target_str in entity_ids:
+                edges.append(
+                    GraphEdge(
+                        source=f"entity:{source_str}",
+                        target=f"entity:{target_str}",
+                        edge_type=row.relation_type,
+                        weight=row.weight or 1.0,
+                        metadata={
+                            "confidence": row.confidence,
+                            "evidence": row.evidence_text,
+                        },
+                    )
+                )
+
+        return nodes, edges
+
+    async def _load_graph_from_jsonb(
+        self,
+        session: AsyncSession,
+        corpus_id: UUID,
+        app_name: str,
+    ) -> tuple[list[GraphNode], list[GraphEdge]]:
+        """从 knowledge.metadata JSONB 加载图谱（旧数据回退路径）"""
         entities_query = text(f"""
             SELECT id, content, entity_type, metadata, entity_confidence
             FROM {self._schema}.knowledge
@@ -820,10 +1134,7 @@ class AgeGraphRepository(GraphRepository):
 
         result = await session.execute(
             entities_query,
-            {
-                "corpus_id": str(corpus_id),
-                "app_name": app_name,
-            },
+            {"corpus_id": str(corpus_id), "app_name": app_name},
         )
 
         nodes = []
@@ -838,53 +1149,64 @@ class AgeGraphRepository(GraphRepository):
             )
             nodes.append(node)
 
-            # 从 metadata 中提取关系
             if row.metadata and "related_entities" in row.metadata:
                 for rel in row.metadata["related_entities"]:
-                    edge = GraphEdge(
-                        source=f"entity:{row.id}",
-                        target=rel.get("target_id", ""),
-                        edge_type=rel.get("relation_type", "RELATED_TO"),
-                        weight=rel.get("confidence", 1.0),
-                        metadata={"evidence": rel.get("evidence")},
+                    edges.append(
+                        GraphEdge(
+                            source=f"entity:{row.id}",
+                            target=rel.get("target_id", ""),
+                            edge_type=rel.get("relation_type", "RELATED_TO"),
+                            weight=rel.get("confidence", 1.0),
+                            metadata={"evidence": rel.get("evidence")},
+                        )
                     )
-                    edges.append(edge)
 
-        logger.info(
-            "graph_loaded",
-            corpus_id=str(corpus_id),
-            node_count=len(nodes),
-            edge_count=len(edges),
-        )
-
-        return KnowledgeGraphPayload(nodes=nodes, edges=edges)
+        return nodes, edges
 
     async def clear_graph(
         self,
         corpus_id: UUID,
     ) -> int:
-        """清除语料库的图谱数据"""
+        """清除语料库的图谱数据
+
+        同时清理 kg_entities、kg_relations 一等公民表和 knowledge.metadata JSONB。
+        """
         session = await self._get_session()
 
-        # 重置实体相关字段
-        query = text(f"""
-            UPDATE {self._schema}.knowledge
-            SET entity_type = NULL,
-                entity_confidence = NULL,
-                metadata = metadata - 'related_entities'
-            WHERE corpus_id = :corpus_id
-              AND entity_type IS NOT NULL
-        """)
+        # 1. 清理一等公民表
+        await session.execute(
+            text(f"DELETE FROM {self._schema}.kg_relations WHERE corpus_id = :cid"),
+            {"cid": str(corpus_id)},
+        )
+        entity_result = await session.execute(
+            text(f"DELETE FROM {self._schema}.kg_entities WHERE corpus_id = :cid"),
+            {"cid": str(corpus_id)},
+        )
+        entity_count = entity_result.rowcount or 0
 
-        result = await session.execute(query, {"corpus_id": str(corpus_id)})
+        # 2. 重置 knowledge 表的实体字段
+        knowledge_result = await session.execute(
+            text(f"""
+                UPDATE {self._schema}.knowledge
+                SET entity_type = NULL,
+                    entity_confidence = NULL,
+                    metadata = metadata - 'related_entities'
+                WHERE corpus_id = :corpus_id
+                  AND entity_type IS NOT NULL
+            """),
+            {"corpus_id": str(corpus_id)},
+        )
+        knowledge_count = knowledge_result.rowcount or 0
+
         await session.commit()
 
-        count = result.rowcount
+        count = max(entity_count, knowledge_count)
 
         logger.info(
             "graph_cleared",
             corpus_id=str(corpus_id),
-            nodes_cleared=count,
+            entities_cleared=entity_count,
+            knowledge_cleared=knowledge_count,
         )
 
         return count

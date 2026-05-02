@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { type GraphStatsResponse, fetchGraphStats } from "@/features/knowledge";
+import { communityColor } from "./constants";
 
 interface GraphStatsPanelProps {
   corpusId: string;
@@ -115,6 +116,76 @@ export function GraphStatsPanel({ corpusId }: GraphStatsPanelProps) {
           </div>
         </div>
       )}
+
+      {/* Top Entities by Importance (PageRank) */}
+      {"top_entities" in stats &&
+        Array.isArray(stats.top_entities) &&
+        stats.top_entities.length > 0 && (
+          <div>
+            <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+              Top 实体 (PageRank)
+            </p>
+            <div className="space-y-1">
+              {stats.top_entities.map(
+                (e: { name: string; entity_type: string; importance_score: number }, i: number) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-400 w-3">{i + 1}</span>
+                    <span className="text-xs text-zinc-900 dark:text-zinc-100 truncate flex-1">
+                      {e.name}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      {e.importance_score.toFixed(4)}
+                    </span>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        )}
+
+      {/* Community Distribution (Louvain) */}
+      {"community_distribution" in stats &&
+        Object.keys(stats.community_distribution).length > 0 && (
+          <div>
+            <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+              社区分布 (Louvain) — {stats.community_count} 个社区
+            </p>
+            <div className="space-y-1">
+              {Object.entries(stats.community_distribution)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 8)
+                .map(([cid, count]) => {
+                  const pct =
+                    stats.total_entities > 0
+                      ? Math.round((count / stats.total_entities) * 100)
+                      : 0;
+                  return (
+                    <div key={cid} className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2 w-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: communityColor(Number(cid)) }}
+                      />
+                      <span className="text-xs text-zinc-600 dark:text-zinc-400 w-10">
+                        C-{cid}
+                      </span>
+                      <div className="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-700">
+                        <div
+                          className="h-2 rounded-full"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: communityColor(Number(cid)),
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-8 text-right">
+                        {count}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
     </div>
   );
 }
