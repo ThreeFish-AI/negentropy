@@ -44,10 +44,13 @@ from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
 
 from .adapters.postgres.memory_automation_service import MemoryAutomationUnavailableError
 from .factories.memory import (
+    get_association_service,
+    get_conflict_resolver,
     get_fact_service,
     get_memory_automation_service,
     get_memory_governance_service,
     get_memory_service,
+    get_proactive_recall_service,
 )
 
 logger = get_logger("negentropy.engine.api")
@@ -66,6 +69,7 @@ class MemoryItem(BaseModel):
     memory_type: str
     content: str
     retention_score: float
+    importance_score: float = 0.5
     access_count: int
     created_at: str | None = None
     last_accessed_at: str | None = None
@@ -103,6 +107,7 @@ class FactItem(BaseModel):
     key: str
     value: dict[str, Any]
     confidence: float
+    importance_score: float = 0.5
     valid_from: str | None = None
     valid_until: str | None = None
     created_at: str | None = None
@@ -147,7 +152,9 @@ class MemoryDashboardResponse(BaseModel):
     memory_count: int
     fact_count: int
     avg_retention_score: float
+    avg_importance_score: float = 0.0
     low_retention_count: int
+    high_importance_count: int = 0
     recent_audit_count: int
 
 
@@ -302,6 +309,9 @@ async def get_memory_dashboard(
         # 平均 retention_score
         avg_retention = await db.scalar(select(func.avg(Memory.retention_score)).where(*memory_filters))
 
+        # 平均 importance_score
+        avg_importance = await db.scalar(select(func.avg(Memory.importance_score)).where(*memory_filters))
+
         # 低保留记忆数 (retention_score < 0.1)
         low_retention_count = await db.scalar(
             select(func.count()).select_from(
@@ -309,6 +319,18 @@ async def get_memory_dashboard(
                 .where(
                     *memory_filters,
                     Memory.retention_score < 0.1,
+                )
+                .subquery()
+            )
+        )
+
+        # 高重要性记忆数 (importance_score >= 0.7)
+        high_importance_count = await db.scalar(
+            select(func.count()).select_from(
+                select(Memory)
+                .where(
+                    *memory_filters,
+                    Memory.importance_score >= 0.7,
                 )
                 .subquery()
             )
@@ -324,7 +346,9 @@ async def get_memory_dashboard(
         memory_count=memory_count or 0,
         fact_count=fact_count or 0,
         avg_retention_score=round(float(avg_retention or 0), 4),
+        avg_importance_score=round(float(avg_importance or 0), 4),
         low_retention_count=low_retention_count or 0,
+        high_importance_count=high_importance_count or 0,
         recent_audit_count=recent_audit_count or 0,
     )
 
@@ -373,6 +397,7 @@ async def list_memories(
             memory_type=m.memory_type,
             content=m.content,
             retention_score=m.retention_score,
+            importance_score=m.importance_score,
             access_count=m.access_count,
             created_at=_iso(m.created_at),
             last_accessed_at=_iso(m.last_accessed_at),
@@ -482,6 +507,7 @@ async def list_facts(
             key=f.key,
             value=f.value,
             confidence=f.confidence,
+            importance_score=f.importance_score,
             valid_from=_iso(f.valid_from),
             valid_until=_iso(f.valid_until),
             created_at=_iso(f.created_at),
@@ -517,6 +543,7 @@ async def search_facts(payload: FactSearchRequest) -> FactListResponse:
             key=f.key,
             value=f.value,
             confidence=f.confidence,
+            importance_score=f.importance_score,
             valid_from=_iso(f.valid_from),
             valid_until=_iso(f.valid_until),
             created_at=_iso(f.created_at),
@@ -782,3 +809,303 @@ async def get_retrieval_metrics(
         days=days,
     )
     return RetrievalMetricsResponse(**metrics)
+
+
+# ============================================================================
+# Conflict Resolution Endpoints
+# ============================================================================
+
+
+class ConflictItem(BaseModel):
+    id: str
+    user_id: str
+    app_name: str
+    old_fact_id: str | None = None
+    new_fact_id: str | None = None
+    conflict_type: str
+    resolution: str
+    detected_by: str
+    created_at: str | None = None
+
+
+class ConflictListResponse(BaseModel):
+    count: int
+    items: list[ConflictItem] = Field(default_factory=list)
+
+
+class ManualResolveRequest(BaseModel):
+    resolution: str  # supersede, keep_old, keep_new, merge
+
+
+@router.get("/conflicts", response_model=ConflictListResponse)
+async def list_conflicts(
+    user_id: str | None = Query(default=None),
+    app_name: str | None = Query(default=None),
+    resolution: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    user: AuthUser = Depends(get_current_user),
+) -> ConflictListResponse:
+    """列出记忆冲突记录"""
+    resolved_app = _resolve_app_name(app_name)
+    resolver = get_conflict_resolver()
+
+    conflicts = await resolver.list_conflicts(
+        user_id=user_id,
+        app_name=resolved_app,
+        resolution=resolution,
+        limit=limit,
+        offset=offset,
+    )
+
+    items = [
+        ConflictItem(
+            id=str(c.id),
+            user_id=c.user_id,
+            app_name=c.app_name,
+            old_fact_id=str(c.old_fact_id) if c.old_fact_id else None,
+            new_fact_id=str(c.new_fact_id) if c.new_fact_id else None,
+            conflict_type=c.conflict_type,
+            resolution=c.resolution,
+            detected_by=c.detected_by,
+            created_at=_iso(c.created_at),
+        )
+        for c in conflicts
+    ]
+
+    return ConflictListResponse(count=len(items), items=items)
+
+
+@router.post("/conflicts/{conflict_id}/resolve")
+async def manual_resolve_conflict(
+    conflict_id: str,
+    payload: ManualResolveRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """手动解决冲突"""
+    from uuid import UUID as UUIDType
+
+    resolver = get_conflict_resolver()
+
+    try:
+        conflict_uuid = UUIDType(conflict_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conflict ID") from None
+
+    result = await resolver.manual_resolve(
+        conflict_id=conflict_uuid,
+        resolution=payload.resolution,
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Conflict not found")
+
+    return {"status": "resolved", "conflict_id": str(result.id), "resolution": result.resolution}
+
+
+@router.get("/facts/{fact_id}/history")
+async def get_fact_history(
+    fact_id: str,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """获取事实的版本历史链"""
+    from uuid import UUID as UUIDType
+
+    try:
+        fact_uuid = UUIDType(fact_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid fact ID") from None
+
+    resolver = get_conflict_resolver()
+    history = await resolver.get_fact_history(fact_uuid)
+
+    return {
+        "count": len(history),
+        "items": [
+            {
+                "id": str(f.id),
+                "key": f.key,
+                "value": f.value,
+                "confidence": f.confidence,
+                "status": f.status,
+                "superseded_by": str(f.superseded_by) if f.superseded_by else None,
+                "created_at": _iso(f.created_at),
+            }
+            for f in history
+        ],
+    }
+
+
+# ============================================================================
+# Proactive Recall Endpoints
+# ============================================================================
+
+
+@router.post("/proactive/{user_id}")
+async def trigger_proactive_recall(
+    user_id: str,
+    app_name: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """手动触发主动召回计算"""
+    resolved_app = _resolve_app_name(app_name)
+    service = get_proactive_recall_service()
+
+    result = await service.get_or_compute_preload(
+        user_id=user_id,
+        app_name=resolved_app,
+    )
+
+    return {
+        "context": result.get("context", ""),
+        "memory_count": len(result.get("memory_ids", [])),
+        "fact_count": len(result.get("fact_ids", [])),
+        "token_count": result.get("token_count", 0),
+    }
+
+
+@router.get("/proactive/{user_id}")
+async def get_proactive_recall(
+    user_id: str,
+    app_name: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """获取缓存的主动召回上下文"""
+    resolved_app = _resolve_app_name(app_name)
+    service = get_proactive_recall_service()
+
+    result = await service.get_or_compute_preload(
+        user_id=user_id,
+        app_name=resolved_app,
+    )
+
+    return {
+        "context": result.get("context", ""),
+        "memory_count": len(result.get("memory_ids", [])),
+        "fact_count": len(result.get("fact_ids", [])),
+        "token_count": result.get("token_count", 0),
+        "cached": True,
+    }
+
+
+# ============================================================================
+# Association Endpoints
+# ============================================================================
+
+
+class AssociationItem(BaseModel):
+    id: str
+    source_id: str
+    source_type: str
+    target_id: str
+    target_type: str
+    association_type: str
+    weight: float
+
+
+class AssociationListResponse(BaseModel):
+    count: int
+    items: list[AssociationItem] = Field(default_factory=list)
+
+
+class CreateAssociationRequest(BaseModel):
+    source_id: str
+    target_id: str
+    association_type: str = "semantic"
+    weight: float = 0.5
+    source_type: str = "memory"
+    target_type: str = "memory"
+
+
+@router.get("/{memory_id}/associations", response_model=AssociationListResponse)
+async def get_memory_associations(
+    memory_id: str,
+    association_type: str | None = Query(default=None),
+    direction: str = Query(default="both"),
+    limit: int = Query(default=20, ge=1, le=100),
+    user: AuthUser = Depends(get_current_user),
+) -> AssociationListResponse:
+    """获取记忆/事实的关联"""
+    from uuid import UUID as UUIDType
+
+    try:
+        item_uuid = UUIDType(memory_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID") from None
+
+    service = get_association_service()
+    assocs = await service.get_associations(
+        item_id=item_uuid,
+        association_type=association_type,
+        direction=direction,
+        limit=limit,
+    )
+
+    items = [
+        AssociationItem(
+            id=str(a.id),
+            source_id=str(a.source_id),
+            source_type=a.source_type,
+            target_id=str(a.target_id),
+            target_type=a.target_type,
+            association_type=a.association_type,
+            weight=a.weight,
+        )
+        for a in assocs
+    ]
+
+    return AssociationListResponse(count=len(items), items=items)
+
+
+@router.post("/associations")
+async def create_association(
+    payload: CreateAssociationRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """手动创建关联"""
+    from uuid import UUID as UUIDType
+
+    service = get_association_service()
+
+    # 从 context 推断 user_id/app_name
+    auth_user_id = user.email if hasattr(user, "email") else "anonymous"
+    app_name = settings.app_name
+
+    try:
+        assoc = await service.create_manual_association(
+            source_id=UUIDType(payload.source_id),
+            target_id=UUIDType(payload.target_id),
+            association_type=payload.association_type,
+            weight=payload.weight,
+            user_id=auth_user_id,
+            app_name=app_name,
+            source_type=payload.source_type,
+            target_type=payload.target_type,
+        )
+        return {"status": "created", "association_id": str(assoc.id)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from None
+
+
+@router.delete("/associations/{association_id}")
+async def delete_association(
+    association_id: str,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """删除关联"""
+    from uuid import UUID as UUIDType
+
+    service = get_association_service()
+
+    try:
+        assoc_uuid = UUIDType(association_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid association ID") from None
+
+    deleted = await service.delete_association(assoc_uuid)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Association not found")
+
+    return {"status": "deleted", "association_id": association_id}

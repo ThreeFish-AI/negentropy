@@ -26,6 +26,7 @@ class Memory(Base, UUIDMixin, TimestampMixin):
     embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
     retention_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
+    importance_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5, server_default="0.5")
     access_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     last_accessed_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
     # search_vector: Mapped[Any] # tsvector support in SQLAlchemy needs specific handling or TypeDecorator
@@ -51,8 +52,14 @@ class Fact(Base, UUIDMixin, TimestampMixin):
     value: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
+    importance_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5, server_default="0.5")
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
     valid_until: Mapped[datetime | None] = mapped_column(TIMESTAMP)
+    superseded_by: Mapped[UUID | None] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.facts.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", server_default="'active'")
+    superseded_at: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("user_id", "app_name", "fact_type", "key", name="facts_user_key_unique"),
@@ -149,3 +156,71 @@ class MemoryRetrievalLog(Base, UUIDMixin):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
+
+
+class MemoryConflict(Base, UUIDMixin, TimestampMixin):
+    """记忆冲突记录
+
+    当新事实与现有事实矛盾时记录冲突事件，支持 AGM 信念修正。
+
+    参考文献:
+    [1] C. E. Alchourrón, P. Gärdenfors, and D. Makinson,
+        "On the logic of theory change," J. Symbolic Logic, vol. 50, no. 2,
+        pp. 510–530, 1985.
+    """
+
+    __tablename__ = "memory_conflicts"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    old_fact_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.facts.id", ondelete="SET NULL"), nullable=True
+    )
+    new_fact_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.facts.id", ondelete="CASCADE"), nullable=True
+    )
+    conflict_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="contradiction", server_default="'contradiction'"
+    )
+    resolution: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="supersede", server_default="'supersede'"
+    )
+    confidence_delta: Mapped[float | None] = mapped_column(Float, nullable=True)
+    detected_by: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="key_collision", server_default="'key_collision'"
+    )
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+
+    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
+
+
+class MemoryAssociation(Base, UUIDMixin):
+    """记忆关联
+
+    记忆/事实之间的轻量关联，支持语义、时间、线程共享、实体等关联类型。
+    基于 Spreading Activation 理论实现多跳检索。
+
+    参考文献:
+    [1] E. Tulving, "Episodic and semantic memory," 1972.
+    [2] A. M. Collins and E. F. Loftus, "A spreading-activation theory,"
+        Psychological Review, 1975.
+    """
+
+    __tablename__ = "memory_associations"
+
+    source_id: Mapped[UUID] = mapped_column(SA_UUID, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False, default="memory", server_default="'memory'")
+    target_id: Mapped[UUID] = mapped_column(SA_UUID, nullable=False)
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False, default="memory", server_default="'memory'")
+    association_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="semantic", server_default="'semantic'"
+    )
+    weight: Mapped[float] = mapped_column(Float, nullable=False, default=0.5, server_default="0.5")
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("source_id", "target_id", "association_type", name="assoc_unique"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )

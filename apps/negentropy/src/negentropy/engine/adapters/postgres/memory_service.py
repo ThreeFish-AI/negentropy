@@ -38,6 +38,7 @@ import negentropy.db.session as db_session
 from negentropy.engine.consolidation.llm_fact_extractor import LLMFactExtractor
 from negentropy.engine.governance.memory import (
     _MEMORY_TYPE_MULTIPLIER,
+    MemoryGovernanceService,
 )
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
@@ -145,6 +146,10 @@ class PostgresMemoryService(BaseMemoryService):
                     continue
 
                 initial_score = self._calculate_initial_retention(content)
+                importance = self._calculate_initial_importance(
+                    content=content,
+                    memory_type="episodic",
+                )
                 async with db.begin_nested():
                     memory = Memory(
                         thread_id=thread_id,
@@ -154,6 +159,7 @@ class PostgresMemoryService(BaseMemoryService):
                         content=content,
                         embedding=embedding,
                         retention_score=initial_score,
+                        importance_score=importance,
                         metadata_={
                             "source": "session",
                             "event_count": len(session.events),
@@ -178,6 +184,16 @@ class PostgresMemoryService(BaseMemoryService):
             )
         except Exception as exc:
             logger.warning("fact_extraction_stage_failed", error=str(exc))
+
+        # 阶段 5：自动关联（异步，失败不影响已提交的记忆）
+        try:
+            await self._auto_link_stored_memories(
+                user_id=session.user_id,
+                app_name=session.app_name,
+                thread_id=thread_id,
+            )
+        except Exception as exc:
+            logger.debug("auto_link_stage_failed", error=str(exc))
 
         logger.info(
             "consolidate_completed",
@@ -285,6 +301,46 @@ class PostgresMemoryService(BaseMemoryService):
             user_id=user_id,
             facts_count=len(extracted),
         )
+
+    async def _auto_link_stored_memories(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        thread_id: uuid.UUID | None,
+    ) -> None:
+        """巩固后自动为新记忆建立关联"""
+        from negentropy.engine.factories.memory import get_association_service
+
+        association_service = get_association_service()
+
+        # 获取此 thread 最近创建的记忆
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(Memory)
+                .where(
+                    Memory.user_id == user_id,
+                    Memory.app_name == app_name,
+                    Memory.thread_id == thread_id if thread_id else Memory.thread_id.is_(None),
+                )
+                .order_by(Memory.created_at.desc())
+                .limit(20)
+            )
+            result = await db.execute(stmt)
+            recent_memories = result.scalars().all()
+
+        for m in recent_memories:
+            try:
+                await association_service.auto_link_memory(
+                    memory_id=m.id,
+                    user_id=user_id,
+                    app_name=app_name,
+                    thread_id=m.thread_id,
+                    embedding=m.embedding,
+                    created_at=m.created_at,
+                )
+            except Exception:
+                pass
 
     @staticmethod
     def _extract_speaker_turns(events: list[Any]) -> list[dict[str, str]]:
@@ -438,6 +494,25 @@ class PostgresMemoryService(BaseMemoryService):
         raw_score *= type_factor
         raw_score += fact_boost
         return min(1.0, raw_score)
+
+    @staticmethod
+    def _calculate_initial_importance(
+        content: str,
+        memory_type: str = "episodic",
+    ) -> float:
+        """初始重要性评分
+
+        新建记忆时基于内容特征和类型计算初始 importance_score。
+        后续由 _record_access 和自动化任务动态更新。
+        """
+        governance = MemoryGovernanceService.__new__(MemoryGovernanceService)
+        return governance.calculate_importance_score(
+            access_count=0,
+            memory_type=memory_type,
+            related_fact_count=0,
+            days_since_creation=0.0,
+            days_since_last_access=0.0,
+        )
 
     async def search_memory(
         self,
@@ -857,13 +932,14 @@ class PostgresMemoryService(BaseMemoryService):
         try:
             async with db_session.AsyncSessionLocal() as db:
                 now = datetime.now(UTC)
-                # 批量更新 access_count 和 last_accessed_at
+                # 批量更新 access_count、last_accessed_at 和 importance_score
                 stmt = (
                     update(Memory)
                     .where(Memory.id.in_(memory_ids))
                     .values(
                         access_count=Memory.access_count + 1,
                         last_accessed_at=now,
+                        importance_score=Memory.importance_score + 0.02,
                     )
                 )
                 await db.execute(stmt)

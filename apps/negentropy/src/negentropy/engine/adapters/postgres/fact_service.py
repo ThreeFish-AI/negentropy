@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 import negentropy.db.session as db_session
+from negentropy.engine.governance.memory import MemoryGovernanceService
 from negentropy.logging import get_logger
 from negentropy.models.internalization import Fact
 
@@ -43,6 +44,7 @@ class FactService:
 
     def __init__(self, embedding_fn: callable | None = None):
         self._embedding_fn = embedding_fn
+        self._governance = MemoryGovernanceService()
 
     async def upsert_fact(
         self,
@@ -91,6 +93,14 @@ class FactService:
 
         now = datetime.now(UTC)
 
+        importance = self._governance.calculate_importance_score(
+            access_count=0,
+            memory_type=fact_type,
+            related_fact_count=0,
+            days_since_creation=0.0,
+            days_since_last_access=0.0,
+        )
+
         async with db_session.AsyncSessionLocal() as db:
             stmt = (
                 pg_insert(Fact)
@@ -101,6 +111,7 @@ class FactService:
                     key=key,
                     value=value,
                     confidence=confidence,
+                    importance_score=importance,
                     embedding=embedding,
                     valid_from=valid_from or now,
                     valid_until=valid_until,
@@ -113,6 +124,7 @@ class FactService:
                         "confidence": confidence,
                         "embedding": embedding,
                         "valid_until": valid_until,
+                        "importance_score": importance,
                     },
                 )
                 .returning(Fact)
@@ -127,6 +139,16 @@ class FactService:
             key=key,
             fact_type=fact_type,
         )
+
+        # 异步冲突检测（fire-and-forget，不阻塞主路径）
+        try:
+            await self._detect_conflicts(
+                new_fact=fact,
+                user_id=user_id,
+                app_name=app_name,
+            )
+        except Exception as exc:
+            logger.debug("conflict_detection_failed", key=key, error=str(exc))
 
         return fact
 
@@ -321,6 +343,7 @@ class FactService:
             stmt = select(Fact).where(
                 Fact.user_id == user_id,
                 Fact.app_name == app_name,
+                Fact.status == "active",
                 (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
             )
 
@@ -403,3 +426,44 @@ class FactService:
         if merged:
             logger.info("facts_merged", user_id=user_id, merged_count=merged)
         return merged
+
+    async def _detect_conflicts(
+        self,
+        *,
+        new_fact: Fact,
+        user_id: str,
+        app_name: str,
+    ) -> None:
+        """检测新事实与现有事实的冲突
+
+        查找同 user+app+type 下的旧事实（status=active），检查是否冲突。
+        """
+        from negentropy.engine.governance.conflict_resolver import ConflictResolver
+
+        resolver = ConflictResolver()
+
+        # 查找同 key 的旧事实（被 upsert 覆盖的）
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(Fact)
+                .where(
+                    Fact.user_id == user_id,
+                    Fact.app_name == app_name,
+                    Fact.key == new_fact.key,
+                    Fact.fact_type == new_fact.fact_type,
+                    Fact.id != new_fact.id,
+                    Fact.status == "superseded",
+                )
+                .order_by(Fact.superseded_at.desc())
+                .limit(1)
+            )
+            result = await db.execute(stmt)
+            old_fact = result.scalar_one_or_none()
+
+        if old_fact and old_fact.value != new_fact.value:
+            await resolver.detect_and_resolve(
+                old_fact=old_fact,
+                new_fact=new_fact,
+                user_id=user_id,
+                app_name=app_name,
+            )
