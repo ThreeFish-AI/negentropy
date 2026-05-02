@@ -494,3 +494,67 @@ class KgEntityService:
             "community_id": entity.community_id,
             "relations": relations,
         }
+
+    async def merge_entities(
+        self,
+        db: AsyncSession,
+        primary_id: str,
+        secondary_id: str,
+        corpus_id: UUID,
+    ) -> None:
+        """合并两个实体：保留 primary，停用 secondary (Christen, 2012)
+
+        操作：
+        1. 将 secondary.name 添加到 primary.aliases
+        2. 重定向 kg_relations 中指向 secondary 的 FK
+        3. 设置 secondary.is_active = False
+        4. 合并 secondary.properties 到 primary.properties
+        """
+        from sqlalchemy import select as sql_select
+        from sqlalchemy import update as sql_update
+
+        from negentropy.models.perception import KgEntity, KgRelation
+
+        # 加载两个实体
+        primary = (await db.execute(sql_select(KgEntity).where(KgEntity.id == primary_id))).scalar_one_or_none()
+        secondary = (await db.execute(sql_select(KgEntity).where(KgEntity.id == secondary_id))).scalar_one_or_none()
+
+        if not primary or not secondary:
+            return
+
+        # 1. aliases 合并
+        aliases = list(primary.aliases or [])
+        if secondary.name not in aliases and secondary.name != primary.name:
+            aliases.append(secondary.name)
+        primary.aliases = aliases
+
+        # 2. properties 合并
+        if secondary.properties:
+            merged = {**(secondary.properties or {}), **(primary.properties or {})}
+            primary.properties = merged
+
+        # 3. mention_count 累加
+        primary.mention_count = (primary.mention_count or 0) + (secondary.mention_count or 0)
+
+        # 4. 重定向关系 FK
+        await db.execute(
+            sql_update(KgRelation).where(KgRelation.source_id == secondary_id).values(source_id=primary_id)
+        )
+        await db.execute(
+            sql_update(KgRelation).where(KgRelation.target_id == secondary_id).values(target_id=primary_id)
+        )
+
+        # 5. 停用 secondary
+        secondary.is_active = False
+
+        await db.flush()
+
+        logger.info(
+            "kg_entities_merged",
+            extra={
+                "primary_id": str(primary_id),
+                "secondary_id": str(secondary_id),
+                "secondary_name": secondary.name,
+                "corpus_id": str(corpus_id),
+            },
+        )

@@ -3037,6 +3037,7 @@ async def build_knowledge_graph(
             min_entity_confidence=payload.min_entity_confidence,
             min_relation_confidence=payload.min_relation_confidence,
             batch_size=payload.batch_size,
+            incremental=payload.incremental,
         )
 
         # 执行图谱构建
@@ -3065,6 +3066,8 @@ async def build_knowledge_graph(
             chunks_processed=result.chunks_processed,
             elapsed_seconds=result.elapsed_seconds,
             error_message=result.error_message,
+            warnings=result.warnings,
+            failed_chunk_count=result.failed_chunk_count,
         )
 
     except KnowledgeError as exc:

@@ -106,6 +106,8 @@ class BuildRunRecord:
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
+    progress_percent: float = 0.0
+    warnings: list[dict[str, Any]] | None = None
 
 
 # ============================================================================
@@ -1163,6 +1165,48 @@ class AgeGraphRepository(GraphRepository):
 
         return nodes, edges
 
+    async def find_similar_entities(
+        self,
+        embedding: list[float],
+        corpus_id: UUID,
+        entity_type: str,
+        threshold: float = 0.92,
+        limit: int = 5,
+    ) -> list[tuple[str, str, float]]:
+        """基于 embedding 的 ANN 实体查找 (Fellegi & Sunter, 1969; Mudgal et al., 2018)
+
+        利用 HNSW 向量索引查找语义相似的实体，仅在 entity_type 相同时比较。
+
+        Returns:
+            [(entity_id, entity_name, similarity_score)]
+        """
+        import json as _json
+
+        session = await self._get_session()
+
+        query = text(f"""
+            SELECT id, name, 1 - (embedding <=> :emb::vector) AS similarity
+            FROM {self._schema}.kg_entities
+            WHERE corpus_id = :cid
+              AND entity_type = :type
+              AND is_active = true
+              AND embedding IS NOT NULL
+            ORDER BY embedding <=> :emb::vector
+            LIMIT :limit
+        """)
+
+        result = await session.execute(
+            query,
+            {
+                "emb": _json.dumps(embedding),
+                "cid": str(corpus_id),
+                "type": entity_type,
+                "limit": limit,
+            },
+        )
+
+        return [(str(row.id), row.name, float(row.similarity)) for row in result if float(row.similarity) >= threshold]
+
     async def clear_graph(
         self,
         corpus_id: UUID,
@@ -1263,8 +1307,19 @@ class AgeGraphRepository(GraphRepository):
         entity_count: int = 0,
         relation_count: int = 0,
         error_message: str | None = None,
+        progress_percent: float | None = None,
+        warnings: list[dict[str, Any]] | None = None,
+        processed_chunk_ids: list[str] | None = None,
     ) -> None:
-        """更新构建运行状态"""
+        """更新构建运行状态
+
+        Args:
+            progress_percent: 构建进度 0.0-1.0，用于前端进度条 (Nygard, 2018)
+            warnings: 非致命警告列表（如 PageRank 收敛失败）
+            processed_chunk_ids: 增量构建已处理的 chunk ID 列表
+        """
+        import json as _json
+
         session = await self._get_session()
 
         query = text(f"""
@@ -1273,6 +1328,9 @@ class AgeGraphRepository(GraphRepository):
                 entity_count = :entity_count,
                 relation_count = :relation_count,
                 error_message = :error_message,
+                progress_percent = COALESCE(:progress, progress_percent),
+                warnings = COALESCE(:warnings::jsonb, warnings),
+                processed_chunk_ids = COALESCE(:chunk_ids::jsonb, processed_chunk_ids),
                 completed_at = CASE WHEN :status IN ('completed', 'failed') THEN NOW() END
             WHERE id = :run_id
         """)
@@ -1285,6 +1343,9 @@ class AgeGraphRepository(GraphRepository):
                 "entity_count": entity_count,
                 "relation_count": relation_count,
                 "error_message": error_message,
+                "progress": progress_percent,
+                "warnings": _json.dumps(warnings) if warnings else None,
+                "chunk_ids": _json.dumps(processed_chunk_ids) if processed_chunk_ids else None,
             },
         )
 
@@ -1298,6 +1359,34 @@ class AgeGraphRepository(GraphRepository):
             relation_count=relation_count,
         )
 
+    async def get_processed_chunk_ids(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+    ) -> set[str]:
+        """获取最近一次成功构建已处理的 chunk ID 集合 (Hogan et al., 2021 §6.3)"""
+        session = await self._get_session()
+
+        query = text(f"""
+            SELECT processed_chunk_ids
+            FROM {self._schema}.kg_build_runs
+            WHERE corpus_id = :corpus_id
+              AND app_name = :app_name
+              AND status = 'completed'
+              AND processed_chunk_ids IS NOT NULL
+            ORDER BY completed_at DESC
+            LIMIT 1
+        """)
+
+        result = await session.execute(
+            query,
+            {"corpus_id": str(corpus_id), "app_name": app_name},
+        )
+        row = result.fetchone()
+        if row and row.processed_chunk_ids:
+            return set(row.processed_chunk_ids)
+        return set()
+
     async def get_build_runs(
         self,
         corpus_id: UUID,
@@ -1310,7 +1399,8 @@ class AgeGraphRepository(GraphRepository):
         query = text(f"""
             SELECT id, app_name, corpus_id, run_id, status,
                    entity_count, relation_count, extractor_config, model_name,
-                   error_message, started_at, completed_at, created_at
+                   error_message, started_at, completed_at, created_at,
+                   progress_percent, warnings
             FROM {self._schema}.kg_build_runs
             WHERE corpus_id = :corpus_id AND app_name = :app_name
             ORDER BY created_at DESC
@@ -1342,6 +1432,8 @@ class AgeGraphRepository(GraphRepository):
                 started_at=row.started_at,
                 completed_at=row.completed_at,
                 created_at=row.created_at,
+                progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
+                warnings=row.warnings if row.warnings else None,
             )
             runs.append(run)
 
