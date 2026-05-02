@@ -275,6 +275,23 @@ def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:
         )
 
 
+def _memory_entry_content_text(entry: Any) -> str:
+    content = getattr(entry, "content", None)
+    if isinstance(content, dict) and "parts" in content:
+        return "".join(str(part.get("text", "")) for part in content["parts"] if isinstance(part, dict))
+    if isinstance(content, str):
+        return content
+    parts = getattr(content, "parts", None)
+    if parts:
+        return "".join(str(getattr(part, "text", "") or "") for part in parts)
+    return ""
+
+
+def _memory_entry_relevance_score(entry: Any) -> float:
+    meta = dict(getattr(entry, "custom_metadata", None) or {})
+    return float(meta.get("relevance_score", meta.get("raw_score", 0.0)) or 0.0)
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -475,20 +492,12 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
 
     items = []
     for entry in result.memories:
-        content_text = ""
-        if isinstance(entry.content, dict) and "parts" in entry.content:
-            for part in entry.content["parts"]:
-                if isinstance(part, dict) and "text" in part:
-                    content_text += part["text"]
-        elif isinstance(entry.content, str):
-            content_text = entry.content
-
         items.append(
             {
                 "id": entry.id,
-                "content": content_text,
+                "content": _memory_entry_content_text(entry),
                 "timestamp": entry.timestamp,
-                "relevance_score": entry.relevance_score,
+                "relevance_score": _memory_entry_relevance_score(entry),
                 "metadata": entry.custom_metadata or {},
             }
         )

@@ -992,3 +992,23 @@
   2. **机密管理**：`SecretStr` 字段只能通过 shell env var 或 `config.local.yaml` 注入，代码 review 时对 YAML 中的明文密钥保持零容忍。
   3. **端口 SSOT**：`:3292` 为后端唯一权威端口，任何新配置或文档中出现的其他端口（6600/6666/8000/3000）必须立即校正。
 - **同类问题影响**：所有「双配置源并存」（如 `.env` + YAML、YAML + DB model_configs）的场景都应定期审计，确保每类配置有且仅有一个 SSOT。本次治理了 `.env` ↔ YAML 双源，此前 ISSUE-020 治理了端口双源，模型配置双源已在 ISSUE-023 系列中通过 DB 迁移解决。
+
+---
+
+## ISSUE-043 Memory Phase 4 软删除 / Core Block / ADK MemoryEntry 契约漂移
+
+- **表因**：Phase 4 self-edit 软删除后，记忆仍可能被 BM25 / ILIKE 回退检索召回；Core Block `get/list_for_context` 在序列化时访问未映射的 `created_at`；`memory_search` 工具和 REST search 读取 `entry.relevance_score` 时会因当前 ADK `MemoryEntry` 无该字段而崩溃。
+- **根因**：
+  1. [`PostgresMemoryService.soft_delete_memory()`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) 只写 `metadata.deleted=true`，但 hybrid / vector / keyword / ilike 四条检索路径未统一排除软删除记录，形成“写入删除事实、读取路径不尊重”的读写契约断裂；
+  2. [`memory_core_blocks` 迁移](../apps/negentropy/src/negentropy/db/migrations/versions/0023_memory_phase4_core_blocks.py) 创建了 `created_at`，但 [`MemoryCoreBlock`](../apps/negentropy/src/negentropy/models/internalization.py) ORM 未映射该列，服务层 `_to_dict()` 却将其视为可访问属性；
+  3. 当前 ADK `MemoryEntry` 只声明 `content/custom_metadata/id/author/timestamp`，`relevance_score` 作为额外字段会被 Pydantic 忽略；消费者继续按属性读取，导致有结果时才崩溃。
+- **处理方式**：
+  1. 在 [`memory_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) 中为 hybrid / vector / keyword / ilike 全路径加入 `metadata.deleted != true` 过滤，并把 `relevance_score` / `memory_type` 放入 `custom_metadata` 作为 ADK 兼容载体；
+  2. 在 [`memory_tools.py`](../apps/negentropy/src/negentropy/engine/tools/memory_tools.py) 与 [`engine/api.py`](../apps/negentropy/src/negentropy/engine/api.py) 中统一从 `custom_metadata` 读取分数，并兼容 ADK `Content.parts` 文本提取；
+  3. 在 [`MemoryCoreBlock`](../apps/negentropy/src/negentropy/models/internalization.py) 补齐 `created_at` 映射；
+  4. 新增 [`MemoryGovernanceService.record_audit_event()`](../apps/negentropy/src/negentropy/engine/governance/memory.py)，让 self-edit 软删除只写审计事件，不再调用会执行物理删除的 `audit_memory()`。
+- **后续防范**：
+  1. 任何“软删除”实现必须同时修改所有读路径（搜索、列表、统计、上下文注入），并补 SQL/ORM 层回归测试；
+  2. 迁移新增列后，ORM 模型、服务序列化、测试夹具必须作为同一契约批次更新；
+  3. 第三方 Pydantic 模型不可假设额外字段会保留，跨 ADK 边界的扩展信息统一放入 `custom_metadata`。
+- **同类问题影响**：所有基于 ADK `MemoryEntry` 的调用点都需避免读取未声明属性；所有 `metadata.deleted` 语义的表都需审计搜索函数是否显式过滤；Core Block 同类新增列应优先复用 `TimestampMixin` 或写契约测试守护。

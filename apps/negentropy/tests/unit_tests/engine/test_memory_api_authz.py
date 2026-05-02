@@ -12,7 +12,7 @@ import pytest
 from fastapi import HTTPException
 
 from negentropy.auth.service import AuthUser
-from negentropy.engine.api import _require_self_or_admin
+from negentropy.engine.api import _memory_entry_content_text, _memory_entry_relevance_score, _require_self_or_admin
 
 
 def _make_user(*, user_id: str, roles: list[str]) -> AuthUser:
@@ -50,3 +50,17 @@ class TestRequireSelfOrAdmin:
         with pytest.raises(HTTPException) as exc_info:
             _require_self_or_admin(user, "")
         assert exc_info.value.status_code == 403
+
+
+class TestMemoryEntryHelpers:
+    def test_adk_memory_entry_content_and_score_are_metadata_backed(self) -> None:
+        from google.adk.memory.base_memory_service import MemoryEntry
+
+        entry = MemoryEntry(
+            id="m1",
+            content={"parts": [{"text": "hello"}, {"text": " world"}]},
+            custom_metadata={"relevance_score": 0.42},
+        )
+
+        assert _memory_entry_content_text(entry) == "hello world"
+        assert _memory_entry_relevance_score(entry) == 0.42

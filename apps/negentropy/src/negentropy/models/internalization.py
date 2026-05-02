@@ -257,6 +257,7 @@ class MemoryCoreBlock(Base, UUIDMixin):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     updated_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     __table_args__ = (

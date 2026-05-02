@@ -59,10 +59,21 @@ def stub_core_block_service(monkeypatch):
 @pytest.fixture
 def stub_governance(monkeypatch):
     class _Stub:
-        async def audit_memory(self, **kwargs):
-            return []
+        def __init__(self):
+            self.events = []
+            self.audit_memory_called = False
 
-    monkeypatch.setattr(mt, "get_memory_governance_service", lambda: _Stub())
+        async def record_audit_event(self, **kwargs):
+            self.events.append(kwargs)
+            return kwargs
+
+        async def audit_memory(self, **kwargs):
+            self.audit_memory_called = True
+            raise AssertionError("self-edit soft delete must not call destructive audit_memory")
+
+    stub = _Stub()
+    monkeypatch.setattr(mt, "get_memory_governance_service", lambda: stub)
+    return stub
 
 
 class TestValidateRequired:
@@ -104,6 +115,34 @@ class TestMemorySearch:
         assert "hits" in result
         assert "count" in result
 
+    async def test_search_reads_adk_entry_score_from_metadata(self, monkeypatch):
+        from google.adk.memory.base_memory_service import MemoryEntry, SearchMemoryResponse
+
+        class _Stub:
+            async def search_memory(self, **kwargs):
+                return SearchMemoryResponse(
+                    memories=[
+                        MemoryEntry(
+                            id="m1",
+                            content={"parts": [{"text": "Alice prefers concise answers"}]},
+                            author="system",
+                            timestamp="2026-05-02T12:00:00Z",
+                            custom_metadata={
+                                "relevance_score": 0.87,
+                                "memory_type": "preference",
+                                "search_level": "keyword",
+                            },
+                        )
+                    ]
+                )
+
+        monkeypatch.setattr(mt, "get_memory_service", lambda: _Stub())
+        result = await mt.memory_search(user_id="alice", app_name="app", query="concise")
+        assert result["count"] == 1
+        assert result["hits"][0]["content"] == "Alice prefers concise answers"
+        assert result["hits"][0]["relevance_score"] == 0.87
+        assert result["hits"][0]["memory_type"] == "preference"
+
 
 class TestMemoryWriteUpdateDelete:
     async def test_write_returns_id(self, stub_memory_service):
@@ -115,10 +154,22 @@ class TestMemoryWriteUpdateDelete:
         with pytest.raises(ValueError, match="memory_id"):
             await mt.memory_update(user_id="alice", app_name="app", memory_id="", new_content="new")
 
-    async def test_delete_calls_audit(self, stub_memory_service, stub_governance):
+    async def test_delete_records_audit_event_without_destructive_governance(
+        self, stub_memory_service, stub_governance
+    ):
         result = await mt.memory_delete(user_id="alice", app_name="app", memory_id="m1", reason="duplicate")
         assert result["id"] == "m1"
         assert result["deleted"] is True
+        assert stub_governance.audit_memory_called is False
+        assert stub_governance.events == [
+            {
+                "user_id": "alice",
+                "app_name": "app",
+                "memory_id": "m1",
+                "decision": "delete",
+                "note": "self_edit_soft_delete:duplicate",
+            }
+        ]
 
 
 class TestCoreBlockReplace:

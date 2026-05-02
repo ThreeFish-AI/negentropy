@@ -670,7 +670,8 @@ class PostgresMemoryService(BaseMemoryService):
             FROM {NEGENTROPY_SCHEMA}.hybrid_search(
                 :user_id, :app_name, :query, :embedding::vector(1536),
                 :limit, :semantic_weight, :keyword_weight
-            )
+            ) AS h
+            WHERE COALESCE(h.metadata->>'deleted', 'false') <> 'true'
         """)
 
         async with db_session.AsyncSessionLocal() as db:
@@ -728,6 +729,7 @@ class PostgresMemoryService(BaseMemoryService):
                 Memory.app_name == app_name,
                 Memory.user_id == user_id,
                 Memory.embedding.is_not(None),
+                self._not_deleted_condition(),
             ]
             if memory_type:
                 conditions.append(Memory.memory_type == memory_type)
@@ -771,6 +773,7 @@ class PostgresMemoryService(BaseMemoryService):
             FROM {NEGENTROPY_SCHEMA}.memories
             WHERE user_id = :user_id
               AND app_name = :app_name
+              AND COALESCE(metadata->>'deleted', 'false') <> 'true'
               AND search_vector @@ plainto_tsquery('english', :query)
             ORDER BY rank_score DESC
             LIMIT :limit OFFSET :offset
@@ -824,6 +827,7 @@ class PostgresMemoryService(BaseMemoryService):
                 Memory.app_name == app_name,
                 Memory.user_id == user_id,
                 Memory.content.ilike(f"%{escaped_query}%"),
+                self._not_deleted_condition(),
             ]
             if memory_type:
                 conditions.append(Memory.memory_type == memory_type)
@@ -851,6 +855,11 @@ class PostgresMemoryService(BaseMemoryService):
     # ------------------------------------------------------------------
     # 搜索可观测性辅助方法
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _not_deleted_condition():
+        """SQLAlchemy 条件：软删除记忆不参与任何检索路径。"""
+        return Memory.metadata_["deleted"].astext.is_distinct_from("true")
 
     @staticmethod
     def _apply_intent_rerank(
@@ -1028,6 +1037,9 @@ class PostgresMemoryService(BaseMemoryService):
             metadata["search_level"] = m.get("search_level", "unknown")
             metadata["score_type"] = m.get("score_type", "unknown")
             metadata["raw_score"] = m.get("raw_score", 0.0)
+            metadata["relevance_score"] = float(m.get("relevance_score", 0.0) or 0.0)
+            if m.get("memory_type") is not None:
+                metadata["memory_type"] = m.get("memory_type")
 
             memories.append(
                 MemoryEntry(
@@ -1035,7 +1047,6 @@ class PostgresMemoryService(BaseMemoryService):
                     content=content_val,
                     author="system",
                     timestamp=timestamp,
-                    relevance_score=m.get("relevance_score", 0.0),
                     custom_metadata=metadata,
                 )
             )

@@ -295,6 +295,59 @@ class MemoryGovernanceService:
 
         return records
 
+    async def record_audit_event(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        memory_id: str,
+        decision: str,
+        note: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> AuditRecord:
+        """仅写入审计记录，不执行 delete/anonymize 等治理动作。
+
+        Self-editing Tools 的 soft delete 已由存储层完成；这里复用 audit_log
+        做可追溯记录，避免调用 ``audit_memory()`` 触发物理删除。
+        """
+        self._validate_decisions({memory_id: decision})
+
+        if idempotency_key:
+            existing_records = await self._get_idempotent_records(
+                app_name=app_name,
+                user_id=user_id,
+                idempotency_key=idempotency_key,
+            )
+            if existing_records:
+                return existing_records[0]
+
+        async with self._session_factory() as db:
+            next_version = await self._get_next_version(
+                db=db,
+                app_name=app_name,
+                user_id=user_id,
+                memory_id=memory_id,
+            )
+            audit_log = MemoryAuditLog(
+                app_name=app_name,
+                user_id=user_id,
+                memory_id=memory_id,
+                decision=decision,
+                note=note,
+                idempotency_key=idempotency_key,
+                version=next_version,
+            )
+            db.add(audit_log)
+            await db.commit()
+
+        return AuditRecord(
+            memory_id=memory_id,
+            decision=decision,
+            version=next_version,
+            note=note,
+            created_at=datetime.now(),
+        )
+
     def calculate_importance_score(
         self,
         *,

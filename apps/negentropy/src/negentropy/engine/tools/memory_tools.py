@@ -121,12 +121,13 @@ async def memory_search(
         except Exception:
             pass
         meta = dict(entry.custom_metadata or {})
+        relevance_score = float(meta.get("relevance_score", meta.get("raw_score", 0.0)) or 0.0)
         hits.append(
             {
                 "id": entry.id,
                 "content": "\n".join(text_parts),
                 "memory_type": meta.get("memory_type"),
-                "relevance_score": float(entry.relevance_score or 0.0),
+                "relevance_score": relevance_score,
                 "search_level": meta.get("search_level"),
                 "metadata": meta,
             }
@@ -198,7 +199,8 @@ async def memory_delete(
 ) -> dict[str, Any]:
     """软删除记忆（保留行 + audit_log，可恢复）。
 
-    同步在 audit_log 写入 'delete' 决策，便于 UI Audit 页面追溯。
+    同步在 audit_log 写入 'delete' 决策事件，但不调用会执行物理删除的
+    ``audit_memory()``。
     """
     user_id, app_name = _validate_required(user_id, app_name)
     _check_rate_limit(user_id, thread_id, "memory_delete")
@@ -216,11 +218,12 @@ async def memory_delete(
     # 同步写 audit_log（Self-edit 决策可追溯）
     try:
         gov = get_memory_governance_service()
-        await gov.audit_memory(
+        await gov.record_audit_event(
             user_id=user_id,
             app_name=app_name,
-            decisions={memory_id.strip(): "delete"},
-            note=f"self_edit:{reason or 'agent_initiated'}",
+            memory_id=memory_id.strip(),
+            decision="delete",
+            note=f"self_edit_soft_delete:{reason or 'agent_initiated'}",
         )
     except Exception as exc:
         logger.debug("memory_delete_audit_skipped", error=str(exc))
