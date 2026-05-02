@@ -401,9 +401,9 @@ class TestWikiPublicationEntriesEagerLoading:
     @pytest.mark.asyncio
     async def test_list_publications_entries_accessible_after_query(self, db_engine, wiki_corpus, wiki_catalog):
         """list_publications 返回的对象必须可直接读取 entries（已 eager-loaded）"""
-        from negentropy.knowledge.wiki_dao import WikiDao
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+        from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
         from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
         from negentropy.models.perception import KnowledgeDocument
 
@@ -456,9 +456,9 @@ class TestWikiPublicationEntriesEagerLoading:
     @pytest.mark.asyncio
     async def test_get_publication_entries_accessible_after_query(self, db_engine, wiki_corpus, wiki_catalog):
         """get_publication 返回的对象必须可直接读取 entries（已 eager-loaded）"""
-        from negentropy.knowledge.wiki_dao import WikiDao
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+        from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
         from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
         from negentropy.models.perception import KnowledgeDocument
 
