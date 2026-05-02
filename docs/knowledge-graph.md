@@ -1146,13 +1146,13 @@ timeline
 
 | # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
 | :- | :--- | :----- | :--- | :----- | :--- |
-| P2-1 | JSONB 关系迁移到 AGE 图边 | P0 | P1 | 更新 `AgeGraphRepository` | 🔲 |
-| P2-2 | 实现 Cypher 原生遍历 | P0 | P2-1 | `find_neighbors` via Cypher | 🔲 |
-| P2-3 | PageRank 实现 | P1 | P2-2 | `kg_pagerank()` SQL/Python | 🔲 |
-| P2-4 | Louvain 社区检测 | P1 | P2-2 | `GraphService.detect_communities()` | 🔲 |
-| P2-5 | RRF 混合检索增强 | P1 | P2-2 | 更新 `kg_hybrid_search()` | 🔲 |
+| P2-1 | JSONB 关系迁移到 AGE 图边 | P0 | P1 | 更新 `AgeGraphRepository` | ✅ |
+| P2-2 | 实现 Cypher 原生遍历 | P0 | P2-1 | `find_neighbors` via Cypher | ✅ |
+| P2-3 | PageRank 实现 | P1 | P2-2 | `kg_pagerank()` SQL/Python | ✅ |
+| P2-4 | Louvain 社区检测 | P1 | P2-2 | `GraphService.detect_communities()` | ✅ |
+| P2-5 | RRF 混合检索增强 | P1 | P2-2 | 更新 `kg_hybrid_search()` | ✅ |
 | P2-6 | Cognee 适配器原型 | P2 | P2-4 | `CogneeAdapter` class | 🔲 |
-| P2-7 | 图谱质量仪表盘 | P2 | P2-3 | API + 前端组件 | 🔲 |
+| P2-7 | 图谱质量仪表盘 | P2 | P2-3 | API + 前端组件 | ✅ |
 | P2-8 | 价值量化基线测量 | P1 | P2-5 | A/B 测试基线报告 | 🔲 |
 
 **里程碑**：
@@ -1162,16 +1162,19 @@ timeline
 
 ### 9.3 Phase 3: GraphRAG 与高级能力 (4-8 月)
 
-| # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
-| :- | :--- | :----- | :--- | :----- | :--- |
-| P3-1 | Leiden 社区检测 | P1 | P2-4 | 升级社区算法 | 🔲 |
-| P3-2 | 社区摘要管道 | P1 | P3-1 | `kg_community_summaries` 表 + LLM 摘要 | 🔲 |
-| P3-3 | 双层检索 (实体 + 社区) | P1 | P3-2 | `GraphSearchMode.GRAPHRAG` | 🔲 |
-| P3-4 | 时态关系建模 | P2 | P2-1 | `valid_from/to` 字段 + 矛盾检测 | 🔲 |
-| P3-5 | 增量图更新 | P1 | P2-1 | Delta-based graph evolution | 🔲 |
-| P3-6 | Neo4j 评估与基准 | P2 | P3-3 | 性能对比报告 | 🔲 |
-| P3-7 | GraphRAG API 端点 | P1 | P3-3 | `POST /knowledge/graph/rag` | 🔲 |
-| P3-8 | 矛盾检测与解决 | P2 | P3-4 | 实体冲突解决流程 | 🔲 |
+| # | 任务 | 优先级 | 依赖 | 交付物 | 理论基础 | 状态 |
+| :- | :--- | :----- | :--- | :----- | :------- | :--- |
+| P3-1 | Leiden 社区检测 | P1 | P2-4 | 升级社区算法 | Traag et al., 2019<sup>[[15]](#ref15)</sup> | 🔲 |
+| P3-2 | 社区摘要管道 | P1 | P3-1 | `kg_community_summaries` 表 + LLM 摘要 | Edge et al., 2024<sup>[[4]](#ref4)</sup> | 🔲 |
+| P3-3 | 双层检索 (实体 + 社区) | P1 | P3-2 | `GraphSearchMode.GRAPHRAG` | Edge et al., 2024<sup>[[4]](#ref4)</sup> | 🔲 |
+| P3-4 | 时态关系建模 | P2 | P2-1 | `valid_from/to` 字段 + 矛盾检测 | Tripathi et al., 2025<sup>[[6]](#ref6)</sup> | 🔲 |
+| P3-5 | 增量图更新 | P1 | P2-1 | Delta-based graph evolution | Hogan et al., 2021<sup>[[1]](#ref1)</sup> §6.3; Kleppmann, 2017<sup>[[17]](#ref17)</sup> §11 | ✅ |
+| P3-6 | Neo4j 评估与基准 | P2 | P3-3 | 性能对比报告 | — | 🔲 |
+| P3-7 | GraphRAG API 端点 | P1 | P3-3 | `POST /knowledge/graph/rag` | — | 🔲 |
+| P3-8 | 矛盾检测与解决 | P2 | P3-4 | 实体冲突解决流程 | — | 🔲 |
+| P3-9 | 构建管线健壮性 | P1 | P2-5 | 进度追踪 + 重试 + 警告累积 | Nygard, 2018<sup>[[16]](#ref16)</sup>; Majors, 2022<sup>[[18]](#ref18)</sup> | ✅ |
+| P3-10 | 实体语义去重 | P1 | P3-5 | Embedding ANN + 实体合并 | Fellegi & Sunter, 1969<sup>[[20]](#ref20)</sup>; Mudgal et al., 2018<sup>[[22]](#ref22)</sup> | ✅ |
+| P3-11 | 图谱查询缓存 | P1 | P3-5 | TTL 缓存 + 确定性失效 | Tanenbaum & Van Steen, 2017<sup>[[24]](#ref24)</sup> | ✅ |
 
 **里程碑**：
 - M3.1: GraphRAG 双层检索上线（Local + Global Search）
@@ -1257,6 +1260,24 @@ timeline
 
 <a id="ref15"></a>[15] V. A. Traag, L. Waltman, and N. J. van Eck, "From Louvain to Leiden: Guaranteeing well-connected communities," _Sci. Rep._, vol. 9, art. 5233, 2019.
 
+<a id="ref16"></a>[16] M. T. Nygard, *Release It!: Design and Deploy Production-Ready Software*, 2nd ed. Pragmatic Bookshelf, 2018.
+
+<a id="ref17"></a>[17] M. Kleppmann, *Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems*. O'Reilly Media, 2017.
+
+<a id="ref18"></a>[18] C. Majors, L. Fout, and G. Larkby-Lahet, *Observability Engineering: Achieving Production Excellence*. O'Reilly Media, 2022.
+
+<a id="ref19"></a>[19] M. Farber, F. Bartscherer, C. Menne, and A. Rettinger, "Linked data quality of DBpedia, Freebase, OpenCyc, Wikidata, and YAGO," *Semantic Web*, vol. 9, no. 1, pp. 77–129, 2018.
+
+<a id="ref20"></a>[20] I. P. Fellegi and A. B. Sunter, "A theory for record linkage," *J. Amer. Statist. Assoc.*, vol. 64, no. 328, pp. 1183–1210, 1969.
+
+<a id="ref21"></a>[21] P. Christen, *Data Matching: Concepts and Techniques for Record Linkage, Entity Resolution, and Duplicate Detection*. Springer, 2012.
+
+<a id="ref22"></a>[22] S. Mudgal, H. Li, T. Rekatsinas, A. Doan, Y. Park, G. Krishnan, R. Deep, E. Arcaute, and V. Raghavendra, "Deep learning for entity matching: A design space exploration," in *Proc. ACM SIGMOD*, pp. 19–34, 2018.
+
+<a id="ref23"></a>[23] X. L. Dong, E. Gabrilovich, G. Heitz, W. Horn, N. Lao, K. Murphy, T. Strohmann, S. Sun, and W. Zhang, "Knowledge vault: A web-scale approach to probabilistic knowledge fusion," in *Proc. 20th ACM SIGKDD*, pp. 601–610, 2014.
+
+<a id="ref24"></a>[24] A. S. Tanenbaum and M. Van Steen, *Distributed Systems: Principles and Paradigms*, 3rd ed. Pearson, 2017.
+
 ---
 
 ## 12. 变更日志
@@ -1266,6 +1287,7 @@ timeline
 | 2026-02-15 | 1.0 | 初始版本，Phase 1 规划 | Claude |
 | 2026-02-15 | 1.1 | Phase 1 实现完成 | Claude |
 | 2026-04-08 | 2.0 | **完全重写**：学术基础 (15 篇 IEEE 引用)、行业框架分析 (5 大框架)、两阶段设计 (PostgreSQL → 终极)、价值量化体系、一核五翼集成架构、实施路线图 (Phase 2-4) | Claude |
+| 2026-05-02 | 2.1 | Phase 2 状态更新（P2-3 PageRank / P2-4 Louvain / P2-5 RRF 标记已完成）；Phase 3 新增 P3-9 构建管线健壮性 / P3-10 实体语义去重 / P3-11 图谱查询缓存（均已完成）；新增参考文献 [16]-[24] 共 9 条 IEEE 引用 | Claude |
 
 ---
 

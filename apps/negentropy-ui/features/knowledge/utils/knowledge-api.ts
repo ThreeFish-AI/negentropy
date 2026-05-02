@@ -1931,6 +1931,7 @@ export interface GraphBuildParams {
   min_entity_confidence?: number;
   min_relation_confidence?: number;
   batch_size?: number;
+  incremental?: boolean;
 }
 
 export interface GraphBuildResult {
@@ -1942,6 +1943,8 @@ export interface GraphBuildResult {
   chunks_processed: number;
   elapsed_seconds: number;
   error_message?: string;
+  warnings?: { algorithm: string; error: string }[];
+  failed_chunk_count?: number;
 }
 
 export interface GraphSearchParams {
@@ -2024,6 +2027,8 @@ export interface GraphBuildRunRecord {
   started_at?: string;
   completed_at?: string;
   created_at?: string;
+  progress_percent?: number;
+  warnings?: { algorithm: string; error: string }[];
 }
 
 export interface GraphBuildHistoryResult {

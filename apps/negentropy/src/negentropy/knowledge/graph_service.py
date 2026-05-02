@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
@@ -69,6 +69,8 @@ class GraphBuildResult:
     chunks_processed: int
     elapsed_seconds: float
     error_message: str | None = None
+    warnings: list[dict[str, Any]] = field(default_factory=list)
+    failed_chunk_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,41 @@ class GraphQueryResult:
     entities: list[GraphSearchResult]
     total_count: int
     query_time_ms: float
+
+
+# ============================================================================
+# Graph Query Cache (Tanenbaum & Van Steen, 2017; Kleppmann, 2017 §3)
+# ============================================================================
+
+
+class _TTLCache:
+    """进程内 TTL 缓存，用于图谱查询结果 (Tanenbaum & Van Steen, 2017)
+
+    场景优势：图谱数据仅在构建完成时批量变更，失效时机确定性高。
+    """
+
+    def __init__(self, ttl_seconds: int = 300) -> None:
+        self._store: dict[str, tuple[Any, float]] = {}
+        self._ttl = ttl_seconds
+
+    def get(self, key: str) -> Any | None:
+        if key in self._store:
+            value, ts = self._store[key]
+            if time.time() - ts < self._ttl:
+                return value
+            del self._store[key]
+        return None
+
+    def set(self, key: str, value: Any) -> None:
+        self._store[key] = (value, time.time())
+
+    def invalidate(self, prefix: str) -> None:
+        keys_to_delete = [k for k in self._store if k.startswith(prefix)]
+        for k in keys_to_delete:
+            del self._store[k]
+
+
+_graph_cache = _TTLCache(ttl_seconds=300)
 
 
 # ============================================================================
@@ -197,43 +234,67 @@ class GraphService:
         )
 
         try:
-            # 清除旧图谱数据
-            await self._repository.clear_graph(corpus_id)
+            # 增量构建：跳过已处理的 chunk (Hogan et al., 2021 §6.3; Graphiti, 2025)
+            prev_processed: set[str] = set()
+            if build_config.incremental:
+                prev_processed = await self._repository.get_processed_chunk_ids(corpus_id, app_name)
+                original_count = len(chunks)
+                chunks = [c for c in chunks if c.get("id") and str(c["id"]) not in prev_processed]
+                logger.info(
+                    "incremental_build_filter",
+                    total_chunks=original_count,
+                    new_chunks=len(chunks),
+                    skipped=len(prev_processed),
+                )
+            else:
+                # 全量构建：清除旧图谱数据
+                await self._repository.clear_graph(corpus_id)
 
             # 分批处理
             all_entities: list[GraphNode] = []
             all_relations: list[GraphEdge] = []
             chunks_processed = 0
+            failed_chunk_count = 0
+            build_warnings: list[dict[str, Any]] = []
+            total_chunks = len(chunks)
 
             batch_size = build_config.batch_size
             semaphore = asyncio.Semaphore(build_config.max_concurrency)
 
-            async def process_chunk(chunk: dict[str, Any]) -> tuple[list[GraphNode], list[GraphEdge]]:
-                """处理单个知识块"""
+            async def process_chunk(
+                chunk: dict[str, Any],
+                _retries: int = 1,
+            ) -> tuple[list[GraphNode], list[GraphEdge]]:
+                """处理单个知识块，LLM 提取失败时重试一次 (Nygard, 2018)"""
                 async with semaphore:
                     text = chunk.get("content", "")
                     if not text:
                         return [], []
 
-                    # 提取实体
-                    entities = await self._entity_extractor.extract(text, corpus_id)
+                    try:
+                        # 提取实体
+                        entities = await self._entity_extractor.extract(text, corpus_id)
 
-                    # 过滤低置信度实体
-                    entities = [
-                        e for e in entities if e.metadata.get("confidence", 1.0) >= build_config.min_entity_confidence
-                    ]
+                        # 过滤低置信度实体
+                        min_conf = build_config.min_entity_confidence
+                        entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
 
-                    # 提取关系
-                    relations = await self._relation_extractor.extract(entities, text)
+                        # 提取关系
+                        relations = await self._relation_extractor.extract(entities, text)
 
-                    # 过滤低置信度关系
-                    relations = [
-                        r
-                        for r in relations
-                        if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
-                    ]
+                        # 过滤低置信度关系
+                        relations = [
+                            r
+                            for r in relations
+                            if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
+                        ]
 
-                    return entities, relations
+                        return entities, relations
+                    except Exception:
+                        if _retries > 0:
+                            await asyncio.sleep(1.0)
+                            return await process_chunk(chunk, _retries - 1)
+                        raise
 
             # 批量处理
             for i in range(0, len(chunks), batch_size):
@@ -249,12 +310,24 @@ class GraphService:
                             "chunk_processing_error",
                             error=str(result),
                         )
+                        failed_chunk_count += 1
                         continue
 
                     entities, relations = result
                     all_entities.extend(entities)
                     all_relations.extend(relations)
                     chunks_processed += 1
+
+                # 进度上报 (Majors, Observability Engineering, 2022)
+                progress = min((i + len(batch)) / total_chunks, 1.0) if total_chunks > 0 else 1.0
+                try:
+                    await self._repository.update_build_run(
+                        run_id=run_uuid,
+                        status="running",
+                        progress_percent=progress,
+                    )
+                except Exception:
+                    pass  # 进度上报失败不影响构建
 
             # 去重实体（基于 label）
             unique_entities: dict[str, GraphNode] = {}
@@ -263,6 +336,19 @@ class GraphService:
                     unique_entities[entity.label] = entity
 
             entities_to_save = list(unique_entities.values())
+
+            # 语义去重 (Fellegi & Sunter, 1969; Mudgal et al., 2018)
+            # 在 label 精确去重之后，利用 embedding ANN 查找语义近义实体
+            if build_config.semantic_dedup_threshold > 0 and len(entities_to_save) > 0:
+                try:
+                    await self._semantic_dedup(
+                        entities_to_save,
+                        corpus_id,
+                        build_config.semantic_dedup_threshold,
+                    )
+                except Exception as dedup_exc:
+                    build_warnings.append({"phase": "semantic_dedup", "error": str(dedup_exc)})
+                    logger.warning("semantic_dedup_failed", error=str(dedup_exc))
 
             # 持久化实体
             await self._repository.create_entities(
@@ -360,6 +446,7 @@ class GraphService:
                         entity_count=len(pr_result),
                     )
             except Exception as pr_exc:
+                build_warnings.append({"algorithm": "pagerank", "error": str(pr_exc)})
                 logger.warning(
                     "pagerank_computation_failed",
                     error=str(pr_exc),
@@ -379,6 +466,7 @@ class GraphService:
                         community_count=len(set(lv_result.values())) if lv_result else 0,
                     )
             except Exception as lv_exc:
+                build_warnings.append({"algorithm": "louvain", "error": str(lv_exc)})
                 logger.warning(
                     "louvain_computation_failed",
                     error=str(lv_exc),
@@ -386,13 +474,26 @@ class GraphService:
 
             elapsed = time.time() - start_time
 
-            # 更新构建运行状态
+            # 计算已处理 chunk ID 列表（增量模式需合并上次）
+            current_chunk_ids = [str(c["id"]) for c in chunks if c.get("id")]
+            if build_config.incremental and prev_processed:
+                all_processed = list(prev_processed | set(current_chunk_ids))
+            else:
+                all_processed = current_chunk_ids
+
+            # 更新构建运行状态（含警告 + 已处理 chunk）
             await self._repository.update_build_run(
                 run_id=run_uuid,
                 status="completed",
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
+                warnings=build_warnings if build_warnings else None,
+                processed_chunk_ids=all_processed if all_processed else None,
             )
+
+            # 缓存失效：构建完成时清除该语料库的缓存
+            _graph_cache.invalidate(f"graph:{corpus_id}")
+            _graph_cache.invalidate(f"stats:{corpus_id}")
 
             logger.info(
                 "graph_build_completed",
@@ -401,6 +502,8 @@ class GraphService:
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
                 chunks_processed=chunks_processed,
+                failed_chunk_count=failed_chunk_count,
+                warning_count=len(build_warnings),
                 elapsed_seconds=elapsed,
             )
 
@@ -412,6 +515,8 @@ class GraphService:
                 relation_count=len(valid_relations),
                 chunks_processed=chunks_processed,
                 elapsed_seconds=elapsed,
+                warnings=build_warnings,
+                failed_chunk_count=failed_chunk_count,
             )
 
         except Exception as exc:
@@ -543,6 +648,13 @@ class GraphService:
             app_name=app_name,
         )
 
+        # 缓存检查
+        cache_key = f"graph:{corpus_id}"
+        cached = _graph_cache.get(cache_key)
+        if cached is not None:
+            logger.debug("get_graph_cache_hit", corpus_id=str(corpus_id))
+            return cached
+
         # 获取图谱数据
         graph = await self._repository.get_graph(corpus_id, app_name)
 
@@ -575,6 +687,7 @@ class GraphService:
             edge_count=len(graph.edges),
         )
 
+        _graph_cache.set(cache_key, graph)
         return graph
 
     async def find_neighbors(
@@ -808,6 +921,10 @@ class GraphService:
 
         count = await self._repository.clear_graph(corpus_id)
 
+        # 缓存失效
+        _graph_cache.invalidate(f"graph:{corpus_id}")
+        _graph_cache.invalidate(f"stats:{corpus_id}")
+
         logger.info(
             "clear_graph_completed",
             corpus_id=str(corpus_id),
@@ -815,6 +932,71 @@ class GraphService:
         )
 
         return count
+
+    async def _semantic_dedup(
+        self,
+        entities: list[GraphNode],
+        corpus_id: UUID,
+        threshold: float,
+    ) -> None:
+        """语义去重阶段：利用 embedding ANN 查找并合并近义实体
+
+        三阶段流程 (Christen, 2012)：
+        1. 阻塞 (Blocking): entity_type 预过滤
+        2. 比较 (Comparison): HNSW ANN 余弦相似度
+        3. 分类 (Classification): 阈值判定 + 合并
+        """
+        from negentropy.db.session import AsyncSessionLocal
+
+        from .embedding import build_batch_embedding_fn
+        from .kg_entity_service import KgEntityService
+
+        # 1. 批量生成实体 label 的 embedding
+        labels = [e.label for e in entities if e.label]
+        if not labels:
+            return
+
+        embed_fn = await build_batch_embedding_fn()
+        embeddings = await embed_fn(labels)
+
+        # 2. 对每个实体查找 DB 中已有的相似实体
+        merged_count = 0
+        kg_service = KgEntityService()
+
+        async with AsyncSessionLocal() as db:
+            for entity, embedding in zip(entities, embeddings, strict=False):
+                if not embedding or not entity.node_type:
+                    continue
+
+                similar = await self._repository.find_similar_entities(
+                    embedding=embedding,
+                    corpus_id=corpus_id,
+                    entity_type=entity.node_type,
+                    threshold=threshold,
+                    limit=3,
+                )
+
+                for similar_id, similar_name, _score in similar:
+                    # 找到已存在的同名实体则跳过（精确匹配已处理）
+                    if similar_name == entity.label:
+                        continue
+                    await kg_service.merge_entities(
+                        db,
+                        primary_id=similar_id,
+                        secondary_id=entity.id.replace("entity:", "") if entity.id else "",
+                        corpus_id=corpus_id,
+                    )
+                    merged_count += 1
+
+            if merged_count > 0:
+                await db.commit()
+
+        logger.info(
+            "semantic_dedup_completed",
+            corpus_id=str(corpus_id),
+            entity_count=len(entities),
+            merged_count=merged_count,
+        )
 
 
 # ============================================================================

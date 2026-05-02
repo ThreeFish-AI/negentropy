@@ -277,6 +277,7 @@ class GraphBuildRequest(BaseModel):
     min_entity_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     min_relation_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     batch_size: int = Field(default=10, ge=1, le=100)
+    incremental: bool = False
 
 
 class GraphBuildResponse(BaseModel):
@@ -290,6 +291,8 @@ class GraphBuildResponse(BaseModel):
     chunks_processed: int
     elapsed_seconds: float
     error_message: str | None = None
+    warnings: list[dict[str, Any]] = Field(default_factory=list)
+    failed_chunk_count: int = 0
 
 
 class GraphSearchRequest(BaseModel):
