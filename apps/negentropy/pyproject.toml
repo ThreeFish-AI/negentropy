@@ -100,6 +100,10 @@ filterwarnings = [
     # See: https://github.com/googleapis/python-genai/issues/???
     "ignore:'_UnionGenericAlias' is deprecated:DeprecationWarning"
 ]
+# Phase 4: 自定义 markers — 默认不跑评测（手动 -m eval 触发）
+markers = [
+    "eval: marks long-running memory evaluation suites (LoCoMo / LongMemEval)",
+]
 
 [tool.coverage.run]
 source = ["src"]
