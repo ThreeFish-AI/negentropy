@@ -27,6 +27,26 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # kg_build_runs 基表从未被任何 migration 创建，在此补建（幂等）
+    op.execute(
+        sa.text("""
+        CREATE TABLE IF NOT EXISTS negentropy.kg_build_runs (
+            id UUID PRIMARY KEY,
+            app_name VARCHAR(255),
+            corpus_id UUID,
+            run_id VARCHAR(255),
+            status VARCHAR(50) DEFAULT 'running',
+            extractor_config JSONB DEFAULT '{}',
+            model_name VARCHAR(255),
+            entity_count INTEGER DEFAULT 0,
+            relation_count INTEGER DEFAULT 0,
+            error_message TEXT,
+            started_at TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
+    )
     op.add_column(
         "kg_build_runs",
         sa.Column("progress_percent", sa.Float(), nullable=True, server_default="0"),
