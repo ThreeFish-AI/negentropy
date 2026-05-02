@@ -284,7 +284,7 @@ class MemoryGovernanceService:
         last_accessed_at: datetime,
         created_at: datetime,
         memory_type: str = "episodic",
-        related_count: int = 0,
+        related_count: int | None = None,
         lambda_: float | None = None,
     ) -> float:
         """多因子自适应保留评分
@@ -312,7 +312,7 @@ class MemoryGovernanceService:
             last_accessed_at: 最后访问时间
             created_at: 创建时间
             memory_type: 记忆类型（影响衰减率）
-            related_count: 关联记忆/事实数量（语义重要性）
+            related_count: 关联记忆/事实数量（None 时自动查询 DB）
             lambda_: 自定义衰减常数（覆盖类型默认值）
 
         Returns:
@@ -334,7 +334,10 @@ class MemoryGovernanceService:
         type_multiplier = _MEMORY_TYPE_MULTIPLIER.get(memory_type, 1.0)
 
         # Factor 4: 语义重要性（网络效应 — 关联越多越重要）
-        semantic_importance = 1.0 + min(0.5, related_count * 0.1)
+        effective_related_count = (
+            related_count if related_count is not None else await self._get_related_count(memory_id)
+        )
+        semantic_importance = 1.0 + min(0.5, effective_related_count * 0.1)
 
         # Factor 5: 时效性加成（1 年内创建的记忆获得额外加分）
         days_since_creation = max(0, (now - created_at).total_seconds() / 86400)

@@ -36,6 +36,9 @@ from sqlalchemy import select, text, update
 # ORM 模型与会话工厂
 import negentropy.db.session as db_session
 from negentropy.engine.consolidation.llm_fact_extractor import LLMFactExtractor
+from negentropy.engine.governance.memory import (
+    _MEMORY_TYPE_MULTIPLIER,
+)
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory
@@ -53,20 +56,6 @@ _DEDUP_SIMILARITY_THRESHOLD = 0.85  # cosine similarity 去重阈值（对齐 He
 _DEDUP_JACCARD_THRESHOLD = 0.7  # Jaccard 词重叠二次校验阈值（对齐 Broder MinHash<sup>[[37]](#ref37)</sup>）
 _INITIAL_RETENTION_BASE = 0.8  # 新记忆初始保留分数基准
 _EMBEDDING_MAX_RETRIES = 3  # Embedding 指数退避最大重试次数<sup>[[44]](#ref44)</sup>
-
-# 记忆类型衰减率映射（ACT-R 认知架构<sup>[[45]](#ref45)</sup> + FadeMem<sup>[[46]](#ref46)</sup>）
-_MEMORY_TYPE_DECAY_RATES: dict[str, float] = {
-    "preference": 0.05,  # 用户偏好长期保持
-    "procedural": 0.06,  # 技能/流程较稳定
-    "fact": 0.08,  # 事实中等衰减
-    "episodic": 0.10,  # 对话片段衰减最快（基准）
-}
-_MEMORY_TYPE_MULTIPLIER: dict[str, float] = {
-    "preference": 1.2,
-    "procedural": 1.15,
-    "fact": 1.1,
-    "episodic": 1.0,
-}
 
 
 class PostgresMemoryService(BaseMemoryService):
@@ -139,7 +128,7 @@ class PostgresMemoryService(BaseMemoryService):
                     logger.warning("consolidate_embedding_skipped", segment=seg_idx)
                     continue
 
-                if embedding is not None and await self._is_duplicate_in_session(
+                if embedding is not None and await self._is_duplicate(
                     db=db,
                     user_id=session.user_id,
                     app_name=session.app_name,
@@ -173,7 +162,7 @@ class PostgresMemoryService(BaseMemoryService):
 
             # 阶段 4：事实提取（同一事务内，失败仅回滚事实，不影响记忆）
             try:
-                await self._extract_and_store_facts_in_session(
+                await self._extract_and_store_facts(
                     db=db,
                     turns=turns,
                     user_id=session.user_id,
@@ -237,58 +226,22 @@ class PostgresMemoryService(BaseMemoryService):
         logger.error("consolidate_embedding_exhausted", segment=segment_idx)
         return None
 
-    async def _is_duplicate_in_session(
+    async def _extract_and_store_facts(
         self,
         *,
-        db: Any,
-        user_id: str,
-        app_name: str,
-        embedding: list[float],
-        content: str = "",
-    ) -> bool:
-        """事务内去重检测（Orient 阶段）
-
-        与 _is_duplicate 逻辑相同，但复用外部 session 以在同一事务内执行。
-        """
-        distance = Memory.embedding.op("<=>")(embedding)
-        stmt = (
-            select(Memory.id, Memory.content, distance.label("dist"))
-            .where(
-                Memory.user_id == user_id,
-                Memory.app_name == app_name,
-                Memory.embedding.is_not(None),
-            )
-            .order_by(distance.asc())
-            .limit(1)
-        )
-        result = await db.execute(stmt)
-        row = result.first()
-        if row is None:
-            return False
-        similarity = 1.0 - float(row.dist)
-        if similarity >= _DEDUP_SIMILARITY_THRESHOLD:
-            return True
-        if similarity >= 0.80 and content and row.content:
-            words_new = set(content.lower().split())
-            words_old = set(row.content.lower().split())
-            if words_new and words_old:
-                jaccard = len(words_new & words_old) / len(words_new | words_old)
-                if jaccard >= _DEDUP_JACCARD_THRESHOLD:
-                    return True
-        return False
-
-    async def _extract_and_store_facts_in_session(
-        self,
-        *,
-        db: Any,
+        db: Any | None = None,
         turns: list[dict[str, str]],
         user_id: str,
         app_name: str,
         thread_id: uuid.UUID | None,
     ) -> None:
-        """事务内事实提取与存储
+        """从对话轮次中提取结构化事实并存储
 
-        与 _extract_and_store_facts 逻辑相同，但复用外部 session。
+        使用 PatternFactExtractor 做模式匹配提取，
+        通过 FactService.upsert_fact 存储（利用唯一约束做 upsert）。
+
+        Args:
+            db: 外部 session（复用事务），None 时自行创建。
         """
         from negentropy.engine.factories.memory import get_fact_service
 
@@ -304,50 +257,6 @@ class PostgresMemoryService(BaseMemoryService):
                     app_name=app_name,
                     fact_type=fact.fact_type,
                     key=fact.key[:255],
-                    value={"text": fact.value},
-                    confidence=fact.confidence,
-                    thread_id=thread_id,
-                )
-            except Exception as exc:
-                logger.warning(
-                    "fact_upsert_failed",
-                    key=fact.key[:50],
-                    error=str(exc),
-                )
-
-        logger.info(
-            "facts_extracted_and_stored",
-            user_id=user_id,
-            facts_count=len(extracted),
-        )
-
-    async def _extract_and_store_facts(
-        self,
-        *,
-        turns: list[dict[str, str]],
-        user_id: str,
-        app_name: str,
-        thread_id: uuid.UUID | None,
-    ) -> None:
-        """从对话轮次中提取结构化事实并存储
-
-        使用 PatternFactExtractor 做模式匹配提取，
-        通过 FactService.upsert_fact 存储（利用唯一约束做 upsert）。
-        """
-        from negentropy.engine.factories.memory import get_fact_service
-
-        extracted = self._fact_extractor.extract(turns)
-        if not extracted:
-            return
-
-        fact_service = get_fact_service(embedding_fn=self._embedding_fn)
-        for fact in extracted:
-            try:
-                await fact_service.upsert_fact(
-                    user_id=user_id,
-                    app_name=app_name,
-                    fact_type=fact.fact_type,
-                    key=fact.key[:255],  # 遵守 VARCHAR(255) 约束
                     value={"text": fact.value},
                     confidence=fact.confidence,
                     thread_id=thread_id,
@@ -432,6 +341,7 @@ class PostgresMemoryService(BaseMemoryService):
     async def _is_duplicate(
         self,
         *,
+        db: Any | None = None,
         user_id: str,
         app_name: str,
         embedding: list[float],
@@ -442,35 +352,50 @@ class PostgresMemoryService(BaseMemoryService):
         两阶段去重策略<sup>[[40]](#ref40)</sup>：
         1. Cosine similarity ≥ 0.85 → 直接判定为重复
         2. Cosine similarity ∈ [0.80, 0.85) → Jaccard 词重叠二次校验<sup>[[37]](#ref37)</sup>
+
+        Args:
+            db: 外部 session（复用事务），None 时自行创建。
         """
+        if db is not None:
+            return await self._check_duplicate(db, user_id, app_name, embedding, content)
+
         async with db_session.AsyncSessionLocal() as db:
-            distance = Memory.embedding.op("<=>")(embedding)
-            stmt = (
-                select(Memory.id, Memory.content, distance.label("dist"))
-                .where(
-                    Memory.user_id == user_id,
-                    Memory.app_name == app_name,
-                    Memory.embedding.is_not(None),
-                )
-                .order_by(distance.asc())
-                .limit(1)
+            return await self._check_duplicate(db, user_id, app_name, embedding, content)
+
+    async def _check_duplicate(
+        self,
+        db: Any,
+        user_id: str,
+        app_name: str,
+        embedding: list[float],
+        content: str,
+    ) -> bool:
+        distance = Memory.embedding.op("<=>")(embedding)
+        stmt = (
+            select(Memory.id, Memory.content, distance.label("dist"))
+            .where(
+                Memory.user_id == user_id,
+                Memory.app_name == app_name,
+                Memory.embedding.is_not(None),
             )
-            result = await db.execute(stmt)
-            row = result.first()
-            if row is None:
-                return False
-            similarity = 1.0 - float(row.dist)
-            if similarity >= _DEDUP_SIMILARITY_THRESHOLD:
-                return True
-            # 二次校验：embedding 高度相似但未达阈值时，用 Jaccard 词重叠确认
-            if similarity >= 0.80 and content and row.content:
-                words_new = set(content.lower().split())
-                words_old = set(row.content.lower().split())
-                if words_new and words_old:
-                    jaccard = len(words_new & words_old) / len(words_new | words_old)
-                    if jaccard >= _DEDUP_JACCARD_THRESHOLD:
-                        return True
+            .order_by(distance.asc())
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        row = result.first()
+        if row is None:
             return False
+        similarity = 1.0 - float(row.dist)
+        if similarity >= _DEDUP_SIMILARITY_THRESHOLD:
+            return True
+        if similarity >= 0.80 and content and row.content:
+            words_new = set(content.lower().split())
+            words_old = set(row.content.lower().split())
+            if words_new and words_old:
+                jaccard = len(words_new & words_old) / len(words_new | words_old)
+                if jaccard >= _DEDUP_JACCARD_THRESHOLD:
+                    return True
+        return False
 
     @staticmethod
     def _calculate_initial_retention(
