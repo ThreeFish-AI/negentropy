@@ -2150,6 +2150,52 @@ export async function fetchCorpusGraph(
 }
 
 /**
+ * 获取以指定实体为锚点的子图（G2 Cytoscape 增量加载）
+ */
+export async function fetchGraphSubgraph(
+  corpusId: string,
+  params: {
+    centerId: string;
+    radius?: 1 | 2 | 3;
+    limit?: number;
+    appName?: string;
+    asOf?: string;
+  },
+): Promise<{
+  center_id: string;
+  radius: number;
+  nodes: Array<{
+    id: string;
+    label?: string;
+    type?: string;
+    importance?: number | null;
+    community_id?: number | null;
+    metadata?: Record<string, unknown>;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    label?: string;
+    type?: string;
+    weight?: number;
+    metadata?: Record<string, unknown>;
+  }>;
+}> {
+  const query = new URLSearchParams();
+  query.set("center_id", params.centerId);
+  if (params.radius) query.set("radius", String(params.radius));
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.appName) query.set("app_name", params.appName);
+  if (params.asOf) query.set("as_of", params.asOf);
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/subgraph?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
  * 获取关系时间轴密度直方图（G3 时间穿梭检索）
  */
 export async function fetchGraphTimeline(

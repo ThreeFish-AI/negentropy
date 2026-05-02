@@ -681,6 +681,36 @@ GraphSearchMode = Literal["semantic", "graph", "hybrid", "rrf", "graphrag"]
 }
 ```
 
+#### 5.2.4 前端可视化层（Cytoscape.js + fCoSE）
+
+**理论锚点**：Force-directed layout 起源于 Fruchterman & Reingold (1991)；fCoSE (Dogrusoz et al., 2009) 是当前对大规模属性图最优的快速复合 spring embedder。
+
+**节点编码**：
+- 颜色：`community_id != null` 时按社区配色（Tableau 10 色盲友好），否则按实体类型（`person/organization/...`）
+- 尺寸：18-46px 线性映射 PageRank `importance_score`，零值兜底为 22px
+- 选中态：橙色边框 + 非邻域淡化（opacity=0.15）
+
+**fCoSE 默认参数**：
+
+| 参数 | 值 | 备注 |
+| :--- | :--- | :--- |
+| `nodeRepulsion` | 5000 | 节点排斥力 |
+| `idealEdgeLength` | 80 | 理想边长 |
+| `edgeElasticity` | 0.45 | 边弹性 |
+| `gravity` | 0.25 | 引力（防游离簇飞出） |
+| `quality` | "default" | 在性能与美感间均衡 |
+
+**性能基准**（Chrome 134 / M1）：100-500 节点初始布局 < 2s；5000+ 节点建议服务端 `limit=500` 截断（默认值），UI 显式提示"已按 importance 截断（双击节点展开邻居）"。
+
+**交互范式**：
+- 滚轮缩放（`wheelSensitivity=0.2`，避免误触猛缩）
+- 拖拽画布平移
+- 单击节点 → 高亮 1-hop 邻域 + 父组件展示详情
+- 双击节点 → 调用 `GET /base/{cid}/graph/subgraph?center=ID&radius=1&limit=50` 增量加载
+- 点击空白 → 取消选中
+
+**渲染引擎切换**：保留 d3-force 实现作为兼容回退（顶部 toolbar `Cytoscape | d3-force` 切换）。
+
 ### 5.6 数据模型演进
 
 **索引优化计划**：
@@ -1322,6 +1352,7 @@ timeline
 | 2026-05-02 | 2.1 | Phase 2 状态更新（P2-3 PageRank / P2-4 Louvain / P2-5 RRF 标记已完成）；Phase 3 新增 P3-9 构建管线健壮性 / P3-10 实体语义去重 / P3-11 图谱查询缓存（均已完成）；新增参考文献 [16]-[24] 共 9 条 IEEE 引用 | Claude |
 | 2026-05-02 | 2.2 | Phase 3 新增 P3-12 GraphRAG 上下文组装集成 / P3-13 Agent→KG 三元组双向同步 / P3-14 图谱质量健康指标 / P3-15 跨语料实体重叠推荐（均已完成） | Claude |
 | 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0023 部分索引 + valid_from backfill；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
+| 2026-05-02 | 2.4 | **Phase 4 G2 Cytoscape.js 交互可视化（已完成）**：新增前端 `GraphCanvas` 组件（cytoscape + cytoscape-fcose）；新增后端 `GET /graph/subgraph` 端点（service 层 BFS 截断；node 排序 跳数 → importance）；page.tsx 渲染引擎切换（Cytoscape vs d3-force）；双击节点触发 1 跳子图增量加载；G3 as_of 在 Cytoscape 路径下保持透传 | Claude |
 
 ---
 

@@ -15,6 +15,7 @@ import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
 import { EntityListPanel } from "./_components/EntityListPanel";
+import { GraphCanvas } from "./_components/GraphCanvas";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
@@ -60,6 +61,8 @@ export default function KnowledgeGraphPage() {
   const [buildError, setBuildError] = useState<string | null>(null);
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
   const [asOf, setAsOf] = useState<string | null>(null);
+  // G2: 渲染引擎切换 — Cytoscape (Phase 4 默认) vs d3-force (Phase 1 兼容回退)
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3">("cytoscape");
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
@@ -304,6 +307,32 @@ export default function KnowledgeGraphPage() {
                       实体列表
                     </button>
                   </div>
+                  {viewTab === "graph" && (
+                    <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 text-[10px]">
+                      <button
+                        onClick={() => setRenderer("cytoscape")}
+                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认，支持节点交互）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "cytoscape"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        } rounded-l-lg`}
+                      >
+                        Cytoscape
+                      </button>
+                      <button
+                        onClick={() => setRenderer("d3")}
+                        title="d3-force（Phase 1 兼容回退）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "d3"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        } rounded-r-lg`}
+                      >
+                        d3-force
+                      </button>
+                    </div>
+                  )}
                   {building && (
                     <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">
                       正在构建...
@@ -340,7 +369,24 @@ export default function KnowledgeGraphPage() {
                 )}
               </div>
               )}
-              {viewTab === "graph" ? (
+              {viewTab === "graph" && renderer === "cytoscape" && corpusId && nodes.length > 0 ? (
+                <GraphCanvas
+                  corpusId={corpusId}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                />
+              ) : viewTab === "graph" && renderer === "cytoscape" ? (
+                <div className="flex h-[600px] items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
+                </div>
+              ) : viewTab === "graph" ? (
               <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">

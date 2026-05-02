@@ -178,6 +178,69 @@ class TestGraphService:
         assert mock_repository.get_graph.call_count == 2
 
     @pytest.mark.asyncio
+    async def test_get_subgraph_bfs_radius_1(self, service, mock_repository):
+        """get_subgraph: radius=1 应只返回 center + 直接邻居 (G2)"""
+        from negentropy.knowledge.types import KnowledgeGraphPayload
+
+        # 全图：A — B — C — D（链式）
+        nodes = [
+            GraphNode(id="entity:a", label="A", node_type="t"),
+            GraphNode(id="entity:b", label="B", node_type="t"),
+            GraphNode(id="entity:c", label="C", node_type="t"),
+            GraphNode(id="entity:d", label="D", node_type="t"),
+        ]
+        edges = [
+            GraphEdge(source="entity:a", target="entity:b", edge_type="X"),
+            GraphEdge(source="entity:b", target="entity:c", edge_type="X"),
+            GraphEdge(source="entity:c", target="entity:d", edge_type="X"),
+        ]
+        mock_repository.get_graph.side_effect = None
+        mock_repository.get_graph.return_value = KnowledgeGraphPayload(nodes=nodes, edges=edges)
+
+        from negentropy.knowledge.graph.service import _graph_cache
+
+        _graph_cache._store.clear()
+        sub = await service.get_subgraph(_CORPUS_ID, "app", center_id="entity:b", radius=1)
+        ids = {n.id for n in sub.nodes}
+        # B (center) + A + C 直接相邻；D 不在 1 跳内
+        assert ids == {"entity:a", "entity:b", "entity:c"}
+        # 边只保留两端都在节点集合中的
+        assert len(sub.edges) == 2  # A-B 与 B-C
+
+    @pytest.mark.asyncio
+    async def test_get_subgraph_respects_limit(self, service, mock_repository):
+        """get_subgraph: limit=2 应按 (跳数, importance) 排序后截断"""
+        from negentropy.knowledge.types import KnowledgeGraphPayload
+
+        nodes = [
+            GraphNode(id="entity:c", label="Center", node_type="t", metadata={}),
+            GraphNode(id="entity:n1", label="N1", node_type="t", metadata={"importance_score": 0.9}),
+            GraphNode(id="entity:n2", label="N2", node_type="t", metadata={"importance_score": 0.1}),
+        ]
+        edges = [
+            GraphEdge(source="entity:c", target="entity:n1", edge_type="X"),
+            GraphEdge(source="entity:c", target="entity:n2", edge_type="X"),
+        ]
+        mock_repository.get_graph.side_effect = None
+        mock_repository.get_graph.return_value = KnowledgeGraphPayload(nodes=nodes, edges=edges)
+
+        from negentropy.knowledge.graph.service import _graph_cache
+
+        _graph_cache._store.clear()
+        sub = await service.get_subgraph(_CORPUS_ID, "app", center_id="entity:c", radius=1, limit=2)
+        ids = [n.id for n in sub.nodes]
+        # center 必在；n1 importance 高，应优先于 n2
+        assert "entity:c" in ids
+        assert "entity:n1" in ids
+        assert "entity:n2" not in ids
+
+    @pytest.mark.asyncio
+    async def test_get_subgraph_invalid_radius_raises(self, service, mock_repository):
+        """get_subgraph: radius 超出 [1,3] 应抛 ValueError"""
+        with pytest.raises(ValueError, match="radius"):
+            await service.get_subgraph(_CORPUS_ID, "app", center_id="entity:c", radius=5)
+
+    @pytest.mark.asyncio
     async def test_get_relation_timeline_delegates_to_repository(self, service, mock_repository):
         """get_relation_timeline 应委托给 repository 并透传 bucket"""
         mock_repository.get_relation_timeline = AsyncMock(

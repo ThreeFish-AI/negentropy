@@ -85,7 +85,8 @@ export {
   fetchGraphEntities,
   fetchGraphEntityDetail,
   fetchGraphStats,
-  // Graph Phase 4 (G3 时态时间穿梭)
+  // Graph Phase 4 (G2 Cytoscape 子图增量 + G3 时态时间穿梭)
+  fetchGraphSubgraph,
   fetchGraphTimeline,
   // Catalog Management
   fetchCatalogs,

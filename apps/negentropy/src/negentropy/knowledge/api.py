@@ -3460,6 +3460,72 @@ async def get_graph_stats(
     return GraphStatsResponse(**stats)
 
 
+@router.get("/base/{corpus_id}/graph/subgraph", response_model=dict[str, Any])
+async def get_corpus_subgraph(
+    corpus_id: UUID,
+    center_id: str = Query(..., description="BFS 起点实体 ID（含/不含 entity: 前缀）"),
+    radius: int = Query(default=1, ge=1, le=3, description="BFS 半径（1-3 跳）"),
+    limit: int = Query(default=200, ge=1, le=1000, description="节点数上限"),
+    app_name: str | None = Query(default=None),
+    as_of: datetime | None = Query(default=None, description="可选时态快照时刻"),
+) -> dict[str, Any]:
+    """获取以指定实体为锚点的子图（G2 Cytoscape 增量加载）
+
+    用户在 Cytoscape 画布双击节点时，前端调用本端点获取 N 跳邻域增量并入图，
+    避免一次性加载全图导致的渲染卡顿。
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    logger.debug(
+        "api_get_subgraph",
+        corpus_id=str(corpus_id),
+        center_id=center_id,
+        radius=radius,
+        limit=limit,
+        as_of=as_of.isoformat() if as_of else None,
+    )
+
+    graph_service = _get_graph_service()
+    try:
+        sub = await graph_service.get_subgraph(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            center_id=center_id,
+            radius=radius,
+            limit=limit,
+            as_of=as_of,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"code": "INVALID_PARAM", "message": str(exc)}) from exc
+
+    return {
+        "center_id": center_id,
+        "radius": radius,
+        "nodes": [
+            {
+                "id": node.id,
+                "label": node.label,
+                "type": node.node_type,
+                "importance": node.metadata.get("importance_score"),
+                "community_id": node.metadata.get("community_id"),
+                "metadata": node.metadata,
+            }
+            for node in sub.nodes
+        ],
+        "edges": [
+            {
+                "source": edge.source,
+                "target": edge.target,
+                "label": edge.label,
+                "type": edge.edge_type,
+                "weight": edge.weight,
+                "metadata": edge.metadata,
+            }
+            for edge in sub.edges
+        ],
+    }
+
+
 @router.get("/base/{corpus_id}/graph/timeline", response_model=GraphTimelineResponse)
 async def get_graph_timeline(
     corpus_id: UUID,

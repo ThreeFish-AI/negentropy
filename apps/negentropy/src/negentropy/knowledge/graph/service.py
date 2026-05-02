@@ -843,6 +843,92 @@ class GraphService:
 
         return path
 
+    async def get_subgraph(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+        center_id: str,
+        radius: int = 1,
+        limit: int = 200,
+        as_of: datetime | None = None,
+    ) -> KnowledgeGraphPayload:
+        """以 center 实体为锚点的 BFS 子图（G2 Cytoscape 增量加载）。
+
+        策略：复用 ``get_graph`` 的全图（命中缓存层）+ 内存 BFS，避免新增 SQL；
+        节点按"距 center 的跳数 → importance"双键排序后取前 ``limit`` 个；
+        边保留两端都在节点集合中的连接。
+
+        Args:
+            corpus_id: 语料库 ID
+            app_name: 应用名称
+            center_id: BFS 起点实体 ID（含/不含 ``entity:`` 前缀）
+            radius: BFS 半径（跳数），1-3
+            limit: 节点数上限（防止前端渲染过载）
+            as_of: 可选时态快照时刻；与 G3 时间穿梭对齐
+
+        Returns:
+            KnowledgeGraphPayload：以 center 为锚点的连通子图
+        """
+        if radius < 1 or radius > 3:
+            raise ValueError(f"radius must be in [1,3], got {radius}")
+        if limit < 1:
+            raise ValueError(f"limit must be positive, got {limit}")
+
+        graph = await self.get_graph(corpus_id, app_name, as_of=as_of)
+
+        # 归一化 center_id（与 GraphNode.id 保持 ``entity:`` 前缀一致）
+        normalized_center = center_id if center_id.startswith("entity:") else f"entity:{center_id}"
+
+        # 邻接表（无向，便于 BFS）
+        adjacency: dict[str, set[str]] = {}
+        for edge in graph.edges:
+            adjacency.setdefault(edge.source, set()).add(edge.target)
+            adjacency.setdefault(edge.target, set()).add(edge.source)
+
+        # BFS：distance[node] = 距 center 的跳数
+        distance: dict[str, int] = {normalized_center: 0}
+        frontier = [normalized_center]
+        for hop in range(1, radius + 1):
+            next_frontier: list[str] = []
+            for node_id in frontier:
+                for nb in adjacency.get(node_id, ()):
+                    if nb not in distance:
+                        distance[nb] = hop
+                        next_frontier.append(nb)
+            frontier = next_frontier
+            if not frontier:
+                break
+
+        # 排序：跳数升序 → importance 降序 → 限制 limit
+        nodes_by_id = {n.id: n for n in graph.nodes}
+
+        def _importance(node_id: str) -> float:
+            node = nodes_by_id.get(node_id)
+            if node is None:
+                return 0.0
+            score = node.metadata.get("importance_score") if node.metadata else None
+            return float(score) if score is not None else 0.0
+
+        sorted_ids = sorted(
+            distance.keys(),
+            key=lambda nid: (distance[nid], -_importance(nid)),
+        )[:limit]
+        keep_ids = set(sorted_ids)
+
+        sub_nodes = [nodes_by_id[nid] for nid in sorted_ids if nid in nodes_by_id]
+        sub_edges = [edge for edge in graph.edges if edge.source in keep_ids and edge.target in keep_ids]
+
+        logger.debug(
+            "subgraph_built",
+            corpus_id=str(corpus_id),
+            center_id=normalized_center,
+            radius=radius,
+            node_count=len(sub_nodes),
+            edge_count=len(sub_edges),
+        )
+
+        return KnowledgeGraphPayload(nodes=sub_nodes, edges=sub_edges)
+
     async def get_relation_timeline(
         self,
         corpus_id: UUID,
