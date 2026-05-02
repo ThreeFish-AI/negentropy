@@ -267,6 +267,9 @@ class MemoryCoreBlock(Base, UUIDMixin):
             "thread_id",
             "label",
             name="memory_core_blocks_unique",
+            # 与迁移 0022 保持一致：thread_id 在 user/app scope 下强制为 NULL，
+            # 默认 PG 行为视 NULL 为 distinct，会让此唯一约束失效。
+            postgresql_nulls_not_distinct=True,
         ),
         {"schema": NEGENTROPY_SCHEMA},
     )

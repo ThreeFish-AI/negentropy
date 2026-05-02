@@ -63,6 +63,10 @@ def upgrade() -> None:
             "thread_id",
             "label",
             name="memory_core_blocks_unique",
+            # PG 15+ NULLS NOT DISTINCT：scope='user'/'app' 时 thread_id 强制为 NULL，
+            # 默认 NULL 之间互为 distinct 会让唯一约束失效，导致并发 upsert 重复落库；
+            # 项目要求 PostgreSQL 16+（详见 docs/user-guide.md），可安全启用此选项。
+            postgresql_nulls_not_distinct=True,
         ),
         schema=SCHEMA,
     )

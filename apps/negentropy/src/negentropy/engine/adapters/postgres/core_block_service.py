@@ -22,6 +22,7 @@ import uuid
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 import negentropy.db.session as db_session
 from negentropy.engine.utils.token_counter import TokenCounter
@@ -109,49 +110,71 @@ class CoreBlockService:
             meta["truncated"] = True
             meta["truncated_to"] = self._max_tokens
 
-        async with db_session.AsyncSessionLocal() as db:
-            stmt = select(MemoryCoreBlock).where(
-                MemoryCoreBlock.user_id == user_id,
-                MemoryCoreBlock.app_name == app_name,
-                MemoryCoreBlock.scope == scope,
-                MemoryCoreBlock.label == label,
-                (MemoryCoreBlock.thread_id == normalized_tid)
-                if normalized_tid is not None
-                else MemoryCoreBlock.thread_id.is_(None),
-            )
-            result = await db.execute(stmt)
-            existing = result.scalar_one_or_none()
+        # 双跑保护：唯一约束（NULLS NOT DISTINCT，迁移 0022）+ IntegrityError 退化重试。
+        # 第一次走"select-then-insert/update"的乐观路径；并发首次写入若同时落库，
+        # 由唯一约束兜底抛出 IntegrityError，第二次重新进入则一定走 update 分支。
+        block_id: uuid.UUID | None = None
+        version = 1
+        last_error: IntegrityError | None = None
+        for attempt in range(2):
+            try:
+                async with db_session.AsyncSessionLocal() as db:
+                    stmt = select(MemoryCoreBlock).where(
+                        MemoryCoreBlock.user_id == user_id,
+                        MemoryCoreBlock.app_name == app_name,
+                        MemoryCoreBlock.scope == scope,
+                        MemoryCoreBlock.label == label,
+                        (MemoryCoreBlock.thread_id == normalized_tid)
+                        if normalized_tid is not None
+                        else MemoryCoreBlock.thread_id.is_(None),
+                    )
+                    result = await db.execute(stmt)
+                    existing = result.scalar_one_or_none()
 
-            if existing is None:
-                block = MemoryCoreBlock(
+                    if existing is None:
+                        block = MemoryCoreBlock(
+                            user_id=user_id,
+                            app_name=app_name,
+                            scope=scope,
+                            thread_id=normalized_tid,
+                            label=label,
+                            content=content,
+                            token_count=token_count,
+                            version=1,
+                            updated_by=updated_by,
+                            metadata_=meta,
+                        )
+                        db.add(block)
+                        await db.flush()
+                        block_id = block.id
+                        version = 1
+                    else:
+                        existing.content = content
+                        existing.token_count = token_count
+                        existing.version = (existing.version or 1) + 1
+                        existing.updated_by = updated_by
+                        # 合并 metadata 而非覆盖
+                        merged = dict(existing.metadata_ or {})
+                        merged.update(meta)
+                        existing.metadata_ = merged
+                        block_id = existing.id
+                        version = existing.version
+
+                    await db.commit()
+                break
+            except IntegrityError as exc:
+                last_error = exc
+                logger.warning(
+                    "core_block_upsert_race_retry",
                     user_id=user_id,
-                    app_name=app_name,
                     scope=scope,
-                    thread_id=normalized_tid,
                     label=label,
-                    content=content,
-                    token_count=token_count,
-                    version=1,
-                    updated_by=updated_by,
-                    metadata_=meta,
+                    attempt=attempt + 1,
                 )
-                db.add(block)
-                await db.flush()
-                block_id = block.id
-                version = 1
-            else:
-                existing.content = content
-                existing.token_count = token_count
-                existing.version = (existing.version or 1) + 1
-                existing.updated_by = updated_by
-                # 合并 metadata 而非覆盖
-                merged = dict(existing.metadata_ or {})
-                merged.update(meta)
-                existing.metadata_ = merged
-                block_id = existing.id
-                version = existing.version
-
-            await db.commit()
+                continue
+        else:  # pragma: no cover — 两次都失败：抛出原始 IntegrityError 给上层
+            assert last_error is not None
+            raise last_error
 
         logger.info(
             "core_block_upsert",

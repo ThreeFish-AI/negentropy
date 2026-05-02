@@ -94,8 +94,17 @@ class ContextAssembler:
             app_name=app_name,
             thread_id=thread_id,
         )
-        # Core Block 占用从 memory_tokens 中预留（不超过 30%）
-        reserved_for_core = min(core_block_tokens, int(memory_tokens * 0.3))
+        # Core Block 占用从 memory_tokens 中预留（不超过 30%）。超过时按预留上限截断，
+        # 避免后续直接 prepend 时把 memory 段实际占用挤出预算（见 review #2）。
+        core_block_cap = int(memory_tokens * 0.3)
+        core_block_truncated = False
+        if core_block_tokens > core_block_cap and core_block_cap > 0:
+            core_blocks_text, core_block_tokens = await self._truncate_text_to_tokens(
+                core_blocks_text,
+                core_block_cap,
+            )
+            core_block_truncated = True
+        reserved_for_core = min(core_block_tokens, core_block_cap)
         memory_tokens_after_core = max(0, memory_tokens - reserved_for_core)
 
         # Phase 4：query intent 分类（轻量启发式，仅用于日志/可观测）
@@ -140,6 +149,7 @@ class ContextAssembler:
             )
             result["budget"]["overflow"] = actual_tokens > budget_total
             result["budget"]["core_block_tokens"] = core_block_tokens
+            result["budget"]["core_block_truncated"] = core_block_truncated
             if intent is not None:
                 result["budget"]["query_intent"] = {
                     "primary": intent.primary,
@@ -483,3 +493,44 @@ class ContextAssembler:
             return await TokenCounter.count_tokens_async(text)
         except Exception:
             return len(text) // 4
+
+    async def _truncate_text_to_tokens(
+        self,
+        text: str,
+        budget: int,
+    ) -> tuple[str, int]:
+        """按 token 预算截断任意文本块（用于 Core Block 30% 上限）。
+
+        策略：
+        - 先按行累加，超预算时按字符比例对最后一行做安全截断；
+        - 拼回后再 token 化校验，超标则逐行回退（与 ``_truncate_to_budget`` 一致）。
+
+        Returns:
+            (truncated_text, actual_tokens) — actual_tokens 不会超过 budget。
+        """
+        if budget <= 0 or not text:
+            return "", 0
+        lines = text.split("\n")
+        kept: list[str] = []
+        current = 0
+        for line in lines:
+            line_tokens = await self._accurate_token_count(line)
+            if current + line_tokens <= budget:
+                kept.append(line)
+                current += line_tokens
+                continue
+            remaining = budget - current
+            if remaining > 10 and line.strip():
+                chars_per_token = len(line) / max(line_tokens, 1)
+                safe_chars = int(remaining * chars_per_token * 0.9)
+                if safe_chars > 0:
+                    kept.append(line[:safe_chars] + "...")
+            break
+        out_text = "\n".join(kept)
+        out_tokens = await self._accurate_token_count(out_text)
+        # 防御性：极端情况下 join 后 token 反弹超标，逐行回退
+        while out_tokens > budget and kept:
+            kept.pop()
+            out_text = "\n".join(kept)
+            out_tokens = await self._accurate_token_count(out_text)
+        return out_text, out_tokens

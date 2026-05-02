@@ -258,6 +258,23 @@ def _require_admin(user: AuthUser) -> AuthUser:
     return user
 
 
+def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:
+    """Phase 4 — 自服务端点的水平越权防线。
+
+    管理员可读写任意 user_id；非管理员只能操作自己的 user_id。
+    覆盖 ``/self-edit/*`` 与 ``/core-blocks`` 等 Self-editing Tools REST 端点，
+    与 ``memory-integration.md`` 的 "需 Admin 鉴权" 描述对齐（admin 主路径），
+    同时保留 self-service 退化通道（user.user_id 必须等于 target_user_id）。
+    """
+    if "admin" in user.roles:
+        return
+    if not target_user_id or target_user_id != user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="forbidden: target user_id must match authenticated user (or require admin role)",
+        )
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -1167,6 +1184,7 @@ async def self_edit_write(
     payload: SelfEditWriteRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.tools.memory_tools import memory_write
 
     try:
@@ -1187,6 +1205,7 @@ async def self_edit_update(
     payload: SelfEditUpdateRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.tools.memory_tools import memory_update
 
     try:
@@ -1207,6 +1226,7 @@ async def self_edit_delete(
     payload: SelfEditDeleteRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.tools.memory_tools import memory_delete
 
     try:
@@ -1228,6 +1248,7 @@ async def list_core_blocks(
     thread_id: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
+    _require_self_or_admin(user, user_id)
     from negentropy.engine.factories.memory import get_core_block_service
 
     service = get_core_block_service()
@@ -1244,6 +1265,7 @@ async def upsert_core_block(
     payload: CoreBlockUpsertRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.factories.memory import get_core_block_service
 
     service = get_core_block_service()
@@ -1271,6 +1293,7 @@ async def delete_core_block(
     label: str = Query(default="persona"),
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
+    _require_self_or_admin(user, user_id)
     from negentropy.engine.factories.memory import get_core_block_service
 
     service = get_core_block_service()

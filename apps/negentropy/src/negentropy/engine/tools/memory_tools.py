@@ -45,7 +45,12 @@ _RATE_LIMITS: dict[tuple[str, str, str], deque[float]] = defaultdict(deque)
 
 
 def _check_rate_limit(user_id: str, thread_id: str | None, tool: str) -> None:
-    """简单滑动窗口限流（进程级，重启后清零）。"""
+    """简单滑动窗口限流（进程级，重启后清零）。
+
+    清窗后若 deque 空且未触发新写入，则同步删除字典键，
+    避免长期运行时 ``defaultdict`` 因高基数 (user × thread × tool)
+    持续增长形成内存泄漏（review #3）。
+    """
     key = (user_id, thread_id or "_", tool)
     now = time.time()
     window = _RATE_LIMITS[key]
@@ -54,7 +59,11 @@ def _check_rate_limit(user_id: str, thread_id: str | None, tool: str) -> None:
     if len(window) >= MAX_CALLS_PER_MINUTE:
         logger.warning("memory_tool_rate_limited", user_id=user_id, tool=tool, calls=len(window))
         raise PermissionError(f"Rate limit exceeded: {tool} called {MAX_CALLS_PER_MINUTE} times in last 60s")
-    window.append(now)
+    if not window:
+        # 窗口完全过期且本次调用不再持续累计：释放字典键。
+        # 注：随后的 append 仍会重新创建 entry（defaultdict 语义），无副作用。
+        del _RATE_LIMITS[key]
+    _RATE_LIMITS[key].append(now)
 
 
 def _validate_required(user_id: str | None, app_name: str | None) -> tuple[str, str]:
