@@ -55,6 +55,9 @@
 | 记忆摘要 | [`engine/consolidation/memory_summarizer.py`](../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py) | MemorySummarizer — 用户画像摘要生成 + TTL 缓存 |
 | 共享工具 | [`engine/utils/model_config.py`](../apps/negentropy/src/negentropy/engine/utils/model_config.py) | resolve_model_config — 统一模型配置解析 |
 | Token 计数 | [`engine/utils/token_counter.py`](../apps/negentropy/src/negentropy/engine/utils/token_counter.py) | TokenCounter — tiktoken BPE 精确计数 |
+| 冲突解决 | [`engine/governance/conflict_resolver.py`](../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py) | ConflictResolver — AGM 信念修正 + 三阶段检测 |
+| 主动召回 | [`engine/adapters/postgres/proactive_recall_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py) | ProactiveRecallService — 复合评分预加载 + TTL 缓存 |
+| 记忆关联 | [`engine/adapters/postgres/association_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py) | AssociationService — 自动链接 + 多跳扩展 |
 | DDL 原型 | [`docs/schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) | 仿生记忆 DDL 草案（历史参考） |
 
 ---
@@ -697,6 +700,132 @@ flowchart LR
 
 参考文献 <sup>[[10]](#ref10)</sup><sup>[[23]](#ref23)</sup><sup>[[26]](#ref26)</sup><sup>[[29]](#ref29)</sup><sup>[[30]](#ref30)</sup>。
 
+### 5.5 记忆重要性评分 (Importance Scoring)
+
+重要性评分（`importance_score`）量化每条记忆的固有价值，与保留分数（动态衰减）互补。基于 ACT-R 认知架构<sup>[[45]](#ref45)</sup>的基础水平激活公式和 FadeMem<sup>[[46]](#ref46)</sup>多因子模型，五因子加权公式：
+
+```
+importance = min(1.0,
+    base_activation * 0.30 +    # ACT-R log-sum 访问间隔
+    access_frequency * 0.25 +   # log(access_count) 归一化
+    fact_support * 0.20 +       # 关联事实数 / 10
+    type_weight * 0.15 +        # preference(0.9) > procedural(0.75) > fact(0.6) > episodic(0.4)
+    recency_bonus * 0.10        # max(0, 1 - days_since_creation / 90)
+)
+```
+
+**记忆类型重要性权重**：
+
+| 类型 | type_weight | 理由 |
+| :-- | :-- | :-- |
+| preference | 0.9 | 用户偏好是长期高价值信号 |
+| procedural | 0.75 | 技能/流程记忆较稳定 |
+| fact | 0.6 | 事实性知识中等价值 |
+| episodic | 0.4 | 对话片段价值相对较低（基准） |
+
+**计算时机**：
+- 巩固存储时：`PostgresMemoryService._simple_consolidate()` 计算初始评分
+- Fact upsert 时：`FactService.upsert_fact()` 计算初始评分
+- 访问后：`_record_access()` 增量提升 +0.02
+
+**代码实现**：`MemoryGovernanceService.calculate_importance_score()` — [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py)
+
+### 5.6 记忆冲突与信念修正 (Conflict Resolution)
+
+当新事实与现有事实矛盾时，基于 AGM 信念修正理论<sup>[[49]](#ref49)</sup>和 Doyle 真值维护系统<sup>[[50]](#ref50)</sup>，通过三阶段检测自动解决冲突。
+
+**检测阶段**：
+
+```mermaid
+flowchart LR
+    NEW["新事实插入"] --> K["Stage 1: Key-based<br/>(快速路径)"]
+    K --> |"同 key 不同 value"| EMB["Stage 2: Embedding-based<br/>(中速路径)"]
+    EMB --> |"高相似度 ≥ 0.85"| LLM["Stage 3: LLM-based<br/>(深度路径)"]
+    K --> |"无冲突"| PASS["通过"]
+    EMB --> |"低相似度"| PASS
+    LLM --> |"确认矛盾"| RES["执行解决策略"]
+
+    classDef detect fill:#F59E0B,stroke:#92400E,color:#000
+    classDef pass fill:#10B981,stroke:#065F46,color:#FFF
+    classDef resolve fill:#EF4444,stroke:#991B1B,color:#FFF
+
+    class K,EMB,LLM detect
+    class PASS pass
+    class RES resolve
+```
+
+**冲突分类**：
+
+| 类型 | 触发条件 | 说明 |
+| :-- | :-- | :-- |
+| contradiction | preference/rule 类型同 key 不同 value | 直接矛盾 |
+| temporal_update | profile 类型更新 | 个人信息变更 |
+| refinement | 其他类型，新置信度 > 旧置信度 | 信息细化 |
+
+**解决策略**：
+
+| 策略 | 行为 | 适用场景 |
+| :-- | :-- | :-- |
+| supersede | 旧事实标记 `superseded`，新事实取代 | contradiction / temporal_update |
+| keep_both | 保留两者，记录冲突 | refinement 且旧置信度更高 |
+| merge | 合并两者值 | 管理员手动选择 |
+
+**数据模型**：Fact 新增 `superseded_by`、`status`（active/superseded）、`superseded_at` 字段；新建 `memory_conflicts` 表记录冲突历史。
+
+**代码实现**：`ConflictResolver` — [`engine/governance/conflict_resolver.py`](../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)
+
+### 5.7 主动召回 (Proactive Recall)
+
+基于 Spreading Activation Theory<sup>[[51]](#ref51)</sup>和 Context-Dependent Memory<sup>[[52]](#ref52)</sup>，在新会话创建时主动注入高相关性记忆，减少 Agent 的「冷启动」信息缺失。
+
+**复合评分公式**：
+
+```
+proactive_rank = importance_score * 0.40
+               + recency_score * 0.30
+               + frequency_score * 0.20
+               + fact_density * 0.10
+```
+
+| 因子 | 计算 | 权重 | 含义 |
+| :-- | :-- | :-- | :-- |
+| importance_score | 五因子重要性评分 | 0.40 | 最重要的排序信号 |
+| recency_score | `max(0, 1 - days_since_access / 30)` | 0.30 | 近期访问的记忆更相关 |
+| frequency_score | `min(1, log2(1 + access_count) / log2(101))` | 0.20 | 高频访问的记忆更稳定 |
+| fact_density | 固定 0.10 | 0.10 | 基础密度因子 |
+
+**缓存策略**：
+- TTL 1 小时：`memory_preload_cache` 表按 `(user_id, app_name)` 缓存
+- 失效触发：巩固完成、事实插入、冲突解决时自动 `invalidate_cache()`
+- 缓存命中直接返回，未命中则计算并写入
+
+**代码实现**：`ProactiveRecallService` — [`engine/adapters/postgres/proactive_recall_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py)
+
+### 5.8 记忆关联 (Memory Associations)
+
+基于 Associative Memory Theory<sup>[[53]](#ref53)</sup>和 Spreading Activation<sup>[[51]](#ref51)</sup>，自动发现并维护记忆间的关联关系，支持多跳扩展检索。
+
+**四种自动链接策略**：
+
+| 类型 | 触发条件 | 权重 | 说明 |
+| :-- | :-- | :-- | :-- |
+| semantic | embedding 余弦相似度 > 0.75 | 相似度值 | 语义关联（每新记忆最多 5 条） |
+| temporal | 同 thread、30 分钟窗口内 | `1 - Δt / 1800` | 时间邻近关联 |
+| thread_shared | 共享 thread_id | 0.6 | 同会话关联 |
+| entity | 共享命名实体（依赖 KG） | 0.5 | 实体共现关联 |
+
+**多跳扩展**：
+
+```
+起始记忆 → 关联查找 (weight > 0.6) → 追加关联记忆 → 最多 3 跳 → Token 预算控制
+```
+
+BFS 遍历关联图，每跳只追加权重大于 0.6 的强关联，最终在 Token 预算内返回扩展上下文。
+
+**数据模型**：`memory_associations` 表，UNIQUE(source_id, target_id, association_type)。
+
+**代码实现**：`AssociationService` — [`engine/adapters/postgres/association_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py)
+
 ---
 
 ## 6. 记忆检索 (Memory Retrieval)
@@ -1293,7 +1422,10 @@ DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.s
 | :-- | :-- | :-- | :-- |
 | `PostgresMemoryService` | ~487 行 | `add_session_to_memory`, `search_memory`, `_hybrid_search_native`, `_vector_search`, `_keyword_search`, `_ilike_search`, `_record_access` | 4 级检索回退 + ADK Event 三格式适配 |
 | `MemoryAutomationService` | ~26 KB | `get_snapshot`, `save_config`, `reconcile_functions`, `reconcile_jobs`, `run_job` | 系统能力探测 + SQL 函数动态生成 |
-| `MemoryGovernanceService` | ~518 行 | `audit_memory`, `calculate_retention_score`, `_execute_decision` | 版本冲突 + 幂等性 + GDPR 级联 |
+| `MemoryGovernanceService` | ~518 行 | `audit_memory`, `calculate_retention_score`, `calculate_importance_score`, `_execute_decision` | 版本冲突 + 重要性评分 + 幂等性 + GDPR 级联 |
+| `ConflictResolver` | ~200 行 | `detect_and_resolve`, `_classify_conflict`, `manual_resolve` | AGM 信念修正 + 三阶段检测 |
+| `ProactiveRecallService` | ~240 行 | `get_or_compute_preload`, `invalidate_cache` | 复合评分预加载 + TTL 缓存 |
+| `AssociationService` | ~300 行 | `auto_link_memory`, `get_associations`, `expand_multi_hop` | 自动链接 + 多跳扩展 |
 
 ### 9.3 API 端点全景
 
@@ -1313,6 +1445,14 @@ DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.s
 | `/memory/automation/jobs/{key}/disable` | POST | 停用任务 | admin |
 | `/memory/automation/jobs/{key}/reconcile` | POST | 重建任务 | admin |
 | `/memory/automation/jobs/{key}/run` | POST | 手动触发 | admin |
+| `/memory/conflicts` | GET | 冲突列表 (`?app_name=&user_id=&resolution=`) | admin |
+| `/memory/conflicts/{conflict_id}/resolve` | POST | 手动解决冲突 | admin |
+| `/memory/facts/{fact_id}/history` | GET | 事实版本链 | admin |
+| `/memory/proactive/{user_id}` | POST | 触发主动召回计算 | auth |
+| `/memory/proactive/{user_id}` | GET | 获取预加载缓存 | auth |
+| `/memory/{memory_id}/associations` | GET | 记忆关联列表 | auth |
+| `/memory/associations` | POST | 创建手动关联 | auth |
+| `/memory/associations/{association_id}` | DELETE | 删除关联 | auth |
 
 ### 9.4 当前阶段的局限性
 
@@ -1322,8 +1462,11 @@ DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.s
 | 无组织级记忆共享 | 记忆严格按 user_id 隔离 | Phase 3: Organization scope |
 | 图谱与记忆未打通 | Knowledge Graph (AGE) 在感知系部，Memory 在内化系部 | Phase 2: Memory Graph |
 | 无多智能体协作 | 单 Agent 记忆空间 | Phase 3: Multi-agent memory |
-| 巩固策略简单 | 无冲突感知、无摘要蒸馏 | Phase 2: Sleep-inspired consolidation |
-| Token 估算粗略 | `LENGTH/4` 简单估算 | 引入 tiktoken 精确计数 |
+| ~~巩固策略简单~~ | ~~无冲突感知、无摘要蒸馏~~ | ✅ Phase 3 已实现冲突检测 + 摘要巩固 |
+| ~~Token 估算粗略~~ | ~~`LENGTH/4` 简单估算~~ | ✅ Phase 2+ 已引入 tiktoken 精确计数 |
+| ~~无记忆重要性评分~~ | ~~所有记忆同等对待~~ | ✅ Phase 3 已实现 ACT-R 五因子评分 |
+| ~~无主动召回~~ | ~~新会话冷启动~~ | ✅ Phase 3 已实现复合评分预加载 |
+| ~~无记忆关联~~ | ~~记忆孤立，无法多跳检索~~ | ✅ Phase 3 已实现自动链接 + 多跳扩展 |
 
 ---
 
@@ -1700,6 +1843,18 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 <a id="ref47"></a>[47] M. Nygard, *Release It!*, 2nd ed. Raleigh, NC: Pragmatic Bookshelf, 2018.
 
 <a id="ref48"></a>[48] C. Majors, L. Fong-Jones, and G. Miranda, *Observability Engineering*. Sebastopol, CA: O'Reilly, 2022.
+
+### Phase 3 增强参考文献
+
+<a id="ref49"></a>[49] C. E. Alchourrón, P. Gärdenfors, and D. Makinson, "On the logic of theory change," *J. Symbolic Logic*, vol. 50, no. 2, pp. 510–530, 1985.
+
+<a id="ref50"></a>[50] J. Doyle, "A truth maintenance system," *Artificial Intelligence*, vol. 12, no. 3, pp. 231–272, 1979.
+
+<a id="ref51"></a>[51] A. M. Collins and E. F. Loftus, "A spreading-activation theory of semantic processing," *Psychological Review*, vol. 82, no. 6, pp. 407–428, 1975.
+
+<a id="ref52"></a>[52] D. R. Godden and A. D. Baddeley, "Context-dependent memory in two natural environments," *British J. Psychology*, vol. 66, no. 3, pp. 325–331, 1975.
+
+<a id="ref53"></a>[53] E. Tulving, "Episodic and semantic memory," in *Organization of Memory*, E. Tulving and W. Donaldson, Eds. New York: Academic Press, 1972, pp. 381–403.
 
 ---
 
