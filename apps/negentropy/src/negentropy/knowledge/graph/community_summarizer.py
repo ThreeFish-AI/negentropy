@@ -45,10 +45,13 @@ Summary:"""
 
 @dataclass(frozen=True)
 class CommunitySummary:
-    """社区摘要结果"""
+    """社区摘要结果
+
+    注：corpus_id 不在数据类中冗余存储，由调用方在 persist 阶段以参数形式传入，
+    避免占位字段误导读取者；与 _persist_summary 的实际签名保持一致。
+    """
 
     community_id: int
-    corpus_id: UUID
     summary_text: str
     entity_count: int
     relation_count: int
@@ -172,7 +175,6 @@ class CommunitySummarizer:
 
         return CommunitySummary(
             community_id=community_id,
-            corpus_id=UUID("00000000-0000-0000-0000-000000000000"),  # 将在 persist 时设置
             summary_text=summary_text.strip(),
             entity_count=len(entities),
             relation_count=0,

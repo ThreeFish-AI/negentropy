@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from negentropy.logging import get_logger
 
@@ -60,8 +61,8 @@ class GraphContextBuilder:
     async def build_context(
         self,
         seed_entities: list[dict],
-        neighbor_fn: any,  # Callable: (entity_id, corpus_id, depth, limit) → list[dict]
-        corpus_id: any,
+        neighbor_fn: Any,  # Callable: (entity_id, corpus_id, depth, limit) → list[dict]
+        corpus_id: Any,
     ) -> GraphContext:
         """构建子图上下文
 

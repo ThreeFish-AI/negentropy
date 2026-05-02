@@ -214,6 +214,29 @@ class GraphRepository(ABC):
         pass
 
     @abstractmethod
+    async def find_neighbor_edges(
+        self,
+        entity_id: str,
+        limit: int = 50,
+        as_of: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """查询 1-hop 邻居及连接边的关系信息（供子图上下文构建使用）
+
+        与 `find_neighbors` 互补：后者只返回邻居实体节点，无法承载 relation 字段；
+        本方法直接 JOIN kg_relations 与 kg_entities，每行携带边的 relation_type / evidence。
+
+        Args:
+            entity_id: 起始实体 ID（含/不含 entity: 前缀）
+            limit: 返回的邻居边数上限
+            as_of: 可选的时态过滤时间戳
+
+        Returns:
+            [{id, name, type, relation, evidence}] — 与 GraphContextBuilder 的
+            neighbor_fn 协议对齐
+        """
+        pass
+
+    @abstractmethod
     async def find_path(
         self,
         source_id: str,
@@ -671,6 +694,62 @@ class AgeGraphRepository(GraphRepository):
         )
 
         return neighbors
+
+    async def find_neighbor_edges(
+        self,
+        entity_id: str,
+        limit: int = 50,
+        as_of: datetime | None = None,
+    ) -> list[dict[str, Any]]:
+        """查询 1-hop 邻居及边信息（供 GraphContextBuilder 构建三元组）
+
+        与 find_neighbors 不同，本查询单跳 JOIN kg_relations × kg_entities，
+        每行返回邻居节点 + 连接边的 relation_type / evidence_text。
+        """
+        session = await self._get_session()
+        clean_id = entity_id.replace("entity:", "")
+
+        temporal_filter = ""
+        if as_of:
+            temporal_filter = """
+                AND (r.valid_from IS NULL OR r.valid_from <= :as_of)
+                AND (r.valid_to IS NULL OR r.valid_to > :as_of)"""
+
+        query = text(f"""
+            WITH edges AS (
+                SELECT r.target_id AS neighbor_id, r.relation_type, r.evidence_text, r.weight
+                FROM {self._schema}.kg_relations r
+                WHERE r.source_id = :entity_id AND r.is_active = true{temporal_filter}
+                UNION ALL
+                SELECT r.source_id AS neighbor_id, r.relation_type, r.evidence_text, r.weight
+                FROM {self._schema}.kg_relations r
+                WHERE r.target_id = :entity_id AND r.is_active = true{temporal_filter}
+            )
+            SELECT e.id, e.name, e.entity_type,
+                   ed.relation_type, ed.evidence_text, ed.weight
+            FROM edges ed
+            JOIN {self._schema}.kg_entities e ON e.id = ed.neighbor_id
+            WHERE e.is_active = true AND e.id != :entity_id
+            ORDER BY ed.weight DESC NULLS LAST
+            LIMIT :limit
+        """)
+
+        params: dict[str, Any] = {"entity_id": clean_id, "limit": limit}
+        if as_of:
+            params["as_of"] = as_of
+
+        result = await session.execute(query, params)
+
+        return [
+            {
+                "id": f"entity:{row.id}",
+                "name": row.name,
+                "type": row.entity_type,
+                "relation": row.relation_type,
+                "evidence": row.evidence_text or "",
+            }
+            for row in result
+        ]
 
     async def find_path(
         self,

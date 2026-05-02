@@ -18,6 +18,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision: str = "0018"
 down_revision: str | None = "0017"
@@ -53,7 +54,7 @@ def upgrade() -> None:
         sa.Column("summary_text", sa.Text(), nullable=False),
         sa.Column("entity_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("relation_count", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("top_entities", sa.JSON(), nullable=True),
+        sa.Column("top_entities", postgresql.JSONB(), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),

@@ -190,10 +190,10 @@ class EntityResolver:
                 if similar_key in primary_keys:
                     merged.append(idx)
                     break
-                # 高置信度匹配直接合并
+                # 高置信度匹配直接合并：登记 DB primary 的键以便同批后续短路命中
                 if score >= self._ann_threshold:
                     merged.append(idx)
-                    primary_keys.add(f"{normalize_label(entity.label or '')}|{entity.node_type or 'other'}")
+                    primary_keys.add(similar_key)
                     break
                 # 边界区域暂不合并（LLM 验证留给后续迭代）
 

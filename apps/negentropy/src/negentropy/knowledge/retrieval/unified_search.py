@@ -290,21 +290,11 @@ class UnifiedRetrievalService:
                 corpus_id = entities[0].corpus_id
 
                 async def _neighbor_fn(entity_id, cid, depth, lim):
-                    neighbors = await repo.find_neighbors(
+                    # 直接从 repository 取带边信息的 1-hop 邻居（每跳调用一次）
+                    return await repo.find_neighbor_edges(
                         entity_id=entity_id,
-                        max_depth=depth,
                         limit=lim,
                     )
-                    return [
-                        {
-                            "id": n.id,
-                            "name": n.label,
-                            "type": n.node_type,
-                            "relation": n.metadata.get("edge_type", ""),
-                            "evidence": n.metadata.get("evidence", ""),
-                        }
-                        for n in neighbors
-                    ]
 
                 builder = GraphContextBuilder(max_tokens=2000, max_hops=1)
                 ctx = await builder.build_context(
