@@ -1,13 +1,15 @@
 """
 Knowledge Graph Algorithms
 
-在 kg_entities + kg_relations 一等公民表上运行图算法，当前实现 PageRank。
+在 kg_entities + kg_relations 一等公民表上运行图算法，当前实现 PageRank 和 Louvain 社区检测。
 
 参考文献:
 [1] S. Brin and L. Page, "The anatomy of a large-scale hypertextual Web search
     engine," Comput. Netw. ISDN Syst., vol. 30, no. 1-7, pp. 107-117, 1998.
 [2] T. Wang et al., "EntityRank: Understanding entity importance via graph-based
     ranking," Proc. IEEE ICDM, pp. 499-508, 2019.
+[3] V. D. Blondel, J.-L. Guillaume, R. Lambiotte, and E. Lefebvre, "Fast unfolding
+    of communities in large networks," J. Stat. Mech., P10008, 2008.
 """
 
 from __future__ import annotations
@@ -128,3 +130,95 @@ async def compute_pagerank(
     )
 
     return ranks
+
+
+async def compute_louvain(
+    db: AsyncSession,
+    corpus_id: UUID,
+    *,
+    resolution: float = 1.0,
+    threshold: float = 1e-07,
+    seed: int = 42,
+) -> dict[str, int]:
+    """计算并持久化 Louvain 社区划分
+
+    使用 NetworkX 内置 Louvain (Blondel et al., 2008) 在无向投影图上运行。
+    结果写入 kg_entities.community_id。
+
+    Args:
+        resolution: 分辨率参数（>1 产生更多小社区，<1 产生更少大社区）
+        threshold: 模块度优化收敛阈值
+        seed: 随机种子，保证可复现性
+
+    Returns:
+        {entity_id_str: community_id}
+    """
+    import networkx as nx
+
+    G, id_to_name = await export_graph_to_networkx(db, corpus_id)
+
+    if G.number_of_nodes() == 0:
+        logger.info("louvain_skipped_empty_graph", corpus_id=str(corpus_id))
+        return {}
+
+    # Louvain 在无向图上运行
+    G_undirected = G.to_undirected()
+
+    try:
+        communities: list[set[str]] = nx.community.louvain_communities(
+            G_undirected,
+            weight="weight",
+            resolution=resolution,
+            threshold=threshold,
+            seed=seed,
+        )
+    except Exception as exc:
+        logger.warning(
+            "louvain_computation_failed",
+            corpus_id=str(corpus_id),
+            error=str(exc),
+        )
+        return {}
+
+    # 构建 partition 映射: entity_id -> community_id
+    partition: dict[str, int] = {}
+    for community_idx, community_set in enumerate(communities):
+        for entity_id in community_set:
+            partition[entity_id] = community_idx
+
+    # 批量持久化
+    schema = NEGENTROPY_SCHEMA
+    batch_size = 500
+    entity_ids = list(partition.keys())
+
+    for i in range(0, len(entity_ids), batch_size):
+        batch = entity_ids[i : i + batch_size]
+        for entity_id_str in batch:
+            await db.execute(
+                text(f"""
+                    UPDATE {schema}.kg_entities
+                    SET community_id = :cid
+                    WHERE id = :eid AND corpus_id = :corpus_id
+                """),
+                {
+                    "cid": partition[entity_id_str],
+                    "eid": entity_id_str,
+                    "corpus_id": str(corpus_id),
+                },
+            )
+
+    await db.commit()
+
+    community_counts: dict[int, int] = {}
+    for cid in partition.values():
+        community_counts[cid] = community_counts.get(cid, 0) + 1
+
+    logger.info(
+        "louvain_completed",
+        corpus_id=str(corpus_id),
+        node_count=G.number_of_nodes(),
+        community_count=len(communities),
+        largest_community=max(community_counts.values()) if community_counts else 0,
+    )
+
+    return partition

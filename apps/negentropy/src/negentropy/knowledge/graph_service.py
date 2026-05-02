@@ -365,6 +365,25 @@ class GraphService:
                     error=str(pr_exc),
                 )
 
+            # 计算 Louvain 社区检测 (Blondel et al., 2008)
+            try:
+                from negentropy.db.session import AsyncSessionLocal
+
+                from .graph_algorithms import compute_louvain
+
+                async with AsyncSessionLocal() as lv_db:
+                    lv_result = await compute_louvain(lv_db, corpus_id)
+                    logger.info(
+                        "louvain_computed",
+                        entity_count=len(lv_result),
+                        community_count=len(set(lv_result.values())) if lv_result else 0,
+                    )
+            except Exception as lv_exc:
+                logger.warning(
+                    "louvain_computation_failed",
+                    error=str(lv_exc),
+                )
+
             elapsed = time.time() - start_time
 
             # 更新构建运行状态
@@ -735,6 +754,29 @@ class GraphService:
             for row in top_entities_result
         ]
 
+        # Community distribution (Louvain)
+        community_result = await db.execute(
+            sql_select(KgEntity.community_id, sql_func.count())
+            .where(
+                KgEntity.corpus_id == corpus_id,
+                KgEntity.is_active == True,  # noqa: E712
+                KgEntity.community_id != None,  # noqa: E711
+            )
+            .group_by(KgEntity.community_id)
+            .order_by(sql_func.count().desc())
+            .limit(10)
+        )
+        community_distribution = {str(row[0]): row[1] for row in community_result.all()}
+
+        community_count_result = await db.execute(
+            sql_select(sql_func.count(sql_func.distinct(KgEntity.community_id))).where(
+                KgEntity.corpus_id == corpus_id,
+                KgEntity.is_active == True,  # noqa: E712
+                KgEntity.community_id != None,  # noqa: E711
+            )
+        )
+        community_count = community_count_result.scalar_one()
+
         return {
             "total_entities": total_entities,
             "edge_count": edge_count,
@@ -743,6 +785,8 @@ class GraphService:
             "density": density,
             "avg_degree": round(2 * edge_count / total_entities, 1) if total_entities > 0 else 0,
             "top_entities": top_entities,
+            "community_count": community_count,
+            "community_distribution": community_distribution,
         }
 
     async def clear_graph(

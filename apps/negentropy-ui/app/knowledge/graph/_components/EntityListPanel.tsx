@@ -6,7 +6,7 @@ import {
   fetchGraphEntities,
 } from "@/features/knowledge";
 
-import { ENTITY_TYPE_COLORS } from "./constants";
+import { ENTITY_TYPE_COLORS, communityColor } from "./constants";
 
 const ENTITY_TYPES = Object.keys(ENTITY_TYPE_COLORS);
 
@@ -131,6 +131,9 @@ export function EntityListPanel({
                 <th className="py-2 px-2 text-left font-medium text-zinc-500 dark:text-zinc-400">
                   类型
                 </th>
+                <th className="py-2 px-2 text-left font-medium text-zinc-500 dark:text-zinc-400">
+                  社区
+                </th>
                 <th className="py-2 px-2 text-right font-medium text-zinc-500 dark:text-zinc-400">
                   置信度
                 </th>
@@ -166,6 +169,21 @@ export function EntityListPanel({
                         {entity.entity_type}
                       </span>
                     </span>
+                  </td>
+                  <td className="py-2 px-2">
+                    {entity.community_id != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: communityColor(entity.community_id) }}
+                        />
+                        <span className="text-zinc-600 dark:text-zinc-400">
+                          C-{entity.community_id}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400">-</span>
+                    )}
                   </td>
                   <td className="py-2 px-2 text-right text-zinc-600 dark:text-zinc-400">
                     {entity.confidence.toFixed(2)}

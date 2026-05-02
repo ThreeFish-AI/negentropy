@@ -2042,6 +2042,8 @@ export interface GraphEntityItem {
   entity_type: string;
   confidence: number;
   mention_count: number;
+  importance_score?: number | null;
+  community_id?: number | null;
   description?: string;
   is_active: boolean;
 }
@@ -2083,6 +2085,8 @@ export interface GraphStatsResponse {
   avg_confidence: number;
   density: number;
   avg_degree: number;
+  community_count: number;
+  community_distribution: Record<string, number>;
 }
 
 /**

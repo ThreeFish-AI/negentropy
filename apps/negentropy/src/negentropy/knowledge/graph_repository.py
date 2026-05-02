@@ -1040,7 +1040,8 @@ class AgeGraphRepository(GraphRepository):
         # 加载实体
         entities_query = text(f"""
             SELECT id, name, canonical_name, entity_type, confidence,
-                   mention_count, description, properties
+                   mention_count, description, properties,
+                   importance_score, community_id
             FROM {self._schema}.kg_entities
             WHERE corpus_id = :corpus_id AND is_active = true
             ORDER BY mention_count DESC NULLS LAST
@@ -1063,6 +1064,8 @@ class AgeGraphRepository(GraphRepository):
                         "confidence": row.confidence,
                         "mention_count": row.mention_count,
                         "description": row.description,
+                        "importance_score": float(row.importance_score) if row.importance_score else None,
+                        "community_id": row.community_id,
                         **(row.properties or {}),
                     },
                 )

@@ -3109,6 +3109,8 @@ async def get_corpus_graph(
                 "id": node.id,
                 "label": node.label,
                 "type": node.node_type,
+                "importance": node.metadata.get("importance_score"),
+                "community_id": node.metadata.get("community_id"),
                 "metadata": node.metadata,
             }
             for node in graph.nodes

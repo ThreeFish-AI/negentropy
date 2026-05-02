@@ -19,7 +19,7 @@ import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
-import { entityColor } from "./_components/constants";
+import { entityColor, communityColor } from "./_components/constants";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -28,6 +28,7 @@ type GraphNode = {
   label?: string;
   type?: string;
   importance?: number;
+  community_id?: number | null;
 };
 type GraphEdge = { source: string; target: string; label?: string };
 type GraphNodePos = GraphNode & {
@@ -418,7 +419,11 @@ export default function KnowledgeGraphPage() {
                                     )
                                   : nodeRadius(node.importance)
                               }
-                              fill={entityColor(node.type)}
+                              fill={
+                                node.community_id != null
+                                  ? communityColor(node.community_id)
+                                  : entityColor(node.type)
+                              }
                               stroke={
                                 selectedNodeId === node.id
                                   ? "#18181b"

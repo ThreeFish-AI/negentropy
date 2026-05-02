@@ -405,6 +405,7 @@ class KgEntityService:
                 "confidence": float(r.confidence) if r.confidence else 0,
                 "mention_count": r.mention_count,
                 "importance_score": float(r.importance_score) if r.importance_score else None,
+                "community_id": r.community_id,
                 "description": r.description,
                 "is_active": r.is_active,
             }
@@ -490,5 +491,6 @@ class KgEntityService:
             "aliases": entity.aliases,
             "properties": entity.properties,
             "is_active": entity.is_active,
+            "community_id": entity.community_id,
             "relations": relations,
         }

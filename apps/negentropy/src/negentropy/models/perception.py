@@ -381,6 +381,9 @@ class KgEntity(Base, UUIDMixin, TimestampMixin):
     # 图算法分数（PageRank，由 compute_importance 后处理写入）
     importance_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # 社区检测（Louvain，由 compute_louvain 后处理写入）
+    community_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     # 扩展属性
     properties: Mapped[dict[str, Any] | None] = mapped_column(JSONB, server_default="{}")
 

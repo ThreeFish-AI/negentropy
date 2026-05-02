@@ -12,3 +12,22 @@ export const ENTITY_TYPE_COLORS: Record<string, string> = {
 export function entityColor(type?: string): string {
   return ENTITY_TYPE_COLORS[type ?? "other"] ?? ENTITY_TYPE_COLORS.other;
 }
+
+// Tableau 10 — 色盲友好的社区配色
+const COMMUNITY_COLORS: string[] = [
+  "#4E79A7",
+  "#F28E2B",
+  "#E15759",
+  "#76B7B2",
+  "#59A14F",
+  "#EDC948",
+  "#B07AA1",
+  "#FF9DA7",
+  "#9C755F",
+  "#BAB0AC",
+];
+
+export function communityColor(communityId: number | null | undefined): string {
+  if (communityId == null) return "#6B7280";
+  return COMMUNITY_COLORS[communityId % COMMUNITY_COLORS.length];
+}
