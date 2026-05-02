@@ -32,44 +32,80 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     bind = op.get_bind()
 
-    # G1: kg_community_summaries 增加摘要 embedding 列
-    has_pgvector = bind.execute(sa.text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")).scalar()
+    # 探测前置迁移产物是否真正落库（alembic_version 推进 ≠ DDL 已执行 — 历史
+    # 事务回滚故障下两者会脱钩）；此处幂等防御并补建缺失结构，确保 0023 与
+    # 后续迁移链完整。
+    summaries_exists = bind.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema = 'negentropy' AND table_name = 'kg_community_summaries'"
+        )
+    ).scalar()
+    relations_exists = bind.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.tables WHERE table_schema = 'negentropy' AND table_name = 'kg_relations'"
+        )
+    ).scalar()
 
-    if has_pgvector:
+    # 修补 0022 — 若 kg_community_summaries 不存在，按 0022 原始定义补建
+    if not summaries_exists:
         op.execute(
-            sa.text("ALTER TABLE negentropy.kg_community_summaries ADD COLUMN IF NOT EXISTS embedding vector(1536)")
+            sa.text(
+                """
+                CREATE TABLE IF NOT EXISTS negentropy.kg_community_summaries (
+                    id UUID PRIMARY KEY,
+                    corpus_id UUID NOT NULL REFERENCES negentropy.corpus(id) ON DELETE CASCADE,
+                    community_id INTEGER NOT NULL,
+                    level INTEGER NOT NULL DEFAULT 1,
+                    summary_text TEXT NOT NULL,
+                    entity_count INTEGER NOT NULL DEFAULT 0,
+                    relation_count INTEGER NOT NULL DEFAULT 0,
+                    top_entities JSONB NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW(),
+                    CONSTRAINT uq_kg_community_summaries_corpus_level
+                        UNIQUE (corpus_id, community_id, level)
+                )
+                """
+            )
         )
-    else:
-        # 非生产环境/SQLite/无 pgvector 时回退为 JSON 数组字段，
-        # 保证迁移可在所有环境下完成；运行时检测 vector 扩展决定路径。
-        op.execute(sa.text("ALTER TABLE negentropy.kg_community_summaries ADD COLUMN IF NOT EXISTS embedding TEXT"))
+        summaries_exists = True
 
-    # G1: 摘要陈旧度判断 — corpus_id + updated_at 复合索引（DESC）
-    op.execute(
-        sa.text(
-            "CREATE INDEX IF NOT EXISTS ix_kg_community_summaries_corpus_updated "
-            "ON negentropy.kg_community_summaries(corpus_id, updated_at DESC)"
+    # G1: kg_community_summaries 增加摘要 embedding 列
+    if summaries_exists:
+        has_pgvector = bind.execute(sa.text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")).scalar()
+        if has_pgvector:
+            op.execute(
+                sa.text("ALTER TABLE negentropy.kg_community_summaries ADD COLUMN IF NOT EXISTS embedding vector(1536)")
+            )
+        else:
+            op.execute(sa.text("ALTER TABLE negentropy.kg_community_summaries ADD COLUMN IF NOT EXISTS embedding TEXT"))
+        op.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS ix_kg_community_summaries_corpus_updated "
+                "ON negentropy.kg_community_summaries(corpus_id, updated_at DESC)"
+            )
         )
-    )
 
-    # G3: kg_relations 当前活跃事实部分索引（NULL valid_to + is_active）
-    op.execute(
-        sa.text(
-            "CREATE INDEX IF NOT EXISTS ix_kg_relations_valid_active "
-            "ON negentropy.kg_relations(corpus_id) "
-            "WHERE valid_to IS NULL AND is_active = true"
+    # G3: kg_relations 当前活跃事实部分索引 + valid_from backfill
+    # 防御性修复：在历史故障导致 0022 未真正添加时态列时，此处补上以满足 0023 索引依赖
+    if relations_exists:
+        op.execute(sa.text("ALTER TABLE negentropy.kg_relations ADD COLUMN IF NOT EXISTS valid_from TIMESTAMPTZ NULL"))
+        op.execute(sa.text("ALTER TABLE negentropy.kg_relations ADD COLUMN IF NOT EXISTS valid_to TIMESTAMPTZ NULL"))
+        op.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS ix_kg_relations_valid_active "
+                "ON negentropy.kg_relations(corpus_id) "
+                "WHERE valid_to IS NULL AND is_active = true"
+            )
         )
-    )
-
-    # G3: backfill valid_from — 历史关系视为从 created_at 起即生效
-    # 仅更新 NULL 行，避免覆盖已被 temporal_resolver 显式赋值的行。
-    op.execute(
-        sa.text(
-            "UPDATE negentropy.kg_relations "
-            "SET valid_from = created_at "
-            "WHERE valid_from IS NULL AND created_at IS NOT NULL"
+        op.execute(
+            sa.text(
+                "UPDATE negentropy.kg_relations "
+                "SET valid_from = created_at "
+                "WHERE valid_from IS NULL AND created_at IS NOT NULL"
+            )
         )
-    )
 
 
 def downgrade() -> None:

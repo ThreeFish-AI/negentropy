@@ -141,7 +141,7 @@ class ProvenanceBuilder:
         result = await db.execute(
             text(f"""
                 SELECT id, name FROM {NEGENTROPY_SCHEMA}.kg_entities
-                WHERE corpus_id = :cid AND id = ANY(:ids::uuid[]) AND is_active = true
+                WHERE corpus_id = :cid AND id = ANY(CAST(:ids AS uuid[])) AND is_active = true
             """),
             {"cid": str(corpus_id), "ids": list(ids)},
         )
@@ -167,8 +167,8 @@ class ProvenanceBuilder:
             text(f"""
                 WITH RECURSIVE path_search AS (
                     SELECT
-                        :target_id::uuid AS current_id,
-                        ARRAY[:target_id::uuid] AS path,
+                        CAST(:target_id AS uuid) AS current_id,
+                        ARRAY[CAST(:target_id AS uuid)] AS path,
                         0 AS depth
                     UNION ALL
                     SELECT
@@ -193,7 +193,7 @@ class ProvenanceBuilder:
                 )
                 SELECT current_id, path, depth
                 FROM path_search
-                WHERE current_id = ANY(:seed_ids::uuid[]) AND depth > 0
+                WHERE current_id = ANY(CAST(:seed_ids AS uuid[])) AND depth > 0
                 ORDER BY depth
                 LIMIT 1
             """),

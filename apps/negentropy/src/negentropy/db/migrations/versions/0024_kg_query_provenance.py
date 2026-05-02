@@ -27,27 +27,35 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "kg_query_provenance",
-        sa.Column("id", sa.UUID(), primary_key=True),
-        sa.Column(
-            "corpus_id",
-            sa.UUID(),
-            sa.ForeignKey("negentropy.corpus.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("query_text", sa.Text(), nullable=False),
-        sa.Column("seeds", postgresql.JSONB(), nullable=True),
-        sa.Column("top_entities", postgresql.JSONB(), nullable=True),
-        sa.Column("evidence_chain", postgresql.JSONB(), nullable=True),
-        sa.Column("latency_ms", sa.Float(), nullable=True),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-        ),
-        schema="negentropy",
-    )
+    bind = op.get_bind()
+    table_exists = bind.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema = 'negentropy' AND table_name = 'kg_query_provenance'"
+        )
+    ).scalar()
+    if not table_exists:
+        op.create_table(
+            "kg_query_provenance",
+            sa.Column("id", sa.UUID(), primary_key=True),
+            sa.Column(
+                "corpus_id",
+                sa.UUID(),
+                sa.ForeignKey("negentropy.corpus.id", ondelete="CASCADE"),
+                nullable=False,
+            ),
+            sa.Column("query_text", sa.Text(), nullable=False),
+            sa.Column("seeds", postgresql.JSONB(), nullable=True),
+            sa.Column("top_entities", postgresql.JSONB(), nullable=True),
+            sa.Column("evidence_chain", postgresql.JSONB(), nullable=True),
+            sa.Column("latency_ms", sa.Float(), nullable=True),
+            sa.Column(
+                "created_at",
+                sa.DateTime(timezone=True),
+                server_default=sa.func.now(),
+            ),
+            schema="negentropy",
+        )
     op.execute(
         sa.text(
             "CREATE INDEX IF NOT EXISTS ix_kg_query_provenance_corpus_created "
