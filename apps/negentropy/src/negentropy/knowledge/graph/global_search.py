@@ -109,6 +109,7 @@ class GlobalSearchService:
         query: str,
         query_embedding: list[float],
         max_communities: int | None = None,
+        level: int | None = None,
     ) -> GlobalSearchResult:
         """端到端执行 Global Search 流水线。
 
@@ -118,6 +119,7 @@ class GlobalSearchService:
             query: 用户查询文本
             query_embedding: 查询向量（与 community summary embedding 同维度）
             max_communities: 候选社区数上限（默认 self._max_communities）
+            level: 社区层级（None=自动选择最高 level）
 
         Returns:
             GlobalSearchResult，含最终答案与 evidence 列表
@@ -125,11 +127,16 @@ class GlobalSearchService:
         start = time.time()
         top_k = max_communities or self._max_communities
 
+        # 自动选择 level：优先使用最高 level（最粗粒度）
+        if level is None:
+            level = await self._get_highest_level(db, corpus_id)
+
         candidates = await self._select_relevant_summaries(
             db,
             corpus_id=corpus_id,
             query_embedding=query_embedding,
             top_k=top_k,
+            level=level,
         )
 
         if not candidates:
@@ -211,6 +218,8 @@ class GlobalSearchService:
         corpus_id: UUID,
         query_embedding: list[float],
         top_k: int,
+        *,
+        level: int | None = None,
     ) -> list[dict[str, Any]]:
         """按 embedding 余弦相似度筛选 top_k 候选社区摘要。
 
@@ -220,12 +229,14 @@ class GlobalSearchService:
         # 先探测 embedding 列是否存在 + 是否有非空数据
         has_embedding = await self._has_summary_embeddings(db, corpus_id)
 
+        level_filter = "AND level = :level" if level is not None else ""
+
         if has_embedding:
             query = text(f"""
                 SELECT community_id, summary_text, entity_count, top_entities,
                        1 - (embedding <=> :embedding::vector) AS similarity
                 FROM {NEGENTROPY_SCHEMA}.kg_community_summaries
-                WHERE corpus_id = :corpus_id AND embedding IS NOT NULL
+                WHERE corpus_id = :corpus_id AND embedding IS NOT NULL {level_filter}
                 ORDER BY embedding <=> :embedding::vector
                 LIMIT :limit
             """)
@@ -240,11 +251,14 @@ class GlobalSearchService:
                 SELECT community_id, summary_text, entity_count, top_entities,
                        0.0 AS similarity
                 FROM {NEGENTROPY_SCHEMA}.kg_community_summaries
-                WHERE corpus_id = :corpus_id
+                WHERE corpus_id = :corpus_id {level_filter}
                 ORDER BY entity_count DESC
                 LIMIT :limit
             """)
             params = {"corpus_id": str(corpus_id), "limit": top_k}
+
+        if level is not None:
+            params["level"] = level
 
         result = await db.execute(query, params)
         rows = []
@@ -292,6 +306,25 @@ class GlobalSearchService:
             # 列尚未创建（极旧数据库 + 未跑迁移 0024）：吞异常并回退
             logger.debug("embedding_column_probe_failed", error=str(exc))
             return False
+
+    async def _get_highest_level(
+        self,
+        db: AsyncSession,
+        corpus_id: UUID,
+    ) -> int | None:
+        """获取当前 corpus 的最高社区层级"""
+        try:
+            result = await db.execute(
+                text(f"""
+                    SELECT MAX(level) FROM {NEGENTROPY_SCHEMA}.kg_community_summaries
+                    WHERE corpus_id = :corpus_id
+                """),
+                {"corpus_id": str(corpus_id)},
+            )
+            val = result.scalar()
+            return int(val) if val is not None else None
+        except Exception:
+            return None
 
     async def _check_summaries_stale(
         self,

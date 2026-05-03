@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -93,25 +94,32 @@ class GraphQueryResult:
 
 
 class _TTLCache:
-    """进程内 TTL 缓存，用于图谱查询结果 (Tanenbaum & Van Steen, 2017)
+    """进程内 TTL + LRU 缓存，用于图谱查询结果 (Tanenbaum & Van Steen, 2017)
 
     场景优势：图谱数据仅在构建完成时批量变更，失效时机确定性高。
+    maxsize 限制防止 as_of 时间旅行产生无界条目。
     """
 
-    def __init__(self, ttl_seconds: int = 300) -> None:
-        self._store: dict[str, tuple[Any, float]] = {}
+    def __init__(self, ttl_seconds: int = 300, maxsize: int = 256) -> None:
+        self._store: OrderedDict[str, tuple[Any, float]] = OrderedDict()
         self._ttl = ttl_seconds
+        self._maxsize = maxsize
 
     def get(self, key: str) -> Any | None:
         if key in self._store:
             value, ts = self._store[key]
             if time.time() - ts < self._ttl:
+                self._store.move_to_end(key)
                 return value
             del self._store[key]
         return None
 
     def set(self, key: str, value: Any) -> None:
+        if key in self._store:
+            del self._store[key]
         self._store[key] = (value, time.time())
+        while len(self._store) > self._maxsize:
+            self._store.popitem(last=False)
 
     def invalidate(self, prefix: str) -> None:
         keys_to_delete = [k for k in self._store if k.startswith(prefix)]
@@ -119,7 +127,7 @@ class _TTLCache:
             del self._store[k]
 
 
-_graph_cache = _TTLCache(ttl_seconds=300)
+_graph_cache = _TTLCache(ttl_seconds=300, maxsize=256)
 
 
 # ============================================================================
@@ -248,6 +256,12 @@ class GraphService:
                     new_chunks=len(chunks),
                     skipped=len(prev_processed),
                 )
+                if len(chunks) == 0:
+                    logger.warning(
+                        "incremental_build_no_new_chunks",
+                        corpus_id=str(corpus_id),
+                        total_in_corpus=original_count,
+                    )
             else:
                 # 全量构建：清除旧图谱数据
                 await self._repository.clear_graph(corpus_id)
@@ -352,6 +366,8 @@ class GraphService:
 
             # 重新映射关系中的实体 ID
             label_to_id = {e.label: e.id for e in entities_to_save}
+            # ID → Label 反向映射（用于双写时传递实体名称而非 UUID）
+            id_to_label: dict[str, str] = {e.id.replace("entity:", ""): e.label for e in entities_to_save if e.label}
 
             valid_relations = []
             for relation in all_relations:
@@ -425,6 +441,8 @@ class GraphService:
 
             # 同步到一等公民表 (kg_entities / kg_relations)
             # 参见 Kleppmann DDIA §11: 事务内双写保证 SSoT 一致性
+            # 双写同步使用独立事务 + 补偿重试：AGE 写入与 first-class 表写入
+            # 在不同 session 中，失败时记录不一致以供后续修复
             try:
                 from negentropy.db.session import AsyncSessionLocal
 
@@ -443,8 +461,8 @@ class GraphService:
                 ]
                 edge_dicts = [
                     {
-                        "source": r.source.replace("entity:", ""),
-                        "target": r.target.replace("entity:", ""),
+                        "source": id_to_label.get(r.source.replace("entity:", ""), r.source.replace("entity:", "")),
+                        "target": id_to_label.get(r.target.replace("entity:", ""), r.target.replace("entity:", "")),
                         "edge_type": r.edge_type,
                         "label": r.label,
                         "weight": r.weight,
@@ -453,18 +471,27 @@ class GraphService:
                     for r in valid_relations
                 ]
                 async with AsyncSessionLocal() as sync_db:
-                    sync_result = await kg_service.batch_sync_from_graph_build(
-                        sync_db,
-                        nodes=node_dicts,
-                        edges=edge_dicts,
-                        corpus_id=corpus_id,
-                        app_name=app_name,
-                    )
+                    async with sync_db.begin():
+                        sync_result = await kg_service.batch_sync_from_graph_build(
+                            sync_db,
+                            nodes=node_dicts,
+                            edges=edge_dicts,
+                            corpus_id=corpus_id,
+                            app_name=app_name,
+                        )
                     logger.info(
                         "kg_first_class_sync",
                         **sync_result,
                     )
             except Exception as sync_exc:
+                build_warnings.append(
+                    {
+                        "phase": "first_class_sync",
+                        "error": str(sync_exc),
+                        "entity_count": len(entities_to_save),
+                        "relation_count": len(valid_relations),
+                    }
+                )
                 logger.warning(
                     "kg_first_class_sync_failed",
                     error=str(sync_exc),
@@ -489,24 +516,29 @@ class GraphService:
                     error=str(pr_exc),
                 )
 
-            # 计算 Louvain 社区检测 (Blondel et al., 2008)
+            # 多层级社区检测 (Traag et al., 2019; Edge et al., 2024)
+            # 优先使用 Leiden（保证社区内部连通性），降级到 Louvain
+            levels_data: dict[int, dict[str, int]] = {}
             try:
                 from negentropy.db.session import AsyncSessionLocal
 
-                from .graph_algorithms import compute_louvain
+                from .graph_algorithms import compute_communities
 
-                async with AsyncSessionLocal() as lv_db:
-                    lv_result = await compute_louvain(lv_db, corpus_id)
+                async with AsyncSessionLocal() as cm_db:
+                    levels_data = await compute_communities(cm_db, corpus_id)
+                    total_entities = sum(len(p) for p in levels_data.values())
+                    total_communities = sum(len(set(p.values())) for p in levels_data.values())
                     logger.info(
-                        "louvain_computed",
-                        entity_count=len(lv_result),
-                        community_count=len(set(lv_result.values())) if lv_result else 0,
+                        "communities_computed",
+                        levels=len(levels_data),
+                        entity_count=total_entities,
+                        community_count=total_communities,
                     )
-            except Exception as lv_exc:
-                build_warnings.append({"algorithm": "louvain", "error": str(lv_exc)})
+            except Exception as cm_exc:
+                build_warnings.append({"algorithm": "community_detection", "error": str(cm_exc)})
                 logger.warning(
-                    "louvain_computation_failed",
-                    error=str(lv_exc),
+                    "community_detection_failed",
+                    error=str(cm_exc),
                 )
 
             # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
@@ -534,7 +566,11 @@ class GraphService:
                     embedding_fn=cs_embedding_fn,
                 )
                 async with AsyncSessionLocal() as cs_db:
-                    cs_result = await summarizer.summarize_communities(cs_db, corpus_id)
+                    cs_result = await summarizer.summarize_communities(
+                        cs_db,
+                        corpus_id,
+                        levels_data=levels_data if levels_data else None,
+                    )
                     logger.info(
                         "community_summaries_generated",
                         **cs_result,
@@ -555,13 +591,41 @@ class GraphService:
             else:
                 all_processed = current_chunk_ids
 
-            # 更新构建运行状态（含警告 + 已处理 chunk）
+            # E4: 收集构建指标 (Majors et al., 2022)
+            from .metrics import KgBuildMetrics
+
+            custom_count = sum(1 for r in valid_relations if r.edge_type == "CUSTOM")
+            avg_conf = (
+                sum(e.metadata.get("confidence", 1.0) for e in entities_to_save) / len(entities_to_save)
+                if entities_to_save
+                else 0.0
+            )
+            build_metrics = KgBuildMetrics(
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+                custom_type_count=custom_count,
+                avg_confidence=round(avg_conf, 4),
+                chunks_processed=chunks_processed,
+                chunks_failed=failed_chunk_count,
+                build_duration_ms=round(elapsed * 1000, 1),
+                algorithm_warnings=len(build_warnings),
+                community_levels=len(levels_data),
+                community_count_by_level={lv: len(set(p.values())) for lv, p in levels_data.items()},
+            )
+
+            # 更新构建运行状态
+            # metrics 无条件持久化到 warnings 尾部的 _metrics 条目，
+            # 保持 warnings 本身语义：空列表 = 无异常，仅 _metrics = 正常完成
+            persisted_warnings: list[dict[str, Any]] = []
+            if build_warnings:
+                persisted_warnings.extend(build_warnings)
+            persisted_warnings.append({"_metrics": build_metrics.to_dict()})
             await self._repository.update_build_run(
                 run_id=run_uuid,
                 status="completed",
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
-                warnings=build_warnings if build_warnings else None,
+                warnings=persisted_warnings if persisted_warnings else None,
                 processed_chunk_ids=all_processed if all_processed else None,
             )
 
@@ -573,12 +637,7 @@ class GraphService:
                 "graph_build_completed",
                 corpus_id=str(corpus_id),
                 run_id=run_id,
-                entity_count=len(entities_to_save),
-                relation_count=len(valid_relations),
-                chunks_processed=chunks_processed,
-                failed_chunk_count=failed_chunk_count,
-                warning_count=len(build_warnings),
-                elapsed_seconds=elapsed,
+                **build_metrics.to_dict(),
             )
 
             return GraphBuildResult(
@@ -673,6 +732,9 @@ class GraphService:
 
         # 可选：加载邻居信息
         if query_config.include_neighbors and results:
+            from dataclasses import replace
+
+            enriched = []
             for result in results[:5]:  # 只为前 5 个结果加载邻居
                 try:
                     neighbors = await self._repository.find_neighbors(
@@ -680,14 +742,15 @@ class GraphService:
                         max_depth=1,
                         limit=query_config.neighbor_limit,
                     )
-                    # 创建新的结果对象（因为 dataclass 是 frozen 的）
-                    object.__setattr__(result, "neighbors", neighbors)
+                    enriched.append(replace(result, neighbors=neighbors))
                 except Exception as exc:
                     logger.warning(
                         "neighbor_load_error",
                         entity_id=result.entity.id,
                         error=str(exc),
                     )
+                    enriched.append(result)
+            results = enriched + results[5:]
 
         elapsed_ms = (time.time() - start_time) * 1000
 

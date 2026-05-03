@@ -45,13 +45,26 @@ class TemporalResolver:
       3. 矛盾 (CONTRADICTION): 互斥关系（如 WORKS_FOR 不同的目标）
     """
 
-    # 互斥关系类型：同一源实体只能有一个当前有效值
-    MUTUALLY_EXCLUSIVE_TYPES = {
-        "WORKS_FOR",
-        "LOCATED_IN",
-        "PART_OF",
-        "CREATED_BY",
-    }
+    # 默认互斥关系类型：同一源实体只能有一个当前有效值
+    # 保留为类属性以支持 TemporalResolver.MUTUALLY_EXCLUSIVE_TYPES 类级访问
+    MUTUALLY_EXCLUSIVE_TYPES = frozenset(
+        {
+            "WORKS_FOR",
+            "LOCATED_IN",
+            "PART_OF",
+            "CREATED_BY",
+        }
+    )
+
+    def __init__(
+        self,
+        mutually_exclusive_types: set[str] | frozenset[str] | None = None,
+    ) -> None:
+        self._mutually_exclusive_types = (
+            frozenset(mutually_exclusive_types)
+            if mutually_exclusive_types is not None
+            else self.MUTUALLY_EXCLUSIVE_TYPES
+        )
 
     async def resolve_relations(
         self,
@@ -101,7 +114,7 @@ class TemporalResolver:
                             expire_ids = [str(ex.get("id", "")) for ex in existing]
 
                     # 检查互斥关系
-                    if edge_type in self.MUTUALLY_EXCLUSIVE_TYPES:
+                    if edge_type in self._mutually_exclusive_types:
                         conflicting = await existing_lookup(source, None, edge_type, corpus_id)
                         if conflicting:
                             for cf in conflicting:
