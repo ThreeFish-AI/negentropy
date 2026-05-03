@@ -17,6 +17,7 @@ RetrievalTracker: 记忆检索效果反馈追踪服务
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -27,6 +28,16 @@ from negentropy.logging import get_logger
 from negentropy.models.internalization import MemoryRetrievalLog
 
 logger = get_logger("negentropy.engine.adapters.postgres.retrieval_tracker")
+
+_REFLEXION_TRIGGER_OUTCOMES = {"irrelevant", "harmful"}
+
+# 后台反思任务集合（fire-and-forget；测试可 await 其中元素验证完成）
+_pending_reflection_tasks: set[asyncio.Task] = set()
+
+
+def get_pending_reflection_tasks() -> set[asyncio.Task]:
+    """返回当前未完成的反思任务集合（用于测试 / 优雅关停）。"""
+    return _pending_reflection_tasks
 
 
 class RetrievalTracker:
@@ -84,7 +95,33 @@ class RetrievalTracker:
             stmt = sa.update(MemoryRetrievalLog).where(MemoryRetrievalLog.id == log_id).values(outcome_feedback=outcome)
             result = await db.execute(stmt)
             await db.commit()
-            return result.rowcount > 0
+            updated = result.rowcount > 0
+
+        # Phase 5 F2：失败反馈触发反思生成（fire-and-forget；启用后才会走）
+        if updated and outcome in _REFLEXION_TRIGGER_OUTCOMES:
+            self._maybe_trigger_reflection(log_id=log_id, outcome=outcome)
+        return updated
+
+    @staticmethod
+    def _maybe_trigger_reflection(*, log_id: UUID, outcome: str) -> None:
+        """启用 F2 时后台触发反思生成；默认关闭。"""
+        try:
+            from negentropy.config import settings as global_settings
+
+            if not global_settings.memory.reflection.enabled:
+                return
+        except Exception as exc:
+            logger.debug("reflection_settings_load_failed", error=str(exc))
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return  # 不在事件循环中，跳过
+
+        task = loop.create_task(_run_reflection_safely(log_id=log_id, outcome=outcome))
+        _pending_reflection_tasks.add(task)
+        task.add_done_callback(_pending_reflection_tasks.discard)
 
     async def get_effectiveness_metrics(
         self,
@@ -129,3 +166,14 @@ class RetrievalTracker:
             "utilization_rate": helpful / with_feedback if with_feedback > 0 else 0.0,
             "noise_rate": irrelevant / with_feedback if with_feedback > 0 else 0.0,
         }
+
+
+async def _run_reflection_safely(*, log_id: UUID, outcome: str) -> None:
+    """后台反思任务包装器：捕获所有异常，写日志不向上抛。"""
+    try:
+        from negentropy.engine.consolidation.reflection_worker import ReflectionWorker
+
+        worker = ReflectionWorker()
+        await worker.process(log_id=log_id, outcome=outcome)
+    except Exception as exc:
+        logger.warning("reflection_task_failed", error=str(exc), log_id=str(log_id))

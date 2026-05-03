@@ -94,6 +94,16 @@ class ContextAssembler:
             app_name=app_name,
             thread_id=thread_id,
         )
+
+        # Phase 5 F2：在 Core Block 之后、主记忆之前注入反思 Few-Shot
+        # 仅在 reflection.enabled 且 query intent ∈ {procedural, episodic} 且 confidence ≥ 阈值时生效。
+        reflection_text, reflection_tokens, reflection_count = await self._collect_reflections(
+            user_id=user_id,
+            app_name=app_name,
+            query=query,
+            query_embedding=query_embedding,
+            memory_tokens_total=memory_tokens,
+        )
         # Core Block 占用从 memory_tokens 中预留（不超过 30%）。超过时按预留上限截断，
         # 避免后续直接 prepend 时把 memory 段实际占用挤出预算（见 review #2）。
         core_block_cap = int(memory_tokens * 0.3)
@@ -105,7 +115,9 @@ class ContextAssembler:
             )
             core_block_truncated = True
         reserved_for_core = min(core_block_tokens, core_block_cap)
-        memory_tokens_after_core = max(0, memory_tokens - reserved_for_core)
+        # Reflection budget 从 memory_tokens 中预留（不超过其 budget_ratio）。
+        reserved_for_reflection = min(reflection_tokens, int(memory_tokens * 0.5))
+        memory_tokens_after_core = max(0, memory_tokens - reserved_for_core - reserved_for_reflection)
 
         # Phase 4：query intent 分类（轻量启发式，仅用于日志/可观测）
         intent = classify_intent(query) if query else None
@@ -130,6 +142,14 @@ class ContextAssembler:
                     result["memory_context"] = core_blocks_text
                 result["token_count"] = result.get("token_count", 0) + core_block_tokens
 
+            # Phase 5 F2：反思 Few-Shot 紧跟 Core Block 之后注入
+            if reflection_text:
+                if result.get("memory_context"):
+                    result["memory_context"] = reflection_text + "\n" + result["memory_context"]
+                else:
+                    result["memory_context"] = reflection_text
+                result["token_count"] = result.get("token_count", 0) + reflection_tokens
+
             # Token Budget 硬性校验：超标时按行截断
             budget_total = memory_tokens + history_tokens
             actual_tokens = result.get("token_count", 0)
@@ -150,6 +170,8 @@ class ContextAssembler:
             result["budget"]["overflow"] = actual_tokens > budget_total
             result["budget"]["core_block_tokens"] = core_block_tokens
             result["budget"]["core_block_truncated"] = core_block_truncated
+            result["budget"]["reflection_tokens"] = reflection_tokens
+            result["budget"]["reflection_count"] = reflection_count
             if intent is not None:
                 result["budget"]["query_intent"] = {
                     "primary": intent.primary,
@@ -418,6 +440,129 @@ class ContextAssembler:
         except Exception as exc:
             logger.debug("core_blocks_collection_skipped", error=str(exc))
             return "", 0
+
+    async def _collect_reflections(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        query: str | None,
+        query_embedding: list[float] | None,
+        memory_tokens_total: int,
+    ) -> tuple[str, int, int]:
+        """收集 Phase 5 F2 反思 Few-Shot，仅在启用且 intent 命中时返回非空。
+
+        门控条件（任一不满足即跳过）：
+        - settings.memory.reflection.enabled=True
+        - intent.primary ∈ {procedural, episodic}
+        - intent.confidence >= min_intent_confidence
+
+        Returns:
+            (reflection_text, reflection_tokens, reflection_count)
+        """
+        try:
+            from negentropy.config import settings as global_settings
+
+            ref_settings = global_settings.memory.reflection
+            if not ref_settings.enabled:
+                return "", 0, 0
+        except Exception:
+            return "", 0, 0
+
+        intent = classify_intent(query) if query else None
+        if intent is None:
+            return "", 0, 0
+        if intent.primary not in ("procedural", "episodic"):
+            return "", 0, 0
+        if intent.confidence < ref_settings.min_intent_confidence:
+            return "", 0, 0
+
+        budget = max(0, int(memory_tokens_total * ref_settings.budget_ratio))
+        if budget <= 0:
+            return "", 0, 0
+
+        try:
+            rows = await self._fetch_reflection_rows(
+                user_id=user_id,
+                app_name=app_name,
+                query_embedding=query_embedding,
+                limit=ref_settings.fewshot_k,
+            )
+        except Exception as exc:
+            logger.debug("reflection_fewshot_fetch_failed", error=str(exc))
+            return "", 0, 0
+
+        if not rows:
+            return "", 0, 0
+
+        lines: list[str] = []
+        used_tokens = 0
+        for row in rows:
+            content = (row.get("content") or "").strip()
+            if not content:
+                continue
+            line = f"[Reflection] {content}"
+            line_tokens = await self._accurate_token_count(line)
+            if used_tokens + line_tokens > budget:
+                break
+            lines.append(line)
+            used_tokens += line_tokens
+        if not lines:
+            return "", 0, 0
+        text_block = "\n".join(lines)
+        actual_tokens = await self._accurate_token_count(text_block)
+        return text_block, actual_tokens, len(lines)
+
+    async def _fetch_reflection_rows(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        query_embedding: list[float] | None,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """按向量近邻或时间倒序拉取反思记忆。"""
+        if query_embedding:
+            embedding_str = "[" + ",".join(f"{x:.7g}" for x in query_embedding) + "]"
+            sql = text(
+                f"""
+                SELECT m.content, m.created_at,
+                       (m.embedding <=> CAST(:embedding AS vector)) AS distance
+                FROM {NEGENTROPY_SCHEMA}.memories m
+                WHERE m.user_id = :user_id
+                  AND m.app_name = :app_name
+                  AND m.metadata->>'subtype' = 'reflection'
+                  AND m.embedding IS NOT NULL
+                  AND COALESCE(m.metadata->>'is_deleted', 'false') = 'false'
+                ORDER BY distance ASC, m.created_at DESC
+                LIMIT :limit
+                """
+            )
+            params: dict[str, Any] = {
+                "user_id": user_id,
+                "app_name": app_name,
+                "embedding": embedding_str,
+                "limit": limit,
+            }
+        else:
+            sql = text(
+                f"""
+                SELECT m.content, m.created_at, NULL::float AS distance
+                FROM {NEGENTROPY_SCHEMA}.memories m
+                WHERE m.user_id = :user_id
+                  AND m.app_name = :app_name
+                  AND m.metadata->>'subtype' = 'reflection'
+                  AND COALESCE(m.metadata->>'is_deleted', 'false') = 'false'
+                ORDER BY m.created_at DESC
+                LIMIT :limit
+                """
+            )
+            params = {"user_id": user_id, "app_name": app_name, "limit": limit}
+
+        async with db_session.AsyncSessionLocal() as db:
+            result = await db.execute(sql, params)
+            rows = result.fetchall()
+        return [{"content": r.content, "created_at": r.created_at, "distance": r.distance} for r in rows]
 
     async def _collect_kg_context(
         self,
