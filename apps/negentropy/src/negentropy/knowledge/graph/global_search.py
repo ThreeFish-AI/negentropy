@@ -287,22 +287,28 @@ class GlobalSearchService:
         db: AsyncSession,
         corpus_id: UUID,
     ) -> bool:
-        """检测摘要是否陈旧 — 任意社区摘要的 updated_at < kg_entities.updated_at 极值时为 dirty"""
+        """检测摘要是否陈旧 — 最近一次实体写入晚于最近一次社区摘要刷新时为 dirty。
+
+        Note:
+            语义为"是否需要重跑摘要流水线"：对比 MAX(entity.updated_at) 与
+            MAX(summary.updated_at)。早期实现误用 MIN(summary)，导致单个老旧
+            社区会把整体状态长期拖成 dirty —— 已修正为 MAX 对 MAX。
+        """
         try:
             result = await db.execute(
                 text(f"""
                     SELECT
                         (SELECT MAX(updated_at) FROM {NEGENTROPY_SCHEMA}.kg_entities
                          WHERE corpus_id = :corpus_id) AS entity_max,
-                        (SELECT MIN(updated_at) FROM {NEGENTROPY_SCHEMA}.kg_community_summaries
-                         WHERE corpus_id = :corpus_id) AS summary_min
+                        (SELECT MAX(updated_at) FROM {NEGENTROPY_SCHEMA}.kg_community_summaries
+                         WHERE corpus_id = :corpus_id) AS summary_max
                 """),
                 {"corpus_id": str(corpus_id)},
             )
             row = result.first()
-            if row is None or row.entity_max is None or row.summary_min is None:
+            if row is None or row.entity_max is None or row.summary_max is None:
                 return False
-            return row.entity_max > row.summary_min
+            return row.entity_max > row.summary_max
         except Exception:
             return False
 

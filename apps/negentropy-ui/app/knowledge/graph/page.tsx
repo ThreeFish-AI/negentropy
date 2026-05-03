@@ -93,6 +93,54 @@ export default function KnowledgeGraphPage() {
     }
   }, [corpusId, loadGraph]);
 
+  // G2: 双击节点增量加载子图后合并到 payload —— 按 id / source-target-label
+  // 三元组去重，避免重复节点与重复边。子图节点字段是 KnowledgeGraphPayload
+  // 索引签名的子集，可直接拼接。
+  const handleSubgraphMerge = useCallback(
+    (
+      newNodes: Array<{
+        id: string;
+        label?: string;
+        type?: string;
+        importance?: number | null;
+        community_id?: number | null;
+        metadata?: Record<string, unknown>;
+      }>,
+      newEdges: Array<{
+        source: string;
+        target: string;
+        label?: string;
+        type?: string;
+        weight?: number;
+        metadata?: Record<string, unknown>;
+      }>,
+    ) => {
+      setPayload((prev) => {
+        const baseNodes = prev?.nodes ?? [];
+        const baseEdges = prev?.edges ?? [];
+        const baseRuns = prev?.runs;
+        const nodeIds = new Set(baseNodes.map((n) => n.id));
+        const edgeKey = (e: { source: string; target: string; label?: string }) =>
+          `${e.source}__${e.target}__${e.label ?? ""}`;
+        const edgeKeys = new Set(baseEdges.map((e) => edgeKey(e)));
+        const mergedNodes = [
+          ...baseNodes,
+          ...newNodes.filter((n) => !nodeIds.has(n.id)),
+        ];
+        const mergedEdges = [
+          ...baseEdges,
+          ...newEdges.filter((e) => !edgeKeys.has(edgeKey(e))),
+        ];
+        return {
+          nodes: mergedNodes,
+          edges: mergedEdges,
+          ...(baseRuns ? { runs: baseRuns } : {}),
+        };
+      });
+    },
+    [],
+  );
+
   const handleBuild = useCallback(async () => {
     if (!corpusId) return;
     setBuilding(true);
@@ -379,6 +427,7 @@ export default function KnowledgeGraphPage() {
                   selectedNodeId={selectedNodeId}
                   onNodeClick={(id) => setSelectedNodeId(id || null)}
                   asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "cytoscape" ? (
                 <div className="flex h-[600px] items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">

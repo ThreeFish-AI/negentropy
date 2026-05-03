@@ -3525,24 +3525,35 @@ async def multi_hop_reason_knowledge_graph(
         # 2) seeds 解析为实体 ID（按 name 模糊匹配 kg_entities）
         from sqlalchemy import text as sa_text
 
+        # 严格 UUID 正则：32 位裸十六进制，或 8-4-4-4-12 带连字符（共 36 位）。
+        # 早期 [0-9a-fA-F-]{32,36} 会把 33/34/35 这种非法长度也当 UUID 命中，
+        # 后续 cast as uuid 会抛 InvalidTextRepresentation。
+        _UUID_RE = re.compile(r"[0-9a-fA-F]{32}|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")
+
+        def _escape_like(pattern: str) -> str:
+            """转义 SQL LIKE / ILIKE 特殊字符；配合 ESCAPE '\\'。"""
+            return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
         seed_ids: list[str] = []
         for s in seeds:
             # 优先看是否本身就是 UUID（含/不含 entity: 前缀）
             cleaned = s.replace("entity:", "")
-            if re.fullmatch(r"[0-9a-fA-F-]{32,36}", cleaned):
+            if _UUID_RE.fullmatch(cleaned):
                 seed_ids.append(cleaned)
                 continue
-            # 否则按 name 等值/前缀匹配
+            # 否则按 name 等值/前缀模糊匹配；先转义 % / _ / \\ 防止用户输入被当通配符
+            escaped = _escape_like(s)
             row = (
                 await db.execute(
                     sa_text(f"""
                     SELECT id FROM {NEGENTROPY_SCHEMA}.kg_entities
                     WHERE corpus_id = :cid AND is_active = true
-                      AND (name ILIKE :exact OR name ILIKE :prefix)
-                    ORDER BY (CASE WHEN name ILIKE :exact THEN 0 ELSE 1 END), confidence DESC NULLS LAST
+                      AND (name ILIKE :exact ESCAPE '\\' OR name ILIKE :prefix ESCAPE '\\')
+                    ORDER BY (CASE WHEN name ILIKE :exact ESCAPE '\\' THEN 0 ELSE 1 END),
+                             confidence DESC NULLS LAST
                     LIMIT 1
                 """),
-                    {"cid": str(corpus_id), "exact": s, "prefix": f"{s}%"},
+                    {"cid": str(corpus_id), "exact": escaped, "prefix": f"{escaped}%"},
                 )
             ).first()
             if row is not None:
@@ -3580,8 +3591,40 @@ async def multi_hop_reason_knowledge_graph(
         builder = ProvenanceBuilder(max_chain_depth=payload.max_hops)
         chains = await builder.build(db, corpus_id, non_seed_ranked, seed_ids)
 
-    answer_entities = [c.target_entity_id for c in chains]
-    evidence_payload = [evidence_chain_to_dict(c) for c in chains]
+        answer_entities = [c.target_entity_id for c in chains]
+        evidence_payload = [evidence_chain_to_dict(c) for c in chains]
+        latency_ms = (time.time() - start) * 1000
+
+        # 5) 审计留痕 — kg_query_provenance（迁移 0024）；失败不影响响应
+        try:
+            from uuid import uuid4
+
+            top_entities_payload = [{"entity_id": eid, "score": float(score)} for eid, score in non_seed_ranked]
+            await db.execute(
+                sa_text(f"""
+                    INSERT INTO {NEGENTROPY_SCHEMA}.kg_query_provenance
+                        (id, corpus_id, query_text, seeds, top_entities,
+                         evidence_chain, latency_ms)
+                    VALUES (:id, :cid, :q, CAST(:seeds AS jsonb),
+                            CAST(:tops AS jsonb), CAST(:chain AS jsonb), :lat)
+                """),
+                {
+                    "id": str(uuid4()),
+                    "cid": str(corpus_id),
+                    "q": payload.query,
+                    "seeds": json.dumps(seeds),
+                    "tops": json.dumps(top_entities_payload),
+                    "chain": json.dumps(evidence_payload),
+                    "lat": latency_ms,
+                },
+            )
+            await db.commit()
+        except Exception as audit_exc:
+            logger.warning(
+                "multi_hop_reason_audit_persist_failed",
+                corpus_id=str(corpus_id),
+                error=str(audit_exc),
+            )
 
     logger.info(
         "api_multi_hop_reason_completed",
@@ -3605,7 +3648,7 @@ async def multi_hop_reason_knowledge_graph(
             )
             for e in evidence_payload
         ],
-        latency_ms=(time.time() - start) * 1000,
+        latency_ms=latency_ms,
     )
 
 

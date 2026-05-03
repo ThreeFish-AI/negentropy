@@ -118,6 +118,14 @@ export function GraphCanvas({
   const cyRef = useRef<Core | null>(null);
   const [expanding, setExpanding] = useState(false);
 
+  // 事件处理器在挂载时一次性注册，闭包会冻结挂载时的 props；后续语料库切换 /
+  // 时间穿梭 / 父组件 callback 重建会被丢弃。统一通过 propsRef 取最新值，避免
+  // 用旧的 corpusId / asOf 把 B 的节点 ID 拿到 A 的语料库去查。
+  const propsRef = useRef({ corpusId, asOf, onNodeClick, onSubgraphMerge });
+  useEffect(() => {
+    propsRef.current = { corpusId, asOf, onNodeClick, onSubgraphMerge };
+  }, [corpusId, asOf, onNodeClick, onSubgraphMerge]);
+
   const elements = useMemo(() => toElements(nodes, edges), [nodes, edges]);
 
   // 1. 初始化 cytoscape 实例（仅一次）
@@ -185,26 +193,28 @@ export function GraphCanvas({
     });
     cyRef.current = cy;
 
-    // 单击节点 → 高亮 + 回调
+    // 单击节点 → 高亮 + 回调（通过 propsRef 取最新 onNodeClick）
     cy.on("tap", "node", (evt) => {
       const node = evt.target as NodeSingular;
-      onNodeClick(node.id());
+      propsRef.current.onNodeClick(node.id());
     });
 
-    // 双击节点 → 增量加载子图
+    // 双击节点 → 增量加载子图（通过 propsRef 取最新 corpusId / asOf / onSubgraphMerge）
     cy.on("dbltap", "node", async (evt) => {
       const node = evt.target as NodeSingular;
       const centerId = node.id();
+      const { corpusId: latestCorpus, asOf: latestAsOf, onSubgraphMerge: latestMerge } =
+        propsRef.current;
       setExpanding(true);
       try {
-        const data = await fetchGraphSubgraph(corpusId, {
+        const data = await fetchGraphSubgraph(latestCorpus, {
           centerId,
           radius: 1,
           limit: 50,
-          asOf: asOf ?? undefined,
+          asOf: latestAsOf ?? undefined,
         });
-        if (onSubgraphMerge) {
-          onSubgraphMerge(data.nodes, data.edges);
+        if (latestMerge) {
+          latestMerge(data.nodes, data.edges);
         }
       } catch (err) {
         console.error("subgraph_fetch_error", err);
@@ -213,10 +223,10 @@ export function GraphCanvas({
       }
     });
 
-    // 画布单击空白 → 取消高亮
+    // 画布单击空白 → 取消高亮（通过 propsRef 取最新 onNodeClick）
     cy.on("tap", (evt) => {
       if (evt.target === cy) {
-        onNodeClick("");
+        propsRef.current.onNodeClick("");
       }
     });
 

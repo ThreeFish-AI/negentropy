@@ -513,9 +513,26 @@ class GraphService:
             try:
                 from negentropy.db.session import AsyncSessionLocal
 
+                from ..ingestion.embedding import build_embedding_fn
                 from .community_summarizer import CommunitySummarizer
 
-                summarizer = CommunitySummarizer(model=normalized_llm_model)
+                # 注入 embedding_fn — G1 GraphRAG Global Search 的 query-focused
+                # 召回依赖 kg_community_summaries.embedding；若 embedding 配置不可用
+                # （旧环境 / 单测），降级为不写 embedding，由 GlobalSearchService 的
+                # _has_summary_embeddings 探测后自动回退到 entity_count 排序。
+                try:
+                    cs_embedding_fn = build_embedding_fn()
+                except Exception as ef_exc:
+                    cs_embedding_fn = None
+                    logger.warning(
+                        "community_summary_embedding_fn_unavailable",
+                        error=str(ef_exc),
+                    )
+
+                summarizer = CommunitySummarizer(
+                    model=normalized_llm_model,
+                    embedding_fn=cs_embedding_fn,
+                )
                 async with AsyncSessionLocal() as cs_db:
                     cs_result = await summarizer.summarize_communities(cs_db, corpus_id)
                     logger.info(

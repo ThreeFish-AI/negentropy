@@ -121,7 +121,7 @@ async def test_map_reduce_pipeline_aggregates_partials(mock_db):
     stale_result = MagicMock()
     stale_row = MagicMock()
     stale_row.entity_max = None
-    stale_row.summary_min = None
+    stale_row.summary_max = None
     stale_result.first = MagicMock(return_value=stale_row)
 
     mock_db.execute.side_effect = [probe_result, candidates_result, stale_result]
@@ -165,7 +165,7 @@ async def test_evidence_drops_empty_partial_answers(mock_db):
     stale_result = MagicMock()
     stale_row = MagicMock()
     stale_row.entity_max = None
-    stale_row.summary_min = None
+    stale_row.summary_max = None
     stale_result.first = MagicMock(return_value=stale_row)
     mock_db.execute.side_effect = [probe_result, candidates_result, stale_result]
 
