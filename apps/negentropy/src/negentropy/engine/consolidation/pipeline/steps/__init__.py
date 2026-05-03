@@ -6,7 +6,9 @@ import 一次即触发 ``@register("name")`` 装饰器。
 
 from . import (
     auto_link_step,  # noqa: F401
+    dedup_merge_step,  # noqa: F401
     entity_normalization_step,  # noqa: F401
     fact_extract_step,  # noqa: F401
     summarize_step,  # noqa: F401
+    topic_cluster_step,  # noqa: F401
 )
