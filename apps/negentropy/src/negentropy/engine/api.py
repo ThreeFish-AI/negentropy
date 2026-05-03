@@ -1347,6 +1347,11 @@ async def delete_core_block(
 @router.get("/health")
 async def memory_health() -> dict[str, Any]:
     """Memory 系统健康检查（无需鉴权，负载均衡器/监控系统用）。"""
+    from negentropy.config import settings as global_settings
+
+    if not global_settings.memory.observability.health_enabled:
+        raise HTTPException(status_code=404, detail="Health endpoint is disabled")
+
     from negentropy.engine.observability.health_checker import check_memory_health
 
     return await check_memory_health()
@@ -1364,6 +1369,12 @@ async def memory_metrics(
     """
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required for metrics")
+
+    from negentropy.config import settings as global_settings
+
+    if not global_settings.memory.observability.metrics_enabled:
+        raise HTTPException(status_code=404, detail="Metrics endpoint is disabled")
+
     from negentropy.engine.observability.memory_metrics import get_memory_metrics
 
     return await get_memory_metrics(user_id=user_id, app_name=_resolve_app_name(app_name))

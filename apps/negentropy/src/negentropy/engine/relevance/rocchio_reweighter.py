@@ -13,6 +13,8 @@ RocchioReweighter — 基于累积反馈的 per-memory 相关性重加权。
 
 from __future__ import annotations
 
+import uuid
+
 import sqlalchemy as sa
 
 import negentropy.db.session as db_session
@@ -116,7 +118,6 @@ async def reweight_memories(
             )
             if abs(weight - 1.0) < 1e-6:
                 continue
-            import uuid
 
             try:
                 mid_uuid = uuid.UUID(mid_str)

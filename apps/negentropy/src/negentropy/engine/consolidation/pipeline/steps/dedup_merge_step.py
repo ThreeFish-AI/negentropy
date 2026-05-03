@@ -49,20 +49,19 @@ class DedupMergeStep:
 
         merged_count = 0
 
-        # 拉取新记忆
         async with db_session.AsyncSessionLocal() as db:
+            # 拉取新记忆
             stmt = sa.select(
                 Memory.id, Memory.content, Memory.embedding, Memory.retention_score, Memory.metadata_
             ).where(Memory.id.in_(ctx.new_memory_ids))
             rows = (await db.execute(stmt)).all()
 
-        for row in rows:
-            if row.embedding is None:
-                continue
+            for row in rows:
+                if row.embedding is None:
+                    continue
 
-            # 查找用户现有记忆中的近重复
-            distance = Memory.embedding.op("<=>")(row.embedding)
-            async with db_session.AsyncSessionLocal() as db:
+                # 查找用户现有记忆中的近重复
+                distance = Memory.embedding.op("<=>")(row.embedding)
                 dup_stmt = (
                     sa.select(
                         Memory.id,
@@ -84,19 +83,17 @@ class DedupMergeStep:
                 dup_result = await db.execute(dup_stmt)
                 dup_row = dup_result.first()
 
-            if dup_row is None:
-                continue
+                if dup_row is None:
+                    continue
 
-            # 决定 primary（高分）和 loser（低分）
-            if row.retention_score >= (dup_row.retention_score or 0.0):
-                primary_id, loser_id = row.id, dup_row.id
-                loser_content = dup_row.content
-            else:
-                primary_id, loser_id = dup_row.id, row.id
-                loser_content = row.content
+                # 决定 primary（高分）和 loser（低分）
+                if row.retention_score >= (dup_row.retention_score or 0.0):
+                    primary_id, loser_id = row.id, dup_row.id
+                    loser_content = dup_row.content
+                else:
+                    primary_id, loser_id = dup_row.id, row.id
+                    loser_content = row.content
 
-            # soft-delete loser，合并内容到 primary
-            async with db_session.AsyncSessionLocal() as db:
                 # 更新 primary：追加 merged_from
                 primary_meta = (
                     await db.execute(sa.select(Memory.metadata_).where(Memory.id == primary_id))
@@ -119,7 +116,7 @@ class DedupMergeStep:
                 )
 
                 await db.commit()
-            merged_count += 1
+                merged_count += 1
 
         duration_ms = int((time.perf_counter() - start) * 1000)
         return StepResult(

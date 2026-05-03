@@ -233,9 +233,11 @@ class TopicClusterStep:
         for i in range(n):
             clusters[find(i)].append(i)
 
-        # 生成标签并更新 metadata
+        # 生成标签并批量更新 metadata（单 session，单 commit）
         cluster_labels: dict[int, str] = {}
         updated_count = 0
+        updates: list[tuple[str, dict]] = []  # (memory_id, updated_metadata)
+
         for root, members in clusters.items():
             if len(members) < 2:
                 continue
@@ -243,31 +245,21 @@ class TopicClusterStep:
             label = _extract_label(contents)
             cluster_labels[root] = label
             ctx.topics.append({"label": label, "memory_count": len(members)})
+            for i in members:
+                updates.append((str(rows[i].id), label))
+            updated_count += len(members)
 
-            # 更新每条记忆的 metadata_.topics
-            member_ids = [rows[i].id for i in members]
+        if updates:
             async with db_session.AsyncSessionLocal() as db:
-                for mid in member_ids:
-                    stmt = (
-                        sa.update(Memory)
-                        .where(Memory.id == mid)
-                        .values(
-                            metadata_=sa.func.jsonb_set(
-                                sa.func.coalesce(Memory.metadata_, sa.text("'{}'::jsonb")),
-                                "{topics}",
-                                sa.func.coalesce(
-                                    sa.func.jsonb_path_query_array(
-                                        sa.func.coalesce(Memory.metadata_, sa.text("'{}'::jsonb")),
-                                        sa.text("'$.topics'"),
-                                    ),
-                                    sa.text("'[]'::jsonb"),
-                                ).op("||")(sa.func.jsonb_build_array(sa.literal(label))),
-                            )
-                        )
-                    )
-                    await db.execute(stmt)
+                for mid_str, label in updates:
+                    existing = (
+                        await db.execute(sa.select(Memory.metadata_).where(Memory.id == mid_str))
+                    ).scalar() or {}
+                    topics = list(existing.get("topics", []))
+                    topics.append(label)
+                    existing["topics"] = topics
+                    await db.execute(sa.update(Memory).where(Memory.id == mid_str).values(metadata_=existing))
                 await db.commit()
-            updated_count += len(member_ids)
 
         duration_ms = int((time.perf_counter() - start) * 1000)
         return StepResult(
