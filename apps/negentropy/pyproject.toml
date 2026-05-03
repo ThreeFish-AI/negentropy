@@ -44,6 +44,16 @@ dependencies = [
     "networkx>=3.0",                # Graph algorithms (PageRank, Louvain community detection)
 ]
 
+[project.optional-dependencies]
+# Phase 5 F4 — Microsoft Presidio 生产级 PII 治理（默认不安装）。
+# 启用方法：`uv sync --extra pii-presidio`，再把 memory.pii.engine 切成 presidio。
+# spaCy 模型需手动 `uv run python -m spacy download zh_core_web_sm` 等。
+pii-presidio = [
+    "presidio-analyzer>=2.2.0",
+    "presidio-anonymizer>=2.2.0",
+    "spacy>=3.7,<4.0",
+]
+
 [project.scripts]
 negentropy = "negentropy.cli:main"
 

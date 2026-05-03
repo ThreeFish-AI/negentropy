@@ -19,11 +19,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 
 import negentropy.db.session as db_session
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory, MemoryAssociation
 
 logger = get_logger("negentropy.engine.adapters.postgres.association_service")
@@ -419,6 +420,160 @@ class AssociationService:
             }
             for a in assocs
         ]
+
+    # ------------------------------------------------------------------
+    # Phase 5 F1 — HippoRAG Personalized PageRank 加权扩散
+    # ------------------------------------------------------------------
+
+    async def expand_via_ppr(
+        self,
+        *,
+        seeds: list[UUID],
+        depth: int = 2,
+        alpha: float = 0.5,
+        top_k: int = 50,
+    ) -> dict[str, float]:
+        """从种子节点出发做 BFS 加权扩散，等价 Personalized PageRank<sup>[3]</sup>。
+
+        每跳累加权重为 ``α^d × edge_weight``；同一目标被多条路径到达时分数相加。
+        当 KG 关系数极少时直接返回种子自身的 score=1.0 字典。
+
+        Args:
+            seeds: 种子 KG entity_id 列表
+            depth: BFS 扩散最大深度（默认 2，HippoRAG 论文经验值）
+            alpha: 衰减系数（默认 0.5）
+            top_k: 返回的最高分 entity 数
+
+        Returns:
+            ``{entity_id_str: score}``，分数已按 max-min 归一化到 [0, 1]。
+
+        参考文献：
+        [3] L. Page et al., "PageRank citation ranking," Stanford Tech. Rep., 1999.
+        [4] B. J. Gutiérrez et al., "HippoRAG," in Proc. NeurIPS, 2024.
+        """
+        if not seeds:
+            return {}
+        seed_strs = [str(s) for s in seeds]
+        scores: dict[str, float] = {s: 1.0 for s in seed_strs}
+
+        # frontier：当前层待扩散节点；visited：所有已经被打过分的节点
+        # （含种子）。仅对 visited 之外的端点累加分数，避免 depth ≥ 2 时
+        # 把分数回流到种子或上一层节点导致 PPR 归一化失真。
+        # Review fix：frontier 持有 UUID 实例（非 text），SQL 用
+        # ``ANY(:frontier::uuid[])`` 直击 ``ix_kg_relations_source/_target``
+        # btree 索引；旧版 ``::text`` 转换会全表扫导致 BFS 超 timeout 静默降级。
+        frontier: set[UUID] = set(seeds)
+        visited: set[str] = set(seed_strs)
+        for d in range(1, max(1, depth) + 1):
+            if not frontier:
+                break
+            decay = alpha**d
+            try:
+                async with db_session.AsyncSessionLocal() as db:
+                    sql = text(
+                        f"""
+                        SELECT r.source_id AS src, r.target_id AS tgt,
+                               COALESCE(r.weight, 1.0) AS w
+                        FROM {NEGENTROPY_SCHEMA}.kg_relations r
+                        WHERE r.is_active IS TRUE
+                          AND (r.source_id = ANY(:frontier)
+                               OR r.target_id = ANY(:frontier))
+                        """
+                    )
+                    result = await db.execute(sql, {"frontier": list(frontier)})
+                    edges = result.fetchall()
+            except Exception as exc:
+                logger.debug("ppr_expand_query_failed", depth=d, error=str(exc))
+                break
+
+            # 同层内每个端点的最大累积权重（对多条路径取 max，避免重复加权放大）
+            level_gain: dict[str, float] = {}
+            frontier_strs = {str(u) for u in frontier}
+            for row in edges:
+                src = str(row.src)
+                tgt = str(row.tgt)
+                w = float(row.w or 1.0)
+                # KG 视为无向图扩散（HippoRAG 论文采用对称邻接）
+                if src in frontier_strs and tgt not in visited:
+                    prev = level_gain.get(tgt, 0.0)
+                    if w > prev:
+                        level_gain[tgt] = w
+                if tgt in frontier_strs and src not in visited:
+                    prev = level_gain.get(src, 0.0)
+                    if w > prev:
+                        level_gain[src] = w
+
+            for node, w in level_gain.items():
+                scores[node] = scores.get(node, 0.0) + decay * w
+
+            new_frontier_strs = set(level_gain.keys())
+            visited.update(new_frontier_strs)
+            # 下一跳 frontier 重新升回 UUID，以便 SQL 仍走索引路径
+            frontier = {UUID(s) for s in new_frontier_strs}
+
+        # 归一化到 [0, 1]
+        if not scores:
+            return {}
+        max_score = max(scores.values())
+        if max_score <= 0:
+            return {}
+        normalized = {k: v / max_score for k, v in scores.items()}
+        # 取 top_k
+        ranked = sorted(normalized.items(), key=lambda kv: kv[1], reverse=True)[:top_k]
+        return dict(ranked)
+
+    async def memories_for_entity_scores(
+        self,
+        *,
+        entity_scores: dict[str, float],
+        user_id: str,
+        app_name: str,
+        limit: int = 50,
+    ) -> list[dict]:
+        """把 PPR 实体分数映射回 Memory 列表。
+
+        memory.score = Σ entity_score × association.weight，按降序取 top-limit。
+        """
+        if not entity_scores:
+            return []
+
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = select(MemoryAssociation).where(
+                MemoryAssociation.target_type == "entity",
+                MemoryAssociation.target_id.in_([UUID(eid) for eid in entity_scores]),
+                MemoryAssociation.user_id == user_id,
+                MemoryAssociation.app_name == app_name,
+            )
+            result = await db.execute(stmt)
+            assocs = result.scalars().all()
+
+        agg: dict[str, float] = {}
+        for a in assocs:
+            entity_score = entity_scores.get(str(a.target_id), 0.0)
+            agg[str(a.source_id)] = agg.get(str(a.source_id), 0.0) + entity_score * float(a.weight)
+
+        ranked = sorted(agg.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+        return [{"memory_id": mid, "ppr_score": score} for mid, score in ranked]
+
+    async def count_kg_associations(self, *, user_id: str, app_name: str) -> int:
+        """返回该 (user, app) 下 ``target_type='entity'`` 的关联总数；用于启动期门控。
+
+        使用 ``COUNT(*)`` 聚合而非加载 ORM 行：旧实现 ``.limit(200)`` 会把
+        计数截断在 200，使得 ``min_kg_associations`` 配置 > 200 时门控永远
+        失败、PPR 通道被永久关闭。
+        """
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(func.count())
+                .select_from(MemoryAssociation)
+                .where(
+                    MemoryAssociation.target_type == "entity",
+                    MemoryAssociation.user_id == user_id,
+                    MemoryAssociation.app_name == app_name,
+                )
+            )
+            result = await db.execute(stmt)
+            return int(result.scalar_one() or 0)
 
     async def get_memories_for_kg_entity(
         self,

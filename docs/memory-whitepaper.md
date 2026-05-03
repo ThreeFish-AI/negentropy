@@ -44,7 +44,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 | Self-editing Memory Tools | MemGPT<sup>[[3]](#ref3)</sup>；Reflexion<sup>[[4]](#ref4)</sup> | Letta `core_memory_replace` / archival_insert |
 | LoCoMo / LongMemEval 评测 | Maharana 2024<sup>[[5]](#ref5)</sup>；Wu 2024<sup>[[6]](#ref6)</sup>；mem0<sup>[[7]](#ref7)</sup> | mem0 论文 baseline 对比 |
 | Query Intent 路由 | Tulving 三分法<sup>[[1]](#ref1)</sup> | 自研启发式 |
-| Episodic 快衰减 / Semantic 慢衰减 | Ebbinghaus<sup>[[8]](#ref8)</sup>；FadeMem<sup>[[19]](#ref19)</sup> | mem0 多衰减率 |
+| Episodic 快衰减 / Semantic 慢衰减 | Ebbinghaus<sup>[[8]](#ref8)</sup>；FadeMem<sup>[[21]](#ref21)</sup> | mem0 多衰减率 |
 | KG 双向同步 | HippoRAG<sup>[[11]](#ref11)</sup>；GraphRAG<sup>[[12]](#ref12)</sup> | HippoRAG 神经符号检索 |
 
 ---
@@ -66,16 +66,54 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 ---
 
-## 4. 未来路线（Phase 5+）
+## 4. Phase 5 四方向落地记录（2026-05 启动）
 
-| 方向 | 价值 | 复杂度 | 论文 |
-|---|---|---|---|
-| HippoRAG 神经符号检索（PPR on KG）| KG ↔ Memory 联合检索，长尾召回 | 中-大 | [11] |
-| Reflexion Episodic Replay | 失败反思 → few-shot 召回 | 小-中 | [4] |
-| Memify 后处理插件管线 | 巩固后多 LLM 任务并行（cognee 风格）| 中 | [13] |
-| LongMem 全量评测 | 1000+ 样本规模化对比 | 小 | [14] |
-| Presidio PII 引擎 | 真正合规级的 PII 检测/掩码 | 中 | NIST SP 800-122 |
-| 英文版本 user-guide | 国际化 | 小 | — |
+> Phase 5 聚焦白皮书既定的四个高/中优先级缺口。所有特性默认关闭、向后兼容、灰度启用，工程契约见 [`memory.md`](./memory.md) §10 与 [`user-guide/memory-basics.md`](./user-guide/memory-basics.md) "高级特性开关"。
+
+### 4.1 F1 — HippoRAG 神经符号检索（PPR-Boosted Hybrid）
+
+**原理**：海马体记忆索引启发的神经符号检索<sup>[[11]](#ref11)</sup>——将 query 经 entity linking 锚定到知识图谱（KG）种子节点，沿语义/关联/时序边做 Personalized PageRank<sup>[[15]](#ref15)</sup>加权扩散，把图遍历得到的高激活记忆作为新通道与现有 Hybrid（BM25 + pgvector）结果用 Reciprocal Rank Fusion (RRF)<sup>[[16]](#ref16)</sup>融合。
+
+**工程参考**：HippoRAG 官方实现复用 NetworkX；本项目复用 Apache AGE 的 Cypher 直接做 BFS 加权扩散，不引入新依赖。集成点为 `engine/adapters/postgres/memory_service.py:search_memory()` 与 `association_service.py:expand_via_ppr()`，作为现有 4 级回退之上的"第 5 通道"。
+
+**状态**：✅ 已交付（默认 `MEMORY_HIPPORAG_ENABLED=false`，超时 / 0 种子 / KG 数据不足三种降级路径）。
+
+### 4.2 F2 — Reflexion Episodic Replay（失败反思 + Few-Shot 召回）
+
+**原理**：Reflexion 范式<sup>[[4]](#ref4)</sup>把语言模型的失败反馈转化为"语言形式的强化信号"——本项目复用现有 RetrievalTracker 的 `helpful/irrelevant/harmful` 反馈通道：当 outcome ∈ {irrelevant, harmful} 时异步生成反思（LLM + Pattern 兜底），以 `episodic` 子类型（`metadata.subtype='reflection'`）回写记忆库；下次同类查询（Query Intent ∈ {procedural, episodic}）自动 few-shot 注入 ContextAssembler。
+
+**工程参考**：复用 `LLMFactExtractor` 的 retry + JSON output + pattern fallback 模式；不改 schema（仅扩展 metadata）；新增 `reflection_dedup`（`sha1(query) + 7 天内 cosine ≥ 0.92` 跳过）防止反思过载。
+
+**状态**：✅ 已交付（默认 `MEMORY_REFLECTION_ENABLED=false`，dedup + 单用户日上限防过载，LLM 失败 pattern 兜底）。
+
+### 4.3 F3 — Memify 后处理插件管线（Consolidation Plugin Pipeline）
+
+**原理**：cognee Memify<sup>[[13]](#ref13)</sup>把"事实抽取 → 结构化 → 推理"解耦为可组合的 cognify-step。本项目把 `add_session_to_memory` 中硬编码的 "fact_extract → summarize" 两步重构为 `ConsolidationPipeline + ConsolidationStep` 协议（GoF Strategy + Chain of Responsibility<sup>[[17]](#ref17)</sup>），支持 serial / parallel / fail_tolerant 三策略，新增 step（实体规范化、主题聚类、PII Scrub）通过注册即可生效。
+
+**工程参考**：默认行为不回归——老的 fact_extract / summarize 包装为内置 step，按原顺序执行；feature flag `memory.consolidation.legacy=true` 一键回退。
+
+**状态**：✅ 已交付（默认 `policy=serial`、`steps=[fact_extract, auto_link]`，与 Phase 4 行为等价；`legacy=true` 一键回退）。
+
+### 4.4 F4 — Presidio 生产级 PII（合规级隐私治理）
+
+**原理**：将 Phase 4 的 regex 占位升级为 Microsoft Presidio<sup>[[18]](#ref18)</sup>双引擎（NER + Pattern + Context 三段融合），覆盖 NIST SP 800-122<sup>[[19]](#ref19)</sup>定义的 identifying / linkable PII 类别；写入路径接入 `mark / mask / anonymize` 三策略；检索路径增加 `PIIGatekeeper` 按 ACL 决定低权限用户是否看到 anonymized 副本，落实 GDPR Art. 17 / Art. 25<sup>[[20]](#ref20)</sup>合规闭环。
+
+**工程参考**：`PIIDetectorBase` 抽象 + `RegexPIIDetector`（保留）+ `PresidioPIIDetector`（新）适配器模式；Presidio 作为 `[project.optional-dependencies] pii-presidio` 可选依赖；导入失败 factory 自动 fallback regex。
+
+**状态**：✅ 已交付（默认 `memory.pii.engine=regex`，Presidio 作为 `[project.optional-dependencies] pii-presidio` 可选依赖；导入失败 factory 自动 fallback）。
+
+### 4.5 路线表（Phase 5 + 后续）
+
+| 方向 | 价值 | 复杂度 | 论文 / 资源 | 状态 |
+|---|---|---|---|---|
+| F1 HippoRAG 神经符号检索（PPR on KG）| KG ↔ Memory 联合检索，长尾召回 | 中-大 | [11], [15], [16] | ✅ 已交付 |
+| F2 Reflexion Episodic Replay | 失败反思 → few-shot 召回 | 小-中 | [4] | ✅ 已交付 |
+| F3 Memify 后处理插件管线 | 巩固后多 LLM 任务可组合（cognee 风格）| 中 | [13], [17] | ✅ 已交付 |
+| F4 Presidio PII 引擎 | 合规级 PII 检测/掩码 | 中 | [18], [19], [20] | ✅ 已交付 |
+| LongMem 全量评测 | 1000+ 样本规模化对比 | 小 | [14] | 📋 未启动 |
+| 英文版本 user-guide | 国际化 | 小 | — | 📋 未启动 |
+
+> ✅ 已交付：契约已固化（配置项、API 签名、降级策略），代码实施迭代式推进。
 
 ---
 
@@ -109,7 +147,19 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 <a id="ref14"></a>[14] J. Wang et al., "LongMem: Augmenting language models with long-term memory," in *Proc. NeurIPS*, vol. 36, 2023.
 
-<a id="ref19"></a>[19] FadeMem authors, "Multi-factor adaptive forgetting curves for autonomous agents," arXiv:2601.18642, 2026.
+<a id="ref15"></a>[15] L. Page, S. Brin, R. Motwani, and T. Winograd, "The PageRank citation ranking: Bringing order to the web," Stanford Univ., Tech. Rep. SIDL-WP-1999-0120, Nov. 1999.
+
+<a id="ref16"></a>[16] G. V. Cormack, C. L. A. Clarke, and S. Buettcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," in *Proc. 32nd Int. ACM SIGIR Conf. Res. Develop. Inf. Retr.*, 2009, pp. 758–759.
+
+<a id="ref17"></a>[17] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software*. Reading, MA, USA: Addison-Wesley, 1994.
+
+<a id="ref18"></a>[18] O. Mendels, C. Peled, N. Vaisman Levy, T. Rosenthal, L. Lahiani, and others, "Microsoft Presidio: Context-aware, pluggable and customizable data protection service," <https://microsoft.github.io/presidio/> (accessed 2026-05).
+
+<a id="ref19"></a>[19] E. McCallister, T. Grance, and K. Scarfone, "Guide to protecting the confidentiality of personally identifiable information (PII)," *NIST Special Publication 800-122*, Apr. 2010.
+
+<a id="ref20"></a>[20] European Parliament and Council, "Regulation (EU) 2016/679 (General Data Protection Regulation), Articles 17 and 25," *Official Journal of the European Union*, L 119, pp. 1–88, May 2016.
+
+<a id="ref21"></a>[21] FadeMem authors, "Multi-factor adaptive forgetting curves for autonomous agents," arXiv:2601.18642, 2026.
 
 ---
 

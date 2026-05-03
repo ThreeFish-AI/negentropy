@@ -123,6 +123,45 @@ search:
   base_backoff_seconds: 1.0
   max_results: 10
 
+# --- Memory 子系统 Phase 5 高级特性配置 ---
+# 全部默认关闭，按需通过 NE_MEMORY_<SECTION>__<KEY> 环境变量灰度启用。
+# 详细契约见 docs/memory.md §10.5、docs/memory-whitepaper.md §4。
+memory:
+  hipporag:                                  # F1 HippoRAG PPR-Boosted Hybrid
+    enabled: false
+    depth: 2
+    alpha: 0.5
+    rrf_k: 60
+    timeout_ms: 120
+    seed_top_k: 5
+    seed_threshold: 0.75
+    min_kg_associations: 100
+    gray_users: []
+  reflection:                                # F2 Reflexion Episodic Replay
+    enabled: false
+    dedup_window_days: 7
+    dedup_cosine: 0.92
+    daily_limit_per_user: 10
+    fewshot_k: 2
+    budget_ratio: 0.10
+    min_intent_confidence: 0.55
+    max_inflight_tasks: 8                    # 后台反思任务硬上限（防反馈风暴）
+  consolidation:                             # F3 Memify Consolidation Pipeline
+    legacy: false
+    policy: serial                           # serial | parallel | fail_tolerant
+    timeout_per_step_ms: 30000
+    steps:                                   # 默认与 Phase 4 行为一致
+      - fact_extract
+      - auto_link
+  pii:                                       # F4 Presidio 生产级 PII
+    engine: regex                            # regex | presidio
+    policy: mark                             # mark | mask | anonymize
+    languages: [en, zh]
+    score_threshold: 0.6
+    gatekeeper_enabled: false
+    acl_role_threshold: editor
+    allow_engine_fallback: false             # presidio 初始化失败时禁止悄悄退回 regex
+
 # --- Knowledge 配置 ---
 knowledge:
   # Wiki SSG ISR 主动 revalidate webhook：publish/unpublish 完成后向 SSG 通知立即重渲染。
