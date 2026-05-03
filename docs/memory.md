@@ -778,6 +778,14 @@ flowchart LR
 
 **代码实现**：`ConflictResolver` — [`engine/governance/conflict_resolver.py`](../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)
 
+**Phase 7 增强**：DedupMergeStep 在 soft-delete 之前会检测关联 facts 的 key 碰撞。
+当发现偏好反转等矛盾时，委托 `ConflictResolver`（基于 AGM 信念修正理论）执行显式解决：
+- `supersede` — 新值取代旧值（与原 soft-delete 行为一致）
+- `keep_both` — 跳过 soft-delete，保留两条记忆（独立但相关的事实）
+- `merge` — 合并两者值
+
+无冲突时保持原有机械合并行为不变（向后兼容）。
+
 ### 5.7 主动召回 (Proactive Recall)
 
 基于 Spreading Activation Theory<sup>[[51]](#ref51)</sup>和 Context-Dependent Memory<sup>[[52]](#ref52)</sup>，在新会话创建时主动注入高相关性记忆，减少 Agent 的「冷启动」信息缺失。
@@ -1070,6 +1078,7 @@ flowchart TD
 | Retention Cleanup | `calculate_retention_score`, `cleanup_low_value_memories` | `cleanup_memories` | 定时更新 retention 并清理低价值记忆 |
 | Context Assembler | `get_context_window` | 无 | 按 token budget 组装记忆与历史 |
 | Maintenance Consolidation | `trigger_maintenance_consolidation` | `trigger_consolidation` | 批量创建巩固任务 |
+| Rocchio Reweight | — | `reweight_relevance`（每 6h） | 聚合用户反馈，调用 Rocchio 重加权更新 `memories.metadata_.relevance_weight` |
 
 ### 8.5 PostgreSQL 初始化前置条件
 
