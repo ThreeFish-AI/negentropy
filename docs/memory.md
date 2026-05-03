@@ -1579,19 +1579,19 @@ timeline
 
 | 特性 | 集成点 | 默认 flag | 状态 |
 | :-- | :-- | :-- | :-- |
-| F1 HippoRAG PPR-Boosted Hybrid | `memory_service.search_memory` + `association_service.expand_via_ppr` + AGE Cypher SQL 函数 | `MEMORY_HIPPORAG_ENABLED=false` | 🔶 方案锁定 |
-| F2 Reflexion Episodic Replay | `retrieval_tracker.record_feedback` + `reflection_generator` + `context_assembler.assemble` few-shot 注入 | `MEMORY_REFLECTION_ENABLED=false` | 🔶 方案锁定 |
-| F3 Memify Consolidation Pipeline | `consolidation/pipeline/{protocol,orchestrator,registry,steps}` + `memory_service.add_session_to_memory` 切换 | `memory.consolidation.legacy=false`（默认走 Pipeline，行为与 Phase 4 一致） | 🔶 方案锁定 |
-| F4 Presidio 生产级 PII | `governance/pii/{base,regex_detector,presidio_detector,factory,gatekeeper}` + 落库双字段 `content_raw / content_anonymized / pii_spans` | `memory.pii.engine=regex`（向后兼容） | 🔶 方案锁定 |
+| F1 HippoRAG PPR-Boosted Hybrid | `memory_service.search_memory` + `association_service.expand_via_ppr` + AGE Cypher SQL 函数 | `MEMORY_HIPPORAG_ENABLED=false` | ✅ 已交付 |
+| F2 Reflexion Episodic Replay | `retrieval_tracker.record_feedback` + `reflection_generator` + `context_assembler.assemble` few-shot 注入 | `MEMORY_REFLECTION_ENABLED=false` | ✅ 已交付 |
+| F3 Memify Consolidation Pipeline | `consolidation/pipeline/{protocol,orchestrator,registry,steps}` + `memory_service.add_session_to_memory` 切换 | `memory.consolidation.legacy=false`（默认走 Pipeline，行为与 Phase 4 一致） | ✅ 已交付 |
+| F4 Presidio 生产级 PII | `governance/pii/{base,regex_detector,presidio_detector,factory,gatekeeper}` + 落库双字段 `content_raw / content_anonymized / pii_spans` | `memory.pii.engine=regex`（向后兼容） | ✅ 已交付 |
 
 **§9.4 局限性表对应行更新**（Phase 5 实施完成后逐项打勾）：
 
 | 原局限 | Phase 5 对应特性 | 状态 |
 | :-- | :-- | :-- |
-| 图谱与记忆未打通（仅同步） | F1 HippoRAG PPR | 🔶 进行中 |
-| 失败反馈未沉淀 | F2 Reflexion | 🔶 进行中 |
-| 巩固管线难扩展 | F3 Memify Pipeline | 🔶 进行中 |
-| PII 仅 regex 占位 | F4 Presidio | 🔶 进行中 |
+| 图谱与记忆未打通（仅同步） | F1 HippoRAG PPR | ✅ 已交付 |
+| 失败反馈未沉淀 | F2 Reflexion | ✅ 已交付 |
+| 巩固管线难扩展 | F3 Memify Pipeline | ✅ 已交付 |
+| PII 仅 regex 占位 | F4 Presidio | ✅ 已交付 |
 
 ---
 

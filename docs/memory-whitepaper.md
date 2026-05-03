@@ -76,7 +76,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 **工程参考**：HippoRAG 官方实现复用 NetworkX；本项目复用 Apache AGE 的 Cypher 直接做 BFS 加权扩散，不引入新依赖。集成点为 `engine/adapters/postgres/memory_service.py:search_memory()` 与 `association_service.py:expand_via_ppr()`，作为现有 4 级回退之上的"第 5 通道"。
 
-**状态**：方案锁定，待实施（默认 `MEMORY_HIPPORAG_ENABLED=false`）。
+**状态**：✅ 已交付（默认 `MEMORY_HIPPORAG_ENABLED=false`，超时 / 0 种子 / KG 数据不足三种降级路径）。
 
 ### 4.2 F2 — Reflexion Episodic Replay（失败反思 + Few-Shot 召回）
 
@@ -84,7 +84,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 **工程参考**：复用 `LLMFactExtractor` 的 retry + JSON output + pattern fallback 模式；不改 schema（仅扩展 metadata）；新增 `reflection_dedup`（`sha1(query) + 7 天内 cosine ≥ 0.92` 跳过）防止反思过载。
 
-**状态**：方案锁定，待实施（默认 `MEMORY_REFLECTION_ENABLED=false`）。
+**状态**：✅ 已交付（默认 `MEMORY_REFLECTION_ENABLED=false`，dedup + 单用户日上限防过载，LLM 失败 pattern 兜底）。
 
 ### 4.3 F3 — Memify 后处理插件管线（Consolidation Plugin Pipeline）
 
@@ -92,7 +92,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 **工程参考**：默认行为不回归——老的 fact_extract / summarize 包装为内置 step，按原顺序执行；feature flag `memory.consolidation.legacy=true` 一键回退。
 
-**状态**：方案锁定，待实施（默认 `policy=serial`、`steps=[fact_extract, summarize]`）。
+**状态**：✅ 已交付（默认 `policy=serial`、`steps=[fact_extract, auto_link]`，与 Phase 4 行为等价；`legacy=true` 一键回退）。
 
 ### 4.4 F4 — Presidio 生产级 PII（合规级隐私治理）
 
@@ -100,20 +100,20 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 **工程参考**：`PIIDetectorBase` 抽象 + `RegexPIIDetector`（保留）+ `PresidioPIIDetector`（新）适配器模式；Presidio 作为 `[project.optional-dependencies] pii-presidio` 可选依赖；导入失败 factory 自动 fallback regex。
 
-**状态**：方案锁定，待实施（默认 `memory.pii.engine=regex`，向后兼容）。
+**状态**：✅ 已交付（默认 `memory.pii.engine=regex`，Presidio 作为 `[project.optional-dependencies] pii-presidio` 可选依赖；导入失败 factory 自动 fallback）。
 
 ### 4.5 路线表（Phase 5 + 后续）
 
 | 方向 | 价值 | 复杂度 | 论文 / 资源 | 状态 |
 |---|---|---|---|---|
-| F1 HippoRAG 神经符号检索（PPR on KG）| KG ↔ Memory 联合检索，长尾召回 | 中-大 | [11], [15], [16] | 🔶 方案锁定 |
-| F2 Reflexion Episodic Replay | 失败反思 → few-shot 召回 | 小-中 | [4] | 🔶 方案锁定 |
-| F3 Memify 后处理插件管线 | 巩固后多 LLM 任务可组合（cognee 风格）| 中 | [13], [17] | 🔶 方案锁定 |
-| F4 Presidio PII 引擎 | 合规级 PII 检测/掩码 | 中 | [18], [19], [20] | 🔶 方案锁定 |
+| F1 HippoRAG 神经符号检索（PPR on KG）| KG ↔ Memory 联合检索，长尾召回 | 中-大 | [11], [15], [16] | ✅ 已交付 |
+| F2 Reflexion Episodic Replay | 失败反思 → few-shot 召回 | 小-中 | [4] | ✅ 已交付 |
+| F3 Memify 后处理插件管线 | 巩固后多 LLM 任务可组合（cognee 风格）| 中 | [13], [17] | ✅ 已交付 |
+| F4 Presidio PII 引擎 | 合规级 PII 检测/掩码 | 中 | [18], [19], [20] | ✅ 已交付 |
 | LongMem 全量评测 | 1000+ 样本规模化对比 | 小 | [14] | 📋 未启动 |
 | 英文版本 user-guide | 国际化 | 小 | — | 📋 未启动 |
 
-> 🔶 方案锁定：契约已固化（配置项、API 签名、降级策略），代码实施迭代式推进。
+> ✅ 已交付：契约已固化（配置项、API 签名、降级策略），代码实施迭代式推进。
 
 ---
 

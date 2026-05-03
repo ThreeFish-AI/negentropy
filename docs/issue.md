@@ -1012,3 +1012,13 @@
   2. 迁移新增列后，ORM 模型、服务序列化、测试夹具必须作为同一契约批次更新；
   3. 第三方 Pydantic 模型不可假设额外字段会保留，跨 ADK 边界的扩展信息统一放入 `custom_metadata`。
 - **同类问题影响**：所有基于 ADK `MemoryEntry` 的调用点都需避免读取未声明属性；所有 `metadata.deleted` 语义的表都需审计搜索函数是否显式过滤；Core Block 同类新增列应优先复用 `TimestampMixin` 或写契约测试守护。
+
+---
+
+## ISSUE-044 `test_init_force_overwrites` 子串断言被新增 yaml 字段意外触发
+
+- **表因**：Phase 5 在 `config.default.yaml` 增加 `seed_threshold` / `score_threshold` / `acl_role_threshold` 后，`tests/unit_tests/config/test_cli.py::TestInitCommand::test_init_force_overwrites` 失败：原断言 `assert "old" not in user_file.read_text()` 在新 yaml 中被 `threshold` 子串误命中。
+- **根因**：测试以 3 字符子串 `"old"` 作为"用户旧 config 已被覆盖"的判定 sentinel，未考虑默认 yaml 内容会随项目演进新增包含相同字符序列的字段。
+- **处理方式**：将 sentinel 改为 `__legacy_user_config_marker__`（项目内不会重复出现的稀有字符串），断言改为该 sentinel 不应再出现在覆盖后的文件中。
+- **后续防范**：所有"已被覆盖 / 已被替换"型断言必须使用稀有 sentinel（含项目无关的双下划线 + 描述性单词组合），严禁直接用 `"old"` / `"new"` 等高频英文词。
+- **同类问题影响**：检索 `assert "<short>" not in` 模式的所有测试，确认是否也用了脆弱字符串。
