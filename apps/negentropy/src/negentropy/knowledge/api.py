@@ -3618,9 +3618,11 @@ async def multi_hop_reason_knowledge_graph(
             )
 
         # 排除 seed 本身（避免占据 top-K），按 PPR 降序取 top-K
-        seed_set_lc = {sid for sid in seed_ids}
+        # seed_ids 可能包含用户传入的大写 UUID；graph 节点 ID 由 str(row.id) 产出
+        # 始终为小写，故归一化为小写确保集合排除语义正确。
+        seed_set_lc = {sid.lower() for sid in seed_ids}
         non_seed_ranked = sorted(
-            ((eid, score) for eid, score in ppr_scores.items() if eid not in seed_set_lc),
+            ((eid, score) for eid, score in ppr_scores.items() if eid.lower() not in seed_set_lc),
             key=lambda kv: kv[1],
             reverse=True,
         )[: payload.top_k]
