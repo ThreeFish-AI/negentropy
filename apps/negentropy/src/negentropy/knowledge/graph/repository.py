@@ -48,6 +48,12 @@ _TEMPORAL_RELATION_CLAUSE = (
     "AND (:rel_alias.valid_to IS NULL OR :rel_alias.valid_to > :as_of)"
 )
 
+# get_relation_timeline 单次返回的最大桶数 — day≈2 年 / week≈14 年 / month≈60 年。
+# 选 730 是因为前端 TimeTravelSlider 把每个桶渲染为一根柱形 + 一个 slider 步进，
+# 跨数年关系若不设限会一次性吐 1000+ 行，主线程会卡顿；超过该上限时仅展示最近 N 桶，
+# 早期事件需要时再开放 from/to 参数（TODO，与产品协商上限策略）。
+_TIMELINE_BUCKET_CAP = 730
+
 
 def _temporal_where_clause(rel_alias: str = "r") -> str:
     """生成时态过滤 SQL 片段（不含前导 AND）。
@@ -1570,8 +1576,9 @@ class AgeGraphRepository(GraphRepository):
         # 同一查询返回两组事件密度：
         #   active_count   = COUNT(valid_from at bucket)
         #   expired_count  = COUNT(valid_to at bucket)
-        # 通过 FULL OUTER JOIN 合并左右桶，缺失日期填 0；DESC NULLS LAST + LIMIT 让
-        # 大语料库不至于返回数千行。
+        # 通过 FULL OUTER JOIN 合并左右桶，缺失日期填 0；按 bucket_date 降序取最近
+        # _TIMELINE_BUCKET_CAP 个桶，防止跨数年关系一次拉回数千点拖垮前端
+        # TimeTravelSlider；最后在 Python 侧反转回升序，保持调用方语义不变。
         query = text(f"""
             WITH starts AS (
                 SELECT date_trunc(:bucket, valid_from) AS bucket_date,
@@ -1592,12 +1599,13 @@ class AgeGraphRepository(GraphRepository):
                    COALESCE(e.expired_count, 0)            AS expired_count
             FROM starts s
             FULL OUTER JOIN ends e ON s.bucket_date = e.bucket_date
-            ORDER BY bucket_date ASC
+            ORDER BY bucket_date DESC NULLS LAST
+            LIMIT :limit
         """)
 
         result = await session.execute(
             query,
-            {"corpus_id": str(corpus_id), "bucket": bucket},
+            {"corpus_id": str(corpus_id), "bucket": bucket, "limit": _TIMELINE_BUCKET_CAP},
         )
 
         timeline: list[dict[str, Any]] = []
@@ -1611,6 +1619,8 @@ class AgeGraphRepository(GraphRepository):
                     "expired_count": int(row.expired_count or 0),
                 }
             )
+        # SQL 取出来时是 DESC（拿最近 N 个桶），调用方期望 ASC，本地反转一次即可。
+        timeline.reverse()
         return timeline
 
     async def create_build_run(

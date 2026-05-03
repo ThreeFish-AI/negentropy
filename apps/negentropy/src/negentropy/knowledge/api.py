@@ -3495,10 +3495,15 @@ async def multi_hop_reason_knowledge_graph(
         seeds = list(payload.seed_entities)
     else:
         candidates: set[str] = set()
-        # 英文连续大写词
+        # 英文连续大写词（人名 / 缩写 / 产品名）
         for match in re.findall(r"\b[A-Z][a-zA-Z0-9_-]+\b", payload.query):
             candidates.add(match)
-        # 引号包围的内容（中英双引号）
+        # 中文连续片段：CJK 起始 + (CJK | 字母 | 数字 | 下划线)，长度 2-30。
+        # 故意宽松：误捕的非实体子串会被后续按 name ILIKE 匹配自然过滤掉，
+        # 漏捕（如纯中文不加引号）才是端点对中文不可用的根因。
+        for match in re.findall(r"[一-鿿][一-鿿\w]{1,29}", payload.query):
+            candidates.add(match)
+        # 引号包围的内容（中英双引号 / 「」）
         for match in re.findall(r"[\"“「]([^\"”」]+)[\"”」]", payload.query):
             candidates.add(match.strip())
         seeds = sorted(candidates)
@@ -3558,6 +3563,39 @@ async def multi_hop_reason_knowledge_graph(
             ).first()
             if row is not None:
                 seed_ids.append(str(row.id))
+
+        # 兜底：regex 全 miss 或抽取出的 token 都未命中 kg_entities 时，
+        # 沿 hybrid_search 召回 top-K 实体作 seed，让端点对中文无引号查询
+        # 仍然可用（与 G2 的 RRF 权重一致）。失败不影响主路径，由下面的
+        # 早退分支返回空答案。
+        if not seed_ids:
+            try:
+                fb_embedding_fn = build_embedding_fn()
+                fb_query_embedding = await fb_embedding_fn(payload.query)
+                fb_graph_service = _get_graph_service()
+                fb_hybrid = await fb_graph_service.search(
+                    corpus_id=corpus_id,
+                    app_name=_resolve_app_name(None),
+                    query=payload.query,
+                    query_embedding=fb_query_embedding,
+                )
+                for item in fb_hybrid.entities[:5]:
+                    eid = item.entity.id.replace("entity:", "")
+                    if eid and eid not in seed_ids:
+                        seed_ids.append(eid)
+                if seed_ids:
+                    seeds = list(seed_ids)
+                    logger.info(
+                        "multi_hop_reason_seeds_from_hybrid_fallback",
+                        corpus_id=str(corpus_id),
+                        seed_count=len(seed_ids),
+                    )
+            except Exception as fb_exc:
+                logger.warning(
+                    "multi_hop_reason_hybrid_fallback_failed",
+                    corpus_id=str(corpus_id),
+                    error=str(fb_exc),
+                )
 
         if not seed_ids:
             return MultiHopReasonResponse(
