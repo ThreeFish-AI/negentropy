@@ -281,7 +281,6 @@ async def compute_communities(
                     G_undirected,
                     weight="weight",
                     resolution=res,
-                    threshold=threshold,
                     seed=seed,
                 )
             else:

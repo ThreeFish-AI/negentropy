@@ -157,7 +157,9 @@ class CommunitySummarizer:
         )
         entity_info: dict[str, dict[str, Any]] = {}
         for row in entity_info_result:
-            entity_info[str(row.id)] = {
+            # 规范化为小写带连字符格式，与 export_graph_to_networkx 保持一致
+            eid = str(row.id).lower()
+            entity_info[eid] = {
                 "name": row.name,
                 "entity_type": row.entity_type,
                 "confidence": float(row.confidence) if row.confidence else 0.0,
@@ -172,7 +174,10 @@ class CommunitySummarizer:
             for entity_id, community_id in partition.items():
                 if community_id not in communities:
                     communities[community_id] = []
-                info = entity_info.get(entity_id, {"name": entity_id, "entity_type": "unknown", "confidence": 0.0})
+                info = entity_info.get(
+                    entity_id.lower(),
+                    {"name": entity_id, "entity_type": "unknown", "confidence": 0.0},
+                )
                 communities[community_id].append(info)
 
             for community_id, entities in communities.items():
