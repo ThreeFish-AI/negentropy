@@ -220,6 +220,88 @@ uv run alembic upgrade head
 
 ---
 
+## 11. F1 HippoRAG PPR 通道 0 召回
+
+**症状**：开启 `MEMORY_HIPPORAG_ENABLED=true` 后，`custom_metadata.search_level` 始终为 `hybrid`，从不出现 `ppr+hybrid`。
+
+**诊断**：
+```sql
+-- 检查 KG 中 memory ↔ entity 关联数（要求 ≥ 100）
+SELECT COUNT(*) FROM negentropy.memory_associations
+WHERE target_type = 'entity';
+-- 检查 query 是否能链接到种子节点
+SELECT * FROM negentropy.kg_entities
+WHERE name ILIKE '%<query 关键词>%' LIMIT 5;
+```
+
+**常见原因**：
+- KG 关联数不足（启动期门控）→ 等 KG 同步累积或调低门控
+- query 太短/太抽象，entity linker 0 命中 → 默认 short-circuit 回 Hybrid，不报错
+- AGE Cypher 超时（> 120ms）→ 写 `_log_fallback_event("ppr","hybrid",...)`，搜结构化日志
+
+---
+
+## 12. F2 反思队列堆积
+
+**症状**：`record_feedback` 调用大量 `harmful`/`irrelevant`，但 `metadata.subtype='reflection'` 的记忆数远少于反馈数。
+
+**诊断**：
+```sql
+-- 反思生成数 vs 反馈数（最近 24h）
+SELECT
+  (SELECT COUNT(*) FROM negentropy.retrieval_logs
+    WHERE outcome IN ('irrelevant','harmful') AND created_at > NOW() - INTERVAL '1 day') AS feedback_n,
+  (SELECT COUNT(*) FROM negentropy.memories
+    WHERE metadata->>'subtype'='reflection' AND created_at > NOW() - INTERVAL '1 day') AS reflection_n;
+```
+
+**常见原因**：
+- 反思 dedup 命中（同一 query 7 天内已反思过 / cosine ≥ 0.92 簇）→ 预期行为
+- LLM 调用失败连续触发 pattern fallback → 看 Langfuse trace
+- 每日上限触顶（默认 ≤10/用户）→ `MEMORY_REFLECTION_DAILY_LIMIT` 调高
+
+---
+
+## 13. F3 Pipeline step 失败
+
+**症状**：`add_session_to_memory` 抛 `step_failed: <step_name>`。
+
+**诊断**：
+```sql
+SELECT step_name, status, duration_ms, error
+FROM negentropy.consolidation_audit
+WHERE thread_id = '<uuid>' ORDER BY started_at DESC;
+```
+
+**对策**：
+- 单 step 偶发失败 → `policy: fail_tolerant` 让其他 step 继续提交部分结果
+- 必须强保证一致性 → `policy: serial`（默认），整体失败可重试
+- 临时回退到 Phase 4 行为 → `memory.consolidation.legacy=true`
+
+---
+
+## 14. F4 Presidio 模型缺失 / 冷启动慢
+
+**症状**：切换 `engine=presidio` 后启动报 `OSError: [E050] Can't find model 'zh_core_web_sm'`。
+
+**修复**：
+```bash
+cd apps/negentropy
+uv sync --extra pii-presidio
+# 手动下载 spaCy 模型（uv extra 已自动包含，仍失败时单独跑）
+uv run python -m spacy download zh_core_web_sm
+uv run python -m spacy download en_core_web_sm
+```
+
+**冷启动慢**：
+- Presidio + spaCy 首次加载 ~3-5s
+- 通过 `lifespan` 在应用启动时预热 `PresidioPIIDetector` 单例
+- 容器镜像中预拷贝 `~/.cache/spacy/models/`
+
+**导入失败时**：factory 自动 fallback 到 `RegexPIIDetector`，并写一条 WARNING 日志；`engine=regex` 是确定无依赖回退点。
+
+---
+
 ## 救援手册
 
 仍未解决？按顺序排查：

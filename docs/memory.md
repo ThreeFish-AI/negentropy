@@ -1568,6 +1568,30 @@ timeline
 | ADR-002 | Ebbinghaus 指数衰减而非线性/阶梯 | 符合认知科学 + 数学可导 + 参数可调 | 需要多维衰减因子时引入强化学习模型 |
 | ADR-003 | pg_cron 而非应用层调度器 | 数据局部性 + 无额外进程 + 事务内调度 | 需跨数据库调度或复杂 DAG 时引入 Celery |
 | ADR-004 | 4 级回退而非单一检索策略 | 最大化可用性 + 渐进降级 | Hybrid Search 稳定后可考虑收敛到 2 级 |
+| ADR-005 | Phase 5 PPR 复用 AGE Cypher 不引入 NetworkX | 零运维增量 + 数据局部性 | AGE 单跳 P99 > 100ms 时评估 NetworkX |
+| ADR-006 | Reflexion 复用 metadata.subtype 不改 schema | 最小干预 + Phase 4 baseline 不回归 | 反思类型变多需要专表分流时拆 |
+| ADR-007 | Memify 用 Strategy + CoR 而非 DAG 编排 | 大多数 step 序串行；DAG 复杂度收益不足 | 需要 5+ step 跨 LLM 并行加速时升级到 Prefect/Temporal |
+| ADR-008 | Presidio 作为可选依赖（uv extras） | 200MB+ spaCy 模型对部分部署不可接受 | 默认部署强制需要合规级 PII 时改硬依赖 |
+
+### 10.5 Phase 5 实施记录（开工于 2026-05）
+
+> 详细工程契约见 [`memory-whitepaper.md`](./memory-whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](./user-guide/memory-basics.md) §2.5。
+
+| 特性 | 集成点 | 默认 flag | 状态 |
+| :-- | :-- | :-- | :-- |
+| F1 HippoRAG PPR-Boosted Hybrid | `memory_service.search_memory` + `association_service.expand_via_ppr` + AGE Cypher SQL 函数 | `MEMORY_HIPPORAG_ENABLED=false` | 🔶 方案锁定 |
+| F2 Reflexion Episodic Replay | `retrieval_tracker.record_feedback` + `reflection_generator` + `context_assembler.assemble` few-shot 注入 | `MEMORY_REFLECTION_ENABLED=false` | 🔶 方案锁定 |
+| F3 Memify Consolidation Pipeline | `consolidation/pipeline/{protocol,orchestrator,registry,steps}` + `memory_service.add_session_to_memory` 切换 | `memory.consolidation.legacy=false`（默认走 Pipeline，行为与 Phase 4 一致） | 🔶 方案锁定 |
+| F4 Presidio 生产级 PII | `governance/pii/{base,regex_detector,presidio_detector,factory,gatekeeper}` + 落库双字段 `content_raw / content_anonymized / pii_spans` | `memory.pii.engine=regex`（向后兼容） | 🔶 方案锁定 |
+
+**§9.4 局限性表对应行更新**（Phase 5 实施完成后逐项打勾）：
+
+| 原局限 | Phase 5 对应特性 | 状态 |
+| :-- | :-- | :-- |
+| 图谱与记忆未打通（仅同步） | F1 HippoRAG PPR | 🔶 进行中 |
+| 失败反馈未沉淀 | F2 Reflexion | 🔶 进行中 |
+| 巩固管线难扩展 | F3 Memify Pipeline | 🔶 进行中 |
+| PII 仅 regex 占位 | F4 Presidio | 🔶 进行中 |
 
 ---
 

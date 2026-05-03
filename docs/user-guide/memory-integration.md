@@ -228,7 +228,91 @@ print(result["budget"])
 
 ---
 
-## 7. 故障排除速览
+## 7. <a id="phase5-features"></a>Phase 5 高级特性使用契约
+
+> 工程契约稿；代码迭代实施中，以白皮书 [§4](../memory-whitepaper.md#4-phase-5-四方向落地记录2026-05-启动) 为准。所有特性默认关闭。
+
+### 7.1 F1 — HippoRAG PPR 检索
+
+**API 形态**（向后兼容；不传该参数走原路径）：
+```python
+response = await mem.search_memory(
+    user_id="alice",
+    app_name="negentropy",
+    query="用户在分布式系统方面的经验",
+    limit=10,
+    enable_kg_ppr=True,   # Phase 5 新增；默认读 MEMORY_HIPPORAG_ENABLED
+)
+# 返回 entry 的 custom_metadata 含：
+# {"search_level": "ppr+hybrid", "fusion": {"channels": [...], "rrf_score": 0.034}}
+```
+
+**前置条件**：KG 至少有 100 条 `memory_associations.target_type='entity'`；否则自动 short-circuit 回 Hybrid。
+
+### 7.2 F2 — Reflexion 反思召回
+
+**触发路径**：
+```python
+# 1. 检索后 Agent 给出反馈
+await tracker.record_feedback(retrieval_id="...", outcome="harmful")
+# 2. 异步反思（60s 内）写入 memories（subtype=reflection）
+# 3. 下次同类 query（procedural/episodic intent）自动 few-shot 注入
+```
+
+**Few-Shot 注入位**：在 `ContextAssembler.assemble()` 返回的 `memory_context` 顶部（Core Block 之后）。budget 对象多出 `reflection_tokens / reflection_count` 字段。
+
+### 7.3 F3 — 自定义 Memify Step
+
+```python
+# apps/negentropy/src/negentropy/engine/consolidation/pipeline/steps/my_step.py
+from ..protocol import ConsolidationStep, PipelineContext, StepResult
+from ..registry import register
+
+@register("my_normalize")
+class MyNormalizeStep:
+    name = "my_normalize"
+    async def run(self, ctx: PipelineContext) -> StepResult:
+        # 处理 ctx.facts，写回 ctx.entities
+        return StepResult(outputs={"entities": [...]}, metrics={"duration_ms": 12})
+
+# 配置启用：
+# memory:
+#   consolidation:
+#     steps: [fact_extract, my_normalize, summarize]
+```
+
+**默认行为**：不配置 `steps:` 时与 Phase 4 完全一致（`[fact_extract, summarize]` 串行）。
+
+### 7.4 F4 — Presidio PII 引擎
+
+**安装**：
+```bash
+cd apps/negentropy
+uv sync --extra pii-presidio
+# 自动下载 zh_core_web_sm + en_core_web_sm（200MB 左右，首次较慢）
+```
+
+**配置切换**（`config.yaml`）：
+```yaml
+memory:
+  pii:
+    engine: presidio          # 默认 regex；切换后 factory 自动加载 Presidio
+    policy: mask              # mark | mask | anonymize
+    languages: [en, zh]
+    score_threshold: 0.6
+    retrieval:
+      gatekeeper_enabled: true
+      acl_role_threshold: editor   # < editor 看 anonymized 副本
+```
+
+**API 变化**：
+- Memory 写入返回多 `pii_spans` 字段（命中 PII 列表）；
+- `GET /api/memory/{id}/pii` 返回 spans 详情；
+- `POST /api/memory/{id}/anonymize` 一键脱敏（写 audit）。
+
+---
+
+## 8. 故障排除速览
 
 | 症状 | 可能原因 | 排查 |
 |----|----|----|
