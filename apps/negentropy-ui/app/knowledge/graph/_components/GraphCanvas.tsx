@@ -193,6 +193,13 @@ export function GraphCanvas({
     });
     cyRef.current = cy;
 
+    // dev-only 调试钩子：把 cy 实例暴露到 window.__ne_cy，便于浏览器冒烟
+    // 测试 / 故障定位时通过 evaluate 直接 emit 事件或读节点状态。生产构建
+    // 由 NODE_ENV !== 'development' 守卫剥离。
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      (window as unknown as { __ne_cy?: Core }).__ne_cy = cy;
+    }
+
     // 单击节点 → 高亮 + 回调（通过 propsRef 取最新 onNodeClick）
     cy.on("tap", "node", (evt) => {
       const node = evt.target as NodeSingular;
