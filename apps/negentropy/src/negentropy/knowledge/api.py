@@ -3473,7 +3473,6 @@ async def get_graph_stats(
 @router.get("/base/{corpus_id}/graph/metrics", response_model=GraphMetricsResponse)
 async def get_graph_metrics(
     corpus_id: UUID,
-    app_name: str | None = Query(default=None),
     limit: int = Query(default=10, ge=1, le=50),
 ) -> GraphMetricsResponse:
     """获取图谱构建指标趋势
