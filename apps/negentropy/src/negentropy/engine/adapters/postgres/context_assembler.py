@@ -535,7 +535,7 @@ class ContextAssembler:
                   AND m.app_name = :app_name
                   AND m.metadata->>'subtype' = 'reflection'
                   AND m.embedding IS NOT NULL
-                  AND COALESCE(m.metadata->>'is_deleted', 'false') = 'false'
+                  AND COALESCE(m.metadata->>'deleted', 'false') = 'false'
                 ORDER BY distance ASC, m.created_at DESC
                 LIMIT :limit
                 """
@@ -554,7 +554,7 @@ class ContextAssembler:
                 WHERE m.user_id = :user_id
                   AND m.app_name = :app_name
                   AND m.metadata->>'subtype' = 'reflection'
-                  AND COALESCE(m.metadata->>'is_deleted', 'false') = 'false'
+                  AND COALESCE(m.metadata->>'deleted', 'false') = 'false'
                 ORDER BY m.created_at DESC
                 LIMIT :limit
                 """

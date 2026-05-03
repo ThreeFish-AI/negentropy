@@ -35,6 +35,26 @@ _REFLECTION_IMPORTANCE_BOOST = 0.15
 _REFLECTION_TYPE = "episodic"
 
 
+def _build_dedup_from_settings() -> ReflectionDedup:
+    """按 ``settings.memory.reflection`` 构造 ReflectionDedup；缺省时回退到 dataclass 默认。
+
+    将用户面向配置 ``dedup_window_days`` / ``dedup_cosine`` / ``daily_limit_per_user``
+    透传到 ReflectionDedup。settings 加载失败时安静降级（旧默认行为）。
+    """
+    try:
+        from negentropy.config import settings as global_settings
+
+        cfg = global_settings.memory.reflection
+        return ReflectionDedup(
+            window_days=cfg.dedup_window_days,
+            cosine_threshold=cfg.dedup_cosine,
+            daily_limit=cfg.daily_limit_per_user,
+        )
+    except Exception as exc:
+        logger.debug("reflection_dedup_settings_load_failed", error=str(exc))
+        return ReflectionDedup()
+
+
 class ReflectionWorker:
     """反思生成 + 落库编排。"""
 
@@ -46,7 +66,7 @@ class ReflectionWorker:
         memory_service: object | None = None,
     ) -> None:
         self._generator = generator or ReflectionGenerator()
-        self._dedup = dedup or ReflectionDedup()
+        self._dedup = dedup or _build_dedup_from_settings()
         self._memory_service = memory_service  # PostgresMemoryService；None 时延迟解析
 
     async def process(
