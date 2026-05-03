@@ -261,7 +261,7 @@ class TopicClusterStep:
                                         sa.text("'$.topics'"),
                                     ),
                                     sa.text("'[]'::jsonb"),
-                                ).op("||")(sa.text(f"'[\"{label}\"]'::jsonb")),
+                                ).op("||")(sa.func.jsonb_build_array(sa.literal(label))),
                             )
                         )
                     )

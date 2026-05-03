@@ -1362,7 +1362,6 @@ async def memory_metrics(
 
     基于 SRE 四大黄金信号和 USE 方法，从现有表聚合搜索、巩固、Retention、PII 等指标。
     """
-    _require_self_or_admin(user, user_id or "")
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required for metrics")
     from negentropy.engine.observability.memory_metrics import get_memory_metrics
