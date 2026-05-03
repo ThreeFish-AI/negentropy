@@ -207,21 +207,27 @@ export function GraphCanvas({
     });
 
     // 双击节点 → 增量加载子图（通过 propsRef 取最新 corpusId / asOf / onSubgraphMerge）
+    // 跨语料库竞态守卫：dbltap 时刻锁定 corpusId/asOf；fetch 完成后若父组件已切换
+    // 语料库或时间快照，丢弃本次结果，避免把 A 的子图节点 merge 进 B 的 payload。
     cy.on("dbltap", "node", async (evt) => {
       const node = evt.target as NodeSingular;
       const centerId = node.id();
-      const { corpusId: latestCorpus, asOf: latestAsOf, onSubgraphMerge: latestMerge } =
-        propsRef.current;
+      const tappedCorpus = propsRef.current.corpusId;
+      const tappedAsOf = propsRef.current.asOf;
       setExpanding(true);
       try {
-        const data = await fetchGraphSubgraph(latestCorpus, {
+        const data = await fetchGraphSubgraph(tappedCorpus, {
           centerId,
           radius: 1,
           limit: 50,
-          asOf: latestAsOf ?? undefined,
+          asOf: tappedAsOf ?? undefined,
         });
-        if (latestMerge) {
-          latestMerge(data.nodes, data.edges);
+        const latest = propsRef.current;
+        if (latest.corpusId !== tappedCorpus || latest.asOf !== tappedAsOf) {
+          return; // 上下文已切换，丢弃本次结果
+        }
+        if (latest.onSubgraphMerge) {
+          latest.onSubgraphMerge(data.nodes, data.edges);
         }
       } catch (err) {
         console.error("subgraph_fetch_error", err);

@@ -2273,8 +2273,10 @@ export async function fetchGraphSubgraph(
 }> {
   const query = new URLSearchParams();
   query.set("center_id", params.centerId);
-  if (params.radius) query.set("radius", String(params.radius));
-  if (params.limit) query.set("limit", String(params.limit));
+  // 数值用 != null 显式判空；后端目前 ge=1 拒绝 0，但放开下界后 truthy 判断会
+  // 静默丢失 radius=0 / limit=0 的语义（隐性 bug）。
+  if (params.radius != null) query.set("radius", String(params.radius));
+  if (params.limit != null) query.set("limit", String(params.limit));
   if (params.appName) query.set("app_name", params.appName);
   if (params.asOf) query.set("as_of", params.asOf);
 

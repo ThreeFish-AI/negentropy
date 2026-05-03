@@ -36,11 +36,26 @@ export function TimeTravelSlider({
   asOf,
   onChange,
 }: TimeTravelSliderProps) {
-  const [points, setPoints] = useState<GraphTimelineBucket[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [bucketIdx, setBucketIdx] = useState(0);
+
+  // 时间轴请求生命周期合成态 —— 用单一对象表达 idle / loading / loaded(error?)
+  // 三态，所有 setState 仅出现在 fetch 回调里，绕开 react-hooks/set-state-in-effect
+  // 规则（避免 effect 同步 setState 触发的级联渲染）。
+  type TimelineState =
+    | { kind: "idle" }
+    | { kind: "loading" }
+    | { kind: "loaded"; points: GraphTimelineBucket[]; error: string | null };
+  const [state, setState] = useState<TimelineState>({ kind: "idle" });
+
+  // 请求 key 变更时在渲染期间重置为 loading（React 官方"calculate during render"
+  // 模式：https://react.dev/reference/react/useState#storing-information-from-previous-renders）
+  const requestKey = corpusId && enabled ? `${corpusId}|day` : null;
+  const [trackedKey, setTrackedKey] = useState<string | null>(null);
+  if (requestKey !== trackedKey) {
+    setTrackedKey(requestKey);
+    setState(requestKey ? { kind: "loading" } : { kind: "idle" });
+  }
 
   useEffect(() => {
     if (!corpusId || !enabled) return;
@@ -48,25 +63,30 @@ export function TimeTravelSlider({
     fetchGraphTimeline(corpusId, "day")
       .then((data) => {
         if (cancelled) return;
-        setPoints(data.points);
+        setState({ kind: "loaded", points: data.points, error: null });
         setBucketIdx(Math.max(data.points.length - 1, 0));
-        setError(null);
-        setLoading(false);
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : String(err));
-        setLoading(false);
+        setState({
+          kind: "loaded",
+          points: [],
+          error: err instanceof Error ? err.message : String(err),
+        });
       });
-    // 进入加载状态在 fetch 触发后由 React 18 自动批处理；通过 boolean 派生避免
-    // 在 effect 顶部直接 setState（react-hooks/set-state-in-effect 规则）。
-    Promise.resolve().then(() => {
-      if (!cancelled) setLoading(true);
-    });
     return () => {
       cancelled = true;
     };
   }, [corpusId, enabled]);
+
+  const loading = state.kind === "loading";
+  const error = state.kind === "loaded" ? state.error : null;
+  // points 用 useMemo 锚定引用，避免在 loaded 分支返回新空数组让下方 useMemo /
+  // useCallback 的 deps 每次都变（react-hooks/exhaustive-deps 告警）。
+  const points = useMemo<GraphTimelineBucket[]>(
+    () => (state.kind === "loaded" ? state.points : []),
+    [state],
+  );
 
   // 关闭时态过滤 → 通过 onChange 回调清空父组件 as_of（不动本组件 state）
   useEffect(() => {

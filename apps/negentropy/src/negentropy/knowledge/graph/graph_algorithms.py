@@ -14,6 +14,7 @@ Knowledge Graph Algorithms
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -191,7 +192,10 @@ async def compute_personalized_pagerank(
         personalization[seed] = weight
 
     try:
-        ranks = nx.pagerank(
+        # multi_hop_reason 是在线请求路径，PPR 在千节点级图上可能 100ms~数秒，
+        # 必须卸载到线程池避免阻塞 FastAPI 事件循环（与同 worker 上其它请求互相饿死）。
+        ranks = await asyncio.to_thread(
+            nx.pagerank,
             G,
             alpha=alpha,
             max_iter=max_iter,

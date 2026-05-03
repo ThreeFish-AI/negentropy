@@ -143,22 +143,33 @@ class GlobalSearchService:
                 summaries_dirty=False,
             )
 
-        # Map: 并发调用 LLM 产出 partial answers（asyncio.Semaphore 限流）
+        # Map: 并发调用 LLM 产出 partial answers（asyncio.Semaphore 限流）。
+        # return_exceptions=True：单个社区的 helper 抛错（如 prompt 拼接 KeyError、
+        # 后续新增校验失败）不应让全局检索整体 500；下方与空串同构丢弃即可。
         partials = await asyncio.gather(
             *[self._map_one(query, c) for c in candidates],
-            return_exceptions=False,
+            return_exceptions=True,
         )
 
-        evidence = [
-            GlobalSearchEvidence(
-                community_id=c["community_id"],
-                partial_answer=p,
-                similarity=c["similarity"],
-                top_entities=c["top_entities"],
+        evidence: list[GlobalSearchEvidence] = []
+        for c, p in zip(candidates, partials, strict=True):
+            if isinstance(p, BaseException):
+                logger.warning(
+                    "global_search_map_exception",
+                    community_id=c["community_id"],
+                    error=str(p),
+                )
+                continue
+            if not p:
+                continue  # 丢弃 LLM 失败的空串
+            evidence.append(
+                GlobalSearchEvidence(
+                    community_id=c["community_id"],
+                    partial_answer=p,
+                    similarity=c["similarity"],
+                    top_entities=c["top_entities"],
+                )
             )
-            for c, p in zip(candidates, partials, strict=True)
-            if p  # 丢弃 LLM 失败的空串
-        ]
 
         if not evidence:
             return GlobalSearchResult(

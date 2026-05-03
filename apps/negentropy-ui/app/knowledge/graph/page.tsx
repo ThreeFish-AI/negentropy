@@ -120,6 +120,8 @@ export default function KnowledgeGraphPage() {
         const baseEdges = prev?.edges ?? [];
         const baseRuns = prev?.runs;
         const nodeIds = new Set(baseNodes.map((n) => n.id));
+        // kg_relations 为有向边，GraphCanvas 也按方向渲染箭头；edgeKey 不规范化方向是
+        // 故意行为：A→B 与 B→A 视为不同关系（反向同名关系仍可能各自携带不同 evidence）。
         const edgeKey = (e: { source: string; target: string; label?: string }) =>
           `${e.source}__${e.target}__${e.label ?? ""}`;
         const edgeKeys = new Set(baseEdges.map((e) => edgeKey(e)));

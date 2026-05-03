@@ -77,14 +77,23 @@ def upgrade() -> None:
         summaries_exists = True
 
     # G1: kg_community_summaries 增加摘要 embedding 列
+    #
+    # pgvector 是 Phase 4 GraphRAG Global Search 的硬依赖：
+    #   - community_summarizer._persist_summary 用 ``:embedding::vector`` 写入；
+    #   - global_search._select_relevant_summaries 用 ``embedding <=> ...`` 检索。
+    # 之前的 TEXT 回退会让无 pgvector 部署在写入/检索阶段才发现 ``type vector
+    # does not exist`` —— 远比迁移期 fail-fast 难诊断。改为硬要求并附引导信息。
     if summaries_exists:
         has_pgvector = bind.execute(sa.text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")).scalar()
-        if has_pgvector:
-            op.execute(
-                sa.text("ALTER TABLE negentropy.kg_community_summaries ADD COLUMN IF NOT EXISTS embedding vector(1536)")
+        if not has_pgvector:
+            raise RuntimeError(
+                "pgvector extension is required for Phase 4 GraphRAG Global Search "
+                "(kg_community_summaries.embedding). Install via "
+                "`CREATE EXTENSION IF NOT EXISTS vector;` then re-run alembic upgrade."
             )
-        else:
-            op.execute(sa.text("ALTER TABLE negentropy.kg_community_summaries ADD COLUMN IF NOT EXISTS embedding TEXT"))
+        op.execute(
+            sa.text("ALTER TABLE negentropy.kg_community_summaries ADD COLUMN IF NOT EXISTS embedding vector(1536)")
+        )
         op.execute(
             sa.text(
                 "CREATE INDEX IF NOT EXISTS ix_kg_community_summaries_corpus_updated "
