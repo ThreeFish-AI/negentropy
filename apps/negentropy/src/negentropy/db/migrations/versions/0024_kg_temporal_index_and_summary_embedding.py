@@ -1,8 +1,13 @@
 """kg_relations 时态索引 + kg_community_summaries 摘要嵌入
 
-Revision ID: 0023
-Revises: 0022
+Revision ID: 0024
+Revises: 0023
 Create Date: 2026-05-02 12:00:00.000000+00:00
+
+注：本迁移最初标记为 0023，与 feature/1.x.x 上独立合入的
+``0023_memory_phase4_core_blocks`` 撞号；为消除 Alembic multi-head
+（CI: "Revision 0023 is present more than once"），重命名为 0024
+并将 down_revision 改为 0023（指向 memory_phase4_core_blocks）。
 
 设计动机：
   G1 (GraphRAG Global Search): 为 kg_community_summaries.summary_text 落地预计算 embedding，
@@ -23,8 +28,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0023"
-down_revision: str | None = "0022"
+revision: str = "0024"
+down_revision: str | None = "0023"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

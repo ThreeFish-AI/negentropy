@@ -3595,7 +3595,7 @@ async def multi_hop_reason_knowledge_graph(
         evidence_payload = [evidence_chain_to_dict(c) for c in chains]
         latency_ms = (time.time() - start) * 1000
 
-        # 5) 审计留痕 — kg_query_provenance（迁移 0024）；失败不影响响应
+        # 5) 审计留痕 — kg_query_provenance（迁移 0025）；失败不影响响应
         try:
             from uuid import uuid4
 

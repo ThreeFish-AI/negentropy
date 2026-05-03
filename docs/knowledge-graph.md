@@ -618,7 +618,7 @@ $$, params => '...');
 - seed → entity_id 解析：UUID 直接用；否则按 `kg_entities.name ILIKE` 等值/前缀模糊匹配（按 confidence DESC 取首条）
 - 出参：`{seeds, answer_entities, evidence_chain[], latency_ms}`；evidence_chain 按 PPR 降序
 
-**Migration 0024**：`kg_query_provenance` 审计表（query/seeds/top_entities/evidence_chain/latency 留痕），用于后续抽样质检与训练数据生成。
+**Migration 0025**：`kg_query_provenance` 审计表（query/seeds/top_entities/evidence_chain/latency 留痕），用于后续抽样质检与训练数据生成。
 
 **降级路径**：seeds 提取为空 → 直接返回空 evidence_chain（不抛错）；seed 全部不在图中 → PPR 返回空字典，UI 显式提示"未发现可达路径"。
 
@@ -905,7 +905,7 @@ stateDiagram-v2
 | `POST /knowledge/graph/path` | request body | BFS 的 base 段 + recursive 段共享同一谓词 |
 | `GET /knowledge/base/{cid}/graph/timeline` | — | 新增端点，返回按 `day/week/month` 桶聚合的 `valid_from`/`valid_to` 事件直方图，供前端 `TimeTravelSlider` 渲染 |
 
-**索引**：迁移 `0023_kg_temporal_index_and_summary_embedding.py` 给 `kg_relations` 增加部分索引
+**索引**：迁移 `0024_kg_temporal_index_and_summary_embedding.py` 给 `kg_relations` 增加部分索引
 
 ```sql
 CREATE INDEX ix_kg_relations_valid_active
@@ -1409,10 +1409,10 @@ timeline
 | 2026-04-08 | 2.0 | **完全重写**：学术基础 (15 篇 IEEE 引用)、行业框架分析 (5 大框架)、两阶段设计 (PostgreSQL → 终极)、价值量化体系、一核五翼集成架构、实施路线图 (Phase 2-4) | Claude |
 | 2026-05-02 | 2.1 | Phase 2 状态更新（P2-3 PageRank / P2-4 Louvain / P2-5 RRF 标记已完成）；Phase 3 新增 P3-9 构建管线健壮性 / P3-10 实体语义去重 / P3-11 图谱查询缓存（均已完成）；新增参考文献 [16]-[24] 共 9 条 IEEE 引用 | Claude |
 | 2026-05-02 | 2.2 | Phase 3 新增 P3-12 GraphRAG 上下文组装集成 / P3-13 Agent→KG 三元组双向同步 / P3-14 图谱质量健康指标 / P3-15 跨语料实体重叠推荐（均已完成） | Claude |
-| 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0023 部分索引 + valid_from backfill；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
+| 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0024 部分索引 + valid_from backfill（最初标记为 0023，后因与 feature/1.x.x 上 `0023_memory_phase4_core_blocks` 撞号顺延为 0024）；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
 | 2026-05-02 | 2.4 | **Phase 4 G2 Cytoscape.js 交互可视化（已完成）**：新增前端 `GraphCanvas` 组件（cytoscape + cytoscape-fcose）；新增后端 `GET /graph/subgraph` 端点（service 层 BFS 截断；node 排序 跳数 → importance）；page.tsx 渲染引擎切换（Cytoscape vs d3-force）；双击节点触发 1 跳子图增量加载；G3 as_of 在 Cytoscape 路径下保持透传 | Claude |
 | 2026-05-02 | 2.5 | **Phase 4 G1 GraphRAG Global Search Map-Reduce（已完成）**：新增 `graph/global_search.py` (GlobalSearchService) — 嵌入查询 → 余弦排序选 top_k 社区摘要 → asyncio.Semaphore(5) 限流 Map 并发 → Reduce 聚合；`community_summarizer.py` 新增可选 `embedding_fn` 入参，落库时同步写入 summary embedding；新增 `POST /base/{cid}/graph/global_search` 端点；前端新增 `GlobalSearchPanel` 卡片（含 evidence 树 + 摘要陈旧度提示） | Claude |
-| 2026-05-02 | 2.6 | **Phase 4 G4 Personalized PageRank + Provenance（已完成）**：`graph_algorithms.py` 新增 `compute_personalized_pagerank(seed_entities)` — 偏置 teleport 向量 + dangling node 兜底；新增 `graph/provenance.py` 中 `ProvenanceBuilder` — 反向最短路径 BFS（递归 CTE）+ 三元组组装；Migration 0024 新增 `kg_query_provenance` 审计表；新增 `POST /base/{cid}/graph/multi_hop_reason` 端点（支持 seed 抽取兜底）；前端新增 `EvidenceChainPanel` 卡片（树形展开多跳证据） | Claude |
+| 2026-05-02 | 2.6 | **Phase 4 G4 Personalized PageRank + Provenance（已完成）**：`graph_algorithms.py` 新增 `compute_personalized_pagerank(seed_entities)` — 偏置 teleport 向量 + dangling node 兜底；新增 `graph/provenance.py` 中 `ProvenanceBuilder` — 反向最短路径 BFS（递归 CTE）+ 三元组组装；Migration 0025 新增 `kg_query_provenance` 审计表（最初标记为 0024，与 0024 重命名联动顺延）；新增 `POST /base/{cid}/graph/multi_hop_reason` 端点（支持 seed 抽取兜底）；前端新增 `EvidenceChainPanel` 卡片（树形展开多跳证据） | Claude |
 
 ---
 

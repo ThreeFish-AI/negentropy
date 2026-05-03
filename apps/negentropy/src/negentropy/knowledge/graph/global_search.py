@@ -278,7 +278,7 @@ class GlobalSearchService:
             )
             return result.scalar() is not None
         except Exception as exc:
-            # 列尚未创建（极旧数据库 + 未跑迁移 0023）：吞异常并回退
+            # 列尚未创建（极旧数据库 + 未跑迁移 0024）：吞异常并回退
             logger.debug("embedding_column_probe_failed", error=str(exc))
             return False
 

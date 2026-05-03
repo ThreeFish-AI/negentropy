@@ -1,8 +1,11 @@
 """kg_query_provenance — 多跳推理审计表
 
-Revision ID: 0024
-Revises: 0023
+Revision ID: 0025
+Revises: 0024
 Create Date: 2026-05-02 14:00:00.000000+00:00
+
+注：本迁移最初标记为 0024，与上一条 0024 重命名联动顺延为 0025；
+down_revision 指向 ``0024_kg_temporal_index_and_summary_embedding``。
 
 设计动机：
   G4 (Personalized PageRank + Provenance) 多跳推理产物的审计与"为什么这个答案"
@@ -20,8 +23,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0024"
-down_revision: str | None = "0023"
+revision: str = "0025"
+down_revision: str | None = "0024"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
