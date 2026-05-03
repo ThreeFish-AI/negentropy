@@ -681,6 +681,15 @@ class PostgresMemoryService(BaseMemoryService):
                     memories_data = self._tag_search_level(result, "hybrid", "combined")
                     for m in memories_data:
                         m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
+                    # Phase 5 F1：可选 HippoRAG PPR 通道与 Hybrid 结果用 RRF 融合
+                    memories_data = await self._maybe_fuse_ppr(
+                        hybrid_results=memories_data,
+                        query=query,
+                        query_embedding=query_embedding,
+                        user_id=user_id,
+                        app_name=app_name,
+                        limit=limit,
+                    )
                     # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
                     memories_data = self._apply_intent_rerank(memories_data, query)
                     await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
@@ -749,6 +758,238 @@ class PostgresMemoryService(BaseMemoryService):
         await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
         self._log_search_event("ilike", len(memories_data), user_id, app_name, query)
         return self._build_search_response(memories_data)
+
+    # ------------------------------------------------------------------
+    # Phase 5 F1 — HippoRAG PPR-Boosted Hybrid 检索
+    # ------------------------------------------------------------------
+
+    async def _maybe_fuse_ppr(
+        self,
+        *,
+        hybrid_results: list[dict[str, Any]],
+        query: str,
+        query_embedding: list[float] | None,
+        user_id: str,
+        app_name: str,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """启用 PPR 通道时与 Hybrid 结果做 RRF 融合，否则原样返回。"""
+        try:
+            from negentropy.config import settings as global_settings
+
+            cfg = global_settings.memory.hipporag
+            if not cfg.enabled:
+                return hybrid_results
+            if cfg.gray_users and user_id not in cfg.gray_users:
+                return hybrid_results
+        except Exception:
+            return hybrid_results
+
+        # 启动期门控：KG 关联数过低直接 short-circuit
+        try:
+            from negentropy.engine.factories.memory import get_association_service
+
+            assoc = get_association_service()
+            assoc_count = await assoc.count_kg_associations(user_id=user_id, app_name=app_name)
+            if assoc_count < cfg.min_kg_associations:
+                return hybrid_results
+        except Exception as exc:
+            logger.debug("ppr_kg_count_failed", error=str(exc))
+            return hybrid_results
+
+        try:
+            ppr_results = await asyncio.wait_for(
+                self._ppr_search(
+                    query=query,
+                    query_embedding=query_embedding,
+                    user_id=user_id,
+                    app_name=app_name,
+                    cfg=cfg,
+                    limit=limit,
+                ),
+                timeout=max(0.05, cfg.timeout_ms / 1000.0),
+            )
+        except TimeoutError:
+            self._log_fallback_event("ppr", "hybrid", "timeout", user_id, app_name, query)
+            return hybrid_results
+        except Exception as exc:
+            self._log_fallback_event("ppr", "hybrid", str(exc), user_id, app_name, query)
+            return hybrid_results
+
+        if not ppr_results:
+            return hybrid_results
+
+        return self._rrf_fuse(
+            channels={"hybrid": hybrid_results, "ppr": ppr_results},
+            k=cfg.rrf_k,
+            limit=limit,
+        )
+
+    async def _ppr_search(
+        self,
+        *,
+        query: str,
+        query_embedding: list[float] | None,
+        user_id: str,
+        app_name: str,
+        cfg: Any,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """执行 PPR 通道：种子链接 → 加权扩散 → 反查 memory_ids。"""
+        if query_embedding is None:
+            return []
+        seeds = await self._link_seed_entities(
+            query_embedding=query_embedding,
+            app_name=app_name,
+            top_k=cfg.seed_top_k,
+            threshold=cfg.seed_threshold,
+        )
+        if not seeds:
+            return []
+
+        from negentropy.engine.factories.memory import get_association_service
+
+        assoc = get_association_service()
+        entity_scores = await assoc.expand_via_ppr(
+            seeds=seeds,
+            depth=cfg.depth,
+            alpha=cfg.alpha,
+            top_k=max(50, limit * 5),
+        )
+        if not entity_scores:
+            return []
+
+        memory_rows = await assoc.memories_for_entity_scores(
+            entity_scores=entity_scores,
+            user_id=user_id,
+            app_name=app_name,
+            limit=max(50, limit * 5),
+        )
+        if not memory_rows:
+            return []
+
+        # 用 memory_ids 拉取 content + metadata + memory_type 以便后续 intent_rerank
+        ids = [uuid.UUID(m["memory_id"]) for m in memory_rows if m.get("memory_id")]
+        if not ids:
+            return []
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = select(Memory.id, Memory.content, Memory.metadata_, Memory.memory_type).where(Memory.id.in_(ids))
+            result = await db.execute(stmt)
+            rows = {str(r.id): r for r in result.fetchall()}
+
+        merged: list[dict[str, Any]] = []
+        for r in memory_rows:
+            mid = r["memory_id"]
+            row = rows.get(mid)
+            if row is None:
+                continue
+            score = float(r.get("ppr_score", 0.0))
+            merged.append(
+                {
+                    "id": mid,
+                    "content": row.content,
+                    "metadata": row.metadata_ or {},
+                    "memory_type": row.memory_type,
+                    "relevance_score": min(1.0, max(0.0, score)),
+                    "search_level": "ppr",
+                    "score_type": "ppr_score",
+                    "raw_score": score,
+                }
+            )
+        return merged[: limit * 5]
+
+    async def _link_seed_entities(
+        self,
+        *,
+        query_embedding: list[float],
+        app_name: str,
+        top_k: int,
+        threshold: float,
+    ) -> list[uuid.UUID]:
+        """通过 KG entity embedding cosine top-K 拿种子节点。"""
+        embedding_str = "[" + ",".join(f"{x:.7g}" for x in query_embedding) + "]"
+        max_distance = max(0.0, 1.0 - threshold)
+        sql = text(
+            f"""
+            SELECT id, (embedding <=> CAST(:embedding AS vector)) AS distance
+            FROM {NEGENTROPY_SCHEMA}.kg_entities
+            WHERE is_active IS TRUE
+              AND app_name = :app_name
+              AND embedding IS NOT NULL
+            ORDER BY embedding <=> CAST(:embedding AS vector) ASC
+            LIMIT :top_k
+            """
+        )
+        try:
+            async with db_session.AsyncSessionLocal() as db:
+                result = await db.execute(
+                    sql,
+                    {
+                        "embedding": embedding_str,
+                        "app_name": app_name,
+                        "top_k": top_k,
+                    },
+                )
+                rows = result.fetchall()
+        except Exception as exc:
+            logger.debug("ppr_seed_link_failed", error=str(exc))
+            return []
+        seeds: list[uuid.UUID] = []
+        for row in rows:
+            if float(row.distance or 1.0) <= max_distance:
+                seeds.append(row.id)
+        return seeds
+
+    @staticmethod
+    def _rrf_fuse(
+        *,
+        channels: dict[str, list[dict[str, Any]]],
+        k: int,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """Reciprocal Rank Fusion<sup>[Cormack 2009]</sup>。
+
+        score(d) = Σ 1 / (k + rank_in_channel_i)；保留首次见到的 metadata，新增
+        ``metadata.fusion`` 字段记录每个通道的 rank 与最终 RRF 分数。
+        """
+        order: list[str] = []
+        seen: dict[str, dict[str, Any]] = {}
+        rrf_scores: dict[str, float] = {}
+        per_channel_rank: dict[str, dict[str, int]] = {}
+
+        for ch_name, items in channels.items():
+            channel_rank: dict[str, int] = {}
+            for rank, item in enumerate(items, 1):
+                doc_id = str(item.get("id"))
+                if not doc_id:
+                    continue
+                channel_rank[doc_id] = rank
+                rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+                if doc_id not in seen:
+                    seen[doc_id] = dict(item)
+                    order.append(doc_id)
+            per_channel_rank[ch_name] = channel_rank
+
+        merged: list[dict[str, Any]] = []
+        for doc_id in order:
+            entry = seen[doc_id]
+            entry["search_level"] = (
+                "ppr+hybrid"
+                if all(doc_id in per_channel_rank.get(ch, {}) for ch in channels)
+                else entry.get("search_level", "hybrid")
+            )
+            entry["relevance_score"] = min(1.0, rrf_scores[doc_id])
+            metadata = dict(entry.get("metadata") or {})
+            metadata["fusion"] = {
+                "channels": {ch: per_channel_rank[ch].get(doc_id) for ch in channels},
+                "rrf_score": rrf_scores[doc_id],
+                "rrf_k": k,
+            }
+            entry["metadata"] = metadata
+            merged.append(entry)
+
+        merged.sort(key=lambda e: rrf_scores.get(str(e.get("id")), 0.0), reverse=True)
+        return merged[:limit]
 
     async def _hybrid_search_native(
         self,
