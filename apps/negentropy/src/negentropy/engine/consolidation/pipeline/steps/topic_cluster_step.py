@@ -1,7 +1,7 @@
 """TopicClusterStep — 基于 pgvector 余弦距离的 single-linkage 聚类。
 
 将语义相近的记忆聚类，为每类生成标签写入 metadata_.topics。
-使用纯 pgvector ``<=>`` 运算符，不引入 sklearn 等外部依赖。
+使用纯 Python cosine distance 计算，不引入 sklearn 等外部依赖。
 
 理论：
 - CLS 理论<sup>[[1]](#ref1)</sup>：慢速皮层巩固将碎片记忆按主题聚合
@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from collections import defaultdict
@@ -28,6 +29,16 @@ from ..protocol import PipelineContext, StepResult
 from ..registry import register
 
 logger = get_logger("negentropy.engine.consolidation.pipeline.steps.topic_cluster")
+
+
+def _cosine_distance(a: list[float], b: list[float]) -> float:
+    """计算两个向量的余弦距离 (1 - cosine_similarity)。"""
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(x * x for x in b))
+    if na == 0 or nb == 0:
+        return 1.0
+    return 1.0 - dot / (na * nb)
 
 
 def _extract_label(contents: list[str]) -> str:
@@ -213,17 +224,7 @@ class TopicClusterStep:
                 emb_j = rows[j].embedding
                 if emb_j is None:
                     continue
-                # pgvector cosine distance via SQL
-                async with db_session.AsyncSessionLocal() as db:
-                    dist_sql = sa.text("SELECT (CAST(:a AS vector) <=> CAST(:b AS vector)) AS dist")
-                    result = await db.execute(
-                        dist_sql,
-                        {
-                            "a": "[" + ",".join(f"{x:.7g}" for x in emb_i) + "]",
-                            "b": "[" + ",".join(f"{x:.7g}" for x in emb_j) + "]",
-                        },
-                    )
-                    dist = float(result.scalar())
+                dist = _cosine_distance(emb_i, emb_j)
                 if dist <= eps:
                     union(i, j)
 

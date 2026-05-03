@@ -22,7 +22,6 @@ def expand_query_embedding(
     query_embedding: list[float],
     top_k_embeddings: list[list[float]],
     *,
-    alpha: float = 1.0,
     prf_alpha: float = 0.7,
 ) -> list[float]:
     """用 top-K 结果的 embedding 质心扩展查询向量。
@@ -33,7 +32,6 @@ def expand_query_embedding(
     Args:
         query_embedding: 原始查询向量
         top_k_embeddings: 初检 top-K 结果的向量列表
-        alpha: Rocchio α 参数（此处固定为 1.0，保持查询原始权重）
         prf_alpha: PRF 融合系数，越高越偏向原始查询
 
     Returns:
@@ -46,18 +44,19 @@ def expand_query_embedding(
 
     # 计算质心
     centroid = [0.0] * dim
+    valid = 0
     for emb in top_k_embeddings:
         if len(emb) != dim:
             continue
         for i in range(dim):
             centroid[i] += emb[i]
+        valid += 1
 
-    valid_count = len(top_k_embeddings)
-    if valid_count == 0:
+    if valid == 0:
         return query_embedding
 
     for i in range(dim):
-        centroid[i] /= valid_count
+        centroid[i] /= valid
 
     # 融合
     expanded = [prf_alpha * query_embedding[i] + (1 - prf_alpha) * centroid[i] for i in range(dim)]
