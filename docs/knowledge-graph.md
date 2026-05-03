@@ -598,6 +598,30 @@ SELECT * FROM cypher('negentropy_kg', $$
 $$, params => '...');
 ```
 
+#### 5.3.4 Personalized PageRank 与多跳推理（Phase 4 G4 已落地）
+
+**理论锚点**：Page et al. (1999) PageRank 通过偏置 teleport 向量实现"以查询为中心"的相关性传播；HippoRAG (Gutiérrez et al., NeurIPS'24) 在多跳问答上证明 PPR + 命名实体抽取 优于密集检索 ~20%。
+
+**计算入口**：`graph_algorithms.compute_personalized_pagerank(db, corpus_id, seed_entities, alpha=0.85)`：
+- 复用 `export_graph_to_networkx`；将 seed 归一化（去 `entity:` 前缀 + 过滤不在图中的）
+- `personalization` 字典：valid seeds 平均分配权重 1/N，其余节点 0
+- `nx.PowerIterationFailedConvergence` 时降级为"种子节点 1.0、其余 0"，与 PageRank 失败降级互补
+- 不写库（不污染 `kg_entities.importance_score`），分数仅用于本次 multi_hop_reason 调用
+
+**Provenance 证据链**：`graph/provenance.py::ProvenanceBuilder` 对 PPR top-K 反向追溯：
+- 单次递归 CTE BFS 在 `kg_relations` 上找出 target → 任意 seed 的最短无向路径（默认 `max_chain_depth=5`）
+- 沿路径逐跳 JOIN `kg_relations` 获取 `relation_type` + `evidence_text` + `weight`，组装 `EvidenceEdge` 列表
+- 单一职责：仅产出"展示用"路径；时态版本由 `repository.find_path(as_of=...)` 承担，避免循环依赖
+
+**API**：`POST /base/{cid}/graph/multi_hop_reason`：
+- 入参：`{query, seed_entities[], top_k=10, max_hops=3}`；`seed_entities` 留空时按规则从 query 提取（英文大写词、引号括起的中英短语）
+- seed → entity_id 解析：UUID 直接用；否则按 `kg_entities.name ILIKE` 等值/前缀模糊匹配（按 confidence DESC 取首条）
+- 出参：`{seeds, answer_entities, evidence_chain[], latency_ms}`；evidence_chain 按 PPR 降序
+
+**Migration 0025**：`kg_query_provenance` 审计表（query/seeds/top_entities/evidence_chain/latency 留痕），用于后续抽样质检与训练数据生成。
+
+**降级路径**：seeds 提取为空 → 直接返回空 evidence_chain（不抛错）；seed 全部不在图中 → PPR 返回空字典，UI 显式提示"未发现可达路径"。
+
 ### 5.4 混合检索增强
 
 **目标**：构建 **Vector + Graph + RRF** 三层融合检索管道。
@@ -681,6 +705,36 @@ GraphSearchMode = Literal["semantic", "graph", "hybrid", "rrf", "graphrag"]
 }
 ```
 
+#### 5.2.4 前端可视化层（Cytoscape.js + fCoSE）
+
+**理论锚点**：Force-directed layout 起源于 Fruchterman & Reingold (1991)；fCoSE (Dogrusoz et al., 2009) 是当前对大规模属性图最优的快速复合 spring embedder。
+
+**节点编码**：
+- 颜色：`community_id != null` 时按社区配色（Tableau 10 色盲友好），否则按实体类型（`person/organization/...`）
+- 尺寸：18-46px 线性映射 PageRank `importance_score`，零值兜底为 22px
+- 选中态：橙色边框 + 非邻域淡化（opacity=0.15）
+
+**fCoSE 默认参数**：
+
+| 参数 | 值 | 备注 |
+| :--- | :--- | :--- |
+| `nodeRepulsion` | 5000 | 节点排斥力 |
+| `idealEdgeLength` | 80 | 理想边长 |
+| `edgeElasticity` | 0.45 | 边弹性 |
+| `gravity` | 0.25 | 引力（防游离簇飞出） |
+| `quality` | "default" | 在性能与美感间均衡 |
+
+**性能基准**（Chrome 134 / M1）：100-500 节点初始布局 < 2s；5000+ 节点建议服务端 `limit=500` 截断（默认值），UI 显式提示"已按 importance 截断（双击节点展开邻居）"。
+
+**交互范式**：
+- 滚轮缩放（`wheelSensitivity=0.2`，避免误触猛缩）
+- 拖拽画布平移
+- 单击节点 → 高亮 1-hop 邻域 + 父组件展示详情
+- 双击节点 → 调用 `GET /base/{cid}/graph/subgraph?center=ID&radius=1&limit=50` 增量加载
+- 点击空白 → 取消选中
+
+**渲染引擎切换**：保留 d3-force 实现作为兼容回退（顶部 toolbar `Cytoscape | d3-force` 切换）。
+
 ### 5.6 数据模型演进
 
 **索引优化计划**：
@@ -758,6 +812,40 @@ flowchart TB
 2. **社区摘要存储**：`kg_community_summaries` 表，字段包含 `community_id, level, summary_text, embedding, entity_count`
 3. **增量更新策略**：新实体加入后仅重新计算受影响社区的摘要（参考 LightRAG<sup>[[5]](#ref5)</sup> 的 Union 策略）
 
+#### 6.1.4 Global Search Map-Reduce 流水线（Phase 4 G1 已落地）
+
+**模块**：`graph/global_search.py` 引入 `GlobalSearchService`，与 `community_summarizer.py` 正交分工 —— 后者负责生成与 embedding 落库，前者负责 query-focused 检索 + Map-Reduce。
+
+**流水线**：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant API as POST /global_search
+    participant SVC as GlobalSearchService
+    participant DB as kg_community_summaries
+    participant LLM as LLM
+    U->>API: query (+ max_communities)
+    API->>SVC: search(corpus_id, query, query_embedding)
+    SVC->>DB: SELECT top_k by 1-(emb<=>query)::vector
+    DB-->>SVC: candidates
+    par Map (concurrency=5)
+        SVC->>LLM: MAP_PROMPT(query, summary_i)
+        LLM-->>SVC: partial_answer_i
+    end
+    SVC->>LLM: REDUCE_PROMPT(query, partials)
+    LLM-->>SVC: final_answer
+    SVC-->>API: answer + evidence + summaries_dirty
+    API-->>U: GlobalSearchResponse
+```
+
+**关键设计**：
+- **Selection（候选筛选）**：用 query embedding 在 `kg_community_summaries.embedding` 上做 cosine 排序，避免对全部摘要做 LLM 调用；若 embedding 列尚未填充（旧数据），降级为按 `entity_count DESC` 排序，相似度兜底为 0。
+- **Map 限流**：`asyncio.Semaphore(5)`（默认）防止触达 LLM rate-limit；单 LLM 失败返回空字符串，evidence 列表自动剔除（不阻塞整体）。
+- **Reduce 预算控制**：partial answers 截断为前 20 条防止 token 预算溢出。
+- **摘要陈旧检测**：每次查询末尾对比 `kg_entities.MAX(updated_at) > kg_community_summaries.MIN(updated_at)`；若 dirty，response 中 `summaries_dirty=true`，UI 显式提示用户重跑摘要流程。
+- **Embedding 写入路径**：`CommunitySummarizer(embedding_fn=...)` 在持久化时同步写 embedding；调用方未注入 `embedding_fn` 时降级为不写（与 G3 backfill 同向兼容）。
+
 ### 6.2 时态知识图谱
 
 以 Graphiti<sup>[[6]](#ref6)</sup> 为蓝本的双时态模型设计：
@@ -802,6 +890,34 @@ stateDiagram-v2
 1. LLM 判断是"更新"还是"矛盾"
 2. 若为"更新"：旧边设置 `valid_to = now`，新边 `valid_from = now`
 3. 若为"矛盾"：两边共存，标记 `contradiction_flag = true`，等待人工审核
+
+#### 6.2.3 as-of 查询接口与时间轴（Phase 4 G3 已落地）
+
+**单一事实源**：所有需要按 `valid_from / valid_to` 过滤的查询都通过模块级 helper `_temporal_where_clause(rel_alias)` 构造谓词片段，绑定参数固定为 `:as_of`。这避免了在 `find_neighbors / find_path / hybrid_search / get_graph` 中重复散落 4 处时态 SQL，从源头消除"时态语义跨方法漂移"风险。
+
+**API 入口**：所有图谱读路径接受可选 `as_of` 参数（ISO-8601）：
+
+| 端点 | as_of 位置 | 行为 |
+| :--- | :--- | :--- |
+| `GET /knowledge/base/{cid}/graph` | query string | 仅返回该时刻有效关系；无连接的孤立节点自然剔除 |
+| `POST /knowledge/base/{cid}/graph/search` | request body | 通过 EXISTS 子查询过滤"在该时刻无任何活跃关系"的实体；线性加权路径会自动升级为 RRF（线性 SQL 函数不支持时态过滤） |
+| `POST /knowledge/graph/neighbors` | request body | 递归 CTE 在每跳应用时态过滤 |
+| `POST /knowledge/graph/path` | request body | BFS 的 base 段 + recursive 段共享同一谓词 |
+| `GET /knowledge/base/{cid}/graph/timeline` | — | 新增端点，返回按 `day/week/month` 桶聚合的 `valid_from`/`valid_to` 事件直方图，供前端 `TimeTravelSlider` 渲染 |
+
+**索引**：迁移 `0024_kg_temporal_index_and_summary_embedding.py` 给 `kg_relations` 增加部分索引
+
+```sql
+CREATE INDEX ix_kg_relations_valid_active
+  ON negentropy.kg_relations(corpus_id)
+  WHERE valid_to IS NULL AND is_active = true;
+```
+
+加速默认"当前时刻"查询；同时一次性 `UPDATE kg_relations SET valid_from = created_at WHERE valid_from IS NULL` 让历史关系视为从写入时刻起即生效。
+
+**缓存**：`_graph_cache` 的 key 维度从 `f"graph:{corpus_id}"` 升级为 `f"graph:{corpus_id}|as_of={iso}"`，`as_of=None` 显式落入 `as_of=now` 分桶，确保不同时刻快照不会脏读。`invalidate(prefix="graph:{corpus_id}")` 仍按前缀匹配清空所有 as_of 变体，无需逐 key 清理。
+
+**前端 UI**：`TimeTravelSlider.tsx` 拉取 `/graph/timeline` 渲染密度直方图 + range slider；用户拖动至历史桶即将 ISO 时刻通过 `onChange` 回调透传至顶层 `as_of` 状态，所有面板（图谱、邻居、路径、搜索）共享同一时刻。徽标 `as_of: YYYY-MM-DD` 在每个面板顶部显式提示当前快照。
 
 ### 6.3 增量图更新
 
@@ -1293,6 +1409,10 @@ timeline
 | 2026-04-08 | 2.0 | **完全重写**：学术基础 (15 篇 IEEE 引用)、行业框架分析 (5 大框架)、两阶段设计 (PostgreSQL → 终极)、价值量化体系、一核五翼集成架构、实施路线图 (Phase 2-4) | Claude |
 | 2026-05-02 | 2.1 | Phase 2 状态更新（P2-3 PageRank / P2-4 Louvain / P2-5 RRF 标记已完成）；Phase 3 新增 P3-9 构建管线健壮性 / P3-10 实体语义去重 / P3-11 图谱查询缓存（均已完成）；新增参考文献 [16]-[24] 共 9 条 IEEE 引用 | Claude |
 | 2026-05-02 | 2.2 | Phase 3 新增 P3-12 GraphRAG 上下文组装集成 / P3-13 Agent→KG 三元组双向同步 / P3-14 图谱质量健康指标 / P3-15 跨语料实体重叠推荐（均已完成） | Claude |
+| 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0024 部分索引 + valid_from backfill（最初标记为 0023，后因与 feature/1.x.x 上 `0023_memory_phase4_core_blocks` 撞号顺延为 0024）；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
+| 2026-05-02 | 2.4 | **Phase 4 G2 Cytoscape.js 交互可视化（已完成）**：新增前端 `GraphCanvas` 组件（cytoscape + cytoscape-fcose）；新增后端 `GET /graph/subgraph` 端点（service 层 BFS 截断；node 排序 跳数 → importance）；page.tsx 渲染引擎切换（Cytoscape vs d3-force）；双击节点触发 1 跳子图增量加载；G3 as_of 在 Cytoscape 路径下保持透传 | Claude |
+| 2026-05-02 | 2.5 | **Phase 4 G1 GraphRAG Global Search Map-Reduce（已完成）**：新增 `graph/global_search.py` (GlobalSearchService) — 嵌入查询 → 余弦排序选 top_k 社区摘要 → asyncio.Semaphore(5) 限流 Map 并发 → Reduce 聚合；`community_summarizer.py` 新增可选 `embedding_fn` 入参，落库时同步写入 summary embedding；新增 `POST /base/{cid}/graph/global_search` 端点；前端新增 `GlobalSearchPanel` 卡片（含 evidence 树 + 摘要陈旧度提示） | Claude |
+| 2026-05-02 | 2.6 | **Phase 4 G4 Personalized PageRank + Provenance（已完成）**：`graph_algorithms.py` 新增 `compute_personalized_pagerank(seed_entities)` — 偏置 teleport 向量 + dangling node 兜底；新增 `graph/provenance.py` 中 `ProvenanceBuilder` — 反向最短路径 BFS（递归 CTE）+ 三元组组装；Migration 0025 新增 `kg_query_provenance` 审计表（最初标记为 0024，与 0024 重命名联动顺延）；新增 `POST /base/{cid}/graph/multi_hop_reason` 端点（支持 seed 抽取兜底）；前端新增 `EvidenceChainPanel` 卡片（树形展开多跳证据） | Claude |
 
 ---
 

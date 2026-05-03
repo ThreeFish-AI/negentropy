@@ -4,6 +4,7 @@ import json
 import mimetypes
 import re
 import urllib.parse
+from datetime import datetime
 from io import BytesIO
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
@@ -19,6 +20,7 @@ from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
+from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument, WikiPublicationEntry
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
@@ -133,6 +135,9 @@ from .schemas import (  # noqa: F401
     DocumentMarkdownRefreshResponse,
     DocumentReplaceRequest,
     DocumentResponse,
+    GlobalSearchEvidenceItem,
+    GlobalSearchRequest,
+    GlobalSearchResponse,
     GraphBuildRequest,
     GraphBuildResponse,
     GraphEntityDetailResponse,
@@ -144,10 +149,16 @@ from .schemas import (  # noqa: F401
     GraphSearchRequest,
     GraphSearchResponse,
     GraphStatsResponse,
+    GraphTimelineBucket,
+    GraphTimelineResponse,
     GraphUpsertRequest,
     IngestRequest,
     IngestUrlRequest,
     KnowledgePipelinesResponse,
+    MultiHopEvidenceChainItem,
+    MultiHopEvidenceEdgeItem,
+    MultiHopReasonRequest,
+    MultiHopReasonResponse,
     PipelineRunRecordResponse,
     PipelineStageResultResponse,
     PipelinesUpsertRequest,
@@ -3079,6 +3090,13 @@ async def get_corpus_graph(
     corpus_id: UUID,
     app_name: str | None = Query(default=None),
     include_runs: bool = Query(default=False),
+    as_of: datetime | None = Query(
+        default=None,
+        description=(
+            "可选时态快照时刻 (ISO-8601)；提供时仅返回在该时刻有效的关系。"
+            "用于双时态时间穿梭检索 (Snodgrass & Ahn, 1985)。"
+        ),
+    ),
 ) -> dict[str, Any]:
     """获取语料库的知识图谱
 
@@ -3086,6 +3104,7 @@ async def get_corpus_graph(
         corpus_id: 语料库 ID
         app_name: 应用名称
         include_runs: 是否包含构建历史
+        as_of: 可选时态快照时刻
 
     Returns:
         图谱数据（节点和边）
@@ -3097,6 +3116,7 @@ async def get_corpus_graph(
         corpus_id=str(corpus_id),
         app_name=resolved_app,
         include_runs=include_runs,
+        as_of=as_of.isoformat() if as_of else None,
     )
 
     graph_service = _get_graph_service()
@@ -3104,6 +3124,7 @@ async def get_corpus_graph(
         corpus_id=corpus_id,
         app_name=resolved_app,
         include_runs=include_runs,
+        as_of=as_of,
     )
 
     return {
@@ -3182,6 +3203,7 @@ async def search_knowledge_graph(
             query=payload.query,
             query_embedding=query_embedding,
             config=config,
+            as_of=payload.as_of,
         )
 
         logger.info(
@@ -3249,6 +3271,7 @@ async def find_entity_neighbors(
         entity_id=payload.entity_id,
         max_depth=payload.max_depth,
         limit=payload.limit,
+        as_of=payload.as_of,
     )
 
     return {
@@ -3290,6 +3313,7 @@ async def find_entity_path(
         source_id=payload.source_id,
         target_id=payload.target_id,
         max_depth=payload.max_depth,
+        as_of=payload.as_of,
     )
 
     return {
@@ -3444,6 +3468,391 @@ async def get_graph_stats(
     return GraphStatsResponse(**stats)
 
 
+@router.post(
+    "/base/{corpus_id}/graph/multi_hop_reason",
+    response_model=MultiHopReasonResponse,
+)
+async def multi_hop_reason_knowledge_graph(
+    corpus_id: UUID,
+    payload: MultiHopReasonRequest,
+) -> MultiHopReasonResponse:
+    """多跳推理 + Provenance 证据链（G4）
+
+    流水线：seed 抽取（若未提供）→ Personalized PageRank → top-K → 反向追溯
+    最短路径并组装三元组证据链。
+    """
+    import re
+    import time
+
+    from .graph.graph_algorithms import compute_personalized_pagerank
+    from .graph.provenance import ProvenanceBuilder, evidence_chain_to_dict
+
+    start = time.time()
+
+    # 1) seeds 推断：若未提供，按规则提取 query 中疑似实体（中英大写、引号词等）
+    seeds: list[str]
+    if payload.seed_entities:
+        seeds = list(payload.seed_entities)
+    else:
+        candidates: set[str] = set()
+        # 英文连续大写词（人名 / 缩写 / 产品名）
+        for match in re.findall(r"\b[A-Z][a-zA-Z0-9_-]+\b", payload.query):
+            candidates.add(match)
+        # 中文连续片段：CJK 起始 + (CJK | 字母 | 数字 | 下划线)，长度 2-30。
+        # 故意宽松：误捕的非实体子串会被后续按 name ILIKE 匹配自然过滤掉，
+        # 漏捕（如纯中文不加引号）才是端点对中文不可用的根因。
+        for match in re.findall(r"[一-鿿][一-鿿\w]{1,29}", payload.query):
+            candidates.add(match)
+        # 引号包围的内容（中英双引号 / 「」）
+        for match in re.findall(r"[\"“「]([^\"”」]+)[\"”」]", payload.query):
+            candidates.add(match.strip())
+        seeds = sorted(candidates)
+
+    logger.info(
+        "api_multi_hop_reason_started",
+        corpus_id=str(corpus_id),
+        query=payload.query[:80],
+        seed_count=len(seeds),
+    )
+
+    # 若 seeds 为空，回退路径：使用 hybrid_search 找出 top-K 实体作为答案，避免直接 500
+    async with AsyncSessionLocal() as db:
+        if not seeds:
+            logger.info("multi_hop_reason_no_seeds_fallback", corpus_id=str(corpus_id))
+            return MultiHopReasonResponse(
+                query=payload.query,
+                seeds=[],
+                answer_entities=[],
+                evidence_chain=[],
+                latency_ms=(time.time() - start) * 1000,
+            )
+
+        # 2) seeds 解析为实体 ID（按 name 模糊匹配 kg_entities）
+        from sqlalchemy import text as sa_text
+
+        # 严格 UUID 正则：32 位裸十六进制，或 8-4-4-4-12 带连字符（共 36 位）。
+        # 早期 [0-9a-fA-F-]{32,36} 会把 33/34/35 这种非法长度也当 UUID 命中，
+        # 后续 cast as uuid 会抛 InvalidTextRepresentation。
+        _UUID_RE = re.compile(r"[0-9a-fA-F]{32}|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")
+
+        def _escape_like(pattern: str) -> str:
+            """转义 SQL LIKE / ILIKE 特殊字符；配合 ESCAPE '\\'。"""
+            return pattern.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+        seed_ids: list[str] = []
+        for s in seeds:
+            # 优先看是否本身就是 UUID（含/不含 entity: 前缀）
+            cleaned = s.replace("entity:", "")
+            if _UUID_RE.fullmatch(cleaned):
+                seed_ids.append(cleaned)
+                continue
+            # 否则按 name 等值/前缀模糊匹配；先转义 % / _ / \\ 防止用户输入被当通配符
+            escaped = _escape_like(s)
+            row = (
+                await db.execute(
+                    sa_text(f"""
+                    SELECT id FROM {NEGENTROPY_SCHEMA}.kg_entities
+                    WHERE corpus_id = :cid AND is_active = true
+                      AND (name ILIKE :exact ESCAPE '\\' OR name ILIKE :prefix ESCAPE '\\')
+                    ORDER BY (CASE WHEN name ILIKE :exact ESCAPE '\\' THEN 0 ELSE 1 END),
+                             confidence DESC NULLS LAST
+                    LIMIT 1
+                """),
+                    {"cid": str(corpus_id), "exact": escaped, "prefix": f"{escaped}%"},
+                )
+            ).first()
+            if row is not None:
+                seed_ids.append(str(row.id))
+
+        # 兜底：regex 全 miss 或抽取出的 token 都未命中 kg_entities 时，
+        # 沿 hybrid_search 召回 top-K 实体作 seed，让端点对中文无引号查询
+        # 仍然可用（与 G2 的 RRF 权重一致）。失败不影响主路径，由下面的
+        # 早退分支返回空答案。
+        if not seed_ids:
+            try:
+                fb_embedding_fn = build_embedding_fn()
+                fb_query_embedding = await fb_embedding_fn(payload.query)
+                fb_graph_service = _get_graph_service()
+                fb_hybrid = await fb_graph_service.search(
+                    corpus_id=corpus_id,
+                    app_name=_resolve_app_name(None),
+                    query=payload.query,
+                    query_embedding=fb_query_embedding,
+                )
+                for item in fb_hybrid.entities[:5]:
+                    eid = item.entity.id.replace("entity:", "")
+                    if eid and eid not in seed_ids:
+                        seed_ids.append(eid)
+                if seed_ids:
+                    seeds = list(seed_ids)
+                    logger.info(
+                        "multi_hop_reason_seeds_from_hybrid_fallback",
+                        corpus_id=str(corpus_id),
+                        seed_count=len(seed_ids),
+                    )
+            except Exception as fb_exc:
+                logger.warning(
+                    "multi_hop_reason_hybrid_fallback_failed",
+                    corpus_id=str(corpus_id),
+                    error=str(fb_exc),
+                )
+
+        if not seed_ids:
+            return MultiHopReasonResponse(
+                query=payload.query,
+                seeds=seeds,
+                answer_entities=[],
+                evidence_chain=[],
+                latency_ms=(time.time() - start) * 1000,
+            )
+
+        # 3) Personalized PageRank
+        ppr_scores = await compute_personalized_pagerank(db, corpus_id, seed_ids)
+        if not ppr_scores:
+            return MultiHopReasonResponse(
+                query=payload.query,
+                seeds=seeds,
+                answer_entities=[],
+                evidence_chain=[],
+                latency_ms=(time.time() - start) * 1000,
+            )
+
+        # 排除 seed 本身（避免占据 top-K），按 PPR 降序取 top-K
+        # seed_ids 可能包含用户传入的大写 UUID；graph 节点 ID 由 str(row.id) 产出
+        # 始终为小写，故归一化为小写确保集合排除语义正确。
+        seed_set_lc = {sid.lower() for sid in seed_ids}
+        non_seed_ranked = sorted(
+            ((eid, score) for eid, score in ppr_scores.items() if eid.lower() not in seed_set_lc),
+            key=lambda kv: kv[1],
+            reverse=True,
+        )[: payload.top_k]
+
+        # 4) Provenance — 反向追溯证据链
+        builder = ProvenanceBuilder(max_chain_depth=payload.max_hops)
+        chains = await builder.build(db, corpus_id, non_seed_ranked, seed_ids)
+
+        answer_entities = [c.target_entity_id for c in chains]
+        evidence_payload = [evidence_chain_to_dict(c) for c in chains]
+        latency_ms = (time.time() - start) * 1000
+
+        # 5) 审计留痕 — kg_query_provenance（迁移 0025）；失败不影响响应
+        try:
+            from uuid import uuid4
+
+            top_entities_payload = [{"entity_id": eid, "score": float(score)} for eid, score in non_seed_ranked]
+            await db.execute(
+                sa_text(f"""
+                    INSERT INTO {NEGENTROPY_SCHEMA}.kg_query_provenance
+                        (id, corpus_id, query_text, seeds, top_entities,
+                         evidence_chain, latency_ms)
+                    VALUES (:id, :cid, :q, CAST(:seeds AS jsonb),
+                            CAST(:tops AS jsonb), CAST(:chain AS jsonb), :lat)
+                """),
+                {
+                    "id": str(uuid4()),
+                    "cid": str(corpus_id),
+                    "q": payload.query,
+                    "seeds": json.dumps(seeds),
+                    "tops": json.dumps(top_entities_payload),
+                    "chain": json.dumps(evidence_payload),
+                    "lat": latency_ms,
+                },
+            )
+            await db.commit()
+        except Exception as audit_exc:
+            logger.warning(
+                "multi_hop_reason_audit_persist_failed",
+                corpus_id=str(corpus_id),
+                error=str(audit_exc),
+            )
+
+    logger.info(
+        "api_multi_hop_reason_completed",
+        corpus_id=str(corpus_id),
+        seed_count=len(seed_ids),
+        top_k=len(chains),
+    )
+
+    return MultiHopReasonResponse(
+        query=payload.query,
+        seeds=seeds,
+        answer_entities=answer_entities,
+        evidence_chain=[
+            MultiHopEvidenceChainItem(
+                target_entity_id=e["target_entity_id"],
+                target_label=e["target_label"],
+                score=e["score"],
+                seed_entity_id=e["seed_entity_id"],
+                path=e["path"],
+                edges=[MultiHopEvidenceEdgeItem(**ed) for ed in e["edges"]],
+            )
+            for e in evidence_payload
+        ],
+        latency_ms=latency_ms,
+    )
+
+
+@router.post(
+    "/base/{corpus_id}/graph/global_search",
+    response_model=GlobalSearchResponse,
+)
+async def global_search_knowledge_graph(
+    corpus_id: UUID,
+    payload: GlobalSearchRequest,
+) -> GlobalSearchResponse:
+    """GraphRAG Global Search Map-Reduce 全局问答（G1）
+
+    用社区摘要回答"汇总性问题"（如"该语料库的核心主题是什么？"）。
+    流水线：嵌入查询 → 余弦排序选 top_k 社区 → 并发 Map → Reduce 聚合。
+    """
+    from .graph.global_search import GlobalSearchService
+
+    logger.info(
+        "api_global_search_started",
+        corpus_id=str(corpus_id),
+        query=payload.query[:80],
+        max_communities=payload.max_communities,
+    )
+
+    embedding_fn = build_embedding_fn()
+    query_embedding = await embedding_fn(payload.query)
+
+    service = GlobalSearchService(max_communities=payload.max_communities)
+
+    async with AsyncSessionLocal() as db:
+        result = await service.search(
+            db,
+            corpus_id=corpus_id,
+            query=payload.query,
+            query_embedding=query_embedding,
+            max_communities=payload.max_communities,
+        )
+
+    logger.info(
+        "api_global_search_completed",
+        corpus_id=str(corpus_id),
+        evidence=len(result.evidence),
+        latency_ms=result.latency_ms,
+        summaries_dirty=result.summaries_dirty,
+    )
+
+    return GlobalSearchResponse(
+        query=result.query,
+        answer=result.answer,
+        evidence=[
+            GlobalSearchEvidenceItem(
+                community_id=e.community_id,
+                partial_answer=e.partial_answer,
+                similarity=e.similarity,
+                top_entities=e.top_entities,
+            )
+            for e in result.evidence
+        ],
+        candidates_total=result.candidates_total,
+        latency_ms=result.latency_ms,
+        summaries_dirty=result.summaries_dirty,
+    )
+
+
+@router.get("/base/{corpus_id}/graph/subgraph", response_model=dict[str, Any])
+async def get_corpus_subgraph(
+    corpus_id: UUID,
+    center_id: str = Query(..., description="BFS 起点实体 ID（含/不含 entity: 前缀）"),
+    radius: int = Query(default=1, ge=1, le=3, description="BFS 半径（1-3 跳）"),
+    limit: int = Query(default=200, ge=1, le=1000, description="节点数上限"),
+    app_name: str | None = Query(default=None),
+    as_of: datetime | None = Query(default=None, description="可选时态快照时刻"),
+) -> dict[str, Any]:
+    """获取以指定实体为锚点的子图（G2 Cytoscape 增量加载）
+
+    用户在 Cytoscape 画布双击节点时，前端调用本端点获取 N 跳邻域增量并入图，
+    避免一次性加载全图导致的渲染卡顿。
+    """
+    resolved_app = _resolve_app_name(app_name)
+
+    logger.debug(
+        "api_get_subgraph",
+        corpus_id=str(corpus_id),
+        center_id=center_id,
+        radius=radius,
+        limit=limit,
+        as_of=as_of.isoformat() if as_of else None,
+    )
+
+    graph_service = _get_graph_service()
+    try:
+        sub = await graph_service.get_subgraph(
+            corpus_id=corpus_id,
+            app_name=resolved_app,
+            center_id=center_id,
+            radius=radius,
+            limit=limit,
+            as_of=as_of,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"code": "INVALID_PARAM", "message": str(exc)}) from exc
+
+    return {
+        "center_id": center_id,
+        "radius": radius,
+        "nodes": [
+            {
+                "id": node.id,
+                "label": node.label,
+                "type": node.node_type,
+                "importance": node.metadata.get("importance_score"),
+                "community_id": node.metadata.get("community_id"),
+                "metadata": node.metadata,
+            }
+            for node in sub.nodes
+        ],
+        "edges": [
+            {
+                "source": edge.source,
+                "target": edge.target,
+                "label": edge.label,
+                "type": edge.edge_type,
+                "weight": edge.weight,
+                "metadata": edge.metadata,
+            }
+            for edge in sub.edges
+        ],
+    }
+
+
+@router.get("/base/{corpus_id}/graph/timeline", response_model=GraphTimelineResponse)
+async def get_graph_timeline(
+    corpus_id: UUID,
+    bucket: str = Query(
+        default="day",
+        pattern="^(day|week|month)$",
+        description="时间桶粒度：day | week | month",
+    ),
+) -> GraphTimelineResponse:
+    """获取关系时间轴密度直方图（G3 时间穿梭检索）
+
+    返回按 ``bucket`` 聚合的 valid_from 与 valid_to 事件计数，
+    供前端 TimeTravelSlider 渲染时间分布。
+    """
+    logger.debug(
+        "api_graph_timeline",
+        corpus_id=str(corpus_id),
+        bucket=bucket,
+    )
+
+    graph_service = _get_graph_service()
+    points = await graph_service.get_relation_timeline(
+        corpus_id=corpus_id,
+        bucket=bucket,
+    )
+
+    return GraphTimelineResponse(
+        corpus_id=corpus_id,
+        bucket=bucket,
+        points=[GraphTimelineBucket(**p) for p in points],
+    )
+
+
 # ============================================================================
 # API 调用统计
 # ============================================================================
@@ -3485,7 +3894,7 @@ async def get_api_stats(
     Returns:
         ApiStatsResponse: 包含总调用数、成功数、失败数和平均延迟
     """
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     from sqlalchemy import and_, or_, select
     from sqlalchemy import func as sql_func

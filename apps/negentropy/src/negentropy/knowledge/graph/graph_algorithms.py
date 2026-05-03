@@ -14,6 +14,7 @@ Knowledge Graph Algorithms
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -138,6 +139,84 @@ async def compute_pagerank(
         node_count=G.number_of_nodes(),
         edge_count=G.number_of_edges(),
         top_entity=id_to_name.get(max(ranks, key=ranks.get), "unknown") if ranks else None,
+    )
+
+    return ranks
+
+
+async def compute_personalized_pagerank(
+    db: AsyncSession,
+    corpus_id: UUID,
+    seed_entities: list[str],
+    *,
+    alpha: float = 0.85,
+    max_iter: int = 100,
+    tolerance: float = 1e-6,
+) -> dict[str, float]:
+    """Personalized PageRank — 以 seed 为偏置 teleport 向量传播相关性 (Page et al., 1999)。
+
+    HippoRAG (Gutiérrez et al., NeurIPS 2024) 在多跳问答上证明 PPR + 命名实体抽取
+    优于密集检索。本函数仅计算分数（不写库），供 multi_hop_reason 端点动态使用。
+
+    Args:
+        seed_entities: 种子实体 ID 列表（含或不含 ``entity:`` 前缀）；分数将平均分配
+            为 personalization 向量。
+        alpha: damping 系数（默认 0.85）
+        max_iter / tolerance: 幂迭代收敛参数
+
+    Returns:
+        ``{entity_id_str: ppr_score}``；图为空或 seed 全部不在图中时返回 ``{}``。
+    """
+    import networkx as nx
+
+    G, _ = await export_graph_to_networkx(db, corpus_id)
+
+    if G.number_of_nodes() == 0:
+        logger.info("ppr_skipped_empty_graph", corpus_id=str(corpus_id))
+        return {}
+
+    # 归一化 seed_entities：去 ``entity:`` 前缀，过滤不在图中的
+    cleaned = [s.replace("entity:", "").strip() for s in seed_entities if s]
+    valid_seeds = [s for s in cleaned if s in G]
+    if not valid_seeds:
+        logger.info(
+            "ppr_seeds_not_in_graph",
+            corpus_id=str(corpus_id),
+            requested=cleaned,
+        )
+        return {}
+
+    weight = 1.0 / len(valid_seeds)
+    personalization = {node: 0.0 for node in G.nodes()}
+    for seed in valid_seeds:
+        personalization[seed] = weight
+
+    try:
+        # multi_hop_reason 是在线请求路径，PPR 在千节点级图上可能 100ms~数秒，
+        # 必须卸载到线程池避免阻塞 FastAPI 事件循环（与同 worker 上其它请求互相饿死）。
+        ranks = await asyncio.to_thread(
+            nx.pagerank,
+            G,
+            alpha=alpha,
+            max_iter=max_iter,
+            tol=tolerance,
+            personalization=personalization,
+            weight="weight",
+        )
+    except nx.PowerIterationFailedConvergence:
+        logger.warning(
+            "ppr_convergence_failed",
+            corpus_id=str(corpus_id),
+            seeds=valid_seeds[:5],
+        )
+        # 降级：种子节点本身得分 1，其余 0（与 PageRank 失败降级互补）
+        ranks = {node: (1.0 if node in set(valid_seeds) else 0.0) for node in G.nodes()}
+
+    logger.info(
+        "ppr_completed",
+        corpus_id=str(corpus_id),
+        seed_count=len(valid_seeds),
+        node_count=G.number_of_nodes(),
     )
 
     return ranks

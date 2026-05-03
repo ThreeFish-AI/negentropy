@@ -1957,6 +1957,8 @@ export interface GraphSearchParams {
   graph_weight?: number;
   include_neighbors?: boolean;
   neighbor_limit?: number;
+  /** ISO-8601 时态快照时刻；提供时仅纳入在该时刻仍有效的关系（G3 时间穿梭）。 */
+  as_of?: string;
 }
 
 export interface GraphSearchResultItem {
@@ -1987,6 +1989,8 @@ export interface GraphNeighborsParams {
   entity_id: string;
   max_depth?: number;
   limit?: number;
+  /** ISO-8601 时态快照时刻（G3）。 */
+  as_of?: string;
 }
 
 export interface GraphNeighborsResult {
@@ -2005,6 +2009,20 @@ export interface GraphPathParams {
   source_id: string;
   target_id: string;
   max_depth?: number;
+  /** ISO-8601 时态快照时刻（G3）。 */
+  as_of?: string;
+}
+
+export interface GraphTimelineBucket {
+  date: string;
+  active_count: number;
+  expired_count: number;
+}
+
+export interface GraphTimelineResult {
+  corpus_id: string;
+  bucket: "day" | "week" | "month";
+  points: GraphTimelineBucket[];
 }
 
 export interface GraphPathResult {
@@ -2117,13 +2135,167 @@ export async function fetchCorpusGraph(
   corpusId: string,
   appName?: string,
   includeRuns = false,
+  asOf?: string,
 ): Promise<KnowledgeGraphPayload> {
   const query = new URLSearchParams();
   if (appName) query.set("app_name", appName);
   if (includeRuns) query.set("include_runs", "true");
+  if (asOf) query.set("as_of", asOf);
 
   const res = await fetch(
     `/api/knowledge/base/${corpusId}/graph?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+export interface GlobalSearchEvidenceItem {
+  community_id: number;
+  partial_answer: string;
+  similarity: number;
+  top_entities: string[];
+}
+
+export interface GlobalSearchResult {
+  query: string;
+  answer: string;
+  evidence: GlobalSearchEvidenceItem[];
+  candidates_total: number;
+  latency_ms: number;
+  summaries_dirty: boolean;
+}
+
+export interface MultiHopEvidenceEdge {
+  source_id: string;
+  target_id: string;
+  relation: string;
+  evidence_text: string;
+  weight: number;
+}
+
+export interface MultiHopEvidenceChain {
+  target_entity_id: string;
+  target_label: string;
+  score: number;
+  seed_entity_id?: string | null;
+  path: string[];
+  edges: MultiHopEvidenceEdge[];
+}
+
+export interface MultiHopReasonResult {
+  query: string;
+  seeds: string[];
+  answer_entities: string[];
+  evidence_chain: MultiHopEvidenceChain[];
+  latency_ms: number;
+}
+
+/**
+ * 多跳推理 + Provenance 证据链（G4 PPR + HippoRAG）
+ */
+export async function multiHopReasonKnowledgeGraph(
+  corpusId: string,
+  params: {
+    query: string;
+    seedEntities?: string[];
+    topK?: number;
+    maxHops?: number;
+  },
+): Promise<MultiHopReasonResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/multi_hop_reason`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: params.query,
+        seed_entities: params.seedEntities ?? [],
+        top_k: params.topK ?? 10,
+        max_hops: params.maxHops ?? 3,
+      }),
+    },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * GraphRAG Global Search Map-Reduce（G1）
+ */
+export async function globalSearchKnowledgeGraph(
+  corpusId: string,
+  params: { query: string; maxCommunities?: number },
+): Promise<GlobalSearchResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/global_search`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: params.query,
+        max_communities: params.maxCommunities ?? 10,
+      }),
+    },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 获取以指定实体为锚点的子图（G2 Cytoscape 增量加载）
+ */
+export async function fetchGraphSubgraph(
+  corpusId: string,
+  params: {
+    centerId: string;
+    radius?: 1 | 2 | 3;
+    limit?: number;
+    appName?: string;
+    asOf?: string;
+  },
+): Promise<{
+  center_id: string;
+  radius: number;
+  nodes: Array<{
+    id: string;
+    label?: string;
+    type?: string;
+    importance?: number | null;
+    community_id?: number | null;
+    metadata?: Record<string, unknown>;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    label?: string;
+    type?: string;
+    weight?: number;
+    metadata?: Record<string, unknown>;
+  }>;
+}> {
+  const query = new URLSearchParams();
+  query.set("center_id", params.centerId);
+  // 数值用 != null 显式判空；后端目前 ge=1 拒绝 0，但放开下界后 truthy 判断会
+  // 静默丢失 radius=0 / limit=0 的语义（隐性 bug）。
+  if (params.radius != null) query.set("radius", String(params.radius));
+  if (params.limit != null) query.set("limit", String(params.limit));
+  if (params.appName) query.set("app_name", params.appName);
+  if (params.asOf) query.set("as_of", params.asOf);
+
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/subgraph?${query.toString()}`,
+    { cache: "no-store" },
+  );
+  return handleKnowledgeError(res);
+}
+
+/**
+ * 获取关系时间轴密度直方图（G3 时间穿梭检索）
+ */
+export async function fetchGraphTimeline(
+  corpusId: string,
+  bucket: "day" | "week" | "month" = "day",
+): Promise<GraphTimelineResult> {
+  const res = await fetch(
+    `/api/knowledge/base/${corpusId}/graph/timeline?bucket=${bucket}`,
     { cache: "no-store" },
   );
   return handleKnowledgeError(res);

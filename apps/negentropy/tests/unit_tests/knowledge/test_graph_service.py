@@ -7,6 +7,7 @@ Graph Service 单元测试
 
 from __future__ import annotations
 
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -138,6 +139,116 @@ class TestGraphService:
 
         mock_repository.clear_graph.assert_called_once_with(_CORPUS_ID)
         assert count == 5
+
+    @pytest.mark.asyncio
+    async def test_get_graph_cache_key_isolates_as_of(self, service, mock_repository):
+        """as_of 不同时缓存键应不同 — 避免脏读 (G3)"""
+        from datetime import datetime
+
+        from negentropy.knowledge.graph.service import _graph_cache
+        from negentropy.knowledge.types import KnowledgeGraphPayload
+
+        # 清空缓存避免互测污染
+        _graph_cache._store.clear()
+
+        nodes_now = [GraphNode(id="e_now", label="Now", node_type="person")]
+        nodes_past = [GraphNode(id="e_past", label="Past", node_type="person")]
+
+        async def _stub_get_graph(corpus_id, app_name, as_of=None):  # noqa: ARG001
+            return KnowledgeGraphPayload(
+                nodes=nodes_past if as_of else nodes_now,
+                edges=[],
+            )
+
+        mock_repository.get_graph.side_effect = _stub_get_graph
+
+        # 第一次：当前快照（as_of=None）
+        cur = await service.get_graph(_CORPUS_ID, "app")
+        assert cur.nodes[0].id == "e_now"
+
+        # 第二次：历史快照（as_of=2024-05-01）
+        past = await service.get_graph(
+            _CORPUS_ID,
+            "app",
+            as_of=datetime(2024, 5, 1, tzinfo=UTC),
+        )
+        assert past.nodes[0].id == "e_past"
+
+        # repository 被调用两次（不同 cache key 不命中）
+        assert mock_repository.get_graph.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_subgraph_bfs_radius_1(self, service, mock_repository):
+        """get_subgraph: radius=1 应只返回 center + 直接邻居 (G2)"""
+        from negentropy.knowledge.types import KnowledgeGraphPayload
+
+        # 全图：A — B — C — D（链式）
+        nodes = [
+            GraphNode(id="entity:a", label="A", node_type="t"),
+            GraphNode(id="entity:b", label="B", node_type="t"),
+            GraphNode(id="entity:c", label="C", node_type="t"),
+            GraphNode(id="entity:d", label="D", node_type="t"),
+        ]
+        edges = [
+            GraphEdge(source="entity:a", target="entity:b", edge_type="X"),
+            GraphEdge(source="entity:b", target="entity:c", edge_type="X"),
+            GraphEdge(source="entity:c", target="entity:d", edge_type="X"),
+        ]
+        mock_repository.get_graph.side_effect = None
+        mock_repository.get_graph.return_value = KnowledgeGraphPayload(nodes=nodes, edges=edges)
+
+        from negentropy.knowledge.graph.service import _graph_cache
+
+        _graph_cache._store.clear()
+        sub = await service.get_subgraph(_CORPUS_ID, "app", center_id="entity:b", radius=1)
+        ids = {n.id for n in sub.nodes}
+        # B (center) + A + C 直接相邻；D 不在 1 跳内
+        assert ids == {"entity:a", "entity:b", "entity:c"}
+        # 边只保留两端都在节点集合中的
+        assert len(sub.edges) == 2  # A-B 与 B-C
+
+    @pytest.mark.asyncio
+    async def test_get_subgraph_respects_limit(self, service, mock_repository):
+        """get_subgraph: limit=2 应按 (跳数, importance) 排序后截断"""
+        from negentropy.knowledge.types import KnowledgeGraphPayload
+
+        nodes = [
+            GraphNode(id="entity:c", label="Center", node_type="t", metadata={}),
+            GraphNode(id="entity:n1", label="N1", node_type="t", metadata={"importance_score": 0.9}),
+            GraphNode(id="entity:n2", label="N2", node_type="t", metadata={"importance_score": 0.1}),
+        ]
+        edges = [
+            GraphEdge(source="entity:c", target="entity:n1", edge_type="X"),
+            GraphEdge(source="entity:c", target="entity:n2", edge_type="X"),
+        ]
+        mock_repository.get_graph.side_effect = None
+        mock_repository.get_graph.return_value = KnowledgeGraphPayload(nodes=nodes, edges=edges)
+
+        from negentropy.knowledge.graph.service import _graph_cache
+
+        _graph_cache._store.clear()
+        sub = await service.get_subgraph(_CORPUS_ID, "app", center_id="entity:c", radius=1, limit=2)
+        ids = [n.id for n in sub.nodes]
+        # center 必在；n1 importance 高，应优先于 n2
+        assert "entity:c" in ids
+        assert "entity:n1" in ids
+        assert "entity:n2" not in ids
+
+    @pytest.mark.asyncio
+    async def test_get_subgraph_invalid_radius_raises(self, service, mock_repository):
+        """get_subgraph: radius 超出 [1,3] 应抛 ValueError"""
+        with pytest.raises(ValueError, match="radius"):
+            await service.get_subgraph(_CORPUS_ID, "app", center_id="entity:c", radius=5)
+
+    @pytest.mark.asyncio
+    async def test_get_relation_timeline_delegates_to_repository(self, service, mock_repository):
+        """get_relation_timeline 应委托给 repository 并透传 bucket"""
+        mock_repository.get_relation_timeline = AsyncMock(
+            return_value=[{"date": "2024-05-01", "active_count": 7, "expired_count": 2}]
+        )
+        timeline = await service.get_relation_timeline(_CORPUS_ID, bucket="day")
+        assert len(timeline) == 1
+        mock_repository.get_relation_timeline.assert_called_once_with(corpus_id=_CORPUS_ID, bucket="day")
 
     @pytest.mark.asyncio
     async def test_get_build_history_returns_records(self, service, mock_repository):

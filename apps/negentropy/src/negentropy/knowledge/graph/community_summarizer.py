@@ -62,10 +62,17 @@ class CommunitySummarizer:
     """社区摘要生成器 (Edge et al., 2024)
 
     对 Louvain 社区检测结果生成 LLM 摘要，支持全局检索模式。
+    若注入 ``embedding_fn``，会在持久化时同步计算并写入 summary embedding，
+    供后续 GlobalSearchService 的 Map 阶段做余弦排序。
     """
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(
+        self,
+        model: str | None = None,
+        embedding_fn: Any = None,
+    ) -> None:
         self._model = canonicalize_model_name(model) if model else None
+        self._embedding_fn = embedding_fn
 
     async def summarize_communities(
         self,
@@ -204,27 +211,41 @@ class CommunitySummarizer:
         corpus_id: UUID,
         summary: CommunitySummary,
     ) -> None:
-        """持久化社区摘要到数据库"""
+        """持久化社区摘要到数据库（含 embedding，若 embedding_fn 已注入）。"""
         from negentropy.models.base import NEGENTROPY_SCHEMA
 
-        # 使用 UPSERT 避免重复
-        query = text(f"""
-            INSERT INTO {NEGENTROPY_SCHEMA}.kg_community_summaries
-                (id, corpus_id, community_id, level, summary_text, entity_count, relation_count, top_entities)
-            VALUES (:id, :corpus_id, :community_id, 1, :summary_text, :entity_count, :relation_count, :top_entities)
-            ON CONFLICT (corpus_id, community_id, level)
-            DO UPDATE SET
-                summary_text = EXCLUDED.summary_text,
-                entity_count = EXCLUDED.entity_count,
-                relation_count = EXCLUDED.relation_count,
-                top_entities = EXCLUDED.top_entities,
-                updated_at = NOW()
-        """)
+        # 计算摘要 embedding（G1 Global Search 依赖；失败降级为不写入）
+        embedding_value: list[float] | None = None
+        if self._embedding_fn is not None:
+            try:
+                embedding_value = await self._embedding_fn(summary.summary_text)
+            except Exception as exc:
+                logger.warning(
+                    "summary_embedding_failed",
+                    community_id=summary.community_id,
+                    error=str(exc),
+                )
+
         import json
 
-        await db.execute(
-            query,
-            {
+        if embedding_value is not None:
+            query = text(f"""
+                INSERT INTO {NEGENTROPY_SCHEMA}.kg_community_summaries
+                    (id, corpus_id, community_id, level, summary_text,
+                     entity_count, relation_count, top_entities, embedding)
+                VALUES (:id, :corpus_id, :community_id, 1, :summary_text,
+                        :entity_count, :relation_count, :top_entities,
+                        :embedding::vector)
+                ON CONFLICT (corpus_id, community_id, level)
+                DO UPDATE SET
+                    summary_text = EXCLUDED.summary_text,
+                    entity_count = EXCLUDED.entity_count,
+                    relation_count = EXCLUDED.relation_count,
+                    top_entities = EXCLUDED.top_entities,
+                    embedding = EXCLUDED.embedding,
+                    updated_at = NOW()
+            """)
+            params: dict[str, Any] = {
                 "id": str(uuid4()),
                 "corpus_id": str(corpus_id),
                 "community_id": summary.community_id,
@@ -232,5 +253,31 @@ class CommunitySummarizer:
                 "entity_count": summary.entity_count,
                 "relation_count": summary.relation_count,
                 "top_entities": json.dumps(summary.top_entities),
-            },
-        )
+                "embedding": json.dumps(embedding_value),
+            }
+        else:
+            query = text(f"""
+                INSERT INTO {NEGENTROPY_SCHEMA}.kg_community_summaries
+                    (id, corpus_id, community_id, level, summary_text,
+                     entity_count, relation_count, top_entities)
+                VALUES (:id, :corpus_id, :community_id, 1, :summary_text,
+                        :entity_count, :relation_count, :top_entities)
+                ON CONFLICT (corpus_id, community_id, level)
+                DO UPDATE SET
+                    summary_text = EXCLUDED.summary_text,
+                    entity_count = EXCLUDED.entity_count,
+                    relation_count = EXCLUDED.relation_count,
+                    top_entities = EXCLUDED.top_entities,
+                    updated_at = NOW()
+            """)
+            params = {
+                "id": str(uuid4()),
+                "corpus_id": str(corpus_id),
+                "community_id": summary.community_id,
+                "summary_text": summary.summary_text,
+                "entity_count": summary.entity_count,
+                "relation_count": summary.relation_count,
+                "top_entities": json.dumps(summary.top_entities),
+            }
+
+        await db.execute(query, params)

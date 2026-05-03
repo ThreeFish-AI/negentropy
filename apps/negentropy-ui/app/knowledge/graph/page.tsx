@@ -15,10 +15,14 @@ import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
 import { EntityListPanel } from "./_components/EntityListPanel";
+import { EvidenceChainPanel } from "./_components/EvidenceChainPanel";
+import { GlobalSearchPanel } from "./_components/GlobalSearchPanel";
+import { GraphCanvas } from "./_components/GraphCanvas";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
+import { TimeTravelSlider } from "./_components/TimeTravelSlider";
 import { entityColor, communityColor } from "./_components/constants";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -57,6 +61,10 @@ export default function KnowledgeGraphPage() {
   const [building, setBuilding] = useState(false);
   const [searchResults, setSearchResults] = useState<GraphSearchResultItem[] | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
+  // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
+  const [asOf, setAsOf] = useState<string | null>(null);
+  // G2: 渲染引擎切换 — Cytoscape (Phase 4 默认) vs d3-force (Phase 1 兼容回退)
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3">("cytoscape");
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
@@ -66,14 +74,14 @@ export default function KnowledgeGraphPage() {
     async (cid: string) => {
       setError(null);
       try {
-        const data = await fetchCorpusGraph(cid, APP_NAME, true);
+        const data = await fetchCorpusGraph(cid, APP_NAME, true, asOf ?? undefined);
         setPayload(data);
       } catch (err) {
         setError(String(err));
         setPayload(null);
       }
     },
-    [],
+    [asOf],
   );
 
   useEffect(() => {
@@ -84,6 +92,56 @@ export default function KnowledgeGraphPage() {
       setError(null);
     }
   }, [corpusId, loadGraph]);
+
+  // G2: 双击节点增量加载子图后合并到 payload —— 按 id / source-target-label
+  // 三元组去重，避免重复节点与重复边。子图节点字段是 KnowledgeGraphPayload
+  // 索引签名的子集，可直接拼接。
+  const handleSubgraphMerge = useCallback(
+    (
+      newNodes: Array<{
+        id: string;
+        label?: string;
+        type?: string;
+        importance?: number | null;
+        community_id?: number | null;
+        metadata?: Record<string, unknown>;
+      }>,
+      newEdges: Array<{
+        source: string;
+        target: string;
+        label?: string;
+        type?: string;
+        weight?: number;
+        metadata?: Record<string, unknown>;
+      }>,
+    ) => {
+      setPayload((prev) => {
+        const baseNodes = prev?.nodes ?? [];
+        const baseEdges = prev?.edges ?? [];
+        const baseRuns = prev?.runs;
+        const nodeIds = new Set(baseNodes.map((n) => n.id));
+        // kg_relations 为有向边，GraphCanvas 也按方向渲染箭头；edgeKey 不规范化方向是
+        // 故意行为：A→B 与 B→A 视为不同关系（反向同名关系仍可能各自携带不同 evidence）。
+        const edgeKey = (e: { source: string; target: string; label?: string }) =>
+          `${e.source}__${e.target}__${e.label ?? ""}`;
+        const edgeKeys = new Set(baseEdges.map((e) => edgeKey(e)));
+        const mergedNodes = [
+          ...baseNodes,
+          ...newNodes.filter((n) => !nodeIds.has(n.id)),
+        ];
+        const mergedEdges = [
+          ...baseEdges,
+          ...newEdges.filter((e) => !edgeKeys.has(edgeKey(e))),
+        ];
+        return {
+          nodes: mergedNodes,
+          edges: mergedEdges,
+          ...(baseRuns ? { runs: baseRuns } : {}),
+        };
+      });
+    },
+    [],
+  );
 
   const handleBuild = useCallback(async () => {
     if (!corpusId) return;
@@ -301,6 +359,32 @@ export default function KnowledgeGraphPage() {
                       实体列表
                     </button>
                   </div>
+                  {viewTab === "graph" && (
+                    <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 text-[10px]">
+                      <button
+                        onClick={() => setRenderer("cytoscape")}
+                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认，支持节点交互）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "cytoscape"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        } rounded-l-lg`}
+                      >
+                        Cytoscape
+                      </button>
+                      <button
+                        onClick={() => setRenderer("d3")}
+                        title="d3-force（Phase 1 兼容回退）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "d3"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        } rounded-r-lg`}
+                      >
+                        d3-force
+                      </button>
+                    </div>
+                  )}
                   {building && (
                     <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">
                       正在构建...
@@ -337,7 +421,25 @@ export default function KnowledgeGraphPage() {
                 )}
               </div>
               )}
-              {viewTab === "graph" ? (
+              {viewTab === "graph" && renderer === "cytoscape" && corpusId && nodes.length > 0 ? (
+                <GraphCanvas
+                  corpusId={corpusId}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
+                />
+              ) : viewTab === "graph" && renderer === "cytoscape" ? (
+                <div className="flex h-[600px] items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
+                </div>
+              ) : viewTab === "graph" ? (
               <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -549,6 +651,55 @@ export default function KnowledgeGraphPage() {
                   </p>
                 )}
               </div>
+
+              {/* G1: GraphRAG Global Search — 全局问答 */}
+              {corpusId && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    全局问答（GraphRAG）
+                  </h3>
+                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                    基于社区摘要的 Map-Reduce 全局检索，适合「汇总性问题」
+                  </p>
+                  <div className="mt-2">
+                    <GlobalSearchPanel corpusId={corpusId} />
+                  </div>
+                </div>
+              )}
+
+              {/* G4: 多跳推理 + Provenance 证据链 */}
+              {corpusId && (
+                <div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4 shadow-sm dark:border-violet-900 dark:bg-violet-950/20">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    多跳推理（PPR）
+                  </h3>
+                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                    Personalized PageRank + 证据链（HippoRAG / NeurIPS&apos;24）
+                  </p>
+                  <div className="mt-2">
+                    <EvidenceChainPanel corpusId={corpusId} />
+                  </div>
+                </div>
+              )}
+
+              {/* G3: 时间穿梭检索 — 放在 Stats 之前，作为全局时态视图开关 */}
+              {corpusId && (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    时间穿梭检索
+                  </h3>
+                  <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                    选定历史时刻后，图谱与邻居/路径/搜索均按 as_of 过滤
+                  </p>
+                  <div className="mt-2">
+                    <TimeTravelSlider
+                      corpusId={corpusId}
+                      asOf={asOf}
+                      onChange={setAsOf}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Graph Stats */}
               {corpusId && (
