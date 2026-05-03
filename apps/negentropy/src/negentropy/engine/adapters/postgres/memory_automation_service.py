@@ -397,11 +397,20 @@ class MemoryAutomationService:
             users = result.all()
 
         total_reweighted = 0
+        failed_users = 0
         for row in users:
-            count = await reweight_memories(user_id=row.user_id, app_name=row.app_name)
-            total_reweighted += count
+            try:
+                count = await reweight_memories(user_id=row.user_id, app_name=row.app_name)
+                total_reweighted += count
+            except Exception:
+                failed_users += 1
+                logger.warning("reweight_user_failed", user_id=row.user_id, app_name=row.app_name, exc_info=True)
 
-        return {"reweighted_memories": total_reweighted, "users_processed": len(users)}
+        return {
+            "reweighted_memories": total_reweighted,
+            "users_processed": len(users) - failed_users,
+            "failed_users": failed_users,
+        }
 
     async def list_policy_summary(self, *, app_name: str) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)

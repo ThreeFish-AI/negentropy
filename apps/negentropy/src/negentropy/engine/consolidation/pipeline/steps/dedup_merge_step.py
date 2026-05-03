@@ -54,7 +54,21 @@ class DedupMergeStep:
         """
         from negentropy.engine.governance.conflict_resolver import ConflictResolver
 
-        # 查找与两记忆关联的活跃 facts（通过 user_id + app_name + content 关联）
+        # 先查找两条记忆的 thread_id，将 facts 查询限定在同源范围
+        mem_rows = (
+            await db.execute(
+                sa.select(Memory.id, Memory.thread_id).where(
+                    Memory.id.in_([primary_id, loser_id]),
+                    Memory.user_id == user_id,
+                    Memory.app_name == app_name,
+                )
+            )
+        ).all()
+        thread_ids = [r.thread_id for r in mem_rows if r.thread_id is not None]
+        if not thread_ids:
+            return False
+
+        # 查找与两记忆同线程的活跃 facts
         primary_facts = (
             (
                 await db.execute(
@@ -63,6 +77,7 @@ class DedupMergeStep:
                         Fact.user_id == user_id,
                         Fact.app_name == app_name,
                         Fact.status == "active",
+                        Fact.thread_id.in_(thread_ids),
                     )
                     .order_by(Fact.created_at.desc())
                     .limit(50)

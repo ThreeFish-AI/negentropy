@@ -1181,8 +1181,8 @@ class TestDedupMergeConflictBridge:
         assert result.output_count == 1
         assert not loser_updated
 
-    async def test_check_fact_conflict_returns_false_with_fewer_than_2_facts(self):
-        """_check_fact_conflict returns False when fewer than 2 active facts exist."""
+    async def test_check_fact_conflict_returns_false_no_thread_ids(self):
+        """_check_fact_conflict returns False when memories have no thread_id."""
         from negentropy.engine.consolidation.pipeline.steps.dedup_merge_step import (
             DedupMergeStep,
         )
@@ -1190,8 +1190,40 @@ class TestDedupMergeConflictBridge:
         step = DedupMergeStep()
         mock_db = AsyncMock()
         mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = []
+        # thread_id query returns rows with None thread_id
+        mem_row = MagicMock()
+        mem_row.thread_id = None
+        mock_result.all.return_value = [mem_row]
         mock_db.execute = AsyncMock(return_value=mock_result)
+
+        result = await step._check_fact_conflict(mock_db, uuid4(), uuid4(), "user1", "app1")
+        assert result is False
+
+    async def test_check_fact_conflict_returns_false_with_fewer_than_2_facts(self):
+        """_check_fact_conflict returns False when fewer than 2 active facts exist."""
+        from negentropy.engine.consolidation.pipeline.steps.dedup_merge_step import (
+            DedupMergeStep,
+        )
+
+        step = DedupMergeStep()
+        call_count = 0
+
+        async def _mock_execute(stmt):
+            nonlocal call_count
+            call_count += 1
+            mock_res = MagicMock()
+            if call_count == 1:
+                # thread_id query
+                mem_row = MagicMock()
+                mem_row.thread_id = uuid4()
+                mock_res.all.return_value = [mem_row]
+            elif call_count == 2:
+                # facts query — empty
+                mock_res.scalars.return_value.all.return_value = []
+            return mock_res
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(side_effect=_mock_execute)
 
         result = await step._check_fact_conflict(mock_db, uuid4(), uuid4(), "user1", "app1")
         assert result is False
@@ -1214,10 +1246,22 @@ class TestDedupMergeConflictBridge:
         fact_b.value = {"name": "vim"}
         fact_b.created_at = 200.0
 
+        call_count = 0
+
+        async def _mock_execute(stmt):
+            nonlocal call_count
+            call_count += 1
+            mock_res = MagicMock()
+            if call_count == 1:
+                mem_row = MagicMock()
+                mem_row.thread_id = uuid4()
+                mock_res.all.return_value = [mem_row]
+            elif call_count == 2:
+                mock_res.scalars.return_value.all.return_value = [fact_a, fact_b]
+            return mock_res
+
         mock_db = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [fact_a, fact_b]
-        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.execute = AsyncMock(side_effect=_mock_execute)
 
         result = await step._check_fact_conflict(mock_db, uuid4(), uuid4(), "user1", "app1")
         assert result is False
@@ -1244,10 +1288,22 @@ class TestDedupMergeConflictBridge:
         fact_new.confidence = 0.9
         fact_new.created_at = 200.0
 
+        call_count = 0
+
+        async def _mock_execute(stmt):
+            nonlocal call_count
+            call_count += 1
+            mock_res = MagicMock()
+            if call_count == 1:
+                mem_row = MagicMock()
+                mem_row.thread_id = uuid4()
+                mock_res.all.return_value = [mem_row]
+            elif call_count == 2:
+                mock_res.scalars.return_value.all.return_value = [fact_old, fact_new]
+            return mock_res
+
         mock_db = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [fact_old, fact_new]
-        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.execute = AsyncMock(side_effect=_mock_execute)
 
         mock_conflict = MagicMock()
         mock_conflict.resolution = "keep_both"
@@ -1282,10 +1338,22 @@ class TestDedupMergeConflictBridge:
         fact_new.confidence = 0.9
         fact_new.created_at = 200.0
 
+        call_count = 0
+
+        async def _mock_execute(stmt):
+            nonlocal call_count
+            call_count += 1
+            mock_res = MagicMock()
+            if call_count == 1:
+                mem_row = MagicMock()
+                mem_row.thread_id = uuid4()
+                mock_res.all.return_value = [mem_row]
+            elif call_count == 2:
+                mock_res.scalars.return_value.all.return_value = [fact_old, fact_new]
+            return mock_res
+
         mock_db = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [fact_old, fact_new]
-        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.execute = AsyncMock(side_effect=_mock_execute)
 
         mock_conflict = MagicMock()
         mock_conflict.resolution = "supersede"

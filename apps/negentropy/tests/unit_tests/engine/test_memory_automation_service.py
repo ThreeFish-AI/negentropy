@@ -167,6 +167,7 @@ async def test_run_reweight_relevance_dispatches(service: MemoryAutomationServic
 
     assert result["users_processed"] == 2
     assert result["reweighted_memories"] == 8
+    assert result["failed_users"] == 0
     assert mock_rw_module.reweight_memories.call_count == 2
 
 
@@ -190,3 +191,38 @@ async def test_run_reweight_relevance_no_feedback(service: MemoryAutomationServi
 
     assert result["users_processed"] == 0
     assert result["reweighted_memories"] == 0
+    assert result["failed_users"] == 0
+
+
+@pytest.mark.asyncio
+async def test_run_reweight_relevance_partial_failure(service: MemoryAutomationService):
+    """When reweight_memories fails for one user, others should still be processed."""
+
+    fake_row_ok = MagicMock(user_id="user_ok", app_name="app1")
+    fake_row_fail = MagicMock(user_id="user_fail", app_name="app1")
+    fake_row_ok2 = MagicMock(user_id="user_ok2", app_name="app1")
+
+    mock_result = MagicMock()
+    mock_result.all.return_value = [fake_row_ok, fake_row_fail, fake_row_ok2]
+
+    mock_db = AsyncMock()
+    mock_db.execute.return_value = mock_result
+    mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+    mock_db.__aexit__ = AsyncMock(return_value=False)
+
+    mock_rw_module = MagicMock()
+    mock_rw_module.reweight_memories = AsyncMock(side_effect=[7, RuntimeError("boom"), 4])
+
+    with (
+        patch(
+            "negentropy.engine.adapters.postgres.memory_automation_service.AsyncSessionLocal",
+            return_value=mock_db,
+        ),
+        patch.dict("sys.modules", {"negentropy.engine.relevance.rocchio_reweighter": mock_rw_module}),
+    ):
+        result = await service._run_reweight_relevance()  # noqa: SLF001
+
+    assert result["reweighted_memories"] == 11  # 7 + 4
+    assert result["users_processed"] == 2
+    assert result["failed_users"] == 1
+    assert mock_rw_module.reweight_memories.call_count == 3
