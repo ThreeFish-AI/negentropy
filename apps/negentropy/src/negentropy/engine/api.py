@@ -258,6 +258,40 @@ def _require_admin(user: AuthUser) -> AuthUser:
     return user
 
 
+def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:
+    """Phase 4 — 自服务端点的水平越权防线。
+
+    管理员可读写任意 user_id；非管理员只能操作自己的 user_id。
+    覆盖 ``/self-edit/*`` 与 ``/core-blocks`` 等 Self-editing Tools REST 端点，
+    与 ``memory-integration.md`` 的 "需 Admin 鉴权" 描述对齐（admin 主路径），
+    同时保留 self-service 退化通道（user.user_id 必须等于 target_user_id）。
+    """
+    if "admin" in user.roles:
+        return
+    if not target_user_id or target_user_id != user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="forbidden: target user_id must match authenticated user (or require admin role)",
+        )
+
+
+def _memory_entry_content_text(entry: Any) -> str:
+    content = getattr(entry, "content", None)
+    if isinstance(content, dict) and "parts" in content:
+        return "".join(str(part.get("text", "")) for part in content["parts"] if isinstance(part, dict))
+    if isinstance(content, str):
+        return content
+    parts = getattr(content, "parts", None)
+    if parts:
+        return "".join(str(getattr(part, "text", "") or "") for part in parts)
+    return ""
+
+
+def _memory_entry_relevance_score(entry: Any) -> float:
+    meta = dict(getattr(entry, "custom_metadata", None) or {})
+    return float(meta.get("relevance_score", meta.get("raw_score", 0.0)) or 0.0)
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -458,20 +492,12 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
 
     items = []
     for entry in result.memories:
-        content_text = ""
-        if isinstance(entry.content, dict) and "parts" in entry.content:
-            for part in entry.content["parts"]:
-                if isinstance(part, dict) and "text" in part:
-                    content_text += part["text"]
-        elif isinstance(entry.content, str):
-            content_text = entry.content
-
         items.append(
             {
                 "id": entry.id,
-                "content": content_text,
+                "content": _memory_entry_content_text(entry),
                 "timestamp": entry.timestamp,
-                "relevance_score": entry.relevance_score,
+                "relevance_score": _memory_entry_relevance_score(entry),
                 "metadata": entry.custom_metadata or {},
             }
         )
@@ -1025,7 +1051,11 @@ async def get_memory_associations(
     limit: int = Query(default=20, ge=1, le=100),
     user: AuthUser = Depends(get_current_user),
 ) -> AssociationListResponse:
-    """获取记忆/事实的关联"""
+    """获取记忆/事实的关联
+
+    Review fix：非 admin 用户只能读取归属自己 (user_id, app_name) 的关联，
+    admin 旁路（None 表示不下推过滤）。
+    """
     from uuid import UUID as UUIDType
 
     try:
@@ -1033,12 +1063,15 @@ async def get_memory_associations(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID") from None
 
+    is_admin = "admin" in user.roles
     service = get_association_service()
     assocs = await service.get_associations(
         item_id=item_uuid,
         association_type=association_type,
         direction=direction,
         limit=limit,
+        user_id=None if is_admin else user.user_id,
+        app_name=None if is_admin else settings.app_name,
     )
 
     items = [
@@ -1067,8 +1100,10 @@ async def create_association(
 
     service = get_association_service()
 
-    # 从 context 推断 user_id/app_name
-    auth_user_id = user.email if hasattr(user, "email") else "anonymous"
+    # Phase 4 — Review fix：使用 user.user_id（与 self-edit / core-block 等
+    # Self-editing Tools 端点保持一致），避免 user.email 为 None 时落空与
+    # 跨表 user_id 取值不一致引发的多租隔离失效。
+    auth_user_id = user.user_id
     app_name = settings.app_name
 
     try:
@@ -1094,7 +1129,11 @@ async def delete_association(
     association_id: str,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, str]:
-    """删除关联"""
+    """删除关联
+
+    Review fix：非 admin 用户只能删除归属自己 (user_id, app_name) 的关联；
+    跨租户的 ID 在 service 层 WHERE 匹配失败、统一以 404 兜底（避免侧信道泄露存在性）。
+    """
     from uuid import UUID as UUIDType
 
     service = get_association_service()
@@ -1104,8 +1143,197 @@ async def delete_association(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid association ID") from None
 
-    deleted = await service.delete_association(assoc_uuid)
+    is_admin = "admin" in user.roles
+    deleted = await service.delete_association(
+        assoc_uuid,
+        user_id=None if is_admin else user.user_id,
+        app_name=None if is_admin else settings.app_name,
+    )
     if not deleted:
         raise HTTPException(status_code=404, detail="Association not found")
 
     return {"status": "deleted", "association_id": association_id}
+
+
+# ============================================================================
+# Phase 4 — Self-editing Memory Tools & Core Block REST 端点
+#   理论：MemGPT (arXiv:2310.08560) self-editing tools + LangGraph Memory tools
+# ============================================================================
+
+
+class SelfEditWriteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    content: str
+    memory_type: str = "episodic"
+    thread_id: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class SelfEditUpdateRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    memory_id: str
+    new_content: str
+    reason: str | None = None
+    thread_id: str | None = None
+
+
+class SelfEditDeleteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    memory_id: str
+    reason: str | None = None
+    thread_id: str | None = None
+
+
+class CoreBlockUpsertRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    scope: str = "user"
+    thread_id: str | None = None
+    label: str = "persona"
+    content: str
+    updated_by: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class CoreBlockDeleteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    scope: str = "user"
+    thread_id: str | None = None
+    label: str = "persona"
+
+
+@router.post("/self-edit/write")
+async def self_edit_write(
+    payload: SelfEditWriteRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.tools.memory_tools import memory_write
+
+    try:
+        return await memory_write(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            content=payload.content,
+            memory_type=payload.memory_type,
+            thread_id=payload.thread_id,
+            metadata=payload.metadata,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/self-edit/update")
+async def self_edit_update(
+    payload: SelfEditUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.tools.memory_tools import memory_update
+
+    try:
+        return await memory_update(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            memory_id=payload.memory_id,
+            new_content=payload.new_content,
+            reason=payload.reason,
+            thread_id=payload.thread_id,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/self-edit/delete")
+async def self_edit_delete(
+    payload: SelfEditDeleteRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.tools.memory_tools import memory_delete
+
+    try:
+        return await memory_delete(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            memory_id=payload.memory_id,
+            reason=payload.reason,
+            thread_id=payload.thread_id,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/core-blocks")
+async def list_core_blocks(
+    user_id: str = Query(...),
+    app_name: str | None = Query(default=None),
+    thread_id: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, user_id)
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    items = await service.list_for_context(
+        user_id=user_id,
+        app_name=_resolve_app_name(app_name),
+        thread_id=thread_id,
+    )
+    return {"count": len(items), "items": items}
+
+
+@router.post("/core-blocks")
+async def upsert_core_block(
+    payload: CoreBlockUpsertRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    try:
+        return await service.upsert(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            scope=payload.scope,
+            thread_id=payload.thread_id,
+            label=payload.label,
+            content=payload.content,
+            updated_by=payload.updated_by or user.user_id,
+            metadata=payload.metadata,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/core-blocks")
+async def delete_core_block(
+    user_id: str = Query(...),
+    app_name: str | None = Query(default=None),
+    scope: str = Query(default="user"),
+    thread_id: str | None = Query(default=None),
+    label: str = Query(default="persona"),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, user_id)
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    try:
+        deleted = await service.delete(
+            user_id=user_id,
+            app_name=_resolve_app_name(app_name),
+            scope=scope,
+            thread_id=thread_id,
+            label=label,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Core block not found")
+    return {"status": "deleted"}

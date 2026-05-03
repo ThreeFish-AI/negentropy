@@ -38,8 +38,12 @@ import negentropy.db.session as db_session
 from negentropy.engine.consolidation.llm_fact_extractor import LLMFactExtractor
 from negentropy.engine.governance.memory import (
     _MEMORY_TYPE_MULTIPLIER,
+    VALID_MEMORY_TYPES,
     MemoryGovernanceService,
 )
+from negentropy.engine.governance.pii_detector import detect as detect_pii
+from negentropy.engine.governance.pii_detector import summarize_flags as summarize_pii_flags
+from negentropy.engine.utils.query_intent import classify as classify_intent
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.internalization import Memory
@@ -150,6 +154,9 @@ class PostgresMemoryService(BaseMemoryService):
                 importance = self._calculate_initial_importance(
                     memory_type="episodic",
                 )
+                # Phase 4: PII 检测占位（regex 级，命中后 metadata.pii_flags 标记）
+                pii_matches = detect_pii(content)
+                pii_flags = summarize_pii_flags(pii_matches) if pii_matches else {}
                 async with db.begin_nested():
                     memory = Memory(
                         thread_id=thread_id,
@@ -166,6 +173,7 @@ class PostgresMemoryService(BaseMemoryService):
                             "segment_index": seg_idx,
                             "total_segments": len(segments),
                             "turn_count": len(segments[seg_idx] if seg_idx < len(segments) else []),
+                            **({"pii_flags": pii_flags} if pii_flags else {}),
                         },
                     )
                     db.add(memory)
@@ -571,6 +579,8 @@ class PostgresMemoryService(BaseMemoryService):
                     memories_data = self._tag_search_level(result, "hybrid", "combined")
                     for m in memories_data:
                         m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
+                    # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
+                    memories_data = self._apply_intent_rerank(memories_data, query)
                     await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                     self._log_search_event("hybrid", len(memories_data), user_id, app_name, query)
                     return self._build_search_response(memories_data)
@@ -592,6 +602,8 @@ class PostgresMemoryService(BaseMemoryService):
             memories_data = self._tag_search_level(memories_data, "vector", "cosine_distance")
             for m in memories_data:
                 m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
+            # Phase 4：query intent 类型加权重排
+            memories_data = self._apply_intent_rerank(memories_data, query)
             await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
             self._log_search_event("vector", len(memories_data), user_id, app_name, query)
             return self._build_search_response(memories_data)
@@ -610,6 +622,8 @@ class PostgresMemoryService(BaseMemoryService):
                 memories_data = self._tag_search_level(memories_data, "keyword", "ts_rank")
                 for m in memories_data:
                     m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
+                # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
+                memories_data = self._apply_intent_rerank(memories_data, query)
                 await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                 self._log_search_event("keyword", len(memories_data), user_id, app_name, query)
                 return self._build_search_response(memories_data)
@@ -628,6 +642,8 @@ class PostgresMemoryService(BaseMemoryService):
             date_to=date_to,
         )
         memories_data = self._tag_search_level(memories_data, "ilike", "retention_proxy")
+        # Phase 4：query intent 类型加权重排
+        memories_data = self._apply_intent_rerank(memories_data, query)
         await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
         self._log_search_event("ilike", len(memories_data), user_id, app_name, query)
         return self._build_search_response(memories_data)
@@ -653,12 +669,19 @@ class PostgresMemoryService(BaseMemoryService):
         Returns:
             检索结果列表，失败返回 None
         """
+        # Review fix #3：JOIN memories 表把 memory_type 透出，主路径才能命中 intent 重排。
+        # Review fix #4：内部 LIMIT 加 buffer 抵消 WHERE 软删除过滤导致的丢条；
+        # Python 端按非删除计数二次截断。
+        oversample_limit = (limit + offset) * 2 + 10
         sql = text(f"""
-            SELECT id, content, semantic_score, keyword_score, combined_score, metadata
+            SELECT h.id, h.content, h.semantic_score, h.keyword_score, h.combined_score,
+                   h.metadata, m.memory_type
             FROM {NEGENTROPY_SCHEMA}.hybrid_search(
                 :user_id, :app_name, :query, :embedding::vector(1536),
                 :limit, :semantic_weight, :keyword_weight
-            )
+            ) AS h
+            JOIN {NEGENTROPY_SCHEMA}.memories AS m ON m.id = h.id
+            WHERE COALESCE(h.metadata->>'deleted', 'false') <> 'true'
         """)
 
         async with db_session.AsyncSessionLocal() as db:
@@ -669,7 +692,7 @@ class PostgresMemoryService(BaseMemoryService):
                     "app_name": app_name,
                     "query": query,
                     "embedding": query_embedding,
-                    "limit": limit + offset,
+                    "limit": oversample_limit,
                     "semantic_weight": _DEFAULT_SEMANTIC_WEIGHT,
                     "keyword_weight": _DEFAULT_KEYWORD_WEIGHT,
                 },
@@ -679,6 +702,9 @@ class PostgresMemoryService(BaseMemoryService):
         if not rows:
             return []
 
+        # Review fix #4：先做 offset，再截到 limit，避免 over-fetch 导致单页过大。
+        rows = rows[offset : offset + limit]
+
         logger.info(
             "hybrid_search_completed",
             user_id=user_id,
@@ -686,13 +712,13 @@ class PostgresMemoryService(BaseMemoryService):
             result_count=len(rows),
         )
 
-        rows = rows[offset:]
         return [
             {
                 "id": str(row.id),
                 "content": row.content,
                 "metadata": row.metadata or {},
                 "relevance_score": float(row.combined_score),
+                "memory_type": row.memory_type,
             }
             for row in rows
         ]
@@ -716,6 +742,7 @@ class PostgresMemoryService(BaseMemoryService):
                 Memory.app_name == app_name,
                 Memory.user_id == user_id,
                 Memory.embedding.is_not(None),
+                self._not_deleted_condition(),
             ]
             if memory_type:
                 conditions.append(Memory.memory_type == memory_type)
@@ -735,6 +762,7 @@ class PostgresMemoryService(BaseMemoryService):
                 "metadata": m.metadata_ or {},
                 "relevance_score": m.retention_score,
                 "created_at": m.created_at,
+                "memory_type": m.memory_type,
             }
             for m in memories_orms
         ]
@@ -752,12 +780,14 @@ class PostgresMemoryService(BaseMemoryService):
 
         利用 memories.search_vector GIN 索引进行高效全文搜索。
         """
+        # Review fix #3：透出 memory_type 让 _apply_intent_rerank 可命中。
         sql = text(f"""
-            SELECT id, content, metadata, retention_score, created_at,
+            SELECT id, content, metadata, retention_score, created_at, memory_type,
                    ts_rank_cd(search_vector, plainto_tsquery('english', :query)) AS rank_score
             FROM {NEGENTROPY_SCHEMA}.memories
             WHERE user_id = :user_id
               AND app_name = :app_name
+              AND COALESCE(metadata->>'deleted', 'false') <> 'true'
               AND search_vector @@ plainto_tsquery('english', :query)
             ORDER BY rank_score DESC
             LIMIT :limit OFFSET :offset
@@ -783,6 +813,7 @@ class PostgresMemoryService(BaseMemoryService):
                 "metadata": row.metadata or {},
                 "relevance_score": float(row.rank_score) if row.rank_score else 0.0,
                 "created_at": row.created_at,
+                "memory_type": row.memory_type,
             }
             for row in rows
         ]
@@ -811,6 +842,7 @@ class PostgresMemoryService(BaseMemoryService):
                 Memory.app_name == app_name,
                 Memory.user_id == user_id,
                 Memory.content.ilike(f"%{escaped_query}%"),
+                self._not_deleted_condition(),
             ]
             if memory_type:
                 conditions.append(Memory.memory_type == memory_type)
@@ -830,6 +862,7 @@ class PostgresMemoryService(BaseMemoryService):
                 "metadata": m.metadata_ or {},
                 "relevance_score": m.retention_score,
                 "created_at": m.created_at,
+                "memory_type": m.memory_type,
             }
             for m in memories_orms
         ]
@@ -837,6 +870,44 @@ class PostgresMemoryService(BaseMemoryService):
     # ------------------------------------------------------------------
     # 搜索可观测性辅助方法
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _not_deleted_condition():
+        """SQLAlchemy 条件：软删除记忆不参与任何检索路径。"""
+        return Memory.metadata_["deleted"].astext.is_distinct_from("true")
+
+    @staticmethod
+    def _apply_intent_rerank(
+        results: list[dict[str, Any]],
+        query: str,
+    ) -> list[dict[str, Any]]:
+        """Phase 4 — 基于 query intent 的轻量类型加权（仅作用于已排序结果）
+
+        当 result['memory_type'] == intent.primary 时 +10% 分；
+        命中 intent.boost_types 中的类型时 +3% 分。
+        分数 clamp 到 [0, 1]，并在 metadata 中记录 intent。
+        """
+        if not query or not results:
+            return results
+        intent = classify_intent(query)
+        if intent.confidence < 0.3:
+            return results
+        for r in results:
+            mt = r.get("memory_type")
+            base = float(r.get("relevance_score", 0.0))
+            if mt == intent.primary:
+                boost = 0.15
+            elif mt in intent.boost_types:
+                boost = 0.03
+            else:
+                boost = 0.0
+            r["relevance_score"] = min(1.0, max(0.0, base * (1.0 + boost)))
+            r.setdefault("metadata", {})
+            r["metadata"]["intent_primary"] = intent.primary
+            r["metadata"]["intent_boost_applied"] = boost
+        # 重新按分数排序
+        results.sort(key=lambda x: float(x.get("relevance_score", 0.0)), reverse=True)
+        return results
 
     @staticmethod
     def _tag_search_level(
@@ -981,6 +1052,9 @@ class PostgresMemoryService(BaseMemoryService):
             metadata["search_level"] = m.get("search_level", "unknown")
             metadata["score_type"] = m.get("score_type", "unknown")
             metadata["raw_score"] = m.get("raw_score", 0.0)
+            metadata["relevance_score"] = float(m.get("relevance_score", 0.0) or 0.0)
+            if m.get("memory_type") is not None:
+                metadata["memory_type"] = m.get("memory_type")
 
             memories.append(
                 MemoryEntry(
@@ -988,12 +1062,183 @@ class PostgresMemoryService(BaseMemoryService):
                     content=content_val,
                     author="system",
                     timestamp=timestamp,
-                    relevance_score=m.get("relevance_score", 0.0),
                     custom_metadata=metadata,
                 )
             )
 
         return SearchMemoryResponse(memories=memories)
+
+    async def add_memory_typed(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        thread_id: str | uuid.UUID | None,
+        content: str,
+        memory_type: str = "episodic",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Phase 4 — 类型显式写入（用于 Self-editing Tools）。
+
+        与 ``add_session_to_memory`` 的差异：
+        - 不走巩固管线，直接落库（适合 Agent 主动 write_memory 工具调用）
+        - 必须显式指定 ``memory_type``，受 VALID_MEMORY_TYPES 约束
+        - 仍然计算 embedding + 初始 retention/importance，保持一致性
+
+        Returns:
+            {"id", "memory_type", "retention_score", "importance_score"}
+        """
+        if memory_type not in VALID_MEMORY_TYPES:
+            raise ValueError(f"Invalid memory_type '{memory_type}'. Must be one of {sorted(VALID_MEMORY_TYPES)}")
+        if not content or not content.strip():
+            raise ValueError("content must not be empty")
+        content = content.strip()
+
+        embedding: list[float] | None = None
+        if self._embedding_fn:
+            try:
+                embedding = await self._embedding_fn(content)
+            except Exception as exc:
+                logger.warning("add_memory_typed_embedding_failed", error=str(exc))
+
+        thread_uuid = thread_id if isinstance(thread_id, uuid.UUID) else self._parse_thread_id(thread_id)
+
+        retention = self._calculate_initial_retention(content, memory_type=memory_type)
+        importance = self._calculate_initial_importance(memory_type=memory_type)
+        # Phase 4: PII 占位
+        pii_matches = detect_pii(content)
+        pii_flags = summarize_pii_flags(pii_matches) if pii_matches else {}
+        merged_metadata = dict(metadata or {"source": "self_edit"})
+        if pii_flags:
+            merged_metadata["pii_flags"] = pii_flags
+
+        async with db_session.AsyncSessionLocal() as db:
+            memory = Memory(
+                thread_id=thread_uuid,
+                user_id=user_id,
+                app_name=app_name,
+                memory_type=memory_type,
+                content=content,
+                embedding=embedding,
+                retention_score=retention,
+                importance_score=importance,
+                metadata_=merged_metadata,
+            )
+            db.add(memory)
+            await db.flush()
+            mem_id = memory.id
+            await db.commit()
+
+        logger.info(
+            "memory_typed_added",
+            user_id=user_id,
+            memory_type=memory_type,
+            memory_id=str(mem_id),
+        )
+        return {
+            "id": str(mem_id),
+            "memory_type": memory_type,
+            "retention_score": retention,
+            "importance_score": importance,
+        }
+
+    async def update_memory_content(
+        self,
+        *,
+        memory_id: str | uuid.UUID,
+        user_id: str,
+        app_name: str,
+        new_content: str,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        """Phase 4 — 修订记忆内容（Self-editing Tools 支持）。
+
+        - 必须传 user_id + app_name（多租隔离）
+        - 修订时同步更新 embedding 与 metadata.update_history
+        - 不更新 retention_score（避免误升）
+        """
+        if not new_content or not new_content.strip():
+            raise ValueError("new_content must not be empty")
+        new_content = new_content.strip()
+
+        memory_uuid = memory_id if isinstance(memory_id, uuid.UUID) else uuid.UUID(str(memory_id))
+
+        new_embedding: list[float] | None = None
+        if self._embedding_fn:
+            try:
+                new_embedding = await self._embedding_fn(new_content)
+            except Exception as exc:
+                logger.warning("update_memory_embedding_failed", error=str(exc))
+
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = select(Memory).where(
+                Memory.id == memory_uuid,
+                Memory.user_id == user_id,
+                Memory.app_name == app_name,
+            )
+            result = await db.execute(stmt)
+            memory = result.scalar_one_or_none()
+            if memory is None:
+                raise ValueError(f"Memory '{memory_id}' not found for user")
+            old_content = memory.content
+            memory.content = new_content
+            if new_embedding is not None:
+                memory.embedding = new_embedding
+            history = list((memory.metadata_ or {}).get("update_history", []))
+            history.append(
+                {
+                    "at": datetime.now(UTC).isoformat(),
+                    "reason": reason or "self_edit",
+                    "old_length": len(old_content or ""),
+                }
+            )
+            new_meta = dict(memory.metadata_ or {})
+            new_meta["update_history"] = history[-10:]  # 保留最近 10 次
+            memory.metadata_ = new_meta
+            await db.commit()
+
+        logger.info(
+            "memory_content_updated",
+            memory_id=str(memory_uuid),
+            user_id=user_id,
+            reason=reason,
+        )
+        return {"id": str(memory_uuid), "updated_at": datetime.now(UTC).isoformat()}
+
+    async def soft_delete_memory(
+        self,
+        *,
+        memory_id: str | uuid.UUID,
+        user_id: str,
+        app_name: str,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        """Phase 4 — 软删除记忆（Self-editing Tools）。
+
+        不物理删除，将 metadata.deleted=True，retention_score 强制归零，
+        embedding 清空（释放向量空间），但保留行用于审计。
+        """
+        memory_uuid = memory_id if isinstance(memory_id, uuid.UUID) else uuid.UUID(str(memory_id))
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = select(Memory).where(
+                Memory.id == memory_uuid,
+                Memory.user_id == user_id,
+                Memory.app_name == app_name,
+            )
+            result = await db.execute(stmt)
+            memory = result.scalar_one_or_none()
+            if memory is None:
+                raise ValueError(f"Memory '{memory_id}' not found for user")
+            new_meta = dict(memory.metadata_ or {})
+            new_meta["deleted"] = True
+            new_meta["deleted_reason"] = reason or "self_edit"
+            new_meta["deleted_at"] = datetime.now(UTC).isoformat()
+            memory.metadata_ = new_meta
+            memory.retention_score = 0.0
+            memory.embedding = None
+            await db.commit()
+        logger.info("memory_soft_deleted", memory_id=str(memory_uuid), user_id=user_id, reason=reason)
+        return {"id": str(memory_uuid), "deleted": True}
 
     async def list_memories(self, *, app_name: str, user_id: str, limit: int = 100) -> list[MemoryEntry]:
         """列出用户所有记忆"""

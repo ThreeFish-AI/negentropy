@@ -19,6 +19,7 @@ from negentropy.config import settings
 
 if TYPE_CHECKING:
     from negentropy.engine.adapters.postgres.association_service import AssociationService
+    from negentropy.engine.adapters.postgres.core_block_service import CoreBlockService
     from negentropy.engine.adapters.postgres.fact_service import FactService
     from negentropy.engine.adapters.postgres.memory_automation_service import MemoryAutomationService
     from negentropy.engine.adapters.postgres.proactive_recall_service import ProactiveRecallService
@@ -336,6 +337,29 @@ def reset_association_service() -> None:
     _association_service_instance = None
 
 
+# ============================================================================
+# Core Block Service Factory（Phase 4 — 常驻摘要块）
+# ============================================================================
+
+_core_block_service_instance: CoreBlockService | None = None
+
+
+def get_core_block_service() -> CoreBlockService:
+    global _core_block_service_instance
+
+    if _core_block_service_instance is None:
+        from negentropy.engine.adapters.postgres.core_block_service import CoreBlockService
+
+        _core_block_service_instance = CoreBlockService()
+
+    return _core_block_service_instance
+
+
+def reset_core_block_service() -> None:
+    global _core_block_service_instance
+    _core_block_service_instance = None
+
+
 __all__ = [
     "MemoryBackend",
     "EmbeddingFn",
@@ -367,4 +391,7 @@ __all__ = [
     # Association
     "get_association_service",
     "reset_association_service",
+    # Core Block (Phase 4)
+    "get_core_block_service",
+    "reset_core_block_service",
 ]

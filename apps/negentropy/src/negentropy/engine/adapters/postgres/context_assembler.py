@@ -24,7 +24,8 @@ from uuid import UUID
 from sqlalchemy import select, text
 
 import negentropy.db.session as db_session
-from negentropy.engine.factories.memory import get_fact_service
+from negentropy.engine.factories.memory import get_core_block_service, get_fact_service
+from negentropy.engine.utils.query_intent import classify as classify_intent
 from negentropy.engine.utils.token_counter import TokenCounter
 from negentropy.logging import get_logger
 from negentropy.models.base import NEGENTROPY_SCHEMA
@@ -87,17 +88,47 @@ class ContextAssembler:
         memory_tokens = int(self._max_tokens * self._memory_ratio)
         history_tokens = int(self._max_tokens * self._history_ratio)
 
+        # Phase 4：注入 Core Memory Block（常驻摘要）
+        core_blocks_text, core_block_tokens = await self._collect_core_blocks(
+            user_id=user_id,
+            app_name=app_name,
+            thread_id=thread_id,
+        )
+        # Core Block 占用从 memory_tokens 中预留（不超过 30%）。超过时按预留上限截断，
+        # 避免后续直接 prepend 时把 memory 段实际占用挤出预算（见 review #2）。
+        core_block_cap = int(memory_tokens * 0.3)
+        core_block_truncated = False
+        if core_block_tokens > core_block_cap and core_block_cap > 0:
+            core_blocks_text, core_block_tokens = await self._truncate_text_to_tokens(
+                core_blocks_text,
+                core_block_cap,
+            )
+            core_block_truncated = True
+        reserved_for_core = min(core_block_tokens, core_block_cap)
+        memory_tokens_after_core = max(0, memory_tokens - reserved_for_core)
+
+        # Phase 4：query intent 分类（轻量启发式，仅用于日志/可观测）
+        intent = classify_intent(query) if query else None
+
         try:
             result = await self._call_get_context_window(
                 user_id=user_id,
                 app_name=app_name,
                 thread_id=thread_id,
                 max_tokens=self._max_tokens,
-                memory_tokens=memory_tokens,
+                memory_tokens=memory_tokens_after_core,
                 history_tokens=history_tokens,
                 query=query,
                 query_embedding=query_embedding,
             )
+
+            # 拼接 Core Block 至上下文最前方（最高优先级）
+            if core_blocks_text:
+                if result.get("memory_context"):
+                    result["memory_context"] = core_blocks_text + "\n" + result["memory_context"]
+                else:
+                    result["memory_context"] = core_blocks_text
+                result["token_count"] = result.get("token_count", 0) + core_block_tokens
 
             # Token Budget 硬性校验：超标时按行截断
             budget_total = memory_tokens + history_tokens
@@ -117,6 +148,14 @@ class ContextAssembler:
                 result["token_count"] / self._max_tokens if self._max_tokens > 0 else 0.0
             )
             result["budget"]["overflow"] = actual_tokens > budget_total
+            result["budget"]["core_block_tokens"] = core_block_tokens
+            result["budget"]["core_block_truncated"] = core_block_truncated
+            if intent is not None:
+                result["budget"]["query_intent"] = {
+                    "primary": intent.primary,
+                    "boost_types": list(intent.boost_types),
+                    "confidence": intent.confidence,
+                }
 
             # 隐式反馈：记忆被注入 LLM 上下文 → mark_referenced<sup>[[33]](#ref33)</sup>
             if result.get("memory_context") and retrieval_log_id:
@@ -338,6 +377,48 @@ class ContextAssembler:
             "budget": result.get("budget", {}),
         }
 
+    async def _collect_core_blocks(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        thread_id: str | None,
+    ) -> tuple[str, int]:
+        """收集 Core Memory Block，按 thread → app → user 优先级拼接。
+
+        Phase 4：Letta/MemGPT 风格的常驻摘要块，注入到上下文最前方，
+        优先级最高，受 Self-editing Tools 主控。
+        """
+        try:
+            service = get_core_block_service()
+            blocks = await service.list_for_context(
+                user_id=user_id,
+                app_name=app_name,
+                thread_id=thread_id,
+            )
+            if not blocks:
+                return "", 0
+            lines: list[str] = []
+            for b in blocks:
+                tag = b.get("scope", "user").upper()
+                label = b.get("label", "persona")
+                content = b.get("content", "").strip()
+                if not content:
+                    continue
+                lines.append(f"[CoreBlock:{tag}:{label}] {content}")
+            text = "\n".join(lines)
+            tokens = await self._accurate_token_count(text) if text else 0
+            logger.debug(
+                "core_blocks_collected",
+                user_id=user_id,
+                count=len(lines),
+                tokens=tokens,
+            )
+            return text, tokens
+        except Exception as exc:
+            logger.debug("core_blocks_collection_skipped", error=str(exc))
+            return "", 0
+
     async def _collect_kg_context(
         self,
         *,
@@ -412,3 +493,44 @@ class ContextAssembler:
             return await TokenCounter.count_tokens_async(text)
         except Exception:
             return len(text) // 4
+
+    async def _truncate_text_to_tokens(
+        self,
+        text: str,
+        budget: int,
+    ) -> tuple[str, int]:
+        """按 token 预算截断任意文本块（用于 Core Block 30% 上限）。
+
+        策略：
+        - 先按行累加，超预算时按字符比例对最后一行做安全截断；
+        - 拼回后再 token 化校验，超标则逐行回退（与 ``_truncate_to_budget`` 一致）。
+
+        Returns:
+            (truncated_text, actual_tokens) — actual_tokens 不会超过 budget。
+        """
+        if budget <= 0 or not text:
+            return "", 0
+        lines = text.split("\n")
+        kept: list[str] = []
+        current = 0
+        for line in lines:
+            line_tokens = await self._accurate_token_count(line)
+            if current + line_tokens <= budget:
+                kept.append(line)
+                current += line_tokens
+                continue
+            remaining = budget - current
+            if remaining > 10 and line.strip():
+                chars_per_token = len(line) / max(line_tokens, 1)
+                safe_chars = int(remaining * chars_per_token * 0.9)
+                if safe_chars > 0:
+                    kept.append(line[:safe_chars] + "...")
+            break
+        out_text = "\n".join(kept)
+        out_tokens = await self._accurate_token_count(out_text)
+        # 防御性：极端情况下 join 后 token 反弹超标，逐行回退
+        while out_tokens > budget and kept:
+            kept.pop()
+            out_text = "\n".join(kept)
+            out_tokens = await self._accurate_token_count(out_text)
+        return out_text, out_tokens

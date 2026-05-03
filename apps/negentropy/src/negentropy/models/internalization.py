@@ -224,3 +224,53 @@ class MemoryAssociation(Base, UUIDMixin):
         UniqueConstraint("source_id", "target_id", "association_type", name="assoc_unique"),
         {"schema": NEGENTROPY_SCHEMA},
     )
+
+
+class MemoryCoreBlock(Base, UUIDMixin):
+    """记忆核心块（Core Memory Block）
+
+    Letta/MemGPT 风格的常驻摘要块，受 Self-editing Tools 主控，
+    不参与遗忘曲线衰减，每次主动召回时必加载。
+
+    与 ``memory_summaries`` 正交：
+    - ``memory_summaries``：LLM 自动总结，会被新巩固覆盖
+    - ``MemoryCoreBlock``：用户/Agent 主动维护，不会被自动覆盖
+
+    scope 三档：
+    - ``user``：跨 thread 的人格画像（user × app 唯一）
+    - ``app``：应用级常识 / 工作记忆（app 唯一，thread_id NULL）
+    - ``thread``：会话级目标 / 上下文锚（user × app × thread × label 唯一）
+
+    参考文献:
+    [1] C. Packer et al., "MemGPT: Towards LLMs as Operating Systems," arXiv:2310.08560, 2023.
+    """
+
+    __tablename__ = "memory_core_blocks"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    scope: Mapped[str] = mapped_column(String(20), nullable=False, default="user", server_default="'user'")
+    thread_id: Mapped[UUID | None] = mapped_column(SA_UUID, nullable=True)
+    label: Mapped[str] = mapped_column(String(64), nullable=False, default="persona", server_default="'persona'")
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    updated_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "app_name",
+            "scope",
+            "thread_id",
+            "label",
+            name="memory_core_blocks_unique",
+            # 与迁移 0022 保持一致：thread_id 在 user/app scope 下强制为 NULL，
+            # 默认 PG 行为视 NULL 为 distinct，会让此唯一约束失效。
+            postgresql_nulls_not_distinct=True,
+        ),
+        {"schema": NEGENTROPY_SCHEMA},
+    )

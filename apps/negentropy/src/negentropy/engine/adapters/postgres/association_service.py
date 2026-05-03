@@ -94,8 +94,14 @@ class AssociationService:
         association_type: str | None = None,
         direction: str = "both",
         limit: int = 20,
+        user_id: str | None = None,
+        app_name: str | None = None,
     ) -> list[MemoryAssociation]:
-        """获取记忆/事实的关联"""
+        """获取记忆/事实的关联
+
+        Review fix：可选 ``user_id`` / ``app_name`` 用于水平越权防线下推；
+        ``None`` 时维持旧行为（admin / 内部调用），上游负责鉴权。
+        """
         async with db_session.AsyncSessionLocal() as db:
             conditions_out = [MemoryAssociation.source_id == item_id]
             conditions_in = [MemoryAssociation.target_id == item_id]
@@ -103,6 +109,13 @@ class AssociationService:
             if association_type:
                 conditions_out.append(MemoryAssociation.association_type == association_type)
                 conditions_in.append(MemoryAssociation.association_type == association_type)
+
+            if user_id is not None:
+                conditions_out.append(MemoryAssociation.user_id == user_id)
+                conditions_in.append(MemoryAssociation.user_id == user_id)
+            if app_name is not None:
+                conditions_out.append(MemoryAssociation.app_name == app_name)
+                conditions_in.append(MemoryAssociation.app_name == app_name)
 
             if direction in ("outgoing", "both"):
                 stmt = select(MemoryAssociation).where(*conditions_out).limit(limit)
@@ -157,10 +170,26 @@ class AssociationService:
             await db.refresh(assoc)
         return assoc
 
-    async def delete_association(self, association_id: UUID) -> bool:
-        """删除关联"""
+    async def delete_association(
+        self,
+        association_id: UUID,
+        *,
+        user_id: str | None = None,
+        app_name: str | None = None,
+    ) -> bool:
+        """删除关联
+
+        Review fix：可选 ``user_id`` / ``app_name`` 用于水平越权防线下推；
+        非 admin 调用必须传，否则任何持 token 用户拿到 UUID 即可越权删除他人关联。
+        ``None`` 时维持旧行为（admin / 内部调用）。
+        """
         async with db_session.AsyncSessionLocal() as db:
-            stmt = delete(MemoryAssociation).where(MemoryAssociation.id == association_id)
+            conditions = [MemoryAssociation.id == association_id]
+            if user_id is not None:
+                conditions.append(MemoryAssociation.user_id == user_id)
+            if app_name is not None:
+                conditions.append(MemoryAssociation.app_name == app_name)
+            stmt = delete(MemoryAssociation).where(*conditions)
             result = await db.execute(stmt)
             await db.commit()
             return result.rowcount > 0
@@ -316,6 +345,108 @@ class AssociationService:
 
             await db.commit()
         return count
+
+    # ------------------------------------------------------------------
+    # Phase 4 — KG 双向同步（接通 association.target_type='entity' 与 KG 真实节点）
+    # ------------------------------------------------------------------
+
+    async def link_to_kg_entity(
+        self,
+        *,
+        memory_id: UUID,
+        entity_id: UUID,
+        user_id: str,
+        app_name: str,
+        weight: float = 0.7,
+    ) -> MemoryAssociation | None:
+        """建立 Memory → KG entity 的实体关联（target_type='entity'）。
+
+        幂等：唯一键 (source_id, target_id, association_type='entity') 已建。
+        """
+        try:
+            async with db_session.AsyncSessionLocal() as db:
+                async with db.begin_nested():
+                    assoc = MemoryAssociation(
+                        source_id=memory_id,
+                        source_type="memory",
+                        target_id=entity_id,
+                        target_type="entity",
+                        association_type="entity",
+                        weight=max(0.0, min(1.0, weight)),
+                        user_id=user_id,
+                        app_name=app_name,
+                    )
+                    db.add(assoc)
+                    await db.flush()
+                    assoc_id = assoc.id
+                await db.commit()
+                # 重新查询返回（避免 detached instance 问题）
+                stmt = select(MemoryAssociation).where(MemoryAssociation.id == assoc_id)
+                result = await db.execute(stmt)
+                return result.scalar_one_or_none()
+        except IntegrityError:
+            logger.debug("kg_entity_link_already_exists", memory_id=str(memory_id), entity_id=str(entity_id))
+            return None
+
+    async def get_kg_entities_for_memory(
+        self,
+        memory_id: UUID,
+        limit: int = 20,
+    ) -> list[dict]:
+        """反查 Memory 关联的 KG entity 列表。
+
+        返回 [{"entity_id", "weight", "metadata"}, ...]，KG 表读取在调用方处理。
+        """
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(MemoryAssociation)
+                .where(
+                    MemoryAssociation.source_id == memory_id,
+                    MemoryAssociation.target_type == "entity",
+                    MemoryAssociation.association_type == "entity",
+                )
+                .limit(limit)
+            )
+            result = await db.execute(stmt)
+            assocs = result.scalars().all()
+
+        return [
+            {
+                "entity_id": str(a.target_id),
+                "weight": float(a.weight),
+                "metadata": a.metadata_ or {},
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in assocs
+        ]
+
+    async def get_memories_for_kg_entity(
+        self,
+        entity_id: UUID,
+        limit: int = 50,
+    ) -> list[dict]:
+        """反查 KG entity 被哪些 Memory 引用。"""
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(MemoryAssociation)
+                .where(
+                    MemoryAssociation.target_id == entity_id,
+                    MemoryAssociation.target_type == "entity",
+                    MemoryAssociation.association_type == "entity",
+                )
+                .limit(limit)
+            )
+            result = await db.execute(stmt)
+            assocs = result.scalars().all()
+        return [
+            {
+                "memory_id": str(a.source_id),
+                "weight": float(a.weight),
+                "user_id": a.user_id,
+                "app_name": a.app_name,
+            }
+            for a in assocs
+        ]
 
     async def _create_semantic_links(
         self,

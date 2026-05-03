@@ -5,7 +5,11 @@
 > - 系统架构总览：[`framework.md`](./framework.md)
 > - Memory 与 Knowledge 职责边界：[`knowledges.md`](./knowledges.md)
 > - 知识图谱技术方案：[`knowledge-graph.md`](./knowledge-graph.md)
+> - **理论基础白皮书（Phase 4）**：[`memory-whitepaper.md`](./memory-whitepaper.md)
+> - **轻量上手手册（Phase 4）**：[`user-guide/memory-basics.md`](./user-guide/memory-basics.md) · [`memory-integration.md`](./user-guide/memory-integration.md) · [`memory-automation.md`](./user-guide/memory-automation.md) · [`memory-troubleshooting.md`](./user-guide/memory-troubleshooting.md)
 > - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
+>
+> **Phase 4 已完成增强**（2026-05）：①Memory 类型分层差异化 + Core Memory Block；②Self-editing Memory Tools（5 个 Agent 主动管理工具）；③LoCoMo / LongMemEval 评测基线；④User-Guide 拆分 + 理论白皮书；⑤KG 双向同步接通；⑥PII regex 占位。详见 [`memory-whitepaper.md`](./memory-whitepaper.md) §2 与 §3。
 
 ---
 
