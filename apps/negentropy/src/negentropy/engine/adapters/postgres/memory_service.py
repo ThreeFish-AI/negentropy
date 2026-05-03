@@ -936,7 +936,10 @@ class PostgresMemoryService(BaseMemoryService):
             return []
         seeds: list[uuid.UUID] = []
         for row in rows:
-            if float(row.distance or 1.0) <= max_distance:
+            # Review fix: 显式 None 检查；不能用 ``row.distance or 1.0``，
+            # 完美命中 distance=0.0 是 falsy，会被错误替换成 1.0 而剔除掉。
+            dist = float(row.distance) if row.distance is not None else 1.0
+            if dist <= max_distance:
                 seeds.append(row.id)
         return seeds
 

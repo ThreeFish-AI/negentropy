@@ -42,6 +42,14 @@ class ReflectionSettings(BaseSettings):
     min_intent_confidence: float = Field(
         default=0.55, ge=0.0, le=1.0, description="Query Intent 置信度门槛（procedural/episodic 才注入）"
     )
+    max_inflight_tasks: int = Field(
+        default=8,
+        ge=1,
+        description=(
+            "后台反思任务并发上限。超过该值时新触发的失败反馈被静默丢弃，"
+            "避免反馈风暴下 LLM 调用扇出失控（每任务最多 1+2+4s 退避）。"
+        ),
+    )
 
 
 class ConsolidationSettings(BaseSettings):
@@ -69,6 +77,13 @@ class PIISettings(BaseSettings):
     score_threshold: float = Field(default=0.6, ge=0.0, le=1.0, description="Presidio 置信度阈值")
     gatekeeper_enabled: bool = Field(default=False, description="检索路径是否启用 PIIGatekeeper")
     acl_role_threshold: str = Field(default="editor", description="低于此角色看到 anonymized 副本")
+    allow_engine_fallback: bool = Field(
+        default=False,
+        description=(
+            "engine='presidio' 初始化失败时是否允许静默降级到 regex；默认 False"
+            "（保密性优先，缺模型直接抛错），运维确认可降级时显式置 True。"
+        ),
+    )
 
 
 class MemorySettings(BaseSettings):

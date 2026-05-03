@@ -24,9 +24,10 @@ def patched_db():
         yield session
 
 
-def _make_settings(*, enabled: bool):
+def _make_settings(*, enabled: bool, max_inflight_tasks: int = 8):
     settings = MagicMock()
     settings.memory.reflection.enabled = enabled
+    settings.memory.reflection.max_inflight_tasks = max_inflight_tasks
     return settings
 
 
@@ -109,3 +110,38 @@ class TestRecordFeedbackReflection:
                     # 主任务捕获异常后不向上抛
                     assert all(not isinstance(r, BaseException) for r in results)
         assert ok is True
+
+    async def test_ceiling_drops_new_tasks_when_full(self, patched_db):
+        """超过 max_inflight_tasks 上限时，新反馈不创建反思任务。"""
+        tracker = RetrievalTracker()
+        log_id_1 = uuid4()
+        log_id_2 = uuid4()
+
+        async def _slow_process(**kwargs):
+            await asyncio.sleep(0.3)
+
+        with patch("negentropy.engine.consolidation.reflection_worker.ReflectionWorker") as mock_worker_cls:
+            mock_worker = MagicMock()
+            mock_worker.process = AsyncMock(side_effect=_slow_process)
+            mock_worker_cls.return_value = mock_worker
+
+            with patch.dict(
+                "sys.modules",
+                {"negentropy.config": MagicMock(settings=_make_settings(enabled=True, max_inflight_tasks=1))},
+            ):
+                # 第一个任务正常触发
+                await tracker.record_feedback(log_id_1, "harmful")
+                await asyncio.sleep(0.01)
+                assert len(get_pending_reflection_tasks()) == 1
+
+                # 第二个任务应被 ceiling 丢弃
+                ok = await tracker.record_feedback(log_id_2, "irrelevant")
+                await asyncio.sleep(0.01)
+                assert ok is True
+                # 仍只有 1 个在飞（第二个被丢弃）
+                assert len(get_pending_reflection_tasks()) == 1
+
+            # 清理
+            pending = list(get_pending_reflection_tasks())
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)

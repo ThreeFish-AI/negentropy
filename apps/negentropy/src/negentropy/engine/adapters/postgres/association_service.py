@@ -459,7 +459,10 @@ class AssociationService:
         # frontier：当前层待扩散节点；visited：所有已经被打过分的节点
         # （含种子）。仅对 visited 之外的端点累加分数，避免 depth ≥ 2 时
         # 把分数回流到种子或上一层节点导致 PPR 归一化失真。
-        frontier: set[str] = set(seed_strs)
+        # Review fix：frontier 持有 UUID 实例（非 text），SQL 用
+        # ``ANY(:frontier::uuid[])`` 直击 ``ix_kg_relations_source/_target``
+        # btree 索引；旧版 ``::text`` 转换会全表扫导致 BFS 超 timeout 静默降级。
+        frontier: set[UUID] = set(seeds)
         visited: set[str] = set(seed_strs)
         for d in range(1, max(1, depth) + 1):
             if not frontier:
@@ -469,12 +472,12 @@ class AssociationService:
                 async with db_session.AsyncSessionLocal() as db:
                     sql = text(
                         f"""
-                        SELECT r.source_id::text AS src, r.target_id::text AS tgt,
+                        SELECT r.source_id AS src, r.target_id AS tgt,
                                COALESCE(r.weight, 1.0) AS w
                         FROM {NEGENTROPY_SCHEMA}.kg_relations r
                         WHERE r.is_active IS TRUE
-                          AND (r.source_id::text = ANY(:frontier)
-                               OR r.target_id::text = ANY(:frontier))
+                          AND (r.source_id = ANY(:frontier)
+                               OR r.target_id = ANY(:frontier))
                         """
                     )
                     result = await db.execute(sql, {"frontier": list(frontier)})
@@ -485,16 +488,17 @@ class AssociationService:
 
             # 同层内每个端点的最大累积权重（对多条路径取 max，避免重复加权放大）
             level_gain: dict[str, float] = {}
+            frontier_strs = {str(u) for u in frontier}
             for row in edges:
-                src = row.src
-                tgt = row.tgt
+                src = str(row.src)
+                tgt = str(row.tgt)
                 w = float(row.w or 1.0)
                 # KG 视为无向图扩散（HippoRAG 论文采用对称邻接）
-                if src in frontier and tgt not in visited:
+                if src in frontier_strs and tgt not in visited:
                     prev = level_gain.get(tgt, 0.0)
                     if w > prev:
                         level_gain[tgt] = w
-                if tgt in frontier and src not in visited:
+                if tgt in frontier_strs and src not in visited:
                     prev = level_gain.get(src, 0.0)
                     if w > prev:
                         level_gain[src] = w
@@ -502,9 +506,10 @@ class AssociationService:
             for node, w in level_gain.items():
                 scores[node] = scores.get(node, 0.0) + decay * w
 
-            new_frontier = set(level_gain.keys())
-            visited.update(new_frontier)
-            frontier = new_frontier
+            new_frontier_strs = set(level_gain.keys())
+            visited.update(new_frontier_strs)
+            # 下一跳 frontier 重新升回 UUID，以便 SQL 仍走索引路径
+            frontier = {UUID(s) for s in new_frontier_strs}
 
         # 归一化到 [0, 1]
         if not scores:

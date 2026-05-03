@@ -114,10 +114,18 @@ class PresidioPIIDetector(PIIDetectorBase):
         for s in spans:
             deduped.setdefault((s.start, s.end), s)
         result = sorted(deduped.values(), key=lambda s: s.start)
-        # Luhn 增强：兜底 regex 中可能命中但 Presidio 漏掉的 credit_card
+        # Luhn 增强：兜底 regex 中可能命中但 Presidio 漏掉的 credit_card。
+        # Review fix：regex 命中固定 score=0.99；若操作员把 score_threshold
+        # 调到 > 0.99（如 1.0 抑制弱命中），增强结果也必须被过滤掉，否则
+        # 会绕过阈值产生未授权透传。
         for r in RegexPIIDetector().detect(text):
-            if r.pii_type == "credit_card" and (r.start, r.end) not in deduped:
-                result.append(r)
+            if r.pii_type != "credit_card":
+                continue
+            if (r.start, r.end) in deduped:
+                continue
+            if r.score < self._score_threshold:
+                continue
+            result.append(r)
         result.sort(key=lambda s: s.start)
         return result
 

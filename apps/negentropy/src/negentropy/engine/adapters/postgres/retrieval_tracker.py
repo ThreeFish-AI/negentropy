@@ -31,6 +31,10 @@ logger = get_logger("negentropy.engine.adapters.postgres.retrieval_tracker")
 
 _REFLEXION_TRIGGER_OUTCOMES = {"irrelevant", "harmful"}
 
+# 反馈风暴下后台反思任务的硬性上限默认值；可被
+# ``settings.memory.reflection.max_inflight_tasks`` 覆盖。
+_DEFAULT_MAX_INFLIGHT_REFLECTIONS = 8
+
 # 后台反思任务集合（fire-and-forget；测试可 await 其中元素验证完成）
 _pending_reflection_tasks: set[asyncio.Task] = set()
 
@@ -38,6 +42,16 @@ _pending_reflection_tasks: set[asyncio.Task] = set()
 def get_pending_reflection_tasks() -> set[asyncio.Task]:
     """返回当前未完成的反思任务集合（用于测试 / 优雅关停）。"""
     return _pending_reflection_tasks
+
+
+def _resolve_max_inflight() -> int:
+    """读取反思任务并发上限；settings 不可用时回退到默认 8。"""
+    try:
+        from negentropy.config import settings as global_settings
+
+        return int(global_settings.memory.reflection.max_inflight_tasks)
+    except Exception:
+        return _DEFAULT_MAX_INFLIGHT_REFLECTIONS
 
 
 class RetrievalTracker:
@@ -118,6 +132,20 @@ class RetrievalTracker:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return  # 不在事件循环中，跳过
+
+        # Review fix：fire-and-forget 任务必须有硬上限。每个反思任务最坏会做
+        # 1+2+4s 退避 + 多次 litellm.acompletion，反馈风暴下无界扇出会触发
+        # 限流甚至 OOM。超过 ceiling 时丢弃并写 warning，保留可观测性。
+        ceiling = _resolve_max_inflight()
+        if len(_pending_reflection_tasks) >= ceiling:
+            logger.warning(
+                "reflection_task_dropped_inflight_ceiling",
+                inflight=len(_pending_reflection_tasks),
+                ceiling=ceiling,
+                log_id=str(log_id),
+                outcome=outcome,
+            )
+            return
 
         task = loop.create_task(_run_reflection_safely(log_id=log_id, outcome=outcome))
         _pending_reflection_tasks.add(task)

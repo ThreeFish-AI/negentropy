@@ -145,6 +145,7 @@ memory:
     fewshot_k: 2
     budget_ratio: 0.10
     min_intent_confidence: 0.55
+    max_inflight_tasks: 8                    # 后台反思任务硬上限（防反馈风暴）
   consolidation:                             # F3 Memify Consolidation Pipeline
     legacy: false
     policy: serial                           # serial | parallel | fail_tolerant
@@ -159,6 +160,7 @@ memory:
     score_threshold: 0.6
     gatekeeper_enabled: false
     acl_role_threshold: editor
+    allow_engine_fallback: false             # presidio 初始化失败时禁止悄悄退回 regex
 
 # --- Knowledge 配置 ---
 knowledge:

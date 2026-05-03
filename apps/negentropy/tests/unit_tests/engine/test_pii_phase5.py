@@ -21,15 +21,22 @@ from negentropy.engine.governance.pii import (
 
 
 def _make_settings(
-    *, engine: str = "regex", policy: str = "mark", gatekeeper_enabled: bool = False, threshold: str = "editor"
+    *,
+    engine: str = "regex",
+    policy: str = "mark",
+    gatekeeper_enabled: bool = False,
+    threshold: str = "editor",
+    allow_engine_fallback: bool = False,
+    score_threshold: float = 0.6,
 ):
     cfg = MagicMock()
     cfg.engine = engine
     cfg.policy = policy
     cfg.languages = ["en", "zh"]
-    cfg.score_threshold = 0.6
+    cfg.score_threshold = score_threshold
     cfg.gatekeeper_enabled = gatekeeper_enabled
     cfg.acl_role_threshold = threshold
+    cfg.allow_engine_fallback = allow_engine_fallback
     settings = MagicMock()
     settings.memory.pii = cfg
     return settings
@@ -117,8 +124,27 @@ class TestFactory:
             d = get_pii_detector()
         assert d.name == "regex"
 
-    def test_presidio_init_failure_falls_back_regex(self):
-        # 拦截 presidio import 让其失败，确保 factory fallback
+    def test_presidio_init_failure_raises_without_fallback_flag(self):
+        """默认 allow_engine_fallback=False 时，presidio 初始化失败应抛错而非静默降级。"""
+        from negentropy.engine.governance.pii import presidio_detector
+        from negentropy.engine.governance.pii.factory import PIIEngineUnavailableError
+
+        class _FakePresidio:
+            def __init__(self, *args, **kwargs):
+                raise RuntimeError("presidio not installed in this test env")
+
+        with (
+            patch.dict(
+                "sys.modules",
+                {"negentropy.config": MagicMock(settings=_make_settings(engine="presidio"))},
+            ),
+            patch.object(presidio_detector, "PresidioPIIDetector", _FakePresidio),
+        ):
+            with pytest.raises(PIIEngineUnavailableError, match="allow_engine_fallback"):
+                get_pii_detector()
+
+    def test_presidio_init_failure_falls_back_when_flag_set(self):
+        """显式 allow_engine_fallback=True 时允许降级到 regex。"""
         from negentropy.engine.governance.pii import presidio_detector
 
         class _FakePresidio:
@@ -126,7 +152,14 @@ class TestFactory:
                 raise RuntimeError("presidio not installed in this test env")
 
         with (
-            patch.dict("sys.modules", {"negentropy.config": MagicMock(settings=_make_settings(engine="presidio"))}),
+            patch.dict(
+                "sys.modules",
+                {
+                    "negentropy.config": MagicMock(
+                        settings=_make_settings(engine="presidio", allow_engine_fallback=True)
+                    )
+                },
+            ),
             patch.object(presidio_detector, "PresidioPIIDetector", _FakePresidio),
         ):
             d = get_pii_detector()
