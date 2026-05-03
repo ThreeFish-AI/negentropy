@@ -63,13 +63,13 @@ class KgEntityService:
             corpus_id: 所属语料库 ID
             app_name: 应用名称（默认 "negentropy"）
         """
+        from sqlalchemy import select as sql_select
+
         from negentropy.models.perception import KgEntity
 
         # 检查是否已存在（幂等）
         existing = await db.execute(
-            __import__("sqlalchemy")
-            .select(KgEntity)
-            .where(
+            sql_select(KgEntity).where(
                 KgEntity.name == name,
                 KgEntity.entity_type == entity_type,
                 KgEntity.corpus_id == corpus_id if corpus_id else True,

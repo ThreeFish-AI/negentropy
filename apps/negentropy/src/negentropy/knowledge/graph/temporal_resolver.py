@@ -45,13 +45,29 @@ class TemporalResolver:
       3. 矛盾 (CONTRADICTION): 互斥关系（如 WORKS_FOR 不同的目标）
     """
 
-    # 互斥关系类型：同一源实体只能有一个当前有效值
-    MUTUALLY_EXCLUSIVE_TYPES = {
-        "WORKS_FOR",
-        "LOCATED_IN",
-        "PART_OF",
-        "CREATED_BY",
-    }
+    # 默认互斥关系类型：同一源实体只能有一个当前有效值
+    DEFAULT_MUTUALLY_EXCLUSIVE_TYPES = frozenset(
+        {
+            "WORKS_FOR",
+            "LOCATED_IN",
+            "PART_OF",
+            "CREATED_BY",
+        }
+    )
+
+    def __init__(
+        self,
+        mutually_exclusive_types: set[str] | frozenset[str] | None = None,
+    ) -> None:
+        self._mutually_exclusive_types = (
+            frozenset(mutually_exclusive_types)
+            if mutually_exclusive_types is not None
+            else self.DEFAULT_MUTUALLY_EXCLUSIVE_TYPES
+        )
+
+    @property
+    def MUTUALLY_EXCLUSIVE_TYPES(self) -> frozenset[str]:
+        return self._mutually_exclusive_types
 
     async def resolve_relations(
         self,

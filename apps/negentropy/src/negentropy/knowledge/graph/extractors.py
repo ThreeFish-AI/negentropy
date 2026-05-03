@@ -383,7 +383,7 @@ class LLMRelationExtractor:
     ```
     """
 
-    # 关系提取 Prompt 模板
+    # 关系提取 Prompt 模板 (OpenIE: Banko et al., 2007; HippoRAG: Gutierrez et al., 2024)
     EXTRACTION_PROMPT = """Extract relationships between the following entities found in the text.
 
 Entities:
@@ -397,14 +397,18 @@ Instructions:
 2. For each relationship, provide:
    - source: Source entity name (must be from the entity list)
    - target: Target entity name (must be from the entity list)
-   - type: Relationship type (one of: {relation_types})
+   - type: Relationship type
    - description: Brief description of the relationship
    - evidence: Exact text from the source that indicates this relationship
    - confidence: Extraction confidence between 0 and 1
 
+Preferred types (use when applicable): {relation_types}
+You may also use any descriptive free-text type (e.g. "outperforms", "extends", "benchmarks_against",
+"trained_on", "evaluated_on", "introduces", "validates", "contradicts") when it better captures the relationship.
+
 Important:
 - Only create relationships between entities from the provided list
-- Use the most specific relationship type available
+- Use the most specific and descriptive relationship type available
 - Include the exact text evidence when possible
 
 Output as JSON with the following structure:
@@ -497,6 +501,7 @@ Output as JSON with the following structure:
                     edge_type=result.relation_type,
                     weight=result.confidence,
                     metadata={
+                        **result.metadata,
                         "evidence": result.evidence,
                         "confidence": result.confidence,
                         "source": "llm_extraction",
@@ -622,9 +627,15 @@ Output as JSON with the following structure:
             if not source or not target:
                 continue
 
-            relation_type = rel_data.get("type", KgRelationType.RELATED_TO.value)
-            if relation_type not in KgRelationType.all_values():
-                relation_type = KgRelationType.RELATED_TO.value
+            # Open Relation Type (Banko et al., 2007; Gutierrez et al., 2024)
+            # 已知类型保持原值，未知类型映射为 CUSTOM 并保留原始类型到 metadata
+            raw_type = rel_data.get("type", KgRelationType.RELATED_TO.value)
+            if raw_type in KgRelationType.all_values():
+                relation_type = raw_type
+                extra_metadata = {}
+            else:
+                relation_type = KgRelationType.CUSTOM.value
+                extra_metadata = {"raw_relation_type": raw_type}
 
             result = RelationExtractionResult(
                 source_name=source,
@@ -633,6 +644,7 @@ Output as JSON with the following structure:
                 description=rel_data.get("description"),
                 confidence=float(rel_data.get("confidence", 1.0)),
                 evidence=rel_data.get("evidence"),
+                metadata=extra_metadata,
             )
             results.append(result)
 

@@ -143,6 +143,7 @@ from .schemas import (  # noqa: F401
     GraphEntityDetailResponse,
     GraphEntityItem,
     GraphEntityListResponse,
+    GraphMetricsResponse,
     GraphNeighborsRequest,
     GraphPathRequest,
     GraphPayload,
@@ -3032,9 +3033,10 @@ async def build_knowledge_graph(
                 detail={"code": "NO_KNOWLEDGE", "message": "No knowledge chunks found in corpus"},
             )
 
-        # 准备知识块数据
+        # 准备知识块数据（含 id 用于增量构建跳过判断）
         chunks = [
             {
+                "id": str(item.id),
                 "content": item.content,
                 "metadata": item.metadata or {},
             }
@@ -3466,6 +3468,69 @@ async def get_graph_stats(
     async with AsyncSessionLocal() as db:
         stats = await graph_service.get_stats(db, corpus_id=corpus_id)
     return GraphStatsResponse(**stats)
+
+
+@router.get("/base/{corpus_id}/graph/metrics", response_model=GraphMetricsResponse)
+async def get_graph_metrics(
+    corpus_id: UUID,
+    app_name: str | None = Query(default=None),
+    limit: int = Query(default=10, ge=1, le=50),
+) -> GraphMetricsResponse:
+    """获取图谱构建指标趋势
+
+    返回最近 N 次 build 的定量指标（实体数、关系数、置信度、LLM token 等），
+    用于质量趋势监控和成本追踪。
+    """
+    from sqlalchemy import text
+
+    from negentropy.models.base import NEGENTROPY_SCHEMA
+
+    async with AsyncSessionLocal() as db:
+        rows = await db.execute(
+            text(f"""
+                SELECT run_id, status, entity_count, relation_count,
+                       chunks_processed, progress_percent, warnings,
+                       started_at, completed_at, created_at
+                FROM {NEGENTROPY_SCHEMA}.kg_build_runs
+                WHERE corpus_id = :corpus_id
+                ORDER BY created_at DESC
+                LIMIT :limit
+            """),
+            {"corpus_id": str(corpus_id), "limit": limit},
+        )
+
+        builds = []
+        for row in rows:
+            build_entry: dict[str, Any] = {
+                "run_id": row.run_id,
+                "status": row.status,
+                "entity_count": row.entity_count or 0,
+                "relation_count": row.relation_count or 0,
+                "chunks_processed": row.chunks_processed or 0,
+                "progress_percent": float(row.progress_percent or 0),
+                "started_at": row.started_at.isoformat() if row.started_at else None,
+                "completed_at": row.completed_at.isoformat() if row.completed_at else None,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            }
+            # 从 warnings JSONB 中提取 _metrics
+            warnings_data = row.warnings
+            if warnings_data:
+                if isinstance(warnings_data, str):
+                    import json
+
+                    try:
+                        warnings_data = json.loads(warnings_data)
+                    except (json.JSONDecodeError, TypeError):
+                        warnings_data = []
+                if isinstance(warnings_data, list):
+                    for w in warnings_data:
+                        if isinstance(w, dict) and "_metrics" in w:
+                            build_entry["metrics"] = w["_metrics"]
+                            break
+
+            builds.append(build_entry)
+
+    return GraphMetricsResponse(builds=builds)
 
 
 @router.post(

@@ -505,6 +505,12 @@ class GraphStatsResponse(BaseModel):
     community_distribution: dict[str, int] = Field(default_factory=dict)
 
 
+class GraphMetricsResponse(BaseModel):
+    """图谱构建指标趋势"""
+
+    builds: list[dict[str, Any]] = Field(default_factory=list)
+
+
 # ============================================================================
 # Document Schemas
 # ============================================================================
