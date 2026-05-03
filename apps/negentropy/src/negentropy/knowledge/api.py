@@ -3477,8 +3477,8 @@ async def get_graph_metrics(
 ) -> GraphMetricsResponse:
     """获取图谱构建指标趋势
 
-    返回最近 N 次 build 的定量指标（实体数、关系数、置信度、LLM token 等），
-    用于质量趋势监控和成本追踪。
+    返回最近 N 次 build 的定量指标（实体数、关系数等），
+    用于质量趋势监控。metrics 仅在 build 有警告时附带详细指标快照。
     """
     import json
 

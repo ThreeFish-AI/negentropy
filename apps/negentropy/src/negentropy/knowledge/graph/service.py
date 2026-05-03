@@ -613,18 +613,18 @@ class GraphService:
                 community_count_by_level={lv: len(set(p.values())) for lv, p in levels_data.items()},
             )
 
-            # 将 metrics 附加到 build_warnings 供 API 返回
-            build_warnings_with_metrics = build_warnings + [
-                {"_metrics": build_metrics.to_dict()},
-            ]
-
-            # 更新构建运行状态（含警告 + 已处理 chunk + metrics）
+            # 更新构建运行状态（warnings 仅存真正的警告，metrics 独立记录）
+            # _metrics 附加到 warnings 末尾仅当有真实警告时一并持久化，
+            # 无警告时 warnings 保持 NULL 以保留语义（NULL = 无异常）
+            persisted_warnings: list[dict[str, Any]] | None = None
+            if build_warnings:
+                persisted_warnings = build_warnings + [{"_metrics": build_metrics.to_dict()}]
             await self._repository.update_build_run(
                 run_id=run_uuid,
                 status="completed",
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
-                warnings=build_warnings_with_metrics if build_warnings_with_metrics else None,
+                warnings=persisted_warnings,
                 processed_chunk_ids=all_processed if all_processed else None,
             )
 
