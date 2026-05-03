@@ -110,10 +110,43 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 | F2 Reflexion Episodic Replay | 失败反思 → few-shot 召回 | 小-中 | [4] | ✅ 已交付 |
 | F3 Memify 后处理插件管线 | 巩固后多 LLM 任务可组合（cognee 风格）| 中 | [13], [17] | ✅ 已交付 |
 | F4 Presidio PII 引擎 | 合规级 PII 检测/掩码 | 中 | [18], [19], [20] | ✅ 已交付 |
+| F5 Rocchio 相关性反馈闭环 | 反馈驱动排序优化 + PRF 查询扩展 | 小-中 | [22], [23] | ✅ 已交付 |
+| F6 巩固管线 Step 补全 | 6-step 完整管线（聚类/去重/规范化）| 中 | [3], [13] | ✅ 已交付 |
 | LongMem 全量评测 | 1000+ 样本规模化对比 | 小 | [14] | 📋 未启动 |
 | 英文版本 user-guide | 国际化 | 小 | — | 📋 未启动 |
 
 > ✅ 已交付：契约已固化（配置项、API 签名、降级策略），代码实施迭代式推进。
+
+### 4.6 F5 — Rocchio 相关性反馈闭环（Phase 6 G1）
+
+**原理**：Rocchio (1971)<sup>[[22]](#ref22)</sup>相关性反馈将累积的 helpful/irrelevant 反馈转化为 per-memory 排序权重。权重公式 `weight = 1.0 + β·helpful_ratio - γ·irrelevant_ratio`，clamp 到 [0.5, 2.0] 防止极端值。周期性聚合任务从 `memory_retrieval_logs` 表统计反馈，写入 `memories.metadata_.relevance_weight`；搜索路径在 intent rerank 后乘以该权重。
+
+此外引入 Pseudo-Relevance Feedback (PRF)<sup>[[23]](#ref23)</sup>查询扩展：取 top-K 初检结果的 embedding 质心，与原始查询向量按 `prf_alpha` 融合后重跑向量检索。
+
+**工程参考**：mem0 使用访问频率排序；Elasticsearch LTR 插件。
+
+**状态**：✅ 已交付（默认 `NE_MEMORY_RELEVANCE__ENABLED=false`，权重由异步聚合任务预计算，搜索路径仅乘法操作 <1ms 开销）。
+
+### 4.7 F6 — 巩固管线 Step 补全（Phase 6 G2）
+
+**原理**：CLS 理论<sup>[[3]](#ref3)</sup>要求碎片记忆经多阶段提炼。Phase 5 F3 仅注册 2 step（fact_extract + auto_link），Phase 6 补全为 6 step 完整管线：
+
+1. **fact_extract** — LLM/Pattern 事实提取（已有）
+2. **entity_normalization** — 实体规范化（已有，Phase 6 注册到默认列表）
+3. **topic_cluster** — 基于 pgvector 余弦距离的 single-linkage 聚类，生成主题标签写入 `metadata_.topics`（新增）
+4. **dedup_merge** — 近重复合并（cosine >= 0.90），保留高 retention 版本，soft-delete 低分版本，内容追加到 `metadata_.merged_from`（新增）
+5. **summarize** — 用户画像摘要（已有，Phase 6 注册到默认列表）
+6. **auto_link** — 自动关联建立（已有）
+
+**工程参考**：cognee Cognify 多步管线；Google ADK checkpointing。
+
+**状态**：✅ 已交付（默认 policy 升级为 `fail_tolerant`，新 step 失败不阻塞主流程；`legacy=true` 一键回退 Phase 4 行为）。
+
+### 4.8 Phase 6 G3/G4 — 测试覆盖 + 可观测性
+
+**G3 测试覆盖**：从 ~62 个测试扩展到 ~420+，覆盖率 ~15% → ~19%（engine 模块）。新增覆盖：RRF 融合、巩固管线辅助方法、去重检测、重要性/Retention 评分、Rocchio 权重、PipelineContext 协议。
+
+**G4 可观测性**：新增 `GET /memory/health`（无需鉴权）和 `GET /memory/metrics`（需 admin）端点。指标基于 SRE 四大黄金信号<sup>[[24]](#ref24)</sup>从现有表聚合，无 schema 变更。配置：`NE_MEMORY_OBSERVABILITY__HEALTH_ENABLED=true`、`NE_MEMORY_OBSERVABILITY__METRICS_ENABLED=true`。
 
 ---
 
@@ -160,6 +193,12 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 <a id="ref20"></a>[20] European Parliament and Council, "Regulation (EU) 2016/679 (General Data Protection Regulation), Articles 17 and 25," *Official Journal of the European Union*, L 119, pp. 1–88, May 2016.
 
 <a id="ref21"></a>[21] FadeMem authors, "Multi-factor adaptive forgetting curves for autonomous agents," arXiv:2601.18642, 2026.
+
+<a id="ref22"></a>[22] J. J. Rocchio, "Relevance feedback in information retrieval," in *The SMART Retrieval System*, Prentice-Hall, 1971, pp. 313-323.
+
+<a id="ref23"></a>[23] Y. Lv and C. Zhai, "A comparative study of methods for estimating query language models," in *Proc. 32nd Int. ACM SIGIR Conf.*, 2009, pp. 289-296.
+
+<a id="ref24"></a>[24] B. Beyer, C. Jones, J. Petoff, and N. R. Murphy, *Site Reliability Engineering: How Google Runs Production Systems*. O'Reilly, 2016.
 
 ---
 

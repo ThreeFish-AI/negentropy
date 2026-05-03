@@ -1337,3 +1337,44 @@ async def delete_core_block(
     if not deleted:
         raise HTTPException(status_code=404, detail="Core block not found")
     return {"status": "deleted"}
+
+
+# ============================================================================
+# Phase 6 G4 — Observability: Health & Metrics
+# ============================================================================
+
+
+@router.get("/health")
+async def memory_health() -> dict[str, Any]:
+    """Memory 系统健康检查（无需鉴权，负载均衡器/监控系统用）。"""
+    from negentropy.config import settings as global_settings
+
+    if not global_settings.memory.observability.health_enabled:
+        raise HTTPException(status_code=404, detail="Health endpoint is disabled")
+
+    from negentropy.engine.observability.health_checker import check_memory_health
+
+    return await check_memory_health()
+
+
+@router.get("/metrics")
+async def memory_metrics(
+    user_id: str | None = Query(default=None),
+    app_name: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Memory 系统聚合指标（需 admin 鉴权）。
+
+    基于 SRE 四大黄金信号和 USE 方法，从现有表聚合搜索、巩固、Retention、PII 等指标。
+    """
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required for metrics")
+
+    from negentropy.config import settings as global_settings
+
+    if not global_settings.memory.observability.metrics_enabled:
+        raise HTTPException(status_code=404, detail="Metrics endpoint is disabled")
+
+    from negentropy.engine.observability.memory_metrics import get_memory_metrics
+
+    return await get_memory_metrics(user_id=user_id, app_name=_resolve_app_name(app_name))

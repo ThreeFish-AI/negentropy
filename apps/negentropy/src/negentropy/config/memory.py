@@ -58,12 +58,21 @@ class ConsolidationSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore", frozen=True)
 
     legacy: bool = Field(default=False, description="True 回退到 Phase 4 硬编码两步（fact_extract → auto_link）")
-    policy: str = Field(default="serial", description="serial | parallel | fail_tolerant")
+    policy: str = Field(default="fail_tolerant", description="serial | parallel | fail_tolerant")
     timeout_per_step_ms: int = Field(default=30000, ge=100, description="单 step 超时")
     steps: list[str] = Field(
-        default_factory=lambda: ["fact_extract", "auto_link"],
-        description="启用的 step 列表，按顺序执行；默认与 Phase 4 行为一致",
+        default_factory=lambda: [
+            "fact_extract",
+            "entity_normalization",
+            "topic_cluster",
+            "dedup_merge",
+            "summarize",
+            "auto_link",
+        ],
+        description="启用的 step 列表，按顺序执行；Phase 6 G2 扩展为 6 step",
     )
+    cluster_eps: float = Field(default=0.15, ge=0.0, le=1.0, description="TopicCluster 聚类余弦距离阈值")
+    merge_threshold: float = Field(default=0.90, ge=0.5, le=1.0, description="DedupMerge 近重复 cosine 阈值")
 
 
 class PIISettings(BaseSettings):
@@ -86,8 +95,39 @@ class PIISettings(BaseSettings):
     )
 
 
+class MemoryObservabilitySettings(BaseSettings):
+    """Phase 6 G4 — 记忆系统可观测性开关。"""
+
+    model_config = SettingsConfigDict(extra="ignore", frozen=True)
+
+    health_enabled: bool = Field(default=True, description="是否启用 /memory/health 健康检查端点")
+    metrics_enabled: bool = Field(default=True, description="是否启用 /memory/metrics 聚合指标端点")
+
+
+class RelevanceSettings(BaseSettings):
+    """Phase 6 G1 — Rocchio 相关性反馈闭环。
+
+    理论：Rocchio (1971) 相关性反馈<sup>[[1]](#ref1)</sup>，
+    weight = 1.0 + β·helpful_ratio - γ·irrelevant_ratio
+
+    参考文献:
+    [1] J. J. Rocchio, "Relevance feedback in information retrieval,"
+        in *The SMART Retrieval System*, Prentice-Hall, 1971, pp. 313-323.
+    """
+
+    model_config = SettingsConfigDict(extra="ignore", frozen=True)
+
+    enabled: bool = Field(default=False, description="是否启用 Rocchio 相关性反馈闭环（默认关闭）")
+    rocchio_beta: float = Field(default=0.75, ge=0.0, le=2.0, description="正反馈系数 β")
+    rocchio_gamma: float = Field(default=0.15, ge=0.0, le=2.0, description="负反馈系数 γ")
+    prf_top_k: int = Field(default=3, ge=1, le=10, description="PRF 查询扩展取 top-K 结果")
+    prf_alpha: float = Field(default=0.7, ge=0.0, le=1.0, description="PRF 融合系数（越高越偏向原始查询）")
+    feedback_min_count: int = Field(default=3, ge=1, description="最低反馈条数门槛")
+    reweight_interval_seconds: int = Field(default=3600, ge=60, description="周期性反馈聚合间隔（秒）")
+
+
 class MemorySettings(BaseSettings):
-    """Memory 子系统配置 — Phase 5 高级特性。"""
+    """Memory 子系统配置 — Phase 5+ 高级特性。"""
 
     model_config = SettingsConfigDict(
         env_prefix="NE_MEMORY_",
@@ -100,6 +140,8 @@ class MemorySettings(BaseSettings):
     reflection: ReflectionSettings = Field(default_factory=ReflectionSettings)
     consolidation: ConsolidationSettings = Field(default_factory=ConsolidationSettings)
     pii: PIISettings = Field(default_factory=PIISettings)
+    observability: MemoryObservabilitySettings = Field(default_factory=MemoryObservabilitySettings)
+    relevance: RelevanceSettings = Field(default_factory=RelevanceSettings)
 
     @classmethod
     def settings_customise_sources(
@@ -127,4 +169,6 @@ __all__ = [
     "ReflectionSettings",
     "ConsolidationSettings",
     "PIISettings",
+    "MemoryObservabilitySettings",
+    "RelevanceSettings",
 ]

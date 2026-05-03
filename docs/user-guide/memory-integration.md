@@ -322,3 +322,12 @@ memory:
 | Memory `retention=0` 大量记忆 | 自动化清理任务跑过 | [memory-automation](./memory-automation.md) |
 
 详见 [`memory-troubleshooting.md`](./memory-troubleshooting.md)。
+
+---
+
+## 9. 可观测性端点
+
+| 端点 | 方法 | 鉴权 | 说明 |
+|------|------|------|------|
+| `/memory/health` | GET | 无 | 系统健康检查（DB 连通性、feature flags、表行数） |
+| `/memory/metrics` | GET | admin | 聚合指标（搜索 24h、巩固率、Retention 分布、PII 率） |

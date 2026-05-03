@@ -692,6 +692,7 @@ class PostgresMemoryService(BaseMemoryService):
                     )
                     # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
                     memories_data = self._apply_intent_rerank(memories_data, query)
+                    memories_data = self._apply_relevance_weights(memories_data)
                     await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                     self._log_search_event("hybrid", len(memories_data), user_id, app_name, query)
                     return self._build_search_response(memories_data)
@@ -715,6 +716,7 @@ class PostgresMemoryService(BaseMemoryService):
                 m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
             # Phase 4：query intent 类型加权重排
             memories_data = self._apply_intent_rerank(memories_data, query)
+            memories_data = self._apply_relevance_weights(memories_data)
             await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
             self._log_search_event("vector", len(memories_data), user_id, app_name, query)
             return self._build_search_response(memories_data)
@@ -735,6 +737,7 @@ class PostgresMemoryService(BaseMemoryService):
                     m["relevance_score"] = min(1.0, max(0.0, m.get("relevance_score", 0.0)))
                 # Phase 4 Review fix：主路径同样应用 query intent 类型加权重排
                 memories_data = self._apply_intent_rerank(memories_data, query)
+                memories_data = self._apply_relevance_weights(memories_data)
                 await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
                 self._log_search_event("keyword", len(memories_data), user_id, app_name, query)
                 return self._build_search_response(memories_data)
@@ -755,6 +758,7 @@ class PostgresMemoryService(BaseMemoryService):
         memories_data = self._tag_search_level(memories_data, "ilike", "retention_proxy")
         # Phase 4：query intent 类型加权重排
         memories_data = self._apply_intent_rerank(memories_data, query)
+        memories_data = self._apply_relevance_weights(memories_data)
         await self._record_access(memories_data, query=query, user_id=user_id, app_name=app_name)
         self._log_search_event("ilike", len(memories_data), user_id, app_name, query)
         return self._build_search_response(memories_data)
@@ -1252,6 +1256,35 @@ class PostgresMemoryService(BaseMemoryService):
             r["metadata"]["intent_primary"] = intent.primary
             r["metadata"]["intent_boost_applied"] = boost
         # 重新按分数排序
+        results.sort(key=lambda x: float(x.get("relevance_score", 0.0)), reverse=True)
+        return results
+
+    @staticmethod
+    def _apply_relevance_weights(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Phase 6 G1 — Rocchio 相关性权重调整。
+
+        读取 metadata_.relevance_weight（由 RocchioReweighter 预计算），
+        将其作为乘子调整 relevance_score。权重为 1.0 时不影响排序。
+        """
+        if not results:
+            return results
+        try:
+            from negentropy.config import settings as global_settings
+
+            if not global_settings.memory.relevance.enabled:
+                return results
+        except Exception:
+            return results
+
+        for r in results:
+            metadata = r.get("metadata") or {}
+            weight = float(metadata.get("relevance_weight", 1.0))
+            if abs(weight - 1.0) < 1e-6:
+                continue
+            base = float(r.get("relevance_score", 0.0))
+            r["relevance_score"] = min(1.0, max(0.0, base * weight))
+            r["metadata"] = {**metadata, "relevance_weight_applied": weight}
+
         results.sort(key=lambda x: float(x.get("relevance_score", 0.0)), reverse=True)
         return results
 
