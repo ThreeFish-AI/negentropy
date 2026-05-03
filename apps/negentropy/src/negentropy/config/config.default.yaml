@@ -149,9 +149,9 @@ memory:
     legacy: false
     policy: serial                           # serial | parallel | fail_tolerant
     timeout_per_step_ms: 30000
-    steps:
+    steps:                                   # 默认与 Phase 4 行为一致
       - fact_extract
-      - summarize
+      - auto_link
   pii:                                       # F4 Presidio 生产级 PII
     engine: regex                            # regex | presidio
     policy: mark                             # mark | mask | anonymize

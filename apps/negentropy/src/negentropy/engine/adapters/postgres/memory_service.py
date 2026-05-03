@@ -184,27 +184,18 @@ class PostgresMemoryService(BaseMemoryService):
             # 统一 commit
             await db.commit()
 
-        # 阶段 4：事实提取（FactService 独立事务，失败不影响已提交的记忆）
+        # 阶段 4 + 5：Phase 5 F3 Memify 后处理管线（默认与 Phase 4 行为一致）。
+        # ``settings.memory.consolidation.legacy=true`` 一键回退到旧的硬编码两步。
         try:
-            await self._extract_and_store_facts(
+            await self._run_consolidation_pipeline(
                 turns=turns,
                 user_id=session.user_id,
                 app_name=session.app_name,
                 thread_id=thread_id,
+                new_memory_ids=new_memory_ids,
             )
         except Exception as exc:
-            logger.warning("fact_extraction_stage_failed", error=str(exc))
-
-        # 阶段 5：自动关联（异步，失败不影响已提交的记忆）
-        try:
-            await self._auto_link_stored_memories(
-                user_id=session.user_id,
-                app_name=session.app_name,
-                thread_id=thread_id,
-                memory_ids=new_memory_ids,
-            )
-        except Exception as exc:
-            logger.debug("auto_link_stage_failed", error=str(exc))
+            logger.warning("consolidation_pipeline_stage_failed", error=str(exc))
 
         logger.info(
             "consolidate_completed",
@@ -266,6 +257,117 @@ class PostgresMemoryService(BaseMemoryService):
                     await asyncio.sleep(wait)
         logger.error("consolidate_embedding_exhausted", segment=segment_idx)
         return None
+
+    async def _run_consolidation_pipeline(
+        self,
+        *,
+        turns: list[dict[str, str]],
+        user_id: str,
+        app_name: str,
+        thread_id: uuid.UUID | None,
+        new_memory_ids: list[uuid.UUID],
+    ) -> None:
+        """Phase 5 F3 — 调度 ConsolidationPipeline；默认 steps 与 Phase 4 等价。
+
+        按 ``settings.memory.consolidation.legacy=true`` 回退到旧路径
+        （硬编码 ``_extract_and_store_facts`` + ``_auto_link_stored_memories``），
+        以便在异常排障期一键关闭新管线。
+        """
+        try:
+            from negentropy.config import settings as global_settings
+
+            legacy = global_settings.memory.consolidation.legacy
+            policy = global_settings.memory.consolidation.policy
+            timeout_ms = global_settings.memory.consolidation.timeout_per_step_ms
+            step_names = list(global_settings.memory.consolidation.steps)
+        except Exception as exc:
+            logger.debug("consolidation_settings_missing_fallback_legacy", error=str(exc))
+            legacy = True
+            policy = "serial"
+            timeout_ms = 30000
+            step_names = []
+
+        if legacy:
+            await self._legacy_post_consolidate(
+                turns=turns,
+                user_id=user_id,
+                app_name=app_name,
+                thread_id=thread_id,
+                new_memory_ids=new_memory_ids,
+            )
+            return
+
+        from negentropy.engine.consolidation.pipeline import (
+            PipelineContext,
+            build_pipeline,
+        )
+        from negentropy.engine.consolidation.pipeline import steps as _builtin_steps  # noqa: F401  -- 触发注册
+
+        try:
+            pipeline = build_pipeline(
+                step_names,
+                policy=policy,
+                timeout_per_step_ms=timeout_ms,
+                strict=False,
+            )
+        except Exception as exc:
+            logger.warning("consolidation_pipeline_build_failed_legacy", error=str(exc))
+            await self._legacy_post_consolidate(
+                turns=turns,
+                user_id=user_id,
+                app_name=app_name,
+                thread_id=thread_id,
+                new_memory_ids=new_memory_ids,
+            )
+            return
+
+        ctx = PipelineContext(
+            user_id=user_id,
+            app_name=app_name,
+            thread_id=thread_id,
+            turns=list(turns),
+            new_memory_ids=list(new_memory_ids),
+            embedding_fn=self._embedding_fn,
+        )
+        results = await pipeline.run(ctx)
+        logger.info(
+            "consolidation_pipeline_completed",
+            user_id=user_id,
+            steps=[r.step_name for r in results],
+            statuses=[r.status for r in results],
+            durations_ms=[r.duration_ms for r in results],
+            outputs=[r.output_count for r in results],
+        )
+
+    async def _legacy_post_consolidate(
+        self,
+        *,
+        turns: list[dict[str, str]],
+        user_id: str,
+        app_name: str,
+        thread_id: uuid.UUID | None,
+        new_memory_ids: list[uuid.UUID],
+    ) -> None:
+        """Phase 4 兼容路径：硬编码 fact_extract + auto_link。"""
+        try:
+            await self._extract_and_store_facts(
+                turns=turns,
+                user_id=user_id,
+                app_name=app_name,
+                thread_id=thread_id,
+            )
+        except Exception as exc:
+            logger.warning("fact_extraction_stage_failed", error=str(exc))
+
+        try:
+            await self._auto_link_stored_memories(
+                user_id=user_id,
+                app_name=app_name,
+                thread_id=thread_id,
+                memory_ids=new_memory_ids,
+            )
+        except Exception as exc:
+            logger.debug("auto_link_stage_failed", error=str(exc))
 
     async def _extract_and_store_facts(
         self,

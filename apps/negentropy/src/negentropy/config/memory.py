@@ -49,11 +49,11 @@ class ConsolidationSettings(BaseSettings):
 
     model_config = SettingsConfigDict(extra="ignore", frozen=True)
 
-    legacy: bool = Field(default=False, description="True 回退到 Phase 4 硬编码两步（fact_extract → summarize）")
+    legacy: bool = Field(default=False, description="True 回退到 Phase 4 硬编码两步（fact_extract → auto_link）")
     policy: str = Field(default="serial", description="serial | parallel | fail_tolerant")
     timeout_per_step_ms: int = Field(default=30000, ge=100, description="单 step 超时")
     steps: list[str] = Field(
-        default_factory=lambda: ["fact_extract", "summarize"],
+        default_factory=lambda: ["fact_extract", "auto_link"],
         description="启用的 step 列表，按顺序执行；默认与 Phase 4 行为一致",
     )
 
