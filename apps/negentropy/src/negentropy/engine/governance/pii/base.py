@@ -15,8 +15,8 @@ class PIISpan:
 
     Attributes:
         pii_type: 类型标签（如 "email" / "phone" / "id_card" / "credit_card" / "person"）
-        start: 在原文中的起始字节偏移
-        end: 终止字节偏移（不含）
+        start: 在原文中的起始字符偏移
+        end: 终止字符偏移（不含）
         score: 检测引擎置信度（0~1）；regex 引擎统一为 0.99
         text: 命中的原始片段
     """

@@ -135,6 +135,7 @@ class ReflectionDedup:
                     Memory.metadata_["subtype"].astext == "reflection",
                     Memory.metadata_["query_hash"].astext == query_hash,
                     Memory.created_at >= cutoff,
+                    sa.func.coalesce(Memory.metadata_["deleted"].astext, "false") == "false",
                 )
                 .limit(1)
             )
@@ -159,6 +160,7 @@ class ReflectionDedup:
             WHERE m.user_id = :user_id
               AND m.app_name = :app_name
               AND m.metadata->>'subtype' = 'reflection'
+              AND COALESCE(m.metadata->>'deleted', 'false') = 'false'
               AND m.created_at >= :cutoff
               AND m.embedding IS NOT NULL
               AND (m.embedding <=> CAST(:embedding AS vector)) <= :max_distance
@@ -193,6 +195,7 @@ class ReflectionDedup:
                     Memory.app_name == app_name,
                     Memory.metadata_["subtype"].astext == "reflection",
                     Memory.created_at >= today_start,
+                    sa.func.coalesce(Memory.metadata_["deleted"].astext, "false") == "false",
                 )
             )
             result = await db.execute(stmt)

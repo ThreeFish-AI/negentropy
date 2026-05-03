@@ -148,7 +148,7 @@ class ReflectionWorker:
             return {
                 "user_id": row.user_id,
                 "app_name": row.app_name,
-                "thread_id": str(row.thread_id) if row.thread_id else None,
+                "thread_id": row.thread_id,
                 "query": row.query,
                 "retrieved_memory_ids": list(row.retrieved_memory_ids or []),
             }
@@ -184,7 +184,7 @@ class ReflectionWorker:
         *,
         user_id: str,
         app_name: str,
-        thread_id: str | None,
+        thread_id: UUID | None,
         reflection: Reflection,
         query: str,
         src_log_id: UUID,
