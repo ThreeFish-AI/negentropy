@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -132,3 +132,49 @@ class TestCollectReflections:
         assert text == ""
         assert tokens == 0
         assert count == 0
+
+
+class TestAssembleInjectionOrder:
+    """回归：注入顺序必须是 core → reflection → memory（与 _collect_reflections
+    docstring 一致）。旧实现两次连续 prepend 会把反思排到 Core Block 前面。"""
+
+    async def test_core_then_reflection_then_memory(self, monkeypatch):
+        ca = ContextAssembler(max_tokens=4000)
+
+        async def fake_core(self, *, user_id, app_name, thread_id):
+            return ("[CORE_BLOCK_TEXT]", 5)
+
+        async def fake_reflection(self, *, user_id, app_name, query, query_embedding, memory_tokens_total):
+            return ("[REFLECTION_TEXT]", 3, 1)
+
+        async def fake_window(self, **kwargs):
+            return {
+                "memory_context": "[MEMORY_TEXT]",
+                "token_count": 7,
+                "budget": {"max_tokens": kwargs["max_tokens"]},
+            }
+
+        monkeypatch.setattr(ContextAssembler, "_collect_core_blocks", fake_core)
+        monkeypatch.setattr(ContextAssembler, "_collect_reflections", fake_reflection)
+        monkeypatch.setattr(ContextAssembler, "_call_get_context_window", fake_window)
+        # 跳过 token 预算硬截断（本测试关注顺序）
+        monkeypatch.setattr(
+            ContextAssembler,
+            "_truncate_to_budget",
+            AsyncMock(side_effect=lambda r, b: r),
+        )
+
+        result = await ca.assemble(
+            user_id="u",
+            app_name="a",
+            thread_id=None,
+            query="how to deploy",
+            query_embedding=None,
+        )
+
+        text = result["memory_context"]
+        # 严格顺序：core 在 reflection 之前；reflection 在 memory 之前
+        core_pos = text.find("[CORE_BLOCK_TEXT]")
+        ref_pos = text.find("[REFLECTION_TEXT]")
+        mem_pos = text.find("[MEMORY_TEXT]")
+        assert 0 <= core_pos < ref_pos < mem_pos, f"unexpected order: {text!r}"

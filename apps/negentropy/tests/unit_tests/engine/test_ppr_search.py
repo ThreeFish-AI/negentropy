@@ -156,6 +156,54 @@ class TestExpandViaPPR:
         assert out[str(seed_id)] == 1.0
         assert 0.4 < out[str(target_id)] < 0.6
 
+    async def test_no_score_backflow_to_seed_at_depth_2(self, fake_db):
+        """回归：depth ≥ 2 时不能把分数回流到种子或上一层节点。
+
+        构造：seed -- L1 -- L2，且边 (seed, L1) 在第二跳时仍会被 SQL 命中
+        （因为 `frontier=L1` 且边的一端 = L1），如果旧实现不维护 visited，会
+        误把 seed 视为 "未在 frontier 内"，重新加 alpha² × w，导致 seed 分数
+        > 1.0、归一化失真。
+        """
+        from negentropy.engine.adapters.postgres.association_service import (
+            AssociationService,
+        )
+
+        seed_id = uuid4()
+        l1_id = uuid4()
+        l2_id = uuid4()
+
+        # 第一跳：返回 (seed, L1)
+        e1 = MagicMock()
+        e1.src = str(seed_id)
+        e1.tgt = str(l1_id)
+        e1.w = 1.0
+        first_result = MagicMock()
+        first_result.fetchall = MagicMock(return_value=[e1])
+
+        # 第二跳：frontier={L1}，SQL 同时命中 (seed,L1) 与 (L1,L2)
+        e_back = MagicMock()
+        e_back.src = str(seed_id)
+        e_back.tgt = str(l1_id)
+        e_back.w = 1.0
+        e_forward = MagicMock()
+        e_forward.src = str(l1_id)
+        e_forward.tgt = str(l2_id)
+        e_forward.w = 1.0
+        second_result = MagicMock()
+        second_result.fetchall = MagicMock(return_value=[e_back, e_forward])
+
+        fake_db.execute = AsyncMock(side_effect=[first_result, second_result])
+
+        service = AssociationService()
+        out = await service.expand_via_ppr(seeds=[seed_id], depth=2, alpha=0.5, top_k=10)
+
+        # seed 必须严格保持 1.0（最大分数），不允许超过自身
+        assert out[str(seed_id)] == 1.0
+        # L1 仅获得 d=1 的 alpha × w = 0.5
+        assert 0.49 < out[str(l1_id)] < 0.51
+        # L2 仅获得 d=2 的 alpha² × w = 0.25
+        assert 0.24 < out[str(l2_id)] < 0.26
+
     async def test_top_k_caps_output(self, fake_db):
         from negentropy.engine.adapters.postgres.association_service import (
             AssociationService,
@@ -179,6 +227,45 @@ class TestExpandViaPPR:
         service = AssociationService()
         out = await service.expand_via_ppr(seeds=[seed_id], depth=2, alpha=0.5, top_k=3)
         assert len(out) == 3
+
+
+class TestCountKGAssociations:
+    @pytest.fixture
+    def fake_db(self):
+        with patch("negentropy.engine.adapters.postgres.association_service.db_session") as mock_session:
+            session = AsyncMock()
+            mock_session.AsyncSessionLocal.return_value.__aenter__ = AsyncMock(return_value=session)
+            mock_session.AsyncSessionLocal.return_value.__aexit__ = AsyncMock(return_value=False)
+            yield session
+
+    async def test_returns_full_count_above_legacy_limit(self, fake_db):
+        """回归：旧实现 .limit(200) + len(...) 会把计数截断在 200，导致
+        ``min_kg_associations`` 配置 > 200 时 PPR 通道永远关闭。新实现走
+        ``func.count()`` 必须能返回任意大的整数。"""
+        from negentropy.engine.adapters.postgres.association_service import (
+            AssociationService,
+        )
+
+        result = MagicMock()
+        result.scalar_one = MagicMock(return_value=1500)
+        fake_db.execute = AsyncMock(return_value=result)
+
+        service = AssociationService()
+        count = await service.count_kg_associations(user_id="u", app_name="a")
+        assert count == 1500
+
+    async def test_returns_zero_when_none(self, fake_db):
+        from negentropy.engine.adapters.postgres.association_service import (
+            AssociationService,
+        )
+
+        result = MagicMock()
+        result.scalar_one = MagicMock(return_value=None)
+        fake_db.execute = AsyncMock(return_value=result)
+
+        service = AssociationService()
+        count = await service.count_kg_associations(user_id="u", app_name="a")
+        assert count == 0
 
 
 class TestMaybeFusePPRGate:

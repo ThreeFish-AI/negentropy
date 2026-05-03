@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import delete, or_, select, text
+from sqlalchemy import delete, func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 
 import negentropy.db.session as db_session
@@ -456,8 +456,11 @@ class AssociationService:
         seed_strs = [str(s) for s in seeds]
         scores: dict[str, float] = {s: 1.0 for s in seed_strs}
 
-        # 当前 frontier
+        # frontier：当前层待扩散节点；visited：所有已经被打过分的节点
+        # （含种子）。仅对 visited 之外的端点累加分数，避免 depth ≥ 2 时
+        # 把分数回流到种子或上一层节点导致 PPR 归一化失真。
         frontier: set[str] = set(seed_strs)
+        visited: set[str] = set(seed_strs)
         for d in range(1, max(1, depth) + 1):
             if not frontier:
                 break
@@ -480,18 +483,27 @@ class AssociationService:
                 logger.debug("ppr_expand_query_failed", depth=d, error=str(exc))
                 break
 
-            new_frontier: set[str] = set()
+            # 同层内每个端点的最大累积权重（对多条路径取 max，避免重复加权放大）
+            level_gain: dict[str, float] = {}
             for row in edges:
                 src = row.src
                 tgt = row.tgt
                 w = float(row.w or 1.0)
                 # KG 视为无向图扩散（HippoRAG 论文采用对称邻接）
-                if src in frontier and tgt not in frontier:
-                    scores[tgt] = scores.get(tgt, 0.0) + decay * w
-                    new_frontier.add(tgt)
-                if tgt in frontier and src not in frontier:
-                    scores[src] = scores.get(src, 0.0) + decay * w
-                    new_frontier.add(src)
+                if src in frontier and tgt not in visited:
+                    prev = level_gain.get(tgt, 0.0)
+                    if w > prev:
+                        level_gain[tgt] = w
+                if tgt in frontier and src not in visited:
+                    prev = level_gain.get(src, 0.0)
+                    if w > prev:
+                        level_gain[src] = w
+
+            for node, w in level_gain.items():
+                scores[node] = scores.get(node, 0.0) + decay * w
+
+            new_frontier = set(level_gain.keys())
+            visited.update(new_frontier)
             frontier = new_frontier
 
         # 归一化到 [0, 1]
@@ -539,19 +551,24 @@ class AssociationService:
         return [{"memory_id": mid, "ppr_score": score} for mid, score in ranked]
 
     async def count_kg_associations(self, *, user_id: str, app_name: str) -> int:
-        """返回该 (user, app) 下 ``target_type='entity'`` 的关联总数；用于启动期门控。"""
+        """返回该 (user, app) 下 ``target_type='entity'`` 的关联总数；用于启动期门控。
+
+        使用 ``COUNT(*)`` 聚合而非加载 ORM 行：旧实现 ``.limit(200)`` 会把
+        计数截断在 200，使得 ``min_kg_associations`` 配置 > 200 时门控永远
+        失败、PPR 通道被永久关闭。
+        """
         async with db_session.AsyncSessionLocal() as db:
             stmt = (
-                select(MemoryAssociation)
+                select(func.count())
+                .select_from(MemoryAssociation)
                 .where(
                     MemoryAssociation.target_type == "entity",
                     MemoryAssociation.user_id == user_id,
                     MemoryAssociation.app_name == app_name,
                 )
-                .limit(200)
             )
             result = await db.execute(stmt)
-            return len(result.scalars().all())
+            return int(result.scalar_one() or 0)
 
     async def get_memories_for_kg_entity(
         self,

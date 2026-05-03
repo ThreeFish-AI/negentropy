@@ -188,6 +188,23 @@ class TestGatekeeper:
         assert gk._enabled is True
         assert gk._policy == "mask"
 
+    def test_from_settings_mark_policy_falls_back_to_anonymize(self):
+        """写入策略 mark 不应作为低权限遮蔽策略；应被 from_settings 兜底改写为 anonymize。"""
+        cfg = _make_settings(gatekeeper_enabled=True, policy="mark")
+        with patch.dict("sys.modules", {"negentropy.config": MagicMock(settings=cfg)}):
+            gk = PIIGatekeeper.from_settings()
+        assert gk._enabled is True
+        assert gk._policy == "anonymize"
+
+    def test_from_settings_prefers_explicit_retrieval_policy(self):
+        """显式 retrieval_policy 优先级高于写入 policy。"""
+        settings = _make_settings(gatekeeper_enabled=True, policy="mark")
+        # 模拟未来 schema 增加 retrieval_policy 字段
+        settings.memory.pii.retrieval_policy = "mask"
+        with patch.dict("sys.modules", {"negentropy.config": MagicMock(settings=settings)}):
+            gk = PIIGatekeeper.from_settings()
+        assert gk._policy == "mask"
+
 
 class TestBackwardsCompat:
     """老 import 路径 negentropy.engine.governance.pii_detector 必须仍工作。"""

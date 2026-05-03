@@ -134,21 +134,23 @@ class ContextAssembler:
                 query_embedding=query_embedding,
             )
 
-            # 拼接 Core Block 至上下文最前方（最高优先级）
+            # 注入顺序：Core Block → Reflection Few-Shot → 主记忆。
+            # 一次性构造前缀避免分两步 prepend 倒置顺序（Phase 5 F2 review fix）。
+            prefix_parts: list[str] = []
+            prefix_tokens = 0
             if core_blocks_text:
-                if result.get("memory_context"):
-                    result["memory_context"] = core_blocks_text + "\n" + result["memory_context"]
-                else:
-                    result["memory_context"] = core_blocks_text
-                result["token_count"] = result.get("token_count", 0) + core_block_tokens
-
-            # Phase 5 F2：反思 Few-Shot 紧跟 Core Block 之后注入
+                prefix_parts.append(core_blocks_text)
+                prefix_tokens += core_block_tokens
             if reflection_text:
+                prefix_parts.append(reflection_text)
+                prefix_tokens += reflection_tokens
+            if prefix_parts:
+                prefix = "\n".join(prefix_parts)
                 if result.get("memory_context"):
-                    result["memory_context"] = reflection_text + "\n" + result["memory_context"]
+                    result["memory_context"] = prefix + "\n" + result["memory_context"]
                 else:
-                    result["memory_context"] = reflection_text
-                result["token_count"] = result.get("token_count", 0) + reflection_tokens
+                    result["memory_context"] = prefix
+                result["token_count"] = result.get("token_count", 0) + prefix_tokens
 
             # Token Budget 硬性校验：超标时按行截断
             budget_total = memory_tokens + history_tokens

@@ -53,10 +53,20 @@ class PIIGatekeeper:
             from negentropy.config import settings as global_settings
 
             cfg = global_settings.memory.pii
+            # ``cfg.policy`` 是写入路径策略；用 "mark" 作为低权限检索遮蔽
+            # 等于不遮蔽，与 Gatekeeper 目标矛盾。优先读独立的
+            # ``retrieval_policy``，缺省时把 "mark" 兜底改写为 "anonymize"。
+            retrieval_policy = getattr(cfg, "retrieval_policy", None)
+            if isinstance(retrieval_policy, str) and retrieval_policy in ("mark", "mask", "anonymize"):
+                policy = retrieval_policy
+            else:
+                policy = getattr(cfg, "policy", "anonymize") or "anonymize"
+            if policy == "mark":
+                policy = "anonymize"
             return cls(
                 enabled=bool(getattr(cfg, "gatekeeper_enabled", False)),
                 acl_role_threshold=getattr(cfg, "acl_role_threshold", "editor"),
-                low_priv_policy=getattr(cfg, "policy", "anonymize"),
+                low_priv_policy=policy,
             )
         except Exception as exc:
             logger.debug("pii_gatekeeper_settings_load_failed", error=str(exc))
