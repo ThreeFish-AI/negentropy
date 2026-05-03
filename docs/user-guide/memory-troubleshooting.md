@@ -302,6 +302,38 @@ uv run python -m spacy download en_core_web_sm
 
 ---
 
+## 15. 健康检查与指标
+
+**健康检查**（无需登录）：
+
+```bash
+curl http://localhost:8000/memory/health
+```
+
+返回示例：
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "db": {"status": "ok"},
+    "features": {"hipporag": false, "reflection": false, ...},
+    "tables": {"memories": 150, "facts": 42}
+  }
+}
+```
+
+**聚合指标**（需 admin）：
+
+```bash
+curl -H "Cookie: dev_token=..." http://localhost:8000/memory/metrics
+```
+
+返回搜索 24h 统计、巩固成功率、Retention 分布、PII 检测率等。
+
+如果健康检查返回 `"status": "degraded"`，检查 `checks` 中各项的 `detail` 字段定位问题。
+
+---
+
 ## 救援手册
 
 仍未解决？按顺序排查：
