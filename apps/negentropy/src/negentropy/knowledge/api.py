@@ -3481,6 +3481,8 @@ async def get_graph_metrics(
     返回最近 N 次 build 的定量指标（实体数、关系数、置信度、LLM token 等），
     用于质量趋势监控和成本追踪。
     """
+    import json
+
     from sqlalchemy import text
 
     from negentropy.models.base import NEGENTROPY_SCHEMA
@@ -3516,8 +3518,6 @@ async def get_graph_metrics(
             warnings_data = row.warnings
             if warnings_data:
                 if isinstance(warnings_data, str):
-                    import json
-
                     try:
                         warnings_data = json.loads(warnings_data)
                     except (json.JSONDecodeError, TypeError):

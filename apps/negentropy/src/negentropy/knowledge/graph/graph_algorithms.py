@@ -327,7 +327,7 @@ async def compute_communities(
 
     # 使用中间 level 持久化到 kg_entities.community_id（向后兼容）
     if all_levels:
-        mid_level = len(all_levels) // 2
+        mid_level = sorted(all_levels.keys())[len(all_levels) // 2]
         primary_partition = all_levels[mid_level]
 
         schema = NEGENTROPY_SCHEMA

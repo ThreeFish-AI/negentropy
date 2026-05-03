@@ -59,7 +59,7 @@ class KgQueryMetrics:
 
 
 class LlmUsageTracker:
-    """LLM token 用量追踪器（线程安全，用于构建流水线中的累积追踪）"""
+    """LLM token 用量追踪器（asyncio 协程安全，用于构建流水线中的累积追踪）"""
 
     def __init__(self) -> None:
         self.prompt_tokens: int = 0
