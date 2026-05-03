@@ -236,7 +236,7 @@ class TopicClusterStep:
         # 生成标签并批量更新 metadata（单 session，单 commit）
         cluster_labels: dict[int, str] = {}
         updated_count = 0
-        updates: list[tuple[str, dict]] = []  # (memory_id, updated_metadata)
+        updates: list[tuple[str, str]] = []  # (memory_id, label)
 
         for root, members in clusters.items():
             if len(members) < 2:
@@ -251,10 +251,16 @@ class TopicClusterStep:
 
         if updates:
             async with db_session.AsyncSessionLocal() as db:
+                # 批量拉取所有目标记忆的 metadata
+                target_ids = [uid for uid, _ in updates]
+                meta_rows = (
+                    await db.execute(sa.select(Memory.id, Memory.metadata_).where(Memory.id.in_(target_ids)))
+                ).all()
+                meta_map = {str(r.id): r.metadata_ or {} for r in meta_rows}
+
+                # 批量合并并更新
                 for mid_str, label in updates:
-                    existing = (
-                        await db.execute(sa.select(Memory.metadata_).where(Memory.id == mid_str))
-                    ).scalar() or {}
+                    existing = meta_map.get(mid_str, {})
                     topics = list(existing.get("topics", []))
                     topics.append(label)
                     existing["topics"] = topics

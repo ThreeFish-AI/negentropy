@@ -129,7 +129,10 @@ async def reweight_memories(
                 .where(Memory.id == mid_uuid)
                 .values(
                     metadata_=sa.func.jsonb_set(
-                        sa.func.coalesce(Memory.metadata_, sa.text("'{}'::jsonb")),
+                        sa.func.coalesce(
+                            Memory.metadata_,
+                            sa.cast(sa.literal({}), sa.dialects.postgresql.JSONB),
+                        ),
                         "{relevance_weight}",
                         sa.cast(sa.literal(weight), sa.dialects.postgresql.JSONB),
                     )

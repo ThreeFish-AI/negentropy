@@ -13,6 +13,8 @@ PRFExpander — 伪相关反馈查询扩展。
 
 from __future__ import annotations
 
+import math
+
 from negentropy.logging import get_logger
 
 logger = get_logger("negentropy.engine.relevance.prf_expander")
@@ -62,8 +64,6 @@ def expand_query_embedding(
     expanded = [prf_alpha * query_embedding[i] + (1 - prf_alpha) * centroid[i] for i in range(dim)]
 
     # 归一化（可选：保持向量模长稳定）
-    import math
-
     norm = math.sqrt(sum(x * x for x in expanded))
     if norm > 0:
         expanded = [x / norm for x in expanded]

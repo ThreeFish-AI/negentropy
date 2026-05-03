@@ -56,67 +56,74 @@ class DedupMergeStep:
             ).where(Memory.id.in_(ctx.new_memory_ids))
             rows = (await db.execute(stmt)).all()
 
-            for row in rows:
-                if row.embedding is None:
-                    continue
+            try:
+                for row in rows:
+                    if row.embedding is None:
+                        continue
 
-                # 查找用户现有记忆中的近重复
-                distance = Memory.embedding.op("<=>")(row.embedding)
-                dup_stmt = (
-                    sa.select(
-                        Memory.id,
-                        Memory.content,
-                        Memory.retention_score,
-                        distance.label("dist"),
+                    # 查找用户现有记忆中的近重复
+                    distance = Memory.embedding.op("<=>")(row.embedding)
+                    dup_stmt = (
+                        sa.select(
+                            Memory.id,
+                            Memory.content,
+                            Memory.retention_score,
+                            distance.label("dist"),
+                        )
+                        .where(
+                            Memory.user_id == ctx.user_id,
+                            Memory.app_name == ctx.app_name,
+                            Memory.embedding.is_not(None),
+                            Memory.id != row.id,
+                            sa.func.coalesce(Memory.metadata_["deleted"].astext, "false") != "true",
+                            distance <= (1.0 - threshold),
+                        )
+                        .order_by(distance.asc())
+                        .limit(1)
                     )
-                    .where(
-                        Memory.user_id == ctx.user_id,
-                        Memory.app_name == ctx.app_name,
-                        Memory.embedding.is_not(None),
-                        Memory.id != row.id,
-                        sa.func.coalesce(Memory.metadata_["deleted"].astext, "false") != "true",
-                        distance <= (1.0 - threshold),
+                    dup_result = await db.execute(dup_stmt)
+                    dup_row = dup_result.first()
+
+                    if dup_row is None:
+                        continue
+
+                    # 决定 primary（高分）和 loser（低分）
+                    if row.retention_score >= (dup_row.retention_score or 0.0):
+                        primary_id, loser_id = row.id, dup_row.id
+                        loser_content = dup_row.content
+                    else:
+                        primary_id, loser_id = dup_row.id, row.id
+                        loser_content = row.content
+
+                    # 更新 primary：追加 merged_from
+                    primary_meta = (
+                        await db.execute(sa.select(Memory.metadata_).where(Memory.id == primary_id))
+                    ).scalar() or {}
+
+                    merged_from = list(primary_meta.get("merged_from", []))
+                    merged_from.append({"content": (loser_content or "")[:500], "merged_at": time.time()})
+                    # 只保留最近 5 条
+                    merged_from = merged_from[-5:]
+
+                    primary_meta["merged_from"] = merged_from
+                    await db.execute(sa.update(Memory).where(Memory.id == primary_id).values(metadata_=primary_meta))
+
+                    # soft-delete loser
+                    loser_meta = (
+                        await db.execute(sa.select(Memory.metadata_).where(Memory.id == loser_id))
+                    ).scalar() or {}
+                    loser_meta["deleted"] = "true"
+                    loser_meta["merged_into"] = str(primary_id)
+                    await db.execute(
+                        sa.update(Memory).where(Memory.id == loser_id).values(metadata_=loser_meta, retention_score=0.0)
                     )
-                    .order_by(distance.asc())
-                    .limit(1)
-                )
-                dup_result = await db.execute(dup_stmt)
-                dup_row = dup_result.first()
 
-                if dup_row is None:
-                    continue
-
-                # 决定 primary（高分）和 loser（低分）
-                if row.retention_score >= (dup_row.retention_score or 0.0):
-                    primary_id, loser_id = row.id, dup_row.id
-                    loser_content = dup_row.content
-                else:
-                    primary_id, loser_id = dup_row.id, row.id
-                    loser_content = row.content
-
-                # 更新 primary：追加 merged_from
-                primary_meta = (
-                    await db.execute(sa.select(Memory.metadata_).where(Memory.id == primary_id))
-                ).scalar() or {}
-
-                merged_from = list(primary_meta.get("merged_from", []))
-                merged_from.append({"content": (loser_content or "")[:500], "merged_at": time.time()})
-                # 只保留最近 5 条
-                merged_from = merged_from[-5:]
-
-                primary_meta["merged_from"] = merged_from
-                await db.execute(sa.update(Memory).where(Memory.id == primary_id).values(metadata_=primary_meta))
-
-                # soft-delete loser
-                loser_meta = (await db.execute(sa.select(Memory.metadata_).where(Memory.id == loser_id))).scalar() or {}
-                loser_meta["deleted"] = "true"
-                loser_meta["merged_into"] = str(primary_id)
-                await db.execute(
-                    sa.update(Memory).where(Memory.id == loser_id).values(metadata_=loser_meta, retention_score=0.0)
-                )
+                    merged_count += 1
 
                 await db.commit()
-                merged_count += 1
+            except Exception:
+                await db.rollback()
+                raise
 
         duration_ms = int((time.perf_counter() - start) * 1000)
         return StepResult(
