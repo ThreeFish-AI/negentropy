@@ -590,6 +590,37 @@ Catalog 提供树形结构的知识组织方式，采用两栏布局：
 
 「构建历史」面板显示每次构建的结构化卡片：状态徽章（completed/failed）、实体数、关系数、耗时、使用的模型名称。
 
+#### 4.5.10 图谱质量评估
+
+通过 API 端点 `GET /knowledge/base/{corpus_id}/graph/quality` 获取图谱质量报告：
+
+| 指标 | 说明 |
+|:---|:---|
+| dangling_edges | 指向不存在实体的悬空边数量（理想值 0） |
+| orphan_entities | 无任何关系的孤立实体数量 |
+| community_coverage | 已分配社区的实体占比（0.0–1.0） |
+| entity_confidence_avg | 所有实体的平均置信度 |
+| relation_evidence_ratio | 有原文证据的关系占比 |
+| quality_score | 综合质量评分（0.0–1.0，加权几何平均） |
+
+> 综合评分权重：完整性（悬空边+孤立节点）40%、社区覆盖率 20%、置信度 20%、证据支持率 20%。
+
+#### 4.5.11 Schema 引导构建（AI Paper 场景）
+
+构建图谱时可指定 `extraction_schema` 参数约束 LLM 提取类型，适合领域特定的知识提取：
+
+```json
+{
+  "enable_llm_extraction": true,
+  "extraction_schema": "ai_paper"
+}
+```
+
+**AI Paper Schema** 预置以下类型：
+
+- **实体**：Author（作者）、Method（方法/模型）、Dataset（数据集）、Metric（评估指标）、Result（定量结果）、Institution（机构）、Conference（会议）、Concept（概念）
+- **关系**：PROPOSED_BY（提出者）、AFFILIATED_WITH（从属）、PUBLISHED_AT（发表 venue）、EVALUATED_ON（评估数据集）、ACHIEVES（达成结果）、OUTPERFORMS（超越）、EXTENDS（扩展）、USES_CONCEPT（使用概念）、MEASURED_BY（度量方式）
+
 #### 4.5.9 多跳推理与证据链（Personalized PageRank）
 
 涉及多步关联（如"X 公司谁负责 AI 项目并向 CEO 汇报？"）的问题，向量检索常常给不出连贯的答案。本特性基于 HippoRAG 范式：

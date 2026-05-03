@@ -25,6 +25,7 @@ from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument, W
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
 
+from .api_helpers import _map_exception_to_http, _resolve_app_name
 from .constants import (
     DEFAULT_KEYWORD_WEIGHT,
     DEFAULT_SEARCH_LIMIT,
@@ -32,14 +33,7 @@ from .constants import (
 )
 from .dao import KnowledgeRunDao
 from .exceptions import (
-    CorpusNotFound,
-    DatabaseError,
-    EmbeddingFailed,
-    InvalidChunkSize,
-    InvalidSearchConfig,
     KnowledgeError,
-    SearchError,
-    VersionConflict,
 )
 from .graph.entity_service import KgEntityService
 from .graph.service import GraphService, get_graph_service
@@ -147,6 +141,7 @@ from .schemas import (  # noqa: F401
     GraphNeighborsRequest,
     GraphPathRequest,
     GraphPayload,
+    GraphQualityResponse,
     GraphSearchRequest,
     GraphSearchResponse,
     GraphStatsResponse,
@@ -248,72 +243,6 @@ def _get_dao() -> KnowledgeRunDao:
     if _dao is None:
         _dao = KnowledgeRunDao()
     return _dao
-
-
-def _resolve_app_name(app_name: str | None) -> str:
-    return app_name or settings.app_name
-
-
-def _map_exception_to_http(exc: KnowledgeError) -> HTTPException:
-    """将 Knowledge 异常映射到 HTTP 异常
-
-    遵循 RESTful API 设计原则：
-    - 400: 请求参数错误
-    - 404: 资源不存在
-    - 409: 版本冲突
-    - 500: 服务器内部错误
-    - 502: 上游服务错误（vendor / Embedding 等外部依赖）
-    """
-    if isinstance(exc, CorpusNotFound):
-        logger.warning("corpus_not_found", details=exc.details)
-        return HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": exc.code, "message": str(exc), "details": exc.details},
-        )
-
-    if isinstance(exc, VersionConflict):
-        logger.warning("version_conflict", details=exc.details)
-        return HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": exc.code, "message": str(exc), "details": exc.details},
-        )
-
-    if isinstance(exc, (InvalidChunkSize, InvalidSearchConfig)):
-        logger.warning("validation_error", details=exc.details)
-        return HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": exc.code, "message": str(exc), "details": exc.details},
-        )
-
-    if isinstance(exc, EmbeddingFailed):
-        # 上游 Embedding 服务故障（vendor 4xx/5xx、连接异常等）：
-        # 语义上属于 Bad Gateway 而非内部错误，便于前端区分"自身可重试"与"上游修复后再试"。
-        logger.error("infrastructure_error", details=exc.details)
-        return HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={"code": exc.code, "message": str(exc), "details": exc.details},
-        )
-
-    if isinstance(exc, SearchError):
-        logger.error("infrastructure_error", details=exc.details)
-        return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": exc.code, "message": str(exc), "details": exc.details},
-        )
-
-    if isinstance(exc, DatabaseError):
-        logger.error("database_error", details=exc.details)
-        return HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": exc.code, "message": "Database operation failed", "details": exc.details},
-        )
-
-    # 默认 500 错误
-    logger.error("unknown_knowledge_error", error=str(exc))
-    return HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail={"code": "INTERNAL_ERROR", "message": "An unexpected error occurred"},
-    )
 
 
 def _build_chunking_config(
@@ -3051,6 +2980,7 @@ async def build_knowledge_graph(
             min_relation_confidence=payload.min_relation_confidence,
             batch_size=payload.batch_size,
             incremental=payload.incremental,
+            extraction_schema_name=payload.extraction_schema,
         )
 
         # 执行图谱构建
@@ -3530,6 +3460,35 @@ async def get_graph_metrics(
             builds.append(build_entry)
 
     return GraphMetricsResponse(builds=builds)
+
+
+@router.get("/base/{corpus_id}/graph/quality", response_model=GraphQualityResponse)
+async def get_graph_quality(corpus_id: UUID) -> GraphQualityResponse:
+    """图谱质量评估 (Paulheim, 2017)
+
+    返回图谱的完整性、正确性和一致性量化指标：
+    - 悬空边（source/target 不存在）
+    - 孤立实体（零度节点）
+    - 社区分配覆盖率
+    - 实体置信度均值
+    - 关系证据支持率
+    - 综合质量评分 (0.0–1.0)
+    """
+    from .graph.quality import validate_graph_quality
+
+    async with AsyncSessionLocal() as db:
+        report = await validate_graph_quality(db, corpus_id)
+    return GraphQualityResponse(
+        total_entities=report.total_entities,
+        total_relations=report.total_relations,
+        dangling_edges=report.dangling_edges,
+        orphan_entities=report.orphan_entities,
+        community_coverage=report.community_coverage,
+        entity_confidence_avg=report.entity_confidence_avg,
+        relation_evidence_ratio=report.relation_evidence_ratio,
+        type_distribution=report.type_distribution,
+        quality_score=report.quality_score,
+    )
 
 
 @router.post(

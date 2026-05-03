@@ -186,15 +186,32 @@ class GraphService:
             relation_types=tuple(KgRelationType.all_values()),
         )
 
+        # 解析 Schema（如已配置）
+        self._schema = self._resolve_schema(self._config.extraction_schema_name)
+
         # 初始化提取器
         self._entity_extractor = CompositeEntityExtractor(
             llm_model=self._config.llm_model,
             enable_llm=self._config.enable_llm_extraction,
+            schema=self._schema,
         )
         self._relation_extractor = CompositeRelationExtractor(
             llm_model=self._config.llm_model,
             enable_llm=self._config.enable_llm_extraction,
+            schema=self._schema,
         )
+
+    @staticmethod
+    def _resolve_schema(name: str | None) -> Any | None:
+        """解析 extraction_schema_name 到 ExtractionSchema 实例"""
+        if not name:
+            return None
+        from .extraction_schema import get_schema
+
+        schema = get_schema(name)
+        if schema is None:
+            logger.warning("unknown_extraction_schema", schema_name=name)
+        return schema
 
     async def build_graph(
         self,

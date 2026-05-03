@@ -787,6 +787,7 @@ class GraphBuildConfig(BaseModel):
     max_concurrency: int = 3
     incremental: bool = False
     semantic_dedup_threshold: float = 0.92
+    extraction_schema_name: str | None = None
 
     @field_validator("min_entity_confidence", "min_relation_confidence")
     @classmethod

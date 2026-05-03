@@ -7,12 +7,12 @@
 > - Memory 模块设计：[docs/memory.md](./memory.md)
 > - 数据库 Schema：[docs/schema/kg_schema_extension.sql](./schema/kg_schema_extension.sql)
 > - 源码入口：
->   - 策略基类：[knowledge/graph.py](../apps/negentropy/src/negentropy/knowledge/graph.py)
->   - LLM 提取器：[knowledge/llm_extractors.py](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)
->   - 图谱存储：[knowledge/graph_repository.py](../apps/negentropy/src/negentropy/knowledge/graph_repository.py)
->   - 图谱服务：[knowledge/graph_service.py](../apps/negentropy/src/negentropy/knowledge/graph_service.py)
+>   - 策略基类：[knowledge/graph/strategy.py](../apps/negentropy/src/negentropy/knowledge/graph/strategy.py)
+>   - LLM 提取器：[knowledge/graph/extractors.py](../apps/negentropy/src/negentropy/knowledge/graph/extractors.py)
+>   - 图谱存储：[knowledge/graph/repository.py](../apps/negentropy/src/negentropy/knowledge/graph/repository.py)
+>   - 图谱服务：[knowledge/graph/service.py](../apps/negentropy/src/negentropy/knowledge/graph/service.py)
 >   - 类型定义：[knowledge/types.py](../apps/negentropy/src/negentropy/knowledge/types.py)
->   - REST API：[knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)
+>   - REST API（图谱子路由）：[knowledge/graph_api.py](../apps/negentropy/src/negentropy/knowledge/graph_api.py)
 
 ---
 
@@ -282,7 +282,7 @@ $$RRF(d) = \sum_{r \in R} \frac{1}{k + rank_r(d)}$$
 
 基于对 Cognee、Graphiti、Neo4j GDS 的深度调研，提炼出以下可直接采纳的架构模式：
 
-**Cognee ECL 管道模式**：Extract-Cognify-Load 三层解耦架构<sup>[[13]](#ref13)</sup>。Extract 层负责文档解析与分块（对应 Negentropy 的感知系部），Cognify 层负责 LLM 提取、实体去重与 Schema 推断（对应 GraphProcessor + LLM 提取器），Load 层负责三层存储（图 + 向量 + 关系，对应 PostgreSQL + pgvector + AGE）。核心启示：管道的每一层应是可独立替换的策略，通过接口解耦。
+**Cognee ECL 管道模式**：Extract-Cognify-Load 三层解耦架构<sup>[[13]](#ref13)</sup>。Extract 层负责文档解析与分块（对应 Negentropy 的感知系部），Cognify 层负责 LLM 提取、实体去重与 Schema 推断（对应 GraphService + LLM 提取器），Load 层负责三层存储（图 + 向量 + 关系，对应 PostgreSQL + pgvector + AGE）。核心启示：管道的每一层应是可独立替换的策略，通过接口解耦。
 
 **Graphiti 双时态模型**<sup>[[14]](#ref14)</sup>：关系同时携带 `valid_from/valid_to`（事实有效时间）和 `created_at/expired_at`（系统记录时间）两组时态字段。事实时间用于回答"这段关系何时成立"，系统时间用于回答"系统何时知道这段关系"。Deep Memory Retrieval（DMR）准确率达 94.8%，关键在于三级实体解析（精确匹配 → 嵌入相似度 > 0.92 → LLM 推理）。Negentropy 可在 Phase 3 在 `KgRelation` 的 `first_observed_at/last_observed_at` 基础上扩展双时态字段。
 
@@ -1414,6 +1414,7 @@ timeline
 | 2026-05-02 | 2.5 | **Phase 4 G1 GraphRAG Global Search Map-Reduce（已完成）**：新增 `graph/global_search.py` (GlobalSearchService) — 嵌入查询 → 余弦排序选 top_k 社区摘要 → asyncio.Semaphore(5) 限流 Map 并发 → Reduce 聚合；`community_summarizer.py` 新增可选 `embedding_fn` 入参，落库时同步写入 summary embedding；新增 `POST /base/{cid}/graph/global_search` 端点；前端新增 `GlobalSearchPanel` 卡片（含 evidence 树 + 摘要陈旧度提示） | Claude |
 | 2026-05-02 | 2.6 | **Phase 4 G4 Personalized PageRank + Provenance（已完成）**：`graph_algorithms.py` 新增 `compute_personalized_pagerank(seed_entities)` — 偏置 teleport 向量 + dangling node 兜底；新增 `graph/provenance.py` 中 `ProvenanceBuilder` — 反向最短路径 BFS（递归 CTE）+ 三元组组装；Migration 0025 新增 `kg_query_provenance` 审计表（最初标记为 0024，与 0024 重命名联动顺延）；新增 `POST /base/{cid}/graph/multi_hop_reason` 端点（支持 seed 抽取兜底）；前端新增 `EvidenceChainPanel` 卡片（树形展开多跳证据） | Claude |
 | 2026-05-03 | 3.0 | **Phase 5 四大缺口修复与增强**：**E1** 增量构建流水线修复（`api.py` chunk dict 补全 `id` 字段）+ Open Relation Type（`CUSTOM` 类型 + `raw_relation_type` 元数据保留，参考 Banko et al., 2007; Gutierrez et al., 2024）；**E2** Leiden 社区检测升级（Traag et al., 2019，保证社区内部连通性）+ 多层级社区摘要（3 级 resolution: 0.5/1.0/2.0，参考 Edge et al., 2024）；**E3** 双写一致性加固（关系同步端点修复、`__import__` 反模式清理、`_TTLCache` LRU 淘汰、`frozen dataclass` `replace()` 修复）；**E4** KG 质量可观测性指标管道（`metrics.py` + `GET /graph/metrics` endpoint + 结构化 build metrics 日志） | Claude |
+| 2026-05-04 | 3.1 | **Review & Enhancement**：**G2** 死代码清理（移除 `GraphProcessor` 260 行，修正文档路径引用）；**G3** 图谱质量验证（`quality.py` — 悬空边/孤立节点/社区覆盖率/证据支持率/综合评分，参考 Paulheim, 2017；新增 `GET /graph/quality` 端点）；**G4** Schema 引导实体提取（`extraction_schema.py` — 预置 AI Paper 本体 [7 种实体类型 + 9 种关系类型]，参考 Martinez-Rodriguez et al., 2018；增强 `extractors.py` 支持 schema 约束 prompt）；**G1** 提取 `api_helpers.py` 共享工具函数（为后续完整拆分奠基） | Claude |
 
 ---
 
