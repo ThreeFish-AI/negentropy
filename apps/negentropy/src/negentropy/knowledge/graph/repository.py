@@ -1674,7 +1674,7 @@ class AgeGraphRepository(GraphRepository):
             INSERT INTO {self._schema}.kg_build_runs
                 (id, app_name, corpus_id, run_id, status, extractor_config, model_name, started_at)
             VALUES
-                (:id, :app_name, :corpus_id, :run_id, 'running', :config::jsonb, :model, NOW())
+                (:id, :app_name, :corpus_id, :run_id, 'running', CAST(:config AS jsonb), :model, NOW())
         """)
 
         await session.execute(
@@ -1728,8 +1728,8 @@ class AgeGraphRepository(GraphRepository):
                 relation_count = :relation_count,
                 error_message = :error_message,
                 progress_percent = COALESCE(:progress, progress_percent),
-                warnings = COALESCE(:warnings::jsonb, warnings),
-                processed_chunk_ids = COALESCE(:chunk_ids::jsonb, processed_chunk_ids),
+                warnings = COALESCE(CAST(:warnings AS jsonb), warnings),
+                processed_chunk_ids = COALESCE(CAST(:chunk_ids AS jsonb), processed_chunk_ids),
                 completed_at = CASE WHEN :status IN ('completed', 'failed') THEN NOW() END
             WHERE id = :run_id
         """)
