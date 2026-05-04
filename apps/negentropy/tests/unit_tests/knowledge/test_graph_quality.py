@@ -1,7 +1,8 @@
 """Graph Quality Validation 单元测试
 
-测试 validate_graph_quality 的质量评分逻辑。
-数据库交互通过 mock session 模拟。
+仅覆盖 `_compute_quality_score` 的纯函数评分逻辑（边界、加权、clamp）；
+`validate_graph_quality` 的 SQL 与 DB 交互未在本文件覆盖（建议 integration
+测试或后续追加 AsyncMock 驱动的 end-to-end 用例）。
 
 参考文献:
 [1] H. Paulheim, "Knowledge Graph Refinement: A Survey of Approaches
@@ -88,10 +89,9 @@ class TestComputeQualityScore:
             quality_score=0.0,
         )
         score = _compute_quality_score(report)
-        assert 0.0 < score < 1.0
-        # integrity = 1 - (2/40 + 5/50) / 2 ≈ 0.935
-        # total ≈ 0.4*0.935 + 0.2*0.6 + 0.2*0.75 + 0.2*0.5 ≈ 0.724
-        assert score > 0.5
+        # integrity = 1 - (2/40 + 5/50) / 2 = 1 - 0.075 = 0.925
+        # total = 0.4*0.925 + 0.2*0.6 + 0.2*0.75 + 0.2*0.5 = 0.740
+        assert score == pytest.approx(0.740, abs=0.005)
 
     def test_score_bounded(self):
         """评分应在 [0, 1] 范围内，超范围输入应被 clamp"""

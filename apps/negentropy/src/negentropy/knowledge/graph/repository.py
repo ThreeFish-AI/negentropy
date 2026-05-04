@@ -1001,11 +1001,13 @@ class AgeGraphRepository(GraphRepository):
         sem_rank: dict[str, int] = {}
 
         if query_embedding is None:
-            # embedding 不可用时退化为纯图结构排序（与 linear 方法一致）
+            # embedding 不可用时退化为纯图结构排序（与 linear 方法一致）。
+            # 直接按 importance_score 返回，避免把同一信号同时塞进 sem_rank 与
+            # graph_rank 让 RRF 融合 1/(k+r)+1/(k+r) 退化为单信号 + 常数缩放、
+            # 错误地暴露"双通道融合"指标。
             fallback_query = text(f"""
                 SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
                        e.properties,
-                       0.0 AS semantic_score,
                        COALESCE(e.importance_score, 0) AS importance_score
                 FROM {schema}.kg_entities e
                 WHERE e.corpus_id = :corpus_id AND e.is_active = true{temporal_exists}
@@ -1019,18 +1021,24 @@ class AgeGraphRepository(GraphRepository):
             if as_of:
                 fb_params["as_of"] = as_of
             fb_result = await session.execute(fallback_query, fb_params)
-            for i, row in enumerate(fb_result, start=1):
-                eid = str(row.id)
-                sem_rank[eid] = i
-                entity_data[eid] = {
-                    "name": row.name,
-                    "entity_type": row.entity_type,
-                    "confidence": row.confidence,
-                    "description": row.description,
-                    "properties": row.properties or {},
-                    "semantic_score": 0.0,
-                    "importance_score": float(row.importance_score or 0),
-                }
+            results: list[GraphSearchResult] = []
+            for row in fb_result:
+                imp = float(row.importance_score or 0)
+                entity = GraphNode(
+                    id=f"entity:{row.id}",
+                    label=row.name,
+                    node_type=row.entity_type,
+                    metadata=row.properties or {},
+                )
+                results.append(
+                    GraphSearchResult(
+                        entity=entity,
+                        semantic_score=0.0,
+                        graph_score=imp,
+                        combined_score=imp,
+                    )
+                )
+            return results
         else:
             semantic_query = text(f"""
                 SELECT e.id, e.name, e.entity_type, e.confidence, e.description,

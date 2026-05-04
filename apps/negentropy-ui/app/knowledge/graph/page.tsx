@@ -279,7 +279,13 @@ export default function KnowledgeGraphPage() {
   }, [nodes, edges, renderer]);
 
   useEffect(() => {
-    if (!svgRef.current || !simulationRef.current || !nodes.length) return;
+    if (
+      renderer !== "d3" ||
+      !svgRef.current ||
+      !simulationRef.current ||
+      !layout.length
+    )
+      return;
     let active = true;
     const run = async () => {
       const { select } = await import("d3-selection");
@@ -319,7 +325,9 @@ export default function KnowledgeGraphPage() {
     return () => {
       active = false;
     };
-  }, [nodes, edges, renderer]);
+    // 依赖 layout：layout 由 build effect 的首次 tick 设置，此时 simulationRef
+    // 已被赋值，确保 drag 副作用在异步 simulation 构建完成之后才尝试附着。
+  }, [layout, renderer]);
 
   const selectedNode =
     nodes.find((n) => n.id === selectedNodeId) || null;

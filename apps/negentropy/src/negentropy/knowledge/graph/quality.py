@@ -58,8 +58,9 @@ def _compute_quality_score(report: GraphQualityReport) -> float:
     # 社区覆盖率
     coverage = max(0.0, min(1.0, report.community_coverage))
 
-    # 置信度（归一化到 0–1）
-    confidence = min(1.0, report.entity_confidence_avg)
+    # 置信度（归一化到 0–1）：与其他三项一致地做下界 clamp，避免上游 LLM
+    # 抽取出负值时被最末端 max(0, ...) 隐式吸收、掩盖数据完整性异常。
+    confidence = max(0.0, min(1.0, report.entity_confidence_avg))
 
     # 证据支持率
     evidence = max(0.0, min(1.0, report.relation_evidence_ratio))
