@@ -44,17 +44,17 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
   await page.goto("/memory");
   await page.waitForLoadState("networkidle");
 
-  // 验证 8 个标签（用精确匹配避免 strict mode violation）
-  await expect(page.getByText("USERS", { exact: true })).toBeVisible();
-  await expect(page.getByText("MEMORIES", { exact: true })).toBeVisible();
-  await expect(page.getByText("FACTS", { exact: true })).toBeVisible();
-  await expect(page.getByText("AVG RETENTION", { exact: true })).toBeVisible();
+  // 验证 8 个标签（DOM 文本为小写，CSS `uppercase` 视觉转换；用精确匹配避免 strict mode violation）
+  await expect(page.getByText("Users", { exact: true })).toBeVisible();
+  await expect(page.getByText("Memories", { exact: true })).toBeVisible();
+  await expect(page.getByText("Facts", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Avg Retention", { exact: true })).toBeVisible();
   await expect(page.getByText("87.6%")).toBeVisible();
-  await expect(page.getByText("AVG IMPORTANCE", { exact: true })).toBeVisible();
+  await expect(page.getByText("Avg Importance", { exact: true })).toBeVisible();
   await expect(page.getByText("54.3%")).toBeVisible();
-  await expect(page.getByText("LOW RETENTION", { exact: true })).toBeVisible();
-  await expect(page.getByText("HIGH IMPORTANCE", { exact: true })).toBeVisible();
-  await expect(page.getByText("RECENT AUDITS", { exact: true })).toBeVisible();
+  await expect(page.getByText("Low Retention", { exact: true })).toBeVisible();
+  await expect(page.getByText("High Importance", { exact: true })).toBeVisible();
+  await expect(page.getByText("Recent Audits", { exact: true })).toBeVisible();
 
   // 验证卡片数值（用 locator 限定到卡片容器内的值文本）
   const cards = page.locator(".grid > div");
@@ -235,10 +235,11 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
   // 用 aside 区域限定 "consolidation" 避免与列表项冲突
   await expect(page.locator("aside").getByText("consolidation")).toBeVisible();
   await expect(page.getByText("Resolve")).toBeVisible();
-  await expect(page.getByText("supersede")).toBeVisible();
-  await expect(page.getByText("keep_old")).toBeVisible();
-  await expect(page.getByText("keep_new")).toBeVisible();
-  await expect(page.getByText("merge")).toBeVisible();
+  // 详情面板内 4 个解决按钮（避免与 select dropdown 选项冲突）
+  await expect(page.getByRole("button", { name: "supersede" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "keep_old" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "keep_new" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "merge" })).toBeVisible();
 });
 
 // ============================================================================
