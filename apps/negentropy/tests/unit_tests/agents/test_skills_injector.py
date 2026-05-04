@@ -21,8 +21,10 @@ import pytest
 
 from negentropy.agents.skills_injector import (
     ResolvedSkill,
+    SkillToolMissingError,
     build_progressive_disclosure_prompt,
     format_skill_invocation,
+    format_skill_resources,
     format_skills_block,
     resolve_skills,
     validate_required_tools,
@@ -115,8 +117,10 @@ def test_format_skills_block_single_skill_emits_xml_wrapper():
     )
     out = format_skills_block([skill])
     assert out.startswith("<available_skills>")
-    assert out.endswith("</available_skills>")
+    assert "</available_skills>" in out
     assert "- arxiv-fetch: Search and fetch arXiv papers" in out
+    # Phase 2: 块外追加 expand_skill 引导（让 LLM 看见调用约定）
+    assert "expand_skill(name)" in out
 
 
 def test_format_skills_block_falls_back_to_display_name_then_placeholder():
@@ -324,3 +328,95 @@ async def test_resolve_skills_empty_refs_returns_empty():
     assert await resolve_skills(session, None, owner_id="x") == []
     assert await resolve_skills(session, [], owner_id="x") == []
     assert await resolve_skills(session, [""], owner_id="x") == []
+
+
+# ============================================================================
+# Phase 2 — 新增能力的单元覆盖
+# ============================================================================
+
+
+def _resolved(
+    *,
+    name: str = "demo",
+    template: str | None = None,
+    required: tuple[str, ...] = (),
+    enforcement: str = "warning",
+    resources: tuple[dict, ...] = (),
+) -> ResolvedSkill:
+    return ResolvedSkill(
+        id="r-" + name,
+        name=name,
+        display_name=None,
+        description="d",
+        prompt_template=template,
+        required_tools=required,
+        is_enabled=True,
+        enforcement_mode=enforcement,
+        resources=resources,
+    )
+
+
+def test_format_skill_invocation_renders_jinja2_variables():
+    skill = _resolved(name="paper", template="hi {{ user }} top_n={{ n }}")
+    out = format_skill_invocation(skill, variables={"user": "Alice", "n": 7})
+    assert "hi Alice top_n=7" in out
+    assert '<skill name="paper">' in out
+
+
+def test_format_skill_invocation_falls_back_on_missing_variable():
+    skill = _resolved(name="x", template="needs {{ missing_var }}")
+    # StrictUndefined 抛错 → fail-soft 返回原模板（不爆栈）
+    out = format_skill_invocation(skill, variables={})
+    assert "needs {{ missing_var }}" in out
+
+
+def test_format_skill_resources_lazy_only_count():
+    skill = _resolved(
+        name="x",
+        resources=(
+            {"type": "url", "ref": "https://a", "title": "A"},
+            {"type": "kg_node", "ref": "Topic/X", "title": "X"},
+        ),
+    )
+    assert format_skill_resources(skill, eager=False) == "[2 resources attached]"
+
+
+def test_format_skill_resources_eager_lists_items():
+    skill = _resolved(
+        name="x",
+        resources=({"type": "corpus", "ref": "papers", "title": "Papers Corpus"},),
+    )
+    out = format_skill_resources(skill, eager=True)
+    assert "<skill_resources>" in out
+    assert "corpus: Papers Corpus" in out
+    assert "</skill_resources>" in out
+
+
+def test_build_prompt_strict_raises_on_missing_tool():
+    skill = _resolved(name="strict-demo", required=("fetch_papers",), enforcement="strict")
+    with pytest.raises(SkillToolMissingError):
+        build_progressive_disclosure_prompt("base", [skill], agent_tools=["other_tool"])
+
+
+def test_build_prompt_warning_logs_but_returns():
+    skill = _resolved(name="warn-demo", required=("fetch_papers",), enforcement="warning")
+    out = build_progressive_disclosure_prompt("base", [skill], agent_tools=["other_tool"])
+    assert "<available_skills>" in out
+    assert "warn-demo" in out
+
+
+def test_build_prompt_strict_passes_when_tools_present():
+    skill = _resolved(name="strict-demo", required=("fetch_papers",), enforcement="strict")
+    out = build_progressive_disclosure_prompt("base", [skill], agent_tools=["fetch_papers"])
+    assert "<available_skills>" in out
+
+
+def test_format_skill_invocation_appends_resources_eager():
+    skill = _resolved(
+        name="paper",
+        template="run query={{ q }}",
+        resources=({"type": "url", "ref": "https://x", "title": "X"},),
+    )
+    out = format_skill_invocation(skill, variables={"q": "hi"})
+    assert "run query=hi" in out
+    assert "<skill_resources>" in out
