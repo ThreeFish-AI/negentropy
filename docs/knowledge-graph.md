@@ -12,7 +12,7 @@
 >   - 图谱存储：[knowledge/graph/repository.py](../apps/negentropy/src/negentropy/knowledge/graph/repository.py)
 >   - 图谱服务：[knowledge/graph/service.py](../apps/negentropy/src/negentropy/knowledge/graph/service.py)
 >   - 类型定义：[knowledge/types.py](../apps/negentropy/src/negentropy/knowledge/types.py)
->   - REST API（图谱子路由）：[knowledge/graph_api.py](../apps/negentropy/src/negentropy/knowledge/graph_api.py)
+>   - REST API（图谱子路由）：[knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)
 
 ---
 

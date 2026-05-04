@@ -186,20 +186,7 @@ class GraphService:
             relation_types=tuple(KgRelationType.all_values()),
         )
 
-        # 解析 Schema（如已配置）
-        self._schema = self._resolve_schema(self._config.extraction_schema_name)
-
-        # 初始化提取器
-        self._entity_extractor = CompositeEntityExtractor(
-            llm_model=self._config.llm_model,
-            enable_llm=self._config.enable_llm_extraction,
-            schema=self._schema,
-        )
-        self._relation_extractor = CompositeRelationExtractor(
-            llm_model=self._config.llm_model,
-            enable_llm=self._config.enable_llm_extraction,
-            schema=self._schema,
-        )
+        # 提取器按请求级 config 动态创建（见 build_graph），不在实例级持有
 
     @staticmethod
     def _resolve_schema(name: str | None) -> Any | None:
