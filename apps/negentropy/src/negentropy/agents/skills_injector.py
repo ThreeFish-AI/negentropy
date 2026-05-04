@@ -97,9 +97,11 @@ async def resolve_skills(
 
     out: list[ResolvedSkill] = []
     seen: set[str] = set()
+    permission_filtered: list[str] = []
     for skill in rows:
         # 权限过滤：owner 全可见；其它仅 PUBLIC（SHARED 需要授权表，简化为不可见）。
         if skill.owner_id != owner_id and skill.visibility != PluginVisibility.PUBLIC:
+            permission_filtered.append(skill.name)
             continue
         if skill.id in seen:
             continue
@@ -116,13 +118,22 @@ async def resolve_skills(
             )
         )
 
-    if len(out) < len(refs):
-        missing = set(refs) - {s.name for s in out} - {s.id for s in out}
-        if missing:
+    if permission_filtered:
+        # 比 unresolved 更严重：用户明确写了名字、Skill 也存在，只是当前 owner 看不到。
+        # 升到 warning 级别，便于 ops 在排查 SubAgent prompt 缺 Skills 时一眼定位。
+        _logger.warning(
+            "skills_injector_permission_filtered",
+            owner_id=owner_id,
+            filtered=sorted(permission_filtered),
+        )
+
+    if len(out) + len(permission_filtered) < len(refs):
+        unresolved = set(refs) - {s.name for s in out} - {s.id for s in out} - set(permission_filtered)
+        if unresolved:
             _logger.info(
                 "skills_injector_unresolved_refs",
                 owner_id=owner_id,
-                missing=sorted(missing),
+                missing=sorted(unresolved),
             )
 
     return out

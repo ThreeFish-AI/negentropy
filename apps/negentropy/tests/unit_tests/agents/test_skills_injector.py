@@ -252,6 +252,36 @@ async def test_resolve_skills_skips_other_owners_private_skill():
 
 
 @pytest.mark.asyncio
+async def test_resolve_skills_logs_permission_filter_at_warning(capsys):
+    """权限过滤需打 warning（与 unresolved 的 info 级别区分）— 通过 stdout 捕获。"""
+    s = _skill(name="other-private", owner="owner-X", visibility=PluginVisibility.PRIVATE)
+    session = _FakeSession([s])
+    out = await resolve_skills(session, ["other-private"], owner_id="owner-A")
+    captured = capsys.readouterr()
+    combined = captured.out + captured.err
+    assert out == []
+    assert "skills_injector_permission_filtered" in combined
+    assert "[warning" in combined.lower() or "warning" in combined.lower()
+
+
+@pytest.mark.asyncio
+async def test_resolve_skills_distinguishes_unresolved_from_permission_filter(capsys):
+    """同时存在 unresolved + permission_filtered 时分别打不同级别日志。"""
+    s = _skill(name="visible-pub", owner="owner-X", visibility=PluginVisibility.PUBLIC)
+    blocked = _skill(name="blocked-priv", owner="owner-X", visibility=PluginVisibility.PRIVATE)
+    session = _FakeSession([s, blocked])
+    out = await resolve_skills(session, ["visible-pub", "blocked-priv", "missing"], owner_id="owner-A")
+    captured = capsys.readouterr()
+    combined = captured.out + captured.err
+    assert {s.name for s in out} == {"visible-pub"}
+    assert "skills_injector_permission_filtered" in combined
+    assert "skills_injector_unresolved_refs" in combined
+    # 顺序无关；只要分别出现两条不同事件
+    assert "blocked-priv" in combined
+    assert "missing" in combined
+
+
+@pytest.mark.asyncio
 async def test_resolve_skills_includes_other_owners_public_skill():
     s = _skill(name="shared-pub", owner="owner-X", visibility=PluginVisibility.PUBLIC)
     session = _FakeSession([s])
