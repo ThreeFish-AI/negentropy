@@ -281,6 +281,8 @@ class SkillCreateRequest(BaseModel):
     is_enabled: bool = True
     priority: int = 0
     visibility: str = "private"
+    enforcement_mode: str = "warning"
+    resources: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class SkillUpdateRequest(BaseModel):
@@ -296,6 +298,8 @@ class SkillUpdateRequest(BaseModel):
     is_enabled: bool | None = None
     priority: int | None = None
     visibility: str | None = None
+    enforcement_mode: str | None = None
+    resources: list[dict[str, Any]] | None = None
 
 
 class SkillResponse(BaseModel):
@@ -313,9 +317,46 @@ class SkillResponse(BaseModel):
     required_tools: list[str] = Field(default_factory=list)
     is_enabled: bool
     priority: int
+    enforcement_mode: str = "warning"
+    resources: list[dict[str, Any]] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
+
+
+class SkillInvokeRequest(BaseModel):
+    """``POST /interface/skills/{id}:invoke`` 请求体：渲染 prompt_template 并附带资源。"""
+
+    variables: dict[str, Any] = Field(default_factory=dict)
+
+
+class SkillInvokeResponse(BaseModel):
+    """``POST /interface/skills/{id}:invoke`` 响应体。"""
+
+    skill_id: UUID
+    name: str
+    rendered_prompt: str
+    resources: list[dict[str, Any]] = Field(default_factory=list)
+    missing_tools: list[str] = Field(default_factory=list)
+
+
+class SkillTemplateSummary(BaseModel):
+    """``GET /interface/skills/templates`` 单项响应。"""
+
+    template_id: str
+    name: str
+    display_name: str | None = None
+    description: str | None = None
+    category: str
+    version: str
+
+
+class SkillFromTemplateRequest(BaseModel):
+    """``POST /interface/skills/from-template`` 请求体。"""
+
+    template_id: str
+    name_override: str | None = None
+    visibility: str | None = None
 
 
 # =============================================================================
@@ -1126,6 +1167,93 @@ async def create_skill(
             required_tools=payload.required_tools,
             is_enabled=payload.is_enabled,
             priority=payload.priority,
+            enforcement_mode=payload.enforcement_mode
+            if payload.enforcement_mode in ("warning", "strict")
+            else "warning",
+            resources=payload.resources or [],
+        )
+        db.add(skill)
+        await db.commit()
+        await db.refresh(skill)
+
+    return _skill_to_response(skill)
+
+
+@router.get("/skills/templates", response_model=list[SkillTemplateSummary])
+async def list_skill_templates(
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillTemplateSummary]:
+    """列出内置 Skill 模板（必须在 ``/skills/{skill_id}`` 之前声明，避免被动态路径吞噬）。"""
+    from negentropy.agents.skill_templates import load_all
+
+    templates = load_all()
+    return [
+        SkillTemplateSummary(
+            template_id=t.template_id,
+            name=t.name,
+            display_name=t.display_name,
+            description=t.description,
+            category=t.category,
+            version=t.version,
+        )
+        for t in templates
+    ]
+
+
+@router.post(
+    "/skills/from-template",
+    response_model=SkillResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_skill_from_template(
+    payload: SkillFromTemplateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillResponse:
+    """根据内置模板一键创建 Skill。
+
+    - ``name`` 冲突时自动追加 ``-{owner_short}`` 后缀（不抛 400，避免重试摩擦）；
+    - ``visibility`` 默认随模板（多为 ``shared``），调用方可覆盖。
+    - 路由必须在 ``/skills/{skill_id}`` 之前声明。
+    """
+    from negentropy.agents.skill_templates import load_all
+
+    templates = {t.template_id: t for t in load_all()}
+    tpl = templates.get(payload.template_id)
+    if tpl is None:
+        raise HTTPException(status_code=404, detail=f"Template '{payload.template_id}' not found")
+
+    target_name = (payload.name_override or tpl.name).strip()
+    if not target_name:
+        raise HTTPException(status_code=400, detail="Skill name cannot be empty")
+
+    async with AsyncSessionLocal() as db:
+        existing = await db.scalar(select(Skill).where(Skill.name == target_name))
+        if existing:
+            short = (user.user_id or "u").split(":")[-1][:8]
+            target_name = f"{target_name}-{short}"
+            existing2 = await db.scalar(select(Skill).where(Skill.name == target_name))
+            if existing2:
+                import secrets
+
+                target_name = f"{target_name}-{secrets.token_hex(3)}"
+
+        visibility_value = payload.visibility or tpl.visibility
+        skill = Skill(
+            owner_id=user.user_id,
+            visibility=PluginVisibility(visibility_value),
+            name=target_name,
+            display_name=tpl.display_name,
+            description=tpl.description,
+            category=tpl.category,
+            version=tpl.version,
+            prompt_template=tpl.prompt_template,
+            config_schema=tpl.config_schema,
+            default_config=tpl.default_config,
+            required_tools=tpl.required_tools,
+            is_enabled=True,
+            priority=tpl.priority,
+            enforcement_mode=tpl.enforcement_mode,
+            resources=tpl.resources,
         )
         db.add(skill)
         await db.commit()
@@ -1179,6 +1307,15 @@ async def update_skill(
             update_data["name"] = new_name
         if "visibility" in update_data:
             update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        if "enforcement_mode" in update_data:
+            mode = update_data.get("enforcement_mode")
+            if mode not in ("warning", "strict"):
+                raise HTTPException(status_code=400, detail="enforcement_mode must be 'warning' or 'strict'")
+        if "resources" in update_data:
+            res_value = update_data.get("resources") or []
+            if not isinstance(res_value, list):
+                raise HTTPException(status_code=400, detail="resources must be a list")
+            update_data["resources"] = res_value
 
         for key, value in update_data.items():
             setattr(skill, key, value)
@@ -1223,6 +1360,72 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
         required_tools=skill.required_tools or [],
         is_enabled=skill.is_enabled,
         priority=skill.priority,
+        enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
+        resources=list(skill.resources or []) if hasattr(skill, "resources") else [],
+    )
+
+
+# =============================================================================
+# Skills Phase 2 — invoke / templates endpoints
+# =============================================================================
+
+
+@router.post("/skills/{skill_id}/invoke", response_model=SkillInvokeResponse)
+async def invoke_skill(
+    skill_id: UUID,
+    payload: SkillInvokeRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillInvokeResponse:
+    """渲染 Skill 的 prompt_template（Layer 2 按需展开）+ 资源摘要 + 工具差异。
+
+    服务端用 Jinja2 沙箱渲染 ``prompt_template``，**不**真正调用 LLM —— 调用方
+    （UI Preview 按钮 / ``expand_skill`` ADK tool / 外部系统）拿到渲染结果后自行
+    决定如何使用。``required_tools`` 与 ``vars`` 校验在此一次完成。
+    """
+    import os
+
+    from negentropy.agents.skills_injector import (
+        ResolvedSkill,
+        format_skill_invocation,
+        format_skill_resources,
+        validate_required_tools,
+    )
+
+    if os.environ.get("NEGENTROPY_SKILLS_LAYER2_ENABLED", "true").lower() in ("0", "false", "no"):
+        raise HTTPException(status_code=503, detail="Skills Layer 2 is disabled by feature flag")
+
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        skill = await db.get(Skill, skill_id)
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+        if not skill.is_enabled:
+            raise HTTPException(status_code=409, detail="Skill is disabled")
+
+        resolved = ResolvedSkill(
+            id=str(skill.id),
+            name=skill.name,
+            display_name=skill.display_name,
+            description=skill.description,
+            prompt_template=skill.prompt_template,
+            required_tools=tuple(skill.required_tools or []),
+            is_enabled=skill.is_enabled,
+            enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
+            resources=tuple(skill.resources or ()) if hasattr(skill, "resources") else (),
+        )
+
+    rendered = format_skill_invocation(resolved, variables=payload.variables) or ""
+    if not rendered and resolved.resources:
+        rendered = format_skill_resources(resolved, eager=True)
+    return SkillInvokeResponse(
+        skill_id=skill.id,
+        name=skill.name,
+        rendered_prompt=rendered,
+        resources=list(resolved.resources),
+        missing_tools=validate_required_tools(resolved, agent_tools=None) if resolved.required_tools else [],
     )
 
 

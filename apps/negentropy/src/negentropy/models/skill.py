@@ -38,6 +38,15 @@ class Skill(Base, UUIDMixin, TimestampMixin):
     is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
+    # Phase 2 — 工具白名单 fail-close 模式（warning|strict，默认 warning）
+    enforcement_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="warning", server_default="warning"
+    )
+
+    # Phase 2 — Layer 3 资源挂载：[{type, ref, title, lazy}, ...]
+    # type ∈ {kg_node, memory, corpus, url, inline}；lazy=True 时不入常驻 prompt
+    resources: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, server_default="[]")
+
     __table_args__ = (
         UniqueConstraint("name", name="skills_name_unique"),
         Index("ix_skills_owner", "owner_id"),
