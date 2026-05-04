@@ -282,6 +282,26 @@ async def test_resolve_skills_distinguishes_unresolved_from_permission_filter(ca
 
 
 @pytest.mark.asyncio
+async def test_resolve_skills_uuid_ref_to_permission_filtered_skill_not_logged_as_unresolved(capsys):
+    """用 UUID 引用一个被权限过滤的 Skill 时，该 UUID 不应再出现在 unresolved info 日志里。
+
+    回归：早期实现的 unresolved 减法只减 ``permission_filtered`` 中的 name 集合，
+    导致同一 Skill 同时落入 warning 与 info 两条日志，破坏诊断分级。
+    """
+    blocked = _skill(name="blocked-priv", owner="owner-X", visibility=PluginVisibility.PRIVATE)
+    session = _FakeSession([blocked])
+    out = await resolve_skills(session, [blocked.id, "missing"], owner_id="owner-A")
+    captured = capsys.readouterr()
+    combined = captured.out + captured.err
+    assert out == []
+    # warning 仍然要打（该 Skill 存在但当前 owner 看不到）
+    assert "skills_injector_permission_filtered" in combined
+    # info 只能包含真正缺失的 ref，不能再带上被权限过滤的 UUID
+    assert "missing" in combined
+    assert blocked.id not in combined.split("skills_injector_unresolved_refs", 1)[-1]
+
+
+@pytest.mark.asyncio
 async def test_resolve_skills_includes_other_owners_public_skill():
     s = _skill(name="shared-pub", owner="owner-X", visibility=PluginVisibility.PUBLIC)
     session = _FakeSession([s])

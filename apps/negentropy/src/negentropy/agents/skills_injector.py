@@ -96,12 +96,17 @@ async def resolve_skills(
     rows = result.scalars().all()
 
     out: list[ResolvedSkill] = []
-    seen: set[str] = set()
-    permission_filtered: list[str] = []
+    seen: set = set()
+    # 同时记录 name 与 id：refs 既可能写 name 也可能写 UUID；后续 unresolved 减法
+    # 必须把两种引用形态都消掉，否则被权限过滤掉的 Skill 会因 UUID 没被匹配
+    # 而再次落入 info 级别的 unresolved 日志，破坏「不同原因走不同级别」的诊断意图。
+    permission_filtered_names: list[str] = []
+    permission_filtered_ids: set[str] = set()
     for skill in rows:
         # 权限过滤：owner 全可见；其它仅 PUBLIC（SHARED 需要授权表，简化为不可见）。
         if skill.owner_id != owner_id and skill.visibility != PluginVisibility.PUBLIC:
-            permission_filtered.append(skill.name)
+            permission_filtered_names.append(skill.name)
+            permission_filtered_ids.add(str(skill.id))
             continue
         if skill.id in seen:
             continue
@@ -118,17 +123,23 @@ async def resolve_skills(
             )
         )
 
-    if permission_filtered:
+    if permission_filtered_names:
         # 比 unresolved 更严重：用户明确写了名字、Skill 也存在，只是当前 owner 看不到。
         # 升到 warning 级别，便于 ops 在排查 SubAgent prompt 缺 Skills 时一眼定位。
         _logger.warning(
             "skills_injector_permission_filtered",
             owner_id=owner_id,
-            filtered=sorted(permission_filtered),
+            filtered=sorted(permission_filtered_names),
         )
 
-    if len(out) + len(permission_filtered) < len(refs):
-        unresolved = set(refs) - {s.name for s in out} - {s.id for s in out} - set(permission_filtered)
+    if len(out) + len(permission_filtered_names) < len(refs):
+        unresolved = (
+            set(refs)
+            - {s.name for s in out}
+            - {s.id for s in out}
+            - set(permission_filtered_names)
+            - permission_filtered_ids
+        )
         if unresolved:
             _logger.info(
                 "skills_injector_unresolved_refs",
