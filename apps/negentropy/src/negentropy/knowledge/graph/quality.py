@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import UUID
 
 from sqlalchemy import func, select, text
@@ -38,7 +38,7 @@ class GraphQualityReport:
 
 
 def _compute_quality_score(report: GraphQualityReport) -> float:
-    """综合质量评分（加权几何平均）
+    """综合质量评分（加权算术平均）
 
     权重分配：
     - 完整性（无悬空边 + 无孤立节点）: 40%
@@ -186,17 +186,7 @@ async def validate_graph_quality(
         entity_confidence_avg=entity_confidence_avg,
         relation_evidence_ratio=relation_evidence_ratio,
         type_distribution=type_distribution,
-        quality_score=0.0,  # placeholder
+        quality_score=0.0,
     )
 
-    return GraphQualityReport(
-        total_entities=report.total_entities,
-        total_relations=report.total_relations,
-        dangling_edges=report.dangling_edges,
-        orphan_entities=report.orphan_entities,
-        community_coverage=report.community_coverage,
-        entity_confidence_avg=report.entity_confidence_avg,
-        relation_evidence_ratio=report.relation_evidence_ratio,
-        type_distribution=report.type_distribution,
-        quality_score=_compute_quality_score(report),
-    )
+    return replace(report, quality_score=_compute_quality_score(report))

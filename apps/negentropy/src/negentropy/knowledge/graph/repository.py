@@ -996,7 +996,40 @@ class AgeGraphRepository(GraphRepository):
         entity_data: dict[str, dict[str, Any]] = {}
         sem_rank: dict[str, int] = {}
 
-        if query_embedding is not None:
+        if query_embedding is None:
+            # embedding 不可用时退化为纯图结构排序（与 linear 方法一致）
+            fallback_query = text(f"""
+                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                       e.metadata as properties,
+                       0.0 AS semantic_score,
+                       COALESCE(e.importance_score, 0) AS importance_score
+                FROM {schema}.kg_entities e
+                WHERE e.corpus_id = :corpus_id AND e.is_active = true
+                  AND e.app_name = :app_name{temporal_exists}
+                ORDER BY e.importance_score DESC NULLS LAST
+                LIMIT :limit
+            """)
+            fb_params: dict[str, Any] = {
+                "corpus_id": str(corpus_id),
+                "app_name": app_name,
+                "limit": limit,
+            }
+            if as_of:
+                fb_params["as_of"] = as_of
+            fb_result = await session.execute(fallback_query, fb_params)
+            for i, row in enumerate(fb_result, start=1):
+                eid = str(row.id)
+                sem_rank[eid] = i
+                entity_data[eid] = {
+                    "name": row.name,
+                    "entity_type": row.entity_type,
+                    "confidence": row.confidence,
+                    "description": row.description,
+                    "properties": row.properties or {},
+                    "semantic_score": 0.0,
+                    "importance_score": float(row.importance_score or 0),
+                }
+        else:
             semantic_query = text(f"""
                 SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
                        e.metadata as properties,
