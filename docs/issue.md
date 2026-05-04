@@ -1079,3 +1079,30 @@
   3. CRUDL 配置类模块若涉及 Agent 执行链，必须在 PR 描述里明确说明"配置如何被消费"，否则字段沦为死代码；
   4. 主流 Agent Skills 框架（Claude Skills / ADK Skills / OpenAI Codex Skills）的 Progressive Disclosure 原则——描述层常驻系统 prompt、模板层按需展开——是熵减最佳实践，所有未来扩展（SKILL.md 文件系统 / 资源挂载 / 版本语义化）都应在该原则下增量演进。
 - **同类问题影响**：MCP Servers / SubAgents 模块同样存在 UX 短板（`confirm()` 删除）与"配置而不消费"风险，需后续 PR 同步修复。
+
+---
+
+## ISSUE-046 Skills 第二轮深度浏览器验证：长字符串不换行 + 权限过滤静默 + 验证方法误判（2026-05-04）
+
+- **表因**：在 ISSUE-045 修复完成后通过 MCP Chromium 做第二轮边缘 case 与端到端注入验证，新发现：
+  1. **`SkillCard` 描述区对无空格长字符串不换行**（如 400 个连续 `L`）：`<p>` 仅 `overflow-hidden + line-clamp-4`，缺 `overflow-wrap: break-word`；超长 token 被一次性截断为单行 + 末尾隐没，丢失 90% 信息密度；
+  2. **`skills_injector.resolve_skills` 把"Skill 不存在"与"Skill 存在但权限不足"合并为同一 info log**（`skills_injector_unresolved_refs`）。当 SubAgent owner 与 Skill owner 不一致且 Skill 是 PRIVATE 时，注入器静默过滤——用户在 SubAgent 表单写了 Skill 名却无任何反馈，运维排障无信号区分；
+  3. **第一轮自检方法学误判**：本轮初期用 MCP `evaluate` 在 toast.error 触发后立刻读 `[data-sonner-toaster]`，多次返回空——错误地推断 toast 系统失效。实际原因是 sonner 默认 5000ms 自动 dismiss，叠加 MCP roundtrip 数秒延迟，toast 已 unmount。增加 600ms 显式等待 + 检查 React fiber 的 `memoizedState`（toast 数组）后立即得到正确结果（toast id=3，title="Enabled \"...\""）。
+- **根因**：
+  1. 表面 1：早期 SkillCard 复用了通用卡片布局（h-20 + line-clamp-4），假定描述都是自然语言（含空格可断词），未考虑技术输入中常见的「无空格长 token」（hex hash / Base64 / 拼写错误段落）；
+  2. 表面 2：第一版 `resolve_skills` 只关心「最终 ResolvedSkill 列表」是否完备，未把"为何缺失"这一诊断维度作为一等公民暴露给运维；
+  3. 表面 3：MCP 自动化测试缺少「toast 时序断言」共识——toast 是异步 + 时间窗口内可观测，需用 `waitForResponse` / 显式 sleep / fiber state 探测，而非视图查询的瞬时快照。
+- **处理方式**（本 PR 直接落地）：
+  1. **`SkillCard.tsx`**：`<p>` 增加 Tailwind `break-words`（`overflow-wrap: break-word`），让无空格长串在 4 行内多行换行 + 末尾省略号；
+  2. **`skills_injector.py.resolve_skills`**：分离 `permission_filtered` vs `unresolved`，前者升级到 `_logger.warning("skills_injector_permission_filtered", filtered=[...])`，后者保留 `info`；UI 后续可通过日志检索定位。配套补 2 个单测（capsys 捕获 stdout）；
+  3. **方法学**：`docs/agents/browser-validation.md` 与 `docs/user-guide/skills-troubleshooting.md` 已包含 toast 时序提示；本条记入 issue 留作后续 review 反例；
+  4. **附带**：`page.tsx.handleFormSubmit` 在 `!response.ok` 路径上同时 `toast.error(message) + throw`，让错误既保留 banner 上下文又抓注意力（与 delete/toggle 错误路径一致）。
+- **后续防范**：
+  1. 任何用户输入文本展示组件必须在评审清单加上 `overflow-wrap: break-word`；
+  2. fail-soft 跳过任何资源时必须按"为什么"分类打日志；不允许 `if X: continue` 而无诊断信号；
+  3. 浏览器自动化测试断言「短生命 UI 元素（toast / loading state / transient banner）」时，必须以 `await waitFor*` 或显式时间窗口断言，禁止快照查询；
+  4. `docs/agents/browser-validation.md` 的「9.4 注意事项」已加 toast 时序提醒，新增浏览器实机验证脚本必须遵循。
+- **同类问题影响**：
+  - Memory / Knowledge / 各模块卡片描述同样需要 `break-words` 检查；
+  - 各模块 fail-soft 跳过逻辑需要按本 issue 模式分类打日志；
+  - 现有 e2e/skills 已用 `waitForResponse`，但 Memory e2e 部分用快照查询 toast，需后续审查。
