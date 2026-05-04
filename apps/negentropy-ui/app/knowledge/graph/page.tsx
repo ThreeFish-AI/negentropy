@@ -156,7 +156,7 @@ export default function KnowledgeGraphPage() {
       }
       await loadGraph(corpusId);
     } catch (err) {
-      setBuildError(String(err));
+      setBuildError(err instanceof Error ? err.message : String(err));
     } finally {
       setBuilding(false);
     }
