@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { ComponentPropsWithoutRef, HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,7 @@ interface OverlayDismissLayerProps {
   onClose: () => void;
   dismissible?: boolean;
   busy?: boolean;
+  closeOnEscape?: boolean;
   wrapperClassName?: string;
   backdropClassName?: string;
   containerClassName?: string;
@@ -24,6 +25,7 @@ export function OverlayDismissLayer({
   onClose,
   dismissible = true,
   busy = false,
+  closeOnEscape = true,
   wrapperClassName,
   backdropClassName,
   containerClassName,
@@ -36,6 +38,18 @@ export function OverlayDismissLayer({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const { className: contentPropsClassName, onClick, ...restContentProps } =
     contentProps ?? {};
+
+  useEffect(() => {
+    if (!open || !closeOnEscape || !dismissible || busy) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, closeOnEscape, dismissible, busy, onClose]);
 
   if (!open) return null;
 

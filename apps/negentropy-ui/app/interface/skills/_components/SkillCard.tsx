@@ -21,21 +21,49 @@ interface SkillCardProps {
   skill: Skill;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleEnabled?: () => void;
+  toggling?: boolean;
 }
 
-export function SkillCard({ skill, onEdit, onDelete }: SkillCardProps) {
+export function SkillCard({ skill, onEdit, onDelete, onToggleEnabled, toggling = false }: SkillCardProps) {
+  const displayLabel = skill.display_name || skill.name;
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
           <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            {skill.display_name || skill.name}
+            {displayLabel}
           </h3>
           <div className="flex shrink-0 items-center gap-2">
+            {onToggleEnabled && (
+              <button
+                onClick={onToggleEnabled}
+                disabled={toggling}
+                title={skill.is_enabled ? "Disable skill" : "Enable skill"}
+                aria-label={`${skill.is_enabled ? "Disable" : "Enable"} ${displayLabel}`}
+                aria-pressed={skill.is_enabled}
+                className={
+                  "rounded-md p-2 disabled:opacity-50 " +
+                  (skill.is_enabled
+                    ? "text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
+                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300")
+                }
+              >
+                {skill.is_enabled ? (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                )}
+              </button>
+            )}
             <button
               onClick={onEdit}
               title="Edit Skill"
-              aria-label={`Edit ${skill.display_name || skill.name}`}
+              aria-label={`Edit ${displayLabel}`}
               className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,7 +73,7 @@ export function SkillCard({ skill, onEdit, onDelete }: SkillCardProps) {
             <button
               onClick={onDelete}
               title="Delete Skill"
-              aria-label={`Delete ${skill.display_name || skill.name}`}
+              aria-label={`Delete ${displayLabel}`}
               className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

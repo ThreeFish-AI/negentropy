@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
+import { ConfirmDialog } from "./_components/ConfirmDialog";
 import { SkillCard } from "./_components/SkillCard";
 import { SkillFormDialog } from "./_components/SkillFormDialog";
 
@@ -29,6 +31,9 @@ export default function SkillsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [pendingDelete, setPendingDelete] = useState<Skill | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchSkills = useCallback(async () => {
     try {
@@ -41,6 +46,7 @@ export default function SkillsPage() {
       }
       const data = await response.json();
       setSkills(data);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -62,20 +68,63 @@ export default function SkillsPage() {
     setDialogOpen(true);
   };
 
-  const handleDelete = async (skillId: string) => {
-    if (!confirm("Are you sure you want to delete this skill?")) {
-      return;
-    }
+  const handleDeleteRequest = (skill: Skill) => {
+    setPendingDelete(skill);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setDeleting(true);
     try {
-      const response = await fetch(`/api/interface/skills/${skillId}`, {
+      const response = await fetch(`/api/interface/skills/${target.id}`, {
         method: "DELETE",
       });
       if (!response.ok) {
-        throw new Error("Failed to delete skill");
+        let message = "Failed to delete skill";
+        try {
+          const body = await response.json();
+          message = body?.detail || body?.message || message;
+        } catch {
+          // body not JSON — keep generic message
+        }
+        throw new Error(message);
       }
-      fetchSkills();
+      toast.success(`Deleted skill "${target.display_name || target.name}"`);
+      setPendingDelete(null);
+      void fetchSkills();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "An error occurred");
+      toast.error(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleToggleEnabled = async (skill: Skill) => {
+    setTogglingId(skill.id);
+    const next = !skill.is_enabled;
+    try {
+      const response = await fetch(`/api/interface/skills/${skill.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_enabled: next }),
+      });
+      if (!response.ok) {
+        let message = "Failed to update skill";
+        try {
+          const body = await response.json();
+          message = body?.detail || body?.message || message;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
+      }
+      toast.success(`${next ? "Enabled" : "Disabled"} "${skill.display_name || skill.name}"`);
+      void fetchSkills();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -85,28 +134,35 @@ export default function SkillsPage() {
   };
 
   const handleFormSubmit = async (data: Record<string, unknown>) => {
-    try {
-      const url = editingSkill
-        ? `/api/interface/skills/${editingSkill.id}`
-        : "/api/interface/skills";
-      const method = editingSkill ? "PATCH" : "POST";
+    const url = editingSkill
+      ? `/api/interface/skills/${editingSkill.id}`
+      : "/api/interface/skills";
+    const method = editingSkill ? "PATCH" : "POST";
 
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to save skill");
+    if (!response.ok) {
+      let message = "Failed to save skill";
+      try {
+        const body = await response.json();
+        message = body?.detail || body?.message || message;
+      } catch {
+        // body not JSON
       }
-
-      handleDialogClose();
-      fetchSkills();
-    } catch (err) {
-      throw err;
+      throw new Error(message);
     }
+
+    toast.success(
+      editingSkill
+        ? `Updated skill "${(data.display_name as string) || (data.name as string)}"`
+        : `Created skill "${(data.display_name as string) || (data.name as string)}"`,
+    );
+    handleDialogClose();
+    void fetchSkills();
   };
 
   const categories = [...new Set(skills.map((s) => s.category))];
@@ -153,9 +209,29 @@ export default function SkillsPage() {
             )}
 
             {loading ? (
-              <div className="text-sm text-zinc-500">Loading...</div>
+              <div
+                data-testid="skills-loading-skeleton"
+                className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+              >
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-[196px] animate-pulse rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
+                  >
+                    <div className="mb-3 h-5 w-1/3 rounded bg-zinc-200 dark:bg-zinc-700" />
+                    <div className="mb-2 flex gap-2">
+                      <div className="h-4 w-16 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="h-4 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                    </div>
+                    <div className="mb-1 h-4 w-full rounded bg-zinc-200 dark:bg-zinc-700" />
+                    <div className="h-4 w-3/4 rounded bg-zinc-200 dark:bg-zinc-700" />
+                  </div>
+                ))}
+              </div>
             ) : error ? (
-              <div className="text-sm text-red-500">{error}</div>
+              <div role="alert" className="text-sm text-red-500">
+                {error}
+              </div>
             ) : skills.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-zinc-400 dark:text-zinc-500 mb-4">
@@ -178,7 +254,9 @@ export default function SkillsPage() {
                     <SkillCard
                       skill={skill}
                       onEdit={() => handleEdit(skill)}
-                      onDelete={() => handleDelete(skill.id)}
+                      onDelete={() => handleDeleteRequest(skill)}
+                      onToggleEnabled={() => handleToggleEnabled(skill)}
+                      toggling={togglingId === skill.id}
                     />
                   </div>
                 ))}
@@ -193,6 +271,24 @@ export default function SkillsPage() {
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}
         skill={editingSkill}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete skill?"
+        message={
+          pendingDelete
+            ? `"${pendingDelete.display_name || pendingDelete.name}" will be permanently removed. This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={handleDeleteConfirmed}
       />
     </div>
   );
