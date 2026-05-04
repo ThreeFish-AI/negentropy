@@ -70,15 +70,12 @@ def _compute_quality_score(report: GraphQualityReport) -> float:
 async def validate_graph_quality(
     db: AsyncSession,
     corpus_id: UUID,
-    *,
-    confidence_threshold: float = 0.7,
 ) -> GraphQualityReport:
     """对指定语料库的图谱执行全面质量检查
 
     Args:
         db: 数据库会话
         corpus_id: 语料库 ID
-        confidence_threshold: 高置信度阈值（默认 0.7）
 
     Returns:
         GraphQualityReport 质量报告

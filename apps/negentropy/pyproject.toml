@@ -42,8 +42,6 @@ dependencies = [
     "beautifulsoup4>=4.12.3",       # HTML parsing
     "tiktoken>=0.9.0",              # BPE token counter for accurate context budgeting
     "networkx>=3.0",                # Graph algorithms (PageRank, Louvain community detection)
-    "numpy>=2.4.4",
-    "scipy>=1.17.1",
 ]
 
 [project.optional-dependencies]

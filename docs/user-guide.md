@@ -601,7 +601,7 @@ Catalog 提供树形结构的知识组织方式，采用两栏布局：
 | community_coverage | 已分配社区的实体占比（0.0–1.0） |
 | entity_confidence_avg | 所有实体的平均置信度 |
 | relation_evidence_ratio | 有原文证据的关系占比 |
-| quality_score | 综合质量评分（0.0–1.0，加权几何平均） |
+| quality_score | 综合质量评分（0.0–1.0，加权算术平均） |
 
 > 综合评分权重：完整性（悬空边+孤立节点）40%、社区覆盖率 20%、置信度 20%、证据支持率 20%。
 
