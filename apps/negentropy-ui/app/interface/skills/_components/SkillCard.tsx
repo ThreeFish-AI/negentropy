@@ -15,6 +15,8 @@ interface Skill {
   required_tools: string[];
   is_enabled: boolean;
   priority: number;
+  enforcement_mode?: string;
+  resources?: Array<{ type?: string; ref?: string; title?: string; lazy?: boolean }>;
 }
 
 interface SkillCardProps {
@@ -22,10 +24,28 @@ interface SkillCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleEnabled?: () => void;
+  onPreview?: () => void;
   toggling?: boolean;
+  /** SubAgent 已配置的 tools（用于计算 missing_tools 红 badge）；缺省时不显示差异。 */
+  agentTools?: string[];
 }
 
-export function SkillCard({ skill, onEdit, onDelete, onToggleEnabled, toggling = false }: SkillCardProps) {
+export function SkillCard({
+  skill,
+  onEdit,
+  onDelete,
+  onToggleEnabled,
+  onPreview,
+  toggling = false,
+  agentTools,
+}: SkillCardProps) {
+  const required = skill.required_tools || [];
+  const missingTools =
+    Array.isArray(agentTools) && required.length > 0
+      ? required.filter((t) => !agentTools.includes(t))
+      : [];
+  const enforcement = (skill.enforcement_mode || "warning").toLowerCase();
+  const resourceCount = (skill.resources || []).length;
   const displayLabel = skill.display_name || skill.name;
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
@@ -35,6 +55,20 @@ export function SkillCard({ skill, onEdit, onDelete, onToggleEnabled, toggling =
             {displayLabel}
           </h3>
           <div className="flex shrink-0 items-center gap-2">
+            {onPreview && (
+              <button
+                onClick={onPreview}
+                title="Preview rendered prompt"
+                aria-label={`Preview ${displayLabel}`}
+                data-testid={`skill-preview-${skill.name}`}
+                className="rounded-md p-2 text-sky-500 hover:bg-sky-50 hover:text-sky-600 dark:hover:bg-sky-900/30 dark:hover:text-sky-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            )}
             {onToggleEnabled && (
               <button
                 onClick={onToggleEnabled}
@@ -98,6 +132,32 @@ export function SkillCard({ skill, onEdit, onDelete, onToggleEnabled, toggling =
           <span className="inline-flex shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
             {skill.visibility}
           </span>
+          {enforcement === "strict" && (
+            <span
+              data-testid="skill-enforcement-strict"
+              title="Tool whitelist is strictly enforced — missing required tools will block SubAgent startup."
+              className="inline-flex shrink-0 items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+            >
+              strict
+            </span>
+          )}
+          {resourceCount > 0 && (
+            <span
+              data-testid="skill-resources-count"
+              className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+            >
+              {resourceCount} resources
+            </span>
+          )}
+          {missingTools.length > 0 && (
+            <span
+              data-testid="skill-missing-tools"
+              title={`Missing tools on the bound SubAgent: ${missingTools.join(", ")}`}
+              className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300"
+            >
+              {missingTools.length} missing
+            </span>
+          )}
         </div>
         <p
           className="mb-1 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"

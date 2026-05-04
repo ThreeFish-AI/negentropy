@@ -1,6 +1,6 @@
 # Skills 模块（Agent Skills 在 Negentropy 的工程实现）
 
-> 项目内的 Skills 模块是「可复用 Agent 技能配置 + Progressive Disclosure 注入」的最小工程化落地。本文档汇总：理论锚点、与主流框架的对照、当前实现边界、未来演进路线。其它操作指引参见 [`docs/user-guide/skills-basics.md`](./user-guide/skills-basics.md) / [`skills-advanced.md`](./user-guide/skills-advanced.md) / [`skills-troubleshooting.md`](./user-guide/skills-troubleshooting.md)。
+> 项目内的 Skills 模块是「可复用 Agent 技能配置 + Progressive Disclosure 注入」的最小工程化落地。本文档汇总：理论锚点、与主流框架的对照、当前实现边界、未来演进路线。其它操作指引参见 [`docs/user-guide/skills-basics.md`](./user-guide/skills-basics.md) / [`skills-advanced.md`](./user-guide/skills-advanced.md) / [`skills-templates.md`](./user-guide/skills-templates.md) / [`skills-paper-hunter.md`](./user-guide/skills-paper-hunter.md) / [`skills-troubleshooting.md`](./user-guide/skills-troubleshooting.md)。
 
 ---
 
@@ -26,15 +26,16 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 
 | 维度 | Anthropic Claude Skills<sup>[[4]](#ref4)</sup> | Google ADK Skills<sup>[[5]](#ref5)</sup> | OpenAI Codex Skills<sup>[[6]](#ref6)</sup> | Negentropy（本仓） |
 |------|-----------------------------------------------|------------------------------------------|--------------------------------------------|--------------------|
-| 核心载体 | `SKILL.md` + frontmatter | Python/TS 类 + 装饰器 | Markdown spec + tool 契约 | DB 表（`skills`）+ 12 字段 |
+| 核心载体 | `SKILL.md` + frontmatter | Python/TS 类 + 装饰器 | Markdown spec + tool 契约 | DB 表（`skills`）+ 14 字段（含 `enforcement_mode` / `resources`） |
 | Frontmatter 元数据 | ✓（`name`/`description`/`license`/`version`） | ✓（class metadata） | ✓ | ~（DB 列即元数据） |
-| 描述常驻 | ✓ | ✓ | ✓ | ✓（本 PR 落地） |
-| 模板按需 | ✓ | ✓ | ~ | ✓（接口预留 `format_skill_invocation`） |
-| 资源文件挂载 | ✓（`scripts/` `references/` `assets/`） | ✓ | ~ | ✗（Phase 2） |
-| 工具白名单 | ✓（`allowed-tools`） | ✓ | ✓ | ~（warning，未 fail-close） |
-| 版本管理 | ✓（SemVer） | ✓ | ✗ | ~（字符串字段，未校验） |
+| 描述常驻（Layer 1） | ✓ | ✓ | ✓ | ✓（Phase 1） |
+| 模板按需（Layer 2） | ✓ | ✓ | ~ | ✓（**Phase 2**：`expand_skill` ADK tool + `POST /skills/{id}/invoke` REST + Jinja2 沙箱） |
+| 资源文件挂载（Layer 3） | ✓（`scripts/` `references/` `assets/`） | ✓ | ~ | ✓（**Phase 2**：JSONB `resources` 数组 + `fetch_skill_resource` 路由到 KG/Memory/Knowledge corpus，不直接 fetch URL 防 SSRF） |
+| 工具白名单 | ✓（`allowed-tools`） | ✓ | ✓ | ✓（**Phase 2**：`enforcement_mode=warning\|strict`，strict 抛 `SkillToolMissingError` → SubAgent 降级启动） |
+| 模板分发 / 一键安装 | ✗（手动复制 SKILL.md） | ✗ | ✓（manifest 包） | ✓（**Phase 2**：YAML 模板 + `GET /skills/templates` + `POST /skills/from-template`） |
+| 版本管理 | ✓（SemVer） | ✓ | ✗ | ~（字段保留，模板层 SemVer 强校验，DB 层尚无历史表） |
 | RBAC / 可见性 | ~（Cloud 层） | ✓ | ✗ | ✓（owner/private/shared/public） |
-| 在线编辑 / UI | ✗（文件系统） | ✗ | ✗ | ✓（`/interface/skills`） |
+| 在线编辑 / UI | ✗（文件系统） | ✗ | ✗ | ✓（`/interface/skills`：From Template / Preview / Inline toggle / 资源行编辑 / strict badge） |
 
 **关键洞察**：主流框架 _强 Schema_（文件系统 + frontmatter）但 _弱 RBAC_，Negentropy 反过来 _强 RBAC + 在线 UI_ 但 _弱文件系统_。两者并非互斥——Phase 2 路线即「保留 DB 主权 + 增量支持 SKILL.md 双向同步」（详见第 6 节）。
 
@@ -74,22 +75,50 @@ flowchart LR
   D1 -->|system_prompt + <available_skills>| D2
 ```
 
-### 3.1 已落地（本 PR）
+### 3.1 Phase 1 已落地
 
-- **CRUDL**：完整增删改查 + 分类过滤（`apps/negentropy/src/negentropy/interface/api.py:1083-1227`）；
-- **权限模型**：admin > owner > visibility（PRIVATE/SHARED/PUBLIC）+ `PluginPermission` 表（`interface/permissions.py:23-190`）；
-- **UI**：在线编辑 + Inline 启停 + ConfirmDialog + JSON 字段级错误锚定 + sonner toast（`app/interface/skills/`）；
-- **执行链路最小闭环**：`agents/skills_injector.py` 在 `_load_subagent_row` 注入 `<available_skills>` 块到 SubAgent 系统 prompt，遵循 Progressive Disclosure layer 1；
-- **自签 dev cookie 工具**：`apps/negentropy-ui/scripts/sign-dev-cookie.mjs` + `tests/e2e/utils/dev-cookie.ts`，本地浏览器实机验证不再依赖 Google OAuth；
-- **E2E 覆盖**：5 个 sibling spec（`tests/e2e/skills/{list,create,edit,delete,integration}.spec.ts`）。
+- **CRUDL**：完整增删改查 + 分类过滤（`apps/negentropy/src/negentropy/interface/api.py`）；
+- **权限模型**：admin > owner > visibility（PRIVATE/SHARED/PUBLIC）+ `PluginPermission` 表；
+- **UI**：在线编辑 + Inline 启停 + ConfirmDialog + JSON 字段级错误锚定 + sonner toast；
+- **Layer 1 描述常驻**：`agents/skills_injector.py` 在 `_load_subagent_row` 注入 `<available_skills>` 块到 SubAgent 系统 prompt；
+- **自签 dev cookie 工具**：`apps/negentropy-ui/scripts/sign-dev-cookie.mjs` + `tests/e2e/utils/dev-cookie.ts`；
+- **mocked E2E 覆盖**：5 个 sibling spec / 17 case。
 
-### 3.2 当前限制
+### 3.2 Phase 2 增强（本 PR）
 
-- **Layer 2 `prompt_template` 按需展开**：`format_skill_invocation` 接口已就位，但触发器尚未接入 LLM 工具选择回调（Phase 2）；
-- **Layer 3 资源挂载**：暂无文件系统挂载；
-- **Allowed-tools fail-close**：`validate_required_tools` 当前仅做 warning，不阻塞 SubAgent 启动；
-- **SemVer 版本管理**：`version` 字段无格式校验，无历史表；
-- **SKILL.md 双向同步**：未支持把仓库内 `*.skill.md` 文件入库、或把 DB 导出到文件。
+- **Layer 2 按需展开（P0）**：
+  - `agents/tools/skill_registry.py:expand_skill(name, vars)`：ADK 内置工具，LLM 决定使用某 Skill 时调用即得到 Jinja2 渲染后的完整 prompt_template；
+  - `agents/tools/skill_registry.py:list_available_skills`：兜底自校验，避免注入器漏掉时 LLM 失明；
+  - `POST /interface/skills/{id}/invoke`：UI Preview / 外部系统的等价 REST 入口，服务端只渲染不调 LLM；
+  - 用 `jinja2.sandbox.SandboxedEnvironment` + `StrictUndefined` 防注入与变量遗漏；
+  - Feature flag `NEGENTROPY_SKILLS_LAYER2_ENABLED`（默认 true）一键关闭。
+- **Layer 3 资源挂载（P1）**：
+  - ORM 新增 `resources: JSONB`（`[{type, ref, title, lazy}]`），type ∈ `{kg_node, memory, corpus, url, inline}`；
+  - `format_skill_resources` 默认 `lazy=True`：Layer 1 仅显示 `[N resources attached]` 后缀，避免常驻 prompt 膨胀；
+  - `agents/tools/skill_resources.py:fetch_skill_resource(name, index)`：按 type 路由到 KG / Memory / Knowledge corpus 的现成读取路径；`url` 仅传字符串**不**远程 fetch，**防 SSRF**；
+- **工具白名单 fail-close（P1）**：
+  - ORM 新增 `enforcement_mode: warning\|strict`（默认 warning，向后兼容）；
+  - `skills_injector.build_progressive_disclosure_prompt(agent_tools=...)` 在 strict 模式遇缺失工具抛 `SkillToolMissingError`；
+  - `model_resolver._load_subagent_row` 捕获该异常 → 降级为无 system prompt 启动 + error 级别日志（明确比"装作没事"更安全）；
+  - SkillCard UI 新增 `strict` 红 badge + `N missing` 工具差异 badge。
+- **Skill 模板库 + Paper Hunter（P2）**：
+  - `agents/skill_templates/__init__.py:load_all`：扫 `*.yaml`，`packaging.version.Version` 强制 SemVer 校验；
+  - `paper_hunter.yaml`：内置 AI Agent 论文采集 Skill（required_tools=`[fetch_papers, save_to_memory, update_knowledge_graph]` + 3 类 resources + strict 模式）；
+  - `GET /interface/skills/templates` + `POST /interface/skills/from-template`：UI "From Template..." 按钮一键安装（name 冲突自动追加 `-{owner_short}` 后缀）；
+  - `agents/tools/paper_hunter.py:fetch_papers(query, top_n, days_back, categories)`：arXiv API（≥3s 间隔，topN 上限 20）。
+- **9 个 authed E2E spec**：
+  - `list/create/edit/delete/rbac/invoke/enforcement/resources/integration/paper-hunter.authed.spec.ts`，**全部连真实 backend + 真实 PostgreSQL**，通过 `applyDevCookie` 即时签 ne_sso 注入；
+  - 浏览器 baseURL 从 ctl.sh 启动的 UI（`http://localhost:3192`）取，跳过 webServer 重新构建；
+  - 现有 17 个 mocked case 全部不退化，加上 27 个 authed case = **44 case 全绿**。
+- **浏览器实机回归**：通过 `mcp__chrome_devtools__` + dev cookie 注入完整走 「From Template → Install Paper Hunter → Preview Render」三步链路（截图存档 `.temp/skills-phase2-preview-real.png`）。
+
+### 3.3 仍未覆盖（Phase 3+）
+
+- **SemVer DB 历史表**：`skill_versions` 表 + SubAgent 锁定特定版本；
+- **SKILL.md 双向同步**：仓库 `*.skill.md` ↔ DB 导入/导出；
+- **资源真正 fetch**：`url` 类型的远程 HTTP 拉取（需安全沙箱）；
+- **Skill marketplace**：跨用户公开 Skill 评分 / 使用频率统计；
+- **arXiv 之外的论文源**：Semantic Scholar / Papers With Code（Paper Hunter 后续扩展）。
 
 ---
 
@@ -117,16 +146,17 @@ flowchart LR
 
 ---
 
-## 6. Next Best Action（Phase 2 路线）
+## 6. Next Best Action（Phase 3 路线）
 
-按价值密度降序：
+Phase 1 + Phase 2 完成 4 项 P0/P1/P2 缺口（Layer 2 / fail-close / Layer 3 / 模板库 + Paper Hunter）后，按价值密度降序的下一步：
 
-1. **触发器接入 Layer 2**：让 LLM 通过工具调用（如 `expand_skill(name)`）按需展开 `prompt_template`；不需要重写 ADK，只需增加一个内置工具即可；
-2. **`SKILL.md` 单向导入**：仓库内 `*.skill.md` 文件 → 启动时同步到 DB；
-3. **SemVer 版本管理**：`version` 字段加格式校验 + `skill_versions` 历史表，支持 SubAgent 锁定特定版本；
-4. **Allowed-tools fail-close**：UI 显式展示工具差异；启动时 `is_enabled=false` 自动降级；
-5. **资源文件挂载**：`assets/`、`scripts/` 通过 GCS / 本地存储 + 沙箱执行；
-6. **Skill marketplace**：跨用户公开 Skill 分享（基于既有 `visibility=public`）。
+1. **`skill_versions` 历史表**：在已有 SemVer 校验之上落 DB 历史，支持 SubAgent 锁定特定版本（如 `arxiv-fetch@0.1.0`）；
+2. **`SKILL.md` 双向同步**：仓库内 `*.skill.md` 文件 → 启动时同步到 DB；DB Skill → CLI 导出 `*.skill.md` 用于 PR review；
+3. **第二批模板**：`memory-distill`、`kg-summarize`、`mcp-tool-binding` 三类高频场景；
+4. **arXiv 之外的论文源**：Semantic Scholar 引文图叠加 KG（Paper Hunter v0.2）；
+5. **Memory 自动定时调度**：通过 `memory/automation/jobs` 注册每周一 09:07 跑 paper-hunter；
+6. **Skill marketplace**：跨用户公开 Skill 评分 + 使用频率统计；
+7. **资源真正 fetch**：`url` 类型在专用沙箱内远程 HTTP 拉取，绕开 SSRF 风险（默认仍传字符串）。
 
 ---
 
@@ -145,3 +175,11 @@ flowchart LR
 <a id="ref6"></a>[6] OpenAI, "Codex Skills," *OpenAI Codex Documentation*, [developers.openai.com/codex/skills](https://developers.openai.com/codex/skills), 2025.
 
 <a id="ref7"></a>[7] L. Wang, C. Ma, X. Feng, et al., "A Survey on Large Language Model based Autonomous Agents," *Front. Comput. Sci.*, vol. 18, no. 6, p. 186345, 2024.
+
+<a id="ref8"></a>[8] T. Schick, J. Dwivedi-Yu, R. Dessì, R. Raileanu, M. Lomeli, L. Zettlemoyer, N. Cancedda, and T. Scialom, "Toolformer: Language Models Can Teach Themselves to Use Tools," *Adv. Neural Inf. Process. Syst.*, vol. 36, 2023.
+
+<a id="ref9"></a>[9] N. Shinn, F. Cassano, A. Gopinath, K. R. Narasimhan, and S. Yao, "Reflexion: Language Agents with Verbal Reinforcement Learning," *Adv. Neural Inf. Process. Syst.*, vol. 36, 2023.
+
+<a id="ref10"></a>[10] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Küttler, M. Lewis, W. Yih, T. Rocktäschel, S. Riedel, and D. Kiela, "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," *Adv. Neural Inf. Process. Syst.*, vol. 33, pp. 9459–9474, 2020.
+
+<a id="ref11"></a>[11] arXiv API Help, "API Basics," [info.arxiv.org/help/api](https://info.arxiv.org/help/api/index.html). 速率政策 ≥3s/req 直接驱动了 Paper Hunter `fetch_papers` 工具的间隔策略。
