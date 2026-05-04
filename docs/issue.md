@@ -1022,3 +1022,30 @@
 - **处理方式**：将 sentinel 改为 `__legacy_user_config_marker__`（项目内不会重复出现的稀有字符串），断言改为该 sentinel 不应再出现在覆盖后的文件中。
 - **后续防范**：所有"已被覆盖 / 已被替换"型断言必须使用稀有 sentinel（含项目无关的双下划线 + 描述性单词组合），严禁直接用 `"old"` / `"new"` 等高频英文词。
 - **同类问题影响**：检索 `assert "<short>" not in` 模式的所有测试，确认是否也用了脆弱字符串。
+
+## 2026-05-04 Memory Facts History 模态：缺 Esc 键关闭与 ARIA 语义
+
+- **现象**：`/memory/facts` 点击「History」打开版本链模态后，按 Esc 键不关闭；模态根容器没有 `role="dialog"` 与 `aria-modal="true"`，无法被屏幕阅读器识别为模态层。
+- **根因**：`apps/negentropy-ui/app/memory/facts/page.tsx:215-284` 仅在 backdrop 与 Close 按钮上挂了 `onClick`，未实现 Escape 键监听，也未设置 ARIA 角色与 focus trap。点击外层 backdrop 关闭走 `handleCloseHistory`（line 218），点击 modal body `stopPropagation`（line 222），但键盘 Esc 没有路径触发 close。
+- **处理方式**：在 modal 容器加 `role="dialog" aria-modal="true" aria-labelledby="..."`；通过 `useEffect` 在打开时绑定 `document.addEventListener("keydown")` 监听 Escape，卸载/关闭时解绑。focus trap 不在本轮范围内（cost/benefit 不匹配，未来若有强需求再做）。
+- **后续防范**：项目内所有自定义 modal 一律走「ARIA dialog + Esc 关闭」最小可访问模式；新增 modal 时审查清单中加这两条。可在 `components/ui/` 下沉淀 `Modal` 通用组件供后续复用。
+- **同类问题影响**：复检 Memory / Knowledge / Interface 三个领域内其他自定义 modal（Audit 备注、Knowledge 实体编辑等），如无 Esc 监听同样补齐。
+
+## 2026-05-04 Memory 浏览器实机验证 dev cookie 工具与 seed 数据备查
+
+- **Dev Cookie 工具**：
+  - `apps/negentropy-ui/tests/e2e/utils/dev-cookie.ts`：HMAC-SHA256 base64url 签名核心，与后端 `apps/negentropy/src/negentropy/auth/tokens.py` 算法严格对齐（包括 canonical JSON 排序）
+  - `apps/negentropy-ui/scripts/sign-dev-cookie.mjs`：CLI 双模式（stdout token 与 storageState 文件），用于 MCP 浏览器实机回归
+  - 单测 `tests/unit/e2e/dev-cookie.test.ts` 11 例全绿；后端 Python `decode_token` 跨进程解码 JS 端 token 通过
+- **Secret 配置**：本轮新生成 `NE_AUTH_TOKEN_SECRET=bb574184c8dac66d4866d8ffe4e570c37681d09e85413283e28ae2951bca2917`，写入 `apps/negentropy/.env.local` 与 `apps/negentropy-ui/.env.local`（gitignored）。后续浏览器调试可继续复用；如需轮换，两边 secret 必须字节级一致
+- **Demo seed 数据**（来自先前轮次，本轮直接复用）：
+  - user_id：`google:dev-admin`
+  - 4 条 memory（episodic/semantic/preference 混合，metadata.source="browser_e2e_test"）
+  - 4 条 fact（key=api_design/role/editor/preferred_language）
+  - 5+ 条 audit history
+  - 0 条 conflict（巩固管线 disabled + pg_cron 不可用，本轮无法触发 fact 冲突）
+- **本轮浏览器验证局限**：
+  - Conflicts 页：仅验证 empty state + filter 控件；resolve 操作回归交给 mock E2E 覆盖
+  - Automation 页：在 pg_cron 不可用环境下验证了 degraded readonly 模式；admin API config save / job action 流程实机未触发，交给 mock E2E
+- **后续清理建议**：开发结束后 `localStorage.removeItem("negentropy:activity-log")` 清理 Activity 测试 entries；如需重置 dev seed，可手动清除上述 ID 对应的 Memory/Fact/Audit 行（**严禁** TRUNCATE）
+
