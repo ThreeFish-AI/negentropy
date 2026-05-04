@@ -169,10 +169,11 @@ async def test_typed_memory_crud_and_search():
 
     await _cleanup_memories(user_id, app_name)
 
+    tid = uuid.UUID(await _create_thread(user_id, app_name))
     result = await service.add_memory_typed(
         user_id=user_id,
         app_name=app_name,
-        thread_id=uuid.uuid4(),
+        thread_id=tid,
         content="用户偏好 Rust 语言，使用 Neovim 编辑器",
         memory_type="preference",
         metadata={"source": "integration_test"},
@@ -201,10 +202,11 @@ async def test_rocchio_feedback_loop():
 
     await _cleanup_memories(user_id, app_name)
 
+    tid = uuid.UUID(await _create_thread(user_id, app_name))
     await service.add_memory_typed(
         user_id=user_id,
         app_name=app_name,
-        thread_id=uuid.uuid4(),
+        thread_id=tid,
         content="部署流程：uv run deploy --env staging",
         memory_type="procedural",
     )
@@ -265,10 +267,11 @@ async def test_governance_audit_trail():
 
     await _cleanup_memories(user_id, app_name)
 
+    tid = uuid.UUID(await _create_thread(user_id, app_name))
     await service.add_memory_typed(
         user_id=user_id,
         app_name=app_name,
-        thread_id=uuid.uuid4(),
+        thread_id=tid,
         content="审计测试：这是一条语义记忆",
         memory_type="semantic",
     )
