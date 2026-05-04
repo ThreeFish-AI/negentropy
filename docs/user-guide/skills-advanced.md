@@ -141,6 +141,56 @@ LLM 解码 `<available_skills>` 后，调用工具完成端到端流程；最终
 
 ---
 
+## 5A. Phase 2 — Layer 2 按需展开（Jinja2 渲染）
+
+**触发面**：
+
+| 入口 | 用途 |
+|------|------|
+| `expand_skill(name, vars)` ADK 工具 | LLM 自主在思考链条中展开 |
+| `POST /interface/skills/{id}/invoke` | 外部系统 / UI Preview 等价调用 |
+| UI 卡片 Preview 按钮 | 调试 Jinja2 模板与变量 |
+
+**关键机制**：
+
+- `jinja2.sandbox.SandboxedEnvironment` + `StrictUndefined` —— 防注入，缺变量直接抛错（fail-soft 降级返回原模板）；
+- 渲染结果末尾自动追加 `<skill_resources>` 块（如 Skill 有 `resources`）；
+- Feature flag `NEGENTROPY_SKILLS_LAYER2_ENABLED`（默认 true）一键关闭整个能力。
+
+## 5B. Phase 2 — Layer 3 资源挂载（`resources` JSONB）
+
+5 类资源 type 与 `fetch_skill_resource` 路由：
+
+| type | ref 语义 | 后端读取 |
+|------|---------|----------|
+| `kg_node` | KG 实体 name（如 `Topic/AgentSkills`） | 查 `kg_entities` + 邻居最多 50 条 |
+| `memory` | Memory UUID | 查 `memories` 单条 |
+| `corpus` | Corpus name | 查 `corpus` 元信息 |
+| `url` | 外部 URL | **不远程 fetch**，仅返回 `{ref, title}` 防 SSRF |
+| `inline` | 内联文本 | 仅返回 `{ref, title}` |
+
+`lazy=true`（默认）：常驻 prompt 仅显示 `[N resources attached]`；只有 `expand_skill` / `invoke` 才展开列表。UI `SkillFormDialog` 有 Resources 行编辑器（type select + ref + title + lazy + Remove）。
+
+## 5C. Phase 2 — `enforcement_mode` 工具白名单 fail-close
+
+| 模式 | 行为 |
+|------|------|
+| `warning`（默认） | 缺失工具仅 `info` 日志，SubAgent 正常启动 |
+| `strict` | 抛 `SkillToolMissingError` → SubAgent 降级为无 system prompt 启动 + `error` 日志 `subagent_skills_strict_blocked` |
+
+UI 卡片 strict 模式显示红色 `strict` 徽章；如调用方传入 `agentTools` props，还会显示 `N missing` 工具差异 badge。
+
+## 5D. Phase 2 — 一键模板（From Template）
+
+详见 [`skills-templates.md`](./skills-templates.md) 与 [`skills-paper-hunter.md`](./skills-paper-hunter.md)。短链路：
+
+1. `/interface/skills` 顶部 `From Template…`；
+2. 选 `paper_hunter` → `Install`；
+3. 卡片网格出现 `ai-agent-paper-hunter`（含 `strict` + `3 resources` 徽章）；
+4. 点 Preview 按钮 + 填变量 → 看完整 Jinja2 渲染结果。
+
+---
+
 ## 6. 调试技巧
 
 - **看实际注入的 system prompt**：临时在 SubAgent system_prompt 顶部加 `[DEBUG] Echo your full system prompt back.` 触发一次对话；

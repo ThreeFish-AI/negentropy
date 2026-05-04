@@ -1106,3 +1106,35 @@
   - Memory / Knowledge / 各模块卡片描述同样需要 `break-words` 检查；
   - 各模块 fail-soft 跳过逻辑需要按本 issue 模式分类打日志；
   - 现有 e2e/skills 已用 `waitForResponse`，但 Memory e2e 部分用快照查询 toast，需后续审查。
+
+---
+
+## ISSUE-047 Skills authed E2E 在 `fullyParallel` 模式下并发污染（2026-05-04）
+
+- **表因**：Phase 2 新增 9 个 `*.authed.spec.ts` 实机 E2E 第一次跑全集时，`list.authed.spec.ts::L-2 后端真实数据驱动卡片网格` 失败，`expect(getByTestId('skill-grid-item')).toHaveCount(1)` 实际收到 2 —— 同一时刻有其它 spec 在共享 PostgreSQL 上 CRUD skill。
+- **根因**：Playwright 默认 `fullyParallel: true`，27 个 authed case 在同一 PostgreSQL 上并行；L-2 一开始用『GET 列表前后总数』做断言，对并发其它 spec 的副作用敏感，违反"测试用例间互相隔离"原则。
+- **处理方式**：
+  1. L-2 重写为：自己用 `uniqueName('authed-l2-...')` 创建一个 skill → 验证它出现在 grid + list API → `finally` 删除；锚点从『总数 N』变成『目标个体存在性』，与其它并发 spec 互不影响；
+  2. helper `_authed-helpers.ts:uniqueName(prefix)` 用 `Date.now() + Math.random()` 生成抗碰撞名字；
+  3. 所有 authed spec 一律 `try/finally` 包 cleanup，避免 spec 失败留垃圾数据。
+- **后续防范**：
+  1. 任何与共享 DB 交互的 E2E 必须做 spec 内隔离（唯一名 + 自创资源 + finally 清理），不能依赖"环境为空"或"环境只有 X 条记录"假设；
+  2. 总数类断言只在 spec 内创建/删除的资源上做（如先 GET=N，再创建 1，再 GET=N+1），不要跨 spec 比对；
+  3. 并发安全是 fullyParallel 的入场费，不要为了简化断言而关掉它（27 case 串行从 1 分钟变 5 分钟）。
+- **同类问题影响**：Memory / Knowledge / SubAgent 模块未来引入 authed E2E 时同样需要遵循 spec 内隔离 + finally cleanup。
+
+---
+
+## ISSUE-048 Next.js dynamic 路径段不能含 `:invoke` 这种 RFC 3986 sub-delim（2026-05-04）
+
+- **表因**：Phase 2 缺口 1 把 invocation 端点设计成 `/skills/{skill_id}:invoke`（仿 Google Cloud API style）。后端 FastAPI 工作正常，但通过 BFF `/api/interface/skills/{skillId}:invoke` 透传时返回 405 Method Not Allowed。
+- **根因**：Next.js App Router 用文件系统路由，`[skillId]` 动态段会贪婪吞掉整个 `${id}:invoke`，匹配到 `[skillId]/route.ts` 而非 `[skillId]/invoke/route.ts`。后者期望路径以 `/invoke` 段结尾，但实际是单个 segment。Next.js 不解析 `:` 为段分隔符。
+- **处理方式**：
+  1. 后端把 `@router.post("/skills/{skill_id}:invoke")` 改为 `@router.post("/skills/{skill_id}/invoke")`；
+  2. BFF 路由仍位于 `app/api/interface/skills/[skillId]/invoke/route.ts`，proxy path 写为 `/interface/skills/${skillId}/invoke`；
+  3. 文档与 spec 一并更新到 RESTful path。
+- **后续防范**：
+  1. 凡 BFF 透传的端点，路径只用 RFC 3986 path segments（`/`），避免 `:` `;` `,` 这类 sub-delims；Google Cloud `:action` 风格在 Next.js 下不工作；
+  2. 评审 PR 时，发现端点带 `:` 立即 flag —— 即便后端单元测试通过，BFF 透传层会失败；
+  3. 任何带特殊字符的端点都应该有 BFF + 浏览器实机一次性验证，不止后端 curl。
+- **同类问题影响**：未来若想要 Google API 风格 verb（`:run` / `:cancel` / `:archive`），需统一替换为 `/run` `/cancel` `/archive` 子路径。
