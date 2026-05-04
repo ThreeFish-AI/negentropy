@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.logging import get_logger
@@ -67,9 +68,7 @@ class KgEntityService:
 
         # 检查是否已存在（幂等）
         existing = await db.execute(
-            __import__("sqlalchemy")
-            .select(KgEntity)
-            .where(
+            sa.select(KgEntity).where(
                 KgEntity.name == name,
                 KgEntity.entity_type == entity_type,
                 KgEntity.corpus_id == corpus_id if corpus_id else True,

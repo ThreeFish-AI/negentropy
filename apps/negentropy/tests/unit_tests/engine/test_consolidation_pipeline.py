@@ -1178,7 +1178,8 @@ class TestDedupMergeConflictBridge:
             result = await step.run(ctx)
 
         assert result.status == "success"
-        assert result.output_count == 1
+        assert result.output_count == 0
+        assert result.extra.get("conflict_preserved") == 1
         assert not loser_updated
 
     async def test_check_fact_conflict_returns_false_no_thread_ids(self):

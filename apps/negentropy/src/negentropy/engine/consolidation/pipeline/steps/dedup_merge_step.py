@@ -130,6 +130,7 @@ class DedupMergeStep:
             threshold = 0.90
 
         merged_count = 0
+        conflict_preserved = 0
 
         async with db_session.AsyncSessionLocal() as db:
             # 拉取新记忆
@@ -197,6 +198,7 @@ class DedupMergeStep:
 
                     if skip_soft_delete:
                         # 冲突已由 ConflictResolver 处理（如 keep_both），不做 soft-delete
+                        conflict_preserved += 1
                         logger.debug(
                             "dedup_skip_soft_delete_conflict_resolved",
                             primary=str(primary_id),
@@ -214,8 +216,7 @@ class DedupMergeStep:
                             .where(Memory.id == loser_id)
                             .values(metadata_=loser_meta, retention_score=0.0)
                         )
-
-                    merged_count += 1
+                        merged_count += 1
 
                 await db.commit()
             except Exception:
@@ -228,6 +229,7 @@ class DedupMergeStep:
             status="success",
             duration_ms=duration_ms,
             output_count=merged_count,
+            extra={"conflict_preserved": conflict_preserved} if conflict_preserved > 0 else {},
         )
 
 
