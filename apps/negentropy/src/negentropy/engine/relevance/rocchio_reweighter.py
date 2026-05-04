@@ -131,10 +131,10 @@ async def reweight_memories(
                     metadata_=sa.func.jsonb_set(
                         sa.func.coalesce(
                             Memory.metadata_,
-                            sa.cast(sa.literal({}), sa.dialects.postgresql.JSONB),
+                            sa.text("'{}'::jsonb"),
                         ),
-                        "{relevance_weight}",
-                        sa.cast(sa.literal(weight), sa.dialects.postgresql.JSONB),
+                        sa.text("ARRAY['relevance_weight']"),
+                        sa.func.to_jsonb(sa.literal(weight)),
                     )
                 )
             )

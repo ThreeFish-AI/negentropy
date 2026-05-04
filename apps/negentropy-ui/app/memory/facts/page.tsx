@@ -37,8 +37,16 @@ export default function MemoryFactsPage() {
   const facts = payload?.items || [];
 
   const handleLoadUser = () => {
-    if (userId.trim()) {
-      setActiveUserId(userId.trim());
+    const trimmed = userId.trim();
+    if (!trimmed) return;
+    setActiveUserId(trimmed);
+    if (activeUserId === trimmed) {
+      setError(null);
+      setIsLoading(true);
+      fetchFacts(trimmed, APP_NAME)
+        .then((data) => setPayload(data))
+        .catch((err) => setError(err))
+        .finally(() => setIsLoading(false));
     }
   };
 

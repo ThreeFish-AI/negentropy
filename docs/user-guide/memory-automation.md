@@ -10,6 +10,7 @@
 |----|----|----|----|
 | `cleanup_low_value_memories` | 每天 03:00 | 清理 `retention_score < 0.05` 且 `access_count = 0` 的记忆 | `apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py` |
 | `trigger_consolidation` | 每小时 | 巩固未处理 thread | `engine/schedulers/async_scheduler.py` |
+| `reweight_relevance` | 每 6 小时 | Rocchio 相关性重加权 | `engine/relevance/rocchio_reweighter.py` |
 | `compute_importance` | 每 6 小时 | 批量更新 `importance_score`（ACT-R）| `memory_automation_service.py` |
 | `proactive_recall_warmup` | 每天 04:00 | 主动召回缓存预热 | `proactive_recall_service.py` |
 
@@ -135,6 +136,32 @@ curl -X POST -H "Content-Type: application/json" \
 ```
 
 `outcome` ∈ {`helpful` / `irrelevant` / `harmful`} 写入 `memory_retrieval_logs.outcome_feedback`，由 Rocchio 风格重排<sup>[[27]](#ref27)</sup>下游消费。
+
+### Rocchio Relevance Reweight
+
+定期聚合用户反馈，调整记忆检索权重。
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `reweight_relevance.enabled` | `false` | 是否启用 |
+| `reweight_relevance.schedule` | `0 */6 * * *` | 每 6 小时执行 |
+
+**启用方式：**
+
+```bash
+curl -X PUT /api/memory/automation/config \
+  -H 'Content-Type: application/json' \
+  -d '{"reweight_relevance": {"enabled": true}}'
+```
+
+**手动触发：**
+
+```bash
+curl -X POST /api/memory/automation/run \
+  -d '{"job_key": "reweight_relevance"}'
+```
+
+**前提条件：** 需先通过 `POST /api/retrieval/feedback` 提交检索反馈，且 `NE_MEMORY_RELEVANCE__ENABLED=true` 已开启。
 
 ---
 

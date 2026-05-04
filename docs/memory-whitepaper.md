@@ -148,6 +148,15 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 **G4 可观测性**：新增 `GET /memory/health`（无需鉴权）和 `GET /memory/metrics`（需 admin）端点。指标基于 SRE 四大黄金信号<sup>[[24]](#ref24)</sup>从现有表聚合，无 schema 变更。配置：`NE_MEMORY_OBSERVABILITY__HEALTH_ENABLED=true`、`NE_MEMORY_OBSERVABILITY__METRICS_ENABLED=true`。
 
+### 4.9 Phase 7: 闭环验证 + 冲突桥接 + Rocchio 自动化
+
+| Gap | 变更 | 理论基础 |
+|-----|------|---------|
+| G1 | Consolidation Pipeline 3 个核心 Step（EntityNormalization / TopicCluster / DedupMerge）补全单元测试，覆盖率 ≥ 80% | CLS (McClelland 1995)<sup>[[2]](#ref2)</sup> 巩固正确性验证 |
+| G2 | DedupMergeStep ↔ ConflictResolver 桥接：近重复合并前检测事实冲突，偏好反转等场景通过 AGM 信念修正显式解决 | AGM (Alchourrón 1985)<sup>[[10]](#ref10)</sup> + Doyle TMS (1979) |
+| G3 | Rocchio 重加权自动化调度：新增 `reweight_relevance` Job，每 6h 聚合反馈并更新 `metadata_.relevance_weight` | Rocchio (1971)<sup>[[22]](#ref22)</sup> 反馈闭环 |
+| G4 | 端到端集成测试：全 Pipeline 巩固、去重、Rocchio 反馈、审计追踪 | "Verification Before Done" 工程准则 |
+
 ---
 
 ## 5. 引文清单（IEEE）

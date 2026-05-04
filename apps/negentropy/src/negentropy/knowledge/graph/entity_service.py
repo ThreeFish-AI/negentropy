@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from negentropy.logging import get_logger
@@ -63,13 +64,11 @@ class KgEntityService:
             corpus_id: 所属语料库 ID
             app_name: 应用名称（默认 "negentropy"）
         """
-        from sqlalchemy import select as sql_select
-
         from negentropy.models.perception import KgEntity
 
         # 检查是否已存在（幂等）
         existing = await db.execute(
-            sql_select(KgEntity).where(
+            sa.select(KgEntity).where(
                 KgEntity.name == name,
                 KgEntity.entity_type == entity_type,
                 KgEntity.corpus_id == corpus_id if corpus_id else True,
@@ -151,14 +150,12 @@ class KgEntityService:
         通过名称匹配找到 source/target 实体后创建关系。
         如果任一端点不存在，则跳过（延迟创建）。
         """
-        from sqlalchemy import select as sql_select
-
         from negentropy.models.perception import KgEntity, KgRelation
 
         _corpus_filters = [KgEntity.corpus_id == corpus_id] if corpus_id else []
 
         src_result = await db.execute(
-            sql_select(KgEntity)
+            sa.select(KgEntity)
             .where(
                 KgEntity.name == source_name,
                 *_corpus_filters,
@@ -166,7 +163,7 @@ class KgEntityService:
             .limit(1)
         )
         tgt_result = await db.execute(
-            sql_select(KgEntity)
+            sa.select(KgEntity)
             .where(
                 KgEntity.name == target_name,
                 *_corpus_filters,
@@ -190,7 +187,7 @@ class KgEntityService:
 
         # 检查是否已存在相同关系
         existing = await db.execute(
-            sql_select(KgRelation)
+            sa.select(KgRelation)
             .where(
                 KgRelation.source_id == src.id,
                 KgRelation.target_id == tgt.id,
@@ -317,11 +314,9 @@ class KgEntityService:
         Returns:
             实体列表，按 mention_count 降序排列
         """
-        from sqlalchemy import select as sql_select
-
         from negentropy.models.perception import KgEntity
 
-        query = sql_select(
+        query = sa.select(
             KgEntity.id,
             KgEntity.name,
             KgEntity.entity_type,
@@ -369,11 +364,10 @@ class KgEntityService:
             (items, total_count)
         """
         from sqlalchemy import func as sql_func
-        from sqlalchemy import select as sql_select
 
         from negentropy.models.perception import KgEntity
 
-        base = sql_select(KgEntity).where(
+        base = sa.select(KgEntity).where(
             KgEntity.corpus_id == corpus_id,
             KgEntity.is_active == True,  # noqa: E712
         )
@@ -383,7 +377,7 @@ class KgEntityService:
         if search:
             base = base.where(KgEntity.name.ilike(f"%{search}%"))
 
-        count_q = sql_select(sql_func.count()).select_from(base.subquery())
+        count_q = sa.select(sql_func.count()).select_from(base.subquery())
         total = (await db.execute(count_q)).scalar_one()
 
         if sort_by == "importance":
@@ -428,7 +422,6 @@ class KgEntityService:
         Returns:
             实体详情 dict 或 None（未找到）
         """
-        from sqlalchemy import select as sql_select
         from sqlalchemy.orm import selectinload
 
         from negentropy.models.perception import KgEntity, KgRelation
@@ -438,7 +431,7 @@ class KgEntityService:
             filters.append(KgEntity.corpus_id == corpus_id)
 
         result = await db.execute(
-            sql_select(KgEntity)
+            sa.select(KgEntity)
             .where(*filters)
             .options(
                 selectinload(KgEntity.outgoing_relations).selectinload(KgRelation.target_entity),
@@ -510,14 +503,13 @@ class KgEntityService:
         3. 设置 secondary.is_active = False
         4. 合并 secondary.properties 到 primary.properties
         """
-        from sqlalchemy import select as sql_select
         from sqlalchemy import update as sql_update
 
         from negentropy.models.perception import KgEntity, KgRelation
 
         # 加载两个实体
-        primary = (await db.execute(sql_select(KgEntity).where(KgEntity.id == primary_id))).scalar_one_or_none()
-        secondary = (await db.execute(sql_select(KgEntity).where(KgEntity.id == secondary_id))).scalar_one_or_none()
+        primary = (await db.execute(sa.select(KgEntity).where(KgEntity.id == primary_id))).scalar_one_or_none()
+        secondary = (await db.execute(sa.select(KgEntity).where(KgEntity.id == secondary_id))).scalar_one_or_none()
 
         if not primary or not secondary:
             return
