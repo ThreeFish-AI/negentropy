@@ -1,104 +1,158 @@
-import { createHmac } from "node:crypto";
-
 /**
- * Self-signed dev session cookie for local browser validation.
+ * Dev cookie 签发工具：复刻后端 `apps/negentropy/src/negentropy/auth/tokens.py` 的 HMAC-SHA256
+ * base64url 算法，用于在不经 Google OAuth 的情况下让 Playwright Chromium 直接以指定身份访问 UI。
  *
- * Mirrors `apps/negentropy/src/negentropy/auth/tokens.py:_b64encode/_sign/encode_token`
- * byte-for-byte:
- * - JSON: `json.dumps(payload, separators=(",", ":"), sort_keys=True)` — recursive key sort, no whitespace
- * - base64url, padding stripped
- * - HMAC-SHA256(secret_utf8, encoded_payload_utf8)
- * - Final token: `<encoded_payload>.<signature>`
- *
- * Backend decode path: `auth/service.py:_build_session_token` → `decode_token`.
+ * 仅用于本地开发与浏览器实机回归。生产环境严禁使用。
  */
+import { Buffer } from "node:buffer";
+import { createHmac, randomUUID } from "node:crypto";
 
-export const DEV_COOKIE_NAME = "ne_sso";
-
-export interface SessionPayload {
+export interface DevSessionPayload {
   typ: "session";
   iat: number;
   exp: number;
   sub: string;
-  email: string | null;
-  name: string | null;
+  email: string;
+  name: string;
   picture: string | null;
   roles: string[];
   provider: string;
   subject: string;
   domain: string | null;
+  [extra: string]: unknown;
 }
 
-export interface AdminPayloadOptions {
+export interface BuildPayloadInput {
   email?: string;
   sub?: string;
   name?: string;
-  picture?: string | null;
   roles?: string[];
   provider?: string;
+  subject?: string;
   domain?: string | null;
+  picture?: string | null;
   ttlSeconds?: number;
-  iat?: number;
+  now?: number;
 }
 
-const DEFAULT_TTL_SECONDS = 60 * 60 * 24;
+const DEFAULT_TTL_SECONDS = 60 * 60 * 24; // 1 天，浏览器调试足够
 
-function base64UrlEncode(buf: Buffer): string {
-  return buf.toString("base64url").replace(/=+$/u, "");
+function b64urlNoPad(buf: Buffer): string {
+  return buf.toString("base64url");
 }
 
 /**
- * Recursively sort object keys so the JSON output matches Python's
- * `json.dumps(sort_keys=True)` byte-for-byte at every nesting level.
+ * 与 Python `json.dumps(payload, sort_keys=True, separators=(",", ":"))` 等价。
+ * 必须递归对所有对象 key 排序，数组保持原顺序。
  */
-function canonicalize(value: unknown): unknown {
+export function canonicalJSONStringify(value: unknown): string {
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "number" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "string") return JSON.stringify(value);
   if (Array.isArray(value)) {
-    return value.map(canonicalize);
+    return `[${value.map((v) => canonicalJSONStringify(v)).join(",")}]`;
   }
-  if (value && typeof value === "object" && value.constructor === Object) {
-    const obj = value as Record<string, unknown>;
-    const sortedKeys = Object.keys(obj).sort();
-    const out: Record<string, unknown> = {};
-    for (const key of sortedKeys) {
-      out[key] = canonicalize(obj[key]);
-    }
-    return out;
+  if (typeof value === "object") {
+    const keys = Object.keys(value as Record<string, unknown>).sort();
+    const parts = keys.map((k) => {
+      const v = (value as Record<string, unknown>)[k];
+      return `${JSON.stringify(k)}:${canonicalJSONStringify(v)}`;
+    });
+    return `{${parts.join(",")}}`;
   }
-  return value;
+  throw new TypeError(`canonicalJSONStringify: unsupported value type ${typeof value}`);
 }
 
-export function canonicalJSON(payload: unknown): string {
-  return JSON.stringify(canonicalize(payload));
-}
-
-export function signDevSessionCookie(payload: SessionPayload, secret: string): string {
+export function signDevSessionCookie(payload: DevSessionPayload, secret: string): string {
   if (!secret) {
-    throw new Error("token secret is required");
+    throw new Error("NE_AUTH_TOKEN_SECRET 不可为空");
   }
-  const json = canonicalJSON(payload);
-  const encoded = base64UrlEncode(Buffer.from(json, "utf-8"));
-  const signature = base64UrlEncode(
-    createHmac("sha256", Buffer.from(secret, "utf-8")).update(encoded, "utf-8").digest(),
-  );
+  const canonical = canonicalJSONStringify(payload);
+  const encoded = b64urlNoPad(Buffer.from(canonical, "utf-8"));
+  const signature = b64urlNoPad(createHmac("sha256", secret).update(encoded).digest());
   return `${encoded}.${signature}`;
 }
 
-export function buildAdminPayload(opts: AdminPayloadOptions = {}): SessionPayload {
-  const iat = opts.iat ?? Math.floor(Date.now() / 1000);
-  const ttl = opts.ttlSeconds ?? DEFAULT_TTL_SECONDS;
-  const sub = opts.sub ?? "google:dev-admin";
-  const email = opts.email ?? "dev-admin@negentropy.local";
+export function buildAdminPayload(input: BuildPayloadInput = {}): DevSessionPayload {
+  const now = input.now ?? Math.floor(Date.now() / 1000);
+  const ttl = input.ttlSeconds ?? DEFAULT_TTL_SECONDS;
+  const sub = input.sub ?? "google:dev-admin";
   return {
     typ: "session",
-    iat,
-    exp: iat + ttl,
+    iat: now,
+    exp: now + ttl,
     sub,
-    email,
-    name: opts.name ?? "Dev Admin",
-    picture: opts.picture ?? null,
-    roles: opts.roles ?? ["admin"],
-    provider: opts.provider ?? "dev",
-    subject: opts.sub ?? sub,
-    domain: opts.domain ?? null,
+    email: input.email ?? "dev-admin@example.com",
+    name: input.name ?? "Dev Admin",
+    picture: input.picture ?? null,
+    roles: input.roles ?? ["admin"],
+    provider: input.provider ?? "google",
+    subject: input.subject ?? sub.replace(/^google:/, ""),
+    domain: input.domain ?? null,
   };
 }
+
+export interface PlaywrightStorageState {
+  cookies: Array<{
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires: number;
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: "Lax" | "Strict" | "None";
+  }>;
+  origins: Array<{ origin: string; localStorage: Array<{ name: string; value: string }> }>;
+}
+
+export interface BuildStorageStateInput extends BuildPayloadInput {
+  secret: string;
+  cookieName?: string;
+  cookieDomain?: string;
+  cookieSecure?: boolean;
+  cookieSameSite?: "Lax" | "Strict" | "None";
+  cookiePath?: string;
+}
+
+export function buildPlaywrightStorageState(input: BuildStorageStateInput): {
+  payload: DevSessionPayload;
+  cookieValue: string;
+  storageState: PlaywrightStorageState;
+} {
+  const payload = buildAdminPayload(input);
+  const cookieValue = signDevSessionCookie(payload, input.secret);
+  const storageState: PlaywrightStorageState = {
+    cookies: [
+      {
+        name: input.cookieName ?? "ne_sso",
+        value: cookieValue,
+        domain: input.cookieDomain ?? "127.0.0.1",
+        path: input.cookiePath ?? "/",
+        expires: payload.exp,
+        httpOnly: true,
+        secure: input.cookieSecure ?? false,
+        sameSite: input.cookieSameSite ?? "Lax",
+      },
+    ],
+    origins: [],
+  };
+  return { payload, cookieValue, storageState };
+}
+
+/**
+ * 仅用于自反单测：相同 secret 二次签名应得到完全一致的 token。
+ */
+export function signatureSelfCheck(payload: DevSessionPayload, secret: string): boolean {
+  const a = signDevSessionCookie(payload, secret);
+  const b = signDevSessionCookie(payload, secret);
+  return a === b;
+}
+
+export const __testing = {
+  DEFAULT_TTL_SECONDS,
+  b64urlNoPad,
+  randomUUID, // 暴露给 spec 拼装 idempotency key
+};

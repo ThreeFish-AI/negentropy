@@ -1,224 +1,176 @@
 #!/usr/bin/env node
 /**
- * 自签 ne_sso dev session cookie 工具，用于本地浏览器实机验证。
- *
- * 与 apps/negentropy/src/negentropy/auth/tokens.py 字节级对齐。
+ * sign-dev-cookie.mjs — 本地开发用：生成已签名的 ne_sso cookie 值，
+ * 兼输出 Playwright storageState JSON，用于浏览器实机回归。
  *
  * 用法：
- *   node scripts/sign-dev-cookie.mjs                              # stdout 打印 token
- *   node scripts/sign-dev-cookie.mjs --storage-state .auth/x.json # 写 Playwright storageState
- *   node scripts/sign-dev-cookie.mjs --email a@b.com --ttl 3600
+ *   NE_AUTH_TOKEN_SECRET=<hex> node apps/negentropy-ui/scripts/sign-dev-cookie.mjs
+ *     → stdout 打印 token（无尾换行噪声，方便 $(...) 抓取）
  *
- * 环境变量：
- *   NE_AUTH_TOKEN_SECRET  必填；可由 .env.local 自动加载
- *   PLAYWRIGHT_DEV_HOST   可选；默认 127.0.0.1
+ *   NE_AUTH_TOKEN_SECRET=<hex> node apps/negentropy-ui/scripts/sign-dev-cookie.mjs \
+ *     --storage-state apps/negentropy-ui/.auth/dev-admin.json
+ *     → 同时把 cookie 写成 Playwright storageState 文件（gitignored）
+ *
+ * 选项：
+ *   --storage-state <path>   写入 Playwright storageState JSON 到指定路径
+ *   --ttl <seconds>          覆盖默认 86400 秒
+ *   --email <email>          覆盖默认 dev-admin@example.com
+ *   --sub <sub>              覆盖默认 google:dev-admin
+ *   --name <name>            覆盖默认 Dev Admin
+ *   --roles <r1,r2>          覆盖默认 admin（逗号分隔）
+ *   --domain <domain>        cookie domain，默认 127.0.0.1
+ *   --secure                 cookie secure 标志（默认关）
+ *   --quiet                  不输出额外日志
+ *   -h, --help               显示帮助
+ *
+ * 严禁在生产环境执行；本脚本依赖的 NE_AUTH_TOKEN_SECRET 仅在本地 .env.local 下持有。
  */
-
-import { createHmac } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const UI_ROOT = path.resolve(__dirname, "..");
-const REPO_ROOT = path.resolve(UI_ROOT, "..", "..");
-
-function parseDotenv(filePath) {
-  let raw;
-  try {
-    raw = readFileSync(filePath, "utf-8");
-  } catch {
-    return {};
-  }
-  const out = {};
-  for (const line of raw.split(/\r?\n/u)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const idx = trimmed.indexOf("=");
-    if (idx < 0) continue;
-    const key = trimmed.slice(0, idx).trim();
-    let value = trimmed.slice(idx + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    out[key] = value;
-  }
-  return out;
-}
-
-function loadSecret() {
-  if (process.env.NE_AUTH_TOKEN_SECRET) {
-    return process.env.NE_AUTH_TOKEN_SECRET;
-  }
-  const candidates = [
-    path.join(UI_ROOT, ".env.local"),
-    path.join(REPO_ROOT, "apps", "negentropy", ".env.local"),
-  ];
-  for (const file of candidates) {
-    const env = parseDotenv(file);
-    if (env.NE_AUTH_TOKEN_SECRET) {
-      return env.NE_AUTH_TOKEN_SECRET;
-    }
-  }
-  return undefined;
-}
+const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(HERE, "../../..");
 
 function parseArgs(argv) {
-  const out = { storageState: null, ttl: 60 * 60 * 24, roles: ["admin"] };
+  const out = {
+    storageState: null,
+    ttlSeconds: 60 * 60 * 24,
+    email: undefined,
+    sub: undefined,
+    name: undefined,
+    roles: undefined,
+    domain: undefined,
+    secure: false,
+    quiet: false,
+  };
   for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    const next = argv[i + 1];
-    switch (arg) {
+    const a = argv[i];
+    const next = () => argv[++i];
+    switch (a) {
+      case "-h":
+      case "--help":
+        process.stdout.write(`用法见脚本头部注释。\n`);
+        process.exit(0);
+        break;
       case "--storage-state":
-        out.storageState = next ?? path.join(UI_ROOT, ".auth", "dev-admin.json");
-        if (next) i++;
+        out.storageState = next();
         break;
       case "--ttl":
-        out.ttl = Number(next);
-        i++;
+        out.ttlSeconds = Number(next());
+        if (!Number.isFinite(out.ttlSeconds) || out.ttlSeconds <= 0) {
+          process.stderr.write(`[sign-dev-cookie] --ttl 需为正整数秒\n`);
+          process.exit(1);
+        }
         break;
       case "--email":
-        out.email = next;
-        i++;
+        out.email = next();
         break;
       case "--sub":
-        out.sub = next;
-        i++;
+        out.sub = next();
         break;
       case "--name":
-        out.name = next;
-        i++;
+        out.name = next();
         break;
       case "--roles":
-        out.roles = next.split(",").map((s) => s.trim()).filter(Boolean);
-        i++;
+        out.roles = next().split(",").map((s) => s.trim()).filter(Boolean);
         break;
-      case "--host":
-        out.host = next;
-        i++;
+      case "--domain":
+        out.domain = next();
         break;
-      case "--help":
-      case "-h":
-        out.help = true;
+      case "--secure":
+        out.secure = true;
+        break;
+      case "--quiet":
+        out.quiet = true;
         break;
       default:
-        if (arg.startsWith("--")) {
-          console.error(`未知参数：${arg}`);
-          process.exit(2);
-        }
+        process.stderr.write(`[sign-dev-cookie] 未知参数：${a}\n`);
+        process.exit(1);
     }
   }
   return out;
 }
 
-function base64UrlEncode(buf) {
-  return buf.toString("base64url").replace(/=+$/u, "");
-}
-
-function canonicalize(value) {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === "object" && value.constructor === Object) {
-    const sortedKeys = Object.keys(value).sort();
-    const out = {};
-    for (const key of sortedKeys) out[key] = canonicalize(value[key]);
-    return out;
+async function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  const secret = process.env.NE_AUTH_TOKEN_SECRET ?? "";
+  if (!secret) {
+    process.stderr.write(
+      `[sign-dev-cookie] 环境变量 NE_AUTH_TOKEN_SECRET 必须设置；可从 ${REPO_ROOT}/apps/negentropy/.env.local 读取。\n`,
+    );
+    process.exit(2);
   }
-  return value;
-}
 
-function canonicalJSON(payload) {
-  return JSON.stringify(canonicalize(payload));
-}
+  // 注意：Node 22+ 不直接支持 require/import .ts；改用动态 require + tsx loader 不可控。
+  // 此处复用 TS 文件 (../tests/e2e/utils/dev-cookie.ts) 的纯算法部分：
+  // 直接内联实现签名（与 dev-cookie.ts 等价；保持单一事实源）。
+  const { Buffer } = await import("node:buffer");
+  const { createHmac } = await import("node:crypto");
 
-function signSessionCookie(payload, secret) {
-  if (!secret) throw new Error("token secret is required");
-  const json = canonicalJSON(payload);
-  const encoded = base64UrlEncode(Buffer.from(json, "utf-8"));
-  const signature = base64UrlEncode(
-    createHmac("sha256", Buffer.from(secret, "utf-8")).update(encoded, "utf-8").digest(),
-  );
-  return `${encoded}.${signature}`;
-}
+  const b64url = (buf) => buf.toString("base64url");
+  const canonical = (v) => {
+    if (v === null || v === undefined) return "null";
+    if (typeof v === "number" || typeof v === "boolean") return JSON.stringify(v);
+    if (typeof v === "string") return JSON.stringify(v);
+    if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
+    if (typeof v === "object") {
+      const keys = Object.keys(v).sort();
+      return `{${keys.map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(",")}}`;
+    }
+    throw new TypeError(`canonical: unsupported ${typeof v}`);
+  };
 
-function buildAdminPayload(opts) {
-  const iat = Math.floor(Date.now() / 1000);
+  const now = Math.floor(Date.now() / 1000);
   const sub = opts.sub ?? "google:dev-admin";
-  return {
+  const payload = {
     typ: "session",
-    iat,
-    exp: iat + (opts.ttl ?? 86400),
+    iat: now,
+    exp: now + opts.ttlSeconds,
     sub,
-    email: opts.email ?? "dev-admin@negentropy.local",
+    email: opts.email ?? "dev-admin@example.com",
     name: opts.name ?? "Dev Admin",
     picture: null,
     roles: opts.roles ?? ["admin"],
-    provider: "dev",
-    subject: opts.sub ?? sub,
+    provider: "google",
+    subject: sub.replace(/^google:/, ""),
     domain: null,
   };
+
+  const encoded = b64url(Buffer.from(canonical(payload), "utf-8"));
+  const signature = b64url(createHmac("sha256", secret).update(encoded).digest());
+  const token = `${encoded}.${signature}`;
+
+  if (opts.storageState) {
+    const path = resolve(process.cwd(), opts.storageState);
+    mkdirSync(dirname(path), { recursive: true });
+    const storageState = {
+      cookies: [
+        {
+          name: "ne_sso",
+          value: token,
+          domain: opts.domain ?? "127.0.0.1",
+          path: "/",
+          expires: payload.exp,
+          httpOnly: true,
+          secure: opts.secure,
+          sameSite: "Lax",
+        },
+      ],
+      origins: [],
+    };
+    writeFileSync(path, JSON.stringify(storageState, null, 2) + "\n", "utf-8");
+    if (!opts.quiet) {
+      process.stderr.write(`[sign-dev-cookie] storageState 已写入 ${path}\n`);
+    }
+  }
+
+  // 默认 stdout 仅打印 token，方便 $(...) 抓取，不要追加额外内容
+  process.stdout.write(token);
+  if (!opts.quiet) process.stdout.write("\n");
 }
 
-function printHelp() {
-  console.log(`Usage: node scripts/sign-dev-cookie.mjs [options]
-
-签名一个 ne_sso dev session cookie，用于本地浏览器实机验证。
-
-Options:
-  --storage-state [path]  写 Playwright storageState（默认 .auth/dev-admin.json）
-  --ttl <seconds>         过期时间（秒，默认 86400 = 24h）
-  --email <email>         覆盖 email（默认 dev-admin@negentropy.local）
-  --sub <id>              覆盖 sub（默认 google:dev-admin）
-  --name <name>           覆盖 name（默认 Dev Admin）
-  --roles <r1,r2>         覆盖 roles（默认 admin）
-  --host <host>           storageState 中 cookie 的 domain（默认 127.0.0.1）
-  -h, --help              本帮助
-`);
-}
-
-const args = parseArgs(process.argv.slice(2));
-if (args.help) {
-  printHelp();
-  process.exit(0);
-}
-
-const secret = loadSecret();
-if (!secret) {
-  console.error(
-    "✗ 未找到 NE_AUTH_TOKEN_SECRET。\n" +
-      "  请在 apps/negentropy-ui/.env.local 或 apps/negentropy/.env.local 写入，或设环境变量。",
-  );
-  process.exit(2);
-}
-
-const payload = buildAdminPayload(args);
-const token = signSessionCookie(payload, secret);
-
-if (args.storageState) {
-  const file = path.isAbsolute(args.storageState)
-    ? args.storageState
-    : path.resolve(process.cwd(), args.storageState);
-  mkdirSync(path.dirname(file), { recursive: true });
-  const host = args.host ?? "127.0.0.1";
-  const storageState = {
-    cookies: [
-      {
-        name: "ne_sso",
-        value: token,
-        domain: host,
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax",
-        expires: payload.exp,
-      },
-    ],
-    origins: [],
-  };
-  writeFileSync(file, JSON.stringify(storageState, null, 2), "utf-8");
-  console.error(`✓ storageState 写入：${file}`);
-  console.error(`  email=${payload.email}  sub=${payload.sub}  exp=${new Date(payload.exp * 1000).toISOString()}`);
-}
-
-process.stdout.write(token);
-process.stdout.write("\n");
+main().catch((err) => {
+  process.stderr.write(`[sign-dev-cookie] 失败：${err?.stack ?? err}\n`);
+  process.exit(3);
+});

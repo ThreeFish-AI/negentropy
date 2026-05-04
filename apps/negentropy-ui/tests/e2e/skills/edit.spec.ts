@@ -36,7 +36,11 @@ test.describe("Skills 编辑流程", () => {
 
     const toggle = page.locator('button[aria-label="Disable Tog"]');
     await expect(toggle).toBeVisible();
+    const patchResponse = page.waitForResponse(
+      (resp) => resp.request().method() === "PATCH" && resp.url().includes("/api/interface/skills/"),
+    );
     await toggle.click();
+    await patchResponse;
 
     await expect(page.locator('button[aria-label="Enable Tog"]')).toBeVisible();
     const patch = state.calls.find((c) => c.method === "PATCH");
@@ -52,7 +56,11 @@ test.describe("Skills 编辑流程", () => {
 
     await page.getByRole("button", { name: "Edit Old" }).click();
     await page.locator('input[placeholder="My Skill"]').fill("New Display");
+    const patchResponse = page.waitForResponse(
+      (resp) => resp.request().method() === "PATCH" && resp.url().includes("/api/interface/skills/"),
+    );
     await page.getByRole("button", { name: "Update", exact: true }).click();
+    await patchResponse;
 
     await expect(page.getByRole("heading", { name: "New Display" })).toBeVisible();
     const patch = state.calls.find((c) => c.method === "PATCH");

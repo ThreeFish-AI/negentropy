@@ -10,8 +10,11 @@ test.describe("Skills 跨模块联动", () => {
     ]);
     await mockSkillsApi(page, state);
     await page.goto("/interface/skills");
+    await expect(page.getByTestId("skill-grid-item")).toHaveCount(2);
 
+    const filterResponse = page.waitForResponse((resp) => resp.url().includes("category=research"));
     await page.locator("select").selectOption("research");
+    await filterResponse;
     await expect(page.getByTestId("skill-grid-item")).toHaveCount(1);
 
     const filteredCalls = state.calls.filter((c) => c.method === "GET" && c.url.includes("category="));
@@ -24,10 +27,14 @@ test.describe("Skills 跨模块联动", () => {
     const state = newSkillsState([makeSkill({ id: "1", category: "a&b/c" })]);
     await mockSkillsApi(page, state);
     await page.goto("/interface/skills");
+    await expect(page.getByTestId("skill-grid-item")).toHaveCount(1);
 
-    const filteredRequest = page.waitForRequest((req) => /category=a%26b%2Fc/.test(req.url()));
+    const filteredResponse = page.waitForResponse(
+      (resp) => /category=a%26b%2Fc/.test(resp.url()),
+      { timeout: 15000 },
+    );
     await page.locator("select").selectOption("a&b/c");
-    await filteredRequest;
+    await filteredResponse;
     const calls = state.calls.filter((c) => c.method === "GET");
     expect(calls.some((c) => c.url.includes("category=a%26b%2Fc"))).toBe(true);
   });

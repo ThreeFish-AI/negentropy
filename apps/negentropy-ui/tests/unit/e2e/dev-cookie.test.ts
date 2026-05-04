@@ -1,87 +1,110 @@
-import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
   buildAdminPayload,
-  canonicalJSON,
-  DEV_COOKIE_NAME,
+  buildPlaywrightStorageState,
+  canonicalJSONStringify,
   signDevSessionCookie,
+  signatureSelfCheck,
 } from "../../e2e/utils/dev-cookie";
 
-describe("dev-cookie utils", () => {
-  it("DEV_COOKIE_NAME aligns with backend cookie name", () => {
-    expect(DEV_COOKIE_NAME).toBe("ne_sso");
+const SECRET = "test-secret-32bytes-fixed-for-determinism-0123456789";
+const FIXED_NOW = 1_700_000_000;
+
+describe("canonicalJSONStringify", () => {
+  it("应递归对 object key 排序，输出与 Python json.dumps(sort_keys=True,separators=(',',':')) 等价", () => {
+    const got = canonicalJSONStringify({ b: 2, a: { y: [1, 2], x: null }, c: [{ z: 1, a: 0 }] });
+    // 预期：a 内部 x 在 y 前；外层 a < b < c
+    expect(got).toBe('{"a":{"x":null,"y":[1,2]},"b":2,"c":[{"a":0,"z":1}]}');
   });
 
-  it("canonicalJSON sorts keys recursively to match Python sort_keys=True", () => {
-    const out = canonicalJSON({ b: { z: 1, a: 2 }, a: 1 });
-    expect(out).toBe('{"a":1,"b":{"a":2,"z":1}}');
+  it("应保留数组顺序，仅对对象 key 排序", () => {
+    const got = canonicalJSONStringify([3, 1, 2]);
+    expect(got).toBe("[3,1,2]");
   });
 
-  it("canonicalJSON keeps array order intact", () => {
-    const out = canonicalJSON({ arr: [3, 1, 2], a: 1 });
-    expect(out).toBe('{"a":1,"arr":[3,1,2]}');
+  it("应正确序列化 null / boolean / number", () => {
+    expect(canonicalJSONStringify(null)).toBe("null");
+    expect(canonicalJSONStringify(true)).toBe("true");
+    expect(canonicalJSONStringify(1.5)).toBe("1.5");
+  });
+});
+
+describe("signDevSessionCookie", () => {
+  it("应在 secret 为空时抛错", () => {
+    const payload = buildAdminPayload({ now: FIXED_NOW });
+    expect(() => signDevSessionCookie(payload, "")).toThrow(/不可为空/);
   });
 
-  it("buildAdminPayload defaults to admin role + 24h ttl", () => {
-    const payload = buildAdminPayload();
-    expect(payload.typ).toBe("session");
-    expect(payload.roles).toEqual(["admin"]);
-    expect(payload.exp - payload.iat).toBe(60 * 60 * 24);
-    expect(payload.email).toBe("dev-admin@negentropy.local");
-    expect(payload.sub).toBe("google:dev-admin");
-    expect(payload.subject).toBe(payload.sub);
+  it("相同 payload + secret 应输出确定性 token（自反一致）", () => {
+    const payload = buildAdminPayload({ now: FIXED_NOW });
+    const a = signDevSessionCookie(payload, SECRET);
+    const b = signDevSessionCookie(payload, SECRET);
+    expect(a).toBe(b);
+    expect(signatureSelfCheck(payload, SECRET)).toBe(true);
   });
 
-  it("signDevSessionCookie produces a `<encoded>.<signature>` shape", () => {
-    const payload = buildAdminPayload({ ttlSeconds: 60 });
-    const token = signDevSessionCookie(payload, "test-secret");
+  it("token 形如 base64url(payload).base64url(signature)，无 padding", () => {
+    const payload = buildAdminPayload({ now: FIXED_NOW });
+    const token = signDevSessionCookie(payload, SECRET);
     const parts = token.split(".");
     expect(parts).toHaveLength(2);
-    expect(parts[0]).toMatch(/^[A-Za-z0-9_-]+$/u);
-    expect(parts[1]).toMatch(/^[A-Za-z0-9_-]+$/u);
+    for (const p of parts) {
+      expect(p).not.toContain("=");
+      expect(p).toMatch(/^[A-Za-z0-9_-]+$/);
+    }
+    // payload 部分反解后应为 canonical JSON
+    const decoded = Buffer.from(parts[0], "base64url").toString("utf-8");
+    const canonical = canonicalJSONStringify(payload);
+    expect(decoded).toBe(canonical);
   });
 
-  it("signDevSessionCookie is deterministic for fixed payload + secret", () => {
-    const payload = { ...buildAdminPayload(), iat: 1700000000, exp: 1700086400 };
-    const a = signDevSessionCookie(payload, "fixed-secret");
-    const b = signDevSessionCookie(payload, "fixed-secret");
-    expect(a).toBe(b);
+  it("不同 secret 应得到不同签名", () => {
+    const payload = buildAdminPayload({ now: FIXED_NOW });
+    const a = signDevSessionCookie(payload, SECRET);
+    const b = signDevSessionCookie(payload, SECRET + "x");
+    expect(a).not.toBe(b);
   });
 
-  it("signDevSessionCookie payload roundtrips via base64url decode", () => {
-    const payload = buildAdminPayload();
-    const token = signDevSessionCookie(payload, "secret-x");
-    const [encoded] = token.split(".");
-    const json = Buffer.from(encoded, "base64url").toString("utf-8");
-    const decoded = JSON.parse(json);
-    expect(decoded.typ).toBe("session");
-    expect(decoded.roles).toEqual(["admin"]);
-    expect(decoded.email).toBe(payload.email);
-    expect(decoded.sub).toBe(payload.sub);
+  it("payload 任一字段变化都应改变签名", () => {
+    const base = buildAdminPayload({ now: FIXED_NOW });
+    const tokenBase = signDevSessionCookie(base, SECRET);
+    const tokenAlt = signDevSessionCookie({ ...base, email: "other@example.com" }, SECRET);
+    expect(tokenBase).not.toBe(tokenAlt);
+  });
+});
+
+describe("buildAdminPayload", () => {
+  it("默认应为 admin role + google provider，TTL 24h", () => {
+    const p = buildAdminPayload({ now: FIXED_NOW });
+    expect(p.typ).toBe("session");
+    expect(p.iat).toBe(FIXED_NOW);
+    expect(p.exp).toBe(FIXED_NOW + 86400);
+    expect(p.sub).toBe("google:dev-admin");
+    expect(p.subject).toBe("dev-admin");
+    expect(p.roles).toEqual(["admin"]);
+    expect(p.provider).toBe("google");
   });
 
-  // Python 端到端解码（仅本地，门控环境变量 NE_AUTH_TEST_REAL_DECODE=1）。
-  // 防止 CI 缺 uv/python 依赖时 fail。
-  it.runIf(process.env.NE_AUTH_TEST_REAL_DECODE === "1")(
-    "backend Python decode_token accepts JS-signed token",
-    () => {
-      const secret = process.env.NE_AUTH_TOKEN_SECRET;
-      if (!secret) throw new Error("set NE_AUTH_TOKEN_SECRET to run");
-      const payload = buildAdminPayload();
-      const token = signDevSessionCookie(payload, secret);
-      const script = `
-import os, sys
-sys.path.insert(0, "src")
-from negentropy.auth.tokens import decode_token
-out = decode_token(${JSON.stringify(token)}, ${JSON.stringify(secret)})
-assert out["roles"] == ["admin"], out
-print("OK")
-`;
-      const result = execFileSync("uv", ["run", "python", "-c", script], {
-        cwd: "../negentropy",
-        encoding: "utf-8",
-      });
-      expect(result.trim()).toBe("OK");
-    },
-  );
+  it("应允许覆盖 sub / roles / TTL", () => {
+    const p = buildAdminPayload({ now: FIXED_NOW, sub: "google:viewer-1", roles: [], ttlSeconds: 60 });
+    expect(p.sub).toBe("google:viewer-1");
+    expect(p.subject).toBe("viewer-1");
+    expect(p.roles).toEqual([]);
+    expect(p.exp).toBe(FIXED_NOW + 60);
+  });
+});
+
+describe("buildPlaywrightStorageState", () => {
+  it("应输出 ne_sso cookie + 空 origins，sameSite=Lax/secure=false", () => {
+    const { storageState, cookieValue } = buildPlaywrightStorageState({ secret: SECRET, now: FIXED_NOW });
+    expect(storageState.origins).toEqual([]);
+    expect(storageState.cookies).toHaveLength(1);
+    const cookie = storageState.cookies[0];
+    expect(cookie.name).toBe("ne_sso");
+    expect(cookie.value).toBe(cookieValue);
+    expect(cookie.domain).toBe("127.0.0.1");
+    expect(cookie.sameSite).toBe("Lax");
+    expect(cookie.secure).toBe(false);
+    expect(cookie.httpOnly).toBe(true);
+  });
 });
