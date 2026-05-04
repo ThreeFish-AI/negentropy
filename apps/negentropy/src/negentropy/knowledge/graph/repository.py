@@ -1004,7 +1004,7 @@ class AgeGraphRepository(GraphRepository):
             # embedding 不可用时退化为纯图结构排序（与 linear 方法一致）
             fallback_query = text(f"""
                 SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
-                       e.metadata as properties,
+                       e.properties,
                        0.0 AS semantic_score,
                        COALESCE(e.importance_score, 0) AS importance_score
                 FROM {schema}.kg_entities e
@@ -1034,7 +1034,7 @@ class AgeGraphRepository(GraphRepository):
         else:
             semantic_query = text(f"""
                 SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
-                       e.metadata as properties,
+                       e.properties,
                        1 - (e.embedding <=> :embedding::vector) as semantic_score
                 FROM {schema}.kg_entities e
                 WHERE e.corpus_id = :corpus_id AND e.is_active = true
@@ -1155,7 +1155,7 @@ class AgeGraphRepository(GraphRepository):
             # embedding 不可用时，退化为纯图结构排序
             query = text(f"""
                 SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
-                       e.metadata, e.importance_score,
+                       e.properties, e.importance_score,
                        0.0 AS semantic_score,
                        COALESCE(e.importance_score, 0) AS graph_score,
                        COALESCE(e.importance_score, 0) AS combined_score
@@ -1177,7 +1177,7 @@ class AgeGraphRepository(GraphRepository):
                     id=f"entity:{row.id}",
                     label=row.name,
                     node_type=row.entity_type,
-                    metadata=row.metadata or {},
+                    metadata=row.properties or {},
                 )
                 results.append(
                     GraphSearchResult(
