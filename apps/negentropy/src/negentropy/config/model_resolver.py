@@ -300,26 +300,53 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
 
     单次 SQL 同时取 model + instruction（system_prompt），避免双查；调用方负责把 ``""``
     视为「未配置」并兜底，本函数仅做 trim。
+
+    若 SubAgent 关联了 Skills，会在同一 session 内解析 Skills 并按 Progressive Disclosure
+    （Anthropic Claude Skills / Google ADK Skills 的描述常驻 + 模板按需）将 Skills 块附加
+    到 instruction 末尾。Skills 解析失败 → log 后跳过，不冒泡（fail-soft）。
     """
     from sqlalchemy import select
 
+    from negentropy.agents.skills_injector import build_progressive_disclosure_prompt, resolve_skills
     from negentropy.db.session import AsyncSessionLocal
     from negentropy.models.sub_agent import SubAgent
 
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(SubAgent.model, SubAgent.system_prompt, SubAgent.is_enabled)
+            select(
+                SubAgent.model,
+                SubAgent.system_prompt,
+                SubAgent.is_enabled,
+                SubAgent.skills,
+                SubAgent.owner_id,
+            )
             .where(SubAgent.name == agent_name)
             .limit(1)
         )
         row = result.first()
-    if row is None:
-        return None
-    model_value, system_prompt_value, is_enabled = row
-    if not is_enabled:
-        return None
+        if row is None:
+            return None
+        model_value, system_prompt_value, is_enabled, skill_refs, owner_id = row
+        if not is_enabled:
+            return None
+
+        instruction_normalized = str(system_prompt_value).strip() if system_prompt_value else None
+
+        # Progressive Disclosure 注入：Skills 描述常驻、prompt_template 按需展开（Phase 2）。
+        if skill_refs:
+            try:
+                resolved = await resolve_skills(session, skill_refs, owner_id=owner_id or "")
+                instruction_normalized = build_progressive_disclosure_prompt(instruction_normalized, resolved) or None
+            except Exception:
+                from negentropy.logging import get_logger
+
+                get_logger("negentropy.config.model_resolver").warning(
+                    "subagent_skills_inject_failed",
+                    agent_name=agent_name,
+                    exc_info=True,
+                )
+
     model_normalized = str(model_value).strip() if model_value else None
-    instruction_normalized = str(system_prompt_value).strip() if system_prompt_value else None
     return (model_normalized or None, instruction_normalized or None)
 
 
