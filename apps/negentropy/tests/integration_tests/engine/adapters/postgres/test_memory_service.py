@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 import negentropy.db.session as db_session
 from negentropy.engine.adapters.postgres.memory_service import PostgresMemoryService
-from negentropy.models.internalization import Memory
+from negentropy.models.internalization import Memory, MemoryRetrievalLog
 
 
 @pytest.mark.asyncio
@@ -112,6 +112,11 @@ async def _create_thread(user_id: str, app_name: str) -> str:
 async def _cleanup_memories(user_id: str, app_name: str) -> None:
     """Helper: cleanup all test data for a user/app."""
     async with db_session.AsyncSessionLocal() as db:
+        await db.execute(
+            MemoryRetrievalLog.__table__.delete().where(
+                MemoryRetrievalLog.user_id == user_id, MemoryRetrievalLog.app_name == app_name
+            )
+        )
         await db.execute(Memory.__table__.delete().where(Memory.user_id == user_id, Memory.app_name == app_name))
         await db.commit()
 
@@ -248,7 +253,7 @@ async def test_rocchio_feedback_loop():
     # Rocchio 重加权
     from negentropy.engine.relevance.rocchio_reweighter import reweight_memories
 
-    reweighted = await reweight_memories(user_id=user_id, app_name=app_name)
+    reweighted = await reweight_memories(user_id=user_id, app_name=app_name, min_count=1)
     assert reweighted >= 1
 
     await _cleanup_memories(user_id, app_name)
