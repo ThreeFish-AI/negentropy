@@ -264,7 +264,8 @@ export default function MemoryConflictsPage() {
                               {["supersede", "keep_old", "keep_new", "merge"].map((action) => (
                                 <button
                                   key={action}
-                                  className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100"
+                                  className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] text-zinc-600 transition-colors hover:border-zinc-400 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-200 disabled:hover:text-zinc-600 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100 dark:disabled:hover:border-zinc-700 dark:disabled:hover:text-zinc-400"
+                                  disabled={resolveStatus === "resolving"}
                                   onClick={() => handleResolve(selected.id, action)}
                                 >
                                   {action}
