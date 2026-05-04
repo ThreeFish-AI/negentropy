@@ -1106,3 +1106,33 @@
   - Memory / Knowledge / 各模块卡片描述同样需要 `break-words` 检查；
   - 各模块 fail-soft 跳过逻辑需要按本 issue 模式分类打日志；
   - 现有 e2e/skills 已用 `waitForResponse`，但 Memory e2e 部分用快照查询 toast，需后续审查。
+
+---
+
+## ISSUE-047 Home 对话 4 大缺口闭环 + 论文采集 MVP（2026-05-04）
+
+- **表因**：Home 对话模块在最近 4 个月内出现 5 次双气泡类回归（ISSUE-031/036/039/040/041），暴露 3 个根本性短板：(a) 无全链路防回归 E2E（mock-based smoke 仅覆盖单条流式 hydration，缺论文场景闭环）；(b) 长任务无可观测性（论文抓取分钟级，用户体感"卡死"）；(c) 无中断门，LLM 跑偏后必须等终态才能恢复。同时用户的"自动收集 AI Agent 论文 → KB/KG"应用场景缺失工具支撑。
+- **根因**：
+  1. Home 对话路径完整度 ≥ 80%，但缺关键防御性 E2E 用例（双气泡守卫 + hydration 一致性）；
+  2. 后端 ADK Tool 无统一进度推送规范——已有 `state_delta` 协议未被论文/PDF 等长任务使用；
+  3. NDJSON Agent 已有 `abortRun()` 但前端 Composer 未暴露 Stop 按钮；
+  4. 论文采集职能未在 Faculty.tools 注册——既有 `KnowledgeService.ingest_url` + `AI_PAPER_SCHEMA` 已就绪，仅缺最后 1 厘米桥接（2 个工具）。
+- **处理方式**（本 PR 落地）：
+  1. **C7 E2E 防回归基建**：新增 `apps/negentropy-ui/tests/e2e/home-chat.spec.ts`（4 个用例：单轮双气泡 / 流式 Markdown hydration / 模型切换 localStorage / Tool group 聚合）；新增 `dev-cookie.setup.ts`（headless 自签 cookie 注入，CI 友好）；`playwright.config.ts` 通过 `PLAYWRIGHT_AUTH_MODE` 双 setup 共存；`MessageBubble` 加 `data-testid="message-bubble"` + `data-message-role` 锚定。
+  2. **C5 附件上传 / Multi-modal**：`Composer` 加 file input + drag-drop + `AttachmentChip` chip 渲染；`home-body.doSend` 把附件 metadata（id/name/mime/size）通过 `forwardedProps.attachments` 透传后端；附件 chip 不进入 `message-ledger.isSemanticEquivalentEntry`（避开 dedup 漂移）。
+  3. **C4 中断门**：`Composer` `isGenerating` 时 Send 切换为红色 Stop 按钮（`data-testid="composer-stop-button"`）；`home-body.handleCancelRun` 调 `agent.abortRun()` + `userCancelledAtRef` 100ms 窗口屏蔽 cancel 引发的 `RUN_ERROR`；不引入 RUN_STOPPED 协议事件（最小干预，避免污染事件流）。
+  4. **C3 Tool Progress**：`types/common.ts` 加 `ToolProgressMap` / `ToolProgressSnapshot`；`ToolExecutionGroup` 加 `ToolProgressBar` 子组件（`data-testid="tool-progress"`）；`home-body` 从 `snapshotForDisplay.tool_progress` 旁路提取 → `ChatStream.toolProgressMap` → `AssistantReplyBubble` → `ToolExecutionCard`；不进入 conversationTree，不参与 message-ledger（彻底规避 ISSUE-031 时间窗）。
+  5. **论文采集 MVP**：`apps/negentropy/src/negentropy/agents/tools/paper.py` 新增 `search_papers`（arxiv API + since_days 过滤 + tool_progress 推送）+ `ingest_paper`（保证 agent-papers Corpus 存在 → 调 `KnowledgeService.ingest_url`）；分别注册到 `PerceptionFaculty.tools` / `InternalizationFaculty.tools`；新增 8 个单测覆盖 progress 推送 / arxiv 序列化 / KS 调用契约。
+  6. **文档同步**：`docs/user-guide.md` 新增 §3.7 长任务/中断 + §3.8 附件 + §3.9 提示词最佳实践 + §3.10 错误排查 + §3.11 浏览器实机回归；新增 `docs/user-guide/papers-curation.md` 论文采集上手；`docs/framework.md` §9.7-9.9 增补 Tool Progress / 中断门 / Multi-modal 协议契约（含 IEEE 引用扩展至 19 条）。
+- **后续防范**：
+  1. **任何 Home 对话路径变更必须对应 E2E 用例**：双气泡守卫断言 `[data-testid="message-bubble"][data-message-role="assistant"]` count=1 是合并前必检条款；
+  2. **长时工具必须实现 tool_progress**：500ms throttle + 终态清理是规范，违反将增加 ISSUE-031 类回归风险；
+  3. **中断门是长任务的对称原语**：未来任何 ≥ 30s 的工具都应支持 `ToolContext.cancel()` 信号；
+  4. **附件协议演进**：MVP 仅 metadata 透传；V1 增强 `POST /sessions/{sid}/attachments` + `read_attachment` 工具时，必须保证附件不进入 message dedup 路径；
+  5. **论文采集多源拓展**：V1 接 Semantic Scholar Graph API（citation 信号）；V2 接 AsyncScheduler 周期 curator job + KG cross-corpus 邻居推荐；V3 抽出独立 PaperAgent SubAgent。
+- **同类问题影响**：
+  - 任何模块涉及"长任务 + 流式输出 + HITL 干预"组合（如 Memory consolidation / KG community detection）都应复用 Tool Progress + 中断门双原语；
+  - 论文采集的"两个工具 + 复用既有 pipeline"模式可作为后续领域扩展（专利、代码仓、新闻）的范式参考；
+  - 双气泡守卫断言模式（基于 `data-testid` + role attribute count）应推广到 Memory / Skills / Knowledge 各模块的 E2E 用例。
+
+

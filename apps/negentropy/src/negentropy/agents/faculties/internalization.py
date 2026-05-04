@@ -4,6 +4,7 @@ from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.common import log_activity
 from ..tools.internalization import save_to_memory, update_knowledge_graph
+from ..tools.paper import ingest_paper
 
 _DESCRIPTION = (
     "Handles: memory storage, knowledge structuring, knowledge graph updates, long-term retention. "
@@ -63,7 +64,7 @@ def create_internalization_agent(*, output_key: str | None = None) -> LlmAgent:
         model=create_subagent_model(agent_name="InternalizationFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("InternalizationFaculty", _INSTRUCTION),
-        tools=[log_activity, save_to_memory, update_knowledge_graph],
+        tools=[log_activity, save_to_memory, update_knowledge_graph, ingest_paper],
         output_key=output_key,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
         disallow_transfer_to_parent=output_key is not None,

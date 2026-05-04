@@ -3,6 +3,7 @@ from google.adk.agents import LlmAgent
 from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.common import log_activity
+from ..tools.paper import search_papers
 from ..tools.perception import search_knowledge_base, search_web
 
 _DESCRIPTION = (
@@ -58,7 +59,7 @@ def create_perception_agent(*, output_key: str | None = None) -> LlmAgent:
         model=create_subagent_model(agent_name="PerceptionFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("PerceptionFaculty", _INSTRUCTION),
-        tools=[log_activity, search_knowledge_base, search_web],
+        tools=[log_activity, search_knowledge_base, search_web, search_papers],
         output_key=output_key,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
         disallow_transfer_to_parent=output_key is not None,
