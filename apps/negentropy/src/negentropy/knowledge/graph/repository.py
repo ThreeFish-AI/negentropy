@@ -298,7 +298,7 @@ class GraphRepository(ABC):
         self,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int = 20,
         graph_depth: int = 1,
@@ -311,7 +311,7 @@ class GraphRepository(ABC):
         Args:
             corpus_id: 语料库 ID
             app_name: 应用名称
-            query_embedding: 查询向量
+            query_embedding: 查询向量（None 时退化为纯图检索）
             query_text: 查询文本
             limit: 结果数量限制
             graph_depth: 图遍历深度
@@ -890,7 +890,7 @@ class AgeGraphRepository(GraphRepository):
         self,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int = 20,
         graph_depth: int = 1,
@@ -968,7 +968,7 @@ class AgeGraphRepository(GraphRepository):
         session: AsyncSession,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int,
         rrf_k: int,
@@ -992,42 +992,44 @@ class AgeGraphRepository(GraphRepository):
                 f"AND r.is_active = true AND {_temporal_where_clause('r')})"
             )
 
-        # 1. 语义排序：基于向量相似度
-        semantic_query = text(f"""
-            SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
-                   e.metadata as properties,
-                   1 - (e.embedding <=> :embedding::vector) as semantic_score
-            FROM {schema}.kg_entities e
-            WHERE e.corpus_id = :corpus_id AND e.is_active = true
-              AND e.embedding IS NOT NULL{temporal_exists}
-            ORDER BY e.embedding <=> :embedding::vector
-            LIMIT :limit * 2
-        """)
-
-        sem_params: dict[str, Any] = {
-            "corpus_id": str(corpus_id),
-            "embedding": _json.dumps(query_embedding),
-            "limit": limit,
-        }
-        if as_of:
-            sem_params["as_of"] = as_of
-
-        sem_result = await session.execute(semantic_query, sem_params)
-
-        # 收集语义排名
+        # 1. 语义排序：基于向量相似度（embedding 不可用时跳过）
         entity_data: dict[str, dict[str, Any]] = {}
         sem_rank: dict[str, int] = {}
-        for i, row in enumerate(sem_result, start=1):
-            eid = str(row.id)
-            sem_rank[eid] = i
-            entity_data[eid] = {
-                "name": row.name,
-                "entity_type": row.entity_type,
-                "confidence": row.confidence,
-                "description": row.description,
-                "properties": row.properties or {},
-                "semantic_score": float(row.semantic_score),
+
+        if query_embedding is not None:
+            semantic_query = text(f"""
+                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                       e.metadata as properties,
+                       1 - (e.embedding <=> :embedding::vector) as semantic_score
+                FROM {schema}.kg_entities e
+                WHERE e.corpus_id = :corpus_id AND e.is_active = true
+                  AND e.embedding IS NOT NULL{temporal_exists}
+                ORDER BY e.embedding <=> :embedding::vector
+                LIMIT :limit * 2
+            """)
+
+            sem_params: dict[str, Any] = {
+                "corpus_id": str(corpus_id),
+                "embedding": _json.dumps(query_embedding),
+                "limit": limit,
             }
+            if as_of:
+                sem_params["as_of"] = as_of
+
+            sem_result = await session.execute(semantic_query, sem_params)
+
+            # 收集语义排名
+            for i, row in enumerate(sem_result, start=1):
+                eid = str(row.id)
+                sem_rank[eid] = i
+                entity_data[eid] = {
+                    "name": row.name,
+                    "entity_type": row.entity_type,
+                    "confidence": row.confidence,
+                    "description": row.description,
+                    "properties": row.properties or {},
+                    "semantic_score": float(row.semantic_score),
+                }
 
         if not entity_data:
             return []
@@ -1104,7 +1106,7 @@ class AgeGraphRepository(GraphRepository):
         session: AsyncSession,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int,
         graph_depth: int,
@@ -1113,6 +1115,46 @@ class AgeGraphRepository(GraphRepository):
     ) -> list[GraphSearchResult]:
         """线性加权混合检索（向后兼容）"""
         import json as _json
+
+        if query_embedding is None:
+            # embedding 不可用时，退化为纯图结构排序
+            query = text(f"""
+                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                       e.metadata, e.importance_score,
+                       0.0 AS semantic_score,
+                       COALESCE(e.importance_score, 0) AS graph_score,
+                       COALESCE(e.importance_score, 0) AS combined_score
+                FROM {self._schema}.kg_entities e
+                WHERE e.corpus_id = :corpus_id AND e.is_active = true
+                  AND e.app_name = :app_name
+                ORDER BY e.importance_score DESC NULLS LAST
+                LIMIT :limit
+            """)
+            result = await session.execute(
+                query,
+                {
+                    "corpus_id": str(corpus_id),
+                    "app_name": app_name,
+                    "limit": limit,
+                },
+            )
+            results = []
+            for row in result:
+                entity = GraphNode(
+                    id=str(row.id),
+                    label=row.name,
+                    node_type=row.entity_type,
+                    metadata=row.metadata or {},
+                )
+                results.append(
+                    GraphSearchResult(
+                        entity=entity,
+                        semantic_score=0.0,
+                        graph_score=float(row.importance_score or 0),
+                        combined_score=float(row.importance_score or 0),
+                    )
+                )
+            return results
 
         query = text(f"""
             SELECT * FROM {self._schema}.kg_hybrid_search(

@@ -704,7 +704,7 @@ class GraphService:
         corpus_id: UUID,
         app_name: str,
         query: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         config: GraphQueryConfig | None = None,
         as_of: datetime | None = None,
     ) -> GraphQueryResult:

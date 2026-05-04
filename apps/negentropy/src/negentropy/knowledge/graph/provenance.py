@@ -224,7 +224,7 @@ class ProvenanceBuilder:
             result = await db.execute(
                 text(f"""
                     SELECT r.source_id, r.target_id, r.relation_type, r.evidence_text, r.weight,
-                           s.label AS source_label, t.label AS target_label
+                           s.name AS source_label, t.name AS target_label
                     FROM {NEGENTROPY_SCHEMA}.kg_relations r
                     LEFT JOIN {NEGENTROPY_SCHEMA}.kg_entities s ON r.source_id = s.id
                     LEFT JOIN {NEGENTROPY_SCHEMA}.kg_entities t ON r.target_id = t.id

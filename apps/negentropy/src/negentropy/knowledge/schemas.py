@@ -397,6 +397,8 @@ class MultiHopReasonRequest(BaseModel):
 class MultiHopEvidenceEdgeItem(BaseModel):
     source_id: str
     target_id: str
+    source_label: str = ""
+    target_label: str = ""
     relation: str
     evidence_text: str
     weight: float = 1.0
