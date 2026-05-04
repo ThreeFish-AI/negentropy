@@ -468,7 +468,7 @@ export default function KnowledgeGraphPage() {
                     <p className="text-xs text-red-600 dark:text-red-400">
                       加载失败：{error}
                     </p>
-                  ) : layout.length ? (
+                  ) : renderer === "d3" ? (
                     <svg
                       ref={svgRef}
                       width="100%"
@@ -476,6 +476,7 @@ export default function KnowledgeGraphPage() {
                       className="rounded-xl bg-white/60 dark:bg-zinc-800/60"
                     >
                       <g className="graph-layer">
+                        {!layout.length ? null : <>
                         {edges.map((edge, index) => {
                           const source = layout.find(
                             (node) => node.id === edge.source,
@@ -553,6 +554,7 @@ export default function KnowledgeGraphPage() {
                             </text>
                           </g>
                         ))}
+                        </>}
                       </g>
                     </svg>
                   ) : (
