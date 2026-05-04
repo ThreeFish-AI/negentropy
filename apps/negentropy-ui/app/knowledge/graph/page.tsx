@@ -189,9 +189,14 @@ export default function KnowledgeGraphPage() {
     let cleanup: (() => void) | null = null;
 
     const run = async () => {
-      if (!nodes.length || !svgRef.current) {
-        setLayout([]);
+      if (renderer !== "d3" || !nodes.length) {
+        if (renderer === "d3") setLayout([]);
         return;
+      }
+      // Wait for SVG ref to be attached after renderer switch
+      if (!svgRef.current) {
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        if (!active || !svgRef.current) return;
       }
       const {
         forceSimulation,
@@ -271,7 +276,7 @@ export default function KnowledgeGraphPage() {
       active = false;
       cleanup?.();
     };
-  }, [nodes, edges]);
+  }, [nodes, edges, renderer]);
 
   useEffect(() => {
     if (!svgRef.current || !simulationRef.current || !layout.length) return;
