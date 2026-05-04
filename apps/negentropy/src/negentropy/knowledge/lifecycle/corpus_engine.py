@@ -273,7 +273,7 @@ class CorpusEngine:
 
         try:
             result = await db.execute(
-                sql_text("""
+                sql_text(f"""
                     WITH target AS (
                         SELECT LOWER(name) AS name FROM {schema}.kg_entities
                         WHERE corpus_id = :cid AND is_active = true AND confidence >= 0.5
@@ -302,7 +302,7 @@ class CorpusEngine:
                         s.shared_count::float / (tt.cnt + s.other_total - s.shared_count) AS jaccard
                     FROM shared s, target_total tt
                     ORDER BY jaccard DESC
-                """).format(schema=schema),
+                """),
                 {"cid": corpus_id, "lim": limit},
             )
             rows = result.fetchall()
@@ -313,7 +313,7 @@ class CorpusEngine:
             suggestions = []
             for row in rows:
                 shared_names_result = await db.execute(
-                    sql_text("""
+                    sql_text(f"""
                         SELECT DISTINCT e.name
                         FROM {schema}.kg_entities e
                         WHERE e.corpus_id = :other_cid AND e.is_active = true
@@ -323,7 +323,7 @@ class CorpusEngine:
                         )
                         ORDER BY e.importance_score DESC NULLS LAST
                         LIMIT 5
-                    """).format(schema=schema),
+                    """),
                     {"other_cid": row.corpus_id, "target_cid": corpus_id},
                 )
                 shared_names = [r.name for r in shared_names_result.fetchall()]

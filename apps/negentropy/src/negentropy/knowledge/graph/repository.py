@@ -681,47 +681,27 @@ class AgeGraphRepository(GraphRepository):
 
         query = text(f"""
             WITH RECURSIVE neighbor_tree AS (
-                -- Base: direct neighbors of the seed entity
+                -- Base: direct neighbors of the seed entity (both directions)
                 SELECT
-                    r.target_id AS neighbor_id,
+                    CASE WHEN r.source_id = :entity_id THEN r.target_id ELSE r.source_id END AS neighbor_id,
                     r.source_id AS via_id,
                     1 AS distance
                 FROM {self._schema}.kg_relations r
-                WHERE r.source_id = :entity_id AND r.is_active = true{temporal_filter}
-
-                UNION
-
-                SELECT
-                    r.source_id AS neighbor_id,
-                    r.target_id AS via_id,
-                    1 AS distance
-                FROM {self._schema}.kg_relations r
-                WHERE r.target_id = :entity_id AND r.is_active = true{temporal_filter}
+                WHERE (r.source_id = :entity_id OR r.target_id = :entity_id)
+                  AND r.is_active = true{temporal_filter}
 
                 UNION ALL
 
-                -- Recursive: expand from known neighbors
+                -- Recursive: expand from known neighbors (both directions)
                 SELECT
-                    r.target_id AS neighbor_id,
+                    CASE WHEN r.source_id = nt.neighbor_id THEN r.target_id ELSE r.source_id END AS neighbor_id,
                     r.source_id AS via_id,
                     nt.distance + 1 AS distance
                 FROM {self._schema}.kg_relations r
-                JOIN neighbor_tree nt ON r.source_id = nt.neighbor_id
+                JOIN neighbor_tree nt ON (r.source_id = nt.neighbor_id OR r.target_id = nt.neighbor_id)
                 WHERE r.is_active = true{temporal_filter}
                   AND nt.distance < :max_depth
-                  AND r.target_id != :entity_id
-
-                UNION ALL
-
-                SELECT
-                    r.source_id AS neighbor_id,
-                    r.target_id AS via_id,
-                    nt.distance + 1 AS distance
-                FROM {self._schema}.kg_relations r
-                JOIN neighbor_tree nt ON r.target_id = nt.neighbor_id
-                WHERE r.is_active = true{temporal_filter}
-                  AND nt.distance < :max_depth
-                  AND r.source_id != :entity_id
+                  AND (r.source_id != :entity_id AND r.target_id != :entity_id)
             )
             SELECT DISTINCT ON (e.id)
                 e.id, e.name, e.entity_type, e.confidence, e.properties
@@ -850,54 +830,30 @@ class AgeGraphRepository(GraphRepository):
 
         query = text(f"""
             WITH RECURSIVE path_search AS (
-                -- Base case: forward edges from source
+                -- Base: all edges from source (both directions)
                 SELECT
-                    source_id,
-                    target_id,
-                    ARRAY[source_id] AS path,
-                    1 AS depth
-                FROM {self._schema}.kg_relations
-                WHERE source_id = :source_id AND is_active = true{temporal_base}
-
-                UNION ALL
-
-                -- Base case: reverse edges from source
-                SELECT
-                    target_id AS source_id,
-                    source_id AS target_id,
+                    CASE WHEN source_id = :source_id THEN source_id ELSE target_id END AS source_id,
+                    CASE WHEN source_id = :source_id THEN target_id ELSE source_id END AS target_id,
                     ARRAY[:source_id] AS path,
                     1 AS depth
                 FROM {self._schema}.kg_relations
-                WHERE target_id = :source_id AND is_active = true
-                  AND source_id != :source_id{temporal_base}
+                WHERE (source_id = :source_id OR target_id = :source_id)
+                  AND is_active = true{temporal_base}
 
                 UNION ALL
 
-                -- Recursive: forward direction
+                -- Recursive: expand edges from current frontier (both directions)
                 SELECT
-                    r.source_id,
-                    r.target_id,
+                    CASE WHEN r.source_id = ps.target_id THEN r.source_id ELSE r.target_id END,
+                    CASE WHEN r.source_id = ps.target_id THEN r.target_id ELSE r.source_id END,
                     ps.path || ps.target_id,
                     ps.depth + 1
                 FROM {self._schema}.kg_relations r
-                JOIN path_search ps ON r.source_id = ps.target_id
+                JOIN path_search ps ON (r.source_id = ps.target_id OR r.target_id = ps.target_id)
                 WHERE r.is_active = true
                   AND ps.depth < :max_depth
-                  AND r.target_id != ALL(ps.path){temporal_recur}
-
-                UNION ALL
-
-                -- Recursive: reverse direction
-                SELECT
-                    r.target_id AS source_id,
-                    r.source_id AS target_id,
-                    ps.path || ps.target_id,
-                    ps.depth + 1
-                FROM {self._schema}.kg_relations r
-                JOIN path_search ps ON r.target_id = ps.target_id
-                WHERE r.is_active = true
-                  AND ps.depth < :max_depth
-                  AND r.source_id != ALL(ps.path){temporal_recur}
+                  AND CASE WHEN r.source_id = ps.target_id
+                        THEN r.target_id ELSE r.source_id END != ALL(ps.path){temporal_recur}
             )
             SELECT path || target_id AS full_path
             FROM path_search

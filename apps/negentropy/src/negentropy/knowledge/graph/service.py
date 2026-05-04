@@ -1172,22 +1172,22 @@ class GraphService:
 
         # 1. 孤立实体比例：无任何关系的实体占比
         isolated_result = await db.execute(
-            text("""
+            text(f"""
                 SELECT COALESCE(
                     COUNT(*) FILTER (WHERE r_count = 0)::float / NULLIF(COUNT(*), 0),
                     0
                 ) AS isolated_ratio
                 FROM (
                     SELECT e.id, COUNT(r.id) AS r_count
-                    FROM {schema}.kg_entities e
-                    LEFT JOIN {schema}.kg_relations r ON (
+                    FROM {NEGENTROPY_SCHEMA}.kg_entities e
+                    LEFT JOIN {NEGENTROPY_SCHEMA}.kg_relations r ON (
                         (r.source_id = e.id OR r.target_id = e.id)
                         AND r.is_active = true
                     )
                     WHERE e.corpus_id = :cid AND e.is_active = true
                     GROUP BY e.id
                 ) sub
-            """).format(schema=NEGENTROPY_SCHEMA),
+            """),
             {"cid": corpus_id},
         )
         isolated_ratio = float(isolated_result.scalar() or 0)
@@ -1255,15 +1255,15 @@ class GraphService:
             from negentropy.models.base import NEGENTROPY_SCHEMA
 
             result = await db.execute(
-                text("""
+                text(f"""
                     SELECT
                         COUNT(*) AS total,
                         COUNT(*) FILTER (WHERE status = 'completed') AS succeeded,
                         COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - started_at))), 0) AS avg_duration_sec
-                    FROM {schema}.kg_build_runs
+                    FROM {NEGENTROPY_SCHEMA}.kg_build_runs
                     WHERE corpus_id = :cid
                       AND started_at >= NOW() - INTERVAL '30 days'
-                """).format(schema=NEGENTROPY_SCHEMA),
+                """),
                 {"cid": corpus_id},
             )
             row = result.one()
