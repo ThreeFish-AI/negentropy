@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { FileText, Grip, X } from "lucide-react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import type { RetrievedChunkViewModel } from "./retrieved-chunk-presenter";
@@ -19,19 +19,6 @@ export function RetrievedChunkDetailDialog({
   onClose,
 }: RetrievedChunkDetailDialogProps) {
   const titleId = useId();
-
-  useEffect(() => {
-    if (!chunk) return undefined;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [chunk, onClose]);
 
   if (!chunk) return null;
 

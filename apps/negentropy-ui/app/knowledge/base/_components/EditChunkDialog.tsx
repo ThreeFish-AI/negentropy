@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { X } from "lucide-react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
@@ -30,19 +30,6 @@ export function EditChunkDialog({
   pending,
 }: EditChunkDialogProps) {
   const titleId = useId();
-
-  useEffect(() => {
-    if (!chunk) return undefined;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !pending) {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [chunk, onClose, pending]);
 
   if (!chunk) return null;
 

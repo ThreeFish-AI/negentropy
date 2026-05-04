@@ -48,6 +48,7 @@ export function SkillFormDialog({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ config_schema?: string; default_config?: string }>({});
 
   useEffect(() => {
     if (skill) {
@@ -82,26 +83,36 @@ export function SkillFormDialog({
       });
     }
     setError(null);
+    setFieldErrors({});
   }, [skill, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setFieldErrors({});
+
+    const nextFieldErrors: { config_schema?: string; default_config?: string } = {};
+    let configSchema: Record<string, unknown> = {};
+    let defaultConfig: Record<string, unknown> = {};
+    try {
+      configSchema = JSON.parse(formData.config_schema || "{}") as Record<string, unknown>;
+    } catch (err) {
+      nextFieldErrors.config_schema = err instanceof Error ? err.message : "Invalid JSON";
+    }
+    try {
+      defaultConfig = JSON.parse(formData.default_config || "{}") as Record<string, unknown>;
+    } catch (err) {
+      nextFieldErrors.default_config = err instanceof Error ? err.message : "Invalid JSON";
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setError("Fix the highlighted JSON fields before saving.");
+      setLoading(false);
+      return;
+    }
 
     try {
-      let configSchema = {};
-      let defaultConfig = {};
-      try {
-        configSchema = JSON.parse(formData.config_schema || "{}");
-      } catch {
-        throw new Error("Invalid JSON in config schema");
-      }
-      try {
-        defaultConfig = JSON.parse(formData.default_config || "{}");
-      } catch {
-        throw new Error("Invalid JSON in default config");
-      }
 
       const data: Record<string, unknown> = {
         name: formData.name,
@@ -152,7 +163,11 @@ export function SkillFormDialog({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
               {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                <div
+                  role="alert"
+                  data-testid="skills-form-error"
+                  className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                >
                   {error}
                 </div>
               )}
@@ -311,11 +326,32 @@ export function SkillFormDialog({
                     </label>
                     <textarea
                       value={formData.config_schema}
-                      onChange={(e) => setFormData({ ...formData, config_schema: e.target.value })}
-                      className="min-h-[220px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      onChange={(e) => {
+                        setFormData({ ...formData, config_schema: e.target.value });
+                        if (fieldErrors.config_schema) {
+                          setFieldErrors((prev) => ({ ...prev, config_schema: undefined }));
+                        }
+                      }}
+                      aria-invalid={fieldErrors.config_schema ? "true" : undefined}
+                      data-testid="skills-form-config-schema"
+                      className={
+                        "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono dark:bg-zinc-800 dark:text-zinc-100 " +
+                        (fieldErrors.config_schema
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500"
+                          : "border-zinc-300 dark:border-zinc-600")
+                      }
                       rows={8}
                       placeholder='{"type": "object"}'
                     />
+                    {fieldErrors.config_schema && (
+                      <p
+                        role="status"
+                        data-testid="skills-form-config-schema-error"
+                        className="mt-1 text-xs text-red-600 dark:text-red-400"
+                      >
+                        Invalid JSON: {fieldErrors.config_schema}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -323,11 +359,32 @@ export function SkillFormDialog({
                     </label>
                     <textarea
                       value={formData.default_config}
-                      onChange={(e) => setFormData({ ...formData, default_config: e.target.value })}
-                      className="min-h-[220px] w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      onChange={(e) => {
+                        setFormData({ ...formData, default_config: e.target.value });
+                        if (fieldErrors.default_config) {
+                          setFieldErrors((prev) => ({ ...prev, default_config: undefined }));
+                        }
+                      }}
+                      aria-invalid={fieldErrors.default_config ? "true" : undefined}
+                      data-testid="skills-form-default-config"
+                      className={
+                        "min-h-[220px] w-full rounded-md border px-3 py-2 text-sm font-mono dark:bg-zinc-800 dark:text-zinc-100 " +
+                        (fieldErrors.default_config
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500"
+                          : "border-zinc-300 dark:border-zinc-600")
+                      }
                       rows={8}
                       placeholder="{}"
                     />
+                    {fieldErrors.default_config && (
+                      <p
+                        role="status"
+                        data-testid="skills-form-default-config-error"
+                        className="mt-1 text-xs text-red-600 dark:text-red-400"
+                      >
+                        Invalid JSON: {fieldErrors.default_config}
+                      </p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -337,7 +394,8 @@ export function SkillFormDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                disabled={loading}
+                className="rounded-md px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Cancel
               </button>
