@@ -2168,6 +2168,8 @@ export interface GlobalSearchResult {
 export interface MultiHopEvidenceEdge {
   source_id: string;
   target_id: string;
+  source_label: string;
+  target_label: string;
   relation: string;
   evidence_text: string;
   weight: number;

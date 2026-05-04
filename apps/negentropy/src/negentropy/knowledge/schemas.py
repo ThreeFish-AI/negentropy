@@ -279,6 +279,7 @@ class GraphBuildRequest(BaseModel):
     min_relation_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     batch_size: int = Field(default=10, ge=1, le=100)
     incremental: bool = False
+    extraction_schema: str | None = None
 
 
 class GraphBuildResponse(BaseModel):
@@ -396,6 +397,8 @@ class MultiHopReasonRequest(BaseModel):
 class MultiHopEvidenceEdgeItem(BaseModel):
     source_id: str
     target_id: str
+    source_label: str = ""
+    target_label: str = ""
     relation: str
     evidence_text: str
     weight: float = 1.0
@@ -509,6 +512,20 @@ class GraphMetricsResponse(BaseModel):
     """图谱构建指标趋势"""
 
     builds: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class GraphQualityResponse(BaseModel):
+    """图谱质量报告 (Paulheim, 2017)"""
+
+    total_entities: int
+    total_relations: int
+    dangling_edges: int
+    orphan_entities: int
+    community_coverage: float
+    entity_confidence_avg: float
+    relation_evidence_ratio: float
+    type_distribution: dict[str, int] = Field(default_factory=dict)
+    quality_score: float
 
 
 # ============================================================================

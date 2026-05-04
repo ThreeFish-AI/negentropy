@@ -298,7 +298,7 @@ class GraphRepository(ABC):
         self,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int = 20,
         graph_depth: int = 1,
@@ -311,7 +311,7 @@ class GraphRepository(ABC):
         Args:
             corpus_id: 语料库 ID
             app_name: 应用名称
-            query_embedding: 查询向量
+            query_embedding: 查询向量（None 时退化为纯图检索）
             query_text: 查询文本
             limit: 结果数量限制
             graph_depth: 图遍历深度
@@ -681,47 +681,31 @@ class AgeGraphRepository(GraphRepository):
 
         query = text(f"""
             WITH RECURSIVE neighbor_tree AS (
-                -- Base: direct neighbors of the seed entity
+                -- Base: direct neighbors of the seed entity (both directions)
                 SELECT
-                    r.target_id AS neighbor_id,
+                    CASE WHEN r.source_id = :entity_id THEN r.target_id ELSE r.source_id END AS neighbor_id,
                     r.source_id AS via_id,
-                    1 AS distance
+                    1 AS distance,
+                    ARRAY[:entity_id,
+                          CASE WHEN r.source_id = :entity_id THEN r.target_id ELSE r.source_id END] AS visited
                 FROM {self._schema}.kg_relations r
-                WHERE r.source_id = :entity_id AND r.is_active = true{temporal_filter}
-
-                UNION
-
-                SELECT
-                    r.source_id AS neighbor_id,
-                    r.target_id AS via_id,
-                    1 AS distance
-                FROM {self._schema}.kg_relations r
-                WHERE r.target_id = :entity_id AND r.is_active = true{temporal_filter}
+                WHERE (r.source_id = :entity_id OR r.target_id = :entity_id)
+                  AND r.is_active = true{temporal_filter}
 
                 UNION ALL
 
-                -- Recursive: expand from known neighbors
+                -- Recursive: expand from known neighbors (both directions)
                 SELECT
-                    r.target_id AS neighbor_id,
+                    CASE WHEN r.source_id = nt.neighbor_id THEN r.target_id ELSE r.source_id END AS neighbor_id,
                     r.source_id AS via_id,
-                    nt.distance + 1 AS distance
+                    nt.distance + 1 AS distance,
+                    nt.visited || CASE WHEN r.source_id = nt.neighbor_id THEN r.target_id ELSE r.source_id END
                 FROM {self._schema}.kg_relations r
-                JOIN neighbor_tree nt ON r.source_id = nt.neighbor_id
+                JOIN neighbor_tree nt ON (r.source_id = nt.neighbor_id OR r.target_id = nt.neighbor_id)
                 WHERE r.is_active = true{temporal_filter}
                   AND nt.distance < :max_depth
-                  AND r.target_id != :entity_id
-
-                UNION ALL
-
-                SELECT
-                    r.source_id AS neighbor_id,
-                    r.target_id AS via_id,
-                    nt.distance + 1 AS distance
-                FROM {self._schema}.kg_relations r
-                JOIN neighbor_tree nt ON r.target_id = nt.neighbor_id
-                WHERE r.is_active = true{temporal_filter}
-                  AND nt.distance < :max_depth
-                  AND r.source_id != :entity_id
+                  AND CASE WHEN r.source_id = nt.neighbor_id
+                        THEN r.target_id ELSE r.source_id END != ALL(nt.visited)
             )
             SELECT DISTINCT ON (e.id)
                 e.id, e.name, e.entity_type, e.confidence, e.properties
@@ -850,54 +834,30 @@ class AgeGraphRepository(GraphRepository):
 
         query = text(f"""
             WITH RECURSIVE path_search AS (
-                -- Base case: forward edges from source
+                -- Base: all edges from source (both directions)
                 SELECT
-                    source_id,
-                    target_id,
-                    ARRAY[source_id] AS path,
-                    1 AS depth
-                FROM {self._schema}.kg_relations
-                WHERE source_id = :source_id AND is_active = true{temporal_base}
-
-                UNION ALL
-
-                -- Base case: reverse edges from source
-                SELECT
-                    target_id AS source_id,
-                    source_id AS target_id,
+                    CASE WHEN source_id = :source_id THEN source_id ELSE target_id END AS source_id,
+                    CASE WHEN source_id = :source_id THEN target_id ELSE source_id END AS target_id,
                     ARRAY[:source_id] AS path,
                     1 AS depth
                 FROM {self._schema}.kg_relations
-                WHERE target_id = :source_id AND is_active = true
-                  AND source_id != :source_id{temporal_base}
+                WHERE (source_id = :source_id OR target_id = :source_id)
+                  AND is_active = true{temporal_base}
 
                 UNION ALL
 
-                -- Recursive: forward direction
+                -- Recursive: expand edges from current frontier (both directions)
                 SELECT
-                    r.source_id,
-                    r.target_id,
+                    CASE WHEN r.source_id = ps.target_id THEN r.source_id ELSE r.target_id END,
+                    CASE WHEN r.source_id = ps.target_id THEN r.target_id ELSE r.source_id END,
                     ps.path || ps.target_id,
                     ps.depth + 1
                 FROM {self._schema}.kg_relations r
-                JOIN path_search ps ON r.source_id = ps.target_id
+                JOIN path_search ps ON (r.source_id = ps.target_id OR r.target_id = ps.target_id)
                 WHERE r.is_active = true
                   AND ps.depth < :max_depth
-                  AND r.target_id != ALL(ps.path){temporal_recur}
-
-                UNION ALL
-
-                -- Recursive: reverse direction
-                SELECT
-                    r.target_id AS source_id,
-                    r.source_id AS target_id,
-                    ps.path || ps.target_id,
-                    ps.depth + 1
-                FROM {self._schema}.kg_relations r
-                JOIN path_search ps ON r.target_id = ps.target_id
-                WHERE r.is_active = true
-                  AND ps.depth < :max_depth
-                  AND r.source_id != ALL(ps.path){temporal_recur}
+                  AND CASE WHEN r.source_id = ps.target_id
+                        THEN r.target_id ELSE r.source_id END != ALL(ps.path){temporal_recur}
             )
             SELECT path || target_id AS full_path
             FROM path_search
@@ -934,7 +894,7 @@ class AgeGraphRepository(GraphRepository):
         self,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int = 20,
         graph_depth: int = 1,
@@ -1012,7 +972,7 @@ class AgeGraphRepository(GraphRepository):
         session: AsyncSession,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int,
         rrf_k: int,
@@ -1036,42 +996,83 @@ class AgeGraphRepository(GraphRepository):
                 f"AND r.is_active = true AND {_temporal_where_clause('r')})"
             )
 
-        # 1. 语义排序：基于向量相似度
-        semantic_query = text(f"""
-            SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
-                   e.metadata as properties,
-                   1 - (e.embedding <=> :embedding::vector) as semantic_score
-            FROM {schema}.kg_entities e
-            WHERE e.corpus_id = :corpus_id AND e.is_active = true
-              AND e.embedding IS NOT NULL{temporal_exists}
-            ORDER BY e.embedding <=> :embedding::vector
-            LIMIT :limit * 2
-        """)
-
-        sem_params: dict[str, Any] = {
-            "corpus_id": str(corpus_id),
-            "embedding": _json.dumps(query_embedding),
-            "limit": limit,
-        }
-        if as_of:
-            sem_params["as_of"] = as_of
-
-        sem_result = await session.execute(semantic_query, sem_params)
-
-        # 收集语义排名
+        # 1. 语义排序：基于向量相似度（embedding 不可用时跳过）
         entity_data: dict[str, dict[str, Any]] = {}
         sem_rank: dict[str, int] = {}
-        for i, row in enumerate(sem_result, start=1):
-            eid = str(row.id)
-            sem_rank[eid] = i
-            entity_data[eid] = {
-                "name": row.name,
-                "entity_type": row.entity_type,
-                "confidence": row.confidence,
-                "description": row.description,
-                "properties": row.properties or {},
-                "semantic_score": float(row.semantic_score),
+
+        if query_embedding is None:
+            # embedding 不可用时退化为纯图结构排序（与 linear 方法一致）。
+            # 直接按 importance_score 返回，避免把同一信号同时塞进 sem_rank 与
+            # graph_rank 让 RRF 融合 1/(k+r)+1/(k+r) 退化为单信号 + 常数缩放、
+            # 错误地暴露"双通道融合"指标。
+            fallback_query = text(f"""
+                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                       e.properties,
+                       COALESCE(e.importance_score, 0) AS importance_score
+                FROM {schema}.kg_entities e
+                WHERE e.corpus_id = :corpus_id AND e.is_active = true{temporal_exists}
+                ORDER BY e.importance_score DESC NULLS LAST
+                LIMIT :limit
+            """)
+            fb_params: dict[str, Any] = {
+                "corpus_id": str(corpus_id),
+                "limit": limit,
             }
+            if as_of:
+                fb_params["as_of"] = as_of
+            fb_result = await session.execute(fallback_query, fb_params)
+            results: list[GraphSearchResult] = []
+            for row in fb_result:
+                imp = float(row.importance_score or 0)
+                entity = GraphNode(
+                    id=f"entity:{row.id}",
+                    label=row.name,
+                    node_type=row.entity_type,
+                    metadata=row.properties or {},
+                )
+                results.append(
+                    GraphSearchResult(
+                        entity=entity,
+                        semantic_score=0.0,
+                        graph_score=imp,
+                        combined_score=imp,
+                    )
+                )
+            return results
+        else:
+            semantic_query = text(f"""
+                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                       e.properties,
+                       1 - (e.embedding <=> :embedding::vector) as semantic_score
+                FROM {schema}.kg_entities e
+                WHERE e.corpus_id = :corpus_id AND e.is_active = true
+                  AND e.embedding IS NOT NULL{temporal_exists}
+                ORDER BY e.embedding <=> :embedding::vector
+                LIMIT :limit * 2
+            """)
+
+            sem_params: dict[str, Any] = {
+                "corpus_id": str(corpus_id),
+                "embedding": _json.dumps(query_embedding),
+                "limit": limit,
+            }
+            if as_of:
+                sem_params["as_of"] = as_of
+
+            sem_result = await session.execute(semantic_query, sem_params)
+
+            # 收集语义排名
+            for i, row in enumerate(sem_result, start=1):
+                eid = str(row.id)
+                sem_rank[eid] = i
+                entity_data[eid] = {
+                    "name": row.name,
+                    "entity_type": row.entity_type,
+                    "confidence": row.confidence,
+                    "description": row.description,
+                    "properties": row.properties or {},
+                    "semantic_score": float(row.semantic_score),
+                }
 
         if not entity_data:
             return []
@@ -1148,7 +1149,7 @@ class AgeGraphRepository(GraphRepository):
         session: AsyncSession,
         corpus_id: UUID,
         app_name: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         query_text: str,
         limit: int,
         graph_depth: int,
@@ -1157,6 +1158,44 @@ class AgeGraphRepository(GraphRepository):
     ) -> list[GraphSearchResult]:
         """线性加权混合检索（向后兼容）"""
         import json as _json
+
+        if query_embedding is None:
+            # embedding 不可用时，退化为纯图结构排序
+            query = text(f"""
+                SELECT e.id, e.name, e.entity_type, e.confidence, e.description,
+                       e.properties, e.importance_score,
+                       0.0 AS semantic_score,
+                       COALESCE(e.importance_score, 0) AS graph_score,
+                       COALESCE(e.importance_score, 0) AS combined_score
+                FROM {self._schema}.kg_entities e
+                WHERE e.corpus_id = :corpus_id AND e.is_active = true
+                ORDER BY e.importance_score DESC NULLS LAST
+                LIMIT :limit
+            """)
+            result = await session.execute(
+                query,
+                {
+                    "corpus_id": str(corpus_id),
+                    "limit": limit,
+                },
+            )
+            results = []
+            for row in result:
+                entity = GraphNode(
+                    id=f"entity:{row.id}",
+                    label=row.name,
+                    node_type=row.entity_type,
+                    metadata=row.properties or {},
+                )
+                results.append(
+                    GraphSearchResult(
+                        entity=entity,
+                        semantic_score=0.0,
+                        graph_score=float(row.importance_score or 0),
+                        combined_score=float(row.importance_score or 0),
+                    )
+                )
+            return results
 
         query = text(f"""
             SELECT * FROM {self._schema}.kg_hybrid_search(
@@ -1643,7 +1682,7 @@ class AgeGraphRepository(GraphRepository):
             INSERT INTO {self._schema}.kg_build_runs
                 (id, app_name, corpus_id, run_id, status, extractor_config, model_name, started_at)
             VALUES
-                (:id, :app_name, :corpus_id, :run_id, 'running', :config::jsonb, :model, NOW())
+                (:id, :app_name, :corpus_id, :run_id, 'running', CAST(:config AS jsonb), :model, NOW())
         """)
 
         await session.execute(
@@ -1697,8 +1736,8 @@ class AgeGraphRepository(GraphRepository):
                 relation_count = :relation_count,
                 error_message = :error_message,
                 progress_percent = COALESCE(:progress, progress_percent),
-                warnings = COALESCE(:warnings::jsonb, warnings),
-                processed_chunk_ids = COALESCE(:chunk_ids::jsonb, processed_chunk_ids),
+                warnings = COALESCE(CAST(:warnings AS jsonb), warnings),
+                processed_chunk_ids = COALESCE(CAST(:chunk_ids AS jsonb), processed_chunk_ids),
                 completed_at = CASE WHEN :status IN ('completed', 'failed') THEN NOW() END
             WHERE id = :run_id
         """)

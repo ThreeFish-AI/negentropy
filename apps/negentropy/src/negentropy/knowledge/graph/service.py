@@ -186,15 +186,19 @@ class GraphService:
             relation_types=tuple(KgRelationType.all_values()),
         )
 
-        # 初始化提取器
-        self._entity_extractor = CompositeEntityExtractor(
-            llm_model=self._config.llm_model,
-            enable_llm=self._config.enable_llm_extraction,
-        )
-        self._relation_extractor = CompositeRelationExtractor(
-            llm_model=self._config.llm_model,
-            enable_llm=self._config.enable_llm_extraction,
-        )
+        # 提取器按请求级 config 动态创建（见 build_graph），不在实例级持有
+
+    @staticmethod
+    def _resolve_schema(name: str | None) -> Any | None:
+        """解析 extraction_schema_name 到 ExtractionSchema 实例"""
+        if not name:
+            return None
+        from .extraction_schema import get_schema
+
+        schema = get_schema(name)
+        if schema is None:
+            logger.warning("unknown_extraction_schema", schema_name=name)
+        return schema
 
     async def build_graph(
         self,
@@ -218,6 +222,19 @@ class GraphService:
         """
         build_config = config or self._config
         normalized_llm_model = canonicalize_model_name(build_config.llm_model)
+
+        # 按请求级 config 动态创建提取器（单例提取器无法感知 schema 变更）
+        request_schema = self._resolve_schema(build_config.extraction_schema_name)
+        entity_extractor = CompositeEntityExtractor(
+            llm_model=build_config.llm_model,
+            enable_llm=build_config.enable_llm_extraction,
+            schema=request_schema,
+        )
+        relation_extractor = CompositeRelationExtractor(
+            llm_model=build_config.llm_model,
+            enable_llm=build_config.enable_llm_extraction,
+            schema=request_schema,
+        )
         run_id = f"build-{uuid.uuid4().hex[:8]}-{int(time.time())}"
         start_time = time.time()
 
@@ -289,14 +306,14 @@ class GraphService:
 
                     try:
                         # 提取实体
-                        entities = await self._entity_extractor.extract(text, corpus_id)
+                        entities = await entity_extractor.extract(text, corpus_id)
 
                         # 过滤低置信度实体
                         min_conf = build_config.min_entity_confidence
                         entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
 
                         # 提取关系
-                        relations = await self._relation_extractor.extract(entities, text)
+                        relations = await relation_extractor.extract(entities, text)
 
                         # 过滤低置信度关系
                         relations = [
@@ -687,7 +704,7 @@ class GraphService:
         corpus_id: UUID,
         app_name: str,
         query: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         config: GraphQueryConfig | None = None,
         as_of: datetime | None = None,
     ) -> GraphQueryResult:
@@ -1155,22 +1172,22 @@ class GraphService:
 
         # 1. 孤立实体比例：无任何关系的实体占比
         isolated_result = await db.execute(
-            text("""
+            text(f"""
                 SELECT COALESCE(
                     COUNT(*) FILTER (WHERE r_count = 0)::float / NULLIF(COUNT(*), 0),
                     0
                 ) AS isolated_ratio
                 FROM (
                     SELECT e.id, COUNT(r.id) AS r_count
-                    FROM {schema}.kg_entities e
-                    LEFT JOIN {schema}.kg_relations r ON (
+                    FROM {NEGENTROPY_SCHEMA}.kg_entities e
+                    LEFT JOIN {NEGENTROPY_SCHEMA}.kg_relations r ON (
                         (r.source_id = e.id OR r.target_id = e.id)
                         AND r.is_active = true
                     )
                     WHERE e.corpus_id = :cid AND e.is_active = true
                     GROUP BY e.id
                 ) sub
-            """).format(schema=NEGENTROPY_SCHEMA),
+            """),
             {"cid": corpus_id},
         )
         isolated_ratio = float(isolated_result.scalar() or 0)
@@ -1238,15 +1255,15 @@ class GraphService:
             from negentropy.models.base import NEGENTROPY_SCHEMA
 
             result = await db.execute(
-                text("""
+                text(f"""
                     SELECT
                         COUNT(*) AS total,
                         COUNT(*) FILTER (WHERE status = 'completed') AS succeeded,
                         COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - started_at))), 0) AS avg_duration_sec
-                    FROM {schema}.kg_build_runs
+                    FROM {NEGENTROPY_SCHEMA}.kg_build_runs
                     WHERE corpus_id = :cid
                       AND started_at >= NOW() - INTERVAL '30 days'
-                """).format(schema=NEGENTROPY_SCHEMA),
+                """),
                 {"cid": corpus_id},
             )
             row = result.one()

@@ -5,6 +5,13 @@ from .community_summarizer import CommunitySummarizer, CommunitySummary
 from .context_builder import GraphContext, GraphContextBuilder
 from .entity_resolver import EntityResolver, blocking_key, normalize_label
 from .entity_service import KgEntityService
+from .extraction_schema import (
+    AI_PAPER_SCHEMA,
+    EntityTypeSpec,
+    ExtractionSchema,
+    RelationTypeSpec,
+    get_schema,
+)
 from .extractors import (
     CompositeEntityExtractor,
     CompositeRelationExtractor,
@@ -18,6 +25,7 @@ from .graph_algorithms import (
     compute_pagerank,
     export_graph_to_networkx,
 )
+from .quality import GraphQualityReport, validate_graph_quality
 from .repository import (
     AgeGraphRepository,
     BuildRunRecord,
@@ -36,14 +44,12 @@ from .service import (
 from .strategy import (
     CooccurrenceRelationExtractor,
     EntityExtractor,
-    GraphProcessor,
     RegexEntityExtractor,
     RelationExtractor,
 )
 from .temporal_resolver import TemporalResolver, TemporalVerdict
 
 __all__ = [
-    "GraphProcessor",
     "EntityExtractor",
     "RelationExtractor",
     "RegexEntityExtractor",
@@ -87,4 +93,13 @@ __all__ = [
     # B4: Context Building
     "GraphContextBuilder",
     "GraphContext",
+    # Quality Validation
+    "GraphQualityReport",
+    "validate_graph_quality",
+    # Extraction Schema
+    "ExtractionSchema",
+    "EntityTypeSpec",
+    "RelationTypeSpec",
+    "AI_PAPER_SCHEMA",
+    "get_schema",
 ]

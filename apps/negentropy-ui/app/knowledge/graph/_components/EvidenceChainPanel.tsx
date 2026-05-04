@@ -124,8 +124,9 @@ export function EvidenceChainPanel({ corpusId }: EvidenceChainPanelProps) {
                           className="text-[10px] text-zinc-600 dark:text-zinc-400"
                         >
                           <span className="font-mono text-zinc-500">
-                            {e.source_id.slice(0, 6)} ─[{e.relation}]→{" "}
-                            {e.target_id.slice(0, 6)}
+                            {e.source_label || e.source_id.slice(0, 8) + "…"}{" "}
+                            ─[{e.relation}]→{" "}
+                            {e.target_label || e.target_id.slice(0, 8) + "…"}
                           </span>
                           {e.evidence_text && (
                             <p className="mt-1 text-zinc-500 dark:text-zinc-500">
@@ -134,14 +135,15 @@ export function EvidenceChainPanel({ corpusId }: EvidenceChainPanelProps) {
                           )}
                         </li>
                       ))}
-                    </ol>
-                  ) : (
-                    <p className="mt-1 text-[10px] text-zinc-500">
-                      （无完整证据链 — 可能是孤立 / 跨子图节点）
-                    </p>
-                  )}
-                </details>
-              ))}
+                      </ol>
+                    ) : (
+                      <p className="mt-1 text-[10px] text-zinc-500">
+                        （无完整证据链 — 可能是孤立 / 跨子图节点）
+                      </p>
+                    )}
+                  </details>
+                ))
+              }
             </div>
           )}
         </div>

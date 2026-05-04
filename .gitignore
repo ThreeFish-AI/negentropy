@@ -257,5 +257,8 @@ apps/negentropy-ui/.yarn/*
 apps/negentropy-ui/.auth/
 apps/negentropy-ui/.userdata/
 
+# KG verification artifacts
+.kg-verify/
+
 # Custom
 .claude/

@@ -1367,7 +1367,7 @@ async def memory_metrics(
 
     基于 SRE 四大黄金信号和 USE 方法，从现有表聚合搜索、巩固、Retention、PII 等指标。
     """
-    if user.role != "admin":
+    if "admin" not in (user.roles or []):
         raise HTTPException(status_code=403, detail="Admin access required for metrics")
 
     from negentropy.config import settings as global_settings

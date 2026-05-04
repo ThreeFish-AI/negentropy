@@ -127,6 +127,7 @@ Output as JSON with the following structure:
         temperature: float = 0.0,
         max_retries: int = 3,
         fallback_to_regex: bool = True,
+        schema: Any | None = None,
     ) -> None:
         """初始化 LLM 实体提取器
 
@@ -135,11 +136,13 @@ Output as JSON with the following structure:
             temperature: 生成温度（0.0 确保一致性）
             max_retries: 最大重试次数
             fallback_to_regex: 失败时是否回退到正则提取器
+            schema: ExtractionSchema 实例，用于约束提取类型
         """
         self._model, self._model_kwargs = self._resolve_model_config(model)
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_regex = fallback_to_regex
+        self._schema = schema
 
     @staticmethod
     def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
@@ -243,6 +246,26 @@ Output as JSON with the following structure:
         truncated_text = text[:4000] if len(text) > 4000 else text
 
         prompt = self.EXTRACTION_PROMPT.format(text=truncated_text)
+
+        # Schema-guided 增强提示 (Martinez-Rodriguez et al., 2018)
+        if self._schema is not None:
+            schema_block = self._schema.format_for_prompt()
+            type_names = ", ".join(et.name for et in self._schema.entity_types)
+            prompt = (
+                f"Extract named entities from the following text.\n\n"
+                f"Text:\n{truncated_text}\n\n"
+                f"Instructions:\n"
+                f"1. Identify entities matching ONLY these types: [{type_names}]\n"
+                f"2. For each entity, provide:\n"
+                f"   - name: The entity name (preserve original language)\n"
+                f"   - type: One of [{type_names}]\n"
+                f"   - description: Brief description in 1-2 sentences (optional)\n"
+                f"   - confidence: Extraction confidence between 0 and 1\n\n"
+                f"{schema_block}\n\n"
+                f"Output as JSON: "
+                f'{{"entities": [{{"name": "...", "type": "...", '
+                f'"description": "...", "confidence": 0.9}}]}}'
+            )
 
         # 重试逻辑
         last_error = None
@@ -421,6 +444,7 @@ Output as JSON with the following structure:
         temperature: float = 0.0,
         max_retries: int = 3,
         fallback_to_cooccurrence: bool = True,
+        schema: Any | None = None,
     ) -> None:
         """初始化 LLM 关系提取器
 
@@ -429,11 +453,13 @@ Output as JSON with the following structure:
             temperature: 生成温度
             max_retries: 最大重试次数
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
+            schema: ExtractionSchema 实例，用于约束关系类型
         """
         self._model, self._model_kwargs = self._resolve_model_config(model)
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_cooccurrence = fallback_to_cooccurrence
+        self._schema = schema
 
     @staticmethod
     def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
@@ -565,6 +591,30 @@ Output as JSON with the following structure:
             relation_types=", ".join(KgRelationType.all_values()),
         )
 
+        # Schema-guided 增强关系提示
+        if self._schema is not None:
+            rel_type_names = ", ".join(rt.name for rt in self._schema.relation_types)
+            schema_block = self._schema.format_relation_types_for_prompt()
+            prompt = (
+                f"Extract relationships between the following entities found in the text.\n\n"
+                f"Entities:\n{json.dumps(entity_names, ensure_ascii=False)}\n\n"
+                f"Text:\n{truncated_text}\n\n"
+                f"Instructions:\n"
+                f"1. Identify relationships between the entities listed above\n"
+                f"2. Use ONLY these relation types when applicable: [{rel_type_names}]\n"
+                f"3. For each relationship, provide:\n"
+                f"   - source: Source entity name\n"
+                f"   - target: Target entity name\n"
+                f"   - type: Relationship type (prefer from [{rel_type_names}])\n"
+                f"   - description: Brief description\n"
+                f"   - evidence: Exact text from source\n"
+                f"   - confidence: Extraction confidence between 0 and 1\n\n"
+                f"{schema_block}\n\n"
+                f"Output as JSON: "
+                f'{{"relations": [{{"source": "...", "target": "...", "type": "...", '
+                f'"description": "...", "evidence": "...", "confidence": 0.9}}]}}'
+            )
+
         # 重试逻辑
         last_error = None
         for attempt in range(self._max_retries):
@@ -695,6 +745,7 @@ class CompositeEntityExtractor:
         llm_model: str | None = None,
         enable_llm: bool = True,
         fallback_to_regex: bool = True,
+        schema: Any | None = None,
     ) -> None:
         """初始化组合提取器
 
@@ -702,12 +753,15 @@ class CompositeEntityExtractor:
             llm_model: LLM 模型名称
             enable_llm: 是否启用 LLM 提取
             fallback_to_regex: 失败时是否回退到正则
+            schema: ExtractionSchema 实例
         """
         self._enable_llm = enable_llm
+        self._schema = schema
         self._llm_extractor = (
             LLMEntityExtractor(
                 model=llm_model,
                 fallback_to_regex=fallback_to_regex,
+                schema=schema,
             )
             if enable_llm
             else None
@@ -748,6 +802,7 @@ class CompositeRelationExtractor:
         llm_model: str | None = None,
         enable_llm: bool = True,
         fallback_to_cooccurrence: bool = True,
+        schema: Any | None = None,
     ) -> None:
         """初始化组合提取器
 
@@ -755,12 +810,14 @@ class CompositeRelationExtractor:
             llm_model: LLM 模型名称
             enable_llm: 是否启用 LLM 提取
             fallback_to_cooccurrence: 失败时是否回退到共现
+            schema: ExtractionSchema 实例
         """
         self._enable_llm = enable_llm
         self._llm_extractor = (
             LLMRelationExtractor(
                 model=llm_model,
                 fallback_to_cooccurrence=fallback_to_cooccurrence,
+                schema=schema,
             )
             if enable_llm
             else None

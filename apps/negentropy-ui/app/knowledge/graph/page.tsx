@@ -156,7 +156,7 @@ export default function KnowledgeGraphPage() {
       }
       await loadGraph(corpusId);
     } catch (err) {
-      setBuildError(String(err));
+      setBuildError(err instanceof Error ? err.message : String(err));
     } finally {
       setBuilding(false);
     }
@@ -189,9 +189,14 @@ export default function KnowledgeGraphPage() {
     let cleanup: (() => void) | null = null;
 
     const run = async () => {
-      if (!nodes.length || !svgRef.current) {
-        setLayout([]);
+      if (renderer !== "d3" || !nodes.length) {
+        if (renderer === "d3") setLayout([]);
         return;
+      }
+      // Wait for SVG ref to be attached after renderer switch
+      if (!svgRef.current) {
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        if (!active || !svgRef.current) return;
       }
       const {
         forceSimulation,
@@ -271,47 +276,61 @@ export default function KnowledgeGraphPage() {
       active = false;
       cleanup?.();
     };
-  }, [nodes, edges]);
+  }, [nodes, edges, renderer]);
 
   useEffect(() => {
-    if (!svgRef.current || !simulationRef.current || !layout.length) return;
+    if (
+      renderer !== "d3" ||
+      !svgRef.current ||
+      !simulationRef.current ||
+      !layout.length
+    )
+      return;
     let active = true;
     const run = async () => {
       const { select } = await import("d3-selection");
       const { drag } = await import("d3-drag");
-      if (!active || !simulationRef.current) return;
+      if (!active || !simulationRef.current || !svgRef.current) return;
       const svg = select(svgRef.current);
       const g = svg.select("g.graph-layer");
       g.selectAll<SVGCircleElement, GraphNodePos>("circle")
-        .data(layout, (d: GraphNodePos) => d.id)
-        .call(
-          drag<SVGCircleElement, GraphNodePos>()
-            .on("start", (event, d) => {
-              if (!event.active && simulationRef.current)
-                simulationRef.current.alphaTarget(0.3).restart();
-              d.fx = d.x;
-              d.fy = d.y;
-            })
-            .on("drag", (event, d) => {
-              d.fx = event.x;
-              d.fy = event.y;
-            })
-            .on("end", (event, d) => {
-              if (!event.active && simulationRef.current)
-                simulationRef.current.alphaTarget(0);
-              d.fx = null;
-              d.fy = null;
-            }),
-        );
+        .each(function (_, i) {
+          const sim = simulationRef.current;
+          if (!sim) return;
+          const nodesArr = sim.nodes() as GraphNodePos[];
+          const node = nodesArr[i];
+          if (!node) return;
+          select(this)
+            .datum(node)
+            .call(
+              drag<SVGCircleElement, GraphNodePos>()
+                .on("start", (event, d) => {
+                  if (!event.active) sim.alphaTarget(0.3).restart();
+                  d.fx = d.x;
+                  d.fy = d.y;
+                })
+                .on("drag", (event, d) => {
+                  d.fx = event.x;
+                  d.fy = event.y;
+                })
+                .on("end", (event, d) => {
+                  if (!event.active) sim.alphaTarget(0);
+                  d.fx = null;
+                  d.fy = null;
+                }),
+            );
+        });
     };
     run();
     return () => {
       active = false;
     };
-  }, [layout]);
+    // 依赖 layout：layout 由 build effect 的首次 tick 设置，此时 simulationRef
+    // 已被赋值，确保 drag 副作用在异步 simulation 构建完成之后才尝试附着。
+  }, [layout, renderer]);
 
   const selectedNode =
-    layout.find((node) => node.id === selectedNodeId) || null;
+    nodes.find((n) => n.id === selectedNodeId) || null;
 
   const entityStats = useMemo(() => {
     const byType: Record<string, number> = {};
@@ -463,7 +482,7 @@ export default function KnowledgeGraphPage() {
                     <p className="text-xs text-red-600 dark:text-red-400">
                       加载失败：{error}
                     </p>
-                  ) : layout.length ? (
+                  ) : renderer === "d3" ? (
                     <svg
                       ref={svgRef}
                       width="100%"
@@ -471,6 +490,7 @@ export default function KnowledgeGraphPage() {
                       className="rounded-xl bg-white/60 dark:bg-zinc-800/60"
                     >
                       <g className="graph-layer">
+                        {!layout.length ? null : <>
                         {edges.map((edge, index) => {
                           const source = layout.find(
                             (node) => node.id === edge.source,
@@ -548,6 +568,7 @@ export default function KnowledgeGraphPage() {
                             </text>
                           </g>
                         ))}
+                        </>}
                       </g>
                     </svg>
                   ) : (
