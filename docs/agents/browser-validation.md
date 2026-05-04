@@ -135,7 +135,56 @@ sequenceDiagram
 - **storageState 漂移**: 项目修改 Cookie 域 / SameSite 后旧 `storageState` 失效但不报错。**对策**: setup project 末尾增加 `expect(page).toHaveURL(/localhost:3192\/(?!auth\/google)/)` 断言。
 - **多账号干扰**: 用户常用 Chrome 同时登录多个 Google 账号会让 OAuth 选择器出现。**对策**: 自检失败时把账号选择器纳入指引，由用户显式选择目标账号。
 
-## 9. References (IEEE)
+## 9. 案例：Skills 模块自签 Cookie + Playwright MCP 实机验证
+
+适用：本地 Agent 开发场景，**不走 Google OAuth**，用自签 `ne_sso` 直接进入业务页面做交互回归。
+
+### 9.1 一次性环境准备
+
+1. 在 `apps/negentropy/.env.local` 与 `apps/negentropy-ui/.env.local` 写入相同的 `NE_AUTH_TOKEN_SECRET`（必须与 `~/.negentropy/config.yaml` 的 `auth.token_secret` 一致）；
+2. `./scripts/ctl.sh start backend ui` 启动；
+3. 自检三步：
+   ```bash
+   cd apps/negentropy-ui
+   TOKEN=$(node scripts/sign-dev-cookie.mjs)
+   curl -fsS -b "ne_sso=$TOKEN" http://localhost:3292/auth/me
+   curl -fsS -b "ne_sso=$TOKEN" http://localhost:3192/api/auth/me
+   curl -fsS -b "ne_sso=$TOKEN" http://localhost:3192/api/interface/skills
+   ```
+   三段全 200 后再进入下一步。
+
+### 9.2 MCP 注入 cookie
+
+```js
+// 通过 mcp__playwright__browser_navigate 先进入任意 same-origin 页面
+await browser_navigate({ url: "http://localhost:3192/" });
+await browser_evaluate({
+  function: `() => {
+    document.cookie = "ne_sso=${TOKEN}; path=/; SameSite=Lax";
+    return document.cookie.includes("ne_sso");
+  }`,
+});
+await browser_navigate({ url: "http://localhost:3192/interface/skills" });
+```
+
+### 9.3 storageState 模式（推荐 spec 复用）
+
+```bash
+node apps/negentropy-ui/scripts/sign-dev-cookie.mjs --storage-state apps/negentropy-ui/.auth/dev-admin.json
+PLAYWRIGHT_STORAGE_STATE=$(pwd)/apps/negentropy-ui/.auth/dev-admin.json \
+PLAYWRIGHT_AUTH=1 \
+pnpm exec playwright test tests/e2e/<your.authed.spec.ts>
+```
+
+### 9.4 注意事项
+
+- **localhost vs 127.0.0.1**：UI 进程仅监听 `localhost`（IPv6），browser navigate 必须使用 `localhost`；
+- **httpOnly cookie**：自签时主动用 `document.cookie` 设置（非 httpOnly），浏览器仍会随后续请求发送，后端 `decode_token` 不区分 httpOnly；
+- **Cookie 持久性**：MCP 浏览器 context 在 navigate 间保持 cookie，但 close 后会丢失。
+
+详细落地见 [`docs/skills.md`](../skills.md) 与 [`docs/user-guide/skills-troubleshooting.md`](../user-guide/skills-troubleshooting.md)。
+
+## 10. References (IEEE)
 
 <a id="ref1"></a>[1] Microsoft, "Authentication," _Playwright Documentation_, 2025. [Online]. Available: https://playwright.dev/docs/auth.
 

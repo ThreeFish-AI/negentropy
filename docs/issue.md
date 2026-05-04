@@ -1022,3 +1022,30 @@
 - **处理方式**：将 sentinel 改为 `__legacy_user_config_marker__`（项目内不会重复出现的稀有字符串），断言改为该 sentinel 不应再出现在覆盖后的文件中。
 - **后续防范**：所有"已被覆盖 / 已被替换"型断言必须使用稀有 sentinel（含项目无关的双下划线 + 描述性单词组合），严禁直接用 `"old"` / `"new"` 等高频英文词。
 - **同类问题影响**：检索 `assert "<short>" not in` 模式的所有测试，确认是否也用了脆弱字符串。
+
+---
+
+## ISSUE-045 Skills 模块浏览器实机验证：原生 confirm/alert + JSON 校验错误锚定不足 + 缺 Inline 启停（2026-05-04）
+
+- **表因**：在 `/interface/skills` 通过自签 `ne_sso` dev cookie 注入内嵌 Chromium 走 6 流程实机回归（empty / create / edit / delete / filter / cross-module），UX 缺口集中：
+  1. **删除走原生 `window.confirm()`**，弹窗样式与 app 视觉割裂、不可定制（`apps/negentropy-ui/app/interface/skills/page.tsx:65-80`）；
+  2. **失败走原生 `window.alert(error)`**，错误信息不可结构化、不能附操作建议（`page.tsx:78`）；
+  3. **JSON 校验错误位置不直观**：错误 banner 锚定在表单顶部（`SkillFormDialog.tsx:96-103`），但 Config Schema / Default Config 两个 textarea 在表单底部，用户滚到底部点 Create 时根本看不到错误；
+  4. **无 Inline 启停**：is_enabled 切换必须打开 Edit 模态、改 checkbox、Update 三步，常用动作路径过深（`SkillCard.tsx`）；
+  5. **后端 Skills 字段全部存而不用**：`prompt_template` / `required_tools` / `config_schema` / `default_config` 四字段从未参与 Agent 系统 prompt 构建（grep 全仓 `subagent.skills` 仅有读取无写入），SubAgent 的 `skills: list[str]` 字段沦为纯配置数据。
+- **根因**：
+  1. 早期最小可用版本直接调浏览器原生 dialog，未串接项目已有的 `OverlayDismissLayer` 与 `sonner` Toast；
+  2. JSON 校验逻辑写在 `handleSubmit` 顶层 `try/catch` 中，error message 通过 `setError(...)` 注入顶部 banner，没有把"哪个字段错了"的语义传递到对应 textarea；
+  3. SubAgent 系统 prompt 构建链路未读取 Skills，源于 Phase 1 仅落地 CRUDL 时执行层尚未规划。
+- **处理方式**（本 PR 落地，详见 `apps/negentropy-ui/app/interface/skills/`、`apps/negentropy/src/negentropy/agents/skills_injector.py`）：
+  1. **删除流程**：`confirm()` → 自定义 `ConfirmDialog`（基于 `OverlayDismissLayer`），支持 ESC + 遮罩关闭、双确认、loading 态；
+  2. **错误反馈**：`alert()` → 顶部 banner + sonner toast 双通道；
+  3. **JSON 校验锚定**：`SkillFormDialog` 把错误从单一 `error` state 拆为 `{ general, configSchema, defaultConfig }` 字段错误对象，对应 textarea 显示红色边框 + label 内联提示；
+  4. **Inline 启停**：`SkillCard` 增加 toggle 按钮，直接 PATCH `is_enabled` 而不打开模态；
+  5. **执行链路最小闭环**：新增 `agents/skills_injector.py`（resolve_skills + format_skills_block + validate_required_tools），在 SubAgent 系统 prompt 构建处按 Progressive Disclosure（描述常驻 / 模板按需）注入。
+- **后续防范**：
+  1. UI 严禁使用浏览器原生 `confirm/alert/prompt`，改用项目自定义 Modal + Toast；
+  2. 表单字段级错误必须锚定到对应 input，杜绝"错误显示远离错误源"；
+  3. CRUDL 配置类模块若涉及 Agent 执行链，必须在 PR 描述里明确说明"配置如何被消费"，否则字段沦为死代码；
+  4. 主流 Agent Skills 框架（Claude Skills / ADK Skills / OpenAI Codex Skills）的 Progressive Disclosure 原则——描述层常驻系统 prompt、模板层按需展开——是熵减最佳实践，所有未来扩展（SKILL.md 文件系统 / 资源挂载 / 版本语义化）都应在该原则下增量演进。
+- **同类问题影响**：MCP Servers / SubAgents 模块同样存在 UX 短板（`confirm()` 删除）与"配置而不消费"风险，需后续 PR 同步修复。
