@@ -64,7 +64,8 @@ def _compute_quality_score(report: GraphQualityReport) -> float:
     # 证据支持率
     evidence = report.relation_evidence_ratio
 
-    return round(0.4 * integrity + 0.2 * coverage + 0.2 * confidence + 0.2 * evidence, 4)
+    score = 0.4 * integrity + 0.2 * coverage + 0.2 * confidence + 0.2 * evidence
+    return round(max(0.0, min(1.0, score)), 4)
 
 
 async def validate_graph_quality(

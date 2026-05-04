@@ -319,7 +319,7 @@ export default function KnowledgeGraphPage() {
     return () => {
       active = false;
     };
-  }, [nodes]);
+  }, [nodes, edges, renderer]);
 
   const selectedNode =
     nodes.find((n) => n.id === selectedNodeId) || null;

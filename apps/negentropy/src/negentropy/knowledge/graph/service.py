@@ -235,6 +235,19 @@ class GraphService:
         """
         build_config = config or self._config
         normalized_llm_model = canonicalize_model_name(build_config.llm_model)
+
+        # 按请求级 config 动态创建提取器（单例提取器无法感知 schema 变更）
+        request_schema = self._resolve_schema(build_config.extraction_schema_name)
+        entity_extractor = CompositeEntityExtractor(
+            llm_model=build_config.llm_model,
+            enable_llm=build_config.enable_llm_extraction,
+            schema=request_schema,
+        )
+        relation_extractor = CompositeRelationExtractor(
+            llm_model=build_config.llm_model,
+            enable_llm=build_config.enable_llm_extraction,
+            schema=request_schema,
+        )
         run_id = f"build-{uuid.uuid4().hex[:8]}-{int(time.time())}"
         start_time = time.time()
 
@@ -306,14 +319,14 @@ class GraphService:
 
                     try:
                         # 提取实体
-                        entities = await self._entity_extractor.extract(text, corpus_id)
+                        entities = await entity_extractor.extract(text, corpus_id)
 
                         # 过滤低置信度实体
                         min_conf = build_config.min_entity_confidence
                         entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
 
                         # 提取关系
-                        relations = await self._relation_extractor.extract(entities, text)
+                        relations = await relation_extractor.extract(entities, text)
 
                         # 过滤低置信度关系
                         relations = [

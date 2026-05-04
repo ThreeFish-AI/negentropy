@@ -94,15 +94,15 @@ class TestComputeQualityScore:
         assert score > 0.5
 
     def test_score_bounded(self):
-        """评分应在 [0, 1] 范围内"""
+        """评分应在 [0, 1] 范围内，超范围输入应被 clamp"""
         report = GraphQualityReport(
             total_entities=100,
             total_relations=50,
             dangling_edges=0,
             orphan_entities=0,
-            community_coverage=1.0,
+            community_coverage=1.5,  # 超范围
             entity_confidence_avg=1.5,  # 超范围
-            relation_evidence_ratio=1.0,
+            relation_evidence_ratio=1.2,  # 超范围
             type_distribution={},
             quality_score=0.0,
         )
