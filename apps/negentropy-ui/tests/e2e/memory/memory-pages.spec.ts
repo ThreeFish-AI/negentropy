@@ -29,7 +29,7 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        user_count: 3,
+        user_count: 7,
         memory_count: 42,
         fact_count: 15,
         avg_retention_score: 0.876,
@@ -44,20 +44,25 @@ test("Memory Dashboard 展示 8 个指标卡片", async ({ page }) => {
   await page.goto("/memory");
   await page.waitForLoadState("networkidle");
 
-  await expect(page.getByText("USERS")).toBeVisible();
-  await expect(page.getByText("3")).toBeVisible();
-  await expect(page.getByText("MEMORIES")).toBeVisible();
-  await expect(page.getByText("42")).toBeVisible();
-  await expect(page.getByText("FACTS")).toBeVisible();
-  await expect(page.getByText("15")).toBeVisible();
-  await expect(page.getByText("AVG RETENTION")).toBeVisible();
+  // 验证 8 个标签（用精确匹配避免 strict mode violation）
+  await expect(page.getByText("USERS", { exact: true })).toBeVisible();
+  await expect(page.getByText("MEMORIES", { exact: true })).toBeVisible();
+  await expect(page.getByText("FACTS", { exact: true })).toBeVisible();
+  await expect(page.getByText("AVG RETENTION", { exact: true })).toBeVisible();
   await expect(page.getByText("87.6%")).toBeVisible();
-  await expect(page.getByText("AVG IMPORTANCE")).toBeVisible();
+  await expect(page.getByText("AVG IMPORTANCE", { exact: true })).toBeVisible();
   await expect(page.getByText("54.3%")).toBeVisible();
-  await expect(page.getByText("LOW RETENTION")).toBeVisible();
-  await expect(page.getByText("HIGH IMPORTANCE")).toBeVisible();
-  await expect(page.getByText("8")).toBeVisible();
-  await expect(page.getByText("RECENT AUDITS")).toBeVisible();
+  await expect(page.getByText("LOW RETENTION", { exact: true })).toBeVisible();
+  await expect(page.getByText("HIGH IMPORTANCE", { exact: true })).toBeVisible();
+  await expect(page.getByText("RECENT AUDITS", { exact: true })).toBeVisible();
+
+  // 验证卡片数值（用 locator 限定到卡片容器内的值文本）
+  const cards = page.locator(".grid > div");
+  await expect(cards).toHaveCount(8);
+  // Spot check specific values using card-scoped locators
+  await expect(cards.nth(0).locator("p").last()).toHaveText("7");
+  await expect(cards.nth(1).locator("p").last()).toHaveText("42");
+  await expect(cards.nth(2).locator("p").last()).toHaveText("15");
 });
 
 test("Memory Dashboard Retrieval Metrics 折叠面板", async ({ page }) => {
@@ -179,10 +184,13 @@ test("Conflicts 页面加载和过滤", async ({ page }) => {
   await page.goto("/memory/conflicts");
   await page.waitForLoadState("networkidle");
 
+  // 验证冲突类型文本（列表中的值）
   await expect(page.getByText("value_contradiction")).toBeVisible();
-  await expect(page.getByText("pending")).toBeVisible();
   await expect(page.getByText("temporal_overlap")).toBeVisible();
-  await expect(page.getByText("supersede")).toBeVisible();
+
+  // 验证 resolution 徽章（用 badge locator 避免 dropdown 选项冲突）
+  await expect(page.locator("button:has-text('pending')")).toBeVisible();
+  await expect(page.locator("span:has-text('supersede')").first()).toBeVisible();
 
   // 测试 resolution 过滤
   const select = page.getByRole("combobox");
@@ -219,12 +227,13 @@ test("Conflicts 页面点击冲突项显示详情", async ({ page }) => {
   await page.goto("/memory/conflicts");
   await page.waitForLoadState("networkidle");
 
-  // 点击冲突项
-  await page.getByText("value_contradiction").click();
+  // 点击冲突项（用 button 精确定位冲突卡片）
+  await page.locator("button:has-text('value_contradiction')").click();
 
   // 验证详情面板
   await expect(page.getByText("Conflict Detail")).toBeVisible();
-  await expect(page.getByText("consolidation")).toBeVisible();
+  // 用 aside 区域限定 "consolidation" 避免与列表项冲突
+  await expect(page.locator("aside").getByText("consolidation")).toBeVisible();
   await expect(page.getByText("Resolve")).toBeVisible();
   await expect(page.getByText("supersede")).toBeVisible();
   await expect(page.getByText("keep_old")).toBeVisible();
