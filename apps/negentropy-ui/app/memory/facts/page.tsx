@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
-import { FactListPayload, fetchFacts, searchFacts } from "@/features/memory";
+import {
+  FactListPayload,
+  FactHistoryItem,
+  fetchFacts,
+  searchFacts,
+  fetchFactHistory,
+} from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -15,6 +21,12 @@ export default function MemoryFactsPage() {
   const [payload, setPayload] = useState<FactListPayload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Fact History modal state
+  const [historyFactId, setHistoryFactId] = useState<string | null>(null);
+  const [historyItems, setHistoryItems] = useState<FactHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const loadFacts = useCallback(async () => {
     if (!activeUserId) return;
@@ -71,6 +83,26 @@ export default function MemoryFactsPage() {
   const handleClearSearch = () => {
     setSearchQuery("");
     loadFacts();
+  };
+
+  const handleShowHistory = async (factId: string) => {
+    setHistoryFactId(factId);
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const data = await fetchFactHistory(factId);
+      setHistoryItems(data.items);
+    } catch (err) {
+      setHistoryError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleCloseHistory = () => {
+    setHistoryFactId(null);
+    setHistoryItems([]);
+    setHistoryError(null);
   };
 
   return (
@@ -163,6 +195,14 @@ export default function MemoryFactsPage() {
                       {fact.valid_from && <span>From: {fact.valid_from}</span>}
                       {fact.valid_until && <span>Until: {fact.valid_until}</span>}
                     </div>
+                    <div className="mt-2">
+                      <button
+                        className="text-[11px] text-zinc-400 underline hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                        onClick={() => handleShowHistory(fact.id)}
+                      >
+                        History
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -170,6 +210,78 @@ export default function MemoryFactsPage() {
           </div>
         </div>
       </div>
+
+      {/* Fact History Modal */}
+      {historyFactId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={handleCloseHistory}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                Fact Version History
+              </h3>
+              <button
+                className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                onClick={handleCloseHistory}
+              >
+                Close
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+              {historyFactId}
+            </p>
+
+            {historyLoading ? (
+              <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Loading history...</p>
+            ) : historyError ? (
+              <p className="mt-4 text-xs text-rose-600">{historyError}</p>
+            ) : historyItems.length === 0 ? (
+              <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">No history available.</p>
+            ) : (
+              <div className="mt-4 max-h-72 space-y-3 overflow-y-auto">
+                {historyItems.map((item, i) => (
+                  <div
+                    key={item.id}
+                    className={`rounded-lg border p-3 text-xs ${
+                      i === 0
+                        ? "border-zinc-900 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800"
+                        : "border-zinc-200 dark:border-zinc-700"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100">{item.key}</p>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                          item.status === "active"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                    <pre className="mt-2 max-h-20 overflow-auto rounded bg-zinc-50 p-2 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                      {JSON.stringify(item.value, null, 2)}
+                    </pre>
+                    <div className="mt-2 flex gap-3 text-[11px] text-zinc-400 dark:text-zinc-500">
+                      <span>Confidence: {(item.confidence * 100).toFixed(0)}%</span>
+                      {item.superseded_by && (
+                        <span>Superseded by: {item.superseded_by.slice(0, 8)}...</span>
+                      )}
+                      <span>{item.created_at || "-"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

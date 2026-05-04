@@ -108,7 +108,7 @@ export default function MemoryAuditPage() {
         <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
           {/* D5: 统一 error banner */}
           {timelineError && (
-            <div className="absolute left-6 right-6 top-[calc(100%-2rem)] z-10 mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300 translate-y-[-100%]">
+            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
               {timelineError.message || String(timelineError)}
             </div>
           )}
