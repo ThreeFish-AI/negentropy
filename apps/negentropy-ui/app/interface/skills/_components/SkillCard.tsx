@@ -100,7 +100,7 @@ export function SkillCard({ skill, onEdit, onDelete, onToggleEnabled, toggling =
           </span>
         </div>
         <p
-          className="mb-1 h-20 min-w-0 w-full overflow-hidden text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"
+          className="mb-1 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"
           title={skill.description || "No description"}
         >
           {skill.description || "No description"}

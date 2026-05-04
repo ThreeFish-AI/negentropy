@@ -153,6 +153,8 @@ export default function SkillsPage() {
       } catch {
         // body not JSON
       }
+      // 同时发 toast 与抛错：toast 抓注意力，banner 保留上下文。
+      toast.error(message);
       throw new Error(message);
     }
 
