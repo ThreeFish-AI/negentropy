@@ -318,6 +318,10 @@ export function MessageBubble({
 
   return (
     <div
+      data-testid="message-bubble"
+      data-message-role={message.role}
+      data-message-id={message.id}
+      data-streaming={isStreaming ? "true" : "false"}
       className={cn(
         "group relative flex w-full cursor-pointer rounded-[2rem] px-2 py-1 transition-colors duration-200",
         isUser ? "flex-row-reverse" : "flex-row",

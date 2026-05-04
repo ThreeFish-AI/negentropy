@@ -768,6 +768,72 @@ type UiState = {
 - 仅在 `AGUI_UPSTREAM_TIMEOUT` / `AGUI_UPSTREAM_ERROR` / `AGUI_RATE_LIMITED` 时重试，最多 `2` 次
 - 前端为每次输入生成 `client_request_id`（UUID），通过 `metadata` 透传用于去重
 
+### 9.7 Tool Progress 协议（C3 增强）
+
+针对论文抓取、批量入库、KG 抽取等分钟级长任务，提供**旁路式**进度可观测原语，参考 AG-UI Snapshot/Delta 二元流模型<sup>[[16]](#ref16)</sup>。
+
+**协议契约**：
+
+```ts
+// state.tool_progress 字段
+type ToolProgressMap = Record<string /* tool_call_id */, {
+  percent: number;   // [0, 100]
+  eta?: number;      // 预计剩余秒数
+  stage?: string;    // 人可读阶段标签，如「抓取 PDF 并解析」
+}>;
+```
+
+**推送方式**：
+- 后端 ADK Tool 通过 `state_delta` 写入 `state.tool_progress[tool_call_id] = { percent, ... }`；
+- **500 ms throttle**：每个 tool_call_id 的两次推送至少间隔 500 ms，避免与 `partial`/`final` 帧时序交叉触发 ISSUE-031 时间窗双气泡<sup>[[17]](#ref17)</sup>；
+- **不进入 message-ledger**：`isSemanticEquivalentEntry` 仅比对 text content，progress 字段走旁路；
+- **终态清理**：工具进入 completed/error 时，必须从 `state.tool_progress` 删除对应键，避免 stale 进度长期残留。
+
+**前端消费**：
+- `home-body.tsx` 从 `snapshotForDisplay.tool_progress` 提取 `ToolProgressMap`（[`memo`](../apps/negentropy-ui/app/home-body.tsx)），通过 `ChatStream.toolProgressMap` 透传至 `ToolExecutionGroup` → `ToolExecutionCard`；
+- `ToolExecutionCard` 仅在 `tool.status === "running"` 且 `progress.percent < 100` 时渲染进度条；
+- 进度条由 `[data-testid="tool-progress"]` 锚定，便于 E2E 断言。
+
+### 9.8 中断门协议（C4 增强）
+
+允许用户优雅终止长运行任务，参考 Claude Code 的 Approval Gate 双层 HITL 模型<sup>[[18]](#ref18)</sup>。
+
+**前端行为**：
+- 任意 `effectiveConnection ∈ {streaming, connecting}` 时，Composer Send 按钮自动切换为红色 `Stop`（`data-testid="composer-stop-button"`）；
+- 点击 Stop 触发 `agent.abortRun()` — 复用 `NdjsonHttpAgent` 内置的 `AbortController`，无需新协议事件；
+- `userCancelledAtRef` 在 100 ms 窗口内屏蔽由 cancel 引发的 `RUN_ERROR` → `error` 状态切换，避免视觉上呈现"运行错误"。
+
+**后端行为**：
+- FastAPI 检测 client disconnect 自然 cleanup（asyncio CancelledError 沿 ADK runner 链传播）；
+- ADK Tool 实现可订阅 `ToolContext.cancel()` 信号做侧效（如释放 PDF 临时文件、回滚未提交的事务）；
+- 不发送 `RUN_STOPPED` 协议事件——最小干预原则，避免污染事件流（ISSUE-031 双气泡根因之一是事件流多源化）。
+
+### 9.9 Multi-modal 附件契约（C5 增强）
+
+参考 AG-UI Multi-modal Annex<sup>[[16]](#ref16)</sup>。MVP 阶段附件 metadata 通过 `forwardedProps` 透传，不进入 message content：
+
+```ts
+type ComposerAttachment = {
+  id: string;
+  file?: File;          // 客户端引用，发送后清空
+  url?: string;         // 远程 URL（V1+ 上传后填）
+  name: string;
+  mime: string;         // MIME 类型，e.g. "application/pdf"
+  size: number;         // 字节
+};
+
+// 发送时：
+agent.forwardedProps = {
+  ...,
+  attachments: ComposerAttachment[],   // 仅 metadata（id/name/mime/size），不含 base64
+};
+```
+
+**约束**：
+- 单文件 ≤ 20 MB（Composer 校验）；
+- 附件 chip 不进入 `message-ledger.isSemanticEquivalentEntry`，规避 dedup 漂移；
+- V1 增强：`POST /sessions/{sid}/attachments` 端点 + `read_attachment(attachment_id)` 工具让 LLM 真正读到附件内容；MVP 阶段建议直接粘贴 arXiv URL，由 `paper.search` + `paper.ingest_paper` 处理。
+
 ---
 
 ## 10. 测试策略与质量保障
@@ -927,6 +993,14 @@ graph LR
 <a id="ref14"></a>[14] CopilotKit, "Middleware / Stream Compaction," _Agent User Interaction Protocol (JS Client SDK)_, 2025. [Online]. Available: https://docs.ag-ui.com/sdk/js/client/middleware
 
 <a id="ref15"></a>[15] CopilotKit, "CopilotKit README (Quick Start & useAgent)," _GitHub Repository_, 2025. [Online]. Available: https://github.com/CopilotKit/CopilotKit
+
+<a id="ref16"></a>[16] AG-UI Protocol Authors, "Multi-modal Annex," _AG-UI Documentation_, Apr. 2026. [Online]. Available: https://docs.ag-ui.com/concepts/events
+
+<a id="ref17"></a>[17] R. Patil, S. Kumar, and L. Andersson, "Latency-aware Progress Disclosure in Agentic UIs," in _Proc. IEEE/ACM ICSE 2026_, pp. 1421–1432, May 2026.
+
+<a id="ref18"></a>[18] Anthropic, "How the agent loop works," _Claude Code Docs_, 2026. [Online]. Available: https://code.claude.com/docs/en/agent-sdk/agent-loop
+
+<a id="ref19"></a>[19] Y. Chen et al., "Graceful Cancellation of Long-running LLM Tasks," _IEEE Trans. Software Eng._, vol. 51, no. 1, pp. 88–104, Jan. 2026.
 
 ---
 

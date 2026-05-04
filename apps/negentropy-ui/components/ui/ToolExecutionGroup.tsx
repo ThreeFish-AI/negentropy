@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ToolExecutionEntry, ToolGroupDisplayBlock } from "@/types/a2ui";
+import type { ToolProgressMap, ToolProgressSnapshot } from "@/types/common";
 import { JsonViewer } from "@/components/ui/JsonViewer";
 import { cn } from "@/lib/utils";
 
@@ -35,14 +36,70 @@ function StatusDot({ status }: { status: ToolExecutionEntry["status"] }) {
   );
 }
 
+function clampPercent(p: number): number {
+  if (!Number.isFinite(p)) return 0;
+  if (p < 0) return 0;
+  if (p > 100) return 100;
+  return Math.round(p);
+}
+
+function formatEta(eta: number | undefined): string | null {
+  if (eta === undefined || !Number.isFinite(eta) || eta < 0) return null;
+  if (eta < 60) return `约 ${Math.round(eta)} 秒`;
+  if (eta < 3600) return `约 ${Math.round(eta / 60)} 分钟`;
+  return `约 ${(eta / 3600).toFixed(1)} 小时`;
+}
+
+/**
+ * Tool Progress 进度条（C3）— 仅在 progress 存在且工具仍在 running 时渲染。
+ *
+ * 设计原则：
+ * - 走 state_delta 旁路，不参与 message-ledger dedup（避开 ISSUE-031 时间窗）。
+ * - percent / eta / stage 来自后端 ADK state_delta 推送，500ms throttle。
+ * - 已完成 / error 状态下不再展示 progress（避免冗余）。
+ */
+function ToolProgressBar({ progress }: { progress: ToolProgressSnapshot }) {
+  const percent = clampPercent(progress.percent);
+  const etaText = formatEta(progress.eta);
+  return (
+    <div
+      data-testid="tool-progress"
+      data-percent={percent}
+      className="mt-1.5 flex items-center gap-2"
+    >
+      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-sky-500 transition-[width] duration-500 ease-out"
+          style={{ width: `${percent}%` }}
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          role="progressbar"
+        />
+      </div>
+      <span className="shrink-0 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 tabular-nums">
+        {percent}%
+      </span>
+      {(progress.stage || etaText) && (
+        <span className="shrink-0 text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[10rem]">
+          {[progress.stage, etaText].filter(Boolean).join(" · ")}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function ToolExecutionCard({
   tool,
   defaultExpanded,
   onSelect,
+  progress,
 }: {
   tool: ToolExecutionEntry;
   defaultExpanded: boolean;
   onSelect?: (nodeId: string) => void;
+  /** Tool Progress 旁路（C3）— state_delta 推送的进度信息 */
+  progress?: ToolProgressSnapshot;
 }) {
   const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
   const expanded = manualExpanded ?? defaultExpanded;
@@ -50,8 +107,15 @@ function ToolExecutionCard({
   const args = parseJson(tool.args);
   const result = parseJson(tool.result);
 
+  // 仅在 running 状态显示进度条；completed/error 状态视为终态，不冗余展示
+  const showProgress =
+    tool.status === "running" && progress !== undefined && progress.percent < 100;
+
   return (
     <div
+      data-testid="tool-execution-card"
+      data-tool-id={tool.id}
+      data-tool-status={tool.status}
       className={cn(
         "rounded-2xl border bg-white/90 p-3 shadow-sm transition-colors dark:bg-zinc-900/90",
         tool.status === "error"
@@ -92,6 +156,7 @@ function ToolExecutionCard({
               </div>
             )}
           </div>
+          {showProgress && <ToolProgressBar progress={progress} />}
         </div>
         <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
           {expanded ? "收起" : "展开"}
@@ -133,11 +198,14 @@ function ToolExecutionGroupBody({
   isSelected,
   onSelect,
   variant = "standalone",
+  progressMap,
 }: {
   block: ToolGroupDisplayBlock;
   isSelected?: boolean;
   onSelect?: (nodeId: string) => void;
   variant?: "standalone" | "embedded";
+  /** Tool Progress 旁路（C3）— 来自 home-body 的 snapshotForDisplay.tool_progress */
+  progressMap?: ToolProgressMap;
 }) {
   const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
   const expanded = manualExpanded ?? block.defaultExpanded;
@@ -201,6 +269,7 @@ function ToolExecutionGroupBody({
               tool={tool}
               defaultExpanded={block.defaultExpanded}
               onSelect={onSelect}
+              progress={progressMap?.[tool.id]}
             />
           ))}
         </div>
@@ -214,6 +283,7 @@ export function ToolExecutionGroup(props: {
   isSelected?: boolean;
   onSelect?: (nodeId: string) => void;
   variant?: "standalone" | "embedded";
+  progressMap?: ToolProgressMap;
 }) {
   return <ToolExecutionGroupBody key={props.block.id} {...props} />;
 }

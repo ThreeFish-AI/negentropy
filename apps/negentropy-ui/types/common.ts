@@ -80,7 +80,28 @@ export type ToolCallInfo = {
   status: ToolCallStatus;
   /** 时间戳（Unix 秒） */
   timestamp?: number;
+  /**
+   * 流式进度（C3 增强）— 走 state_delta 旁路，不参与 message-ledger dedup。
+   * 后端通过 ADK state_delta 推 `state.tool_progress[tool_call_id]`，500ms throttle。
+   * 详见 docs/framework.md §9 协议规范 与 docs/issue.md ISSUE-031（避开时间窗回归）。
+   */
+  progress?: ToolProgressSnapshot;
 };
+
+/**
+ * Tool Progress 快照 — 由 state_delta path `/tool_progress/{tool_call_id}` 推送。
+ * percent ∈ [0, 100]；eta 为预计剩余秒数（可选）；stage 为人可读阶段标签。
+ */
+export type ToolProgressSnapshot = {
+  percent: number;
+  eta?: number;
+  stage?: string;
+};
+
+/**
+ * 全局 toolCallId → ToolProgressSnapshot 映射（旁路于 conversationTree）。
+ */
+export type ToolProgressMap = Record<string, ToolProgressSnapshot>;
 
 /**
  * 聊天消息类型
