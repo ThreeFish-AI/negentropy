@@ -61,6 +61,11 @@ export {
   updateMemoryAutomationConfig,
   triggerMemoryAutomationJobAction,
   runMemoryAutomationJob,
+  fetchConflicts,
+  resolveConflict,
+  fetchFactHistory,
+  submitRetrievalFeedback,
+  fetchRetrievalMetrics,
 } from "./utils/memory-api";
 
 // ============================================================================
@@ -93,4 +98,8 @@ export type {
   MemoryAutomationLog,
   MemoryAutomationLogsPayload,
   MemoryAutomationRunResponse,
+  ConflictItem,
+  ConflictListPayload,
+  FactHistoryItem,
+  RetrievalMetrics,
 } from "./utils/memory-api";

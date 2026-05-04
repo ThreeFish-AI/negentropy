@@ -94,17 +94,19 @@ cd apps/negentropy && uv sync --extra pii-presidio
 
 ---
 
-## 3. UI 导航（4 个页面）
+## 3. UI 导航（7 个页面）
 
 | 页面 | 路径 | 核心功能 |
 |---|---|---|
-| Dashboard | `/admin/memory` | 用户数 / 记忆总数 / 平均 retention / 平均 importance |
-| Timeline | `/admin/memory?tab=timeline` | 按时间倒序的卡片，含 retention 红绿灯 + PII 锁标 |
-| Facts | `/admin/memory?tab=facts` | 结构化事实表，支持 supersede 链查看 |
-| Audit | `/admin/memory?tab=audit` | 审计历史 + retain/delete/anonymize 决策 |
-| Automation | `/admin/memory?tab=automation` | pg_cron 任务管理 + Core Block 维护 |
+| Dashboard | `/memory` | 8 项指标概览（含 Avg Importance / High Importance）+ Retrieval Metrics 折叠面板 |
+| Timeline | `/memory/timeline` | 按时间倒序的卡片，含 retention 红绿灯 + 用户筛选 + 搜索 |
+| Facts | `/memory/facts` | 结构化事实表，支持 History 版本链查看 + 搜索 |
+| Audit | `/memory/audit` | 审计历史 + retain/delete/anonymize 决策 |
+| Conflicts | `/memory/conflicts` | 事实冲突检视与手动解决（pending → supersede/keep_old/keep_new/merge）|
+| Automation | `/memory/automation` | pg_cron 任务管理（需 admin 角色）|
+| Activity | `/memory/activity` | 平台活动日志 |
 
-> Dashboard / Timeline / Facts / Audit / Automation 页面源自 `apps/negentropy-ui/`，详细操作步骤见原 `docs/user-guide.md` 第 5 章。
+> 所有页面源自 `apps/negentropy-ui/app/memory/`。
 
 ### Retention 红绿灯
 - 🟢 ≥ 50%：健康
@@ -121,6 +123,12 @@ cd apps/negentropy && uv sync --extra pii-presidio
 
 | 任务 | 入口 | 文档 |
 |---|---|---|
+| 查看系统指标 | UI Dashboard 页 | 本文档 §3 |
+| 查看检索质量 | UI Dashboard → Retrieval Metrics 面板 | 本文档 §3 |
+| 浏览用户记忆 | UI Timeline 页 | 本文档 §3 |
+| 搜索记忆 | UI Timeline / Facts 搜索框 | 本文档 §3 |
+| 查看事实版本链 | UI Facts → History 按钮 | 本文档 §3 |
+| 解决事实冲突 | UI Conflicts 页 | 本文档 §3 |
 | 程序化写入记忆 | API `/api/memory/self-edit/write` | [`memory-integration.md`](./memory-integration.md#self-edit-tools) |
 | Agent 工具调用 | `memory_search` / `memory_write` 等 5 工具 | [`memory-integration.md`](./memory-integration.md#agent-tools) |
 | 配置定时清理 | UI Automation tab | [`memory-automation.md`](./memory-automation.md) |

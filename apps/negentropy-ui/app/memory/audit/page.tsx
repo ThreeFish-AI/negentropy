@@ -105,14 +105,15 @@ export default function MemoryAuditPage() {
         description="记忆审计治理 (Retain / Delete / Anonymize)"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-6">
-          {/* D5: 统一 error banner */}
+        <div className="flex min-h-0 flex-1 flex-col px-6 py-6">
+          {/* D5: 统一 error banner（独立块，避免被 flex-row 兄弟挤占侧边栏空间） */}
           {timelineError && (
-            <div className="absolute left-6 right-6 top-[calc(100%-2rem)] z-10 mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300 translate-y-[-100%]">
+            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
               {timelineError.message || String(timelineError)}
             </div>
           )}
 
+          <div className="flex min-h-0 flex-1 gap-6">
           {/* Users sidebar */}
           <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <div className="pb-4 pr-2">
@@ -307,6 +308,7 @@ export default function MemoryAuditPage() {
               </div>
             </div>
           </aside>
+          </div>
         </div>
       </div>
     </div>

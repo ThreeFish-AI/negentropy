@@ -14,7 +14,9 @@ export interface MemoryDashboard {
   memory_count: number;
   fact_count: number;
   avg_retention_score: number;
+  avg_importance_score: number;
   low_retention_count: number;
+  high_importance_count: number;
   recent_audit_count: number;
 }
 
@@ -25,6 +27,7 @@ export interface MemoryItem {
   memory_type: string;
   content: string;
   retention_score: number;
+  importance_score: number;
   access_count: number;
   created_at?: string;
   last_accessed_at?: string;
@@ -171,6 +174,52 @@ export interface MemoryAutomationRunResponse {
   process_label: string;
   result?: number | null;
   snapshot: MemoryAutomationSnapshot;
+}
+
+// ============================================================================
+// Conflicts
+// ============================================================================
+
+export interface ConflictItem {
+  id: string;
+  user_id: string;
+  app_name: string;
+  old_fact_id?: string | null;
+  new_fact_id?: string | null;
+  conflict_type: string;
+  resolution: string;
+  detected_by: string;
+  created_at?: string | null;
+}
+
+export interface ConflictListPayload {
+  count: number;
+  items: ConflictItem[];
+}
+
+// ============================================================================
+// Fact History
+// ============================================================================
+
+export interface FactHistoryItem {
+  id: string;
+  key: string;
+  value: Record<string, unknown>;
+  confidence: number;
+  status: string;
+  superseded_by?: string | null;
+  created_at?: string | null;
+}
+
+// ============================================================================
+// Retrieval Metrics
+// ============================================================================
+
+export interface RetrievalMetrics {
+  total_retrievals: number;
+  precision_at_k: number;
+  utilization_rate: number;
+  noise_rate: number;
 }
 
 // ============================================================================
@@ -406,6 +455,103 @@ export async function runMemoryAutomationJob(
   });
   if (!res.ok) {
     throw new Error(`Failed to run memory automation job: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Conflicts
+// ============================================================================
+
+export async function fetchConflicts(params?: {
+  user_id?: string;
+  app_name?: string;
+  resolution?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ConflictListPayload> {
+  const qs = new URLSearchParams();
+  if (params?.user_id) qs.set("user_id", params.user_id);
+  if (params?.app_name) qs.set("app_name", params.app_name);
+  if (params?.resolution) qs.set("resolution", params.resolution);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  const search = qs.toString() ? `?${qs.toString()}` : "";
+
+  const res = await fetch(`/api/memory/conflicts${search}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch conflicts: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function resolveConflict(
+  conflictId: string,
+  resolution: string,
+): Promise<{ status: string; conflict_id: string; resolution: string }> {
+  const res = await fetch(`/api/memory/conflicts/${conflictId}/resolve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resolution }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to resolve conflict: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Fact History
+// ============================================================================
+
+export async function fetchFactHistory(
+  factId: string,
+): Promise<{ count: number; items: FactHistoryItem[] }> {
+  const res = await fetch(`/api/memory/facts/${factId}/history`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch fact history: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Retrieval Feedback
+// ============================================================================
+
+export async function submitRetrievalFeedback(
+  logId: string,
+  outcome: string,
+): Promise<{ status: string }> {
+  const res = await fetch("/api/memory/retrieval/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ log_id: logId, outcome }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to submit retrieval feedback: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchRetrievalMetrics(params: {
+  user_id: string;
+  app_name?: string;
+  days?: number;
+}): Promise<RetrievalMetrics> {
+  const qs = new URLSearchParams();
+  qs.set("user_id", params.user_id);
+  if (params.app_name) qs.set("app_name", params.app_name);
+  if (params.days) qs.set("days", String(params.days));
+
+  const res = await fetch(`/api/memory/retrieval/metrics?${qs.toString()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch retrieval metrics: ${res.statusText}`);
   }
   return res.json();
 }
