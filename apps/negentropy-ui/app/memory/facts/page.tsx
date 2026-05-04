@@ -99,11 +99,24 @@ export default function MemoryFactsPage() {
     }
   };
 
-  const handleCloseHistory = () => {
+  const handleCloseHistory = useCallback(() => {
     setHistoryFactId(null);
     setHistoryItems([]);
     setHistoryError(null);
-  };
+  }, []);
+
+  // Esc 关闭模态：仅在打开期间监听，避免无谓全局键盘开销。
+  useEffect(() => {
+    if (!historyFactId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleCloseHistory();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [historyFactId, handleCloseHistory]);
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -216,13 +229,17 @@ export default function MemoryFactsPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onClick={handleCloseHistory}
+          role="presentation"
         >
           <div
             className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fact-history-title"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <h3 id="fact-history-title" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 Fact Version History
               </h3>
               <button
