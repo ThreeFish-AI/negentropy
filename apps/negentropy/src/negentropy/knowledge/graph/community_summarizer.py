@@ -79,6 +79,7 @@ class CommunitySummarizer:
         db: AsyncSession,
         corpus_id: UUID,
         community_entities: dict[int, list[dict[str, Any]]] | None = None,
+        levels_data: dict[int, dict[str, int]] | None = None,
     ) -> dict[str, Any]:
         """为语料库中的所有社区生成摘要
 
@@ -86,10 +87,15 @@ class CommunitySummarizer:
             db: 数据库会话
             corpus_id: 语料库 ID
             community_entities: 可选的社区实体映射（None 则从 DB 查询）
+            levels_data: 多层级社区划分数据 {level: {entity_id: community_id}}
+                提供时，为每个 level 独立生成摘要
 
         Returns:
             统计信息 {"communities_summarized": int, "errors": int}
         """
+        if levels_data is not None:
+            return await self._summarize_multi_level(db, corpus_id, levels_data)
+
         if community_entities is None:
             community_entities = await self._load_communities(db, corpus_id)
 
@@ -106,7 +112,7 @@ class CommunitySummarizer:
 
             try:
                 summary = await self._summarize_one(community_id, entities)
-                await self._persist_summary(db, corpus_id, summary)
+                await self._persist_summary(db, corpus_id, summary, level=1)
                 summarized += 1
             except Exception as exc:
                 errors += 1
@@ -127,6 +133,80 @@ class CommunitySummarizer:
         )
 
         return {"communities_summarized": summarized, "errors": errors}
+
+    async def _summarize_multi_level(
+        self,
+        db: AsyncSession,
+        corpus_id: UUID,
+        levels_data: dict[int, dict[str, int]],
+    ) -> dict[str, Any]:
+        """为多层级社区结构生成摘要 (Edge et al., 2024)
+
+        每个 level 独立运行社区摘要生成。
+        """
+        from negentropy.models.base import NEGENTROPY_SCHEMA
+
+        # 加载所有实体信息用于社区分组
+        entity_info_result = await db.execute(
+            text(f"""
+                SELECT id, name, entity_type, confidence, community_id
+                FROM {NEGENTROPY_SCHEMA}.kg_entities
+                WHERE corpus_id = :corpus_id AND is_active = true
+            """),
+            {"corpus_id": str(corpus_id)},
+        )
+        entity_info: dict[str, dict[str, Any]] = {}
+        for row in entity_info_result:
+            # 规范化为小写带连字符格式，与 export_graph_to_networkx 保持一致
+            eid = str(row.id).lower()
+            entity_info[eid] = {
+                "name": row.name,
+                "entity_type": row.entity_type,
+                "confidence": float(row.confidence) if row.confidence else 0.0,
+            }
+
+        total_summarized = 0
+        total_errors = 0
+
+        for level, partition in levels_data.items():
+            # 按 community_id 分组
+            communities: dict[int, list[dict[str, Any]]] = {}
+            for entity_id, community_id in partition.items():
+                if community_id not in communities:
+                    communities[community_id] = []
+                info = entity_info.get(
+                    entity_id.lower(),
+                    {"name": entity_id, "entity_type": "unknown", "confidence": 0.0},
+                )
+                communities[community_id].append(info)
+
+            for community_id, entities in communities.items():
+                if not entities:
+                    continue
+                try:
+                    summary = await self._summarize_one(community_id, entities)
+                    await self._persist_summary(db, corpus_id, summary, level=level)
+                    total_summarized += 1
+                except Exception as exc:
+                    total_errors += 1
+                    logger.warning(
+                        "multi_level_summary_failed",
+                        level=level,
+                        community_id=community_id,
+                        error=str(exc),
+                    )
+
+        await db.commit()
+
+        logger.info(
+            "multi_level_communities_summarized",
+            corpus_id=str(corpus_id),
+            levels=len(levels_data),
+            total_summarized=total_summarized,
+            total_errors=total_errors,
+        )
+
+        return {"communities_summarized": total_summarized, "errors": total_errors}
 
     async def _load_communities(
         self,
@@ -210,6 +290,8 @@ class CommunitySummarizer:
         db: AsyncSession,
         corpus_id: UUID,
         summary: CommunitySummary,
+        *,
+        level: int = 1,
     ) -> None:
         """持久化社区摘要到数据库（含 embedding，若 embedding_fn 已注入）。"""
         from negentropy.models.base import NEGENTROPY_SCHEMA
@@ -223,6 +305,7 @@ class CommunitySummarizer:
                 logger.warning(
                     "summary_embedding_failed",
                     community_id=summary.community_id,
+                    level=level,
                     error=str(exc),
                 )
 
@@ -233,7 +316,7 @@ class CommunitySummarizer:
                 INSERT INTO {NEGENTROPY_SCHEMA}.kg_community_summaries
                     (id, corpus_id, community_id, level, summary_text,
                      entity_count, relation_count, top_entities, embedding)
-                VALUES (:id, :corpus_id, :community_id, 1, :summary_text,
+                VALUES (:id, :corpus_id, :community_id, :level, :summary_text,
                         :entity_count, :relation_count, :top_entities,
                         :embedding::vector)
                 ON CONFLICT (corpus_id, community_id, level)
@@ -249,6 +332,7 @@ class CommunitySummarizer:
                 "id": str(uuid4()),
                 "corpus_id": str(corpus_id),
                 "community_id": summary.community_id,
+                "level": level,
                 "summary_text": summary.summary_text,
                 "entity_count": summary.entity_count,
                 "relation_count": summary.relation_count,
@@ -260,7 +344,7 @@ class CommunitySummarizer:
                 INSERT INTO {NEGENTROPY_SCHEMA}.kg_community_summaries
                     (id, corpus_id, community_id, level, summary_text,
                      entity_count, relation_count, top_entities)
-                VALUES (:id, :corpus_id, :community_id, 1, :summary_text,
+                VALUES (:id, :corpus_id, :community_id, :level, :summary_text,
                         :entity_count, :relation_count, :top_entities)
                 ON CONFLICT (corpus_id, community_id, level)
                 DO UPDATE SET
@@ -274,6 +358,7 @@ class CommunitySummarizer:
                 "id": str(uuid4()),
                 "corpus_id": str(corpus_id),
                 "community_id": summary.community_id,
+                "level": level,
                 "summary_text": summary.summary_text,
                 "entity_count": summary.entity_count,
                 "relation_count": summary.relation_count,

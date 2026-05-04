@@ -90,11 +90,16 @@ async def test_select_relevant_summaries_falls_back_when_no_embeddings(mock_db):
 async def test_search_returns_fallback_when_no_candidates(mock_db):
     service = GlobalSearchService()
 
+    # _get_highest_level → None (no levels)
+    level_result = MagicMock()
+    level_result.scalar = MagicMock(return_value=None)
+    # _has_summary_embeddings → None (no embeddings)
     probe_result = MagicMock()
     probe_result.scalar = MagicMock(return_value=None)
+    # _select_relevant_summaries → empty
     empty_result = MagicMock()
     empty_result.__iter__ = MagicMock(return_value=iter([]))
-    mock_db.execute.side_effect = [probe_result, empty_result]
+    mock_db.execute.side_effect = [level_result, probe_result, empty_result]
 
     result = await service.search(mock_db, _CORPUS_ID, query="主题？", query_embedding=[0.0] * 4)
     assert isinstance(result, GlobalSearchResult)
@@ -107,6 +112,10 @@ async def test_search_returns_fallback_when_no_candidates(mock_db):
 async def test_map_reduce_pipeline_aggregates_partials(mock_db):
     service = GlobalSearchService(map_concurrency=2)
 
+    # _get_highest_level → level 1
+    level_result = MagicMock()
+    level_result.scalar = MagicMock(return_value=1)
+    # _has_summary_embeddings → True
     probe_result = MagicMock()
     probe_result.scalar = MagicMock(return_value=1)
     candidates_result = MagicMock()
@@ -124,7 +133,7 @@ async def test_map_reduce_pipeline_aggregates_partials(mock_db):
     stale_row.summary_max = None
     stale_result.first = MagicMock(return_value=stale_row)
 
-    mock_db.execute.side_effect = [probe_result, candidates_result, stale_result]
+    mock_db.execute.side_effect = [level_result, probe_result, candidates_result, stale_result]
 
     # 让 _call_llm 直接返回固定字符串（避免依赖 litellm）
     call_count = {"map": 0, "reduce": 0}
@@ -151,6 +160,10 @@ async def test_evidence_drops_empty_partial_answers(mock_db):
     """Map 阶段失败的社区（空字符串）应从 evidence 列表中剔除"""
     service = GlobalSearchService()
 
+    # _get_highest_level → level 1
+    level_result = MagicMock()
+    level_result.scalar = MagicMock(return_value=1)
+    # _has_summary_embeddings → True
     probe_result = MagicMock()
     probe_result.scalar = MagicMock(return_value=1)
     candidates_result = MagicMock()
@@ -167,7 +180,7 @@ async def test_evidence_drops_empty_partial_answers(mock_db):
     stale_row.entity_max = None
     stale_row.summary_max = None
     stale_result.first = MagicMock(return_value=stale_row)
-    mock_db.execute.side_effect = [probe_result, candidates_result, stale_result]
+    mock_db.execute.side_effect = [level_result, probe_result, candidates_result, stale_result]
 
     # 第一个社区返回空（LLM 失败），第二个返回正常
     answers = iter(["", "answer-2", "reduced"])

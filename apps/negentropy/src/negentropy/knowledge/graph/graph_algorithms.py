@@ -1,7 +1,7 @@
 """
 Knowledge Graph Algorithms
 
-在 kg_entities + kg_relations 一等公民表上运行图算法，当前实现 PageRank 和 Louvain 社区检测。
+在 kg_entities + kg_relations 一等公民表上运行图算法，当前实现 PageRank、Leiden/Louvain 社区检测、PPR。
 
 参考文献:
 [1] S. Brin and L. Page, "The anatomy of a large-scale hypertextual Web search
@@ -10,6 +10,10 @@ Knowledge Graph Algorithms
     ranking," Proc. IEEE ICDM, pp. 499-508, 2019.
 [3] V. D. Blondel, J.-L. Guillaume, R. Lambiotte, and E. Lefebvre, "Fast unfolding
     of communities in large networks," J. Stat. Mech., P10008, 2008.
+[4] V. A. Traag, L. Waltman, and N. J. van Eck, "From Louvain to Leiden:
+    guaranteeing well-connected communities," Sci. Rep., vol. 9, 5233, 2019.
+[5] B. Edge et al., "From Local to Global: A Graph RAG Approach to Query-Focused
+    Summarization," arXiv:2404.16130, 2024.
 """
 
 from __future__ import annotations
@@ -222,6 +226,137 @@ async def compute_personalized_pagerank(
     return ranks
 
 
+async def compute_communities(
+    db: AsyncSession,
+    corpus_id: UUID,
+    *,
+    resolutions: list[float] | None = None,
+    threshold: float = 1e-07,
+    seed: int = 42,
+    algorithm: str = "auto",
+) -> dict[int, dict[str, int]]:
+    """计算多层级社区划分并持久化
+
+    使用 Leiden (Traag et al., 2019) 或 Louvain (Blondel et al., 2008) 在无向投影图上运行。
+    支持多分辨率参数产生层级化社区结构 (Edge et al., 2024)。
+    Level 0 为最细粒度（高 resolution），Level N 为最粗粒度（低 resolution）。
+
+    结果写入 kg_entities.community_id（使用中间 level）和 kg_community_summaries。
+
+    Args:
+        resolutions: 分辨率参数列表，默认 [0.5, 1.0, 2.0]
+            高 resolution → 更多小社区（细粒度），低 → 更少大社区（粗粒度）
+        threshold: 模块度优化收敛阈值
+        seed: 随机种子，保证可复现性
+        algorithm: "auto" | "leiden" | "louvain"
+
+    Returns:
+        {level: {entity_id_str: community_id}}
+    """
+    import networkx as nx
+
+    if resolutions is None:
+        resolutions = [0.5, 1.0, 2.0]
+
+    G, id_to_name = await export_graph_to_networkx(db, corpus_id)
+
+    if G.number_of_nodes() == 0:
+        logger.info("communities_skipped_empty_graph", corpus_id=str(corpus_id))
+        return {}
+
+    G_undirected = G.to_undirected()
+
+    # 选择算法：优先 Leiden（保证社区内部连通性，Traag et al., 2019）
+    use_leiden = algorithm != "louvain" and hasattr(nx.community, "leiden_communities")
+    algo_name = "leiden" if use_leiden else "louvain"
+
+    # 按分辨率从高到低排列，映射为 level 0, 1, 2...
+    sorted_resolutions = sorted(resolutions, reverse=True)
+    all_levels: dict[int, dict[str, int]] = {}
+
+    for level, res in enumerate(sorted_resolutions):
+        try:
+            if use_leiden:
+                communities = nx.community.leiden_communities(
+                    G_undirected,
+                    weight="weight",
+                    resolution=res,
+                    seed=seed,
+                )
+            else:
+                communities = nx.community.louvain_communities(
+                    G_undirected,
+                    weight="weight",
+                    resolution=res,
+                    threshold=threshold,
+                    seed=seed,
+                )
+        except Exception as exc:
+            logger.warning(
+                "community_computation_failed",
+                corpus_id=str(corpus_id),
+                algorithm=algo_name,
+                level=level,
+                resolution=res,
+                error=str(exc),
+            )
+            continue
+
+        partition: dict[str, int] = {}
+        for community_idx, community_set in enumerate(communities):
+            for entity_id in community_set:
+                partition[entity_id] = community_idx
+
+        all_levels[level] = partition
+
+        community_counts: dict[int, int] = {}
+        for cid in partition.values():
+            community_counts[cid] = community_counts.get(cid, 0) + 1
+
+        logger.info(
+            "community_level_completed",
+            corpus_id=str(corpus_id),
+            algorithm=algo_name,
+            level=level,
+            resolution=res,
+            node_count=G.number_of_nodes(),
+            community_count=len(communities),
+            largest_community=max(community_counts.values()) if community_counts else 0,
+        )
+
+    # 使用中间 level 持久化到 kg_entities.community_id（向后兼容）
+    if all_levels:
+        mid_level = sorted(all_levels.keys())[len(all_levels) // 2]
+        primary_partition = all_levels[mid_level]
+
+        schema = NEGENTROPY_SCHEMA
+        batch_size = 500
+        partition_items = list(primary_partition.items())
+
+        for i in range(0, len(partition_items), batch_size):
+            chunk = partition_items[i : i + batch_size]
+            values_clause = ", ".join(f"(:eid_{j}, :cid_{j})" for j in range(len(chunk)))
+            params = {"corpus_id": str(corpus_id)}
+            for j, (entity_id_str, community_id) in enumerate(chunk):
+                params[f"eid_{j}"] = entity_id_str
+                params[f"cid_{j}"] = community_id
+
+            await db.execute(
+                text(f"""
+                    UPDATE {schema}.kg_entities e
+                    SET community_id = v.cid
+                    FROM (VALUES {values_clause}) AS v(eid uuid, cid int)
+                    WHERE e.id = v.eid AND e.corpus_id = :corpus_id
+                """),
+                params,
+            )
+
+        await db.commit()
+
+    return all_levels
+
+
+# 向后兼容别名
 async def compute_louvain(
     db: AsyncSession,
     corpus_id: UUID,
@@ -230,87 +365,18 @@ async def compute_louvain(
     threshold: float = 1e-07,
     seed: int = 42,
 ) -> dict[str, int]:
-    """计算并持久化 Louvain 社区划分
+    """计算社区划分（向后兼容接口）
 
-    使用 NetworkX 内置 Louvain (Blondel et al., 2008) 在无向投影图上运行。
-    结果写入 kg_entities.community_id。
-
-    Args:
-        resolution: 分辨率参数（>1 产生更多小社区，<1 产生更少大社区）
-        threshold: 模块度优化收敛阈值
-        seed: 随机种子，保证可复现性
-
-    Returns:
-        {entity_id_str: community_id}
+    委托给 compute_communities，返回主 level 的 partition。
     """
-    import networkx as nx
-
-    G, id_to_name = await export_graph_to_networkx(db, corpus_id)
-
-    if G.number_of_nodes() == 0:
-        logger.info("louvain_skipped_empty_graph", corpus_id=str(corpus_id))
-        return {}
-
-    # Louvain 在无向图上运行
-    G_undirected = G.to_undirected()
-
-    try:
-        communities: list[set[str]] = nx.community.louvain_communities(
-            G_undirected,
-            weight="weight",
-            resolution=resolution,
-            threshold=threshold,
-            seed=seed,
-        )
-    except Exception as exc:
-        logger.warning(
-            "louvain_computation_failed",
-            corpus_id=str(corpus_id),
-            error=str(exc),
-        )
-        return {}
-
-    # 构建 partition 映射: entity_id -> community_id
-    partition: dict[str, int] = {}
-    for community_idx, community_set in enumerate(communities):
-        for entity_id in community_set:
-            partition[entity_id] = community_idx
-
-    # 批量持久化
-    schema = NEGENTROPY_SCHEMA
-    batch_size = 500
-    partition_items = list(partition.items())
-
-    for i in range(0, len(partition_items), batch_size):
-        chunk = partition_items[i : i + batch_size]
-        values_clause = ", ".join(f"(:eid_{j}, :cid_{j})" for j in range(len(chunk)))
-        params = {"corpus_id": str(corpus_id)}
-        for j, (entity_id_str, community_id) in enumerate(chunk):
-            params[f"eid_{j}"] = entity_id_str
-            params[f"cid_{j}"] = community_id
-
-        await db.execute(
-            text(f"""
-                UPDATE {schema}.kg_entities e
-                SET community_id = v.cid
-                FROM (VALUES {values_clause}) AS v(eid uuid, cid int)
-                WHERE e.id = v.eid AND e.corpus_id = :corpus_id
-            """),
-            params,
-        )
-
-    await db.commit()
-
-    community_counts: dict[int, int] = {}
-    for cid in partition.values():
-        community_counts[cid] = community_counts.get(cid, 0) + 1
-
-    logger.info(
-        "louvain_completed",
-        corpus_id=str(corpus_id),
-        node_count=G.number_of_nodes(),
-        community_count=len(communities),
-        largest_community=max(community_counts.values()) if community_counts else 0,
+    levels = await compute_communities(
+        db,
+        corpus_id,
+        resolutions=[resolution],
+        threshold=threshold,
+        seed=seed,
+        algorithm="auto",
     )
-
-    return partition
+    if not levels:
+        return {}
+    return levels[0]

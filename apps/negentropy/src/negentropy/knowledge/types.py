@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -625,7 +626,9 @@ class KgEntityType(Enum):
 class KgRelationType(Enum):
     """知识图谱关系类型
 
-    定义支持的实体间关系类型。
+    定义支持的实体间关系类型。CUSTOM 类型支持 OpenIE 风格的
+    自由文本关系 (Banko et al., 2007; Gutierrez et al., 2024)，
+    原始类型保存在 relation metadata 的 raw_relation_type 字段中。
     """
 
     # 组织关系
@@ -650,10 +653,23 @@ class KgRelationType(Enum):
     # 共现关系（回退）
     CO_OCCURS = "CO_OCCURS"  # 共现
 
+    # OpenIE 自由文本关系 (Banko et al., 2007)
+    CUSTOM = "CUSTOM"  # 自定义关系
+
     @classmethod
     def all_values(cls) -> list[str]:
         """获取所有关系类型值列表"""
         return [e.value for e in cls]
+
+    @classmethod
+    def is_known(cls, value: str) -> bool:
+        """检查是否为已知（非 CUSTOM）关系类型"""
+        return value in cls._known_set()
+
+    @classmethod
+    @functools.lru_cache(maxsize=1)
+    def _known_set(cls) -> frozenset[str]:
+        return frozenset(e.value for e in cls if e != cls.CUSTOM)
 
 
 @dataclass(frozen=True)

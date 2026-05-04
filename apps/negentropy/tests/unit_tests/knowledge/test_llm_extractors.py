@@ -201,7 +201,7 @@ class TestLLMRelationExtractor:
 
     @pytest.mark.asyncio
     async def test_extract_unknown_relation_type_falls_back(self, extractor, mock_entities):
-        """未知关系类型应回退到 RELATED_TO"""
+        """未知关系类型应映射为 CUSTOM，原始类型保留在 metadata"""
         response = json.dumps(
             {
                 "relations": [
@@ -217,7 +217,8 @@ class TestLLMRelationExtractor:
             edges = await extractor.extract(mock_entities, "test text")
 
             assert len(edges) == 1
-            assert edges[0].edge_type == "RELATED_TO"
+            assert edges[0].edge_type == "CUSTOM"
+            assert edges[0].metadata.get("raw_relation_type") == "UNKNOWN_TYPE"
 
     @pytest.mark.asyncio
     async def test_extract_insufficient_entities_returns_empty(self, extractor):
