@@ -25,6 +25,23 @@ const baseProjects = [
   },
 ];
 
+// chromium-devcookie：authed spec 专用 project，不依赖 OAuth setup。
+// spec 在 beforeAll 内通过 utils/dev-cookie.ts 现签 ne_sso 并 addCookies 到上下文，
+// 直接 hit ctl.sh 启动的真实 UI（默认 http://localhost:3192）。
+const NEGENTROPY_UI_BASE_URL =
+  process.env.NEGENTROPY_UI_BASE_URL || "http://localhost:3192";
+
+const devCookieProjects = [
+  {
+    name: "chromium-devcookie",
+    testMatch: /.*\.authed\.spec\.ts$/,
+    use: {
+      ...devices["Desktop Chrome"],
+      baseURL: NEGENTROPY_UI_BASE_URL,
+    },
+  },
+];
+
 const authProjects = AUTH_ENABLED
   ? [
       {
@@ -81,5 +98,5 @@ export default defineConfig({
     },
     timeout: 180_000,
   },
-  projects: [...authProjects, ...baseProjects],
+  projects: [...authProjects, ...devCookieProjects, ...baseProjects],
 });
