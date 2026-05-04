@@ -19,9 +19,11 @@ import { buildPlaywrightStorageState } from "../utils/dev-cookie";
 
 export const UI_BASE = process.env.NEGENTROPY_UI_BASE_URL || "http://localhost:3192";
 
-export const NE_AUTH_TOKEN_SECRET =
-  process.env.NE_AUTH_TOKEN_SECRET ||
-  "7165f888de198ac617208b33dfa85f752aface07a28153979655d602565881c9";
+// 不内联默认 secret —— 严禁把 token_secret 入库。
+// authed spec 必须在外部环境提供 NE_AUTH_TOKEN_SECRET（通常从 ~/.negentropy/config.yaml 读取）；
+// playwright.config.ts 在该环境变量缺失时会跳过 chromium-devcookie project，所以 spec
+// 实际不会被运行。这里仍在 helper 调用点 fail-fast，避免 spec 跑到一半才暴露问题。
+export const NE_AUTH_TOKEN_SECRET = process.env.NE_AUTH_TOKEN_SECRET ?? "";
 
 export async function applyDevCookie(
   context: BrowserContext,
@@ -31,6 +33,12 @@ export async function applyDevCookie(
     roles?: string[];
   } = {},
 ): Promise<void> {
+  if (!NE_AUTH_TOKEN_SECRET) {
+    throw new Error(
+      "NE_AUTH_TOKEN_SECRET 环境变量未设置：authed spec 需要外部 backend + 合法 token_secret。" +
+        " 见 docs/agents/browser-validation.md §9 与 docs/skills.md。",
+    );
+  }
   const { storageState } = buildPlaywrightStorageState({
     secret: NE_AUTH_TOKEN_SECRET,
     sub: options.sub,

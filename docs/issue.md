@@ -1138,3 +1138,21 @@
   2. 评审 PR 时，发现端点带 `:` 立即 flag —— 即便后端单元测试通过，BFF 透传层会失败；
   3. 任何带特殊字符的端点都应该有 BFF + 浏览器实机一次性验证，不止后端 curl。
 - **同类问题影响**：未来若想要 Google API 风格 verb（`:run` / `:cancel` / `:archive`），需统一替换为 `/run` `/cancel` `/archive` 子路径。
+
+---
+
+## ISSUE-049 CI UI Playwright Smoke 因 authed spec 误跑导致 27 failed（2026-05-05）
+
+- **表因**：PR #459 推送后 `ui-quality / UI Playwright Smoke` job 失败，27 个 `*.authed.spec.ts` 全部 `connect ECONNREFUSED ::1:3192` / `net::ERR_CONNECTION_REFUSED`；mocked 的 `chromium` project 17 case 全绿。
+- **根因**：`chromium-devcookie` project 默认无条件注册到 `playwright.config.ts.projects`，CI smoke job 用 `pnpm test:e2e` 默认会跑所有 project。CI 环境只跑 Playwright 自带 `webServer` (pnpm build && start) 启动前端到 3210 端口；**没有起 backend (3292)，也没有 `NE_AUTH_TOKEN_SECRET`**。authed spec hard-code `http://localhost:3192` 直接连接被拒。
+  - 设计错误：authed spec 是 **integration 测试**（依赖 backend + DB + 合法 secret），不能与 mocked spec 同走 smoke job。
+- **处理方式**：
+  1. `playwright.config.ts:devCookieProjects` 改为 conditional：仅当 `PLAYWRIGHT_DEVCOOKIE=1` 或 `NE_AUTH_TOKEN_SECRET` 任一存在时注册 project，否则数组为空 → `*.authed.spec.ts` 不被任何 project 匹配 → 自动跳过；
+  2. `_authed-helpers.ts` 移除内联 fallback secret（避免 token_secret 入库），改为 env 必填；缺失时 `applyDevCookie` fail-fast 抛错指向文档；
+  3. `docs/agents/browser-validation.md` 追加 §9.6 CI 与 authed spec 关系说明。
+- **后续防范**：
+  1. 任何 *integration 性质* 的 E2E（依赖外部 backend / DB / secret）必须用 project 级 conditional gating，不能默认跑；
+  2. `_authed-helpers.ts` 类共享文件严禁内联 secret/token，即便是"开发默认值"——会经 git history 永久暴露；
+  3. CI smoke job 的边界要在 PR review 阶段过一遍：`webServer.command` 启了什么？依赖什么外部服务？authed/mocked 哪些走哪个 project？
+  4. 引入新 spec 文件后，本地必须模拟 CI 跑一次 `unset NE_AUTH_TOKEN_SECRET; pnpm exec playwright test`，确认与 CI 行为一致。
+- **同类问题影响**：Memory / Knowledge / SubAgent 模块未来引入 authed E2E 时需要遵循同样 pattern：env-gated project + 文档 §CI 关系节。

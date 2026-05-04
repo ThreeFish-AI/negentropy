@@ -217,6 +217,15 @@ pnpm exec playwright test tests/e2e/<your.authed.spec.ts>
 
 **对应 Playwright 实机 spec**：`apps/negentropy-ui/tests/e2e/skills/paper-hunter.authed.spec.ts`（PH-1 + PH-2，跑命令见 §9.3）。
 
+### 9.6 CI 与 authed spec 的关系（重要）
+
+`*.authed.spec.ts` **本质是 integration 测试**：需要外部 backend (3292) + PostgreSQL + 合法 `NE_AUTH_TOKEN_SECRET`。CI smoke job (`reusable-negentropy-ui-quality.yml`) 仅跑 `pnpm build && pnpm start` 启动前端 webServer，不起 backend，因此：
+
+- **playwright.config.ts**: `chromium-devcookie` project 仅在 `PLAYWRIGHT_DEVCOOKIE=1` 或 `NE_AUTH_TOKEN_SECRET` 任一存在时被注册；CI 环境两者均缺失 → project 数组为空 → `*.authed.spec.ts` 不会被任何 project 匹配 → 自动跳过；
+- **本地启用**：先 `./scripts/ctl.sh start backend ui`，再 `NE_AUTH_TOKEN_SECRET=$(读 ~/.negentropy/config.yaml) PLAYWRIGHT_REUSE_EXISTING_SERVER=true pnpm exec playwright test tests/e2e/skills/`；
+- **secret 仓**：`_authed-helpers.ts` **不内联** secret（避免入库）；env 缺失时 `applyDevCookie` fail-fast 抛错指向本文档；
+- **mocked spec 始终全跑**：`chromium` project 的 17 case 不依赖 backend，CI 与本地都通过。
+
 ## 10. References (IEEE)
 
 <a id="ref1"></a>[1] Microsoft, "Authentication," _Playwright Documentation_, 2025. [Online]. Available: https://playwright.dev/docs/auth.
