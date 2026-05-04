@@ -107,7 +107,7 @@ class GlobalSearchService:
         db: AsyncSession,
         corpus_id: UUID,
         query: str,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         max_communities: int | None = None,
         level: int | None = None,
     ) -> GlobalSearchResult:
@@ -117,7 +117,7 @@ class GlobalSearchService:
             db: 数据库会话
             corpus_id: 语料库 ID
             query: 用户查询文本
-            query_embedding: 查询向量（与 community summary embedding 同维度）
+            query_embedding: 查询向量（None 时退化按 entity_count 排序）
             max_communities: 候选社区数上限（默认 self._max_communities）
             level: 社区层级（None=自动选择最高 level）
 
@@ -216,18 +216,18 @@ class GlobalSearchService:
         self,
         db: AsyncSession,
         corpus_id: UUID,
-        query_embedding: list[float],
+        query_embedding: list[float] | None,
         top_k: int,
         *,
         level: int | None = None,
     ) -> list[dict[str, Any]]:
         """按 embedding 余弦相似度筛选 top_k 候选社区摘要。
 
-        若 kg_community_summaries.embedding 列尚未填充（旧数据 / 无 pgvector），
+        若 query_embedding 为 None 或 kg_community_summaries.embedding 列尚未填充，
         回退为按 entity_count DESC 取 top_k —— 牺牲精度换取可用性。
         """
-        # 先探测 embedding 列是否存在 + 是否有非空数据
-        has_embedding = await self._has_summary_embeddings(db, corpus_id)
+        # embedding 不可用时直接走 fallback
+        has_embedding = query_embedding is not None and await self._has_summary_embeddings(db, corpus_id)
 
         level_filter = "AND level = :level" if level is not None else ""
 

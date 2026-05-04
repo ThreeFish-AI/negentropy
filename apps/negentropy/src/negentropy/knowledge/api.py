@@ -3745,18 +3745,11 @@ async def global_search_knowledge_graph(
     )
 
     embedding_fn = build_embedding_fn()
+    query_embedding: list[float] | None = None
     try:
         query_embedding = await embedding_fn(payload.query)
     except Exception as exc:
         logger.warning("api_global_search_embedding_failed", error=str(exc))
-        return GlobalSearchResponse(
-            query=payload.query,
-            answer="Embedding 服务暂时不可用，无法执行全局检索。请稍后重试。",
-            evidence=[],
-            candidates_total=0,
-            latency_ms=0,
-            summaries_dirty=False,
-        )
 
     service = GlobalSearchService(max_communities=payload.max_communities)
 

@@ -685,7 +685,9 @@ class AgeGraphRepository(GraphRepository):
                 SELECT
                     CASE WHEN r.source_id = :entity_id THEN r.target_id ELSE r.source_id END AS neighbor_id,
                     r.source_id AS via_id,
-                    1 AS distance
+                    1 AS distance,
+                    ARRAY[:entity_id,
+                          CASE WHEN r.source_id = :entity_id THEN r.target_id ELSE r.source_id END] AS visited
                 FROM {self._schema}.kg_relations r
                 WHERE (r.source_id = :entity_id OR r.target_id = :entity_id)
                   AND r.is_active = true{temporal_filter}
@@ -696,12 +698,14 @@ class AgeGraphRepository(GraphRepository):
                 SELECT
                     CASE WHEN r.source_id = nt.neighbor_id THEN r.target_id ELSE r.source_id END AS neighbor_id,
                     r.source_id AS via_id,
-                    nt.distance + 1 AS distance
+                    nt.distance + 1 AS distance,
+                    nt.visited || CASE WHEN r.source_id = nt.neighbor_id THEN r.target_id ELSE r.source_id END
                 FROM {self._schema}.kg_relations r
                 JOIN neighbor_tree nt ON (r.source_id = nt.neighbor_id OR r.target_id = nt.neighbor_id)
                 WHERE r.is_active = true{temporal_filter}
                   AND nt.distance < :max_depth
-                  AND (r.source_id != :entity_id AND r.target_id != :entity_id)
+                  AND CASE WHEN r.source_id = nt.neighbor_id
+                        THEN r.target_id ELSE r.source_id END != ALL(nt.visited)
             )
             SELECT DISTINCT ON (e.id)
                 e.id, e.name, e.entity_type, e.confidence, e.properties
@@ -1004,14 +1008,12 @@ class AgeGraphRepository(GraphRepository):
                        0.0 AS semantic_score,
                        COALESCE(e.importance_score, 0) AS importance_score
                 FROM {schema}.kg_entities e
-                WHERE e.corpus_id = :corpus_id AND e.is_active = true
-                  AND e.app_name = :app_name{temporal_exists}
+                WHERE e.corpus_id = :corpus_id AND e.is_active = true{temporal_exists}
                 ORDER BY e.importance_score DESC NULLS LAST
                 LIMIT :limit
             """)
             fb_params: dict[str, Any] = {
                 "corpus_id": str(corpus_id),
-                "app_name": app_name,
                 "limit": limit,
             }
             if as_of:
@@ -1159,7 +1161,6 @@ class AgeGraphRepository(GraphRepository):
                        COALESCE(e.importance_score, 0) AS combined_score
                 FROM {self._schema}.kg_entities e
                 WHERE e.corpus_id = :corpus_id AND e.is_active = true
-                  AND e.app_name = :app_name
                 ORDER BY e.importance_score DESC NULLS LAST
                 LIMIT :limit
             """)
@@ -1167,7 +1168,6 @@ class AgeGraphRepository(GraphRepository):
                 query,
                 {
                     "corpus_id": str(corpus_id),
-                    "app_name": app_name,
                     "limit": limit,
                 },
             )
