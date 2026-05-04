@@ -279,41 +279,47 @@ export default function KnowledgeGraphPage() {
   }, [nodes, edges, renderer]);
 
   useEffect(() => {
-    if (!svgRef.current || !simulationRef.current || !layout.length) return;
+    if (!svgRef.current || !simulationRef.current || !nodes.length) return;
     let active = true;
     const run = async () => {
       const { select } = await import("d3-selection");
       const { drag } = await import("d3-drag");
-      if (!active || !simulationRef.current) return;
+      if (!active || !simulationRef.current || !svgRef.current) return;
       const svg = select(svgRef.current);
       const g = svg.select("g.graph-layer");
       g.selectAll<SVGCircleElement, GraphNodePos>("circle")
-        .data(layout, (d: GraphNodePos) => d.id)
-        .call(
-          drag<SVGCircleElement, GraphNodePos>()
-            .on("start", (event, d) => {
-              if (!event.active && simulationRef.current)
-                simulationRef.current.alphaTarget(0.3).restart();
-              d.fx = d.x;
-              d.fy = d.y;
-            })
-            .on("drag", (event, d) => {
-              d.fx = event.x;
-              d.fy = event.y;
-            })
-            .on("end", (event, d) => {
-              if (!event.active && simulationRef.current)
-                simulationRef.current.alphaTarget(0);
-              d.fx = null;
-              d.fy = null;
-            }),
-        );
+        .each(function (_, i) {
+          const sim = simulationRef.current;
+          if (!sim) return;
+          const nodesArr = sim.nodes() as GraphNodePos[];
+          const node = nodesArr[i];
+          if (!node) return;
+          select(this)
+            .datum(node)
+            .call(
+              drag<SVGCircleElement, GraphNodePos>()
+                .on("start", (event, d) => {
+                  if (!event.active) sim.alphaTarget(0.3).restart();
+                  d.fx = d.x;
+                  d.fy = d.y;
+                })
+                .on("drag", (event, d) => {
+                  d.fx = event.x;
+                  d.fy = event.y;
+                })
+                .on("end", (event, d) => {
+                  if (!event.active) sim.alphaTarget(0);
+                  d.fx = null;
+                  d.fy = null;
+                }),
+            );
+        });
     };
     run();
     return () => {
       active = false;
     };
-  }, [layout]);
+  }, [nodes]);
 
   const selectedNode =
     layout.find((node) => node.id === selectedNodeId) || null;

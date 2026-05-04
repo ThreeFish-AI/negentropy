@@ -36,6 +36,8 @@ class EvidenceEdge:
     relation: str
     evidence_text: str
     weight: float = 1.0
+    source_label: str = ""
+    target_label: str = ""
 
 
 @dataclass(frozen=True)
@@ -221,12 +223,15 @@ class ProvenanceBuilder:
         for a, b in zip(path[:-1], path[1:], strict=True):
             result = await db.execute(
                 text(f"""
-                    SELECT source_id, target_id, relation_type, evidence_text, weight
-                    FROM {NEGENTROPY_SCHEMA}.kg_relations
-                    WHERE corpus_id = :cid AND is_active = true
-                      AND ((source_id = :a AND target_id = :b)
-                        OR (source_id = :b AND target_id = :a))
-                    ORDER BY weight DESC NULLS LAST
+                    SELECT r.source_id, r.target_id, r.relation_type, r.evidence_text, r.weight,
+                           s.label AS source_label, t.label AS target_label
+                    FROM {NEGENTROPY_SCHEMA}.kg_relations r
+                    LEFT JOIN {NEGENTROPY_SCHEMA}.kg_entities s ON r.source_id = s.id
+                    LEFT JOIN {NEGENTROPY_SCHEMA}.kg_entities t ON r.target_id = t.id
+                    WHERE r.corpus_id = :cid AND r.is_active = true
+                      AND ((r.source_id = :a AND r.target_id = :b)
+                        OR (r.source_id = :b AND r.target_id = :a))
+                    ORDER BY r.weight DESC NULLS LAST
                     LIMIT 1
                 """),
                 {"cid": str(corpus_id), "a": a, "b": b},
@@ -241,6 +246,8 @@ class ProvenanceBuilder:
                     relation=row.relation_type or "related_to",
                     evidence_text=row.evidence_text or "",
                     weight=float(row.weight or 1.0),
+                    source_label=row.source_label or "",
+                    target_label=row.target_label or "",
                 )
             )
         return edges
@@ -258,6 +265,8 @@ def evidence_chain_to_dict(chain: EvidenceChain) -> dict[str, Any]:
             {
                 "source_id": e.source_id,
                 "target_id": e.target_id,
+                "source_label": e.source_label,
+                "target_label": e.target_label,
                 "relation": e.relation,
                 "evidence_text": e.evidence_text,
                 "weight": e.weight,

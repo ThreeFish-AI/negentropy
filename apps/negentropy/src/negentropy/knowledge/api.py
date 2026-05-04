@@ -3113,16 +3113,23 @@ async def search_knowledge_graph(
     )
 
     try:
-        # 生成查询向量
+        # 生成查询向量（embedding 不可用时降级为 None）
+        query_embedding: list[float] | None = None
         embedding_fn = build_embedding_fn()
-        query_embedding = await embedding_fn(payload.query)
+        try:
+            query_embedding = await embedding_fn(payload.query)
+        except Exception as emb_exc:
+            logger.warning(
+                "api_graph_search_embedding_fallback",
+                error=str(emb_exc),
+            )
 
         # 查询配置
         config = GraphQueryConfig(
             max_depth=payload.max_depth,
             limit=payload.limit,
-            semantic_weight=payload.semantic_weight,
-            graph_weight=payload.graph_weight,
+            semantic_weight=(payload.semantic_weight if query_embedding else 0.0),
+            graph_weight=(payload.graph_weight if query_embedding else 1.0),
             include_neighbors=payload.include_neighbors,
             neighbor_limit=payload.neighbor_limit,
         )
