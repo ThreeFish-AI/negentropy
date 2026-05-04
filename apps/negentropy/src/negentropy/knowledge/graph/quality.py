@@ -56,13 +56,13 @@ def _compute_quality_score(report: GraphQualityReport) -> float:
     integrity = max(0.0, min(1.0, integrity))
 
     # 社区覆盖率
-    coverage = report.community_coverage
+    coverage = max(0.0, min(1.0, report.community_coverage))
 
     # 置信度（归一化到 0–1）
     confidence = min(1.0, report.entity_confidence_avg)
 
     # 证据支持率
-    evidence = report.relation_evidence_ratio
+    evidence = max(0.0, min(1.0, report.relation_evidence_ratio))
 
     score = 0.4 * integrity + 0.2 * coverage + 0.2 * confidence + 0.2 * evidence
     return round(max(0.0, min(1.0, score)), 4)
