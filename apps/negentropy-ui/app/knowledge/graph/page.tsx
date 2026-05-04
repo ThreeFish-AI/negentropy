@@ -322,7 +322,7 @@ export default function KnowledgeGraphPage() {
   }, [nodes]);
 
   const selectedNode =
-    layout.find((node) => node.id === selectedNodeId) || null;
+    nodes.find((n) => n.id === selectedNodeId) || null;
 
   const entityStats = useMemo(() => {
     const byType: Record<string, number> = {};
