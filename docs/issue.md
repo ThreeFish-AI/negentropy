@@ -1135,4 +1135,37 @@
   - 论文采集的"两个工具 + 复用既有 pipeline"模式可作为后续领域扩展（专利、代码仓、新闻）的范式参考；
   - 双气泡守卫断言模式（基于 `data-testid` + role attribute count）应推广到 Memory / Skills / Knowledge 各模块的 E2E 用例。
 
+---
+
+## ISSUE-048 Reasoning Step 重复渲染 + React key 警告（2026-05-05）
+
+- **表因**：Home 对话浏览器实机回归时发现：单个 assistant 气泡内 "思考完成 · 推理阶段" 文案重复 2 次；浏览器 Console 重复刷出 `Encountered two children with the same key, "reply-reasoning:reasoning:synth-step:InfluenceFaculty:..."`。视觉上推理标签冗余 + 触发 React 16+ 严格 key 唯一性警告。
+- **根因**：[`utils/chat-display.ts`](../apps/negentropy-ui/utils/chat-display.ts) `collectReasoningSegments` 在以下三种条件叠加时会注入重复 reasoning segment：
+  1. **场景 A** — fallback：当 stepNode 没有 reasoning 子节点时，把 stepNode 自身当作 reasoning，但同一 turn 内多次进入此路径产生相同 `id = reply-reasoning:${nodeId}`。
+  2. **场景 B** — 同 stepId 下 step 节点 + reasoning 子节点 `nodeId` 不同但 `stepId` 相同。原始 dedup 仅比 segment.id，漏判此场景。
+  3. **场景 C** — 实机 hydration：后端把 step 节点与 synth-step 都投影成两份 reasoning（nodeId/stepId/id 三者皆不同），但 title 与 phase 完全相同（如「推理阶段」+ finished）。
+- **处理方式**：[`appendReplySegment`](../apps/negentropy-ui/utils/chat-display.ts) 增加 reasoning kind 三层等价判定（自上而下）：L1 `id` 完全相同 / L2 `stepId` 相同 / L3 同 `phase` 下相同 `title`。命中即丢弃 incoming，特殊保留：incoming `phase=finished` 且 existing `phase=started` 时以更终态覆盖。配套加 1 个新单测 `unit/utils/chat-display.test.ts`（dedup-coverage scenarios）。
+- **后续防范**：
+  1. 任何"由多源投影到同一显示槽"的 dedup 逻辑都应给出明确的等价层级（L1/L2/L3）+ 文档化，避免后续维护者再加新场景时漏判；
+  2. `appendReplySegment` 的 dedup 仅作用于 `reasoning` kind，对 text/tool-group/error 仍保持 push 语义不变（保护现有去重链路如 `REDUNDANT_TEXT_SIMILARITY_THRESHOLD`）；
+  3. 实机回归必须用 `(html.match(/思考完成/g) || []).length` 这类直接计数断言验证；E2E mock 因事件构造单一极易漏掉真实多源叠加场景。
+- **同类问题影响**：Tool group / Step / Error 等 segment 也可能在 hydration 时多源投影，需个案审查。
+
+---
+
+## ISSUE-049 SessionList 归档/解档使用原生 window.confirm（2026-05-05）
+
+- **表因**：实机回归点击 SessionList 中归档按钮时弹出浏览器原生 `confirm()` 对话框，与 app 视觉风格割裂；点解档按钮同问题。系 ISSUE-045 Skills 同类违反 AGENTS.md「严禁使用浏览器原生 confirm/alert/prompt」准则。
+- **根因**：[`apps/negentropy-ui/components/ui/SessionList.tsx`](../apps/negentropy-ui/components/ui/SessionList.tsx):169,188 直接调 `window.confirm`。ISSUE-045 修复时仅在 `app/interface/skills/_components/ConfirmDialog.tsx` 私有目录落地，未升格到通用 `components/ui/`，导致 SessionList 重复造轮子失败 → 用了原生 confirm。
+- **处理方式**：
+  1. **新建 `components/ui/ConfirmDialog.tsx`**（升格 ISSUE-045 实现），增加 `data-testid="confirm-dialog"`/`-cancel`/`-confirm` 锚点，便于跨模块 E2E；
+  2. **`skills/_components/ConfirmDialog.tsx` 改为薄 re-export**，保持 ISSUE-045 修复的 import 路径不破坏；
+  3. **`SessionList.tsx`** 改用 `ConfirmDialog`，归档/解档共用一套 dialog state（`confirmTarget` + `confirmBusy`），归档按钮加 `destructive=true`；
+  4. **更新 `tests/unit/ui/SessionList.test.tsx`** 删除 `vi.spyOn(window, "confirm")`，改用 `getByTestId("confirm-dialog-confirm/-cancel")` 断言。新增 1 个 cancel-then-no-call 用例。
+- **后续防范**：
+  1. 所有"确认/危险操作"必须复用 `components/ui/ConfirmDialog`，严禁原生 confirm/alert；
+  2. ISSUE-045 修复时把 ConfirmDialog 放在 skills 私有目录是熵增信号——通用基础组件必须直接在 `components/ui/` 落地；
+  3. 在 [`docs/AGENTS.md`](../AGENTS.md) 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
+- **同类问题影响**：MCP Servers / SubAgents 等模块若仍残留原生 dialog 需统一替换；ESLint 规则升级可一次性发现所有遗漏点。
+
 

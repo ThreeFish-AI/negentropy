@@ -366,6 +366,41 @@ function createReplyBuilder(node: ConversationNode, turnId: string): ReplyBuilde
 }
 
 function appendReplySegment(builder: ReplyBuilder, segment: AssistantReplyDisplaySegment) {
+  // Reasoning segment 去重（按 stepId 维度，覆盖以下两种回归场景，详见 docs/issue.md ISSUE-048）：
+  //   场景 A — collectReasoningSegments fallback：step 自身被当作 reasoning + step 含 reasoning 子节点
+  //           （id 相同，由 nodeId 衍生）
+  //   场景 B — 同一 stepId 下 step 节点 + reasoning 子节点 nodeId 不同（id 不同但 stepId 相同）
+  //           触发条件：B 实机 hydration 中 ConversationTree 把 step 与其 reasoning child 都生成节点。
+  // 旧实现只比较 segment.id，对场景 B 漏判 → 视觉上"思考完成 · 推理阶段"渲染 2 次。
+  // 修复：以 stepId 为权威键，完全相同 stepId 视为同一推理段，保留 phase=finished 优先（更晚的 step 终态）。
+  if (segment.kind === "reasoning") {
+    // 三层等价判定（自上而下，命中即视为重复，丢弃 incoming 或以 finished 覆盖 started）：
+    //   L1 — 完全相同 segment.id（场景 A：collectReasoningSegments fallback）
+    //   L2 — 相同 stepId（场景 B：step 节点 + 其 reasoning 子节点 nodeId 不同但 stepId 相同）
+    //   L3 — 同 phase 下相同 title（场景 C：实机 hydration 把 step 节点与 synth-step
+    //         投影成两份 reasoning，nodeId/stepId 都不同但语义相同 — "思考完成 · 推理阶段" 渲染 2 次）
+    const dupIdx = builder.segments.findIndex((existing) => {
+      if (existing.kind !== "reasoning") return false;
+      if (existing.id === segment.id) return true; // L1
+      if (existing.stepId && existing.stepId === segment.stepId) return true; // L2
+      if (
+        existing.title &&
+        existing.title === segment.title &&
+        existing.phase === segment.phase
+      )
+        return true; // L3
+      return false;
+    });
+    if (dupIdx >= 0) {
+      const existing = builder.segments[dupIdx] as typeof segment;
+      const incomingFinished = segment.phase === "finished";
+      const existingFinished = existing.phase === "finished";
+      if (incomingFinished && !existingFinished) {
+        builder.segments[dupIdx] = segment;
+      }
+      return;
+    }
+  }
   builder.segments.push(segment);
   builder.timestamp = Math.min(builder.timestamp, segment.timestamp);
   builder.sourceOrder = Math.min(builder.sourceOrder, segment.sourceOrder);
