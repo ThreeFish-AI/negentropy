@@ -96,6 +96,15 @@ class TestPathResolution:
         paths = get_yaml_file_paths()
         assert cli_yaml in paths
 
+    def test_local_config_included_when_exists(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        local_yaml = tmp_path / "config.local.yaml"
+        local_yaml.write_text("logging:\n  level: DEBUG\n")
+
+        with patch("negentropy.config.yaml_loader.get_local_config_path", return_value=local_yaml):
+            paths = get_yaml_file_paths()
+            assert local_yaml in paths
+
 
 # ---------------------------------------------------------------------------
 # Merged config loading
@@ -143,6 +152,35 @@ class TestMergedConfig:
             # Other nested defaults preserved
             assert routes["url"]["primary"]["tool_name"] == "parse_webpage_to_markdown"
 
+    def test_local_config_overrides_cli(self, tmp_path, monkeypatch):
+        """config.local.yaml must override NE_CONFIG_PATH-specified YAML."""
+        cli_yaml = tmp_path / "cli.yaml"
+        cli_yaml.write_text("database:\n  pool_size: 42\n")
+        local_yaml = tmp_path / "config.local.yaml"
+        local_yaml.write_text("database:\n  pool_size: 77\n")
+
+        with (
+            monkeypatch.context() as m,
+            patch("negentropy.config.yaml_loader.get_local_config_path", return_value=local_yaml),
+        ):
+            m.setenv("NE_CONFIG_PATH", str(cli_yaml))
+            config = load_merged_yaml_config()
+            assert config["database"]["pool_size"] == 77
+
+    def test_local_config_overrides_user(self, tmp_path):
+        """config.local.yaml must override user-level config."""
+        user_yaml = tmp_path / "config.yaml"
+        user_yaml.write_text("database:\n  pool_size: 50\n")
+        local_yaml = tmp_path / "config.local.yaml"
+        local_yaml.write_text("database:\n  pool_size: 88\n")
+
+        with (
+            patch("negentropy.config.yaml_loader.USER_CONFIG_FILE", user_yaml),
+            patch("negentropy.config.yaml_loader.get_local_config_path", return_value=local_yaml),
+        ):
+            config = load_merged_yaml_config()
+            assert config["database"]["pool_size"] == 88
+
 
 # ---------------------------------------------------------------------------
 # Section registry
@@ -170,13 +208,13 @@ class TestSectionRegistry:
 
 class TestSettingsIntegration:
     def test_settings_reads_default_yaml(self):
-        """Verify the global settings singleton reads from config.default.yaml."""
-        from negentropy.config import settings
+        """Verify the Settings class reads from config.default.yaml."""
+        from negentropy.config import Settings
 
-        # These values match config.default.yaml defaults
-        assert settings.database.pool_size == 5
-        assert settings.logging.level.value == "INFO"
-        assert settings.services.credential_backend.value == "inmemory"
+        s = Settings()
+        assert s.database.pool_size == 5
+        assert s.logging.level.value == "INFO"
+        assert s.services.credential_backend.value == "postgres"
 
     def test_env_var_overrides_yaml(self, monkeypatch):
         """Environment variables must take precedence over YAML values."""

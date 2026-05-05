@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from negentropy.knowledge.content import extract_file_markdown, optimize_markdown_content
+from negentropy.knowledge.ingestion.content import extract_file_markdown, optimize_markdown_content
 
 
 def test_optimize_markdown_content_normalizes_whitespace() -> None:

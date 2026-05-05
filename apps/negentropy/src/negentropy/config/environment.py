@@ -13,35 +13,15 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 Environment = Literal["development", "testing", "staging", "production"]
 
 
-def get_env_files(env: str) -> tuple[str, ...]:
-    """
-    Returns the list of .env files to load in priority order for a given environment.
-    """
-    return (
-        ".env",
-        ".env.local",
-        f".env.{env}",
-        f".env.{env}.local",
-    )
-
-
 class EnvironmentSettings(BaseSettings):
     """
     Environment detection and configuration.
 
-    The environment is determined by `NE_ENV` and controls which .env file is loaded.
-
-    File Resolution Order:
-    1. `.env.{environment}.local` (local overrides, gitignored)
-    2. `.env.{environment}` (environment-specific)
-    3. `.env.local` (local overrides, gitignored)
-    4. `.env` (base defaults)
+    The environment is determined by `NE_ENV`.
     """
 
     model_config = SettingsConfigDict(
         env_prefix="NE_",
-        env_file=".env",
-        env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         frozen=True,
@@ -86,15 +66,6 @@ class EnvironmentSettings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.env == "production"
-
-    @property
-    def env_files(self) -> tuple[str, ...]:
-        """
-        Returns the list of .env files to load in priority order.
-
-        Lower index = higher priority (loaded last, overrides earlier).
-        """
-        return get_env_files(self.env)
 
     @property
     def debug(self) -> bool:

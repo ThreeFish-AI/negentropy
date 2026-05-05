@@ -31,8 +31,6 @@ class SearchSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="NE_SEARCH_",
-        env_file=".env",
-        env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         frozen=True,

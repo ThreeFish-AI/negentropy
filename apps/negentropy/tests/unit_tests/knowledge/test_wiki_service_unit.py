@@ -16,7 +16,7 @@ from uuid import uuid4
 import pytest
 import sqlalchemy.orm
 
-from negentropy.knowledge.wiki_service import WikiPublishingService
+from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
 # ---------------------------------------------------------------------------
 # 修复 KnowledgeDocument <-> DocSource 双向 FK 的 AmbiguousForeignKeysError
@@ -97,7 +97,7 @@ class TestWikiCreatePublicationValidation:
             captured["event"] = event
             captured["extra"] = extra
 
-        monkeypatch.setattr("negentropy.knowledge.wiki_dao.logger.info", fake_info)
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_dao.logger.info", fake_info)
 
         await service.create_publication(
             session,
@@ -209,13 +209,17 @@ class TestWikiCatalogSync:
             _ = (db, publication_id, keep_document_ids, keep_container_node_ids)
             return 0
 
-        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
-        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents)
-        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr(
-            "negentropy.knowledge.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+            "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
         )
-        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries)
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries
+        )
 
         result = await service.sync_entries_from_catalog(
             fake_db,
@@ -281,13 +285,17 @@ class TestWikiCatalogSync:
             _ = (db, publication_id, keep_document_ids, keep_container_node_ids)
             return 0
 
-        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
-        monkeypatch.setattr("negentropy.knowledge.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents)
-        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_subtree", fake_get_subtree)
         monkeypatch.setattr(
-            "negentropy.knowledge.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+            "negentropy.knowledge.lifecycle.catalog_dao.CatalogDao.get_node_documents", fake_get_node_documents
         )
-        monkeypatch.setattr("negentropy.knowledge.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries)
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_entry", fake_upsert_entry)
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.WikiDao.upsert_container_entry", fake_upsert_container_entry
+        )
+        monkeypatch.setattr(
+            "negentropy.knowledge.lifecycle.wiki_service.WikiDao.remove_stale_entries", fake_remove_stale_entries
+        )
 
         result = await service.sync_entries_from_catalog(
             fake_db,

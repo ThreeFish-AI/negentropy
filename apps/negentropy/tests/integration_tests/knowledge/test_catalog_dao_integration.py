@@ -17,7 +17,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from negentropy.knowledge.catalog_dao import CatalogDao
+from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
 
 # ===================================================================
 # 辅助工厂

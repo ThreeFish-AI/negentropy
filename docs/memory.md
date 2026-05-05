@@ -5,7 +5,11 @@
 > - 系统架构总览：[`framework.md`](./framework.md)
 > - Memory 与 Knowledge 职责边界：[`knowledges.md`](./knowledges.md)
 > - 知识图谱技术方案：[`knowledge-graph.md`](./knowledge-graph.md)
+> - **理论基础白皮书（Phase 4）**：[`memory-whitepaper.md`](./memory-whitepaper.md)
+> - **轻量上手手册（Phase 4）**：[`user-guide/memory-basics.md`](./user-guide/memory-basics.md) · [`memory-integration.md`](./user-guide/memory-integration.md) · [`memory-automation.md`](./user-guide/memory-automation.md) · [`memory-troubleshooting.md`](./user-guide/memory-troubleshooting.md)
 > - DDL 原型（历史参考）：[`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql)
+>
+> **Phase 4 已完成增强**（2026-05）：①Memory 类型分层差异化 + Core Memory Block；②Self-editing Memory Tools（5 个 Agent 主动管理工具）；③LoCoMo / LongMemEval 评测基线；④User-Guide 拆分 + 理论白皮书；⑤KG 双向同步接通；⑥PII regex 占位。详见 [`memory-whitepaper.md`](./memory-whitepaper.md) §2 与 §3。
 
 ---
 
@@ -14,6 +18,9 @@
 0. [范围与事实源](#0-范围与事实源single-source-of-truth)
 1. [引言与项目定位](#1-引言与项目定位)
 2. [学术认知框架：Agent Memory 分类体系](#2-学术认知框架agent-memory-分类体系)
+   - [2.4 工业实践深度对标：Claude Code 记忆架构](#24-工业实践深度对标claude-code-记忆架构)
+   - [2.5 工业实践深度对标：Agent Harness 设计模式](#25-工业实践深度对标agent-harness-设计模式)
+   - [2.6 Negentropy 差异化定位总结](#26-negentropy-差异化定位总结)
 3. [系统架构](#3-系统架构)
 4. [记忆形成 (Memory Formation)](#4-记忆形成-memory-formation)
 5. [记忆演化 (Memory Evolution)](#5-记忆演化-memory-evolution)
@@ -44,7 +51,17 @@
 | 记忆治理 | [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py) | MemoryGovernanceService — 遗忘曲线 + 审计决策 |
 | 自动化服务 | [`engine/adapters/postgres/memory_automation_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_automation_service.py) | MemoryAutomationService — 配置持久化 + 函数 reconcile + pg_cron |
 | 服务工厂 | [`engine/factories/memory.py`](../apps/negentropy/src/negentropy/engine/factories/memory.py) | Strategy + Factory — inmemory / postgres / vertexai |
-| API 路由 | [`engine/api.py`](../apps/negentropy/src/negentropy/engine/api.py) | Memory REST API |
+| API 路由 | [`engine/api.py`](../apps/negentropy/src/negentropy/engine/api.py) | Memory REST API + Retrieval Feedback API |
+| 摘要服务 | [`engine/adapters/postgres/summary_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/summary_service.py) | SummaryService — 摘要 CRUD + upsert |
+| 检索追踪 | [`engine/adapters/postgres/retrieval_tracker.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/retrieval_tracker.py) | RetrievalTracker — 检索效果反馈闭环 |
+| 上下文组装 | [`engine/adapters/postgres/context_assembler.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py) | ContextAssembler — Query-Aware 上下文注入 + Token 预算 |
+| LLM 事实提取 | [`engine/consolidation/llm_fact_extractor.py`](../apps/negentropy/src/negentropy/engine/consolidation/llm_fact_extractor.py) | LLMFactExtractor — LLM 结构化提取 + Pattern 降级 |
+| 记忆摘要 | [`engine/consolidation/memory_summarizer.py`](../apps/negentropy/src/negentropy/engine/consolidation/memory_summarizer.py) | MemorySummarizer — 用户画像摘要生成 + TTL 缓存 |
+| 共享工具 | [`engine/utils/model_config.py`](../apps/negentropy/src/negentropy/engine/utils/model_config.py) | resolve_model_config — 统一模型配置解析 |
+| Token 计数 | [`engine/utils/token_counter.py`](../apps/negentropy/src/negentropy/engine/utils/token_counter.py) | TokenCounter — tiktoken BPE 精确计数 |
+| 冲突解决 | [`engine/governance/conflict_resolver.py`](../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py) | ConflictResolver — AGM 信念修正 + 三阶段检测 |
+| 主动召回 | [`engine/adapters/postgres/proactive_recall_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py) | ProactiveRecallService — 复合评分预加载 + TTL 缓存 |
+| 记忆关联 | [`engine/adapters/postgres/association_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py) | AssociationService — 自动链接 + 多跳扩展 |
 | DDL 原型 | [`docs/schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) | 仿生记忆 DDL 草案（历史参考） |
 
 ---
@@ -193,6 +210,91 @@ Negentropy 的 Memory 实现并非基于独立中间件，而是采用 **Postgre
 | **混合检索** | Semantic + BM25 + ilike | Vector + Graph | Vector + Graph | Semantic + BM25 + Graph | Vector |
 
 **Negentropy 的差异化定位**：不引入外部图数据库或独立记忆服务，而是在 PostgreSQL 16+ 上实现向量检索(pgvector)、图存储(Apache AGE)、全文检索(tsvector)、定时调度(pg_cron) 的统一方案，降低运维复杂度和数据一致性风险。
+
+### 2.4 工业实践深度对标：Claude Code 记忆架构
+
+本节基于 [ThreeFish-AI/claude-code](https://github.com/ThreeFish-AI/claude-code)（Claude Code 可运行版逆向工程）和 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code)（从零构建 Agent Harness）的源码分析，提炼可指导 Negentropy 记忆模块的关键设计模式。
+
+#### 2.4.1 AutoDream 记忆整理机制
+
+Claude Code 的 AutoDream 是一个后台记忆整合机制，在会话间自动审查、组织和修剪持久化记忆文件。
+
+**四阶段整理流程**（`src/services/autoDream/consolidationPrompt.ts`）：
+
+1. **Orient（定位）**：`ls` 记忆目录，读取 `MEMORY.md` 索引，浏览现有文件避免重复
+2. **Gather（采集）**：按优先级收集新信号（日志 > 过时记忆 > 会话记录），使用窄关键词 grep 而非全文读取
+3. **Consolidate（整合）**：合并新信号到现有文件（而非创建近似重复），转相对日期为绝对日期，删除被推翻的事实
+4. **Prune（修剪）**：`MEMORY.md` ≤200 行 / 25KB，每条 ≤150 字符
+
+**三重门控调度**（`src/services/autoDream/autoDream.ts`）：
+
+```mermaid
+flowchart TD
+    G1["Gate 1: 全局开关<br/>isAutoMemoryEnabled()"] --> G2["Gate 2: 时间门控<br/>hoursSince ≥ 24h"]
+    G2 --> G3["Gate 3: 会话门控<br/>sessionsTouched ≥ 5"]
+    G3 --> Lock["Lock: PID 锁 + mtime<br/>防并发 / 1h 过期"]
+    Lock --> Fork["Forked Agent<br/>受限工具权限"]
+
+    style G1 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G2 fill:#FEF3C7,stroke:#92400E,color:#000
+    style G3 fill:#FEF3C7,stroke:#92400E,color:#000
+    style Lock fill:#FEE2E2,stroke:#991B1B,color:#000
+    style Fork fill:#D1FAE5,stroke:#065F46,color:#000
+```
+
+**Negentropy 适配**：PostgreSQL 方案中，Orient 阶段映射为 `_is_duplicate()` 的 cosine similarity 检测；Consolidate 映射为 `_simple_consolidate` 的分段提取+去重；Prune 映射为 `retention_score` 驱动的 `cleanup_low_value_memories()`。门控策略映射到 `AsyncScheduler` 的应用层调度器回退。
+
+#### 2.4.2 三层上下文压缩策略
+
+Claude Code 采用三层递进压缩策略管理有限上下文窗口：
+
+| 层级 | 触发条件 | API 调用 | 来源 |
+|:--|:--|:--|:--|
+| **MicroCompact** | 每轮静默 | 否 | `src/services/compact/microCompact.ts` |
+| **Session Memory Compact** | 自动触发 | 否（用已提取的 SM） | `src/services/compact/sessionMemoryCompact.ts` |
+| **传统 API 摘要** | 手动 / 回退 | 是 | `src/services/compact/compact.ts` |
+
+MicroCompact 维护一个白名单（`COMPACTABLE_TOOLS`），将超过时间窗口的工具输出替换为 `[Old tool result content cleared]`。Session Memory Compact 使用已提取的 Session Memory 作为压缩摘要，**无需额外 API 调用**。
+
+**Negentropy 适配**：映射到 `ContextAssembler` 的 token 预算管理——先注入高优先级 Facts（Layer 1），再用最近 Memories 填充（Layer 2），最后用对话历史补充（Layer 3）。
+
+#### 2.4.3 记忆四类型分类法
+
+Claude Code 记忆系统使用封闭的四类型系统（`src/memdir/memoryTypes.ts`）：
+
+| 类型 | 存储内容 | 关键约束 |
+|:--|:--|:--|
+| `user` | 用户角色、偏好、技术背景 | 只存无法从项目状态推导的信息 |
+| `feedback` | 工作方式纠正和确认 | 双通道：纠正 + 确认 |
+| `project` | 非代码可推导的项目上下文 | 含 Why + How to apply |
+| `reference` | 外部系统指针 | 轻量级指针，非数据副本 |
+
+**漂移防御**（`TRUSTING_RECALL_SECTION`）：系统 Prompt 中设有"Before recommending from memory"——记忆命名了特定函数/文件/标记时，必须先验证其是否仍存在。
+
+**Negentropy 适配**：直接映射到 `facts` 表的 `fact_type` 字段（`preference/profile/rule/custom`），与四类型高度对齐。
+
+### 2.5 工业实践深度对标：Agent Harness 设计模式
+
+基于 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 的渐进式 Agent 构建教程，提炼以下设计模式：
+
+**三层压缩管线**（`agents/s06_context_compact.py`）：MicroCompact（替换旧工具输出）→ AutoCompact（token 超阈值时 LLM 摘要）→ ManualCompact（用户手动触发）。Transcripts 保存完整历史到磁盘，"Nothing is truly lost — just moved out of active context."
+
+**Skill 按需加载**（`agents/s05_skill_loading.py`）：两层注入——系统提示放 skill 名称（~100 tokens/skill），tool_result 按需加载完整 body（~2000 tokens）。
+
+**Task Graph 持久化**（`agents/s07_task_system.py`）：JSON 文件 DAG，`blockedBy` 依赖边，`pending → in_progress → completed` 状态机，完成时自动解除依赖。
+
+**Negentropy 吸收**：MicroCompact 思路应用于巩固管线的分段策略（保留最近 K 条完整，旧消息缩略）；Task Graph 模式已在项目 `TaskCreate`/`TaskUpdate` 中实现。
+
+### 2.6 Negentropy 差异化定位总结
+
+| 维度 | Claude Code | mem0 / LangChain | Negentropy |
+|:--|:--|:--|:--|
+| **存储** | 纯文件系统 | 多后端（向量/图/内存） | PostgreSQL 单栈 |
+| **遗忘** | Prune 手动管理 | 无衰减 / 手动管理 | Ebbinghaus 仿生遗忘曲线 |
+| **治理** | — | — | GDPR 审计（Retain/Delete/Anonymize） |
+| **调度** | GrowthBook 远程配置 + PID 锁 | 应用层调度 | pg_cron + 应用层 AsyncScheduler 回退 |
+| **检索** | Sonnet 侧查询筛选 | 向量 / 图 / 混合 | 四级回退（Hybrid→Vector→BM25→ILIKE） |
+| **事实提取** | LLM extractMemories | LLM / 模式匹配 | 模式匹配（Phase 1）→ LLM 增强（P1） |
 
 ---
 
@@ -417,11 +519,29 @@ sequenceDiagram
 
 ### 4.2 事实提取 (Fact Extraction)
 
+Phase 1 采用 `PatternFactExtractor`（基于正则的模式匹配），Phase 2 引入 `LLMFactExtractor`（LLM 驱动的语义提取）作为默认提取器，`PatternFactExtractor` 保留为降级后备。
+
+#### 4.2.1 两级提取策略
+
+| 级别 | 实现类 | 触发条件 | 延迟 | 置信度 |
+| :-- | :-- | :-- | :-- | :-- |
+| L1 (默认) | `LLMFactExtractor` | LLM 可用 | ~200-500ms | 0.5-1.0 (动态) |
+| L2 (降级) | `PatternFactExtractor` | LLM 不可用/失败 | <1ms | 0.7 (固定) |
+
+`LLMFactExtractor` 遵循 [`knowledge/llm_extractors.py`](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py) 的成熟模式：
+
+- 批处理（≤10 turns/批）减少 API 开销
+- JSON structured output 保证解析可靠性
+- 指数退避重试（max 3 attempts）
+- 提取失败自动降级到 L2
+
 `FactService.upsert_fact()` 基于 PostgreSQL 的 `ON CONFLICT DO UPDATE` 实现 upsert 语义：
 
 - **唯一约束**：`(user_id, app_name, fact_type, key)` — 每个用户的每个 key 只有一个有效值
 - **向量化**：Fact 可选 embedding，支持语义检索
 - **有效期管理**：`valid_from` / `valid_until` 支持时态查询（当前值 vs 历史值）
+
+参考文献 <sup>[[6]](#ref6)</sup><sup>[[29]](#ref29)</sup>。
 
 ### 4.3 巩固任务 (Consolidation Jobs)
 
@@ -453,21 +573,35 @@ WHERE updated_at > NOW() - p_interval
 
 记忆不是静态存储，而是一个持续演化的动态系统<sup>[[3]](#ref3)</sup>。MAGMA 架构<sup>[[8]](#ref8)</sup>提出了双流记忆演化（延迟敏感的事件摄入 + 异步结构巩固）的理念。Negentropy 当前以艾宾浩斯遗忘曲线为核心驱动记忆演化。
 
-### 5.1 艾宾浩斯遗忘曲线模型
+### 5.1 多因子自适应遗忘曲线模型
 
-基于 Ebbinghaus 遗忘曲线<sup>[[2]](#ref2)</sup>的指数衰减模型：
+基于 Ebbinghaus 遗忘曲线<sup>[[2]](#ref2)</sup>的指数衰减，扩展为 **五因子自适应模型**（ACT-R 认知架构<sup>[[45]](#ref45)</sup> + FadeMem<sup>[[46]](#ref46)</sup>）：
 
 ```
-retention_score = min(1.0, time_decay × frequency_boost / 5.0)
+retention = min(1.0, time_decay × frequency_boost × type_multiplier × semantic_importance / 5.0 + recency_bonus)
 
 其中:
-  time_decay    = e^(-λ × days_elapsed)
-  frequency_boost = 1 + ln(1 + access_count)
+  time_decay         = e^(-λ_type × days_elapsed)
+  frequency_boost    = 1 + ln(1 + access_count)
+  type_multiplier    = 记忆类型乘子（偏好 1.3 / 流程 1.2 / 事实 1.15 / 情景 1.0）
+  semantic_importance = 1 + min(0.5, related_count × 0.1)
+  recency_bonus      = max(0, 1 - days_since_creation / 365) × 0.1
 ```
 
-- **λ（衰减常数）**：默认 `0.1`，可通过 Automation Config 自定义。值越大衰减越快
+**记忆类型衰减率映射**：
+
+| 类型 | λ | 类型乘子 | 理由 |
+| :-- | :-- | :-- | :-- |
+| preference | 0.05 | 1.3 | 用户偏好应长期保持 |
+| procedural | 0.06 | 1.2 | 技能/流程较稳定 |
+| fact | 0.08 | 1.15 | 事实中等衰减 |
+| episodic | 0.10 | 1.0 | 对话片段衰减最快（基准） |
+
+- **λ_type**：记忆类型特定的衰减常数，覆盖默认 `0.1`
 - **days_elapsed**：距最后访问的天数（`last_accessed_at`）
 - **access_count**：累计访问次数。频率因子使用**对数增长**，避免高频访问过度膨胀分数
+- **related_count**：同 thread 关联的事实和记忆数量（语义重要性）
+- **recency_bonus**：1 年内创建的记忆获得额外 [0, 0.1] 加分
 - **分数范围**：[0.0, 1.0]
 
 **典型衰减曲线**（λ=0.1, access_count=0）：
@@ -481,7 +615,8 @@ retention_score = min(1.0, time_decay × frequency_boost / 5.0)
 
 **代码实现**：
 
-- Python：`MemoryGovernanceService.calculate_retention_score()` — [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py) L264-L323
+- Python：`MemoryGovernanceService.calculate_retention_score()` — [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py)
+- Python：`PostgresMemoryService._calculate_initial_retention()` — [`engine/adapters/postgres/memory_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py)
 - SQL：`calculate_retention_score()` plpgsql 函数 — [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.sql) §5
 
 ### 5.2 访问计数强化 (Retrieval-Enhanced Retention)
@@ -548,6 +683,161 @@ flowchart LR
 | LightMem<sup>[[23]](#ref23)</sup> | 离线蒸馏/摘要 + 巩固/删除 | SessionSummarizer + consolidation_jobs | 无蒸馏 |
 | EverMemOS<sup>[[24]](#ref24)</sup> | 自组织记忆 + 自动聚类 | — | 未实现 |
 
+#### 5.4.1 摘要巩固策略 (Summary Consolidation)
+
+受认知科学记忆再巩固 (Reconsolidation) 理论<sup>[[26]](#ref26)</sup>启发，`MemorySummarizer` 定期将用户的碎片记忆和事实重蒸馏为结构化画像摘要。该策略借鉴：
+
+| 学术/工程来源 | 策略 | Negentropy 适配 |
+| :-- | :-- | :-- |
+| LightMem<sup>[[23]](#ref23)</sup> | 离线蒸馏压缩 | MemorySummarizer 定期重生成 |
+| GraphRAG<sup>[[10]](#ref10)</sup> | 层次化 Map-Reduce 摘要 | LLM 单次生成结构化画像 |
+| Claude Code CLAUDE.md | 文件持久化用户摘要 | `memory_summaries` 表缓存 |
+| Mem0 user profile<sup>[[29]](#ref29)</sup> | 聚合 preference/profile/rule | 同结构，facts + memories 双源输入 |
+| Letta self-edit<sup>[[30]](#ref30)</sup> | Agent 自主编辑 memory block | 摘要由系统自动维护，Agent 只读注入 |
+
+摘要生成流程：
+
+1. 加载用户活跃 facts + 近期高 retention 记忆
+2. LLM 生成 ~200-400 tokens 的结构化画像（角色/偏好/风格/规则）
+3. upsert 至 `memory_summaries` 表（TTL 24h 可配置）
+4. `ContextAssembler` 优先注入摘要，无摘要时降级到原始拼接
+
+参考文献 <sup>[[10]](#ref10)</sup><sup>[[23]](#ref23)</sup><sup>[[26]](#ref26)</sup><sup>[[29]](#ref29)</sup><sup>[[30]](#ref30)</sup>。
+
+### 5.5 记忆重要性评分 (Importance Scoring)
+
+重要性评分（`importance_score`）量化每条记忆的固有价值，与保留分数（动态衰减）互补。基于 ACT-R 认知架构<sup>[[45]](#ref45)</sup>的基础水平激活公式和 FadeMem<sup>[[46]](#ref46)</sup>多因子模型，五因子加权公式：
+
+```
+importance = min(1.0,
+    base_activation * 0.30 +    # ACT-R log-sum 访问间隔
+    access_frequency * 0.25 +   # log(access_count) 归一化
+    fact_support * 0.20 +       # 关联事实数 / 10
+    type_weight * 0.15 +        # preference(0.9) > procedural(0.75) > fact(0.6) > episodic(0.4)
+    recency_bonus * 0.10        # max(0, 1 - days_since_creation / 90)
+)
+```
+
+**记忆类型重要性权重**：
+
+| 类型 | type_weight | 理由 |
+| :-- | :-- | :-- |
+| preference | 0.9 | 用户偏好是长期高价值信号 |
+| procedural | 0.75 | 技能/流程记忆较稳定 |
+| fact | 0.6 | 事实性知识中等价值 |
+| episodic | 0.4 | 对话片段价值相对较低（基准） |
+
+**计算时机**：
+- 巩固存储时：`PostgresMemoryService._simple_consolidate()` 计算初始评分
+- Fact upsert 时：`FactService.upsert_fact()` 计算初始评分
+- 访问后：`_record_access()` 增量提升 +0.02
+
+**代码实现**：`MemoryGovernanceService.calculate_importance_score()` — [`engine/governance/memory.py`](../apps/negentropy/src/negentropy/engine/governance/memory.py)
+
+### 5.6 记忆冲突与信念修正 (Conflict Resolution)
+
+当新事实与现有事实矛盾时，基于 AGM 信念修正理论<sup>[[49]](#ref49)</sup>和 Doyle 真值维护系统<sup>[[50]](#ref50)</sup>，通过三阶段检测自动解决冲突。
+
+**检测阶段**：
+
+```mermaid
+flowchart LR
+    NEW["新事实插入"] --> K["Stage 1: Key-based<br/>(快速路径)"]
+    K --> |"同 key 不同 value"| EMB["Stage 2: Embedding-based<br/>(中速路径)"]
+    EMB --> |"高相似度 ≥ 0.85"| LLM["Stage 3: LLM-based<br/>(深度路径)"]
+    K --> |"无冲突"| PASS["通过"]
+    EMB --> |"低相似度"| PASS
+    LLM --> |"确认矛盾"| RES["执行解决策略"]
+
+    classDef detect fill:#F59E0B,stroke:#92400E,color:#000
+    classDef pass fill:#10B981,stroke:#065F46,color:#FFF
+    classDef resolve fill:#EF4444,stroke:#991B1B,color:#FFF
+
+    class K,EMB,LLM detect
+    class PASS pass
+    class RES resolve
+```
+
+**冲突分类**：
+
+| 类型 | 触发条件 | 说明 |
+| :-- | :-- | :-- |
+| contradiction | preference/rule 类型同 key 不同 value | 直接矛盾 |
+| temporal_update | profile 类型更新 | 个人信息变更 |
+| refinement | 其他类型，新置信度 > 旧置信度 | 信息细化 |
+
+**解决策略**：
+
+| 策略 | 行为 | 适用场景 |
+| :-- | :-- | :-- |
+| supersede | 旧事实标记 `superseded`，新事实取代 | contradiction / temporal_update |
+| keep_both | 保留两者，记录冲突 | refinement 且旧置信度更高 |
+| merge | 合并两者值 | 管理员手动选择 |
+
+**数据模型**：Fact 新增 `superseded_by`、`status`（active/superseded）、`superseded_at` 字段；新建 `memory_conflicts` 表记录冲突历史。
+
+**代码实现**：`ConflictResolver` — [`engine/governance/conflict_resolver.py`](../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py)
+
+**Phase 7 增强**：DedupMergeStep 在 soft-delete 之前会检测关联 facts 的 key 碰撞。
+当发现偏好反转等矛盾时，委托 `ConflictResolver`（基于 AGM 信念修正理论）执行显式解决：
+- `supersede` — 新值取代旧值（与原 soft-delete 行为一致）
+- `keep_both` — 跳过 soft-delete，保留两条记忆（独立但相关的事实）
+- `merge` — 合并两者值
+
+无冲突时保持原有机械合并行为不变（向后兼容）。
+
+### 5.7 主动召回 (Proactive Recall)
+
+基于 Spreading Activation Theory<sup>[[51]](#ref51)</sup>和 Context-Dependent Memory<sup>[[52]](#ref52)</sup>，在新会话创建时主动注入高相关性记忆，减少 Agent 的「冷启动」信息缺失。
+
+**复合评分公式**：
+
+```
+proactive_rank = importance_score * 0.40
+               + recency_score * 0.30
+               + frequency_score * 0.20
+               + fact_density * 0.10
+```
+
+| 因子 | 计算 | 权重 | 含义 |
+| :-- | :-- | :-- | :-- |
+| importance_score | 五因子重要性评分 | 0.40 | 最重要的排序信号 |
+| recency_score | `max(0, 1 - days_since_access / 30)` | 0.30 | 近期访问的记忆更相关 |
+| frequency_score | `min(1, log2(1 + access_count) / log2(101))` | 0.20 | 高频访问的记忆更稳定 |
+| fact_density | 固定 0.10 | 0.10 | 基础密度因子 |
+
+**缓存策略**：
+- TTL 1 小时：`memory_preload_cache` 表按 `(user_id, app_name)` 缓存
+- 失效触发：巩固完成、事实插入、冲突解决时自动 `invalidate_cache()`
+- 缓存命中直接返回，未命中则计算并写入
+
+**代码实现**：`ProactiveRecallService` — [`engine/adapters/postgres/proactive_recall_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/proactive_recall_service.py)
+
+### 5.8 记忆关联 (Memory Associations)
+
+基于 Associative Memory Theory<sup>[[53]](#ref53)</sup>和 Spreading Activation<sup>[[51]](#ref51)</sup>，自动发现并维护记忆间的关联关系，支持多跳扩展检索。
+
+**四种自动链接策略**：
+
+| 类型 | 触发条件 | 权重 | 说明 |
+| :-- | :-- | :-- | :-- |
+| semantic | embedding 余弦相似度 > 0.75 | 相似度值 | 语义关联（每新记忆最多 5 条） |
+| temporal | 同 thread、30 分钟窗口内 | `1 - Δt / 1800` | 时间邻近关联 |
+| thread_shared | 共享 thread_id | 0.6 | 同会话关联 |
+| entity | 共享命名实体（依赖 KG） | 0.5 | 实体共现关联 |
+
+**多跳扩展**：
+
+```
+起始记忆 → 关联查找 (weight > 0.6) → 追加关联记忆 → 最多 3 跳 → Token 预算控制
+```
+
+BFS 遍历关联图，每跳只追加权重大于 0.6 的强关联，最终在 Token 预算内返回扩展上下文。
+
+**数据模型**：`memory_associations` 表，UNIQUE(source_id, target_id, association_type)。
+
+**代码实现**：`AssociationService` — [`engine/adapters/postgres/association_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py)
+
 ---
 
 ## 6. 记忆检索 (Memory Retrieval)
@@ -561,14 +851,19 @@ flowchart TD
     Q["search_memory(query)"] --> EMB{有 embedding_fn？}
 
     EMB -->|是| HYB["Level 1: Hybrid Search<br/>DB 原生 hybrid_search() 函数<br/>semantic_weight=0.7 + keyword_weight=0.3"]
-    HYB -->|成功| REC["记录访问 → 返回结果"]
+    HYB -->|成功| TAG["标记 search_level=hybrid<br/>score_type=combined"]
     HYB -->|失败/降级| VEC["Level 2: Vector Search<br/>embedding <=> query_embedding<br/>pgvector cosine distance"]
-    VEC --> REC
+    VEC --> TAG2["标记 search_level=vector<br/>score_type=cosine_distance"]
 
     EMB -->|否| BM25["Level 3: BM25 Keyword Search<br/>search_vector @@ plainto_tsquery<br/>ts_rank_cd 排序"]
-    BM25 -->|成功| REC
+    BM25 -->|成功| TAG3["标记 search_level=keyword<br/>score_type=ts_rank"]
     BM25 -->|失败/无 search_vector| ILK["Level 4: ilike Fallback<br/>content ILIKE '%escaped_query%'<br/>通配符转义防注入"]
-    ILK --> REC
+    ILK --> TAG4["标记 search_level=ilike<br/>score_type=retention_proxy"]
+
+    TAG --> REC["记录访问 → 返回结果"]
+    TAG2 --> REC
+    TAG3 --> REC
+    TAG4 --> REC
 
     classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
     classDef level1 fill:#10B981,stroke:#065F46,color:#FFF
@@ -613,7 +908,11 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 | History | 50% (`history_ratio`) | events 表 | `created_at DESC`（时间倒序） |
 | System | 20% (保留) | — | 系统指令保留空间 |
 
-**Token 估算**：采用粗略估算 `LENGTH(content) / 4`，适用于英文和中英混合场景。
+**Token 估算**：采用 tiktoken BPE 编码器精确计数（Phase 1 曾使用 `LENGTH(content) / 4` 粗略估算）。Python 侧通过 [`TokenCounter`](../apps/negentropy/src/negentropy/engine/utils/token_counter.py) 工具类调用，SQL 函数 `get_context_window()` 保留 `LENGTH/4` 作为 DB 侧快速估算，Python 端后校正。参考文献 <sup>[[25]](#ref25)</sup>。
+
+**Token Budget 硬性校验**（Phase 2++ 增强）：组装完成后校验 `token_count <= budget_total`（memory_ratio + history_ratio）。超标时按行截断（优先保留先召回的高相关性内容），并输出 `context_budget_overflow` 结构化日志。参考 MemGPT<sup>[[7]](#ref7)</sup> Virtual Context Management 的分页截断策略。
+
+**搜索结果标准化**（Phase 2++ 增强）：每条搜索结果携带 `search_level` (hybrid|vector|keyword|ilike)、`score_type` (combined|cosine_distance|ts_rank|retention_proxy) 和 `raw_score` 元数据，通过 `custom_metadata` 传播至 ADK `MemoryEntry`。参考 Observability Engineering<sup>[[48]](#ref48)</sup> 的结构化可观测性理念。
 
 ### 6.4 与学术检索范式的对标
 
@@ -623,6 +922,40 @@ FROM {NEGENTROPY_SCHEMA}.hybrid_search(
 | 时序知识图谱 | Graphiti<sup>[[18]](#ref18)</sup> | created_at 排序 | Phase 2: Bi-temporal edges |
 | 向量+图遍历 | GraphRAG<sup>[[10]](#ref10)</sup> | 独立 (pgvector + AGE) | Phase 3: 融合检索 |
 | 虚拟上下文管理 | MemGPT/Letta<sup>[[19]](#ref19)</sup> | get_context_window | — (理念相近) |
+
+### 6.5 检索效果反馈闭环 (Retrieval Feedback Loop)
+
+基于 Rocchio 相关性反馈<sup>[[27]](#ref27)</sup>和 Learning-to-Rank<sup>[[28]](#ref28)</sup>范式，建立"检索→记录→反馈→调权"的闭环，量化记忆系统的有效性。
+
+`RetrievalTracker` 在 `search_memory()` 返回结果后自动记录检索事件，并支持显式反馈 API：
+
+```mermaid
+flowchart TD
+    Q["search_memory(query)"] --> LOG["log_retrieval<br/>(记忆 ID 列表)"]
+    LOG --> AGENT["Agent 响应"]
+    AGENT --> REF["mark_referenced<br/>(被引用的记忆)"]
+    REF --> FB["record_feedback<br/>('helpful'/'irrelevant'/'harmful')"]
+    FB --> METRICS["get_effectiveness_metrics()"]
+    METRICS --> ADJ["调整 retention_score 权重"]
+
+    classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef process fill:#F59E0B,stroke:#92400E,color:#000
+    classDef result fill:#10B981,stroke:#065F46,color:#FFF
+
+    class Q query
+    class LOG,AGENT,REF,FB process
+    class METRICS,ADJ result
+```
+
+评估维度对齐 LongMemEval<sup>[[9]](#ref9)</sup>：
+
+| 指标 | 计算公式 | 意义 |
+| :-- | :-- | :-- |
+| Precision@K | 被引用的记忆 / 检索的记忆 | 检索结果的实际利用率 |
+| Utilization Rate | 有帮助反馈 / 总反馈 | 用户认可的记忆占比 |
+| Noise Rate | 无关反馈 / 总反馈 | 无效检索的噪声占比 |
+
+参考文献 <sup>[[9]](#ref9)</sup><sup>[[27]](#ref27)</sup><sup>[[28]](#ref28)</sup>。
 
 ---
 
@@ -745,6 +1078,7 @@ flowchart TD
 | Retention Cleanup | `calculate_retention_score`, `cleanup_low_value_memories` | `cleanup_memories` | 定时更新 retention 并清理低价值记忆 |
 | Context Assembler | `get_context_window` | 无 | 按 token budget 组装记忆与历史 |
 | Maintenance Consolidation | `trigger_maintenance_consolidation` | `trigger_consolidation` | 批量创建巩固任务 |
+| Rocchio Reweight | — | `reweight_relevance`（每 6h） | 聚合用户反馈，调用 Rocchio 重加权更新 `memories.metadata_.relevance_weight` |
 
 ### 8.5 PostgreSQL 初始化前置条件
 
@@ -1101,7 +1435,10 @@ DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.s
 | :-- | :-- | :-- | :-- |
 | `PostgresMemoryService` | ~487 行 | `add_session_to_memory`, `search_memory`, `_hybrid_search_native`, `_vector_search`, `_keyword_search`, `_ilike_search`, `_record_access` | 4 级检索回退 + ADK Event 三格式适配 |
 | `MemoryAutomationService` | ~26 KB | `get_snapshot`, `save_config`, `reconcile_functions`, `reconcile_jobs`, `run_job` | 系统能力探测 + SQL 函数动态生成 |
-| `MemoryGovernanceService` | ~518 行 | `audit_memory`, `calculate_retention_score`, `_execute_decision` | 版本冲突 + 幂等性 + GDPR 级联 |
+| `MemoryGovernanceService` | ~518 行 | `audit_memory`, `calculate_retention_score`, `calculate_importance_score`, `_execute_decision` | 版本冲突 + 重要性评分 + 幂等性 + GDPR 级联 |
+| `ConflictResolver` | ~200 行 | `detect_and_resolve`, `_classify_conflict`, `manual_resolve` | AGM 信念修正 + 三阶段检测 |
+| `ProactiveRecallService` | ~240 行 | `get_or_compute_preload`, `invalidate_cache` | 复合评分预加载 + TTL 缓存 |
+| `AssociationService` | ~300 行 | `auto_link_memory`, `get_associations`, `expand_multi_hop` | 自动链接 + 多跳扩展 |
 
 ### 9.3 API 端点全景
 
@@ -1121,6 +1458,14 @@ DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.s
 | `/memory/automation/jobs/{key}/disable` | POST | 停用任务 | admin |
 | `/memory/automation/jobs/{key}/reconcile` | POST | 重建任务 | admin |
 | `/memory/automation/jobs/{key}/run` | POST | 手动触发 | admin |
+| `/memory/conflicts` | GET | 冲突列表 (`?app_name=&user_id=&resolution=`) | admin |
+| `/memory/conflicts/{conflict_id}/resolve` | POST | 手动解决冲突 | admin |
+| `/memory/facts/{fact_id}/history` | GET | 事实版本链 | admin |
+| `/memory/proactive/{user_id}` | POST | 触发主动召回计算 | auth |
+| `/memory/proactive/{user_id}` | GET | 获取预加载缓存 | auth |
+| `/memory/{memory_id}/associations` | GET | 记忆关联列表 | auth |
+| `/memory/associations` | POST | 创建手动关联 | auth |
+| `/memory/associations/{association_id}` | DELETE | 删除关联 | auth |
 
 ### 9.4 当前阶段的局限性
 
@@ -1130,8 +1475,11 @@ DDL 原型参见 [`schema/hippocampus_schema.sql`](./schema/hippocampus_schema.s
 | 无组织级记忆共享 | 记忆严格按 user_id 隔离 | Phase 3: Organization scope |
 | 图谱与记忆未打通 | Knowledge Graph (AGE) 在感知系部，Memory 在内化系部 | Phase 2: Memory Graph |
 | 无多智能体协作 | 单 Agent 记忆空间 | Phase 3: Multi-agent memory |
-| 巩固策略简单 | 无冲突感知、无摘要蒸馏 | Phase 2: Sleep-inspired consolidation |
-| Token 估算粗略 | `LENGTH/4` 简单估算 | 引入 tiktoken 精确计数 |
+| ~~巩固策略简单~~ | ~~无冲突感知、无摘要蒸馏~~ | ✅ Phase 3 已实现冲突检测 + 摘要巩固 |
+| ~~Token 估算粗略~~ | ~~`LENGTH/4` 简单估算~~ | ✅ Phase 2+ 已引入 tiktoken 精确计数 |
+| ~~无记忆重要性评分~~ | ~~所有记忆同等对待~~ | ✅ Phase 3 已实现 ACT-R 五因子评分 |
+| ~~无主动召回~~ | ~~新会话冷启动~~ | ✅ Phase 3 已实现复合评分预加载 |
+| ~~无记忆关联~~ | ~~记忆孤立，无法多跳检索~~ | ✅ Phase 3 已实现自动链接 + 多跳扩展 |
 
 ---
 
@@ -1229,6 +1577,30 @@ timeline
 | ADR-002 | Ebbinghaus 指数衰减而非线性/阶梯 | 符合认知科学 + 数学可导 + 参数可调 | 需要多维衰减因子时引入强化学习模型 |
 | ADR-003 | pg_cron 而非应用层调度器 | 数据局部性 + 无额外进程 + 事务内调度 | 需跨数据库调度或复杂 DAG 时引入 Celery |
 | ADR-004 | 4 级回退而非单一检索策略 | 最大化可用性 + 渐进降级 | Hybrid Search 稳定后可考虑收敛到 2 级 |
+| ADR-005 | Phase 5 PPR 复用 AGE Cypher 不引入 NetworkX | 零运维增量 + 数据局部性 | AGE 单跳 P99 > 100ms 时评估 NetworkX |
+| ADR-006 | Reflexion 复用 metadata.subtype 不改 schema | 最小干预 + Phase 4 baseline 不回归 | 反思类型变多需要专表分流时拆 |
+| ADR-007 | Memify 用 Strategy + CoR 而非 DAG 编排 | 大多数 step 序串行；DAG 复杂度收益不足 | 需要 5+ step 跨 LLM 并行加速时升级到 Prefect/Temporal |
+| ADR-008 | Presidio 作为可选依赖（uv extras） | 200MB+ spaCy 模型对部分部署不可接受 | 默认部署强制需要合规级 PII 时改硬依赖 |
+
+### 10.5 Phase 5 实施记录（开工于 2026-05）
+
+> 详细工程契约见 [`memory-whitepaper.md`](./memory-whitepaper.md) §4；user-guide 高级特性开关见 [`memory-basics.md`](./user-guide/memory-basics.md) §2.5。
+
+| 特性 | 集成点 | 默认 flag | 状态 |
+| :-- | :-- | :-- | :-- |
+| F1 HippoRAG PPR-Boosted Hybrid | `memory_service.search_memory` + `association_service.expand_via_ppr` + AGE Cypher SQL 函数 | `MEMORY_HIPPORAG_ENABLED=false` | ✅ 已交付 |
+| F2 Reflexion Episodic Replay | `retrieval_tracker.record_feedback` + `reflection_generator` + `context_assembler.assemble` few-shot 注入 | `MEMORY_REFLECTION_ENABLED=false` | ✅ 已交付 |
+| F3 Memify Consolidation Pipeline | `consolidation/pipeline/{protocol,orchestrator,registry,steps}` + `memory_service.add_session_to_memory` 切换 | `memory.consolidation.legacy=false`（默认走 Pipeline，行为与 Phase 4 一致） | ✅ 已交付 |
+| F4 Presidio 生产级 PII | `governance/pii/{base,regex_detector,presidio_detector,factory,gatekeeper}` + 落库双字段 `content_raw / content_anonymized / pii_spans` | `memory.pii.engine=regex`（向后兼容） | ✅ 已交付 |
+
+**§9.4 局限性表对应行更新**（Phase 5 实施完成后逐项打勾）：
+
+| 原局限 | Phase 5 对应特性 | 状态 |
+| :-- | :-- | :-- |
+| 图谱与记忆未打通（仅同步） | F1 HippoRAG PPR | ✅ 已交付 |
+| 失败反馈未沉淀 | F2 Reflexion | ✅ 已交付 |
+| 巩固管线难扩展 | F3 Memify Pipeline | ✅ 已交付 |
+| PII 仅 regex 占位 | F4 Presidio | ✅ 已交付 |
 
 ---
 
@@ -1445,6 +1817,10 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 
 <a id="ref19"></a>[19] Letta, "Letta platform documentation," _Letta_, 2025. [Online]. Available: https://docs.letta.com/
 
+<a id="ref29"></a>[29] Mem0, "Memory extraction and consolidation pipeline," _Mem0 Documentation_, 2025. [Online]. Available: https://docs.mem0.ai/open-source/quickstart
+
+<a id="ref30"></a>[30] Letta (MemGPT), "Self-editing memory and virtual context management," _Letta Documentation_, 2025. [Online]. Available: https://docs.letta.com/
+
 ### 基准测试
 
 <a id="ref20"></a>[20] ICLR 2026 Workshop, "MemAgents: Memory for LLM-based agentic systems," _OpenReview_, 2026.
@@ -1456,6 +1832,66 @@ uv run pytest tests/unit_tests/engine/test_memory_automation_service.py -v
 <a id="ref23"></a>[23] Y. Li et al., "LightMem: Lightweight and efficient memory-augmented generation," _arXiv preprint arXiv:2510.18866_, 2025.
 
 <a id="ref24"></a>[24] EverMemOS, "A self-organizing memory operating system for structured long-horizon reasoning," 2026.
+
+### Phase 2+ 增强参考文献
+
+<a id="ref31"></a>[31] C. D. Manning, P. Raghavan, and H. Schütze, *Introduction to Information Retrieval*. Cambridge, UK: Cambridge University Press, 2008.
+
+<a id="ref32"></a>[32] G. Shani and A. Gunawardana, "Evaluating recommendation systems," in *Recommender Systems Handbook*, F. Ricci, L. Rokach, B. Shapira, and P. B. Kantor, Eds. New York, NY: Springer, 2011, pp. 257–297.
+
+<a id="ref33"></a>[33] P. F. Christiano et al., "Deep reinforcement learning from human preferences," in *Adv. Neural Inf. Process. Syst. (NeurIPS)*, vol. 30, pp. 7299–7307, 2017.
+
+<a id="ref34"></a>[34] S. Es et al., "RAGAS: Automated evaluation of retrieval augmented generation," in *ECAI 2024*, 2024.
+
+<a id="ref35"></a>[35] J. Carbonell and J. Goldstein, "The use of MMR, diversity-based reranking for reordering documents and producing summaries," in *Proc. 21st ACM SIGIR*, Melbourne, Australia, 1998, pp. 335–336.
+
+<a id="ref36"></a>[36] A. Dong, Y. Chang, Z. Zheng, H. Zha, and K. Mei, "A time machine for search engine," in *Proc. 33rd ACM SIGIR*, Geneva, Switzerland, 2010, pp. 609–616.
+
+<a id="ref37"></a>[37] A. Z. Broder, "On the resemblance and containment of documents," in *Proc. SEQUENCES*, Positano, Italy, 1997, pp. 21–29.
+
+<a id="ref38"></a>[38] M. S. Charikar, "Similarity estimation techniques from rounding algorithms," in *Proc. 34th ACM STOC*, Montreal, Canada, 2002, pp. 380–388.
+
+<a id="ref39"></a>[39] P. Indyk and R. Motwani, "Approximate nearest neighbors: Towards removing the curse of dimensionality," in *Proc. 30th ACM STOC*, Dallas, TX, 1998, pp. 604–613.
+
+<a id="ref40"></a>[40] M. R. Henzinger, "Finding near-duplicate web documents: A large-scale evaluation of algorithms," in *Proc. 29th ACM SIGIR*, Seattle, WA, 2006, pp. 284–291.
+
+<a id="ref41"></a>[41] J. Zhang et al., "Machine learning testing: Survey, landscapes, and horizons," *IEEE Trans. Softw. Eng.*, vol. 48, no. 2, pp. 508–539, Feb. 2022.
+
+<a id="ref42"></a>[42] D. Sculley et al., "Hidden technical debt in machine learning systems," in *Adv. Neural Inf. Process. Syst. (NeurIPS)*, vol. 28, pp. 2503–2511, 2015.
+
+<a id="ref43"></a>[43] T. Y. Chen, F.-C. Kuo, H. Liu, and S. L. Poon, "Metamorphic testing: A review of challenges and opportunities," *ACM Comput. Surveys*, vol. 51, no. 1, pp. 1–27, Jan. 2018.
+
+<a id="ref25"></a>[25] R. Sennrich, B. Haddow, and A. Birch, "Neural machine translation of rare words with subword units," *ACL*, 2016.
+
+<a id="ref26"></a>[26] S. J. Sara, "Reconsolidation and the stability of memory traces: A new perspective," *Current Opinion in Neurobiology*, vol. 35, pp. 110-115, 2015.
+
+<a id="ref27"></a>[27] J. J. Rocchio, "Relevance feedback in information retrieval," in *The SMART Retrieval System*, G. Salton, Ed. Englewood Cliffs, NJ: Prentice-Hall, 1971, pp. 313-323.
+
+<a id="ref28"></a>[28] C. J. C. Burges et al., "Learning to rank using gradient descent," *ICML*, 2005.
+
+### Phase 2++ 增强参考文献
+
+<a id="ref44"></a>[44] T. Haerder and A. Reuter, "Principles of transaction-oriented database recovery," *ACM Comput. Surveys*, vol. 15, no. 4, pp. 287–317, Dec. 1983.
+
+<a id="ref45"></a>[45] J. R. Anderson et al., "An integrated theory of the mind," *Psychological Review*, vol. 111, no. 4, pp. 1036–1060, 2004.
+
+<a id="ref46"></a>[46] FadeMem, "Biologically-inspired forgetting for agent memory," *arXiv preprint arXiv:2601.18642*, 2026.
+
+<a id="ref47"></a>[47] M. Nygard, *Release It!*, 2nd ed. Raleigh, NC: Pragmatic Bookshelf, 2018.
+
+<a id="ref48"></a>[48] C. Majors, L. Fong-Jones, and G. Miranda, *Observability Engineering*. Sebastopol, CA: O'Reilly, 2022.
+
+### Phase 3 增强参考文献
+
+<a id="ref49"></a>[49] C. E. Alchourrón, P. Gärdenfors, and D. Makinson, "On the logic of theory change," *J. Symbolic Logic*, vol. 50, no. 2, pp. 510–530, 1985.
+
+<a id="ref50"></a>[50] J. Doyle, "A truth maintenance system," *Artificial Intelligence*, vol. 12, no. 3, pp. 231–272, 1979.
+
+<a id="ref51"></a>[51] A. M. Collins and E. F. Loftus, "A spreading-activation theory of semantic processing," *Psychological Review*, vol. 82, no. 6, pp. 407–428, 1975.
+
+<a id="ref52"></a>[52] D. R. Godden and A. D. Baddeley, "Context-dependent memory in two natural environments," *British J. Psychology*, vol. 66, no. 3, pp. 325–331, 1975.
+
+<a id="ref53"></a>[53] E. Tulving, "Episodic and semantic memory," in *Organization of Memory*, E. Tulving and W. Donaldson, Eds. New York: Academic Press, 1972, pp. 381–403.
 
 ---
 

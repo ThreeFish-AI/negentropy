@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from negentropy.knowledge.chunking import chunk_text
+from negentropy.knowledge.ingestion.chunking import chunk_text
 from negentropy.knowledge.types import ChunkingConfig
 
 
@@ -14,7 +14,7 @@ class TestWordBoundaryProtection:
 
     def test_find_word_boundary_left(self) -> None:
         """测试向左查找单词边界"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         text = "hello world test"
         # 位置 7 是 'o'（world 的第一个 o）
@@ -23,7 +23,7 @@ class TestWordBoundaryProtection:
 
     def test_find_word_boundary_right(self) -> None:
         """测试向右查找单词边界"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         text = "hello world test"
         # 位置 7 是 'o'（world 的第一个 o）
@@ -32,7 +32,7 @@ class TestWordBoundaryProtection:
 
     def test_find_word_boundary_at_space(self) -> None:
         """测试当前位置是空格的情况"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         text = "hello world"
         result = _find_word_boundary(text, 5, "left", 10)  # 位置 5 是空格
@@ -40,7 +40,7 @@ class TestWordBoundaryProtection:
 
     def test_find_word_boundary_chinese_text(self) -> None:
         """测试中文文本不调整边界"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         text = "这是中文测试文本"
         result = _find_word_boundary(text, 3, "left", 10)
@@ -143,7 +143,7 @@ class TestWordBoundaryProtection:
 
     def test_get_word_safe_overlap(self) -> None:
         """测试获取单词安全的重叠文本"""
-        from negentropy.knowledge.chunking import _get_word_safe_overlap
+        from negentropy.knowledge.ingestion.chunking import _get_word_safe_overlap
 
         prev_chunk = "This is the previous chunk with words"
         overlap_size = 15
@@ -163,35 +163,35 @@ class TestWordBoundaryEdgeCases:
 
     def test_empty_text(self) -> None:
         """测试空文本"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         assert _find_word_boundary("", 0, "left", 10) == 0
         assert _find_word_boundary("", 0, "right", 10) == 0
 
     def test_single_character(self) -> None:
         """测试单字符文本"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         assert _find_word_boundary("a", 0, "left", 10) == 0
         assert _find_word_boundary("a", 0, "right", 10) == 0
 
     def test_position_at_text_start(self) -> None:
         """测试位置在文本开头"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         text = "hello world"
         assert _find_word_boundary(text, 0, "left", 10) == 0
 
     def test_position_at_text_end(self) -> None:
         """测试位置在文本末尾"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         text = "hello world"
         assert _find_word_boundary(text, len(text) - 1, "right", 10) == len(text) - 1
 
     def test_numbers_and_punctuation(self) -> None:
         """测试数字和标点符号"""
-        from negentropy.knowledge.chunking import _find_word_boundary
+        from negentropy.knowledge.ingestion.chunking import _find_word_boundary
 
         text = "hello123 world test"
         # 数字和标点不被视为英文单词的一部分

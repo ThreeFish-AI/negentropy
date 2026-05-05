@@ -225,6 +225,10 @@ out/
 .DS_Store
 *.pem
 
+# Runtime local config (secrets + per-deployment overrides)
+# Match at any depth to cover all cwd scenarios (see yaml_loader.get_local_config_path)
+config.local.yaml
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -248,6 +252,13 @@ apps/negentropy-ui/.yarn/*
 # Temp files
 .temp/
 .playwright-mcp/
+
+# Playwright auth artifacts (browser session reuse) — see docs/agents/browser-validation.md
+apps/negentropy-ui/.auth/
+apps/negentropy-ui/.userdata/
+
+# KG verification artifacts
+.kg-verify/
 
 # Custom
 .claude/

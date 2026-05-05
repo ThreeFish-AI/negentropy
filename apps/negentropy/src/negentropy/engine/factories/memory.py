@@ -18,8 +18,14 @@ from google.adk.memory.base_memory_service import BaseMemoryService
 from negentropy.config import settings
 
 if TYPE_CHECKING:
+    from negentropy.engine.adapters.postgres.association_service import AssociationService
+    from negentropy.engine.adapters.postgres.core_block_service import CoreBlockService
     from negentropy.engine.adapters.postgres.fact_service import FactService
     from negentropy.engine.adapters.postgres.memory_automation_service import MemoryAutomationService
+    from negentropy.engine.adapters.postgres.proactive_recall_service import ProactiveRecallService
+    from negentropy.engine.adapters.postgres.summary_service import SummaryService
+    from negentropy.engine.consolidation.memory_summarizer import MemorySummarizer
+    from negentropy.engine.governance.conflict_resolver import ConflictResolver
     from negentropy.engine.governance.memory import MemoryGovernanceService
 
 # 类型别名：embedding 函数签名
@@ -216,6 +222,144 @@ def reset_memory_automation_service() -> None:
     _memory_automation_service_instance = None
 
 
+# ============================================================================
+# Summary Service Factory
+# ============================================================================
+
+_summary_service_instance: SummaryService | None = None
+
+
+def get_summary_service() -> SummaryService:
+    global _summary_service_instance
+
+    if _summary_service_instance is None:
+        from negentropy.engine.adapters.postgres.summary_service import SummaryService
+
+        _summary_service_instance = SummaryService()
+
+    return _summary_service_instance
+
+
+def reset_summary_service() -> None:
+    global _summary_service_instance
+    _summary_service_instance = None
+
+
+# ============================================================================
+# Memory Summarizer Factory
+# ============================================================================
+
+_memory_summarizer_instance: MemorySummarizer | None = None
+
+
+def get_memory_summarizer() -> MemorySummarizer:
+    global _memory_summarizer_instance
+
+    if _memory_summarizer_instance is None:
+        from negentropy.engine.consolidation.memory_summarizer import MemorySummarizer
+
+        _memory_summarizer_instance = MemorySummarizer()
+
+    return _memory_summarizer_instance
+
+
+def reset_memory_summarizer() -> None:
+    global _memory_summarizer_instance
+    _memory_summarizer_instance = None
+
+
+# ============================================================================
+# Conflict Resolver Factory
+# ============================================================================
+
+_conflict_resolver_instance: ConflictResolver | None = None
+
+
+def get_conflict_resolver() -> ConflictResolver:
+    global _conflict_resolver_instance
+
+    if _conflict_resolver_instance is None:
+        from negentropy.engine.governance.conflict_resolver import ConflictResolver
+
+        _conflict_resolver_instance = ConflictResolver()
+
+    return _conflict_resolver_instance
+
+
+def reset_conflict_resolver() -> None:
+    global _conflict_resolver_instance
+    _conflict_resolver_instance = None
+
+
+# ============================================================================
+# Proactive Recall Service Factory
+# ============================================================================
+
+_proactive_recall_instance: ProactiveRecallService | None = None
+
+
+def get_proactive_recall_service() -> ProactiveRecallService:
+    global _proactive_recall_instance
+
+    if _proactive_recall_instance is None:
+        from negentropy.engine.adapters.postgres.proactive_recall_service import ProactiveRecallService
+
+        _proactive_recall_instance = ProactiveRecallService()
+
+    return _proactive_recall_instance
+
+
+def reset_proactive_recall_service() -> None:
+    global _proactive_recall_instance
+    _proactive_recall_instance = None
+
+
+# ============================================================================
+# Association Service Factory
+# ============================================================================
+
+_association_service_instance: AssociationService | None = None
+
+
+def get_association_service() -> AssociationService:
+    global _association_service_instance
+
+    if _association_service_instance is None:
+        from negentropy.engine.adapters.postgres.association_service import AssociationService
+
+        _association_service_instance = AssociationService()
+
+    return _association_service_instance
+
+
+def reset_association_service() -> None:
+    global _association_service_instance
+    _association_service_instance = None
+
+
+# ============================================================================
+# Core Block Service Factory（Phase 4 — 常驻摘要块）
+# ============================================================================
+
+_core_block_service_instance: CoreBlockService | None = None
+
+
+def get_core_block_service() -> CoreBlockService:
+    global _core_block_service_instance
+
+    if _core_block_service_instance is None:
+        from negentropy.engine.adapters.postgres.core_block_service import CoreBlockService
+
+        _core_block_service_instance = CoreBlockService()
+
+    return _core_block_service_instance
+
+
+def reset_core_block_service() -> None:
+    global _core_block_service_instance
+    _core_block_service_instance = None
+
+
 __all__ = [
     "MemoryBackend",
     "EmbeddingFn",
@@ -232,4 +376,22 @@ __all__ = [
     "reset_fact_service",
     "get_memory_automation_service",
     "reset_memory_automation_service",
+    # Summary Service
+    "get_summary_service",
+    "reset_summary_service",
+    # Memory Summarizer
+    "get_memory_summarizer",
+    "reset_memory_summarizer",
+    # Conflict Resolver
+    "get_conflict_resolver",
+    "reset_conflict_resolver",
+    # Proactive Recall
+    "get_proactive_recall_service",
+    "reset_proactive_recall_service",
+    # Association
+    "get_association_service",
+    "reset_association_service",
+    # Core Block (Phase 4)
+    "get_core_block_service",
+    "reset_core_block_service",
 ]

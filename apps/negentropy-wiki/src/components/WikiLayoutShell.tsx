@@ -51,6 +51,13 @@ interface WikiLayoutShellProps {
   children: ReactNode;
   toc?: ReactNode;
   hasToc?: boolean;
+  /**
+   * 顶部 Header（站点品牌 + 一级 tabs）。
+   *
+   * 渲染在 `.wiki-layout` 之外作为兄弟节点 —— 不参与 3 列 Grid，避免动 `data-toc` 三态。
+   * Sticky 偏移由 globals.css 的 `--wiki-header-height` 处理（sidebar / toc-aside 的 top）。
+   */
+  header?: ReactNode;
   /** 同站多布局共存时的命名空间隔离 */
   storageKey?: string;
 }
@@ -60,6 +67,7 @@ export function WikiLayoutShell({
   children,
   toc,
   hasToc = false,
+  header,
   storageKey = TOC_STORAGE_KEY,
 }: WikiLayoutShellProps) {
   const [collapsed, setCollapsedState] = useState(false);
@@ -100,7 +108,8 @@ export function WikiLayoutShell({
 
   return (
     <TocContext.Provider value={ctxValue}>
-      <div className="wiki-layout" data-toc={dataToc}>
+      {header}
+      <div className="wiki-layout" data-toc={dataToc} data-header={header ? "" : undefined}>
         <aside className="wiki-sidebar">{sidebar}</aside>
         <main className="wiki-main">{children}</main>
         {hasToc && <aside className="wiki-toc-aside">{toc}</aside>}

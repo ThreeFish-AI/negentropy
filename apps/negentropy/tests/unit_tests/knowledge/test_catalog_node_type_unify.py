@@ -16,8 +16,8 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from negentropy.knowledge.catalog_dao import _ENUM_TO_NODE_TYPE, _NODE_TYPE_TO_ENUM
-from negentropy.knowledge.catalog_service import CatalogService
+from negentropy.knowledge.lifecycle.catalog_dao import _ENUM_TO_NODE_TYPE, _NODE_TYPE_TO_ENUM
+from negentropy.knowledge.lifecycle.catalog_service import CatalogService
 from negentropy.knowledge.lifecycle_schemas import CatalogNodeCreateRequest
 
 # ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ async def test_create_node_rejects_document_ref(monkeypatch: pytest.MonkeyPatch)
     catalog_id = uuid4()
     fake_catalog = SimpleNamespace(id=catalog_id, is_archived=False, app_name="aurelius")
     fake_dao = _FakeDao(catalog=fake_catalog)
-    monkeypatch.setattr("negentropy.knowledge.catalog_service.CatalogDao", fake_dao)
+    monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_service.CatalogDao", fake_dao)
 
     svc = CatalogService()
     with pytest.raises(ValueError) as exc:
@@ -106,7 +106,7 @@ async def test_create_node_default_is_folder(monkeypatch: pytest.MonkeyPatch) ->
     catalog_id = uuid4()
     fake_catalog = SimpleNamespace(id=catalog_id, is_archived=False, app_name="aurelius")
     fake_dao = _FakeDao(catalog=fake_catalog)
-    monkeypatch.setattr("negentropy.knowledge.catalog_service.CatalogDao", fake_dao)
+    monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_service.CatalogDao", fake_dao)
 
     svc = CatalogService()
     await svc.create_node(
@@ -122,7 +122,7 @@ async def test_create_node_default_is_folder(monkeypatch: pytest.MonkeyPatch) ->
 @pytest.mark.asyncio
 async def test_update_node_silently_drops_node_type(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_dao = _FakeDao()
-    monkeypatch.setattr("negentropy.knowledge.catalog_service.CatalogDao", fake_dao)
+    monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_service.CatalogDao", fake_dao)
 
     svc = CatalogService()
     node_id = uuid4()

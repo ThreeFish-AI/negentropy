@@ -18,6 +18,7 @@ const server = {
   auto_start: false,
   config: {},
   tool_count: 1,
+  resource_template_count: 0,
 };
 
 const tool = {

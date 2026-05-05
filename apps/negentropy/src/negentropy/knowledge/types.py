@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -25,7 +26,7 @@ from .constants import (
 )
 
 SearchMode = Literal["semantic", "keyword", "hybrid", "rrf"]
-GraphSearchMode = Literal["semantic", "graph", "hybrid"]
+GraphSearchMode = Literal["semantic", "graph", "hybrid", "global"]
 
 
 class ChunkingStrategy(Enum):
@@ -625,7 +626,9 @@ class KgEntityType(Enum):
 class KgRelationType(Enum):
     """知识图谱关系类型
 
-    定义支持的实体间关系类型。
+    定义支持的实体间关系类型。CUSTOM 类型支持 OpenIE 风格的
+    自由文本关系 (Banko et al., 2007; Gutierrez et al., 2024)，
+    原始类型保存在 relation metadata 的 raw_relation_type 字段中。
     """
 
     # 组织关系
@@ -650,10 +653,23 @@ class KgRelationType(Enum):
     # 共现关系（回退）
     CO_OCCURS = "CO_OCCURS"  # 共现
 
+    # OpenIE 自由文本关系 (Banko et al., 2007)
+    CUSTOM = "CUSTOM"  # 自定义关系
+
     @classmethod
     def all_values(cls) -> list[str]:
         """获取所有关系类型值列表"""
         return [e.value for e in cls]
+
+    @classmethod
+    def is_known(cls, value: str) -> bool:
+        """检查是否为已知（非 CUSTOM）关系类型"""
+        return value in cls._known_set()
+
+    @classmethod
+    @functools.lru_cache(maxsize=1)
+    def _known_set(cls) -> frozenset[str]:
+        return frozenset(e.value for e in cls if e != cls.CUSTOM)
 
 
 @dataclass(frozen=True)
@@ -709,9 +725,12 @@ class GraphQueryConfig(BaseModel):
     limit: int = 100
     semantic_weight: float = 0.6
     graph_weight: float = 0.4
+    rrf_k: int = 60
+    use_rrf: bool = True
     include_neighbors: bool = True
     neighbor_limit: int = 10
     entity_type_filter: str | None = None
+    as_of: datetime | None = None  # 时态查询：仅返回指定时间点有效的事实
 
     @field_validator("max_depth")
     @classmethod
@@ -766,6 +785,9 @@ class GraphBuildConfig(BaseModel):
     min_relation_confidence: float = 0.5
     batch_size: int = 10
     max_concurrency: int = 3
+    incremental: bool = False
+    semantic_dedup_threshold: float = 0.92
+    extraction_schema_name: str | None = None
 
     @field_validator("min_entity_confidence", "min_relation_confidence")
     @classmethod

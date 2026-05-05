@@ -7,12 +7,12 @@
 > - Memory 模块设计：[docs/memory.md](./memory.md)
 > - 数据库 Schema：[docs/schema/kg_schema_extension.sql](./schema/kg_schema_extension.sql)
 > - 源码入口：
->   - 策略基类：[knowledge/graph.py](../apps/negentropy/src/negentropy/knowledge/graph.py)
->   - LLM 提取器：[knowledge/llm_extractors.py](../apps/negentropy/src/negentropy/knowledge/llm_extractors.py)
->   - 图谱存储：[knowledge/graph_repository.py](../apps/negentropy/src/negentropy/knowledge/graph_repository.py)
->   - 图谱服务：[knowledge/graph_service.py](../apps/negentropy/src/negentropy/knowledge/graph_service.py)
+>   - 策略基类：[knowledge/graph/strategy.py](../apps/negentropy/src/negentropy/knowledge/graph/strategy.py)
+>   - LLM 提取器：[knowledge/graph/extractors.py](../apps/negentropy/src/negentropy/knowledge/graph/extractors.py)
+>   - 图谱存储：[knowledge/graph/repository.py](../apps/negentropy/src/negentropy/knowledge/graph/repository.py)
+>   - 图谱服务：[knowledge/graph/service.py](../apps/negentropy/src/negentropy/knowledge/graph/service.py)
 >   - 类型定义：[knowledge/types.py](../apps/negentropy/src/negentropy/knowledge/types.py)
->   - REST API：[knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)
+>   - REST API（图谱子路由）：[knowledge/api.py](../apps/negentropy/src/negentropy/knowledge/api.py)
 
 ---
 
@@ -277,6 +277,16 @@ $$RRF(d) = \sum_{r \in R} \frac{1}{k + rank_r(d)}$$
 | 社区检测 | 🔄 Louvain (Python networkx) | 服务层编排 |
 | GraphRAG 检索 | 🔄 LightRAG 双层模式启发 | 适配现有 `SearchConfig` |
 | 时态建模 | 🔄 Graphiti 双时态模型启发 | 扩展关系属性 |
+
+### 3.6 可采纳的架构模式精炼
+
+基于对 Cognee、Graphiti、Neo4j GDS 的深度调研，提炼出以下可直接采纳的架构模式：
+
+**Cognee ECL 管道模式**：Extract-Cognify-Load 三层解耦架构<sup>[[13]](#ref13)</sup>。Extract 层负责文档解析与分块（对应 Negentropy 的感知系部），Cognify 层负责 LLM 提取、实体去重与 Schema 推断（对应 GraphService + LLM 提取器），Load 层负责三层存储（图 + 向量 + 关系，对应 PostgreSQL + pgvector + AGE）。核心启示：管道的每一层应是可独立替换的策略，通过接口解耦。
+
+**Graphiti 双时态模型**<sup>[[14]](#ref14)</sup>：关系同时携带 `valid_from/valid_to`（事实有效时间）和 `created_at/expired_at`（系统记录时间）两组时态字段。事实时间用于回答"这段关系何时成立"，系统时间用于回答"系统何时知道这段关系"。Deep Memory Retrieval（DMR）准确率达 94.8%，关键在于三级实体解析（精确匹配 → 嵌入相似度 > 0.92 → LLM 推理）。Negentropy 可在 Phase 3 在 `KgRelation` 的 `first_observed_at/last_observed_at` 基础上扩展双时态字段。
+
+**Neo4j GDS 算法库**<sup>[[6]](#ref6)</sup>：提供 50+ 图算法（PageRank、Louvain、Node2Vec 等）。Negentropy 当前采用 PostgreSQL 单一技术栈，图算法通过 Python `networkx` 实现而非数据库内计算。迁移阈值：图规模 >100K 实体 / 频繁 4+ 跳查询 / 需要 50+ GDS 算法时，评估迁移到 Neo4j。
 | 向量检索 | ✅ pgvector HNSW (已有) | RRF 融合图分数 |
 
 ---
@@ -298,6 +308,12 @@ Phase 1 基础能力增强已于 2026-02 完成，主要交付物：
 | 类型定义 | [`types.py`](../apps/negentropy/src/negentropy/knowledge/types.py) | ✅ | `KgEntityType` / `KgRelationType` / `GraphSearchMode` |
 | API 端点 | [`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) | ✅ | 图谱构建/查询/检索/邻居/路径 API |
 | DB Schema | [`kg_schema_extension.sql`](./schema/kg_schema_extension.sql) | ✅ | AGE 扩展 + 枚举 + 函数 + 视图 |
+| 实体一等公民服务 | [`kg_entity_service.py`](../apps/negentropy/src/negentropy/knowledge/kg_entity_service.py) | ✅ | `KgEntityService` 双写 + 实体列表/详情 |
+| 实体浏览 API | [`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) | ✅ | `GET /graph/entities` + `GET /graph/entities/{id}` |
+| 图谱统计 API | [`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) | ✅ | `GET /graph/stats` 聚合统计 |
+| 递归 CTE 遍历 | [`graph_repository.py`](../apps/negentropy/src/negentropy/knowledge/graph_repository.py) | ✅ | `find_neighbors` / `find_path` 多跳 BFS |
+| 前端图谱页面 | [`graph/page.tsx`](../apps/negentropy-ui/app/knowledge/graph/page.tsx) | ✅ | 语料库选择 + 可视化 + 实体列表 + 搜索 |
+| 前端实体面板 | [`_components/`](../apps/negentropy-ui/app/knowledge/graph/_components/) | ✅ | EntityList + EntityDetail + SearchBar + PathExplorer |
 
 ### 4.2 当前架构
 
@@ -582,6 +598,30 @@ SELECT * FROM cypher('negentropy_kg', $$
 $$, params => '...');
 ```
 
+#### 5.3.4 Personalized PageRank 与多跳推理（Phase 4 G4 已落地）
+
+**理论锚点**：Page et al. (1999) PageRank 通过偏置 teleport 向量实现"以查询为中心"的相关性传播；HippoRAG (Gutiérrez et al., NeurIPS'24) 在多跳问答上证明 PPR + 命名实体抽取 优于密集检索 ~20%。
+
+**计算入口**：`graph_algorithms.compute_personalized_pagerank(db, corpus_id, seed_entities, alpha=0.85)`：
+- 复用 `export_graph_to_networkx`；将 seed 归一化（去 `entity:` 前缀 + 过滤不在图中的）
+- `personalization` 字典：valid seeds 平均分配权重 1/N，其余节点 0
+- `nx.PowerIterationFailedConvergence` 时降级为"种子节点 1.0、其余 0"，与 PageRank 失败降级互补
+- 不写库（不污染 `kg_entities.importance_score`），分数仅用于本次 multi_hop_reason 调用
+
+**Provenance 证据链**：`graph/provenance.py::ProvenanceBuilder` 对 PPR top-K 反向追溯：
+- 单次递归 CTE BFS 在 `kg_relations` 上找出 target → 任意 seed 的最短无向路径（默认 `max_chain_depth=5`）
+- 沿路径逐跳 JOIN `kg_relations` 获取 `relation_type` + `evidence_text` + `weight`，组装 `EvidenceEdge` 列表
+- 单一职责：仅产出"展示用"路径；时态版本由 `repository.find_path(as_of=...)` 承担，避免循环依赖
+
+**API**：`POST /base/{cid}/graph/multi_hop_reason`：
+- 入参：`{query, seed_entities[], top_k=10, max_hops=3}`；`seed_entities` 留空时按规则从 query 提取（英文大写词、引号括起的中英短语）
+- seed → entity_id 解析：UUID 直接用；否则按 `kg_entities.name ILIKE` 等值/前缀模糊匹配（按 confidence DESC 取首条）
+- 出参：`{seeds, answer_entities, evidence_chain[], latency_ms}`；evidence_chain 按 PPR 降序
+
+**Migration 0025**：`kg_query_provenance` 审计表（query/seeds/top_entities/evidence_chain/latency 留痕），用于后续抽样质检与训练数据生成。
+
+**降级路径**：seeds 提取为空 → 直接返回空 evidence_chain（不抛错）；seed 全部不在图中 → PPR 返回空字典，UI 显式提示"未发现可达路径"。
+
 ### 5.4 混合检索增强
 
 **目标**：构建 **Vector + Graph + RRF** 三层融合检索管道。
@@ -665,6 +705,36 @@ GraphSearchMode = Literal["semantic", "graph", "hybrid", "rrf", "graphrag"]
 }
 ```
 
+#### 5.2.4 前端可视化层（Cytoscape.js + fCoSE）
+
+**理论锚点**：Force-directed layout 起源于 Fruchterman & Reingold (1991)；fCoSE (Dogrusoz et al., 2009) 是当前对大规模属性图最优的快速复合 spring embedder。
+
+**节点编码**：
+- 颜色：`community_id != null` 时按社区配色（Tableau 10 色盲友好），否则按实体类型（`person/organization/...`）
+- 尺寸：18-46px 线性映射 PageRank `importance_score`，零值兜底为 22px
+- 选中态：橙色边框 + 非邻域淡化（opacity=0.15）
+
+**fCoSE 默认参数**：
+
+| 参数 | 值 | 备注 |
+| :--- | :--- | :--- |
+| `nodeRepulsion` | 5000 | 节点排斥力 |
+| `idealEdgeLength` | 80 | 理想边长 |
+| `edgeElasticity` | 0.45 | 边弹性 |
+| `gravity` | 0.25 | 引力（防游离簇飞出） |
+| `quality` | "default" | 在性能与美感间均衡 |
+
+**性能基准**（Chrome 134 / M1）：100-500 节点初始布局 < 2s；5000+ 节点建议服务端 `limit=500` 截断（默认值），UI 显式提示"已按 importance 截断（双击节点展开邻居）"。
+
+**交互范式**：
+- 滚轮缩放（`wheelSensitivity=0.2`，避免误触猛缩）
+- 拖拽画布平移
+- 单击节点 → 高亮 1-hop 邻域 + 父组件展示详情
+- 双击节点 → 调用 `GET /base/{cid}/graph/subgraph?center=ID&radius=1&limit=50` 增量加载
+- 点击空白 → 取消选中
+
+**渲染引擎切换**：保留 d3-force 实现作为兼容回退（顶部 toolbar `Cytoscape | d3-force` 切换）。
+
 ### 5.6 数据模型演进
 
 **索引优化计划**：
@@ -742,6 +812,40 @@ flowchart TB
 2. **社区摘要存储**：`kg_community_summaries` 表，字段包含 `community_id, level, summary_text, embedding, entity_count`
 3. **增量更新策略**：新实体加入后仅重新计算受影响社区的摘要（参考 LightRAG<sup>[[5]](#ref5)</sup> 的 Union 策略）
 
+#### 6.1.4 Global Search Map-Reduce 流水线（Phase 4 G1 已落地）
+
+**模块**：`graph/global_search.py` 引入 `GlobalSearchService`，与 `community_summarizer.py` 正交分工 —— 后者负责生成与 embedding 落库，前者负责 query-focused 检索 + Map-Reduce。
+
+**流水线**：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant API as POST /global_search
+    participant SVC as GlobalSearchService
+    participant DB as kg_community_summaries
+    participant LLM as LLM
+    U->>API: query (+ max_communities)
+    API->>SVC: search(corpus_id, query, query_embedding)
+    SVC->>DB: SELECT top_k by 1-(emb<=>query)::vector
+    DB-->>SVC: candidates
+    par Map (concurrency=5)
+        SVC->>LLM: MAP_PROMPT(query, summary_i)
+        LLM-->>SVC: partial_answer_i
+    end
+    SVC->>LLM: REDUCE_PROMPT(query, partials)
+    LLM-->>SVC: final_answer
+    SVC-->>API: answer + evidence + summaries_dirty
+    API-->>U: GlobalSearchResponse
+```
+
+**关键设计**：
+- **Selection（候选筛选）**：用 query embedding 在 `kg_community_summaries.embedding` 上做 cosine 排序，避免对全部摘要做 LLM 调用；若 embedding 列尚未填充（旧数据），降级为按 `entity_count DESC` 排序，相似度兜底为 0。
+- **Map 限流**：`asyncio.Semaphore(5)`（默认）防止触达 LLM rate-limit；单 LLM 失败返回空字符串，evidence 列表自动剔除（不阻塞整体）。
+- **Reduce 预算控制**：partial answers 截断为前 20 条防止 token 预算溢出。
+- **摘要陈旧检测**：每次查询末尾对比 `kg_entities.MAX(updated_at) > kg_community_summaries.MIN(updated_at)`；若 dirty，response 中 `summaries_dirty=true`，UI 显式提示用户重跑摘要流程。
+- **Embedding 写入路径**：`CommunitySummarizer(embedding_fn=...)` 在持久化时同步写 embedding；调用方未注入 `embedding_fn` 时降级为不写（与 G3 backfill 同向兼容）。
+
 ### 6.2 时态知识图谱
 
 以 Graphiti<sup>[[6]](#ref6)</sup> 为蓝本的双时态模型设计：
@@ -786,6 +890,34 @@ stateDiagram-v2
 1. LLM 判断是"更新"还是"矛盾"
 2. 若为"更新"：旧边设置 `valid_to = now`，新边 `valid_from = now`
 3. 若为"矛盾"：两边共存，标记 `contradiction_flag = true`，等待人工审核
+
+#### 6.2.3 as-of 查询接口与时间轴（Phase 4 G3 已落地）
+
+**单一事实源**：所有需要按 `valid_from / valid_to` 过滤的查询都通过模块级 helper `_temporal_where_clause(rel_alias)` 构造谓词片段，绑定参数固定为 `:as_of`。这避免了在 `find_neighbors / find_path / hybrid_search / get_graph` 中重复散落 4 处时态 SQL，从源头消除"时态语义跨方法漂移"风险。
+
+**API 入口**：所有图谱读路径接受可选 `as_of` 参数（ISO-8601）：
+
+| 端点 | as_of 位置 | 行为 |
+| :--- | :--- | :--- |
+| `GET /knowledge/base/{cid}/graph` | query string | 仅返回该时刻有效关系；无连接的孤立节点自然剔除 |
+| `POST /knowledge/base/{cid}/graph/search` | request body | 通过 EXISTS 子查询过滤"在该时刻无任何活跃关系"的实体；线性加权路径会自动升级为 RRF（线性 SQL 函数不支持时态过滤） |
+| `POST /knowledge/graph/neighbors` | request body | 递归 CTE 在每跳应用时态过滤 |
+| `POST /knowledge/graph/path` | request body | BFS 的 base 段 + recursive 段共享同一谓词 |
+| `GET /knowledge/base/{cid}/graph/timeline` | — | 新增端点，返回按 `day/week/month` 桶聚合的 `valid_from`/`valid_to` 事件直方图，供前端 `TimeTravelSlider` 渲染 |
+
+**索引**：迁移 `0024_kg_temporal_index_and_summary_embedding.py` 给 `kg_relations` 增加部分索引
+
+```sql
+CREATE INDEX ix_kg_relations_valid_active
+  ON negentropy.kg_relations(corpus_id)
+  WHERE valid_to IS NULL AND is_active = true;
+```
+
+加速默认"当前时刻"查询；同时一次性 `UPDATE kg_relations SET valid_from = created_at WHERE valid_from IS NULL` 让历史关系视为从写入时刻起即生效。
+
+**缓存**：`_graph_cache` 的 key 维度从 `f"graph:{corpus_id}"` 升级为 `f"graph:{corpus_id}|as_of={iso}"`，`as_of=None` 显式落入 `as_of=now` 分桶，确保不同时刻快照不会脏读。`invalidate(prefix="graph:{corpus_id}")` 仍按前缀匹配清空所有 as_of 变体，无需逐 key 清理。
+
+**前端 UI**：`TimeTravelSlider.tsx` 拉取 `/graph/timeline` 渲染密度直方图 + range slider；用户拖动至历史桶即将 ISO 时刻通过 `onChange` 回调透传至顶层 `as_of` 状态，所有面板（图谱、邻居、路径、搜索）共享同一时刻。徽标 `as_of: YYYY-MM-DD` 在每个面板顶部显式提示当前快照。
 
 ### 6.3 增量图更新
 
@@ -1130,13 +1262,13 @@ timeline
 
 | # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
 | :- | :--- | :----- | :--- | :----- | :--- |
-| P2-1 | JSONB 关系迁移到 AGE 图边 | P0 | P1 | 更新 `AgeGraphRepository` | 🔲 |
-| P2-2 | 实现 Cypher 原生遍历 | P0 | P2-1 | `find_neighbors` via Cypher | 🔲 |
-| P2-3 | PageRank 实现 | P1 | P2-2 | `kg_pagerank()` SQL/Python | 🔲 |
-| P2-4 | Louvain 社区检测 | P1 | P2-2 | `GraphService.detect_communities()` | 🔲 |
-| P2-5 | RRF 混合检索增强 | P1 | P2-2 | 更新 `kg_hybrid_search()` | 🔲 |
+| P2-1 | JSONB 关系迁移到 AGE 图边 | P0 | P1 | 更新 `AgeGraphRepository` | ✅ |
+| P2-2 | 实现 Cypher 原生遍历 | P0 | P2-1 | `find_neighbors` via Cypher | ✅ |
+| P2-3 | PageRank 实现 | P1 | P2-2 | `kg_pagerank()` SQL/Python | ✅ |
+| P2-4 | Louvain 社区检测 | P1 | P2-2 | `GraphService.detect_communities()` | ✅ |
+| P2-5 | RRF 混合检索增强 | P1 | P2-2 | 更新 `kg_hybrid_search()` | ✅ |
 | P2-6 | Cognee 适配器原型 | P2 | P2-4 | `CogneeAdapter` class | 🔲 |
-| P2-7 | 图谱质量仪表盘 | P2 | P2-3 | API + 前端组件 | 🔲 |
+| P2-7 | 图谱质量仪表盘 | P2 | P2-3 | API + 前端组件 | ✅ |
 | P2-8 | 价值量化基线测量 | P1 | P2-5 | A/B 测试基线报告 | 🔲 |
 
 **里程碑**：
@@ -1146,16 +1278,23 @@ timeline
 
 ### 9.3 Phase 3: GraphRAG 与高级能力 (4-8 月)
 
-| # | 任务 | 优先级 | 依赖 | 交付物 | 状态 |
-| :- | :--- | :----- | :--- | :----- | :--- |
-| P3-1 | Leiden 社区检测 | P1 | P2-4 | 升级社区算法 | 🔲 |
-| P3-2 | 社区摘要管道 | P1 | P3-1 | `kg_community_summaries` 表 + LLM 摘要 | 🔲 |
-| P3-3 | 双层检索 (实体 + 社区) | P1 | P3-2 | `GraphSearchMode.GRAPHRAG` | 🔲 |
-| P3-4 | 时态关系建模 | P2 | P2-1 | `valid_from/to` 字段 + 矛盾检测 | 🔲 |
-| P3-5 | 增量图更新 | P1 | P2-1 | Delta-based graph evolution | 🔲 |
-| P3-6 | Neo4j 评估与基准 | P2 | P3-3 | 性能对比报告 | 🔲 |
-| P3-7 | GraphRAG API 端点 | P1 | P3-3 | `POST /knowledge/graph/rag` | 🔲 |
-| P3-8 | 矛盾检测与解决 | P2 | P3-4 | 实体冲突解决流程 | 🔲 |
+| # | 任务 | 优先级 | 依赖 | 交付物 | 理论基础 | 状态 |
+| :- | :--- | :----- | :--- | :----- | :------- | :--- |
+| P3-1 | Leiden 社区检测 | P1 | P2-4 | 升级社区算法 | Traag et al., 2019<sup>[[15]](#ref15)</sup> | 🔲 |
+| P3-2 | 社区摘要管道 | P1 | P3-1 | `kg_community_summaries` 表 + LLM 摘要 | Edge et al., 2024<sup>[[4]](#ref4)</sup> | 🔲 |
+| P3-3 | 双层检索 (实体 + 社区) | P1 | P3-2 | `GraphSearchMode.GRAPHRAG` | Edge et al., 2024<sup>[[4]](#ref4)</sup> | 🔲 |
+| P3-4 | 时态关系建模 | P2 | P2-1 | `valid_from/to` 字段 + 矛盾检测 | Tripathi et al., 2025<sup>[[6]](#ref6)</sup> | 🔲 |
+| P3-5 | 增量图更新 | P1 | P2-1 | Delta-based graph evolution | Hogan et al., 2021<sup>[[1]](#ref1)</sup> §6.3; Kleppmann, 2017<sup>[[17]](#ref17)</sup> §11 | ✅ |
+| P3-6 | Neo4j 评估与基准 | P2 | P3-3 | 性能对比报告 | — | 🔲 |
+| P3-7 | GraphRAG API 端点 | P1 | P3-3 | `POST /knowledge/graph/rag` | — | 🔲 |
+| P3-8 | 矛盾检测与解决 | P2 | P3-4 | 实体冲突解决流程 | — | 🔲 |
+| P3-9 | 构建管线健壮性 | P1 | P2-5 | 进度追踪 + 重试 + 警告累积 | Nygard, 2018<sup>[[16]](#ref16)</sup>; Majors, 2022<sup>[[18]](#ref18)</sup> | ✅ |
+| P3-10 | 实体语义去重 | P1 | P3-5 | Embedding ANN + 实体合并 | Fellegi & Sunter, 1969<sup>[[20]](#ref20)</sup>; Mudgal et al., 2018<sup>[[22]](#ref22)</sup> | ✅ |
+| P3-11 | 图谱查询缓存 | P1 | P3-5 | TTL 缓存 + 确定性失效 | Tanenbaum & Van Steen, 2017<sup>[[24]](#ref24)</sup> | ✅ |
+| P3-12 | GraphRAG 上下文组装集成 | P0 | P2-3 | `ContextAssembler._collect_kg_context()` | Edge et al., 2024<sup>[[4]](#ref4)</sup>; Guo et al., 2024<sup>[[5]](#ref5)</sup> | ✅ |
+| P3-13 | Agent → KG 三元组双向同步 | P1 | P3-12 | `_sync_triple_to_kg()` 强化模式 | Dong et al., 2014<sup>[[23]](#ref23)</sup>; Hogan et al., 2021<sup>[[1]](#ref1)</sup> §6.3 | ✅ |
+| P3-14 | 图谱质量健康指标 | P1 | P2-3 | 孤立率 + Shannon 熵 + 连通分量 + health_score | Farber et al., 2018<sup>[[19]](#ref19)</sup>; Hogan et al., 2021<sup>[[1]](#ref1)</sup> §7 | ✅ |
+| P3-15 | 跨语料实体重叠推荐 | P1 | P2-4 | Jaccard 相似度 + 共享实体名称 | Dong et al., 2014<sup>[[23]](#ref23)</sup>; Christen, 2012<sup>[[21]](#ref21)</sup> | ✅ |
 
 **里程碑**：
 - M3.1: GraphRAG 双层检索上线（Local + Global Search）
@@ -1241,6 +1380,24 @@ timeline
 
 <a id="ref15"></a>[15] V. A. Traag, L. Waltman, and N. J. van Eck, "From Louvain to Leiden: Guaranteeing well-connected communities," _Sci. Rep._, vol. 9, art. 5233, 2019.
 
+<a id="ref16"></a>[16] M. T. Nygard, *Release It!: Design and Deploy Production-Ready Software*, 2nd ed. Pragmatic Bookshelf, 2018.
+
+<a id="ref17"></a>[17] M. Kleppmann, *Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems*. O'Reilly Media, 2017.
+
+<a id="ref18"></a>[18] C. Majors, L. Fout, and G. Larkby-Lahet, *Observability Engineering: Achieving Production Excellence*. O'Reilly Media, 2022.
+
+<a id="ref19"></a>[19] M. Farber, F. Bartscherer, C. Menne, and A. Rettinger, "Linked data quality of DBpedia, Freebase, OpenCyc, Wikidata, and YAGO," *Semantic Web*, vol. 9, no. 1, pp. 77–129, 2018.
+
+<a id="ref20"></a>[20] I. P. Fellegi and A. B. Sunter, "A theory for record linkage," *J. Amer. Statist. Assoc.*, vol. 64, no. 328, pp. 1183–1210, 1969.
+
+<a id="ref21"></a>[21] P. Christen, *Data Matching: Concepts and Techniques for Record Linkage, Entity Resolution, and Duplicate Detection*. Springer, 2012.
+
+<a id="ref22"></a>[22] S. Mudgal, H. Li, T. Rekatsinas, A. Doan, Y. Park, G. Krishnan, R. Deep, E. Arcaute, and V. Raghavendra, "Deep learning for entity matching: A design space exploration," in *Proc. ACM SIGMOD*, pp. 19–34, 2018.
+
+<a id="ref23"></a>[23] X. L. Dong, E. Gabrilovich, G. Heitz, W. Horn, N. Lao, K. Murphy, T. Strohmann, S. Sun, and W. Zhang, "Knowledge vault: A web-scale approach to probabilistic knowledge fusion," in *Proc. 20th ACM SIGKDD*, pp. 601–610, 2014.
+
+<a id="ref24"></a>[24] A. S. Tanenbaum and M. Van Steen, *Distributed Systems: Principles and Paradigms*, 3rd ed. Pearson, 2017.
+
 ---
 
 ## 12. 变更日志
@@ -1250,6 +1407,14 @@ timeline
 | 2026-02-15 | 1.0 | 初始版本，Phase 1 规划 | Claude |
 | 2026-02-15 | 1.1 | Phase 1 实现完成 | Claude |
 | 2026-04-08 | 2.0 | **完全重写**：学术基础 (15 篇 IEEE 引用)、行业框架分析 (5 大框架)、两阶段设计 (PostgreSQL → 终极)、价值量化体系、一核五翼集成架构、实施路线图 (Phase 2-4) | Claude |
+| 2026-05-02 | 2.1 | Phase 2 状态更新（P2-3 PageRank / P2-4 Louvain / P2-5 RRF 标记已完成）；Phase 3 新增 P3-9 构建管线健壮性 / P3-10 实体语义去重 / P3-11 图谱查询缓存（均已完成）；新增参考文献 [16]-[24] 共 9 条 IEEE 引用 | Claude |
+| 2026-05-02 | 2.2 | Phase 3 新增 P3-12 GraphRAG 上下文组装集成 / P3-13 Agent→KG 三元组双向同步 / P3-14 图谱质量健康指标 / P3-15 跨语料实体重叠推荐（均已完成） | Claude |
+| 2026-05-02 | 2.3 | **Phase 4 G3 双时态 as-of 时间穿梭检索（已完成）**：Migration 0024 部分索引 + valid_from backfill（最初标记为 0023，后因与 feature/1.x.x 上 `0023_memory_phase4_core_blocks` 撞号顺延为 0024）；Repository/Service/API 全链路 as_of 透传；新增 `GET /graph/timeline`；前端 `TimeTravelSlider`；Cache key 加入 as_of 维度避免脏读 | Claude |
+| 2026-05-02 | 2.4 | **Phase 4 G2 Cytoscape.js 交互可视化（已完成）**：新增前端 `GraphCanvas` 组件（cytoscape + cytoscape-fcose）；新增后端 `GET /graph/subgraph` 端点（service 层 BFS 截断；node 排序 跳数 → importance）；page.tsx 渲染引擎切换（Cytoscape vs d3-force）；双击节点触发 1 跳子图增量加载；G3 as_of 在 Cytoscape 路径下保持透传 | Claude |
+| 2026-05-02 | 2.5 | **Phase 4 G1 GraphRAG Global Search Map-Reduce（已完成）**：新增 `graph/global_search.py` (GlobalSearchService) — 嵌入查询 → 余弦排序选 top_k 社区摘要 → asyncio.Semaphore(5) 限流 Map 并发 → Reduce 聚合；`community_summarizer.py` 新增可选 `embedding_fn` 入参，落库时同步写入 summary embedding；新增 `POST /base/{cid}/graph/global_search` 端点；前端新增 `GlobalSearchPanel` 卡片（含 evidence 树 + 摘要陈旧度提示） | Claude |
+| 2026-05-02 | 2.6 | **Phase 4 G4 Personalized PageRank + Provenance（已完成）**：`graph_algorithms.py` 新增 `compute_personalized_pagerank(seed_entities)` — 偏置 teleport 向量 + dangling node 兜底；新增 `graph/provenance.py` 中 `ProvenanceBuilder` — 反向最短路径 BFS（递归 CTE）+ 三元组组装；Migration 0025 新增 `kg_query_provenance` 审计表（最初标记为 0024，与 0024 重命名联动顺延）；新增 `POST /base/{cid}/graph/multi_hop_reason` 端点（支持 seed 抽取兜底）；前端新增 `EvidenceChainPanel` 卡片（树形展开多跳证据） | Claude |
+| 2026-05-03 | 3.0 | **Phase 5 四大缺口修复与增强**：**E1** 增量构建流水线修复（`api.py` chunk dict 补全 `id` 字段）+ Open Relation Type（`CUSTOM` 类型 + `raw_relation_type` 元数据保留，参考 Banko et al., 2007; Gutierrez et al., 2024）；**E2** Leiden 社区检测升级（Traag et al., 2019，保证社区内部连通性）+ 多层级社区摘要（3 级 resolution: 0.5/1.0/2.0，参考 Edge et al., 2024）；**E3** 双写一致性加固（关系同步端点修复、`__import__` 反模式清理、`_TTLCache` LRU 淘汰、`frozen dataclass` `replace()` 修复）；**E4** KG 质量可观测性指标管道（`metrics.py` + `GET /graph/metrics` endpoint + 结构化 build metrics 日志） | Claude |
+| 2026-05-04 | 3.1 | **Review & Enhancement**：**G2** 死代码清理（移除 `GraphProcessor` 260 行，修正文档路径引用）；**G3** 图谱质量验证（`quality.py` — 悬空边/孤立节点/社区覆盖率/证据支持率/综合评分，参考 Paulheim, 2017；新增 `GET /graph/quality` 端点）；**G4** Schema 引导实体提取（`extraction_schema.py` — 预置 AI Paper 本体 [8 种实体类型 + 9 种关系类型]，参考 Martinez-Rodriguez et al., 2018；增强 `extractors.py` 支持 schema 约束 prompt）；**G1** 提取 `api_helpers.py` 共享工具函数（为后续完整拆分奠基） | Claude |
 
 ---
 

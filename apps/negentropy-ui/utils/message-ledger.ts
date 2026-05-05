@@ -37,6 +37,19 @@ type SnapshotMessage = {
 const DEFAULT_THREAD_ID = "default";
 const DEFAULT_RUN_ID = "default-run";
 
+// ISSUE-041: 后端 ADK Web `/sessions/{id}` 不透传 runId 时，前端
+// `session-hydration.ts::fallbackRunId` 会回退到 threadId 或 sessionId，导致
+// 同一逻辑消息在 realtime（真 runId）与 hydrated（合成 runId）两路下身份割裂，
+// 进而在 conversation-tree 产出两个独立 turn → UI 双气泡。
+// 下游 dedup / fallback / collapse 必须借助本辅助识别合成 runId，将其视为
+// runId 维度上的"无身份"占位符，允许与真 runId 兼并。
+export function isSyntheticRunId(entry: { runId?: string; threadId?: string }): boolean {
+  if (!entry.runId) return true;
+  if (entry.runId === DEFAULT_RUN_ID) return true;
+  if (entry.runId === "default") return true;
+  return Boolean(entry.threadId) && entry.runId === entry.threadId;
+}
+
 function getLedgerIdentityKey(entry: Pick<MessageLedgerEntry, "id" | "threadId" | "runId">): string {
   return `${entry.threadId}|${entry.runId || DEFAULT_RUN_ID}|${entry.id}`;
 }
@@ -68,8 +81,17 @@ export function isSemanticEquivalentEntry(
   if (left.threadId !== right.threadId) {
     return false;
   }
-  if ((left.runId || DEFAULT_RUN_ID) !== (right.runId || DEFAULT_RUN_ID)) {
-    return false;
+  const leftRun = left.runId || DEFAULT_RUN_ID;
+  const rightRun = right.runId || DEFAULT_RUN_ID;
+  if (leftRun !== rightRun) {
+    // ISSUE-041: 当一侧来自 hydration 的合成 runId（runId === threadId 或
+    // 等同 DEFAULT_RUN_ID），不应阻断与 realtime 真 runId 的语义合并。
+    // threadId + role + 内容前缀 + origin 多元 已构成充分身份约束。
+    const leftIsSynthetic = isSyntheticRunId({ runId: left.runId, threadId: left.threadId });
+    const rightIsSynthetic = isSyntheticRunId({ runId: right.runId, threadId: right.threadId });
+    if (!leftIsSynthetic && !rightIsSynthetic) {
+      return false;
+    }
   }
   if (left.resolvedRole !== right.resolvedRole) {
     return false;
@@ -97,7 +119,12 @@ export function isSemanticEquivalentEntry(
   }
 
   const maxWindowMs = 8_000;
+  // 长耗时回复（如多段落 / 列表型答复）下，realtime 取首个 partial 时间戳、
+  // hydration 取终态时间戳，两者跨度可能大于 8s。当 trim 后内容严格相等且
+  // threadId+runId+role 已收敛时，可视为同一逻辑消息，跳过时间窗硬拒绝。
+  const strictlyEqualContent = leftContent === rightContent;
   if (
+    !strictlyEqualContent &&
     Math.abs(left.createdAt.getTime() - right.createdAt.getTime()) > maxWindowMs
   ) {
     return false;
@@ -253,9 +280,13 @@ export function buildMessageLedger(input: {
 
   const upsertEntry = (
     key: string,
-    next: Omit<MessageLedgerEntry, "sourceEventTypes" | "relatedMessageIds"> & {
+    next: Omit<
+      MessageLedgerEntry,
+      "sourceEventTypes" | "relatedMessageIds" | "sourceOrder"
+    > & {
       sourceEventTypes?: string[];
       relatedMessageIds?: string[];
+      sourceOrder?: number;
     },
   ) => {
     const existing = entries.get(key);
@@ -265,6 +296,10 @@ export function buildMessageLedger(input: {
         content: next.content,
         sourceEventTypes: next.sourceEventTypes || [],
         relatedMessageIds: next.relatedMessageIds || [],
+        sourceOrder:
+          next.sourceOrder !== undefined && Number.isFinite(next.sourceOrder)
+            ? next.sourceOrder
+            : Number.MAX_SAFE_INTEGER,
       });
       return;
     }
@@ -288,6 +323,12 @@ export function buildMessageLedger(input: {
     if (existing.origin !== next.origin && next.origin !== "realtime") {
       existing.origin = next.origin;
     }
+    if (next.sourceOrder !== undefined && Number.isFinite(next.sourceOrder)) {
+      const existingOrder = existing.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+      if (next.sourceOrder < existingOrder) {
+        existing.sourceOrder = next.sourceOrder;
+      }
+    }
     (next.sourceEventTypes || []).forEach((eventType) => {
       if (!existing.sourceEventTypes.includes(eventType)) {
         existing.sourceEventTypes.push(eventType);
@@ -310,7 +351,7 @@ export function buildMessageLedger(input: {
     return String(a.type).localeCompare(String(b.type));
   });
 
-  orderedEvents.forEach((event) => {
+  orderedEvents.forEach((event, eventIndex) => {
     if (
       event.type !== EventType.TEXT_MESSAGE_START &&
       event.type !== EventType.TEXT_MESSAGE_CONTENT &&
@@ -358,6 +399,7 @@ export function buildMessageLedger(input: {
       author: getEventAuthor(event),
       sourceEventTypes: [String(event.type)],
       relatedMessageIds: [messageId],
+      sourceOrder: eventIndex,
     });
   });
 
@@ -375,7 +417,7 @@ export function buildMessageLedger(input: {
           author: message.author,
         }) as Message,
     ),
-  ].forEach((message) => {
+  ].forEach((message, fallbackIndex) => {
     const key = getMessageIdentityKey(message);
     const resolved = resolveMessageRole({
       explicitRole: typeof message.role === "string" ? message.role : undefined,
@@ -395,18 +437,30 @@ export function buildMessageLedger(input: {
       author: getMessageAuthor(message),
       sourceEventTypes: [snapshotMessageById.has(message.id) ? String(EventType.MESSAGES_SNAPSHOT) : "fallback.message"],
       relatedMessageIds: [message.id],
+      // 事件序之后追加 fallback / snapshot，保留 origin 间稳定相对序。
+      sourceOrder: orderedEvents.length + fallbackIndex,
     });
   });
 
   return [...entries.values()]
     .filter((entry) => entry.content.trim().length > 0)
-    .sort((a, b) => {
-      const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
-      if (timeDiff !== 0) {
-        return timeDiff;
-      }
-      return a.id.localeCompare(b.id);
-    });
+    .sort(compareLedgerEntriesByTime);
+}
+
+function compareLedgerEntriesByTime(
+  a: MessageLedgerEntry,
+  b: MessageLedgerEntry,
+): number {
+  const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
+  if (timeDiff !== 0) {
+    return timeDiff;
+  }
+  const aOrder = a.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+  const bOrder = b.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+  if (aOrder !== bOrder) {
+    return aOrder - bOrder;
+  }
+  return a.id.localeCompare(b.id);
 }
 
 export function mergeMessageLedger(
@@ -450,6 +504,12 @@ export function mergeMessageLedger(
     } else if (existing.origin !== entry.origin) {
       existing.origin = entry.origin;
     }
+    if (entry.sourceOrder !== undefined && Number.isFinite(entry.sourceOrder)) {
+      const existingOrder = existing.sourceOrder ?? Number.MAX_SAFE_INTEGER;
+      if (entry.sourceOrder < existingOrder) {
+        existing.sourceOrder = entry.sourceOrder;
+      }
+    }
     if (!existing.relatedMessageIds.includes(entry.id)) {
       existing.relatedMessageIds.push(entry.id);
     }
@@ -465,24 +525,12 @@ export function mergeMessageLedger(
     });
   });
 
-  return [...merged.values()].sort((a, b) => {
-    const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
-    if (timeDiff !== 0) {
-      return timeDiff;
-    }
-    return a.id.localeCompare(b.id);
-  });
+  return [...merged.values()].sort(compareLedgerEntriesByTime);
 }
 
 export function ledgerEntriesToMessages(entries: MessageLedgerEntry[]): Message[] {
   return [...entries]
-    .sort((a, b) => {
-      const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
-      if (timeDiff !== 0) {
-        return timeDiff;
-      }
-      return a.id.localeCompare(b.id);
-    })
+    .sort(compareLedgerEntriesByTime)
     .map((entry) =>
     createAgUiMessage({
       id: entry.id,

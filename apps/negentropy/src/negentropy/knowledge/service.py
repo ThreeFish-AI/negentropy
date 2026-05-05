@@ -8,15 +8,15 @@ from uuid import UUID
 
 from negentropy.logging import get_logger
 
-from .chunking import chunk_text, semantic_chunk_async
+from .ingestion.chunking import chunk_text, semantic_chunk_async
 
 if TYPE_CHECKING:
     from .dao import KnowledgeRunDao
 from .constants import TEXT_PREVIEW_MAX_LENGTH
-from .extraction import ROUTE_URL, ExtractedDocumentResult, extract_source, resolve_source_kind
-from .repository import KnowledgeRepository
-from .reranking import NoopReranker, Reranker
-from .source_tracking import SourceTrackingService, TrackingContext
+from .ingestion.extraction import ROUTE_URL, ExtractedDocumentResult, extract_source, resolve_source_kind
+from .ingestion.source_tracking import SourceTrackingService, TrackingContext
+from .retrieval.repository import KnowledgeRepository
+from .retrieval.reranking import NoopReranker, Reranker
 from .types import (
     ChunkingConfig,
     ChunkingStrategy,
@@ -672,7 +672,7 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 url_details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -771,7 +771,7 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 url_details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -792,7 +792,7 @@ class KnowledgeService:
             await tracker.start_stage("document_store")
             from negentropy.storage.service import DocumentStorageService
 
-            from .extraction import build_url_document_filename, persist_extracted_assets
+            from .ingestion.extraction import build_url_document_filename, persist_extracted_assets
 
             storage_service = DocumentStorageService()
             raw_name = build_url_document_filename(url)
@@ -925,7 +925,7 @@ class KnowledgeService:
 
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -966,7 +966,7 @@ class KnowledgeService:
                 await tracker.complete_stage("source_tracking")
 
             if document_id:
-                from .extraction import store_extracted_document_artifacts
+                from .ingestion.extraction import store_extracted_document_artifacts
 
                 await tracker.start_stage("markdown_store")
                 markdown_gcs_uri, _ = await store_extracted_document_artifacts(
@@ -1228,7 +1228,7 @@ class KnowledgeService:
                 )
             except ValueError as exc:
                 from .exceptions import KnowledgeError
-                from .extraction import ExtractorExecutionError
+                from .ingestion.extraction import ExtractorExecutionError
 
                 url_details: dict[str, Any] = {}
                 if isinstance(exc, ExtractorExecutionError) and not exc.attempts:
@@ -1247,7 +1247,7 @@ class KnowledgeService:
 
             # Stage 2: 保存 Markdown 和资产
             await tracker.start_stage("markdown_store")
-            from .extraction import store_extracted_document_artifacts
+            from .ingestion.extraction import store_extracted_document_artifacts
 
             _, stored_assets = await store_extracted_document_artifacts(
                 document_id=document_id,
@@ -1405,7 +1405,7 @@ class KnowledgeService:
             await tracker.complete_stage("delete", {"deleted_count": deleted_count})
 
             if document_id:
-                from .extraction import store_extracted_document_artifacts
+                from .ingestion.extraction import store_extracted_document_artifacts
 
                 await tracker.start_stage("markdown_store")
                 markdown_gcs_uri, _ = await store_extracted_document_artifacts(
@@ -2532,11 +2532,33 @@ class KnowledgeService:
             query_preview=query_preview,
         )
 
+        # 与 _attach_embeddings 索引侧对称：优先使用 corpus 自配的 embedding 模型，
+        # 落空再退回 service 默认 fn。修复 query/index embedding 模型不一致 (ISSUE-028)。
+        corpus_config = await self._get_corpus_config(corpus_id)
+        embedding_fn = self._resolve_embedding_fn(corpus_config)
+
         # RRF 模式: 使用专门的 RRF 检索方法
         if config.mode == "rrf":
-            if not self._embedding_fn:
-                logger.warning("rrf_search_failed_no_embedding", corpus_id=str(corpus_id))
-                # 回退到关键词检索
+            from .exceptions import EmbeddingFailed
+
+            query_embedding = None
+            if embedding_fn:
+                try:
+                    query_embedding = await embedding_fn(query)
+                except EmbeddingFailed as exc:
+                    logger.warning(
+                        "rrf_embedding_failed_falling_back_to_keyword",
+                        corpus_id=str(corpus_id),
+                        reason=exc.details.get("reason", str(exc)),
+                    )
+
+            if query_embedding is None:
+                if not embedding_fn:
+                    logger.warning(
+                        "rrf_search_failed_no_embedding",
+                        corpus_id=str(corpus_id),
+                    )
+                # 回退到关键词检索（embedding 不可用 / embedding 失败）
                 keyword_matches = await self._repository.keyword_search(
                     corpus_id=corpus_id,
                     app_name=app_name,
@@ -2567,7 +2589,6 @@ class KnowledgeService:
                     matches=keyword_matches,
                 )
 
-            query_embedding = await self._embedding_fn(query)
             results = await self._repository.rrf_search(
                 corpus_id=corpus_id,
                 app_name=app_name,
@@ -2606,8 +2627,23 @@ class KnowledgeService:
 
         # 其他模式: semantic, keyword, hybrid
         query_embedding = None
-        if config.mode in ("semantic", "hybrid") and self._embedding_fn:
-            query_embedding = await self._embedding_fn(query)
+        if config.mode in ("semantic", "hybrid") and embedding_fn:
+            from .exceptions import EmbeddingFailed
+
+            try:
+                query_embedding = await embedding_fn(query)
+            except EmbeddingFailed as exc:
+                # hybrid 优雅降级：失败时仅以 keyword 检索回退；
+                # semantic 显式失败传播：纯语义模式无意义降级。
+                if config.mode == "hybrid":
+                    logger.warning(
+                        "hybrid_embedding_failed_falling_back_to_keyword",
+                        corpus_id=str(corpus_id),
+                        reason=exc.details.get("reason", str(exc)),
+                    )
+                    query_embedding = None
+                else:
+                    raise
 
         semantic_matches: list[KnowledgeMatch] = []
         keyword_matches: list[KnowledgeMatch] = []
@@ -2858,6 +2894,21 @@ class KnowledgeService:
             return None
         return str(value)
 
+    def _resolve_embedding_fn(self, corpus_config: dict[str, Any] | None) -> EmbeddingFn | None:
+        """根据 corpus.config['models']['embedding_config_id'] 选择 embedding fn。
+
+        与 ``_attach_embeddings`` 索引侧路径对称：corpus 显式 pin → 一次性构建 corpus 专属
+        闭包（``build_embedding_fn`` 内部走 ``model_resolver._cache`` 的 60s TTL ``embedding:<uuid>``
+        键，重复 search 命中即免 DB 查询）；未 pin → 退回 ``self._embedding_fn``（service 启动时
+        锁定的全局默认 fn），保留既有"未配置 corpus 走默认"语义。
+        """
+        embedding_config_id = self._extract_embedding_config_id(corpus_config)
+        if embedding_config_id is not None:
+            from .ingestion.embedding import build_embedding_fn
+
+            return build_embedding_fn(embedding_config_id)
+        return self._embedding_fn
+
     async def _attach_embeddings(
         self,
         chunks: Iterable[KnowledgeChunk],
@@ -2873,7 +2924,7 @@ class KnowledgeService:
 
         # Corpus 指定了 embedding 模型 → 按需构建一次性 fn；否则使用 service 级默认 fn。
         if embedding_config_id is not None:
-            from .embedding import build_batch_embedding_fn, build_embedding_fn
+            from .ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
 
             batch_fn = build_batch_embedding_fn(embedding_config_id)
             single_fn = build_embedding_fn(embedding_config_id)

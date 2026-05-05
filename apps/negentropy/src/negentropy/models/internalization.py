@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import UUID as SA_UUID
 from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -25,6 +26,7 @@ class Memory(Base, UUIDMixin, TimestampMixin):
     embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
     retention_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
+    importance_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5, server_default="0.5")
     access_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     last_accessed_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
     # search_vector: Mapped[Any] # tsvector support in SQLAlchemy needs specific handling or TypeDecorator
@@ -50,8 +52,14 @@ class Fact(Base, UUIDMixin, TimestampMixin):
     value: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0, server_default="1.0")
+    importance_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.5, server_default="0.5")
     valid_from: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=True)
     valid_until: Mapped[datetime | None] = mapped_column(TIMESTAMP)
+    superseded_by: Mapped[UUID | None] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.facts.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", server_default="'active'")
+    superseded_at: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("user_id", "app_name", "fact_type", "key", name="facts_user_key_unique"),
@@ -90,6 +98,179 @@ class MemoryAuditLog(Base, UUIDMixin, TimestampMixin):
     __table_args__ = (
         UniqueConstraint(
             "app_name", "user_id", "memory_id", "idempotency_key", name="memory_audit_logs_idempotency_unique"
+        ),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class MemorySummary(Base, UUIDMixin, TimestampMixin):
+    """用户记忆画像摘要缓存
+
+    MemorySummarizer 生成的结构化用户画像摘要，供 ContextAssembler 注入。
+
+    参考文献:
+    [1] S. J. Sara, "Reconsolidation and the stability of memory traces,"
+        Current Opinion in Neurobiology, vol. 35, pp. 110-115, 2015.
+    """
+
+    __tablename__ = "memory_summaries"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    summary_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="user_profile", server_default="'user_profile'"
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    token_count: Mapped[int | None] = mapped_column(Integer)
+    source_memory_count: Mapped[int | None] = mapped_column(Integer)
+    source_fact_count: Mapped[int | None] = mapped_column(Integer)
+    model_used: Mapped[str | None] = mapped_column(String(255))
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "app_name", "summary_type", name="memory_summaries_user_type_unique"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class MemoryRetrievalLog(Base, UUIDMixin):
+    """记忆检索效果反馈日志
+
+    追踪"检索了什么→是否被使用→是否有帮助"的反馈闭环。
+
+    参考文献:
+    [1] J. J. Rocchio, "Relevance feedback in information retrieval,"
+        in The SMART Retrieval System, Prentice-Hall, 1971, pp. 313-323.
+    """
+
+    __tablename__ = "memory_retrieval_logs"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    thread_id: Mapped[UUID | None] = mapped_column(SA_UUID)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    retrieved_memory_ids: Mapped[list] = mapped_column(ARRAY(SA_UUID), nullable=False)
+    retrieved_fact_ids: Mapped[list | None] = mapped_column(ARRAY(SA_UUID))
+    was_referenced: Mapped[bool | None] = mapped_column()
+    reference_count: Mapped[int | None] = mapped_column(Integer, default=0, server_default="0")
+    outcome_feedback: Mapped[str | None] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
+
+
+class MemoryConflict(Base, UUIDMixin, TimestampMixin):
+    """记忆冲突记录
+
+    当新事实与现有事实矛盾时记录冲突事件，支持 AGM 信念修正。
+
+    参考文献:
+    [1] C. E. Alchourrón, P. Gärdenfors, and D. Makinson,
+        "On the logic of theory change," J. Symbolic Logic, vol. 50, no. 2,
+        pp. 510–530, 1985.
+    """
+
+    __tablename__ = "memory_conflicts"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    old_fact_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.facts.id", ondelete="SET NULL"), nullable=True
+    )
+    new_fact_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.facts.id", ondelete="CASCADE"), nullable=True
+    )
+    conflict_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="contradiction", server_default="'contradiction'"
+    )
+    resolution: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="supersede", server_default="'supersede'"
+    )
+    confidence_delta: Mapped[float | None] = mapped_column(Float, nullable=True)
+    detected_by: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="key_collision", server_default="'key_collision'"
+    )
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+
+    __table_args__ = ({"schema": NEGENTROPY_SCHEMA},)
+
+
+class MemoryAssociation(Base, UUIDMixin):
+    """记忆关联
+
+    记忆/事实之间的轻量关联，支持语义、时间、线程共享、实体等关联类型。
+    基于 Spreading Activation 理论实现多跳检索。
+
+    参考文献:
+    [1] E. Tulving, "Episodic and semantic memory," 1972.
+    [2] A. M. Collins and E. F. Loftus, "A spreading-activation theory,"
+        Psychological Review, 1975.
+    """
+
+    __tablename__ = "memory_associations"
+
+    source_id: Mapped[UUID] = mapped_column(SA_UUID, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False, default="memory", server_default="'memory'")
+    target_id: Mapped[UUID] = mapped_column(SA_UUID, nullable=False)
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False, default="memory", server_default="'memory'")
+    association_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="semantic", server_default="'semantic'"
+    )
+    weight: Mapped[float] = mapped_column(Float, nullable=False, default=0.5, server_default="0.5")
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("source_id", "target_id", "association_type", name="assoc_unique"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+
+class MemoryCoreBlock(Base, UUIDMixin):
+    """记忆核心块（Core Memory Block）
+
+    Letta/MemGPT 风格的常驻摘要块，受 Self-editing Tools 主控，
+    不参与遗忘曲线衰减，每次主动召回时必加载。
+
+    与 ``memory_summaries`` 正交：
+    - ``memory_summaries``：LLM 自动总结，会被新巩固覆盖
+    - ``MemoryCoreBlock``：用户/Agent 主动维护，不会被自动覆盖
+
+    scope 三档：
+    - ``user``：跨 thread 的人格画像（user × app 唯一）
+    - ``app``：应用级常识 / 工作记忆（app 唯一，thread_id NULL）
+    - ``thread``：会话级目标 / 上下文锚（user × app × thread × label 唯一）
+
+    参考文献:
+    [1] C. Packer et al., "MemGPT: Towards LLMs as Operating Systems," arXiv:2310.08560, 2023.
+    """
+
+    __tablename__ = "memory_core_blocks"
+
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    app_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    scope: Mapped[str] = mapped_column(String(20), nullable=False, default="user", server_default="'user'")
+    thread_id: Mapped[UUID | None] = mapped_column(SA_UUID, nullable=True)
+    label: Mapped[str] = mapped_column(String(64), nullable=False, default="persona", server_default="'persona'")
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    updated_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "app_name",
+            "scope",
+            "thread_id",
+            "label",
+            name="memory_core_blocks_unique",
+            # 与迁移 0022 保持一致：thread_id 在 user/app scope 下强制为 NULL，
+            # 默认 PG 行为视 NULL 为 distinct，会让此唯一约束失效。
+            postgresql_nulls_not_distinct=True,
         ),
         {"schema": NEGENTROPY_SCHEMA},
     )

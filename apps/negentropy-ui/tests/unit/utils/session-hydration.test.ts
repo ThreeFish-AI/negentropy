@@ -11,6 +11,7 @@ import {
   ledgerEntriesToMessages,
   mergeMessageLedger,
 } from "@/utils/message-ledger";
+import { buildConversationTree } from "@/utils/conversation-tree";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 
@@ -496,6 +497,130 @@ describe("session-hydration", () => {
     expect(merged.some((event) => event.type === EventType.RUN_FINISHED)).toBe(true);
   });
 
+  it("mergeEventsWithRealtimePriority 在 messageId 不同且时间跨度 >8 秒时也能丢弃 hydrated 文本事件", () => {
+    // 长耗时回复（>8s）下，realtime ledger 的 createdAt 取首个 partial 时间戳，
+    // hydration ledger 的 createdAt 取终态时间戳，二者跨度超过 8 秒。
+    // 期望：内容严格相等时仍能命中语义等价，hydrated 文本事件被丢弃。
+    const realtimeContent = "Pong:\n\n- 已收到回执\n- 后续步骤";
+    const realtimeEvents: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "session-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-a1",
+        role: "assistant",
+        timestamp: 1000.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-a1",
+        delta: realtimeContent,
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-a1",
+        timestamp: 1002,
+      }),
+    ];
+
+    const hydratedEvents: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-final-f",
+        role: "assistant",
+        timestamp: 1015,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-final-f",
+        delta: realtimeContent,
+        timestamp: 1015.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-final-f",
+        timestamp: 1017,
+      }),
+      createTestEvent({
+        type: EventType.RUN_FINISHED,
+        threadId: "session-1",
+        runId: "run-1",
+        timestamp: 1018,
+      }),
+    ];
+
+    const realtimeLedger = [
+      {
+        id: "msg-a1",
+        threadId: "session-1",
+        runId: "run-1",
+        resolvedRole: "assistant" as const,
+        resolutionSource: "explicit_role" as const,
+        content: realtimeContent,
+        createdAt: new Date(1000 * 1000), // T1，首个 partial 时间
+        streaming: false,
+        lifecycle: "closed" as const,
+        origin: "realtime" as const,
+        sourceEventTypes: ["TEXT_MESSAGE_END"],
+        relatedMessageIds: ["msg-a1"],
+      },
+    ];
+
+    const hydratedLedger = [
+      {
+        id: "msg-final-f",
+        threadId: "session-1",
+        runId: "run-1",
+        resolvedRole: "assistant" as const,
+        resolutionSource: "fallback_assistant" as const,
+        content: realtimeContent,
+        createdAt: new Date(1015 * 1000), // Tf，终态时间，跨度 15 秒
+        streaming: false,
+        lifecycle: "closed" as const,
+        origin: "fallback" as const,
+        sourceEventTypes: ["TEXT_MESSAGE_END"],
+        relatedMessageIds: ["msg-final-f"],
+      },
+    ];
+
+    const merged = mergeEventsWithRealtimePriority(
+      realtimeEvents,
+      hydratedEvents,
+      realtimeLedger,
+      hydratedLedger,
+    );
+
+    // hydrated 的 TEXT_MESSAGE_* 三件套被语义等价匹配后丢弃
+    expect(
+      merged.filter((event) => event.type === EventType.TEXT_MESSAGE_START).length,
+    ).toBe(1);
+    expect(
+      merged.filter((event) => event.type === EventType.TEXT_MESSAGE_CONTENT).length,
+    ).toBe(1);
+    expect(
+      merged.filter((event) => event.type === EventType.TEXT_MESSAGE_END).length,
+    ).toBe(1);
+    // 生命周期事件 RUN_FINISHED 仍被保留
+    expect(merged.some((event) => event.type === EventType.RUN_FINISHED)).toBe(true);
+  });
+
   it("不同 messageId 但语义等价的 hydrated 事件不会产生重复", () => {
     const realtimeEvents: AgUiEvent[] = [
       createTestEvent({
@@ -630,5 +755,488 @@ describe("session-hydration", () => {
       (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
     );
     expect(contentEvents).toHaveLength(1);
+  });
+
+  it("eventKey 在浮点精度抖动下仍稳定（toFixed(3) 毫秒级）", () => {
+    // 1001.1 与 1001.10000002384 因浮点表示差异在历史实现中会生成不同 key，
+    // 导致 mergeEvents 把同一逻辑事件保留两份；toFixed(3) 后两者归并为一条。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hello",
+        timestamp: 1001.1,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hello",
+        timestamp: 1001.10000002384,
+      }),
+    ];
+
+    const merged = mergeEvents([], events);
+    const contentEvents = merged.filter(
+      (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
+    );
+    expect(contentEvents).toHaveLength(1);
+  });
+
+  it("mergeEventsWithRealtimePriority：当 realtime 与 hydrated 的 messageId 相同时保留 realtime 时间戳", () => {
+    // realtime 在 t=1001 收到 TEXT_MESSAGE_CONTENT；hydrated 后同 messageId 但
+    // 后端时间戳 t=1500（精度损失/异源时钟）。函数语义为「realtime 优先」，
+    // 应保留 realtime 时间戳，以稳定后续按 timestamp 的排序。
+    const realtime: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hi",
+        timestamp: 1001,
+      }),
+    ];
+    const hydrated: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "msg-1",
+        delta: "hi",
+        timestamp: 1500,
+      }),
+    ];
+
+    const merged = mergeEventsWithRealtimePriority(realtime, hydrated, [], []);
+    const contentEvents = merged.filter(
+      (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
+    );
+    // 已被语义匹配过滤掉 hydrated 的同 messageId 事件；保留 realtime 版本
+    expect(contentEvents).toHaveLength(1);
+    expect(contentEvents[0]?.timestamp).toBe(1001);
+  });
+
+  it("mergeEventsWithRealtimePriority：生命周期事件 eventKey 冲突时 realtime 覆盖 hydrated", () => {
+    // RUN_STARTED 在 step 3 走 LIFECYCLE 直通分支（不被 messageId 过滤），
+    // 且 eventKey 不含 messageId / toolCallId，threadId+runId+timestamp 完全一致时
+    // realtime 与 hydrated 会在 mergeEvents 的 Map 中冲突。参数顺序交换为
+    // (filteredHydrated, realtime) 后，realtime 处于 incoming 位、后写入胜出。
+    // 用对象引用断言保留的是 realtime 版本，是验证参数交换生效的最直接证据。
+    const realtimeRunStarted = createTestEvent({
+      type: EventType.RUN_STARTED,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1000,
+    });
+    const hydratedRunStarted = createTestEvent({
+      type: EventType.RUN_STARTED,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1000,
+    });
+
+    const merged = mergeEventsWithRealtimePriority(
+      [realtimeRunStarted],
+      [hydratedRunStarted],
+      [],
+      [],
+    );
+    const runStartedEvents = merged.filter(
+      (event) => event.type === EventType.RUN_STARTED,
+    );
+    expect(runStartedEvents).toHaveLength(1);
+    expect(runStartedEvents[0]).toBe(realtimeRunStarted);
+  });
+
+  // ISSUE-040 H4: eventKey 浮点抖动保护应推广到所有事件类型（不再仅 TEXT_MESSAGE_CONTENT）
+  it("eventKey 在 STEP_FINISHED 浮点抖动下仍稳定", () => {
+    const stepFinishedA = createTestEvent({
+      type: EventType.STEP_FINISHED,
+      threadId: "session-1",
+      runId: "run-1",
+      stepId: "synth-step-1",
+      timestamp: 1001.1,
+    });
+    const stepFinishedB = createTestEvent({
+      type: EventType.STEP_FINISHED,
+      threadId: "session-1",
+      runId: "run-1",
+      stepId: "synth-step-1",
+      timestamp: 1001.10000002384, // 浮点表示抖动，但 stepId 相同
+    });
+    const merged = mergeEvents([stepFinishedA], [stepFinishedB]);
+    expect(merged).toHaveLength(1);
+  });
+
+  it("eventKey 对 ne.a2ui.thought 等 CUSTOM 事件不再因浮点抖动重复保留", () => {
+    const thoughtA = createTestEvent({
+      type: EventType.CUSTOM,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1001.0,
+      eventType: "ne.a2ui.thought",
+      data: { text: "thinking..." },
+    } as unknown as Parameters<typeof createTestEvent>[0]);
+    const thoughtB = createTestEvent({
+      type: EventType.CUSTOM,
+      threadId: "session-1",
+      runId: "run-1",
+      timestamp: 1001.000001, // 同毫秒级浮点抖动
+      eventType: "ne.a2ui.thought",
+      data: { text: "thinking..." },
+    } as unknown as Parameters<typeof createTestEvent>[0]);
+    const merged = mergeEvents([thoughtA], [thoughtB]);
+    expect(merged).toHaveLength(1);
+  });
+
+  // ISSUE-040 Q3 残留乱序：sort tiebreaker 必须保留 lifecycle 推入顺序，
+  // 不能在 timestamp 相等时按 eventKey 字典序回退（CONTENT < END < START）。
+  it("hydrateSessionDetail 保留同 timestamp 下 normalizer 推入的 lifecycle 顺序", () => {
+    // 后端 ADK web events 历史回放经常一秒落库多条 (functionCall / functionResponse / 同期文本)，
+    // 三件套时间戳相等。此前 sort 用 eventKey().localeCompare 兜底会把 TEXT_MESSAGE_*
+    // 三件套打散为 CONTENT, END, START，导致前端展现层 turn 边界穿插漂移。
+    const sameTs = 1000;
+    const result = hydrateSessionDetail(
+      [
+        {
+          id: "user-1",
+          author: "user",
+          timestamp: sameTs,
+          content: { parts: [{ text: "Ping." }] },
+        },
+        {
+          id: "asst-1",
+          author: "NegentropyEngine",
+          timestamp: sameTs,
+          content: { parts: [{ text: "Pong." }] },
+        },
+      ],
+      "session-q3",
+    );
+    // 提取 TEXT_MESSAGE_* 序列，断言：每个 messageId 内 START → CONTENT → END
+    // 三件套相邻且不被另一 messageId 切断。
+    const textEvents = result.events.filter(
+      (event) =>
+        event.type === EventType.TEXT_MESSAGE_START ||
+        event.type === EventType.TEXT_MESSAGE_CONTENT ||
+        event.type === EventType.TEXT_MESSAGE_END,
+    );
+    // 用 (messageId, lifecycle) 的相对序号映射断言不再交错。
+    let lastMessageId = "";
+    let lifecycleStage = -1; // -1=before, 0=START, 1=CONTENT, 2=END
+    for (const event of textEvents) {
+      const mid = (event as unknown as { messageId: string }).messageId;
+      if (mid !== lastMessageId) {
+        // 进入新 messageId：lifecycle 重置，必须以 START 开头
+        expect(event.type).toBe(EventType.TEXT_MESSAGE_START);
+        lastMessageId = mid;
+        lifecycleStage = 0;
+        continue;
+      }
+      if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
+        // CONTENT 必须跟在 START 之后（同 messageId 内）
+        expect(lifecycleStage).toBeGreaterThanOrEqual(0);
+        expect(lifecycleStage).toBeLessThanOrEqual(1);
+        lifecycleStage = 1;
+      } else if (event.type === EventType.TEXT_MESSAGE_END) {
+        expect(lifecycleStage).toBeGreaterThanOrEqual(1);
+        lifecycleStage = 2;
+      }
+    }
+  });
+
+  describe("ISSUE-041: realtime + hydration 跨 runId 双气泡端到端", () => {
+    // 端到端场景：模拟用户单次 Send「Ping, give me a pong.」后
+    // realtime 流（runId=uuid-actual）+ post-run hydration（runId=sessionId fallback）
+    // 同时进入投影。期望最终 mergeEventsWithRealtimePriority 输出 + buildConversationTree
+    // 仅产出 1 个 turn（synthetic 被合并）。
+
+    function buildPongRealtimeAndHydration(opts: {
+      threadId: string;
+      realtimeRunId: string;
+      pongText: string;
+    }): {
+      realtimeEvents: AgUiEvent[];
+      hydratedEvents: AgUiEvent[];
+      realtimeLedger: ReturnType<typeof buildSyntheticLedger>;
+      hydratedLedger: ReturnType<typeof buildSyntheticLedger>;
+    } {
+      const realtimeEvents: AgUiEvent[] = [
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          timestamp: 1000,
+        }),
+        createTestEvent({
+          type: EventType.TOOL_CALL_START,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          toolCallId: "transfer-1",
+          toolCallName: "transfer_to_agent",
+          timestamp: 1001,
+        }),
+        createTestEvent({
+          type: EventType.TOOL_CALL_END,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          toolCallId: "transfer-1",
+          timestamp: 1002,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          messageId: `assistant-${opts.realtimeRunId}-0`,
+          role: "assistant",
+          timestamp: 1003,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          messageId: `assistant-${opts.realtimeRunId}-0`,
+          delta: opts.pongText,
+          timestamp: 1004,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          messageId: `assistant-${opts.realtimeRunId}-0`,
+          timestamp: 1005,
+        }),
+        createTestEvent({
+          type: EventType.RUN_FINISHED,
+          threadId: opts.threadId,
+          runId: opts.realtimeRunId,
+          timestamp: 1006,
+        }),
+      ];
+
+      // hydration: synthetic runId === threadId, only TEXT_MESSAGE_* (no tool)
+      const hydratedEvents: AgUiEvent[] = [
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: opts.threadId,
+          runId: opts.threadId, // synthetic fallback
+          messageId: `assistant-${opts.threadId}-0`,
+          role: "assistant",
+          timestamp: 1010,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: opts.threadId,
+          runId: opts.threadId,
+          messageId: `assistant-${opts.threadId}-0`,
+          delta: opts.pongText,
+          timestamp: 1011,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: opts.threadId,
+          runId: opts.threadId,
+          messageId: `assistant-${opts.threadId}-0`,
+          timestamp: 1012,
+        }),
+      ];
+
+      const realtimeLedger = buildSyntheticLedger({
+        id: `assistant-${opts.realtimeRunId}-0`,
+        threadId: opts.threadId,
+        runId: opts.realtimeRunId,
+        content: opts.pongText,
+        createdAt: new Date(1003 * 1000),
+        origin: "realtime",
+      });
+
+      const hydratedLedger = buildSyntheticLedger({
+        id: `assistant-${opts.threadId}-0`,
+        threadId: opts.threadId,
+        runId: opts.threadId,
+        content: opts.pongText,
+        createdAt: new Date(1010 * 1000),
+        origin: "fallback",
+      });
+
+      return { realtimeEvents, hydratedEvents, realtimeLedger, hydratedLedger };
+    }
+
+    function buildSyntheticLedger(args: {
+      id: string;
+      threadId: string;
+      runId: string;
+      content: string;
+      createdAt: Date;
+      origin: "realtime" | "snapshot" | "fallback";
+    }) {
+      return [
+        {
+          id: args.id,
+          threadId: args.threadId,
+          runId: args.runId,
+          resolvedRole: "assistant" as const,
+          resolutionSource:
+            args.origin === "realtime"
+              ? ("explicit_role" as const)
+              : ("fallback_assistant" as const),
+          content: args.content,
+          createdAt: args.createdAt,
+          streaming: false,
+          lifecycle: "closed" as const,
+          origin: args.origin,
+          sourceEventTypes: ["TEXT_MESSAGE_END"],
+          relatedMessageIds: [args.id],
+        },
+      ];
+    }
+
+    it("D1: Pong via transfer_to_agent live → mergeEventsWithRealtimePriority 丢弃 synthetic 文本", () => {
+      const pongText = "Pong 🏓 Anything else I can help with?";
+      const { realtimeEvents, hydratedEvents, realtimeLedger, hydratedLedger } =
+        buildPongRealtimeAndHydration({
+          threadId: "session-issue041",
+          realtimeRunId: "uuid-actual",
+          pongText,
+        });
+
+      const merged = mergeEventsWithRealtimePriority(
+        realtimeEvents,
+        hydratedEvents,
+        realtimeLedger,
+        hydratedLedger,
+      );
+
+      // 期望：合并后 TEXT_MESSAGE_* 仅有 realtime 一份（synthetic 被语义匹配丢弃）
+      expect(
+        merged.filter((event) => event.type === EventType.TEXT_MESSAGE_START).length,
+      ).toBe(1);
+      expect(
+        merged.filter((event) => event.type === EventType.TEXT_MESSAGE_CONTENT).length,
+      ).toBe(1);
+      expect(
+        merged.filter((event) => event.type === EventType.TEXT_MESSAGE_END).length,
+      ).toBe(1);
+      // 工具调用保留（仅 realtime 含）
+      expect(merged.some((e) => e.type === EventType.TOOL_CALL_START)).toBe(true);
+    });
+
+    it("D1+: 完整链路 buildConversationTree 仅产出 1 个 turn（synthetic 折叠）", () => {
+      const pongText = "Pong 🏓 Anything else I can help with?";
+      const { realtimeEvents, hydratedEvents, realtimeLedger, hydratedLedger } =
+        buildPongRealtimeAndHydration({
+          threadId: "session-issue041",
+          realtimeRunId: "uuid-actual",
+          pongText,
+        });
+
+      const merged = mergeEventsWithRealtimePriority(
+        realtimeEvents,
+        hydratedEvents,
+        realtimeLedger,
+        hydratedLedger,
+      );
+
+      // 调用 buildConversationTree 在合并事件上构造 tree
+      const tree = buildConversationTree({ events: merged });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // 仅剩 realtime 的 concrete turn
+      expect(turnRoots).toHaveLength(1);
+      expect(turnRoots[0]?.runId).toBe("uuid-actual");
+    });
+
+    it("D2: refresh-only（仅 hydration，无 realtime）→ 1 个 turn 含完整内容", () => {
+      const pongText = "Pong 🏓 Anything else I can help with?";
+      const { hydratedEvents, hydratedLedger } = buildPongRealtimeAndHydration({
+        threadId: "session-issue041",
+        realtimeRunId: "uuid-actual",
+        pongText,
+      });
+
+      // 仅传入 hydratedEvents，realtime 为空
+      const merged = mergeEventsWithRealtimePriority(
+        [],
+        hydratedEvents,
+        [],
+        hydratedLedger,
+      );
+
+      const tree = buildConversationTree({ events: merged });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // 单 synthetic turn 保留（无 concrete turn 可对照折叠）
+      expect(turnRoots).toHaveLength(1);
+    });
+
+    it("D3: 多轮 + live → 每轮 1:1 对应 1 个 turn，无尾部合成大气泡", () => {
+      const pongText1 = "Round 1 reply";
+      const pongText2 = "Round 2 reply";
+      const round1 = buildPongRealtimeAndHydration({
+        threadId: "session-issue041",
+        realtimeRunId: "uuid-r1",
+        pongText: pongText1,
+      });
+      const round2 = buildPongRealtimeAndHydration({
+        threadId: "session-issue041",
+        realtimeRunId: "uuid-r2",
+        pongText: pongText2,
+      });
+
+      // 调整 round2 的时间戳避免与 round1 冲突
+      const shiftedRound2Realtime = round2.realtimeEvents.map((e) => ({
+        ...e,
+        timestamp: ((e as unknown as { timestamp: number }).timestamp + 100),
+      }));
+      const shiftedRound2Hydrated = round2.hydratedEvents.map((e) => ({
+        ...e,
+        timestamp: ((e as unknown as { timestamp: number }).timestamp + 100),
+        // hydration 同 threadId 共享 synthetic runId
+      }));
+
+      const allRealtime = [
+        ...round1.realtimeEvents,
+        ...shiftedRound2Realtime,
+      ] as AgUiEvent[];
+      const allHydrated = [
+        ...round1.hydratedEvents,
+        ...shiftedRound2Hydrated,
+      ] as AgUiEvent[];
+
+      const allRealtimeLedger = [
+        ...round1.realtimeLedger,
+        ...round2.realtimeLedger.map((entry) => ({
+          ...entry,
+          createdAt: new Date(entry.createdAt.getTime() + 100 * 1000),
+        })),
+      ];
+      const allHydratedLedger = [
+        ...round1.hydratedLedger,
+        ...round2.hydratedLedger.map((entry) => ({
+          ...entry,
+          createdAt: new Date(entry.createdAt.getTime() + 100 * 1000),
+        })),
+      ];
+
+      const merged = mergeEventsWithRealtimePriority(
+        allRealtime,
+        allHydrated,
+        allRealtimeLedger,
+        allHydratedLedger,
+      );
+
+      const tree = buildConversationTree({ events: merged });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      const concreteTurns = turnRoots.filter(
+        (t) => t.runId === "uuid-r1" || t.runId === "uuid-r2",
+      );
+      // 期望：两个 concrete turn 1:1 对应 2 个 round
+      expect(concreteTurns).toHaveLength(2);
+      // 期望：synthetic turn (= threadId) 不出现，避免底部合成大气泡累积
+      const syntheticTurn = turnRoots.find((t) => t.runId === "session-issue041");
+      expect(syntheticTurn).toBeUndefined();
+    });
   });
 });

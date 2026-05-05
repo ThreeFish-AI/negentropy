@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
@@ -43,10 +44,13 @@ from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
 
 from .adapters.postgres.memory_automation_service import MemoryAutomationUnavailableError
 from .factories.memory import (
+    get_association_service,
+    get_conflict_resolver,
     get_fact_service,
     get_memory_automation_service,
     get_memory_governance_service,
     get_memory_service,
+    get_proactive_recall_service,
 )
 
 logger = get_logger("negentropy.engine.api")
@@ -65,6 +69,7 @@ class MemoryItem(BaseModel):
     memory_type: str
     content: str
     retention_score: float
+    importance_score: float = 0.5
     access_count: int
     created_at: str | None = None
     last_accessed_at: str | None = None
@@ -81,10 +86,16 @@ class MemorySearchRequest(BaseModel):
     app_name: str | None = None
     user_id: str
     query: str
+    memory_type: str | None = None
+    date_from: str | None = None  # ISO 8601 date
+    date_to: str | None = None  # ISO 8601 date
+    limit: int = 10
+    offset: int = 0
 
 
 class MemorySearchResponse(BaseModel):
     count: int
+    total: int = 0
     items: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -96,6 +107,7 @@ class FactItem(BaseModel):
     key: str
     value: dict[str, Any]
     confidence: float
+    importance_score: float = 0.5
     valid_from: str | None = None
     valid_until: str | None = None
     created_at: str | None = None
@@ -140,7 +152,9 @@ class MemoryDashboardResponse(BaseModel):
     memory_count: int
     fact_count: int
     avg_retention_score: float
+    avg_importance_score: float = 0.0
     low_retention_count: int
+    high_importance_count: int = 0
     recent_audit_count: int
 
 
@@ -244,6 +258,40 @@ def _require_admin(user: AuthUser) -> AuthUser:
     return user
 
 
+def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:
+    """Phase 4 — 自服务端点的水平越权防线。
+
+    管理员可读写任意 user_id；非管理员只能操作自己的 user_id。
+    覆盖 ``/self-edit/*`` 与 ``/core-blocks`` 等 Self-editing Tools REST 端点，
+    与 ``memory-integration.md`` 的 "需 Admin 鉴权" 描述对齐（admin 主路径），
+    同时保留 self-service 退化通道（user.user_id 必须等于 target_user_id）。
+    """
+    if "admin" in user.roles:
+        return
+    if not target_user_id or target_user_id != user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="forbidden: target user_id must match authenticated user (or require admin role)",
+        )
+
+
+def _memory_entry_content_text(entry: Any) -> str:
+    content = getattr(entry, "content", None)
+    if isinstance(content, dict) and "parts" in content:
+        return "".join(str(part.get("text", "")) for part in content["parts"] if isinstance(part, dict))
+    if isinstance(content, str):
+        return content
+    parts = getattr(content, "parts", None)
+    if parts:
+        return "".join(str(getattr(part, "text", "") or "") for part in parts)
+    return ""
+
+
+def _memory_entry_relevance_score(entry: Any) -> float:
+    meta = dict(getattr(entry, "custom_metadata", None) or {})
+    return float(meta.get("relevance_score", meta.get("raw_score", 0.0)) or 0.0)
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -295,6 +343,9 @@ async def get_memory_dashboard(
         # 平均 retention_score
         avg_retention = await db.scalar(select(func.avg(Memory.retention_score)).where(*memory_filters))
 
+        # 平均 importance_score
+        avg_importance = await db.scalar(select(func.avg(Memory.importance_score)).where(*memory_filters))
+
         # 低保留记忆数 (retention_score < 0.1)
         low_retention_count = await db.scalar(
             select(func.count()).select_from(
@@ -302,6 +353,18 @@ async def get_memory_dashboard(
                 .where(
                     *memory_filters,
                     Memory.retention_score < 0.1,
+                )
+                .subquery()
+            )
+        )
+
+        # 高重要性记忆数 (importance_score >= 0.7)
+        high_importance_count = await db.scalar(
+            select(func.count()).select_from(
+                select(Memory)
+                .where(
+                    *memory_filters,
+                    Memory.importance_score >= 0.7,
                 )
                 .subquery()
             )
@@ -317,7 +380,9 @@ async def get_memory_dashboard(
         memory_count=memory_count or 0,
         fact_count=fact_count or 0,
         avg_retention_score=round(float(avg_retention or 0), 4),
+        avg_importance_score=round(float(avg_importance or 0), 4),
         low_retention_count=low_retention_count or 0,
+        high_importance_count=high_importance_count or 0,
         recent_audit_count=recent_audit_count or 0,
     )
 
@@ -366,6 +431,7 @@ async def list_memories(
             memory_type=m.memory_type,
             content=m.content,
             retention_score=m.retention_score,
+            importance_score=m.importance_score,
             access_count=m.access_count,
             created_at=_iso(m.created_at),
             last_accessed_at=_iso(m.last_accessed_at),
@@ -388,37 +454,56 @@ async def search_memories(payload: MemorySearchRequest) -> MemorySearchResponse:
     """搜索用户记忆
 
     基于混合检索 (Semantic + BM25) 搜索相关记忆。
+    支持按记忆类型、日期范围过滤，以及分页。
     """
     resolved_app = _resolve_app_name(payload.app_name)
+
+    # 解析日期参数
+    date_from = None
+    date_to = None
+    if payload.date_from:
+        try:
+            date_from = datetime.fromisoformat(payload.date_from)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid date_from format: {payload.date_from}",
+            ) from exc
+    if payload.date_to:
+        try:
+            date_to = datetime.fromisoformat(payload.date_to)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid date_to format: {payload.date_to}",
+            ) from exc
 
     memory_service = get_memory_service()
     result = await memory_service.search_memory(
         app_name=resolved_app,
         user_id=payload.user_id,
         query=payload.query,
+        limit=payload.limit,
+        offset=payload.offset,
+        memory_type=payload.memory_type,
+        date_from=date_from,
+        date_to=date_to,
     )
 
     items = []
     for entry in result.memories:
-        content_text = ""
-        if isinstance(entry.content, dict) and "parts" in entry.content:
-            for part in entry.content["parts"]:
-                if isinstance(part, dict) and "text" in part:
-                    content_text += part["text"]
-        elif isinstance(entry.content, str):
-            content_text = entry.content
-
         items.append(
             {
                 "id": entry.id,
-                "content": content_text,
+                "content": _memory_entry_content_text(entry),
                 "timestamp": entry.timestamp,
-                "relevance_score": entry.relevance_score,
+                "relevance_score": _memory_entry_relevance_score(entry),
                 "metadata": entry.custom_metadata or {},
             }
         )
 
-    return MemorySearchResponse(count=len(items), items=items)
+    # TODO: total 应通过独立 COUNT 查询获取全量匹配数
+    return MemorySearchResponse(count=len(items), total=-1, items=items)
 
 
 @router.get("/facts", response_model=FactListResponse)
@@ -448,6 +533,7 @@ async def list_facts(
             key=f.key,
             value=f.value,
             confidence=f.confidence,
+            importance_score=f.importance_score,
             valid_from=_iso(f.valid_from),
             valid_until=_iso(f.valid_until),
             created_at=_iso(f.created_at),
@@ -483,6 +569,7 @@ async def search_facts(payload: FactSearchRequest) -> FactListResponse:
             key=f.key,
             value=f.value,
             confidence=f.confidence,
+            importance_score=f.importance_score,
             valid_from=_iso(f.valid_from),
             valid_until=_iso(f.valid_until),
             created_at=_iso(f.created_at),
@@ -674,3 +761,620 @@ async def run_memory_automation_job(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     result["snapshot"] = MemoryAutomationSnapshotResponse.model_validate(result["snapshot"])
     return MemoryAutomationRunResponse.model_validate(result)
+
+
+# ============================================================================
+# Retrieval Feedback — 检索效果反馈闭环
+# ============================================================================
+
+
+class RetrievalFeedbackRequest(BaseModel):
+    """检索效果反馈请求（显式反馈通道）
+
+    对齐 Rocchio 相关性反馈<sup>[[27]](#ref27)</sup>和 RLHF 偏好信号收集<sup>[[33]](#ref33)</sup>。
+    """
+
+    log_id: str = Field(..., description="检索日志 ID")
+    outcome: str = Field(..., description="反馈结果: helpful | irrelevant | harmful")
+
+
+class RetrievalMetricsResponse(BaseModel):
+    """检索效果指标响应
+
+    指标定义对齐 Manning et al.<sup>[[31]](#ref31)</sup>和 Shani & Gunawardana<sup>[[32]](#ref32)</sup>。
+    """
+
+    total_retrievals: int
+    precision_at_k: float
+    utilization_rate: float
+    noise_rate: float
+
+
+@router.post("/retrieval/feedback")
+async def submit_retrieval_feedback(
+    payload: RetrievalFeedbackRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """提交检索效果反馈（显式反馈通道）
+
+    对齐 Rocchio 相关性反馈<sup>[[27]](#ref27)</sup>：用户对检索结果的
+    helpful/irrelevant/harmful 判定作为后续检索权重调整的信号源。
+    """
+    from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+    tracker = RetrievalTracker()
+    try:
+        success = await tracker.record_feedback(
+            log_id=UUID(payload.log_id),
+            outcome=payload.outcome,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Retrieval log not found")
+    return {"status": "ok"}
+
+
+@router.get("/retrieval/metrics", response_model=RetrievalMetricsResponse)
+async def get_retrieval_metrics(
+    user_id: str = Query(..., description="用户 ID"),
+    app_name: str | None = Query(default=None, description="应用名称"),
+    days: int = Query(default=30, ge=1, le=365, description="统计时间窗口（天）"),
+    user: AuthUser = Depends(get_current_user),
+) -> RetrievalMetricsResponse:
+    """获取检索效果指标
+
+    返回 Precision@K、利用率、噪声率等指标，对齐 LongMemEval 评估维度。
+    """
+    from negentropy.engine.adapters.postgres.retrieval_tracker import RetrievalTracker
+
+    tracker = RetrievalTracker()
+    metrics = await tracker.get_effectiveness_metrics(
+        user_id=user_id,
+        app_name=_resolve_app_name(app_name),
+        days=days,
+    )
+    return RetrievalMetricsResponse(**metrics)
+
+
+# ============================================================================
+# Conflict Resolution Endpoints
+# ============================================================================
+
+
+class ConflictItem(BaseModel):
+    id: str
+    user_id: str
+    app_name: str
+    old_fact_id: str | None = None
+    new_fact_id: str | None = None
+    conflict_type: str
+    resolution: str
+    detected_by: str
+    created_at: str | None = None
+
+
+class ConflictListResponse(BaseModel):
+    count: int
+    items: list[ConflictItem] = Field(default_factory=list)
+
+
+class ManualResolveRequest(BaseModel):
+    resolution: str  # supersede, keep_old, keep_new, merge
+
+
+@router.get("/conflicts", response_model=ConflictListResponse)
+async def list_conflicts(
+    user_id: str | None = Query(default=None),
+    app_name: str | None = Query(default=None),
+    resolution: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    user: AuthUser = Depends(get_current_user),
+) -> ConflictListResponse:
+    """列出记忆冲突记录"""
+    resolved_app = _resolve_app_name(app_name)
+    resolver = get_conflict_resolver()
+
+    conflicts = await resolver.list_conflicts(
+        user_id=user_id,
+        app_name=resolved_app,
+        resolution=resolution,
+        limit=limit,
+        offset=offset,
+    )
+
+    items = [
+        ConflictItem(
+            id=str(c.id),
+            user_id=c.user_id,
+            app_name=c.app_name,
+            old_fact_id=str(c.old_fact_id) if c.old_fact_id else None,
+            new_fact_id=str(c.new_fact_id) if c.new_fact_id else None,
+            conflict_type=c.conflict_type,
+            resolution=c.resolution,
+            detected_by=c.detected_by,
+            created_at=_iso(c.created_at),
+        )
+        for c in conflicts
+    ]
+
+    return ConflictListResponse(count=len(items), items=items)
+
+
+@router.post("/conflicts/{conflict_id}/resolve")
+async def manual_resolve_conflict(
+    conflict_id: str,
+    payload: ManualResolveRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """手动解决冲突"""
+    from uuid import UUID as UUIDType
+
+    resolver = get_conflict_resolver()
+
+    try:
+        conflict_uuid = UUIDType(conflict_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conflict ID") from None
+
+    result = await resolver.manual_resolve(
+        conflict_id=conflict_uuid,
+        resolution=payload.resolution,
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Conflict not found")
+
+    return {"status": "resolved", "conflict_id": str(result.id), "resolution": result.resolution}
+
+
+@router.get("/facts/{fact_id}/history")
+async def get_fact_history(
+    fact_id: str,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """获取事实的版本历史链"""
+    from uuid import UUID as UUIDType
+
+    try:
+        fact_uuid = UUIDType(fact_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid fact ID") from None
+
+    resolver = get_conflict_resolver()
+    history = await resolver.get_fact_history(fact_uuid)
+
+    return {
+        "count": len(history),
+        "items": [
+            {
+                "id": str(f.id),
+                "key": f.key,
+                "value": f.value,
+                "confidence": f.confidence,
+                "status": f.status,
+                "superseded_by": str(f.superseded_by) if f.superseded_by else None,
+                "created_at": _iso(f.created_at),
+            }
+            for f in history
+        ],
+    }
+
+
+# ============================================================================
+# Proactive Recall Endpoints
+# ============================================================================
+
+
+@router.post("/proactive/{user_id}")
+async def trigger_proactive_recall(
+    user_id: str,
+    app_name: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """手动触发主动召回计算"""
+    resolved_app = _resolve_app_name(app_name)
+    service = get_proactive_recall_service()
+
+    result = await service.get_or_compute_preload(
+        user_id=user_id,
+        app_name=resolved_app,
+    )
+
+    return {
+        "context": result.get("context", ""),
+        "memory_count": len(result.get("memory_ids", [])),
+        "fact_count": len(result.get("fact_ids", [])),
+        "token_count": result.get("token_count", 0),
+    }
+
+
+@router.get("/proactive/{user_id}")
+async def get_proactive_recall(
+    user_id: str,
+    app_name: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """获取缓存的主动召回上下文"""
+    resolved_app = _resolve_app_name(app_name)
+    service = get_proactive_recall_service()
+
+    result = await service.get_or_compute_preload(
+        user_id=user_id,
+        app_name=resolved_app,
+    )
+
+    return {
+        "context": result.get("context", ""),
+        "memory_count": len(result.get("memory_ids", [])),
+        "fact_count": len(result.get("fact_ids", [])),
+        "token_count": result.get("token_count", 0),
+        "cached": True,
+    }
+
+
+# ============================================================================
+# Association Endpoints
+# ============================================================================
+
+
+class AssociationItem(BaseModel):
+    id: str
+    source_id: str
+    source_type: str
+    target_id: str
+    target_type: str
+    association_type: str
+    weight: float
+
+
+class AssociationListResponse(BaseModel):
+    count: int
+    items: list[AssociationItem] = Field(default_factory=list)
+
+
+class CreateAssociationRequest(BaseModel):
+    source_id: str
+    target_id: str
+    association_type: str = "semantic"
+    weight: float = 0.5
+    source_type: str = "memory"
+    target_type: str = "memory"
+
+
+@router.get("/{memory_id}/associations", response_model=AssociationListResponse)
+async def get_memory_associations(
+    memory_id: str,
+    association_type: str | None = Query(default=None),
+    direction: str = Query(default="both"),
+    limit: int = Query(default=20, ge=1, le=100),
+    user: AuthUser = Depends(get_current_user),
+) -> AssociationListResponse:
+    """获取记忆/事实的关联
+
+    Review fix：非 admin 用户只能读取归属自己 (user_id, app_name) 的关联，
+    admin 旁路（None 表示不下推过滤）。
+    """
+    from uuid import UUID as UUIDType
+
+    try:
+        item_uuid = UUIDType(memory_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID") from None
+
+    is_admin = "admin" in user.roles
+    service = get_association_service()
+    assocs = await service.get_associations(
+        item_id=item_uuid,
+        association_type=association_type,
+        direction=direction,
+        limit=limit,
+        user_id=None if is_admin else user.user_id,
+        app_name=None if is_admin else settings.app_name,
+    )
+
+    items = [
+        AssociationItem(
+            id=str(a.id),
+            source_id=str(a.source_id),
+            source_type=a.source_type,
+            target_id=str(a.target_id),
+            target_type=a.target_type,
+            association_type=a.association_type,
+            weight=a.weight,
+        )
+        for a in assocs
+    ]
+
+    return AssociationListResponse(count=len(items), items=items)
+
+
+@router.post("/associations")
+async def create_association(
+    payload: CreateAssociationRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """手动创建关联"""
+    from uuid import UUID as UUIDType
+
+    service = get_association_service()
+
+    # Phase 4 — Review fix：使用 user.user_id（与 self-edit / core-block 等
+    # Self-editing Tools 端点保持一致），避免 user.email 为 None 时落空与
+    # 跨表 user_id 取值不一致引发的多租隔离失效。
+    auth_user_id = user.user_id
+    app_name = settings.app_name
+
+    try:
+        assoc = await service.create_manual_association(
+            source_id=UUIDType(payload.source_id),
+            target_id=UUIDType(payload.target_id),
+            association_type=payload.association_type,
+            weight=payload.weight,
+            user_id=auth_user_id,
+            app_name=app_name,
+            source_type=payload.source_type,
+            target_type=payload.target_type,
+        )
+        return {"status": "created", "association_id": str(assoc.id)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from None
+
+
+@router.delete("/associations/{association_id}")
+async def delete_association(
+    association_id: str,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, str]:
+    """删除关联
+
+    Review fix：非 admin 用户只能删除归属自己 (user_id, app_name) 的关联；
+    跨租户的 ID 在 service 层 WHERE 匹配失败、统一以 404 兜底（避免侧信道泄露存在性）。
+    """
+    from uuid import UUID as UUIDType
+
+    service = get_association_service()
+
+    try:
+        assoc_uuid = UUIDType(association_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid association ID") from None
+
+    is_admin = "admin" in user.roles
+    deleted = await service.delete_association(
+        assoc_uuid,
+        user_id=None if is_admin else user.user_id,
+        app_name=None if is_admin else settings.app_name,
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Association not found")
+
+    return {"status": "deleted", "association_id": association_id}
+
+
+# ============================================================================
+# Phase 4 — Self-editing Memory Tools & Core Block REST 端点
+#   理论：MemGPT (arXiv:2310.08560) self-editing tools + LangGraph Memory tools
+# ============================================================================
+
+
+class SelfEditWriteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    content: str
+    memory_type: str = "episodic"
+    thread_id: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class SelfEditUpdateRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    memory_id: str
+    new_content: str
+    reason: str | None = None
+    thread_id: str | None = None
+
+
+class SelfEditDeleteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    memory_id: str
+    reason: str | None = None
+    thread_id: str | None = None
+
+
+class CoreBlockUpsertRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    scope: str = "user"
+    thread_id: str | None = None
+    label: str = "persona"
+    content: str
+    updated_by: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class CoreBlockDeleteRequest(BaseModel):
+    user_id: str
+    app_name: str | None = None
+    scope: str = "user"
+    thread_id: str | None = None
+    label: str = "persona"
+
+
+@router.post("/self-edit/write")
+async def self_edit_write(
+    payload: SelfEditWriteRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.tools.memory_tools import memory_write
+
+    try:
+        return await memory_write(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            content=payload.content,
+            memory_type=payload.memory_type,
+            thread_id=payload.thread_id,
+            metadata=payload.metadata,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/self-edit/update")
+async def self_edit_update(
+    payload: SelfEditUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.tools.memory_tools import memory_update
+
+    try:
+        return await memory_update(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            memory_id=payload.memory_id,
+            new_content=payload.new_content,
+            reason=payload.reason,
+            thread_id=payload.thread_id,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/self-edit/delete")
+async def self_edit_delete(
+    payload: SelfEditDeleteRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.tools.memory_tools import memory_delete
+
+    try:
+        return await memory_delete(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            memory_id=payload.memory_id,
+            reason=payload.reason,
+            thread_id=payload.thread_id,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/core-blocks")
+async def list_core_blocks(
+    user_id: str = Query(...),
+    app_name: str | None = Query(default=None),
+    thread_id: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, user_id)
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    items = await service.list_for_context(
+        user_id=user_id,
+        app_name=_resolve_app_name(app_name),
+        thread_id=thread_id,
+    )
+    return {"count": len(items), "items": items}
+
+
+@router.post("/core-blocks")
+async def upsert_core_block(
+    payload: CoreBlockUpsertRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, payload.user_id)
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    try:
+        return await service.upsert(
+            user_id=payload.user_id,
+            app_name=_resolve_app_name(payload.app_name),
+            scope=payload.scope,
+            thread_id=payload.thread_id,
+            label=payload.label,
+            content=payload.content,
+            updated_by=payload.updated_by or user.user_id,
+            metadata=payload.metadata,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/core-blocks")
+async def delete_core_block(
+    user_id: str = Query(...),
+    app_name: str | None = Query(default=None),
+    scope: str = Query(default="user"),
+    thread_id: str | None = Query(default=None),
+    label: str = Query(default="persona"),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    _require_self_or_admin(user, user_id)
+    from negentropy.engine.factories.memory import get_core_block_service
+
+    service = get_core_block_service()
+    try:
+        deleted = await service.delete(
+            user_id=user_id,
+            app_name=_resolve_app_name(app_name),
+            scope=scope,
+            thread_id=thread_id,
+            label=label,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Core block not found")
+    return {"status": "deleted"}
+
+
+# ============================================================================
+# Phase 6 G4 — Observability: Health & Metrics
+# ============================================================================
+
+
+@router.get("/health")
+async def memory_health() -> dict[str, Any]:
+    """Memory 系统健康检查（无需鉴权，负载均衡器/监控系统用）。"""
+    from negentropy.config import settings as global_settings
+
+    if not global_settings.memory.observability.health_enabled:
+        raise HTTPException(status_code=404, detail="Health endpoint is disabled")
+
+    from negentropy.engine.observability.health_checker import check_memory_health
+
+    return await check_memory_health()
+
+
+@router.get("/metrics")
+async def memory_metrics(
+    user_id: str | None = Query(default=None),
+    app_name: str | None = Query(default=None),
+    user: AuthUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Memory 系统聚合指标（需 admin 鉴权）。
+
+    基于 SRE 四大黄金信号和 USE 方法，从现有表聚合搜索、巩固、Retention、PII 等指标。
+    """
+    if "admin" not in (user.roles or []):
+        raise HTTPException(status_code=403, detail="Admin access required for metrics")
+
+    from negentropy.config import settings as global_settings
+
+    if not global_settings.memory.observability.metrics_enabled:
+        raise HTTPException(status_code=404, detail="Metrics endpoint is disabled")
+
+    from negentropy.engine.observability.memory_metrics import get_memory_metrics
+
+    return await get_memory_metrics(user_id=user_id, app_name=_resolve_app_name(app_name))

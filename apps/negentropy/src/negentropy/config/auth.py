@@ -20,8 +20,6 @@ class AuthSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="NE_AUTH_",
-        env_file=".env",
-        env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
         frozen=True,

@@ -22,7 +22,6 @@ dependencies = [
     "psycopg[binary]>=3.2.0",       # Synchronous PostgreSQL driver (for OTel)
     "sqlalchemy[asyncio]>=2.0.46",  # SQL Toolkit and ORM
     "alembic>=1.18.3",              # Database migration tool
-    
     # Core Infrastructure
     "google-adk>=1.28.1",           # GHSA-rg7c-g689-fr3x: code injection + missing auth on adk web/api_server eval endpoints
     "opentelemetry-instrumentation-google-genai>=0.6b0,<1.0.0",  # ADK GenAI SDK OTel 自动埋点 (消除 adk_web_server 启动期 WARNING)
@@ -30,20 +29,33 @@ dependencies = [
     "mcp>=1.6.0",                   # Model Context Protocol SDK for MCP Server integration
     "pydantic-settings[yaml]>=2.12.0",  # Configuration management with YAML support
     "pyyaml>=6.0.2",                # YAML parser for configuration files
-    
     # LLM & AI Services
     "litellm>=1.83.7",              # Unified interface for various LLM providers (>=1.83.7 修复 SQLi/SSTI/MCP-RCE，对应 GHSA-9566-... / 90 / 88 / 89)
-    
     # Google Cloud Services
     "google-cloud-storage>=3.8.0",  # Object storage for artifacts
     "google-auth>=2.48.0",          # Authentication for Google services
     "google-cloud-logging>=3.13.0", # Cloud Logging integration
     "httpx>=0.27.0",                # Async HTTP client for OAuth
-    
     # Utilities
     "structlog>=25.5.0",            # Structured logging for machine-readability
     "orjson>=3.11.6",               # Fast JSON serialization
     "beautifulsoup4>=4.12.3",       # HTML parsing
+    "tiktoken>=0.9.0",              # BPE token counter for accurate context budgeting
+    "networkx>=3.0",                # Graph algorithms (PageRank, Louvain community detection)
+    "arxiv>=2.1",                   # arXiv API client for paper curation tools (search_papers / ingest_paper)
+    "jinja2>=3.1.4",                # Sandboxed template rendering for Skills Layer 2 prompt_template
+    "packaging>=24.0",              # SemVer parsing for Skill template version validation
+    "croniter>=2.0",                # POSIX cron expression parsing for Skill schedules (Phase 3)
+]
+
+[project.optional-dependencies]
+# Phase 5 F4 — Microsoft Presidio 生产级 PII 治理（默认不安装）。
+# 启用方法：`uv sync --extra pii-presidio`，再把 memory.pii.engine 切成 presidio。
+# spaCy 模型需手动 `uv run python -m spacy download zh_core_web_sm` 等。
+pii-presidio = [
+    "presidio-analyzer>=2.2.0",
+    "presidio-anonymizer>=2.2.0",
+    "spacy>=3.7,<4.0",
 ]
 
 [project.scripts]
@@ -101,6 +113,10 @@ filterwarnings = [
     # Upstream warning from google-genai incompatible with Python 3.14
     # See: https://github.com/googleapis/python-genai/issues/???
     "ignore:'_UnionGenericAlias' is deprecated:DeprecationWarning"
+]
+# Phase 4: 自定义 markers — 默认不跑评测（手动 -m eval 触发）
+markers = [
+    "eval: marks long-running memory evaluation suites (LoCoMo / LongMemEval)",
 ]
 
 [tool.coverage.run]

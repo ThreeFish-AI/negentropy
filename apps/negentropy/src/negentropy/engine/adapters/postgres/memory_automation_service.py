@@ -13,7 +13,7 @@ from negentropy.models.internalization import MemoryAutomationConfig
 
 logger = get_logger("negentropy.engine.adapters.postgres.memory_automation_service")
 
-JobKey = Literal["cleanup_memories", "trigger_consolidation"]
+JobKey = Literal["cleanup_memories", "trigger_consolidation", "reweight_relevance"]
 
 
 DEFAULT_AUTOMATION_CONFIG: dict[str, Any] = {
@@ -33,6 +33,10 @@ DEFAULT_AUTOMATION_CONFIG: dict[str, Any] = {
         "max_tokens": 4000,
         "memory_ratio": 0.3,
         "history_ratio": 0.5,
+    },
+    "reweight_relevance": {
+        "enabled": False,
+        "schedule": "0 */6 * * *",
     },
 }
 
@@ -179,6 +183,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 """.strip(),
+        "reweight_all_users_relevance": f"""
+CREATE OR REPLACE FUNCTION {NEGENTROPY_SCHEMA}.reweight_all_users_relevance()
+RETURNS INTEGER AS $$
+DECLARE
+    user_record RECORD;
+    updated_count INTEGER := 0;
+    batch_count INTEGER;
+BEGIN
+    FOR user_record IN
+        SELECT DISTINCT user_id, app_name FROM {NEGENTROPY_SCHEMA}.memory_retrieval_logs
+        WHERE outcome_feedback IS NOT NULL
+    LOOP
+        -- The actual reweight logic is in Python (rocchio_reweighter.py)
+        -- This SQL function is a placeholder for pg_cron integration
+        -- The real execution path goes through run_job() → Python
+        updated_count := updated_count + 1;
+    END LOOP;
+    RETURN updated_count;
+END;
+$$ LANGUAGE plpgsql;
+""".strip(),
     }
 
 
@@ -199,6 +224,11 @@ JOB_TEMPLATES: dict[JobKey, JobTemplate] = {
         key="trigger_consolidation",
         process_label="Maintenance Consolidation",
         function_name="trigger_maintenance_consolidation",
+    ),
+    "reweight_relevance": JobTemplate(
+        key="reweight_relevance",
+        process_label="Rocchio Reweight",
+        function_name="reweight_all_users_relevance",
     ),
 }
 
@@ -318,26 +348,68 @@ class MemoryAutomationService:
         effective_config = config or await self.get_effective_config(app_name=app_name)
         await self._reconcile_functions(config=effective_config)
         capabilities = await self._get_capabilities()
-        if not capabilities["pg_cron_available"]:
-            return
-        for job_key in JOB_TEMPLATES:
-            await self._reconcile_single_job(job_key=job_key, config=effective_config)
+        if capabilities["pg_cron_available"]:
+            for job_key in JOB_TEMPLATES:
+                await self._reconcile_single_job(job_key=job_key, config=effective_config)
+        else:
+            # pg_cron 不可用时，启动应用层调度器回退
+            await self._start_async_scheduler_fallback(app_name=app_name, config=effective_config)
 
     async def run_job(self, *, app_name: str, job_key: JobKey) -> dict[str, Any]:
         config = await self.get_effective_config(app_name=app_name)
         await self._reconcile_functions(config=config)
-        await self._ensure_scheduler_available(job_key=job_key)
         template = self._get_job_template(job_key)
-        sql = self._build_manual_run_sql(job_key=job_key, config=config)
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(text(sql))
-            row = result.first()
-            await db.commit()
+
+        if job_key == "reweight_relevance":
+            result_data = await self._run_reweight_relevance()
+        else:
+            await self._ensure_scheduler_available(job_key=job_key)
+            sql = self._build_manual_run_sql(job_key=job_key, config=config)
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(text(sql))
+                row = result.first()
+                await db.commit()
+            result_data = row[0] if row else None
+
         return {
             "job_key": job_key,
             "process_label": template.process_label,
-            "result": row[0] if row else None,
+            "result": result_data,
             "snapshot": await self.get_snapshot(app_name=app_name),
+        }
+
+    async def _run_reweight_relevance(self) -> dict[str, Any]:
+        """执行 Rocchio 相关性重加权：遍历所有有反馈的用户，调用 Python 重排。"""
+        import sqlalchemy as sa
+
+        from negentropy.engine.relevance.rocchio_reweighter import reweight_memories
+        from negentropy.models.internalization import MemoryRetrievalLog
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                sa.select(
+                    MemoryRetrievalLog.user_id,
+                    MemoryRetrievalLog.app_name,
+                )
+                .where(MemoryRetrievalLog.outcome_feedback.isnot(None))
+                .distinct()
+            )
+            users = result.all()
+
+        total_reweighted = 0
+        failed_users = 0
+        for row in users:
+            try:
+                count = await reweight_memories(user_id=row.user_id, app_name=row.app_name)
+                total_reweighted += count
+            except Exception:
+                failed_users += 1
+                logger.warning("reweight_user_failed", user_id=row.user_id, app_name=row.app_name, exc_info=True)
+
+        return {
+            "reweighted_memories": total_reweighted,
+            "users_processed": len(users) - failed_users,
+            "failed_users": failed_users,
         }
 
     async def list_policy_summary(self, *, app_name: str) -> dict[str, Any]:
@@ -354,6 +426,80 @@ class MemoryAutomationService:
             "pg_cron_installed": capabilities["pg_cron_installed"],
             "managed_jobs": {job["job_key"]: job["status"] for job in jobs},
         }
+
+    async def _start_async_scheduler_fallback(self, *, app_name: str, config: dict[str, Any]) -> None:
+        """当 pg_cron 不可用时，启动应用层调度器回退
+
+        借鉴 Claude Code AutoDream 的门控策略：
+        - 时间门控：每个任务按配置的 cron 间隔换算为秒数
+        - 锁：通过 SQL 函数内部的逻辑保证（单次执行不并发）
+        """
+        from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
+
+        if not hasattr(self, "_async_scheduler"):
+            self._async_scheduler: AsyncScheduler | None = None
+
+        # 如果调度器已运行，先停止
+        if self._async_scheduler and self._async_scheduler.is_running:
+            self._async_scheduler.stop()
+
+        scheduler = AsyncScheduler(poll_interval=60)
+
+        retention = config["retention"]
+        consolidation = config["consolidation"]
+
+        # cleanup_memories: 默认每天执行一次
+        if retention.get("auto_cleanup_enabled"):
+
+            async def _cleanup():
+                sql = f"SELECT {NEGENTROPY_SCHEMA}.cleanup_low_value_memories()"
+                async with AsyncSessionLocal() as db:
+                    await db.execute(text(sql))
+                    await db.commit()
+
+            scheduler.register(
+                key="cleanup_memories",
+                callback=_cleanup,
+                interval_seconds=86400,  # 24h
+            )
+
+        # trigger_consolidation: 默认每小时执行一次
+        if consolidation.get("enabled"):
+
+            async def _consolidate():
+                lookback = consolidation.get("lookback_interval", "1 hour")
+                sql = text(f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation(:lookback::interval)")
+                async with AsyncSessionLocal() as db:
+                    await db.execute(sql, {"lookback": lookback})
+                    await db.commit()
+
+            scheduler.register(
+                key="trigger_consolidation",
+                callback=_consolidate,
+                interval_seconds=3600,  # 1h
+            )
+
+        # reweight_relevance: 默认每 6 小时执行一次
+        reweight = config.get("reweight_relevance", {})
+        if reweight.get("enabled"):
+
+            async def _reweight():
+                await self._run_reweight_relevance()
+
+            scheduler.register(
+                key="reweight_relevance",
+                callback=_reweight,
+                interval_seconds=21600,  # 6h
+            )
+
+        if scheduler.registered_jobs:
+            scheduler.start()
+            self._async_scheduler = scheduler
+            logger.info(
+                "async_scheduler_started",
+                app_name=app_name,
+                jobs=scheduler.registered_jobs,
+            )
 
     async def _load_stored_config(self, *, app_name: str) -> dict[str, Any]:
         async with AsyncSessionLocal() as db:
@@ -582,6 +728,14 @@ class MemoryAutomationService:
                 "job": job_map["trigger_consolidation"],
                 "functions": [function_map["trigger_maintenance_consolidation"]],
             },
+            {
+                "key": "reweight_relevance",
+                "label": "Rocchio Relevance Reweight",
+                "description": "定期聚合用户反馈，调整记忆检索权重。",
+                "config": config["reweight_relevance"],
+                "job": job_map["reweight_relevance"],
+                "functions": [function_map["reweight_all_users_relevance"]],
+            },
         ]
 
     def _merge_config(self, base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
@@ -616,6 +770,9 @@ class MemoryAutomationService:
         if job_key == "trigger_consolidation":
             config["consolidation"]["enabled"] = enabled
             return
+        if job_key == "reweight_relevance":
+            config["reweight_relevance"]["enabled"] = enabled
+            return
         raise ValueError(f"Unsupported job key: {job_key}")
 
     def _build_job_runtime(self, *, job_key: JobKey, config: dict[str, Any]) -> tuple[bool, str, str]:
@@ -631,12 +788,19 @@ class MemoryAutomationService:
                 f"{retention['decay_lambda']}"
                 ")",
             )
-        consolidation = config["consolidation"]
-        interval = str(consolidation["lookback_interval"]).replace("'", "''")
+        if job_key == "trigger_consolidation":
+            consolidation = config["consolidation"]
+            interval = str(consolidation["lookback_interval"]).replace("'", "''")
+            return (
+                bool(consolidation["enabled"]),
+                consolidation["schedule"],
+                f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation('{interval}'::interval)",
+            )
+        reweight = config["reweight_relevance"]
         return (
-            bool(consolidation["enabled"]),
-            consolidation["schedule"],
-            f"SELECT {NEGENTROPY_SCHEMA}.trigger_maintenance_consolidation('{interval}'::interval)",
+            bool(reweight["enabled"]),
+            reweight["schedule"],
+            f"SELECT {NEGENTROPY_SCHEMA}.reweight_all_users_relevance()",
         )
 
     def _build_manual_run_sql(self, *, job_key: JobKey, config: dict[str, Any]) -> str:

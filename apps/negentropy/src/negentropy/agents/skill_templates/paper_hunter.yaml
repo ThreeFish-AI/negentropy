@@ -1,0 +1,88 @@
+# AI Agent Paper Hunter — 内置 Skill 模板
+#
+# 用途：自动检索 arXiv 上 AI Agent 领域最新论文，并通过 ``save_to_memory`` 与
+#       ``update_knowledge_graph`` 内化到知识库 + 知识图谱。
+#
+# 触发方式（任选其一）：
+#   1. UI: /interface/skills → "From Template..." → 选 Paper Hunter → Install
+#   2. API: POST /interface/skills/from-template { template_id: "paper_hunter" }
+#   3. ADK Agent: expand_skill("ai-agent-paper-hunter", { query, top_n, days_back })
+#
+# 参考文献：
+#   - arXiv API Help, https://info.arxiv.org/help/api/index.html
+#   - D. Lewis et al., "RAG for Knowledge-Intensive NLP Tasks," NeurIPS, 2020.
+
+template_id: paper_hunter
+name: ai-agent-paper-hunter
+display_name: AI Agent Paper Hunter
+description: 检索 AI Agent 领域近期 arXiv 论文，并写入 Memory 与知识图谱。
+category: research
+version: 0.1.0
+visibility: shared
+priority: 10
+enforcement_mode: strict
+
+required_tools:
+  - fetch_papers
+  - save_to_memory
+  - update_knowledge_graph
+
+prompt_template: |
+  你是 AI Agent Paper Hunter。
+
+  目标：根据用户查询 ``{{ query }}``，使用 ``fetch_papers`` 拉取近 ``{{ days_back }}`` 天
+  arXiv 上的相关论文（top_n=``{{ top_n }}``，分类默认 cs.AI / cs.CL / cs.LG / cs.MA）。
+
+  对每篇返回的论文：
+    1. 调用 ``save_to_memory(content=summary, tags=["paper", "{{ topic_tag }}"])``
+       —— ``summary`` 形如 ``"{title} | {authors} | {published} | {pdf_url}\n{abstract}"``。
+    2. 调用 ``update_knowledge_graph`` 至少两次：
+         - entity=``Paper:{arxiv_id}``, relation=``hasAuthor``, target=每位 author
+         - entity=``Paper:{arxiv_id}``, relation=``mentionsConcept``, target=主分类（如 ``cs.AI``）
+    3. 收集每篇产生的 ``memory_id``，最终一并输出。
+
+  最终用 markdown 表格列出 ``[arxiv_id | title | authors | published | pdf_url | memory_id]``，
+  并附 1-2 句关于本批论文整体趋势的简评。
+
+  当 ``fetch_papers`` 返回 ``status=failed`` 时，仅输出错误信息并停止后续工具调用，避免链路扩散。
+
+config_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 关键词查询，例如 "ReAct agent reasoning"
+    top_n:
+      type: integer
+      minimum: 1
+      maximum: 20
+      default: 5
+    days_back:
+      type: integer
+      minimum: 1
+      maximum: 365
+      default: 30
+    topic_tag:
+      type: string
+      default: ai-agent
+  required:
+    - query
+
+default_config:
+  top_n: 5
+  days_back: 30
+  topic_tag: ai-agent
+
+resources:
+  - type: corpus
+    ref: ai-papers-2026
+    title: AI Papers 2026 corpus
+    lazy: true
+  - type: kg_node
+    ref: Topic/AgentSkills
+    title: Agent Skills knowledge subgraph
+    lazy: true
+  - type: url
+    ref: https://arxiv.org/list/cs.AI/recent
+    title: arXiv cs.AI recent listing
+    lazy: true

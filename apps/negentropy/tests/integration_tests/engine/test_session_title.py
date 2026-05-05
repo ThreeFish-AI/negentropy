@@ -16,10 +16,17 @@ from negentropy.engine.adapters.postgres.session_service import PostgresSessionS
 
 
 class DummySummarizer:
-    """替代 LLM 的最小实现，避免外部依赖"""
+    """替代 LLM 的最小实现，避免外部依赖。
 
-    def __init__(self) -> None:
-        pass
+    需暴露 ``async classmethod create()`` 与生产侧 ``SessionSummarizer.create()``
+    异步工厂契约对齐——调用方 ``session_service.py`` 通过
+    ``await SessionSummarizer.create()`` 构造实例，monkeypatch 替换的桩类必须
+    兼容该入口。
+    """
+
+    @classmethod
+    async def create(cls) -> DummySummarizer:
+        return cls()
 
     async def generate_title(self, history) -> str:
         return "首次标题"

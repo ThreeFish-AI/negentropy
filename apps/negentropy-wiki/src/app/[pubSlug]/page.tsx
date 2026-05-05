@@ -1,8 +1,10 @@
 import {
+  resolveSectionView,
   wikiApi,
   type WikiPublication,
   type WikiNavTreeItem,
 } from "@/lib/wiki-api";
+import { WikiHeader } from "@/components/WikiHeader";
 import { WikiNavTree } from "@/components/WikiNavTree";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import Link from "next/link";
@@ -77,6 +79,7 @@ export default async function WikiPublicationPage({ params }: Props) {
 
   const indexEntry = findIndexEntry(navItems);
   const entriesTotal = countLeafEntries(navItems);
+  const sectionView = resolveSectionView(navItems);
 
   const sidebar = (
     <>
@@ -102,14 +105,28 @@ export default async function WikiPublicationPage({ params }: Props) {
           🏠 首页
         </Link>
       )}
-      <nav>
-        <WikiNavTree items={navItems} pubSlug={pubSlug} />
-      </nav>
+      {sectionView.sidebarItems.length > 0 ? (
+        <nav>
+          <WikiNavTree items={sectionView.sidebarItems} pubSlug={pubSlug} />
+        </nav>
+      ) : (
+        sectionView.activeItem && (
+          <p className="wiki-text-hint wiki-empty-hint">该分组暂无文档</p>
+        )
+      )}
     </>
   );
 
+  const header = sectionView.headerItems.length > 0 && (
+    <WikiHeader
+      pubSlug={pubSlug}
+      items={sectionView.headerItems}
+      activeTopSlug={sectionView.activeTopSlug}
+    />
+  );
+
   return (
-    <WikiLayoutShell sidebar={sidebar} hasToc={false}>
+    <WikiLayoutShell sidebar={sidebar} hasToc={false} header={header || undefined}>
       <header className="wiki-doc-header">
         <h1 className="wiki-doc-title">{publication.name}</h1>
         <div className="wiki-doc-meta">

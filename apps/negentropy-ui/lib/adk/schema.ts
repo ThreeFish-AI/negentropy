@@ -26,6 +26,11 @@ const adkContentPartSchema = z
     type: z.string().optional(),
     functionCall: adkFunctionCallSchema.optional(),
     functionResponse: adkFunctionResponseSchema.optional(),
+    // ADK / google-genai 透传字段：当模型（Gemini thinking、Claude extended thinking、
+    // GPT-5/o-系列 reasoning）输出推理内容时，会以 `thought=true` 的 Part 与正文 Part
+    // 并列出现。此字段历史上靠 passthrough 漏过，现显式声明以便 extractTextParts
+    // 在源头按字段过滤，避免推理内容污染 TEXT_MESSAGE_CONTENT。
+    thought: z.boolean().optional(),
   })
   .passthrough();
 

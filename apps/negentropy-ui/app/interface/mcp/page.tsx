@@ -23,6 +23,18 @@ interface McpTool {
   call_count: number;
 }
 
+interface McpResourceTemplate {
+  id: string | null;
+  uri_template: string;
+  name: string | null;
+  title: string | null;
+  description: string | null;
+  mime_type: string | null;
+  annotations: Record<string, unknown>;
+  meta: Record<string, unknown>;
+  is_enabled: boolean;
+}
+
 interface McpServer {
   id: string;
   owner_id: string;
@@ -40,10 +52,12 @@ interface McpServer {
   auto_start: boolean;
   config: Record<string, unknown>;
   tool_count: number;
+  resource_template_count: number;
 }
 
 interface ServerWithTools extends McpServer {
   tools?: McpTool[];
+  resourceTemplates?: McpResourceTemplate[];
   loadingTools?: boolean;
   loadError?: string | null;
 }
@@ -52,6 +66,7 @@ interface LoadToolsResponse {
   success: boolean;
   server_id: string;
   tools: McpTool[];
+  resource_templates?: McpResourceTemplate[];
   duration_ms: number;
   error?: string;
 }
@@ -138,15 +153,18 @@ export default function McpServersPage() {
         throw new Error(data.error || "Failed to load tools");
       }
 
-      // 更新 tools 数据和 tool_count
+      const resourceTemplates = data.resource_templates ?? [];
+      // 更新 tools / resource_templates 数据与对应 count
       setServers((prev) =>
         prev.map((s) =>
           s.id === serverId
             ? {
                 ...s,
                 tools: data.tools,
+                resourceTemplates,
                 loadingTools: false,
                 tool_count: data.tools.length,
+                resource_template_count: resourceTemplates.length,
               }
             : s
         )
@@ -275,6 +293,7 @@ export default function McpServersPage() {
                       onDelete={() => handleDelete(server.id)}
                       onLoad={() => handleLoadTools(server.id)}
                       tools={server.tools}
+                      resourceTemplates={server.resourceTemplates}
                       loadingTools={server.loadingTools}
                       loadError={server.loadError}
                     />

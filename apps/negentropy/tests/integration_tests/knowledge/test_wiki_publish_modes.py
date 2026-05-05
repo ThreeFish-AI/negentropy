@@ -99,7 +99,7 @@ class TestWikiPublicationLifecycle:
         """新建 Publication 默认处于 draft 状态"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -123,7 +123,7 @@ class TestWikiPublicationLifecycle:
         """publish() 使 Publication 从 draft 进入 published 状态"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -152,7 +152,7 @@ class TestWikiPublicationLifecycle:
         """多次发布应递增 version"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -187,7 +187,7 @@ class TestWikiPublicationLifecycle:
         """unpublish() 将 published → draft"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -219,7 +219,7 @@ class TestWikiPublicationLifecycle:
         """archive() 将 Publication 置为 archived 状态"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -247,7 +247,7 @@ class TestWikiPublicationLifecycle:
         """delete_publication() 后 get_publication 应返回 None"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -288,7 +288,7 @@ class TestWikiPublicationCatalogBinding:
         """list_publications(catalog_id=X) 只返回该 catalog 下的发布"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
         from negentropy.models.perception import DocCatalog
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -349,7 +349,7 @@ class TestWikiPublicationCatalogBinding:
         """非法 slug 格式应抛 ValueError"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -369,7 +369,7 @@ class TestWikiPublicationCatalogBinding:
         """非法 theme 应抛 ValueError"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = WikiPublishingService()
@@ -403,8 +403,8 @@ class TestWikiPublicationEntriesEagerLoading:
         """list_publications 返回的对象必须可直接读取 entries（已 eager-loaded）"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_dao import WikiDao
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
         from negentropy.models.perception import KnowledgeDocument
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -458,8 +458,8 @@ class TestWikiPublicationEntriesEagerLoading:
         """get_publication 返回的对象必须可直接读取 entries（已 eager-loaded）"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.wiki_dao import WikiDao
-        from negentropy.knowledge.wiki_service import WikiPublishingService
+        from negentropy.knowledge.lifecycle.wiki_dao import WikiDao
+        from negentropy.knowledge.lifecycle.wiki_service import WikiPublishingService
         from negentropy.models.perception import KnowledgeDocument
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)

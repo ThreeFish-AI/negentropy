@@ -55,7 +55,9 @@ class TestInitCommand:
         user_dir = tmp_path / ".negentropy"
         user_dir.mkdir()
         user_file = user_dir / "config.yaml"
-        user_file.write_text("old")
+        # 使用唯一性更强的 sentinel，避免与默认 yaml 中的 "threshold" 等子串冲突
+        sentinel = "__legacy_user_config_marker__"
+        user_file.write_text(sentinel)
 
         with (
             patch("negentropy.config.yaml_loader.USER_CONFIG_DIR", user_dir),
@@ -68,7 +70,7 @@ class TestInitCommand:
 
             ret = _cmd_init(Args())
             assert ret == 0
-            assert "old" not in user_file.read_text()
+            assert sentinel not in user_file.read_text()
 
 
 class TestServeCommand:

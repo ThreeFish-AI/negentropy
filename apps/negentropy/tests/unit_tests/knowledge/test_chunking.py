@@ -19,7 +19,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from negentropy.knowledge.chunking import (
+from negentropy.knowledge.ingestion.chunking import (
     _cosine_similarity,
     _recursive_chunk,
     _split_into_sentences,

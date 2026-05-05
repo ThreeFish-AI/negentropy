@@ -49,6 +49,9 @@ class McpServer(Base, UUIDMixin, TimestampMixin):
 
     # Relationships
     tools: Mapped[list["McpTool"]] = relationship(back_populates="server", cascade="all, delete-orphan")
+    resource_templates: Mapped[list["McpResourceTemplate"]] = relationship(
+        back_populates="server", cascade="all, delete-orphan"
+    )
 
 
 class McpTool(Base, UUIDMixin, TimestampMixin):
@@ -78,3 +81,33 @@ class McpTool(Base, UUIDMixin, TimestampMixin):
 
     # Relationships
     server: Mapped["McpServer"] = relationship(back_populates="tools")
+
+
+class McpResourceTemplate(Base, UUIDMixin, TimestampMixin):
+    """MCP Resource Template（从 McpServer 动态发现的资源模板）。
+
+    Resource Template 描述 Server 提供的资源类别（URI Template，RFC 6570），
+    具体实例（如 ``perceives://pdf/<job_id>/<filename>``）在工具调用时动态生成，
+    生命周期与单次工具会话绑定，**永不入库**。
+    """
+
+    __tablename__ = "mcp_resource_templates"
+
+    server_id: Mapped[UUID] = mapped_column(fk("mcp_servers", ondelete="CASCADE"), nullable=False)
+    uri_template: Mapped[str] = mapped_column(String(500), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(255))
+    title: Mapped[str | None] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
+    mime_type: Mapped[str | None] = mapped_column(String(255))
+    annotations: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    meta: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}")
+    is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+
+    __table_args__ = (
+        UniqueConstraint("server_id", "uri_template", name="mcp_resource_templates_server_uri_unique"),
+        Index("ix_mcp_resource_templates_server_id", "server_id"),
+        {"schema": NEGENTROPY_SCHEMA},
+    )
+
+    # Relationships
+    server: Mapped["McpServer"] = relationship(back_populates="resource_templates")

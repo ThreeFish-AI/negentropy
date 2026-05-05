@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 import negentropy.db.session as db_session
+from negentropy.engine.governance.memory import MemoryGovernanceService
 from negentropy.logging import get_logger
 from negentropy.models.internalization import Fact
 
@@ -43,6 +44,7 @@ class FactService:
 
     def __init__(self, embedding_fn: callable | None = None):
         self._embedding_fn = embedding_fn
+        self._governance = MemoryGovernanceService()
 
     async def upsert_fact(
         self,
@@ -91,6 +93,23 @@ class FactService:
 
         now = datetime.now(UTC)
 
+        importance = self._governance.calculate_importance_score(
+            access_count=0,
+            memory_type=fact_type,
+            related_fact_count=0,
+            days_since_creation=0.0,
+            days_since_last_access=0.0,
+        )
+
+        # upsert 前查询旧值（用于冲突检测）
+        # 因为 ON CONFLICT DO UPDATE 会原地更新同一行，之后的冲突查询无法找到旧值
+        old_fact_value = await self._get_old_fact_value(
+            user_id=user_id,
+            app_name=app_name,
+            key=key,
+            fact_type=fact_type,
+        )
+
         async with db_session.AsyncSessionLocal() as db:
             stmt = (
                 pg_insert(Fact)
@@ -101,6 +120,7 @@ class FactService:
                     key=key,
                     value=value,
                     confidence=confidence,
+                    importance_score=importance,
                     embedding=embedding,
                     valid_from=valid_from or now,
                     valid_until=valid_until,
@@ -113,6 +133,7 @@ class FactService:
                         "confidence": confidence,
                         "embedding": embedding,
                         "valid_until": valid_until,
+                        "importance_score": importance,
                     },
                 )
                 .returning(Fact)
@@ -127,6 +148,17 @@ class FactService:
             key=key,
             fact_type=fact_type,
         )
+
+        # 冲突检测（fire-and-forget，不阻塞主路径）
+        try:
+            await self._detect_conflicts(
+                new_fact=fact,
+                old_value=old_fact_value,
+                user_id=user_id,
+                app_name=app_name,
+            )
+        except Exception as exc:
+            logger.debug("conflict_detection_failed", key=key, error=str(exc))
 
         return fact
 
@@ -321,6 +353,7 @@ class FactService:
             stmt = select(Fact).where(
                 Fact.user_id == user_id,
                 Fact.app_name == app_name,
+                Fact.status == "active",
                 (Fact.valid_until.is_(None)) | (Fact.valid_until > now),
             )
 
@@ -331,3 +364,143 @@ class FactService:
 
             result = await db.execute(stmt)
             return list(result.scalars().all())
+
+    @staticmethod
+    def _cosine_similarity(a: list[float], b: list[float]) -> float:
+        """计算两个向量的余弦相似度"""
+        dot = sum(x * y for x, y in zip(a, b, strict=True))
+        norm_a = sum(x * x for x in a) ** 0.5
+        norm_b = sum(x * x for x in b) ** 0.5
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return dot / (norm_a * norm_b)
+
+    async def merge_similar_facts(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        similarity_threshold: float = 0.85,
+    ) -> int:
+        """合并语义相似的 Facts（近重复检测<sup>[[38]](#ref38)</sup>）
+
+        加载用户全部有效 facts，两两比对 embedding 余弦相似度。
+        相似度超阈值且 type 相同 → 保留高 confidence、删除低 confidence。
+
+        Returns:
+            合并的 fact 数量
+        """
+        if not self._embedding_fn:
+            return 0
+
+        facts = await self.list_facts(user_id=user_id, app_name=app_name, limit=200)
+        if len(facts) < 2:
+            return 0
+
+        # 生成 embedding
+        embedded: list[tuple[Fact, list[float]]] = []
+        for f in facts:
+            text = f"{f.key}: {str(f.value)}"
+            try:
+                emb = await self._embedding_fn(text)
+                if emb:
+                    embedded.append((f, emb))
+            except Exception:
+                continue
+
+        merged = 0
+        seen: set[UUID] = set()
+        for i, (f1, e1) in enumerate(embedded):
+            if f1.id in seen:
+                continue
+            for j, (f2, e2) in enumerate(embedded):
+                if j <= i or f2.id in seen:
+                    continue
+                if f1.fact_type != f2.fact_type:
+                    continue
+                sim = self._cosine_similarity(e1, e2)
+                if sim >= similarity_threshold:
+                    drop = f2 if f1.confidence >= f2.confidence else f1
+                    await self.delete_fact(
+                        user_id=user_id,
+                        app_name=app_name,
+                        key=drop.key,
+                        fact_type=drop.fact_type,
+                    )
+                    seen.add(drop.id)
+                    merged += 1
+                    # 锚点被删除后停止内层循环，避免用已删除事实的 embedding 继续比对
+                    if f1.id in seen:
+                        break
+
+        if merged:
+            logger.info("facts_merged", user_id=user_id, merged_count=merged)
+        return merged
+
+    async def _get_old_fact_value(
+        self,
+        *,
+        user_id: str,
+        app_name: str,
+        key: str,
+        fact_type: str,
+    ) -> dict[str, Any] | None:
+        """在 upsert 前查询现有事实的值
+
+        因为 ON CONFLICT DO UPDATE 会原地更新同一行（ID 不变），
+        之后的冲突查询无法找到旧值，所以必须在 upsert 前查询。
+        """
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = (
+                select(Fact.value)
+                .where(
+                    Fact.user_id == user_id,
+                    Fact.app_name == app_name,
+                    Fact.key == key,
+                    Fact.fact_type == fact_type,
+                )
+                .limit(1)
+            )
+            result = await db.execute(stmt)
+            row = result.first()
+            return row.value if row else None
+
+    async def _detect_conflicts(
+        self,
+        *,
+        new_fact: Fact,
+        old_value: dict[str, Any] | None,
+        user_id: str,
+        app_name: str,
+    ) -> None:
+        """检测新事实与旧值的冲突
+
+        直接用 upsert 前查询的 old_value 构造代理 Fact，
+        因为 ON CONFLICT DO UPDATE 已将行原地更新，二次查询无法获取旧值。
+        """
+        if old_value is None or old_value == new_fact.value:
+            return
+
+        from negentropy.engine.factories.memory import get_conflict_resolver
+
+        resolver = get_conflict_resolver()
+
+        # 用预取的 old_value 构造代理对象，避免 upsert 后二次查询返回已更新的新值
+        from types import SimpleNamespace
+
+        old_fact_proxy = SimpleNamespace(
+            id=new_fact.id,
+            key=new_fact.key,
+            value=old_value,
+            fact_type=new_fact.fact_type,
+            confidence=new_fact.confidence,
+            status="active",
+            superseded_by=None,
+        )
+
+        await resolver.detect_and_resolve(
+            old_fact=old_fact_proxy,
+            new_fact=new_fact,
+            user_id=user_id,
+            app_name=app_name,
+        )

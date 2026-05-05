@@ -13,7 +13,6 @@ import pytest
 from negentropy.knowledge.graph import (
     CooccurrenceRelationExtractor,
     EntityExtractor,
-    GraphProcessor,
     RegexEntityExtractor,
     RelationExtractor,
 )
@@ -109,38 +108,49 @@ class TestCooccurrenceRelationExtractor:
         assert edges == []
 
 
-class TestGraphProcessor:
-    """GraphProcessor 策略注入测试"""
+class TestStrategyAbstractContracts:
+    """Strategy 抽象基类契约测试
+
+    验证 EntityExtractor / RelationExtractor 抽象基类要求子类必须实现 extract。
+    取代了已删除的 GraphProcessor 注入测试，聚焦真正存活的抽象契约。
+    """
 
     @pytest.mark.asyncio
-    async def test_default_extractors(self):
-        """默认应使用 Regex + Cooccurrence 策略"""
-        processor = GraphProcessor()
-        assert isinstance(processor._entity_extractor, RegexEntityExtractor)
-        assert isinstance(processor._relation_extractor, CooccurrenceRelationExtractor)
-
-    @pytest.mark.asyncio
-    async def test_custom_entity_extractor(self):
-        """应支持注入自定义 EntityExtractor"""
+    async def test_custom_entity_extractor_subclass(self):
+        """自定义 EntityExtractor 子类可被实例化并按契约工作"""
 
         class MockEntityExtractor(EntityExtractor):
             async def extract(self, text: str, corpus_id: UUID) -> list[GraphNode]:
                 return [GraphNode(id="mock-1", label="MockEntity", node_type="mock")]
 
-        processor = GraphProcessor(entity_extractor=MockEntityExtractor())
-        entities = await processor.extract_entities("any text", _CORPUS_ID)
+        extractor = MockEntityExtractor()
+        entities = await extractor.extract("any text", _CORPUS_ID)
         assert len(entities) == 1
         assert entities[0].label == "MockEntity"
 
     @pytest.mark.asyncio
-    async def test_custom_relation_extractor(self):
-        """应支持注入自定义 RelationExtractor"""
+    async def test_custom_relation_extractor_subclass(self):
+        """自定义 RelationExtractor 子类可被实例化并按契约工作"""
 
         class MockRelationExtractor(RelationExtractor):
             async def extract(self, entities: list[GraphNode], text: str) -> list[GraphEdge]:
                 return [GraphEdge(source="a", target="b", label="mock_rel")]
 
-        processor = GraphProcessor(relation_extractor=MockRelationExtractor())
-        edges = await processor.extract_relations([], "any text")
+        extractor = MockRelationExtractor()
+        edges = await extractor.extract([], "any text")
         assert len(edges) == 1
         assert edges[0].label == "mock_rel"
+
+    def test_entity_extractor_is_abstract(self):
+        """EntityExtractor 不能直接实例化"""
+        import pytest as _pt
+
+        with _pt.raises(TypeError):
+            EntityExtractor()  # type: ignore[abstract]
+
+    def test_relation_extractor_is_abstract(self):
+        """RelationExtractor 不能直接实例化"""
+        import pytest as _pt
+
+        with _pt.raises(TypeError):
+            RelationExtractor()  # type: ignore[abstract]

@@ -1,10 +1,12 @@
 import {
+  resolveSectionView,
   wikiApi,
   type WikiEntry,
   type WikiEntryContent,
   type WikiNavTreeItem,
   type WikiPublication,
 } from "@/lib/wiki-api";
+import { WikiHeader } from "@/components/WikiHeader";
 import { WikiNavTree } from "@/components/WikiNavTree";
 import { WikiLayoutShell } from "@/components/WikiLayoutShell";
 import { WikiToc } from "@/components/WikiToc";
@@ -119,6 +121,7 @@ export default async function WikiEntryPage({ params }: Props) {
   const md = content?.markdown_content ?? "";
   const headings = status === "ok" ? extractHeadings(md) : [];
   const hasToc = headings.length >= 2;
+  const sectionView = resolveSectionView(navItems, slug);
 
   const sidebar = (
     <>
@@ -136,18 +139,35 @@ export default async function WikiEntryPage({ params }: Props) {
           <span className="wiki-sidebar-title">← {publication.name}</span>
         </Link>
       </div>
-      {navItems.length > 0 && (
+      {sectionView.sidebarItems.length > 0 ? (
         <nav>
-          <WikiNavTree items={navItems} pubSlug={pubSlug} activeSlug={slug} />
+          <WikiNavTree
+            items={sectionView.sidebarItems}
+            pubSlug={pubSlug}
+            activeSlug={slug}
+          />
         </nav>
+      ) : (
+        sectionView.activeItem && (
+          <p className="wiki-text-hint wiki-empty-hint">该分组暂无文档</p>
+        )
       )}
     </>
+  );
+
+  const header = sectionView.headerItems.length > 0 && (
+    <WikiHeader
+      pubSlug={pubSlug}
+      items={sectionView.headerItems}
+      activeTopSlug={sectionView.activeTopSlug}
+    />
   );
 
   return (
     <WikiLayoutShell
       sidebar={sidebar}
       hasToc={hasToc}
+      header={header || undefined}
       toc={hasToc ? <WikiToc headings={headings} /> : undefined}
     >
       {status === "pending" ? (

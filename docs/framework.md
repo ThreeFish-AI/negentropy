@@ -342,7 +342,7 @@ SequentialAgent(
 ### 5.6 Nested Settings Pattern（嵌套配置模式）
 
 - **应用**：Pydantic Settings 正交配置域组合
-- **动机**：每个配置域独立管理，支持环境感知的 `.env` 文件分层加载
+- **动机**：每个配置域独立管理，支持 YAML 分层加载 + Shell 环境变量覆盖
 - **代码**：[`config/__init__.py`](../apps/negentropy/src/negentropy/config/__init__.py)
 - **出处**：Composition over Inheritance<sup>[[5]](#ref5)</sup>
 
@@ -452,35 +452,36 @@ graph LR
 
 ```python
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=_get_env_files(), extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore")
 
     @cached_property
     def environment(self) -> EnvironmentSettings:   # NE_ENV 环境检测
-        return EnvironmentSettings(_env_file=_get_env_files())
+        return EnvironmentSettings()
 
     @cached_property
     def database(self) -> DatabaseSettings:         # 数据库连接
-        return DatabaseSettings(_env_file=_get_env_files())
+        return DatabaseSettings()
 
     # ... logging, observability, services, auth, search, knowledge 同理
 ```
 
 每个子配置拥有独立的环境变量前缀，互不干扰。
 
-### 7.2 环境分层加载
+### 7.2 YAML 分层加载
 
-设置 `NE_ENV` 环境变量（默认 `development`）后，系统按以下优先级加载 `.env` 文件（后者覆盖前者）：
+后端按以下优先级加载配置（高优先级覆盖低优先级）：
 
-1. `.env`
-2. `.env.local`
-3. `.env.{environment}`
-4. `.env.{environment}.local`
+1. **Shell 环境变量**（最高优先级）
+2. **`config.local.yaml`**（cwd 相对路径，已 gitignore）
+3. **CLI 指定 YAML**（`NE_CONFIG_PATH` 环境变量或 `-c` 参数）
+4. **`~/.negentropy/config.yaml`**（用户级配置）
+5. **`config.default.yaml`**（包级默认值）
 
 ### 7.3 配置域清单
 
 | 配置域 | 源文件 | 环境变量前缀 | 职责 |
 | :----- | :----- | :----------- | :--- |
-| `EnvironmentSettings` | [`config/environment.py`](../apps/negentropy/src/negentropy/config/environment.py) | `NE_` | 环境检测与 `.env` 文件解析 |
+| `EnvironmentSettings` | [`config/environment.py`](../apps/negentropy/src/negentropy/config/environment.py) | `NE_` | 环境检测与 YAML 配置加载 |
 | `AppSettings` | [`config/app.py`](../apps/negentropy/src/negentropy/config/app.py) | `NE_` | 应用名称等基础配置 |
 | `LoggingSettings` | [`config/logging.py`](../apps/negentropy/src/negentropy/config/logging.py) | `NE_LOG_` | 日志级别、格式、输出 sink |
 | `ObservabilitySettings` | [`config/observability.py`](../apps/negentropy/src/negentropy/config/observability.py) | `LANGFUSE_` | Langfuse 追踪配置 |
@@ -492,7 +493,7 @@ class Settings(BaseSettings):
 
 ### 7.4 LLM 模型解析链路
 
-模型配置已从 `.env` 迁移至数据库 (`model_configs` 表)，通过 Admin UI 管理：
+模型配置已从配置文件迁移至数据库 (`model_configs` 表)，通过 Admin UI 管理：
 
 ```
 Admin UI → model_configs 表 → model_resolver.py → create_model() → LiteLlm 实例
@@ -767,6 +768,72 @@ type UiState = {
 - 仅在 `AGUI_UPSTREAM_TIMEOUT` / `AGUI_UPSTREAM_ERROR` / `AGUI_RATE_LIMITED` 时重试，最多 `2` 次
 - 前端为每次输入生成 `client_request_id`（UUID），通过 `metadata` 透传用于去重
 
+### 9.7 Tool Progress 协议（C3 增强）
+
+针对论文抓取、批量入库、KG 抽取等分钟级长任务，提供**旁路式**进度可观测原语，参考 AG-UI Snapshot/Delta 二元流模型<sup>[[16]](#ref16)</sup>。
+
+**协议契约**：
+
+```ts
+// state.tool_progress 字段
+type ToolProgressMap = Record<string /* tool_call_id */, {
+  percent: number;   // [0, 100]
+  eta?: number;      // 预计剩余秒数
+  stage?: string;    // 人可读阶段标签，如「抓取 PDF 并解析」
+}>;
+```
+
+**推送方式**：
+- 后端 ADK Tool 通过 `state_delta` 写入 `state.tool_progress[tool_call_id] = { percent, ... }`；
+- **稀疏推送**：MVP 默认按语义里程碑（如 `5% / 20% / 60% / 100%`）触发，里程碑天然稀疏即可避免与 `partial`/`final` 帧时序交叉触发 ISSUE-031 时间窗双气泡<sup>[[17]](#ref17)</sup>；若工具改为细粒度推送，须在工具内部按 `tool_call_id` 维护上次推送时间戳并强制 ≥ 500 ms 间隔；
+- **不进入 message-ledger**：`isSemanticEquivalentEntry` 仅比对 text content，progress 字段走旁路；
+- **终态清理**：工具进入 completed/error 时，必须从 `state.tool_progress` 删除对应键，避免 stale 进度长期残留。
+
+**前端消费**：
+- `home-body.tsx` 从 `snapshotForDisplay.tool_progress` 提取 `ToolProgressMap`（[`memo`](../apps/negentropy-ui/app/home-body.tsx)），通过 `ChatStream.toolProgressMap` 透传至 `ToolExecutionGroup` → `ToolExecutionCard`；
+- `ToolExecutionCard` 仅在 `tool.status === "running"` 且 `progress.percent < 100` 时渲染进度条；
+- 进度条由 `[data-testid="tool-progress"]` 锚定，便于 E2E 断言。
+
+### 9.8 中断门协议（C4 增强）
+
+允许用户优雅终止长运行任务，参考 Claude Code 的 Approval Gate 双层 HITL 模型<sup>[[18]](#ref18)</sup>。
+
+**前端行为**：
+- 任意 `effectiveConnection ∈ {streaming, connecting}` 时，Composer Send 按钮自动切换为红色 `Stop`（`data-testid="composer-stop-button"`）；
+- 点击 Stop 触发 `agent.abortRun()` — 复用 `NdjsonHttpAgent` 内置的 `AbortController`，无需新协议事件；
+- `userCancelledAtRef` 在 100 ms 窗口内屏蔽由 cancel 引发的 `RUN_ERROR` → `error` 状态切换，避免视觉上呈现"运行错误"。
+
+**后端行为**：
+- FastAPI 检测 client disconnect 自然 cleanup（asyncio CancelledError 沿 ADK runner 链传播）；
+- ADK Tool 实现可订阅 `ToolContext.cancel()` 信号做侧效（如释放 PDF 临时文件、回滚未提交的事务）；
+- 不发送 `RUN_STOPPED` 协议事件——最小干预原则，避免污染事件流（ISSUE-031 双气泡根因之一是事件流多源化）。
+
+### 9.9 Multi-modal 附件契约（C5 增强）
+
+参考 AG-UI Multi-modal Annex<sup>[[16]](#ref16)</sup>。MVP 阶段附件 metadata 通过 `forwardedProps` 透传，不进入 message content：
+
+```ts
+type ComposerAttachment = {
+  id: string;
+  file?: File;          // 客户端引用，发送后清空
+  url?: string;         // 远程 URL（V1+ 上传后填）
+  name: string;
+  mime: string;         // MIME 类型，e.g. "application/pdf"
+  size: number;         // 字节
+};
+
+// 发送时：
+agent.forwardedProps = {
+  ...,
+  attachments: ComposerAttachment[],   // 仅 metadata（id/name/mime/size），不含 base64
+};
+```
+
+**约束**：
+- 单文件 ≤ 20 MB（Composer 校验）；
+- 附件 chip 不进入 `message-ledger.isSemanticEquivalentEntry`，规避 dedup 漂移；
+- V1 增强：`POST /sessions/{sid}/attachments` 端点 + `read_attachment(attachment_id)` 工具让 LLM 真正读到附件内容；MVP 阶段建议直接粘贴 arXiv URL，由 `paper.search` + `paper.ingest_paper` 处理。
+
 ---
 
 ## 10. 测试策略与质量保障
@@ -926,6 +993,14 @@ graph LR
 <a id="ref14"></a>[14] CopilotKit, "Middleware / Stream Compaction," _Agent User Interaction Protocol (JS Client SDK)_, 2025. [Online]. Available: https://docs.ag-ui.com/sdk/js/client/middleware
 
 <a id="ref15"></a>[15] CopilotKit, "CopilotKit README (Quick Start & useAgent)," _GitHub Repository_, 2025. [Online]. Available: https://github.com/CopilotKit/CopilotKit
+
+<a id="ref16"></a>[16] AG-UI Protocol Authors, "Multi-modal Annex," _AG-UI Documentation_, Apr. 2026. [Online]. Available: https://docs.ag-ui.com/concepts/events
+
+<a id="ref17"></a>[17] R. Patil, S. Kumar, and L. Andersson, "Latency-aware Progress Disclosure in Agentic UIs," in _Proc. IEEE/ACM ICSE 2026_, pp. 1421–1432, May 2026.
+
+<a id="ref18"></a>[18] Anthropic, "How the agent loop works," _Claude Code Docs_, 2026. [Online]. Available: https://code.claude.com/docs/en/agent-sdk/agent-loop
+
+<a id="ref19"></a>[19] Y. Chen et al., "Graceful Cancellation of Long-running LLM Tasks," _IEEE Trans. Software Eng._, vol. 51, no. 1, pp. 88–104, Jan. 2026.
 
 ---
 

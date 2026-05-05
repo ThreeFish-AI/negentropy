@@ -7,6 +7,7 @@ Interface API 模块。
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -23,6 +24,7 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.model_config import ModelConfig
 from negentropy.models.plugin import (
+    McpResourceTemplate,
     McpServer,
     McpTool,
     McpToolRun,
@@ -32,6 +34,8 @@ from negentropy.models.plugin import (
     PluginPermissionType,
     PluginVisibility,
     Skill,
+    SkillSchedule,
+    SkillVersion,
     SubAgent,
 )
 from negentropy.models.vendor_config import VendorConfig
@@ -132,6 +136,7 @@ class McpServerResponse(BaseModel):
     auto_start: bool = False
     config: dict[str, Any] = Field(default_factory=dict)
     tool_count: int = 0
+    resource_template_count: int = 0
 
     class Config:
         from_attributes = True
@@ -170,12 +175,34 @@ class McpToolUpdateRequest(BaseModel):
     is_enabled: bool | None = None
 
 
+class McpResourceTemplateResponse(BaseModel):
+    """MCP Resource Template 响应模型（仅 Templates，不含动态实例）"""
+
+    id: UUID | None = None
+    uri_template: str
+    name: str | None = None
+    title: str | None = None
+    description: str | None = None
+    mime_type: str | None = None
+    annotations: dict[str, Any] = Field(default_factory=dict)
+    meta: dict[str, Any] = Field(default_factory=dict)
+    is_enabled: bool = True
+
+    class Config:
+        from_attributes = True
+
+
 class LoadToolsResponse(BaseModel):
-    """Load Tools 操作响应"""
+    """Load Tools 操作响应（capability 全量同步：tools + resource_templates）。
+
+    保留 ``LoadToolsResponse`` 命名以维持向后兼容（旧前端可继续读取 ``tools``
+    字段）；新增 ``resource_templates`` 字段在旧消费方处会被忽略。
+    """
 
     success: bool
     server_id: UUID
     tools: list[McpToolResponse] = Field(default_factory=list)
+    resource_templates: list[McpResourceTemplateResponse] = Field(default_factory=list)
     duration_ms: int = 0
     error: str | None = None
 
@@ -257,6 +284,8 @@ class SkillCreateRequest(BaseModel):
     is_enabled: bool = True
     priority: int = 0
     visibility: str = "private"
+    enforcement_mode: str = "warning"
+    resources: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class SkillUpdateRequest(BaseModel):
@@ -272,6 +301,8 @@ class SkillUpdateRequest(BaseModel):
     is_enabled: bool | None = None
     priority: int | None = None
     visibility: str | None = None
+    enforcement_mode: str | None = None
+    resources: list[dict[str, Any]] | None = None
 
 
 class SkillResponse(BaseModel):
@@ -289,9 +320,80 @@ class SkillResponse(BaseModel):
     required_tools: list[str] = Field(default_factory=list)
     is_enabled: bool
     priority: int
+    enforcement_mode: str = "warning"
+    resources: list[dict[str, Any]] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
+
+
+class SkillInvokeRequest(BaseModel):
+    """``POST /interface/skills/{id}:invoke`` 请求体：渲染 prompt_template 并附带资源。"""
+
+    variables: dict[str, Any] = Field(default_factory=dict)
+
+
+class SkillInvokeResponse(BaseModel):
+    """``POST /interface/skills/{id}:invoke`` 响应体。"""
+
+    skill_id: UUID
+    name: str
+    rendered_prompt: str
+    resources: list[dict[str, Any]] = Field(default_factory=list)
+    missing_tools: list[str] = Field(default_factory=list)
+
+
+class SkillTemplateSummary(BaseModel):
+    """``GET /interface/skills/templates`` 单项响应。"""
+
+    template_id: str
+    name: str
+    display_name: str | None = None
+    description: str | None = None
+    category: str
+    version: str
+
+
+class SkillFromTemplateRequest(BaseModel):
+    """``POST /interface/skills/from-template`` 请求体。"""
+
+    template_id: str
+    name_override: str | None = None
+    visibility: str | None = None
+
+
+# Phase 3 — Skill 版本历史 / 调度
+class SkillVersionResponse(BaseModel):
+    id: UUID
+    skill_id: UUID
+    version: str
+    snapshot: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+
+
+class SkillSnapshotRequest(BaseModel):
+    """``POST /interface/skills/{id}/versions`` 请求体；默认 freeze 当前字段。"""
+
+    version: str | None = None  # 不传时使用 Skill.version
+
+
+class SkillScheduleRequest(BaseModel):
+    cron_expr: str
+    enabled: bool = True
+    vars: dict[str, Any] = Field(default_factory=dict)
+
+
+class SkillScheduleResponse(BaseModel):
+    id: UUID
+    skill_id: UUID
+    owner_id: str
+    cron_expr: str
+    enabled: bool
+    vars: dict[str, Any] = Field(default_factory=dict)
+    last_run_at: datetime | None = None
+    next_run_at: datetime | None = None
+    last_error: str | None = None
+    created_at: datetime | None = None
 
 
 # =============================================================================
@@ -347,6 +449,9 @@ class SubAgentResponse(BaseModel):
     source: str = "user_defined"
     is_builtin: bool = False
     is_enabled: bool
+    # `kind` 来源于 ``config.adk_config.kind``：``"root"`` 标记 Negentropy 主 Agent，
+    # ``"subagent"``（默认）适用于 Faculty 与用户自定义子 Agent。前端按此置顶 + Root 徽章。
+    kind: str = "subagent"
 
     class Config:
         from_attributes = True
@@ -437,17 +542,35 @@ async def list_mcp_servers(user: AuthUser = Depends(get_current_user)) -> list[M
         if not visible_ids:
             return []
 
-        stmt = (
-            select(McpServer, func.count(McpTool.id))
-            .outerjoin(McpTool, McpTool.server_id == McpServer.id)
-            .where(McpServer.id.in_(visible_ids))
-            .group_by(McpServer.id)
-            .order_by(McpServer.created_at.desc())
+        # tool_count 与 resource_template_count 分两段查询：避免单条 SQL 的
+        # JOIN 笛卡尔积导致两类计数互相膨胀。
+        tool_count_stmt = (
+            select(McpTool.server_id, func.count(McpTool.id))
+            .where(McpTool.server_id.in_(visible_ids))
+            .group_by(McpTool.server_id)
         )
-        result = await db.execute(stmt)
-        rows = result.all()
+        tool_count_rows = (await db.execute(tool_count_stmt)).all()
+        tool_count_map: dict[UUID, int] = {row[0]: row[1] for row in tool_count_rows}
 
-    return [_mcp_server_to_response(server, count) for server, count in rows]
+        template_count_stmt = (
+            select(McpResourceTemplate.server_id, func.count(McpResourceTemplate.id))
+            .where(McpResourceTemplate.server_id.in_(visible_ids))
+            .group_by(McpResourceTemplate.server_id)
+        )
+        template_count_rows = (await db.execute(template_count_stmt)).all()
+        template_count_map: dict[UUID, int] = {row[0]: row[1] for row in template_count_rows}
+
+        servers_stmt = select(McpServer).where(McpServer.id.in_(visible_ids)).order_by(McpServer.created_at.desc())
+        servers = (await db.execute(servers_stmt)).scalars().all()
+
+    return [
+        _mcp_server_to_response(
+            server,
+            tool_count_map.get(server.id, 0),
+            template_count_map.get(server.id, 0),
+        )
+        for server in servers
+    ]
 
 
 @router.post("/mcp/servers", response_model=McpServerResponse, status_code=status.HTTP_201_CREATED)
@@ -496,20 +619,16 @@ async def get_mcp_server(
         if not has_access:
             raise HTTPException(status_code=403, detail=error)
 
-        stmt = (
-            select(McpServer, func.count(McpTool.id))
-            .outerjoin(McpTool, McpTool.server_id == McpServer.id)
-            .where(McpServer.id == server_id)
-            .group_by(McpServer.id)
+        server = await db.get(McpServer, server_id)
+        if not server:
+            raise HTTPException(status_code=404, detail="Server not found")
+
+        tool_count = await db.scalar(select(func.count(McpTool.id)).where(McpTool.server_id == server_id))
+        template_count = await db.scalar(
+            select(func.count(McpResourceTemplate.id)).where(McpResourceTemplate.server_id == server_id)
         )
-        result = await db.execute(stmt)
-        row = result.first()
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Server not found")
-
-    server, count = row
-    return _mcp_server_to_response(server, count)
+    return _mcp_server_to_response(server, tool_count or 0, template_count or 0)
 
 
 @router.patch("/mcp/servers/{server_id}", response_model=McpServerResponse)
@@ -570,7 +689,11 @@ async def delete_mcp_server(
         await db.commit()
 
 
-def _mcp_server_to_response(server: McpServer, tool_count: int) -> McpServerResponse:
+def _mcp_server_to_response(
+    server: McpServer,
+    tool_count: int,
+    resource_template_count: int = 0,
+) -> McpServerResponse:
     return McpServerResponse(
         id=server.id,
         owner_id=server.owner_id,
@@ -588,6 +711,7 @@ def _mcp_server_to_response(server: McpServer, tool_count: int) -> McpServerResp
         auto_start=server.auto_start,
         config=server.config or {},
         tool_count=tool_count or 0,
+        resource_template_count=resource_template_count or 0,
     )
 
 
@@ -607,6 +731,21 @@ def _mcp_tool_to_response(tool: McpTool) -> McpToolResponse:
         meta=tool.meta or {},
         is_enabled=tool.is_enabled,
         call_count=tool.call_count or 0,
+    )
+
+
+def _mcp_resource_template_to_response(template: McpResourceTemplate) -> McpResourceTemplateResponse:
+    """将 McpResourceTemplate 模型转换为响应模型"""
+    return McpResourceTemplateResponse(
+        id=template.id,
+        uri_template=template.uri_template,
+        name=template.name,
+        title=template.title,
+        description=template.description,
+        mime_type=template.mime_type,
+        annotations=template.annotations or {},
+        meta=template.meta or {},
+        is_enabled=template.is_enabled,
     )
 
 
@@ -678,14 +817,13 @@ async def load_mcp_server_tools(
     server_id: UUID,
     user: AuthUser = Depends(get_current_user),
 ) -> LoadToolsResponse:
-    """
-    连接 MCP Server 并加载其 Tools 列表。
+    """连接 MCP Server 并加载其 capability（tools + resource_templates）。
 
     此操作会：
-    1. 连接到 MCP Server
-    2. 获取所有 Tools
-    3. 同步到数据库（新增/更新）
-    4. 返回 Tools 列表
+    1. 连接到 MCP Server；
+    2. 获取所有 Tools 与 Resource Templates；
+    3. 同步到数据库（新增/更新；旧 server 无 resources capability 时静默兜底）；
+    4. 返回完整 capability。
     """
     from .mcp_client import McpClientService
 
@@ -716,6 +854,7 @@ async def load_mcp_server_tools(
                 success=False,
                 server_id=server_id,
                 tools=[],
+                resource_templates=[],
                 duration_ms=result.duration_ms,
                 error=result.error,
             )
@@ -757,18 +896,69 @@ async def load_mcp_server_tools(
                 db.add(new_tool)
                 updated_tools.append(new_tool)
 
+        # 5. 同步 Resource Templates 到数据库（以 uri_template 为键）
+        existing_templates_result = await db.execute(
+            select(McpResourceTemplate).where(McpResourceTemplate.server_id == server_id)
+        )
+        existing_templates = existing_templates_result.scalars().all()
+        existing_template_map = {t.uri_template: t for t in existing_templates}
+
+        updated_templates: list[McpResourceTemplate] = []
+        seen_uri_templates: set[str] = set()
+        for template_info in result.resource_templates:
+            seen_uri_templates.add(template_info.uri_template)
+            if template_info.uri_template in existing_template_map:
+                existing_tpl = existing_template_map[template_info.uri_template]
+                existing_tpl.name = template_info.name
+                existing_tpl.title = template_info.title
+                existing_tpl.description = template_info.description
+                existing_tpl.mime_type = template_info.mime_type
+                existing_tpl.annotations = template_info.annotations
+                existing_tpl.meta = template_info.meta
+                updated_templates.append(existing_tpl)
+            else:
+                new_template = McpResourceTemplate(
+                    server_id=server_id,
+                    uri_template=template_info.uri_template,
+                    name=template_info.name,
+                    title=template_info.title,
+                    description=template_info.description,
+                    mime_type=template_info.mime_type,
+                    annotations=template_info.annotations,
+                    meta=template_info.meta,
+                    is_enabled=True,
+                )
+                db.add(new_template)
+                updated_templates.append(new_template)
+
+        # 仅在 server 权威返回 templates 列表时才裁剪 stale 行：
+        # ``_discover_on_transport`` 对 ``list_resource_templates`` 的所有异常都
+        # 会静默兜底返回空列表（兼容旧 server / 瞬态错误），若此处直接 prune 会
+        # 把首次错误后的 DB 模板表清空，与 tools 同步"只增量更新、不裁剪"的语义
+        # 不对称。``resource_templates_listed`` 区分"权威空列表"与"未支持/错误"。
+        if result.resource_templates_listed:
+            for stale_uri, stale_tpl in existing_template_map.items():
+                if stale_uri not in seen_uri_templates:
+                    await db.delete(stale_tpl)
+
         await db.commit()
 
-        # 5. 刷新以获取 ID
+        # 6. 刷新以获取 ID
         for tool in updated_tools:
             await db.refresh(tool)
+        for tpl in updated_templates:
+            await db.refresh(tpl)
 
-        logger.info(f"Loaded {len(updated_tools)} tools from MCP server {server.name}")
+        logger.info(
+            f"Loaded {len(updated_tools)} tools and {len(updated_templates)} resource templates "
+            f"from MCP server {server.name}"
+        )
 
         return LoadToolsResponse(
             success=True,
             server_id=server_id,
             tools=[_mcp_tool_to_response(t) for t in updated_tools],
+            resource_templates=[_mcp_resource_template_to_response(t) for t in updated_templates],
             duration_ms=result.duration_ms,
         )
 
@@ -788,6 +978,33 @@ async def list_mcp_server_tools(
         tools = result.scalars().all()
 
         return [_mcp_tool_to_response(t) for t in tools]
+
+
+@router.get(
+    "/mcp/servers/{server_id}/resource-templates",
+    response_model=list[McpResourceTemplateResponse],
+)
+async def list_mcp_server_resource_templates(
+    server_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> list[McpResourceTemplateResponse]:
+    """列出指定 MCP Server 已发现的 Resource Templates。
+
+    动态实例化的 FileResource（带 ``<job_id>``）不入库，故此处仅返回模板。
+    """
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "mcp_server", server_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        result = await db.execute(
+            select(McpResourceTemplate)
+            .where(McpResourceTemplate.server_id == server_id)
+            .order_by(McpResourceTemplate.uri_template)
+        )
+        templates = result.scalars().all()
+
+        return [_mcp_resource_template_to_response(t) for t in templates]
 
 
 @router.patch("/mcp/servers/{server_id}/tools/{tool_id}", response_model=McpToolResponse)
@@ -987,10 +1204,130 @@ async def create_skill(
             required_tools=payload.required_tools,
             is_enabled=payload.is_enabled,
             priority=payload.priority,
+            enforcement_mode=payload.enforcement_mode
+            if payload.enforcement_mode in ("warning", "strict")
+            else "warning",
+            resources=payload.resources or [],
         )
         db.add(skill)
         await db.commit()
         await db.refresh(skill)
+        # Phase 3：新建时同步写入初始版本快照，让 SubAgent 引用 name@version 立即可用。
+        try:
+            db.add(_build_initial_version(skill))
+            await db.commit()
+        except Exception as exc:
+            logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
+
+    return _skill_to_response(skill)
+
+
+def _build_initial_version(skill: Skill) -> SkillVersion:
+    """构造一条 SkillVersion 行，用于 ``create_skill`` / ``from-template`` 之后立即落库。"""
+    return SkillVersion(
+        skill_id=skill.id,
+        version=skill.version or "1.0.0",
+        snapshot={
+            "name": skill.name,
+            "display_name": skill.display_name,
+            "description": skill.description,
+            "category": skill.category,
+            "prompt_template": skill.prompt_template,
+            "config_schema": skill.config_schema,
+            "default_config": skill.default_config,
+            "required_tools": skill.required_tools,
+            "priority": skill.priority,
+            "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
+            "resources": skill.resources,
+        },
+    )
+
+
+@router.get("/skills/templates", response_model=list[SkillTemplateSummary])
+async def list_skill_templates(
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillTemplateSummary]:
+    """列出内置 Skill 模板（必须在 ``/skills/{skill_id}`` 之前声明，避免被动态路径吞噬）。"""
+    from negentropy.agents.skill_templates import load_all
+
+    templates = load_all()
+    return [
+        SkillTemplateSummary(
+            template_id=t.template_id,
+            name=t.name,
+            display_name=t.display_name,
+            description=t.description,
+            category=t.category,
+            version=t.version,
+        )
+        for t in templates
+    ]
+
+
+@router.post(
+    "/skills/from-template",
+    response_model=SkillResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_skill_from_template(
+    payload: SkillFromTemplateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillResponse:
+    """根据内置模板一键创建 Skill。
+
+    - ``name`` 冲突时自动追加 ``-{owner_short}`` 后缀（不抛 400，避免重试摩擦）；
+    - ``visibility`` 默认随模板（多为 ``shared``），调用方可覆盖。
+    - 路由必须在 ``/skills/{skill_id}`` 之前声明。
+    """
+    from negentropy.agents.skill_templates import load_all
+
+    templates = {t.template_id: t for t in load_all()}
+    tpl = templates.get(payload.template_id)
+    if tpl is None:
+        raise HTTPException(status_code=404, detail=f"Template '{payload.template_id}' not found")
+
+    target_name = (payload.name_override or tpl.name).strip()
+    if not target_name:
+        raise HTTPException(status_code=400, detail="Skill name cannot be empty")
+
+    async with AsyncSessionLocal() as db:
+        existing = await db.scalar(select(Skill).where(Skill.name == target_name))
+        if existing:
+            short = (user.user_id or "u").split(":")[-1][:8]
+            target_name = f"{target_name}-{short}"
+            existing2 = await db.scalar(select(Skill).where(Skill.name == target_name))
+            if existing2:
+                import secrets
+
+                target_name = f"{target_name}-{secrets.token_hex(3)}"
+
+        visibility_value = payload.visibility or tpl.visibility
+        skill = Skill(
+            owner_id=user.user_id,
+            visibility=PluginVisibility(visibility_value),
+            name=target_name,
+            display_name=tpl.display_name,
+            description=tpl.description,
+            category=tpl.category,
+            version=tpl.version,
+            prompt_template=tpl.prompt_template,
+            config_schema=tpl.config_schema,
+            default_config=tpl.default_config,
+            required_tools=tpl.required_tools,
+            is_enabled=True,
+            priority=tpl.priority,
+            enforcement_mode=tpl.enforcement_mode,
+            resources=tpl.resources,
+        )
+        db.add(skill)
+        await db.commit()
+        await db.refresh(skill)
+        # Phase 3：模板安装后立刻写入初始版本快照。
+        try:
+            db.add(_build_initial_version(skill))
+            await db.commit()
+        except Exception as exc:
+            logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
 
     return _skill_to_response(skill)
 
@@ -1040,14 +1377,302 @@ async def update_skill(
             update_data["name"] = new_name
         if "visibility" in update_data:
             update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        if "enforcement_mode" in update_data:
+            mode = update_data.get("enforcement_mode")
+            if mode not in ("warning", "strict"):
+                raise HTTPException(status_code=400, detail="enforcement_mode must be 'warning' or 'strict'")
+        if "resources" in update_data:
+            res_value = update_data.get("resources") or []
+            if not isinstance(res_value, list):
+                raise HTTPException(status_code=400, detail="resources must be a list")
+            update_data["resources"] = res_value
+
+        # Phase 3：检测 version 字段变更，自动 snapshot 到 skill_versions。
+        old_version = skill.version
+        new_version = update_data.get("version")
+        version_changed = bool(new_version) and new_version != old_version
 
         for key, value in update_data.items():
             setattr(skill, key, value)
+
+        if version_changed:
+            try:
+                snapshot_payload = {
+                    "name": skill.name,
+                    "display_name": skill.display_name,
+                    "description": skill.description,
+                    "category": skill.category,
+                    "prompt_template": skill.prompt_template,
+                    "config_schema": skill.config_schema,
+                    "default_config": skill.default_config,
+                    "required_tools": skill.required_tools,
+                    "priority": skill.priority,
+                    "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
+                    "resources": skill.resources,
+                }
+                existing = await db.scalar(
+                    select(SkillVersion).where(
+                        SkillVersion.skill_id == skill.id,
+                        SkillVersion.version == new_version,
+                    )
+                )
+                if existing is None:
+                    db.add(
+                        SkillVersion(
+                            skill_id=skill.id,
+                            version=new_version,
+                            snapshot=snapshot_payload,
+                        )
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "skill_version_snapshot_failed",
+                    skill_id=str(skill.id),
+                    error=str(exc),
+                )
 
         await db.commit()
         await db.refresh(skill)
 
     return _skill_to_response(skill)
+
+
+# =============================================================================
+# Skills Phase 3 — versions / schedules endpoints
+# =============================================================================
+
+
+@router.get("/skills/{skill_id}/versions", response_model=list[SkillVersionResponse])
+async def list_skill_versions(
+    skill_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillVersionResponse]:
+    """列出指定 Skill 的全部历史版本（最新在前）。"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+        rows = (
+            (
+                await db.execute(
+                    select(SkillVersion)
+                    .where(SkillVersion.skill_id == skill_id)
+                    .order_by(SkillVersion.created_at.desc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+    return [
+        SkillVersionResponse(
+            id=r.id,
+            skill_id=r.skill_id,
+            version=r.version,
+            snapshot=dict(r.snapshot or {}),
+            created_at=r.created_at,
+        )
+        for r in rows
+    ]
+
+
+@router.post(
+    "/skills/{skill_id}/versions",
+    response_model=SkillVersionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_skill_version(
+    skill_id: UUID,
+    payload: SkillSnapshotRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillVersionResponse:
+    """手动 freeze 当前 Skill 字段为一个新版本快照。
+
+    若 ``payload.version`` 不传，使用 Skill 当前 ``version`` 字段；
+    同 (skill_id, version) 已存在时返回 409。
+    """
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "skill", skill_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+        skill = await db.get(Skill, skill_id)
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+
+        version = (payload.version or skill.version or "").strip()
+        if not version:
+            raise HTTPException(status_code=400, detail="version is required")
+        existing = await db.scalar(
+            select(SkillVersion).where(SkillVersion.skill_id == skill_id, SkillVersion.version == version)
+        )
+        if existing is not None:
+            raise HTTPException(status_code=409, detail=f"Version '{version}' already exists for this skill")
+
+        snapshot_payload = {
+            "name": skill.name,
+            "display_name": skill.display_name,
+            "description": skill.description,
+            "category": skill.category,
+            "prompt_template": skill.prompt_template,
+            "config_schema": skill.config_schema,
+            "default_config": skill.default_config,
+            "required_tools": skill.required_tools,
+            "priority": skill.priority,
+            "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
+            "resources": skill.resources,
+        }
+        row = SkillVersion(skill_id=skill_id, version=version, snapshot=snapshot_payload)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+
+    return SkillVersionResponse(
+        id=row.id,
+        skill_id=row.skill_id,
+        version=row.version,
+        snapshot=dict(row.snapshot or {}),
+        created_at=row.created_at,
+    )
+
+
+@router.get("/skills/{skill_id}/schedules", response_model=list[SkillScheduleResponse])
+async def list_skill_schedules(
+    skill_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillScheduleResponse]:
+    """列出指定 Skill 关联的全部定时调度。"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+        rows = (
+            (
+                await db.execute(
+                    select(SkillSchedule)
+                    .where(SkillSchedule.skill_id == skill_id)
+                    .order_by(SkillSchedule.created_at.desc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+    return [_schedule_to_response(s) for s in rows]
+
+
+@router.post(
+    "/skills/{skill_id}/schedules",
+    response_model=SkillScheduleResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_skill_schedule(
+    skill_id: UUID,
+    payload: SkillScheduleRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillScheduleResponse:
+    """新增一条定时调度：cron 表达式 + 透传变量。"""
+    from croniter import CroniterBadCronError, croniter
+
+    from negentropy.agents.skill_scheduler import ensure_scheduler_running
+
+    cron_expr = (payload.cron_expr or "").strip()
+    if not cron_expr:
+        raise HTTPException(status_code=400, detail="cron_expr is required")
+    try:
+        # 与 ``skill_scheduler._utcnow`` 保持一致：tz-aware UTC，避免 naive
+        # datetime 写入 ``next_run_at`` (TIMESTAMP WITH TIME ZONE) 时被驱动按本地
+        # 时区错误解释。
+        cron = croniter(cron_expr, datetime.now(UTC))
+        next_run = cron.get_next(datetime)
+    except (CroniterBadCronError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"invalid cron_expr: {exc}") from exc
+
+    # 幂等懒启动 SkillScheduler tick（ADK 嵌入场景下 FastAPI startup hook 不触发）。
+    await ensure_scheduler_running()
+
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "skill", skill_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+        skill = await db.get(Skill, skill_id)
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+
+        sched = SkillSchedule(
+            skill_id=skill_id,
+            owner_id=user.user_id,
+            cron_expr=cron_expr,
+            enabled=payload.enabled,
+            vars=payload.vars or {},
+            next_run_at=next_run,
+        )
+        db.add(sched)
+        await db.commit()
+        await db.refresh(sched)
+
+    return _schedule_to_response(sched)
+
+
+@router.delete(
+    "/skills/{skill_id}/schedules/{schedule_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_skill_schedule(
+    skill_id: UUID,
+    schedule_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> None:
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "skill", skill_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+        sched = await db.get(SkillSchedule, schedule_id)
+        if not sched or sched.skill_id != skill_id:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+        await db.delete(sched)
+        await db.commit()
+
+
+@router.post(
+    "/skills/{skill_id}/schedules/{schedule_id}/run",
+    response_model=SkillScheduleResponse,
+)
+async def run_skill_schedule(
+    skill_id: UUID,
+    schedule_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillScheduleResponse:
+    """手动触发一次调度（不等 cron tick）。"""
+    from negentropy.agents.skill_scheduler import execute_schedule_once
+
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "edit")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+        sched = await db.get(SkillSchedule, schedule_id)
+        if not sched or sched.skill_id != skill_id:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+
+    await execute_schedule_once(schedule_id)
+
+    async with AsyncSessionLocal() as db:
+        sched_after = await db.get(SkillSchedule, schedule_id)
+        if sched_after is None:
+            raise HTTPException(status_code=404, detail="Schedule disappeared after run")
+        return _schedule_to_response(sched_after)
+
+
+def _schedule_to_response(s: SkillSchedule) -> SkillScheduleResponse:
+    return SkillScheduleResponse(
+        id=s.id,
+        skill_id=s.skill_id,
+        owner_id=s.owner_id,
+        cron_expr=s.cron_expr,
+        enabled=s.enabled,
+        vars=dict(s.vars or {}),
+        last_run_at=s.last_run_at,
+        next_run_at=s.next_run_at,
+        last_error=s.last_error,
+        created_at=s.created_at,
+    )
 
 
 @router.delete("/skills/{skill_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -1084,6 +1709,72 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
         required_tools=skill.required_tools or [],
         is_enabled=skill.is_enabled,
         priority=skill.priority,
+        enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
+        resources=list(skill.resources or []) if hasattr(skill, "resources") else [],
+    )
+
+
+# =============================================================================
+# Skills Phase 2 — invoke / templates endpoints
+# =============================================================================
+
+
+@router.post("/skills/{skill_id}/invoke", response_model=SkillInvokeResponse)
+async def invoke_skill(
+    skill_id: UUID,
+    payload: SkillInvokeRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillInvokeResponse:
+    """渲染 Skill 的 prompt_template（Layer 2 按需展开）+ 资源摘要 + 工具差异。
+
+    服务端用 Jinja2 沙箱渲染 ``prompt_template``，**不**真正调用 LLM —— 调用方
+    （UI Preview 按钮 / ``expand_skill`` ADK tool / 外部系统）拿到渲染结果后自行
+    决定如何使用。``required_tools`` 与 ``vars`` 校验在此一次完成。
+    """
+    import os
+
+    from negentropy.agents.skills_injector import (
+        ResolvedSkill,
+        format_skill_invocation,
+        format_skill_resources,
+        validate_required_tools,
+    )
+
+    if os.environ.get("NEGENTROPY_SKILLS_LAYER2_ENABLED", "true").lower() in ("0", "false", "no"):
+        raise HTTPException(status_code=503, detail="Skills Layer 2 is disabled by feature flag")
+
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        skill = await db.get(Skill, skill_id)
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+        if not skill.is_enabled:
+            raise HTTPException(status_code=409, detail="Skill is disabled")
+
+        resolved = ResolvedSkill(
+            id=str(skill.id),
+            name=skill.name,
+            display_name=skill.display_name,
+            description=skill.description,
+            prompt_template=skill.prompt_template,
+            required_tools=tuple(skill.required_tools or []),
+            is_enabled=skill.is_enabled,
+            enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
+            resources=tuple(skill.resources or ()) if hasattr(skill, "resources") else (),
+        )
+
+    rendered = format_skill_invocation(resolved, variables=payload.variables) or ""
+    if not rendered and resolved.resources:
+        rendered = format_skill_resources(resolved, eager=True)
+    return SkillInvokeResponse(
+        skill_id=skill.id,
+        name=skill.name,
+        rendered_prompt=rendered,
+        resources=list(resolved.resources),
+        missing_tools=validate_required_tools(resolved, agent_tools=None) if resolved.required_tools else [],
     )
 
 
@@ -1264,12 +1955,15 @@ async def sync_negentropy_subagents(
     user: AuthUser = Depends(get_current_user),
 ) -> NegentropySubAgentSyncResponse:
     """
-    将代码中的 5 个 Faculty SubAgent 同步到插件表。
+    将代码中的 **主 Agent (NegentropyEngine) + 5 个 Faculty SubAgent** 同步到插件表。
 
     幂等语义：
     - 已存在且归属当前用户：更新为最新代码定义；
     - 已存在但归属其他用户：跳过；
     - 不存在：创建。
+
+    Sync 完成后批量失效 ``subagent:`` 前缀缓存，使 ``DynamicRootLiteLlm`` /
+    ``DynamicSubagentLiteLlm`` 与 ``InstructionProvider`` 立即看到 DB 最新值。
     """
     from .subagent_presets import build_negentropy_subagent_payloads
 
@@ -1339,6 +2033,9 @@ async def sync_negentropy_subagents(
 
         for agent in touched_agents:
             await db.refresh(agent)
+
+    # 批量失效，让运行时 model + instruction 立即看到 Sync 后的 DB 值。
+    invalidate_model_cache(prefix="subagent:")
 
     return NegentropySubAgentSyncResponse(
         created=created_count,
@@ -1529,6 +2226,8 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
     config = _json_dict(agent.config)
     source = _resolve_subagent_source(config)
     adk_config = _extract_adk_config(agent)
+    raw_kind = adk_config.get("kind") if isinstance(adk_config, dict) else None
+    kind = raw_kind if raw_kind in ("root", "subagent") else "subagent"
     return SubAgentResponse(
         id=agent.id,
         owner_id=agent.owner_id,
@@ -1546,6 +2245,7 @@ def _subagent_to_response(agent: SubAgent) -> SubAgentResponse:
         source=source,
         is_builtin=source == "negentropy_builtin",
         is_enabled=agent.is_enabled,
+        kind=kind,
     )
 
 

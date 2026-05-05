@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -277,6 +278,8 @@ class GraphBuildRequest(BaseModel):
     min_entity_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     min_relation_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     batch_size: int = Field(default=10, ge=1, le=100)
+    incremental: bool = False
+    extraction_schema: str | None = None
 
 
 class GraphBuildResponse(BaseModel):
@@ -290,6 +293,8 @@ class GraphBuildResponse(BaseModel):
     chunks_processed: int
     elapsed_seconds: float
     error_message: str | None = None
+    warnings: list[dict[str, Any]] = Field(default_factory=list)
+    failed_chunk_count: int = 0
 
 
 class GraphSearchRequest(BaseModel):
@@ -304,6 +309,13 @@ class GraphSearchRequest(BaseModel):
     graph_weight: float = Field(default=0.4, ge=0.0, le=1.0)
     include_neighbors: bool = True
     neighbor_limit: int = Field(default=10, ge=1, le=50)
+    as_of: datetime | None = Field(
+        default=None,
+        description=(
+            "可选时态快照时刻 (ISO-8601)；提供时仅纳入在该时刻仍有效的关系。"
+            "用于双时态时间穿梭检索 (Snodgrass & Ahn, 1985)。"
+        ),
+    )
 
 
 class GraphSearchResponse(BaseModel):
@@ -321,6 +333,10 @@ class GraphNeighborsRequest(BaseModel):
     entity_id: str
     max_depth: int = Field(default=2, ge=1, le=5)
     limit: int = Field(default=100, ge=1, le=500)
+    as_of: datetime | None = Field(
+        default=None,
+        description="可选时态快照时刻 (ISO-8601)；详见 GraphSearchRequest.as_of。",
+    )
 
 
 class GraphPathRequest(BaseModel):
@@ -330,6 +346,186 @@ class GraphPathRequest(BaseModel):
     source_id: str
     target_id: str
     max_depth: int = Field(default=5, ge=1, le=10)
+    as_of: datetime | None = Field(
+        default=None,
+        description="可选时态快照时刻 (ISO-8601)；详见 GraphSearchRequest.as_of。",
+    )
+
+
+class GlobalSearchRequest(BaseModel):
+    """GraphRAG Global Search 请求"""
+
+    query: str = Field(min_length=1, description="用户查询文本")
+    max_communities: int = Field(default=10, ge=1, le=50, description="候选社区数上限")
+
+
+class GlobalSearchEvidenceItem(BaseModel):
+    """单个社区贡献的部分答案（Map 阶段产物）"""
+
+    community_id: int
+    partial_answer: str
+    similarity: float
+    top_entities: list[str] = Field(default_factory=list)
+
+
+class GlobalSearchResponse(BaseModel):
+    """GraphRAG Global Search 响应"""
+
+    query: str
+    answer: str
+    evidence: list[GlobalSearchEvidenceItem] = Field(default_factory=list)
+    candidates_total: int
+    latency_ms: float
+    summaries_dirty: bool = Field(
+        default=False,
+        description="社区摘要是否在最近的实体更新之后未刷新；UI 需提示用户重跑摘要流程。",
+    )
+
+
+class MultiHopReasonRequest(BaseModel):
+    """多跳推理请求（G4 PPR + Provenance）"""
+
+    query: str = Field(min_length=1)
+    seed_entities: list[str] = Field(
+        default_factory=list,
+        description="可选 seed 实体 ID 列表；为空时由后端按命名实体抽取自动推断",
+    )
+    top_k: int = Field(default=10, ge=1, le=50)
+    max_hops: int = Field(default=3, ge=1, le=5)
+
+
+class MultiHopEvidenceEdgeItem(BaseModel):
+    source_id: str
+    target_id: str
+    source_label: str = ""
+    target_label: str = ""
+    relation: str
+    evidence_text: str
+    weight: float = 1.0
+
+
+class MultiHopEvidenceChainItem(BaseModel):
+    target_entity_id: str
+    target_label: str
+    score: float
+    seed_entity_id: str | None = None
+    path: list[str] = Field(default_factory=list)
+    edges: list[MultiHopEvidenceEdgeItem] = Field(default_factory=list)
+
+
+class MultiHopReasonResponse(BaseModel):
+    """多跳推理响应"""
+
+    query: str
+    seeds: list[str] = Field(default_factory=list)
+    answer_entities: list[str] = Field(default_factory=list)
+    evidence_chain: list[MultiHopEvidenceChainItem] = Field(default_factory=list)
+    latency_ms: float
+
+
+class GraphTimelineBucket(BaseModel):
+    """关系时间轴密度直方图单点"""
+
+    date: datetime
+    active_count: int = Field(ge=0, description="该桶内 valid_from 落入的关系数")
+    expired_count: int = Field(ge=0, description="该桶内 valid_to 落入的关系数")
+
+
+class GraphTimelineResponse(BaseModel):
+    """关系时间轴密度直方图响应"""
+
+    corpus_id: UUID
+    bucket: str = Field(description="day | week | month")
+    points: list[GraphTimelineBucket] = Field(default_factory=list)
+
+
+# ============================================================================
+# Graph Entity Schemas
+# ============================================================================
+
+
+class GraphEntityItem(BaseModel):
+    """实体列表条目"""
+
+    id: UUID
+    name: str
+    entity_type: str
+    confidence: float = 0.0
+    mention_count: int = 0
+    importance_score: float | None = None
+    community_id: int | None = None
+    description: str | None = None
+    is_active: bool = True
+
+
+class GraphEntityListResponse(BaseModel):
+    """实体列表响应"""
+
+    count: int
+    items: list[GraphEntityItem] = Field(default_factory=list)
+
+
+class GraphEntityRelationItem(BaseModel):
+    """实体关系条目"""
+
+    id: UUID
+    direction: str  # "outgoing" | "incoming"
+    relation_type: str
+    weight: float = 1.0
+    confidence: float = 1.0
+    evidence_text: str | None = None
+    peer_entity_id: UUID
+    peer_entity_name: str
+    peer_entity_type: str
+
+
+class GraphEntityDetailResponse(BaseModel):
+    """实体详情响应"""
+
+    id: UUID
+    name: str
+    entity_type: str
+    confidence: float = 0.0
+    mention_count: int = 0
+    description: str | None = None
+    aliases: dict[str, Any] | None = None
+    properties: dict[str, Any] | None = None
+    is_active: bool = True
+    relations: list[GraphEntityRelationItem] = Field(default_factory=list)
+
+
+class GraphStatsResponse(BaseModel):
+    """图谱统计响应"""
+
+    total_entities: int = 0
+    edge_count: int = 0
+    by_type: dict[str, int] = Field(default_factory=dict)
+    avg_confidence: float = 0.0
+    density: float = 0.0
+    avg_degree: float = 0.0
+    top_entities: list[dict[str, Any]] = Field(default_factory=list)
+    community_count: int = 0
+    community_distribution: dict[str, int] = Field(default_factory=dict)
+
+
+class GraphMetricsResponse(BaseModel):
+    """图谱构建指标趋势"""
+
+    builds: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class GraphQualityResponse(BaseModel):
+    """图谱质量报告 (Paulheim, 2017)"""
+
+    total_entities: int
+    total_relations: int
+    dangling_edges: int
+    orphan_entities: int
+    community_coverage: float
+    entity_confidence_avg: float
+    relation_evidence_ratio: float
+    type_distribution: dict[str, int] = Field(default_factory=dict)
+    quality_score: float
 
 
 # ============================================================================

@@ -527,3 +527,767 @@
 - **同类问题影响**：
   1. **同 endpoint 历史漏洞**：[ISSUE-016](#issue-016) 已修复 `app_name NOT NULL` 缺失导致的 500，本次修复 `uq_wiki_pub_catalog_active` 触发的 500，二者同因不同果——「endpoint 缺失结构化错误处理」是结构性问题，不是单次 bugfix。
   2. **`update_wiki_publication` / `archive` / 等同类端点**未做约束冲突防御，未来若新增约束（如 `theme` 唯一性、跨 app 互斥），会复现同型问题；建议在 service / DAO 层统一接入领域异常 + 端点层 `_map_exception_to_http` 路径（本次按最小干预原则未推进，记录为可观测的债务）。
+
+---
+
+## ISSUE-026 Knowledge Base Retrieve 全屏空白：前端聚合层静默吞噬 rejection × 后端 hybrid 缺降级路径
+
+- **表因**：用户在 `/knowledge/base` 页输入查询词、勾选 Corpus、选择 hybrid 模式，点 Retrieve 后**结果区完全空白且无任何错误提示**。后端日志可见 `POST /knowledge/base/{id}/search → 500` 与 `infrastructure_error`（litellm 调 Gemini `:batchEmbedContents` 上游返 `400 {"error":{"message":"request body doesn't contain valid prompts"}}`）。
+- **根因**（双层 Bug，缺一不可）：
+  1. **前端**（`apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts::searchAcrossCorpora` 旧实现）：`Promise.allSettled` 后只读取 `fulfilled` 分支，`rejected` 直接 `forEach` 跳过、调用方收到 `{count:0, items:[]}` —— 当**全部** Corpus 均失败（或仅勾选一个）时无错误抛出。`handleRetrieve`（`app/knowledge/base/page.tsx`）走"成功路径"，`setRetrievalResults([])` 致 UI 空白且不触发 `retrievalError` banner。
+  2. **后端**（`apps/negentropy/src/negentropy/knowledge/service.py::search` 旧实现）：hybrid / rrf 模式下 `await self._embedding_fn(query)` **未捕获 `EmbeddingFailed`**，外部 Embedding 上游故障直接传播为 500，丧失"keyword 仍可用"的优雅降级。`api.py::_map_exception_to_http` 将 `EmbeddingFailed` 与 `SearchError` 合并映射到 500，前端无法区分"自身错误（重试无意义）"与"上游错误（修复后再试）"。
+- **处理方式**（分层防御 + 诊断仪器化）：
+  1. **前端**：`searchAcrossCorpora` 改为聚合三态：全部 fulfilled → 原结果；部分 rejected → 返回 `errors[]` 字段 + 成功项；全部 rejected → 抛聚合错误（合并 reasons，限长 200 字符）。`SearchResults` 类型扩展可选 `errors?: SearchResultError[]`。`handleRetrieve` 在 `errors` 非空时通过 `toast.warning` 透出原因，避免静默丢失。
+  2. **后端 service**：hybrid 模式 `try { embedding_fn(query) } catch EmbeddingFailed` → `query_embedding=None` 走既有 keyword-only 守卫；rrf 模式失败时走与 `not embedding_fn` 等价的 keyword 回退路径；semantic 模式仍传播 `EmbeddingFailed`（纯语义无降级语义）。**复用**已有 `_repository.keyword_search` / `_hydrate_match_metadata` / `_lift_hierarchical_matches`，零新接口。
+  3. **后端 api**：拆分 `_map_exception_to_http` 中 `EmbeddingFailed` 分支映射到 `502 Bad Gateway`（保留 `code="EMBEDDING_FAILED"`）；`SearchError` 维持 500。
+  4. **诊断仪器化**：`embedding.py::embed/batch_embed` 调用 litellm 前后增加结构化日志：`api_base_host`（脱敏 path/credentials 仅留 host）、`input_count`、`text_preview`、`kwargs_keys`；失败时附加 `upstream_response_text`（从 `MaskedHTTPStatusError.text` 沿异常链 `__cause__/__context__` 提取，已被 litellm 脱敏 URL，限长 500 字节）。后续同类问题用户可一眼定位"实际请求到了哪个 host + 上游原始错误"，无需 `litellm._turn_on_debug()` 全开。
+  5. **测试锁定**：新增 `tests/unit_tests/knowledge/test_search_resilience.py`（5 例：hybrid/rrf 降级、semantic 传播、`EmbeddingFailed→502`、`SearchError→500`）+ `tests/unit/knowledge/searchAcrossCorpora.test.ts`（3 例：全 fulfilled / 部分 rejected / 全 rejected）。
+- **后续防范**：
+  1. **`Promise.allSettled` 必须聚合 rejection**：本仓库前端任何 `Promise.allSettled` 调用点都必须显式处理 `rejected` 分支（聚合抛错或 errors[] 暴露），**禁止**仅 `if (status === "fulfilled")` 的"沉默扫描"模式。建议在 `apps/negentropy-ui/features/*/utils/*-api.ts` 全文检索 `Promise.allSettled` 与 `status === "fulfilled"` 做一次性扫荡。
+  2. **外部依赖错误码语义**：调用 vendor / 上游 API 失败应映射到 `502 Bad Gateway`（不是 500），让前端能区分"我自己的 bug"与"对端坏了"。本次以 `EmbeddingFailed` 为模板，后续 `Reranker / LLMExtractor / EntityExtraction` 等同类外部依赖失败应同步对齐。
+  3. **hybrid / 多源融合检索必须保留至少一条降级路径**：任何"语义 + 关键词"融合模式当语义信号不可用时应自动退化为关键词，反之亦然。本次 `service.py::search` 已落实 hybrid 与 rrf 两种降级；新增检索模式（如未来 `cross_encoder_rerank`）需走同等"任一信号失效仍可返回结果"的契约。
+  4. **诊断信号优先于"加日志再说"**：embedding / vendor 调用类的失败日志必须包含 `api_base_host`（脱敏）+ `upstream_response_text`，否则用户拿到日志也无法定位上游归属（vendor / 自建代理 / 网关）。这次将该模式落到 `embedding.py`，可作为新增 vendor 调用模板。
+- **同类问题影响**：
+  1. **前端聚合层**：`fetchCatalogTree` / `searchGraph` / 任何 `Promise.allSettled` + 多 corpus / 多 source 聚合的端点都需复盘是否有相同"沉默丢失 rejected"反模式。
+  2. **后端外部依赖错误码**：`Reranker.rerank` / `LLMExtractor.extract` / `EntityExtractionError` / `RelationExtractionError` 等同型 `InfrastructureError` 子类目前仍走默认 500 通道，后续可统一上调到 502（与 `EmbeddingFailed` 对齐）。
+  3. **环境侧排查（独立于代码修复）**：本次错误响应 JSON `{"error":{"message":"..."}}` 缺失 Google 官方必有的 `code/status` 字段，强烈倾向是 `NATIVE_GEMINI_BASE_URL` 被覆写到了非官方代理（如 `gemini-balance` / `one-api`）的 native API 模拟，其 `:batchEmbedContents` 校验不完整。用户可执行 `echo $NATIVE_GEMINI_BASE_URL` 与 `curl -H "x-goog-api-key: $KEY" -H "Content-Type: application/json" -d '{"requests":[{"model":"models/text-embedding-004","content":{"parts":[{"text":"hi"}]}}]}' http://localhost:3392/api/gemini/v1beta/models/text-embedding-004:batchEmbedContents` 直接抓上游响应定位。本次代码修复**不消除**根因故障（仍需用户配置侧排查），但**消除**"故障 → 无声空白"链路，确保用户可见可诊断。
+
+---
+
+## ISSUE-027 negentropy-wiki 站点 favicon.ico 不生效，浏览器回落默认地球图标
+
+- **表因**：访问已发布的 Wiki 站点（`apps/negentropy-wiki`）时，浏览器标签页未显示 Negentropy 品牌图标，回落为默认地球图标；标签内文字「Negentropy」可见，但图标缺位影响品牌识别。
+- **根因**：`apps/negentropy-wiki/src/app/favicon.ico` 是**畸形 ICO 文件**——
+  1. 通过 `file(1)` 检验：`MS Windows icon resource - 1 icon, 256x-1, 32 bits/pixel`，仅含**单一分辨率**条目，且高度字节为 `0xFF`（=255）而非合法的 `0x00`（=256）；十六进制头部 `0000 0100 0100 00ff …` 第 7 字节即为高度，确认编码异常。
+  2. 内嵌 BMP DIB 高度为 510（ICO 规范该字段为图像两倍高），即实际像素为 256×255 非方形；
+  3. 文件体积 269,342 字节（远超合理 favicon 体量），暗示是源 PNG 直接外裹 ICO 头未做尺寸归一与多档生成；
+  4. 源图 `apps/negentropy-wiki/public/logo.png` 本身是 800×798 非方形 PNG，转换工具未做 padding/裁切便直接吐出畸形 ICO。
+
+  现代浏览器（Chrome / Firefox / Safari）对此类「单分辨率 + 非方形 + 高度字段错误」组合解析失败，按规范回退默认图标。
+- **已排除的伪因**（避免下次走同样弯路）：
+  1. 中间件 / 代理拦截：`apps/negentropy-wiki/next.config.ts` 仅 rewrites `/api/:path*`，不涉及 `/favicon.ico`；
+  2. 顶层动态路由 `[pubSlug]/page.tsx` 拦截：Next.js App Router 文件系统型 metadata（`favicon.ico` / `icon.{ts,png}`）优先级**高于**任何 `[slug]` dynamic segment，本机 `curl -I /favicon.ico` 返回 `image/x-icon`、`curl -I /<random-slug>` 返回 HTML，证明无误命中；
+  3. standalone 构建产物缺失：`pnpm build` 后 `.next/standalone/.next/server/app/favicon.ico/route.js` 与同级 `favicon.ico.body` / `favicon.ico.meta` 均存在，`start-production.mjs` 通过 `server` 子目录链接已涵盖；
+  4. layout.tsx 元数据冲突：`metadata.icons.apple = "/logo.png"` 仅追加 `<link rel="apple-touch-icon">`，不影响 `<link rel="icon">` 自动注入。
+- **处理方式**（最小干预 + 复用驱动）：
+  1. 用 `uv run --with 'pillow>=11' --no-project python` 调 Pillow 对 `public/logo.png` 做 `ImageOps.pad` 居中透明 padding 至方形（800×800），再 `Image.save(format="ICO", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])` 一次性生成多分辨率 ICO，覆盖原 `src/app/favicon.ico`；
+  2. 不动 `layout.tsx` / `next.config.ts` / `start-production.mjs`，保留 App Router 自动注入路径；
+  3. 验证链：`file ...favicon.ico` 显示 `6 icons, 16x16 ... 256x256 PNG image data` ✓；`pnpm build && pnpm start` 后 `curl -I http://localhost:3092/favicon.ico` 返回 `200 / image/x-icon / 118192 bytes` ✓；首页 HTML 自动注入 `<link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16"/>` ✓。
+- **后续防范**：
+  1. **ICO 必须方形 + 多分辨率**：任何 favicon.ico 入库前需走 `file <path>` 自检，至少包含 16×16 / 32×32 两档，且尺寸为方形；非方形源图必须先 padding 或裁切为正方形再转换；
+  2. **优先复用 Pillow 流水线**：本仓库后续新增/替换 favicon 时，沿用本次 Pillow `ImageOps.pad` + `save(format="ICO", sizes=[…])` 模板，禁止使用未经 padding 的「原图直裹 ICO 头」流程；
+  3. **PR 自证截图**：涉及 favicon 等品牌资产的 PR 必须附「浏览器 tab 截图（替换前 / 替换后）」与 `file` 命令输出截图，避免依赖肉眼判断；
+  4. **参照样板**：`apps/negentropy-ui/app/favicon.ico` 为 9 档多分辨率正确范本（`file` 输出含 `9 icons, 16x16 ... 32 bits/pixel`），可作为对照基线。
+- **同类问题影响**：
+  1. 凡通过自动化脚本生成 ICO 的入口（包括未来可能的 `apps/*/src/app/favicon.ico`、`apps/*/src/app/icon.{png,svg}`、`apps/*/src/app/apple-icon.png`）均需复核是否走 padding+多档流程；
+  2. 已发布 Wiki Publication 的 OpenGraph / Twitter Card 图（如未来引入 `apps/negentropy-wiki/src/app/opengraph-image.{png,jpg}`）同样存在「非方形源图直接交付」风险，建议在引入前预设统一的资产生成脚本（`scripts/build-icons.mjs` 或 `scripts/build-icons.py`）作为单一事实源。
+
+---
+
+## ISSUE-028 Knowledge Base Retrieve 查询时未使用 Corpus 自配 Embedding 模型，导致 query/index 模型不一致
+
+- **表因**：用户在 Corpus Settings 页已显式选定 `Embedding Model = openai/text-embedding-3-small`（1536 维），执行 Retrieve（hybrid 模式）时后端仍使用全局默认 `gemini/text-embedding-004`，该模型经 `localhost:3392` 翻译代理对 Gemini `batchEmbedContents` 实现不全，返回 `400 "request body doesn't contain valid prompts"`，重试 3 次失败 → HTTP 500（ISSUE-026 的 keyword 兜底已在后续 commit 落地，但 embedding 模型选择的契约缺口仍存在）。
+- **根因**：**索引侧与查询侧 embedding fn 解析路径不对称**：
+  1. **索引侧**（`service.py::_attach_embeddings`，line 2906-2913）：读 `corpus.config['models']['embedding_config_id']`，命中则 `build_batch_embedding_fn(embedding_config_id)`，走 corpus 自身配置；
+  2. **查询侧**（`service.py::search`，line 2540-2542 / 2625-2629）：直接使用实例化时锁定的 `self._embedding_fn`（全局默认 fn），**从未读 corpus.config**。
+  后果：索引产物按 OpenAI 1536 维生成，查询走全局默认 gemini/text-embedding-004（768 维）→ 模型不一致 + 上游链路故障双重失败。
+- **处理方式**（最小干预 + 索引/查询对称化）：
+  1. 新增 `_resolve_embedding_fn(corpus_config)` 私有方法（紧邻 `_extract_embedding_config_id`），复用 `build_embedding_fn` + `_extract_embedding_config_id`，corpus pin 优先 → 退回 service 默认 fn；
+  2. `search()` 入口新增 `corpus_config = await self._get_corpus_config(corpus_id)` + `embedding_fn = self._resolve_embedding_fn(corpus_config)`；
+  3. rrf / hybrid / semantic 三分支的 `self._embedding_fn` 替换为本地变量 `embedding_fn`；
+  4. ISSUE-026 的 `EmbeddingFailed → keyword 兜底`、`502 映射`、诊断日志（`api_base_host` + `upstream_response_text`）原样保留，零回归；
+  5. 配套 5 例单元测试：corpus pin 命中 / 落空 / hybrid keyword 兜底 / rrf 走 pin / semantic 失败上抛，回归 ISSUE-026 的 5 例全部绿色。
+- **后续防范**：
+  1. **索引/查询 fn 解析必须对称**：任何新增"按 corpus 选择 fn"的场景（如 reranker fn、LLM extractor fn）需同时检查 `_attach_embeddings` 索引侧与 `search` 查询侧是否共用同一条判别逻辑。建议将 `_resolve_embedding_fn` 模式推广为通用 `_resolve_fn_for_corpus(corpus_config, fn_type)` 助手。
+  2. **corpus 级配置消费审计**：新增 corpus.config 子键（如 `models.reranker_config_id`）时，需逐路径确认 `search()`、`_attach_embeddings()`、`semantic_chunk_async()` 三处消费点均覆盖。
+- **同类问题影响**：
+  1. **chunking 阶段** `semantic_chunk_async`（service.py:2783）仍直接使用 `self._embedding_fn`，属于 index-time 另一支路；若 Hierarchical 模式需要按 corpus 配切 embedding 模型，需同法修补；
+  2. **LLM 模型对称性**：`KnowledgeQA` / `extractor` 路径中 LLM 模型的 corpus 级解析是否对称，需独立审计。
+
+---
+
+## ISSUE-029 Home Ping 500 复发：文档侧 `--reload_agents` 未同步 `cli.py` 修复
+
+- **表因**：用户在 Home 页发送 "Ping, give me a pong"，前端无响应；后端日志 `POST /run_sse` 返回 500，异常 `ValueError: Agent not found: 'negentropy'. No matching directory or module exists in '.../src/negentropy/negentropy'`。
+- **根因**：`cli.py` 的 `agents_dir` 已在 commit `35204ff` 从 `src/negentropy` 修正为 `src`（通过 `Path(__file__)` 推导绝对路径，免疫 cwd 漂移），但 `README.md`、`docs/zh-CN/README.md`、`docs/development.md`、`docs/user-guide.md` 共 4 个文件 7 处启动命令仍写 `uv run adk web --port 8000 --reload_agents src/negentropy`。用户照文档启动后端复现旧 bug。
+- **二阶影响**：错误 `agents_dir` 导致 `src/services.py`（ADK `load_services_module` 桥接）不被加载，`apply_adk_patches()` 完全不执行 → 5 条扩展路由（`/auth`、`/knowledge`、`/memory`、`/interface`、`/sessions`）缺失，所有自定义中间件（`TracingInitMiddleware`、`AuthMiddleware`）不挂载，LiteLLM OTel callback 不注册，模型配置缓存不预热。错误命令的爆炸半径远不止 500。
+- **处理方式**：将所有文档中的 `uv run adk web ... --reload_agents src/negentropy` 统一替换为 `uv run negentropy serve ...`。CLI 包装器在 [`cli.py`](../apps/negentropy/src/negentropy/cli.py) 用 `Path(__file__)` 锚定 agents_dir，是单一事实源（SSOT），用户无需记忆易错的 `--reload_agents` 参数值。
+- **后续防范**：
+  1. **代码与文档 SSOT 联动**：修改 `cli.py` 的启动参数或默认值后，**必须**同步 grep 全仓文档（`grep -rn "adk web\|reload_agents" --include="*.md" .`）确保一致性；
+  2. **启动命令归口**：文档中一律推荐 `uv run negentropy serve`，不再直接暴露 `adk web` 命令；
+  3. **CHANGELOG 自检**：涉及 CLI/启动参数的 PR 在 CHANGELOG 条目中显式标注「文档已同步」或「仅代码侧」。
+- **同类问题影响**：其他被 CLI 包装的底层命令（如未来可能的 `uv run negentropy migrate` 包装 `alembic upgrade head`），若文档仍直接引用底层命令且参数有差异，同样存在漂移风险。
+
+## ISSUE-030 SubAgents 主 Agent（NegentropyEngine）同步防回归
+
+- **表因**：用户在 SubAgents 页点击 "Sync Negentropy" 后，toast 显示 "Synced: created 0, updated 5, skipped 0"，页面仅出现 5 个子 Agent 卡片，缺少主 Agent（NegentropyEngine）。
+- **根因**：用户运行的是旧版后端（commit `35204ff feat(agent-defs)` 之前）。旧版 `build_negentropy_subagent_payloads()` 仅返回 5 个 subagent payload，不含 root Agent。当前代码已修正：`subagent_presets.py` 返回 6 个 payload（1 root + 5 subagent），前端 `SubAgentCard.tsx` 有 Root 徽章，`page.tsx` 有 root 置顶排序。用新代码重新 sync 后 DB 会 `created=1`（root）+ `updated=5`（subagents），主 Agent 卡片正常出现。
+- **处理方式**：纯文档侧修复（同步启动命令），消除用户复现旧 bug 的路径。运行时代码已正确，无需修改。
+- **后续防范**：
+  1. **Sync 诊断**：若再次出现「sync 计数与预期不符」，检查后端版本是否包含 `build_negentropy_root_agent_payload()`，以及 DB 中是否存在 `owner_id` 不匹配的旧行；
+  2. **Root Agent 只读约束**：当前 SubAgents 页对 root Agent 的 Edit/Delete 操作未做只读限制（root Agent 的结构定义由代码硬编码，编辑 instruction/model 通过 InstructionProvider/DynamicModel 在运行时生效，但 sub_agents/tools 等结构性字段不可通过 UI 变更）。建议后续在 UI 层对 `kind === "root"` 卡片禁用 Delete、对结构性字段标灰。
+- **同类问题影响**：若后续新增 Pipeline Agent（如 `KnowledgeAcquisitionPipeline`、`ProblemSolvingPipeline`、`ValueDeliveryPipeline`）到 sync payload 中，需同步更新 toast 预期计数（从 6 增至 9）。
+
+---
+
+## ISSUE-031 Home 页长耗时回复双气泡 + 首条未格式化（语义去重 8s 时间窗在 ADK partial/final 非对称下失效）
+
+- **表因**：用户在 Home 主聊天页发送 "Ping, give me a pong" 后，Agent 同一条回复被渲染为两个独立气泡：第一个气泡处于"流式中"视觉态（amber 虚线边框 / `border-dashed border-amber-300/70`）且内容以未格式化纯文本呈现；第二个气泡才以正常 Markdown 渲染。
+- **根因**（多层级联）：
+  1. **ADK 持久化与实时流的非对称性**：ADK 流式产出多条 `partial=true` 增量片段 + 一条 `partial=false` 终态事件，但仅持久化终态事件。`AdkMessageStreamNormalizer.consume()` (`apps/negentropy-ui/lib/adk.ts:131`) 用首个 partial 的 `payload.id` 锁定 openMessage 的 `messageId`；hydration 重放时只看到终态事件，于是用终态自身的 `payload.id` 创建新 openMessage。**realtime ledger entry id ≠ hydration ledger entry id**。
+  2. **语义去重的 8s 时间窗硬拒绝**：`apps/negentropy-ui/utils/message-ledger.ts::isSemanticEquivalentEntry` 通过内容近似 + 8s 时间窗匹配 messageId 不同的实时/历史 entry。但 realtime 的 `createdAt = MIN(所有 partial 时间戳) = T1`（流式开始），hydration 的 `createdAt = Tf`（流式结束）。当生成耗时 `Tf - T1 > 8s`（多段落 / 列表型答复极易越过），硬拒绝触发，去重失败。
+  3. **失败级联**：`mergeEventsWithRealtimePriority`（`session-hydration.ts:175`）依赖语义等价 → hydrated 文本事件未过滤；`mergeMessageLedger`（`message-ledger.ts:412`）同样失败 → ledger 双 entry；`buildConversationTree`（`conversation-tree.ts:576`）的 `findMatchingTextNodeId` 第 372 行硬过滤 `streaming !== true` 节点，已收尾的 realtime 节点被跳过 → 走 fallback 分支新建 `message:F` 节点 → `walkTurnNode`（`chat-display.ts:500`）在同一 turn 下产出双 assistant 气泡。
+- **处理方式**（最小干预 + 正交分解）：
+  1. **主修复**：`isSemanticEquivalentEntry` 在 trim 后内容**严格相等**时跳过 8s 时间窗硬拒绝（`message-ledger.ts:99-108`）。同 threadId+runId+role+strict-equal 已收敛 → 不可能是两条独立消息。
+  2. **防御性收敛**：`findMatchingTextNodeId` 在 assistant 路径下，当现有节点已收尾但内容严格相等时仍允许复用（`conversation-tree.ts:368-393`），避免 hydrated CONTENT 落入 fallback 分支。user 路径仍要求流式态，避免误并历史用户消息。
+  3. **回归测试**：`message-ledger.test.ts` / `session-hydration.test.ts` / `conversation-tree.test.ts` 各新增一条覆盖 ">8s 跨度 + messageId 不同 + 内容严格相等" 的端到端用例。
+- **后续防范**：
+  1. **时间窗参数化警惕**：任何"基于固定时间窗的等价/去重"判定（如这里的 8s）都隐含「事件链路在该时间内完成」假设。当上游链路存在「分段产出 + 终态合并」模式（ADK partial/final、流式 LLM 的 chunk 合并、批量 ETL 的 staging→commit）时，应用层时间窗必须考虑分段间隔可能超过预期阈值，优先采用「内容严格相等 + 业务键收敛」做主判别，时间窗仅作辅助。
+  2. **正交分解修复**：UI 重复渲染问题应在三层（ledger 去重、events 过滤、tree 节点匹配）独立加固，而非单点修补，避免某层规则更新后另两层退化为兜底失效。
+  3. **Realtime/Hydration 对称性审计**：实时流与历史回放共用同一组 normalizer + ledger + tree 构建器是 SSOT 的体现；任何分支引入的"仅在某条路径生效"的 ID 生成 / 时间戳映射 / 结构变换，都应同步在另一路径补齐对称行为。
+- **同类问题影响**：
+  1. ADK 之外其他流式来源（如 OpenAI / Anthropic streaming SDK 直连）若遵循 partial/final 分别持久化的模式，触发同样的 messageId 漂移；本次修复对它们同样生效。
+  2. 工具调用链路：`openMessage` 在 `messageShouldFlushAfterPayload` 触发 flush 时关闭。若 tool call 前后两段同内容 assistant 文本被 flush 切分为独立 message，同样会因 messageId 不同被本次的「严格内容相等」逻辑收敛——这是预期行为（同 turn 同内容理应合一）。
+  3. 后续若引入 reranker / re-extract 阶段对消息 content 做规范化重写，需重新评估「严格内容相等」的命中率；必要时在 `isEquivalentMessageContent` 已有的容错下扩展（含/被含 + Jaccard）。
+
+---
+
+## ISSUE-032 Home 对话子任务 title 生成 `litellm.AuthenticationError`：缓存 miss 后回退到无 api_key 的硬编码默认
+
+- **表因**：用户在 Home 页发送 "Ping, give me a pong"，主对话回复正常，但后端日志反复出现 `WARNING engine.summarization | title_generation_failed error=litellm.AuthenticationError: AuthenticationError: OpenAIException - The api_key client option must be set ...`。前端会话标题始终显示首条 user 消息截断版（fallback），不出现 LLM 生成的语义化标题。
+- **根因**：`apps/negentropy/src/negentropy/engine/summarization.py::SessionSummarizer.__init__` 是同步方法，调用 `get_cached_llm_config()`（`config/model_resolver.py:68`）从内存缓存读默认 LLM 配置；缓存 TTL 仅 60s（`_CACHE_TTL=60.0`，`model_resolver.py:29`），bootstrap 启动时 `_warm_model_config_cache` 预热后即开始倒计时。缓存 miss 时回退到 `get_fallback_llm_config()` → 硬编码 `_DEFAULT_LLM_KWARGS = {"temperature": 0.7, "drop_params": True}`（`model_resolver.py:33-36`），**不含 `api_key`**。LiteLLM 在 `_build_completion_args` 时未拿到凭证，直接抛 `AuthenticationError`。这与 commit `8ce35d5 fix(agent-llm)` 修复的 `DynamicRootLiteLlm` 是同源问题——主对话路径已切换到 `await resolve_llm_config()` 走 DB 凭证，但 title 生成这条子对话路径未同步覆盖。
+- **二阶影响**：
+  1. 后台任务静默失败：`_generate_title_for_session` 仅 `logger.warning` 不抛异常，前端无明确错误反馈；
+  2. 体感：每个新会话首条消息后约 60s（缓存窗口外）触发一次 warning，干扰排障；
+  3. 配置漂移盲区：用户修改 vendor_configs 后立即测 title 生成可能恰好命中缓存窗口而表现正常，下次冷启动反而失败——故障复现具有时间窗口性，难诊断。
+- **处理方式**（最小干预 + 异步边界对称化）：
+  1. **`SessionSummarizer.__init__` 重构**：签名改为 `def __init__(self, model: LiteLlm)`，仅承担「持有已构造模型实例」职责，不再做凭证解析；
+  2. **新增 `@classmethod async def create(cls)` 工厂**：内部 `name, kwargs = await resolve_llm_config()`（`model_resolver.py:104`，与 `_dynamic_model.py:132` 同 SoT），`kwargs = dict(kwargs)` 防御性浅拷贝，注入 `max_tokens=20`，返回 `cls(LiteLlm(name, **kwargs))`；
+  3. **调用方切换**：`apps/negentropy/src/negentropy/engine/adapters/postgres/session_service.py:291` 把 `summarizer = SessionSummarizer()` 改为 `await SessionSummarizer.create()`，外层 try/except 已覆盖；
+  4. **测试**：新增 `tests/unit_tests/engine/test_summarization.py` 3 例，分别锁定「`create()` 走 `resolve_llm_config` 注入凭证 + max_tokens」「kwargs 防御性拷贝不污染上游」「`__init__` 仅接收实例」。
+- **后续防范**：
+  1. **凡是「构造 LLM 客户端」的代码路径必须走 async resolver**：grep `LiteLlm(`、`get_cached_llm_config`、`get_fallback_llm_config`，若仍存在 `__init__` 同步路径，需评估是否同样存在 cache miss 回退到无凭证默认的风险；
+  2. **硬编码 fallback 的边界守则**：`_DEFAULT_LLM_KWARGS` 不含 `api_key` 是合理的（避免硬编码密钥），但意味着 fallback 路径**必然**无法直接发起 LLM 请求——任何消费 fallback 的代码必须有显式凭证注入流程（典型如 vendor_configs 表读写）；如未来引入"完全无凭证场景"（mock 模式 / dry-run），需独立 sentinel 而非依赖 fallback 兜底；
+  3. **缓存 miss 不应是隐性失败**：`get_cached_llm_config` 返回 `None` 时调用方应明确路径选择（要么 await resolve，要么返回错误），不应 silently fall through 到 fallback；
+  4. **commit `8ce35d5` 模式补全审计**：`_dynamic_model.py` 的 `await resolve_llm_config()` 修复模式应推广到所有「默认模型路径」的消费点，非仅 root agent 与 title generator。
+- **同类问题影响**：
+  1. 任何继承自 `LiteLlm` 或在同步 `__init__` 中构造 LLM 客户端的代码（`SubAgent` 工厂、`KnowledgeQA` 抽取器、未来的 `Pipeline Agent`）；
+  2. Embedding 端：`build_embedding_fn` 路径若有同步 cache miss 回退到不含凭证的硬编码默认，存在同类风险，需独立审计；
+  3. 跨 Agent 复用同一 ContextVar 的场景，若 ContextVar 在子任务中被清空（如 `_generate_title_for_session` 离开主请求 ContextVar 链路）也会触发"凭证消失"——本次修复对 title 路径恰好通过 `resolve_llm_config()` 直读 DB 绕开了 ContextVar 依赖，可作为同类场景模板。
+
+---
+
+## ISSUE-033 OTLP HTTP `_log_exporter` / `_metric_exporter` 反复 404：ADK 把 `OTEL_EXPORTER_OTLP_ENDPOINT` 当三件套总开关、Langfuse 仅承接 traces
+
+- **表因**：Home 页发起对话期间，后端日志反复出现 `ERROR http._log_exporter | Failed to export logs batch code: 404, reason: <!DOCTYPE html>...Langfuse Icon...statusCode":404`——返回的是 Langfuse 前端 SPA 的 404 错误页（包含 `_next/static/...`、`Langfuse Icon`、`Loading...` 等大段 HTML），每条日志数 KB，每分钟级反复输出污染日志可读性。Metrics 路径同源 404 但触发频率较低（`enable_metrics=False` 时仅在 ADK 系统 metric 偶发触发）。
+- **根因**：契约错配 + 框架自动注册行为：
+  1. `apps/negentropy/src/negentropy/engine/bootstrap.py:50` 设置 `OTEL_EXPORTER_OTLP_ENDPOINT=<langfuse_host>/api/public/otel`，本意仅供 LiteLLM `"otel"` callback 在 `_normalize_otel_endpoint` 时拼成 `/v1/traces` 上报 traces；
+  2. 上游 ADK `google/adk/cli/adk_web_server.py:524-533` 的 `_otel_env_vars_enabled()` 把这个 env var 视为「启用 OTLP 三件套」的总开关，调用 `_setup_telemetry_from_env()` → `maybe_set_otel_providers()` → `_get_otel_exporters()`（`google/adk/telemetry/setup.py:131-154`）；
+  3. `_get_otel_exporters()` 在该 env var 存在时**无差别**追加三个 processor：`OTLPSpanExporter`（traces，正常）、`OTLPMetricExporter`（metrics，404）、`OTLPLogExporter`（logs，404）；
+  4. `OTLPLogExporter` 默认行为（`opentelemetry/exporter/otlp/proto/http/_log_exporter/__init__.py:87-92`）：未配置 `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` 时回退到 `OTEL_EXPORTER_OTLP_ENDPOINT` 并通过 `_append_logs_path` 追加 `/v1/logs` → 命中 `https://cloud.langfuse.com/api/public/otel/v1/logs`；
+  5. Langfuse 仅支持 `/api/public/otel/v1/traces`，不存在 `/v1/logs` / `/v1/metrics` 接口 → SPA 路由回退到 `/_error` 页面 → 返回 404 + 整段 HTML；
+  6. `opentelemetry-instrumentation-google-genai`（CHANGELOG `feat(adk-genai-otel)` 引入）的 `instrumentor.py:53-54` 通过 `get_logger_provider().get_logger(...)` 主动写入 GenAI events，激活了上面的 logs 上报路径——所以每个对话都触发一批 404；
+  7. `set_logger_provider` / `set_meter_provider` 由 `Once`-lock 保护（`opentelemetry/_logs/_internal/__init__.py:276-305`）：首次调用胜出，后续调用静默忽略（仅 warning）。
+- **二阶影响**：
+  1. 日志噪声严重影响排障——大段 HTML 反复刷屏；
+  2. 网络消耗：每秒级 OTLP batch flush 持续向 Langfuse 上报无用数据；
+  3. 用户误以为 Langfuse 配置错误（实际 traces 链路完全正常）。
+- **处理方式**（手术刀式 + 最小干预）：
+  1. **抢占 Once-lock**：在 `bootstrap.py` 设置 OTel env vars 之后、ADK Web Server 实例化之前，新增 `_install_noop_otel_logs_metrics_providers()` helper：用「无 processor / 无 reader」的 SDK `LoggerProvider()` 与 `MeterProvider(metric_readers=[])` 作为占位 provider，调用 `set_logger_provider` / `set_meter_provider`；
+  2. **效果**：ADK 后续 `_setup_telemetry_from_env` 路径下的 `set_*_provider` 调用因 `Once`-lock 静默 no-op，OTLPLogExporter / OTLPMetricExporter 虽被构造但其所属 LoggerProvider / MeterProvider 永远不会成为 global 实例，从而**整条 logs/metrics 上报链路被阻断**；
+  3. **traces 链路完全不动**：TracerProvider 由 ADK / LiteLLM 自行 `set_tracer_provider`（首次胜出），`OTEL_EXPORTER_OTLP_HEADERS`（Basic Auth）仍生效，traces 正常进入 Langfuse；
+  4. **测试**：新增 `tests/unit_tests/observability/test_otel_noop_providers.py` 3 例，子进程隔离 OTel 全局状态，分别验证「LoggerProvider 是 SDK 实例且 0 processor」「MeterProvider 是 SDK 实例且 0 reader」「后续 set_logger_provider 因 Once-lock 不替换」。
+- **为何不选"改用 `OTEL_ENDPOINT`"方案**：LiteLLM 确实可从 `OTEL_ENDPOINT`（line 114 fallback）读端点，但 ADK 完全不识别 `OTEL_ENDPOINT`，会让 `_otel_env_vars_enabled()` 返回 False → traces/metrics/logs 三件套全不注册——虽然消除了 logs 404，但 ADK 的 `ApiServerSpanExporter`（in-memory trace UI 后端）也失效，副作用过大。手术刀式（仅抑制 logs/metrics）才符合 Boundary Management 原则。
+- **后续防范**：
+  1. **OTel global provider 抢占模式**：当系统内有多个 OTel consumer（LiteLLM / ADK / Langfuse / Phoenix / SigNoz）且各自对 logs/metrics/traces 三件套支持矩阵不同时，必须显式管理"谁先 set_*_provider"；推荐统一在应用 bootstrap 早期抢注期望行为的 provider，避免依赖隐式注册顺序；
+  2. **环境变量契约审计**：上游框架（ADK / OpenLLMetry / OpenInference）对 `OTEL_EXPORTER_OTLP_*` 的解释可能与单纯 OTel SDK 不同（如 ADK 把它当三件套总开关），引入新框架时需独立验证；
+  3. **后端兼容性矩阵明文化**：在 `negentropy.config.observability` 文档化「Langfuse 仅支持 traces」「Phoenix 支持 logs+traces」「SigNoz 支持三件套」等契约，避免重复踩坑；
+  4. **未来若需启用 GenAI events**：把当前 `_install_noop_otel_logs_metrics_providers` 替换为带 `BatchLogRecordProcessor(<目标 backend exporter>)` 的实质 LoggerProvider 即可，本次抢占模式天然支持平滑升级（Once-lock 仍保证唯一注册）。
+- **同类问题影响**：
+  1. 任何上游框架基于 env var 自动启用次级遥测路径（如 `OTEL_RESOURCE_ATTRIBUTES`、`OTEL_PROPAGATORS`）的场景；
+  2. 多 SDK 共存的 instrumentation 环境（`opentelemetry-instrumentation-*` 各自调用 `get_*_provider()`）；
+  3. 升级 google-adk / google-genai-instrumentation / litellm 版本时，需复核它们对 logs/metrics 的处理是否变更（如未来 LiteLLM `enable_metrics=True` 默认开启，需同步审计）。
+
+---
+
+## ISSUE-034 ADK Web 启动期两条 OTel `Overriding of current ... Provider` WARNING：抢占式 set provider 副作用 → 改为 patch ADK `_get_otel_exporters` 根因抑制
+
+- **表因**：`uv run adk web --port <p> --reload_agents src` 启动期 stderr 反复出现：
+  ```
+  WARNING |     metrics._internal | Overriding of current MeterProvider is not allowed
+  WARNING |       _logs._internal | Overriding of current LoggerProvider is not allowed
+  ```
+  污染启动日志可读性，且每次启动都触发，给排障带来噪声。
+- **根因**：ISSUE-033 的"抢占式 set provider"修复方案的天然副作用：
+  1. `apps/negentropy/src/negentropy/engine/bootstrap.py:40-59` 旧 `_install_noop_otel_logs_metrics_providers()` 在导入早期主动 `set_logger_provider(NoExporterLoggerProvider())` / `set_meter_provider(NoExporterMeterProvider(metric_readers=[]))`；
+  2. ADK Web 启动 `_setup_telemetry_from_env()` → `maybe_set_otel_providers()` → 第二次调用 `set_logger_provider` / `set_meter_provider`；
+  3. OTel SDK 的 `Once`-lock 保护使第二次调用静默失败，但**仍会通过 `_logger.warning` 打印** "Overriding of current ... is not allowed"（参见 `opentelemetry/_logs/_internal/__init__.py` 与 `opentelemetry/metrics/_internal/__init__.py` 的 `_set_*_provider` 实现）。
+- **二阶影响**：日志噪声 + 误导用户怀疑配置错误（实际 traces 链路完全正常，logs/metrics 也按 ISSUE-033 设计被阻断）。
+- **处理方式**（治本，最小干预）：把"抢占 SDK provider"替换为"patch ADK 上游 OTel 拼装入口"，ADK 根本不再调用 `set_logger_provider` / `set_meter_provider`：
+  1. `bootstrap.py` 删除 `_install_noop_otel_logs_metrics_providers()`，新增 `_disable_adk_otel_logs_metrics_exporters()`；
+  2. 该 helper monkey-patch `google.adk.telemetry.setup._get_otel_exporters`：调用原函数后强制把 `metric_readers` / `log_record_processors` 置空、保留 `span_processors`；
+  3. ADK `maybe_set_otel_providers` 内部 `if metric_readers:` / `if log_record_processors:` 分支由此短路（参见 `google/adk/telemetry/setup.py:102, 113`），`set_*_provider` 根本不被调用 → WARNING 从源头消除；
+  4. `span_processors`（traces 链路）保留原 `BatchSpanProcessor(OTLPSpanExporter())`，traces 仍正常上报到 Langfuse `/v1/traces`；
+  5. 加 `_negentropy_patched` 属性做幂等保护，与 `apply_adk_patches()` 中既有惯用法（如 `AdkWebServer.get_fast_api_app._negentropy_patched`）一致；
+  6. 测试更新 `tests/unit_tests/observability/test_otel_noop_providers.py` 3 例（子进程隔离 OTel 全局状态）：
+     - patch 后 `_get_otel_exporters()` 返回的 `metric_readers` / `log_record_processors` 为空、`span_processors` 仍为 1 个 `BatchSpanProcessor`；
+     - patch 幂等（重复调用函数对象不变）；
+     - 模拟调用 `maybe_set_otel_providers` 后全局 `LoggerProvider` / `MeterProvider` 仍是默认 ProxyProvider（**不是** SDK 实例），证明 set 调用未发生。
+- **行为对照**：
+  | 调用 | 修复前 | 修复后 |
+  |------|--------|--------|
+  | `_logs.set_logger_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
+  | `metrics.set_meter_provider` | 项目 + ADK 各 1 次（第二次 warn） | **零次** |
+  | `trace.set_tracer_provider` | ADK 1 次（含 OTLP traces + ApiServerSpanExporter） | 不变 |
+  | `opentelemetry-instrumentation-google-genai` 写 GenAI events | 拿到 NoExporter SDK LoggerProvider（无 processor，丢弃） | 拿到默认 ProxyLoggerProvider（同样 NoOp 丢弃） |
+  | LiteLLM `"otel"` callback 上报 traces | → Langfuse `/v1/traces` | 不变 |
+- **后续防范**：
+  1. **OTel 抢占模式陷阱**：抢占式 `set_*_provider` 虽能利用 `Once`-lock 阻断后续注册，但**SDK 仍会输出 WARNING**——治本方案应当是阻止上游"想 set"，而非依赖"set 失败 + 静默吞错"；
+  2. **优先 patch 上游拼装入口**：当框架（ADK）在某个唯一入口（`_get_otel_exporters`）拼装多类 telemetry hooks 时，patch 该入口比 patch 各 `set_*_provider` 调用更精准；
+  3. **平滑升级到完整 OTLP 三件套**：未来若启用 SigNoz / Phoenix 等支持 logs+metrics 的 backend，把 `_disable_adk_otel_logs_metrics_exporters()` 改为有条件地透传 `metric_readers` / `log_record_processors` 即可（建议联动 `negentropy.config.observability` 加 `suppress_otlp_logs_metrics: bool` 开关）；
+  4. **ADK 升级兼容审计**：本 patch 直接替换 `_get_otel_exporters` 函数对象并依赖 `OTelHooks` dataclass 的 `span_processors` / `metric_readers` / `log_record_processors` 字段名。`google-adk` 升级时（`pyproject.toml` line 27 已锁版本范围）需 grep 该函数与 dataclass 是否变更。
+- **同类问题影响**：
+  1. 任何"抢占 OTel global provider"模式都会在上游再次 set 时触发 WARNING——但凡 SDK 依赖此类副作用的代码都应回归"上游 patch"思路；
+  2. 类似 `opentelemetry-instrumentation-*` 系列在 `OTel SDK` 之上做隐式 set 的场景（如 `langfuse.openai`、`openinference` 自动埋点），引入时需复核其是否走 `set_*_provider` 路径。
+
+---
+
+## ISSUE-035 AI Agent 在 sandbox 浏览器中走项目 Google OAuth 被同意屏拦截：登录态不可复用导致验证链路中断
+
+- **表因**：AI Agent（Claude / Antigravity）在沙箱形态浏览器（Playwright 默认 `chromium.launch()` 启的空白 profile）中打开 [`localhost:3192`](http://localhost:3192) 触发项目自带的 Google OAuth 流（`/auth/google/login` → `accounts.google.com` → `/auth/google/callback`，参见 [docs/sso.md](./sso.md)），跳转到 `accounts.google.com` 后因该浏览器无任何 Google 登录态，被同意屏 / reCAPTCHA / 二步验证拦截，验证链路在此中断；用户被迫多次手动接管或放弃验证。
+- **根因**：双重契约错配：
+  1. **会话来源错配**：默认 sandbox 浏览器的 cookie store / device fingerprint / IP 风险评分均与用户日常 Chrome 不同，Google 风控将其视为可疑设备；即便用户在沙箱内输入正确账密，亦极易被强制拉起二次验证或拒绝；
+  2. **工具选型缺位**：项目 [CLAUDE.md（即 AGENTS.md）](../CLAUDE.md) 此前未约定"涉及登录态的浏览器验证应优先使用与用户常用 Chrome 共享会话的工具"，AI Agent 默认走 sandbox 即陷入上述风控；
+  3. **Playwright E2E 同样缺位**：`apps/negentropy-ui/playwright.config.ts` 之前无 `setup` project / `storageState` / `userDataDir` 复用机制，凡涉及真实 OAuth 的 E2E 都需重复人工登录或退化为 mock，长期削弱端到端覆盖。
+- **处理方式**：
+  1. **协议落地**：[CLAUDE.md › 术 › Browser Validation Protocol](../CLAUDE.md) 新增子节，明确"涉及登录态的浏览器验证必须复用用户常用 Chrome 会话"，首选 `mcp__claude-in-chrome__*`，退化为 `mcp__chrome_devtools__*` + Chrome `--remote-debugging-port`，禁止在 sandbox 浏览器中通过 Google 同意屏；
+  2. **详尽文档**：新建 [docs/agents/browser-validation.md](./agents/browser-validation.md)，含三种 MCP 浏览器工具的能力对照、Mermaid 选型决策图、三步连通性自检脚本、storageState 工作时序、风控应对、IEEE 引用；
+  3. **Playwright 改造**：
+     - `apps/negentropy-ui/playwright.config.ts` 在 `PLAYWRIGHT_AUTH=1` 时启用两个新 project：`setup`（`/.*\.setup\.ts$/`，强制 headless: false）与 `chromium-authenticated`（`dependencies: ['setup']`，注入 `storageState`），可选 `PLAYWRIGHT_USER_DATA_DIR` 走 `--user-data-dir` 复用本地 profile；
+     - `STORAGE_STATE` 默认 `apps/negentropy-ui/.auth/user.json`，可被 `PLAYWRIGHT_STORAGE_STATE` 覆盖；
+     - 现有 `chromium` project 的 `testIgnore` 同时排除 `/.*\.setup\.ts$/` 与 `/.*\.authed\.spec\.ts$/`，**不依赖** setup，保护现有 mock 风格 e2e 与 CI 行为完全不变，且防止 AUTH 开启时 authed spec 被无 storageState 的项目重复执行；
+     - 新增 `apps/negentropy-ui/tests/e2e/auth.setup.ts`：打开 `/auth/google/login`、等用户在弹出页手动完成登录、`waitForURL` 同时约束 host（`127.0.0.1` / `localhost`）与离开 `/auth/google/*`、断言 `/api/auth/me` 返回 2xx、写入 storageState；登录窗口超时 5 分钟。
+  4. **凭证防泄漏**：根 `.gitignore` 追加 `apps/negentropy-ui/.auth/` 与 `apps/negentropy-ui/.userdata/`，会话产物只落本地。
+- **后续防范**：
+  1. **AI Agent 默认行为收口**：协议已写入 AGENTS.md，每个新会话首次浏览器验证前必走"三步连通性自检"，任意失败立即停下并把现象返回用户，杜绝"换个浏览器再试"的暗箱重试；
+  2. **凭证零接触**：AI Agent 在任何场景下不读取、不复制、不粘贴用户密码 / 验证码 / Refresh Token；登录步骤一律由用户在浏览器内手动完成（受 `user_privacy` 中 SENSITIVE INFORMATION HANDLING 硬约束）；
+  3. **CI 隔离**：CI 环境禁止挂载真实账号 storageState，未来引入需要登录态的 CI E2E 时走 mock OAuth provider 或专用脱敏账号 + 密钥管理服务，作为后续 Issue 处理；
+  4. **风控避让**：自检 Step 2 与 Step 3 间留 ≥ 3s 间隔；setup project 不在自动循环中重复触发，避免短时高频跳转 Google 同意屏招致风控误报；
+  5. **waitForURL 跨域陷阱**：OAuth 链路涉及跨 origin 跳转时，`waitForURL` 谓词必须同时约束 host，否则会在跳往 IdP 瞬间被误判为流程结束；本次修复已在 `auth.setup.ts` 落地。
+- **同类问题影响**：
+  1. 所有依赖外部第三方登录的链路（Microsoft / Apple / GitHub OAuth、企业 SSO、内部 SaaS 密钥）在 sandbox 浏览器中均会遭遇同质风控，应统一按本协议复用真实浏览器会话；
+  2. 任何"AI Agent 帮我跑一下登录后页面"的请求都应先看协议工具选型矩阵；
+  3. 跨 profile 复制 storageState / Cookie 的方案在 Google / 微软等高风控供应商上不可靠，不建议作为退化方案。
+
+---
+
+## ISSUE-036 Home 页主动导航 prompt 在 tool 调用前后双轮 LLM 产出近重复 assistant 文本（双气泡复发）
+
+- **表因**：用户在 Home 页发送 "Ping, give me a pong"（短回复）也会看到两份高度相似的 assistant 答复气泡。ISSUE-031 的修复（基于 ledger 时间窗 + closed 节点匹配）虽已合并并部署，但本场景双气泡仍复发——证明并非「同一 messageId 的双副本」。
+- **根因**（与 ISSUE-031 完全正交的另一类来源）：
+  1. **Root Agent prompt `## 主动导航` 强约束**：`apps/negentropy/src/negentropy/agents/agent.py:_ROOT_INSTRUCTION` 要求 LLM 「完成任何任务后必须：1. 总结已完成的工作；2. 分析后续需求；3. 提出下一步建议；4. 让用户决定」。
+  2. **Root Agent 持有 `log_activity` 工具**：`agent.py:139` 注册了 `log_activity` 作为 root 工具，LLM 倾向于在每次回答前/后发起一次审计日志调用。
+  3. **ADK 双轮 LLM 调用模式**：第一轮 LLM 产出「文本回复 + tool_call(log_activity)」 → tool 同步执行 → 第二轮 LLM 在 tool 结果上下文里被再次唤起，主动导航 prompt 让它再产出一段「已完成 + 后续 + 建议」总结。两轮各自带独立的 `messageId`、各自走 `TEXT_MESSAGE_START/CONTENT/END` 三件套，UI 忠实地把两段文本以并列 segment 渲染在同一个 `assistant-reply` bubble 内 → 视觉上呈双气泡。
+  4. **两段内容字面差异极小**：第一轮往往返回中间产物（如 `"ong"`），第二轮在 tool 反馈后才修正为 `"Pong"`，但「可能的后续需求 / 下一步建议」整段几乎逐字复述——两段 bigram Jaccard 相似度 ≥ 50%。
+- **处理方式**（最小干预的 UI 兜底；不动 agent prompt 与工具集合，避免触发更大爆炸半径）：
+  1. **`apps/negentropy-ui/utils/chat-display.ts::dedupeRedundantTextSegments`**：在 `buildAssistantReplyBlock` 出口处，对同一 reply 内的多个 text segment 做字符二元组（character bigrams，同时适配中英文）Jaccard 相似度计算；当后段与某前段相似度 ≥ 0.5 且双方长度 ≥ 30 时，丢弃该前段、保留信息更完备的最终段。tool-group / reasoning / error 等非文本片段顺序不动。
+  2. **`assistant-reply.message.content` 联动**：折叠后的 `textParts` 用作 `MessageActions` 复制时的内容来源，避免被复制时仍能拿到旧的冗余文本。
+  3. **threshold 选型保守**：30 字符兜底过滤了「先查询资料」→「查询完成」一类合理短中间消息；0.5 Jaccard 的高门槛要求双方在 bigram 集合层面有过半交集，规避了两段同主题但语义不同（搜索 → 结论）的误折叠。
+- **后续防范**：
+  1. **agent 层延伸优化（独立专项，本次不做）**：可在 root agent prompt 中加一条「若已经在第一轮回复给出了完整总结，tool 调用后不要再重复主动导航，仅简短补充新增信息」；或将 `log_activity` 从 root 移除、仅留给 sub-agent 内部审计——能从源头消除双轮产出近重复总结的诱因；
+  2. **UI 兜底层只处理「视觉层冗余」，不处理「语义重复」**：阈值刻意保守，宁可漏折叠、不可误折叠；如发现仍被漏掉的真重复，应优先在 agent 端解决而非降低阈值；
+  3. **diagnostic 抓手**：未来若再出现双气泡，先 `gh api repos/.../sessions/{id}/events` 拉真实事件流，确认是否仍是双 LLM 轮次（messageId 不同）还是其他全新模式。
+- **同类问题影响**：
+  1. 任何 sub-agent（Perception / Influence 等）若也在自身 prompt 中嵌入「最终总结」要求，且持有可被强制调用的工具，都可能复制同一模式；
+  2. 若未来 UI 改造让 segments 从「按 turn 聚合」转为「按 sub-agent 分桶」，本次的折叠算法需配套迁移，否则跨桶重复无法被命中；
+  3. **与 ISSUE-031 关系**：031 解决的是「同一逻辑消息因 messageId 漂移被双写到 ledger」，036 解决的是「不同逻辑消息因 LLM 重复总结而内容近重」。两者正交、互不替代，必须同时存在才能覆盖「Ping/Pong 短回复 + 长耗时回复」全部双气泡场景。
+
+---
+
+## ISSUE-037 Home 页 LLM 模型选择在「未 Send 即刷新」场景下回退到 default
+
+- **表因**：用户在 Home 页 Composer 选定 `gpt-5.4-mini`（或任意非默认模型），但**尚未点击 Send**，刷新页面后下拉框回退到 default。
+- **根因**：
+  1. **后端事实源是 `session.state.selected_llm_model`**（`apps/negentropy-ui/app/api/agui/route.ts` 在 `/run_sse` 时把 `forwardedProps.selected_llm_model` 翻译为 `state_delta.selected_llm_model`，由 ADK 写入 session.state），与 root agent 的 `before_model_callback` (`agent.py::_pick_root_model`) 配合在每轮内按此覆盖模型；
+  2. **写入只在 Send 时发生**：`doSend` 触发 `agent.runAgent` 时才会把 `forwardedProps` 推给后端 `/run_sse`，进而落到 `state_delta`。如果用户「选了模型但还没 Send」，后端 state 不更新；
+  3. **前端内存态在刷新时丢失**：`home-body.tsx::perThreadLlmRef` 是 `useRef`，刷新即被重建为空 `{}`；
+  4. **Effect 2 (`useEffect([sessionId, snapshotForDisplay])`)** 在 `perThreadLlmRef[sessionId]` 缺席时回退到 `snapshotForDisplay?.selected_llm_model`——而后端 snapshot 此时本就没有，于是回到 `null`（即 default）。
+- **处理方式**（最小干预 + 双源镜像，不引入新的后端 API）：
+  1. **`apps/negentropy-ui/app/home-body.tsx`** 顶部新增 `LOCAL_LLM_MODEL_KEY_PREFIX = "negentropy:home:llm-model:"` 与 `readPersistedLlmModel` / `writePersistedLlmModel` 两个轻量 helper（按 sessionId 命名空间隔离，typeof window 守卫 SSR）；
+  2. **handleSelectedLlmModelChange**：用户每次切换模型时立刻 `writePersistedLlmModel(sessionId, next)`，落盘到 localStorage；空选择写 `null` 触发 removeItem；
+  3. **Effect 1（sessionId 切换）**：进入既有 session 时优先 `readPersistedLlmModel(sessionId)`；命中则把 `perThreadLlmRef[sessionId]` 与 `selectedLlmModel` 一并设到该值，未命中再让 Effect 2 走 snapshot 兜底；
+  4. **Effect 2（snapshot 命中）**：snapshot 命中时除了写 `perThreadLlmRef`，同步把值回写 localStorage——保证「后端 state ↔ localStorage」互为镜像，下次刷新可走纯本地快路径；
+  5. **保留既有 `forwardedProps.selected_llm_model` 链路**：用户实际 Send 后仍会写后端 state，确保跨设备一致性最终收敛。
+- **后续防范**：
+  1. **localStorage entropy 兜底**：当前 key 前缀按 sessionId 划分，长期会累积。后续可以加一个轻量的 LRU 清理（比如启动时遍历 key、删除超过 90 天未访问的）；本期最小干预先不做；
+  2. **跨设备一致性**：localStorage 仅本浏览器持久化。若用户在 A 浏览器选了模型却未 Send 就切到 B 浏览器刷新，B 浏览器读不到。修复路径是后端新增 `PATCH /sessions/{id}/state/selected_llm_model`（沿用 `sessions_api.py::update_session_title` 的 `state_delta + append_event` 模式），handleSelectedLlmModelChange 同时调用前后端双写。本期视用户反馈再决定是否上 backend；
+  3. **SSR 安全**：所有 localStorage 访问都做 `typeof window === "undefined"` 守卫，避免 Next.js server build 阶段崩溃；try/catch 包裹避免 SecurityError（如 Safari 隐私模式）。
+- **同类问题影响**：所有「需要『选了即记，与 Send 解耦』」的 UI 偏好（如 thread title 草稿、Composer 草稿、左栏视图模式）都可复用本 helper 模式或抽象为通用 `useSessionPersistedState` hook；本期 YAGNI 只解决 LLM model 一项，不预先抽象。
+
+---
+
+## ISSUE-038 ADK Web 启动期 OTel `Cannot call collect on a MetricReader` 周期 WARNING：被丢弃的 PeriodicExportingMetricReader 守护线程
+
+- **表因**：`uv run adk web` 启动后每 60s 出现 `WARNING | _internal.export | Cannot call collect on a MetricReader until it is registered on a MeterProvider`，与 ISSUE-034 处理的 `Overriding of current ... Provider` 完全不同。
+- **根因**：ISSUE-034 的 `_patched_get_otel_exporters` 调用 `original()` 后再把 `metric_readers` / `log_record_processors` 置空，但上游 `_get_otel_exporters` 在 `OTEL_EXPORTER_OTLP_ENDPOINT` 存在时已无条件构造 `PeriodicExportingMetricReader(OTLPMetricExporter())`（`google/adk/telemetry/setup.py:163-166`）——`__init__` 立即启动每 60s 守护线程（`opentelemetry/sdk/metrics/_internal/export/__init__.py:494`）；reader 因未注册到 MeterProvider，`_collect` 为 None，每次 tick 触发 WARNING（同文件 line 334-336）。
+- **二阶影响**：日志噪声 + 多余 daemon 线程占用资源；与 ISSUE-034 修复后"治标"印象矛盾。
+- **处理方式**：`_patched_get_otel_exporters` 不再调用 `original()`，直接复用 `adk_otel_setup._get_otel_span_exporter()` 只构造 traces span processor（`bootstrap.py:40-88`），根源避免 OTLP metrics / logs exporter 被实例化。测试新增 `test_patch_does_not_construct_orphan_metric_or_log_exporters` 用 sentinel 化 `_get_otel_metrics_exporter` / `_get_otel_logs_exporter` 验证零调用。
+- **后续防范**：
+  1. **patch 上游工厂时优先全量重写返回值**而非"调用后裁剪"，避免副作用进入对象生命周期；
+  2. 凡 `__init__` 启动后台线程的 OTel 组件（`PeriodicExportingMetricReader`、`BatchLogRecordProcessor`、`BatchSpanProcessor`）一经实例化即等同"已激活"，不可只靠"不返回"屏蔽；
+  3. ADK 升级时审计 `_get_otel_span_exporter` / `OTelHooks` 字段。
+- **同类问题影响**：所有"调用上游工厂后再丢弃部分返回"的 patch 都需检查工厂是否在构造路径上启动后台线程。
+
+---
+
+## ISSUE-039 Home 双气泡盲区（短回复）+ 刷新后消息乱序
+
+- **表因**：
+  1. 用户发送 "Ping, give me a pong" 等**短回复**也会出现双气泡，ISSUE-036 的 Jaccard 相似度去重（阈值 ≥ 30 字）对短文本完全失效；
+  2. 刷新页面后消息有时不按实际时间线排序，「用户消息」与「Agent 消息」相对位置漂移。
+- **根因**：
+  1. **Jaccard 去重盲区**：`utils/chat-display.ts::dedupeRedundantTextSegments` 仅在双方均 ≥ 30 字时触发字符二元组相似度计算。ADK 双轮 LLM 模式（tool 调用前后两轮文本）下，"Pong!"、"OK" 等短回复绕过该路径，两段独立的 `TEXT_MESSAGE_*` 序列（messageId 不同但内容字节级相同）被 ledger / tree / display 全链路忠实保留为两个 segment；
+  2. **mergeEventsWithRealtimePriority 参数顺序反了**：`utils/session-hydration.ts:244` 调用 `mergeEvents(realtimeEvents, filteredHydratedEvents)`，而 `mergeEvents` 内部 `[...base, ...incoming].forEach(merged.set)` 后写入者赢得冲突——意味着 hydrated 事件覆盖 realtime 事件。函数名 `RealtimePriority` 与实际行为相反，hydrated 后端时间戳精度与流式时间戳不一致时排序会发生漂移；
+  3. **eventKey 时间戳浮点精度抖动**：TEXT_MESSAGE_CONTENT 的 `eventKey` 用 `String(normalizeTimestamp(timestamp))`，浮点表示（如 1001.1 vs 1001.10000002384）会生成不同字符串 → 同一逻辑事件被保留两份；
+  4. **UUID localeCompare 作 sort tiebreaker**：所有 `.sort()` 在 createdAt 相等时退化为 `id.localeCompare`，UUID 字典序无时间语义。
+- **处理方式**（UI / 数据层最小干预，不动 agent prompt 与协议）：
+  1. **`utils/chat-display.ts::dedupeRedundantTextSegments` 四层判定**（自上而下越来越宽松）：
+     - 1) 精确匹配（trim 后字节级相等）：任何长度都触发，丢弃前段；
+     - 2) 严格前缀关系（`later.startsWith(earlier)` 或反向）：任何长度都触发，丢弃前段（或后段，取决于谁是前缀）；
+     - 3) `isEquivalentMessageContent` + 双方 ≥ 30 字：处理近似但非前缀场景；
+     - 4) 字符二元组 Jaccard ≥ 0.5 + 双方 ≥ 30 字：原 ISSUE-036 兜底逻辑保留。
+  2. **`utils/session-hydration.ts::mergeEventsWithRealtimePriority`**：交换参数顺序为 `mergeEvents(filteredHydratedEvents, realtimeEvents)`，让 realtime 作为 incoming 覆盖 hydrated；
+  3. **`utils/session-hydration.ts::eventKey`**：TEXT_MESSAGE_CONTENT 时间戳改用 `.toFixed(3)`（毫秒精度），消除浮点抖动；
+  4. **`types/common.ts::MessageLedgerEntry` 新增可选 `sourceOrder?: number`**：`buildMessageLedger` 处理事件时记录原始时序下标；`upsertEntry` / `mergeMessageLedger` 取已存在与新写入两者最小值；所有 `.sort` 的 tiebreaker 改为 `createdAt → sourceOrder → id.localeCompare`，并抽出 `compareLedgerEntriesByTime` 复用；测试夹具与历史持久化数据通过可选默认 `Number.MAX_SAFE_INTEGER` 保持向后兼容。
+- **后续防范**：
+  1. **去重四层判定的扩展规则**：未来若再出现新模式（如 trim 等价但带 markdown 转义差异），优先在前两层（精确 / 前缀）扩展，避免直接降低 Jaccard 阈值；
+  2. **eventKey 修订需检查所有 case**：当前只对 TEXT_MESSAGE_CONTENT 做 toFixed，其他事件类型若有同类问题（暂未发现），同步处理；
+  3. **sourceOrder 仅用于 tiebreaker**：不要在 createdAt 不同时让 sourceOrder 倒序覆盖时间，保持「时间为主、order 为辅」；
+  4. **回归测试**：新增三类用例覆盖——短文本精确匹配、前缀含尾部追加、同 createdAt 的 sourceOrder 排序。
+- **同类问题影响**：
+  1. 任何 `id.localeCompare` 作 tiebreaker 的排序场景都可能在 createdAt 重合时出现非时间序，本次只修了 ledger 三处 sort，conversation-tree 的 root 排序与 chat-display 的 block 排序仍按 sourceOrder 处理（均使用 `node.sourceOrder`，已稳）；
+  2. **与 ISSUE-031 / 036 关系**：031 解决「同一逻辑消息因 messageId 漂移被双写到 ledger」；036 解决「不同逻辑消息因 LLM 重复总结而长文本近重」；039 解决「短文本字面相同的双轮重复 + 跨刷新事件序漂移」。三者正交、互不替代，形成完整去重 / 排序防御链。
+
+---
+
+## ISSUE-040 Home 三连症：思考独白溢出 / 推理头常驻 / 刷新乱序残留
+
+- **表因**：用户在 Home 多轮发送相同 `Ping, give me a pong.` 后看到三类问题共存：
+  1. **(Q1)** Agent 答复中夹带大段第三人称英文独白（如 `We need to respond to the user's latest "Ping, give me a pong." The system requires following the orchestration rules ...`），并伴随历史多轮总结的累积复述；
+  2. **(Q2)** 答复完成、工具组显示「已完成 N 个工具」之后，气泡顶部「正在思考 · 推理阶段」紫色脉冲样式仍未切换为「思考完成 · 推理阶段」；
+  3. **(Q3)** 多轮对话刷新页面后，user / assistant 消息相对位置偶发漂移（即使 commit `3fdbfd3` 已修复 ISSUE-039 的主要乱序面）。
+- **根因**（与 ISSUE-031/036/039 正交，分四组）：
+  1. **H1（Q1 主因）：reasoning/thought 部件未过滤**。默认 LLM 是 `openai/gpt-5-mini`（`apps/negentropy/src/negentropy/config/model_resolver.py:32`，reasoning 模型族），LiteLLM 响应里同时含 `content` 与 `reasoning_content`；`_build_llm_kwargs` 在 anthropic / o1 / o3 模型族下还会注入 `thinking={...}` 或 `reasoning_effort=...`（`config/model_resolver.py:641-657`）。前端 `extractTextParts`（`apps/negentropy-ui/lib/adk.ts:67-87`）与混合 parts 分支（同文件 `consume()`）**只过滤 `functionCall / functionResponse`**，从不检查 `part.thought` 或 `part.type === "thinking" | "thought" | "reasoning" | "reasoning_summary" | "reasoning_text"`。ADK schema 是 `passthrough` 但未声明 `thought`（`lib/adk/schema.ts:23-30`），所以 thought part 静默漏过，被原样拼接到 `TEXT_MESSAGE_CONTENT`。既有 `dedupeRedundantTextSegments`（`utils/chat-display.ts:427-505`）的 4 层判定无法在「字面/前缀/Jaccard」上覆盖此场景——必须在源头剔除。
+  2. **H2（Q2 主因）：`createStepFinishedEvent` 未携带 `stepName`**。`@ag-ui/client@0.0.47` 的事件校验器在 `STEP_STARTED` 时用 `t.stepName` 入栈、在 `STEP_FINISHED` 时同样用 `t.stepName` 比对（`@ag-ui/client/dist/index.mjs` 的 `M = e => t => ...` 内联），缺失即抛 `Cannot send 'STEP_FINISHED' for step "undefined" that was not started` 终止整个 run。本仓库的 `lib/agui/factories.ts::createStepFinishedEvent` 历史上只透出 `stepId / result`，导致每次 run 末的 `flushSynthStep` 都触发该错误 → 后端事件流被截断 → reasoning 节点 `status` 永远停在 `running` → UI 永驻「正在思考」。**这一项与 H1 完全独立**：即使没有 thought 溢出，也会因 STEP 校验失败而卡头部。
+  3. **H3（Q3 主因 a）：fallback 段重建消息节点的 `sourceOrder` 不复用 ledger**。`utils/conversation-tree.ts:1138-1283` 的 fallback 分支在为 snapshot-only 历史消息构造 `text` 节点时，把 `sourceOrder` 设为 `orderedEvents.length + fallbackIndex`，无视该消息在 ledger 中已有的 sourceOrder（来自 `buildMessageLedger` 的 `Math.min` 收敛）。当一条消息既走过实时 `TEXT_MESSAGE_*`（被赋小 eventIndex）又出现在 `MESSAGES_SNAPSHOT`（被赋 `events.length+fallbackIndex` 大值）时，ledger 自身借 upsertEntry 取最小值 → ledger sourceOrder 是小值；但 fallback 重建节点时用大值，与 ledger 不一致 → `compareLedgerEntriesByTime` 在 createdAt 紧邻的边界上发生跨链路漂移。
+  4. **H4（Q3 主因 b）：`eventKey` 浮点抖动保护仅覆盖 `TEXT_MESSAGE_CONTENT`**。`utils/session-hydration.ts::eventKey` 历史上只对 `TEXT_MESSAGE_CONTENT` 做 `.toFixed(3)`；其他类型（`STEP_*` / `STATE_DELTA` / `MESSAGES_SNAPSHOT` / `RAW` / `CUSTOM`）使用 `String(timestamp)` 原值，浮点表示差异（如 `1001.1` vs `1001.10000002384`）会生成不同 key，触发 `mergeEvents` 把同一逻辑事件保留双份。
+- **处理方式**（按假设逐项落地，所有改动只在 UI / 适配层）：
+  1. **H1**：
+     - **`apps/negentropy-ui/lib/adk/schema.ts`**：`adkContentPartSchema` 显式声明 `thought: z.boolean().optional()`，让透传字段不再静默丢；
+     - **`apps/negentropy-ui/lib/adk.ts`**：新增 `REASONING_PART_TYPES` 常量集合 + `isReasoningPart()` 助手；`extractTextParts` 与混合 parts 分支（`consume()` 内 `parts.forEach`）一并跳过 reasoning part；推理文本路由到 `createCustomEvent("ne.a2ui.thought", { text })` 自定义事件作审计痕迹（不进入 conversation-tree 默认渲染面）。
+     - 单元回归：`tests/unit/adk.test.ts` 新增 4 例覆盖 `thought=true` Part、`type=thinking|reasoning_summary` Part、混合 functionCall+thought+text、`message.content` 数组中的推理 Part。
+  2. **H2**：
+     - **`apps/negentropy-ui/lib/agui/factories.ts::createStepFinishedEvent`**：新增可选 `stepName` 形参；`AdkMessageStreamNormalizer` 持有 `stepNameByStepId: Map<string, string>`，在合成 step / 原生 ADK step 的 `STEP_STARTED` 路径上写入，`STEP_FINISHED` / `flushSynthStep` 路径上回查。
+     - 单元回归：新增 2 例分别覆盖「synth step 在 flushRun 时携带 author 作 stepName」「native ADK stepFinished 无 name 时回退到 STEP_STARTED 缓存的 stepName」。
+  3. **H3**：
+     - **`apps/negentropy-ui/utils/conversation-tree.ts:1138-1283`**：在 fallback 节点构造前 `lookup snapshotMessage?.sourceOrder`，命中复用、未命中再回退 `orderedEvents.length + fallbackIndex`。
+     - 测试夹具补一例确认 fallback sourceOrder 能从 ledger 继承。
+  4. **H4**：
+     - **`apps/negentropy-ui/utils/session-hydration.ts::eventKey`**：把 `normalizeTimestamp(t).toFixed(3)` 提升为通用规则，在 `default` 分支与 `CUSTOM` 分支统一使用；新增 `STEP_STARTED / STEP_FINISHED` 显式 case 用 `(threadId, runId, stepId)` 作 key。
+     - 单元回归：新增 2 例覆盖 `STEP_FINISHED` 浮点抖动 + `ne.a2ui.thought` CUSTOM 事件浮点抖动稳定去重。
+- **后续防范**：
+  1. **part 字段透传需显式声明**：未来若再有上游 SDK 引入新 Part 字段（如 `cached`、`encrypted`、`citations`），优先在 `lib/adk/schema.ts` 显式声明 + `extractTextParts` 决定语义，而不是依赖 `passthrough` 漏过；
+  2. **ag-ui / 类似事件协议升级时审计 validator key**：v0.0.47 的 STEP 校验用 `stepName` 作 key 是非直觉设计（更直觉是 `stepId`）；升级时应回归验证 STEP / TEXT_MESSAGE / TOOL_CALL 三组校验路径；
+  3. **fallback / snapshot path 的字段复用**：所有「ledger 已知值」字段（sourceOrder、createdAt、resolvedRole、relatedMessageIds）在 fallback 重建节点时一律优先复用，避免重算造成与 ledger 不一致；
+  4. **eventKey 修订需对所有事件类型扫一遍**：`.toFixed(3)` 的稳定语义最好默认开启而非按类型逐个加；
+  5. **Q3 的 Long-tail**：浏览器复测发现「多轮对话 + 刷新」场景仍有残留乱序（不同 messageId 的双气泡跨 hydration 后顺序不稳），与 ISSUE-031/036 的双气泡根因同源，需后续专项处理（建议从后端事件 runId 透传与 conversation-tree turn 边界两侧入手）。本期 ISSUE-040 已锚定问题、不再扩大爆炸半径。
+- **同类问题影响**：
+  1. 任何「上游 SDK 新增可选 Part 字段 + 前端 passthrough」组合，都可能让该字段漏入用户可见文本，需显式声明 + 语义判定；
+  2. 任何 ag-ui v0.0.47 之上的封装库若构造 STEP_FINISHED，**必须**显式传 `stepName`，否则整个 run 静默被中断；
+  3. 任何重建节点的 fallback 路径都应优先复用 ledger 已有 sourceOrder（含未来可能的 tool-result 重建、knowledge 系列消息重建）；
+  4. **与 ISSUE-031 / 036 / 039 关系**：031 解决「同一逻辑消息因 messageId 漂移被双写」；036 解决「不同逻辑消息因 LLM 重复总结而长文本近重」；039 解决「短文本字面相同的双轮重复 + eventKey 浮点抖动 + UUID localeCompare tiebreaker」；040 解决「LLM thought part 漏入正文 + STEP_FINISHED 校验缺 stepName + fallback 节点 sourceOrder 不复用 ledger + eventKey 浮点抖动盲区」。四者正交、互不替代，共同构成 Home 双气泡 / 推理头 / 排序防御链。
+
+### Q3 长尾闭环：sort tiebreaker 字典序污染 lifecycle 顺序（040 增量补丁）
+
+- **表因（首轮 040 PR 后未消除）**：「多消息→刷新」场景下，user1 → assistant1 → user2 → assistant2 在 hydration 后被打散为 user1 → user2 → assistant1 → assistant2，turn 边界跨 messageId 错位。
+- **根因（与 H3 / H4 完全独立的第五个根因 H5）**：
+  - 后端 ADK Web `/sessions/{id}` 返回的 events JSON 不含 `runId / threadId`（只有 `invocationId`，且每条事件 `invocationId` 都不同），前端 `fallbackRunId` 全部回退到 `sessionId` → 所有事件桶在同一 runBucket。
+  - 后端事件本身按 `timestamp` 已正确排序（`apps/negentropy/`：user1=1777403364 / assistant1=1777403382 / user2=1777403406 / assistant2=1777403425）。
+  - 但 `apps/negentropy-ui/utils/session-hydration.ts:386-392` 的 sort 在 `timestamp` 相等时回退到 `eventKey().localeCompare`：字典序下 `TEXT_MESSAGE_CONTENT < TEXT_MESSAGE_END < TEXT_MESSAGE_START`。
+  - `AdkMessageStreamNormalizer` 在处理一个 ADK payload（如 user1 消息）时按 `START → CONTENT → END` 顺序 push 三件套，三个事件共享 payload 的同一秒 timestamp（1777403364.145）；sort 后乱序为 `CONTENT → END → START`。
+  - 当后续 user2 / assistant 的三件套也共享同一秒，跨 messageId 的 START/CONTENT/END 互相穿插，最终 `buildConversationTree` 在 turn 内按事件顺序绑定 messageId 时就把 children 顺序错乱。
+  - 同样的字典序污染存在于 `mergeEvents` (`session-hydration.ts:146-158`)，最后一步 `mergeEvents([], normalizedEvents)` 会**再次**把刚排好的事件按字典序乱序。
+- **处理方式（最小干预）**：
+  1. **`apps/negentropy-ui/utils/session-hydration.ts::hydrateSessionDetail`**：用 `WeakMap<BaseEvent, number>` 给 normalizer 输出的每个事件挂全局递增的 `emitOrder`；sort tiebreaker 优先用 `emitOrder` 代替 `eventKey().localeCompare`，保留 normalizer 推入顺序作为权威 lifecycle / turn 序。
+  2. **`apps/negentropy-ui/utils/session-hydration.ts::mergeEvents`**：`[...base, ...incoming]` 遍历时按首次出现位置记录 `insertionOrder: Map<eventKey, number>`，sort tiebreaker 用 `insertionOrder` 代替字典序。这样调用方建立的逻辑顺序在 dedup 后仍稳定保留。
+  3. **回归测试**：`tests/unit/utils/session-hydration.test.ts` 新增「同 timestamp 下 normalizer 推入的 lifecycle 顺序」用例，断言相邻 messageId 的 START/CONTENT/END 不被穿插。临时用真实 10-event multi-round fixture 在 vitest 中走完 `hydrateSessionDetail → buildConversationTree`，确认 turn children 按 user/assistant 交替正序。
+- **后续防范**：
+  1. **任何 sort tiebreaker 不得用 `eventKey().localeCompare` 作为最终决断**：字典序与事件语义无关，看似稳定实则破坏一致性；应改为「上游推入顺序」「ledger 索引」「类型权重」之一。
+  2. **后端事件透传 `runId`** 长期看仍值得做（让 fallback runBucket 不再单桶聚集），可作为未来 ADK 协议改进的优先项；但本期已通过 `emitOrder` 在 UI 层兜底，无需后端配合即可消除乱序。
+  3. **lifecycle 完整性自检**：建议在 dev 模式下加一个轻量断言「TEXT_MESSAGE_* 三件套必须按 START→CONTENT→END 顺序、不被异 messageId 切断」，把这类排序漂移在开发期捕捉。
+- **同类问题影响**：所有「先按 timestamp 排序、再按 ID/key 字典序兜底」的合并逻辑（不限于 events，也包括 ledger / messages / display blocks）都应回头审计，确保字典序不破坏推入序。本期只修了 `hydrateSessionDetail` 与 `mergeEvents`，conversation-tree 与 chat-display 已经使用 `sourceOrder` 不受影响。
+
+---
+
+## ISSUE-041 Home 双气泡复发：realtime + post-run hydration 跨 runId 双 turn 分裂（ISSUE-040 Q3 长尾的具体复发与根治）
+
+- **表因**：用户在 Home 输入「Ping, give me a pong.」一次，UI 渲染**两个独立 Assistant 气泡**：
+  1. 气泡 A（前）：推理头 → `Transfer To Agent` 工具调用块 → 推理头 → `Pong 🏓 Anything else I can help with?` → 推理头
+  2. 气泡 B（后）：推理头 → 推理头 → `Pong 🏓 Anything else I can help with?`（**无** Transfer To Agent 块）
+  - **关键诊断信号**：手动刷新页面后双气泡消失、恢复单气泡。这一非对称证明根因在 realtime ↔ hydration 合并路径，而非 ISSUE-031/036/039/040 治理过的同 runId 内复制。
+- **根因**（与 ISSUE-040 Q3 长尾自识别一致，但未在 040 PR 中修复）：
+  1. **后端协议违规**：ADK Web `/sessions/{id}/events` 返回的 events JSON **不含 `runId`**（仅含 `invocation_id`，且每条事件 invocation_id 都不同）；AG-UI 协议规范明确要求 `runId` 是 REQUIRED 字段。
+  2. **前端 fallback 触发合成 runId**：`session-hydration.ts::fallbackRunId` 在 `payload.runId` 缺失时回退到 `payload.threadId || sessionId`，导致所有 hydrated 事件被赋 `runId === sessionId`（合成回退标记）。
+  3. **三层 dedup 全部硬性要求 runId 严格相等**：
+     - L1 [`message-ledger.ts::isSemanticEquivalentEntry:71-73`](../apps/negentropy-ui/utils/message-ledger.ts) — `(left.runId || DEFAULT_RUN_ID) !== (right.runId || DEFAULT_RUN_ID)` 直接 return false
+     - L2 [`conversation-tree.ts:1195-1204` 的 fallback 段 runMatches](../apps/negentropy-ui/utils/conversation-tree.ts) — 不识别合成 runId
+     - L3 [`conversation-tree.ts::collapseDefaultTurnDuplicates:561-585`](../apps/negentropy-ui/utils/conversation-tree.ts) — 仅折叠 `runId === DEFAULT_RUN_ID`，对 `runId === threadId` 的合成 turn 视而不见
+  4. 实时流 `runId=uuid-actual` 与 hydration `runId=sessionId` 在 [`buildConversationTree::ensureTurn`](../apps/negentropy-ui/utils/conversation-tree.ts) 被分桶为两个独立 `turn:${runId}` 节点。
+  5. [`mergeEventsWithRealtimePriority::filteredHydratedEvents`](../apps/negentropy-ui/utils/session-hydration.ts) 对 `TOOL_CALL_*` 走 toolCallId 过滤，realtime 与 hydrated 共享 toolCallId → hydrated 工具调用被正确过滤；但 `TEXT_MESSAGE_*` 走 `isSemanticEquivalentEntry` 语义匹配，runId 不等卡死 → hydrated 文本未被过滤、滞留在 `turn:sessionId` 内。
+  6. 两个 turn 在 [`walkTurnNode`](../apps/negentropy-ui/utils/chat-display.ts) 各自构造 reply builder → 输出两个 `AssistantReplyBlock` → UI 双气泡。气泡 A = realtime turn（含 tool_call），气泡 B = synthetic turn:sessionId（仅文本）。
+- **为何 refresh 自愈**：刷新 → projection 重置 → 仅 `loadSessionDetail` 跑（无 realtime 并行）→ 事件全部带 `runId=sessionId` 的合成标记，**唯一** turn:sessionId（无 turn:uuid 与之竞争）→ 单气泡。这一非对称恰是 root cause 的「关键判别证据」。
+- **多轮二阶恶化**：用户连续发 N 条消息时，rawEvents 累积 N 个 realtime 真 runId（uuid-1, ..., uuid-N）+ hydration 历次回放的 sessionId fallback；`turn:sessionId` 持续吸收 **所有历史回答** → UI 底部出现一个不断膨胀的"合成大气泡"，是 ISSUE-031/036/039/040 链条之外的崭新退化模式。
+- **处理方式（三层一致性 + 双层防御）**：
+  1. **`apps/negentropy-ui/utils/message-ledger.ts`**：导出新的 `isSyntheticRunId({ runId, threadId })` 共享识别函数（覆盖三类合成标记：缺失、`DEFAULT_RUN_ID` / `"default"`、`runId === threadId`）；`isSemanticEquivalentEntry` 在 runId 不等时改为「任一侧 synthetic 即放行」，threadId + role + 内容前缀 + origin 多元仍是必要约束。
+  2. **`apps/negentropy-ui/utils/conversation-tree.ts`**：fallback 段 `runMatches` 引入 `candidateNodeIsSynthetic || incomingIsSynthetic` 兼容分支，避免同内容 fallback message 被强制新建为重复节点。
+  3. **`apps/negentropy-ui/utils/conversation-tree.ts`**：`collapseSyntheticTurnDuplicates` 泛化为 `collapseOverlappingTurns`——按 threadId 分组，对 synthetic turn 与同组 concrete turn 时间重叠+内容覆盖的进行折叠（双 concrete turn 保留以防误折叠合法多 run）。
+  4. **`apps/negentropy-ui/utils/chat-display.ts`**：新增 `dedupeAdjacentAssistantBlocks` 作为安全网，在 `buildChatDisplayBlocks` 返回前对时间窗内内容高度相似的相邻 assistant-reply block 保留更完整的一个。
+  5. **`apps/negentropy-ui/utils/session-hydration.ts::fallbackRunId`**：仅注释（标记 ISSUE-041 契约），保留兜底逻辑作为 Phase 2（后端透传 runId）落地前的防御。
+- **回归测试**（共新增 16 例，含 1 例反向回滚断言）：
+  - **A1-A5 + 1 例 isSyntheticRunId 单元 + 1 例端到端 ledger merge**（`tests/unit/utils/message-ledger.test.ts`）：覆盖合成 runId 跨匹配 / 兼容 DEFAULT_RUN_ID / 不误折叠真多 run / threadId 必要 / origin 多元必要。
+  - **C1-C3 + C5 + 1 例反向回滚（D4）**（`tests/unit/utils/conversation-tree.test.ts`）：覆盖 synthetic turn 折叠 / threadId 防护 / 含独特内容不折叠 / 多轮场景不出现尾部合成大气泡 / 反向回滚确认改动真实拦截退化。
+  - **D1 + D1+ + D2 + D3**（`tests/unit/utils/session-hydration.test.ts`）：端到端 mergeEventsWithRealtimePriority + buildConversationTree 全链路，覆盖 Pong via transfer_to_agent live、refresh-only、多轮 + live。
+- **浏览器实机验证**（5 场景全通过）：
+  - V1: 短回复 "pong" → 单气泡（修复前三气泡）
+  - V2: 多轮对话 → 每轮单气泡
+  - V3: 历史三气泡 session 修复后单气泡
+  - V4: 刷新后一致性 → 单气泡
+- **后续防范（Phase 2-4 路线图）**：
+  1. **Phase 2 后端协议合规**：在 [`apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts`](../apps/negentropy-ui/app/api/agui/sessions/[sessionId]/route.ts) 反向代理层注入 runId（将上游 ADK Web 响应中的 `invocation_id` 映射为 `runId` 写入每个事件），让 hydration 路径不再需要 fallbackRunId 兜底。Phase 1 合成识别保留作为防御。
+  2. **Phase 3 前端架构重塑（RFC 评审后）**：引入 Codex 风格 Thread → Turn → Item 类型化数据模型；抽象 `utils/dedup/{event-merge,semantic-match,id-resolution}.ts`；阈值集中到 `config/projection-thresholds.ts`；6 层去重金字塔精简到 3 层；投影链 useMemo 缓存。RFC 草稿见 [`docs/rfcs/0001-conversation-architecture-refactor.md`](./rfcs/0001-conversation-architecture-refactor.md)。
+  3. **Phase 4 UI 交互能力增强**：Reasoning Panel + Sub-Agent 嵌套卡片 / 工具进度 + 中断/审批门 / Conversation Branching + Timeline 增强。Backlog 见 [`docs/rfcs/0002-ui-interaction-enhancements.md`](./rfcs/0002-ui-interaction-enhancements.md)。
+  4. **dev 模式 lifecycle 完整性 invariant 断言**（建议）：在 `useSessionProjection` 加轻量断言「同 threadId 下若同时存在 synthetic turn 与 concrete turn，前者的 assistant text 必须全被后者包含」，把这类合成 turn 退化在开发期捕捉。
+- **诊断抓手（未来再复发时）**：
+  1. 浏览器开发者工具抓 `/api/agui/sessions/{id}` 响应 JSON，确认事件是否含 `runId` 字段；不含则属本 issue 复发或 Phase 2 退化。
+  2. 在 `useSessionProjection` 加 dev-only `console.debug` 打印 `rawEvents.map(e => e.runId)`，观察是否同时存在 `uuid-*` 与 `sessionId`；若是则 synthetic 折叠失效。
+  3. `gh api repos/.../sessions/{id}/events` 拉真实事件流，对照 buildConversationTree fixture 重现。
+- **同类问题影响**：
+  1. **协议层一致性**：所有依赖 `(threadId, runId, messageId)` 复合身份的客户端 dedup 都需识别合成 runId，本次修改把识别函数 `isSyntheticRunId` 集中到 message-ledger，conversation-tree 复用导出，避免 Phase 3 之前再次散落。
+  2. **多轮历史展示**：本次「synthetic turn 累积大气泡」是首次发现的多轮二阶退化模式；Phase 3 Codex Turn 数据模型迁移后，从架构上消除"按 runId 分桶"的脆弱性，根治此类合成边界问题。
+  3. **与 ISSUE-031 / 036 / 039 / 040 关系**：031 修「同一逻辑消息因 messageId 漂移被双写」；036 修「不同逻辑消息因 LLM 重复总结而长文本近重」；039 修「短文本字面相同的双轮重复 + eventKey 浮点抖动 + UUID localeCompare tiebreaker」；040 修「LLM thought part 漏入正文 + STEP_FINISHED 校验缺 stepName + fallback 节点 sourceOrder 不复用 ledger + lifecycle 字典序污染」；**041 闭环 040 Q3 长尾自识别的最后一块拼图**：「realtime 真 runId 与 hydration 合成 runId 跨源不识别 → 双 turn → 双气泡」。五者正交，构成 Home Chat 完整 dedup / lifecycle / turn 边界防御链。
+
+---
+
+## ISSUE-042 `.env*` 配置文件体系废弃，统一 YAML 三级配置
+
+- **表因**：`apps/negentropy/.env` 中 ~60% 项与 `config.default.yaml` 默认值重复；~15% 为已废弃 `NE_LLM_*` / `ZAI_*`（模型配置已迁至 DB）；~25% 为 per-deployment 值与机密，与 YAML 体系并行形成双入口熵源。OAuth redirect URI 仍残留在已废弃端口 6600（ISSUE-005 / CHANGELOG #96 教训）。
+- **根因**：历史遗留 `.env` 文件在 YAML 配置体系重构后未及时清理，两者并存导致：(1) 新开发者不确定配置该写哪里；(2) `.env` 中废弃值（如 `zai` vendor）持续误导；(3) 密钥以明文散落在 `.env` 中，虽有 `.gitignore` 保护但审计追踪性差。
+- **处理方式（SSOT 收敛）**：
+  1. **移除全部 `.env*` 加载链路**：10 个 Python 配置模块删除 `env_file` / `env_file_encoding` / `_get_env_files()` / `get_env_files()` / `env_files` property。
+  2. **引入 `config.local.yaml`**：cwd 相对路径，gitignored，作为运行时机密 + per-deployment 覆盖。YAML 优先级链：`env vars > config.local.yaml > NE_CONFIG_PATH > ~/.negentropy/config.yaml > config.default.yaml > Field defaults`。
+  3. **`config.default.yaml` 值对齐**：合并 `.env` 全部非机密差异值（含端口 6600→3292 校正），使随包默认值即可零配置启动开发环境。
+  4. **主项目 `.env` 删除**：提示用户创建 `config.local.yaml` 填入机密。
+- **后续防范**：
+  1. **配置变更必须走 YAML 链**：任何新增配置项仅在 `config.default.yaml` 添加默认值 + 对应 Pydantic Settings 字段，严禁引入新的 `.env` 文件加载。
+  2. **机密管理**：`SecretStr` 字段只能通过 shell env var 或 `config.local.yaml` 注入，代码 review 时对 YAML 中的明文密钥保持零容忍。
+  3. **端口 SSOT**：`:3292` 为后端唯一权威端口，任何新配置或文档中出现的其他端口（6600/6666/8000/3000）必须立即校正。
+- **同类问题影响**：所有「双配置源并存」（如 `.env` + YAML、YAML + DB model_configs）的场景都应定期审计，确保每类配置有且仅有一个 SSOT。本次治理了 `.env` ↔ YAML 双源，此前 ISSUE-020 治理了端口双源，模型配置双源已在 ISSUE-023 系列中通过 DB 迁移解决。
+
+---
+
+## ISSUE-043 Memory Phase 4 软删除 / Core Block / ADK MemoryEntry 契约漂移
+
+- **表因**：Phase 4 self-edit 软删除后，记忆仍可能被 BM25 / ILIKE 回退检索召回；Core Block `get/list_for_context` 在序列化时访问未映射的 `created_at`；`memory_search` 工具和 REST search 读取 `entry.relevance_score` 时会因当前 ADK `MemoryEntry` 无该字段而崩溃。
+- **根因**：
+  1. [`PostgresMemoryService.soft_delete_memory()`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) 只写 `metadata.deleted=true`，但 hybrid / vector / keyword / ilike 四条检索路径未统一排除软删除记录，形成“写入删除事实、读取路径不尊重”的读写契约断裂；
+  2. [`memory_core_blocks` 迁移](../apps/negentropy/src/negentropy/db/migrations/versions/0023_memory_phase4_core_blocks.py) 创建了 `created_at`，但 [`MemoryCoreBlock`](../apps/negentropy/src/negentropy/models/internalization.py) ORM 未映射该列，服务层 `_to_dict()` 却将其视为可访问属性；
+  3. 当前 ADK `MemoryEntry` 只声明 `content/custom_metadata/id/author/timestamp`，`relevance_score` 作为额外字段会被 Pydantic 忽略；消费者继续按属性读取，导致有结果时才崩溃。
+- **处理方式**：
+  1. 在 [`memory_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) 中为 hybrid / vector / keyword / ilike 全路径加入 `metadata.deleted != true` 过滤，并把 `relevance_score` / `memory_type` 放入 `custom_metadata` 作为 ADK 兼容载体；
+  2. 在 [`memory_tools.py`](../apps/negentropy/src/negentropy/engine/tools/memory_tools.py) 与 [`engine/api.py`](../apps/negentropy/src/negentropy/engine/api.py) 中统一从 `custom_metadata` 读取分数，并兼容 ADK `Content.parts` 文本提取；
+  3. 在 [`MemoryCoreBlock`](../apps/negentropy/src/negentropy/models/internalization.py) 补齐 `created_at` 映射；
+  4. 新增 [`MemoryGovernanceService.record_audit_event()`](../apps/negentropy/src/negentropy/engine/governance/memory.py)，让 self-edit 软删除只写审计事件，不再调用会执行物理删除的 `audit_memory()`。
+- **后续防范**：
+  1. 任何“软删除”实现必须同时修改所有读路径（搜索、列表、统计、上下文注入），并补 SQL/ORM 层回归测试；
+  2. 迁移新增列后，ORM 模型、服务序列化、测试夹具必须作为同一契约批次更新；
+  3. 第三方 Pydantic 模型不可假设额外字段会保留，跨 ADK 边界的扩展信息统一放入 `custom_metadata`。
+- **同类问题影响**：所有基于 ADK `MemoryEntry` 的调用点都需避免读取未声明属性；所有 `metadata.deleted` 语义的表都需审计搜索函数是否显式过滤；Core Block 同类新增列应优先复用 `TimestampMixin` 或写契约测试守护。
+
+---
+
+## ISSUE-044 `test_init_force_overwrites` 子串断言被新增 yaml 字段意外触发
+
+- **表因**：Phase 5 在 `config.default.yaml` 增加 `seed_threshold` / `score_threshold` / `acl_role_threshold` 后，`tests/unit_tests/config/test_cli.py::TestInitCommand::test_init_force_overwrites` 失败：原断言 `assert "old" not in user_file.read_text()` 在新 yaml 中被 `threshold` 子串误命中。
+- **根因**：测试以 3 字符子串 `"old"` 作为"用户旧 config 已被覆盖"的判定 sentinel，未考虑默认 yaml 内容会随项目演进新增包含相同字符序列的字段。
+- **处理方式**：将 sentinel 改为 `__legacy_user_config_marker__`（项目内不会重复出现的稀有字符串），断言改为该 sentinel 不应再出现在覆盖后的文件中。
+- **后续防范**：所有"已被覆盖 / 已被替换"型断言必须使用稀有 sentinel（含项目无关的双下划线 + 描述性单词组合），严禁直接用 `"old"` / `"new"` 等高频英文词。
+- **同类问题影响**：检索 `assert "<short>" not in` 模式的所有测试，确认是否也用了脆弱字符串。
+
+---
+
+## 2026-05-04 Memory Facts History 模态：缺 Esc 键关闭与 ARIA 语义
+
+- **现象**：`/memory/facts` 点击「History」打开版本链模态后，按 Esc 键不关闭；模态根容器没有 `role="dialog"` 与 `aria-modal="true"`，无法被屏幕阅读器识别为模态层。
+- **根因**：`apps/negentropy-ui/app/memory/facts/page.tsx:215-284` 仅在 backdrop 与 Close 按钮上挂了 `onClick`，未实现 Escape 键监听，也未设置 ARIA 角色与 focus trap。点击外层 backdrop 关闭走 `handleCloseHistory`（line 218），点击 modal body `stopPropagation`（line 222），但键盘 Esc 没有路径触发 close。
+- **处理方式**：在 modal 容器加 `role="dialog" aria-modal="true" aria-labelledby="..."`；通过 `useEffect` 在打开时绑定 `document.addEventListener("keydown")` 监听 Escape，卸载/关闭时解绑。focus trap 不在本轮范围内（cost/benefit 不匹配，未来若有强需求再做）。
+- **后续防范**：项目内所有自定义 modal 一律走「ARIA dialog + Esc 关闭」最小可访问模式；新增 modal 时审查清单中加这两条。可在 `components/ui/` 下沉淀 `Modal` 通用组件供后续复用。
+- **同类问题影响**：复检 Memory / Knowledge / Interface 三个领域内其他自定义 modal（Audit 备注、Knowledge 实体编辑等），如无 Esc 监听同样补齐。
+
+---
+
+## 2026-05-04 Memory 浏览器实机验证 dev cookie 工具与 seed 数据备查
+
+- **Dev Cookie 工具**：
+  - `apps/negentropy-ui/tests/e2e/utils/dev-cookie.ts`：HMAC-SHA256 base64url 签名核心，与后端 `apps/negentropy/src/negentropy/auth/tokens.py` 算法严格对齐（包括 canonical JSON 排序）
+  - `apps/negentropy-ui/scripts/sign-dev-cookie.mjs`：CLI 双模式（stdout token 与 storageState 文件），用于 MCP 浏览器实机回归
+  - 单测 `tests/unit/e2e/dev-cookie.test.ts` 11 例全绿；后端 Python `decode_token` 跨进程解码 JS 端 token 通过
+- **Secret 配置**：本轮新生成 `NE_AUTH_TOKEN_SECRET=bb574184c8dac66d4866d8ffe4e570c37681d09e85413283e28ae2951bca2917`，写入 `apps/negentropy/.env.local` 与 `apps/negentropy-ui/.env.local`（gitignored）。后续浏览器调试可继续复用；如需轮换，两边 secret 必须字节级一致
+- **Demo seed 数据**（来自先前轮次，本轮直接复用）：
+  - user_id：`google:dev-admin`
+  - 4 条 memory（episodic/semantic/preference 混合，metadata.source="browser_e2e_test"）
+  - 4 条 fact（key=api_design/role/editor/preferred_language）
+  - 5+ 条 audit history
+  - 0 条 conflict（巩固管线 disabled + pg_cron 不可用，本轮无法触发 fact 冲突）
+- **本轮浏览器验证局限**：
+  - Conflicts 页：仅验证 empty state + filter 控件；resolve 操作回归交给 mock E2E 覆盖
+  - Automation 页：在 pg_cron 不可用环境下验证了 degraded readonly 模式；admin API config save / job action 流程实机未触发，交给 mock E2E
+- **后续清理建议**：开发结束后 `localStorage.removeItem("negentropy:activity-log")` 清理 Activity 测试 entries；如需重置 dev seed，可手动清除上述 ID 对应的 Memory/Fact/Audit 行（**严禁** TRUNCATE）
+
+---
+
+## ISSUE-045 Skills 模块浏览器实机验证：原生 confirm/alert + JSON 校验错误锚定不足 + 缺 Inline 启停（2026-05-04）
+
+- **表因**：在 `/interface/skills` 通过自签 `ne_sso` dev cookie 注入内嵌 Chromium 走 6 流程实机回归（empty / create / edit / delete / filter / cross-module），UX 缺口集中：
+  1. **删除走原生 `window.confirm()`**，弹窗样式与 app 视觉割裂、不可定制（`apps/negentropy-ui/app/interface/skills/page.tsx:65-80`）；
+  2. **失败走原生 `window.alert(error)`**，错误信息不可结构化、不能附操作建议（`page.tsx:78`）；
+  3. **JSON 校验错误位置不直观**：错误 banner 锚定在表单顶部（`SkillFormDialog.tsx:96-103`），但 Config Schema / Default Config 两个 textarea 在表单底部，用户滚到底部点 Create 时根本看不到错误；
+  4. **无 Inline 启停**：is_enabled 切换必须打开 Edit 模态、改 checkbox、Update 三步，常用动作路径过深（`SkillCard.tsx`）；
+  5. **后端 Skills 字段全部存而不用**：`prompt_template` / `required_tools` / `config_schema` / `default_config` 四字段从未参与 Agent 系统 prompt 构建（grep 全仓 `subagent.skills` 仅有读取无写入），SubAgent 的 `skills: list[str]` 字段沦为纯配置数据。
+- **根因**：
+  1. 早期最小可用版本直接调浏览器原生 dialog，未串接项目已有的 `OverlayDismissLayer` 与 `sonner` Toast；
+  2. JSON 校验逻辑写在 `handleSubmit` 顶层 `try/catch` 中，error message 通过 `setError(...)` 注入顶部 banner，没有把"哪个字段错了"的语义传递到对应 textarea；
+  3. SubAgent 系统 prompt 构建链路未读取 Skills，源于 Phase 1 仅落地 CRUDL 时执行层尚未规划。
+- **处理方式**（本 PR 落地，详见 `apps/negentropy-ui/app/interface/skills/`、`apps/negentropy/src/negentropy/agents/skills_injector.py`）：
+  1. **删除流程**：`confirm()` → 自定义 `ConfirmDialog`（基于 `OverlayDismissLayer`），支持 ESC + 遮罩关闭、双确认、loading 态；
+  2. **错误反馈**：`alert()` → 顶部 banner + sonner toast 双通道；
+  3. **JSON 校验锚定**：`SkillFormDialog` 把错误从单一 `error` state 拆为 `{ general, configSchema, defaultConfig }` 字段错误对象，对应 textarea 显示红色边框 + label 内联提示；
+  4. **Inline 启停**：`SkillCard` 增加 toggle 按钮，直接 PATCH `is_enabled` 而不打开模态；
+  5. **执行链路最小闭环**：新增 `agents/skills_injector.py`（resolve_skills + format_skills_block + validate_required_tools），在 SubAgent 系统 prompt 构建处按 Progressive Disclosure（描述常驻 / 模板按需）注入。
+- **后续防范**：
+  1. UI 严禁使用浏览器原生 `confirm/alert/prompt`，改用项目自定义 Modal + Toast；
+  2. 表单字段级错误必须锚定到对应 input，杜绝"错误显示远离错误源"；
+  3. CRUDL 配置类模块若涉及 Agent 执行链，必须在 PR 描述里明确说明"配置如何被消费"，否则字段沦为死代码；
+  4. 主流 Agent Skills 框架（Claude Skills / ADK Skills / OpenAI Codex Skills）的 Progressive Disclosure 原则——描述层常驻系统 prompt、模板层按需展开——是熵减最佳实践，所有未来扩展（SKILL.md 文件系统 / 资源挂载 / 版本语义化）都应在该原则下增量演进。
+- **同类问题影响**：MCP Servers / SubAgents 模块同样存在 UX 短板（`confirm()` 删除）与"配置而不消费"风险，需后续 PR 同步修复。
+
+---
+
+## ISSUE-046 Skills 第二轮深度浏览器验证：长字符串不换行 + 权限过滤静默 + 验证方法误判（2026-05-04）
+
+- **表因**：在 ISSUE-045 修复完成后通过 MCP Chromium 做第二轮边缘 case 与端到端注入验证，新发现：
+  1. **`SkillCard` 描述区对无空格长字符串不换行**（如 400 个连续 `L`）：`<p>` 仅 `overflow-hidden + line-clamp-4`，缺 `overflow-wrap: break-word`；超长 token 被一次性截断为单行 + 末尾隐没，丢失 90% 信息密度；
+  2. **`skills_injector.resolve_skills` 把"Skill 不存在"与"Skill 存在但权限不足"合并为同一 info log**（`skills_injector_unresolved_refs`）。当 SubAgent owner 与 Skill owner 不一致且 Skill 是 PRIVATE 时，注入器静默过滤——用户在 SubAgent 表单写了 Skill 名却无任何反馈，运维排障无信号区分；
+  3. **第一轮自检方法学误判**：本轮初期用 MCP `evaluate` 在 toast.error 触发后立刻读 `[data-sonner-toaster]`，多次返回空——错误地推断 toast 系统失效。实际原因是 sonner 默认 5000ms 自动 dismiss，叠加 MCP roundtrip 数秒延迟，toast 已 unmount。增加 600ms 显式等待 + 检查 React fiber 的 `memoizedState`（toast 数组）后立即得到正确结果（toast id=3，title="Enabled \"...\""）。
+- **根因**：
+  1. 表面 1：早期 SkillCard 复用了通用卡片布局（h-20 + line-clamp-4），假定描述都是自然语言（含空格可断词），未考虑技术输入中常见的「无空格长 token」（hex hash / Base64 / 拼写错误段落）；
+  2. 表面 2：第一版 `resolve_skills` 只关心「最终 ResolvedSkill 列表」是否完备，未把"为何缺失"这一诊断维度作为一等公民暴露给运维；
+  3. 表面 3：MCP 自动化测试缺少「toast 时序断言」共识——toast 是异步 + 时间窗口内可观测，需用 `waitForResponse` / 显式 sleep / fiber state 探测，而非视图查询的瞬时快照。
+- **处理方式**（本 PR 直接落地）：
+  1. **`SkillCard.tsx`**：`<p>` 增加 Tailwind `break-words`（`overflow-wrap: break-word`），让无空格长串在 4 行内多行换行 + 末尾省略号；
+  2. **`skills_injector.py.resolve_skills`**：分离 `permission_filtered` vs `unresolved`，前者升级到 `_logger.warning("skills_injector_permission_filtered", filtered=[...])`，后者保留 `info`；UI 后续可通过日志检索定位。配套补 2 个单测（capsys 捕获 stdout）；
+  3. **方法学**：`docs/agents/browser-validation.md` 与 `docs/user-guide/skills-troubleshooting.md` 已包含 toast 时序提示；本条记入 issue 留作后续 review 反例；
+  4. **附带**：`page.tsx.handleFormSubmit` 在 `!response.ok` 路径上同时 `toast.error(message) + throw`，让错误既保留 banner 上下文又抓注意力（与 delete/toggle 错误路径一致）。
+- **后续防范**：
+  1. 任何用户输入文本展示组件必须在评审清单加上 `overflow-wrap: break-word`；
+  2. fail-soft 跳过任何资源时必须按"为什么"分类打日志；不允许 `if X: continue` 而无诊断信号；
+  3. 浏览器自动化测试断言「短生命 UI 元素（toast / loading state / transient banner）」时，必须以 `await waitFor*` 或显式时间窗口断言，禁止快照查询；
+  4. `docs/agents/browser-validation.md` 的「9.4 注意事项」已加 toast 时序提醒，新增浏览器实机验证脚本必须遵循。
+- **同类问题影响**：
+  - Memory / Knowledge / 各模块卡片描述同样需要 `break-words` 检查；
+  - 各模块 fail-soft 跳过逻辑需要按本 issue 模式分类打日志；
+  - 现有 e2e/skills 已用 `waitForResponse`，但 Memory e2e 部分用快照查询 toast，需后续审查。
+
+---
+
+## ISSUE-047 Skills authed E2E 在 `fullyParallel` 模式下并发污染（2026-05-04）
+
+- **表因**：Phase 2 新增 9 个 `*.authed.spec.ts` 实机 E2E 第一次跑全集时，`list.authed.spec.ts::L-2 后端真实数据驱动卡片网格` 失败，`expect(getByTestId('skill-grid-item')).toHaveCount(1)` 实际收到 2 —— 同一时刻有其它 spec 在共享 PostgreSQL 上 CRUD skill。
+- **根因**：Playwright 默认 `fullyParallel: true`，27 个 authed case 在同一 PostgreSQL 上并行；L-2 一开始用『GET 列表前后总数』做断言，对并发其它 spec 的副作用敏感，违反"测试用例间互相隔离"原则。
+- **处理方式**：
+  1. L-2 重写为：自己用 `uniqueName('authed-l2-...')` 创建一个 skill → 验证它出现在 grid + list API → `finally` 删除；锚点从『总数 N』变成『目标个体存在性』，与其它并发 spec 互不影响；
+  2. helper `_authed-helpers.ts:uniqueName(prefix)` 用 `Date.now() + Math.random()` 生成抗碰撞名字；
+  3. 所有 authed spec 一律 `try/finally` 包 cleanup，避免 spec 失败留垃圾数据。
+- **后续防范**：
+  1. 任何与共享 DB 交互的 E2E 必须做 spec 内隔离（唯一名 + 自创资源 + finally 清理），不能依赖"环境为空"或"环境只有 X 条记录"假设；
+  2. 总数类断言只在 spec 内创建/删除的资源上做（如先 GET=N，再创建 1，再 GET=N+1），不要跨 spec 比对；
+  3. 并发安全是 fullyParallel 的入场费，不要为了简化断言而关掉它（27 case 串行从 1 分钟变 5 分钟）。
+- **同类问题影响**：Memory / Knowledge / SubAgent 模块未来引入 authed E2E 时同样需要遵循 spec 内隔离 + finally cleanup。
+
+---
+
+## ISSUE-048 Next.js dynamic 路径段不能含 `:invoke` 这种 RFC 3986 sub-delim（2026-05-04）
+
+- **表因**：Phase 2 缺口 1 把 invocation 端点设计成 `/skills/{skill_id}:invoke`（仿 Google Cloud API style）。后端 FastAPI 工作正常，但通过 BFF `/api/interface/skills/{skillId}:invoke` 透传时返回 405 Method Not Allowed。
+- **根因**：Next.js App Router 用文件系统路由，`[skillId]` 动态段会贪婪吞掉整个 `${id}:invoke`，匹配到 `[skillId]/route.ts` 而非 `[skillId]/invoke/route.ts`。后者期望路径以 `/invoke` 段结尾，但实际是单个 segment。Next.js 不解析 `:` 为段分隔符。
+- **处理方式**：
+  1. 后端把 `@router.post("/skills/{skill_id}:invoke")` 改为 `@router.post("/skills/{skill_id}/invoke")`；
+  2. BFF 路由仍位于 `app/api/interface/skills/[skillId]/invoke/route.ts`，proxy path 写为 `/interface/skills/${skillId}/invoke`；
+  3. 文档与 spec 一并更新到 RESTful path。
+- **后续防范**：
+  1. 凡 BFF 透传的端点，路径只用 RFC 3986 path segments（`/`），避免 `:` `;` `,` 这类 sub-delims；Google Cloud `:action` 风格在 Next.js 下不工作；
+  2. 评审 PR 时，发现端点带 `:` 立即 flag —— 即便后端单元测试通过，BFF 透传层会失败；
+  3. 任何带特殊字符的端点都应该有 BFF + 浏览器实机一次性验证，不止后端 curl。
+- **同类问题影响**：未来若想要 Google API 风格 verb（`:run` / `:cancel` / `:archive`），需统一替换为 `/run` `/cancel` `/archive` 子路径。
+
+---
+
+## ISSUE-050 ADK 嵌入下 FastAPI startup hook 不触发（2026-05-05）
+
+- **表因**：Phase 3 实施 SkillScheduler 时，按惯例在 `engine/bootstrap.py:_inject_negentropy_routes` 内注册 `@app.on_event("startup") async def _start_skill_scheduler()`。重启 backend 后日志中没有任何 `skill_scheduler_started` 事件，且同一函数内更早注册的 `_warm_model_config_cache` startup hook 同样不触发。
+- **根因**：项目用 ADK Web Server 而非裸 FastAPI；`_inject_negentropy_routes` 是给 ADK 注入路由的中间层，被调用时机晚于 ADK web server 自身的 lifespan 启动。`@app.on_event("startup")` 注册在子 app 上，但 ADK 已经触发过外层 lifespan，新注册的 hook 永远等不到下一次。
+- **处理方式**：
+  1. 不依赖 startup hook，改用 **lazy initialization**：在 `agents/skill_scheduler.py` 增加 `ensure_scheduler_running()` 全局幂等启动函数；
+  2. 在 `interface/api.py:create_skill_schedule` 端点入口 `await ensure_scheduler_running()`，首次创建 schedule 时启动 tick；
+  3. 保留 `bootstrap.py` 中的 startup hook 兜底（如未来切到原生 FastAPI lifespan 即可正常生效），但生产代码不依赖它。
+- **后续防范**：
+  1. ADK 嵌入场景下，所有需要后台 worker 的初始化必须用 lazy init，不能假定 startup hook 触发；
+  2. 验证后台行为时，单查 hook 日志不够，要看实际副作用（如 scheduler tick 真的扫表）；
+  3. 如果未来项目脱离 ADK 框架，可统一切到 `lifespan` async context manager。
+- **同类问题影响**：MCP / Memory / Knowledge 各模块若有类似 startup hook 需求，要按 lazy init pattern 改造。
+
+---
+
+## ISSUE-051 Skills 端点 ruff 自动 fix 把 timezone 改名 UTC + 长行多次需手动拆（2026-05-05）
+
+- **表因**：Phase 3 commit 时 ruff format pre-commit hook 反复改写：(1) `from datetime import timezone` → `from datetime import UTC`；(2) 多处 122 字符长行需要手动拆。
+- **根因**：项目 `ruff>=0.14` 启用了 `UP017` (use-of-utc-timezone) 规则；同时 line-length=120 严格执行。手动写代码若直接用 `timezone.utc` / 长 dict 构造表达式，pre-commit 总会改写然后中止 commit。
+- **处理方式**：
+  1. 主动 import `from datetime import UTC`，所有 `timezone.utc` 替换为 `UTC`；
+  2. 长 dict 构造（如 `enforcement_mode=payload.enforcement_mode if ... else "warning"`）拆成 multi-line 三元表达式；
+  3. 提交前主动 `uv run ruff format src/` 一遍消除所有 hook 警告。
+- **后续防范**：
+  1. 写新代码时 `from datetime import UTC` 而非 `timezone`；
+  2. 三元表达式 + dict 字面量明显超长时主动拆行；
+  3. 在 pre-commit hook 失败后**不要重提同样代码**，先跑 `uv run ruff format` 让它把改动落到 working tree。
+- **同类问题影响**：所有未来 backend 代码改动都受此规则约束。
+
+---
+
+## ISSUE-049 CI UI Playwright Smoke 因 authed spec 误跑导致 27 failed（2026-05-05）
+
+- **表因**：PR #459 推送后 `ui-quality / UI Playwright Smoke` job 失败，27 个 `*.authed.spec.ts` 全部 `connect ECONNREFUSED ::1:3192` / `net::ERR_CONNECTION_REFUSED`；mocked 的 `chromium` project 17 case 全绿。
+- **根因**：`chromium-devcookie` project 默认无条件注册到 `playwright.config.ts.projects`，CI smoke job 用 `pnpm test:e2e` 默认会跑所有 project。CI 环境只跑 Playwright 自带 `webServer` (pnpm build && start) 启动前端到 3210 端口；**没有起 backend (3292)，也没有 `NE_AUTH_TOKEN_SECRET`**。authed spec hard-code `http://localhost:3192` 直接连接被拒。
+  - 设计错误：authed spec 是 **integration 测试**（依赖 backend + DB + 合法 secret），不能与 mocked spec 同走 smoke job。
+- **处理方式**：
+  1. `playwright.config.ts:devCookieProjects` 改为 conditional：仅当 `PLAYWRIGHT_DEVCOOKIE=1` 或 `NE_AUTH_TOKEN_SECRET` 任一存在时注册 project，否则数组为空 → `*.authed.spec.ts` 不被任何 project 匹配 → 自动跳过；
+  2. `_authed-helpers.ts` 移除内联 fallback secret（避免 token_secret 入库），改为 env 必填；缺失时 `applyDevCookie` fail-fast 抛错指向文档；
+  3. `docs/agents/browser-validation.md` 追加 §9.6 CI 与 authed spec 关系说明。
+- **后续防范**：
+  1. 任何 *integration 性质* 的 E2E（依赖外部 backend / DB / secret）必须用 project 级 conditional gating，不能默认跑；
+  2. `_authed-helpers.ts` 类共享文件严禁内联 secret/token，即便是"开发默认值"——会经 git history 永久暴露；
+  3. CI smoke job 的边界要在 PR review 阶段过一遍：`webServer.command` 启了什么？依赖什么外部服务？authed/mocked 哪些走哪个 project？
+  4. 引入新 spec 文件后，本地必须模拟 CI 跑一次 `unset NE_AUTH_TOKEN_SECRET; pnpm exec playwright test`，确认与 CI 行为一致。
+- **同类问题影响**：Memory / Knowledge / SubAgent 模块未来引入 authed E2E 时需要遵循同样 pattern：env-gated project + 文档 §CI 关系节。
+
+---
+
+## ISSUE-052 Home 对话 4 大缺口闭环 + 论文采集 MVP（2026-05-04）
+
+> 合并冲突重编号：原编号 ISSUE-047，因与 [ISSUE-047](#issue-047)（Skills authed E2E 并发污染）冲突而调整。
+
+- **表因**：Home 对话模块在最近 4 个月内出现 5 次双气泡类回归（ISSUE-031/036/039/040/041），暴露 3 个根本性短板：(a) 无全链路防回归 E2E（mock-based smoke 仅覆盖单条流式 hydration，缺论文场景闭环）；(b) 长任务无可观测性（论文抓取分钟级，用户体感"卡死"）；(c) 无中断门，LLM 跑偏后必须等终态才能恢复。同时用户的"自动收集 AI Agent 论文 → KB/KG"应用场景缺失工具支撑。
+- **根因**：
+  1. Home 对话路径完整度 ≥ 80%，但缺关键防御性 E2E 用例（双气泡守卫 + hydration 一致性）；
+  2. 后端 ADK Tool 无统一进度推送规范——已有 `state_delta` 协议未被论文/PDF 等长任务使用；
+  3. NDJSON Agent 已有 `abortRun()` 但前端 Composer 未暴露 Stop 按钮；
+  4. 论文采集职能未在 Faculty.tools 注册——既有 `KnowledgeService.ingest_url` + `AI_PAPER_SCHEMA` 已就绪，仅缺最后 1 厘米桥接（2 个工具）。
+- **处理方式**（本 PR 落地）：
+  1. **C7 E2E 防回归基建**：新增 `apps/negentropy-ui/tests/e2e/home-chat.spec.ts`（4 个用例：单轮双气泡 / 流式 Markdown hydration / 模型切换 localStorage / Tool group 聚合）；新增 `dev-cookie.setup.ts`（headless 自签 cookie 注入，CI 友好）；`playwright.config.ts` 通过 `PLAYWRIGHT_AUTH_MODE` 双 setup 共存；`MessageBubble` 加 `data-testid="message-bubble"` + `data-message-role` 锚定。
+  2. **C5 附件上传 / Multi-modal**：`Composer` 加 file input + drag-drop + `AttachmentChip` chip 渲染；`home-body.doSend` 把附件 metadata（id/name/mime/size）通过 `forwardedProps.attachments` 透传后端；附件 chip 不进入 `message-ledger.isSemanticEquivalentEntry`（避开 dedup 漂移）。
+  3. **C4 中断门**：`Composer` `isGenerating` 时 Send 切换为红色 Stop 按钮（`data-testid="composer-stop-button"`）；`home-body.handleCancelRun` 调 `agent.abortRun()` + `userCancelledAtRef` 100ms 窗口屏蔽 cancel 引发的 `RUN_ERROR`；不引入 RUN_STOPPED 协议事件（最小干预，避免污染事件流）。
+  4. **C3 Tool Progress**：`types/common.ts` 加 `ToolProgressMap` / `ToolProgressSnapshot`；`ToolExecutionGroup` 加 `ToolProgressBar` 子组件（`data-testid="tool-progress"`）；`home-body` 从 `snapshotForDisplay.tool_progress` 旁路提取 → `ChatStream.toolProgressMap` → `AssistantReplyBubble` → `ToolExecutionCard`；不进入 conversationTree，不参与 message-ledger（彻底规避 ISSUE-031 时间窗）。
+  5. **论文采集 MVP**：`apps/negentropy/src/negentropy/agents/tools/paper.py` 新增 `search_papers`（arxiv API + since_days 过滤 + tool_progress 推送）+ `ingest_paper`（保证 agent-papers Corpus 存在 → 调 `KnowledgeService.ingest_url`）；分别注册到 `PerceptionFaculty.tools` / `InternalizationFaculty.tools`；新增 8 个单测覆盖 progress 推送 / arxiv 序列化 / KS 调用契约。
+  6. **文档同步**：`docs/user-guide.md` 新增 §3.7 长任务/中断 + §3.8 附件 + §3.9 提示词最佳实践 + §3.10 错误排查 + §3.11 浏览器实机回归；新增 `docs/user-guide/papers-curation.md` 论文采集上手；`docs/framework.md` §9.7-9.9 增补 Tool Progress / 中断门 / Multi-modal 协议契约（含 IEEE 引用扩展至 19 条）。
+- **后续防范**：
+  1. **任何 Home 对话路径变更必须对应 E2E 用例**：双气泡守卫断言 `[data-testid="message-bubble"][data-message-role="assistant"]` count=1 是合并前必检条款；
+  2. **长时工具必须实现 tool_progress**：MVP 默认按语义里程碑（5%/20%/60%/100%）稀疏推送 + 终态清理；若改细粒度推送须按 `tool_call_id` 强制 ≥ 500ms 节流，违反将增加 ISSUE-031 类回归风险；
+  3. **中断门是长任务的对称原语**：未来任何 ≥ 30s 的工具都应支持 `ToolContext.cancel()` 信号；
+  4. **附件协议演进**：MVP 仅 metadata 透传；V1 增强 `POST /sessions/{sid}/attachments` + `read_attachment` 工具时，必须保证附件不进入 message dedup 路径；
+  5. **论文采集多源拓展**：V1 接 Semantic Scholar Graph API（citation 信号）；V2 接 AsyncScheduler 周期 curator job + KG cross-corpus 邻居推荐；V3 抽出独立 PaperAgent SubAgent。
+- **同类问题影响**：
+  - 任何模块涉及"长任务 + 流式输出 + HITL 干预"组合（如 Memory consolidation / KG community detection）都应复用 Tool Progress + 中断门双原语；
+  - 论文采集的"两个工具 + 复用既有 pipeline"模式可作为后续领域扩展（专利、代码仓、新闻）的范式参考；
+  - 双气泡守卫断言模式（基于 `data-testid` + role attribute count）应推广到 Memory / Skills / Knowledge 各模块的 E2E 用例。
+
+---
+
+## ISSUE-053 Reasoning Step 重复渲染 + React key 警告（2026-05-05）
+
+> 合并冲突重编号：原编号 ISSUE-048，因与 [ISSUE-048](#issue-048)（Next.js `:invoke` 路径）冲突而调整。
+
+- **表因**：Home 对话浏览器实机回归时发现：单个 assistant 气泡内 "思考完成 · 推理阶段" 文案重复 2 次；浏览器 Console 重复刷出 `Encountered two children with the same key, "reply-reasoning:reasoning:synth-step:InfluenceFaculty:..."`。视觉上推理标签冗余 + 触发 React 16+ 严格 key 唯一性警告。
+- **根因**：[`utils/chat-display.ts`](../apps/negentropy-ui/utils/chat-display.ts) `collectReasoningSegments` 在以下三种条件叠加时会注入重复 reasoning segment：
+  1. **场景 A** — fallback：当 stepNode 没有 reasoning 子节点时，把 stepNode 自身当作 reasoning，但同一 turn 内多次进入此路径产生相同 `id = reply-reasoning:${nodeId}`。
+  2. **场景 B** — 同 stepId 下 step 节点 + reasoning 子节点 `nodeId` 不同但 `stepId` 相同。原始 dedup 仅比 segment.id，漏判此场景。
+  3. **场景 C** — 实机 hydration：后端把 step 节点与 synth-step 都投影成两份 reasoning（nodeId/stepId/id 三者皆不同），但 title 与 phase 完全相同（如「推理阶段」+ finished）。
+- **处理方式**：[`appendReplySegment`](../apps/negentropy-ui/utils/chat-display.ts) 增加 reasoning kind 三层等价判定（自上而下）：L1 `id` 完全相同 / L2 `stepId` 相同 / L3 同 `phase` 下相同 `title`。命中即丢弃 incoming，特殊保留：incoming `phase=finished` 且 existing `phase=started` 时以更终态覆盖。配套加 1 个新单测 `unit/utils/chat-display.test.ts`（dedup-coverage scenarios）。
+- **后续防范**：
+  1. 任何"由多源投影到同一显示槽"的 dedup 逻辑都应给出明确的等价层级（L1/L2/L3）+ 文档化，避免后续维护者再加新场景时漏判；
+  2. `appendReplySegment` 的 dedup 仅作用于 `reasoning` kind，对 text/tool-group/error 仍保持 push 语义不变（保护现有去重链路如 `REDUNDANT_TEXT_SIMILARITY_THRESHOLD`）；
+  3. 实机回归必须用 `(html.match(/思考完成/g) || []).length` 这类直接计数断言验证；E2E mock 因事件构造单一极易漏掉真实多源叠加场景。
+- **同类问题影响**：Tool group / Step / Error 等 segment 也可能在 hydration 时多源投影，需个案审查。
+
+---
+
+## ISSUE-054 SessionList 归档/解档使用原生 window.confirm（2026-05-05）
+
+> 合并冲突重编号：原编号 ISSUE-049，因与 [ISSUE-049](#issue-049)（CI Smoke authed 误跑）冲突而调整。
+
+- **表因**：实机回归点击 SessionList 中归档按钮时弹出浏览器原生 `confirm()` 对话框，与 app 视觉风格割裂；点解档按钮同问题。系 ISSUE-045 Skills 同类违反 AGENTS.md「严禁使用浏览器原生 confirm/alert/prompt」准则。
+- **根因**：[`apps/negentropy-ui/components/ui/SessionList.tsx`](../apps/negentropy-ui/components/ui/SessionList.tsx):169,188 直接调 `window.confirm`。ISSUE-045 修复时仅在 `app/interface/skills/_components/ConfirmDialog.tsx` 私有目录落地，未升格到通用 `components/ui/`，导致 SessionList 重复造轮子失败 → 用了原生 confirm。
+- **处理方式**：
+  1. **新建 `components/ui/ConfirmDialog.tsx`**（升格 ISSUE-045 实现），增加 `data-testid="confirm-dialog"`/`-cancel`/`-confirm` 锚点，便于跨模块 E2E；
+  2. **`skills/_components/ConfirmDialog.tsx` 改为薄 re-export**，保持 ISSUE-045 修复的 import 路径不破坏；
+  3. **`SessionList.tsx`** 改用 `ConfirmDialog`，归档/解档共用一套 dialog state（`confirmTarget` + `confirmBusy`），归档按钮加 `destructive=true`；
+  4. **更新 `tests/unit/ui/SessionList.test.tsx`** 删除 `vi.spyOn(window, "confirm")`，改用 `getByTestId("confirm-dialog-confirm/-cancel")` 断言。新增 1 个 cancel-then-no-call 用例。
+- **后续防范**：
+  1. 所有"确认/危险操作"必须复用 `components/ui/ConfirmDialog`，严禁原生 confirm/alert；
+  2. ISSUE-045 修复时把 ConfirmDialog 放在 skills 私有目录是熵增信号——通用基础组件必须直接在 `components/ui/` 落地；
+  3. 在 [`docs/AGENTS.md`](../AGENTS.md) 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
+- **同类问题影响**：MCP Servers / SubAgents 等模块若仍残留原生 dialog 需统一替换；ESLint 规则升级可一次性发现所有遗漏点。
+
+---
+
+## ISSUE-055 论文采集 → KG 闭环未自动联动（2026-05-05）
+
+- **表因**：用户在 Home 对话中说"采集 AI Agent 论文"，`ingest_paper` 完成入知识库后**没有**自动触发 KG schema-guided 抽取；用户必须手动进 `/knowledge/graph` 选 corpus 再点"构建 KG"，对话闭环断裂。
+- **根因**：[`apps/negentropy/src/negentropy/agents/tools/paper.py`](../apps/negentropy/src/negentropy/agents/tools/paper.py):295 注释明确："MVP 阶段先入 KB；V1+ 自动联动 ai_paper schema"——这是 Phase 1 的已知留白，不是 bug 而是范围切割。但当第一应用场景"自动采集 AI Agent 论文 → KB + KG → 帮人提供帮助"上线后，闭环断裂会让用户体验严重打折。
+- **处理方式**：P2-2 新增 [`paper_kg_pipeline.py`](../apps/negentropy/src/negentropy/agents/tools/paper_kg_pipeline.py)：
+  1. `enqueue_kg_build(corpus_id, records)` 把 KnowledgeRecord 序列转成 chunks dict 喂给 `GraphService.build_graph(incremental=True, schema_name="ai_paper")`，用 `asyncio.create_task` 启动后台任务；
+  2. **fail-open 兜底**：任何环节抛错降级为 `kg_status: "kg_skipped"` + `kg_error_code`，不污染 ingest 主路径；
+  3. `ingest_paper` 成功分支末尾追加 `kg_meta = await enqueue_kg_build(...)`，return 合并 `**kg_meta`；
+  4. 单测覆盖：normal path / empty records / fail-open exception / GraphService 后台失败。
+- **后续防范**：
+  1. **任何异步副作用必须 fail-open**：第一原则 = "主路径成功就不能因副作用失败而失败"；
+  2. **状态码透传**：`kg_status` 走 result JSON 字段而非新 SSE 事件，前端 `ToolExecutionGroup` 零改动即可显示，最小干预原则；
+  3. **Phase 3 升级**：可考虑独立 `kg.build.progress` SSE 事件流让前端实时显示构建进度（KG 构建通常 30s+，对话窗口可能已切走）。
+- **同类问题影响**：Memory 写入、Wiki 发布等任何"主路径完成后触发的衍生操作"都应套用 fail-open + status 字段透传模式。
+
+---
+
+## ISSUE-056 对话引用缺乏标准化 citation 与跳转（2026-05-05）
+
+- **表因**：Home 对话中 agent 引用知识库片段时，回复正文里没有 `[N]` 标号，气泡尾部也没有「参考文献」节；用户无法判断"第 N 条来自哪篇论文哪一段"，更无法点击跳转到 arXiv 原文。
+- **根因**：[`perception.py search_knowledge_base`](../apps/negentropy/src/negentropy/agents/tools/perception.py):222-239 单条结果只返回 `semantic_score` / `keyword_score` / `combined_score` 与 `source_uri`，**未生成 citation_id + formatted_citation**；前端 `MessageBubble` 也没有解析 `[N]` token 与渲染尾注的能力。这是 Phase 1 的范围切割（先做 retrieval，再做 citation polish）。
+- **处理方式**：P2-3 后端 + 前端联动：
+  1. **后端 `_format_citation(metadata, source_uri, idx)` helper**（IEEE 风格 `[N] {first_author} et al., "{title}," arXiv:{id}, {year}.`）；
+  2. **`search_knowledge_base` 排序后注入 `citation_id` + `formatted_citation`**，旧记录无 arxiv_id 时退化为 source_uri 兜底；
+  3. **新工具 `search_knowledge_graph_with_papers`**（KG 反向推荐）共享同一 citation 格式器，对概念性问题召回率高于纯向量；
+  4. **PerceptionFaculty `_INSTRUCTION` 增加引用规范条款**：学术问题先调 KG 反向工具，引用必须使用 `citation_id`，回复末尾追加「参考文献」节；
+  5. **前端 `apps/negentropy-ui/utils/citation-parser.ts`**：严格 regex `(?<![\\w\\^])\[(\d+)\](?!\(|:)` 解析 `[N]` token（不误伤 markdown link / 脚注 / 定义列表）；`extractCitationsFromToolCalls` 跨工具去重 + 重新分配 1..N；
+  6. **`MessageBubble.MarkdownContent` 加 prop `citations?: Citation[]`**：非空时启用 `[N]` inline sup 替换 + 段尾 `<CitationFootnotes>` 渲染，旧消息无该字段时走零回归分支。
+- **后续防范**：
+  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](./conversation-foundation.md)）；
+  2. **可选 prop 一律走 conditional spread**：react-markdown 的 components 不接受 undefined 值。如条件性挂 component，必须 `if(condition){ components.x = fn }` 而非 `x: cond ? fn : undefined` —— 后者会导致 "Element type invalid" 渲染崩溃（本期已踩坑，5 个 MessageBubble 测试因此先红后修复）；
+  3. **旧消息零回归是硬标准**：所有新 prop 必须有 `undefined → 旧渲染等价` 单测，参见 `tests/unit/utils/citation-parser.test.ts`。
+- **同类问题影响**：Memory / Wiki / Web search 等返回结果给 LLM 的工具都应标准化 citation 字段，前端可复用同一 parser + footnotes 组件。

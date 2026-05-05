@@ -1,4 +1,4 @@
-from negentropy.knowledge.repository import KnowledgeRepository
+from negentropy.knowledge.retrieval.repository import KnowledgeRepository
 
 
 def test_infer_display_name_prefers_non_empty_original_filename():

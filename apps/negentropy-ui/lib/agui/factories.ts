@@ -168,10 +168,17 @@ export function createStepFinishedEvent(
   props: RequiredMessageEventProps,
   stepId: string,
   result: unknown,
+  // ISSUE-040 H2: ag-ui v0.0.47 validator 在 STEP_STARTED/STEP_FINISHED 配对时
+  // 用 `stepName`（而非 `stepId`）作 key 比对。若 STEP_FINISHED 不带 stepName，
+  // 校验器会把 undefined 视为「未开始过」，抛 `Cannot send 'STEP_FINISHED' for
+  // step "undefined" that was not started`，整个 run 被中断 → 推理节点状态卡在
+  // running、Home 气泡顶部「正在思考 · 推理阶段」永不切换为「思考完成」。
+  stepName?: string,
 ): StepFinishedEvent {
   return {
     type: EventType.STEP_FINISHED,
     stepId,
+    stepName,
     result,
     ...props,
   };

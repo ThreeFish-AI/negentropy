@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from negentropy.knowledge.embedding import _call_with_retry
+from negentropy.knowledge.ingestion.embedding import _call_with_retry
 
 
 class TestCallWithRetry:
@@ -123,7 +123,7 @@ class TestCallWithRetry:
             sleep_durations.append(duration)
             # 不实际等待
 
-        with patch("negentropy.knowledge.embedding.asyncio.sleep", side_effect=mock_sleep):
+        with patch("negentropy.knowledge.ingestion.embedding.asyncio.sleep", side_effect=mock_sleep):
             with pytest.raises(ValueError):
                 await _call_with_retry(
                     fail_fn,

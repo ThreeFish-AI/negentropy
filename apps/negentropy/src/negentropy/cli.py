@@ -51,6 +51,13 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     port = args.port or 3292
     host = args.host or "0.0.0.0"
 
+    # `apps/negentropy/src` 才是 ADK 的 agents_dir：ADK 会把它加入 sys.path 后
+    # `import services`（src/services.py），并按 app_name="negentropy" 解析到
+    # `src/negentropy/`。用 __file__ 推导绝对路径，避免依赖启动 cwd——否则一旦
+    # 从其它目录执行 `uv run negentropy`，ADK 会以错位 cwd 解析 "src"，复现
+    # 「src/negentropy/negentropy」双重段错误。
+    agents_dir = (Path(__file__).resolve().parent.parent.parent / "src").resolve()
+
     # Build adk web command
     cmd = [
         sys.executable,
@@ -62,7 +69,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         "--host",
         host,
         "--reload_agents",
-        "src",
+        str(agents_dir),
     ]
 
     return subprocess.call(cmd, env=env)

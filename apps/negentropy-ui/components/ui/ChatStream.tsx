@@ -4,6 +4,7 @@ import { MessageBubble } from "./MessageBubble";
 import { ToolExecutionGroup } from "./ToolExecutionGroup";
 import { CHAT_CONTENT_RAIL_CLASS } from "./chat-layout";
 import type { ConversationNode } from "@/types/a2ui";
+import type { ToolProgressMap } from "@/types/common";
 import { buildChatDisplayBlocks } from "@/utils/chat-display";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,11 @@ type ChatStreamProps = {
   onNodeSelect?: (nodeId: string) => void;
   contentClassName?: string;
   scrollToBottomTrigger?: number;
+  /**
+   * Tool Progress 旁路（C3）— 由 home-body 从 snapshotForDisplay.tool_progress 提取，
+   * 不参与 conversationTree / message-ledger，规避 ISSUE-031 时间窗双气泡风险。
+   */
+  toolProgressMap?: ToolProgressMap;
 };
 
 export function ChatStream({
@@ -21,6 +27,7 @@ export function ChatStream({
   onNodeSelect,
   contentClassName,
   scrollToBottomTrigger,
+  toolProgressMap,
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
@@ -79,6 +86,7 @@ export function ChatStream({
                 block={block}
                 isSelected={selectedNodeId === block.nodeId}
                 onSelect={onNodeSelect}
+                progressMap={toolProgressMap}
               />
             ) : block.kind === "tool-group" ? (
               <ToolExecutionGroup
@@ -86,6 +94,7 @@ export function ChatStream({
                 block={block}
                 isSelected={selectedNodeId === block.nodeId}
                 onSelect={onNodeSelect}
+                progressMap={toolProgressMap}
               />
             ) : block.kind === "error" ? (
               <div

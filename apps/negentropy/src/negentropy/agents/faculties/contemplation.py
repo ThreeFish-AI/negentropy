@@ -1,5 +1,6 @@
 from google.adk.agents import LlmAgent
 
+from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.common import log_activity
 from ..tools.contemplation import analyze_context, create_plan
@@ -60,7 +61,7 @@ def create_contemplation_agent(*, output_key: str | None = None) -> LlmAgent:
         name="ContemplationFaculty",
         model=create_subagent_model(agent_name="ContemplationFaculty"),
         description=_DESCRIPTION,
-        instruction=_INSTRUCTION,
+        instruction=make_instruction_provider("ContemplationFaculty", _INSTRUCTION),
         tools=[log_activity, analyze_context, create_plan],
         output_key=output_key,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸

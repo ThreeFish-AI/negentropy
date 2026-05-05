@@ -112,7 +112,7 @@ uv run negentropy init         # Generate ~/.negentropy/config.yaml
 #   export OPENAI_API_KEY=...
 #   export ANTHROPIC_API_KEY=...
 uv run alembic upgrade head    # Apply database migrations
-uv run adk web --port 8000 --reload_agents src/negentropy  # Start the engine
+uv run negentropy serve --port 8000  # Start the engine
 ```
 
 ### 3. Boot the Frontend

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from negentropy.knowledge.extraction import (
+from negentropy.knowledge.ingestion.extraction import (
     ROUTE_FILE_PDF,
     CanonicalExtractionRequest,
     CanonicalExtractionSource,
@@ -33,7 +33,7 @@ async def test_build_llm_invocation_plan_supports_slots_dataclass_request(monkey
             ]
         )
 
-    monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
+    monkeypatch.setattr("negentropy.knowledge.ingestion.extraction.litellm.acompletion", fake_acompletion)
 
     request = CanonicalExtractionRequest(
         source_kind=ROUTE_FILE_PDF,
@@ -90,7 +90,7 @@ async def test_build_llm_invocation_plan_skips_llm_for_object_file_contract(monk
         llm_called = True
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))])
 
-    monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
+    monkeypatch.setattr("negentropy.knowledge.ingestion.extraction.litellm.acompletion", fake_acompletion)
 
     request = CanonicalExtractionRequest(
         source_kind=ROUTE_FILE_PDF,
@@ -137,7 +137,7 @@ async def test_build_llm_invocation_plan_skips_llm_for_object_file_contract(monk
 @pytest.mark.asyncio
 async def test_build_llm_invocation_plan_returns_none_when_serialization_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.to_json_compatible",
+        "negentropy.knowledge.ingestion.extraction.to_json_compatible",
         lambda value: (_ for _ in ()).throw(RuntimeError("serialize failed")),
     )
 
@@ -176,8 +176,8 @@ async def test_build_llm_invocation_plan_logs_info_when_json_is_invalid(monkeypa
     async def fake_acompletion(**kwargs):
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="{not-json"))])
 
-    monkeypatch.setattr("negentropy.knowledge.extraction.logger", FakeLogger())
-    monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
+    monkeypatch.setattr("negentropy.knowledge.ingestion.extraction.logger", FakeLogger())
+    monkeypatch.setattr("negentropy.knowledge.ingestion.extraction.litellm.acompletion", fake_acompletion)
 
     request = CanonicalExtractionRequest(
         source_kind=ROUTE_FILE_PDF,
@@ -221,7 +221,7 @@ async def test_build_llm_invocation_plan_skips_llm_when_prompt_payload_is_not_js
         llm_called = True
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))])
 
-    monkeypatch.setattr("negentropy.knowledge.extraction.litellm.acompletion", fake_acompletion)
+    monkeypatch.setattr("negentropy.knowledge.ingestion.extraction.litellm.acompletion", fake_acompletion)
 
     request = CanonicalExtractionRequest(
         source_kind=ROUTE_FILE_PDF,

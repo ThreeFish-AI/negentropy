@@ -179,8 +179,8 @@ class TestCrossCorpusPermission:
         """同 app_name 的文档归入 catalog 应成功"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
-        from negentropy.knowledge.catalog_service import CatalogService
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_service import CatalogService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = CatalogService()
@@ -212,8 +212,8 @@ class TestCrossCorpusPermission:
         """跨 app_name 文档归入 catalog 应抛 PermissionError"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
-        from negentropy.knowledge.catalog_service import CatalogService
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_service import CatalogService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = CatalogService()
@@ -244,8 +244,8 @@ class TestCrossCorpusPermission:
         from sqlalchemy import func, select
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
-        from negentropy.knowledge.catalog_service import CatalogService
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_service import CatalogService
         from negentropy.models.perception import DocCatalogEntry
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -306,7 +306,7 @@ class TestCatalogIsolation:
         """两个不同 catalog 的目录树互不干扰"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
         from negentropy.models.perception import DocCatalog
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -365,7 +365,7 @@ class TestCatalogIsolation:
         """get_tree(catalog_id=X) 不应返回属于其他 catalog 的节点"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-        from negentropy.knowledge.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
         from negentropy.models.perception import DocCatalog
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -593,8 +593,8 @@ class TestGetEntryDocuments:
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
         from negentropy.knowledge import api as knowledge_api
-        from negentropy.knowledge.catalog_dao import CatalogDao
-        from negentropy.knowledge.catalog_service import CatalogService
+        from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
+        from negentropy.knowledge.lifecycle.catalog_service import CatalogService
 
         session_factory = async_sessionmaker(bind=db_engine, class_=AsyncSession, expire_on_commit=False)
         service = CatalogService()

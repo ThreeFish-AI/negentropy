@@ -36,6 +36,51 @@ configure_logging(
 # Initialize logger AFTER configure_logging
 logger = get_logger("negentropy.bootstrap")
 
+
+def _disable_adk_otel_logs_metrics_exporters() -> None:
+    """让 ADK ``_get_otel_exporters`` 仅构造 traces 的 ``span_processors``。
+
+    Langfuse 仅承接 ``/v1/traces``；ADK 上游 ``_get_otel_exporters()`` 在
+    ``OTEL_EXPORTER_OTLP_ENDPOINT`` 存在时会无差别构造 ``OTLPSpanExporter``、
+    ``OTLPMetricExporter``、``OTLPLogExporter`` 三件套——后两者对 Langfuse
+    ``/v1/metrics`` 与 ``/v1/logs`` 的上报会命中 SPA 404 错误页。
+
+    旧实现调用 ``original()`` 后再丢弃 ``metric_readers`` /
+    ``log_record_processors``——但 ``PeriodicExportingMetricReader`` /
+    ``BatchLogRecordProcessor`` 实例已经被构造且各自启动了守护线程，
+    导致 reader 从未注册到 MeterProvider 时仍每 60s 触发
+    ``Cannot call collect on a MetricReader ...`` WARNING。
+
+    本实现绕过 ``original()``，仅当 ``OTEL_EXPORTER_OTLP_ENDPOINT`` /
+    ``OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`` 存在时调用上游
+    ``_get_otel_span_exporter()`` 构造 traces 通道，根源避免 OTLP metrics /
+    logs exporter 被构造（既消除 WARNING，也省掉无效 daemon 线程）。
+
+    未来若启用支持 logs/metrics 的后端（SigNoz、Phoenix 等），切回 ADK 全量
+    上报的正确路径是：恢复对 ``adk_otel_setup._get_otel_exporters`` 原函数的
+    调用（保留为闭包变量），或直接构造完整 ``OTelHooks``（含 metric_readers /
+    log_record_processors）后返回。
+    """
+    import opentelemetry.sdk.environment_variables as otel_env
+    from google.adk.telemetry import setup as adk_otel_setup
+
+    if getattr(adk_otel_setup._get_otel_exporters, "_negentropy_patched", False):
+        return
+
+    def _patched_get_otel_exporters():
+        span_processors = []
+        if os.getenv(otel_env.OTEL_EXPORTER_OTLP_ENDPOINT) or os.getenv(otel_env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT):
+            span_processors.append(adk_otel_setup._get_otel_span_exporter())
+        return adk_otel_setup.OTelHooks(
+            span_processors=span_processors,
+            metric_readers=[],
+            log_record_processors=[],
+        )
+
+    _patched_get_otel_exporters._negentropy_patched = True  # type: ignore[attr-defined]
+    adk_otel_setup._get_otel_exporters = _patched_get_otel_exporters
+
+
 # Configure OpenTelemetry environment variables for LiteLLM's "otel" callback
 # This MUST be done before importing litellm, as the callback reads these at import time
 langfuse = settings.observability
@@ -53,6 +98,8 @@ if langfuse.langfuse_enabled and langfuse.langfuse_public_key and langfuse.langf
     credentials = f"{langfuse.langfuse_public_key}:{langfuse.langfuse_secret_key.get_secret_value()}"
     basic_auth = base64.b64encode(credentials.encode()).decode()
     os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"Authorization=Basic {basic_auth}"
+
+    _disable_adk_otel_logs_metrics_exporters()
 
     logger.info(f"Configured LiteLLM OTel callback to use Langfuse: {base_endpoint}/api/public/otel")
 else:
@@ -352,6 +399,39 @@ def apply_adk_patches():
                 logger.info("model_config_cache_warmed")
             except Exception as exc:
                 logger.warning("model_config_cache_warm_failed", error=str(exc))
+
+        # Phase 3：启动应用层 SkillScheduler（60s tick 扫 skill_schedules 表）。
+        # feature flag NEGENTROPY_SKILL_SCHEDULER_ENABLED=false 一键关闭。
+        @app.on_event("startup")
+        async def _start_skill_scheduler():
+            try:
+                from negentropy.agents.skill_scheduler import (
+                    DEFAULT_TICK_SECONDS,
+                    register_skill_scheduler,
+                )
+                from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
+
+                scheduler = AsyncScheduler(poll_interval=DEFAULT_TICK_SECONDS)
+                register_skill_scheduler(scheduler)
+                scheduler.start()
+                # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用
+                app.state.skill_scheduler = scheduler
+                logger.info(
+                    "skill_scheduler_started",
+                    jobs=scheduler.registered_jobs,
+                )
+            except Exception as exc:
+                logger.warning("skill_scheduler_start_failed", error=str(exc))
+
+        @app.on_event("shutdown")
+        async def _stop_skill_scheduler():
+            sched = getattr(app.state, "skill_scheduler", None)
+            if sched is not None:
+                try:
+                    sched.stop()
+                    logger.info("skill_scheduler_stopped")
+                except Exception as exc:
+                    logger.warning("skill_scheduler_stop_failed", error=str(exc))
 
         return app
 

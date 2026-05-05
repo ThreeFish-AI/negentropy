@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.extraction import (
+from negentropy.knowledge.ingestion.extraction import (
     ROUTE_FILE_PDF,
     AdaptiveToolInvocationPlan,
     DataExtractorProvider,
@@ -53,7 +53,7 @@ async def test_negentropy_perceives_provider_uses_pdf_batch_schema_and_normalize
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -75,11 +75,11 @@ async def test_negentropy_perceives_provider_uses_pdf_batch_schema_and_normalize
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -144,18 +144,18 @@ async def test_negentropy_perceives_provider_normalizes_list_structured_content(
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={"type": "object", "properties": {"pdf_sources": {"type": "array"}}},
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -211,15 +211,15 @@ async def test_negentropy_perceives_provider_normalizes_json_text_content_when_s
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(server_id=server_id),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -270,15 +270,15 @@ async def test_negentropy_perceives_provider_rejects_failed_json_text_envelope(
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(server_id=server_id),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -327,15 +327,15 @@ async def test_negentropy_perceives_provider_uses_plain_text_content_when_json_i
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(server_id=server_id),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -392,7 +392,7 @@ async def test_negentropy_perceives_provider_rejects_batch_payload_without_succe
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -402,11 +402,11 @@ async def test_negentropy_perceives_provider_rejects_batch_payload_without_succe
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -479,7 +479,7 @@ async def test_negentropy_perceives_provider_retries_after_validation_error_with
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={"type": "object"},
@@ -487,11 +487,11 @@ async def test_negentropy_perceives_provider_retries_after_validation_error_with
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -555,7 +555,7 @@ async def test_negentropy_perceives_provider_uses_schema_string_source_for_singl
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             server_name="negentropy-perceives",
@@ -571,11 +571,11 @@ async def test_negentropy_perceives_provider_uses_schema_string_source_for_singl
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -655,7 +655,7 @@ async def test_negentropy_perceives_provider_uses_llm_selected_string_source_for
         )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             server_name="negentropy-perceives",
@@ -663,11 +663,11 @@ async def test_negentropy_perceives_provider_uses_llm_selected_string_source_for
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         fake_llm_plan,
     )
 
@@ -729,7 +729,7 @@ async def test_negentropy_perceives_provider_keeps_string_contract_on_missing_si
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -743,11 +743,11 @@ async def test_negentropy_perceives_provider_keeps_string_contract_on_missing_si
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -801,7 +801,7 @@ async def test_negentropy_perceives_provider_fails_fast_when_single_string_sourc
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -815,11 +815,11 @@ async def test_negentropy_perceives_provider_fails_fast_when_single_string_sourc
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -884,7 +884,7 @@ async def test_negentropy_perceives_provider_failovers_when_primary_returns_empt
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -906,11 +906,11 @@ async def test_negentropy_perceives_provider_failovers_when_primary_returns_empt
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -953,7 +953,7 @@ async def test_negentropy_perceives_provider_marks_unknown_contract_as_unsupport
     server_id = uuid4()
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={"type": "object", "properties": {"opaque": {"type": "integer"}}},
@@ -992,7 +992,7 @@ async def test_negentropy_perceives_provider_marks_unknown_contract_with_extra_r
     server_id = uuid4()
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -1088,7 +1088,7 @@ async def test_negentropy_perceives_provider_retries_with_string_batch_contract_
         )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             server_name="negentropy-perceives",
@@ -1103,11 +1103,11 @@ async def test_negentropy_perceives_provider_retries_with_string_batch_contract_
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         fake_llm_plan,
     )
 
@@ -1187,7 +1187,7 @@ async def test_negentropy_perceives_provider_merges_image_content_items_into_ass
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -1200,11 +1200,11 @@ async def test_negentropy_perceives_provider_merges_image_content_items_into_ass
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -1281,7 +1281,7 @@ async def test_negentropy_perceives_provider_structured_assets_take_precedence_o
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -1291,11 +1291,11 @@ async def test_negentropy_perceives_provider_structured_assets_take_precedence_o
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 
@@ -1358,7 +1358,7 @@ async def test_negentropy_perceives_provider_reads_enhanced_assets_from_output_d
             )
 
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction.AsyncSessionLocal",
+        "negentropy.knowledge.ingestion.extraction.AsyncSessionLocal",
         lambda: FakeMcpSession(
             server_id=server_id,
             input_schema={
@@ -1368,11 +1368,11 @@ async def test_negentropy_perceives_provider_reads_enhanced_assets_from_output_d
         ),
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._increment_tool_call_count",
+        "negentropy.knowledge.ingestion.extraction._increment_tool_call_count",
         noop_increment_tool_call_count,
     )
     monkeypatch.setattr(
-        "negentropy.knowledge.extraction._build_llm_invocation_plan",
+        "negentropy.knowledge.ingestion.extraction._build_llm_invocation_plan",
         noop_llm_plan,
     )
 

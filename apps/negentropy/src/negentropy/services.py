@@ -8,7 +8,7 @@ Its presence at the root of the agent directory is MANDATORY for ADK auto-discov
 
 Ideally, this file should only contain configuration hooks or registration logic.
 We use it here to bootstrap our valid environment configuration by patching
-default ADK service factories to respect `.env` settings (Zero-Config Launch).
+default ADK service factories to respect YAML config (Zero-Config Launch).
 
 See `src/negentropy/engine/bootstrap.py` for implementation details.
 """

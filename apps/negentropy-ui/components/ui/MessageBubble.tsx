@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/types/common";
+import type { ChatMessage, Citation } from "@/types/common";
 import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { getStreamingMarkdownSegments } from "@/utils/streaming-markdown";
+import { citationHref, splitCitationTokens } from "@/utils/citation-parser";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { UserAvatar } from "./UserAvatar";
 
@@ -219,58 +220,157 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
+/**
+ * 把 React node 中的字符串子节点按 [N] token 拆分为可点击 sup（P2-3 G2）。
+ * citationsById 缺该 N 时保持原文，避免 LLM 标号超出实际引用导致死链。
+ */
+function renderChildrenWithCitations(
+  children: ReactNode,
+  citationsById: Map<number, Citation>,
+): ReactNode {
+  if (typeof children === "string") {
+    const segments = splitCitationTokens(children);
+    if (segments.every((s) => s.kind === "text")) return children;
+    return segments.map((seg, idx) => {
+      if (seg.kind === "text") return <span key={`t-${idx}`}>{seg.content}</span>;
+      const cite = citationsById.get(seg.id);
+      if (!cite) return <span key={`m-${idx}`}>{seg.raw}</span>;
+      const href = citationHref(cite);
+      const sup = (
+        <sup
+          data-citation-id={seg.id}
+          className="ml-0.5 cursor-pointer text-primary font-semibold"
+          title={cite.text}
+        >
+          [{seg.id}]
+        </sup>
+      );
+      return href ? (
+        <a key={`c-${idx}`} href={href} target="_blank" rel="noopener noreferrer" className="no-underline">
+          {sup}
+        </a>
+      ) : (
+        <span key={`c-${idx}`}>{sup}</span>
+      );
+    });
+  }
+  if (Array.isArray(children)) {
+    return children.map((child, idx) => (
+      <span key={`g-${idx}`}>{renderChildrenWithCitations(child, citationsById)}</span>
+    ));
+  }
+  return children;
+}
+
+function CitationFootnotes({ citations }: { citations: Citation[] }) {
+  if (!citations || citations.length === 0) return null;
+  return (
+    <section
+      data-testid="citation-footnotes"
+      className="mt-4 border-t border-border/50 pt-3 text-xs text-muted-foreground"
+    >
+      <div className="font-semibold mb-1">参考文献</div>
+      <ol className="space-y-1 list-none pl-0">
+        {citations.map((cite) => {
+          const href = citationHref(cite);
+          return (
+            <li key={cite.id} data-citation-id={cite.id} className="flex gap-2">
+              <span className="font-mono shrink-0">[{cite.id}]</span>
+              {href ? (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-all underline-offset-2 hover:underline"
+                >
+                  {cite.text.replace(/^\[\d+\]\s*/, "")}
+                </a>
+              ) : (
+                <span className="break-all">{cite.text.replace(/^\[\d+\]\s*/, "")}</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
 export function MarkdownContent({
   content,
   isStreaming,
+  citations,
 }: {
   content: string;
   isStreaming: boolean;
+  /** P2-3 G2 · 引用列表，非空时尾部渲染参考文献 + inline [N] 高亮跳转 */
+  citations?: Citation[];
 }) {
   const segments = getStreamingMarkdownSegments(content, isStreaming);
-  const renderMarkdown = (value: string) => (
-    <ReactMarkdown
-      remarkPlugins={defaultRemarkPlugins}
-      rehypePlugins={defaultRehypePlugins}
-      components={{
-        code({ className, children, ...props }) {
-          const match = /language-(\w+)/.exec(className || "");
-          const isMermaid = match && match[1] === "mermaid";
-          // @ts-expect-error - 'inline' is sometimes passed by react-markdown but missing in types depending on version
-          const isInline = props.inline;
+  const citationsById = useMemo(() => {
+    const m = new Map<number, Citation>();
+    (citations ?? []).forEach((c) => m.set(c.id, c));
+    return m;
+  }, [citations]);
+  const hasCitations = citationsById.size > 0;
 
-          if (isMermaid) {
-            return (
-              <MermaidDiagram
-                code={String(children).replace(/\n$/, "")}
-              />
-            );
-          }
+  const renderMarkdown = (value: string) => {
+    const components: Record<string, unknown> = {
+      code({ className, children, ...props }: { className?: string; children?: ReactNode } & Record<string, unknown>) {
+        const match = /language-(\w+)/.exec(className || "");
+        const isMermaid = match && match[1] === "mermaid";
+        const isInline = (props as { inline?: boolean }).inline;
 
-          if (!isInline && match) {
-            return (
-              <div className="relative group">
-                <code className={className} {...props}>
-                  {children}
-                </code>
-                <CopyButton code={String(children)} />
-              </div>
-            );
-          }
-
+        if (isMermaid) {
           return (
-            <code className={className} {...props}>
-              {children}
-            </code>
+            <MermaidDiagram
+              code={String(children).replace(/\n$/, "")}
+            />
           );
-        },
-        pre({ children }) {
-          return <pre className="relative group">{children}</pre>;
-        },
-      }}
-    >
-      {value}
-    </ReactMarkdown>
-  );
+        }
+
+        if (!isInline && match) {
+          return (
+            <div className="relative group">
+              <code className={className} {...props}>
+                {children}
+              </code>
+              <CopyButton code={String(children)} />
+            </div>
+          );
+        }
+
+        return (
+          <code className={className} {...props}>
+            {children}
+          </code>
+        );
+      },
+      pre({ children }: { children?: ReactNode }) {
+        return <pre className="relative group">{children}</pre>;
+      },
+    };
+    // P2-3 · 仅当 message 携带 citations 时启用 [N] 替换；
+    // react-markdown 不接受 undefined 作为 components 值，必须条件性合入 key。
+    if (hasCitations) {
+      components.p = ({ children }: { children?: ReactNode }) => (
+        <p>{renderChildrenWithCitations(children, citationsById)}</p>
+      );
+      components.li = ({ children }: { children?: ReactNode }) => (
+        <li>{renderChildrenWithCitations(children, citationsById)}</li>
+      );
+    }
+
+    return (
+      <ReactMarkdown
+        remarkPlugins={defaultRemarkPlugins}
+        rehypePlugins={defaultRehypePlugins}
+        components={components as never}
+      >
+        {value}
+      </ReactMarkdown>
+    );
+  };
 
   return (
     <div className="space-y-2">
@@ -286,6 +386,7 @@ export function MarkdownContent({
           </div>
         ),
       )}
+      {hasCitations && <CitationFootnotes citations={citations ?? []} />}
     </div>
   );
 }
@@ -318,6 +419,10 @@ export function MessageBubble({
 
   return (
     <div
+      data-testid="message-bubble"
+      data-message-role={message.role}
+      data-message-id={message.id}
+      data-streaming={isStreaming ? "true" : "false"}
       className={cn(
         "group relative flex w-full cursor-pointer rounded-[2rem] px-2 py-1 transition-colors duration-200",
         isUser ? "flex-row-reverse" : "flex-row",
@@ -403,6 +508,7 @@ export function MessageBubble({
               <MarkdownContent
                 content={content}
                 isStreaming={isStreaming}
+                citations={message.citations}
               />
             )}
             {isStreaming ? (

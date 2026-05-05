@@ -1,11 +1,11 @@
 """
 Negentropy Configuration Module.
 
-Implements layered configuration loading with YAML + .env support.
+Implements layered configuration loading with YAML support.
 
 Loading priority (highest → lowest):
     1. Environment variables  (e.g. NE_DB_POOL_SIZE=20)
-    2. .env / .env.local / .env.{env} / .env.{env}.local
+    2. config.local.yaml  (cwd-relative runtime config, gitignored)
     3. CLI-specified YAML  (NE_CONFIG_PATH or ``negentropy -c path``)
     4. ~/.negentropy/config.yaml  (user-level overrides)
     5. config.default.yaml  (package defaults)
@@ -23,7 +23,6 @@ Note:
     通过 Admin UI 管理，使用 model_resolver 解析。
 """
 
-import os
 from functools import cached_property
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,21 +30,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from .app import AppSettings
 from .auth import AuthSettings
 from .database import DatabaseSettings
-from .environment import EnvironmentSettings, get_env_files
+from .environment import EnvironmentSettings
 from .knowledge import KnowledgeSettings
 from .logging import LoggingSettings
+from .memory import MemorySettings
 from .observability import ObservabilitySettings
 from .search import SearchSettings
 from .services import ServicesSettings
-
-
-def _get_env_files() -> tuple[str, ...]:
-    """
-    Determine which .env files to load based on NE_ENV.
-    Delegates to environment.get_env_files.
-    """
-    env = os.getenv("NE_ENV", "development")
-    return get_env_files(env)
 
 
 class Settings(BaseSettings):
@@ -56,12 +47,10 @@ class Settings(BaseSettings):
     delegating to specialized sub-settings for each concern.
 
     Configuration sources (highest priority first):
-        env vars → .env files → YAML files → Field defaults
+        env vars → YAML chain (local > user > NE_CONFIG_PATH > default) → Field defaults
     """
 
     model_config = SettingsConfigDict(
-        env_file=_get_env_files(),
-        env_file_encoding="utf-8",
         env_nested_delimiter="__",
         extra="ignore",
     )
@@ -84,6 +73,7 @@ class Settings(BaseSettings):
             "search",
             "observability",
             "knowledge",
+            "memory",
         ):
             set_yaml_section(section, yaml_config.get(section, {}))
 
@@ -104,40 +94,45 @@ class Settings(BaseSettings):
     # Environment detection (loaded first to determine other configs)
     @cached_property
     def environment(self) -> EnvironmentSettings:
-        return EnvironmentSettings(_env_file=_get_env_files())
+        return EnvironmentSettings()
 
     # Composed sub-settings (each loads from its own env prefix + YAML section)
     @cached_property
     def app(self) -> AppSettings:
-        return AppSettings(_env_file=_get_env_files())
+        return AppSettings()
 
     @cached_property
     def logging(self) -> LoggingSettings:
-        return LoggingSettings(_env_file=_get_env_files())
+        return LoggingSettings()
 
     @cached_property
     def observability(self) -> ObservabilitySettings:
-        return ObservabilitySettings(_env_file=_get_env_files())
+        return ObservabilitySettings()
 
     @cached_property
     def database(self) -> DatabaseSettings:
-        return DatabaseSettings(_env_file=_get_env_files())
+        return DatabaseSettings()
 
     @cached_property
     def services(self) -> ServicesSettings:
-        return ServicesSettings(_env_file=_get_env_files())
+        return ServicesSettings()
 
     @cached_property
     def auth(self) -> AuthSettings:
-        return AuthSettings(_env_file=_get_env_files())
+        return AuthSettings()
 
     @cached_property
     def search(self) -> SearchSettings:
-        return SearchSettings(_env_file=_get_env_files())
+        return SearchSettings()
 
     @cached_property
     def knowledge(self) -> KnowledgeSettings:
-        return KnowledgeSettings(_env_file=_get_env_files())
+        return KnowledgeSettings()
+
+    @cached_property
+    def memory(self) -> MemorySettings:
+        """Memory Phase 5 高级特性配置（HippoRAG / Reflexion / Memify / PII）。"""
+        return MemorySettings()
 
     # =========================================================================
     # Legacy Compatibility Layer
@@ -249,6 +244,7 @@ __all__ = [
     "EnvironmentSettings",
     "KnowledgeSettings",
     "LoggingSettings",
+    "MemorySettings",
     "ObservabilitySettings",
     "DatabaseSettings",
     "ServicesSettings",

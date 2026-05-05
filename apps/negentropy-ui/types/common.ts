@@ -80,6 +80,45 @@ export type ToolCallInfo = {
   status: ToolCallStatus;
   /** 时间戳（Unix 秒） */
   timestamp?: number;
+  /**
+   * 流式进度（C3 增强）— 走 state_delta 旁路，不参与 message-ledger dedup。
+   * 后端通过 ADK state_delta 推 `state.tool_progress[tool_call_id]`，500ms throttle。
+   * 详见 docs/framework.md §9 协议规范 与 docs/issue.md ISSUE-031（避开时间窗回归）。
+   */
+  progress?: ToolProgressSnapshot;
+};
+
+/**
+ * Tool Progress 快照 — 由 state_delta path `/tool_progress/{tool_call_id}` 推送。
+ * percent ∈ [0, 100]；eta 为预计剩余秒数（可选）；stage 为人可读阶段标签。
+ */
+export type ToolProgressSnapshot = {
+  percent: number;
+  eta?: number;
+  stage?: string;
+};
+
+/**
+ * 全局 toolCallId → ToolProgressSnapshot 映射（旁路于 conversationTree）。
+ */
+export type ToolProgressMap = Record<string, ToolProgressSnapshot>;
+
+/**
+ * Citation 引用条目（P2-3 G2 · IEEE 风格）
+ *
+ * 后端 `search_knowledge_base` / `search_knowledge_graph_with_papers` 在每条返回结果中注入
+ * `citation_id` + `formatted_citation`。前端把这些字段聚合到 ChatMessage.citations，
+ * 并在尾注块中按序号渲染。
+ */
+export type Citation = {
+  /** 1-based 序号（与 [N] 标号对齐） */
+  id: number;
+  /** IEEE 风格字符串：`[N] Author et al., "Title," arXiv:ID, Year.` */
+  text: string;
+  /** 源 URL（可点击跳转） */
+  sourceUri?: string | null;
+  /** arXiv ID（如有，用于跳转 https://arxiv.org/abs/{id}） */
+  arxivId?: string | null;
 };
 
 /**
@@ -103,6 +142,12 @@ export type ChatMessage = Pick<Message, "id" | "role"> & {
   streaming?: boolean;
   /** 关联的工具调用列表（内嵌显示在消息气泡中） */
   toolCalls?: ToolCallInfo[];
+  /**
+   * 引用列表（P2-3 G2）— 从 toolCalls.result 中聚合的 search_knowledge_base /
+   * search_knowledge_graph_with_papers 的引用条目。
+   * 旧消息无此字段时 MarkdownContent 走零回归分支，与既有渲染等价。
+   */
+  citations?: Citation[];
 };
 
 export type RoleResolutionSource =
@@ -126,6 +171,15 @@ export type MessageLedgerEntry = {
   author?: string;
   sourceEventTypes: string[];
   relatedMessageIds: string[];
+  /**
+   * 事件在原始时序中的位置（buildMessageLedger 处理 events 的下标）。
+   * 当多个 ledger 条目 createdAt 相等时，作为 tiebreaker 提供确定性时间序排序，
+   * 避免退化为 UUID localeCompare 的随机顺序。
+   *
+   * 设为可选以保持对现有测试夹具与历史持久化数据的向后兼容；排序处统一以
+   * `Number.MAX_SAFE_INTEGER` 作为缺省回退，确保未填充该字段的条目仍可比较。
+   */
+  sourceOrder?: number;
 };
 
 export type SessionProjectionState = {

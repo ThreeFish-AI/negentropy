@@ -288,7 +288,7 @@ class PostgresSessionService(BaseSessionService):
                 return
 
             try:
-                summarizer = SessionSummarizer()
+                summarizer = await SessionSummarizer.create()
                 title = await summarizer.generate_title(history)
             except Exception as ex:
                 logger.warning(

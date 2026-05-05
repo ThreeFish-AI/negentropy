@@ -393,4 +393,189 @@ describe("adk event mapping", () => {
       name: "Google Search",
     });
   });
+
+  // ISSUE-040 H1: 推理 / 思考 Part 不可进入 TEXT_MESSAGE_*
+  it("过滤 thought=true 的 Part，仅把正文进入 TEXT_MESSAGE_CONTENT", () => {
+    const payload = {
+      id: "evt_thought_1",
+      author: "assistant",
+      content: {
+        parts: [
+          { thought: true, text: "We need to respond ..." },
+          { text: "Pong." },
+        ],
+      },
+    };
+    const events = adkEventToAguiEvents(payload);
+    const contentEvent = events.find(
+      (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
+    );
+    expect(contentEvent).toBeTruthy();
+    expect("delta" in contentEvent! ? (contentEvent as unknown as { delta: string }).delta : "").toBe(
+      "Pong.",
+    );
+    // 推理内容应作为 ne.a2ui.thought 自定义事件保留作审计
+    const thoughtCustom = events.find(
+      (event) =>
+        event.type === EventType.CUSTOM &&
+        "eventType" in event &&
+        (event as unknown as { eventType: string }).eventType === "ne.a2ui.thought",
+    );
+    expect(thoughtCustom).toBeTruthy();
+  });
+
+  it("过滤 type=thinking|thought|reasoning 的 Part", () => {
+    const payload = {
+      id: "evt_thought_2",
+      author: "assistant",
+      content: {
+        parts: [
+          { type: "thinking", text: "internal plan" },
+          { type: "reasoning_summary", text: "summary" },
+          { type: "text", text: "Pong." },
+        ],
+      },
+    };
+    const events = adkEventToAguiEvents(payload);
+    const contentEvent = events.find(
+      (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
+    );
+    expect(
+      "delta" in contentEvent! ? (contentEvent as unknown as { delta: string }).delta : "",
+    ).toBe("Pong.");
+    const thoughtCustomEvents = events.filter(
+      (event) =>
+        event.type === EventType.CUSTOM &&
+        "eventType" in event &&
+        (event as unknown as { eventType: string }).eventType === "ne.a2ui.thought",
+    );
+    expect(thoughtCustomEvents).toHaveLength(2);
+  });
+
+  it("混合 functionCall + thought + text 时仅切割 text 段，跳过推理 Part", () => {
+    const payload = {
+      id: "evt_thought_3",
+      author: "assistant",
+      content: {
+        parts: [
+          { thought: true, text: "thinking ..." },
+          { text: "Calling tool first." },
+          {
+            functionCall: {
+              id: "call-x",
+              name: "log_activity",
+              args: { ok: 1 },
+            },
+          },
+          { text: "Pong." },
+        ],
+      },
+    };
+    const events = adkEventToAguiEvents(payload);
+    const textContents = events
+      .filter((event) => event.type === EventType.TEXT_MESSAGE_CONTENT)
+      .map((event) =>
+        "delta" in event ? (event as unknown as { delta: string }).delta : "",
+      );
+    expect(textContents).toEqual(["Calling tool first.", "Pong."]);
+    // 推理段不应出现在 TEXT_MESSAGE_CONTENT；但 ne.a2ui.thought 应被发出
+    const thoughtCustom = events.find(
+      (event) =>
+        event.type === EventType.CUSTOM &&
+        "eventType" in event &&
+        (event as unknown as { eventType: string }).eventType === "ne.a2ui.thought",
+    );
+    expect(thoughtCustom).toBeTruthy();
+  });
+
+  // ISSUE-040 H2: STEP_FINISHED 必须携带与 STEP_STARTED 配对的 stepName，否则
+  // ag-ui v0.0.47 client 会抛 "Cannot send 'STEP_FINISHED' for step \"undefined\""
+  // 中断 run，导致推理头永驻 started 状态。
+  it("synth step 在 flushRun 时 STEP_FINISHED 携带 stepName 与 STEP_STARTED 配对", () => {
+    const normalizer = new AdkMessageStreamNormalizer();
+    const consumed = normalizer.consume({
+      id: "evt_synth_1",
+      author: "NegentropyEngine",
+      runId: "run-x",
+      threadId: "thread-x",
+      timestamp: 1000,
+      content: { parts: [{ text: "Pong." }] },
+    });
+    const flushed = normalizer.flushRun("run-x", "thread-x", 1001);
+    const stepStarted = consumed.find(
+      (event) => event.type === EventType.STEP_STARTED,
+    );
+    const stepFinished = flushed.find(
+      (event) => event.type === EventType.STEP_FINISHED,
+    );
+    expect(stepStarted).toBeTruthy();
+    expect(stepFinished).toBeTruthy();
+    const startedName =
+      stepStarted && "stepName" in stepStarted
+        ? (stepStarted as unknown as { stepName: string }).stepName
+        : undefined;
+    const finishedName =
+      stepFinished && "stepName" in stepFinished
+        ? (stepFinished as unknown as { stepName: string }).stepName
+        : undefined;
+    expect(startedName).toBe("NegentropyEngine");
+    expect(finishedName).toBe("NegentropyEngine");
+  });
+
+  it("native ADK stepFinished 无 name 字段时回退到 STEP_STARTED 缓存的 stepName", () => {
+    const normalizer = new AdkMessageStreamNormalizer();
+    const startedEvents = normalizer.consume({
+      id: "evt_step_a",
+      author: "system",
+      runId: "run-a",
+      threadId: "thread-a",
+      timestamp: 1000,
+      actions: { stepStarted: { id: "step-1", name: "PerceptionFaculty" } },
+    });
+    const finishedEvents = normalizer.consume({
+      id: "evt_step_b",
+      author: "system",
+      runId: "run-a",
+      threadId: "thread-a",
+      timestamp: 1001,
+      actions: { stepFinished: { id: "step-1", result: "ok" } },
+    });
+    const startedName = startedEvents.find(
+      (event) => event.type === EventType.STEP_STARTED,
+    );
+    const finishedName = finishedEvents.find(
+      (event) => event.type === EventType.STEP_FINISHED,
+    );
+    expect(
+      "stepName" in startedName!
+        ? (startedName as unknown as { stepName: string }).stepName
+        : undefined,
+    ).toBe("PerceptionFaculty");
+    expect(
+      "stepName" in finishedName!
+        ? (finishedName as unknown as { stepName: string }).stepName
+        : undefined,
+    ).toBe("PerceptionFaculty");
+  });
+
+  it("过滤 message.content 数组中的推理 Part", () => {
+    const payload = {
+      id: "evt_thought_4",
+      author: "assistant",
+      message: {
+        role: "assistant",
+        content: [
+          { type: "thinking", text: "plan" },
+          { type: "text", text: "Pong." },
+        ],
+      },
+    };
+    const events = adkEventToAguiEvents(payload);
+    const contentEvent = events.find(
+      (event) => event.type === EventType.TEXT_MESSAGE_CONTENT,
+    );
+    expect(
+      "delta" in contentEvent! ? (contentEvent as unknown as { delta: string }).delta : "",
+    ).toBe("Pong.");
+  });
 });

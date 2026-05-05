@@ -15,7 +15,7 @@ from uuid import uuid4
 import pytest
 import sqlalchemy.orm
 
-from negentropy.knowledge.catalog_dao import CatalogDao
+from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao
 
 # ---------------------------------------------------------------------------
 # 修复 KnowledgeDocument <-> DocSource 双向 FK 的 AmbiguousForeignKeysError
@@ -181,7 +181,7 @@ class TestCatalogNodeCrud:
             captured["event"] = event
             captured["extra"] = extra
 
-        monkeypatch.setattr("negentropy.knowledge.catalog_dao.logger.info", fake_info)
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.logger.info", fake_info)
 
         await CatalogDao.create_node(
             session,

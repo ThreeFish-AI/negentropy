@@ -15,27 +15,119 @@ interface Skill {
   required_tools: string[];
   is_enabled: boolean;
   priority: number;
+  enforcement_mode?: string;
+  resources?: Array<{ type?: string; ref?: string; title?: string; lazy?: boolean }>;
 }
 
 interface SkillCardProps {
   skill: Skill;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleEnabled?: () => void;
+  onPreview?: () => void;
+  onViewVersions?: () => void;
+  onManageSchedule?: () => void;
+  toggling?: boolean;
+  /** SubAgent 已配置的 tools（用于计算 missing_tools 红 badge）；缺省时不显示差异。 */
+  agentTools?: string[];
 }
 
-export function SkillCard({ skill, onEdit, onDelete }: SkillCardProps) {
+export function SkillCard({
+  skill,
+  onEdit,
+  onDelete,
+  onToggleEnabled,
+  onPreview,
+  onViewVersions,
+  onManageSchedule,
+  toggling = false,
+  agentTools,
+}: SkillCardProps) {
+  const required = skill.required_tools || [];
+  const missingTools =
+    Array.isArray(agentTools) && required.length > 0
+      ? required.filter((t) => !agentTools.includes(t))
+      : [];
+  const enforcement = (skill.enforcement_mode || "warning").toLowerCase();
+  const resourceCount = (skill.resources || []).length;
+  const displayLabel = skill.display_name || skill.name;
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
           <h3 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            {skill.display_name || skill.name}
+            {displayLabel}
           </h3>
           <div className="flex shrink-0 items-center gap-2">
+            {onManageSchedule && (
+              <button
+                onClick={onManageSchedule}
+                title="Manage schedules"
+                aria-label={`Manage schedules for ${displayLabel}`}
+                data-testid={`skill-schedule-${skill.name}`}
+                className="rounded-md p-2 text-amber-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            )}
+            {onViewVersions && (
+              <button
+                onClick={onViewVersions}
+                title="Version history"
+                aria-label={`Show versions of ${displayLabel}`}
+                data-testid={`skill-versions-${skill.name}`}
+                className="rounded-md p-2 text-violet-500 hover:bg-violet-50 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11M9 21V3m0 0l4 4m-4-4L5 7" />
+                </svg>
+              </button>
+            )}
+            {onPreview && (
+              <button
+                onClick={onPreview}
+                title="Preview rendered prompt"
+                aria-label={`Preview ${displayLabel}`}
+                data-testid={`skill-preview-${skill.name}`}
+                className="rounded-md p-2 text-sky-500 hover:bg-sky-50 hover:text-sky-600 dark:hover:bg-sky-900/30 dark:hover:text-sky-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            )}
+            {onToggleEnabled && (
+              <button
+                onClick={onToggleEnabled}
+                disabled={toggling}
+                title={skill.is_enabled ? "Disable skill" : "Enable skill"}
+                aria-label={`${skill.is_enabled ? "Disable" : "Enable"} ${displayLabel}`}
+                aria-pressed={skill.is_enabled}
+                className={
+                  "rounded-md p-2 disabled:opacity-50 " +
+                  (skill.is_enabled
+                    ? "text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
+                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300")
+                }
+              >
+                {skill.is_enabled ? (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364a9 9 0 0 0-12.728 0M5.636 5.636a9 9 0 0 0 12.728 0m0 12.728L5.636 5.636m12.728 0L5.636 18.364" />
+                  </svg>
+                )}
+              </button>
+            )}
             <button
               onClick={onEdit}
               title="Edit Skill"
-              aria-label={`Edit ${skill.display_name || skill.name}`}
+              aria-label={`Edit ${displayLabel}`}
               className="rounded-md p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,7 +137,7 @@ export function SkillCard({ skill, onEdit, onDelete }: SkillCardProps) {
             <button
               onClick={onDelete}
               title="Delete Skill"
-              aria-label={`Delete ${skill.display_name || skill.name}`}
+              aria-label={`Delete ${displayLabel}`}
               className="rounded-md p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,9 +162,35 @@ export function SkillCard({ skill, onEdit, onDelete }: SkillCardProps) {
           <span className="inline-flex shrink-0 items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
             {skill.visibility}
           </span>
+          {enforcement === "strict" && (
+            <span
+              data-testid="skill-enforcement-strict"
+              title="Tool whitelist is strictly enforced — missing required tools will block SubAgent startup."
+              className="inline-flex shrink-0 items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+            >
+              strict
+            </span>
+          )}
+          {resourceCount > 0 && (
+            <span
+              data-testid="skill-resources-count"
+              className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+            >
+              {resourceCount} resources
+            </span>
+          )}
+          {missingTools.length > 0 && (
+            <span
+              data-testid="skill-missing-tools"
+              title={`Missing tools on the bound SubAgent: ${missingTools.join(", ")}`}
+              className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300"
+            >
+              {missingTools.length} missing
+            </span>
+          )}
         </div>
         <p
-          className="mb-1 h-20 min-w-0 w-full overflow-hidden text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"
+          className="mb-1 h-20 min-w-0 w-full overflow-hidden break-words text-sm leading-5 text-zinc-500 line-clamp-4 dark:text-zinc-400"
           title={skill.description || "No description"}
         >
           {skill.description || "No description"}

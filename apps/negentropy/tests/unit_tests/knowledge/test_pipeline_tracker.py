@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from negentropy.knowledge.extraction import ExtractedDocumentResult
+from negentropy.knowledge.ingestion.extraction import ExtractedDocumentResult
 from negentropy.knowledge.service import KnowledgeService, PipelineTracker
 
 from .conftest import (
