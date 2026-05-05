@@ -95,8 +95,10 @@ def _format_citation(
     if arxiv_id:
         author_part = f"{first_author} et al., " if first_author else ""
         title_part = f'"{title}," ' if title else ""
-        year_part = f"{year}." if year else ""
-        return f"[{idx}] {author_part}{title_part}arXiv:{arxiv_id}, {year_part}".rstrip()
+        # year 缺席时直接以句点收尾，避免 ", " 与孤逗号污染（IEEE 风格保持一致）。
+        if year:
+            return f"[{idx}] {author_part}{title_part}arXiv:{arxiv_id}, {year}."
+        return f"[{idx}] {author_part}{title_part}arXiv:{arxiv_id}."
 
     # 退化路径：无 arxiv_id 时使用 source_uri，仍尽量保留 title
     if title:

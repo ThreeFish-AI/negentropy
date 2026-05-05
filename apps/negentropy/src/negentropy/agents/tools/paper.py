@@ -169,9 +169,13 @@ async def _check_existing_arxiv(
         from negentropy.models.perception import Knowledge
 
         async with AsyncSessionLocal() as db:
+            # has_key 显式生成 ``metadata ? 'arxiv_id'``，与迁移 0029 的 partial index
+            # 谓词字面对齐，让 PG 规划器能选中 ``ix_knowledge_arxiv_id``；仅 astext
+            # 等值不会被规划器证明蕴含部分索引谓词，会回退 seq scan。
             stmt = (
                 select(Knowledge.id, Knowledge.source_uri)
                 .where(Knowledge.corpus_id == corpus_id)
+                .where(Knowledge.metadata_.has_key("arxiv_id"))
                 .where(Knowledge.metadata_["arxiv_id"].astext == arxiv_id)
                 .order_by(Knowledge.chunk_index.asc())
             )
