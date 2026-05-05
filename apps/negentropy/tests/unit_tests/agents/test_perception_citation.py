@@ -38,7 +38,10 @@ def test_format_citation_full_arxiv_metadata():
 
 
 def test_format_citation_minimal_arxiv_no_authors():
-    """没 authors 仍能输出（不出现 'None et al.' 之类畸形字符串）。"""
+    """没 authors 仍能输出（不出现 'None et al.' 之类畸形字符串）。
+
+    回归断言：缺 year 时收尾用 `.`（IEEE 风格保持一致），且不留孤逗号。
+    """
     from negentropy.agents.tools.perception import _format_citation
 
     citation = _format_citation(
@@ -49,6 +52,9 @@ def test_format_citation_minimal_arxiv_no_authors():
     assert citation.startswith("[2]")
     assert "et al." not in citation  # 无作者时不应出现 et al.
     assert "arXiv:2404.16130" in citation
+    assert citation.endswith(".")
+    assert not citation.endswith(",")
+    assert ", ." not in citation  # 防止 ", " + "." 拼接出现孤逗号
 
 
 def test_format_citation_legacy_no_arxiv_with_title_only():
@@ -108,6 +114,9 @@ def test_format_citation_handles_malformed_published_at():
     assert "[6]" in citation
     # 不应包含 "unknown" 字面量
     assert "unknown" not in citation
+    # 缺 year 时不留孤逗号、统一以 `.` 收尾
+    assert citation.endswith(".")
+    assert not citation.endswith(",")
 
 
 # ----------------------------------------------------------------------------
