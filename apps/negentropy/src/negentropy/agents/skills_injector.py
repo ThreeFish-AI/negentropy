@@ -1,19 +1,22 @@
 """
-Skills → SubAgent system prompt injector — Progressive Disclosure 最小闭环。
+Skills → SubAgent system prompt injector — Progressive Disclosure 完整闭环。
 
 设计目标（对齐 Anthropic Claude Skills / Google ADK Skills / OpenAI Codex Skills）：
 
-- **Layer 1（描述常驻）**：把 SubAgent 关联的每个 Skill 的 `name + description`（短）
-  注入到系统 prompt 顶部 `<available_skills>` 块，让 LLM 在所有调用中都能"看见"
-  自己拥有哪些技能；
-- **Layer 2（模板按需）**：当 LLM 决定调用某个 Skill 时，触发器（未来扩展）调用
-  ``format_skill_invocation`` 把完整 ``prompt_template`` 展开返回——避免长模板常驻
-  挤占上下文窗口；
-- **Tool 白名单 fail-soft**：``validate_required_tools`` 返回缺失工具列表，仅供
-  warning 与 UI 提示；不阻断 SubAgent 启动（fail-close 留待后续 Phase）。
+- **Layer 1（描述常驻）**：把 SubAgent 关联的每个 Skill 的 ``name + description``（短）
+  注入到系统 prompt 顶部 ``<available_skills>`` 块，让 LLM 在所有调用中都能"看见"
+  自己拥有哪些技能；如果有 ``resources``，仅展示数量提示，避免 prompt 膨胀。
+- **Layer 2（模板按需）**：``format_skill_invocation`` 用 Jinja2 沙箱环境渲染
+  ``prompt_template``，由 ``expand_skill`` ADK tool（详见 ``agents/tools/skill_registry.py``）
+  或 ``POST /interface/skills/{id}:invoke`` 端点触发。
+- **Layer 3（资源挂载）**：``format_skill_resources`` 把 ``resources`` 数组按 type 渲染
+  为 markdown 列表；默认 ``lazy=True``，仅在 Layer 2 展开时一并附上。具体读取由
+  ``fetch_skill_resource`` 工具按需路由到 KG / Memory / Knowledge corpus。
+- **Tool 白名单 fail-close 选项**：``enforcement_mode=strict`` 时缺失工具会抛
+  ``SkillToolMissingError``；``warning`` 模式（默认）保持向后兼容仅记录差异。
 
-不引入新表、不改 schema、不要求 SKILL.md 文件系统；只把已有 ``skills.prompt_template``
-等四字段从"存而不用"升级为"按层级消费"。
+不引入新表；通过 PostgreSQL JSONB 增量字段（``enforcement_mode`` / ``resources``）
+支撑 Phase 2 增强。
 """
 
 from __future__ import annotations
@@ -21,8 +24,11 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
+from jinja2 import StrictUndefined, TemplateError
+from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import or_, select
 
 from negentropy.logging import get_logger
@@ -32,6 +38,43 @@ from negentropy.models.skill import Skill
 _logger = get_logger("negentropy.agents.skills_injector")
 
 _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
+
+
+def _parse_skill_ref(ref: str) -> tuple[str, str]:
+    """拆分 ``name@version_spec`` 为 (name, spec)；无 ``@`` 时 spec=``*``（最新）。
+
+    支持的 spec 形态（与 packaging.specifiers.SpecifierSet 对齐）：
+    - ``*``         任意版本（默认行为，等价于无 @）
+    - ``1.0.0``     精确锁定（实际生成 ``==1.0.0`` 比对）
+    - ``~1.0``      tilde range：>=1.0, <2.0
+    - ``^1.0``      caret range：>=1.0, <2.0（npm 习惯，转 ~ 处理）
+    - ``>=1.0,<2``  原生 specifier 字符串
+    """
+    text = (ref or "").strip()
+    if not text:
+        return "", "*"
+    if "@" not in text:
+        return text, "*"
+    name, _, spec = text.rpartition("@")
+    name = name.strip()
+    spec = spec.strip() or "*"
+    if not name:
+        # 整段都在 @ 后（罕见误传），退化为最新
+        return text.lstrip("@"), "*"
+    return name, spec
+
+
+# 全局共享 Jinja2 沙箱环境（参考 Anthropic 安全建议：禁用 autoescape，因 prompt 上下文非 HTML；
+# StrictUndefined 让缺失变量直接抛错而非静默渲染为空，便于调试模板）
+_JINJA_ENV = SandboxedEnvironment(autoescape=False, undefined=StrictUndefined)
+
+
+class SkillToolMissingError(RuntimeError):
+    """``enforcement_mode=strict`` 模式下缺失 ``required_tools`` 时抛出。
+
+    被 ``model_resolver._load_subagent_row`` 捕获，当前 SubAgent 退化为无 system prompt
+    启动并记录 error 级别日志，避免"看似启动但工具不全"的隐性故障。
+    """
 
 
 @dataclass(frozen=True)
@@ -45,6 +88,9 @@ class ResolvedSkill:
     prompt_template: str | None
     required_tools: tuple[str, ...]
     is_enabled: bool
+    # Phase 2 新增字段：均给默认值以保持向后兼容（现有测试无需改动）
+    enforcement_mode: str = "warning"
+    resources: tuple[dict[str, Any], ...] = ()
 
 
 def _is_uuid(value: str) -> bool:
@@ -59,29 +105,40 @@ async def resolve_skills(
 ) -> list[ResolvedSkill]:
     """按 name 或 UUID 列表加载 Skills，并按所有权 / 可见性过滤。
 
-    - 同时支持字符串名（如 ``"arxiv-fetch"``）和 UUID；
+    - 同时支持字符串名（如 ``"arxiv-fetch"``）、``name@version_spec``（Phase 3）
+      与 UUID；
     - 权限规则：``owner_id`` 拥有的 Skill 全可见；其它 Skill 仅当
       ``visibility == PUBLIC`` 时可见；
     - 仅返回 ``is_enabled=True`` 的 Skill；
+    - **Phase 3 版本锚定**：当 ref 形如 ``name@1.0.0`` 时，Skill 加载后再去
+      ``skill_versions`` 查匹配版本快照覆盖 ResolvedSkill 字段；找不到匹配
+      → fail-soft warning + 退化为 Skill 当前字段（保持向后兼容）；
     - 任何异常 → 记录 warning 并跳过该条，不冒泡（fail-soft）。
     """
     if not skill_refs:
         return []
 
-    refs = [str(r).strip() for r in skill_refs if str(r).strip()]
-    if not refs:
+    raw_refs = [str(r).strip() for r in skill_refs if str(r).strip()]
+    if not raw_refs:
         return []
+
+    # 解析 name@spec：用 dict 记 lookup_key (name 或 UUID 字符串) → spec，便于后续按行匹配
+    parsed_specs: dict[str, str] = {}
+    for ref in raw_refs:
+        name, spec = _parse_skill_ref(ref)
+        # 同一 name 出现多次取最严格（保留最后一次写入即可，调用方常用单引用）
+        parsed_specs[name] = spec
 
     uuid_refs: list[UUID] = []
     name_refs: list[str] = []
-    for ref in refs:
-        if _is_uuid(ref):
+    for lookup in parsed_specs.keys():
+        if _is_uuid(lookup):
             try:
-                uuid_refs.append(UUID(ref))
+                uuid_refs.append(UUID(lookup))
             except ValueError:
-                name_refs.append(ref)
+                name_refs.append(lookup)
         else:
-            name_refs.append(ref)
+            name_refs.append(lookup)
 
     conditions = []
     if uuid_refs:
@@ -97,13 +154,9 @@ async def resolve_skills(
 
     out: list[ResolvedSkill] = []
     seen: set = set()
-    # 同时记录 name 与 id：refs 既可能写 name 也可能写 UUID；后续 unresolved 减法
-    # 必须把两种引用形态都消掉，否则被权限过滤掉的 Skill 会因 UUID 没被匹配
-    # 而再次落入 info 级别的 unresolved 日志，破坏「不同原因走不同级别」的诊断意图。
     permission_filtered_names: list[str] = []
     permission_filtered_ids: set[str] = set()
     for skill in rows:
-        # 权限过滤：owner 全可见；其它仅 PUBLIC（SHARED 需要授权表，简化为不可见）。
         if skill.owner_id != owner_id and skill.visibility != PluginVisibility.PUBLIC:
             permission_filtered_names.append(skill.name)
             permission_filtered_ids.add(str(skill.id))
@@ -111,30 +164,51 @@ async def resolve_skills(
         if skill.id in seen:
             continue
         seen.add(skill.id)
-        out.append(
-            ResolvedSkill(
-                id=str(skill.id),
-                name=skill.name,
-                display_name=skill.display_name,
-                description=skill.description,
-                prompt_template=skill.prompt_template,
-                required_tools=tuple(skill.required_tools or []),
-                is_enabled=skill.is_enabled,
+        # Phase 3：根据 parsed_specs 决定是否覆盖为历史快照。
+        spec = parsed_specs.get(skill.name) or parsed_specs.get(str(skill.id)) or "*"
+        snapshot = await _resolve_version_snapshot(session, skill, spec) if spec and spec != "*" else None
+        if snapshot is not None:
+            out.append(
+                ResolvedSkill(
+                    id=str(skill.id),
+                    name=skill.name,
+                    display_name=snapshot.get("display_name") or skill.display_name,
+                    description=snapshot.get("description") or skill.description,
+                    prompt_template=snapshot.get("prompt_template", skill.prompt_template),
+                    required_tools=tuple(snapshot.get("required_tools") or []),
+                    is_enabled=skill.is_enabled,
+                    enforcement_mode=str(snapshot.get("enforcement_mode") or "warning") or "warning",
+                    resources=tuple(snapshot.get("resources") or ()),
+                )
             )
-        )
+        else:
+            out.append(
+                ResolvedSkill(
+                    id=str(skill.id),
+                    name=skill.name,
+                    display_name=skill.display_name,
+                    description=skill.description,
+                    prompt_template=skill.prompt_template,
+                    required_tools=tuple(skill.required_tools or []),
+                    is_enabled=skill.is_enabled,
+                    enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
+                    resources=tuple(skill.resources or ()) if hasattr(skill, "resources") else (),
+                )
+            )
 
     if permission_filtered_names:
-        # 比 unresolved 更严重：用户明确写了名字、Skill 也存在，只是当前 owner 看不到。
-        # 升到 warning 级别，便于 ops 在排查 SubAgent prompt 缺 Skills 时一眼定位。
         _logger.warning(
             "skills_injector_permission_filtered",
             owner_id=owner_id,
             filtered=sorted(permission_filtered_names),
         )
 
-    if len(out) + len(permission_filtered_names) < len(refs):
+    # Phase 3: refs 已由 parsed_specs 替代；unresolved 比对仅用 parsed_specs.keys()
+    # （即 lookup key 集合，name 或 UUID 字符串）。
+    lookup_keys = set(parsed_specs.keys())
+    if len(out) + len(permission_filtered_names) < len(lookup_keys):
         unresolved = (
-            set(refs)
+            lookup_keys
             - {s.name for s in out}
             - {s.id for s in out}
             - set(permission_filtered_names)
@@ -150,33 +224,150 @@ async def resolve_skills(
     return out
 
 
+async def _resolve_version_snapshot(session, skill: Skill, spec: str) -> dict[str, Any] | None:
+    """按 SemVer spec 在 ``skill_versions`` 表查匹配快照（Phase 3）。
+
+    支持的 spec 形态：
+    - 精确 ``1.0.0`` → 视为 ``==1.0.0``
+    - tilde ``~1.0`` → ``>=1.0,<2.0``
+    - caret ``^1.0`` → ``>=1.0,<2.0``（npm 习惯）
+    - 原生 specifier 字符串 ``>=1.0,<2``
+
+    匹配失败 fail-soft：返回 None，调用方使用 Skill 当前字段。
+    """
+    if not spec or spec == "*":
+        return None
+    try:
+        from packaging.specifiers import InvalidSpecifier, SpecifierSet
+        from packaging.version import InvalidVersion, Version
+
+        from negentropy.models.skill import SkillVersion
+
+        # 归一化几种简写
+        normalized = spec.strip()
+        if normalized.startswith("~"):
+            base = normalized[1:].strip()
+            try:
+                bv = Version(base)
+                upper = f"{bv.major + 1}.0.0"
+                normalized = f">={base},<{upper}"
+            except InvalidVersion:
+                normalized = f"=={base}"
+        elif normalized.startswith("^"):
+            base = normalized[1:].strip()
+            try:
+                bv = Version(base)
+                upper = f"{bv.major + 1}.0.0"
+                normalized = f">={base},<{upper}"
+            except InvalidVersion:
+                normalized = f"=={base}"
+        elif "," not in normalized and not normalized.startswith((">", "<", "=", "!", "~")):
+            normalized = f"=={normalized}"
+
+        try:
+            spec_set = SpecifierSet(normalized)
+        except InvalidSpecifier:
+            _logger.warning(
+                "skill_version_invalid_spec",
+                skill=skill.name,
+                spec=spec,
+            )
+            return None
+
+        rows = (await session.execute(select(SkillVersion).where(SkillVersion.skill_id == skill.id))).scalars().all()
+        candidates: list[tuple[Version, dict[str, Any]]] = []
+        for row in rows:
+            try:
+                v = Version(row.version)
+            except InvalidVersion:
+                continue
+            if v in spec_set:
+                candidates.append((v, dict(row.snapshot or {})))
+        if not candidates:
+            _logger.warning(
+                "skill_version_no_match",
+                skill=skill.name,
+                spec=spec,
+            )
+            return None
+        # 取 spec 范围内最大版本
+        candidates.sort(key=lambda t: t[0], reverse=True)
+        return candidates[0][1]
+    except Exception as exc:
+        _logger.warning(
+            "skill_version_resolve_failed",
+            skill=skill.name,
+            spec=spec,
+            error=str(exc),
+        )
+        return None
+
+
 def format_skills_block(skills: list[ResolvedSkill]) -> str:
     """生成 ``<available_skills>`` 块（Layer 1 — 描述常驻）。
 
-    格式约定：
-    - 空列表 → 空字符串（便于直接 string concat）；
-    - 每个 Skill 一行：``- {name}: {description or display_name or "(no description)"}``；
-    - 块前后用 XML 风格标签包裹，便于 LLM 主动识别可用 Skill 集合。
+    - 空列表 → 空字符串；
+    - 每个 Skill 一行：``- {name}: {description}``；附带 ``[N resources]`` 后缀（如有）；
+    - 末尾追加一行说明，告知 LLM 可通过 ``expand_skill(name)`` 工具获取完整模板。
     """
     if not skills:
         return ""
     lines = ["<available_skills>"]
     for s in skills:
         desc = s.description or s.display_name or "(no description)"
-        lines.append(f"- {s.name}: {desc}")
+        suffix = f" [{len(s.resources)} resources]" if s.resources else ""
+        lines.append(f"- {s.name}: {desc}{suffix}")
     lines.append("</available_skills>")
+    lines.append("To use a skill, call expand_skill(name) to retrieve its full template.")
     return "\n".join(lines)
 
 
-def format_skill_invocation(skill: ResolvedSkill) -> str:
+def format_skill_invocation(skill: ResolvedSkill, variables: dict[str, Any] | None = None) -> str:
     """生成单个 Skill 的完整调用模板（Layer 2 — 模板按需）。
 
-    供未来"用户/LLM 选择某个 Skill 后展开完整 prompt_template"的触发器使用；
-    当前 Phase 仅暴露接口，未在 instruction provider 中调用。
+    - 没有 ``prompt_template`` 时返回空字符串；
+    - 用 Jinja2 沙箱环境渲染 ``prompt_template``，``variables`` 透传为模板变量；
+    - 渲染失败 → 返回原始 ``prompt_template``（fail-soft，避免阻塞 LLM 决策），错误日志便于排查；
+    - 末尾自动附上 ``format_skill_resources``（Layer 3 资源摘要）。
     """
-    if not skill.prompt_template:
+    template = skill.prompt_template or ""
+    if not template:
         return ""
-    return f'<skill name="{skill.name}">\n{skill.prompt_template}\n</skill>'
+    try:
+        rendered = _JINJA_ENV.from_string(template).render(**(variables or {}))
+    except TemplateError as exc:
+        _logger.warning(
+            "skill_template_render_failed",
+            skill=skill.name,
+            error=str(exc),
+        )
+        rendered = template
+
+    resources_block = format_skill_resources(skill, eager=True)
+    body = rendered if not resources_block else f"{rendered}\n\n{resources_block}"
+    return f'<skill name="{skill.name}">\n{body}\n</skill>'
+
+
+def format_skill_resources(skill: ResolvedSkill, *, eager: bool = False) -> str:
+    """渲染 Skill 资源清单（Layer 3 — 轻量挂载）。
+
+    - ``eager=False`` 时仅返回数量提示 ``[N resources attached]``，避免常驻 prompt 膨胀；
+    - ``eager=True`` 时按 ``type/ref/title`` 列为 markdown bullets，由 ``expand_skill``
+      或 ``fetch_skill_resource`` 调用方按需消费；
+    - ``url`` 类型 **不直接 fetch**，仅传 URL 字符串，避免 SSRF。
+    """
+    if not skill.resources:
+        return ""
+    if not eager:
+        return f"[{len(skill.resources)} resources attached]"
+    lines = ["<skill_resources>"]
+    for idx, item in enumerate(skill.resources):
+        item_type = str(item.get("type") or "inline")
+        ref = item.get("ref") or ""
+        title = item.get("title") or ref or item_type
+        lines.append(f"- [{idx}] {item_type}: {title} ({ref})")
+    lines.append("</skill_resources>")
+    return "\n".join(lines)
 
 
 def validate_required_tools(
@@ -185,9 +376,7 @@ def validate_required_tools(
 ) -> list[str]:
     """返回 ``skill.required_tools`` 中不在 ``agent_tools`` 内的元素。
 
-    - 仅做集合差；不区分 MCP / 内置工具命名空间；
-    - 调用方使用：UI 红色 warning + 后端启动时记录 ``log.info`` 即可，**禁止 fail-close**
-      （Phase 1 的最小可用原则；Phase 2 可升级为强校验并阻塞 SubAgent 启用）。
+    集合差；调用方自行决定 warning vs strict 阻断。
     """
     if not skill.required_tools:
         return []
@@ -198,13 +387,36 @@ def validate_required_tools(
 def build_progressive_disclosure_prompt(
     base_prompt: str | None,
     skills: list[ResolvedSkill],
+    *,
+    agent_tools: Iterable[str] | None = None,
 ) -> str:
     """把 ``base_prompt`` 与 ``<available_skills>`` 块拼接为最终 instruction。
 
     - skills 为空 → 直接返回 ``base_prompt or ""``；
-    - skills 块插入到 ``base_prompt`` **之后**（紧贴主指令尾部，距离意图最近）；
-    - 拼接前后保留单个换行，避免 prompt 内多余空行。
+    - skills 块插入到 ``base_prompt`` 之后（紧贴主指令尾部，距离意图最近）；
+    - 当 ``agent_tools`` 提供且某 Skill ``enforcement_mode=strict`` 缺失工具时，
+      抛 ``SkillToolMissingError`` —— 由调用方决定降级或失败启动；
+    - ``warning`` 模式只记录 info 日志，保持向后兼容。
     """
+    if agent_tools is not None:
+        tools_set = list(agent_tools)
+        for s in skills:
+            missing = validate_required_tools(s, tools_set)
+            if not missing:
+                continue
+            if s.enforcement_mode == "strict":
+                _logger.error(
+                    "skill_tool_missing_strict",
+                    skill=s.name,
+                    missing=missing,
+                )
+                raise SkillToolMissingError(f"Skill '{s.name}' enforcement_mode=strict but missing tools: {missing}")
+            _logger.info(
+                "skill_tool_missing_warning",
+                skill=s.name,
+                missing=missing,
+            )
+
     block = format_skills_block(skills)
     base = (base_prompt or "").rstrip()
     if not block:

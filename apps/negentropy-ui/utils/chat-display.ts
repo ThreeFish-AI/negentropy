@@ -366,7 +366,7 @@ function createReplyBuilder(node: ConversationNode, turnId: string): ReplyBuilde
 }
 
 function appendReplySegment(builder: ReplyBuilder, segment: AssistantReplyDisplaySegment) {
-  // Reasoning segment 去重（按 stepId 维度，覆盖以下两种回归场景，详见 docs/issue.md ISSUE-048）：
+  // Reasoning segment 去重（按 stepId 维度，覆盖以下两种回归场景，详见 docs/issue.md ISSUE-053）：
   //   场景 A — collectReasoningSegments fallback：step 自身被当作 reasoning + step 含 reasoning 子节点
   //           （id 相同，由 nodeId 衍生）
   //   场景 B — 同一 stepId 下 step 节点 + reasoning 子节点 nodeId 不同（id 不同但 stepId 相同）

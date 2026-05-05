@@ -184,6 +184,48 @@ pnpm exec playwright test tests/e2e/<your.authed.spec.ts>
 
 详细落地见 [`docs/skills.md`](../skills.md) 与 [`docs/user-guide/skills-troubleshooting.md`](../user-guide/skills-troubleshooting.md)。
 
+### 9.5 Paper Hunter 端到端实机回归（Phase 2）
+
+> 完整链路 "From Template → Install → Preview Render" 实机回归 walk-through，使用 `mcp__chrome_devtools__` 通道执行。所需角色：dev-admin。
+
+**步骤**：
+
+1. **服务启动**：`./scripts/ctl.sh start backend ui`；
+2. **Cookie 注入**（参考 §9.1 / §9.2）：navigate 到 `http://localhost:3192/`，`evaluate_script` 写入合法 `ne_sso`；
+3. **导航至 Skills 页**：`http://localhost:3192/interface/skills`；
+4. **From Template 安装**：
+   - 点 `From Template…`（`button[data-testid="skills-from-template"]`）；
+   - 选 `paper_hunter` 卡片右侧 `Install`；
+   - toast `Installed template "AI Agent Paper Hunter"` 出现 → dialog 关闭；
+   - 卡片网格出现 `AI Agent Paper Hunter`，**含 `strict` 红 badge + `3 resources` 蓝 badge + `3 tools required` 标签**；
+5. **Preview 渲染**：
+   - 点 Skill 卡片右上眼睛图标（aria-label `Preview AI Agent Paper Hunter`）；
+   - Variables JSON 填入：
+     ```json
+     { "query": "ReAct agent reasoning", "top_n": 3, "days_back": 14, "topic_tag": "ai-agent" }
+     ```
+   - 点 `Render`；
+   - RENDERED PROMPT 区块应包含：`<skill name="ai-agent-paper-hunter">`、`ReAct agent reasoning`、`14`、`top_n=``3```、`<skill_resources>`；
+   - "Heads up" 列出 3 个 required tool；RESOURCES 列出 corpus / kg_node / url 三类；
+6. **网络请求验证**：`mcp__chrome_devtools__list_network_requests` 校验：
+   - `GET /api/interface/skills/templates` 200；
+   - `POST /api/interface/skills/from-template` 201；
+   - `POST /api/interface/skills/{id}/invoke` 200（**RESTful `/invoke` 路径**，**不是** `:invoke`；详见 [ISSUE-048](../issue.md#issue-048)）；
+7. **清理**（可选）：卡片右上删除图标 → ConfirmDialog 双确认；或 `DELETE /api/interface/skills/{id}`。
+
+**截图存档示例**：`.temp/skills-phase2-preview-real.png`（gitignored，仅本地留痕）。
+
+**对应 Playwright 实机 spec**：`apps/negentropy-ui/tests/e2e/skills/paper-hunter.authed.spec.ts`（PH-1 + PH-2，跑命令见 §9.3）。
+
+### 9.6 CI 与 authed spec 的关系（重要）
+
+`*.authed.spec.ts` **本质是 integration 测试**：需要外部 backend (3292) + PostgreSQL + 合法 `NE_AUTH_TOKEN_SECRET`。CI smoke job (`reusable-negentropy-ui-quality.yml`) 仅跑 `pnpm build && pnpm start` 启动前端 webServer，不起 backend，因此：
+
+- **playwright.config.ts**: `chromium-devcookie` project 仅在 `PLAYWRIGHT_DEVCOOKIE=1` 或 `NE_AUTH_TOKEN_SECRET` 任一存在时被注册；CI 环境两者均缺失 → project 数组为空 → `*.authed.spec.ts` 不会被任何 project 匹配 → 自动跳过；
+- **本地启用**：先 `./scripts/ctl.sh start backend ui`，再 `NE_AUTH_TOKEN_SECRET=$(读 ~/.negentropy/config.yaml) PLAYWRIGHT_REUSE_EXISTING_SERVER=true pnpm exec playwright test tests/e2e/skills/`；
+- **secret 仓**：`_authed-helpers.ts` **不内联** secret（避免入库）；env 缺失时 `applyDevCookie` fail-fast 抛错指向本文档；
+- **mocked spec 始终全跑**：`chromium` project 的 17 case 不依赖 backend，CI 与本地都通过。
+
 ## 10. References (IEEE)
 
 <a id="ref1"></a>[1] Microsoft, "Authentication," _Playwright Documentation_, 2025. [Online]. Available: https://playwright.dev/docs/auth.

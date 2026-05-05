@@ -17,6 +17,15 @@ interface Skill {
   is_enabled: boolean;
   priority: number;
   visibility: string;
+  enforcement_mode?: string;
+  resources?: SkillResource[];
+}
+
+interface SkillResource {
+  type?: string;
+  ref?: string;
+  title?: string;
+  lazy?: boolean;
 }
 
 interface SkillFormDialogProps {
@@ -32,7 +41,7 @@ export function SkillFormDialog({
   onSubmit,
   skill,
 }: SkillFormDialogProps) {
-  const [formData, setFormData] = useState({
+  const emptyForm = {
     name: "",
     display_name: "",
     description: "",
@@ -45,7 +54,10 @@ export function SkillFormDialog({
     is_enabled: true,
     priority: 0,
     visibility: "private",
-  });
+    enforcement_mode: "warning" as "warning" | "strict",
+  };
+  const [formData, setFormData] = useState(emptyForm);
+  const [resourceRows, setResourceRows] = useState<SkillResource[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ config_schema?: string; default_config?: string }>({});
@@ -65,25 +77,26 @@ export function SkillFormDialog({
         is_enabled: skill.is_enabled,
         priority: skill.priority,
         visibility: skill.visibility,
+        enforcement_mode:
+          skill.enforcement_mode === "strict" ? "strict" : "warning",
       });
+      setResourceRows(
+        Array.isArray(skill.resources)
+          ? skill.resources.map((r) => ({
+              type: r.type || "url",
+              ref: r.ref || "",
+              title: r.title || "",
+              lazy: r.lazy !== false,
+            }))
+          : [],
+      );
     } else {
-      setFormData({
-        name: "",
-        display_name: "",
-        description: "",
-        category: "general",
-        version: "1.0.0",
-        prompt_template: "",
-        config_schema: "{}",
-        default_config: "{}",
-        required_tools: "",
-        is_enabled: true,
-        priority: 0,
-        visibility: "private",
-      });
+      setFormData(emptyForm);
+      setResourceRows([]);
     }
     setError(null);
     setFieldErrors({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skill, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,6 +127,15 @@ export function SkillFormDialog({
 
     try {
 
+      const cleanedResources = resourceRows
+        .map((r) => ({
+          type: (r.type || "url").trim(),
+          ref: (r.ref || "").trim(),
+          title: (r.title || "").trim(),
+          lazy: r.lazy !== false,
+        }))
+        .filter((r) => r.ref.length > 0 && r.type.length > 0);
+
       const data: Record<string, unknown> = {
         name: formData.name,
         display_name: formData.display_name || null,
@@ -130,6 +152,8 @@ export function SkillFormDialog({
         is_enabled: formData.is_enabled,
         priority: formData.priority,
         visibility: formData.visibility,
+        enforcement_mode: formData.enforcement_mode,
+        resources: cleanedResources,
       };
 
       await onSubmit(data);
@@ -313,6 +337,149 @@ export function SkillFormDialog({
                     placeholder="get_file&#10;write_file"
                   />
                 </div>
+              </section>
+
+              <section className="space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Tool Enforcement
+                </h3>
+                <fieldset className="rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-700">
+                  <legend className="px-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Required tools enforcement
+                  </legend>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="enforcement_mode"
+                        value="warning"
+                        data-testid="skills-form-enforcement-warning"
+                        checked={formData.enforcement_mode === "warning"}
+                        onChange={() =>
+                          setFormData({ ...formData, enforcement_mode: "warning" })
+                        }
+                      />
+                      <span className="text-zinc-700 dark:text-zinc-200">
+                        warning <span className="text-xs text-zinc-500">(log missing tools, keep running)</span>
+                      </span>
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="enforcement_mode"
+                        value="strict"
+                        data-testid="skills-form-enforcement-strict"
+                        checked={formData.enforcement_mode === "strict"}
+                        onChange={() =>
+                          setFormData({ ...formData, enforcement_mode: "strict" })
+                        }
+                      />
+                      <span className="text-zinc-700 dark:text-zinc-200">
+                        strict <span className="text-xs text-rose-600 dark:text-rose-400">(block SubAgent if any required tool is missing)</span>
+                      </span>
+                    </label>
+                  </div>
+                </fieldset>
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    Resources
+                  </h3>
+                  <button
+                    type="button"
+                    data-testid="skills-form-add-resource"
+                    onClick={() =>
+                      setResourceRows((prev) => [
+                        ...prev,
+                        { type: "url", ref: "", title: "", lazy: true },
+                      ])
+                    }
+                    className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
+                  >
+                    + Add
+                  </button>
+                </div>
+                {resourceRows.length === 0 ? (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    No resources attached. Use Resources to point to KG nodes, Memory items, Knowledge corpora, or external URLs that the skill can reference on demand.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {resourceRows.map((row, idx) => (
+                      <li
+                        key={idx}
+                        data-testid={`skills-form-resource-${idx}`}
+                        className="grid grid-cols-1 gap-2 rounded-md border border-zinc-200 p-2 sm:grid-cols-12 dark:border-zinc-700"
+                      >
+                        <select
+                          aria-label={`Resource ${idx + 1} type`}
+                          value={row.type || "url"}
+                          onChange={(e) =>
+                            setResourceRows((prev) =>
+                              prev.map((r, i) => (i === idx ? { ...r, type: e.target.value } : r)),
+                            )
+                          }
+                          className="rounded-md border border-zinc-300 px-2 py-1 text-sm sm:col-span-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        >
+                          <option value="url">url</option>
+                          <option value="kg_node">kg_node</option>
+                          <option value="corpus">corpus</option>
+                          <option value="memory">memory</option>
+                          <option value="inline">inline</option>
+                        </select>
+                        <input
+                          type="text"
+                          aria-label={`Resource ${idx + 1} ref`}
+                          value={row.ref || ""}
+                          onChange={(e) =>
+                            setResourceRows((prev) =>
+                              prev.map((r, i) => (i === idx ? { ...r, ref: e.target.value } : r)),
+                            )
+                          }
+                          placeholder="ref (URL / corpus name / kg node label / memory uuid)"
+                          className="rounded-md border border-zinc-300 px-2 py-1 text-sm sm:col-span-5 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        />
+                        <input
+                          type="text"
+                          aria-label={`Resource ${idx + 1} title`}
+                          value={row.title || ""}
+                          onChange={(e) =>
+                            setResourceRows((prev) =>
+                              prev.map((r, i) => (i === idx ? { ...r, title: e.target.value } : r)),
+                            )
+                          }
+                          placeholder="title (optional)"
+                          className="rounded-md border border-zinc-300 px-2 py-1 text-sm sm:col-span-3 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                        />
+                        <label className="flex items-center gap-1 text-xs text-zinc-600 sm:col-span-1 dark:text-zinc-300">
+                          <input
+                            type="checkbox"
+                            checked={row.lazy !== false}
+                            onChange={(e) =>
+                              setResourceRows((prev) =>
+                                prev.map((r, i) =>
+                                  i === idx ? { ...r, lazy: e.target.checked } : r,
+                                ),
+                              )
+                            }
+                          />
+                          lazy
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setResourceRows((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                          className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50 sm:col-span-1 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </section>
 
               <section className="space-y-4">

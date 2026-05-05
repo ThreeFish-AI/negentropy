@@ -38,7 +38,7 @@ export function SessionList({
   const [draftTitle, setDraftTitle] = useState("");
   const ignoreBlurRef = useRef(false);
 
-  // 确认弹窗状态：归档 / 解档共用一套对话框，避免 window.confirm 的样式割裂（参考 ISSUE-045 / ISSUE-049）
+  // 确认弹窗状态：归档 / 解档共用一套对话框，避免 window.confirm 的样式割裂（参考 ISSUE-045 / ISSUE-054）
   const [confirmTarget, setConfirmTarget] = useState<
     | { kind: "archive" | "unarchive"; session: SessionItem }
     | null
