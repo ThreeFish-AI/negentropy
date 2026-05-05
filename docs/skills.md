@@ -1,6 +1,6 @@
 # Skills 模块（Agent Skills 在 Negentropy 的工程实现）
 
-> 项目内的 Skills 模块是「可复用 Agent 技能配置 + Progressive Disclosure 注入」的最小工程化落地。本文档汇总：理论锚点、与主流框架的对照、当前实现边界、未来演进路线。其它操作指引参见 [`docs/user-guide/skills-basics.md`](./user-guide/skills-basics.md) / [`skills-advanced.md`](./user-guide/skills-advanced.md) / [`skills-templates.md`](./user-guide/skills-templates.md) / [`skills-paper-hunter.md`](./user-guide/skills-paper-hunter.md) / [`skills-troubleshooting.md`](./user-guide/skills-troubleshooting.md)。
+> 项目内的 Skills 模块是「可复用 Agent 技能配置 + Progressive Disclosure 注入」的最小工程化落地。本文档汇总：理论锚点、与主流框架的对照、当前实现边界、未来演进路线。其它操作指引参见 [`docs/user-guide/skills-basics.md`](./user-guide/skills-basics.md) / [`skills-advanced.md`](./user-guide/skills-advanced.md) / [`skills-templates.md`](./user-guide/skills-templates.md) / [`skills-paper-hunter.md`](./user-guide/skills-paper-hunter.md) / [`skills-versions.md`](./user-guide/skills-versions.md) / [`skills-scheduling.md`](./user-guide/skills-scheduling.md) / [`skills-troubleshooting.md`](./user-guide/skills-troubleshooting.md)。
 
 ---
 
@@ -112,13 +112,39 @@ flowchart LR
   - 现有 17 个 mocked case 全部不退化，加上 27 个 authed case = **44 case 全绿**。
 - **浏览器实机回归**：通过 `mcp__chrome_devtools__` + dev cookie 注入完整走 「From Template → Install Paper Hunter → Preview Render」三步链路（截图存档 `.temp/skills-phase2-preview-real.png`）。
 
-### 3.3 仍未覆盖（Phase 3+）
+### 3.3 Phase 3 增强（本 PR 续）
 
-- **SemVer DB 历史表**：`skill_versions` 表 + SubAgent 锁定特定版本；
+- **`skill_versions` 历史表（P0）**：
+  - 新增 ORM `SkillVersion(skill_id, version, snapshot JSONB)` + 0027 迁移（含现有 Skill 回填）；
+  - SubAgent.skills 字符串语法支持 `name@1.0.0` / `name@~1.0` / `name@*`（无 `@` 视为 `*`，100% 向后兼容）；
+  - `skills_injector._parse_skill_ref` 拆名+版本，`_resolve_version_snapshot` 用 `packaging.specifiers.SpecifierSet` 精确/范围匹配；
+  - 新增 API `GET/POST /interface/skills/{id}/versions`；`PATCH /skills/{id}` 改 version 自动 snapshot；新建 Skill 与 from-template 同步落初始版本；
+  - UI 卡片新增 "Versions" 紫色按钮 → `SkillVersionsDialog` 展开历史 snapshot JSON。
+- **`skill_schedules` 表 + AsyncScheduler tick（P1）**：
+  - 新增 ORM `SkillSchedule(skill_id, owner_id, cron_expr, enabled, vars, last_run_at, next_run_at, last_error)` + 0028 迁移；
+  - `agents/skill_scheduler.py` 复用 `engine/schedulers/async_scheduler.py:AsyncScheduler`，60s tick；首次 `POST /schedules` 时通过 `ensure_scheduler_running()` 懒启动（绕开 ADK 嵌入下 startup hook 不触发的问题）；
+  - tick 用 `FOR UPDATE SKIP LOCKED + UPDATE next_run_at` 原子认领，防多 worker 重复触发；
+  - 执行 = 渲染 prompt + 写入 Memory `app_name=skill_scheduler`，**不调用 LLM**（与 invoke 端点一致），避免本地无 LLM 部署时的失败；
+  - 新增 API `GET/POST /skills/{id}/schedules`、`DELETE /schedules/{sid}`、`POST /schedules/{sid}/run`（手动触发）；
+  - UI 卡片新增 "Schedule" 黄色按钮 → `SkillScheduleDialog`（cron 输入 + vars JSON + enabled + Run Now / Delete）；
+  - feature flag `NEGENTROPY_SKILL_SCHEDULER_ENABLED=false` 一键关闭。
+- **Semantic Scholar 引文图 + Paper Hunter v0.2（P1）**：
+  - 新增 ADK tool `agents/tools/semantic_scholar.py:fetch_paper_citations(arxiv_ids, top_n, depth)`；S2 batch lookup → 按 paperId 拉一跳引用方；复用 `perception._call_with_retry` 指数退避；公共 API 默认无 key（429 退避），可选 `S2_API_KEY` env；
+  - 新增模板 `paper_hunter_v02.yaml`：`required_tools=[fetch_papers, fetch_paper_citations, save_to_memory, update_knowledge_graph]`，prompt 增加 Step 3 引文图写 KG（`Paper:{src}-[cites]->Paper:{tgt}`）；
+  - v0.1 与 v0.2 模板共存（template_id 不同），用户按需选择。
+- **35 个 authed E2E（27 + 8 新）+ 17 mocked = 52 个 E2E 全绿**：
+  - 新增 `versions.authed.spec.ts`（V-1/2/3 初始版本 / PATCH 触发 / POST 409）；
+  - 新增 `schedule.authed.spec.ts`（S-1/2 创建+Run+Delete / 非法 cron 400）；
+  - 新增 `paper-hunter-v2.authed.spec.ts`（V2-1/2/3 模板列表含 v02 / invoke 含 fetch_paper_citations / v0.1+v0.2 共存）。
+- **MCP 浏览器实机回归**：通过 `mcp__chrome_devtools__` + dev cookie 走通 Versions / Schedule 两个新弹窗（截图存档 `.temp/skills-phase3-*.png`）。
+
+### 3.4 仍未覆盖（Phase 4+）
+
 - **SKILL.md 双向同步**：仓库 `*.skill.md` ↔ DB 导入/导出；
 - **资源真正 fetch**：`url` 类型的远程 HTTP 拉取（需安全沙箱）；
 - **Skill marketplace**：跨用户公开 Skill 评分 / 使用频率统计；
-- **arXiv 之外的论文源**：Semantic Scholar / Papers With Code（Paper Hunter 后续扩展）。
+- **OpenReview / Papers With Code**：Paper Hunter 多论文源；
+- **真正切换 pg_cron**：如部署环境支持。
 
 ---
 
@@ -146,17 +172,17 @@ flowchart LR
 
 ---
 
-## 6. Next Best Action（Phase 3 路线）
+## 6. Next Best Action（Phase 4 路线）
 
-Phase 1 + Phase 2 完成 4 项 P0/P1/P2 缺口（Layer 2 / fail-close / Layer 3 / 模板库 + Paper Hunter）后，按价值密度降序的下一步：
+Phase 1 + Phase 2 + Phase 3 完成后（共 7 项缺口：Layer 2 / fail-close / Layer 3 / 模板库 + Paper Hunter / 版本锚定 / 定时调度 / 引文图），按价值密度降序的下一步：
 
-1. **`skill_versions` 历史表**：在已有 SemVer 校验之上落 DB 历史，支持 SubAgent 锁定特定版本（如 `arxiv-fetch@0.1.0`）；
-2. **`SKILL.md` 双向同步**：仓库内 `*.skill.md` 文件 → 启动时同步到 DB；DB Skill → CLI 导出 `*.skill.md` 用于 PR review；
-3. **第二批模板**：`memory-distill`、`kg-summarize`、`mcp-tool-binding` 三类高频场景；
-4. **arXiv 之外的论文源**：Semantic Scholar 引文图叠加 KG（Paper Hunter v0.2）；
-5. **Memory 自动定时调度**：通过 `memory/automation/jobs` 注册每周一 09:07 跑 paper-hunter；
-6. **Skill marketplace**：跨用户公开 Skill 评分 + 使用频率统计；
-7. **资源真正 fetch**：`url` 类型在专用沙箱内远程 HTTP 拉取，绕开 SSRF 风险（默认仍传字符串）。
+1. **`SKILL.md` 双向同步**：仓库 `*.skill.md` 文件 ↔ DB 双向同步，让 Skill 配置走 PR review 流程；
+2. **Skill marketplace**：跨用户公开 Skill 评分 + 使用频率统计 + 复制到自己 owner_id；
+3. **第二批内置模板**：`memory-distill`、`kg-summarize`、`mcp-tool-binding` 三类高频场景；
+4. **OpenReview / Papers With Code**：Paper Hunter 多论文源（v0.3）；
+5. **资源真正 fetch**：`url` 类型在专用沙箱内远程 HTTP 拉取，绕开 SSRF 风险（默认仍传字符串）；
+6. **pg_cron 真正切换**：如部署环境支持，落地后端原生 cron 调度；
+7. **Skill 回滚操作**：UI Versions 弹窗增加 "Restore to this version" 按钮（PATCH 字段从 snapshot 复原）。
 
 ---
 

@@ -78,13 +78,36 @@ curl -fsS -b "ne_sso=$TOKEN" http://localhost:3192/api/interface/skills
 | arXiv 0 篇返回 | `days_back` 太短 / 关键词太冷 | 放宽到 30 天，或用更通用 query |
 | Memory/KG 无写入 | LLM 没真的调 save_to_memory（提示词理解偏差） | 把 prompt_template 改更命令式；或在 Preview 内调试新模板再覆盖 Skill |
 
-## 6. 进阶：多论文源 / 定时调度
+## 6. 进阶：v0.2 引文图（Phase 3 已落地）
 
-| 扩展 | 落点 |
-|------|------|
-| Semantic Scholar 引文图叠加 | 新增 ADK tool `agents/tools/semantic_scholar.py:fetch_citations`，把它加入新模板 `paper_to_kg.yaml` 的 required_tools |
-| Papers With Code benchmark | 同上，新增 `fetch_pwc_benchmark` |
-| 每周一定时跑 | 通过 `memory/automation/jobs` 注册 cron `7 9 * * 1`（参考 `docs/agents/automation.md`） |
+新模板 `paper_hunter_v02.yaml` 在 v0.1 流程之上叠加 Semantic Scholar 一跳引文：
+
+```
+fetch_papers (arXiv)
+  → save_to_memory + update_knowledge_graph (v0.1 不变)
+  → fetch_paper_citations (S2 batch lookup + per-paper citations)
+  → update_knowledge_graph (Paper:{src}-[cites]->Paper:{tgt})
+```
+
+启用方式：`/interface/skills` → "From Template..." → 选 **AI Agent Paper Hunter v0.2**。两个版本可共存（template_id 不同）。
+
+新增变量：`citation_top_n`（每篇论文返回的引用方上限，默认 5，硬上限 10）。
+
+可选 env：`S2_API_KEY` 提升免费配额（无 key 时遵循公共 ~100 req/5min 限速；429 由 `_call_with_retry` 指数退避）。
+
+## 7. 进阶：定时调度（Phase 3 已落地）
+
+详见 [`skills-scheduling.md`](./skills-scheduling.md)。最常见 case：每周一 09:00 自动跑：
+
+```yaml
+cron_expr: "0 9 * * 1"
+enabled: true
+vars: { query: "AI agent", top_n: 10, days_back: 7, topic_tag: "weekly-digest" }
+```
+
+`/interface/skills` 卡片右上 ⏰ 黄色按钮 → Schedules → 填表 → Create。
+
+**重要**：scheduler 当前**只渲染 prompt + 写入 Memory**（`app_name=skill_scheduler`），不直接调 LLM。要让 LLM 真正消费这些定时记录，需 SubAgent 接入 Memory trigger（Phase 4 路线）。
 
 ## 7. 引用
 

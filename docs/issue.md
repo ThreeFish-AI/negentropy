@@ -1141,6 +1141,38 @@
 
 ---
 
+## ISSUE-050 ADK 嵌入下 FastAPI startup hook 不触发（2026-05-05）
+
+- **表因**：Phase 3 实施 SkillScheduler 时，按惯例在 `engine/bootstrap.py:_inject_negentropy_routes` 内注册 `@app.on_event("startup") async def _start_skill_scheduler()`。重启 backend 后日志中没有任何 `skill_scheduler_started` 事件，且同一函数内更早注册的 `_warm_model_config_cache` startup hook 同样不触发。
+- **根因**：项目用 ADK Web Server 而非裸 FastAPI；`_inject_negentropy_routes` 是给 ADK 注入路由的中间层，被调用时机晚于 ADK web server 自身的 lifespan 启动。`@app.on_event("startup")` 注册在子 app 上，但 ADK 已经触发过外层 lifespan，新注册的 hook 永远等不到下一次。
+- **处理方式**：
+  1. 不依赖 startup hook，改用 **lazy initialization**：在 `agents/skill_scheduler.py` 增加 `ensure_scheduler_running()` 全局幂等启动函数；
+  2. 在 `interface/api.py:create_skill_schedule` 端点入口 `await ensure_scheduler_running()`，首次创建 schedule 时启动 tick；
+  3. 保留 `bootstrap.py` 中的 startup hook 兜底（如未来切到原生 FastAPI lifespan 即可正常生效），但生产代码不依赖它。
+- **后续防范**：
+  1. ADK 嵌入场景下，所有需要后台 worker 的初始化必须用 lazy init，不能假定 startup hook 触发；
+  2. 验证后台行为时，单查 hook 日志不够，要看实际副作用（如 scheduler tick 真的扫表）；
+  3. 如果未来项目脱离 ADK 框架，可统一切到 `lifespan` async context manager。
+- **同类问题影响**：MCP / Memory / Knowledge 各模块若有类似 startup hook 需求，要按 lazy init pattern 改造。
+
+---
+
+## ISSUE-051 Skills 端点 ruff 自动 fix 把 timezone 改名 UTC + 长行多次需手动拆（2026-05-05）
+
+- **表因**：Phase 3 commit 时 ruff format pre-commit hook 反复改写：(1) `from datetime import timezone` → `from datetime import UTC`；(2) 多处 122 字符长行需要手动拆。
+- **根因**：项目 `ruff>=0.14` 启用了 `UP017` (use-of-utc-timezone) 规则；同时 line-length=120 严格执行。手动写代码若直接用 `timezone.utc` / 长 dict 构造表达式，pre-commit 总会改写然后中止 commit。
+- **处理方式**：
+  1. 主动 import `from datetime import UTC`，所有 `timezone.utc` 替换为 `UTC`；
+  2. 长 dict 构造（如 `enforcement_mode=payload.enforcement_mode if ... else "warning"`）拆成 multi-line 三元表达式；
+  3. 提交前主动 `uv run ruff format src/` 一遍消除所有 hook 警告。
+- **后续防范**：
+  1. 写新代码时 `from datetime import UTC` 而非 `timezone`；
+  2. 三元表达式 + dict 字面量明显超长时主动拆行；
+  3. 在 pre-commit hook 失败后**不要重提同样代码**，先跑 `uv run ruff format` 让它把改动落到 working tree。
+- **同类问题影响**：所有未来 backend 代码改动都受此规则约束。
+
+---
+
 ## ISSUE-049 CI UI Playwright Smoke 因 authed spec 误跑导致 27 failed（2026-05-05）
 
 - **表因**：PR #459 推送后 `ui-quality / UI Playwright Smoke` job 失败，27 个 `*.authed.spec.ts` 全部 `connect ECONNREFUSED ::1:3192` / `net::ERR_CONNECTION_REFUSED`；mocked 的 `chromium` project 17 case 全绿。
