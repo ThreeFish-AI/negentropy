@@ -112,7 +112,7 @@ node apps/negentropy-ui/scripts/sign-dev-cookie.mjs \
 |------|--------------------|
 | **C7** Home E2E 双气泡守卫 | `tests/e2e/home-chat.spec.ts` 的论文场景用例直接验证本流水线<sup>[[3]](#ref3)</sup> |
 | **C5** 附件上传 | MVP 阶段：直接粘贴 arxiv URL；V1：上传 PDF → `read_attachment` 工具 |
-| **C3** Tool Progress | `search_papers` / `ingest_paper` 的核心可观测性载体（500ms throttle） |
+| **C3** Tool Progress | `search_papers` / `ingest_paper` 的核心可观测性载体（按语义里程碑 5%/20%/60%/100% 稀疏推送） |
 | **C4** 中断门 | 长抓取（5+ 分钟）的必要止损原语 |
 
 ## 参考文献

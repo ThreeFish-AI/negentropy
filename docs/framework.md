@@ -785,7 +785,7 @@ type ToolProgressMap = Record<string /* tool_call_id */, {
 
 **推送方式**：
 - 后端 ADK Tool 通过 `state_delta` 写入 `state.tool_progress[tool_call_id] = { percent, ... }`；
-- **500 ms throttle**：每个 tool_call_id 的两次推送至少间隔 500 ms，避免与 `partial`/`final` 帧时序交叉触发 ISSUE-031 时间窗双气泡<sup>[[17]](#ref17)</sup>；
+- **稀疏推送**：MVP 默认按语义里程碑（如 `5% / 20% / 60% / 100%`）触发，里程碑天然稀疏即可避免与 `partial`/`final` 帧时序交叉触发 ISSUE-031 时间窗双气泡<sup>[[17]](#ref17)</sup>；若工具改为细粒度推送，须在工具内部按 `tool_call_id` 维护上次推送时间戳并强制 ≥ 500 ms 间隔；
 - **不进入 message-ledger**：`isSemanticEquivalentEntry` 仅比对 text content，progress 字段走旁路；
 - **终态清理**：工具进入 completed/error 时，必须从 `state.tool_progress` 删除对应键，避免 stale 进度长期残留。
 

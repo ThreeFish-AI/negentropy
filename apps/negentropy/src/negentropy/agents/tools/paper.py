@@ -54,9 +54,6 @@ _MAX_TOP_K = 25
 _DEFAULT_TOP_K = 5
 _MAX_SINCE_DAYS = 365 * 5
 
-# state_delta 进度推送节流：避免 partial/final 时间窗交叉（ISSUE-031）
-_PROGRESS_THROTTLE_SECS = 0.5
-
 # 论文采集工具单例 KnowledgeService，避免重复初始化
 _knowledge_service: KnowledgeService | None = None
 
@@ -87,7 +84,9 @@ def _emit_tool_progress(
     设计要点：
     - 写入 state.tool_progress[tool_call_id]，前端 home-body 提取后渲染进度条；
     - 不参与 message-ledger 比对（仅文本内容参与），避开 ISSUE-031 时间窗回归；
-    - 500ms throttle 由调用方控制，本函数仅做单点写入。
+    - 单点写入语义：调用方按语义里程碑（5%/20%/60%/100%）触发，里程碑天然稀疏，
+      不需要时间维度 throttle；如未来增加细粒度推送，应在此处按 `tool_call_id`
+      维护上次推送时间戳实现真正的节流，并同步更新 docs/framework.md §9.7。
     """
     if tool_context is None or not hasattr(tool_context, "state"):
         return

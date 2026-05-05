@@ -1126,7 +1126,7 @@
   6. **文档同步**：`docs/user-guide.md` 新增 §3.7 长任务/中断 + §3.8 附件 + §3.9 提示词最佳实践 + §3.10 错误排查 + §3.11 浏览器实机回归；新增 `docs/user-guide/papers-curation.md` 论文采集上手；`docs/framework.md` §9.7-9.9 增补 Tool Progress / 中断门 / Multi-modal 协议契约（含 IEEE 引用扩展至 19 条）。
 - **后续防范**：
   1. **任何 Home 对话路径变更必须对应 E2E 用例**：双气泡守卫断言 `[data-testid="message-bubble"][data-message-role="assistant"]` count=1 是合并前必检条款；
-  2. **长时工具必须实现 tool_progress**：500ms throttle + 终态清理是规范，违反将增加 ISSUE-031 类回归风险；
+  2. **长时工具必须实现 tool_progress**：MVP 默认按语义里程碑（5%/20%/60%/100%）稀疏推送 + 终态清理；若改细粒度推送须按 `tool_call_id` 强制 ≥ 500ms 节流，违反将增加 ISSUE-031 类回归风险；
   3. **中断门是长任务的对称原语**：未来任何 ≥ 30s 的工具都应支持 `ToolContext.cancel()` 信号；
   4. **附件协议演进**：MVP 仅 metadata 透传；V1 增强 `POST /sessions/{sid}/attachments` + `read_attachment` 工具时，必须保证附件不进入 message dedup 路径；
   5. **论文采集多源拓展**：V1 接 Semantic Scholar Graph API（citation 信号）；V2 接 AsyncScheduler 周期 curator job + KG cross-corpus 邻居推荐；V3 抽出独立 PaperAgent SubAgent。
