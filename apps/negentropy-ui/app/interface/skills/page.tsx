@@ -6,6 +6,10 @@ import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { ConfirmDialog } from "./_components/ConfirmDialog";
 import { SkillCard } from "./_components/SkillCard";
 import { SkillFormDialog } from "./_components/SkillFormDialog";
+import { SkillPreviewDialog } from "./_components/SkillPreviewDialog";
+import { SkillScheduleDialog } from "./_components/SkillScheduleDialog";
+import { SkillVersionsDialog } from "./_components/SkillVersionsDialog";
+import { TemplatePickerDialog } from "./_components/TemplatePickerDialog";
 
 interface Skill {
   id: string;
@@ -22,6 +26,8 @@ interface Skill {
   required_tools: string[];
   is_enabled: boolean;
   priority: number;
+  enforcement_mode?: string;
+  resources?: Array<{ type?: string; ref?: string; title?: string; lazy?: boolean }>;
 }
 
 export default function SkillsPage() {
@@ -34,6 +40,10 @@ export default function SkillsPage() {
   const [pendingDelete, setPendingDelete] = useState<Skill | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [previewSkill, setPreviewSkill] = useState<Skill | null>(null);
+  const [versionsSkill, setVersionsSkill] = useState<Skill | null>(null);
+  const [scheduleSkill, setScheduleSkill] = useState<Skill | null>(null);
 
   const fetchSkills = useCallback(async () => {
     try {
@@ -184,12 +194,21 @@ export default function SkillsPage() {
                   Define reusable skill modules with prompt templates.
                 </p>
               </div>
-              <button
-                onClick={handleCreate}
-                className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
-                Add Skill
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setTemplatePickerOpen(true)}
+                  data-testid="skills-from-template"
+                  className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                  From Template…
+                </button>
+                <button
+                  onClick={handleCreate}
+                  className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                >
+                  Add Skill
+                </button>
+              </div>
             </div>
 
             {categories.length > 0 && (
@@ -258,6 +277,9 @@ export default function SkillsPage() {
                       onEdit={() => handleEdit(skill)}
                       onDelete={() => handleDeleteRequest(skill)}
                       onToggleEnabled={() => handleToggleEnabled(skill)}
+                      onPreview={() => setPreviewSkill(skill)}
+                      onViewVersions={() => setVersionsSkill(skill)}
+                      onManageSchedule={() => setScheduleSkill(skill)}
                       toggling={togglingId === skill.id}
                     />
                   </div>
@@ -273,6 +295,37 @@ export default function SkillsPage() {
         onClose={handleDialogClose}
         onSubmit={handleFormSubmit}
         skill={editingSkill}
+      />
+
+      <TemplatePickerDialog
+        open={templatePickerOpen}
+        onClose={() => setTemplatePickerOpen(false)}
+        onInstalled={() => {
+          void fetchSkills();
+        }}
+      />
+
+      <SkillPreviewDialog
+        open={previewSkill !== null}
+        onClose={() => setPreviewSkill(null)}
+        skillId={previewSkill?.id || null}
+        displayName={previewSkill?.display_name || previewSkill?.name || ""}
+        defaultVariables={(previewSkill?.default_config || {}) as Record<string, unknown>}
+      />
+
+      <SkillVersionsDialog
+        open={versionsSkill !== null}
+        onClose={() => setVersionsSkill(null)}
+        skillId={versionsSkill?.id || null}
+        displayName={versionsSkill?.display_name || versionsSkill?.name || ""}
+      />
+
+      <SkillScheduleDialog
+        open={scheduleSkill !== null}
+        onClose={() => setScheduleSkill(null)}
+        skillId={scheduleSkill?.id || null}
+        displayName={scheduleSkill?.display_name || scheduleSkill?.name || ""}
+        defaultVars={(scheduleSkill?.default_config || {}) as Record<string, unknown>}
       />
 
       <ConfirmDialog

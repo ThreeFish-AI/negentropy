@@ -1,0 +1,106 @@
+# AI Agent Paper Hunter v0.2 — 引文图增强（Phase 3）
+#
+# 在 v0.1（arXiv 检索 + Memory + KG）基础上，叠加 Semantic Scholar 一跳引文：
+#   1. fetch_papers 拉 arXiv 论文 metadata
+#   2. fetch_paper_citations 用 S2 API 查每篇论文的引用方（一跳，top_n 上限 5）
+#   3. update_knowledge_graph 写 cites 关系：Paper:{src_arxiv} -[cites]-> Paper:{tgt_arxiv}
+#
+# 与 v0.1 共存（template_id 不同），用户可按需选择。
+#
+# 参考文献：
+#   - Semantic Scholar API Docs https://api.semanticscholar.org/api-docs/
+#   - Tang et al., ArnetMiner, KDD 2008 — 引文图基础范式
+#   - Lewis et al., RAG, NeurIPS 2020
+
+template_id: paper_hunter_v02
+name: ai-agent-paper-hunter-v2
+display_name: AI Agent Paper Hunter v0.2
+description: 检索 arXiv 论文 + Semantic Scholar 一跳引文，写入 Memory 与 KG（含 cites 关系）。
+category: research
+version: 0.2.0
+visibility: shared
+priority: 11
+enforcement_mode: strict
+
+required_tools:
+  - fetch_papers
+  - fetch_paper_citations
+  - save_to_memory
+  - update_knowledge_graph
+
+prompt_template: |
+  你是 AI Agent Paper Hunter v0.2，要在 v0.1 流程之上叠加引文图。
+
+  Step 1 — 拉论文：调用 ``fetch_papers(query="{{ query }}", top_n={{ top_n }},
+  days_back={{ days_back }})``。失败时输出错误并停止。
+
+  Step 2 — 内化论文（与 v0.1 一致）：每篇论文：
+    1. ``save_to_memory(content=summary, tags=["paper", "{{ topic_tag }}"])``
+       —— summary 形如 ``"{title} | {authors} | {published} | {pdf_url}\n{abstract}"``
+    2. ``update_knowledge_graph(entity="Paper:{arxiv_id}", relation="hasAuthor", target=author)``
+    3. ``update_knowledge_graph(entity="Paper:{arxiv_id}", relation="mentionsConcept", target=primary_category)``
+
+  Step 3 — 引文图（v0.2 新增）：
+    a. 把 Step 1 返回的 ``arxiv_id`` 列表传给 ``fetch_paper_citations(arxiv_ids=...,
+       top_n={{ citation_top_n }}, depth=1)``；
+    b. 对返回的每条 ``edge``：调用 ``update_knowledge_graph(entity="Paper:{source_arxiv}",
+       relation="cites", target="Paper:{target_paperId}")``；
+    c. 若 ``target_arxiv`` 非空，再写一条 ``Paper:{target_paperId}-[arxiv_id]->Paper:{target_arxiv}``
+       做 paperId ↔ arxiv 双 ID 兜底。
+
+  Step 4 — 输出：用 markdown 表格列出 ``[arxiv_id | title | published | citations_found |
+  memory_id]``，并附 1-2 句趋势简评（含被引最高的 1-2 篇）。
+
+  失败处理：``fetch_paper_citations`` 任何 ``status=failed`` 一律 fail-soft，跳过该批
+  引文写入但不影响 Step 1-2 的成果。
+
+config_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 关键词，如 "ReAct agent reasoning"
+    top_n:
+      type: integer
+      minimum: 1
+      maximum: 20
+      default: 5
+    days_back:
+      type: integer
+      minimum: 1
+      maximum: 365
+      default: 30
+    topic_tag:
+      type: string
+      default: ai-agent
+    citation_top_n:
+      type: integer
+      minimum: 1
+      maximum: 10
+      default: 5
+  required:
+    - query
+
+default_config:
+  top_n: 5
+  days_back: 30
+  topic_tag: ai-agent
+  citation_top_n: 5
+
+resources:
+  - type: corpus
+    ref: ai-papers-2026
+    title: AI Papers 2026 corpus
+    lazy: true
+  - type: kg_node
+    ref: Topic/AgentSkills
+    title: Agent Skills knowledge subgraph
+    lazy: true
+  - type: url
+    ref: https://api.semanticscholar.org/api-docs/
+    title: Semantic Scholar API Docs
+    lazy: true
+  - type: url
+    ref: https://arxiv.org/list/cs.AI/recent
+    title: arXiv cs.AI recent listing
+    lazy: true

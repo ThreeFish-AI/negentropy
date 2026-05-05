@@ -400,6 +400,39 @@ def apply_adk_patches():
             except Exception as exc:
                 logger.warning("model_config_cache_warm_failed", error=str(exc))
 
+        # Phase 3：启动应用层 SkillScheduler（60s tick 扫 skill_schedules 表）。
+        # feature flag NEGENTROPY_SKILL_SCHEDULER_ENABLED=false 一键关闭。
+        @app.on_event("startup")
+        async def _start_skill_scheduler():
+            try:
+                from negentropy.agents.skill_scheduler import (
+                    DEFAULT_TICK_SECONDS,
+                    register_skill_scheduler,
+                )
+                from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
+
+                scheduler = AsyncScheduler(poll_interval=DEFAULT_TICK_SECONDS)
+                register_skill_scheduler(scheduler)
+                scheduler.start()
+                # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用
+                app.state.skill_scheduler = scheduler
+                logger.info(
+                    "skill_scheduler_started",
+                    jobs=scheduler.registered_jobs,
+                )
+            except Exception as exc:
+                logger.warning("skill_scheduler_start_failed", error=str(exc))
+
+        @app.on_event("shutdown")
+        async def _stop_skill_scheduler():
+            sched = getattr(app.state, "skill_scheduler", None)
+            if sched is not None:
+                try:
+                    sched.stop()
+                    logger.info("skill_scheduler_stopped")
+                except Exception as exc:
+                    logger.warning("skill_scheduler_stop_failed", error=str(exc))
+
         return app
 
     # Patch get_fast_api_app via AdkWebServer so it applies to current call

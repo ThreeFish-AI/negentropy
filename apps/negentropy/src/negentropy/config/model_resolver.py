@@ -307,7 +307,11 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
     """
     from sqlalchemy import select
 
-    from negentropy.agents.skills_injector import build_progressive_disclosure_prompt, resolve_skills
+    from negentropy.agents.skills_injector import (
+        SkillToolMissingError,
+        build_progressive_disclosure_prompt,
+        resolve_skills,
+    )
     from negentropy.db.session import AsyncSessionLocal
     from negentropy.models.sub_agent import SubAgent
 
@@ -318,6 +322,7 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
                 SubAgent.system_prompt,
                 SubAgent.is_enabled,
                 SubAgent.skills,
+                SubAgent.tools,
                 SubAgent.owner_id,
             )
             .where(SubAgent.name == agent_name)
@@ -326,7 +331,7 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
         row = result.first()
         if row is None:
             return None
-        model_value, system_prompt_value, is_enabled, skill_refs, owner_id = row
+        model_value, system_prompt_value, is_enabled, skill_refs, tools_list, owner_id = row
         if not is_enabled:
             return None
 
@@ -336,7 +341,24 @@ async def _load_subagent_row(agent_name: str) -> tuple[str | None, str | None] |
         if skill_refs:
             try:
                 resolved = await resolve_skills(session, skill_refs, owner_id=owner_id or "")
-                instruction_normalized = build_progressive_disclosure_prompt(instruction_normalized, resolved) or None
+                instruction_normalized = (
+                    build_progressive_disclosure_prompt(
+                        instruction_normalized,
+                        resolved,
+                        agent_tools=list(tools_list or []),
+                    )
+                    or None
+                )
+            except SkillToolMissingError:
+                # strict 模式下缺工具：降级为无 system prompt（明确比"装作没事"更安全）。
+                from negentropy.logging import get_logger
+
+                get_logger("negentropy.config.model_resolver").error(
+                    "subagent_skills_strict_blocked",
+                    agent_name=agent_name,
+                    exc_info=True,
+                )
+                instruction_normalized = None
             except Exception:
                 from negentropy.logging import get_logger
 
