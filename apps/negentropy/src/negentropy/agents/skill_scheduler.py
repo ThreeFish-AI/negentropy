@@ -18,8 +18,9 @@ Skill Scheduler — Phase 3 应用层定时调度（不依赖 pg_cron）。
 
 from __future__ import annotations
 
+import asyncio
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -134,17 +135,22 @@ async def _record_run_to_memory(*, skill_name: str, rendered: str, vars_dict: di
         _logger.debug("skill_schedule_record_memory_failed", error=str(exc))
 
 
+_CLAIM_LEASE = timedelta(seconds=DEFAULT_TICK_SECONDS + 30)
+
+
 async def _tick() -> None:
     """单次 tick：扫表并并发执行所有 due 的 schedule。
 
-    使用 ``FOR UPDATE SKIP LOCKED`` 配合 ``UPDATE SET next_run_at = NOW() + 1s`` 形成
-    原子认领，避免多 worker 竞争同一 schedule。
+    使用 ``FOR UPDATE SKIP LOCKED`` 配合 ``UPDATE SET next_run_at = NOW() + lease``
+    形成原子认领：行级锁在事务 commit 后释放，但 ``next_run_at`` 已经被推到一个
+    tick 周期之后（默认 90 秒），下一次 tick 不会把同一行再判为 due，从而避免
+    多 worker / 慢任务下的重复触发。``execute_schedule_once`` 完成后会按 cron 表达式
+    重算最终的 ``next_run_at``，覆盖此处的占位值。
     """
     if _scheduler_disabled():
         return
 
     async with AsyncSessionLocal() as db:
-        # 在一个事务里：选 due → 立刻把 next_run_at 推后 1 分钟（避免重复认领）
         stmt = (
             select(SkillSchedule)
             .where(SkillSchedule.enabled.is_(True))
@@ -156,8 +162,10 @@ async def _tick() -> None:
         if not rows:
             return
         ids = [r.id for r in rows]
+        # 把占位 next_run_at 推到一个完整 tick 周期之外（默认 90s）。即便另一个
+        # worker 在 60s 后扫表，这批被占用的行也不会再判为 due。
         await db.execute(
-            update(SkillSchedule).where(SkillSchedule.id.in_(ids)).values(next_run_at=_utcnow().replace(microsecond=0))
+            update(SkillSchedule).where(SkillSchedule.id.in_(ids)).values(next_run_at=_utcnow() + _CLAIM_LEASE)
         )
         await db.commit()
 
@@ -184,7 +192,18 @@ def register_skill_scheduler(scheduler: AsyncScheduler, interval_seconds: float 
 
 # 全局 lazy scheduler 单例：用于在 FastAPI startup hook 不可靠时（ADK 嵌入场景）
 # 由首次 /skills/{id}/schedules 端点访问触发启动。
+# ``_LAZY_LOCK`` 串行化首次启动路径，避免冷启动并发请求各自 spawn 一个 scheduler、
+# 仅最后一次赋值赢得 ``_LAZY_SCHEDULER`` 引用而其余成为 orphan 任务的资源泄漏。
 _LAZY_SCHEDULER: AsyncScheduler | None = None
+_LAZY_LOCK: asyncio.Lock | None = None
+
+
+def _get_lazy_lock() -> asyncio.Lock:
+    """惰性创建 Lock：模块 import 阶段可能没有运行中的 event loop。"""
+    global _LAZY_LOCK
+    if _LAZY_LOCK is None:
+        _LAZY_LOCK = asyncio.Lock()
+    return _LAZY_LOCK
 
 
 async def ensure_scheduler_running() -> None:
@@ -192,19 +211,25 @@ async def ensure_scheduler_running() -> None:
 
     `_LAZY_SCHEDULER` 与 `_running` 都是进程内单例；多 worker 部署时各自启动一份，
     通过 `FOR UPDATE SKIP LOCKED` 在 DB 层防止并发执行同一 schedule。
+    单进程内的并发首次调用通过 ``_LAZY_LOCK`` 串行化，确保仅 spawn 一个 AsyncScheduler。
     """
     global _LAZY_SCHEDULER
     if _scheduler_disabled():
         return
+    # Fast-path：已启动则免锁直接返回，避免每次端点调用都竞锁。
     if _LAZY_SCHEDULER is not None and _LAZY_SCHEDULER.is_running:
         return
-    try:
-        from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
+    async with _get_lazy_lock():
+        # Double-check：另一个 coroutine 可能在我们等锁期间已完成启动。
+        if _LAZY_SCHEDULER is not None and _LAZY_SCHEDULER.is_running:
+            return
+        try:
+            from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
 
-        scheduler = AsyncScheduler(poll_interval=DEFAULT_TICK_SECONDS)
-        register_skill_scheduler(scheduler)
-        scheduler.start()
-        _LAZY_SCHEDULER = scheduler
-        _logger.info("skill_scheduler_lazy_started", jobs=scheduler.registered_jobs)
-    except Exception as exc:
-        _logger.warning("skill_scheduler_lazy_start_failed", error=str(exc))
+            scheduler = AsyncScheduler(poll_interval=DEFAULT_TICK_SECONDS)
+            register_skill_scheduler(scheduler)
+            scheduler.start()
+            _LAZY_SCHEDULER = scheduler
+            _logger.info("skill_scheduler_lazy_started", jobs=scheduler.registered_jobs)
+        except Exception as exc:
+            _logger.warning("skill_scheduler_lazy_start_failed", error=str(exc))

@@ -46,8 +46,10 @@ class Skill(Base, UUIDMixin, TimestampMixin):
     )
 
     # Phase 2 — Layer 3 资源挂载：[{type, ref, title, lazy}, ...]
-    # type ∈ {kg_node, memory, corpus, url, inline}；lazy=True 时不入常驻 prompt
-    resources: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, server_default="[]")
+    # type ∈ {kg_node, memory, corpus, url, inline}；lazy=True 时不入常驻 prompt。
+    # NOT NULL：与 0026 迁移对齐；server_default 让现有行升级时自动获得 ``[]``，
+    # 调用方无需为空场景额外判 None。
+    resources: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
 
     __table_args__ = (
         UniqueConstraint("name", name="skills_name_unique"),

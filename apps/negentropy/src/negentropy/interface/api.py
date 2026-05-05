@@ -7,7 +7,7 @@ Interface API 模块。
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -1577,7 +1577,10 @@ async def create_skill_schedule(
     if not cron_expr:
         raise HTTPException(status_code=400, detail="cron_expr is required")
     try:
-        cron = croniter(cron_expr, datetime.utcnow())
+        # 与 ``skill_scheduler._utcnow`` 保持一致：tz-aware UTC，避免 naive
+        # datetime 写入 ``next_run_at`` (TIMESTAMP WITH TIME ZONE) 时被驱动按本地
+        # 时区错误解释。
+        cron = croniter(cron_expr, datetime.now(UTC))
         next_run = cron.get_next(datetime)
     except (CroniterBadCronError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=f"invalid cron_expr: {exc}") from exc
