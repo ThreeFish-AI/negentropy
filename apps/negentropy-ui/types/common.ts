@@ -104,6 +104,24 @@ export type ToolProgressSnapshot = {
 export type ToolProgressMap = Record<string, ToolProgressSnapshot>;
 
 /**
+ * Citation 引用条目（P2-3 G2 · IEEE 风格）
+ *
+ * 后端 `search_knowledge_base` / `search_knowledge_graph_with_papers` 在每条返回结果中注入
+ * `citation_id` + `formatted_citation`。前端把这些字段聚合到 ChatMessage.citations，
+ * 并在尾注块中按序号渲染。
+ */
+export type Citation = {
+  /** 1-based 序号（与 [N] 标号对齐） */
+  id: number;
+  /** IEEE 风格字符串：`[N] Author et al., "Title," arXiv:ID, Year.` */
+  text: string;
+  /** 源 URL（可点击跳转） */
+  sourceUri?: string | null;
+  /** arXiv ID（如有，用于跳转 https://arxiv.org/abs/{id}） */
+  arxivId?: string | null;
+};
+
+/**
  * 聊天消息类型
  *
  * 从 Message 类型提取必要的字段，确保类型兼容性
@@ -124,6 +142,12 @@ export type ChatMessage = Pick<Message, "id" | "role"> & {
   streaming?: boolean;
   /** 关联的工具调用列表（内嵌显示在消息气泡中） */
   toolCalls?: ToolCallInfo[];
+  /**
+   * 引用列表（P2-3 G2）— 从 toolCalls.result 中聚合的 search_knowledge_base /
+   * search_knowledge_graph_with_papers 的引用条目。
+   * 旧消息无此字段时 MarkdownContent 走零回归分支，与既有渲染等价。
+   */
+  citations?: Citation[];
 };
 
 export type RoleResolutionSource =

@@ -48,6 +48,63 @@ _GOOGLE_SEARCH_URL = "https://www.googleapis.com/customsearch/v1"
 _knowledge_service: KnowledgeService | None = None
 
 
+# ----------------------------------------------------------------------------
+# P2-3 G2 · Citation 规范化 helper（IEEE 风格）
+# ----------------------------------------------------------------------------
+
+
+def _format_citation(
+    metadata: dict[str, Any] | None,
+    source_uri: str | None,
+    idx: int,
+) -> str:
+    """生成 IEEE 风格 citation 字符串：``[N] {first_author} et al., "{title}," arXiv:{id}, {year}.``
+
+    旧记录无 arxiv_id 则退化为 ``[N] {source_uri or 'Unknown'}``。所有字段都是 best-effort，
+    不抛异常。仅依赖 ``metadata`` 中可能存在的 ``arxiv_id`` / ``title`` / ``authors`` /
+    ``published_at`` —— 这与 ``paper.py`` `ingest_paper` 注入的 metadata 兼容。
+
+    设计动机（参见 docs/conversation-foundation.md §3 RAG + 引用机制）：
+        Self-RAG 与 Corrective RAG 等近期工作均强调 retrieval 过程必须返回 stable citation
+        token，让模型在生成阶段引用，从而把 hallucination 率压到可控。本 helper 是该
+        契约的工程落点。
+
+    Args:
+        metadata: chunk 级 metadata（可能为 None）。
+        source_uri: chunk 关联的源 URL（用于 fallback 与跳转）。
+        idx: 1-based 引用序号（数组下标 + 1）。
+
+    Returns:
+        single-line citation 字符串（前端渲染时按 ``[N]`` 解析尾注）。
+    """
+    meta = metadata or {}
+    arxiv_id = (meta.get("arxiv_id") or "").strip()
+    title = (meta.get("title") or "").strip()
+    authors = meta.get("authors") or []
+    if not isinstance(authors, list):
+        authors = []
+    first_author = ""
+    if authors:
+        first = authors[0]
+        first_author = str(first).split(",")[0].strip() if first else ""
+    year = ""
+    published_at = (meta.get("published_at") or "").strip()
+    if len(published_at) >= 4 and published_at[:4].isdigit():
+        year = published_at[:4]
+
+    if arxiv_id:
+        author_part = f"{first_author} et al., " if first_author else ""
+        title_part = f'"{title}," ' if title else ""
+        year_part = f"{year}." if year else ""
+        return f"[{idx}] {author_part}{title_part}arXiv:{arxiv_id}, {year_part}".rstrip()
+
+    # 退化路径：无 arxiv_id 时使用 source_uri，仍尽量保留 title
+    if title:
+        suffix = f" — {source_uri}" if source_uri else ""
+        return f'[{idx}] "{title}"{suffix}'
+    return f"[{idx}] {source_uri or 'Unknown source'}"
+
+
 def _get_knowledge_service() -> KnowledgeService:
     """获取 KnowledgeService 单例
 
@@ -235,6 +292,7 @@ async def search_knowledge_base(
                             "semantic_score": round(match.semantic_score, 4),
                             "keyword_score": round(match.keyword_score, 4),
                             "combined_score": round(match.combined_score, 4),
+                            # citation 字段稍后按最终排序后的 idx 注入
                         }
                     )
             except Exception as exc:
@@ -250,6 +308,15 @@ async def search_knowledge_base(
         # 按融合分数排序并限制返回数量
         all_results.sort(key=lambda x: x["combined_score"], reverse=True)
         all_results = all_results[:limit]
+
+        # P2-3 G2 · Citation 规范化：按最终排序顺序注入 citation_id + formatted_citation
+        for idx, result in enumerate(all_results, start=1):
+            result["citation_id"] = idx
+            result["formatted_citation"] = _format_citation(
+                metadata=result.get("metadata"),
+                source_uri=result.get("source_uri"),
+                idx=idx,
+            )
 
         logger.info(
             "knowledge_search_completed",
@@ -542,3 +609,152 @@ async def _search_google_page(
         )
 
     return results[:limit]
+
+
+# ----------------------------------------------------------------------------
+# P2-3 G2 · KG 反向推荐工具：基于 ai_paper schema 抽取的实体反查相关论文
+# ----------------------------------------------------------------------------
+
+
+async def search_knowledge_graph_with_papers(
+    query: str,
+    top_k: int,
+    tool_context: ToolContext,
+) -> dict[str, Any]:
+    """通过知识图谱（ai_paper schema）反查相关论文。
+
+    使用场景：用户在 Home 对话中询问 "有哪些论文讨论 Transformer 架构" / "Reflexion
+    路线最相关的论文"等概念性问题。本工具命中 ai_paper schema 抽取的 Concept / Method /
+    Author 实体后，通过实体 metadata 反查关联的论文（arxiv_id），并附 IEEE 风格 citation。
+
+    优先于 ``search_knowledge_base`` 调用：
+        - 概念级问题 → 本工具（实体优先，召回率更高）
+        - chunk 级原文片段 → ``search_knowledge_base``
+
+    Args:
+        query: 自然语言查询。
+        top_k: 返回 paper 数量上限（≤ 20）。
+        tool_context: ADK 工具上下文。
+
+    Returns:
+        - 成功且命中：``{"status": "success", "kg_status": "graph_hit",
+          "papers": [{"arxiv_id", "title", "source_uri", "formatted_citation",
+          "matched_entity", "score"}], "count"}``；
+        - KG 空 / 无命中：``{"status": "success", "kg_status": "graph_empty",
+          "papers": [], "fallback_hint": "...。建议改调 search_knowledge_base"}``；
+        - 失败：``{"status": "failed", "error", "kg_status": "graph_error"}``。
+
+    fail-soft：任何异常都不抛出，统一降级到 ``graph_empty`` / ``graph_error``，让 LLM
+    自然回退到 ``search_knowledge_base``。
+    """
+    if not query or not query.strip():
+        return {"status": "failed", "error": "query 不可为空", "kg_status": "graph_error"}
+    limit = max(1, min(top_k, _MAX_RESULTS_LIMIT))
+
+    try:
+        # 锁定 agent-papers Corpus（与 paper.py PAPER_CORPUS_NAME 同源）
+        async with db_session.AsyncSessionLocal() as db:
+            stmt = select(Corpus).where(
+                Corpus.app_name == settings.app_name,
+                Corpus.name == "agent-papers",
+            )
+            result = await db.execute(stmt)
+            corpus = result.scalar_one_or_none()
+
+        if corpus is None:
+            return {
+                "status": "success",
+                "kg_status": "graph_empty",
+                "papers": [],
+                "count": 0,
+                "fallback_hint": "agent-papers Corpus 尚未建立。建议先调用 ingest_paper 入库一些论文。",
+            }
+
+        # 嵌入 query（GraphService.search 必需）
+        try:
+            embedding_fn = build_embedding_fn()
+            query_embedding = (
+                await embedding_fn(query) if inspect.iscoroutinefunction(embedding_fn) else embedding_fn(query)
+            )
+        except Exception as exc:
+            logger.warning("kg_search_embedding_failed", error=str(exc))
+            query_embedding = None
+
+        # 调 GraphService.search 拿相关实体
+        from negentropy.knowledge.graph.service import GraphService
+        from negentropy.knowledge.types import GraphQueryConfig
+
+        graph_service = GraphService()
+        graph_result = await graph_service.search(
+            corpus_id=corpus.id,
+            app_name=settings.app_name,
+            query=query,
+            query_embedding=query_embedding,
+            config=GraphQueryConfig(limit=limit),
+        )
+
+        if not graph_result.entities:
+            return {
+                "status": "success",
+                "kg_status": "graph_empty",
+                "papers": [],
+                "count": 0,
+                "fallback_hint": "知识图谱无相关实体。建议改调 search_knowledge_base 做语义检索。",
+            }
+
+        # 实体 → 关联论文（去重 by arxiv_id，保留最高分）
+        papers_by_id: dict[str, dict[str, Any]] = {}
+        for entity_result in graph_result.entities:
+            entity = entity_result.entity
+            entity_meta = getattr(entity, "metadata", None) or {}
+            arxiv_id = (entity_meta.get("arxiv_id") or "").strip()
+            source_uri = entity_meta.get("source_uri")
+            title = (entity_meta.get("title") or "").strip()
+            if not arxiv_id and not source_uri:
+                continue
+            key = arxiv_id or source_uri or ""
+            score = float(getattr(entity_result, "combined_score", 0.0) or 0.0)
+            if key in papers_by_id and papers_by_id[key]["score"] >= score:
+                continue
+            papers_by_id[key] = {
+                "arxiv_id": arxiv_id or None,
+                "title": title or None,
+                "source_uri": source_uri,
+                "matched_entity": getattr(entity, "name", None) or getattr(entity, "id", None),
+                "score": round(score, 4),
+                "_meta": entity_meta,
+            }
+
+        # 注入 IEEE citation
+        papers_sorted = sorted(papers_by_id.values(), key=lambda p: p["score"], reverse=True)[:limit]
+        for idx, paper in enumerate(papers_sorted, start=1):
+            paper["citation_id"] = idx
+            paper["formatted_citation"] = _format_citation(
+                metadata=paper.pop("_meta", {}),
+                source_uri=paper.get("source_uri"),
+                idx=idx,
+            )
+
+        logger.info(
+            "kg_search_with_papers_completed",
+            query=query[:80],
+            entity_count=len(graph_result.entities),
+            paper_count=len(papers_sorted),
+        )
+        return {
+            "status": "success",
+            "kg_status": "graph_hit",
+            "query": query,
+            "count": len(papers_sorted),
+            "papers": papers_sorted,
+        }
+
+    except Exception as exc:
+        logger.warning("kg_search_with_papers_failed", error=str(exc))
+        return {
+            "status": "success",  # 仍返回 success 让 LLM 平滑降级
+            "kg_status": "graph_error",
+            "papers": [],
+            "count": 0,
+            "fallback_hint": f"KG 查询失败（{type(exc).__name__}）。建议改调 search_knowledge_base。",
+        }

@@ -144,6 +144,53 @@ async def _ensure_paper_corpus() -> UUID:
     return corpus.id
 
 
+async def _check_existing_arxiv(
+    arxiv_id: str,
+    corpus_id: UUID,
+) -> dict[str, Any] | None:
+    """幂等去重：按 ``Knowledge.metadata->>'arxiv_id'`` 检查是否已入库。
+
+    返回 ``None`` 表示未命中；命中则返回 ``{"knowledge_ids", "source_uri", "record_count"}``。
+
+    设计要点：
+    - 仅查询，不写。失败一律返回 ``None`` —— 失败语义=未知，由后续路径正常 ingest。
+    - 性能依赖迁移 ``0029`` 在 ``negentropy.knowledge ((metadata->>'arxiv_id'))`` 上建立的
+      表达式索引，命中查询为 O(log n)。
+    - 不去查 ``KnowledgeDocument`` —— 文档级 metadata 不一定包含 arxiv_id（取决于
+      ``ingest_url`` 是否 propagate），chunk 级 ``Knowledge.metadata`` 才是 ``paper.py`` 注入
+      metadata 的稳定落点（参见 service.py:1971 ``_ingest_text_with_tracker``）。
+    """
+    if not arxiv_id:
+        return None
+    try:
+        from sqlalchemy import select
+
+        from negentropy.db.session import AsyncSessionLocal
+        from negentropy.models.perception import Knowledge
+
+        async with AsyncSessionLocal() as db:
+            stmt = (
+                select(Knowledge.id, Knowledge.source_uri)
+                .where(Knowledge.corpus_id == corpus_id)
+                .where(Knowledge.metadata_["arxiv_id"].astext == arxiv_id)
+                .order_by(Knowledge.chunk_index.asc())
+            )
+            result = await db.execute(stmt)
+            rows = result.all()
+            if not rows:
+                return None
+            knowledge_ids = [str(row[0]) for row in rows]
+            source_uri = next((row[1] for row in rows if row[1]), None)
+            return {
+                "knowledge_ids": knowledge_ids,
+                "record_count": len(knowledge_ids),
+                "source_uri": source_uri,
+            }
+    except Exception as exc:
+        logger.debug("check_existing_arxiv_failed", arxiv_id=arxiv_id, error=str(exc))
+        return None
+
+
 async def search_papers(
     query: str,
     top_k: int,
@@ -302,12 +349,29 @@ async def ingest_paper(
 
     Returns:
         {
-          "status": "success" | "failed",
+          "status": "success" | "already_ingested" | "failed",
           "arxiv_id": str,
           "corpus": "agent-papers",
-          "record_count": int,  # 入库的 chunk 数
+          "corpus_id": str,
+          "record_count": int,  # 入库的 chunk 数（already_ingested 时为已存在 chunk 数）
           "knowledge_ids": [str],
+          "source_uri": str | None,  # 仅 already_ingested 状态下返回首个 chunk 的 source_uri
+          # 仅 success 状态额外携带（P2-2 KG 自动闭环）：
+          "kg_status": "kg_enqueued" | "kg_skipped",
+          "kg_chunk_count": int,           # kg_enqueued 时返回，已喂给 KG pipeline 的 chunk 数
+          "kg_error_code": str,            # kg_skipped 时返回，简短错误标签（不含敏感信息）
         }
+
+    幂等性：同一 ``arxiv_id`` 重复调用返回 ``status="already_ingested"``，跳过下载/解析/入库；
+    依赖 ``Knowledge.metadata->>'arxiv_id'`` 表达式索引（迁移 0029）保证查询性能。
+
+    KG 闭环：``status="success"`` 时同步调度 ai_paper schema-guided KG 增量构建（异步背景任务，
+    fail-open）。返回携带 ``kg_status`` 字段告知调度结果，实际 KG run 完成时间不被等待。
+
+    SSE 进度（P3-1）：当 ``kg_status="kg_enqueued"`` 时，前端可订阅
+        GET /api/knowledge/base/{corpus_id}/graph/build-runs/latest/progress
+    跟踪 progress_percent / status / entity_count / relation_count，直至 completed/failed
+    终态。详见 docs/observability-genai.md（P3-3）与 framework.md §9.7。
     """
     if not pdf_url or not pdf_url.startswith(("http://", "https://")):
         return {
@@ -326,6 +390,32 @@ async def ingest_paper(
 
     try:
         corpus_id = await _ensure_paper_corpus()
+
+        # 幂等去重：若该 arxiv_id 已入库，跳过整条 ingest 流水线
+        existing = await _check_existing_arxiv(arxiv_id, corpus_id)
+        if existing is not None:
+            _emit_tool_progress(
+                tool_context,
+                tool_call_id=tool_call_id,
+                percent=100,
+                stage=f"已入库 · 跳过（{existing['record_count']} chunk）",
+            )
+            _clear_tool_progress(tool_context, tool_call_id=tool_call_id)
+            logger.info(
+                "ingest_paper_skipped_already_ingested",
+                arxiv_id=arxiv_id,
+                corpus_id=str(corpus_id),
+                record_count=existing["record_count"],
+            )
+            return {
+                "status": "already_ingested",
+                "arxiv_id": arxiv_id,
+                "corpus": PAPER_CORPUS_NAME,
+                "corpus_id": str(corpus_id),
+                "record_count": existing["record_count"],
+                "knowledge_ids": existing["knowledge_ids"],
+                "source_uri": existing["source_uri"],
+            }
 
         _emit_tool_progress(tool_context, tool_call_id=tool_call_id, percent=20, stage="抓取 PDF 并解析")
 
@@ -349,11 +439,17 @@ async def ingest_paper(
         )
         _clear_tool_progress(tool_context, tool_call_id=tool_call_id)
 
+        # P2-2 G1b · KG 自动闭环（fail-open 异步）—— 不阻塞 ingest_paper 返回
+        from .paper_kg_pipeline import enqueue_kg_build
+
+        kg_meta = await enqueue_kg_build(corpus_id, list(records))
+
         logger.info(
             "ingest_paper_completed",
             arxiv_id=arxiv_id,
             corpus_id=str(corpus_id),
             record_count=len(records),
+            kg_status=kg_meta.get("kg_status"),
         )
         return {
             "status": "success",
@@ -362,6 +458,7 @@ async def ingest_paper(
             "corpus_id": str(corpus_id),
             "record_count": len(records),
             "knowledge_ids": [str(getattr(r, "id", "")) for r in records],
+            **kg_meta,
         }
 
     except Exception as exc:

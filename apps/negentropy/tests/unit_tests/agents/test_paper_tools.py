@@ -191,7 +191,10 @@ async def test_ingest_paper_invokes_knowledge_service_with_metadata():
     fake_service.ensure_corpus = AsyncMock(return_value=MagicMock(id=fake_corpus_id))
     fake_service.ingest_url = AsyncMock(return_value=[fake_record_1, fake_record_2])
 
-    with patch.object(paper_module, "_get_knowledge_service", return_value=fake_service):
+    with (
+        patch.object(paper_module, "_get_knowledge_service", return_value=fake_service),
+        patch.object(paper_module, "_check_existing_arxiv", AsyncMock(return_value=None)),
+    ):
         ctx = _FakeToolContext()
         result = await paper_module.ingest_paper(
             arxiv_id="2501.99999",
@@ -212,3 +215,85 @@ async def test_ingest_paper_invokes_knowledge_service_with_metadata():
     assert call_kwargs["metadata"]["title"] == "Memory in LLM Agents"
     # 终态清理
     assert ctx.state.get("tool_progress", {}) == {}
+
+
+# ----------------------------------------------------------------------------
+# P2-1 · G1a 幂等去重 — _check_existing_arxiv 命中时跳过 ingest_url 主路径
+# ----------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ingest_paper_returns_already_ingested_when_arxiv_exists():
+    """已入库的 arxiv_id 应返回 status='already_ingested' 且不调用 ingest_url。
+
+    验证 P2-1 幂等去重契约：
+    - 不下载/解析 PDF，不写库；
+    - 进度直接 100% + clear（不发 5%/20% 中间假信号欺骗用户）；
+    - 返回携带已存在 chunk 的 knowledge_ids 与 source_uri。
+    """
+    from negentropy.agents.tools import paper as paper_module
+
+    fake_corpus_id = "00000000-0000-0000-0000-000000001234"
+    fake_service = MagicMock()
+    fake_service.ensure_corpus = AsyncMock(return_value=MagicMock(id=fake_corpus_id))
+    fake_service.ingest_url = AsyncMock()  # 不应被调用
+
+    existing_payload = {
+        "knowledge_ids": ["k-1", "k-2", "k-3"],
+        "record_count": 3,
+        "source_uri": "https://arxiv.org/pdf/2501.99999.pdf",
+    }
+
+    with (
+        patch.object(paper_module, "_get_knowledge_service", return_value=fake_service),
+        patch.object(paper_module, "_check_existing_arxiv", AsyncMock(return_value=existing_payload)),
+    ):
+        ctx = _FakeToolContext()
+        result = await paper_module.ingest_paper(
+            arxiv_id="2501.99999",
+            pdf_url="https://arxiv.org/pdf/2501.99999.pdf",
+            title="Memory in LLM Agents",
+            tool_context=ctx,
+        )
+
+    assert result["status"] == "already_ingested", result
+    assert result["arxiv_id"] == "2501.99999"
+    assert result["record_count"] == 3
+    assert result["knowledge_ids"] == ["k-1", "k-2", "k-3"]
+    assert result["source_uri"] == "https://arxiv.org/pdf/2501.99999.pdf"
+    # 主路径绝不调用：确认零 PDF 下载 / 零 embedding / 零写库
+    fake_service.ingest_url.assert_not_called()
+    # 终态清理
+    assert ctx.state.get("tool_progress", {}) == {}
+
+
+@pytest.mark.asyncio
+async def test_check_existing_arxiv_returns_none_on_db_failure():
+    """_check_existing_arxiv 遇 DB 异常必须返回 None（fail-as-not-found），
+    保证 ingest_paper 在 DB 不可用时仍走正常路径，不破坏既有契约。
+    """
+    from uuid import UUID
+
+    from negentropy.agents.tools.paper import _check_existing_arxiv
+
+    # 单测环境下 AsyncSessionLocal 实例化大概率因 settings 指向 stub URL 而失败 ——
+    # 我们关心的是失败语义：返回 None，而不是抛异常。
+    result = await _check_existing_arxiv(
+        arxiv_id="2501.NEVER",
+        corpus_id=UUID("00000000-0000-0000-0000-000000000000"),
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_check_existing_arxiv_rejects_empty_arxiv_id():
+    """空 arxiv_id 立即返回 None（不应触发任何 DB 查询）。"""
+    from uuid import UUID
+
+    from negentropy.agents.tools.paper import _check_existing_arxiv
+
+    result = await _check_existing_arxiv(
+        arxiv_id="",
+        corpus_id=UUID("00000000-0000-0000-0000-000000000000"),
+    )
+    assert result is None

@@ -4,7 +4,11 @@ from .._dynamic_instruction import make_instruction_provider
 from .._model import create_subagent_model
 from ..tools.common import log_activity
 from ..tools.paper import search_papers
-from ..tools.perception import search_knowledge_base, search_web
+from ..tools.perception import (
+    search_knowledge_base,
+    search_knowledge_graph_with_papers,
+    search_web,
+)
 
 _DESCRIPTION = (
     "Handles: information retrieval, web search, knowledge queries, fact-finding, data collection. "
@@ -44,6 +48,16 @@ _INSTRUCTION = """
 - **客观中立 (Objectivity)**：只陈述观察到的事实，不掺杂个人情感或推测。
 - **来源锚定 (Source Anchoring)**：每一条断言都必须有显式的 URL 或引用来源。
 - **时效敏感 (Time Sensitivity)**：明确区分"过时信息"与"最新状态"，在涉及技术版本时尤为重要。
+
+## 引用规范 (Citation Protocol — P2-3)
+- **学术 / 论文相关问题**：先调 ``search_knowledge_graph_with_papers`` 通过 KG 实体反查相关论文；
+  若 ``kg_status="graph_empty"``，再退到 ``search_knowledge_base``。
+- **引用格式**：调用 ``search_knowledge_base`` / ``search_knowledge_graph_with_papers`` 后，
+  返回结果中每条 result 都携带 ``citation_id``（数字）与 ``formatted_citation``（IEEE 风格字符串）。
+  在最终回复中：
+  1. 在引用具体观点处按 ``[N]`` 格式标号（N = ``citation_id``），例如 *"Reflexion 通过自我反思迭代提升表现 [1]"*；
+  2. 回复末尾追加 *## 参考文献* 节，按 ``[N]`` 顺序列出每条 ``formatted_citation``。
+- **绝不臆造**：仅引用工具实际返回的 ``citation_id`` —— 未返回的不要凭空标号。
 """
 
 
@@ -59,7 +73,13 @@ def create_perception_agent(*, output_key: str | None = None) -> LlmAgent:
         model=create_subagent_model(agent_name="PerceptionFaculty"),
         description=_DESCRIPTION,
         instruction=make_instruction_provider("PerceptionFaculty", _INSTRUCTION),
-        tools=[log_activity, search_knowledge_base, search_web, search_papers],
+        tools=[
+            log_activity,
+            search_knowledge_base,
+            search_knowledge_graph_with_papers,
+            search_web,
+            search_papers,
+        ],
         output_key=output_key,
         # Pipeline 边界管控：在流水线内使用时，禁止 LLM 路由逃逸
         disallow_transfer_to_parent=output_key is not None,

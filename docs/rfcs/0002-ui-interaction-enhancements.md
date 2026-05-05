@@ -113,10 +113,17 @@ type SubAgentTransferCardProps = {
 - 用户无法中断流式响应（即使已经知道答错方向，只能等完成）
 - 工具调用前无审批环节，agent 可能执行用户未明确授权的副作用操作（如发邮件、修改文件）
 
+> **进展（2026-05-05 P3-2 MVP 落地）**：协议 + UI 已完成；具体高风险工具拦截留下一个迭代。
+> - 后端：`apps/negentropy/src/negentropy/agents/approval.py`（`HIGH_RISK_TOOLS` + `should_request_approval` + `request_approval` + `consume_approval_response`）
+> - 前端：`components/ui/ApprovalPolicySelector.tsx`（dropdown + localStorage）+ `components/ui/ApprovalDialog.tsx`（state.pending_approvals 订阅 + Approve/Deny modal）
+> - 文档：`docs/observability-genai.md` 顺带说明审批 trace 要素；`docs/user-guide/chat-essentials.md` §12「审批策略」补充使用指引
+> - 单测：后端 16 + 前端 13 = 29 全过；E2E 留下一轮接入具体工具时补
+> - 留白（Phase 4）：高风险工具实际接入 `request_approval` + `consume_approval_response` polling；BFF `POST /api/agents/approval` 端点把 UI 响应写回 session.state；ne.approval.* CUSTOM 事件类型化
+
 ### 目标
-- **Stop 按钮**：流式中显示，点击发送 `RUN_STOP` 信号，后端中断；类似 ChatGPT 的"Stop generating"
+- **Stop 按钮**：流式中显示，点击发送 `RUN_STOP` 信号，后端中断；类似 ChatGPT 的"Stop generating"（**已在 Phase 1 C4 落地**，参见 `home-body.tsx` `handleCancelRun`）
 - **审批门**：高风险工具（write_file / send_email / db_write 等）调用前弹审批 modal，用户点 Approve 才执行；类似 Codex 的 ApprovalPolicy
-- 审批策略可配置：always / never / per-tool / per-agent
+- 审批策略可配置：always / never / per-tool（**P3-2 已落地策略层 + UI 配置**）
 
 ### 设计
 ```typescript

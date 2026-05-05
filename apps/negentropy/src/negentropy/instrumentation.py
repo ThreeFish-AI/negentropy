@@ -20,6 +20,159 @@ def _normalize_model_name(model: str) -> str:
     return canonicalize_model_name(model) or model
 
 
+# ----------------------------------------------------------------------------
+# P3-3 · OpenTelemetry GenAI Semantic Conventions 1.28+
+# ----------------------------------------------------------------------------
+# 标准属性键参考：https://opentelemetry.io/docs/specs/semconv/gen-ai/
+# 实施动机详见 docs/observability-genai.md。
+
+_GENAI_SYSTEM_PREFIX_MAP: dict[str, str] = {
+    # OpenAI 系
+    "openai/": "openai",
+    "gpt-": "openai",
+    "o1-": "openai",
+    "o3-": "openai",
+    # Anthropic 系
+    "anthropic/": "anthropic",
+    "claude-": "anthropic",
+    # Google 系
+    "gemini/": "gemini",
+    "gemini-": "gemini",
+    "vertex_ai/": "vertex_ai",
+    # Mistral 系
+    "mistral/": "mistral",
+    # Cohere 系
+    "cohere/": "cohere",
+    # Meta / Llama 系
+    "llama-": "meta",
+    "ollama/": "ollama",
+    # Groq 系
+    "groq/": "groq",
+    # DeepSeek 系
+    "deepseek/": "deepseek",
+}
+
+
+def _detect_genai_system(model: str | None) -> str | None:
+    """根据模型名前缀映射到 OTel GenAI semconv ``gen_ai.system`` 值。
+
+    返回 None 表示无法识别 —— span 上不写该 attribute（避免污染未知值）。
+    """
+    if not model:
+        return None
+    lowered = str(model).lower()
+    for prefix, system in _GENAI_SYSTEM_PREFIX_MAP.items():
+        if lowered.startswith(prefix):
+            return system
+    return None
+
+
+def _inject_genai_semconv_attrs(
+    span: Any,
+    kwargs: dict,
+    response_obj: Any,
+) -> None:
+    """在 LLM span 上写入 OpenTelemetry GenAI semconv 1.28+ 标准属性。
+
+    涵盖 attribute（fail-soft，单个失败不影响其他）：
+        gen_ai.system, gen_ai.operation.name, gen_ai.request.model, gen_ai.response.model,
+        gen_ai.request.temperature, gen_ai.request.top_p, gen_ai.request.max_tokens,
+        gen_ai.usage.input_tokens, gen_ai.usage.output_tokens,
+        gen_ai.response.id, gen_ai.response.finish_reasons
+
+    本函数是幂等的（重复调用同 span 仅覆盖同名 attribute）。
+    """
+    if not _is_writable_span(span):
+        return
+
+    try:
+        model = kwargs.get("model")
+        normalized_model = _normalize_model_name(model) if model else None
+        system = _detect_genai_system(normalized_model or model)
+
+        if system:
+            _safe_set_span_attribute(span, "gen_ai.system", system)
+        # 当前 negentropy 仅走 chat completion 链路；TODO: 区分 embedding / tool_use
+        _safe_set_span_attribute(span, "gen_ai.operation.name", "chat")
+        if normalized_model:
+            _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
+
+        # 请求参数（仅当存在时上报）
+        for key, attr in (
+            ("temperature", "gen_ai.request.temperature"),
+            ("top_p", "gen_ai.request.top_p"),
+            ("max_tokens", "gen_ai.request.max_tokens"),
+            ("stop", "gen_ai.request.stop_sequences"),
+        ):
+            value = kwargs.get(key)
+            if value is None:
+                continue
+            try:
+                _safe_set_span_attribute(span, attr, value)
+            except Exception:
+                pass
+
+        # 响应字段
+        if response_obj is not None:
+            response_model = None
+            if hasattr(response_obj, "get"):
+                try:
+                    response_model = response_obj.get("model")
+                except Exception:
+                    response_model = None
+            if response_model is None:
+                response_model = getattr(response_obj, "model", None)
+            normalized_response_model = _normalize_model_name(response_model) if response_model else None
+            if normalized_response_model:
+                _safe_set_span_attribute(span, "gen_ai.response.model", normalized_response_model)
+
+            response_id = None
+            if hasattr(response_obj, "get"):
+                try:
+                    response_id = response_obj.get("id")
+                except Exception:
+                    response_id = None
+            if response_id is None:
+                response_id = getattr(response_obj, "id", None)
+            if response_id:
+                _safe_set_span_attribute(span, "gen_ai.response.id", str(response_id))
+
+            usage = getattr(response_obj, "usage", None)
+            if usage is not None:
+                input_tokens = getattr(usage, "prompt_tokens", None)
+                output_tokens = getattr(usage, "completion_tokens", None)
+                if input_tokens is not None:
+                    _safe_set_span_attribute(span, "gen_ai.usage.input_tokens", int(input_tokens))
+                if output_tokens is not None:
+                    _safe_set_span_attribute(span, "gen_ai.usage.output_tokens", int(output_tokens))
+
+            finish_reasons: list[str] = []
+            choices = (
+                response_obj.get("choices") if hasattr(response_obj, "get") else getattr(response_obj, "choices", None)
+            )
+            if isinstance(choices, list):
+                for choice in choices:
+                    fr = None
+                    if hasattr(choice, "get"):
+                        try:
+                            fr = choice.get("finish_reason")
+                        except Exception:
+                            fr = None
+                    if fr is None:
+                        fr = getattr(choice, "finish_reason", None)
+                    if fr:
+                        finish_reasons.append(str(fr))
+            if finish_reasons:
+                _safe_set_span_attribute(
+                    span,
+                    "gen_ai.response.finish_reasons",
+                    finish_reasons,
+                )
+    except Exception:
+        # fail-soft：观测属性丢失不能影响 LLM 主路径
+        pass
+
+
 def _is_writable_span(span: Any) -> bool:
     """Return whether an OpenTelemetry span can still accept mutations."""
     if span is None:
@@ -261,6 +414,9 @@ def patch_litellm_otel_cost() -> None:
                     "langfuse.observation.cost_details",
                     json.dumps({"total": cost}),
                 )
+
+            # P3-3 · OTel GenAI semconv 1.28+ 标准属性补全
+            _inject_genai_semconv_attrs(span, kwargs, response_obj)
         except Exception:
             pass
 

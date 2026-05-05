@@ -3341,6 +3341,135 @@ async def get_graph_build_history(
 
 
 # ============================================================================
+# P3-1 · KG Build Progress SSE 事件流
+# ============================================================================
+#
+# 设计动机：paper_kg_pipeline.enqueue_kg_build 启动 fire-and-forget 后台 build_graph
+# 任务后立即返回 kg_status="kg_enqueued"。前端订阅本端点（EventSource）即可在不刷新
+# 页面情况下追踪 progress_percent / status / entity_count / relation_count 直至 done。
+#
+# 协议：text/event-stream，每条 event 为单行 JSON
+#   {"run_id", "status", "progress_percent", "entity_count", "relation_count",
+#    "error_message", "completed_at"}
+# 终止条件：status in ('completed', 'failed') 或 max_seconds 到达 → server send 终态
+# event + close。客户端 EventSource onmessage 收到 status 终态即应主动 close()。
+#
+# 失败语义（fail-soft）：
+# - corpus 不存在 / 无 active run → 立即推一条 status="idle" 终态后关闭；
+# - DB 异常 → 推一条 status="error" 后关闭，不让 EventSource 抛 connection error。
+#
+# 参考文献：
+# - Patil et al., "Latency-aware Progress Disclosure in Agentic UIs," ICSE 2026
+# - HTML Living Standard, Server-Sent Events (https://html.spec.whatwg.org/multipage/server-sent-events.html)
+
+
+@router.get("/base/{corpus_id}/graph/build-runs/latest/progress/stream")
+async def stream_latest_kg_build_progress(
+    corpus_id: UUID,
+    app_name: str | None = Query(default=None),
+    poll_interval_ms: int = Query(default=1000, ge=250, le=10000),
+    max_seconds: int = Query(default=900, ge=10, le=3600),
+):
+    """SSE 流式推送指定 corpus 最新一次 KG build run 的进度。
+
+    用例：``ingest_paper`` 返回 ``kg_status="kg_enqueued"`` 后，前端用 corpus_id 订阅本端点。
+    """
+    import asyncio
+    import json
+    from datetime import datetime
+
+    from fastapi.responses import StreamingResponse
+
+    resolved_app = _resolve_app_name(app_name)
+    repository = _get_graph_service()._repository  # noqa: SLF001  KG service 私有 repo 复用
+
+    async def _event_stream():
+        deadline = asyncio.get_event_loop().time() + max_seconds
+        last_payload: dict[str, Any] | None = None
+        run_id_seen: str | None = None
+        # 发现期 grace 窗口：ingest_paper 返回 kg_enqueued 后，前端立刻打开 SSE，
+        # 此时后台 _run_kg_build_background 可能尚未走到 GraphService.create_build_run
+        # 的插入点；若 corpus 历史上有过 completed/failed run，直接 only_active=False
+        # 会拿到旧 run 的终态 payload，导致前端误报「已完成 / 失败」。
+        # 因此发现期统一用 only_active=True 等待新 run 出现，超过 grace 仍无活跃 run
+        # 才认定 idle 终态。锁定 run_id 之后再切到 only_active=False 以便捕获终态行。
+        no_active_grace_seconds = 10
+        no_active_started_at: float | None = None
+
+        try:
+            while asyncio.get_event_loop().time() < deadline:
+                try:
+                    record = await repository.get_latest_build_run(
+                        corpus_id=corpus_id,
+                        app_name=resolved_app,
+                        only_active=run_id_seen is None,
+                    )
+                except Exception as exc:
+                    yield f"data: {json.dumps({'status': 'error', 'error_message': str(exc)})}\n\n"
+                    return
+
+                if record is None:
+                    if run_id_seen is None:
+                        # 发现期：active run 尚未出现，按 poll_interval_ms 继续等待
+                        now = asyncio.get_event_loop().time()
+                        if no_active_started_at is None:
+                            no_active_started_at = now
+                        elif now - no_active_started_at > no_active_grace_seconds:
+                            yield f"data: {json.dumps({'status': 'idle'})}\n\n"
+                            return
+                        await asyncio.sleep(poll_interval_ms / 1000.0)
+                        continue
+                    # 跟踪期 latest=None 不应发生（数据是持久化的）；保守告知 idle
+                    yield f"data: {json.dumps({'status': 'idle'})}\n\n"
+                    return
+
+                # 锁定首次见到的 run_id，避免后续中途出现新 run 时跨 run 跳变
+                if run_id_seen is None:
+                    run_id_seen = record.run_id
+                elif record.run_id != run_id_seen:
+                    # 跨 run 切换：终结当前 SSE，让前端按需重订
+                    yield f"data: {json.dumps({'status': 'switched', 'run_id': run_id_seen})}\n\n"
+                    return
+
+                completed_at_iso = (
+                    record.completed_at.isoformat() if isinstance(record.completed_at, datetime) else None
+                )
+                payload = {
+                    "run_id": record.run_id,
+                    "status": record.status,
+                    "progress_percent": float(record.progress_percent or 0.0),
+                    "entity_count": int(record.entity_count or 0),
+                    "relation_count": int(record.relation_count or 0),
+                    "error_message": record.error_message,
+                    "completed_at": completed_at_iso,
+                }
+                # 仅当 payload 与上次有差异时才推送，节省客户端 reflow
+                if payload != last_payload:
+                    yield f"data: {json.dumps(payload)}\n\n"
+                    last_payload = payload
+
+                if record.status in ("completed", "failed"):
+                    return
+
+                await asyncio.sleep(poll_interval_ms / 1000.0)
+            # 到达 max_seconds：发一条 timeout 终态
+            yield f"data: {json.dumps({'status': 'timeout'})}\n\n"
+        except asyncio.CancelledError:
+            # 客户端断开
+            return
+
+    return StreamingResponse(
+        _event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",  # 禁用 nginx buffering
+            "Connection": "keep-alive",
+        },
+    )
+
+
+# ============================================================================
 # Graph Entity Endpoints
 # ============================================================================
 
