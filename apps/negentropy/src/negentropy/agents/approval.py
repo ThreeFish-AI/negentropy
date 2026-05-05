@@ -188,9 +188,10 @@ def request_approval(
         )
         state = tool_context.state
         existing = state.get("pending_approvals")
-        bucket: dict[str, Any] = existing if isinstance(existing, dict) else {}
-        bucket[action_id] = req.to_state_payload()
-        state["pending_approvals"] = bucket
+        existing_dict = existing if isinstance(existing, dict) else {}
+        # 单次赋值（不就地 mutate state 持有的 dict）：避免与并发 request_approval
+        # 共享同一份 bucket 引用、亦避免「先读取-再 setitem」之间被其他写入路径覆盖。
+        state["pending_approvals"] = {**existing_dict, action_id: req.to_state_payload()}
         logger.info(
             "approval_request_emitted",
             tool_name=tool_name,
@@ -215,14 +216,13 @@ def consume_approval_response(tool_context: Any, action_id: str) -> ApprovalResp
         responses = state.get("approval_responses")
         if not isinstance(responses, dict) or action_id not in responses:
             return None
-        payload = responses.pop(action_id)
-        # 写回（清理掉已消费的 entry）
-        state["approval_responses"] = responses
+        payload = responses.get(action_id)
+        # 单次赋值（生成新 dict 而非就地 pop）：与 request_approval 同样的并发安全契约。
+        state["approval_responses"] = {k: v for k, v in responses.items() if k != action_id}
         # 同步清理 pending（如果还在）
         pending = state.get("pending_approvals")
         if isinstance(pending, dict) and action_id in pending:
-            pending.pop(action_id, None)
-            state["pending_approvals"] = pending
+            state["pending_approvals"] = {k: v for k, v in pending.items() if k != action_id}
         if not isinstance(payload, dict):
             return None
         decision = payload.get("decision")
