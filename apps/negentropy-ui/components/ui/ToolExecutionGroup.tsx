@@ -55,7 +55,8 @@ function formatEta(eta: number | undefined): string | null {
  *
  * 设计原则：
  * - 走 state_delta 旁路，不参与 message-ledger dedup（避开 ISSUE-031 时间窗）。
- * - percent / eta / stage 来自后端 ADK state_delta 推送，500ms throttle。
+ * - percent / eta / stage 来自后端 ADK state_delta 推送；MVP 默认按语义里程碑稀疏推送（5%/20%/60%/100%），
+ *   细粒度推送时需在工具内部按 tool_call_id 强制 ≥ 500ms 节流（详见 docs/framework.md §9.7）。
  * - 已完成 / error 状态下不再展示 progress（避免冗余）。
  */
 function ToolProgressBar({ progress }: { progress: ToolProgressSnapshot }) {
@@ -67,14 +68,17 @@ function ToolProgressBar({ progress }: { progress: ToolProgressSnapshot }) {
       data-percent={percent}
       className="mt-1.5 flex items-center gap-2"
     >
-      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+      <div
+        className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-sky-500 transition-[width] duration-500 ease-out"
           style={{ width: `${percent}%` }}
-          aria-valuenow={percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          role="progressbar"
+          aria-hidden="true"
         />
       </div>
       <span className="shrink-0 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 tabular-nums">

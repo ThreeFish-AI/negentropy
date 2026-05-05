@@ -284,10 +284,10 @@ test("Home 双气泡守卫：流式 Markdown + 终态 hydration 后 message-bubb
   await page.getByRole("button", { name: "Send" }).click();
 
   await expect(page.getByRole("heading", { level: 2, name: "任务分析" })).toHaveCount(1);
-  await page.waitForTimeout(1500);
 
-  // 终态：第二段、第三段必须存在，但 message-bubble 仍只有 1 个
-  await expect(page.getByText("第二段：详细方案。")).toBeVisible();
+  // 等待 partial → final hydration 切换（mock 第二次 detail fetch 返回完整 finalReply）；
+  // 用断言驱动的等待替代固定 sleep，避免 CI 慢机误过 + 全套用例累计延迟。
+  await expect(page.getByText("第二段：详细方案。")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("第三段：交付清单。")).toBeVisible();
   await expect(
     page.locator('[data-testid="message-bubble"][data-message-role="assistant"]'),

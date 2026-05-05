@@ -28,6 +28,7 @@ Paper Curation Tools — AI Agent 论文采集工具集
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from datetime import UTC
 from typing import TYPE_CHECKING, Any
@@ -230,7 +231,9 @@ async def search_papers(
                 arxiv_id = ""
                 if hasattr(r, "entry_id"):
                     # entry_id 形如 http://arxiv.org/abs/2501.12345v1
-                    arxiv_id = str(r.entry_id).rsplit("/", 1)[-1]
+                    # 剥离尾部版本号（vN）以保持 search → ingest_paper 间 arxiv_id 格式稳定
+                    raw_id = str(r.entry_id).rsplit("/", 1)[-1]
+                    arxiv_id = re.sub(r"v\d+$", "", raw_id)
                 papers.append(
                     {
                         "arxiv_id": arxiv_id,

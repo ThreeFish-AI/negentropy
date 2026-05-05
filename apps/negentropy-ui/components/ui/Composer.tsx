@@ -66,15 +66,18 @@ export function Composer({
     if (!files || !onAttachmentsChange) return;
     const list = Array.from(files);
     if (list.length === 0) return;
-    const oversized = list.find((f) => f.size > attachmentMaxBytes);
-    if (oversized) {
+    // 过滤式接受：超大文件单独列出，合规文件正常进入；避免一颗老鼠屎拒掉整批拖拽。
+    const oversized = list.filter((f) => f.size > attachmentMaxBytes);
+    const accepted = list.filter((f) => f.size <= attachmentMaxBytes);
+    if (oversized.length > 0) {
       setAttachmentError(
-        `${oversized.name} 超过 ${Math.floor(attachmentMaxBytes / (1024 * 1024))}MB 上限，已忽略`,
+        `${oversized.map((f) => f.name).join(", ")} 超过 ${Math.floor(attachmentMaxBytes / (1024 * 1024))}MB 上限，已忽略`,
       );
-      return;
+    } else {
+      setAttachmentError(null);
     }
-    setAttachmentError(null);
-    const next: ComposerAttachment[] = list.map((file) => ({
+    if (accepted.length === 0) return;
+    const next: ComposerAttachment[] = accepted.map((file) => ({
       id:
         typeof crypto !== "undefined" && crypto.randomUUID
           ? crypto.randomUUID()
@@ -217,7 +220,10 @@ export function Composer({
             data-testid="composer-send-button"
             className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background disabled:opacity-40 transition-all flex items-center gap-2"
             onClick={onSend}
-            disabled={disabled || (!value.trim() && (attachments?.length ?? 0) === 0)}
+            // disabled 与 home-body.doSend/sendInput 的 `!input.trim()` 守卫保持一致；
+            // MVP 阶段附件仅作为 metadata 透传，无文本时点 Send 会被守卫静默拒绝，故不允许仅附件触发发送。
+            // 完整 read_attachment 工具落地后（V1 增强），可同步放开守卫与 disabled 条件。
+            disabled={disabled || !value.trim()}
           >
             {isGenerating && (
               <span className="h-2 w-2 rounded-full bg-background animate-pulse" />

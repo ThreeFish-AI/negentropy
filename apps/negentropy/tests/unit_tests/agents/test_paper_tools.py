@@ -148,7 +148,8 @@ async def test_search_papers_serializes_arxiv_results_and_filters_by_since_days(
     assert result["status"] == "success", result
     assert result["count"] == 1
     paper = result["papers"][0]
-    assert paper["arxiv_id"] == "2501.99999v1"
+    # arxiv_id 剥离尾部版本号（vN），保持与 ingest_paper docstring 示例「2501.12345」格式一致
+    assert paper["arxiv_id"] == "2501.99999"
     assert paper["title"] == "Memory in LLM Agents: A Survey"
     assert paper["pdf_url"].endswith(".pdf")
     assert "cs.AI" in paper["categories"]
