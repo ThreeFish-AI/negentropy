@@ -4,6 +4,7 @@ import {
   UI_BASE,
   deleteSkillViaApi,
   listSkillsViaApi,
+  uniqueName,
 } from "./_authed-helpers";
 
 test.describe("Skills 跨模块联动 — 实机", () => {
@@ -61,16 +62,20 @@ test.describe("Skills 跨模块联动 — 实机", () => {
     }
   });
 
-  test("X-3 from-template 第二次同模板自动追加 owner_short 后缀避免重名", async ({ context }) => {
+  test("X-3 from-template 第二次同 name 自动追加随机后缀避免重名", async ({ context }) => {
+    // 用 unique name_override 隔离并发 spec（paper-hunter.authed.spec.ts 也会装默认 name）
+    const baseName = uniqueName("authed-x3-tpl");
     const first = await context.request.post(
       `${UI_BASE}/api/interface/skills/from-template`,
-      { data: { template_id: "paper_hunter" } },
+      { data: { template_id: "paper_hunter", name_override: baseName } },
     );
+    expect(first.status()).toBe(201);
     const firstSkill = await first.json();
     const second = await context.request.post(
       `${UI_BASE}/api/interface/skills/from-template`,
-      { data: { template_id: "paper_hunter" } },
+      { data: { template_id: "paper_hunter", name_override: baseName } },
     );
+    expect(second.status()).toBe(201);
     const secondSkill = await second.json();
     try {
       expect(secondSkill.id).not.toBe(firstSkill.id);
