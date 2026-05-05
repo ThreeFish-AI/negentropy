@@ -152,6 +152,42 @@ sequenceDiagram
 - 缓冲：最多 500 条 FIFO；
 - 导出：面板顶部 "Export JSON" 按钮 → 下载文件用于 RCA。
 
+## 12. 审批策略（P3-2 MVP）
+
+**能做什么**：在 Home 顶部下拉框选择会话级审批策略，控制工具调用的"自动门"。
+
+**怎么做**：
+1. Home 顶部 `ApprovalPolicySelector` dropdown 选 `always` / `per_tool`（默认）/ `never`：
+   - **always**：任何工具调用前都弹审批 modal；
+   - **per_tool**：仅高风险工具（`update_knowledge_graph` / `write_file` / `send_email` / `execute_code` / `publish_content` / `save_to_memory` / `ingest_paper` / `shell_command`）；
+   - **never**：关闭审批门（仅 CI / 受信任沙箱启用）。
+2. 工具命中策略后，前端弹 `ApprovalDialog` modal → 用户 **批准** / **拒绝**（可填备注）→ 工具继续 / 终止。
+
+**注意事项**：
+- 策略写 `localStorage` (`home.approval_policy`)，跨刷新保留。
+- 当前 P3-2 是协议 + UI MVP；具体高风险工具的实际拦截接入留 Phase 4（详见 [RFC 0002 §4.4](../rfcs/0002-ui-interaction-enhancements.md)）。
+- 协议事实：后端 `apps/negentropy/src/negentropy/agents/approval.py`（`HIGH_RISK_TOOLS` / `should_request_approval`）。
+
+## 13. KG Build Progress 实时订阅（P3-1）
+
+**能做什么**：论文采集 → KG 自动闭环 触发后，前端通过 SSE 实时显示 KG 构建进度（百分比 / 实体 / 关系数）。
+
+**怎么做**：自动行为。后端 `paper_kg_pipeline.enqueue_kg_build` 启动后台 build 后，前端 `KgBuildProgressPill` 组件通过 EventSource 订阅
+`GET /api/knowledge/base/{corpusId}/graph/build-runs/latest/progress`，收到 `completed`/`failed` 终态自动 close。
+
+**注意事项**：
+- SSE 端点最长 15 分钟（`max_seconds=900`），超时返回 `status: timeout`；客户端可主动重订；
+- 失败软退化：连接异常 → 显示「无法订阅」，不 retry（避免雪崩）；
+- 协议字段：`{run_id, status, progress_percent, entity_count, relation_count, error_message}`。
+
+## 14. GenAI 可观测性（P3-3）
+
+**能做什么**：所有 LLM 调用自动写入 OpenTelemetry GenAI Semantic Conventions 1.28+ 标准属性，跨厂商可移植。
+
+**怎么做**：自动行为。`bootstrap.py` 已注册 LiteLLM `otel` callback；`instrumentation.py` `_inject_genai_semconv_attrs` 在 span 上写入 `gen_ai.system` / `gen_ai.request.model` / `gen_ai.usage.input_tokens` 等。Langfuse trace 可直接查看。
+
+**详细说明**：参见 [observability-genai.md](../observability-genai.md)。
+
 ## 浏览器实机回归 6 步检查表
 
 针对 Home 对话每次发版前必做：

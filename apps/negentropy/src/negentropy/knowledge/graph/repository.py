@@ -420,6 +420,17 @@ class GraphRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_latest_build_run(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+        *,
+        only_active: bool = False,
+    ) -> BuildRunRecord | None:
+        """获取最新一次构建记录（P3-1 SSE 进度订阅入口）"""
+        pass
+
+    @abstractmethod
     async def get_build_runs(
         self,
         corpus_id: UUID,
@@ -1793,6 +1804,58 @@ class AgeGraphRepository(GraphRepository):
         if row and row.processed_chunk_ids:
             return set(row.processed_chunk_ids)
         return set()
+
+    async def get_latest_build_run(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+        *,
+        only_active: bool = False,
+    ) -> BuildRunRecord | None:
+        """获取该 corpus 最新一次构建运行（按 created_at DESC 排序）。
+
+        Args:
+            only_active: 仅返回 status in ('pending', 'running') 的活跃 run（用于 SSE 订阅入口）。
+
+        参考：P3-1 SSE 进度推送依赖此查询定位 paper_kg_pipeline 刚 enqueue 的后台 build。
+        """
+        session = await self._get_session()
+        status_filter = "AND status IN ('pending', 'running')" if only_active else ""
+        query = text(f"""
+            SELECT id, app_name, corpus_id, run_id, status,
+                   entity_count, relation_count, extractor_config, model_name,
+                   error_message, started_at, completed_at, created_at,
+                   progress_percent, warnings
+            FROM {self._schema}.kg_build_runs
+            WHERE corpus_id = :corpus_id AND app_name = :app_name
+              {status_filter}
+            ORDER BY created_at DESC
+            LIMIT 1
+        """)
+        result = await session.execute(
+            query,
+            {"corpus_id": str(corpus_id), "app_name": app_name},
+        )
+        row = result.fetchone()
+        if row is None:
+            return None
+        return BuildRunRecord(
+            id=row.id,
+            app_name=row.app_name,
+            corpus_id=row.corpus_id,
+            run_id=row.run_id,
+            status=row.status,
+            entity_count=row.entity_count,
+            relation_count=row.relation_count,
+            extractor_config=row.extractor_config or {},
+            model_name=row.model_name,
+            error_message=row.error_message,
+            started_at=row.started_at,
+            completed_at=row.completed_at,
+            created_at=row.created_at,
+            progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
+            warnings=row.warnings if row.warnings else None,
+        )
 
     async def get_build_runs(
         self,

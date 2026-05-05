@@ -367,6 +367,11 @@ async def ingest_paper(
 
     KG 闭环：``status="success"`` 时同步调度 ai_paper schema-guided KG 增量构建（异步背景任务，
     fail-open）。返回携带 ``kg_status`` 字段告知调度结果，实际 KG run 完成时间不被等待。
+
+    SSE 进度（P3-1）：当 ``kg_status="kg_enqueued"`` 时，前端可订阅
+        GET /api/knowledge/base/{corpus_id}/graph/build-runs/latest/progress
+    跟踪 progress_percent / status / entity_count / relation_count，直至 completed/failed
+    终态。详见 docs/observability-genai.md（P3-3）与 framework.md §9.7。
     """
     if not pdf_url or not pdf_url.startswith(("http://", "https://")):
         return {

@@ -4,7 +4,32 @@ import { useState } from "react";
 import type { ToolExecutionEntry, ToolGroupDisplayBlock } from "@/types/a2ui";
 import type { ToolProgressMap, ToolProgressSnapshot } from "@/types/common";
 import { JsonViewer } from "@/components/ui/JsonViewer";
+import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
 import { cn } from "@/lib/utils";
+
+/**
+ * P3-1 · 从工具 result JSON 中抽取 KG SSE 订阅参数。
+ *
+ * 仅 ingest_paper 工具且 result.kg_status === "kg_enqueued" 时启用订阅。
+ * 命中条件外一律返回 null（前端 Pill 组件相应渲染 null，零回归）。
+ */
+function extractKgSubscription(tool: ToolExecutionEntry):
+  | { corpusId: string; enqueued: true }
+  | null {
+  if (tool.name !== "ingest_paper") return null;
+  if (!tool.result) return null;
+  try {
+    const parsed = JSON.parse(tool.result) as {
+      kg_status?: string;
+      corpus_id?: string;
+    };
+    if (parsed?.kg_status !== "kg_enqueued") return null;
+    if (typeof parsed.corpus_id !== "string" || !parsed.corpus_id) return null;
+    return { corpusId: parsed.corpus_id, enqueued: true };
+  } catch {
+    return null;
+  }
+}
 
 function parseJson(value: string | undefined): unknown {
   if (!value || !value.trim()) {
@@ -161,6 +186,10 @@ function ToolExecutionCard({
             )}
           </div>
           {showProgress && <ToolProgressBar progress={progress} />}
+          {(() => {
+            const sub = extractKgSubscription(tool);
+            return sub ? <KgBuildProgressPill corpusId={sub.corpusId} enqueued={sub.enqueued} /> : null;
+          })()}
         </div>
         <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
           {expanded ? "收起" : "展开"}
