@@ -3387,6 +3387,14 @@ async def stream_latest_kg_build_progress(
         deadline = asyncio.get_event_loop().time() + max_seconds
         last_payload: dict[str, Any] | None = None
         run_id_seen: str | None = None
+        # 发现期 grace 窗口：ingest_paper 返回 kg_enqueued 后，前端立刻打开 SSE，
+        # 此时后台 _run_kg_build_background 可能尚未走到 GraphService.create_build_run
+        # 的插入点；若 corpus 历史上有过 completed/failed run，直接 only_active=False
+        # 会拿到旧 run 的终态 payload，导致前端误报「已完成 / 失败」。
+        # 因此发现期统一用 only_active=True 等待新 run 出现，超过 grace 仍无活跃 run
+        # 才认定 idle 终态。锁定 run_id 之后再切到 only_active=False 以便捕获终态行。
+        no_active_grace_seconds = 10
+        no_active_started_at: float | None = None
 
         try:
             while asyncio.get_event_loop().time() < deadline:
@@ -3394,13 +3402,24 @@ async def stream_latest_kg_build_progress(
                     record = await repository.get_latest_build_run(
                         corpus_id=corpus_id,
                         app_name=resolved_app,
-                        only_active=False,
+                        only_active=run_id_seen is None,
                     )
                 except Exception as exc:
                     yield f"data: {json.dumps({'status': 'error', 'error_message': str(exc)})}\n\n"
                     return
 
                 if record is None:
+                    if run_id_seen is None:
+                        # 发现期：active run 尚未出现，按 poll_interval_ms 继续等待
+                        now = asyncio.get_event_loop().time()
+                        if no_active_started_at is None:
+                            no_active_started_at = now
+                        elif now - no_active_started_at > no_active_grace_seconds:
+                            yield f"data: {json.dumps({'status': 'idle'})}\n\n"
+                            return
+                        await asyncio.sleep(poll_interval_ms / 1000.0)
+                        continue
+                    # 跟踪期 latest=None 不应发生（数据是持久化的）；保守告知 idle
                     yield f"data: {json.dumps({'status': 'idle'})}\n\n"
                     return
 
