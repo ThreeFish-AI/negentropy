@@ -44,6 +44,7 @@ dependencies = [
     "networkx>=3.0",                # Graph algorithms (PageRank, Louvain community detection)
     "jinja2>=3.1.4",                # Sandboxed template rendering for Skills Layer 2 prompt_template
     "packaging>=24.0",              # SemVer parsing for Skill template version validation
+    "croniter>=2.0",                # POSIX cron expression parsing for Skill schedules (Phase 3)
 ]
 
 [project.optional-dependencies]

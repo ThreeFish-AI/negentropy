@@ -11,5 +11,5 @@
 from .mcp import McpResourceTemplate, McpServer, McpTool  # noqa: F401
 from .mcp_runtime import McpToolRun, McpToolRunEvent, McpTrialAsset  # noqa: F401
 from .plugin_common import PluginPermission, PluginPermissionType, PluginVisibility  # noqa: F401
-from .skill import Skill  # noqa: F401
+from .skill import Skill, SkillSchedule, SkillVersion  # noqa: F401
 from .sub_agent import SubAgent  # noqa: F401

@@ -23,6 +23,7 @@ from .influence import publish_content, send_notification
 from .internalization import save_to_memory, update_knowledge_graph
 from .paper_hunter import fetch_papers
 from .perception import search_knowledge_base, search_web
+from .semantic_scholar import fetch_paper_citations
 from .skill_registry import expand_skill, list_available_skills
 from .skill_resources import fetch_skill_resource
 
@@ -52,4 +53,6 @@ __all__ = [
     "fetch_skill_resource",
     # 论文采集（Paper Hunter）
     "fetch_papers",
+    # Semantic Scholar 引文图（Paper Hunter v0.2）
+    "fetch_paper_citations",
 ]

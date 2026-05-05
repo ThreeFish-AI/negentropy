@@ -39,6 +39,31 @@ _logger = get_logger("negentropy.agents.skills_injector")
 
 _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
 
+
+def _parse_skill_ref(ref: str) -> tuple[str, str]:
+    """拆分 ``name@version_spec`` 为 (name, spec)；无 ``@`` 时 spec=``*``（最新）。
+
+    支持的 spec 形态（与 packaging.specifiers.SpecifierSet 对齐）：
+    - ``*``         任意版本（默认行为，等价于无 @）
+    - ``1.0.0``     精确锁定（实际生成 ``==1.0.0`` 比对）
+    - ``~1.0``      tilde range：>=1.0, <2.0
+    - ``^1.0``      caret range：>=1.0, <2.0（npm 习惯，转 ~ 处理）
+    - ``>=1.0,<2``  原生 specifier 字符串
+    """
+    text = (ref or "").strip()
+    if not text:
+        return "", "*"
+    if "@" not in text:
+        return text, "*"
+    name, _, spec = text.rpartition("@")
+    name = name.strip()
+    spec = spec.strip() or "*"
+    if not name:
+        # 整段都在 @ 后（罕见误传），退化为最新
+        return text.lstrip("@"), "*"
+    return name, spec
+
+
 # 全局共享 Jinja2 沙箱环境（参考 Anthropic 安全建议：禁用 autoescape，因 prompt 上下文非 HTML；
 # StrictUndefined 让缺失变量直接抛错而非静默渲染为空，便于调试模板）
 _JINJA_ENV = SandboxedEnvironment(autoescape=False, undefined=StrictUndefined)
@@ -80,29 +105,40 @@ async def resolve_skills(
 ) -> list[ResolvedSkill]:
     """按 name 或 UUID 列表加载 Skills，并按所有权 / 可见性过滤。
 
-    - 同时支持字符串名（如 ``"arxiv-fetch"``）和 UUID；
+    - 同时支持字符串名（如 ``"arxiv-fetch"``）、``name@version_spec``（Phase 3）
+      与 UUID；
     - 权限规则：``owner_id`` 拥有的 Skill 全可见；其它 Skill 仅当
       ``visibility == PUBLIC`` 时可见；
     - 仅返回 ``is_enabled=True`` 的 Skill；
+    - **Phase 3 版本锚定**：当 ref 形如 ``name@1.0.0`` 时，Skill 加载后再去
+      ``skill_versions`` 查匹配版本快照覆盖 ResolvedSkill 字段；找不到匹配
+      → fail-soft warning + 退化为 Skill 当前字段（保持向后兼容）；
     - 任何异常 → 记录 warning 并跳过该条，不冒泡（fail-soft）。
     """
     if not skill_refs:
         return []
 
-    refs = [str(r).strip() for r in skill_refs if str(r).strip()]
-    if not refs:
+    raw_refs = [str(r).strip() for r in skill_refs if str(r).strip()]
+    if not raw_refs:
         return []
+
+    # 解析 name@spec：用 dict 记 lookup_key (name 或 UUID 字符串) → spec，便于后续按行匹配
+    parsed_specs: dict[str, str] = {}
+    for ref in raw_refs:
+        name, spec = _parse_skill_ref(ref)
+        # 同一 name 出现多次取最严格（保留最后一次写入即可，调用方常用单引用）
+        parsed_specs[name] = spec
 
     uuid_refs: list[UUID] = []
     name_refs: list[str] = []
-    for ref in refs:
-        if _is_uuid(ref):
+    for lookup in parsed_specs.keys():
+        if _is_uuid(lookup):
             try:
-                uuid_refs.append(UUID(ref))
+                uuid_refs.append(UUID(lookup))
             except ValueError:
-                name_refs.append(ref)
+                name_refs.append(lookup)
         else:
-            name_refs.append(ref)
+            name_refs.append(lookup)
 
     conditions = []
     if uuid_refs:
@@ -128,19 +164,37 @@ async def resolve_skills(
         if skill.id in seen:
             continue
         seen.add(skill.id)
-        out.append(
-            ResolvedSkill(
-                id=str(skill.id),
-                name=skill.name,
-                display_name=skill.display_name,
-                description=skill.description,
-                prompt_template=skill.prompt_template,
-                required_tools=tuple(skill.required_tools or []),
-                is_enabled=skill.is_enabled,
-                enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
-                resources=tuple(skill.resources or ()) if hasattr(skill, "resources") else (),
+        # Phase 3：根据 parsed_specs 决定是否覆盖为历史快照。
+        spec = parsed_specs.get(skill.name) or parsed_specs.get(str(skill.id)) or "*"
+        snapshot = await _resolve_version_snapshot(session, skill, spec) if spec and spec != "*" else None
+        if snapshot is not None:
+            out.append(
+                ResolvedSkill(
+                    id=str(skill.id),
+                    name=skill.name,
+                    display_name=snapshot.get("display_name") or skill.display_name,
+                    description=snapshot.get("description") or skill.description,
+                    prompt_template=snapshot.get("prompt_template", skill.prompt_template),
+                    required_tools=tuple(snapshot.get("required_tools") or []),
+                    is_enabled=skill.is_enabled,
+                    enforcement_mode=str(snapshot.get("enforcement_mode") or "warning") or "warning",
+                    resources=tuple(snapshot.get("resources") or ()),
+                )
             )
-        )
+        else:
+            out.append(
+                ResolvedSkill(
+                    id=str(skill.id),
+                    name=skill.name,
+                    display_name=skill.display_name,
+                    description=skill.description,
+                    prompt_template=skill.prompt_template,
+                    required_tools=tuple(skill.required_tools or []),
+                    is_enabled=skill.is_enabled,
+                    enforcement_mode=getattr(skill, "enforcement_mode", "warning") or "warning",
+                    resources=tuple(skill.resources or ()) if hasattr(skill, "resources") else (),
+                )
+            )
 
     if permission_filtered_names:
         _logger.warning(
@@ -149,9 +203,12 @@ async def resolve_skills(
             filtered=sorted(permission_filtered_names),
         )
 
-    if len(out) + len(permission_filtered_names) < len(refs):
+    # Phase 3: refs 已由 parsed_specs 替代；unresolved 比对仅用 parsed_specs.keys()
+    # （即 lookup key 集合，name 或 UUID 字符串）。
+    lookup_keys = set(parsed_specs.keys())
+    if len(out) + len(permission_filtered_names) < len(lookup_keys):
         unresolved = (
-            set(refs)
+            lookup_keys
             - {s.name for s in out}
             - {s.id for s in out}
             - set(permission_filtered_names)
@@ -165,6 +222,85 @@ async def resolve_skills(
             )
 
     return out
+
+
+async def _resolve_version_snapshot(session, skill: Skill, spec: str) -> dict[str, Any] | None:
+    """按 SemVer spec 在 ``skill_versions`` 表查匹配快照（Phase 3）。
+
+    支持的 spec 形态：
+    - 精确 ``1.0.0`` → 视为 ``==1.0.0``
+    - tilde ``~1.0`` → ``>=1.0,<2.0``
+    - caret ``^1.0`` → ``>=1.0,<2.0``（npm 习惯）
+    - 原生 specifier 字符串 ``>=1.0,<2``
+
+    匹配失败 fail-soft：返回 None，调用方使用 Skill 当前字段。
+    """
+    if not spec or spec == "*":
+        return None
+    try:
+        from packaging.specifiers import InvalidSpecifier, SpecifierSet
+        from packaging.version import InvalidVersion, Version
+
+        from negentropy.models.skill import SkillVersion
+
+        # 归一化几种简写
+        normalized = spec.strip()
+        if normalized.startswith("~"):
+            base = normalized[1:].strip()
+            try:
+                bv = Version(base)
+                upper = f"{bv.major + 1}.0.0"
+                normalized = f">={base},<{upper}"
+            except InvalidVersion:
+                normalized = f"=={base}"
+        elif normalized.startswith("^"):
+            base = normalized[1:].strip()
+            try:
+                bv = Version(base)
+                upper = f"{bv.major + 1}.0.0"
+                normalized = f">={base},<{upper}"
+            except InvalidVersion:
+                normalized = f"=={base}"
+        elif "," not in normalized and not normalized.startswith((">", "<", "=", "!", "~")):
+            normalized = f"=={normalized}"
+
+        try:
+            spec_set = SpecifierSet(normalized)
+        except InvalidSpecifier:
+            _logger.warning(
+                "skill_version_invalid_spec",
+                skill=skill.name,
+                spec=spec,
+            )
+            return None
+
+        rows = (await session.execute(select(SkillVersion).where(SkillVersion.skill_id == skill.id))).scalars().all()
+        candidates: list[tuple[Version, dict[str, Any]]] = []
+        for row in rows:
+            try:
+                v = Version(row.version)
+            except InvalidVersion:
+                continue
+            if v in spec_set:
+                candidates.append((v, dict(row.snapshot or {})))
+        if not candidates:
+            _logger.warning(
+                "skill_version_no_match",
+                skill=skill.name,
+                spec=spec,
+            )
+            return None
+        # 取 spec 范围内最大版本
+        candidates.sort(key=lambda t: t[0], reverse=True)
+        return candidates[0][1]
+    except Exception as exc:
+        _logger.warning(
+            "skill_version_resolve_failed",
+            skill=skill.name,
+            spec=spec,
+            error=str(exc),
+        )
+        return None
 
 
 def format_skills_block(skills: list[ResolvedSkill]) -> str:

@@ -7,6 +7,7 @@ Interface API 模块。
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -33,6 +34,8 @@ from negentropy.models.plugin import (
     PluginPermissionType,
     PluginVisibility,
     Skill,
+    SkillSchedule,
+    SkillVersion,
     SubAgent,
 )
 from negentropy.models.vendor_config import VendorConfig
@@ -357,6 +360,40 @@ class SkillFromTemplateRequest(BaseModel):
     template_id: str
     name_override: str | None = None
     visibility: str | None = None
+
+
+# Phase 3 — Skill 版本历史 / 调度
+class SkillVersionResponse(BaseModel):
+    id: UUID
+    skill_id: UUID
+    version: str
+    snapshot: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+
+
+class SkillSnapshotRequest(BaseModel):
+    """``POST /interface/skills/{id}/versions`` 请求体；默认 freeze 当前字段。"""
+
+    version: str | None = None  # 不传时使用 Skill.version
+
+
+class SkillScheduleRequest(BaseModel):
+    cron_expr: str
+    enabled: bool = True
+    vars: dict[str, Any] = Field(default_factory=dict)
+
+
+class SkillScheduleResponse(BaseModel):
+    id: UUID
+    skill_id: UUID
+    owner_id: str
+    cron_expr: str
+    enabled: bool
+    vars: dict[str, Any] = Field(default_factory=dict)
+    last_run_at: datetime | None = None
+    next_run_at: datetime | None = None
+    last_error: str | None = None
+    created_at: datetime | None = None
 
 
 # =============================================================================
@@ -1175,8 +1212,35 @@ async def create_skill(
         db.add(skill)
         await db.commit()
         await db.refresh(skill)
+        # Phase 3：新建时同步写入初始版本快照，让 SubAgent 引用 name@version 立即可用。
+        try:
+            db.add(_build_initial_version(skill))
+            await db.commit()
+        except Exception as exc:
+            logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
 
     return _skill_to_response(skill)
+
+
+def _build_initial_version(skill: Skill) -> SkillVersion:
+    """构造一条 SkillVersion 行，用于 ``create_skill`` / ``from-template`` 之后立即落库。"""
+    return SkillVersion(
+        skill_id=skill.id,
+        version=skill.version or "1.0.0",
+        snapshot={
+            "name": skill.name,
+            "display_name": skill.display_name,
+            "description": skill.description,
+            "category": skill.category,
+            "prompt_template": skill.prompt_template,
+            "config_schema": skill.config_schema,
+            "default_config": skill.default_config,
+            "required_tools": skill.required_tools,
+            "priority": skill.priority,
+            "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
+            "resources": skill.resources,
+        },
+    )
 
 
 @router.get("/skills/templates", response_model=list[SkillTemplateSummary])
@@ -1258,6 +1322,12 @@ async def create_skill_from_template(
         db.add(skill)
         await db.commit()
         await db.refresh(skill)
+        # Phase 3：模板安装后立刻写入初始版本快照。
+        try:
+            db.add(_build_initial_version(skill))
+            await db.commit()
+        except Exception as exc:
+            logger.warning("skill_initial_version_failed", skill_id=str(skill.id), error=str(exc))
 
     return _skill_to_response(skill)
 
@@ -1317,13 +1387,289 @@ async def update_skill(
                 raise HTTPException(status_code=400, detail="resources must be a list")
             update_data["resources"] = res_value
 
+        # Phase 3：检测 version 字段变更，自动 snapshot 到 skill_versions。
+        old_version = skill.version
+        new_version = update_data.get("version")
+        version_changed = bool(new_version) and new_version != old_version
+
         for key, value in update_data.items():
             setattr(skill, key, value)
+
+        if version_changed:
+            try:
+                snapshot_payload = {
+                    "name": skill.name,
+                    "display_name": skill.display_name,
+                    "description": skill.description,
+                    "category": skill.category,
+                    "prompt_template": skill.prompt_template,
+                    "config_schema": skill.config_schema,
+                    "default_config": skill.default_config,
+                    "required_tools": skill.required_tools,
+                    "priority": skill.priority,
+                    "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
+                    "resources": skill.resources,
+                }
+                existing = await db.scalar(
+                    select(SkillVersion).where(
+                        SkillVersion.skill_id == skill.id,
+                        SkillVersion.version == new_version,
+                    )
+                )
+                if existing is None:
+                    db.add(
+                        SkillVersion(
+                            skill_id=skill.id,
+                            version=new_version,
+                            snapshot=snapshot_payload,
+                        )
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "skill_version_snapshot_failed",
+                    skill_id=str(skill.id),
+                    error=str(exc),
+                )
 
         await db.commit()
         await db.refresh(skill)
 
     return _skill_to_response(skill)
+
+
+# =============================================================================
+# Skills Phase 3 — versions / schedules endpoints
+# =============================================================================
+
+
+@router.get("/skills/{skill_id}/versions", response_model=list[SkillVersionResponse])
+async def list_skill_versions(
+    skill_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillVersionResponse]:
+    """列出指定 Skill 的全部历史版本（最新在前）。"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+        rows = (
+            (
+                await db.execute(
+                    select(SkillVersion)
+                    .where(SkillVersion.skill_id == skill_id)
+                    .order_by(SkillVersion.created_at.desc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+    return [
+        SkillVersionResponse(
+            id=r.id,
+            skill_id=r.skill_id,
+            version=r.version,
+            snapshot=dict(r.snapshot or {}),
+            created_at=r.created_at,
+        )
+        for r in rows
+    ]
+
+
+@router.post(
+    "/skills/{skill_id}/versions",
+    response_model=SkillVersionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_skill_version(
+    skill_id: UUID,
+    payload: SkillSnapshotRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillVersionResponse:
+    """手动 freeze 当前 Skill 字段为一个新版本快照。
+
+    若 ``payload.version`` 不传，使用 Skill 当前 ``version`` 字段；
+    同 (skill_id, version) 已存在时返回 409。
+    """
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "skill", skill_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+        skill = await db.get(Skill, skill_id)
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+
+        version = (payload.version or skill.version or "").strip()
+        if not version:
+            raise HTTPException(status_code=400, detail="version is required")
+        existing = await db.scalar(
+            select(SkillVersion).where(SkillVersion.skill_id == skill_id, SkillVersion.version == version)
+        )
+        if existing is not None:
+            raise HTTPException(status_code=409, detail=f"Version '{version}' already exists for this skill")
+
+        snapshot_payload = {
+            "name": skill.name,
+            "display_name": skill.display_name,
+            "description": skill.description,
+            "category": skill.category,
+            "prompt_template": skill.prompt_template,
+            "config_schema": skill.config_schema,
+            "default_config": skill.default_config,
+            "required_tools": skill.required_tools,
+            "priority": skill.priority,
+            "enforcement_mode": getattr(skill, "enforcement_mode", "warning"),
+            "resources": skill.resources,
+        }
+        row = SkillVersion(skill_id=skill_id, version=version, snapshot=snapshot_payload)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+
+    return SkillVersionResponse(
+        id=row.id,
+        skill_id=row.skill_id,
+        version=row.version,
+        snapshot=dict(row.snapshot or {}),
+        created_at=row.created_at,
+    )
+
+
+@router.get("/skills/{skill_id}/schedules", response_model=list[SkillScheduleResponse])
+async def list_skill_schedules(
+    skill_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> list[SkillScheduleResponse]:
+    """列出指定 Skill 关联的全部定时调度。"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "view")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+        rows = (
+            (
+                await db.execute(
+                    select(SkillSchedule)
+                    .where(SkillSchedule.skill_id == skill_id)
+                    .order_by(SkillSchedule.created_at.desc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+    return [_schedule_to_response(s) for s in rows]
+
+
+@router.post(
+    "/skills/{skill_id}/schedules",
+    response_model=SkillScheduleResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_skill_schedule(
+    skill_id: UUID,
+    payload: SkillScheduleRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillScheduleResponse:
+    """新增一条定时调度：cron 表达式 + 透传变量。"""
+    from croniter import CroniterBadCronError, croniter
+
+    from negentropy.agents.skill_scheduler import ensure_scheduler_running
+
+    cron_expr = (payload.cron_expr or "").strip()
+    if not cron_expr:
+        raise HTTPException(status_code=400, detail="cron_expr is required")
+    try:
+        cron = croniter(cron_expr, datetime.utcnow())
+        next_run = cron.get_next(datetime)
+    except (CroniterBadCronError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"invalid cron_expr: {exc}") from exc
+
+    # 幂等懒启动 SkillScheduler tick（ADK 嵌入场景下 FastAPI startup hook 不触发）。
+    await ensure_scheduler_running()
+
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "skill", skill_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+        skill = await db.get(Skill, skill_id)
+        if not skill:
+            raise HTTPException(status_code=404, detail="Skill not found")
+
+        sched = SkillSchedule(
+            skill_id=skill_id,
+            owner_id=user.user_id,
+            cron_expr=cron_expr,
+            enabled=payload.enabled,
+            vars=payload.vars or {},
+            next_run_at=next_run,
+        )
+        db.add(sched)
+        await db.commit()
+        await db.refresh(sched)
+
+    return _schedule_to_response(sched)
+
+
+@router.delete(
+    "/skills/{skill_id}/schedules/{schedule_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_skill_schedule(
+    skill_id: UUID,
+    schedule_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> None:
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "skill", skill_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+        sched = await db.get(SkillSchedule, schedule_id)
+        if not sched or sched.skill_id != skill_id:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+        await db.delete(sched)
+        await db.commit()
+
+
+@router.post(
+    "/skills/{skill_id}/schedules/{schedule_id}/run",
+    response_model=SkillScheduleResponse,
+)
+async def run_skill_schedule(
+    skill_id: UUID,
+    schedule_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> SkillScheduleResponse:
+    """手动触发一次调度（不等 cron tick）。"""
+    from negentropy.agents.skill_scheduler import execute_schedule_once
+
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "skill", skill_id, user, "edit")
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+        sched = await db.get(SkillSchedule, schedule_id)
+        if not sched or sched.skill_id != skill_id:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+
+    await execute_schedule_once(schedule_id)
+
+    async with AsyncSessionLocal() as db:
+        sched_after = await db.get(SkillSchedule, schedule_id)
+        if sched_after is None:
+            raise HTTPException(status_code=404, detail="Schedule disappeared after run")
+        return _schedule_to_response(sched_after)
+
+
+def _schedule_to_response(s: SkillSchedule) -> SkillScheduleResponse:
+    return SkillScheduleResponse(
+        id=s.id,
+        skill_id=s.skill_id,
+        owner_id=s.owner_id,
+        cron_expr=s.cron_expr,
+        enabled=s.enabled,
+        vars=dict(s.vars or {}),
+        last_run_at=s.last_run_at,
+        next_run_at=s.next_run_at,
+        last_error=s.last_error,
+        created_at=s.created_at,
+    )
 
 
 @router.delete("/skills/{skill_id}", status_code=status.HTTP_204_NO_CONTENT)
