@@ -41,6 +41,11 @@ logger = get_logger("negentropy.tools.paper_kg")
 # AI 论文 schema 名称（参见 knowledge/graph/extraction_schema.py:191 SCHEMA_REGISTRY）
 _AI_PAPER_SCHEMA_NAME = "ai_paper"
 
+# Fire-and-forget Task 强引用持有器：Python asyncio 文档（3.11+）明确 event loop 只持
+# 弱引用，无外部强引用的 task 在完成前可能被 GC。保留模块级 set + add_done_callback
+# 自清理，确保 ingest_paper 返回后 KG 构建仍能跑完。
+_BACKGROUND_TASKS: set[asyncio.Task[None]] = set()
+
 
 def _records_to_chunks(records: list[KnowledgeRecord]) -> list[dict[str, Any]]:
     """把 ``KnowledgeRecord`` 序列转换为 ``GraphService.build_graph`` 期望的 chunks 字典。
@@ -125,8 +130,12 @@ async def enqueue_kg_build(
         if not chunks:
             return {"kg_status": "kg_skipped", "kg_error_code": "no_chunks"}
 
-        # asyncio.create_task 让 KG 构建在 event loop 上独立运行；ingest_paper 立即返回
-        asyncio.create_task(_run_kg_build_background(corpus_id, chunks))
+        # asyncio.create_task 让 KG 构建在 event loop 上独立运行；ingest_paper 立即返回。
+        # 必须把 task 强引用挂到 _BACKGROUND_TASKS，否则 event loop 仅持弱引用，task 可能
+        # 在完成前被 GC（Python asyncio 文档 3.11+）。done_callback 完成后自清理，零泄漏。
+        task = asyncio.create_task(_run_kg_build_background(corpus_id, chunks))
+        _BACKGROUND_TASKS.add(task)
+        task.add_done_callback(_BACKGROUND_TASKS.discard)
 
         logger.info(
             "paper_kg_build_enqueued",

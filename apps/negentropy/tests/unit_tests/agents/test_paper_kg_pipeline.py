@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -65,25 +66,74 @@ async def test_enqueue_kg_build_short_circuits_on_empty_records():
 
 @pytest.mark.asyncio
 async def test_enqueue_kg_build_returns_enqueued_and_starts_background_task():
-    """正常路径：调用 asyncio.create_task；返回 kg_enqueued 与 chunk 数。"""
+    """正常路径：调用 asyncio.create_task；返回 kg_enqueued 与 chunk 数。
+
+    同时验证强引用契约：task 必须被加入 _BACKGROUND_TASKS，且挂上自清理 done_callback。
+    """
     from negentropy.agents.tools import paper_kg_pipeline
 
     rec = _make_record("LLM agent memory survey")
     captured_coros: list = []
+    captured_tasks: list[MagicMock] = []
 
     def fake_create_task(coro):
         captured_coros.append(coro)
         # 立即关闭协程，避免未 await 的 RuntimeWarning
         coro.close()
         fake_task = MagicMock()
+        captured_tasks.append(fake_task)
         return fake_task
 
-    with patch.object(paper_kg_pipeline.asyncio, "create_task", side_effect=fake_create_task):
-        result = await paper_kg_pipeline.enqueue_kg_build(uuid4(), records=[rec])
+    # 隔离测试影响：保存并清空全局集合
+    original_bg = set(paper_kg_pipeline._BACKGROUND_TASKS)
+    paper_kg_pipeline._BACKGROUND_TASKS.clear()
+    try:
+        with patch.object(paper_kg_pipeline.asyncio, "create_task", side_effect=fake_create_task):
+            result = await paper_kg_pipeline.enqueue_kg_build(uuid4(), records=[rec])
 
-    assert result["kg_status"] == "kg_enqueued"
-    assert result["kg_chunk_count"] == 1
-    assert len(captured_coros) == 1
+        assert result["kg_status"] == "kg_enqueued"
+        assert result["kg_chunk_count"] == 1
+        assert len(captured_coros) == 1
+        # 强引用契约：task 已被持有，规避 Python asyncio 弱引用 GC 风险
+        assert captured_tasks[0] in paper_kg_pipeline._BACKGROUND_TASKS
+        # 自清理契约：done_callback 必须挂载 set.discard（否则集合会无限增长）
+        captured_tasks[0].add_done_callback.assert_called_once_with(
+            paper_kg_pipeline._BACKGROUND_TASKS.discard,
+        )
+    finally:
+        paper_kg_pipeline._BACKGROUND_TASKS.clear()
+        paper_kg_pipeline._BACKGROUND_TASKS.update(original_bg)
+
+
+@pytest.mark.asyncio
+async def test_background_task_set_self_cleans_after_completion():
+    """端到端：真实 create_task + 真实 done_callback，验证 task 完成后自动从集合移除。
+
+    覆盖回归点：若有人误删 add_done_callback，此用例 set 不会清空 → 失败。
+    """
+    from negentropy.agents.tools import paper_kg_pipeline
+
+    rec = _make_record("regression chunk")
+
+    async def _noop_background(*_args, **_kwargs):
+        return None
+
+    original_bg = set(paper_kg_pipeline._BACKGROUND_TASKS)
+    paper_kg_pipeline._BACKGROUND_TASKS.clear()
+    try:
+        with patch.object(paper_kg_pipeline, "_run_kg_build_background", side_effect=_noop_background):
+            result = await paper_kg_pipeline.enqueue_kg_build(uuid4(), records=[rec])
+        assert result["kg_status"] == "kg_enqueued"
+
+        # 让 event loop 调度 task 完成 + 触发 done_callback
+        for _ in range(5):
+            await asyncio.sleep(0)
+            if not paper_kg_pipeline._BACKGROUND_TASKS:
+                break
+        assert paper_kg_pipeline._BACKGROUND_TASKS == set()
+    finally:
+        paper_kg_pipeline._BACKGROUND_TASKS.clear()
+        paper_kg_pipeline._BACKGROUND_TASKS.update(original_bg)
 
 
 @pytest.mark.asyncio
