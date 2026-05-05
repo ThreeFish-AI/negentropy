@@ -243,6 +243,9 @@ sequenceDiagram
 
 对话交互是 Negentropy 的核心使用场景。通过与 NegentropyEngine 对话，你可以研究问题、解决问题、生成内容。
 
+> 📖 **完整主模块特性手册**：参见 [user-guide/chat-essentials.md](./user-guide/chat-essentials.md)（Phase 2 新增），覆盖 Citation 规范化、Reasoning Panel、论文采集闭环等所有特性的最小操作指引。
+> 📚 **理论与业界对标**：参见 [conversation-foundation.md](./conversation-foundation.md)。
+
 ### 3.1 界面布局
 
 系统主界面采用**三栏布局**，通过顶部导航栏在各模块间切换。

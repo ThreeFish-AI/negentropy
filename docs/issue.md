@@ -1255,3 +1255,39 @@
   2. ISSUE-045 修复时把 ConfirmDialog 放在 skills 私有目录是熵增信号——通用基础组件必须直接在 `components/ui/` 落地；
   3. 在 [`docs/AGENTS.md`](../AGENTS.md) 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
 - **同类问题影响**：MCP Servers / SubAgents 等模块若仍残留原生 dialog 需统一替换；ESLint 规则升级可一次性发现所有遗漏点。
+
+---
+
+## ISSUE-055 论文采集 → KG 闭环未自动联动（2026-05-05）
+
+- **表因**：用户在 Home 对话中说"采集 AI Agent 论文"，`ingest_paper` 完成入知识库后**没有**自动触发 KG schema-guided 抽取；用户必须手动进 `/knowledge/graph` 选 corpus 再点"构建 KG"，对话闭环断裂。
+- **根因**：[`apps/negentropy/src/negentropy/agents/tools/paper.py`](../apps/negentropy/src/negentropy/agents/tools/paper.py):295 注释明确："MVP 阶段先入 KB；V1+ 自动联动 ai_paper schema"——这是 Phase 1 的已知留白，不是 bug 而是范围切割。但当第一应用场景"自动采集 AI Agent 论文 → KB + KG → 帮人提供帮助"上线后，闭环断裂会让用户体验严重打折。
+- **处理方式**：P2-2 新增 [`paper_kg_pipeline.py`](../apps/negentropy/src/negentropy/agents/tools/paper_kg_pipeline.py)：
+  1. `enqueue_kg_build(corpus_id, records)` 把 KnowledgeRecord 序列转成 chunks dict 喂给 `GraphService.build_graph(incremental=True, schema_name="ai_paper")`，用 `asyncio.create_task` 启动后台任务；
+  2. **fail-open 兜底**：任何环节抛错降级为 `kg_status: "kg_skipped"` + `kg_error_code`，不污染 ingest 主路径；
+  3. `ingest_paper` 成功分支末尾追加 `kg_meta = await enqueue_kg_build(...)`，return 合并 `**kg_meta`；
+  4. 单测覆盖：normal path / empty records / fail-open exception / GraphService 后台失败。
+- **后续防范**：
+  1. **任何异步副作用必须 fail-open**：第一原则 = "主路径成功就不能因副作用失败而失败"；
+  2. **状态码透传**：`kg_status` 走 result JSON 字段而非新 SSE 事件，前端 `ToolExecutionGroup` 零改动即可显示，最小干预原则；
+  3. **Phase 3 升级**：可考虑独立 `kg.build.progress` SSE 事件流让前端实时显示构建进度（KG 构建通常 30s+，对话窗口可能已切走）。
+- **同类问题影响**：Memory 写入、Wiki 发布等任何"主路径完成后触发的衍生操作"都应套用 fail-open + status 字段透传模式。
+
+---
+
+## ISSUE-056 对话引用缺乏标准化 citation 与跳转（2026-05-05）
+
+- **表因**：Home 对话中 agent 引用知识库片段时，回复正文里没有 `[N]` 标号，气泡尾部也没有「参考文献」节；用户无法判断"第 N 条来自哪篇论文哪一段"，更无法点击跳转到 arXiv 原文。
+- **根因**：[`perception.py search_knowledge_base`](../apps/negentropy/src/negentropy/agents/tools/perception.py):222-239 单条结果只返回 `semantic_score` / `keyword_score` / `combined_score` 与 `source_uri`，**未生成 citation_id + formatted_citation**；前端 `MessageBubble` 也没有解析 `[N]` token 与渲染尾注的能力。这是 Phase 1 的范围切割（先做 retrieval，再做 citation polish）。
+- **处理方式**：P2-3 后端 + 前端联动：
+  1. **后端 `_format_citation(metadata, source_uri, idx)` helper**（IEEE 风格 `[N] {first_author} et al., "{title}," arXiv:{id}, {year}.`）；
+  2. **`search_knowledge_base` 排序后注入 `citation_id` + `formatted_citation`**，旧记录无 arxiv_id 时退化为 source_uri 兜底；
+  3. **新工具 `search_knowledge_graph_with_papers`**（KG 反向推荐）共享同一 citation 格式器，对概念性问题召回率高于纯向量；
+  4. **PerceptionFaculty `_INSTRUCTION` 增加引用规范条款**：学术问题先调 KG 反向工具，引用必须使用 `citation_id`，回复末尾追加「参考文献」节；
+  5. **前端 `apps/negentropy-ui/utils/citation-parser.ts`**：严格 regex `(?<![\\w\\^])\[(\d+)\](?!\(|:)` 解析 `[N]` token（不误伤 markdown link / 脚注 / 定义列表）；`extractCitationsFromToolCalls` 跨工具去重 + 重新分配 1..N；
+  6. **`MessageBubble.MarkdownContent` 加 prop `citations?: Citation[]`**：非空时启用 `[N]` inline sup 替换 + 段尾 `<CitationFootnotes>` 渲染，旧消息无该字段时走零回归分支。
+- **后续防范**：
+  1. **任何 retrieval 工具的 result 必须自带 stable citation token**：契约写到工具 docstring + faculty instruction（参考 [conversation-foundation.md §4](./conversation-foundation.md)）；
+  2. **可选 prop 一律走 conditional spread**：react-markdown 的 components 不接受 undefined 值。如条件性挂 component，必须 `if(condition){ components.x = fn }` 而非 `x: cond ? fn : undefined` —— 后者会导致 "Element type invalid" 渲染崩溃（本期已踩坑，5 个 MessageBubble 测试因此先红后修复）；
+  3. **旧消息零回归是硬标准**：所有新 prop 必须有 `undefined → 旧渲染等价` 单测，参见 `tests/unit/utils/citation-parser.test.ts`。
+- **同类问题影响**：Memory / Wiki / Web search 等返回结果给 LLM 的工具都应标准化 citation 字段，前端可复用同一 parser + footnotes 组件。
