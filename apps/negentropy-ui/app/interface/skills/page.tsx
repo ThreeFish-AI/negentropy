@@ -7,6 +7,8 @@ import { ConfirmDialog } from "./_components/ConfirmDialog";
 import { SkillCard } from "./_components/SkillCard";
 import { SkillFormDialog } from "./_components/SkillFormDialog";
 import { SkillPreviewDialog } from "./_components/SkillPreviewDialog";
+import { SkillScheduleDialog } from "./_components/SkillScheduleDialog";
+import { SkillVersionsDialog } from "./_components/SkillVersionsDialog";
 import { TemplatePickerDialog } from "./_components/TemplatePickerDialog";
 
 interface Skill {
@@ -40,6 +42,8 @@ export default function SkillsPage() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [previewSkill, setPreviewSkill] = useState<Skill | null>(null);
+  const [versionsSkill, setVersionsSkill] = useState<Skill | null>(null);
+  const [scheduleSkill, setScheduleSkill] = useState<Skill | null>(null);
 
   const fetchSkills = useCallback(async () => {
     try {
@@ -274,6 +278,8 @@ export default function SkillsPage() {
                       onDelete={() => handleDeleteRequest(skill)}
                       onToggleEnabled={() => handleToggleEnabled(skill)}
                       onPreview={() => setPreviewSkill(skill)}
+                      onViewVersions={() => setVersionsSkill(skill)}
+                      onManageSchedule={() => setScheduleSkill(skill)}
                       toggling={togglingId === skill.id}
                     />
                   </div>
@@ -305,6 +311,21 @@ export default function SkillsPage() {
         skillId={previewSkill?.id || null}
         displayName={previewSkill?.display_name || previewSkill?.name || ""}
         defaultVariables={(previewSkill?.default_config || {}) as Record<string, unknown>}
+      />
+
+      <SkillVersionsDialog
+        open={versionsSkill !== null}
+        onClose={() => setVersionsSkill(null)}
+        skillId={versionsSkill?.id || null}
+        displayName={versionsSkill?.display_name || versionsSkill?.name || ""}
+      />
+
+      <SkillScheduleDialog
+        open={scheduleSkill !== null}
+        onClose={() => setScheduleSkill(null)}
+        skillId={scheduleSkill?.id || null}
+        displayName={scheduleSkill?.display_name || scheduleSkill?.name || ""}
+        defaultVars={(scheduleSkill?.default_config || {}) as Record<string, unknown>}
       />
 
       <ConfirmDialog

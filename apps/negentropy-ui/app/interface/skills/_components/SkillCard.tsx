@@ -25,6 +25,8 @@ interface SkillCardProps {
   onDelete: () => void;
   onToggleEnabled?: () => void;
   onPreview?: () => void;
+  onViewVersions?: () => void;
+  onManageSchedule?: () => void;
   toggling?: boolean;
   /** SubAgent 已配置的 tools（用于计算 missing_tools 红 badge）；缺省时不显示差异。 */
   agentTools?: string[];
@@ -36,6 +38,8 @@ export function SkillCard({
   onDelete,
   onToggleEnabled,
   onPreview,
+  onViewVersions,
+  onManageSchedule,
   toggling = false,
   agentTools,
 }: SkillCardProps) {
@@ -55,6 +59,32 @@ export function SkillCard({
             {displayLabel}
           </h3>
           <div className="flex shrink-0 items-center gap-2">
+            {onManageSchedule && (
+              <button
+                onClick={onManageSchedule}
+                title="Manage schedules"
+                aria-label={`Manage schedules for ${displayLabel}`}
+                data-testid={`skill-schedule-${skill.name}`}
+                className="rounded-md p-2 text-amber-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            )}
+            {onViewVersions && (
+              <button
+                onClick={onViewVersions}
+                title="Version history"
+                aria-label={`Show versions of ${displayLabel}`}
+                data-testid={`skill-versions-${skill.name}`}
+                className="rounded-md p-2 text-violet-500 hover:bg-violet-50 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-300"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h11M9 21V3m0 0l4 4m-4-4L5 7" />
+                </svg>
+              </button>
+            )}
             {onPreview && (
               <button
                 onClick={onPreview}
