@@ -1,6 +1,7 @@
 "use client";
 
 import type { AssistantReplyDisplayBlock } from "@/types/a2ui";
+import type { ToolProgressMap } from "@/types/common";
 import { MessageBubble, MarkdownContent } from "@/components/ui/MessageBubble";
 import { ReasoningStep } from "@/components/ui/ReasoningStep";
 import { ToolExecutionGroup } from "@/components/ui/ToolExecutionGroup";
@@ -10,10 +11,13 @@ export function AssistantReplyBubble({
   block,
   isSelected,
   onSelect,
+  progressMap,
 }: {
   block: AssistantReplyDisplayBlock;
   isSelected?: boolean;
   onSelect?: (nodeId: string) => void;
+  /** Tool Progress 旁路（C3） */
+  progressMap?: ToolProgressMap;
 }) {
   const actionContent = block.segments
     .filter((segment) => segment.kind === "text")
@@ -47,6 +51,7 @@ export function AssistantReplyBubble({
                   isSelected={isSelected && block.nodeId === segment.nodeId}
                   onSelect={onSelect}
                   variant="embedded"
+                  progressMap={progressMap}
                 />
               );
             }

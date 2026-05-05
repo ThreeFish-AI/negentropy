@@ -7,6 +7,7 @@ import { EventType, Message, type BaseEvent } from "@ag-ui/core";
 
 import { ChatStream } from "../components/ui/ChatStream";
 import { Composer } from "../components/ui/Composer";
+import type { ComposerAttachment } from "../components/ui/AttachmentChip";
 import { EventTimeline } from "../components/ui/EventTimeline";
 import { LogBufferPanel } from "../components/ui/LogBufferPanel";
 import { SessionList } from "../components/ui/SessionList";
@@ -30,6 +31,8 @@ import { deriveConnectionState } from "@/utils/session-hydration";
 import type {
   ConnectionState,
   LogEntry,
+  ToolProgressMap,
+  ToolProgressSnapshot,
 } from "@/types/common";
 
 export const AGENT_ID = "negentropy";
@@ -82,6 +85,11 @@ export type HomeBodyAgent = AgentLike & {
   addMessage: (message: Message) => void;
   runAgent: (params: { runId: string }) => Promise<unknown>;
   forwardedProps?: Record<string, unknown>;
+  /**
+   * NDJSON Agent 提供 abortRun()；测试 Mock 可省略。
+   * 由 Composer 中断门按钮触发，复用 AbortController 链路。
+   */
+  abortRun?: () => void;
 };
 
 /**
@@ -118,10 +126,14 @@ export function HomeBody({
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(null);
+  // 中断门 — 用户主动 cancel 后短暂屏蔽 onRunFailed/onRunErrorEvent 引发的 error 状态，
+  // 避免被显示成"运行错误"。100ms 窗口足以覆盖 abort 信号 round-trip。
+  const userCancelledAtRef = useRef<number>(0);
   const perThreadLlmRef = useRef<Record<string, string | null>>({});
   // 「无 session 时」用户预先选择的模型，待 startNewSession 后转入 perThreadLlmRef[newId]。
   // undefined = 无 pending；null = 用户主动清空；string = 选定模型。
@@ -167,11 +179,28 @@ export function HomeBody({
     [addLog],
   );
 
+  // 中断门：包装 setConnection，在 cancel 后 100ms 窗口内屏蔽 "error"，让 idle 立即生效。
+  const setConnectionGuarded = useCallback(
+    (next: ConnectionState) => {
+      if (
+        next === "error" &&
+        userCancelledAtRef.current > 0 &&
+        Date.now() - userCancelledAtRef.current < 100
+      ) {
+        // 用户主动中断引发的 error，转为 idle（视觉上无错误提示）。
+        setConnection("idle");
+        return;
+      }
+      setConnection(next);
+    },
+    [],
+  );
+
   const { setConnectionWithMetrics } = useAgentSubscription({
     agent,
     sessionId,
     onRawEvent: (event) => rawEventHandlerRef.current?.(event),
-    onConnectionChange: setConnection,
+    onConnectionChange: setConnectionGuarded,
     onMetricReport: reportMetric,
     onUpdateSessionTime: (currentSessionId) =>
       updateSessionTimeRef.current?.(currentSessionId),
@@ -281,6 +310,32 @@ export function HomeBody({
     resetActiveSessionView();
   }, [resetActiveSessionView]);
 
+  /**
+   * 中断门 — 用户主动取消当前 run（C4）。
+   *
+   * 复用 NdjsonHttpAgent.abortRun()（已实现的 AbortController）：
+   * - 客户端 fetch signal 被 abort，后端 FastAPI 收到 client disconnect 自然 cleanup；
+   * - onRunFailed 回调随后被触发，但 setConnectionGuarded 在 100ms 内屏蔽 error，
+   *   保证用户立即看到 idle，不弹错误提示。
+   * - 不引入新协议事件（RUN_STOPPED）：最小干预原则，避免污染事件流。
+   */
+  const handleCancelRun = useCallback(() => {
+    if (!agent) return;
+    if (typeof agent.abortRun !== "function") {
+      addLog("warn", "agent_cancel_unsupported");
+      return;
+    }
+    userCancelledAtRef.current = Date.now();
+    try {
+      agent.abortRun();
+    } catch (error) {
+      addLog("warn", "agent_cancel_failed", { message: String(error) });
+    }
+    // 立即同步标记 idle，避免按钮短暂回退到 streaming
+    setConnectionWithMetrics("idle");
+    addLog("info", "user_cancelled_run", { sessionId });
+  }, [agent, addLog, sessionId, setConnectionWithMetrics]);
+
   const handleConfirmationFollowup = useCallback(
     async (payload: { action: string; note: string }) => {
       if (
@@ -367,12 +422,25 @@ export function HomeBody({
       const shouldPollTitle =
         !activeSession ||
         activeSession.label === createSessionLabel(sessionId);
+      // C5 MVP — 附件以轻量 metadata 透传后端（仅文件名/类型/体积），
+      // PDF 抓取场景目前走 paper.fetch(url)，不需要把整个 base64 灌入 stream。
+      // 完整附件读取（read_attachment 工具）将在 V1 增强（参见 docs/framework.md §9 协议规范）。
+      const attachmentMeta = attachments.map((a) => ({
+        id: a.id,
+        name: a.name,
+        mime: a.mime,
+        size: a.size,
+      }));
+
       try {
         setConnectionWithMetrics("connecting");
         agent.forwardedProps = {
           ...(agent.forwardedProps ?? {}),
           selected_llm_model: selectedLlmModel ?? null,
+          ...(attachmentMeta.length > 0 ? { attachments: attachmentMeta } : {}),
         };
+        // 清空 Composer 附件区（与 inputValue 已被清空的语义一致）
+        setAttachments([]);
         await agent.runAgent({
           runId,
         });
@@ -401,6 +469,7 @@ export function HomeBody({
       scheduleTitleRefresh,
       addLog,
       selectedLlmModel,
+      attachments,
     ],
   );
 
@@ -578,6 +647,34 @@ export function HomeBody({
     [sessionId],
   );
 
+  /**
+   * Tool Progress 旁路提取（C3）— 从 snapshotForDisplay.tool_progress 提取 toolCallId → progress 映射，
+   * 不进入 conversationTree / message-ledger，规避 ISSUE-031 时间窗双气泡风险。
+   *
+   * 后端 ADK 通过 state_delta 推送：state.tool_progress[tool_call_id] = { percent, eta?, stage? }
+   * 前端 useSessionService → snapshotForDisplay 自动同步该字段（无需新协议事件）。
+   */
+  const toolProgressMap: ToolProgressMap = useMemo(() => {
+    const raw = snapshotForDisplay?.["tool_progress"];
+    if (!raw || typeof raw !== "object") return {};
+    const out: ToolProgressMap = {};
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      if (!v || typeof v !== "object") continue;
+      const node = v as Record<string, unknown>;
+      const percent = Number(node.percent);
+      if (!Number.isFinite(percent)) continue;
+      const snap: ToolProgressSnapshot = { percent };
+      if (typeof node.eta === "number" && Number.isFinite(node.eta)) {
+        snap.eta = node.eta;
+      }
+      if (typeof node.stage === "string" && node.stage.length > 0) {
+        snap.stage = node.stage;
+      }
+      out[k] = snap;
+    }
+    return out;
+  }, [snapshotForDisplay]);
+
   // Filter log entries based on selected message timestamp
   const filteredLogEntries = useMemo(() => {
     if (!selectedNodeId) {
@@ -689,6 +786,7 @@ export function HomeBody({
                 }
               }}
               scrollToBottomTrigger={scrollToBottomTrigger}
+              toolProgressMap={toolProgressMap}
             />
             <div
               className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}
@@ -697,18 +795,22 @@ export function HomeBody({
                 value={inputValue}
                 onChange={setInputValue}
                 onSend={sendInput}
-                isGenerating={effectiveConnection === "streaming"}
+                isGenerating={
+                  effectiveConnection === "streaming" ||
+                  effectiveConnection === "connecting"
+                }
                 isBlocked={effectiveConnection === "blocked"}
                 disabled={
                   isCreatingSession ||
-                  effectiveConnection === "streaming" ||
-                  effectiveConnection === "connecting" ||
                   effectiveConnection === "blocked" ||
                   pendingConfirmations > 0
                 }
                 models={llmModels}
                 selectedLlmModel={selectedLlmModel}
                 onSelectedLlmModelChange={handleSelectedLlmModelChange}
+                onCancel={handleCancelRun}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
               />
             </div>
           </div>

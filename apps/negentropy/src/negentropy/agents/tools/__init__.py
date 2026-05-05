@@ -21,6 +21,7 @@ from .common import log_activity
 from .contemplation import analyze_context, create_plan
 from .influence import publish_content, send_notification
 from .internalization import save_to_memory, update_knowledge_graph
+from .paper import ingest_paper, search_papers
 from .paper_hunter import fetch_papers
 from .perception import search_knowledge_base, search_web
 from .semantic_scholar import fetch_paper_citations
@@ -33,9 +34,11 @@ __all__ = [
     # 感知工具
     "search_knowledge_base",
     "search_web",
+    "search_papers",
     # 内化工具
     "save_to_memory",
     "update_knowledge_graph",
+    "ingest_paper",
     # 沉思工具
     "analyze_context",
     "create_plan",

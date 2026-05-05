@@ -3,6 +3,7 @@ import { Archive, ArchiveRestore, ChevronLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { SessionListView } from "@/utils/session";
 
 type SessionItem = {
@@ -37,6 +38,28 @@ export function SessionList({
   const [draftTitle, setDraftTitle] = useState("");
   const ignoreBlurRef = useRef(false);
 
+  // 确认弹窗状态：归档 / 解档共用一套对话框，避免 window.confirm 的样式割裂（参考 ISSUE-045 / ISSUE-054）
+  const [confirmTarget, setConfirmTarget] = useState<
+    | { kind: "archive" | "unarchive"; session: SessionItem }
+    | null
+  >(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
+  const handleConfirm = useCallback(async () => {
+    if (!confirmTarget) return;
+    setConfirmBusy(true);
+    try {
+      if (confirmTarget.kind === "archive" && onArchive) {
+        await onArchive(confirmTarget.session.id);
+      } else if (confirmTarget.kind === "unarchive" && onUnarchive) {
+        await onUnarchive(confirmTarget.session.id);
+      }
+    } finally {
+      setConfirmBusy(false);
+      setConfirmTarget(null);
+    }
+  }, [confirmTarget, onArchive, onUnarchive]);
+
   const startEdit = useCallback((session: SessionItem) => {
     setEditingId(session.id);
     setDraftTitle(session.label);
@@ -58,6 +81,22 @@ export function SessionList({
   );
 
   return (
+    <>
+    <ConfirmDialog
+      open={confirmTarget !== null}
+      title={confirmTarget?.kind === "archive" ? "归档会话" : "解档会话"}
+      message={
+        confirmTarget
+          ? `确认${confirmTarget.kind === "archive" ? "归档" : "解档"}会话「${confirmTarget.session.label}」吗？`
+          : ""
+      }
+      confirmLabel={confirmTarget?.kind === "archive" ? "归档" : "解档"}
+      cancelLabel="取消"
+      destructive={confirmTarget?.kind === "archive"}
+      busy={confirmBusy}
+      onConfirm={handleConfirm}
+      onCancel={() => setConfirmTarget(null)}
+    />
     <aside className="col-span-2 h-full border-r border-border bg-card p-4 overflow-y-auto custom-scrollbar">
       <div className="mb-3 flex items-center justify-between">
         <div>
@@ -166,9 +205,7 @@ export function SessionList({
                       title="归档会话"
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (window.confirm(`确认归档会话“${session.label}”吗？`)) {
-                          void onArchive(session.id);
-                        }
+                        setConfirmTarget({ kind: "archive", session });
                       }}
                       className={cn(
                         "mr-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
@@ -185,9 +222,7 @@ export function SessionList({
                       title="解档会话"
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (window.confirm(`确认解档会话“${session.label}”吗？`)) {
-                          void onUnarchive(session.id);
-                        }
+                        setConfirmTarget({ kind: "unarchive", session });
                       }}
                       className={cn(
                         "mr-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-current opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100",
@@ -204,5 +239,6 @@ export function SessionList({
         )}
       </div>
     </aside>
+    </>
   );
 }

@@ -1188,3 +1188,70 @@
   3. CI smoke job 的边界要在 PR review 阶段过一遍：`webServer.command` 启了什么？依赖什么外部服务？authed/mocked 哪些走哪个 project？
   4. 引入新 spec 文件后，本地必须模拟 CI 跑一次 `unset NE_AUTH_TOKEN_SECRET; pnpm exec playwright test`，确认与 CI 行为一致。
 - **同类问题影响**：Memory / Knowledge / SubAgent 模块未来引入 authed E2E 时需要遵循同样 pattern：env-gated project + 文档 §CI 关系节。
+
+---
+
+## ISSUE-052 Home 对话 4 大缺口闭环 + 论文采集 MVP（2026-05-04）
+
+> 合并冲突重编号：原编号 ISSUE-047，因与 [ISSUE-047](#issue-047)（Skills authed E2E 并发污染）冲突而调整。
+
+- **表因**：Home 对话模块在最近 4 个月内出现 5 次双气泡类回归（ISSUE-031/036/039/040/041），暴露 3 个根本性短板：(a) 无全链路防回归 E2E（mock-based smoke 仅覆盖单条流式 hydration，缺论文场景闭环）；(b) 长任务无可观测性（论文抓取分钟级，用户体感"卡死"）；(c) 无中断门，LLM 跑偏后必须等终态才能恢复。同时用户的"自动收集 AI Agent 论文 → KB/KG"应用场景缺失工具支撑。
+- **根因**：
+  1. Home 对话路径完整度 ≥ 80%，但缺关键防御性 E2E 用例（双气泡守卫 + hydration 一致性）；
+  2. 后端 ADK Tool 无统一进度推送规范——已有 `state_delta` 协议未被论文/PDF 等长任务使用；
+  3. NDJSON Agent 已有 `abortRun()` 但前端 Composer 未暴露 Stop 按钮；
+  4. 论文采集职能未在 Faculty.tools 注册——既有 `KnowledgeService.ingest_url` + `AI_PAPER_SCHEMA` 已就绪，仅缺最后 1 厘米桥接（2 个工具）。
+- **处理方式**（本 PR 落地）：
+  1. **C7 E2E 防回归基建**：新增 `apps/negentropy-ui/tests/e2e/home-chat.spec.ts`（4 个用例：单轮双气泡 / 流式 Markdown hydration / 模型切换 localStorage / Tool group 聚合）；新增 `dev-cookie.setup.ts`（headless 自签 cookie 注入，CI 友好）；`playwright.config.ts` 通过 `PLAYWRIGHT_AUTH_MODE` 双 setup 共存；`MessageBubble` 加 `data-testid="message-bubble"` + `data-message-role` 锚定。
+  2. **C5 附件上传 / Multi-modal**：`Composer` 加 file input + drag-drop + `AttachmentChip` chip 渲染；`home-body.doSend` 把附件 metadata（id/name/mime/size）通过 `forwardedProps.attachments` 透传后端；附件 chip 不进入 `message-ledger.isSemanticEquivalentEntry`（避开 dedup 漂移）。
+  3. **C4 中断门**：`Composer` `isGenerating` 时 Send 切换为红色 Stop 按钮（`data-testid="composer-stop-button"`）；`home-body.handleCancelRun` 调 `agent.abortRun()` + `userCancelledAtRef` 100ms 窗口屏蔽 cancel 引发的 `RUN_ERROR`；不引入 RUN_STOPPED 协议事件（最小干预，避免污染事件流）。
+  4. **C3 Tool Progress**：`types/common.ts` 加 `ToolProgressMap` / `ToolProgressSnapshot`；`ToolExecutionGroup` 加 `ToolProgressBar` 子组件（`data-testid="tool-progress"`）；`home-body` 从 `snapshotForDisplay.tool_progress` 旁路提取 → `ChatStream.toolProgressMap` → `AssistantReplyBubble` → `ToolExecutionCard`；不进入 conversationTree，不参与 message-ledger（彻底规避 ISSUE-031 时间窗）。
+  5. **论文采集 MVP**：`apps/negentropy/src/negentropy/agents/tools/paper.py` 新增 `search_papers`（arxiv API + since_days 过滤 + tool_progress 推送）+ `ingest_paper`（保证 agent-papers Corpus 存在 → 调 `KnowledgeService.ingest_url`）；分别注册到 `PerceptionFaculty.tools` / `InternalizationFaculty.tools`；新增 8 个单测覆盖 progress 推送 / arxiv 序列化 / KS 调用契约。
+  6. **文档同步**：`docs/user-guide.md` 新增 §3.7 长任务/中断 + §3.8 附件 + §3.9 提示词最佳实践 + §3.10 错误排查 + §3.11 浏览器实机回归；新增 `docs/user-guide/papers-curation.md` 论文采集上手；`docs/framework.md` §9.7-9.9 增补 Tool Progress / 中断门 / Multi-modal 协议契约（含 IEEE 引用扩展至 19 条）。
+- **后续防范**：
+  1. **任何 Home 对话路径变更必须对应 E2E 用例**：双气泡守卫断言 `[data-testid="message-bubble"][data-message-role="assistant"]` count=1 是合并前必检条款；
+  2. **长时工具必须实现 tool_progress**：MVP 默认按语义里程碑（5%/20%/60%/100%）稀疏推送 + 终态清理；若改细粒度推送须按 `tool_call_id` 强制 ≥ 500ms 节流，违反将增加 ISSUE-031 类回归风险；
+  3. **中断门是长任务的对称原语**：未来任何 ≥ 30s 的工具都应支持 `ToolContext.cancel()` 信号；
+  4. **附件协议演进**：MVP 仅 metadata 透传；V1 增强 `POST /sessions/{sid}/attachments` + `read_attachment` 工具时，必须保证附件不进入 message dedup 路径；
+  5. **论文采集多源拓展**：V1 接 Semantic Scholar Graph API（citation 信号）；V2 接 AsyncScheduler 周期 curator job + KG cross-corpus 邻居推荐；V3 抽出独立 PaperAgent SubAgent。
+- **同类问题影响**：
+  - 任何模块涉及"长任务 + 流式输出 + HITL 干预"组合（如 Memory consolidation / KG community detection）都应复用 Tool Progress + 中断门双原语；
+  - 论文采集的"两个工具 + 复用既有 pipeline"模式可作为后续领域扩展（专利、代码仓、新闻）的范式参考；
+  - 双气泡守卫断言模式（基于 `data-testid` + role attribute count）应推广到 Memory / Skills / Knowledge 各模块的 E2E 用例。
+
+---
+
+## ISSUE-053 Reasoning Step 重复渲染 + React key 警告（2026-05-05）
+
+> 合并冲突重编号：原编号 ISSUE-048，因与 [ISSUE-048](#issue-048)（Next.js `:invoke` 路径）冲突而调整。
+
+- **表因**：Home 对话浏览器实机回归时发现：单个 assistant 气泡内 "思考完成 · 推理阶段" 文案重复 2 次；浏览器 Console 重复刷出 `Encountered two children with the same key, "reply-reasoning:reasoning:synth-step:InfluenceFaculty:..."`。视觉上推理标签冗余 + 触发 React 16+ 严格 key 唯一性警告。
+- **根因**：[`utils/chat-display.ts`](../apps/negentropy-ui/utils/chat-display.ts) `collectReasoningSegments` 在以下三种条件叠加时会注入重复 reasoning segment：
+  1. **场景 A** — fallback：当 stepNode 没有 reasoning 子节点时，把 stepNode 自身当作 reasoning，但同一 turn 内多次进入此路径产生相同 `id = reply-reasoning:${nodeId}`。
+  2. **场景 B** — 同 stepId 下 step 节点 + reasoning 子节点 `nodeId` 不同但 `stepId` 相同。原始 dedup 仅比 segment.id，漏判此场景。
+  3. **场景 C** — 实机 hydration：后端把 step 节点与 synth-step 都投影成两份 reasoning（nodeId/stepId/id 三者皆不同），但 title 与 phase 完全相同（如「推理阶段」+ finished）。
+- **处理方式**：[`appendReplySegment`](../apps/negentropy-ui/utils/chat-display.ts) 增加 reasoning kind 三层等价判定（自上而下）：L1 `id` 完全相同 / L2 `stepId` 相同 / L3 同 `phase` 下相同 `title`。命中即丢弃 incoming，特殊保留：incoming `phase=finished` 且 existing `phase=started` 时以更终态覆盖。配套加 1 个新单测 `unit/utils/chat-display.test.ts`（dedup-coverage scenarios）。
+- **后续防范**：
+  1. 任何"由多源投影到同一显示槽"的 dedup 逻辑都应给出明确的等价层级（L1/L2/L3）+ 文档化，避免后续维护者再加新场景时漏判；
+  2. `appendReplySegment` 的 dedup 仅作用于 `reasoning` kind，对 text/tool-group/error 仍保持 push 语义不变（保护现有去重链路如 `REDUNDANT_TEXT_SIMILARITY_THRESHOLD`）；
+  3. 实机回归必须用 `(html.match(/思考完成/g) || []).length` 这类直接计数断言验证；E2E mock 因事件构造单一极易漏掉真实多源叠加场景。
+- **同类问题影响**：Tool group / Step / Error 等 segment 也可能在 hydration 时多源投影，需个案审查。
+
+---
+
+## ISSUE-054 SessionList 归档/解档使用原生 window.confirm（2026-05-05）
+
+> 合并冲突重编号：原编号 ISSUE-049，因与 [ISSUE-049](#issue-049)（CI Smoke authed 误跑）冲突而调整。
+
+- **表因**：实机回归点击 SessionList 中归档按钮时弹出浏览器原生 `confirm()` 对话框，与 app 视觉风格割裂；点解档按钮同问题。系 ISSUE-045 Skills 同类违反 AGENTS.md「严禁使用浏览器原生 confirm/alert/prompt」准则。
+- **根因**：[`apps/negentropy-ui/components/ui/SessionList.tsx`](../apps/negentropy-ui/components/ui/SessionList.tsx):169,188 直接调 `window.confirm`。ISSUE-045 修复时仅在 `app/interface/skills/_components/ConfirmDialog.tsx` 私有目录落地，未升格到通用 `components/ui/`，导致 SessionList 重复造轮子失败 → 用了原生 confirm。
+- **处理方式**：
+  1. **新建 `components/ui/ConfirmDialog.tsx`**（升格 ISSUE-045 实现），增加 `data-testid="confirm-dialog"`/`-cancel`/`-confirm` 锚点，便于跨模块 E2E；
+  2. **`skills/_components/ConfirmDialog.tsx` 改为薄 re-export**，保持 ISSUE-045 修复的 import 路径不破坏；
+  3. **`SessionList.tsx`** 改用 `ConfirmDialog`，归档/解档共用一套 dialog state（`confirmTarget` + `confirmBusy`），归档按钮加 `destructive=true`；
+  4. **更新 `tests/unit/ui/SessionList.test.tsx`** 删除 `vi.spyOn(window, "confirm")`，改用 `getByTestId("confirm-dialog-confirm/-cancel")` 断言。新增 1 个 cancel-then-no-call 用例。
+- **后续防范**：
+  1. 所有"确认/危险操作"必须复用 `components/ui/ConfirmDialog`，严禁原生 confirm/alert；
+  2. ISSUE-045 修复时把 ConfirmDialog 放在 skills 私有目录是熵增信号——通用基础组件必须直接在 `components/ui/` 落地；
+  3. 在 [`docs/AGENTS.md`](../AGENTS.md) 工程规范中已有"严禁原生 dialog"条款，建议下一轮加 ESLint 规则 `no-restricted-globals` 阻断 `window.confirm`/`alert`/`prompt` 直接调用。
+- **同类问题影响**：MCP Servers / SubAgents 等模块若仍残留原生 dialog 需统一替换；ESLint 规则升级可一次性发现所有遗漏点。

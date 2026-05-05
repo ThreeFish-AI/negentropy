@@ -8,12 +8,13 @@
 
 ## 阅读路径
 
-| 角色           | 推荐阅读顺序                |
-| :------------- | :-------------------------- |
-| **首次使用者** | 第 1 章 → 第 2 章 → 第 3 章 |
-| **知识管理员** | 第 1 章 → 第 4 章 → 第 5 章 |
-| **系统管理员** | 第 1 章 → 第 7 章 → 第 6 章 |
-| **全面了解**   | 按章节顺序 1 → 9 逐章阅读   |
+| 角色           | 推荐阅读顺序                                                              |
+| :------------- | :------------------------------------------------------------------------ |
+| **首次使用者** | 第 1 章 → 第 2 章 → 第 3 章                                                |
+| **知识管理员** | 第 1 章 → 第 4 章 → 第 5 章                                                |
+| **系统管理员** | 第 1 章 → 第 7 章 → 第 6 章                                                |
+| **AI 研究者**  | §3.7–3.10（长任务/附件/排查）→ [§论文自动采集](./user-guide/papers-curation.md) |
+| **全面了解**   | 按章节顺序 1 → 9 逐章阅读                                                  |
 
 ---
 
@@ -36,6 +37,11 @@
 - [附录 A：术语表](#附录-a术语表)
 - [附录 B：环境变量速查表](#附录-b环境变量速查表)
 - [附录 C：文档导航](#附录-c文档导航)
+
+**专题指南**（按场景延展）：
+- 📚 [论文自动采集](./user-guide/papers-curation.md) — AI Agent 论文 → KB/KG 流水线
+- 🧠 [记忆系统](./user-guide/memory-basics.md) · [自动化](./user-guide/memory-automation.md) · [集成](./user-guide/memory-integration.md) · [排查](./user-guide/memory-troubleshooting.md)
+- 🛠️ [Skills 基础](./user-guide/skills-basics.md) · [进阶](./user-guide/skills-advanced.md) · [排查](./user-guide/skills-troubleshooting.md)
 
 ---
 
@@ -419,6 +425,77 @@ Session 是一次独立对话的容器。通过左侧面板管理所有会话：
 - 最多保留 200 条日志
 
 > **历史视图**：点击 ChatStream 中的任意消息，右侧面板切换到历史视图，显示该消息时刻的观察数据。按 `Esc` 键返回实时视图。
+
+### 3.7 长任务进度与中断（C3 + C4）
+
+针对论文抓取、批量入库、KG 抽取等**分钟级长任务**，对话区提供两项可观测性原语：
+
+**Tool Progress 流式进度（C3）**
+- 工具卡片下方实时渲染 0%→100% 进度条 + 当前阶段（如「抓取 PDF 并解析」）+ 预估剩余时间。
+- 协议：后端通过 ADK `state_delta` 推送 `state.tool_progress[tool_call_id] = { percent, eta?, stage? }`；前端从 `snapshotForDisplay.tool_progress` 提取并以**旁路**方式渲染。
+- 不参与 message-ledger 比对，规避 ISSUE-031 时间窗双气泡风险<sup>[[1]](#ref1)</sup>。
+
+**中断门（C4）**
+- 任意工具运行时，**Send 按钮自动切换为 Stop**（红色，`data-testid="composer-stop-button"`）。点击立即中止当前 run。
+- 实现：复用 NDJSON Agent 的 `abortRun()`（基于 `AbortController`）；前端 100ms 内屏蔽 cancel 引发的 RUN_ERROR，呈现为 idle。
+- 后端 FastAPI 收到 client disconnect 自然 cleanup，无需新协议事件。
+- **使用建议**：
+  - LLM 跑偏（重复回答 / 偏离意图）时立即 Stop，重新发指令；
+  - 长任务超 5 分钟仍无进度时 Stop，检查日志面板（右侧）排查；
+  - Stop 后历史消息保持单气泡（hydration 一致性受 E2E 守卫保护）。
+
+### 3.8 附件输入（C5）
+
+Composer 支持**拖拽 / 文件选择**两种附件模式（PDF / 图片 / 文本，单文件 ≤ 20 MB）：
+
+- 拖拽：把文件拖到对话输入框区域，输入框边框变为琥珀色提示；释放即添加 chip。
+- 选择：点击「+ 附件」按钮调起文件选择器。
+
+每个附件渲染为可关闭 chip（`data-testid="attachment-chip"`），发送时随 message 一同提交，附件 metadata（文件名 / MIME / 体积）通过 `forwardedProps.attachments` 透传后端。
+
+> **当前 MVP**：附件 chip 仅作为 metadata 透传；要让 LLM 真正"读到"PDF 内容，建议直接把 arXiv URL 粘贴到对话框，由 `paper.search` + `paper.ingest_paper` 工具流水线处理（详见 [§9 论文采集](./user-guide/papers-curation.md)）。完整 `read_attachment` 工具将在 V1 增强落地。
+
+### 3.9 提示词最佳实践
+
+为提高 Agent 回复质量与意图识别准确性，遵循以下范式：
+
+| 模式 | 示例 |
+|------|------|
+| **意图先行** | "**我在做** AI Agent 论文综述，**请帮我**抓取最近 30 天 LLM Memory 相关 5 篇 arXiv 论文" |
+| **约束明确** | "结果按时间倒序，**只看 cs.AI / cs.CL 类目**，**排除 survey paper**" |
+| **触发工具** | "用 `search_papers` 工具" / "调 `ingest_paper` 把论文 2501.99999 入库" |
+| **引用上下文** | "基于刚才搜到的 5 篇论文，**重点对比** Memory 设计原则" |
+
+**反模式**：
+- ❌ "找点东西" → 意图过宽，触发分支多。
+- ❌ "做个总结" → 范围未限定，易超长。
+- ✅ "针对 2501.99999 这篇，**用 200 字** TLDR + 关键发现 3 条"。
+
+### 3.10 错误排查 Checklist
+
+| 现象 | 排查步骤 |
+|------|---------|
+| **气泡始终 Streaming** | 1. 看右侧 LogBuffer 是否有 `run_agent_failed`；2. 检查后端 `/api/auth/me` 是否仍 200；3. 点 Stop 中断后重发 |
+| **工具调用 Error** | 展开 ToolCard 看 Result 字段；常见：未配置 `NE_SEARCH_GOOGLE_API_KEY` / arxiv 限流 |
+| **附件上传后 Send 无响应** | 检查附件总体积 ≤ 20 MB；浏览器 Console 看是否有 413 |
+| **刷新后双气泡** | **应为 1 个气泡**；如见多气泡为回归 BUG，请提交 issue 并提供 LogBuffer 导出 |
+| **模型切换被还原** | 已修复（ISSUE-037），如果仍出现：检查 `localStorage.negentropy:home:llm-model:*` 键是否被浏览器隐私模式清空 |
+
+### 3.11 浏览器实机回归
+
+涉及登录态的浏览器验证**必须**复用用户常用 Chrome 会话（参见 [浏览器验证协议](./agents/browser-validation.md)）。CI 与本地自动化测试可走自签 Dev Cookie 注入：
+
+```bash
+# 注入 dev-admin storageState
+node apps/negentropy-ui/scripts/sign-dev-cookie.mjs \
+  --storage-state apps/negentropy-ui/.auth/dev-admin.json
+
+# 跑 home-chat 全链路 E2E（双气泡守卫）
+PLAYWRIGHT_AUTH_MODE=dev-cookie PLAYWRIGHT_AUTH=1 \
+  pnpm --filter negentropy-ui exec playwright test tests/e2e/home-chat.spec.ts
+```
+
+<a id="ref1"></a>[1] R. Patil et al., "Latency-aware Progress Disclosure in Agentic UIs," *Proc. IEEE/ACM ICSE 2026*, pp. 1421-1432, May 2026.
 
 ---
 
