@@ -125,7 +125,7 @@ describe("extractCitationsFromToolCalls", () => {
     expect(cites[0].arxivId).toBe("2310.04406");
   });
 
-  it("跨工具结果去重（按 arxiv_id）+ 重新分配 1..N", () => {
+  it("跨工具结果去重（按 arxiv_id）+ 保留原 citation_id（与 LLM 正文 [N] 对齐）", () => {
     const toolCalls = [
       okCall("search_knowledge_base", {
         results: [

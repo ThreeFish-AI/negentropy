@@ -106,10 +106,10 @@ export function extractCitationsFromToolCalls(toolCalls: ToolCallInfo[] | undefi
     }
   }
 
-  // 按 id 升序，重新分配连续 1..N（避免不同工具调用的 citation_id 冲突）
-  return aggregated
-    .sort((a, b) => a.id - b.id)
-    .map((c, idx) => ({ ...c, id: idx + 1 }));
+  // 按 id 升序展示，但**保留原 citation_id**：LLM 在正文里写下的 [N] 必须与
+  // 工具结果中的 citation_id 一致，否则正文 [N] 会落空或指错。多工具混排导致 id
+  // 区间交错时优先保证 [N] 的可达性，重号场景由上层 prompt 通过 fallback 语义规避。
+  return aggregated.sort((a, b) => a.id - b.id);
 }
 
 /** 给 ChatMessage 附加聚合后的 citations 字段（不变更原对象）。 */
