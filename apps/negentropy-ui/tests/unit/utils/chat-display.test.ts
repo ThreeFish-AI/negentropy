@@ -3,6 +3,7 @@ import { EventType } from "@ag-ui/core";
 import { buildConversationTree } from "@/utils/conversation-tree";
 import {
   buildChatDisplayBlocks,
+  isStreamingDuplicateOfAggregate,
   isStreamingDuplicateOfLater,
 } from "@/utils/chat-display";
 import { createTestEvent } from "@/tests/helpers/agui";
@@ -953,5 +954,47 @@ describe("isStreamingDuplicateOfLater (ISSUE-049 兜底)", () => {
         textSegments[0]?.kind === "text" ? textSegments[0].content : "";
       expect(content).toContain("项目B：已完成");
     }
+  });
+});
+
+// =============================================================================
+// ISSUE-065：partial 单段 vs final 多段聚合 multiset 兜底（Layer 6）
+// =============================================================================
+
+describe("isStreamingDuplicateOfAggregate (ISSUE-065 Layer 6 兜底)", () => {
+  it("命中：partial 单段被 final 多段聚合内容字符 multiset 高度覆盖", () => {
+    // 真实场景（巡检 C2）：partial 混入了 reasoning first-line + 字符级碎片化的
+    // 多段拼接，final 被切成 3 段独立短段。两两比较时 length-ratio 守卫不通过
+    // （later 比 earlier 短），仅在「聚合后段」与 partial 比较时能命中。
+    const partial =
+      "已完成：用一句话给出。后续可能需要：力或信息论确定义、公式或例子。" +
+      "建议下一步：选定方向（热力学/信息）以便我给出短展——吗？" +
+      "熵是衡量系统无序程度或信息不确定性的量。";
+    const finalAggregate =
+      "已完成：用一句话给出定义。\n" +
+      "后续可能需要：热力学或信息论的精确定义、公式或例子。\n" +
+      "建议下一步：选定方向（热力学/信息论）以便我给出简短扩展——需要继续吗？\n" +
+      "熵是衡量系统无序程度或信息不确定性的量。";
+    expect(isStreamingDuplicateOfAggregate(partial, finalAggregate)).toBe(true);
+  });
+
+  it("不命中：聚合内容长度不足 1.05x → 保留", () => {
+    const earlier = "我已经完成所有的查询任务并整理好结果，请稍后查看。";
+    const aggregate = "我已经完成所有的查询任务并整理好结果。";
+    expect(isStreamingDuplicateOfAggregate(earlier, aggregate)).toBe(false);
+  });
+
+  it("不命中：multiset 覆盖率不足 0.7 → 保留", () => {
+    // earlier 字符与 aggregate 重合度低，不应被误判为聚合冗余。
+    const earlier = "今天上午开了一场长达三小时的产品需求评审会议。";
+    const aggregate =
+      "明天下午要去机场接待远道而来的客户，请准备好接待材料并提前确认航班时刻。";
+    expect(isStreamingDuplicateOfAggregate(earlier, aggregate)).toBe(false);
+  });
+
+  it("不命中：earlier 短于 STREAMING_DUPLICATE_MIN_LENGTH → 保留", () => {
+    expect(isStreamingDuplicateOfAggregate("已完成", "已完成查询任务并整理结果")).toBe(
+      false,
+    );
   });
 });

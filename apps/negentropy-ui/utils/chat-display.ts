@@ -450,6 +450,41 @@ export function isStreamingDuplicateOfLater(
 }
 
 /**
+ * ISSUE-065 兜底层（Layer 6）：「partial 单段 vs final 多段」场景的字符级聚合判定。
+ *
+ * Layer 5 (`isStreamingDuplicateOfLater`) 仅做两两比较，要求 later 比 earlier 长 1.15x。
+ * 但 C2 实测里 partial（earlier）混入了 reasoning first-line 而被切成单个长段，final
+ * 却被切成 3 段独立短段，single-pair 比较时 `laterLen < earlierLen * 1.15` 总成立，
+ * Layer 5 无法触发。此处补一层「聚合视角」：把 earlier 与所有后续 text 段拼接的 totalLater
+ * 比较，当 earlier 字符 multiset 几乎完全被 totalLater 包含、且 totalLater 总长比 earlier
+ * 长时，丢弃 earlier。
+ *
+ * 阈值放宽（与 Layer 5 相比）：
+ * - multiset 覆盖率 ≥ 0.7（Layer 5 是 0.8）：partial 的字符顺序可能被 SSE chunk
+ *   错位拼回（C2 中文字符级碎片化），允许少量"乱码字符"不算入覆盖。
+ * - 总长比 ≥ 1.05（Layer 5 是 1.15）：聚合后 totalLater 可能仅微长于 partial，
+ *   关键判据已落在 multiset 覆盖率上。
+ * - 仍要求双方均 ≥ STREAMING_DUPLICATE_MIN_LENGTH，避免误删合理短回复。
+ */
+const STREAMING_DUPLICATE_AGGREGATE_MULTISET_RATIO = 0.7;
+const STREAMING_DUPLICATE_AGGREGATE_LENGTH_RATIO = 1.05;
+
+export function isStreamingDuplicateOfAggregate(
+  earlierContent: string,
+  aggregateLaterContent: string,
+): boolean {
+  const earlierLen = earlierContent.length;
+  const aggregateLen = aggregateLaterContent.length;
+  if (earlierLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (aggregateLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (aggregateLen < earlierLen * STREAMING_DUPLICATE_AGGREGATE_LENGTH_RATIO) {
+    return false;
+  }
+  const coverage = multisetCoverage(earlierContent, aggregateLaterContent);
+  return coverage >= STREAMING_DUPLICATE_AGGREGATE_MULTISET_RATIO;
+}
+
+/**
  * 折叠同一 assistant-reply 内的「冗余文本片段」，四层判定（自上而下越来越宽松,
  * 也越来越保守，全部命中后丢弃前段，因为工具反馈后的「后段」通常是更完备的最终版本）：
  *
@@ -548,6 +583,38 @@ function dedupeRedundantTextSegments(
       if (isStreamingDuplicateOfLater(earlierContent, laterContent)) {
         droppedIndices.add(earlierIdx);
       }
+    }
+  }
+
+  // 6. ISSUE-065 流式双内容聚合兜底：partial 单段 vs final 多段的场景。
+  //    前 5 层都做两两比较，partial 经常因混入 reasoning first-line 而比 final
+  //    任一单段都长，导致两两比较中的 length-ratio 守卫永远不通过；此处把所有
+  //    比 earlier 靠后且未被丢弃的 text 段拼接成 totalLater 再判定，覆盖
+  //    "partial 字符均匀分布在 final 多段中"的真实场景。
+  for (let i = 0; i < textIndices.length - 1; i += 1) {
+    const earlierIdx = textIndices[i];
+    if (droppedIndices.has(earlierIdx)) continue;
+    const earlierSegment = segments[earlierIdx];
+    if (earlierSegment.kind !== "text") continue;
+    const earlierContent = earlierSegment.content.trim();
+    if (!earlierContent) continue;
+
+    const aggregateParts: string[] = [];
+    for (let j = i + 1; j < textIndices.length; j += 1) {
+      const laterIdx = textIndices[j];
+      if (droppedIndices.has(laterIdx)) continue;
+      const laterSegment = segments[laterIdx];
+      if (laterSegment.kind !== "text") continue;
+      const laterContent = laterSegment.content.trim();
+      if (laterContent) aggregateParts.push(laterContent);
+    }
+    if (aggregateParts.length < 2) {
+      // 至少 2 段才进入聚合判据；单段后继的场景由 Layer 1-5 已覆盖。
+      continue;
+    }
+    const aggregate = aggregateParts.join("\n");
+    if (isStreamingDuplicateOfAggregate(earlierContent, aggregate)) {
+      droppedIndices.add(earlierIdx);
     }
   }
 
