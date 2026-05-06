@@ -22,8 +22,8 @@ export async function generateStaticParams() {
             entrySlug: entry.entry_slug.split("/"),
           });
         }
-      } catch (err) {
-        console.warn(`Wiki: Failed to fetch entries for pub ${pub.id}`, err);
+      } catch {
+        // 单个 publication 的 entries 不可达时跳过，不阻断其余
       }
     }
 
