@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { Suspense, useCallback, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { CopilotKitProvider } from "@copilotkitnext/react";
@@ -13,7 +13,16 @@ import { AGENT_ID, APP_NAME, HomeBody } from "./home-body";
 
 const SESSION_ID_QUERY_KEY = "sessionId";
 
-export default function Home() {
+/**
+ * 内部组件：承载 useSearchParams 等 client-side 路由 hooks。
+ *
+ * Next.js 16 SSG prerender 阶段对裸用 ``useSearchParams`` 的客户端组件强制要求
+ * Suspense 边界（CSR bailout 协议）；不包裹会触发
+ * ``missing-suspense-with-csr-bailout`` 让 build 失败。本拆分让 SSG 阶段渲染
+ * Suspense fallback、CSR 阶段挂载真实 ``HomeInner``，链路上所有 hook（含
+ * useSessionListService 内部的 useSearchParams）都被同一 Suspense 兜住。
+ */
+function HomeInner() {
   const { user, status: authStatus, login } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -117,5 +126,26 @@ export default function Home() {
     >
       <HomeBody agent={agent} {...homeBodyProps} />
     </CopilotKitProvider>
+  );
+}
+
+/**
+ * 顶层导出：Suspense 兜住 ``HomeInner`` 内的 ``useSearchParams`` 等 client-side
+ * 路由 hooks，满足 Next.js 16 SSG prerender 对 CSR bailout 的边界要求。
+ *
+ * fallback 选用与"正在验证登录状态..."相同的视觉容器，避免 SSG → CSR 切换
+ * 时的视觉跳动。
+ */
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
+          正在加载...
+        </div>
+      }
+    >
+      <HomeInner />
+    </Suspense>
   );
 }
