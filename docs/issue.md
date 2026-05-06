@@ -1395,3 +1395,19 @@
   2. **测试 mock 的反应式订阅**：``vi.hoisted`` + ``useSyncExternalStore`` 模式可在 jsdom 环境模拟"router.replace 后下一次 render 看到新 searchParams"；建议把这套 mock 抽出成 ``tests/helpers/next-navigation.ts``，下一轮把 Memory / Knowledge / Skills view 状态升级时复用；
   3. **integration 测试的 mock 完整性**：任何使用 ``next/navigation`` 的 hook 在 ``HomeBody`` / 其它顶层组件被引入后，integration 测试必须 mock 之，否则 ``useRouter()`` 在无 App Router 包裹下抛错。
 - **同类问题影响**：Memory timeline filter / Knowledge corpus filter / Skills create-mode flag 等一切"用户切换并希望分享的视图状态"都应套用本 hook 模式；通用 ``utils/url-state-sync.ts`` 抽象延后到第三个相同 case 出现后再做（YAGNI）。
+
+---
+
+## ISSUE-062 全站危险操作残留原生 confirm/alert（2026-05-06）
+
+- **表因**：P0 UI 全站巡检静态扫荡发现，ISSUE-054 已升格通用 [ConfirmDialog](../apps/negentropy-ui/components/ui/ConfirmDialog.tsx) 后，Interface Models / MCP / SubAgents、Knowledge Base / Catalog / Wiki 仍残留 `window.confirm`、裸 `confirm` 与 `alert`。实机会弹出浏览器原生对话框，破坏应用视觉一致性，也让 E2E 难以通过统一 `data-testid` 锚点验证。
+- **根因**：ISSUE-054 只修 SessionList 并提出“后续扫荡 MCP / SubAgents”，但缺少跨目录防回归门禁；各页面把“确认危险操作”作为局部实现，未复用通用确认原语，导致同型问题分散复发。
+- **处理方式**：
+  1. 新增 [useConfirmDialog](../apps/negentropy-ui/components/ui/useConfirmDialog.tsx)，提供 `await confirm({ title, message, confirmLabel, destructive })` 的最小封装；
+  2. 将 MCP Server 删除、SubAgent 删除与内置重命名、Models 供应商/模型删除、Knowledge Corpus/Source/节点/文档归属/Wiki 发布删除取消发布等路径统一迁移到通用 ConfirmDialog；
+  3. MCP / SubAgents 删除失败不再 `alert()`，改写入页面错误态；
+  4. 新增 `tests/unit/ui/useConfirmDialog.test.tsx` 与 `tests/unit/ui/no-native-dialogs.test.ts`，验证确认/取消语义并阻断 `window.confirm/alert/prompt` 与裸 `alert/prompt` 回归。
+- **后续防范**：
+  1. 所有危险操作必须复用 `components/ui/ConfirmDialog` 或 `useConfirmDialog`，禁止直接调用浏览器原生 dialog；
+  2. 若后续需要“输入名称二次确认”，应扩展通用组件而不是回退到 `prompt()`；
+  3. 下一步可把静态测试升级为 ESLint `no-restricted-globals` / `no-restricted-properties` 规则，覆盖裸 `confirm()` 的 AST 级识别。

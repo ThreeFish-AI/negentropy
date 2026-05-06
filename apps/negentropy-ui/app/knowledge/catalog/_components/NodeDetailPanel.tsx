@@ -6,6 +6,7 @@ import {
   updateCatalogNode,
   deleteCatalogNode,
 } from "@/features/knowledge";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
 import { Pencil, Trash2 } from "./icons";
 import { DocumentAssignmentSection } from "./DocumentAssignmentSection";
@@ -23,6 +24,7 @@ export function NodeDetailPanel({
   onUpdate,
   onDelete,
 }: NodeDetailPanelProps) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState("");
 
@@ -46,7 +48,13 @@ export function NodeDetailPanel({
   };
 
   const handleDelete = async () => {
-    if (!confirm(`确定删除「${node.name}」？子节点将一并删除。`)) return;
+    const confirmed = await confirm({
+      title: "删除目录节点",
+      message: `确定删除「${node.name}」？子节点将一并删除。`,
+      confirmLabel: "删除",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await deleteCatalogNode(catalogId, node.id);
       toast.success("节点已删除");
@@ -57,7 +65,8 @@ export function NodeDetailPanel({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <>
+      <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
       <div className="border-b border-border px-5 py-4">
         <div className="flex items-start justify-between">
@@ -167,6 +176,8 @@ export function NodeDetailPanel({
 
       {/* Document assignment */}
       <DocumentAssignmentSection nodeId={node.id} catalogId={catalogId} />
-    </div>
+      </div>
+      {confirmDialog}
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { VendorModelsDisclosure } from "@/components/interface/VendorModelsDisclosure";
 import {
   MODEL_KINDS,
@@ -60,6 +61,7 @@ interface PingResult {
 export default function ModelsPage() {
   const { user, status } = useAuth();
   const router = useRouter();
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     if (status === "loading") return;
@@ -191,7 +193,13 @@ export default function ModelsPage() {
 
   const handleVendorRemove = async () => {
     if (!vendorDialogVendor) return;
-    if (!window.confirm(`确认移除 ${vendorDialogVendor} 的供应商配置？`)) return;
+    const confirmed = await confirm({
+      title: "移除供应商配置",
+      message: `确认移除 ${vendorDialogVendor} 的供应商配置？`,
+      confirmLabel: "移除",
+      destructive: true,
+    });
+    if (!confirmed) return;
     setVendorSaving(true);
     try {
       const response = await fetch(`/api/interface/models/vendor-configs/${vendorDialogVendor}`, {
@@ -371,7 +379,13 @@ export default function ModelsPage() {
   };
 
   const handleModelDelete = async (mc: ModelConfigRecord) => {
-    if (!window.confirm(`确认删除 ${mc.display_name}（${mc.vendor}/${mc.model_name}）?`)) return;
+    const confirmed = await confirm({
+      title: "删除模型配置",
+      message: `确认删除 ${mc.display_name}（${mc.vendor}/${mc.model_name}）？`,
+      confirmLabel: "删除",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       const response = await fetch(`/api/interface/models/configs/${mc.id}`, {
         method: "DELETE",
@@ -837,6 +851,7 @@ export default function ModelsPage() {
           </OverlayDismissLayer>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }
