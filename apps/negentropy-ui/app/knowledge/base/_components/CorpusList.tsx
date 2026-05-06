@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { CorpusRecord } from "@/features/knowledge";
 
 interface CorpusListProps {
@@ -18,6 +19,7 @@ export function CorpusList({
   onDelete,
   isLoading,
 }: CorpusListProps) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +33,7 @@ export function CorpusList({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleAction = (
+  const handleAction = async (
     e: React.MouseEvent,
     action: "edit" | "delete",
     corpus: CorpusRecord,
@@ -41,7 +43,13 @@ export function CorpusList({
     if (action === "edit") {
       onEdit(corpus);
     } else {
-      if (confirm(`确定要删除 "${corpus.name}" 吗？此操作无法撤销。`)) {
+      const confirmed = await confirm({
+        title: "Delete Corpus",
+        message: `确定要删除 "${corpus.name}" 吗？此操作无法撤销。`,
+        confirmLabel: "Delete",
+        destructive: true,
+      });
+      if (confirmed) {
         onDelete(corpus.id);
       }
     }
@@ -69,7 +77,8 @@ export function CorpusList({
   }
 
   return (
-    <div className="space-y-1">
+    <>
+      <div className="space-y-1">
       {corpora.map((corpus) => (
         <div
           key={corpus.id}
@@ -131,6 +140,8 @@ export function CorpusList({
           )}
         </div>
       ))}
-    </div>
+      </div>
+      {confirmDialog}
+    </>
   );
 }

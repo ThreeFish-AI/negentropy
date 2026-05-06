@@ -11,6 +11,7 @@ import {
   WikiPublication,
   WikiRevalidationStatus,
 } from "@/features/knowledge";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
 import { WikiStatusBadge } from "./WikiStatusBadge";
 import { WikiEntriesList } from "./WikiEntriesList";
@@ -30,6 +31,7 @@ export function WikiPublicationDetail({
   onChanged,
   onDeleted,
 }: WikiPublicationDetailProps) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [navTree, setNavTree] = useState<WikiNavTreeItem[]>([]);
   const [navLoading, setNavLoading] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -88,7 +90,13 @@ export function WikiPublicationDetail({
 
   const handleUnpublish = useCallback(async () => {
     if (!pubId) return;
-    if (!confirm("确定取消发布吗？站点将回退为草稿状态。")) return;
+    const confirmed = await confirm({
+      title: "取消发布",
+      message: "确定取消发布吗？站点将回退为草稿状态。",
+      confirmLabel: "取消发布",
+      destructive: true,
+    });
+    if (!confirmed) return;
     setSubmitting(true);
     setPipelineActive(true);
     try {
@@ -103,15 +111,17 @@ export function WikiPublicationDetail({
     } finally {
       setSubmitting(false);
     }
-  }, [pubId, onChanged]);
+  }, [pubId, confirm, onChanged]);
 
   const handleDelete = useCallback(async () => {
     if (!publication) return;
-    if (
-      !confirm(
-        `确定删除发布「${publication.name}」吗？所有条目与历史版本将一并删除。`,
-      )
-    ) {
+    const confirmed = await confirm({
+      title: "删除 Wiki 发布",
+      message: `确定删除发布「${publication.name}」吗？所有条目与历史版本将一并删除。`,
+      confirmLabel: "删除",
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
     setSubmitting(true);
@@ -124,7 +134,7 @@ export function WikiPublicationDetail({
     } finally {
       setSubmitting(false);
     }
-  }, [publication, onDeleted]);
+  }, [publication, confirm, onDeleted]);
 
   const handleSyncConfirm = useCallback(
     async (catalogNodeIds: string[]) => {
@@ -289,6 +299,7 @@ export function WikiPublicationDetail({
             : "选择要同步的 Catalog 节点"
         }
       />
+      {confirmDialog}
     </div>
   );
 }

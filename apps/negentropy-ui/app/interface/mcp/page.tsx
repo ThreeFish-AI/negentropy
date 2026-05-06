@@ -6,6 +6,7 @@ import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { McpServerCard } from "./_components/McpServerCard";
 import { McpServerFormDialog } from "./_components/McpServerFormDialog";
 import { McpServerTrialDialog } from "./_components/McpServerTrialDialog";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 
 interface McpTool {
   id: string | null;
@@ -72,6 +73,7 @@ interface LoadToolsResponse {
 }
 
 export default function McpServersPage() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [servers, setServers] = useState<ServerWithTools[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +113,13 @@ export default function McpServersPage() {
   };
 
   const handleDelete = async (serverId: string) => {
-    if (!confirm("Are you sure you want to delete this server?")) {
+    const confirmed = await confirm({
+      title: "Delete MCP Server",
+      message: "Are you sure you want to delete this server?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -123,7 +131,7 @@ export default function McpServersPage() {
       }
       fetchServers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -320,6 +328,7 @@ export default function McpServersPage() {
           await handleLoadTools(serverId);
         }}
       />
+      {confirmDialog}
     </div>
   );
 }

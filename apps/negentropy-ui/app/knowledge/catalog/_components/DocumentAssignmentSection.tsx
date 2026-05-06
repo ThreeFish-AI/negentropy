@@ -6,6 +6,7 @@ import {
   unassignDocumentFromNode,
   KnowledgeDocument,
 } from "@/features/knowledge";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
 import { Plus, Trash2 } from "./icons";
 import { AddDocumentsDialog } from "./AddDocumentsDialog";
@@ -19,6 +20,7 @@ export function DocumentAssignmentSection({
   nodeId,
   catalogId,
 }: DocumentAssignmentSectionProps) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [docs, setDocs] = useState<KnowledgeDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -41,7 +43,13 @@ export function DocumentAssignmentSection({
 
   const handleRemove = useCallback(
     async (docId: string, filename: string) => {
-      if (!confirm(`从本节点移除「${filename}」？文档本身不会被删除。`)) return;
+      const confirmed = await confirm({
+        title: "移除归属文档",
+        message: `从本节点移除「${filename}」？文档本身不会被删除。`,
+        confirmLabel: "移除",
+        destructive: true,
+      });
+      if (!confirmed) return;
       try {
         await unassignDocumentFromNode(catalogId, nodeId, docId);
         toast.success("已移除");
@@ -50,7 +58,7 @@ export function DocumentAssignmentSection({
         toast.error(err instanceof Error ? err.message : "移除失败");
       }
     },
-    [catalogId, nodeId, refresh],
+    [catalogId, confirm, nodeId, refresh],
   );
 
   const handleAdded = useCallback(() => {
@@ -113,6 +121,7 @@ export function DocumentAssignmentSection({
           onAdded={handleAdded}
         />
       )}
+      {confirmDialog}
     </div>
   );
 }

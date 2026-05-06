@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import { LlmModelSelect } from "@/components/ui/LlmModelSelect";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { fetchModelConfigs, type ModelConfigItem } from "@/features/knowledge/utils/knowledge-api";
 
 interface SubAgent {
@@ -47,6 +48,7 @@ export function SubAgentFormDialog({
   onSubmit,
   agent,
 }: SubAgentFormDialogProps) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [formData, setFormData] = useState({
     name: "",
     display_name: "",
@@ -165,9 +167,13 @@ export function SubAgentFormDialog({
 
     let confirmBuiltinRename = false;
     if (agent?.is_builtin && formData.name !== agent.name) {
-      const confirmed = confirm(
-        "Renaming a Negentropy built-in SubAgent may cause future sync to create a duplicate. Continue?",
-      );
+      const confirmed = await confirm({
+        title: "Rename Built-in SubAgent",
+        message:
+          "Renaming a Negentropy built-in SubAgent may cause future sync to create a duplicate. Continue?",
+        confirmLabel: "Continue",
+        destructive: true,
+      });
       if (!confirmed) {
         return;
       }
@@ -241,7 +247,8 @@ export function SubAgentFormDialog({
   if (!open) return null;
 
   return (
-    <OverlayDismissLayer
+    <>
+      <OverlayDismissLayer
       open={open}
       onClose={onClose}
       busy={loading}
@@ -503,6 +510,8 @@ export function SubAgentFormDialog({
               </button>
             </div>
           </form>
-    </OverlayDismissLayer>
+      </OverlayDismissLayer>
+      {confirmDialog}
+    </>
   );
 }

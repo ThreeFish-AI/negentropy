@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { InterfaceNav } from "@/components/ui/InterfaceNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { SubAgentCard } from "./_components/SubAgentCard";
 import { SubAgentFormDialog } from "./_components/SubAgentFormDialog";
 
@@ -34,6 +35,7 @@ interface SyncResponse {
 }
 
 export default function SubAgentsPage() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [agents, setAgents] = useState<SubAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +99,13 @@ export default function SubAgentsPage() {
   };
 
   const handleDelete = async (agentId: string) => {
-    if (!confirm("Are you sure you want to delete this subagent?")) {
+    const confirmed = await confirm({
+      title: "Delete SubAgent",
+      message: "Are you sure you want to delete this subagent?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -109,7 +117,7 @@ export default function SubAgentsPage() {
       }
       fetchAgents();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -246,6 +254,7 @@ export default function SubAgentsPage() {
         onSubmit={handleFormSubmit}
         agent={editingAgent}
       />
+      {confirmDialog}
     </div>
   );
 }

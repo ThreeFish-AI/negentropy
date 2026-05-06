@@ -10,6 +10,7 @@ import { CreateNodeDialog } from "./_components/CreateNodeDialog";
 import { useCatalogTree } from "./hooks/useCatalogTree";
 import { useSingletonCatalog } from "./hooks/useSingletonCatalog";
 import { CatalogNode, deleteCatalogNode } from "@/features/knowledge";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { toast } from "@/lib/activity-toast";
 
 interface ContextMenuState {
@@ -25,6 +26,7 @@ interface DragState {
 }
 
 export default function CatalogPage() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const { catalogId, loading: catalogLoading, error: catalogError } = useSingletonCatalog();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
@@ -97,7 +99,13 @@ export default function CatalogPage() {
   const handleContextDelete = useCallback(
     async (node: CatalogNode) => {
       if (!catalogId) return;
-      if (!confirm(`确定删除「${node.name}」？子节点将一并删除。`)) return;
+      const confirmed = await confirm({
+        title: "删除目录节点",
+        message: `确定删除「${node.name}」？子节点将一并删除。`,
+        confirmLabel: "删除",
+        destructive: true,
+      });
+      if (!confirmed) return;
       try {
         await deleteCatalogNode(catalogId, node.id);
         toast.success("节点已删除");
@@ -106,7 +114,7 @@ export default function CatalogPage() {
         toast.error(err instanceof Error ? err.message : "删除失败");
       }
     },
-    [catalogId, handleDeleted],
+    [catalogId, confirm, handleDeleted],
   );
 
   const handleRename = useCallback(
@@ -294,6 +302,7 @@ export default function CatalogPage() {
           onCollapseAll={collapseAll}
         />
       )}
+      {confirmDialog}
     </div>
   );
 }

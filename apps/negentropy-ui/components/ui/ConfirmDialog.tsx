@@ -1,9 +1,10 @@
 "use client";
 
+import { useId, type ReactNode } from "react";
 import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 
 /**
- * 项目通用 ConfirmDialog — 替代 window.confirm/alert/prompt（违反 AGENTS.md 视觉规范）。
+ * 项目通用 ConfirmDialog — 替代浏览器原生确认/告警/输入弹窗（违反 AGENTS.md 视觉规范）。
  *
  * 设计参考 ISSUE-045 Skills 模块同款实现。从 app/interface/skills/_components 升格到 components/ui，
  * 让 SessionList、Composer、Memory 等模块可复用。
@@ -11,7 +12,7 @@ import { OverlayDismissLayer } from "@/components/ui/OverlayDismissLayer";
 export interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  message: string;
+  message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
@@ -31,6 +32,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const titleId = useId();
   if (!open) return null;
   return (
     <OverlayDismissLayer
@@ -40,9 +42,19 @@ export function ConfirmDialog({
       backdropClassName="bg-black/55"
       containerClassName="flex min-h-full items-center justify-center p-4"
       contentClassName="w-full max-w-md rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
+      contentProps={{
+        role: "dialog",
+        "aria-modal": true,
+        "aria-labelledby": titleId,
+      }}
     >
       <div className="px-5 py-4 sm:px-6" data-testid="confirm-dialog">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
+        <h2
+          id={titleId}
+          className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+        >
+          {title}
+        </h2>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
       </div>
       <div className="flex justify-end gap-3 border-t border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
