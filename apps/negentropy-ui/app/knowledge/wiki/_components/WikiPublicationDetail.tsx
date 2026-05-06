@@ -91,9 +91,11 @@ export function WikiPublicationDetail({
   const handleUnpublish = useCallback(async () => {
     if (!pubId) return;
     const confirmed = await confirm({
-      title: "取消发布",
-      message: "确定取消发布吗？站点将回退为草稿状态。",
-      confirmLabel: "取消发布",
+      title: "取消发布 Wiki 站点",
+      // 标题与确认按钮文字必须有差别，否则用户会把"取消发布"既看作 dialog 标题
+      // 也看作"放弃这次操作"，混淆度高（巡检 m3）。明确化按钮的动作语义。
+      message: "确定取消发布该 Wiki 站点吗？发布版本会回退为草稿，访客将无法继续访问。",
+      confirmLabel: "确认取消发布",
       destructive: true,
     });
     if (!confirmed) return;

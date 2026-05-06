@@ -116,6 +116,12 @@ export function useSessionListService(
         sessionId &&
         !nextSessions.some((session) => session.id === sessionId)
       ) {
+        // ISSUE-063：归档视图 Back → 实时视图后，sessionId 自动切换到新列表
+        // 头部时，必须先 clear projection（messages / state / event timeline），
+        // 否则前一会话（如归档下选中的 b8676a4a）的内容会残留在主区与右栏，
+        // 与 URL 上的 sessionId 不一致。手动点 sidebar 的 selectSession 路径
+        // 由 home-body 的 handleSessionChange 已 clear，本路径补齐对称行为。
+        onClearActiveSession();
         setSessionId(nextSessions[0]?.id ?? null);
       } else if (!sessionId && nextSessions.length > 0) {
         setSessionId(nextSessions[0]!.id);
@@ -128,6 +134,7 @@ export function useSessionListService(
   }, [
     addLog,
     appName,
+    onClearActiveSession,
     sessionId,
     sessionListView,
     setConnectionWithMetrics,

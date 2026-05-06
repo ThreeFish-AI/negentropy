@@ -1000,7 +1000,16 @@ export async function fetchModelConfigs(params?: {
   const res = await fetch(`/api/interface/models/configs${query ? `?${query}` : ""}`, {
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`Failed to fetch model configs: ${res.statusText}`);
+  if (!res.ok) {
+    // 该端点目前以 admin 鉴权读取（详见 `/admin` rebuild 路径）；普通用户以
+    // 401/403 命中是符合后端预期的"无权读取"语义，不构成错误：返回空数组让
+    // 调用方静默降级到系统默认模型，避免在控制台抛 [error]/WARN（仅是合理拒绝，
+    // 而非异常）。500 等其它错误仍照旧抛出，触发 UI 兜底告警。
+    if (res.status === 401 || res.status === 403) {
+      return [];
+    }
+    throw new Error(`Failed to fetch model configs: ${res.statusText}`);
+  }
   const data = await res.json();
   return data.items || [];
 }

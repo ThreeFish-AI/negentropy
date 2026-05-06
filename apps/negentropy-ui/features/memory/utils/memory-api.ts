@@ -263,7 +263,16 @@ export async function fetchMemories(
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch memories: ${res.statusText}`);
+    // Memory 列表 backend 当前在无 user_id 时会返回 500（与 ADK session_service
+    // 边界相关，参见 docs/issue.md M3）。对前端而言"无内容"与"5xx"在用户侧应有
+    // 一致的可重试 UX；这里把错误信息本地化并保留状态码，由调用方根据 statusCode
+    // 决定是否显示"重试"按钮。
+    const error = new Error(
+      `加载记忆失败：${res.status} ${res.statusText || "Internal Server Error"}`,
+    ) as Error & { statusCode?: number; retryable?: boolean };
+    error.statusCode = res.status;
+    error.retryable = res.status >= 500 || res.status === 0;
+    throw error;
   }
   return res.json();
 }
