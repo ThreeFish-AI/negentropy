@@ -1361,3 +1361,37 @@
   2. **避免双 source of truth**：URL ↔ React state 必须有清晰的 owner（本案以 URL 为权威，state 仅是缓存）；
   3. **次级会话切换、归档恢复、归档列表过滤**等其他会话相关交互一并迁移到 URL（本 PR 仅覆盖新建路径，下一轮把 `setSessionId` 在 `archiveSession` / `handleSessionChange` / 归档 view 切换中也走 router.replace）。
 - **同类问题影响**：Memory timeline range / Knowledge corpus filter / Skills view mode 等一切"用户可分享的视图状态"都应同步 URL；建议建立 [`utils/url-state-sync.ts`](../apps/negentropy-ui/utils/url-state-sync.ts) 通用 hook 统一 pattern。
+
+---
+
+## ISSUE-060 流式双内容根因层修复（``isSemanticEquivalentEntry`` 严格前缀放宽到 multiset 互含）（2026-05-06）
+
+> 续 [ISSUE-058](#issue-058)：v1 PR #465 在 ``chat-display.ts::dedupeRedundantTextSegments`` 加了第 5 层 UI 兜底，本期把根因层（ledger merge）也补上。
+
+- **表因**：v1 兜底层依赖"较短段被较长段以 ≥80% multiset 覆盖"才丢弃残缺版，但 ledger 层仍把"残缺累积版 + final 完整版"保留为两个 entry → conversation-tree 产生两个 text node → chat-display 收到两份 segment 后再丢弃其一。一来浪费 React 重渲染，二来"根因层未治"使任何下游再加新视图都会重蹈覆辙。
+- **根因**：[`utils/message-ledger.ts::isSemanticEquivalentEntry`](../apps/negentropy-ui/utils/message-ledger.ts):114-119 要求双方内容**严格前缀**关系，残缺累积版（"机器校"）与 final 完整版（"机器校验"）字符级不一致 → 直接 short-circuit `return false` → ledger 不合并；后续的 `historicalCompletesClosedRealtime` 判定（L146-151）同样仅看前缀；时间窗硬上限 8s 也对长 LLM 回复（partial 起始 → final 终态间隔 25s）误拒。
+- **处理方式**：在 [`utils/message.ts`](../apps/negentropy-ui/utils/message.ts) 新增 `characterMultiset` / `multisetCoverage` 通用 helper，让 ``message-ledger`` 与 ``chat-display`` 共享同一字符 multiset 工具（去重 v1 在 `chat-display.ts` 的本地实现）；`isSemanticEquivalentEntry` 把"严格前缀"放宽为"前缀 ∨ multiset 覆盖 ≥0.85 + 长度比 ≥1.1"，命中兜底路径时同步绕过 8s 时间窗硬限；`historicalCompletesClosedRealtime` 的前缀检查同样升级为"前缀 ∨ multiset 覆盖 ≥0.85"；新增最终判据：当兜底路径成立时直接返回 true，避免 `isEquivalentMessageContent` 漏判同源消息。配套 5 个 vitest 单测覆盖正交场景（命中 / 主题不同 / 长度比不足 / 端到端 merge 1 条 / 端到端不合并 2 条），现有 ISSUE-041 11 个测试不受影响。
+- **后续防范**：
+  1. **覆盖率阈值的取值有依据**：UI 层兜底（``chat-display`` 第 5 层）阈值 0.8（误删一条历史消息成本可控），ledger 根因层 0.85（合并后影响下游 conversation-tree 节点匹配 + 渲染 + dedupe，需要更高置信度）；任何调整必须配套实测真实场景的覆盖率分布；
+  2. **multiset 覆盖与 bigram Jaccard 适用场景不同**：multiset 单向覆盖适合"残缺版被完整版覆盖"，bigram Jaccard 适合"双向相似"；不同场景选不同工具，不要拿 Jaccard 凑大表面积；
+  3. **根因层 + UI 层双轨防御**：v1 的 UI 兜底层保留作"最后防线"，本期 ledger 修复让大多数场景在根因层就被合并，UI 层仅在 ledger 漏判（极端情形）时启用。
+- **同类问题影响**：所有"流式累积 + final hydration 双路径"的 ledger 状态机都可能因严格前缀而漏合并；建议把 multiset coverage helper 推广到 KG SSE 进度合并、Tool Progress 流式更新等同类场景。
+
+---
+
+## ISSUE-061 会话归档列表 view 状态未同步 URL（v2-D 全路径补全）（2026-05-06）
+
+> 续 [ISSUE-059](#issue-059)：v1 PR #465 仅覆盖"新建会话"路径的 URL 同步，会话切换 / 归档 / 解档因 ``setSessionId`` 通过 ``app/page.tsx`` 包裹版传入，已自动同步；本期补齐唯一遗漏路径 — 归档面板的 view 切换。
+
+- **表因**：点击侧边栏 ``Archived`` 切换到归档面板查看历史归档会话时，地址栏 URL 不变；刷新后回到 active 视图，归档面板的浏览状态丢失；复制 URL 在新 tab 打开无法直达归档面板。
+- **根因**：[`features/session/hooks/useSessionListService.ts`](../apps/negentropy-ui/features/session/hooks/useSessionListService.ts):46 用 ``useState<SessionListView>("active")`` 单点持有 ``sessionListView``，整个 hook 内部封闭，无任何 ``useRouter`` / ``useSearchParams`` 同步 URL 的代码路径。
+- **处理方式**：把 ``sessionListView`` 升级为 URL 单源派生（与 v1 ``sessionId`` 模式一致）：
+  1. 引入 ``next/navigation`` 的 ``useRouter`` / ``usePathname`` / ``useSearchParams``；
+  2. ``sessionListView`` 改为 ``searchParams?.get("view") === "archived" ? "archived" : "active"`` 派生；
+  3. ``setSessionListView`` 改为 callback 形式，直接调 ``router.replace`` 同步 URL；
+  4. 测试基建：现有 4 个 ``useSessionListService`` 单测因依赖 ``next/navigation`` 失败，新增 ``vi.hoisted`` mock + 用 ``useSyncExternalStore`` 让 ``useSearchParams`` 反映 ``router.replace`` 的写入，让 hook 测试在 jsdom 环境无 App Router 包裹下也能完整运行；新增 2 个 ISSUE-061 case（active→archived 写入 ?view= / archived→active 删除 ?view=）；``home-flow.test.tsx`` integration 测试同步加 ``next/navigation`` mock；E2E 在 ``home-chat.spec.ts`` 加 C7-F 四层守卫（初始无 ?view= / 切换写入 / reload 保持 / 外部 URL 直达）。
+- **后续防范**：
+  1. **任何 hook 内部封闭的 useState 都应审视"是否属于用户可分享的视图状态"**：是 → 必须升级为 URL 派生（参见 ``app/page.tsx`` 与本 hook 的实现模式）；
+  2. **测试 mock 的反应式订阅**：``vi.hoisted`` + ``useSyncExternalStore`` 模式可在 jsdom 环境模拟"router.replace 后下一次 render 看到新 searchParams"；建议把这套 mock 抽出成 ``tests/helpers/next-navigation.ts``，下一轮把 Memory / Knowledge / Skills view 状态升级时复用；
+  3. **integration 测试的 mock 完整性**：任何使用 ``next/navigation`` 的 hook 在 ``HomeBody`` / 其它顶层组件被引入后，integration 测试必须 mock 之，否则 ``useRouter()`` 在无 App Router 包裹下抛错。
+- **同类问题影响**：Memory timeline filter / Knowledge corpus filter / Skills create-mode flag 等一切"用户切换并希望分享的视图状态"都应套用本 hook 模式；通用 ``utils/url-state-sync.ts`` 抽象延后到第三个相同 case 出现后再做（YAGNI）。
