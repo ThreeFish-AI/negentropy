@@ -55,7 +55,7 @@ export function ConfirmDialog({
         >
           {title}
         </h2>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
+        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{message}</div>
       </div>
       <div className="flex justify-end gap-3 border-t border-zinc-200 px-5 py-4 sm:px-6 dark:border-zinc-800">
         <button
