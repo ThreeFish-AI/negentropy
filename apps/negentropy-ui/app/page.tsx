@@ -36,27 +36,31 @@ function HomeInner() {
   // 1. 刷新 / 复制 URL / 浏览器返回前进 → 自然恢复对应会话（ISSUE-059）；
   // 2. 书签 / 分享链接可直接指向特定会话；
   // 3. setSessionId 通过 router.replace 触发 Next.js 重渲染，子组件经 props 收到新值。
+  //
+  // ISSUE-062：useSearchParams() 每次 render 返回新的 ReadonlyURLSearchParams 引用
+  // （即使 query 不变），如果直接列入 useCallback deps 会让 setSessionId 引用持续
+  // 重建 → 传入 useSessionListService 后 loadSessions useCallback 也持续重建 →
+  // useEffect(() => loadSessions(), [loadSessions]) 反复触发，与 startNewSession
+  // 写入 sessionId 形成竞速导致 sessionId 被旧 list 覆盖。改用 toString() 派生稳定
+  // 字符串作为 dep，让 React 用值相等性比较保持 callback 稳定。
+  const queryString = searchParams?.toString() ?? "";
   const sessionId = searchParams?.get(SESSION_ID_QUERY_KEY) || null;
 
   const setSessionId = useCallback(
     (next: string | null) => {
       // history.replaceState 而非 push：避免污染浏览器历史栈，让"返回"键回到外部上一页。
       // 不刷新页面（router.replace + scroll: false），保留所有 client state。
-      const params = new URLSearchParams(
-        Array.from(searchParams?.entries() ?? []),
-      );
+      const params = new URLSearchParams(queryString);
       if (next) {
         params.set(SESSION_ID_QUERY_KEY, next);
       } else {
         params.delete(SESSION_ID_QUERY_KEY);
       }
-      const queryString = params.toString();
-      const target = queryString
-        ? `${pathname}?${queryString}`
-        : pathname || "/";
+      const nextQuery = params.toString();
+      const target = nextQuery ? `${pathname}?${nextQuery}` : pathname || "/";
       router.replace(target, { scroll: false });
     },
-    [pathname, router, searchParams],
+    [pathname, router, queryString],
   );
 
   const agent = useMemo(() => {

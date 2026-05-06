@@ -51,30 +51,33 @@ export function useSessionListService(
   // ISSUE-061 v2-D：sessionListView（active / archived）改用 URL 单源派生，
   // 与 sessionId 对齐。刷新 / 复制 URL / 浏览器返回前进后会自然回到目标视图，
   // 也让"分享归档面板"成为可能。
+  //
+  // ISSUE-062：useSearchParams() 每次 render 返回新引用，直接列入 useCallback
+  // deps 会让 setSessionListView 引用持续重建。改用 ``toString()`` 派生的稳定
+  // 字符串作为 dep，让 React 用值相等性比较保持 callback 稳定，避免下游
+  // useEffect 反复触发与 loadSessions 竞速覆盖 sessionId。
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryString = searchParams?.toString() ?? "";
   const sessionListView: SessionListView =
-    searchParams?.get(SESSION_VIEW_QUERY_KEY) === ARCHIVED_VIEW_VALUE
+    new URLSearchParams(queryString).get(SESSION_VIEW_QUERY_KEY) ===
+    ARCHIVED_VIEW_VALUE
       ? "archived"
       : "active";
   const setSessionListView = useCallback(
     (view: SessionListView) => {
-      const params = new URLSearchParams(
-        Array.from(searchParams?.entries() ?? []),
-      );
+      const params = new URLSearchParams(queryString);
       if (view === "archived") {
         params.set(SESSION_VIEW_QUERY_KEY, ARCHIVED_VIEW_VALUE);
       } else {
         params.delete(SESSION_VIEW_QUERY_KEY);
       }
-      const queryString = params.toString();
-      const target = queryString
-        ? `${pathname}?${queryString}`
-        : pathname || "/";
+      const nextQuery = params.toString();
+      const target = nextQuery ? `${pathname}?${nextQuery}` : pathname || "/";
       router.replace(target, { scroll: false });
     },
-    [pathname, router, searchParams],
+    [pathname, router, queryString],
   );
 
   const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
