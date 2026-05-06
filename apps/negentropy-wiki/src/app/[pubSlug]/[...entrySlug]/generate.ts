@@ -23,13 +23,21 @@ export async function generateStaticParams() {
           });
         }
       } catch (err) {
-        console.warn(`Wiki: Failed to fetch entries for pub ${pub.id}`, err);
+        // 单个 publication 的 entries 不可达时跳过，不阻断其余；
+        // 保留 warn 以便构建期定位"某 pub 路由有 bug" vs "该 pub 确实无 entries"。
+        console.warn(
+          `[Wiki SSG] Failed to fetch entries for publication ${pub.slug} (id=${pub.id}), skipping:`,
+          err,
+        );
       }
     }
 
     return params;
-  } catch {
-    console.warn("Wiki: Failed to fetch static params for entries, returning empty");
+  } catch (err) {
+    console.warn(
+      "[Wiki SSG] Failed to fetch static params for entries, returning empty:",
+      err,
+    );
     return [];
   }
 }

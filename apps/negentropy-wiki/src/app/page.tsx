@@ -17,11 +17,12 @@ export default async function WikiHomePage() {
     const result = await wikiApi.listPublications();
     publications = result.items;
   } catch (err) {
-    // 失败本次响应不写入 ISR cache，避免空列表毒化 5 分钟；
-    // 回落为 per-request SSR 一次/请求，后端恢复后下次访问即可正常重建 ISR cache。
+    // 后端不可达时不写入 ISR cache，避免空列表毒化 5 分钟；
+    // 回落为 per-request SSR，后端恢复后下次访问即可正常重建 ISR cache。
     noStore();
+    // 保留 warn：ISR 运行时后端间歇性不可用时，运维可从服务端日志识别退化路径。
     console.warn(
-      "[Wiki] Failed to fetch publications（已退化为 per-request SSR，恢复后自动重建 ISR）:",
+      "[Wiki ISR] Failed to fetch publications (degraded to per-request SSR; will rebuild ISR on next success):",
       err,
     );
   }
