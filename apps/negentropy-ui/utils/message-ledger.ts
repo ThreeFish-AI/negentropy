@@ -20,6 +20,7 @@ import {
   accumulateTextContent,
   getMessageIdentityKey,
   isEquivalentMessageContent,
+  multisetCoverage,
   normalizeMessageContent,
 } from "@/utils/message";
 import { resolveMessageRole, shouldReplaceResolvedRole } from "@/utils/message-role-resolver";
@@ -111,20 +112,47 @@ export function isSemanticEquivalentEntry(
   if (!leftContent || !rightContent) {
     return false;
   }
-  if (
-    !leftContent.startsWith(rightContent) &&
-    !rightContent.startsWith(leftContent)
-  ) {
+  // ISSUE-060 根因层：放宽严格前缀检查为"前缀 ∨ 高门槛 multiset 互含"。
+  //
+  // 旧实现要求 left/right 必须互为前缀，但 LLM 流式 chunk 与 final hydration
+  // 在以下两种主路径下会**字符级不一致**却同源：
+  // 1. 流式 chunk 拼接：markdown 流式 partial 渲染产物为残缺中间态（"机器校"），
+  //    final hydration 拉到完整版（"机器校验"）；
+  // 2. LLM 双轮自我修订：第一遍输出后 reasoning 阶段重写答复，前缀关系断裂。
+  //
+  // 二次判据采用 ``multisetCoverage`` 单向覆盖（较短方字符在较长方中有 ≥0.85
+  // 频次匹配 + 长度比 ≥ 1.1）。0.85 比 ``chat-display.ts`` 的 UI 层兜底 0.8 更严，
+  // 因为这里命中后会**真正合并 ledger entry**（影响下游 conversation-tree
+  // 节点匹配 + chat 渲染），需要更高置信度；UI 层 0.8 仍作为最后防线。
+  const STREAMING_PREFIX_FALLBACK_COVERAGE = 0.85;
+  const STREAMING_PREFIX_FALLBACK_LENGTH_RATIO = 1.1;
+  const leftHasPrefix =
+    leftContent.startsWith(rightContent) || rightContent.startsWith(leftContent);
+  let multisetCoverageHit = false;
+  if (!leftHasPrefix) {
+    const shorter = leftContent.length <= rightContent.length ? leftContent : rightContent;
+    const longer = shorter === leftContent ? rightContent : leftContent;
+    if (longer.length < shorter.length * STREAMING_PREFIX_FALLBACK_LENGTH_RATIO) {
       return false;
+    }
+    if (multisetCoverage(shorter, longer) < STREAMING_PREFIX_FALLBACK_COVERAGE) {
+      return false;
+    }
+    multisetCoverageHit = true;
+    // 兜底命中：继续向下走 lifecycle / streaming / origin 检查（不 short-circuit
+    // return true，避免误合并独立消息）。
   }
 
   const maxWindowMs = 8_000;
   // 长耗时回复（如多段落 / 列表型答复）下，realtime 取首个 partial 时间戳、
   // hydration 取终态时间戳，两者跨度可能大于 8s。当 trim 后内容严格相等且
   // threadId+runId+role 已收敛时，可视为同一逻辑消息，跳过时间窗硬拒绝。
+  // ISSUE-060：multiset 兜底命中（同源残缺版 + final 改写版）的时间跨度也可能
+  // 远大于 8s（LLM 长回复 + hydration 延迟），同样跳过时间窗硬拒绝。
   const strictlyEqualContent = leftContent === rightContent;
   if (
     !strictlyEqualContent &&
+    !multisetCoverageHit &&
     Math.abs(left.createdAt.getTime() - right.createdAt.getTime()) > maxWindowMs
   ) {
     return false;
@@ -143,12 +171,18 @@ export function isSemanticEquivalentEntry(
   const historicalEntry = realtimeEntry === left ? right : left;
   const realtimeContent = realtimeEntry.content.trim();
   const historicalContent = historicalEntry.content.trim();
+  // ISSUE-060：``historicalCompletesClosedRealtime`` 的前缀检查同样需要放宽到
+  // multiset 覆盖。否则即使前面的二次判据让函数继续往下走，本判定仍会因前缀关系
+  // 不成立而把"realtime closed + historical 完整改写版"误判为 false。
+  const historicalCoversRealtime =
+    historicalContent.length > realtimeContent.length &&
+    multisetCoverage(realtimeContent, historicalContent) >= STREAMING_PREFIX_FALLBACK_COVERAGE;
   const historicalCompletesClosedRealtime =
     realtimeEntry.lifecycle === "closed" &&
     historicalEntry.lifecycle === "closed" &&
     historicalEntry.streaming === false &&
     historicalContent.length > realtimeContent.length &&
-    historicalContent.startsWith(realtimeContent);
+    (historicalContent.startsWith(realtimeContent) || historicalCoversRealtime);
   if (
     realtimeEntry.lifecycle === "closed" &&
     historicalContent !== realtimeContent &&
@@ -166,6 +200,14 @@ export function isSemanticEquivalentEntry(
     return false;
   }
 
+  // 最终判据：当两段内容已通过前缀 / multiset 覆盖 + lifecycle / streaming 全部
+  // 检查后，仍要求 ``isEquivalentMessageContent`` 的语义近似（containment 或
+  // word-jaccard）作为最终守卫。但若 multiset 覆盖兜底路径成立（非前缀但高度
+  // 互含），``isEquivalentMessageContent`` 可能因不要求严格前缀而漏判 → 此时
+  // 直接接受为同源。
+  if (!leftHasPrefix && historicalCoversRealtime) {
+    return true;
+  }
   return isEquivalentMessageContent(leftContent, rightContent);
 }
 

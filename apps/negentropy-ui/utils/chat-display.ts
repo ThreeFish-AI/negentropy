@@ -18,6 +18,7 @@ import { isNonCriticalError } from "@/utils/error-filter";
 import {
   bigramJaccardSimilarity,
   isEquivalentMessageContent,
+  multisetCoverage,
 } from "@/utils/message";
 
 const displayBlockTypeOrder: Record<ChatDisplayBlock["kind"], number> = {
@@ -433,28 +434,6 @@ const STREAMING_DUPLICATE_MIN_LENGTH = 12;
 // 真实场景测试），1.2 阈值会漏检。multiset coverage 0.8 + min length 12 已构成主要防误删
 // 屏障，长度比仅作辅助过滤"长度持平但内容大相径庭的两段独立消息"。
 const STREAMING_DUPLICATE_LENGTH_RATIO = 1.15;
-
-function characterMultiset(content: string): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const ch of content) {
-    map.set(ch, (map.get(ch) || 0) + 1);
-  }
-  return map;
-}
-
-function multisetCoverage(shorter: string, longer: string): number {
-  if (!shorter) return 0;
-  const longerCounts = characterMultiset(longer);
-  let matched = 0;
-  for (const ch of shorter) {
-    const remaining = longerCounts.get(ch) || 0;
-    if (remaining > 0) {
-      longerCounts.set(ch, remaining - 1);
-      matched += 1;
-    }
-  }
-  return matched / shorter.length;
-}
 
 export function isStreamingDuplicateOfLater(
   earlierContent: string,

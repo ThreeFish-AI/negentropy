@@ -307,4 +307,89 @@ describe("message-ledger", () => {
       );
     });
   });
+
+  // ============================================================================
+  // ISSUE-060：流式累积残缺版 + final 完整版的根因层合并（v1 仅在 chat-display
+  // 兜底，v2 改为 ledger 真正合并 → conversation-tree 不再分裂双 text node）。
+  // ============================================================================
+  describe("ISSUE-060: 残缺累积版 vs final 完整版的根因层合并", () => {
+    const partial = {
+      id: "assistant-streaming",
+      threadId: "session-bug",
+      runId: "uuid-real-run",
+      resolvedRole: "assistant" as const,
+      resolutionSource: "explicit_role" as const,
+      // 流式 chunk 拼接的残缺中间态（无空格 + 缺字）
+      content:
+        '"Hello, test1234"\n已完成：可能的后续需求：- 仅返回严格的精确字符串（如果你需要机器校或管道输入），或- 该记录到/日志或- 将嵌入到更长的消息文档中。',
+      createdAt: new Date("2026-05-06T12:23:32.000Z"),
+      streaming: false,
+      lifecycle: "closed" as const,
+      origin: "realtime" as const,
+      sourceEventTypes: ["TEXT_MESSAGE_END"],
+      relatedMessageIds: ["assistant-streaming"],
+    };
+
+    const finalHydrated = {
+      ...partial,
+      // hydration 拉到的 final 完整版（有空格 + 完整字符 + markdown 列表展开）
+      content:
+        '"Hello, test 1234"\n已完成：可能的后续需求：\n- 仅返回严格的精确字符串（如果你需要机器校验或管道输入），或\n- 把该字符串记录到系统/日志，或\n- 将其嵌入到更长的消息/文档中。\n请指示你要执行的选项。',
+      createdAt: new Date("2026-05-06T12:23:57.000Z"),
+      origin: "fallback" as const,
+      sourceEventTypes: ["fallback.message"],
+      relatedMessageIds: ["assistant-streaming"],
+    };
+
+    it("命中：非前缀但 multiset 覆盖 ≥0.85 → 视为同源（根因层合并）", () => {
+      // 严格前缀检查会失败（一个 "test1234" 一个 "test 1234"，且 final 含
+      // markdown list / 多余字符），但 partial 的字符 multiset 几乎都是 final 的子集。
+      const result = isSemanticEquivalentEntry(partial, finalHydrated);
+      expect(result).toBe(true);
+    });
+
+    it("不命中：内容主题完全不同（覆盖 < 0.85）→ 保留两条独立消息", () => {
+      const independent = {
+        ...finalHydrated,
+        content:
+          "今天天气很好，建议出去走走，享受春日阳光。也可以读一本书或听音乐。",
+      };
+      // partial 的字符（Hello / test / 已完成 / 后续 等）几乎不在 independent 中
+      expect(isSemanticEquivalentEntry(partial, independent)).toBe(false);
+    });
+
+    it("不命中：长度比 < 1.1（双方实际就是相邻的两段独立消息）→ 不合并", () => {
+      const tooClose = {
+        ...finalHydrated,
+        content: '"Hello, test1234"\n已完成查询', // 长度 < partial 的 1.1 倍
+      };
+      // 长度比兜底应在 multiset 计算前 short-circuit
+      expect(isSemanticEquivalentEntry(partial, tooClose)).toBe(false);
+    });
+
+    it("端到端 ledger merge：partial + final 应合并为 1 条 entry", () => {
+      const merged = mergeMessageLedger([partial], [finalHydrated]);
+      expect(merged).toHaveLength(1);
+      // 合并后保留更长的 final 内容（upsertEntry 取较长内容）
+      expect(merged[0]?.content.length).toBeGreaterThanOrEqual(finalHydrated.content.length);
+      // 关键守卫：合并后的内容含 final 中的 markdown 列表标记
+      expect(merged[0]?.content).toContain("机器校验");
+      expect(merged[0]?.content).toContain("消息/文档");
+    });
+
+    it("端到端 ledger merge：内容主题不同（覆盖率不足）→ 不合并，保留 2 条", () => {
+      // 关键：用不同 messageId / runId 让 by-id key 匹配失败，从而走
+      // findSemanticLedgerKey 的语义等价路径；此时 multiset 覆盖率不足应拒绝合并。
+      const independent = {
+        ...finalHydrated,
+        id: "assistant-different-message",
+        runId: "uuid-different-run",
+        content:
+          "今天天气很好，建议出去走走，享受春日阳光。也可以读一本书或听音乐。",
+        relatedMessageIds: ["assistant-different-message"],
+      };
+      const merged = mergeMessageLedger([partial], [independent]);
+      expect(merged).toHaveLength(2);
+    });
+  });
 });
