@@ -1001,11 +1001,14 @@ export async function fetchModelConfigs(params?: {
     cache: "no-store",
   });
   if (!res.ok) {
-    // 该端点目前以 admin 鉴权读取（详见 `/admin` rebuild 路径）；普通用户以
-    // 401/403 命中是符合后端预期的"无权读取"语义，不构成错误：返回空数组让
-    // 调用方静默降级到系统默认模型，避免在控制台抛 [error]/WARN（仅是合理拒绝，
-    // 而非异常）。500 等其它错误仍照旧抛出，触发 UI 兜底告警。
-    if (res.status === 401 || res.status === 403) {
+    // 该端点目前以 admin 鉴权读取（详见 `/admin` rebuild 路径）。
+    // - 403 = 角色权限拒绝（普通用户的预期路径）→ 静默返回空数组，让调用方
+    //   降级到系统默认模型，避免污染控制台 [error]/WARN（仅是合理拒绝）；
+    // - 401 = 未认证 / token 过期（异常路径）→ 仍抛出，保留排障线索（评审 #3）。
+    //   admin 端误配 / 凭证过期时若一并静默会让用户视角下 LLM 下拉只剩 Default
+    //   且毫无线索可查，与"静默降级"的初衷相悖。
+    // - 500 等其它错误仍照旧抛出，触发 UI 兜底告警。
+    if (res.status === 403) {
       return [];
     }
     throw new Error(`Failed to fetch model configs: ${res.statusText}`);

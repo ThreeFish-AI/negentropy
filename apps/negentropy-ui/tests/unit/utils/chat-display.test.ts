@@ -970,31 +970,60 @@ describe("isStreamingDuplicateOfAggregate (ISSUE-065 Layer 6 兜底)", () => {
       "已完成：用一句话给出。后续可能需要：力或信息论确定义、公式或例子。" +
       "建议下一步：选定方向（热力学/信息）以便我给出短展——吗？" +
       "熵是衡量系统无序程度或信息不确定性的量。";
-    const finalAggregate =
-      "已完成：用一句话给出定义。\n" +
-      "后续可能需要：热力学或信息论的精确定义、公式或例子。\n" +
-      "建议下一步：选定方向（热力学/信息论）以便我给出简短扩展——需要继续吗？\n" +
-      "熵是衡量系统无序程度或信息不确定性的量。";
-    expect(isStreamingDuplicateOfAggregate(partial, finalAggregate)).toBe(true);
+    const finalSegments = [
+      "已完成：用一句话给出定义。",
+      "后续可能需要：热力学或信息论的精确定义、公式或例子。",
+      "建议下一步：选定方向（热力学/信息论）以便我给出简短扩展——需要继续吗？",
+      "熵是衡量系统无序程度或信息不确定性的量。",
+    ];
+    const finalAggregate = finalSegments.join("\n");
+    const maxSingle = Math.max(...finalSegments.map((s) => s.length));
+    expect(
+      isStreamingDuplicateOfAggregate(partial, finalAggregate, maxSingle),
+    ).toBe(true);
   });
 
-  it("不命中：聚合内容长度不足 1.05x → 保留", () => {
+  it("不命中：聚合内容长度不足 1.15x → 保留（与 Layer 5 长度比对齐）", () => {
+    // earlier 长度 25，aggregate 28（1.12x），未达 1.15x 阈值即便字符高度重合也不命中。
     const earlier = "我已经完成所有的查询任务并整理好结果，请稍后查看。";
-    const aggregate = "我已经完成所有的查询任务并整理好结果。";
-    expect(isStreamingDuplicateOfAggregate(earlier, aggregate)).toBe(false);
+    const aggregate = "我已经完成所有的查询任务并整理好结果，请查看。";
+    expect(
+      isStreamingDuplicateOfAggregate(earlier, aggregate, aggregate.length),
+    ).toBe(false);
   });
 
-  it("不命中：multiset 覆盖率不足 0.7 → 保留", () => {
+  it("不命中：multiset 覆盖率不足 0.8 → 保留", () => {
     // earlier 字符与 aggregate 重合度低，不应被误判为聚合冗余。
     const earlier = "今天上午开了一场长达三小时的产品需求评审会议。";
     const aggregate =
       "明天下午要去机场接待远道而来的客户，请准备好接待材料并提前确认航班时刻。";
-    expect(isStreamingDuplicateOfAggregate(earlier, aggregate)).toBe(false);
+    expect(
+      isStreamingDuplicateOfAggregate(earlier, aggregate, aggregate.length),
+    ).toBe(false);
   });
 
   it("不命中：earlier 短于 STREAMING_DUPLICATE_MIN_LENGTH → 保留", () => {
-    expect(isStreamingDuplicateOfAggregate("已完成", "已完成查询任务并整理结果")).toBe(
-      false,
-    );
+    expect(
+      isStreamingDuplicateOfAggregate(
+        "已完成",
+        "已完成查询任务并整理结果",
+        "已完成查询任务并整理结果".length,
+      ),
+    ).toBe(false);
+  });
+
+  it("不命中：高字符重合但 aggregate 未显著长于任一单段 → Layer 6 让位 Layer 5", () => {
+    // 评审 #1/#5：当 final 单段本身就比 earlier 长 1.15x（Layer 5 已可命中）时，
+    // Layer 6 不应越权。aggregate 必须显著长于任一 later 单段（≥1.3x）才介入。
+    const earlier = "请简要介绍熵的概念，谢谢。"; // 13 chars
+    const longSingle =
+      "熵的概念在热力学和信息论里有两种解释，分别衡量系统的无序程度与信息的不确定性。"; // 38 chars
+    const tinyTrailing = "请问需要继续吗？";
+    const aggregate = `${longSingle}\n${tinyTrailing}`;
+    const maxSingle = Math.max(longSingle.length, tinyTrailing.length);
+    // aggregate 仅约为 longSingle 的 1.2x，不满足 1.3x 守卫 → 留给 Layer 5 处理。
+    expect(
+      isStreamingDuplicateOfAggregate(earlier, aggregate, maxSingle),
+    ).toBe(false);
   });
 });

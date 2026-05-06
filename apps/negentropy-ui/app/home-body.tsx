@@ -527,11 +527,20 @@ export function HomeBody({
       // sessionId 已存在但 agent 尚未就绪：把指令缓存到 pendingSendRef，
       // 待 agent 重建完毕由「自动重发 pending」Effect 接力发送（与 !sessionId
       // 路径同源）。同时给用户可见反馈，避免 silent no-op（ISSUE-064 根因）。
+      //
+      // 评审 #6：连续 Send 时若上一条尚未被自动重发 Effect 消费，新一条会覆盖
+      // pendingSendRef。这是有意为之（用户更可能想让"最后一条"发出），但必须给
+      // 区分性 toast，让用户知道前一条已被替换，避免再次出现 silent drop。
+      const hadPending = pendingSendRef.current !== null;
       pendingSendRef.current = trimmed;
       pendingForSessionRef.current = sessionId;
       setInputValue("");
       setScrollToBottomTrigger((prev) => prev + 1);
-      toast.info("Agent 正在初始化，已排队待发送...");
+      if (hadPending) {
+        toast.warning("Agent 仍在初始化，已用最新指令替换排队消息");
+      } else {
+        toast.info("Agent 正在初始化，已排队待发送...");
+      }
       return;
     }
     setInputValue("");
