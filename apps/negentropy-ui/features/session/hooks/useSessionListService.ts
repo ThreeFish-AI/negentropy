@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ConnectionState, LogEntry, SessionRecord } from "@/types/common";
 import { createSessionLabel, toSessionRecord, type SessionListView } from "@/utils/session";
+
+const SESSION_VIEW_QUERY_KEY = "view";
+const ARCHIVED_VIEW_VALUE = "archived";
 
 export interface UseSessionListServiceOptions {
   sessionId: string | null;
@@ -43,7 +47,36 @@ export function useSessionListService(
     onClearActiveSession,
   } = options;
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [sessionListView, setSessionListView] = useState<SessionListView>("active");
+
+  // ISSUE-061 v2-D：sessionListView（active / archived）改用 URL 单源派生，
+  // 与 sessionId 对齐。刷新 / 复制 URL / 浏览器返回前进后会自然回到目标视图，
+  // 也让"分享归档面板"成为可能。
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const sessionListView: SessionListView =
+    searchParams?.get(SESSION_VIEW_QUERY_KEY) === ARCHIVED_VIEW_VALUE
+      ? "archived"
+      : "active";
+  const setSessionListView = useCallback(
+    (view: SessionListView) => {
+      const params = new URLSearchParams(
+        Array.from(searchParams?.entries() ?? []),
+      );
+      if (view === "archived") {
+        params.set(SESSION_VIEW_QUERY_KEY, ARCHIVED_VIEW_VALUE);
+      } else {
+        params.delete(SESSION_VIEW_QUERY_KEY);
+      }
+      const queryString = params.toString();
+      const target = queryString
+        ? `${pathname}?${queryString}`
+        : pathname || "/";
+      router.replace(target, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
   const titleRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearTitleRefreshTimers = useCallback(() => {

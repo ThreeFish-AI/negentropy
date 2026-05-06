@@ -706,3 +706,91 @@ test("Home 流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 fin
   expect(bubbleHtml).toContain("项目B");
   expect(bubbleHtml).toContain("项目C");
 });
+
+// ============================================================================
+// C7-F: ISSUE-061 v2-D — 归档列表 view 与会话切换 URL 全路径同步
+// ============================================================================
+
+test("Home URL sync v2-D：切换归档面板写入 ?view=archived，刷新仍保持，可外部 URL 直达", async ({ page }) => {
+  const sessionId = "home-chat-view-sync";
+  const archivedSessionId = "home-chat-archived";
+  const createdAt = Date.now();
+  const sessionCreatedRef = { value: false };
+
+  await mockAuthenticatedUser(page);
+  await mockSessionCreate(page, sessionCreatedRef, sessionId, createdAt);
+
+  // 自定义 sessions list 路由：active=true 时返回普通会话，archived=true 时返回归档会话
+  await page.route("**/api/agui/sessions/list**", async (route) => {
+    const url = route.request().url();
+    const archived = url.includes("archived=true");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        archived
+          ? [{ id: archivedSessionId, lastUpdateTime: createdAt - 1000 }]
+          : sessionCreatedRef.value
+            ? [{ id: sessionId, lastUpdateTime: createdAt }]
+            : [],
+      ),
+    });
+  });
+
+  await page.route(`**/api/agui/sessions/${sessionId}**`, async (route) => {
+    if (route.request().url().includes("/title")) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: sessionId, lastUpdateTime: createdAt, events: [] }),
+    });
+  });
+  await page.route(`**/api/agui/sessions/${archivedSessionId}**`, async (route) => {
+    if (route.request().url().includes("/title")) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: archivedSessionId, lastUpdateTime: createdAt - 1000, events: [] }),
+    });
+  });
+
+  await page.goto("/");
+  // 初始状态：active 视图，URL 不含 ?view=
+  await expect(page).not.toHaveURL(/view=archived/);
+
+  // 点击 Archived 按钮切换视图
+  await page.getByRole("button", { name: /Archived/i }).click();
+
+  // 关键守卫 1：URL 同步带上 ?view=archived
+  await expect(page).toHaveURL(/view=archived/, { timeout: 5_000 });
+
+  // 关键守卫 2：归档面板的会话列表渲染（archivedSessionId 出现）
+  await expect(
+    page.getByRole("button", {
+      name: new RegExp(`Session ${archivedSessionId.slice(0, 8)}`),
+    }),
+  ).toBeVisible({ timeout: 5_000 });
+
+  // 关键守卫 3：reload 后仍保持 archived view
+  await page.reload();
+  await expect(page).toHaveURL(/view=archived/);
+  await expect(
+    page.getByRole("button", {
+      name: new RegExp(`Session ${archivedSessionId.slice(0, 8)}`),
+    }),
+  ).toBeVisible({ timeout: 5_000 });
+
+  // 关键守卫 4：直接以 ?view=archived 打开新页面，应直达归档面板
+  await page.goto(`/?view=archived`);
+  await expect(
+    page.getByRole("button", {
+      name: new RegExp(`Session ${archivedSessionId.slice(0, 8)}`),
+    }),
+  ).toBeVisible({ timeout: 5_000 });
+});
