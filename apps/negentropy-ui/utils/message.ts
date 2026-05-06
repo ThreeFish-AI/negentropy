@@ -247,6 +247,44 @@ export function computeCharBigrams(text: string): Set<string> {
   return grams;
 }
 
+/**
+ * 字符多重集（multiset）：每个字符到其出现次数的映射。
+ * 与 Set 的区别：保留重复字符的频次，便于"较短串的字符是否被较长串覆盖"判定。
+ */
+export function characterMultiset(content: string): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const c of content) m.set(c, (m.get(c) || 0) + 1);
+  return m;
+}
+
+/**
+ * 计算 ``shorter`` 中字符在 ``longer`` 中的覆盖率（multiset 角度）。
+ *
+ * 与 ``isEquivalentMessageContent`` / ``bigramJaccardSimilarity`` 的差异：
+ * - 不要求字符 *顺序* 一致 → 能 catch "残缺累积版 + 改写完整版" 这类 LLM
+ *   流式 chunk 与 final hydration 序列；
+ * - 单向覆盖（shorter ⊆ longer）→ 适合"较短串是较长串的子集"的语义判定，
+ *   比双向 Jaccard 更精准（Jaccard 在长度差异大时会因分母膨胀而失敏）。
+ *
+ * 应用场景：
+ * 1. ``utils/chat-display.ts::isStreamingDuplicateOfLater`` —— UI 层兜底 dedupe；
+ * 2. ``utils/message-ledger.ts::isSemanticEquivalentEntry`` —— ledger 合并的
+ *    根因层判定（严格前缀检查失败时的二次判据）。
+ */
+export function multisetCoverage(shorter: string, longer: string): number {
+  if (!shorter) return 0;
+  const counts = characterMultiset(longer);
+  let matched = 0;
+  for (const c of shorter) {
+    const remaining = counts.get(c) || 0;
+    if (remaining > 0) {
+      counts.set(c, remaining - 1);
+      matched += 1;
+    }
+  }
+  return matched / shorter.length;
+}
+
 export function bigramJaccardSimilarity(a: string, b: string): number {
   const aGrams = computeCharBigrams(a);
   const bGrams = computeCharBigrams(b);

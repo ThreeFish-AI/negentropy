@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { EventType } from "@ag-ui/core";
 import { buildConversationTree } from "@/utils/conversation-tree";
-import { buildChatDisplayBlocks } from "@/utils/chat-display";
+import {
+  buildChatDisplayBlocks,
+  isStreamingDuplicateOfLater,
+} from "@/utils/chat-display";
 import { createTestEvent } from "@/tests/helpers/agui";
 import type { AgUiEvent } from "@/types/agui";
 import type { ConversationTree } from "@/types/a2ui";
@@ -828,6 +831,127 @@ describe("buildChatDisplayBlocks", () => {
       expect(textSegments[1]?.kind === "text" ? textSegments[1].content : "").toContain(
         "查询完成",
       );
+    }
+  });
+});
+
+// =============================================================================
+// ISSUE-049：流式累积残缺版 + final 完整版双内容兜底防御
+// =============================================================================
+
+describe("isStreamingDuplicateOfLater (ISSUE-049 兜底)", () => {
+  it("命中：残缺版（无空格）vs 完整版 → 视为同源冗余", () => {
+    const earlier =
+      `"Hello, test1234"\n` +
+      `已完成：已发送要求的文本字符串（包含引号）。 可能的后续需求：- 仅返回严格的精确字符串（如果你需要机器校或管道输入），或- 该记录到/日志或- 将嵌入到更长的消息文档中。\n` +
+      `下一步（请选择一项）：A) 我现在只严格的精确字符串（覆盖本次附加说明）。理由：满足机器级精需求B此记录系统日志：留计。C 把该入指定档消息。直接付用。\n` +
+      `指要选。"Hello, test 1234"`;
+    const later =
+      `"Hello, test 1234"\n` +
+      `已完成：已发送要求的文本字符串（包含引号）。 可能的后续需求：\n仅返回严格的精确字符串（如果你需要机器校验或管道输入），或\n把该字符串记录到系统/日志，或\n将其嵌入到更长的消息/文档中。\n` +
+      `下一步建议（请选择一项）：\nA) 我现在只返回严格的精确字符串（覆盖本次附加说明）。理由：满足机器级精确需求。\nB) 将此响应记录到系统日志。理由：保留审计痕迹。\nC) 把该文本嵌入到指定文档或消息模板中。理由：直接交付可复用内容。\n请指示你要执行的选项。`;
+    expect(isStreamingDuplicateOfLater(earlier, later)).toBe(true);
+  });
+
+  it("不命中：两段长度相近且字符差异大 → 保留两段（不误删独立消息）", () => {
+    const a = "今天的天气真好，适合出去散步。";
+    const b = "明天会下雨，建议带伞。";
+    expect(isStreamingDuplicateOfLater(a, b)).toBe(false);
+    expect(isStreamingDuplicateOfLater(b, a)).toBe(false);
+  });
+
+  it("不命中：短文本（< 12 字）→ 保留两段（避免 Pong! 等被误删）", () => {
+    expect(isStreamingDuplicateOfLater("Pong!", "Pong! 下一步")).toBe(false);
+  });
+
+  it("不命中：长度差不足 1.15x → 保留两段", () => {
+    const earlier = "我会先查询资料，再回答。";
+    const later = "我会查询资料并整理后回答。";
+    // length 12 vs 13，差异 < 1.15x
+    expect(isStreamingDuplicateOfLater(earlier, later)).toBe(false);
+  });
+
+  it("命中：流式 chunk 拼接残缺 vs final 增加段落（覆盖典型双内容场景）", () => {
+    const earlier = "已完成查询。 用户名是张三。";
+    const later =
+      "已完成查询。\n用户名是张三。\n邮箱是 zhangsan@example.com。\n建议下一步：发送欢迎邮件。\n请确认。";
+    expect(isStreamingDuplicateOfLater(earlier, later)).toBe(true);
+  });
+
+  it("dedupe 集成：buildChatDisplayBlocks 在双 messageId 同源场景应只输出 1 个 text segment", () => {
+    // 构造两个 messageId 不同但内容呈现"残缺版 + 完整版"的 events 流，
+    // 模拟 ISSUE-041 / 049 中 hydration 与 realtime 在 conversation-tree 产出
+    // 两个独立 text node 的场景。
+    const earlier = "好的，我会查询数据。 结果如下：项目A、项目B、项目C。";
+    const later =
+      "好的，我会查询数据。\n\n结果如下：\n- 项目A：进行中\n- 项目B：已完成\n- 项目C：待启动\n\n是否需要进一步处理？";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-streaming",
+        role: "assistant",
+        timestamp: 1001,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-streaming",
+        delta: earlier,
+        timestamp: 1002,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-streaming",
+        timestamp: 1003,
+      }),
+      // hydration / final 增量：另一个 messageId（runId 同），内容是更完备版本
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final",
+        role: "assistant",
+        timestamp: 1004,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final",
+        delta: later,
+        timestamp: 1005,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_END,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-final",
+        timestamp: 1006,
+      }),
+    ];
+
+    const tree: ConversationTree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const textSegments = reply.segments.filter((s) => s.kind === "text");
+      expect(textSegments).toHaveLength(1);
+      // 保留更完备的版本
+      const content =
+        textSegments[0]?.kind === "text" ? textSegments[0].content : "";
+      expect(content).toContain("项目B：已完成");
     }
   });
 });

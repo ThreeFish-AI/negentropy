@@ -35,7 +35,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 
-from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
 from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
@@ -252,23 +252,33 @@ def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
-def _require_admin(user: AuthUser) -> AuthUser:
-    if "admin" not in user.roles:
+async def _require_admin(user: AuthUser) -> AuthUser:
+    """以 DB user_states 为权威校验 admin role（参见 auth/deps.py 的同名 helper）。
+
+    用户在 PATCH /auth/users/{id}/roles 后 JWT 不会自动刷新，必须以 DB 为准。
+    所有 memory / engine 管理端点均须经过本检查。
+    """
+    resolved = await resolve_user_with_db_roles(user)
+    if "admin" not in resolved.roles:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-    return user
+    return resolved
 
 
-def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:
+async def _require_self_or_admin(user: AuthUser, target_user_id: str) -> None:
     """Phase 4 — 自服务端点的水平越权防线。
 
     管理员可读写任意 user_id；非管理员只能操作自己的 user_id。
     覆盖 ``/self-edit/*`` 与 ``/core-blocks`` 等 Self-editing Tools REST 端点，
     与 ``memory-integration.md`` 的 "需 Admin 鉴权" 描述对齐（admin 主路径），
     同时保留 self-service 退化通道（user.user_id 必须等于 target_user_id）。
+
+    admin 判断以 DB ``user_states`` 为权威（与 ``_require_admin`` 一致），避免
+    JWT roles 过期导致的视图割裂。
     """
-    if "admin" in user.roles:
+    resolved = await resolve_user_with_db_roles(user)
+    if "admin" in resolved.roles:
         return
-    if not target_user_id or target_user_id != user.user_id:
+    if not target_user_id or target_user_id != resolved.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="forbidden: target user_id must match authenticated user (or require admin role)",
@@ -655,7 +665,7 @@ async def get_memory_automation_snapshot(
     app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
-    _require_admin(user)
+    user = await _require_admin(user)
     service = get_memory_automation_service()
     snapshot = await service.get_snapshot(app_name=_resolve_app_name(app_name))
     return MemoryAutomationSnapshotResponse.model_validate(snapshot)
@@ -667,7 +677,7 @@ async def get_memory_automation_logs(
     limit: int = Query(default=20, ge=1, le=100),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationLogsResponse:
-    _require_admin(user)
+    user = await _require_admin(user)
     service = get_memory_automation_service()
     _ = _resolve_app_name(app_name)
     items = await service.get_logs(limit=limit)
@@ -679,7 +689,7 @@ async def update_memory_automation_config(
     payload: MemoryAutomationConfigUpdateRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
-    _require_admin(user)
+    user = await _require_admin(user)
     service = get_memory_automation_service()
     resolved_app = _resolve_app_name(payload.app_name)
     try:
@@ -700,7 +710,7 @@ async def enable_memory_automation_job(
     app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
-    _require_admin(user)
+    user = await _require_admin(user)
     service = get_memory_automation_service()
     try:
         snapshot = await service.enable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
@@ -717,7 +727,7 @@ async def disable_memory_automation_job(
     app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
-    _require_admin(user)
+    user = await _require_admin(user)
     service = get_memory_automation_service()
     try:
         snapshot = await service.disable_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
@@ -734,7 +744,7 @@ async def reconcile_memory_automation_job(
     app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationSnapshotResponse:
-    _require_admin(user)
+    user = await _require_admin(user)
     service = get_memory_automation_service()
     try:
         snapshot = await service.reconcile_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
@@ -751,7 +761,7 @@ async def run_memory_automation_job(
     app_name: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> MemoryAutomationRunResponse:
-    _require_admin(user)
+    user = await _require_admin(user)
     service = get_memory_automation_service()
     try:
         result = await service.run_job(app_name=_resolve_app_name(app_name), job_key=job_key)  # type: ignore[arg-type]
@@ -1211,7 +1221,7 @@ async def self_edit_write(
     payload: SelfEditWriteRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    _require_self_or_admin(user, payload.user_id)
+    await _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.tools.memory_tools import memory_write
 
     try:
@@ -1232,7 +1242,7 @@ async def self_edit_update(
     payload: SelfEditUpdateRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    _require_self_or_admin(user, payload.user_id)
+    await _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.tools.memory_tools import memory_update
 
     try:
@@ -1253,7 +1263,7 @@ async def self_edit_delete(
     payload: SelfEditDeleteRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    _require_self_or_admin(user, payload.user_id)
+    await _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.tools.memory_tools import memory_delete
 
     try:
@@ -1275,7 +1285,7 @@ async def list_core_blocks(
     thread_id: str | None = Query(default=None),
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    _require_self_or_admin(user, user_id)
+    await _require_self_or_admin(user, user_id)
     from negentropy.engine.factories.memory import get_core_block_service
 
     service = get_core_block_service()
@@ -1292,7 +1302,7 @@ async def upsert_core_block(
     payload: CoreBlockUpsertRequest,
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    _require_self_or_admin(user, payload.user_id)
+    await _require_self_or_admin(user, payload.user_id)
     from negentropy.engine.factories.memory import get_core_block_service
 
     service = get_core_block_service()
@@ -1320,7 +1330,7 @@ async def delete_core_block(
     label: str = Query(default="persona"),
     user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    _require_self_or_admin(user, user_id)
+    await _require_self_or_admin(user, user_id)
     from negentropy.engine.factories.memory import get_core_block_service
 
     service = get_core_block_service()
@@ -1366,9 +1376,9 @@ async def memory_metrics(
     """Memory 系统聚合指标（需 admin 鉴权）。
 
     基于 SRE 四大黄金信号和 USE 方法，从现有表聚合搜索、巩固、Retention、PII 等指标。
+    admin 判断以 DB user_states 为权威（参见 _require_admin / ISSUE-049）。
     """
-    if "admin" not in (user.roles or []):
-        raise HTTPException(status_code=403, detail="Admin access required for metrics")
+    user = await _require_admin(user)
 
     from negentropy.config import settings as global_settings
 

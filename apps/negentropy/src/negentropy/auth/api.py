@@ -11,7 +11,12 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.models.pulse import UserState
 
-from .deps import get_current_user, get_optional_user
+from .deps import (
+    get_current_user,
+    get_optional_user,
+    require_admin,
+    resolve_user_with_db_roles,
+)
 from .service import AuthService, AuthUser
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -77,35 +82,15 @@ async def google_callback(code: str, state: str):
 
 @router.get("/me", response_model=AuthMeResponse)
 async def me(user: AuthUser = Depends(get_current_user)) -> AuthMeResponse:
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(UserState).where(
-                UserState.user_id == user.user_id,
-                UserState.app_name == settings.app_name,
-            )
-        )
-        user_state = result.scalar_one_or_none()
+    """返回当前用户身份；roles 以 DB ``user_states`` 为权威覆盖 JWT 中的快照。
 
-    roles = user.roles
-    if user_state and isinstance(user_state.state, dict):
-        state_roles = user_state.state.get("roles")
-        if isinstance(state_roles, list):
-            roles = [str(role) for role in state_roles]
-
-    resolved_user = AuthUser(
-        user_id=user.user_id,
-        email=user.email,
-        name=user.name,
-        picture=user.picture,
-        roles=roles,
-        provider=user.provider,
-        subject=user.subject,
-        domain=user.domain,
-    )
-
+    与 admin 端点共享 ``resolve_user_with_db_roles``，避免“前端通过 /me 看到 admin、
+    后端 admin 端点用 JWT 旧 roles 仍 403”的视图割裂（ISSUE-049）。
+    """
+    resolved_user = await resolve_user_with_db_roles(user)
     return AuthMeResponse(
         user=_to_user_response(resolved_user),
-        permissions={"is_admin": "admin" in roles},
+        permissions={"is_admin": "admin" in resolved_user.roles},
     )
 
 
@@ -120,11 +105,8 @@ async def logout() -> JSONResponse:
 async def update_roles(
     user_id: str,
     payload: RoleUpdateRequest,
-    current_user: AuthUser = Depends(get_current_user),
+    current_user: AuthUser = Depends(require_admin),
 ) -> AuthMeResponse:
-    if "admin" not in current_user.roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(UserState).where(
@@ -154,10 +136,7 @@ async def update_roles(
 
 
 @router.get("/users/{user_id}")
-async def get_user(user_id: str, current_user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
-    if "admin" not in current_user.roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-
+async def get_user(user_id: str, current_user: AuthUser = Depends(require_admin)) -> dict[str, Any]:
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(UserState).where(
@@ -187,11 +166,8 @@ async def status_check(user: AuthUser | None = Depends(get_optional_user)) -> di
 
 
 @router.get("/admin/users")
-async def list_users(current_user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
-    """List all users. Requires admin role."""
-    if "admin" not in current_user.roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-
+async def list_users(current_user: AuthUser = Depends(require_admin)) -> dict[str, Any]:
+    """List all users. Requires admin role (resolved from DB user_states)."""
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(UserState).where(UserState.app_name == settings.app_name))
         user_states = result.scalars().all()

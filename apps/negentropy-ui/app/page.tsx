@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useMemo, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { CopilotKitProvider } from "@copilotkitnext/react";
 
@@ -10,11 +11,57 @@ import { buildAgentUrl } from "@/utils/session";
 
 import { AGENT_ID, APP_NAME, HomeBody } from "./home-body";
 
-export default function Home() {
+const SESSION_ID_QUERY_KEY = "sessionId";
+
+/**
+ * 内部组件：承载 useSearchParams 等 client-side 路由 hooks。
+ *
+ * Next.js 16 SSG prerender 阶段对裸用 ``useSearchParams`` 的客户端组件强制要求
+ * Suspense 边界（CSR bailout 协议）；不包裹会触发
+ * ``missing-suspense-with-csr-bailout`` 让 build 失败。本拆分让 SSG 阶段渲染
+ * Suspense fallback、CSR 阶段挂载真实 ``HomeInner``，链路上所有 hook（含
+ * useSessionListService 内部的 useSearchParams）都被同一 Suspense 兜住。
+ */
+function HomeInner() {
   const { user, status: authStatus, login } = useAuth();
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const pendingSendRef = useRef<string | null>(null);
   const pendingForSessionRef = useRef<string | null>(null);
+
+  // 单一事实源（Single Source of Truth）：URL 的 ?sessionId= 参数。
+  // 不再维护独立 React state — sessionId 完全派生自 URL，避免双 state 一致性问题
+  // 与 useEffect 内 setState 的 React 18 反模式。这意味着：
+  // 1. 刷新 / 复制 URL / 浏览器返回前进 → 自然恢复对应会话（ISSUE-059）；
+  // 2. 书签 / 分享链接可直接指向特定会话；
+  // 3. setSessionId 通过 router.replace 触发 Next.js 重渲染，子组件经 props 收到新值。
+  //
+  // ISSUE-062：useSearchParams() 每次 render 返回新的 ReadonlyURLSearchParams 引用
+  // （即使 query 不变），如果直接列入 useCallback deps 会让 setSessionId 引用持续
+  // 重建 → 传入 useSessionListService 后 loadSessions useCallback 也持续重建 →
+  // useEffect(() => loadSessions(), [loadSessions]) 反复触发，与 startNewSession
+  // 写入 sessionId 形成竞速导致 sessionId 被旧 list 覆盖。改用 toString() 派生稳定
+  // 字符串作为 dep，让 React 用值相等性比较保持 callback 稳定。
+  const queryString = searchParams?.toString() ?? "";
+  const sessionId = searchParams?.get(SESSION_ID_QUERY_KEY) || null;
+
+  const setSessionId = useCallback(
+    (next: string | null) => {
+      // history.replaceState 而非 push：避免污染浏览器历史栈，让"返回"键回到外部上一页。
+      // 不刷新页面（router.replace + scroll: false），保留所有 client state。
+      const params = new URLSearchParams(queryString);
+      if (next) {
+        params.set(SESSION_ID_QUERY_KEY, next);
+      } else {
+        params.delete(SESSION_ID_QUERY_KEY);
+      }
+      const nextQuery = params.toString();
+      const target = nextQuery ? `${pathname}?${nextQuery}` : pathname || "/";
+      router.replace(target, { scroll: false });
+    },
+    [pathname, router, queryString],
+  );
 
   const agent = useMemo(() => {
     if (!user || !sessionId) {
@@ -83,5 +130,26 @@ export default function Home() {
     >
       <HomeBody agent={agent} {...homeBodyProps} />
     </CopilotKitProvider>
+  );
+}
+
+/**
+ * 顶层导出：Suspense 兜住 ``HomeInner`` 内的 ``useSearchParams`` 等 client-side
+ * 路由 hooks，满足 Next.js 16 SSG prerender 对 CSR bailout 的边界要求。
+ *
+ * fallback 选用与"正在验证登录状态..."相同的视觉容器，避免 SSG → CSR 切换
+ * 时的视觉跳动。
+ */
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
+          正在加载...
+        </div>
+      }
+    >
+      <HomeInner />
+    </Suspense>
   );
 }
