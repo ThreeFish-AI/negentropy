@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
 from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -84,9 +84,17 @@ def _validate_model_type(value: str):
         ) from exc
 
 
-def _require_admin(user: AuthUser) -> None:
-    if "admin" not in user.roles:
+async def _require_admin(user: AuthUser) -> AuthUser:
+    """以 DB ``user_states`` 中持久化的 roles 为权威，校验 admin 身份。
+
+    JWT 中的 roles 是登录瞬间的快照，DB UserState.state.roles 为运行时权威。当
+    管理员后置提升用户角色时，旧 JWT 仍是 user，但 DB 已是 admin —— 必须以
+    ``resolve_user_with_db_roles`` 拉齐两者，避免 ISSUE-049 描述的视图割裂。
+    """
+    resolved = await resolve_user_with_db_roles(user)
+    if "admin" not in resolved.roles:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
+    return resolved
 
 
 # =============================================================================
@@ -102,7 +110,7 @@ class VendorConfigUpsert(BaseModel):
 @router.get("/vendor-configs")
 async def list_vendor_configs(current_user: AuthUser = Depends(get_current_user)) -> dict[str, Any]:
     """列出所有支持的供应商配置（始终返回 3 个供应商，未配置的填充 null）。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from negentropy.models.vendor_config import VendorConfig
 
@@ -140,7 +148,7 @@ async def upsert_vendor_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """创建或更新供应商配置（Upsert 语义）。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
     if vendor not in SUPPORTED_VENDOR_CONFIG_VENDORS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -189,7 +197,7 @@ async def delete_vendor_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """删除供应商配置。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
     if vendor not in SUPPORTED_VENDOR_CONFIG_VENDORS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -249,7 +257,7 @@ async def list_model_configs(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """列出 model_configs 表条目。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from negentropy.models.model_config import ModelConfig, ModelType
 
@@ -287,7 +295,7 @@ async def create_model_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """新建 model_configs 条目。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from sqlalchemy import update as sa_update
     from sqlalchemy.exc import IntegrityError
@@ -346,7 +354,7 @@ async def update_model_config(
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
     """更新 model_configs 条目。仅允许更新 display_name / is_default / enabled / config 字段。"""
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from uuid import UUID as _UUID
 
@@ -411,7 +419,7 @@ async def delete_model_config(
     若有 Corpus 仍在引用（`corpus.config->'models'` 的 llm_config_id / embedding_config_id），
     返回 HTTP 409 + 引用计数。
     """
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     from uuid import UUID as _UUID
 
@@ -487,7 +495,7 @@ async def ping_model(
 
     凭证回退链: 表单 > vendor_configs (DB) > LiteLLM 环境变量。
     """
-    _require_admin(current_user)
+    current_user = await _require_admin(current_user)
 
     import asyncio
     import time
