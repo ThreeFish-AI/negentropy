@@ -778,6 +778,7 @@
   1. 所有依赖外部第三方登录的链路（Microsoft / Apple / GitHub OAuth、企业 SSO、内部 SaaS 密钥）在 sandbox 浏览器中均会遭遇同质风控，应统一按本协议复用真实浏览器会话；
   2. 任何"AI Agent 帮我跑一下登录后页面"的请求都应先看协议工具选型矩阵；
   3. 跨 profile 复制 storageState / Cookie 的方案在 Google / 微软等高风控供应商上不可靠，不建议作为退化方案。
+- **2026-05-06 协议演进**：实测 Claude in Chrome 扩展 MCP 在多数 Conductor / Claude Code 会话中未挂载，"首选 → 退化"两档路由长期无法生效；同时 macOS 默认配置下 `mcp__chrome_devtools__list_pages` 已能直接接入用户常用 Chrome 主 profile（含已登录 Google 账号）。因此协议统一收敛为唯一驱动 `mcp__chrome_devtools__*`，并明确"Playwright 仅用于不接触 OAuth 的 B 类隔离场景"。详见 [AGENTS.md › Browser Validation Protocol](../CLAUDE.md) 与 [docs/agents/browser-validation.md](./agents/browser-validation.md)（§1 协议演进段、§3 工具能力对照、§4 决策图、§5 两步自检）。
 
 ---
 

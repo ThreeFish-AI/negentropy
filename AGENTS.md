@@ -51,13 +51,13 @@
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/yarn，**必须**统一使用 `pnpm` 进行包管理与脚本执行。
 - **Database Management**: 谨慎操作，数据迁移、测试等操作严禁将现有数据删除，谨慎操作数据迁移的回滚，防止数据被清理。
-- **Browser Validation Protocol (浏览器验证准则)**: 所有依赖登录态（Google OAuth / SSO / 内部凭证）的浏览器验证，**必须**复用用户常用 Chrome 的会话，杜绝在 sandbox/空白 profile 浏览器内尝试通过 Google 同意屏，详见 [浏览器验证协议](./docs/agents/browser-validation.md)。
-  1. **首选驱动**: Claude in Chrome 扩展（`mcp__claude-in-chrome__*`），原生持有用户登录态；
-  2. **退化通道**: 用户启动 Chrome 时附 `--remote-debugging-port=9222`，再以 Chrome DevTools 协议（`mcp__chrome_devtools__*`）连接同一 profile；
-  3. **禁止动作**: 严禁在 sandbox 浏览器中跳转 Google 同意屏；严禁要求用户在 chat 中粘贴密码、Cookie 或一次性验证码（违反 `user_privacy` 中的 SENSITIVE INFORMATION HANDLING）；
+- **Browser Validation Protocol (浏览器验证准则)**: 所有依赖登录态（Google OAuth / SSO / 内部凭证）的浏览器验证，**必须**统一使用 Chrome DevTools 协议（`mcp__chrome_devtools__*`）接入用户常用 Chrome 主 profile，**强制复用真实登录用户**——严禁在 sandbox / 空白 profile 浏览器中跳转 Google 同意屏，严禁以模拟用户身份代替真人登录态。详见 [浏览器验证协议](./docs/agents/browser-validation.md)。
+  1. **唯一驱动**: `mcp__chrome_devtools__*`。macOS 默认配置下 `list_pages` / `navigate_page` 已能直连用户常用 Chrome 主 profile（含已登录 Google 账号）；连不通时由用户手动以 `--remote-debugging-port=9222` + 自有 `--user-data-dir` 启动 Chrome 后再次接入，禁止改用 sandbox 浏览器替代；
+  2. **Playwright 边界**: `mcp__playwright__*` 仅限两类不依赖 Google OAuth 的 B 类场景：① 项目 E2E `setup` project 一次性人工登录后 `storageState` 复用、② 本地自签 `ne_sso` dev-cookie 注入。**禁止**用 `mcp__playwright__*` 启动新 Chromium 处理 Google OAuth / SSO 登录跳转；
+  3. **禁止动作**: 严禁在 sandbox 浏览器中跳转 Google 同意屏；严禁以"模拟用户"或第三账号代替真实用户完成登录态验证；严禁要求用户在 chat 中粘贴密码、Cookie 或一次性验证码（违反 `user_privacy` 中的 SENSITIVE INFORMATION HANDLING）；
   4. **凭证守则**: storageState / cookies / userDataDir 等会话产物**仅落本地**，受 `.gitignore` 保护，禁止入库；
-  5. **连通性自检**: 每次会话首次需要登录态浏览前，先按协议文档中的"三步自检"确认链路；
-  6. **E2E 测试**: 项目 Playwright E2E 通过 `setup` project + `storageState` 复用一次性人工登录的会话，配置见 [`apps/negentropy-ui/playwright.config.ts`](./apps/negentropy-ui/playwright.config.ts) 与 [`apps/negentropy-ui/tests/e2e/auth.setup.ts`](./apps/negentropy-ui/tests/e2e/auth.setup.ts)。
+  5. **连通性自检**: 每次会话首次需要登录态浏览前，先按协议文档中的"两步自检"（驱动接入并复用真实登录态 + 项目 OAuth 链路打通）确认链路；
+  6. **E2E 测试**: 项目 Playwright E2E 通过 `setup` project + `storageState` 复用**真实用户**一次性人工登录后的会话（`setup` 内浏览器由真人完成 OAuth，非模拟），配置见 [`apps/negentropy-ui/playwright.config.ts`](./apps/negentropy-ui/playwright.config.ts) 与 [`apps/negentropy-ui/tests/e2e/auth.setup.ts`](./apps/negentropy-ui/tests/e2e/auth.setup.ts)。
 
 ## Documentation Standards (文档规范)
 

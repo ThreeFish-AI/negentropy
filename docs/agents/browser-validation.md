@@ -8,84 +8,89 @@
 
 试图通过自动填充密码 / Cookie 注入 / 跨 profile 复制 `storageState` 的方式"绕过"登录拦截在生产环境中是不可靠且不安全的：Google 风控会基于设备指纹、IP、User-Agent、登录历史等多维度信号判断异常会话<sup>[[2]](#ref2)</sup>，且这些做法违反 Claude Code 的 `user_privacy` 安全准则中关于敏感凭证不入 chat 的硬性要求。
 
+**协议演进（2026-05-06）**：早期版本曾把 Claude in Chrome 扩展（`mcp__claude-in-chrome__*`）列为首选驱动、`mcp__chrome_devtools__*` 列为退化通道；实测发现两个事实改变结论：① 多数 AI Agent 会话不会自动挂载该扩展 MCP，"首选"长期不可达；② macOS 默认配置下 `mcp__chrome_devtools__list_pages` / `navigate_page` 已能直接接入用户常用 Chrome 主 profile（含已登录的 Google 账号）。因此本协议自此**统一收敛为唯一驱动 `mcp__chrome_devtools__*`**，并强制要求复用用户**真实**登录用户（不允许以模拟用户、第三账号或临时空白 profile 替代）。
+
 ## 2. 目标与非目标 (Goals / Non-Goals)
 
-- **目标**：让所有依赖登录态的浏览器验证（AI Agent 即时验证 + 项目 Playwright E2E）以**复用用户已有 Chrome 会话**的方式打通，登录动作仅由用户手动完成一次。
+- **目标**：所有依赖登录态的浏览器验证（AI Agent 即时验证 + 项目 Playwright E2E）统一通过 `mcp__chrome_devtools__*` 接入用户**常用 Chrome 主 profile** 与**真实登录用户**，登录动作仅由用户在该浏览器内手动完成一次。
 - **非目标**：
   - 不实现密码自动填充 / 验证码自动接收 / reCAPTCHA 自动求解；
+  - 不在 sandbox / 空白 profile / 模拟用户身份下处理 Google OAuth / SSO 登录跳转；
   - 不在 CI / 共享环境内长期托管真实账号 storageState；
   - 不为多账号热切换提前抽象 profile manager（YAGNI）。
 
-## 3. 三种 MCP 浏览器工具的能力对照
+## 3. MCP 浏览器工具能力对照与适用边界
 
-| 维度 | `mcp__claude-in-chrome__` | `mcp__chrome_devtools__` | `mcp__playwright__` |
-| --- | --- | --- | --- |
-| 浏览器实例 | 用户**常用** Chrome（通过扩展接管） | 任意 Chrome（通过 DevTools 协议连接） | Playwright 自启动的 Chromium |
-| 登录态来源 | **用户原生 profile** | 实测：macOS 默认配置下直接复用用户 Chrome 主 profile（**已登录态可用**）；其他平台或自定义 profile 路径则取决于连接对象 | 默认空 profile，需 `storageState` / `userDataDir` |
-| Google OAuth 友好度 | ✅ 高（同设备指纹） | ✅ 中-高（取决于 profile） | ❌ 低（易触发风控） |
-| 安装/启动成本 | 一次性安装 Chrome 扩展 | 每次以 `--remote-debugging-port` 启 Chrome | 零额外步骤 |
-| 适用场景 | **AI Agent 即时验证（首选）** | 故障定位、性能审计、首选不可用时退化 | E2E 测试套件（配合 `setup` project 复用会话） |
-| 安全语义 | 用户全程在自有浏览器内完成敏感动作 | 同上 | 需要持久化 `storageState`，须 gitignore |
+| 维度 | `mcp__chrome_devtools__`（**唯一首选**） | `mcp__playwright__`（**仅限 B 类隔离场景**） |
+| --- | --- | --- |
+| 浏览器实例 | 用户常用 Chrome（通过 DevTools 协议接管真实 profile） | Playwright 自启动的 Chromium（独立 sandbox） |
+| 登录态来源 | **用户原生主 profile**（macOS 默认即可直连，含真实 Google 账号已登录态）；其他平台 / 自定义路径以 `--remote-debugging-port=9222` + `--user-data-dir=<用户主 profile>` 显式接入 | 默认空 profile，需 `storageState` / `userDataDir` 注入 |
+| Google OAuth 友好度 | ✅ 高（与用户日常 Chrome 同设备指纹 / 同登录历史） | ❌ 不适用（被风控拦截，本协议**禁止**用其跳转 OAuth 同意屏） |
+| 真实用户语义 | ✅ 真实登录用户（cm.huang@aftership.com 等） | ⚠️ 模拟 / 一次性人工登录后的 `storageState` 副本，**不允许**用作"真人登录态"验证 |
+| 适用场景 | **唯一**用于 AI Agent 即时验证、依赖登录态的 OAuth/SSO 链路、Google 服务页面交互、故障定位、性能审计 | **B 类**：① E2E `setup` project 的一次性人工登录 + `storageState` 复用；② 本地自签 `ne_sso` dev-cookie 注入 |
+| 安全语义 | 用户全程在自有浏览器内完成敏感动作；不持久化任何账号凭证副本 | `storageState` / `userDataDir` 仅落本地，须 gitignore |
+| 启动成本 | 默认 0；连不通时由用户附 `--remote-debugging-port=9222` 重启自有 Chrome | 零额外步骤（隔离场景） |
 
 ## 4. 选型决策图 (Routing)
 
 ```mermaid
 flowchart TD
-  Start["需要浏览器验证"] --> NeedAuth{"涉及登录态<br/>(Google/SSO/...)?"}
-  NeedAuth -->|否| Free["任意浏览器工具均可<br/>（建议 mcp__playwright__ 做隔离测试）"]
-  NeedAuth -->|是| Mode{"AI Agent 即时验证<br/>or 自动化 E2E?"}
-  Mode -->|即时验证| Primary["首选: mcp__claude-in-chrome__<br/>（直接驱动用户常用 Chrome）"]
-  Primary --> Reachable{"扩展自检<br/>tabs_context_mcp 可达?"}
-  Reachable -->|是| Use1["✅ 直接使用"]
-  Reachable -->|否| Fallback["退化: 让用户启动 Chrome 时<br/>附 --remote-debugging-port=9222<br/>再用 mcp__chrome_devtools__ 接入"]
-  Mode -->|E2E 测试| E2E["pnpm exec playwright test<br/>--project=setup 首次手动登录<br/>→ storageState 复用"]
+  Start["需要浏览器验证"] --> NeedAuth{"涉及登录态<br/>(Google OAuth / SSO / 真实用户)?"}
+  NeedAuth -->|是| Driver["**唯一驱动**:<br/>mcp__chrome_devtools__*<br/>接入用户常用 Chrome 主 profile"]
+  Driver --> Reachable{"list_pages 直连<br/>用户主 profile 可达?"}
+  Reachable -->|是| Use1["✅ 直接使用<br/>（已含真实登录态）"]
+  Reachable -->|否| Fallback["指引用户附<br/>--remote-debugging-port=9222<br/>+ --user-data-dir=&lt;用户主 profile&gt;<br/>重启 Chrome 后再连"]
+  Fallback --> Use1
+  NeedAuth -->|否，仅本地隔离| BType{"B 类隔离场景"}
+  BType --> E2E["E2E setup project +<br/>真人一次性登录 →<br/>storageState 复用"]
+  BType --> DevCookie["本地自签 ne_sso<br/>dev-cookie 注入<br/>(不接触 OAuth)"]
+
+  Forbid["❌ 禁止:<br/>用 mcp__playwright__ /<br/>sandbox 浏览器跳转<br/>Google 同意屏"]
+  NeedAuth -.->|严禁| Forbid
 
   style Start fill:#0f172a,stroke:#60a5fa,color:#e2e8f0
-  style Primary fill:#0b1f2a,stroke:#34d399,color:#ecfdf5
+  style Driver fill:#0b1f2a,stroke:#34d399,color:#ecfdf5
   style Use1 fill:#052e16,stroke:#22c55e,color:#dcfce7
   style Fallback fill:#1f1d0a,stroke:#f59e0b,color:#fef3c7
   style E2E fill:#0b1f2a,stroke:#3b82f6,color:#e6edf3
+  style DevCookie fill:#0b1f2a,stroke:#3b82f6,color:#e6edf3
   style NeedAuth fill:#1f2937,stroke:#a78bfa,color:#ede9fe
-  style Mode fill:#1f2937,stroke:#a78bfa,color:#ede9fe
   style Reachable fill:#1f2937,stroke:#a78bfa,color:#ede9fe
+  style BType fill:#1f2937,stroke:#a78bfa,color:#ede9fe
+  style Forbid fill:#3b0a0a,stroke:#f87171,color:#fee2e2
 ```
 
-## 5. 三步连通性自检 (Connectivity Self-Check)
+## 5. 两步连通性自检 (Connectivity Self-Check)
 
-每次会话首次需要登录态浏览前，AI Agent **必须**按下列顺序依次执行；任意一步失败立即停下并把现象告知用户。
+每次会话首次需要登录态浏览前，AI Agent **必须**按下列顺序依次执行；任意一步失败立即停下并把现象告知用户。所有调用统一走 `mcp__chrome_devtools__*`，**禁止**任何"换 sandbox 再试"的暗箱重试。
 
-### Step 1 — 首选驱动可达性
+### Step 1 — 驱动接入并复用真实登录态
 
 ```ts
-// AI Agent 调用
-mcp__claude-in-chrome__tabs_context_mcp({ createIfEmpty: true })
+// 1) 列出当前已打开的 Chrome 页面，确认接入的是用户常用 profile
+mcp__chrome_devtools__list_pages()
+
+// 2) 在新 tab 中验证 Google 登录态可读
+mcp__chrome_devtools__new_page({ url: "https://myaccount.google.com" })
+mcp__chrome_devtools__take_snapshot()
 ```
 
-- 期望：返回当前 Chrome tab group 与至少一个 tabId。
-- 失败处理（按优先级）：
-  1. **退化到 chrome-devtools MCP**：调用 `mcp__chrome_devtools__list_pages`；若返回的 page url 已带用户登录态（如 `myaccount.google.com` 显示用户邮箱），则直接采用此通道，不必再装扩展（实测在 macOS 默认配置下即可生效）。
-  2. **仍不可用**：在用户常用 Chrome 中安装 [Claude in Chrome 扩展](https://claude.ai/chrome) 并允许 MCP 连接，或让用户启动 Chrome 时附 `--remote-debugging-port=9222`。
+- **期望**：① `list_pages` 返回当前 Chrome 实例已打开的若干真实页面（说明接入的是用户主 profile，非 sandbox）；② accessibility 快照中能读到用户邮箱（如 `cm.huang@aftership.com`）。
+- **失败处理**：
+  1. `list_pages` 报"无法连接"：请用户彻底退出 Chrome（macOS：⌘Q），再以 `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222 --user-data-dir="$HOME/Library/Application Support/Google/Chrome"` 重启自有 Chrome（必须指向用户日常使用的 user-data-dir，否则会拉起空白 profile）；
+  2. 接入成功但 `myaccount.google.com` 未识别用户：请用户在该 Chrome 中手动登录目标 Google 账号一次（AI Agent 不接触密码 / 验证码）；
+  3. **禁止退化**：不允许改用 `mcp__playwright__*` 启动新 Chromium 重试该步骤——此举会触发 Google 风控并违背"真实用户登录态"原则。
 
-### Step 2 — Google 登录态复用性
+### Step 2 — 项目 OAuth 链路打通
 
 ```ts
-// 在新 tab 中打开
-mcp__claude-in-chrome__navigate({ url: "https://myaccount.google.com", tabId })
-mcp__claude-in-chrome__read_page({ tabId, filter: "interactive" })
+mcp__chrome_devtools__new_page({ url: "http://localhost:3192/auth/google/login" })
 ```
 
-- 期望：accessibility tree 中能读到用户邮箱（如 `cm.huang@aftership.com`）。
-- 失败处理：请用户在该 Chrome 中手动登录目标 Google 账号一次。
-
-### Step 3 — 项目 OAuth 链路打通
-
-```ts
-mcp__claude-in-chrome__navigate({ url: "http://localhost:3192/auth/google/login", tabId })
-```
-
-- 前置：本地 dev server 已起（前端 `pnpm run dev`，后端 `uv run negentropy serve`）。
-- 期望：无需重新输密码，直接回跳 `localhost:3192` 并完成会话写入。
-- 失败处理：检查 `.env` 中 OAuth callback URL（参考 [docs/issue.md](../issue.md) 历史 Issue）。
+- **前置**：本地 dev server 已起（前端 `pnpm run dev`，后端 `uv run negentropy serve`）。
+- **期望**：无需重新输密码，直接回跳 `localhost:3192` 并完成会话写入。
+- **失败处理**：检查 `.env` 中 OAuth callback URL（参考 [docs/issue.md](../issue.md) 历史 Issue）。
+- **风控提示**：Step 1 的 Google 登录态验证与本步骤之间留 ≥ 3s 间隔，避免短时高频跳转触发 reCAPTCHA。
 
 ## 6. Playwright E2E 的会话复用方案
 
@@ -131,7 +136,7 @@ sequenceDiagram
 
 ## 8. 二阶风险与防护
 
-- **风控误报**: 短时间内高频跳转 Google 同意屏会触发 reCAPTCHA / 邮箱验证。**对策**: 自检 Step 2 与 Step 3 间留 ≥ 3 秒间隔；避免在自动化循环中重复触发 OAuth。
+- **风控误报**: 短时间内高频跳转 Google 同意屏会触发 reCAPTCHA / 邮箱验证。**对策**: 自检 Step 1 与 Step 2 间留 ≥ 3 秒间隔；避免在自动化循环中重复触发 OAuth。
 - **storageState 漂移**: 项目修改 Cookie 域 / SameSite 后旧 `storageState` 失效但不报错。**对策**: setup project 末尾增加 `expect(page).toHaveURL(/localhost:3192\/(?!auth\/google)/)` 断言。
 - **多账号干扰**: 用户常用 Chrome 同时登录多个 Google 账号会让 OAuth 选择器出现。**对策**: 自检失败时把账号选择器纳入指引，由用户显式选择目标账号。
 
