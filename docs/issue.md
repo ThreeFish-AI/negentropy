@@ -1292,3 +1292,72 @@
   2. **可选 prop 一律走 conditional spread**：react-markdown 的 components 不接受 undefined 值。如条件性挂 component，必须 `if(condition){ components.x = fn }` 而非 `x: cond ? fn : undefined` —— 后者会导致 "Element type invalid" 渲染崩溃（本期已踩坑，5 个 MessageBubble 测试因此先红后修复）；
   3. **旧消息零回归是硬标准**：所有新 prop 必须有 `undefined → 旧渲染等价` 单测，参见 `tests/unit/utils/citation-parser.test.ts`。
 - **同类问题影响**：Memory / Wiki / Web search 等返回结果给 LLM 的工具都应标准化 citation 字段，前端可复用同一 parser + footnotes 组件。
+
+---
+
+## ISSUE-057 admin 用户调用 admin API 持续 403（DB roles 与 JWT roles 视图割裂）（2026-05-06）
+
+- **表因**：浏览器实机回归 cm.huang@aftership.com（前端 `/auth/me` 显示 role 含 `admin`，顶层导航 `Admin` 链接可见）：
+  - `/admin` 页面 "Failed to fetch users"，`GET /api/auth/admin/users` 返回 **403**；
+  - `/interface/models` 页面 "Failed to load registered models: HTTP 403"，`GET /api/interface/models/configs` 与 `/vendor-configs` 均 403；
+  - Home Chat 模型选择器塌缩到 `Default` 一项，RUNTIME LOGS 持续输出 `llm_options_fetch_failed: Forbidden`。
+- **根因**：[`apps/negentropy/src/negentropy/auth/deps.py`](../apps/negentropy/src/negentropy/auth/deps.py):21 `get_current_user()` 仅解码 JWT，不读 DB；JWT 中 roles 是登录瞬间快照（由 `admin_emails` 列表决定，cm.huang 不在默认列表）。当管理员通过 `PATCH /auth/users/{id}/roles` 把目标用户提升为 admin 时，roles 落到 DB ``user_states.state.roles`` 但 **JWT 不会自动刷新**。`/auth/me` 已经做了"DB 覆盖 JWT" 的 pattern（[auth/api.py:78-109](../apps/negentropy/src/negentropy/auth/api.py)），但所有 admin 端点（`auth/api.py` × 3、`interface/models_api.py` × 9、`engine/api.py` × 7+1）都仍读 JWT roles → 前后端视图割裂。
+- **处理方式**：抽出 admin role 解析的单一事实源：
+  1. **新增 `auth/deps.py::resolve_user_with_db_roles()`** — DB UserState.state.roles 覆盖 JWT roles；DB 不可达 / state 缺失 / state.roles 非 list 等所有失败路径默认回退 JWT roles，保证 dev-cookie E2E 与 DB 故障下 admin 不被误降级；
+  2. **新增 `auth/deps.py::require_admin()` FastAPI 依赖** — 内部主动 `await resolve_user_with_db_roles` 后做 admin 校验，便于单元测试直接调用也能完整经过 DB 解析；
+  3. **`auth/api.py`** 三个 admin 端点（`/admin/users` / `PATCH /users/{id}/roles` / `/users/{id}`）改用 `Depends(require_admin)`；`/me` 端点重构为复用 `resolve_user_with_db_roles` 简化逻辑；
+  4. **`interface/models_api.py::_require_admin`** 改为 async + 内部调用 `resolve_user_with_db_roles`，9 处调用点统一升级为 `await _require_admin(current_user)`；
+  5. **`engine/api.py::_require_admin` 与 `_require_self_or_admin`** 同样改 async + DB 权威路径，7 处 admin 调用 + 6 处 self_or_admin 调用同步升级；`/metrics` 端点的内联 admin 检查也收敛到 `_require_admin`；
+  6. **单测覆盖**：[`tests/unit_tests/auth/test_deps_and_rbac.py`](../apps/negentropy/tests/unit_tests/auth/test_deps_and_rbac.py) 新增 7 个 case：DB 提升 user → admin、DB UserState 缺失回退 JWT、DB 异常回退 JWT、`require_admin` 接受 DB 提升 / 拒绝双源都 user / state.roles 非 list 兜底 / DB 与 JWT 一致返回原实例；[`test_memory_api_authz.py`](../apps/negentropy/tests/unit_tests/engine/test_memory_api_authz.py) 4 个旧 sync test 升级为 async + monkeypatch DB 解析，并新增"JWT user + DB admin 应通过"用例。
+- **后续防范**：
+  1. **admin 鉴权统一通过 `require_admin` 依赖或 `_require_admin` helper**，严禁端点内直接 `if "admin" not in user.roles` 的内联检查；
+  2. **任何"持久化在 DB 的用户属性"都应抽出 `resolve_user_with_db_*` helper**，避免后续添加 status / quota / feature flag 等字段时再次出现 JWT 与 DB 视图割裂；
+  3. **dev-cookie E2E 与真实 OAuth 双轨并行**：dev-cookie token 直接含 `roles=["admin"]` 仍按 JWT path 走，DB 解析仅在 DB UserState 存在且不一致时介入，最小化对既有 E2E 的回归压力。
+- **同类问题影响**：所有"基于 JWT claim 做即时鉴权 + DB 后置写入"的场景（如 quota / tenant scope / feature flag），同样会在 claim 漂移时出现 403 误判，应统一收敛到 `resolve_user_with_db_*` 模式。
+
+---
+
+## ISSUE-058 Home Chat 流式期间单气泡内"残缺累积版 + final 完整版"双内容渲染（2026-05-06）
+
+- **表因**：浏览器实机发送 `Reply with exactly: "Hello, test 1234"`：
+  - 流式期间单条 AI 气泡（同一 `messageId`，单 `data-testid="message-bubble"`）内同时渲染两份内容：
+    - **第一份**（4 个 `<p>`）— 残缺版："Hello, test1234"（无空格）、"机器校"（缺"验"）、"消息文档"（缺"/")、A/B/C 选项大量缺字；
+    - **第二份**（1 `<p>` + 3 `<li>` + 2 `<p>`）— 正确的 markdown 列表与 final 完整答案；
+  - 关键词出现频次："Hello, test 1234" / "已完成" / "下一步" 各 ×2；
+  - **刷新页面后只剩单份完整内容**（持久化正确）→ 问题在前端流式渲染管线。
+- **根因**：双 messageId 同源不同完成度场景下，`utils/message-ledger.ts::isSemanticEquivalentEntry` 的合并条件过严：
+  1. L114-119 要求双方内容**严格前缀关系**，但 streaming chunk 累积的"残缺版"与 hydration 拉到的 final 版**不构成前缀**（一个无空格、一个有空格 + markdown 列表）；
+  2. `utils/conversation-tree.ts` 的 `findMatchingTextNodeId` 在流式 node 已 closed 时让 hydration 新消息无法匹配 → 产出第二个独立 text node；
+  3. `utils/chat-display.ts::dedupeRedundantTextSegments` 已有四层判定（精确 / 前缀 / `isEquivalentMessageContent` / bigram Jaccard ≥ 0.5）但**无任何一层能命中**残缺 + 完整版的组合（前缀失败、Jaccard 边缘、长度分布不利）。
+- **处理方式**：[`utils/chat-display.ts`](../apps/negentropy-ui/utils/chat-display.ts) 在 `dedupeRedundantTextSegments` 增加**第 5 层兜底判定**：`isStreamingDuplicateOfLater(earlier, later)` — 三阈值同时命中视为同源冗余：
+  1. 双方 trimmed length ≥ 12（防误删 "Pong!" 等合理短回复）；
+  2. 较长方至少为较短方的 1.15 倍（实测真实场景比例约 1.18，1.2 阈值会漏检）；
+  3. 较短方的字符 multiset 至少 80% 被较长方覆盖（流式残缺版的字符几乎都是 final 的子集）。
+  - 命中后丢弃较短一方（保留信息更完备的 final 版本，与现有四层"丢弃前段"语义一致）；
+  - 单测覆盖：[`tests/unit/utils/chat-display.test.ts`](../apps/negentropy-ui/tests/unit/utils/chat-display.test.ts) 新增 6 个 case（残缺/完整版命中、独立消息不命中、短文本不命中、长度持平不命中、典型双内容场景命中、`buildChatDisplayBlocks` 集成）；E2E 在 [`tests/e2e/home-chat.spec.ts`](../apps/negentropy-ui/tests/e2e/home-chat.spec.ts) 新增 C7-E "流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 final 版"。
+- **后续防范**：
+  1. **dedupe 是分层兜底，不是根因修复**：本 ISSUE 的真正根因在 ledger merge / conversation-tree 节点匹配，下一轮应深入修，但 chat-display 兜底层是 UX 层的最后防线，必须保留；
+  2. **任何新增 dedup 判定必须明确"误删 vs 漏检"的权衡参数**（min length / length ratio / coverage threshold）+ 5 个以上正交单测；
+  3. **MEMORY `feedback_repeated_bug_quality_bar` 反复 bug 高质量门**：双气泡 / Hydration 类问题必须 5 次以上实机刷新验证 + 多正交回归用例（本 PR 因 conductor workspace 与本地 dev server 路径分离暂未做实机刷新，待 PR 合入用户原仓库后做 5 次刷新回归）。
+- **同类问题影响**：任何"流式累积 + final hydration 双路径"的渲染管线（如 KG SSE 进度、Tool Progress 流式更新、Wiki 实时编辑）都可能出现类似双内容；建议把 `isStreamingDuplicateOfLater` 的 multiset coverage + 长度比兜底模式抽成通用 utility。
+
+---
+
+## ISSUE-059 Home Chat 新建会话 URL 不同步 sessionId（深链 / 书签 / 分享失效）（2026-05-06）
+
+- **表因**：浏览器实机点击 sidebar `+ New` 创建会话 `b2005e1e`，sidebar 高亮该会话：
+  - 地址栏 URL 仍是 `http://localhost:3192/`，未变成 `/?sessionId=b2005e1e`；
+  - 复制 URL 在新 tab 打开 → 回到 list[0] 默认会话，无法定位到原会话；
+  - 浏览器后退/前进键语义错位，无法在会话间导航。
+- **根因**：[`apps/negentropy-ui/app/page.tsx`](../apps/negentropy-ui/app/page.tsx):15 `useState<string | null>(null)` 单点持有 sessionId，[`features/session/hooks/useSessionListService.ts::startNewSession()`](../apps/negentropy-ui/features/session/hooks/useSessionListService.ts):290 仅 `setSessionId(id)` 更新 React state，**无任何 `useRouter` / `useSearchParams` 同步 URL** 的代码路径。刷新后通过 [`loadSessions()`](../apps/negentropy-ui/features/session/hooks/useSessionListService.ts):85 自动选择 `nextSessions[0]` 实现"伪持久化"，但 URL 永远不反映 sessionId。
+- **处理方式**：[`app/page.tsx`](../apps/negentropy-ui/app/page.tsx) 把 sessionId 的 single source of truth 从 React state 升级为 URL `?sessionId=` 参数：
+  1. 引入 `useRouter` / `usePathname` / `useSearchParams`，初始化 `useState` 时读 URL 解析结果；
+  2. `setSessionId` callback 包装：先 `setSessionIdState`，再 `router.replace(pathname?sessionId=...)` `{ scroll: false }`，避免污染浏览器历史栈与刷新页面；
+  3. `useEffect` 监听 URL 反向同步 state（外部改 URL 的极少见但需覆盖的路径）；
+  4. URL 变化由 `router.replace` 触发，不影响子组件 props 与 `agent` memo；
+  5. E2E 覆盖：[`tests/e2e/home-chat.spec.ts`](../apps/negentropy-ui/tests/e2e/home-chat.spec.ts) 新增 C7-D "URL sync：点击 + New 后 URL 应包含 ?sessionId=，刷新仍保持，可被外部 URL 直接定位" 三层守卫。
+- **后续防范**：
+  1. **任何"用户可达的应用状态"必须考虑 URL 反映性**：分享 / 书签 / 浏览器返回前进语义都依赖；
+  2. **避免双 source of truth**：URL ↔ React state 必须有清晰的 owner（本案以 URL 为权威，state 仅是缓存）；
+  3. **次级会话切换、归档恢复、归档列表过滤**等其他会话相关交互一并迁移到 URL（本 PR 仅覆盖新建路径，下一轮把 `setSessionId` 在 `archiveSession` / `handleSessionChange` / 归档 view 切换中也走 router.replace）。
+- **同类问题影响**：Memory timeline range / Knowledge corpus filter / Skills view mode 等一切"用户可分享的视图状态"都应同步 URL；建议建立 [`utils/url-state-sync.ts`](../apps/negentropy-ui/utils/url-state-sync.ts) 通用 hook 统一 pattern。
