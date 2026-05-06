@@ -527,3 +527,182 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
     page.locator('[data-testid="message-bubble"][data-message-role="assistant"]'),
   ).toHaveCount(1);
 });
+
+// ============================================================================
+// C7-D: ISSUE-049 — 新建会话 URL 同步 sessionId（深链 / 书签 / 分享）
+// ============================================================================
+
+test("Home URL sync：点击 + New 后 URL 应包含 ?sessionId=，刷新仍保持，可被外部 URL 直接定位", async ({ page }) => {
+  const sessionId = "home-chat-url-sync";
+  const createdAt = Date.now();
+  const sessionCreatedRef = { value: false };
+
+  await mockAuthenticatedUser(page);
+  await mockSessionsList(page, sessionCreatedRef, sessionId, createdAt);
+  await mockSessionCreate(page, sessionCreatedRef, sessionId, createdAt);
+
+  await page.route(`**/api/agui/sessions/${sessionId}**`, async (route) => {
+    if (route.request().url().includes("/title")) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: sessionId, lastUpdateTime: createdAt, events: [] }),
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "+ New" }).click();
+
+  // 关键守卫 1：URL 同步带上新 sessionId（避免分享 / 书签失效）
+  await expect(page).toHaveURL(new RegExp(`sessionId=${sessionId}`), {
+    timeout: 5_000,
+  });
+
+  // 关键守卫 2：reload 后 URL 与会话状态保持
+  await page.reload();
+  await expect(page).toHaveURL(new RegExp(`sessionId=${sessionId}`));
+  await expect(
+    page.getByRole("button", { name: new RegExp(`Session ${sessionId.slice(0, 8)}`) }),
+  ).toBeVisible();
+
+  // 关键守卫 3：直接以 ?sessionId=xxx 打开新页面，应直达该会话
+  await page.goto(`/?sessionId=${sessionId}`);
+  await expect(page).toHaveURL(new RegExp(`sessionId=${sessionId}`));
+});
+
+// ============================================================================
+// C7-E: ISSUE-049 — 流式累积残缺版 + final 完整版双内容兜底防御
+// ============================================================================
+
+test("Home 流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 final 版", async ({ page }) => {
+  const sessionId = "home-chat-streaming-dedupe";
+  const runId = "run-streaming-dedupe";
+  const createdAt = Date.now();
+  const baseTs = createdAt / 1000;
+  const sessionCreatedRef = { value: false };
+
+  await mockAuthenticatedUser(page);
+  await mockSessionsList(page, sessionCreatedRef, sessionId, createdAt);
+  await mockSessionCreate(page, sessionCreatedRef, sessionId, createdAt);
+
+  // 残缺版（无空格 / 缺字）+ final 完整版同时存在于 ndjson 流中，
+  // 模拟 LLM 在 chunk 拼接 + final hydration 双路径下产生的双 messageId 同源场景。
+  const partialContent = '"Hello, test1234"\n已完成查询。 项目A、项目B、项目C。';
+  const finalContent =
+    '"Hello, test 1234"\n\n已完成查询。\n\n- 项目A：进行中\n- 项目B：已完成\n- 项目C：待启动\n\n请确认下一步。';
+
+  await page.route(`**/api/agui/sessions/${sessionId}**`, async (route) => {
+    if (route.request().url().includes("/title")) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: sessionId, lastUpdateTime: createdAt, events: [] }),
+    });
+  });
+
+  await page.route(`**/api/agui?**session_id=${sessionId}**`, async (route) => {
+    const frames = [
+      { type: "RUN_STARTED", threadId: sessionId, runId, timestamp: baseTs },
+      {
+        type: "TEXT_MESSAGE_START",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-streaming",
+        role: "assistant",
+        timestamp: baseTs + 0.001,
+      },
+      {
+        type: "TEXT_MESSAGE_CONTENT",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-streaming",
+        delta: partialContent,
+        timestamp: baseTs + 0.002,
+      },
+      {
+        type: "TEXT_MESSAGE_END",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-streaming",
+        timestamp: baseTs + 0.003,
+      },
+      // final 增量：另一个 messageId，更完备的内容（覆盖 ISSUE-049 双 messageId 场景）
+      {
+        type: "TEXT_MESSAGE_START",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-final",
+        role: "assistant",
+        timestamp: baseTs + 0.004,
+      },
+      {
+        type: "TEXT_MESSAGE_CONTENT",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-final",
+        delta: finalContent,
+        timestamp: baseTs + 0.005,
+      },
+      {
+        type: "TEXT_MESSAGE_END",
+        threadId: sessionId,
+        runId,
+        messageId: "assistant-final",
+        timestamp: baseTs + 0.006,
+      },
+      { type: "RUN_FINISHED", threadId: sessionId, runId, timestamp: baseTs + 0.007 },
+    ];
+    const body = frames
+      .map((event, index) =>
+        JSON.stringify({
+          protocol: "negentropy.ndjson.v1",
+          kind: "agui_event",
+          sessionId,
+          threadId: sessionId,
+          runId,
+          cursor: `${runId}:${index + 1}`,
+          resumeToken: `${runId}:${index + 1}`,
+          event,
+        }),
+      )
+      .join("\n");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/x-ndjson",
+      body,
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "+ New" }).click();
+  await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
+  await page.getByPlaceholder("输入指令...").fill('Reply with exactly: "Hello, test 1234"');
+  await page.getByRole("button", { name: "Send" }).click();
+
+  // 等待 final 内容出现
+  await expect(page.getByText("项目B：已完成")).toBeVisible({ timeout: 10_000 });
+
+  // 关键守卫 1：assistant 气泡仅 1 个（不双 message-bubble）
+  await expect(
+    page.locator('[data-testid="message-bubble"][data-message-role="assistant"]'),
+  ).toHaveCount(1);
+
+  // 关键守卫 2：不应出现"Hello, test1234"无空格的残缺版（dedupe 命中后只剩 final）
+  const bubbleHtml = await page
+    .locator('[data-testid="message-bubble"][data-message-role="assistant"]')
+    .first()
+    .innerText();
+  expect(bubbleHtml).toContain('"Hello, test 1234"');
+  expect(bubbleHtml).not.toContain("Hello, test1234"); // 残缺版（无空格）应已被 dedupe 删掉
+
+  // 关键守卫 3：final 关键 markdown 列表项保留
+  expect(bubbleHtml).toContain("项目A");
+  expect(bubbleHtml).toContain("项目B");
+  expect(bubbleHtml).toContain("项目C");
+});

@@ -413,6 +413,64 @@ const REDUNDANT_TEXT_SIMILARITY_THRESHOLD = 0.5;
 const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
 
 /**
+ * ISSUE-049 兜底层：检测「流式累积残缺版 + final 完整版」共存于同一 message 的双内容。
+ *
+ * 触发场景：流式期间 ledger 累积出残缺中间态（"Hello, test1234"，无空格、缺字），
+ * hydration / final 事件到达后又携带完整正确版（"Hello, test 1234..."），但 message-ledger
+ * 的 isSemanticEquivalentEntry 因严格前缀检查失败未合并 → conversation-tree 产出两个
+ * 独立 ReplyTextDisplaySegment，已有四层判定的相似度 / 长度阈值不能同时命中。
+ *
+ * 本函数判定双方是否为「同源不同完成度」：
+ * 1. 共享 ≥ 80% 字符 multiset（覆盖大量 markdown 段落差异，但能 catch 残缺版 vs 完整版）；
+ * 2. 双方 trimmed length ≥ 12（避免误删合理短回复 "Pong!" 之类）；
+ * 3. 较长一方至少比较短一方多 1.2x（避免相似但平级的两段被误判为同源）。
+ *
+ * 命中后丢弃较短一方（保留更完备的最终版本）。
+ */
+const STREAMING_DUPLICATE_MULTISET_RATIO = 0.8;
+const STREAMING_DUPLICATE_MIN_LENGTH = 12;
+// 1.15 而非 1.2：实测 ISSUE-049 残缺版与 final 版长度比约 1.18（参见 chat-display.test.ts
+// 真实场景测试），1.2 阈值会漏检。multiset coverage 0.8 + min length 12 已构成主要防误删
+// 屏障，长度比仅作辅助过滤"长度持平但内容大相径庭的两段独立消息"。
+const STREAMING_DUPLICATE_LENGTH_RATIO = 1.15;
+
+function characterMultiset(content: string): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const ch of content) {
+    map.set(ch, (map.get(ch) || 0) + 1);
+  }
+  return map;
+}
+
+function multisetCoverage(shorter: string, longer: string): number {
+  if (!shorter) return 0;
+  const longerCounts = characterMultiset(longer);
+  let matched = 0;
+  for (const ch of shorter) {
+    const remaining = longerCounts.get(ch) || 0;
+    if (remaining > 0) {
+      longerCounts.set(ch, remaining - 1);
+      matched += 1;
+    }
+  }
+  return matched / shorter.length;
+}
+
+export function isStreamingDuplicateOfLater(
+  earlierContent: string,
+  laterContent: string,
+): boolean {
+  const earlierLen = earlierContent.length;
+  const laterLen = laterContent.length;
+  if (earlierLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (laterLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (laterLen < earlierLen * STREAMING_DUPLICATE_LENGTH_RATIO) return false;
+  // 较短一段是否被较长一段以 ≥ 80% multiset 覆盖（流式残缺版的字符几乎都来自 final）。
+  const coverage = multisetCoverage(earlierContent, laterContent);
+  return coverage >= STREAMING_DUPLICATE_MULTISET_RATIO;
+}
+
+/**
  * 折叠同一 assistant-reply 内的「冗余文本片段」，四层判定（自上而下越来越宽松,
  * 也越来越保守，全部命中后丢弃前段，因为工具反馈后的「后段」通常是更完备的最终版本）：
  *
@@ -496,13 +554,19 @@ function dedupeRedundantTextSegments(
 
       // 4. 字符二元组 Jaccard 兜底：双方均 ≥ 30 字，避免误删短文本。
       if (
-        earlierContent.length < REDUNDANT_TEXT_JACCARD_MIN_LENGTH ||
-        laterContent.length < REDUNDANT_TEXT_JACCARD_MIN_LENGTH
+        earlierContent.length >= REDUNDANT_TEXT_JACCARD_MIN_LENGTH &&
+        laterContent.length >= REDUNDANT_TEXT_JACCARD_MIN_LENGTH
       ) {
-        continue;
+        const similarity = bigramJaccardSimilarity(earlierContent, laterContent);
+        if (similarity >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
+          droppedIndices.add(earlierIdx);
+          continue;
+        }
       }
-      const similarity = bigramJaccardSimilarity(earlierContent, laterContent);
-      if (similarity >= REDUNDANT_TEXT_SIMILARITY_THRESHOLD) {
+
+      // 5. ISSUE-049 流式双内容兜底：同源不同完成度的两段（残缺版 + 完整版）。
+      //    覆盖前 4 层未命中、但字符 multiset 高度互含、长度差显著的场景。
+      if (isStreamingDuplicateOfLater(earlierContent, laterContent)) {
         droppedIndices.add(earlierIdx);
       }
     }
