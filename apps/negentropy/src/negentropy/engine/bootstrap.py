@@ -374,6 +374,28 @@ def apply_adk_patches():
         if not any(route.path.startswith("/knowledge") for route in app.router.routes):
             app.include_router(knowledge_router)
             logger.info("Knowledge API router mounted under /knowledge")
+
+        # 全局 DBAPIError handler：pgvector 共享库缺失时返回 503 而非 500
+        from fastapi.responses import JSONResponse
+        from sqlalchemy.exc import DBAPIError
+
+        @app.exception_handler(DBAPIError)
+        async def _pgvector_missing_handler(request, exc):
+            msg = (str(exc.orig) if exc.orig else str(exc)).lower()
+            if "vector" in msg and ("could not access" in msg or "undefined file" in msg):
+                logger.error("pgvector_library_missing_on_request", path=request.url.path, error=str(exc))
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "code": "PGVECTOR_UNAVAILABLE",
+                        "message": "数据库 pgvector 扩展不可用，Knowledge Graph 功能无法使用。请安装 pgvector 后重试。",
+                        "hint": (
+                            "安装 pgvector 扩展后执行: psql -d negentropy -c 'CREATE EXTENSION IF NOT EXISTS vector;'"
+                        ),
+                    },
+                )
+            raise exc
+
         if not any(route.path.startswith("/memory") for route in app.router.routes):
             app.include_router(memory_router)
             logger.info("Memory API router mounted under /memory")
@@ -399,6 +421,36 @@ def apply_adk_patches():
                 logger.info("model_config_cache_warmed")
             except Exception as exc:
                 logger.warning("model_config_cache_warm_failed", error=str(exc))
+
+        # 检查 pgvector 扩展可用性（非阻塞：缺失不阻止启动，但明确告警）
+        @app.on_event("startup")
+        async def _check_pgvector_extension():
+            from sqlalchemy import text
+
+            from negentropy.db.session import engine as async_engine
+
+            try:
+                async with async_engine.connect() as conn:
+                    result = await conn.execute(text("SELECT extversion FROM pg_extension WHERE extname = 'vector'"))
+                    version = result.scalar_one_or_none()
+                    if version:
+                        logger.info("pgvector_extension_ok", version=version)
+                    else:
+                        logger.warning(
+                            "pgvector_extension_missing",
+                            hint="psql -d negentropy -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
+                        )
+            except Exception as exc:
+                msg = str(exc).lower()
+                if "vector" in msg and ("could not access" in msg or "undefined file" in msg):
+                    logger.error(
+                        "pgvector_library_missing",
+                        error=str(exc),
+                        hint="brew install pgvector, restart PostgreSQL, then "
+                        "psql -d negentropy -c 'CREATE EXTENSION IF NOT EXISTS vector;'",
+                    )
+                else:
+                    logger.warning("pgvector_check_failed", error=str(exc))
 
         # Phase 3：启动应用层 SkillScheduler（60s tick 扫 skill_schedules 表）。
         # feature flag NEGENTROPY_SKILL_SCHEDULER_ENABLED=false 一键关闭。
