@@ -1509,3 +1509,64 @@
   1. **`chat-display` 时钟漂移窗口 1s → 0.2s**：原 1s 容忍窗口配合双向 user 优先，会把「user 提问 → assistant 回复中（≤1s 内）→ user 紧追问」的真实时序误判为漂移，把 assistant 排到 follow-up 之后，错位为「问 → 紧追问 → 答（错位）」。收紧到 0.2s（典型 NTP 时钟漂移 < 100ms 的 2x 守护带）即可保留漂移修正能力，又排除秒级 follow-up 误吞。
   2. **`longestCommonSubsequenceRatio` 分母语义自洽**：旧实现 reduce() 把超长串截到首尾各 1000（≤2000 字符），但 ratio 分母仍取截断前的 `Math.min(trimA.length, trimB.length)`；当较短串 > ~3077 字符时 lcsLen ≤ 2000 / 分母 > 3077，ratio 上界 < 0.65，第 6 层兜底对长答复永远不触发。改为 `Math.min(sA.length, sB.length)`（与实际参与 LCS 计算的长度一致）保持语义自洽。
   3. **回归测试覆盖**：新增 3 个用例（chat-display.test.ts × 2 覆盖窗口内漂移修正与窗口外 follow-up 真实时序保留；message.test.ts × 1 覆盖长内容 LCS 兜底仍能 ≥ 0.65）。
+
+---
+
+## ISSUE-071 LLM 改写覆盖导致流式 partial+final 双内容（中文场景；2026-05-07）
+
+- **表因**：用户在新会话发送「请用一句话回答：什么是负熵？」后，等待流式结束，assistant 气泡内**同时**渲染两段语义等同但表面不同的中文：
+  1. partial 残缺中间态：「负熵...通过输入能量或入化信息...完成：了一句概念定义...采选项」（缺字、句法不通）；
+  2. final 完整改写版：「负熵...通过输入能量或引入结构化信息...已完成：提供了一句概念性定义...是否采纳哪个选项？」。
+  双段直接拼接展示，视觉上 ≈ 双气泡。
+- **根因**：与 ISSUE-058/060/065/070 同源但层次不同——chat-display 兜底层（Layer 5/6）只在「多个 text segment 间」做去重；本场景下 LLM 把 partial 与 final 都写入**同一**`text segment`（流式 delta），由 [`accumulateTextContent`](../apps/negentropy-ui/utils/message.ts) 在节点累加。`accumulateTextContent` 旧实现仅识别：① existing.endsWith(incoming) ② incoming.startsWith(existing) ③ suffix-prefix overlap；都不命中时直接 `${existing}${incoming}` 强行拼接。中文流式改写的 partial 与 final 互不为前缀、首尾无 overlap，遂逃逸所有合并分支，UI 渲染就出现双内容。
+- **处理方式**：
+  1. **根因层**：[`accumulateTextContent`](../apps/negentropy-ui/utils/message.ts) 增加第 4 层「LLM 改写覆盖」识别。新私有函数 `isRewriteCoverOfExisting(existing, incoming)`：min length 50 + length ratio 1.05 + multiset coverage 0.7 + LCS ratio 0.6（与 chat-display 兜底层阈值对齐）。命中时丢弃 existing 仅保留 incoming，杜绝同 segment 内的双内容拼接。
+  2. **测试守卫**：`tests/unit/utils/message.test.ts` 新增 5 个 vitest 用例，包含真实复现的中文双段、合法追加场景、空内容、短文本绕过等正反用例，全部通过；全套 594 单测无回归。
+  3. **联动 ISSUE-066 修复**：本次浏览器验证暴露的 `/api/interface/models/configs?enabled=true` 普通用户 403 长期残留，UI 层「静默 return []」无法抑制浏览器 console 原生错误。后端 `apps/negentropy/src/negentropy/interface/models_api.py::list_model_configs` 改为：`enabled=True` 路径放宽给登录用户（用 `_model_config_to_public_dict` 剔除 config JSONB，仅返回 metadata，零敏感字段泄漏）；其他过滤组合保持 admin 限制。
+- **后续防范**：
+  1. **同源同节点的双内容不能依赖 chat-display segment 间去重**——`accumulateTextContent` 必须自身具备同源识别能力，否则 UI 兜底永远收不到机会；
+  2. **改写覆盖的阈值与 chat-display Layer 5/6 对齐**，避免两侧阈值漂移导致「ledger 合并 ≠ UI 去重」的不一致；
+  3. **接口权限粒度**：`enabled=True` 这类 user-facing readonly listing 不应一律 admin gate；当用户层 fetch 必走时，浏览器 console error 无法静默，是产品级回归；
+  4. **公开数据序列化用独立函数**（`_model_config_to_public_dict`）：作为公开数据的稳定边界，避免后续新增字段时意外泄漏。
+- **同类问题影响**：所有可能出现「LLM 自我修订并重发同 chunk」的中文流式场景（Memory 提取、Knowledge 摘要、Tool Progress 长 result 改写）；所有 admin-gated readonly 列表接口都应审视是否需要拆出 user-facing 子集。
+
+---
+
+## ISSUE-072 Agent 等待占位仅在「reasoning 已挂载」时不再误吞，但流式启动到首段之间仍空白（2026-05-07）
+
+- **表因**：发送消息后，user bubble 立即出现，但 assistant 侧的等待占位（三点脉冲）**全程不渲染**——即使后端 `RUN_STARTED` 已发出（左下 STATE = STREAMING），主区在 0~3s 内仍完全空白，直到首个 `TEXT_MESSAGE_CONTENT` 或 `ne.a2ui.reasoning` 抵达才开始渲染气泡，破坏「点 Send 即有反馈」的核心 UX。
+- **根因**：分两层。
+  1. **第一层（已修复）**：[`AssistantReplyBubble.tsx`](../apps/negentropy-ui/components/ui/AssistantReplyBubble.tsx) 旧 `hasVisibleSegment` 把 `kind=reasoning` 一律视为可见。但 `ne.a2ui.reasoning` `phase=started` 在 100ms 内即下发只含 `stepId/title` 的空 reasoning step，立即把 placeholder 条件 false 化，导致占位永远不会显式渲染。本次将判据收紧为「`finished` 或 `content/result` 已累积」+ `tool-group` 增加 `tools.length > 0` 守卫。
+  2. **第二层（遗留）**：[`chat-display.ts::walkTurnNode`](../apps/negentropy-ui/utils/chat-display.ts) 第 825-827 行：`if (!replyBuilder || replyBuilder.segments.length === 0) { replyBuilder = null; return; }` —— 当 turn 已开启但还没收到任何 assistant 子节点时，**根本不会推入 `assistant-reply` block**，导致 `AssistantReplyBubble` 容器都不存在，第一层修复仅覆盖「容器已存在但被 reasoning 假阳性吞占位」的子集。
+- **处理方式**：
+  1. 第一层：本 PR 已落地（typecheck + lint + 594 单测通过 + 浏览器实测：reasoning started 不再吞占位）；
+  2. 第二层：留待后续 PR 处理——需要在 `walkTurnNode` 检测 `turn.streaming === true && children.empty` 时，合成一个仅含 placeholder kind 的 segment 推入 reply block（或在外层 `chat-display` 入口为「streaming turn without children」单独 push placeholder block）。涉及与 conversation-tree turn lifecycle、ledger merge 的对齐，需要独立设计一轮。
+- **后续防范**：
+  1. **空状态可见性**断言不能只覆盖「容器存在」分支——需要从 turn 启动开始全程兜底；
+  2. **`data-testid="agent-waiting-placeholder"` 的 e2e 守卫**应包含「Send 后 100ms ~ 1s 窗口必有占位」的最小存在断言，避免后续 reasoning/tool-group 改动再次回归。
+- **同类问题影响**：所有「streaming = true」的 UI 路径中，「turn 启动到首子节点之间的全空区间」都需类似处理（KG SSE 等待首条进度、Tool Progress 等待 args event 等）。
+
+---
+
+## ISSUE-073 Sidebar 会话切换在生产 build 下 URL 不更新（dev 模式正常）（2026-05-07）
+
+- **表因**：`pnpm -C apps/negentropy-ui build && node scripts/start-production.mjs` 启动的生产模式下，点击 sidebar 中其他会话项，URL 与 main 区都不切换；点 + New 创建新会话后 sidebar 显示新项但 URL 仍指向旧 session。dev 模式（`pnpm dev`）下完全正常。
+- **根因**：尚未确证。可疑点：
+  1. `app/page.tsx::setSessionId` `useCallback([pathname, router, queryString])`，生产 build 下 React 优化路径与 dev 不同，可能让 setter 走向 stale closure；
+  2. `agent` `useMemo([sessionId, user])` 在 sessionId 改变时新建 NdjsonHttpAgent，与 router.replace 同帧 race；
+  3. Next.js 16 turbopack vs webpack 在 prod build 下对 `useSearchParams` Suspense bailout 的处理可能与 dev 有差异。
+- **处理方式**：本 PR 仅记录复现路径，未根因修复。
+- **同类问题影响**：所有依赖 `useSearchParams` 派生 state + `router.replace` 同步的页面（Memory timeline filter、Knowledge corpus filter 等若启用）。
+- **建议下一步**：用 dev mode + `NODE_ENV=production` 的混合 build 复现，必要时把 `setSessionId` 重构为 `startTransition` 包裹，或抽出 `useUrlState` 自定义 hook 集中处理。
+
+---
+
+## ISSUE-074 ConfirmDialog 中英文混用 + MCP 模块标题/按钮重复（2026-05-07）
+
+- **表因**：`/interface/mcp` 删除 server 弹出的 ConfirmDialog 标题为「Delete MCP Server」、按钮为「Delete」（标题与按钮重复，违反 ISSUE-069 规范），全部英文；`/knowledge/catalog` 删除节点弹窗标题中文、按钮中文，但 Cancel 仍英文；`/knowledge/wiki` 取消发布标题/确认按钮中文但 Cancel 英文。
+- **根因**：ISSUE-062 升格 ConfirmDialog 时未为所有调用方建立文案规范。MCP 页面调用方未传 destructive title/confirmLabel 改写；ConfirmDialog 默认 cancelLabel "Cancel" 在中文场景下未本地化。
+- **处理方式**：本 PR 仅记录证据。后续修复方向：
+  1. ConfirmDialog 默认 `cancelLabel` 改为「取消」（中文站默认中文，多语言由 i18n 驱动）；
+  2. MCP 删除调用方传 `title="删除 MCP Server"`、`confirmLabel="删除"`；
+  3. 增 vitest 守卫：`title !== confirmLabel` + `cancelLabel.length > 0`。
+- **同类问题影响**：所有 ConfirmDialog 调用方都需复审文案；建议增加 ESLint 自定义规则在调用 `useConfirmDialog()` 时强制 destructive 时 `title!==confirmLabel`。

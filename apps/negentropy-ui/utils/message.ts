@@ -62,6 +62,45 @@ function findOverlapSuffixPrefix(existing: string, incoming: string): number {
   return 0;
 }
 
+/**
+ * ISSUE-071 根因层补丁：检测 LLM 流式「改写覆盖」场景。
+ *
+ * 实测在中文流式答复中（见 ISSUE-071 验证日志），LLM 会先吐出残缺
+ * 中间态（如「负熵...或入化信息...采选项」），再以一段语义等同但表面
+ * 重排的 final 完整版（「负熵...或引入结构化信息...是否采纳哪个选项？」）
+ * 重发。两者：
+ *
+ * - 互不为前缀（首句中段开始分歧）；
+ * - 末尾/开头无显著 suffix-prefix overlap；
+ *
+ * `findOverlapSuffixPrefix` 因此返回 0，原 `accumulateTextContent` 走到
+ * 兜底分支 `${existing}${incoming}` 直接拼接，UI 渲染就出现 partial+final
+ * 两段并排的可见双内容（chat-display Layer 5/6 仅在多 text segment 之间
+ * 去重，单 segment 内的内容拼接逃逸）。
+ *
+ * 这里加一层「同源改写检测」：当 incoming 长度比 existing 略长（≥ 1.05x），
+ * 且字符 multiset 高度互含（覆盖 ≥ 0.7）+ LCS 比例 ≥ 0.6（同时具备字符与
+ * 顺序相似性），视为 LLM 用 final 改写版重发，丢弃 existing partial 残段
+ * 仅保留 incoming。阈值与 chat-display 第 5/6 层兜底一致，不会误删合法
+ * 「先短后长」的追加场景（追加场景已被前面的 prefix 分支命中）。
+ */
+const REWRITE_DETECTION_MIN_LENGTH = 50;
+const REWRITE_DETECTION_LENGTH_RATIO = 1.05;
+const REWRITE_DETECTION_MULTISET_COVERAGE = 0.7;
+const REWRITE_DETECTION_LCS_RATIO = 0.6;
+
+function isRewriteCoverOfExisting(existing: string, incoming: string): boolean {
+  if (existing.length < REWRITE_DETECTION_MIN_LENGTH) return false;
+  if (incoming.length < existing.length * REWRITE_DETECTION_LENGTH_RATIO) return false;
+  if (multisetCoverage(existing, incoming) < REWRITE_DETECTION_MULTISET_COVERAGE) {
+    return false;
+  }
+  if (longestCommonSubsequenceRatio(existing, incoming) < REWRITE_DETECTION_LCS_RATIO) {
+    return false;
+  }
+  return true;
+}
+
 export function accumulateTextContent(existing: string, incoming: string): string {
   if (!incoming) {
     return existing;
@@ -82,6 +121,10 @@ export function accumulateTextContent(existing: string, incoming: string): strin
   const overlap = findOverlapSuffixPrefix(existing, incoming);
   if (overlap > 0) {
     return `${existing}${incoming.slice(overlap)}`;
+  }
+  // ISSUE-071：LLM 改写覆盖场景，丢弃残缺 existing 用 incoming 替换。
+  if (isRewriteCoverOfExisting(existing, incoming)) {
+    return incoming;
   }
   return `${existing}${incoming}`;
 }

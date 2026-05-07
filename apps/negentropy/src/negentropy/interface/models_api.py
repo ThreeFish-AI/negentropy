@@ -72,6 +72,26 @@ def _model_config_to_dict(mc) -> dict[str, Any]:
     }
 
 
+def _model_config_to_public_dict(mc) -> dict[str, Any]:
+    """ISSUE-066 / ISSUE-071：面向普通用户的精简版 model_config 字典。
+
+    剔除 ``config`` 字段（供应商特定参数，如 temperature / thinking_mode 等
+    管理员视角的可调参数）与时间戳，仅返回 Home 页 LLM 下拉渲染所需的
+    最小元数据。**永远不暴露 API key / 凭据 / endpoint / org id 等敏感信息**
+    （这些字段本身存于独立的 ``VendorConfig`` 表，与 ``model_configs`` 不同
+    出处；此函数留作公开数据的稳定边界，避免后续新增字段意外泄漏）。
+    """
+    return {
+        "id": str(mc.id),
+        "model_type": mc.model_type.value if hasattr(mc.model_type, "value") else str(mc.model_type),
+        "display_name": mc.display_name,
+        "vendor": mc.vendor,
+        "model_name": mc.model_name,
+        "is_default": mc.is_default,
+        "enabled": mc.enabled,
+    }
+
+
 def _validate_model_type(value: str):
     from negentropy.models.model_config import ModelType
 
@@ -256,8 +276,24 @@ async def list_model_configs(
     enabled: bool | None = Query(default=None),
     current_user: AuthUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    """列出 model_configs 表条目。"""
-    current_user = await _require_admin(current_user)
+    """列出 model_configs 表条目。
+
+    ISSUE-066 / ISSUE-071：``enabled=True`` 是普通用户为了在 Home 页 LLM
+    下拉中渲染「自己可用的模型列表」必走的查询路径。原实现一律 403 admin
+    role required，导致 UI 浏览器层留下 console error（``Failed to load
+    resource: 403`` 无法在 JS 静默），且让 dev mode build 出现两次原生错误
+    告警。
+
+    放宽策略：
+    - ``enabled=True`` 的只读列表对登录用户开放（**仅返回 display_name /
+      model_name / vendor / is_default 等 model 元数据，不包含任何 vendor
+      api_key / secret**）；
+    - 其他过滤组合（含 ``enabled=False`` / 不带 ``enabled`` 参数）保留 admin
+      限制（管理员能看到禁用配置和未激活的模型，普通用户不应介入）。
+    """
+    is_user_facing_listing = enabled is True
+    if not is_user_facing_listing:
+        current_user = await _require_admin(current_user)
 
     from negentropy.models.model_config import ModelConfig, ModelType
 
@@ -284,7 +320,8 @@ async def list_model_configs(
             detail=_sanitize_error(f"Failed to list model_configs: {exc}"),
         ) from exc
 
-    items = [_model_config_to_dict(mc) for mc in rows]
+    serializer = _model_config_to_dict if not is_user_facing_listing else _model_config_to_public_dict
+    items = [serializer(mc) for mc in rows]
     _ = ModelType
     return {"items": items, "count": len(items)}
 

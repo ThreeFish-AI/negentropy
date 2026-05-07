@@ -70,12 +70,28 @@ export function AssistantReplyBubble({
 
   // ISSUE-070：检测「等待首个 token」的场景：所有 segments 都没有可见内容时，
   // 渲染三点脉冲动画作为占位，避免 UI 空白。
-  // 「无可见内容」=（无 text segment 或所有 text segment content 为空）且无
-  // tool-group / reasoning（reasoning 自带渲染，有 reasoning 已有反馈）。
+  // ISSUE-071：原实现把 `reasoning` 视为「立即可见」——但 `ne.a2ui.reasoning`
+  // started 事件在流式开始的 100ms 内即下发空 reasoning step（仅 stepId/title），
+  // 此时 reasoning content 还未累积，整个回复气泡仍是空白；占位永远不会渲染。
+  // 重新定义「可见」：
+  // - text：trim 后有内容；
+  // - tool-group：tools 数组非空（tool_call_start 已建立条目）；
+  // - reasoning：phase=finished 或 content/result 已有累积；started 仅有标题不算可见；
+  // - error：任何错误段。
   const hasVisibleSegment = block.segments.some((segment) => {
     if (segment.kind === "text") return segment.content.trim().length > 0;
-    if (segment.kind === "tool-group") return true;
-    if (segment.kind === "reasoning") return true;
+    if (segment.kind === "tool-group") return segment.tools.length > 0;
+    if (segment.kind === "reasoning") {
+      if (segment.phase === "finished") return true;
+      const contentText = (segment.content ?? "").trim();
+      // segment.result 类型为 unknown（来自后端任意 payload）；这里仅判断
+      // 是否有「实际可见反馈」：字符串非空、非 null/undefined 的对象都算可见。
+      const hasResult =
+        segment.result !== null &&
+        segment.result !== undefined &&
+        (typeof segment.result !== "string" || segment.result.trim().length > 0);
+      return contentText.length > 0 || hasResult;
+    }
     if (segment.kind === "error") return true;
     return false;
   });
