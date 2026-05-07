@@ -1505,3 +1505,7 @@
   4. **空状态可见性**：所有「streaming = true」的 UI 路径都必须有等待占位（无内容时不可空白），借鉴本 issue 的 ``data-testid="agent-waiting-placeholder"`` 模式建立断言；
   5. **CUSTOM 事件的语义价值**：``ne.a2ui.thought`` / ``ne.a2ui.reasoning`` 等自定义事件如果在前端被「无差别忽略」就失去了承载价值；新增 CUSTOM 事件时必须明确数据流路径与渲染锚点。
 - **同类问题影响**：所有「streaming + 空 content」的 UI 路径（Tool Progress 等待首条事件、KG SSE 等待首条进度）；所有「LLM 自我修订」可能产生残缺-完整双段的去重场景；所有「时钟漂移」可能导致刷新后乱序的消息列表（Memory timeline、Activity Log、Audit Log）。
+- **2026-05-07 评审回归（同 ISSUE-070 范畴）**：
+  1. **`chat-display` 时钟漂移窗口 1s → 0.2s**：原 1s 容忍窗口配合双向 user 优先，会把「user 提问 → assistant 回复中（≤1s 内）→ user 紧追问」的真实时序误判为漂移，把 assistant 排到 follow-up 之后，错位为「问 → 紧追问 → 答（错位）」。收紧到 0.2s（典型 NTP 时钟漂移 < 100ms 的 2x 守护带）即可保留漂移修正能力，又排除秒级 follow-up 误吞。
+  2. **`longestCommonSubsequenceRatio` 分母语义自洽**：旧实现 reduce() 把超长串截到首尾各 1000（≤2000 字符），但 ratio 分母仍取截断前的 `Math.min(trimA.length, trimB.length)`；当较短串 > ~3077 字符时 lcsLen ≤ 2000 / 分母 > 3077，ratio 上界 < 0.65，第 6 层兜底对长答复永远不触发。改为 `Math.min(sA.length, sB.length)`（与实际参与 LCS 计算的长度一致）保持语义自洽。
+  3. **回归测试覆盖**：新增 3 个用例（chat-display.test.ts × 2 覆盖窗口内漂移修正与窗口外 follow-up 真实时序保留；message.test.ts × 1 覆盖长内容 LCS 兜底仍能 ≥ 0.65）。
