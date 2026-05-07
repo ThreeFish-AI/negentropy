@@ -1182,4 +1182,119 @@ describe("buildChatDisplayBlocks - 时钟漂移窗口（评审回归）", () => 
     expect(idxFirstUser).toBeLessThan(idxAsst);
     expect(idxAsst).toBeLessThan(idxFollowup);
   });
+
+  it("reasoning segment 不再把阶段 summary 当作 content 展示", () => {
+    const stepId = "synth-step:NegentropyEngine:run-1:0";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.STEP_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1001,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.STEP_FINISHED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1002,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "Pong.",
+        timestamp: 1004,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const reasoning = reply.segments.find((segment) => segment.kind === "reasoning");
+      expect(reasoning?.kind).toBe("reasoning");
+      if (reasoning?.kind === "reasoning") {
+        expect(reasoning.content).toBeUndefined();
+      }
+    }
+  });
+
+  it("真实 thought 文本会透传为 reasoning segment content", () => {
+    const stepId = "synth-step:NegentropyEngine:run-1:0";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.CUSTOM,
+        threadId: "thread-1",
+        runId: "run-1",
+        eventType: "ne.a2ui.thought",
+        data: { text: "先判断 ping，再回答 Pong。" },
+        timestamp: 1001,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.STEP_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1002,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        role: "assistant",
+        timestamp: 1003,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "assistant-1",
+        delta: "Pong.",
+        timestamp: 1004,
+      }),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const reply = blocks.find((block) => block.kind === "assistant-reply");
+    expect(reply?.kind).toBe("assistant-reply");
+    if (reply?.kind === "assistant-reply") {
+      const reasoning = reply.segments.find((segment) => segment.kind === "reasoning");
+      expect(reasoning?.kind).toBe("reasoning");
+      if (reasoning?.kind === "reasoning") {
+        expect(reasoning.content).toBe("先判断 ping，再回答 Pong。");
+      }
+    }
+  });
 });

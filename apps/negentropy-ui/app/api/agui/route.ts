@@ -71,6 +71,30 @@ function normalizeEvent(
   );
 }
 
+export function buildStateDeltaFromForwardedProps(
+  forwardedProps: Record<string, unknown> | null,
+): Record<string, unknown> {
+  const stateDelta: Record<string, unknown> = {};
+  if (!forwardedProps) {
+    return stateDelta;
+  }
+  if ("selected_llm_model" in forwardedProps) {
+    const raw = forwardedProps.selected_llm_model;
+    if (typeof raw === "string" && raw.length > 0) {
+      stateDelta.selected_llm_model = raw;
+    } else if (raw === null) {
+      stateDelta.selected_llm_model = null;
+    }
+  }
+  if ("thinking_enabled" in forwardedProps) {
+    const raw = forwardedProps.thinking_enabled;
+    if (typeof raw === "boolean") {
+      stateDelta.thinking_enabled = raw;
+    }
+  }
+  return stateDelta;
+}
+
 export async function POST(request: Request) {
   const baseUrl = getAguiBaseUrl();
 
@@ -122,15 +146,7 @@ export async function POST(request: Request) {
     (body.forwardedProps && typeof body.forwardedProps === "object"
       ? (body.forwardedProps as Record<string, unknown>)
       : null) ?? null;
-  const stateDelta: Record<string, unknown> = {};
-  if (forwardedProps && "selected_llm_model" in forwardedProps) {
-    const raw = forwardedProps.selected_llm_model;
-    if (typeof raw === "string" && raw.length > 0) {
-      stateDelta.selected_llm_model = raw;
-    } else if (raw === null) {
-      stateDelta.selected_llm_model = null;
-    }
-  }
+  const stateDelta = buildStateDeltaFromForwardedProps(forwardedProps);
 
   const headers = extractForwardHeaders(request);
   headers.set("content-type", "application/json");

@@ -13,6 +13,7 @@ type MockAgent = {
   subscribe: ReturnType<typeof vi.fn>;
   addMessage: ReturnType<typeof vi.fn>;
   runAgent: ReturnType<typeof vi.fn>;
+  forwardedProps?: Record<string, unknown>;
 };
 
 type HitlRenderPayload = {
@@ -233,6 +234,24 @@ describe("HomeBody integration", () => {
       },
       { timeout: 3000 },
     );
+  }, 10000);
+
+  it("发送消息时把 Thinking 开关写入 forwardedProps", async () => {
+    const user = userEvent.setup();
+    render(<Wrapper sessionId="s1" />);
+    await waitForInitialHydration();
+
+    await user.click(screen.getByRole("switch", { name: "切换 Thinking 推理增强" }));
+    await user.type(screen.getByPlaceholderText("输入指令..."), "ping");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(mockAgent.runAgent).toHaveBeenCalled();
+    });
+    expect(mockAgent.forwardedProps).toMatchObject({
+      selected_llm_model: null,
+      thinking_enabled: true,
+    });
   }, 10000);
 
   it("历史回拉暂时为空时，实时 assistant 回复不会被清空", async () => {

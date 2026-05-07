@@ -297,14 +297,13 @@ function createReplyReasoningSegment(
 ): ReplyReasoningDisplaySegment {
   // ISSUE-070：reasoning 节点的 payload.content 由 conversation-tree 在处理
   // ne.a2ui.thought / ne.a2ui.reasoning 自定义事件时累积写入，需要透传到
-  // segment 供 ReasoningPanel 展开后渲染。优先级：直接 content > summary。
+  // segment 供 ReasoningPanel 展开后渲染。不能 fallback 到 summary，否则会把
+  // 「阶段完成：步骤 synth-step...」这类生命周期标识伪装成推理内容。
   const rawContent =
     typeof node.payload.content === "string"
       ? String(node.payload.content)
       : "";
-  const fallbackContent =
-    !rawContent.trim() && typeof node.summary === "string" ? node.summary : "";
-  const content = (rawContent || fallbackContent).trim() || undefined;
+  const content = rawContent.trim() || undefined;
   return {
     id: `reply-reasoning:${node.id}`,
     kind: "reasoning",

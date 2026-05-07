@@ -670,6 +670,53 @@ async def _get_vendor_config(vendor: str) -> dict[str, str] | None:
         return None
 
 
+def _supports_anthropic_thinking(vendor: str, model_name: str) -> bool:
+    model_lower = model_name.lower()
+    return vendor == "anthropic" or "claude" in model_lower
+
+
+def _supports_openai_reasoning(vendor: str, model_name: str) -> bool:
+    model_lower = model_name.lower()
+    return vendor == "openai" and (model_lower.startswith("gpt-5") or model_lower[:2] in {"o1", "o3", "o4"})
+
+
+def apply_llm_thinking_override(
+    full_model_name: str,
+    kwargs: dict[str, Any],
+    enabled: bool,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """按模型能力覆盖单轮 Thinking / Reasoning 参数。
+
+    ``enabled`` 来自 Home Composer 的 per-run 开关；它只表示"请求增强推理"，
+    不承诺供应商一定返回可见推理文本。不支持的模型保持 kwargs 原样，避免向
+    上游注入未知参数。
+    """
+    next_kwargs = kwargs.copy()
+    config = config or {}
+    vendor, model_name = _split_vendor_and_model(full_model_name)
+    vendor = vendor or ""
+
+    if _supports_anthropic_thinking(vendor, model_name):
+        if enabled:
+            next_kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": config.get("thinking_budget", 2048),
+            }
+        else:
+            next_kwargs["thinking"] = {"type": "disabled"}
+        return next_kwargs
+
+    if _supports_openai_reasoning(vendor, model_name):
+        if enabled:
+            next_kwargs["reasoning_effort"] = config.get("reasoning_effort", "medium")
+        else:
+            next_kwargs.pop("reasoning_effort", None)
+        return next_kwargs
+
+    return next_kwargs
+
+
 def _build_llm_kwargs(
     vendor: str, model_name: str, config: dict[str, Any], vendor_config: dict[str, str] | None = None
 ) -> dict[str, Any]:
@@ -687,23 +734,15 @@ def _build_llm_kwargs(
     if "top_p" in config:
         kwargs["top_p"] = config["top_p"]
 
-    # 供应商特定的 thinking/reasoning 适配
-    model_lower = model_name.lower()
-
-    if vendor == "anthropic" or "claude" in model_lower:
-        thinking_mode = config.get("thinking_mode", False)
-        if thinking_mode:
-            kwargs["thinking"] = {
-                "type": "enabled",
-                "budget_tokens": config.get("thinking_budget", 2048),
-            }
-        else:
-            kwargs["thinking"] = {"type": "disabled"}
-
-    elif vendor == "openai" and model_lower.startswith(("o1", "o3")):
-        thinking_mode = config.get("thinking_mode", False)
-        if thinking_mode:
-            kwargs["reasoning_effort"] = config.get("reasoning_effort", "medium")
+    # 供应商特定的 thinking/reasoning 适配。DB config 仍是模型配置事实源；
+    # Home 的 per-run 开关会在 DynamicLiteLlm 层覆盖本轮请求，不回写配置。
+    full_model = f"{vendor}/{model_name}" if vendor else model_name
+    kwargs = apply_llm_thinking_override(
+        full_model,
+        kwargs,
+        bool(config.get("thinking_mode", False)),
+        config,
+    )
 
     if "drop_params" in config and "drop_params" not in kwargs:
         kwargs["drop_params"] = config["drop_params"]
@@ -713,7 +752,6 @@ def _build_llm_kwargs(
     effective_api_base = config.get("api_base") or (vendor_config or {}).get("api_base")
     if effective_api_key:
         kwargs["api_key"] = effective_api_key
-    full_model = f"{vendor}/{model_name}" if vendor else model_name
     normalized_api_base = normalize_api_base_for_litellm(full_model, effective_api_base)
     if normalized_api_base:
         kwargs["api_base"] = normalized_api_base

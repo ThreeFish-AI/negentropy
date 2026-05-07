@@ -3,7 +3,7 @@ from google.adk.agents.callback_context import CallbackContext
 from google.adk.models.llm_request import LlmRequest
 
 from ._dynamic_instruction import make_instruction_provider
-from ._dynamic_model import set_selected_root_llm
+from ._dynamic_model import set_root_thinking_enabled, set_selected_root_llm
 from ._model import create_root_model
 from .faculties.action import action_agent
 from .faculties.contemplation import contemplation_agent
@@ -29,9 +29,12 @@ def _pick_root_model(callback_context: CallbackContext, llm_request: LlmRequest)
     try:
         state = callback_context.state
         selected = state.get("selected_llm_model") if state is not None else None
+        thinking_enabled = state.get("thinking_enabled") if state is not None else None
     except Exception:
         selected = None
+        thinking_enabled = None
     set_selected_root_llm(selected if isinstance(selected, str) else None)
+    set_root_thinking_enabled(thinking_enabled if isinstance(thinking_enabled, bool) else None)
 
 
 _ROOT_INSTRUCTION = """

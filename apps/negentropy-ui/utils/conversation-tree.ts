@@ -45,6 +45,13 @@ type LinkInstruction = {
   parentId: string;
 };
 
+type PendingThought = {
+  turnId: string;
+  runId: string;
+  text: string;
+  eventType: string;
+};
+
 const DEFAULT_THREAD_ID = "default";
 const DEFAULT_RUN_ID = "default";
 
@@ -388,6 +395,36 @@ function appendThoughtText(existing: string, incoming: string): string {
   if (a === b || a.includes(b)) return a;
   if (b.includes(a)) return b;
   return `${a}\n\n${b}`;
+}
+
+function appendThoughtToReasoningNode(
+  target: MutableNode,
+  thoughtText: string,
+  eventType: string,
+) {
+  const existing =
+    typeof target.payload.content === "string" ? target.payload.content : "";
+  target.payload.content = appendThoughtText(existing, thoughtText);
+  if (!target.sourceEventTypes.includes(eventType)) {
+    target.sourceEventTypes.push(eventType);
+  }
+}
+
+function flushPendingThoughtsForReasoning(
+  pendingThoughts: PendingThought[],
+  target: MutableNode,
+  turnId: string,
+  runId: string,
+) {
+  for (let i = 0; i < pendingThoughts.length;) {
+    const pending = pendingThoughts[i];
+    if (pending.turnId !== turnId || !isRunCompatible(pending.runId, runId)) {
+      i += 1;
+      continue;
+    }
+    appendThoughtToReasoningNode(target, pending.text, pending.eventType);
+    pendingThoughts.splice(i, 1);
+  }
 }
 
 function findMatchingTextNodeId(
@@ -867,6 +904,7 @@ export function buildConversationTree(
   >();
   const pendingConfirmationCountByRun = new Map<string, number>();
   const pendingLinks: LinkInstruction[] = [];
+  const pendingThoughts: PendingThought[] = [];
   const ledgerByMessageId = new Map<string, MessageLedgerEntry>();
   const canonicalMessageIdByRelatedId = new Map<string, string>();
   let activeRunId: string | undefined;
@@ -1261,7 +1299,7 @@ export function buildConversationTree(
           relatedMessageIds: messageId ? [messageId] : [],
         });
         attachNode(nodeIndex, roots, turns, node.id, baseParentId);
-        upsertNode(nodeIndex, roots, turns, {
+        const reasoningNode = upsertNode(nodeIndex, roots, turns, {
           id: `reasoning:${stepId}`,
           type: "reasoning",
           parentId: node.id,
@@ -1284,7 +1322,13 @@ export function buildConversationTree(
           sourceEventTypes: [eventType],
           relatedMessageIds: messageId ? [messageId] : [],
         });
-        addChild(node, nodeIndex.get(`reasoning:${stepId}`)!);
+        flushPendingThoughtsForReasoning(
+          pendingThoughts,
+          reasoningNode,
+          turn.id,
+          runId,
+        );
+        addChild(node, reasoningNode);
         return;
       }
       case EventType.RAW: {
@@ -1324,6 +1368,32 @@ export function buildConversationTree(
           return;
         }
         if (eventTypeName === "ne.a2ui.reasoning") {
+          const data = asRecord(getCustomEventData(normalizedEvent));
+          const stepId = data && typeof data.stepId === "string" ? data.stepId : "";
+          const target =
+            (stepId ? nodeIndex.get(`reasoning:${stepId}`) : undefined) ||
+            findLatestReasoningNode(turns, turn.id, runId);
+          const content =
+            data && typeof data.content === "string"
+              ? data.content
+              : data && typeof data.text === "string"
+                ? data.text
+                : "";
+          if (content.trim()) {
+            if (target) {
+              appendThoughtToReasoningNode(target, content, eventType);
+            } else {
+              pendingThoughts.push({
+                turnId: turn.id,
+                runId,
+                text: content,
+                eventType,
+              });
+            }
+          }
+          if (target && data && "result" in data) {
+            target.payload.result = data.result;
+          }
           return;
         }
         // ISSUE-070：ne.a2ui.thought 承载 LLM 推理（thinking）的实际文本，需要把
@@ -1337,14 +1407,14 @@ export function buildConversationTree(
           if (thoughtText.trim()) {
             const target = findLatestReasoningNode(turns, turn.id, runId);
             if (target) {
-              const existing =
-                typeof target.payload.content === "string"
-                  ? target.payload.content
-                  : "";
-              target.payload.content = appendThoughtText(existing, thoughtText);
-              if (!target.sourceEventTypes.includes(eventType)) {
-                target.sourceEventTypes.push(eventType);
-              }
+              appendThoughtToReasoningNode(target, thoughtText, eventType);
+            } else {
+              pendingThoughts.push({
+                turnId: turn.id,
+                runId,
+                text: thoughtText,
+                eventType,
+              });
             }
           }
           return;

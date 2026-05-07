@@ -1570,3 +1570,23 @@
   2. MCP 删除调用方传 `title="删除 MCP Server"`、`confirmLabel="删除"`；
   3. 增 vitest 守卫：`title !== confirmLabel` + `cancelLabel.length > 0`。
 - **同类问题影响**：所有 ConfirmDialog 调用方都需复审文案；建议增加 ESLint 自定义规则在调用 `useConfirmDialog()` 时强制 destructive 时 `title!==confirmLabel`。
+
+---
+
+## ISSUE-075 Thinking 开关缺失 + 推理面板误展示阶段标识（2026-05-07）
+
+- **表因**：Home 对话推理面板展开后出现「阶段完成：步骤 synth-step:...」等生命周期标识，而不是模型推理过程中产生的真实内容；同时用户无法在输入区显式请求开启模型 Thinking / Reasoning 能力。
+- **根因**：
+  1. [`Composer`](../apps/negentropy-ui/components/ui/Composer.tsx) 仅提供模型选择和附件入口，没有 per-session Thinking 控制；[`app/api/agui/route.ts`](../apps/negentropy-ui/app/api/agui/route.ts) 也只把 `selected_llm_model` 写入 `state_delta`。
+  2. 后端 [`model_resolver`](../apps/negentropy/src/negentropy/config/model_resolver.py) 只对 Claude/Anthropic 与 OpenAI `o1/o3` 做 thinking/reasoning 参数映射，漏掉默认 `openai/gpt-5-mini` 这类 GPT-5 reasoning 模型。
+  3. [`chat-display`](../apps/negentropy-ui/utils/chat-display.ts) 把 reasoning 节点的 `summary` fallback 成 `content`，导致「阶段完成」这类生命周期摘要被误当作推理正文渲染。
+  4. [`conversation-tree`](../apps/negentropy-ui/utils/conversation-tree.ts) 遇到 `ne.a2ui.thought` 早于 reasoning 节点创建时会直接丢弃真实 thought 文本。
+- **处理方式**：
+  1. Composer 输入区底部新增二态 `Thinking` switch，按 session localStorage 持久化；发送时透传 `forwardedProps.thinking_enabled`，Next AG-UI route 写入 `state_delta.thinking_enabled`。
+  2. Root/SubAgent 动态 LiteLLM 在单轮请求中读取 ContextVar，并通过 `apply_llm_thinking_override()` 按模型能力覆盖参数：Claude 写 `thinking`，OpenAI GPT-5/o 系列写 `reasoning_effort`，其它模型保持 kwargs 原样。
+  3. 移除 `summary -> content` fallback；`ne.a2ui.thought` / 携带文本的 `ne.a2ui.reasoning` 若早于 reasoning 节点到达，先进入 pending buffer，节点创建后再合并进 `payload.content`。
+  4. 增加前后端单测覆盖 Thinking toggle、state_delta 透传、GPT-5 reasoning 参数映射、真实 thought 透传与阶段伪内容不渲染。
+- **后续防范**：
+  1. UI 只展示真实可观测推理文本或结构化 result，严禁把 lifecycle summary 当作推理正文；
+  2. 新增模型族时必须同步维护 Thinking 能力映射，并用单测锁定「支持时注入 / 不支持时不注入」；
+  3. CUSTOM 事件如果承载业务语义，必须具备「早到缓冲」策略，避免同 timestamp 排序或流式抖动造成信息丢失。

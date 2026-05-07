@@ -24,6 +24,7 @@ from typing import Any
 from google.adk.models.lite_llm import LiteLlm
 
 from negentropy.config.model_resolver import (
+    apply_llm_thinking_override,
     resolve_llm_config,
     resolve_llm_config_by_model_name,
     resolve_subagent_model_name,
@@ -35,6 +36,7 @@ _logger = get_logger("negentropy.agents.dynamic_model")
 # ContextVar：当前请求链路中 root Agent 期望使用的模型 ID（`vendor/model_name`）。
 # 来源：root_agent.before_model_callback 从 callback_context.state 读取并置入。
 _selected_root_llm: ContextVar[str | None] = ContextVar("selected_root_llm", default=None)
+_root_thinking_enabled: ContextVar[bool | None] = ContextVar("root_thinking_enabled", default=None)
 
 
 def set_selected_root_llm(value: str | None) -> None:
@@ -45,6 +47,16 @@ def set_selected_root_llm(value: str | None) -> None:
 def get_selected_root_llm() -> str | None:
     """读取当前 ContextVar；主要供调试/单测使用。"""
     return _selected_root_llm.get()
+
+
+def set_root_thinking_enabled(value: bool | None) -> None:
+    """设置 Home Composer 的 Thinking 开关；None 表示沿用模型配置。"""
+    _root_thinking_enabled.set(value if isinstance(value, bool) else None)
+
+
+def get_root_thinking_enabled() -> bool | None:
+    """读取当前 Thinking override；主要供调试/单测使用。"""
+    return _root_thinking_enabled.get()
 
 
 class _DynamicLiteLlm(LiteLlm):
@@ -78,6 +90,13 @@ class _DynamicLiteLlm(LiteLlm):
             async for resp in super().generate_content_async(llm_request, stream=stream):
                 yield resp
             return
+        thinking_enabled = _root_thinking_enabled.get()
+        if thinking_enabled is not None:
+            new_kwargs = apply_llm_thinking_override(
+                new_model,
+                new_kwargs,
+                thinking_enabled,
+            )
 
         lock = self._get_swap_lock()
         orig_model = self.model
