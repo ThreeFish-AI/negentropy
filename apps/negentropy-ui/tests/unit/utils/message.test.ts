@@ -10,6 +10,7 @@ import {
   mapMessagesToChat,
   buildChatMessagesFromEventsWithFallback,
   longestCommonSubsequenceRatio,
+  accumulateTextContent,
 } from "@/utils/message";
 import type { ChatMessage } from "@/types/common";
 import {
@@ -303,5 +304,46 @@ describe("longestCommonSubsequenceRatio (ISSUE-070 LCS 兜底)", () => {
     const later = `${base}<additional tail content for length differentiation>`;
     const ratio = longestCommonSubsequenceRatio(earlier, later);
     expect(ratio).toBeGreaterThanOrEqual(0.65);
+  });
+});
+
+describe("accumulateTextContent (ISSUE-071 改写覆盖检测)", () => {
+  it("追加场景：incoming 是 existing 的延续 → 拼接", () => {
+    expect(accumulateTextContent("Hello ", "Hello world")).toBe("Hello world");
+    expect(accumulateTextContent("Hello", " world")).toBe("Hello world");
+  });
+
+  it("严格前缀场景：existing 是 incoming 前缀 → 用 incoming 替换", () => {
+    expect(accumulateTextContent("Hello", "Hello world!")).toBe("Hello world!");
+  });
+
+  it("空内容：existing 空 → incoming；incoming 空 → existing", () => {
+    expect(accumulateTextContent("", "abc")).toBe("abc");
+    expect(accumulateTextContent("abc", "")).toBe("abc");
+  });
+
+  it("ISSUE-071 根因：partial 残缺中文段 + final 完整改写版 → 仅保留 final（避免 UI 双内容）", () => {
+    // 来自 verify-log-2026-05-07.md 实测复现
+    const partial =
+      "负熵（negentropy）是指系统通过输入能量或入化信息来抵抗熵增，从而降低无序度增加序性信息量的量度。\n\n完成：了一句概念定义。可能的续：举（热学/信息/生物学数学述通。建议下一：一个——A 给通化子比，B) 提供信息论/数学定义与公式或 (C)集学术资料与引用我将此相流程。采选项";
+    const final =
+      "负熵（negentropy）是指系统通过输入能量或引入结构化信息来抵抗熵增，从而降低无序度、增加有序性或信息含量的量度。\n\n已完成：提供了一句概念性定义。\n可能的后续需求：需要举例（热力学/信息论/生物学）、数学表述或通俗解释。\n建议下一步：请选择一个方向——(A) 给出通俗化例子与比喻，(B) 提供信息论/数学定义与公式，或 (C) 搜集学术资料与引用；我将据此执行相应流程。是否采纳哪个选项？";
+    const merged = accumulateTextContent(partial, final);
+    expect(merged).toBe(final);
+    expect(merged).not.toContain("入化信息");
+    expect(merged).not.toContain("采选项");
+  });
+
+  it("不误删合法的「先短简介 + 后扩展」场景：当字符 multiset 覆盖不足 0.7 时拼接保留", () => {
+    // 短介绍 + 完全不相关的扩展段，multiset coverage 应该非常低
+    const intro = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    const expansion = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+    const merged = accumulateTextContent(intro, expansion);
+    expect(merged).toBe(`${intro}${expansion}`);
+  });
+
+  it("短文本（< 50 字符）跳过改写检测，走原拼接逻辑", () => {
+    // 改写检测最小长度 50，短文本不进入改写覆盖路径
+    expect(accumulateTextContent("hi", "好")).toBe("hi好");
   });
 });
