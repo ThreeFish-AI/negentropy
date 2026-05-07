@@ -9,6 +9,7 @@ import {
   mergeAdjacentAssistant,
   mapMessagesToChat,
   buildChatMessagesFromEventsWithFallback,
+  longestCommonSubsequenceRatio,
 } from "@/utils/message";
 import type { ChatMessage } from "@/types/common";
 import {
@@ -258,5 +259,38 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
     // 结果应该包含内容
     expect(result[0].id).toBe("msg1");
     expect(result[0].content).toBe("Hello");
+  });
+});
+
+describe("longestCommonSubsequenceRatio (ISSUE-070 LCS 兜底)", () => {
+  it("完全相同的字符串 → 1.0", () => {
+    expect(longestCommonSubsequenceRatio("hello world", "hello world")).toBe(1);
+  });
+
+  it("空串 → 0", () => {
+    expect(longestCommonSubsequenceRatio("", "abc")).toBe(0);
+    expect(longestCommonSubsequenceRatio("abc", "")).toBe(0);
+  });
+
+  it("一方是另一方的前缀 → 接近 1.0", () => {
+    const ratio = longestCommonSubsequenceRatio("Pong!", "Pong! Next options");
+    expect(ratio).toBeCloseTo(1, 5);
+  });
+
+  it("同源不同表面（图 1 partial 残缺版 vs final 完整版）→ ≥ 0.65", () => {
+    const partial = "Pong. Summary done- ong toPing Possible needs concrete ping";
+    const final =
+      "Pong. Summary — done: Replied Pong to your Ping. Next options Continue ping pong exchanges.";
+    const ratio = longestCommonSubsequenceRatio(partial, final);
+    // 残缺版字符在 final 中按顺序广泛出现，应当 ≥ 0.65 命中第 6 层兜底
+    expect(ratio).toBeGreaterThanOrEqual(0.65);
+  });
+
+  it("两段完全不相关的内容 → 显著低于 0.65", () => {
+    const ratio = longestCommonSubsequenceRatio(
+      "今日天气晴朗适合出行散步看看花草",
+      "我喜欢吃苹果香蕉葡萄这些水果都很甜",
+    );
+    expect(ratio).toBeLessThan(0.5);
   });
 });

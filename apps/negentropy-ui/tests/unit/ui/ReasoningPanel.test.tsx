@@ -117,4 +117,52 @@ describe("ReasoningPanel", () => {
     fireEvent.click(button);
     expect(button).toHaveAttribute("aria-expanded", "true");
   });
+
+  it("ISSUE-070：展开后渲染推理 content（不再只有标题）", () => {
+    render(
+      <ReasoningPanel
+        steps={[
+          {
+            ...step("a", "s1", "finished"),
+            content: "这是一段实际的推理过程文本，从 ne.a2ui.thought 注入。",
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    const stepEl = screen.getByTestId("reasoning-step");
+    expect(stepEl.getAttribute("data-has-detail")).toBe("true");
+    expect(screen.getByTestId("reasoning-step-content")).toBeInTheDocument();
+    expect(screen.getByTestId("reasoning-step-content").textContent).toContain(
+      "这是一段实际的推理过程文本",
+    );
+  });
+
+  it("ISSUE-070：result 字段也会作为 pre 渲染", () => {
+    render(
+      <ReasoningPanel
+        steps={[
+          {
+            ...step("a", "s1", "finished"),
+            result: { final: "完成", count: 3 },
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    const resultEl = screen.getByTestId("reasoning-step-result");
+    expect(resultEl).toBeInTheDocument();
+    expect(resultEl.textContent).toContain("final");
+    expect(resultEl.textContent).toContain("完成");
+  });
+
+  it("ISSUE-070：mergeSteps 在 started→finished 时合并两侧的 content", () => {
+    const out = mergeSteps([
+      { id: "a", stepId: "s1", phase: "started", title: "X", content: "early thought" },
+      { id: "b", stepId: "s1", phase: "finished", title: "X", content: "final thought" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].phase).toBe("finished");
+    expect(out[0].content).toBe("early thought\n\nfinal thought");
+  });
 });

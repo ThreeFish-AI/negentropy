@@ -32,6 +32,7 @@ import {
   accumulateTextContent,
   bigramJaccardSimilarity,
   isEquivalentMessageContent,
+  multisetCoverage,
   normalizeMessageContent,
 } from "@/utils/message";
 import { isNonCriticalError } from "@/utils/error-filter";
@@ -348,6 +349,47 @@ function getMessageTimestamp(message: Message): number {
   return createdAt instanceof Date ? createdAt.getTime() / 1000 : Date.now() / 1000;
 }
 
+/**
+ * ISSUE-070：在指定 turn 子树中找到最近的 reasoning 节点。
+ *
+ * 选择规则（自上而下）：
+ *   1. 同 runId 下最近的 reasoning 节点（按 sourceOrder 倒序，取最近一条）；
+ *   2. 同 turn 下任意 reasoning 节点（兼容 runId 漂移）；
+ *   3. 都没有则返回 null（thought 文本会被丢弃，避免污染 turn 顶层）。
+ *
+ * 不递归遍历 nodeIndex 全表（O(N)），仅遍历 turn.children → step → reasoning
+ * 这条已知层级（O(K)，K 通常 < 50）。
+ */
+function findLatestReasoningNode(
+  turns: Map<string, MutableNode>,
+  turnId: string,
+  runId: string,
+): MutableNode | null {
+  const turn = turns.get(turnId);
+  if (!turn) return null;
+  const candidates: MutableNode[] = [];
+  const visit = (node: MutableNode) => {
+    if (node.type === "reasoning" && (!runId || !node.runId || node.runId === runId)) {
+      candidates.push(node);
+    }
+    for (const child of node.children) visit(child);
+  };
+  visit(turn);
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.sourceOrder - a.sourceOrder);
+  return candidates[0];
+}
+
+function appendThoughtText(existing: string, incoming: string): string {
+  const a = existing.trim();
+  const b = incoming.trim();
+  if (!a) return b;
+  if (!b) return a;
+  if (a === b || a.includes(b)) return a;
+  if (b.includes(a)) return b;
+  return `${a}\n\n${b}`;
+}
+
 function findMatchingTextNodeId(
   nodeIndex: Map<string, MutableNode>,
   input: {
@@ -371,16 +413,37 @@ function findMatchingTextNodeId(
       continue;
     }
     if (node.payload.streaming !== true) {
-      // 防御性收敛：当 hydrated TEXT_MESSAGE_* 因 messageId 不同而到达此处，
-      // 而 realtime 节点已收尾，且二者内容严格相等时，仍允许复用同一节点，
-      // 避免在已 closed 的同内容节点旁新建第二个节点。仅对 assistant 路径
-      // 放宽，user 仍要求节点处于流式态以避免误并历史用户消息。
+      // ISSUE-070 / ISSUE-058 加强：当 hydrated TEXT_MESSAGE_* 因 messageId 不同
+      // 而到达此处、而 realtime 节点已收尾时，允许如下三种次级匹配以避免在已
+      // closed 的同源节点旁新建第二个独立 text node（→ 渲染双内容）：
+      //   M1 — 内容严格相等（旧实现，最严）；
+      //   M2 — 一方是另一方的严格前缀（流式累积版 vs 完整最终版）；
+      //   M3 — multiset 覆盖率 ≥ 0.75（同源但表面字符存在重排/补齐差异）。
+      // 仅对 assistant 路径放宽；user 仍要求节点处于流式态以避免误并历史用户消息。
       const existingContent = String(node.payload.content || "").trim();
-      if (
-        input.role !== "assistant" ||
-        !existingContent ||
-        existingContent !== normalizedContent
-      ) {
+      if (input.role !== "assistant" || !existingContent) {
+        continue;
+      }
+      const equal = existingContent === normalizedContent;
+      const prefix =
+        existingContent.startsWith(normalizedContent) ||
+        normalizedContent.startsWith(existingContent);
+      let multisetMatch = false;
+      if (!equal && !prefix) {
+        const shorter =
+          existingContent.length <= normalizedContent.length
+            ? existingContent
+            : normalizedContent;
+        const longer = shorter === existingContent ? normalizedContent : existingContent;
+        if (
+          shorter.length >= 12 &&
+          longer.length >= shorter.length * 1.05 &&
+          multisetCoverage(shorter, longer) >= 0.75
+        ) {
+          multisetMatch = true;
+        }
+      }
+      if (!equal && !prefix && !multisetMatch) {
         continue;
       }
     }
@@ -521,6 +584,22 @@ function sortNodeChildren(node: MutableNode) {
     const timeDiff = a.timeRange.start - b.timeRange.start;
     if (timeDiff !== 0) {
       return timeDiff;
+    }
+    // ISSUE-070：同时间戳时，按节点 role 排序 —— text:user 必排在 text:assistant 之前，
+    // 避免刷新后用户消息漂移到 assistant 回复之后的乱序（时钟漂移导致毫秒级抖动）。
+    const roleA = a.role || "";
+    const roleB = b.role || "";
+    if (roleA !== roleB) {
+      const roleOrder: Record<string, number> = {
+        user: 0,
+        system: 1,
+        developer: 2,
+        assistant: 3,
+        tool: 4,
+      };
+      const ra = roleOrder[roleA] ?? 50;
+      const rb = roleOrder[roleB] ?? 50;
+      if (ra !== rb) return ra - rb;
     }
     const sourceOrderDiff = a.sourceOrder - b.sourceOrder;
     if (sourceOrderDiff !== 0) {
@@ -1245,6 +1324,29 @@ export function buildConversationTree(
           return;
         }
         if (eventTypeName === "ne.a2ui.reasoning") {
+          return;
+        }
+        // ISSUE-070：ne.a2ui.thought 承载 LLM 推理（thinking）的实际文本，需要把
+        // text 注入到当前 turn 内最近的 reasoning 节点 payload.content，以便
+        // ReasoningPanel 展开时显示推理过程；否则用户展开后只能看到「思考完成·
+        // 推理阶段」标签而看不到推理内容（图 3）。
+        if (eventTypeName === "ne.a2ui.thought") {
+          const data = asRecord(getCustomEventData(normalizedEvent));
+          const thoughtText =
+            data && typeof data.text === "string" ? data.text : "";
+          if (thoughtText.trim()) {
+            const target = findLatestReasoningNode(turns, turn.id, runId);
+            if (target) {
+              const existing =
+                typeof target.payload.content === "string"
+                  ? target.payload.content
+                  : "";
+              target.payload.content = appendThoughtText(existing, thoughtText);
+              if (!target.sourceEventTypes.includes(eventType)) {
+                target.sourceEventTypes.push(eventType);
+              }
+            }
+          }
           return;
         }
         const node = upsertNode(nodeIndex, roots, turns, {
