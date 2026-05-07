@@ -293,4 +293,15 @@ describe("longestCommonSubsequenceRatio (ISSUE-070 LCS 兜底)", () => {
     );
     expect(ratio).toBeLessThan(0.5);
   });
+
+  it("长内容（>2000 字）且高度同源时仍能 ≥ 0.65（评审：分母用截断后长度）", () => {
+    // 评审 #2：截断到首尾各 1000 后 lcsLen ≤ 2000；旧实现用「截断前长度」做
+    // 分母，对 ≥ 3077 字的同源内容上界 < 0.65，第 6 层 LCS 兜底永远不触发。
+    // 现在分母改为「实际参与 LCS 计算的较短串长度」（截断后），保持语义自洽。
+    const base = "abcdefghij".repeat(400); // 4000 chars
+    const earlier = base; // 4000
+    const later = `${base}<additional tail content for length differentiation>`;
+    const ratio = longestCommonSubsequenceRatio(earlier, later);
+    expect(ratio).toBeGreaterThanOrEqual(0.65);
+  });
 });

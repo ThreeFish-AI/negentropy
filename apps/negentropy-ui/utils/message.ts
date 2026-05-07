@@ -298,6 +298,10 @@ export function multisetCoverage(shorter: string, longer: string): number {
  * 复杂度 O(m*n)。为防长内容（>2000 字）退化，超长输入会先各取首尾 1000 字
  * 拼接后再比较——这种长度的 LLM 答复实际由前后段 token 主导，截断后仍能稳
  * 定区分「同源 vs 异源」。
+ *
+ * 注：分母取「实际参与 LCS 计算的较短串长度」（reduce 后），而非原串长度。
+ * 否则当较短串 > ~3077 字符时 lcsLen ≤ 2000 而分母 > 3077，ratio 上界 < 0.65，
+ * 第 6 层 LCS 兜底对长答复永远不触发——与「截断后仍稳定区分」的设计相悖。
  */
 export function longestCommonSubsequenceRatio(a: string, b: string): number {
   const trimA = a.trim();
@@ -329,8 +333,8 @@ export function longestCommonSubsequenceRatio(a: string, b: string): number {
     curr.fill(0);
   }
   const lcsLen = prev[sLen];
-  const shorterTrueLen = Math.min(trimA.length, trimB.length);
-  return shorterTrueLen === 0 ? 0 : lcsLen / shorterTrueLen;
+  const shorterReducedLen = Math.min(sA.length, sB.length);
+  return shorterReducedLen === 0 ? 0 : lcsLen / shorterReducedLen;
 }
 
 export function bigramJaccardSimilarity(a: string, b: string): number {

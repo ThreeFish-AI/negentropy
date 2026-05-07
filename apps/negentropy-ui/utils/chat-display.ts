@@ -968,10 +968,14 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
     blocks.push(createSummaryBlock(root));
   });
 
-  // ISSUE-070：在毫秒级时钟漂移容忍窗口（1 秒）内，把 user message 排在
-  // assistant-reply / tool-group 之前。只在差距很小时启用业务优先级，避免
-  // 把跨 turn 的真实时序颠倒。
-  const CLOCK_DRIFT_TOLERANCE_S = 1;
+  // ISSUE-070：在毫秒级时钟漂移容忍窗口内，把 user message 排在 assistant
+  // 输出（assistant-reply / tool-group）之前。窗口收紧到 0.2s 以避免误吞
+  // 「秒级 follow-up」——客户端/服务端时钟漂移在 NTP 同步下典型 < 100ms，
+  // 0.2s 既足够覆盖正常抖动，也排除「用户在 Agent 回复未完成时（≤1s）紧追
+  // 问一条 follow-up」被误判为漂移、被反向插到 assistant 之前的回归
+  // （旧 1s 窗口下 t_assistant=0.5 与 t_followup=0.7 双双落入窗口，
+  // assistant 会被排到 follow-up 之后，造成「问→追问→答」乱序）。
+  const CLOCK_DRIFT_TOLERANCE_S = 0.2;
   const isUserMessageBlock = (block: ChatDisplayBlock): boolean => {
     if (block.kind !== "message") return false;
     return block.message.role === "user";

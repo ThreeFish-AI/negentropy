@@ -1027,3 +1027,159 @@ describe("isStreamingDuplicateOfAggregate (ISSUE-065 Layer 6 兜底)", () => {
     ).toBe(false);
   });
 });
+
+// =============================================================================
+// ISSUE-070 评审回归：时钟漂移容忍窗口收紧 + 仅修「漂移」不动「客观 follow-up」
+// =============================================================================
+
+describe("buildChatDisplayBlocks - 时钟漂移窗口（评审回归）", () => {
+  it("窗口内 user.timestamp 略晚于 assistant（漂移）：user 仍排到 assistant 之前", () => {
+    // 模拟原 ISSUE-070 漂移场景：user 时间戳因 client/server 时钟差比 assistant
+    // 晚 0.05s（窗口 0.2s 内），新策略仍把 user 提前。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        role: "assistant",
+        timestamp: 1000.5, // 服务端时钟
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        delta: "你好",
+        timestamp: 1000.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        role: "user",
+        timestamp: 1000.55, // 客户端时钟，比 assistant 晚 50ms
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        delta: "提问",
+        timestamp: 1000.55,
+      }),
+    ];
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    const order = blocks
+      .filter(
+        (b) =>
+          (b.kind === "message" && b.message.role === "user") ||
+          b.kind === "assistant-reply",
+      )
+      .map((b) =>
+        b.kind === "message" ? `user:${b.message.id}` : `asst:${b.kind}`,
+      );
+    // user 漂在 assistant 之后但仍应排在前
+    expect(order[0]?.startsWith("user:")).toBe(true);
+    expect(order[order.length - 1]?.startsWith("asst:")).toBe(true);
+  });
+
+  it("窗口外（≥0.2s）user follow-up：保持真实时序，不被反插到 assistant 之前", () => {
+    // 关键回归：用户在 assistant 回复中（0.7s 后）紧追问 follow-up，
+    // 旧 1s 窗口会把 follow-up 排到 assistant-reply 之前。
+    // 新 0.2s 窗口下：assistant-reply 与 follow-up 时差 0.7s 超出窗口，
+    // 走真实时序排序：user → assistant-reply → user-followup。
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        role: "user",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "user-1",
+        delta: "首条提问",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        role: "assistant",
+        timestamp: 1000.5,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        delta: "正在回答",
+        timestamp: 1000.5,
+      }),
+      // user 在 assistant 还在流式回复时（0.7s 后）紧追一条 follow-up
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-2",
+        timestamp: 1001.2,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "thread-1",
+        runId: "run-2",
+        messageId: "user-2",
+        role: "user",
+        timestamp: 1001.2,
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "thread-1",
+        runId: "run-2",
+        messageId: "user-2",
+        delta: "紧追问",
+        timestamp: 1001.2,
+      }),
+    ];
+    const tree = buildConversationTree({ events });
+    const blocks = buildChatDisplayBlocks(tree);
+    // 抽取 user 与 assistant-reply 的相对顺序
+    const sequence = blocks
+      .filter(
+        (b) =>
+          (b.kind === "message" && b.message.role === "user") ||
+          b.kind === "assistant-reply",
+      )
+      .map((b) =>
+        b.kind === "message" ? `user:${b.message.id}` : "asst-reply",
+      );
+    // 期望：user-1, asst-reply, user-2（绝不是 user-1, user-2, asst-reply）
+    const idxFirstUser = sequence.findIndex((s) => s === "user:user-1");
+    const idxAsst = sequence.findIndex((s) => s === "asst-reply");
+    const idxFollowup = sequence.findIndex((s) => s === "user:user-2");
+    expect(idxFirstUser).toBeGreaterThanOrEqual(0);
+    expect(idxAsst).toBeGreaterThanOrEqual(0);
+    expect(idxFollowup).toBeGreaterThanOrEqual(0);
+    expect(idxFirstUser).toBeLessThan(idxAsst);
+    expect(idxAsst).toBeLessThan(idxFollowup);
+  });
+});
