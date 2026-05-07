@@ -1161,4 +1161,78 @@ describe("buildConversationTree", () => {
       expect(turnRoots).toHaveLength(2);
     });
   });
+
+  it("ne.a2ui.thought 早于 reasoning 节点到达时会缓冲并注入真实推理内容", () => {
+    const stepId = "synth-step:NegentropyEngine:run-1:0";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.CUSTOM,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1001,
+        eventType: "ne.a2ui.thought",
+        data: { text: "先判断 ping 的语义，再输出 pong。" },
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.STEP_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1002,
+      } as AgUiEvent),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const reasoning = tree.nodeIndex.get(`reasoning:${stepId}`);
+    expect(reasoning?.payload.content).toBe("先判断 ping 的语义，再输出 pong。");
+  });
+
+  it("ne.a2ui.reasoning 仅在携带 content/text 时注入内容", () => {
+    const stepId = "step-with-custom-reasoning";
+    const events: AgUiEvent[] = [
+      createTestEvent({
+        type: EventType.RUN_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1000,
+      }),
+      createTestEvent({
+        type: EventType.STEP_STARTED,
+        threadId: "thread-1",
+        runId: "run-1",
+        messageId: "step-1",
+        stepId,
+        stepName: "NegentropyEngine",
+        timestamp: 1001,
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.CUSTOM,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1002,
+        eventType: "ne.a2ui.reasoning",
+        data: { stepId, phase: "started" },
+      } as AgUiEvent),
+      createTestEvent({
+        type: EventType.CUSTOM,
+        threadId: "thread-1",
+        runId: "run-1",
+        timestamp: 1003,
+        eventType: "ne.a2ui.reasoning",
+        data: { stepId, content: "真实 reasoning 摘要" },
+      } as AgUiEvent),
+    ];
+
+    const tree = buildConversationTree({ events });
+    const reasoning = tree.nodeIndex.get(`reasoning:${stepId}`);
+    expect(reasoning?.payload.content).toBe("真实 reasoning 摘要");
+  });
 });

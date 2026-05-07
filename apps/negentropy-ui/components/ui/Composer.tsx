@@ -15,6 +15,9 @@ type ComposerProps = {
   models?: ModelConfigItem[];
   selectedLlmModel?: string | null;
   onSelectedLlmModelChange?: (value: string | null) => void;
+  thinkingEnabled?: boolean;
+  thinkingSupported?: boolean;
+  onThinkingEnabledChange?: (value: boolean) => void;
   /**
    * 中断门 — 当 isGenerating=true 时，主按钮切换为 Stop；点击触发本回调。
    * 复用 NdjsonHttpAgent.abortRun()（最小干预，不引入新协议事件）。
@@ -50,6 +53,9 @@ export function Composer({
   models,
   selectedLlmModel,
   onSelectedLlmModelChange,
+  thinkingEnabled = false,
+  thinkingSupported = true,
+  onThinkingEnabledChange,
   onCancel,
   attachments,
   onAttachmentsChange,
@@ -57,6 +63,7 @@ export function Composer({
   attachmentAccept = DEFAULT_ATTACHMENT_ACCEPT,
 }: ComposerProps) {
   const showModelSelect = Boolean(models && onSelectedLlmModelChange);
+  const showThinkingToggle = Boolean(onThinkingEnabledChange);
   const showAttachments = Boolean(onAttachmentsChange);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -173,6 +180,44 @@ export function Composer({
               allowClear
               ariaLabel="选择主 Agent 使用的 LLM"
             />
+          )}
+          {showThinkingToggle && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={thinkingSupported && thinkingEnabled}
+              aria-label={
+                thinkingSupported
+                  ? "切换 Thinking 推理增强"
+                  : "当前模型不支持 Thinking 推理增强"
+              }
+              title={
+                thinkingSupported
+                  ? "Thinking：请求模型启用更强推理"
+                  : "当前模型未声明支持 Thinking"
+              }
+              data-testid="composer-thinking-toggle"
+              disabled={!thinkingSupported || (disabled && !isGenerating)}
+              onClick={() => {
+                if (!thinkingSupported) return;
+                onThinkingEnabledChange?.(!thinkingEnabled);
+              }}
+              className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2 text-xs font-medium transition-colors ${
+                thinkingSupported && thinkingEnabled
+                  ? "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+                  : "border-border bg-input text-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 rounded-full ${
+                  thinkingSupported && thinkingEnabled
+                    ? "bg-amber-500"
+                    : "bg-zinc-400 dark:bg-zinc-600"
+                }`}
+              />
+              Thinking
+            </button>
           )}
           {showAttachments && (
             <>

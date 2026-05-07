@@ -51,6 +51,7 @@ export const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
  *   一方有值即可命中），不引入新的后端 API 表面。
  */
 const LOCAL_LLM_MODEL_KEY_PREFIX = "negentropy:home:llm-model:";
+const LOCAL_THINKING_KEY_PREFIX = "negentropy:home:thinking:";
 
 function readPersistedLlmModel(sessionId: string | null): string | null {
   if (!sessionId || typeof window === "undefined") return null;
@@ -79,6 +80,81 @@ function writePersistedLlmModel(
   } catch {
     // localStorage 不可用时静默降级到内存态。
   }
+}
+
+function readPersistedThinking(sessionId: string | null): boolean | null {
+  if (!sessionId || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(
+      `${LOCAL_THINKING_KEY_PREFIX}${sessionId}`,
+    );
+    if (raw === "1") return true;
+    if (raw === "0") return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedThinking(
+  sessionId: string | null,
+  value: boolean,
+): void {
+  if (!sessionId || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      `${LOCAL_THINKING_KEY_PREFIX}${sessionId}`,
+      value ? "1" : "0",
+    );
+  } catch {
+    // localStorage 不可用时静默降级到内存态。
+  }
+}
+
+function splitModelName(fullModelName: string | null): {
+  vendor: string;
+  modelName: string;
+} | null {
+  if (!fullModelName) return null;
+  const slashIndex = fullModelName.indexOf("/");
+  if (slashIndex < 0) {
+    return { vendor: "", modelName: fullModelName };
+  }
+  return {
+    vendor: fullModelName.slice(0, slashIndex),
+    modelName: fullModelName.slice(slashIndex + 1),
+  };
+}
+
+function modelSupportsThinking(vendor: string, modelName: string): boolean {
+  const normalizedVendor = vendor.toLowerCase();
+  const normalizedModel = modelName.toLowerCase();
+  if (normalizedVendor === "anthropic" || normalizedModel.includes("claude")) {
+    return true;
+  }
+  if (normalizedVendor === "openai") {
+    return normalizedModel.startsWith("gpt-5") || /^o[1-9]/.test(normalizedModel);
+  }
+  return false;
+}
+
+function isThinkingSupportedForSelection(
+  selectedModel: string | null,
+  models: ModelConfigItem[],
+): boolean {
+  if (!selectedModel) {
+    // Default 模型由后端单一事实源解析；当前 fallback 为 GPT-5 系列，前端保持可切换。
+    return true;
+  }
+  const known = models.find(
+    (item) => `${item.vendor}/${item.model_name}` === selectedModel,
+  );
+  if (known) {
+    return modelSupportsThinking(known.vendor, known.model_name);
+  }
+  const parsed = splitModelName(selectedModel);
+  if (!parsed) return false;
+  return modelSupportsThinking(parsed.vendor, parsed.modelName);
 }
 
 /** Agent 类型：兼容 NdjsonHttpAgent 与测试 Mock */
@@ -133,16 +209,20 @@ export function HomeBody({
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [selectedLlmModel, setSelectedLlmModel] = useState<string | null>(null);
+  const [thinkingEnabled, setThinkingEnabled] = useState(false);
   // 中断门 — 用户主动 cancel 后短暂屏蔽 onRunFailed/onRunErrorEvent 引发的 error 状态，
   // 避免被显示成"运行错误"。100ms 窗口足以覆盖 abort 信号 round-trip。
   const userCancelledAtRef = useRef<number>(0);
   const perThreadLlmRef = useRef<Record<string, string | null>>({});
+  const perThreadThinkingRef = useRef<Record<string, boolean>>({});
   // 「无 session 时」用户预先选择的模型，待 startNewSession 后转入 perThreadLlmRef[newId]。
   // undefined = 无 pending；null = 用户主动清空；string = 选定模型。
   const pendingLlmRef = useRef<string | null | undefined>(undefined);
+  const pendingThinkingRef = useRef<boolean | undefined>(undefined);
   // pending 仅对「startNewSession 创建出来的新 id」生效；首次进入既有 session 不消费。
   // 由 startNewSessionWithLlmTarget 在拿到新 id 时写入，Effect 1 命中后清零。
   const pendingLlmTargetIdRef = useRef<string | null>(null);
+  const pendingThinkingTargetIdRef = useRef<string | null>(null);
   const rawEventHandlerRef = useRef<((event: BaseEvent) => void) | undefined>(
     undefined,
   );
@@ -263,6 +343,7 @@ export function HomeBody({
     const newId = await startNewSession();
     if (newId) {
       pendingLlmTargetIdRef.current = newId;
+      pendingThinkingTargetIdRef.current = newId;
     }
     return newId;
   }, [startNewSession]);
@@ -439,6 +520,12 @@ export function HomeBody({
         agent.forwardedProps = {
           ...(agent.forwardedProps ?? {}),
           selected_llm_model: selectedLlmModel ?? null,
+          thinking_enabled: isThinkingSupportedForSelection(
+            selectedLlmModel,
+            llmModels,
+          )
+            ? thinkingEnabled
+            : false,
           ...(attachmentMeta.length > 0 ? { attachments: attachmentMeta } : {}),
         };
         // 清空 Composer 附件区（与 inputValue 已被清空的语义一致）
@@ -471,6 +558,8 @@ export function HomeBody({
       scheduleTitleRefresh,
       addLog,
       selectedLlmModel,
+      thinkingEnabled,
+      llmModels,
       attachments,
     ],
   );
@@ -644,6 +733,40 @@ export function HomeBody({
 
   useEffect(() => {
     if (!sessionId) {
+      setThinkingEnabled(pendingThinkingRef.current ?? false);
+      return;
+    }
+    if (sessionId in perThreadThinkingRef.current) {
+      setThinkingEnabled(perThreadThinkingRef.current[sessionId] ?? false);
+      pendingThinkingRef.current = undefined;
+      pendingThinkingTargetIdRef.current = null;
+      return;
+    }
+    if (
+      pendingThinkingRef.current !== undefined &&
+      pendingThinkingTargetIdRef.current === sessionId
+    ) {
+      const carried = pendingThinkingRef.current;
+      perThreadThinkingRef.current[sessionId] = carried;
+      setThinkingEnabled(carried);
+      writePersistedThinking(sessionId, carried);
+      pendingThinkingRef.current = undefined;
+      pendingThinkingTargetIdRef.current = null;
+      return;
+    }
+    pendingThinkingRef.current = undefined;
+    pendingThinkingTargetIdRef.current = null;
+    const persisted = readPersistedThinking(sessionId);
+    if (persisted !== null) {
+      perThreadThinkingRef.current[sessionId] = persisted;
+      setThinkingEnabled(persisted);
+    } else {
+      setThinkingEnabled(false);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) {
       return;
     }
     if (sessionId in perThreadLlmRef.current) {
@@ -660,6 +783,20 @@ export function HomeBody({
     }
   }, [sessionId, snapshotForDisplay]);
 
+  useEffect(() => {
+    if (!sessionId) {
+      return;
+    }
+    if (sessionId in perThreadThinkingRef.current) {
+      return;
+    }
+    const raw = snapshotForDisplay?.["thinking_enabled"];
+    const initial = raw === true;
+    perThreadThinkingRef.current[sessionId] = initial;
+    setThinkingEnabled(initial);
+    writePersistedThinking(sessionId, initial);
+  }, [sessionId, snapshotForDisplay]);
+
   const handleSelectedLlmModelChange = useCallback(
     (next: string | null) => {
       setSelectedLlmModel(next);
@@ -674,6 +811,25 @@ export function HomeBody({
       }
     },
     [sessionId],
+  );
+
+  const handleThinkingEnabledChange = useCallback(
+    (next: boolean) => {
+      setThinkingEnabled(next);
+      if (sessionId) {
+        perThreadThinkingRef.current[sessionId] = next;
+        pendingThinkingRef.current = undefined;
+        writePersistedThinking(sessionId, next);
+      } else {
+        pendingThinkingRef.current = next;
+      }
+    },
+    [sessionId],
+  );
+
+  const thinkingSupported = useMemo(
+    () => isThinkingSupportedForSelection(selectedLlmModel, llmModels),
+    [llmModels, selectedLlmModel],
   );
 
   /**
@@ -837,6 +993,9 @@ export function HomeBody({
                 models={llmModels}
                 selectedLlmModel={selectedLlmModel}
                 onSelectedLlmModelChange={handleSelectedLlmModelChange}
+                thinkingEnabled={thinkingSupported && thinkingEnabled}
+                thinkingSupported={thinkingSupported}
+                onThinkingEnabledChange={handleThinkingEnabledChange}
                 onCancel={handleCancelRun}
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
