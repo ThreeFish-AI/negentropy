@@ -307,7 +307,8 @@ export default function DocumentsPage() {
               <div className="shrink-0 flex items-center justify-between px-4 py-3 border-t border-border">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">
-                    {total} document{total !== 1 ? "s" : ""}
+                    {/* 单字符串避免 JSX 文本节点相邻被 a11y 规范化为 "X document s" */}
+                    {`${total} document${total !== 1 ? "s" : ""}`}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">

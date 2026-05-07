@@ -304,7 +304,8 @@ export default function KnowledgeDashboardPage() {
                 {total > 0 && (
                   <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {total} run{total !== 1 ? "s" : ""}
+                      {/* 单字符串避免 JSX 文本节点相邻被 a11y 规范化为 "X run s" */}
+                      {`${total} run${total !== 1 ? "s" : ""}`}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button

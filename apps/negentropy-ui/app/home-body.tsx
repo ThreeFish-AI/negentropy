@@ -23,6 +23,8 @@ import {
 import { useAgentSubscription, type AgentLike } from "@/hooks/useAgentSubscription";
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
 
+import { toast } from "@/lib/activity-toast";
+
 // 提取的工具函数
 import { createSessionLabel } from "@/utils/session";
 import { deriveConnectionState } from "@/utils/session-hydration";
@@ -478,12 +480,22 @@ export function HomeBody({
     if (!trimmed) {
       return;
     }
+    // 静默拒绝场景的"可见反馈"：避免 ISSUE-064 复发——
+    // Send 按钮看似 enabled、点击却 no-op。早返时给出 toast，
+    // 让用户立刻知道为什么没反应（而不是默默吞掉点击）。
+    if (pendingConfirmations > 0) {
+      toast.info("请先回应当前的人工确认请求，再发送下一条指令");
+      return;
+    }
     if (
-      pendingConfirmations > 0 ||
       effectiveConnection === "streaming" ||
-      effectiveConnection === "connecting" ||
-      effectiveConnection === "blocked"
+      effectiveConnection === "connecting"
     ) {
+      toast.info("Agent 正在响应中，请等待完成或点 Stop 中断");
+      return;
+    }
+    if (effectiveConnection === "blocked") {
+      toast.warning("Agent 通道当前被阻塞，请稍后重试");
       return;
     }
 
@@ -512,6 +524,23 @@ export function HomeBody({
     }
 
     if (!agent) {
+      // sessionId 已存在但 agent 尚未就绪：把指令缓存到 pendingSendRef，
+      // 待 agent 重建完毕由「自动重发 pending」Effect 接力发送（与 !sessionId
+      // 路径同源）。同时给用户可见反馈，避免 silent no-op（ISSUE-064 根因）。
+      //
+      // 评审 #6：连续 Send 时若上一条尚未被自动重发 Effect 消费，新一条会覆盖
+      // pendingSendRef。这是有意为之（用户更可能想让"最后一条"发出），但必须给
+      // 区分性 toast，让用户知道前一条已被替换，避免再次出现 silent drop。
+      const hadPending = pendingSendRef.current !== null;
+      pendingSendRef.current = trimmed;
+      pendingForSessionRef.current = sessionId;
+      setInputValue("");
+      setScrollToBottomTrigger((prev) => prev + 1);
+      if (hadPending) {
+        toast.warning("Agent 仍在初始化，已用最新指令替换排队消息");
+      } else {
+        toast.info("Agent 正在初始化，已排队待发送...");
+      }
       return;
     }
     setInputValue("");

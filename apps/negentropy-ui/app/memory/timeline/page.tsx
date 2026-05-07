@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
-import { useMemoryTimeline } from "@/features/memory";
+import { RetryableErrorBanner, useMemoryTimeline } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -16,6 +16,7 @@ export default function MemoryTimelinePage() {
     error,
     selectedUserId,
     setSelectedUserId,
+    reload,
     search,
     clearSearch,
   } = useMemoryTimeline({ appName: APP_NAME });
@@ -70,11 +71,9 @@ export default function MemoryTimelinePage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col px-6 py-6">
           {/* D5: 统一 error banner（独立块，避免被 flex-row 兄弟挤占侧边栏空间） */}
-          {error && (
-            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
-              {error.message || String(error)}
-            </div>
-          )}
+          {/* M3: 5xx 等可重试错误暴露"重试"按钮，复用 RetryableErrorBanner */}
+          <RetryableErrorBanner error={error} onRetry={reload} />
+
 
           <div className="flex min-h-0 flex-1 gap-6">
           {/* Users sidebar */}
