@@ -1477,3 +1477,35 @@
 - **表因**：P0 巡检 `/knowledge/wiki` 取消发布弹窗：dialog 标题 "取消发布" + 确认按钮 "取消发布" + Cancel 按钮 "Cancel"（中英混杂），用户易混淆"我是要取消这次操作还是要执行取消发布"。
 - **处理方式**：[`WikiPublicationDetail`](../apps/negentropy-ui/app/knowledge/wiki/_components/WikiPublicationDetail.tsx) 把 dialog 标题改为"取消发布 Wiki 站点"、确认按钮改为"确认取消发布"、message 增加 destructive 后果说明。
 - **后续防范**：所有 destructive 操作的 ConfirmDialog 应满足 `title !== confirmLabel`，确认按钮显式包含动作动词（"确认 X"），避免与"放弃这次操作"语义混淆。
+
+---
+
+## ISSUE-070 Agent 答复 4 大缺陷（等待占位 / 双内容 / 推理空内容 / 刷新乱序）（2026-05-07）
+
+- **表因**：用户截图反馈 4 处可视化缺陷：
+  1. Agent 刚开始流式答复但还未产出 token 时，气泡内**完全空白**、无任何视觉反馈；
+  2. 同一次回答内同时出现「partial 残缺版（如 "ong toPing Possible needs concrete..."）+ final 完整版（"Summary — done: Replied 'Pong'..."）」**双段内容并排渲染**；
+  3. 推理面板展开后**仅显示「思考完成 · 推理阶段」标题**，看不到实际推理文本；
+  4. 多轮发送 + **刷新页面后**，user 消息漂移到 assistant 回复**之后**，时序错乱。
+- **根因**：
+  1. [`MessageBubble.tsx`](../apps/negentropy-ui/components/ui/MessageBubble.tsx) 的 ``isStreaming`` 标志要求 ``content.trim().length > 0``；空内容时整个气泡（含 streaming indicator）都不渲染。
+  2. [`isStreamingDuplicateOfLater`](../apps/negentropy-ui/utils/chat-display.ts) 的 multiset 阈值 0.8 / 长度比 1.15 对「LLM 双轮自我修订」型残缺-改写双段漏检；[`findMatchingTextNodeId`](../apps/negentropy-ui/utils/conversation-tree.ts) 在 closed 节点时仅允许内容严格相等匹配，致同源 hydration 落到独立 text node。
+  3. [`ReasoningStepData`](../apps/negentropy-ui/components/ui/ReasoningPanel.tsx) 类型缺 ``content``/``result`` 字段；``ReasoningStep`` 仅渲染标签；``conversation-tree`` 把 ``ne.a2ui.thought`` CUSTOM 事件当作普通 custom 节点忽略，未注入对应 reasoning 节点 payload。
+  4. [`compareLedgerEntriesByTime`](../apps/negentropy-ui/utils/message-ledger.ts) 同时间戳依赖 ``sourceOrder`` + ``id.localeCompare``；realtime user message 时间戳取自 client clock、assistant 取自 server RUN_STARTED，毫秒级时钟漂移让 user 落后于 assistant 几毫秒，刷新后排序漂移。
+- **处理方式**：
+  1. **等待占位**：``MessageBubble`` 解耦 ``isStreaming`` 与 ``hasContent``，新增 ``showWaitingPlaceholder``；``AssistantReplyBubble`` 在 segments 全空 + streaming 时渲染三点 ``animate-bounce`` 占位（``data-testid="agent-waiting-placeholder"``）。
+  2. **双内容根因**：``isStreamingDuplicateOfLater`` 阈值放宽至 multiset ≥0.7 + 长度比 ≥1.10，新增第 6 层 LCS（最长公共子序列）兜底（≥0.65，长内容首尾截断 O(m·n) 防退化）；``findMatchingTextNodeId`` 在 closed 节点时放宽匹配为「严格相等 ∨ 严格前缀 ∨ multiset 覆盖 ≥0.75」。注：与 ISSUE-065 Layer 6 聚合判据（earlier vs aggregate-of-laters）正交，本次的 LCS 是同段两两比较的"顺序+字符"维度补强。
+  3. **推理内容**：``ReasoningStepData`` / ``ReplyReasoningDisplaySegment`` 增加 ``content?``/``result?`` 字段；``ReasoningStep`` 在展开态渲染 content（``whitespace-pre-wrap``）+ result（``pre`` 限高滚动）；``conversation-tree`` 对 ``ne.a2ui.thought`` 调用 ``findLatestReasoningNode`` 把 thought.text 累积写入 reasoning 节点 ``payload.content``；``createReplyReasoningSegment`` 透传 content（fallback 至 ``node.summary``）；``mergeSteps`` 在 started→finished 时合并两侧 content。
+  4. **排序乱序**：``compareLedgerEntriesByTime`` 同时间戳新增 role 优先级（``user < system < developer < assistant < tool``）；``conversation-tree`` children 排序同步加入 role 维度；``chat-display`` blocks 排序在 1s 时钟漂移容忍窗口内让 user message 优先于 assistant-reply / tool-group。
+  5. **测试**：12 个新增用例覆盖等待占位 3 + 推理 content 渲染/合并 3 + 同时间戳 user 排序 1 + LCS 函数 5；全套 580 单测通过；浏览器实机验证刷新后 user→assistant 顺序保持正确，推理面板展开能看到具体内容，无重复气泡。
+- **后续防范**：
+  1. **两层防御**（UI 兜底 + 根因层）必须同时升级：``chat-display`` 兜底阈值放宽时，``message-ledger`` 同源合并 helper 也应同步升级；
+  2. **LCS 工具的复用**：``longestCommonSubsequenceRatio`` 已抽到 ``utils/message.ts``，下次「同源不同表面」类去重场景（KG SSE 进度合并、Tool Progress 流式更新等）建议优先复用而非新写本地实现；
+  3. **角色优先级与时钟漂移容忍窗口**：任何「按 timestamp 排序」的视图（Timeline / Activity Log / Memory）都应审视是否需要类似 role 优先 + 漂移窗口；
+  4. **空状态可见性**：所有「streaming = true」的 UI 路径都必须有等待占位（无内容时不可空白），借鉴本 issue 的 ``data-testid="agent-waiting-placeholder"`` 模式建立断言；
+  5. **CUSTOM 事件的语义价值**：``ne.a2ui.thought`` / ``ne.a2ui.reasoning`` 等自定义事件如果在前端被「无差别忽略」就失去了承载价值；新增 CUSTOM 事件时必须明确数据流路径与渲染锚点。
+- **同类问题影响**：所有「streaming + 空 content」的 UI 路径（Tool Progress 等待首条事件、KG SSE 等待首条进度）；所有「LLM 自我修订」可能产生残缺-完整双段的去重场景；所有「时钟漂移」可能导致刷新后乱序的消息列表（Memory timeline、Activity Log、Audit Log）。
+- **2026-05-07 评审回归（同 ISSUE-070 范畴）**：
+  1. **`chat-display` 时钟漂移窗口 1s → 0.2s**：原 1s 容忍窗口配合双向 user 优先，会把「user 提问 → assistant 回复中（≤1s 内）→ user 紧追问」的真实时序误判为漂移，把 assistant 排到 follow-up 之后，错位为「问 → 紧追问 → 答（错位）」。收紧到 0.2s（典型 NTP 时钟漂移 < 100ms 的 2x 守护带）即可保留漂移修正能力，又排除秒级 follow-up 误吞。
+  2. **`longestCommonSubsequenceRatio` 分母语义自洽**：旧实现 reduce() 把超长串截到首尾各 1000（≤2000 字符），但 ratio 分母仍取截断前的 `Math.min(trimA.length, trimB.length)`；当较短串 > ~3077 字符时 lcsLen ≤ 2000 / 分母 > 3077，ratio 上界 < 0.65，第 6 层兜底对长答复永远不触发。改为 `Math.min(sA.length, sB.length)`（与实际参与 LCS 计算的长度一致）保持语义自洽。
+  3. **回归测试覆盖**：新增 3 个用例（chat-display.test.ts × 2 覆盖窗口内漂移修正与窗口外 follow-up 真实时序保留；message.test.ts × 1 覆盖长内容 LCS 兜底仍能 ≥ 0.65）。

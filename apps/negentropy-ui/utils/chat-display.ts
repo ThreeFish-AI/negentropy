@@ -18,6 +18,7 @@ import { isNonCriticalError } from "@/utils/error-filter";
 import {
   bigramJaccardSimilarity,
   isEquivalentMessageContent,
+  longestCommonSubsequenceRatio,
   multisetCoverage,
 } from "@/utils/message";
 
@@ -294,6 +295,16 @@ function createReplyErrorSegment(node: ConversationNode): ReplyErrorDisplaySegme
 function createReplyReasoningSegment(
   node: ConversationNode,
 ): ReplyReasoningDisplaySegment {
+  // ISSUE-070：reasoning 节点的 payload.content 由 conversation-tree 在处理
+  // ne.a2ui.thought / ne.a2ui.reasoning 自定义事件时累积写入，需要透传到
+  // segment 供 ReasoningPanel 展开后渲染。优先级：直接 content > summary。
+  const rawContent =
+    typeof node.payload.content === "string"
+      ? String(node.payload.content)
+      : "";
+  const fallbackContent =
+    !rawContent.trim() && typeof node.summary === "string" ? node.summary : "";
+  const content = (rawContent || fallbackContent).trim() || undefined;
   return {
     id: `reply-reasoning:${node.id}`,
     kind: "reasoning",
@@ -303,6 +314,7 @@ function createReplyReasoningSegment(
     title: node.title,
     phase: node.status === "done" || node.status === "finished" ? "finished" : "started",
     stepId: String(node.payload.stepId || node.id),
+    content,
     result: node.payload.result,
   };
 }
@@ -428,12 +440,20 @@ const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
  *
  * 命中后丢弃较短一方（保留更完备的最终版本）。
  */
-const STREAMING_DUPLICATE_MULTISET_RATIO = 0.8;
+// ISSUE-070：multiset 覆盖阈值从 0.8 → 0.7，长度比从 1.15 → 1.10。
+// 旧阈值漏检「partial 残缺版与 final 改写版长度差较小、字符差较大」的场景
+// （如图 1：partial=`ong toPingPossible needs concrete: ) ping (...`，final=
+// `Summary — done: Replied "Pong" to your "Ping". Next options: ...`）。
+// 配合新增的第 6 层 LCS 兜底，能稳定捕捉这类同源不同表面的残留双内容。
+const STREAMING_DUPLICATE_MULTISET_RATIO = 0.7;
 const STREAMING_DUPLICATE_MIN_LENGTH = 12;
-// 1.15 而非 1.2：实测 ISSUE-049 残缺版与 final 版长度比约 1.18（参见 chat-display.test.ts
-// 真实场景测试），1.2 阈值会漏检。multiset coverage 0.8 + min length 12 已构成主要防误删
-// 屏障，长度比仅作辅助过滤"长度持平但内容大相径庭的两段独立消息"。
-const STREAMING_DUPLICATE_LENGTH_RATIO = 1.15;
+const STREAMING_DUPLICATE_LENGTH_RATIO = 1.1;
+// 第 6 层 LCS 兜底参数：
+// - 长度门槛 50：避免误删合理短回复；
+// - LCS / 较短长度 ≥ 0.65：意味着 ≥ 65% 的较短串字符以相对顺序出现在较长
+//   串中，强烈暗示同源（即使 multiset 覆盖未达 0.7 也能命中）。
+const STREAMING_DUPLICATE_LCS_MIN_LENGTH = 50;
+const STREAMING_DUPLICATE_LCS_RATIO = 0.65;
 
 export function isStreamingDuplicateOfLater(
   earlierContent: string,
@@ -444,9 +464,17 @@ export function isStreamingDuplicateOfLater(
   if (earlierLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
   if (laterLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
   if (laterLen < earlierLen * STREAMING_DUPLICATE_LENGTH_RATIO) return false;
-  // 较短一段是否被较长一段以 ≥ 80% multiset 覆盖（流式残缺版的字符几乎都来自 final）。
   const coverage = multisetCoverage(earlierContent, laterContent);
-  return coverage >= STREAMING_DUPLICATE_MULTISET_RATIO;
+  if (coverage >= STREAMING_DUPLICATE_MULTISET_RATIO) return true;
+  // 第 6 层兜底：LCS（最长公共子序列）比例 —— 顺序+字符共同覆盖。
+  if (
+    earlierLen >= STREAMING_DUPLICATE_LCS_MIN_LENGTH &&
+    laterLen >= STREAMING_DUPLICATE_LCS_MIN_LENGTH
+  ) {
+    const lcsRatio = longestCommonSubsequenceRatio(earlierContent, laterContent);
+    if (lcsRatio >= STREAMING_DUPLICATE_LCS_RATIO) return true;
+  }
+  return false;
 }
 
 /**
@@ -940,9 +968,34 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
     blocks.push(createSummaryBlock(root));
   });
 
+  // ISSUE-070：在毫秒级时钟漂移容忍窗口内，把 user message 排在 assistant
+  // 输出（assistant-reply / tool-group）之前。窗口收紧到 0.2s 以避免误吞
+  // 「秒级 follow-up」——客户端/服务端时钟漂移在 NTP 同步下典型 < 100ms，
+  // 0.2s 既足够覆盖正常抖动，也排除「用户在 Agent 回复未完成时（≤1s）紧追
+  // 问一条 follow-up」被误判为漂移、被反向插到 assistant 之前的回归
+  // （旧 1s 窗口下 t_assistant=0.5 与 t_followup=0.7 双双落入窗口，
+  // assistant 会被排到 follow-up 之后，造成「问→追问→答」乱序）。
+  const CLOCK_DRIFT_TOLERANCE_S = 0.2;
+  const isUserMessageBlock = (block: ChatDisplayBlock): boolean => {
+    if (block.kind !== "message") return false;
+    return block.message.role === "user";
+  };
+  const isAssistantOutputBlock = (block: ChatDisplayBlock): boolean =>
+    block.kind === "assistant-reply" || block.kind === "tool-group";
   blocks.sort((left, right) => {
-    if (left.timestamp !== right.timestamp) {
-      return left.timestamp - right.timestamp;
+    const timeDiff = left.timestamp - right.timestamp;
+    if (Math.abs(timeDiff) > CLOCK_DRIFT_TOLERANCE_S) {
+      return timeDiff;
+    }
+    // 时钟漂移容忍窗口内：user 消息优先于 assistant 输出（时钟偏移修正）
+    if (isUserMessageBlock(left) && isAssistantOutputBlock(right)) {
+      return -1;
+    }
+    if (isAssistantOutputBlock(left) && isUserMessageBlock(right)) {
+      return 1;
+    }
+    if (timeDiff !== 0) {
+      return timeDiff;
     }
     if (left.sourceOrder !== right.sourceOrder) {
       return left.sourceOrder - right.sourceOrder;

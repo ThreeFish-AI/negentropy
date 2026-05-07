@@ -9,6 +9,7 @@ import {
   mergeAdjacentAssistant,
   mapMessagesToChat,
   buildChatMessagesFromEventsWithFallback,
+  longestCommonSubsequenceRatio,
 } from "@/utils/message";
 import type { ChatMessage } from "@/types/common";
 import {
@@ -258,5 +259,49 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
     // 结果应该包含内容
     expect(result[0].id).toBe("msg1");
     expect(result[0].content).toBe("Hello");
+  });
+});
+
+describe("longestCommonSubsequenceRatio (ISSUE-070 LCS 兜底)", () => {
+  it("完全相同的字符串 → 1.0", () => {
+    expect(longestCommonSubsequenceRatio("hello world", "hello world")).toBe(1);
+  });
+
+  it("空串 → 0", () => {
+    expect(longestCommonSubsequenceRatio("", "abc")).toBe(0);
+    expect(longestCommonSubsequenceRatio("abc", "")).toBe(0);
+  });
+
+  it("一方是另一方的前缀 → 接近 1.0", () => {
+    const ratio = longestCommonSubsequenceRatio("Pong!", "Pong! Next options");
+    expect(ratio).toBeCloseTo(1, 5);
+  });
+
+  it("同源不同表面（图 1 partial 残缺版 vs final 完整版）→ ≥ 0.65", () => {
+    const partial = "Pong. Summary done- ong toPing Possible needs concrete ping";
+    const final =
+      "Pong. Summary — done: Replied Pong to your Ping. Next options Continue ping pong exchanges.";
+    const ratio = longestCommonSubsequenceRatio(partial, final);
+    // 残缺版字符在 final 中按顺序广泛出现，应当 ≥ 0.65 命中第 6 层兜底
+    expect(ratio).toBeGreaterThanOrEqual(0.65);
+  });
+
+  it("两段完全不相关的内容 → 显著低于 0.65", () => {
+    const ratio = longestCommonSubsequenceRatio(
+      "今日天气晴朗适合出行散步看看花草",
+      "我喜欢吃苹果香蕉葡萄这些水果都很甜",
+    );
+    expect(ratio).toBeLessThan(0.5);
+  });
+
+  it("长内容（>2000 字）且高度同源时仍能 ≥ 0.65（评审：分母用截断后长度）", () => {
+    // 评审 #2：截断到首尾各 1000 后 lcsLen ≤ 2000；旧实现用「截断前长度」做
+    // 分母，对 ≥ 3077 字的同源内容上界 < 0.65，第 6 层 LCS 兜底永远不触发。
+    // 现在分母改为「实际参与 LCS 计算的较短串长度」（截断后），保持语义自洽。
+    const base = "abcdefghij".repeat(400); // 4000 chars
+    const earlier = base; // 4000
+    const later = `${base}<additional tail content for length differentiation>`;
+    const ratio = longestCommonSubsequenceRatio(earlier, later);
+    expect(ratio).toBeGreaterThanOrEqual(0.65);
   });
 });

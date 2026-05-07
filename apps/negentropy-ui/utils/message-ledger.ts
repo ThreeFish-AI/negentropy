@@ -489,6 +489,27 @@ export function buildMessageLedger(input: {
     .sort(compareLedgerEntriesByTime);
 }
 
+// ISSUE-070：角色优先级 —— 同时间戳时 user 必排在 assistant / developer / tool
+// 之前。修复刷新后用户消息漂移到 assistant 回复之后的乱序问题。原因：
+// 1. realtime 路径 user 消息时间戳取自 send 时刻（client clock），assistant
+//    首个 TEXT_MESSAGE_START 时间戳取自服务端 RUN_STARTED（server clock），
+//    时钟漂移可能让 user 落后于 assistant 几毫秒；
+// 2. hydration 路径两类消息时间戳分别来自不同表 column（messages.created_at
+//    vs runs.started_at），毫秒级抖动同样存在。
+// 角色排序规则是「业务正确性」的唯一稳定锚点。
+const ROLE_ORDER: Record<string, number> = {
+  user: 0,
+  system: 1,
+  developer: 2,
+  assistant: 3,
+  tool: 4,
+};
+
+function roleSortKey(role: string | undefined): number {
+  if (!role) return 99;
+  return ROLE_ORDER[role] ?? 50;
+}
+
 function compareLedgerEntriesByTime(
   a: MessageLedgerEntry,
   b: MessageLedgerEntry,
@@ -496,6 +517,11 @@ function compareLedgerEntriesByTime(
   const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
   if (timeDiff !== 0) {
     return timeDiff;
+  }
+  // 同时间戳：user 优先 → developer/assistant/tool（避免刷新后 user 跑到 assistant 之后）。
+  const roleDiff = roleSortKey(a.resolvedRole) - roleSortKey(b.resolvedRole);
+  if (roleDiff !== 0) {
+    return roleDiff;
   }
   const aOrder = a.sourceOrder ?? Number.MAX_SAFE_INTEGER;
   const bOrder = b.sourceOrder ?? Number.MAX_SAFE_INTEGER;

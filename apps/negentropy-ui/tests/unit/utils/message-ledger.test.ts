@@ -151,6 +151,50 @@ describe("message-ledger", () => {
     ]);
   });
 
+  it("ISSUE-070：同时间戳下 user 消息始终排在 assistant 之前（角色优先）", () => {
+    // 模拟时钟漂移：assistant 时间戳早 1ms（service clock 漂移），user 后到。
+    // 但业务正确顺序应当是 user 在前、assistant 在后；新排序按 role 优先解决。
+    const events: AgUiEvent[] = [
+      // assistant 先到（事件序 0）
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        role: "assistant",
+        timestamp: 1000.001, // 早 1ms
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "asst-1",
+        delta: "答复",
+        timestamp: 1000.001,
+      }),
+      // user 后到（事件序 2），但时间戳更晚
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_START,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "user-1",
+        role: "user",
+        timestamp: 1000.001, // 同时间戳
+      }),
+      createTestEvent({
+        type: EventType.TEXT_MESSAGE_CONTENT,
+        threadId: "session-1",
+        runId: "run-1",
+        messageId: "user-1",
+        delta: "提问",
+        timestamp: 1000.001,
+      }),
+    ];
+    const ledger = buildMessageLedger({ events });
+    // 修复后：同时间戳下 user 必排在 assistant 之前
+    expect(ledger.map((e) => e.resolvedRole)).toEqual(["user", "assistant"]);
+  });
+
   it("buildMessageLedger 在 createdAt 相同的事件下用 sourceOrder 保持原始时间序", () => {
     // 两条 user/assistant 消息 timestamp 完全相同；UUID 字典序与原始事件序刚好相反。
     // 引入 sourceOrder 后，排序应仍然按事件出现顺序而非 UUID localeCompare。

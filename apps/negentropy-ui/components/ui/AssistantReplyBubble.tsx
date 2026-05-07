@@ -61,10 +61,34 @@ export function AssistantReplyBubble({
         stepId: segment.stepId,
         title: segment.title,
         phase: segment.phase,
+        content: segment.content,
+        result: segment.result,
       });
     }
     return out;
   }, [block.segments]);
+
+  // ISSUE-070：检测「等待首个 token」的场景：所有 segments 都没有可见内容时，
+  // 渲染三点脉冲动画作为占位，避免 UI 空白。
+  // 「无可见内容」=（无 text segment 或所有 text segment content 为空）且无
+  // tool-group / reasoning（reasoning 自带渲染，有 reasoning 已有反馈）。
+  const hasVisibleSegment = block.segments.some((segment) => {
+    if (segment.kind === "text") return segment.content.trim().length > 0;
+    if (segment.kind === "tool-group") return true;
+    if (segment.kind === "reasoning") return true;
+    if (segment.kind === "error") return true;
+    return false;
+  });
+  const isReplyStreaming = block.segments.some(
+    (segment) =>
+      segment.kind === "text"
+        ? segment.streaming
+        : segment.kind === "tool-group"
+          ? segment.status === "running"
+          : false,
+  );
+  const showWaitingPlaceholder =
+    !hasVisibleSegment && (isReplyStreaming || block.segments.length === 0);
 
   return (
     <MessageBubble
@@ -75,6 +99,17 @@ export function AssistantReplyBubble({
       body={
         <div className="space-y-3">
           {reasoningSteps.length > 0 ? <ReasoningPanel steps={reasoningSteps} /> : null}
+          {showWaitingPlaceholder ? (
+            <div
+              data-testid="agent-waiting-placeholder"
+              className="flex items-center gap-1.5 py-1 text-zinc-400 dark:text-zinc-500"
+              aria-label="Agent 正在思考"
+            >
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
+            </div>
+          ) : null}
           {block.segments.map((segment) => {
             if (segment.kind === "text") {
               return (

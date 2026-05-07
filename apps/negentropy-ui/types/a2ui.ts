@@ -131,6 +131,11 @@ export interface ReplyReasoningDisplaySegment {
   title: string;
   phase: "started" | "finished";
   stepId: string;
+  /**
+   * 推理过程文本（由 ne.a2ui.thought 自定义事件累积写入对应 reasoning 节点
+   * payload.content 后透传）。展开 ReasoningPanel 时显示给用户。
+   */
+  content?: string;
   result?: unknown;
 }
 

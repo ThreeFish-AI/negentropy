@@ -285,6 +285,58 @@ export function multisetCoverage(shorter: string, longer: string): number {
   return matched / shorter.length;
 }
 
+/**
+ * 最长公共子序列（LCS）长度占较短串的比例。
+ *
+ * 与 ``multisetCoverage`` / ``bigramJaccardSimilarity`` 互补：
+ * - ``multisetCoverage`` 仅统计字符 *频次*，忽略顺序 → 对乱序高重复字符串易误判；
+ * - ``bigramJaccardSimilarity`` 关注字符 *相邻对*，长度差异大时偏紧；
+ * - LCS 同时关注 *字符存在* 与 *相对顺序* → 对「累积残缺版（少字符但顺序与
+ *   final 一致）」与「同源改写版（字符大致相同但局部重排）」两种主流式
+ *   双内容场景都能稳定命中，作为 ``isStreamingDuplicateOfLater`` 第 6 层兜底。
+ *
+ * 复杂度 O(m*n)。为防长内容（>2000 字）退化，超长输入会先各取首尾 1000 字
+ * 拼接后再比较——这种长度的 LLM 答复实际由前后段 token 主导，截断后仍能稳
+ * 定区分「同源 vs 异源」。
+ *
+ * 注：分母取「实际参与 LCS 计算的较短串长度」（reduce 后），而非原串长度。
+ * 否则当较短串 > ~3077 字符时 lcsLen ≤ 2000 而分母 > 3077，ratio 上界 < 0.65，
+ * 第 6 层 LCS 兜底对长答复永远不触发——与「截断后仍稳定区分」的设计相悖。
+ */
+export function longestCommonSubsequenceRatio(a: string, b: string): number {
+  const trimA = a.trim();
+  const trimB = b.trim();
+  if (!trimA || !trimB) return 0;
+  const limit = 1000;
+  const reduce = (s: string) =>
+    s.length <= limit * 2 ? s : `${s.slice(0, limit)}${s.slice(-limit)}`;
+  const sA = reduce(trimA);
+  const sB = reduce(trimB);
+  const m = sA.length;
+  const n = sB.length;
+  if (m === 0 || n === 0) return 0;
+  // 使用滚动数组优化空间到 O(min(m, n))
+  const [shorterStr, longerStr] = m <= n ? [sA, sB] : [sB, sA];
+  const sLen = shorterStr.length;
+  const lLen = longerStr.length;
+  let prev = new Array(sLen + 1).fill(0);
+  let curr = new Array(sLen + 1).fill(0);
+  for (let i = 1; i <= lLen; i += 1) {
+    for (let j = 1; j <= sLen; j += 1) {
+      if (longerStr[i - 1] === shorterStr[j - 1]) {
+        curr[j] = prev[j - 1] + 1;
+      } else {
+        curr[j] = Math.max(prev[j], curr[j - 1]);
+      }
+    }
+    [prev, curr] = [curr, prev];
+    curr.fill(0);
+  }
+  const lcsLen = prev[sLen];
+  const shorterReducedLen = Math.min(sA.length, sB.length);
+  return shorterReducedLen === 0 ? 0 : lcsLen / shorterReducedLen;
+}
+
 export function bigramJaccardSimilarity(a: string, b: string): number {
   const aGrams = computeCharBigrams(a);
   const bGrams = computeCharBigrams(b);

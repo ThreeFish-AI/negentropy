@@ -402,7 +402,15 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const content = normalizeContent(message.content);
-  const isStreaming = message.streaming === true && !isUser && content.trim().length > 0;
+  const hasContent = content.trim().length > 0;
+  // ISSUE-070：分离「streaming 状态」与「内容是否为空」两个维度。
+  // 旧实现要求 hasContent 才认 streaming，导致 Agent 刚开始流式回复但尚未产出
+  // 任何 token 时（streaming=true && content=""）UI 完全 blank、无任何反馈。
+  // 现：streaming + 非用户 即视为 streaming；空内容 + 无 body 时显示「等首 token」
+  // 占位（三点脉冲），由 AssistantReplyBubble 也会在 segments 全空时显示同样占位。
+  const isStreaming = message.streaming === true && !isUser;
+  const showStreamingIndicator = isStreaming && hasContent;
+  const showWaitingPlaceholder = isStreaming && !hasContent && !body;
   const avatarPositionClass = isUser
     ? "absolute right-0 top-2 translate-x-[calc(100%+0.75rem)]"
     : "absolute left-0 top-2 -translate-x-[calc(100%+0.75rem)]";
@@ -466,6 +474,7 @@ export function MessageBubble({
               ? "max-w-[85%] rounded-tr-md border border-zinc-900/90 bg-[linear-gradient(135deg,#18181b,#27272a)] text-zinc-50 shadow-[0_14px_34px_rgba(24,24,27,0.18)]"
               : "w-full max-w-full rounded-tl-md border border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.9))] text-foreground shadow-[0_16px_40px_rgba(24,24,27,0.06)] dark:border-zinc-800 dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(9,9,11,0.9))]",
             isStreaming &&
+              hasContent &&
               "ring-1 ring-amber-300/70 shadow-[0_16px_46px_rgba(245,158,11,0.12)] dark:ring-amber-700/60",
           )}
         >
@@ -504,14 +513,26 @@ export function MessageBubble({
                 "[&_th]:border-border/20 [&_th]:bg-background/10 [&_td]:border-border/20",
             )}
           >
-            {body || (
-              <MarkdownContent
-                content={content}
-                isStreaming={isStreaming}
-                citations={message.citations}
-              />
-            )}
-            {isStreaming ? (
+            {body ||
+              (hasContent ? (
+                <MarkdownContent
+                  content={content}
+                  isStreaming={isStreaming}
+                  citations={message.citations}
+                />
+              ) : null)}
+            {showWaitingPlaceholder ? (
+              <div
+                data-testid="agent-waiting-placeholder"
+                className="flex items-center gap-1.5 py-1 text-zinc-400 dark:text-zinc-500"
+                aria-label="Agent 正在思考"
+              >
+                <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+                <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+                <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
+              </div>
+            ) : null}
+            {showStreamingIndicator ? (
               <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
                 <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-current" />
                 <span>Streaming</span>
