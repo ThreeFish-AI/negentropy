@@ -478,7 +478,57 @@ export function isStreamingDuplicateOfLater(
 }
 
 /**
- * 折叠同一 assistant-reply 内的「冗余文本片段」，四层判定（自上而下越来越宽松,
+ * ISSUE-065 兜底层（Layer 6）：「partial 单段 vs final 多段」场景的字符级聚合判定。
+ *
+ * Layer 5 (`isStreamingDuplicateOfLater`) 仅做两两比较，要求 later 比 earlier 长 1.15x。
+ * 但 C2 实测里 partial（earlier）混入了 reasoning first-line 而被切成单个长段，final
+ * 却被切成 3 段独立短段，single-pair 比较时 `laterLen < earlierLen * 1.15` 总成立，
+ * Layer 5 无法触发。此处补一层「聚合视角」：把 earlier 与所有后续 text 段拼接的 totalLater
+ * 比较，当 earlier 字符 multiset 几乎完全被 totalLater 包含、且 totalLater 总长比 earlier
+ * 长时，丢弃 earlier。
+ *
+ * 阈值与 Layer 5 对齐（multiset ≥ 0.8 且 length ≥ 1.15x），并额外要求 aggregate
+ * **显著长于 later 各单段中的最长一段**，从根因上区分「真分段聚合 vs 单段差异」：
+ * - 中文字符池较小、同主题段落字符复用率高（如「让我从热力学和信息论分析熵」+
+ *   多段长答详细展开）会把 multiset coverage 推过 0.7，单纯放宽阈值会误删合法
+ *   引语段（评审 #5）。
+ * - 维持 Layer 5 阈值的同时，靠「aggregate vs 任一 later 单段」的额外长度差守卫
+ *   保证只有「partial 真的被切成多段聚合后」才进入丢弃路径，而不是 final 单段
+ *   就长于 partial 的常规情况。
+ * - 仍要求双方均 ≥ STREAMING_DUPLICATE_MIN_LENGTH，避免误删合理短回复。
+ */
+const STREAMING_DUPLICATE_AGGREGATE_MULTISET_RATIO = 0.8;
+const STREAMING_DUPLICATE_AGGREGATE_LENGTH_RATIO = 1.15;
+// 额外守卫：aggregate 必须显著长于「later 各单段中最长一段」，确保确实是
+// 「多段聚合」拉长了 totalLater，而不是单段 final 本身就长。
+const STREAMING_DUPLICATE_AGGREGATE_VS_MAX_SINGLE_RATIO = 1.3;
+
+export function isStreamingDuplicateOfAggregate(
+  earlierContent: string,
+  aggregateLaterContent: string,
+  maxSingleLaterLength = 0,
+): boolean {
+  const earlierLen = earlierContent.length;
+  const aggregateLen = aggregateLaterContent.length;
+  if (earlierLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (aggregateLen < STREAMING_DUPLICATE_MIN_LENGTH) return false;
+  if (aggregateLen < earlierLen * STREAMING_DUPLICATE_AGGREGATE_LENGTH_RATIO) {
+    return false;
+  }
+  // aggregate 必须显著长于 later 任一单段，证明聚合本身才是 length-ratio
+  // 满足的根因；否则 Layer 5 已能两两命中，无需 Layer 6 介入。
+  if (
+    maxSingleLaterLength > 0 &&
+    aggregateLen < maxSingleLaterLength * STREAMING_DUPLICATE_AGGREGATE_VS_MAX_SINGLE_RATIO
+  ) {
+    return false;
+  }
+  const coverage = multisetCoverage(earlierContent, aggregateLaterContent);
+  return coverage >= STREAMING_DUPLICATE_AGGREGATE_MULTISET_RATIO;
+}
+
+/**
+ * 折叠同一 assistant-reply 内的「冗余文本片段」，**六层判定**（自上而下越来越宽松,
  * 也越来越保守，全部命中后丢弃前段，因为工具反馈后的「后段」通常是更完备的最终版本）：
  *
  * 1. **精确匹配**：trim 后两段完全相等 → 丢弃前段（不限长度）。
@@ -491,6 +541,15 @@ export function isStreamingDuplicateOfLater(
  *    场景（如标点/空白差异）。
  * 4. **字符二元组 Jaccard**：双方均 ≥ 30 字且 Jaccard ≥ 0.5 → 丢弃前段。
  *    覆盖「主动导航 prompt 在工具前后各产出一段几乎相同总结」的长回复场景。
+ * 5. **流式残缺/完整两段**（ISSUE-049, `isStreamingDuplicateOfLater`）：multiset
+ *    coverage ≥ 0.8 且 later 比 earlier 长 1.15x → 丢弃 earlier。覆盖前 4 层未
+ *    命中、但同源不同完成度的两两场景。
+ * 6. **流式 partial 单段 vs final 多段聚合**（ISSUE-065,
+ *    `isStreamingDuplicateOfAggregate`）：把 earlier 与所有未被丢弃的后续 text
+ *    段拼接成 aggregate 比较，阈值与 Layer 5 对齐（multiset ≥ 0.8 且 length ≥
+ *    1.15x），且额外要求 aggregate 显著长于任一 later 单段。覆盖 partial 因
+ *    混入 reasoning 而比 final 任一单段都长、Layer 5 length-ratio 永不通过的真实
+ *    场景（C2）。
  *
  * 工具组（tool-group）等非文本片段的相对顺序原样保留。
  *
@@ -576,6 +635,46 @@ function dedupeRedundantTextSegments(
       if (isStreamingDuplicateOfLater(earlierContent, laterContent)) {
         droppedIndices.add(earlierIdx);
       }
+    }
+  }
+
+  // 6. ISSUE-065 流式双内容聚合兜底：partial 单段 vs final 多段的场景。
+  //    前 5 层都做两两比较，partial 经常因混入 reasoning first-line 而比 final
+  //    任一单段都长，导致两两比较中的 length-ratio 守卫永远不通过；此处把所有
+  //    比 earlier 靠后且未被丢弃的 text 段拼接成 totalLater 再判定，覆盖
+  //    "partial 字符均匀分布在 final 多段中"的真实场景。
+  for (let i = 0; i < textIndices.length - 1; i += 1) {
+    const earlierIdx = textIndices[i];
+    if (droppedIndices.has(earlierIdx)) continue;
+    const earlierSegment = segments[earlierIdx];
+    if (earlierSegment.kind !== "text") continue;
+    const earlierContent = earlierSegment.content.trim();
+    if (!earlierContent) continue;
+
+    const aggregateParts: string[] = [];
+    let maxSingleLaterLength = 0;
+    for (let j = i + 1; j < textIndices.length; j += 1) {
+      const laterIdx = textIndices[j];
+      if (droppedIndices.has(laterIdx)) continue;
+      const laterSegment = segments[laterIdx];
+      if (laterSegment.kind !== "text") continue;
+      const laterContent = laterSegment.content.trim();
+      if (laterContent) {
+        aggregateParts.push(laterContent);
+        if (laterContent.length > maxSingleLaterLength) {
+          maxSingleLaterLength = laterContent.length;
+        }
+      }
+    }
+    if (aggregateParts.length < 2) {
+      // 至少 2 段才进入聚合判据；单段后继的场景由 Layer 1-5 已覆盖。
+      continue;
+    }
+    const aggregate = aggregateParts.join("\n");
+    if (
+      isStreamingDuplicateOfAggregate(earlierContent, aggregate, maxSingleLaterLength)
+    ) {
+      droppedIndices.add(earlierIdx);
     }
   }
 

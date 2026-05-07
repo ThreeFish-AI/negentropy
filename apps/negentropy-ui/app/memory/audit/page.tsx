@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import {
+  RetryableErrorBanner,
   useMemoryTimeline,
   submitAudit,
   fetchAuditHistory,
@@ -107,11 +108,9 @@ export default function MemoryAuditPage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col px-6 py-6">
           {/* D5: 统一 error banner（独立块，避免被 flex-row 兄弟挤占侧边栏空间） */}
-          {timelineError && (
-            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
-              {timelineError.message || String(timelineError)}
-            </div>
-          )}
+          {/* M3: 5xx 等可重试错误暴露"重试"按钮，复用 RetryableErrorBanner */}
+          <RetryableErrorBanner error={timelineError} onRetry={reloadTimeline} />
+
 
           <div className="flex min-h-0 flex-1 gap-6">
           {/* Users sidebar */}
@@ -250,7 +249,9 @@ export default function MemoryAuditPage() {
                   Submit Audit
                 </h2>
                 <p className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                  {pendingCount} decision(s) pending
+                  {/* 把 `(s)` 升级为真正的英文复数，避免界面出现 "0 decision(s) pending" 这类
+                      非自然写法。这里没有 JSX 表达式插入造成的 a11y 文本节点合并问题，仅是 copy 改进。 */}
+                  {`${pendingCount} decision${pendingCount !== 1 ? "s" : ""} pending`}
                 </p>
                 <textarea
                   className="mt-3 w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"

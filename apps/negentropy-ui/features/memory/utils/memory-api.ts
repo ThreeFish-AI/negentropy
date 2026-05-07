@@ -263,7 +263,11 @@ export async function fetchMemories(
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch memories: ${res.statusText}`);
+    // Memory 列表 backend 当前在无 user_id 时会返回 500（与 ADK session_service
+    // 边界相关，参见 docs/issue.md M3）。对前端而言"无内容"与"5xx"在用户侧应有
+    // 一致的可重试 UX；这里把错误信息本地化并保留状态码，由调用方根据 statusCode
+    // 决定是否显示"重试"按钮。
+    throw buildMemoryRetryableError("加载记忆失败", res);
   }
   return res.json();
 }
@@ -279,9 +283,33 @@ export async function searchMemories(params: {
     body: JSON.stringify(params),
   });
   if (!res.ok) {
-    throw new Error(`Failed to search memories: ${res.statusText}`);
+    // 评审 #4：搜索路径同样应注入 retryable，让 RetryableErrorBanner 的 retryable
+    // 协议成为唯一判据，避免回退正则 /5\d\d/ 在默认 Error.message（如
+    // "Internal Server Error"，无数字）下不命中导致 5xx 不显示重试按钮。
+    throw buildMemoryRetryableError("搜索记忆失败", res);
   }
   return res.json();
+}
+
+/**
+ * 构造 `/api/memory*` 路径下的可重试错误对象。
+ *
+ * - `statusCode` 透传 HTTP 状态码，便于上层做精细化分支；
+ * - `retryable` 标记 `5xx` 为可重试（用户侧可一键重试，避免刷新整页）。
+ *   注：浏览器 fetch 在网络层失败（DNS/连接/超时）会直接 throw 而非走 `!res.ok`，
+ *   `res.status === 0` 仅出现在 `mode: "no-cors"` 的 opaque response，本调用未声明
+ *   该模式，因此原先 `res.status === 0` 分支属 dead code，已移除（评审 #8）。
+ */
+function buildMemoryRetryableError(
+  prefix: string,
+  res: Response,
+): Error & { statusCode: number; retryable: boolean } {
+  const error = new Error(
+    `${prefix}：${res.status} ${res.statusText || "Internal Server Error"}`,
+  ) as Error & { statusCode: number; retryable: boolean };
+  error.statusCode = res.status;
+  error.retryable = res.status >= 500;
+  return error;
 }
 
 // ============================================================================

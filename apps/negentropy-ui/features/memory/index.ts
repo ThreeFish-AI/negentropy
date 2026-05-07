@@ -45,6 +45,19 @@ export type {
 } from "./hooks/useActivityLog";
 
 // ============================================================================
+// Components
+// ============================================================================
+
+export {
+  RetryableErrorBanner,
+  isRetryable,
+} from "./components/RetryableErrorBanner";
+export type {
+  RetryableError,
+  RetryableErrorBannerProps,
+} from "./components/RetryableErrorBanner";
+
+// ============================================================================
 // Utils (API Functions)
 // ============================================================================
 

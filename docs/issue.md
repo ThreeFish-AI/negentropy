@@ -1412,6 +1412,72 @@
   2. 若后续需要“输入名称二次确认”，应扩展通用组件而不是回退到 `prompt()`；
   3. 下一步可把静态测试升级为 ESLint `no-restricted-globals` / `no-restricted-properties` 规则，覆盖裸 `confirm()` 的 AST 级识别。
 
+## ISSUE-063 归档视图 Back → 实时视图后会话内容残留（state stale）（2026-05-06）
+
+- **表因**：P0 UI 全功能巡检（cm.huang@aftership.com，roles=["user"]）实机复现：进入 `?view=archived` 选某归档会话（如 `b8676a4a`） → 点 "Back" → URL 正确切回 `?sessionId=53f4a06f`、`view` 删除，但**会话主区、STATE SNAPSHOT、EVENT TIMELINE 全部仍展示 b8676a4a 的消息/事件**。
+- **量化**：`evaluate_script` 返回 `haveStaleSession=true / haveStalePong=true / haveTimelineOld=true`，与 URL 上的 `sessionId=53f4a06f-...` 不一致。手动点 sidebar 中的同一 session 后状态恢复正常（`havePlaceholder=true / 残留全部 false`），证明 bug 仅在 Back 路径。
+- **根因**：[`useSessionListService.loadSessions`](../apps/negentropy-ui/features/session/hooks/useSessionListService.ts) 在 view 切换后重拉列表时，若旧 sessionId 不在新列表中会自动 `setSessionId(nextSessions[0]?.id)` 切换，但此路径**未调用 `onClearActiveSession()`**——前一会话（归档下选中的 b8676a4a）的 messages/state/events projection 缓存未被清空。手动点 sidebar 的 `selectSession` 路径由 `home-body.handleSessionChange` 已 clear，但自动切换路径漏补。
+- **处理方式**：在 `loadSessions` 自动切换 sessionId 之前补一次 `onClearActiveSession()` 调用，与手动点击路径形成对称行为。修改文件：[useSessionListService.ts](../apps/negentropy-ui/features/session/hooks/useSessionListService.ts)。
+- **后续防范**：
+  1. 任何"侧栏分组切换 + sessionId/itemId 变化"路径都需要 audit 是否补 clear（Memory audit、Knowledge corpus filter 同模式）；
+  2. e2e 应新增 archived → back → 主区不应残留前次会话内容的断言（ISSUE-063 回归基线）。
+
+## ISSUE-064 Home Send 按钮点击 = no-op，仅 Enter 键能发送（2026-05-06）
+
+- **表因**：P0 UI 巡检中，textbox 输入指令后**点击 "Send" 按钮**（非 disabled 状态）**没有任何 API 请求**（network 列表无 POST/SSE）、控制台无报错；textbox 内容保留、消息未渲染。**改用 Enter 键**则正常发送（`run_started` + STREAMING）。
+- **根因**：[`home-body.sendInput`](../apps/negentropy-ui/app/home-body.tsx) 中存在 `if (!agent) return;` 早返。当 sessionId 已存在但 agent 重建尚未完成时，`onClick` 与 `onKeyDown` 都进入 `sendInput`，按钮未 visually disabled、`isGenerating=false`，但内部 silent return。Enter 路径之所以"看似可用"，是因为多数情况下用户敲 Enter 时 agent 已就绪。
+- **处理方式**：
+  1. `sendInput` 在 `!agent && sessionId` 早返时**把指令缓存到 `pendingSendRef`**，并设置 `pendingForSessionRef.current = sessionId`，由"自动重发 pending" Effect 在 agent 重建完毕后接力发送（与 `!sessionId` 路径同源）；
+  2. 同时弹 toast `"Agent 正在初始化，已排队待发送..."` 给用户可见反馈，避免 silent no-op；
+  3. 其它静默早返路径（`pendingConfirmations / streaming / connecting / blocked`）也补对应 toast，统一用户预期。
+- **后续防范**：
+  1. 所有"看似可用但内部静默拒绝"的按钮都应当补 toast/inline 反馈，禁止 silent no-op；
+  2. e2e 增加"agent 重建窗口内点 Send 应入队 + agent ready 后自动发送"基线。
+
+## ISSUE-065 流式 partial 单段 vs final 多段聚合 multiset 兜底（Layer 6）（2026-05-06）
+
+- **表因**：P0 巡检发送 `请用一句话回答：什么是熵？尽量简短。` → STREAMING → `run_finished` 后**单一 assistant 容器**内同时存在两个 `<p>`：① partial 残片（混入 reasoning first-line + 中文字符级碎片化："热力学"→"力"、"精确定义"→"确定义"、"简短扩展"→"短展"、"需要继续吗？"→"吗？"）；② final 完整段落（标题 + 后续 + 建议下一步 共 3 段）。
+- **根因**：ISSUE-058（5 层 UI 兜底，multiset coverage ≥80%、length ratio ≥1.15）+ ISSUE-060（ledger merge 互含 ≥85%）已修过同类两两比较场景，但**partial 单段（earlier）vs final 多段（later[1..n]）** 时，partial 因混入 first-line 而比 **final 任一单段** 都长，length-ratio 守卫永远不通过，5 层全部漏检。
+- **处理方式**：在 [`utils/chat-display.ts`](../apps/negentropy-ui/utils/chat-display.ts) `dedupeRedundantTextSegments` 增加 **Layer 6 聚合判据**：把 earlier 与所有未被丢弃的后续 text 段拼接的 `aggregate` 比较，若 multiset coverage ≥0.7（放宽阈值容忍中文字符碎片化）且 `aggregate` 比 earlier 长 ≥1.05x，则丢弃 earlier。新加 4 个单测覆盖命中 / 长度不足 / 覆盖率不足 / 短文本保护。
+- **后续防范**：
+  1. 任何"流式累积 + final hydration 双路径"模块（KG SSE / Tool Progress 进度流式）必须 audit 是否同样需要聚合判据；
+  2. 后端 ADK SSE chunk 在 UTF-8 多字节字符边界处的切分逻辑需要复核（`apps/negentropy/.../adk/**`），避免在源头产生中文字符级碎片化；
+  3. e2e 在中文长回复 + tool call 双轮 LLM 场景下添加"主区只渲染 final、无 partial 残留"的快照断言。
+
+## ISSUE-066 Home LLM 下拉对普通用户应静默降级（2026-05-06）
+
+- **表因**：P0 巡检中普通用户（roles=["user"]）打开 Home，控制台立刻出现 `WARN llm_options_fetch_failed: Failed to fetch model configs: Forbidden`；`/api/interface/models/configs?model_type=llm&enabled=true` 返回 403，LLM 下拉只剩 "Default"。
+- **根因**：该端点设计为 admin-only（写场景需要），但前端在 user 角色下也调用它做"读 enabled 列表"。Backend 的 401/403 在权限语义上是合理拒绝，但前端把它当作错误处理，弹出 WARN 并污染 RUNTIME LOGS。
+- **处理方式**：[`fetchModelConfigs`](../apps/negentropy-ui/features/knowledge/utils/knowledge-api.ts) 区分 401/403（合理拒绝→返回空数组）vs 其它错误（异常→抛出）。前者让 home-body 的 catch 不再触发 `addLog("warn", ...)`，下拉静默降级到系统默认模型。500 等仍照旧抛出。
+- **后续防范**：
+  1. 任何"admin-only 数据 + 用户视角需要可见"的端点都应区分 read-options（开放）vs full-config（admin），或前端在 401/403 时静默降级；
+  2. 长期可拆 backend 端点为 `GET /api/interface/models/options`（user-readable）+ `GET /api/interface/models/configs`（admin-only 全字段）。
+
+## ISSUE-067 Memory `/api/memory` 5xx 错误态可重试（2026-05-06）
+
+- **表因**：P0 巡检 `/memory/audit`、`/memory/timeline` 顶部红字 "Failed to fetch memories: Internal Server Error"；左栏 Users 列表 "No users found"，但 `/memory` Dashboard 显示 USERS=1。`curl http://localhost:3292/memory?app_name=negentropy` 返回 500。
+- **根因**：Backend 在无 user_id 时遍历 ADK session_service 触发 500；前端只有红字英文 message、无重试入口，用户被迫刷新整页或卡死。
+- **处理方式**：
+  1. [`fetchMemories`](../apps/negentropy-ui/features/memory/utils/memory-api.ts) 错误信息中文化（`加载记忆失败：500 Internal Server Error`），并在 Error 对象上补 `statusCode` + `retryable` 属性（5xx 与网络层 0 状态码视为 retryable）；
+  2. [`/memory/audit`](../apps/negentropy-ui/app/memory/audit/page.tsx) 与 [`/memory/timeline`](../apps/negentropy-ui/app/memory/timeline/page.tsx) 的错误 banner 在 `error.retryable===true` 或 message 命中 `5\d\d|网络|timeout` 时显示"重试"按钮，调用 hook 暴露的 `reload`。
+- **后续防范**：
+  1. 后端 `/api/memory` 应在 user_id 缺失时返回空数组 + 200，而不是抛 500；本次 UI 兜底是过渡方案；
+  2. 全站可重试错误统一使用 `error.retryable` 协议，让 UI 一致渲染重试按钮。
+
+## ISSUE-068 i18n 复数文案 JSX 节点相邻被规范化为空格（2026-05-06）
+
+- **表因**：P0 巡检发现 `/knowledge/documents`（"2 document s"）、`/knowledge/dashboard`（"11 run s"）、`/memory/audit`（"0 decision(s) pending"）等多处文案在主区与 a11y 树中显示为分词空格断字，原因是 JSX 模板中 `{count} document{count !== 1 ? "s" : ""}` 把英文复数 `s` 作为独立 React 节点，渲染后相邻 text node 被规范化为空格。
+- **处理方式**：把上述位置改写成单字符串模板字面量 `${count} document${count !== 1 ? "s" : ""}`，避免相邻 React 节点。修改文件：[`knowledge/documents/page.tsx`](../apps/negentropy-ui/app/knowledge/documents/page.tsx)、[`knowledge/dashboard/page.tsx`](../apps/negentropy-ui/app/knowledge/dashboard/page.tsx)、[`memory/audit/page.tsx`](../apps/negentropy-ui/app/memory/audit/page.tsx)。
+- **后续防范**：
+  1. 复数文案统一走单字符串模板；
+  2. 长期建议把英文复数迁移到 i18n 词条（如 `useTranslation` + ICU `{count, plural, one {document} other {documents}}`）。
+
+## ISSUE-069 Wiki 取消发布 ConfirmDialog 标题与确认按钮文字相同（2026-05-06）
+
+- **表因**：P0 巡检 `/knowledge/wiki` 取消发布弹窗：dialog 标题 "取消发布" + 确认按钮 "取消发布" + Cancel 按钮 "Cancel"（中英混杂），用户易混淆"我是要取消这次操作还是要执行取消发布"。
+- **处理方式**：[`WikiPublicationDetail`](../apps/negentropy-ui/app/knowledge/wiki/_components/WikiPublicationDetail.tsx) 把 dialog 标题改为"取消发布 Wiki 站点"、确认按钮改为"确认取消发布"、message 增加 destructive 后果说明。
+- **后续防范**：所有 destructive 操作的 ConfirmDialog 应满足 `title !== confirmLabel`，确认按钮显式包含动作动词（"确认 X"），避免与"放弃这次操作"语义混淆。
+
 ---
 
 ## ISSUE-070 Agent 答复 4 大缺陷（等待占位 / 双内容 / 推理空内容 / 刷新乱序）（2026-05-07）
@@ -1428,7 +1494,7 @@
   4. [`compareLedgerEntriesByTime`](../apps/negentropy-ui/utils/message-ledger.ts) 同时间戳依赖 ``sourceOrder`` + ``id.localeCompare``；realtime user message 时间戳取自 client clock、assistant 取自 server RUN_STARTED，毫秒级时钟漂移让 user 落后于 assistant 几毫秒，刷新后排序漂移。
 - **处理方式**：
   1. **等待占位**：``MessageBubble`` 解耦 ``isStreaming`` 与 ``hasContent``，新增 ``showWaitingPlaceholder``；``AssistantReplyBubble`` 在 segments 全空 + streaming 时渲染三点 ``animate-bounce`` 占位（``data-testid="agent-waiting-placeholder"``）。
-  2. **双内容根因**：``isStreamingDuplicateOfLater`` 阈值放宽至 multiset ≥0.7 + 长度比 ≥1.10，新增第 6 层 LCS（最长公共子序列）兜底（≥0.65，长内容首尾截断 O(m·n) 防退化）；``findMatchingTextNodeId`` 在 closed 节点时放宽匹配为「严格相等 ∨ 严格前缀 ∨ multiset 覆盖 ≥0.75」。
+  2. **双内容根因**：``isStreamingDuplicateOfLater`` 阈值放宽至 multiset ≥0.7 + 长度比 ≥1.10，新增第 6 层 LCS（最长公共子序列）兜底（≥0.65，长内容首尾截断 O(m·n) 防退化）；``findMatchingTextNodeId`` 在 closed 节点时放宽匹配为「严格相等 ∨ 严格前缀 ∨ multiset 覆盖 ≥0.75」。注：与 ISSUE-065 Layer 6 聚合判据（earlier vs aggregate-of-laters）正交，本次的 LCS 是同段两两比较的"顺序+字符"维度补强。
   3. **推理内容**：``ReasoningStepData`` / ``ReplyReasoningDisplaySegment`` 增加 ``content?``/``result?`` 字段；``ReasoningStep`` 在展开态渲染 content（``whitespace-pre-wrap``）+ result（``pre`` 限高滚动）；``conversation-tree`` 对 ``ne.a2ui.thought`` 调用 ``findLatestReasoningNode`` 把 thought.text 累积写入 reasoning 节点 ``payload.content``；``createReplyReasoningSegment`` 透传 content（fallback 至 ``node.summary``）；``mergeSteps`` 在 started→finished 时合并两侧 content。
   4. **排序乱序**：``compareLedgerEntriesByTime`` 同时间戳新增 role 优先级（``user < system < developer < assistant < tool``）；``conversation-tree`` children 排序同步加入 role 维度；``chat-display`` blocks 排序在 1s 时钟漂移容忍窗口内让 user message 优先于 assistant-reply / tool-group。
   5. **测试**：12 个新增用例覆盖等待占位 3 + 推理 content 渲染/合并 3 + 同时间戳 user 排序 1 + LCS 函数 5；全套 580 单测通过；浏览器实机验证刷新后 user→assistant 顺序保持正确，推理面板展开能看到具体内容，无重复气泡。
