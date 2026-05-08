@@ -1590,3 +1590,31 @@
   1. UI 只展示真实可观测推理文本或结构化 result，严禁把 lifecycle summary 当作推理正文；
   2. 新增模型族时必须同步维护 Thinking 能力映射，并用单测锁定「支持时注入 / 不支持时不注入」；
   3. CUSTOM 事件如果承载业务语义，必须具备「早到缓冲」策略，避免同 timestamp 排序或流式抖动造成信息丢失。
+
+---
+
+## ISSUE-076 pnpm v11 升级后 `pnpm install` 报 `ERR_PNPM_IGNORED_BUILDS` + `package.json#pnpm.overrides` 静默失效（2026-05-08）
+
+- **表因**：开发者在 `apps/negentropy-ui` / `apps/negentropy-wiki` 执行 `pnpm install` 时报错 `[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.25.12, sharp@0.34.5, unrs-resolver@1.11.1`，CLI 提示 `Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.`，原生依赖的 postinstall 全部被拦截。
+- **根因**：当前环境 pnpm 版本升至 `v11.0.8`，相较 v10 引入两项破坏性变更<sup>[[1]](#ref1-pnpm-v11)</sup>：
+  1. `strictDepBuilds` 默认变为 `true`，且废弃 `onlyBuiltDependencies` / `neverBuiltDependencies` / `ignoredBuiltDependencies` / `ignoreDepScripts`，统一收敛为 `allowBuilds: { <pkg>: true|false }` map；
+  2. **`package.json` 中的 `pnpm` 字段不再被读取**，所有 pnpm 配置（包括 `overrides`）必须迁移到 `pnpm-workspace.yaml`。
+  仓库现有 `apps/negentropy-ui/package.json#pnpm.overrides`（含 `@ag-ui/client`、`uuid`、`postcss` 等 10 项 CVE / 兼容性修订）与 `apps/negentropy-wiki/package.json#pnpm.overrides`（`postcss>=8.5.10`）均位于已被废弃的位置；`negentropy-wiki/pnpm-workspace.yaml` 虽已声明 `allowBuilds`，但缺 `esbuild` 一项。
+- **处理方式**：
+  1. 在 `apps/negentropy-ui/pnpm-workspace.yaml`（新建）与 `apps/negentropy-wiki/pnpm-workspace.yaml`（补齐）中显式声明 `allowBuilds: { esbuild: true, sharp: true, unrs-resolver: true }`；
+  2. 同步把两份 `package.json#pnpm.overrides` **完整迁移**到对应 `pnpm-workspace.yaml`（`negentropy-ui` 含 10 条安全 / 兼容性 override，`negentropy-wiki` 含 1 条 postcss override），随后删除 `package.json#pnpm` 字段；
+  3. 还原迁移过程中产生的 `pnpm-lock.yaml` 副作用（曾因 overrides 失效短暂回退到 `@ag-ui/client@0.0.42` / `uuid@11.1.1` / `postcss@8.4.31`），通过 `git checkout` lockfile + 重新 `pnpm install` 验证 lockfile 零 diff、二次执行幂等返回 `Already up to date`。
+- **后续防范**：
+  1. **包管理器主版本升级遵循「同步迁移所有相关字段」纪律**：v11 的迁移不是单点改 `allowBuilds` 即可——必须把 `package.json#pnpm` 下所有子字段（`overrides` / `patchedDependencies` / `peerDependencyRules` / `packageExtensions` 等）一并迁移到 `pnpm-workspace.yaml`，否则会被 v11 静默忽略，破坏面隐性大于报错本身（错误能看见，但 overrides 失效只能在 lockfile diff 中察觉）；
+  2. **优先验证 lockfile 是否产生非预期 diff**：每次包管理配置改动后，`git diff pnpm-lock.yaml` 必须复核——如果出现版本回退（例如旧版 `@ag-ui/client@0.0.42`、`uuid@11.1.1`），多半是 overrides 配置失效；
+  3. **官方 codemod 可作为兜底**：pnpm 提供 `pnpx codemod run pnpm-v10-to-v11` 自动把 `package.json#pnpm` 迁移到 `pnpm-workspace.yaml`<sup>[[2]](#ref2-pnpm-migration)</sup>；手工迁移时务必逐项核对，不要遗漏 overrides；
+  4. **monorepo 多 app 仓库需逐个 app 检查**：本次发现 `negentropy-wiki/pnpm-workspace.yaml` 早期已部分迁移但仍漏 `esbuild` 一项，证明零散的「部分迁移」会沉淀为新熵源——升级类工作应一次性完成全仓核对。
+- **同类问题影响**：
+  1. 任何依赖 `package.json#pnpm.<field>` 的脚本 / CI 检查 / 安全扫描脚手架在升级到 pnpm v11 之后都需要审视配置位置；
+  2. Renovate / Dependabot 升级 pnpm 主版本的 PR 必须额外验证 `pnpm-workspace.yaml` 与 `package.json#pnpm` 的并存与权威性，否则升级后看似成功、实则 overrides 已失效；
+  3. CI 中如使用 `pnpm install --frozen-lockfile`，配置失效只会反映在 lockfile 校验通过 / 失败两态——对 lockfile 已被旧版主分支锁定的场景（开发者本地侥幸通过、CI 重生成 lock 反而触发 diff），症状会延后暴露；
+  4. CHANGELOG 应追加「依赖管理：迁移 pnpm 配置至 v11 规范」条目，与 [`apps/negentropy-ui/CHANGELOG.md`](../apps/negentropy-ui/CHANGELOG.md) / [`apps/negentropy-wiki/CHANGELOG.md`](../apps/negentropy-wiki/CHANGELOG.md) 现行结构对齐。
+
+<a id="ref1-pnpm-v11"></a>[1] pnpm contributors, "pnpm 11.0," _pnpm Blog_, 2026. [Online]. Available: https://pnpm.io/blog/releases/11.0
+
+<a id="ref2-pnpm-migration"></a>[2] pnpm contributors, "Migrating from v10 to v11," _pnpm Documentation_, 2026. [Online]. Available: https://pnpm.io/migration
