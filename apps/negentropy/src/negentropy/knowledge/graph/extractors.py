@@ -138,23 +138,63 @@ Output as JSON with the following structure:
             fallback_to_regex: 失败时是否回退到正则提取器
             schema: ExtractionSchema 实例，用于约束提取类型
         """
-        self._model, self._model_kwargs = self._resolve_model_config(model)
+        # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
+        # 因为 __init__ 是同步的，无法调用异步 DB 查询
+        self._explicit_model = model
+        self._model: str | None = None
+        self._model_kwargs: dict[str, Any] = {}
+        self._model_config_resolved = False
+        self._model_config_lock: asyncio.Lock | None = None
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_regex = fallback_to_regex
         self._schema = schema
 
-    @staticmethod
-    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
-        if explicit_model:
-            return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+    async def _ensure_model_config(self) -> None:
+        """异步解析模型配置（含 api_key）。
 
-        cached = get_cached_llm_config()
-        if cached is not None:
-            return cached[0], cached[1]
-        return get_fallback_llm_config()
+        解析链：resolve_llm_config_by_model_name → resolve_llm_config → get_fallback_llm_config。
+        使用双重检查锁保证并发安全，Lock 惰性创建避免 event loop 问题。
+        """
+        if self._model_config_resolved:
+            return
+
+        if self._model_config_lock is None:
+            self._model_config_lock = asyncio.Lock()
+
+        async with self._model_config_lock:
+            if self._model_config_resolved:
+                return
+
+            model_name: str | None = None
+            model_kwargs: dict[str, Any] = {}
+
+            try:
+                if self._explicit_model:
+                    from negentropy.config.model_resolver import resolve_llm_config_by_model_name
+
+                    resolved = await resolve_llm_config_by_model_name(self._explicit_model)
+                    if resolved is not None:
+                        model_name, model_kwargs = resolved
+                if model_name is None:
+                    from negentropy.config.model_resolver import resolve_llm_config
+
+                    model_name, model_kwargs = await resolve_llm_config()
+            except Exception:
+                logger.warning(
+                    "model_config_async_resolve_failed",
+                    explicit_model=self._explicit_model,
+                    exc_info=True,
+                )
+
+            if model_name is None:
+                from negentropy.config.model_resolver import get_fallback_llm_config
+
+                model_name, model_kwargs = get_fallback_llm_config()
+
+            self._model = model_name
+            self._model_kwargs = model_kwargs
+            self._model_config_resolved = True
 
     async def extract(
         self,
@@ -172,6 +212,8 @@ Output as JSON with the following structure:
         Returns:
             提取的实体节点列表
         """
+        await self._ensure_model_config()
+
         logger.debug(
             "llm_extract_entities_started",
             corpus_id=str(corpus_id),
@@ -455,23 +497,62 @@ Output as JSON with the following structure:
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
             schema: ExtractionSchema 实例，用于约束关系类型
         """
-        self._model, self._model_kwargs = self._resolve_model_config(model)
+        # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
+        self._explicit_model = model
+        self._model: str | None = None
+        self._model_kwargs: dict[str, Any] = {}
+        self._model_config_resolved = False
+        self._model_config_lock: asyncio.Lock | None = None
         self._temperature = temperature
         self._max_retries = max_retries
         self._fallback_to_cooccurrence = fallback_to_cooccurrence
         self._schema = schema
 
-    @staticmethod
-    def _resolve_model_config(explicit_model: str | None) -> tuple[str, dict]:
-        """解析模型配置（DB 优先，硬编码默认值回退）。返回 (model_name, extra_kwargs)。"""
-        if explicit_model:
-            return explicit_model, {}
-        from negentropy.config.model_resolver import get_cached_llm_config, get_fallback_llm_config
+    async def _ensure_model_config(self) -> None:
+        """异步解析模型配置（含 api_key）。
 
-        cached = get_cached_llm_config()
-        if cached is not None:
-            return cached[0], cached[1]
-        return get_fallback_llm_config()
+        解析链：resolve_llm_config_by_model_name → resolve_llm_config → get_fallback_llm_config。
+        使用双重检查锁保证并发安全，Lock 惰性创建避免 event loop 问题。
+        """
+        if self._model_config_resolved:
+            return
+
+        if self._model_config_lock is None:
+            self._model_config_lock = asyncio.Lock()
+
+        async with self._model_config_lock:
+            if self._model_config_resolved:
+                return
+
+            model_name: str | None = None
+            model_kwargs: dict[str, Any] = {}
+
+            try:
+                if self._explicit_model:
+                    from negentropy.config.model_resolver import resolve_llm_config_by_model_name
+
+                    resolved = await resolve_llm_config_by_model_name(self._explicit_model)
+                    if resolved is not None:
+                        model_name, model_kwargs = resolved
+                if model_name is None:
+                    from negentropy.config.model_resolver import resolve_llm_config
+
+                    model_name, model_kwargs = await resolve_llm_config()
+            except Exception:
+                logger.warning(
+                    "model_config_async_resolve_failed",
+                    explicit_model=self._explicit_model,
+                    exc_info=True,
+                )
+
+            if model_name is None:
+                from negentropy.config.model_resolver import get_fallback_llm_config
+
+                model_name, model_kwargs = get_fallback_llm_config()
+
+            self._model = model_name
+            self._model_kwargs = model_kwargs
+            self._model_config_resolved = True
 
     async def extract(
         self,
@@ -487,6 +568,8 @@ Output as JSON with the following structure:
         Returns:
             提取的关系边列表
         """
+        await self._ensure_model_config()
+
         logger.debug(
             "llm_extract_relations_started",
             entity_count=len(entities),
