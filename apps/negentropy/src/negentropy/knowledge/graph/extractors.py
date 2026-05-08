@@ -212,6 +212,8 @@ Output as JSON with the following structure:
         Returns:
             提取的实体节点列表
         """
+        await self._ensure_model_config()
+
         logger.debug(
             "llm_extract_entities_started",
             corpus_id=str(corpus_id),
@@ -280,8 +282,6 @@ Output as JSON with the following structure:
         Returns:
             实体提取结果列表
         """
-        await self._ensure_model_config()
-
         import litellm
 
         # 截断文本以避免 token 限制
@@ -568,6 +568,8 @@ Output as JSON with the following structure:
         Returns:
             提取的关系边列表
         """
+        await self._ensure_model_config()
+
         logger.debug(
             "llm_extract_relations_started",
             entity_count=len(entities),
@@ -653,8 +655,6 @@ Output as JSON with the following structure:
         Returns:
             关系提取结果列表
         """
-        await self._ensure_model_config()
-
         import litellm
 
         # 提取实体名称
