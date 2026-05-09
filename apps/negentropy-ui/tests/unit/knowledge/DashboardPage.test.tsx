@@ -141,7 +141,9 @@ describe("KnowledgeDashboardPage polling", () => {
       await vi.advanceTimersByTimeAsync(10000);
     });
     await settle();
-    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(4);
+    // Bootstrap polling 不再为 active runs 启动（避免与 running-state 重叠），
+    // 仅 running-state 5s interval 轮询：1 initial + 5s + 10s = 3 calls
+    expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(3);
   });
 
   it("桌面端使用固定双栏 grid，并为长内容提供收敛样式", async () => {
