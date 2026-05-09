@@ -1239,4 +1239,11 @@ describe("session-hydration", () => {
       expect(syntheticTurn).toBeUndefined();
     });
   });
+
+  // Phase 2 (hydration invocationId → runId 映射) 实测分析：
+  // 2026-05-09 浏览器实机验证发现，ADK 后端每个 event 都有独立 invocationId（如
+  // functionCall / functionResponse / text 各自一个）。若直接将 invocationId 映射为
+  // runId，下游 collapseOverlappingTurns 拒绝双 concrete turn 折叠，导致单逻辑回合
+  // 被分裂为 3+ reply block。修复必须配合 turn 模型重构（按 user-message 切分 turn），
+  // 详见 docs/home-chat-rendering-rca.md "Phase 3" 段落。
 });
