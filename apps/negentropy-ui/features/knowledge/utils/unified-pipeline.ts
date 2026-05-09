@@ -245,11 +245,19 @@ export function mergeAndSortRuns(
 }
 
 /**
- * 检测运行中（KB 或 KG）的 run
+ * 检测活跃 run（运行中 / 待启动 / 取消中），用于触发轮询。
+ *
+ * `cancelling` 也视为活跃，因为前端需要持续轮询观察其收敛到 `cancelled` 终态
+ * （task 在检查点退出后写终态，最长 < 一个 stage / phase 周期）。
  */
 export function hasActiveRuns(runs: UnifiedPipelineRun[]): boolean {
   return runs.some((run) => {
     const status = run.status?.toLowerCase();
-    return status === "running" || status === "in_progress" || status === "pending";
+    return (
+      status === "running" ||
+      status === "in_progress" ||
+      status === "pending" ||
+      status === "cancelling"
+    );
   });
 }

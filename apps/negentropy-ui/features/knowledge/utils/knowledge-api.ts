@@ -986,6 +986,60 @@ export async function fetchDashboard(
 }
 
 // ============================================================================
+// Pipeline Run Cancel
+// ============================================================================
+
+/** Cancel API 响应（KB & KG 共用）。`status` ∈ {cancelling, cancelled, noop}。 */
+export interface PipelineCancelResult {
+  status: "cancelling" | "cancelled" | "noop";
+  run_id: string;
+  in_process: boolean;
+  record: Record<string, unknown>;
+}
+
+/**
+ * 取消正在运行的 Pipeline Run（KB 或 KG）。
+ *
+ * - KB: `POST /api/knowledge/pipelines/{run_id}/cancel`
+ * - KG: `POST /api/knowledge/base/{corpus_id}/graph/runs/{run_id}/cancel`
+ *
+ * 立即返回 cancelling/cancelled/noop，task 在下个检查点退出。前端轮询观察终态。
+ */
+export async function cancelPipelineRun(
+  runId: string,
+  source: "kb" | "kg",
+  opts?: { corpusId?: string; appName?: string; reason?: string },
+): Promise<PipelineCancelResult> {
+  if (source === "kg" && !opts?.corpusId) {
+    throw new Error("cancelPipelineRun: corpusId is required for KG runs");
+  }
+  const url =
+    source === "kb"
+      ? `/api/knowledge/pipelines/${encodeURIComponent(runId)}/cancel`
+      : `/api/knowledge/base/${encodeURIComponent(opts!.corpusId!)}/graph/runs/${encodeURIComponent(runId)}/cancel`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify({
+      app_name: opts?.appName,
+      reason: opts?.reason ?? "user_cancel",
+    }),
+  });
+  if (res.status === 404) {
+    throw new Error("Pipeline run not found");
+  }
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(`Run already in terminal state: ${body?.detail ?? res.statusText}`);
+  }
+  if (!res.ok) {
+    throw new Error(`Failed to cancel pipeline run: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
 // Corpus (Knowledge Base)
 // ============================================================================
 

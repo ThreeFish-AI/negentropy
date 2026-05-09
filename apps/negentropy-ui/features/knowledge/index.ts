@@ -39,6 +39,7 @@ export type {
 
 export {
   fetchDashboard,
+  cancelPipelineRun,
   fetchCorpora,
   createCorpus,
   fetchCorpus,
@@ -132,6 +133,7 @@ export type {
   SearchConfig,
   KnowledgeErrorResponse,
   KnowledgeDashboard,
+  PipelineCancelResult,
   CorpusRecord,
   ExtractorSourceKind,
   McpExtractorTargetConfig,
