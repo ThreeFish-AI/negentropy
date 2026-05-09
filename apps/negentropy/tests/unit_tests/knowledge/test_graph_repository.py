@@ -94,18 +94,20 @@ class TestAgeGraphRepository:
 
     @pytest.mark.asyncio
     async def test_create_entities_batch(self, repository, mock_session, sample_entity):
-        """create_entities 应批量创建实体"""
+        """create_entities 应批量创建实体（单 Session 批量提交）"""
         entities = [
             sample_entity,
             GraphNode(id="entity:second", label="Second", node_type="person"),
         ]
 
-        with patch.object(repository, "create_entity") as mock_create:
-            mock_create.return_value = "entity:id"
-            ids = await repository.create_entities(entities, _CORPUS_ID)
+        ids = await repository.create_entities(entities, _CORPUS_ID)
 
-            assert len(ids) == 2
-            assert mock_create.call_count == 2
+        assert len(ids) == 2
+        assert ids[0] == sample_entity.id
+        assert ids[1] == "entity:second"
+        # 批量提交：每个 entity 一次 execute，最后一次 commit
+        assert mock_session.execute.call_count == 2
+        mock_session.commit.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_relation_stores_in_metadata(self, repository, mock_session, sample_edge):

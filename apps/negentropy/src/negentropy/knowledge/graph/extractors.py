@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
+import tiktoken
+
 from negentropy.logging import get_logger
 
 if TYPE_CHECKING:
@@ -32,6 +34,31 @@ if TYPE_CHECKING:
 from ..types import GraphEdge, GraphNode, KgEntityType, KgRelationType
 
 logger = get_logger("negentropy.knowledge.llm_extractors")
+
+_DEFAULT_ENCODING = "cl100k_base"
+_encoding_cache: tiktoken.Encoding | None = None
+
+
+def _get_tiktoken_encoding() -> tiktoken.Encoding:
+    global _encoding_cache
+    if _encoding_cache is None:
+        _encoding_cache = tiktoken.get_encoding(_DEFAULT_ENCODING)
+    return _encoding_cache
+
+
+def _truncate_to_token_limit(text: str, max_tokens: int = 3500) -> str:
+    """基于 BPE token 计数的截断（替代字符截断 text[:4000]）。
+
+    字符截断的问题：
+    - 英文 ~4 chars/token → 4000 chars ≈ 1000 tokens（远低于模型限制）
+    - CJK ~2 chars/token → 4000 chars ≈ 2000 tokens（仍有溢出风险）
+    Token 截断确保上下文利用率最优且不超限。
+    """
+    encoding = _get_tiktoken_encoding()
+    tokens = encoding.encode(text)
+    if len(tokens) <= max_tokens:
+        return text
+    return encoding.decode(tokens[:max_tokens])
 
 
 # Backward compatibility aliases (deprecated: use KgEntityType/KgRelationType from types.py)
@@ -289,8 +316,8 @@ Output as JSON with the following structure:
         """
         import litellm
 
-        # 截断文本以避免 token 限制
-        truncated_text = text[:4000] if len(text) > 4000 else text
+        # Token 感知截断：英文 4000 chars ≈ 1000 token（浪费），CJK 4000 chars ≈ 2000 token（风险）
+        truncated_text = _truncate_to_token_limit(text, max_tokens=3500)
 
         prompt = self.EXTRACTION_PROMPT.format(text=truncated_text)
 
@@ -679,7 +706,7 @@ Output as JSON with the following structure:
         entity_names = entity_names[:50]
 
         # 截断文本
-        truncated_text = text[:4000] if len(text) > 4000 else text
+        truncated_text = _truncate_to_token_limit(text, max_tokens=3500)
 
         prompt = self.EXTRACTION_PROMPT.format(
             entity_names=json.dumps(entity_names, ensure_ascii=False),
