@@ -1003,6 +1003,9 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
     if (typeDiff !== 0) {
       return typeDiff;
     }
+    // ISSUE-042: localeCompare 作为最终兜底是可接受的——走到这里时
+    // timestamp / sourceOrder / typeDiff 均已相等，仅剩同类型不同 id 的块。
+    // id 格式为 "assistant-reply:${turnId}:${msgId}"，不同 id 的排序对用户体验无影响。
     return left.id.localeCompare(right.id);
   });
 

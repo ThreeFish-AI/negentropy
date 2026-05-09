@@ -920,10 +920,28 @@ export function buildConversationTree(
     });
   });
 
+  // ISSUE-042 补丁：conversation-tree 的 sort tiebreaker 同样曾用 localeCompare，
+  // 与 message-ledger.ts 和 session-hydration.ts 的同类问题一致。此处改用事件类型权重。
+  const EVENT_TYPE_ORDER: Record<string, number> = {
+    [EventType.RUN_STARTED]: 0,
+    [EventType.STEP_STARTED]: 1,
+    [EventType.TEXT_MESSAGE_START]: 2,
+    [EventType.TEXT_MESSAGE_CONTENT]: 3,
+    [EventType.TEXT_MESSAGE_END]: 4,
+    [EventType.TOOL_CALL_START]: 5,
+    [EventType.TOOL_CALL_ARGS]: 6,
+    [EventType.TOOL_CALL_END]: 7,
+    [EventType.TOOL_CALL_RESULT]: 8,
+    [EventType.STEP_FINISHED]: 9,
+    [EventType.RUN_FINISHED]: 10,
+    [EventType.RUN_ERROR]: 11,
+  };
   const orderedEvents = [...events].sort((a, b) => {
     const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
     if (timeDiff !== 0) return timeDiff;
-    return String(a.type).localeCompare(String(b.type));
+    const aOrder = EVENT_TYPE_ORDER[String(a.type)] ?? 50;
+    const bOrder = EVENT_TYPE_ORDER[String(b.type)] ?? 50;
+    return aOrder - bOrder;
   });
 
   orderedEvents.forEach((event, eventIndex) => {
