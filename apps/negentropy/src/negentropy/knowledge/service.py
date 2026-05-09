@@ -842,6 +842,7 @@ class KnowledgeService:
                 metadata=meta,
                 chunking_config=chunking_config or self._chunking_config,
                 tracker=tracker,
+                document_id=doc_record.id,
             )
             await tracker.complete({"chunk_count": len(records), "document_id": str(doc_record.id)})
 
@@ -990,6 +991,7 @@ class KnowledgeService:
                 metadata=normalize_source_metadata(source_uri=source_uri, metadata=metadata),
                 chunking_config=config,
                 tracker=tracker,
+                document_id=document_id,
             )
             await tracker.complete(
                 {
@@ -1558,8 +1560,15 @@ class KnowledgeService:
         metadata: dict[str, Any] | None = None,
         chunking_config: ChunkingConfig | None = None,
         tracker: PipelineTracker | None = None,
+        document_id: UUID | None = None,
     ) -> list[KnowledgeRecord]:
-        """内部方法：执行文本摄入，支持可选的 Pipeline 追踪"""
+        """内部方法：执行文本摄入，支持可选的 Pipeline 追踪。
+
+        ``document_id``（ISSUE-078 Phase 3）：仅当 ingest 入口能拿到 doc 上下文
+        （URL-as-document / 文件 ingest）时传入；为每个 chunk 建立 FK 关联，让 DB
+        层的 ``ON DELETE CASCADE`` 在 doc 删除时自动级联清理 chunks。
+        其他无 doc 来源的入口（纯文本、URL、replace、rebuild）保留 None。
+        """
         config = chunking_config or self._chunking_config
         # Corpus 级 Embedding 模型解析：存在则按需构建 fn，否则回退 service 默认。
         corpus_record = await self._repository.get_corpus_by_id(corpus_id)
@@ -1575,6 +1584,13 @@ class KnowledgeService:
             metadata=metadata,
             chunking_config=config,
         )
+
+        # ISSUE-078 Phase 3：单点 stamp document_id，避免大面积改造 _build_chunks
+        # 与其他下游函数；KnowledgeChunk 是 frozen dataclass，用 dataclasses.replace。
+        if document_id is not None:
+            from dataclasses import replace as _dc_replace
+
+            chunks = [_dc_replace(c, document_id=document_id) for c in chunks]
 
         if tracker:
             await tracker.complete_stage(
@@ -3167,32 +3183,39 @@ class KnowledgeService:
         if not record_list:
             return
 
-        storage_service = DocumentStorageService()
-        document = await storage_service.get_document_by_source_uri(
-            source_uri=source_uri,
-            corpus_id=corpus_id,
-            app_name=app_name,
-        )
-        if not document:
-            return
+        try:
+            storage_service = DocumentStorageService()
+            document = await storage_service.get_document_by_source_uri(
+                source_uri=source_uri,
+                corpus_id=corpus_id,
+                app_name=app_name,
+            )
+            if not document:
+                return
 
-        total_characters = sum(item.character_count for item in record_list)
-        avg_length = int(total_characters / len(record_list)) if record_list else 0
-        metadata_patch = {
-            "chunk_stats": {
-                "chunk_specification": getattr(chunking_config.strategy, "value", str(chunking_config.strategy)),
-                "chunk_length": avg_length,
-                "avg_paragraph_length": avg_length,
-                "paragraph_count": len(record_list),
-                "embedding_time_ms": None,
-                "embedded_tokens": int(total_characters / 4),
-                "last_chunked_at": datetime.now(UTC).isoformat(),
+            total_characters = sum(item.character_count for item in record_list)
+            avg_length = int(total_characters / len(record_list)) if record_list else 0
+            metadata_patch = {
+                "chunk_stats": {
+                    "chunk_specification": getattr(chunking_config.strategy, "value", str(chunking_config.strategy)),
+                    "chunk_length": avg_length,
+                    "avg_paragraph_length": avg_length,
+                    "paragraph_count": len(record_list),
+                    "embedding_time_ms": None,
+                    "embedded_tokens": int(total_characters / 4),
+                    "last_chunked_at": datetime.now(UTC).isoformat(),
+                }
             }
-        }
-        await storage_service.update_document_metadata(
-            document_id=document.id,
-            metadata_patch=metadata_patch,
-        )
+            await storage_service.update_document_metadata(
+                document_id=document.id,
+                metadata_patch=metadata_patch,
+            )
+        except Exception:
+            logger.warning(
+                "sync_document_chunk_stats_failed",
+                source_uri=source_uri,
+                corpus_id=str(corpus_id),
+            )
 
     def _merge_matches(
         self,

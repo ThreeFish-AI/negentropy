@@ -75,6 +75,13 @@ class KnowledgeChunk:
     """知识块
 
     表示待索引的文本分块，包含内容和元数据。
+
+    ``document_id``（ISSUE-078 Phase 3）：指向写入来源 ``KnowledgeDocument`` 的
+    UUID，仅当 ingest 入口能拿到 doc 上下文（``execute_ingest_url_document_pipeline``
+    与 ``execute_ingest_file_pipeline``）时填充；纯文本/URL ingest、replace、
+    rebuild、KG 类直连知识等无 doc 来源的入口保留 None。Knowledge 表通过 FK
+    ``ON DELETE CASCADE`` 让 doc 删除自动清理 chunks，与 Phase 2 应用层级联形成
+    belt-and-suspenders。
     """
 
     content: str
@@ -82,6 +89,7 @@ class KnowledgeChunk:
     chunk_index: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
     embedding: list[float] | None = None
+    document_id: UUID | None = None
 
 
 @dataclass(frozen=True)

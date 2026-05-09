@@ -143,6 +143,8 @@ class KnowledgeRepository:
             return []
 
         # 准备批量插入数据
+        # ``document_id``（ISSUE-078 Phase 3）：仅当 ingest 入口能拿到 doc 上下文时填充，
+        # 否则保留 None；DB 层 FK ``ON DELETE CASCADE`` 让 doc 删除时自动级联清理 chunks。
         values = [
             {
                 "corpus_id": corpus_id,
@@ -155,6 +157,7 @@ class KnowledgeRepository:
                 "retrieval_count": 0,
                 "is_enabled": True,
                 "metadata_": chunk.metadata or {},
+                "document_id": chunk.document_id,
             }
             for chunk in chunk_list
         ]

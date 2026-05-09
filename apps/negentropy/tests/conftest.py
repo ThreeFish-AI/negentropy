@@ -5,6 +5,13 @@ from negentropy.config import settings
 from negentropy.db import deps as db_deps
 from negentropy.db import session as db_session
 
+# Modules that use `from negentropy.db.session import AsyncSessionLocal` —
+# the name binding at import time is not updated by monkeypatching db_session,
+# so each must be patched individually.
+from negentropy.knowledge import api as _knowledge_api
+from negentropy.scripts import cleanup_orphan_knowledge as _cleanup_script
+from negentropy.storage import service as _storage_service
+
 
 @pytest.fixture(scope="function")
 async def db_engine():
@@ -44,5 +51,10 @@ async def patch_db_globals(db_engine, monkeypatch):
 
     # Also patch deps.AsyncSessionLocal because it imports it directly
     monkeypatch.setattr(db_deps, "AsyncSessionLocal", TestAsyncSessionLocal)
+
+    # Patch storage.service.AsyncSessionLocal — it uses `from ... import AsyncSessionLocal`
+    # which binds the name at import time, so monkeypatching db_session alone is insufficient.
+    for mod in (_storage_service, _cleanup_script, _knowledge_api):
+        monkeypatch.setattr(mod, "AsyncSessionLocal", TestAsyncSessionLocal)
 
     yield
