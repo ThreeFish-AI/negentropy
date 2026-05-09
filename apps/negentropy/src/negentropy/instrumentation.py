@@ -12,59 +12,27 @@ from opentelemetry import trace
 
 from negentropy.config.pricing import get_effective_model_pricing_usd, get_last_online_catalog_error
 from negentropy.logging import get_logger
-from negentropy.model_names import canonicalize_model_name
+from negentropy.model_names import extract_vendor, observability_model_name
 
 
-def _normalize_model_name(model: str) -> str:
-    """Normalize model name for consistent Langfuse reporting."""
-    return canonicalize_model_name(model) or model
+def _normalize_model_name(model: str | None) -> str | None:
+    """规范化模型名用于 Langfuse 上报（裸名 + 剥日期 + 别名）。
+
+    与调度路径的 ``canonicalize_model_name`` 正交：调度需要保留 ``vendor/``
+    前缀以驱动 LiteLLM 选择真实 API；观测需要裸名以让 Langfuse 把同一模型
+    聚合到单一 cost 行。两套口径分别落在 ``model_names`` 模块。
+    """
+    if model is None:
+        return None
+    normalized = observability_model_name(model)
+    return normalized if normalized else model
 
 
 # ----------------------------------------------------------------------------
 # P3-3 · OpenTelemetry GenAI Semantic Conventions 1.28+
 # ----------------------------------------------------------------------------
 # 标准属性键参考：https://opentelemetry.io/docs/specs/semconv/gen-ai/
-# 实施动机详见 docs/observability-genai.md。
-
-_GENAI_SYSTEM_PREFIX_MAP: dict[str, str] = {
-    # OpenAI 系
-    "openai/": "openai",
-    "gpt-": "openai",
-    "o1-": "openai",
-    "o3-": "openai",
-    # Anthropic 系
-    "anthropic/": "anthropic",
-    "claude-": "anthropic",
-    # Google 系
-    "gemini/": "gemini",
-    "gemini-": "gemini",
-    "vertex_ai/": "vertex_ai",
-    # Mistral 系
-    "mistral/": "mistral",
-    # Cohere 系
-    "cohere/": "cohere",
-    # Meta / Llama 系
-    "llama-": "meta",
-    "ollama/": "ollama",
-    # Groq 系
-    "groq/": "groq",
-    # DeepSeek 系
-    "deepseek/": "deepseek",
-}
-
-
-def _detect_genai_system(model: str | None) -> str | None:
-    """根据模型名前缀映射到 OTel GenAI semconv ``gen_ai.system`` 值。
-
-    返回 None 表示无法识别 —— span 上不写该 attribute（避免污染未知值）。
-    """
-    if not model:
-        return None
-    lowered = str(model).lower()
-    for prefix, system in _GENAI_SYSTEM_PREFIX_MAP.items():
-        if lowered.startswith(prefix):
-            return system
-    return None
+# vendor 与裸名的单一事实源：``negentropy.model_names``。本文件仅作 OTel 注入。
 
 
 def _inject_genai_semconv_attrs(
@@ -88,7 +56,8 @@ def _inject_genai_semconv_attrs(
     try:
         model = kwargs.get("model")
         normalized_model = _normalize_model_name(model) if model else None
-        system = _detect_genai_system(normalized_model or model)
+        # vendor 优先用原串前缀（最可靠），落空再用裸名系族识别。
+        system = extract_vendor(model) or extract_vendor(normalized_model)
 
         if system:
             _safe_set_span_attribute(span, "gen_ai.system", system)
@@ -389,21 +358,44 @@ def patch_litellm_otel_cost() -> None:
 
         original_set_attributes(self, span, kwargs, response_obj)
         try:
-            # Normalize model name for consistent Langfuse reporting
-            model = kwargs.get("model", "unknown")
-            normalized_model = _normalize_model_name(model)
+            # 模型名归一化用于 Langfuse Model Costs 视图聚合。
+            # 同 key set_attribute 是覆盖语义，无条件写以确保 alias 表生效。
+            model = kwargs.get("model")
+            normalized_model = _normalize_model_name(model) if model else None
             response_model = None
             if response_obj is not None and hasattr(response_obj, "get"):
-                response_model = response_obj.get("model")
+                try:
+                    response_model = response_obj.get("model")
+                except Exception:
+                    response_model = None
+            if response_model is None and response_obj is not None:
+                response_model = getattr(response_obj, "model", None)
             normalized_response_model = _normalize_model_name(response_model) if response_model else None
 
             if not _is_writable_span(span):
                 return
 
-            if normalized_model != model:
+            if normalized_model:
                 _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
-            if normalized_response_model and normalized_response_model != response_model:
+            if normalized_response_model:
                 _safe_set_span_attribute(span, "gen_ai.response.model", normalized_response_model)
+
+            # vendor 单一事实源：原串前缀优先，否则裸名系族识别。
+            system = extract_vendor(model) or extract_vendor(response_model)
+            if system:
+                _safe_set_span_attribute(span, "gen_ai.system", system)
+
+            # Langfuse 私有强制覆盖键：胜过 ai.response.model / gen_ai.response.model，
+            # 让 Model Costs 视图收敛到同一裸名行。优先用 response.model（含具体版本，
+            # 经归一化后仍是裸名），落空再用 request.model。
+            langfuse_model = normalized_response_model or normalized_model
+            if langfuse_model:
+                _safe_set_span_attribute(span, "langfuse.observation.model.name", langfuse_model)
+
+            # 保留诊断：原始字符串挂在 span 上，便于排查「实际调用了哪个具体版本」，
+            # 与归一化后的聚合键并存不冲突。
+            if model:
+                _safe_set_span_attribute(span, "gen_ai.original_model", str(model))
 
             # Extract and inject cost
             cost = _extract_total_cost(kwargs, response_obj)
