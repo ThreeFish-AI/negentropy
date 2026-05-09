@@ -7,6 +7,7 @@ Graph Service 单元测试
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
@@ -385,7 +386,8 @@ class FakeGraphRepository:
         return []
 
 
-def _build_graph_patches(repository):
+@contextmanager
+def _patch_build_graph(repository):
     """为 build_graph 测试创建共享 Session mock + AgeGraphRepository mock。
 
     build_graph 内部通过 AsyncSessionLocal() 创建共享 Session、再构造
@@ -395,20 +397,11 @@ def _build_graph_patches(repository):
     mock_session = AsyncMock()
     mock_session.in_transaction = MagicMock(return_value=False)
     mock_session.is_active = True
-    return (
+    with (
         patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session),
         patch("negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository),
-    )
-
-
-def _patch_build_graph(repository):
-    """返回用于 with 语句的 patch 上下文管理器。"""
-    mock_session = AsyncMock()
-    mock_session.in_transaction = MagicMock(return_value=False)
-    mock_session.is_active = True
-    return patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session), patch(
-        "negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository
-    )
+    ):
+        yield
 
 
 @pytest.mark.asyncio
@@ -416,13 +409,7 @@ async def test_build_graph_persists_canonical_model_name():
     repository = FakeGraphRepository()
     service = GraphService(repository=repository, config=GraphBuildConfig(llm_model="openai/gpt-5-mini"))
 
-    mock_session = AsyncMock()
-    mock_session.in_transaction = MagicMock(return_value=False)
-    mock_session.is_active = True
-    with (
-        patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session),
-        patch("negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository),
-    ):
+    with _patch_build_graph(repository):
         result = await service.build_graph(
             corpus_id=uuid4(),
             app_name="test-app",
@@ -494,13 +481,7 @@ async def test_build_graph_emits_phase_milestones_in_order():
     repository = PhaseTrackingFakeRepository()
     service = GraphService(repository=repository, config=GraphBuildConfig(llm_model="openai/gpt-5-mini"))
 
-    mock_session = AsyncMock()
-    mock_session.in_transaction = MagicMock(return_value=False)
-    mock_session.is_active = True
-    with (
-        patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session),
-        patch("negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository),
-    ):
+    with _patch_build_graph(repository):
         result = await service.build_graph(
             corpus_id=uuid4(),
             app_name="test-app",
@@ -524,13 +505,7 @@ async def test_build_graph_progress_percent_monotonically_increases():
     repository = PhaseTrackingFakeRepository()
     service = GraphService(repository=repository, config=GraphBuildConfig())
 
-    mock_session = AsyncMock()
-    mock_session.in_transaction = MagicMock(return_value=False)
-    mock_session.is_active = True
-    with (
-        patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session),
-        patch("negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository),
-    ):
+    with _patch_build_graph(repository):
         await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
 
     progresses = [
@@ -553,13 +528,7 @@ async def test_build_graph_strips_phase_entries_from_terminal_warnings():
     repository = PhaseTrackingFakeRepository()
     service = GraphService(repository=repository, config=GraphBuildConfig())
 
-    mock_session = AsyncMock()
-    mock_session.in_transaction = MagicMock(return_value=False)
-    mock_session.is_active = True
-    with (
-        patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session),
-        patch("negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository),
-    ):
+    with _patch_build_graph(repository):
         await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
 
     # 找到 status=completed 的最后一次 update 调用
@@ -610,13 +579,7 @@ async def test_build_graph_failure_strips_phase_and_persists_warnings_on_early_e
     repository = _FailingClearGraphRepository()
     service = GraphService(repository=repository, config=GraphBuildConfig())
 
-    mock_session = AsyncMock()
-    mock_session.in_transaction = MagicMock(return_value=False)
-    mock_session.is_active = True
-    with (
-        patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session),
-        patch("negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository),
-    ):
+    with _patch_build_graph(repository):
         result = await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
 
     assert result.status == "failed"
@@ -645,13 +608,7 @@ async def test_build_graph_failure_preserves_algorithm_warnings():
     repository = _FailingCreateRelationsRepository()
     service = GraphService(repository=repository, config=GraphBuildConfig())
 
-    mock_session = AsyncMock()
-    mock_session.in_transaction = MagicMock(return_value=False)
-    mock_session.is_active = True
-    with (
-        patch("negentropy.db.session.AsyncSessionLocal", return_value=mock_session),
-        patch("negentropy.knowledge.graph.repository.AgeGraphRepository", return_value=repository),
-    ):
+    with _patch_build_graph(repository):
         result = await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
 
     assert result.status == "failed"
