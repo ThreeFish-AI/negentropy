@@ -12,7 +12,7 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError  # noqa: F401
-from sqlalchemy import func, select
+from sqlalchemy import String, cast, exists, func, literal_column, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.auth.deps import get_optional_user
@@ -583,6 +583,75 @@ async def _resolve_default_extractor_routes() -> dict[str, Any]:
     return resolved_routes
 
 
+# =============================================================================
+# 用户面 chunks 计数口径（Phase 1 Hotfix · 见 docs/issue.md ISSUE-026）
+# -----------------------------------------------------------------------------
+# 业界 hierarchical 切片在用户面统一以「顶层 chunks」为统计粒度（child 仅作为
+# 检索实现细节）：LangChain ParentDocumentRetriever、LlamaIndex
+# HierarchicalNodeParser、AWS Bedrock KB Hierarchical Chunking 均如此。
+# 本仓 metadata.chunk_role 字段已为该口径预留正交语义（parent/child/leaf）。
+#
+# 同时排除已被软删（status='deleted'）文档的 chunks，避免它们污染 corpus 计数
+# ——这是 「Harness Engineering chunks: 849 vs 14」问题的真正主因。
+# =============================================================================
+
+
+def _user_facing_chunk_filter_clauses() -> tuple[Any, Any]:
+    """构建用户面 chunks 计数过滤子句（chunk_role 与 active doc 两正交维度）。
+
+    返回 (not_child_clause, doc_active_or_kg_clause)，可作为 ``where(*clauses)`` 直接拼接。
+
+    语义：
+      - chunk_role='child' → 排除（hierarchical 切片实现细节）
+      - chunk_role='parent' / 'leaf' / 缺失 → 计入（用户面顶层颗粒度）
+      - source_uri 匹配某 active KnowledgeDocument → 计入
+      - source_uri 匹配的 doc 全部 status!='active' → 排除（软删 doc 的 chunks）
+      - source_uri 找不到任何 doc 但非 NULL → 排除（硬删后的孤儿）
+      - source_uri IS NULL → 计入（KG 实体类合法直连知识，无 doc 来源）
+    """
+    chunk_role_expr = func.coalesce(
+        cast(Knowledge.metadata_["chunk_role"].astext, String),
+        "leaf",
+    )
+    not_child_clause = chunk_role_expr != "child"
+
+    has_active_doc = exists(
+        select(literal_column("1"))
+        .select_from(KnowledgeDocument)
+        .where(
+            KnowledgeDocument.corpus_id == Knowledge.corpus_id,
+            KnowledgeDocument.app_name == Knowledge.app_name,
+            KnowledgeDocument.status == "active",
+            or_(
+                KnowledgeDocument.gcs_uri == Knowledge.source_uri,
+                cast(KnowledgeDocument.metadata_["origin_url"].astext, String) == Knowledge.source_uri,
+            ),
+        )
+    )
+    doc_active_or_kg_clause = or_(Knowledge.source_uri.is_(None), has_active_doc)
+
+    return (not_child_clause, doc_active_or_kg_clause)
+
+
+def _user_facing_chunk_count_subquery(corpus_id_expr: Any) -> Any:
+    """为给定 corpus 行构建标量相关子查询，返回该 corpus 的用户面 chunks 数。
+
+    ``list_corpora`` / ``get_corpus`` 的 1:N JOIN+GROUP BY 模式不易加 EXISTS 过滤，
+    改用相关子查询：每行 corpus 对应一次 ``COUNT(*) FROM knowledge WHERE ...``。
+    """
+    not_child_clause, doc_active_or_kg_clause = _user_facing_chunk_filter_clauses()
+    return (
+        select(func.count())
+        .select_from(Knowledge)
+        .where(
+            Knowledge.corpus_id == corpus_id_expr,
+            not_child_clause,
+            doc_active_or_kg_clause,
+        )
+        .scalar_subquery()
+    )
+
+
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard(app_name: str | None = Query(default=None)) -> DashboardResponse:
     resolved_app = _resolve_app_name(app_name)
@@ -594,8 +663,16 @@ async def get_dashboard(app_name: str | None = Query(default=None)) -> Dashboard
     alerts = []
     async with AsyncSessionLocal() as db:
         corpus_count = await db.scalar(select(func.count()).select_from(Corpus).where(Corpus.app_name == resolved_app))
+        # 用户面口径：排除 hierarchical child + 软删/孤儿 chunks（与 corpus list / 文档详情统一）
+        not_child_clause, doc_active_or_kg_clause = _user_facing_chunk_filter_clauses()
         knowledge_count = await db.scalar(
-            select(func.count()).select_from(Knowledge).where(Knowledge.app_name == resolved_app)
+            select(func.count())
+            .select_from(Knowledge)
+            .where(
+                Knowledge.app_name == resolved_app,
+                not_child_clause,
+                doc_active_or_kg_clause,
+            )
         )
         last_build_at = await db.scalar(
             select(func.max(Knowledge.updated_at)).where(Knowledge.app_name == resolved_app)
@@ -614,11 +691,11 @@ async def get_dashboard(app_name: str | None = Query(default=None)) -> Dashboard
 async def list_corpora(app_name: str | None = Query(default=None)) -> list[CorpusResponse]:
     resolved_app = _resolve_app_name(app_name)
     async with AsyncSessionLocal() as db:
+        # 用户面 chunks 计数：相关子查询代替 1:N JOIN+GROUP BY，便于内嵌 EXISTS 过滤软删 doc。
+        knowledge_count_subq = _user_facing_chunk_count_subquery(Corpus.id)
         stmt = (
-            select(Corpus, func.count(Knowledge.id))
-            .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
+            select(Corpus, knowledge_count_subq.label("knowledge_count"))
             .where(Corpus.app_name == resolved_app)
-            .group_by(Corpus.id)
             .order_by(Corpus.created_at.desc())
         )
         result = await db.execute(stmt)
@@ -665,11 +742,10 @@ async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
 async def get_corpus(corpus_id: UUID, app_name: str | None = Query(default=None)) -> CorpusResponse:
     resolved_app = _resolve_app_name(app_name)
     async with AsyncSessionLocal() as db:
-        stmt = (
-            select(Corpus, func.count(Knowledge.id))
-            .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
-            .where(Corpus.id == corpus_id, Corpus.app_name == resolved_app)
-            .group_by(Corpus.id)
+        # 用户面口径：相关子查询排除 child 与软删/孤儿 chunks。
+        knowledge_count_subq = _user_facing_chunk_count_subquery(Corpus.id)
+        stmt = select(Corpus, knowledge_count_subq.label("knowledge_count")).where(
+            Corpus.id == corpus_id, Corpus.app_name == resolved_app
         )
         result = await db.execute(stmt)
         row = result.first()
@@ -724,8 +800,16 @@ async def update_corpus(
         corpus = await service.update_corpus(corpus_id=corpus_id, spec=update_data)
 
         async with AsyncSessionLocal() as db:
+            # 用户面口径：与 list_corpora / get_corpus / dashboard 一致，排除 child 与软删/孤儿。
+            not_child_clause, doc_active_or_kg_clause = _user_facing_chunk_filter_clauses()
             knowledge_count = await db.scalar(
-                select(func.count()).select_from(Knowledge).where(Knowledge.corpus_id == corpus.id)
+                select(func.count())
+                .select_from(Knowledge)
+                .where(
+                    Knowledge.corpus_id == corpus.id,
+                    not_child_clause,
+                    doc_active_or_kg_clause,
+                )
             )
 
         rebuild_triggered: dict[str, Any] | None = None

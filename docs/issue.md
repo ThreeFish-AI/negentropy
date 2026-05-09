@@ -1650,3 +1650,59 @@
 - **评审补充修复（2026-05-09 第二轮）**：
   1. **失败终态 warnings 落库对称化**：原修复仅在成功分支通过 `_strip_phase_entries(build_warnings) + [{"_metrics": ...}]` 落 warnings，失败分支调用 `update_build_run` 未传 `warnings`，因 SQL `COALESCE(CAST(:warnings AS jsonb), warnings)` 会原样保留上一次 `emit_phase` 写入的 `_phase` 运行期标记，且丢失任何已累积的算法 warning。修复：把 `build_warnings` / `build_metrics` 提升到 try 之外初始化（防 UnboundLocalError），失败分支同样传入剥离 `_phase` 后的 warnings + 可选 `_metrics`（若已构造）。新增单测 `test_build_graph_failure_strips_phase_and_persists_warnings_on_early_exception` / `test_build_graph_failure_preserves_algorithm_warnings`。
   2. **Pill 挂载与 POST 在飞状态解耦**：原修复 `{building && corpusId && <KgBuildProgressPill .../>}` 将 Pill 挂载强绑定到 `building`，而 `handleBuild` 在 `finally` 里 `setBuilding(false)`——POST 因 BFF 15min 超时 abort 时 Pill 立即卸载、SSE 关闭，注释承诺的「SSE 仍会推送终态」实际无法被前端接收。修复：新增 `pillEnqueued` 状态（独立于 `building`）+ `pillSession` key，`KgBuildProgressPill` 新增 `onTerminal?(event)` 回调（延迟 `TERMINAL_DISPLAY_HOLD_MS = 4s` 触发，留终态展示窗口）；父组件在回调里 `setPillEnqueued(false)`，让 SSE 终态自驱卸载。新增 Pill 单测 `SSE 终态后通过 onTerminal 通知父组件` / `终态延迟回调中卸载组件不会泄漏 timer`。
+
+---
+
+## ISSUE-078 Corpus chunks 计数严重偏离（Harness Engineering 849 vs 14）：SQL 没 JOIN 文档表过滤软删 + 父子分片混算（2026-05-09）
+
+- **表因**：用户在 `/knowledge/base` 看到 `Harness Engineering` Corpus 卡片显示 `chunks: 849`，但点开唯一文档详情仅 `14 Chunks`，hierarchical 切片（parent: 3000 / child: 750）；Corpus 历史曾有 2 个 Document，删除过一个。两端口径相差近 60 倍。
+- **根因**（双因，均由 SQL 计数表达式不严谨引入）：
+  1. **主因 A：corpus chunks 计数 SQL 没有过滤软删文档**。[`apps/negentropy/src/negentropy/knowledge/api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) `list_corpora` / `get_corpus` 用 `select(Corpus, func.count(Knowledge.id)).outerjoin(Knowledge ...)`，**完全没有 JOIN `knowledge_documents` 表过滤 `status='active'`**。同时 [`storage/service.py`](../apps/negentropy/src/negentropy/storage/service.py) HTTP `delete_document` 默认 `hard_delete=False` 走软删（`status='deleted'`），UI `list_documents` 用 `status == "active"` 过滤掉它，但 corpus chunks 计数没做同口径过滤，软删 doc 的全部父+子 chunks 仍计入，是 849 数字偏离的真正主因。
+  2. **次因 B：父子分片计数口径与文档详情不一致**。corpus 列表父+子全计；文档详情 `(item.metadata or {}).get("chunk_role") != "child"` 仅算父/leaf。hierarchical 切片下父:子约 1:5，14 父 + ~70 子 ≈ 84，与 849 缺口剩约 765 即来自软删 doc 的全部父+子 chunks，叠加放大用户视觉偏差。
+  3. **隐患 C：硬删未级联 chunks**。`Knowledge` 仅有 FK 到 `Corpus` (CASCADE)、与 `KnowledgeDocument` 仅靠 `source_uri` 文本软关联；`delete_document` 硬删分支只 `db.delete(doc)`，未清理 Knowledge 行。当前 849 案例不是此因，但任何走过 `hard_delete=True` 的历史路径都会留下 FK 意义的孤儿 chunks，是潜在地雷。
+  4. **隐患 D：软删 chunks 仍可被检索命中**。`is_enabled=true` + `searchable=true` + `archived` 未标 → 软删 doc 的 chunks 仍能被 RAG 检索命中。独立 bug，本次仅 ack，留待 Phase 2 处理。
+- **业界口径参考**：LangChain `ParentDocumentRetriever` / LlamaIndex `HierarchicalNodeParser` / AWS Bedrock KB Hierarchical Chunking 在用户面均以**顶层（非 child）chunks** 为统计粒度；child 是检索实现细节，不暴露到产品计数。本仓 `metadata.chunk_role` + `metadata.searchable` 已为该口径预留正交语义，无需新建字段。
+- **处理方式**（Phase 化交付，本 PR 为 Phase 1 hotfix）：
+  1. **抽取共享 helper**：[`api.py`](../apps/negentropy/src/negentropy/knowledge/api.py) 新增 `_user_facing_chunk_filter_clauses()` 返回 `(not_child_clause, doc_active_or_kg_clause)`，`_user_facing_chunk_count_subquery(corpus_id_expr)` 构建相关子查询。语义：① `coalesce(metadata->>'chunk_role','leaf') != 'child'` 排除 child；② `EXISTS (SELECT 1 FROM knowledge_documents d WHERE d.corpus_id=k.corpus_id AND d.app_name=k.app_name AND d.status='active' AND (d.gcs_uri=k.source_uri OR d.metadata->>'origin_url'=k.source_uri))` 或 `source_uri IS NULL`，前者排除软删/孤儿，后者保留 KG 类直连知识。
+  2. **统一 4 处端点**：`list_corpora` / `get_corpus` 改用相关子查询代替 1:N JOIN+GROUP BY；`update_corpus` / `get_dashboard` 直接拼 filter clauses。`delete_corpus` 的审计日志保留物理 count（删除条数审计）不变。
+  3. **集成测试**：新增 [`test_corpus_chunk_count_filter.py`](../apps/negentropy/tests/integration_tests/knowledge/test_corpus_chunk_count_filter.py)，6 象限场景串行覆盖 hierarchical 父子 / 非 hierarchical / 软删 doc / 硬删孤儿 / KG NULL source_uri / 真实世界混合（60 物理 → 5 用户面）。受现有 `db_engine` 函数级 fixture 与 asyncpg 连接池跨事件循环边界限制，采用「单 test 函数 + 多场景子断言」模式。
+- **后续防范**：
+  1. **删除路径必须级联 chunks**：Phase 2 将在 `delete_document` 硬删分支前调用 `delete_knowledge_by_source` 清理 chunks；软删分支批量打 `metadata.archived=true` + `is_enabled=false`（防 RAG 命中）；reactivation 时直接 hard delete 旧 chunks 让重新 ingest 写一份干净的。
+  2. **任何「父子分片」产物的用户面计数默认顶层**：新增检索类功能（如未来的 multi-vector / late chunking）必须在前端面把 chunks 数收敛到顶层粒度，child / sub-chunk 仅作检索实现细节。
+  3. **Schema FK 兜底（Phase 3）**：给 `Knowledge` 加 `document_id` FK 到 `knowledge_documents(id) ON DELETE CASCADE` + 独立 CLI `cleanup_orphan_knowledge` dry-run/commit 模式清算历史脏数据；新增 `negentropy.knowledge.orphan_count{corpus_id}` metric 防止 bypass 路径再次产生孤儿。
+  4. **PR review 必查**：任何新增 `select(... func.count(Knowledge.id) ...)` 必须显式声明是「物理 count（审计）」还是「用户面 count」，前者保留原状、后者必须使用本 PR 抽出的两个 helper。
+- **同类问题影响**：
+  1. 所有 hierarchical 类切片的功能（catalog 节点、Wiki entries、KG entity 提及）均需复盘 child / sub-node 是否被错误暴露到用户面计数。
+  2. 软删 + 计数口径错配是反复出现的反模式（参考 ISSUE-058 流式双内容 / ISSUE-039 双气泡盲区）：任何「软删 + 列表过滤 + 关联表计数」三联场景都需要同步检查，确保列表与计数走同一过滤口径。
+  3. 检索路径 `is_enabled` / `archived` / `searchable` 三态独立检查，但缺少「文档维度可见性」第四态——本 issue 已识别但留待 Phase 2 解决，新增检索功能时需主动审视是否需要 doc.status 维度过滤。
+- **Phase 化交付计划**：
+  - **Phase 1（本 PR · Hotfix）**：SQL 口径修正 + 集成测试 + issue 文档；零迁移、即时生效；UI 数字立即恢复正常；单 PR revert 可回滚、零数据风险。
+  - **Phase 2（独立 PR · 应用层级联）**：硬删 chunks 级联清理 + 软删 archive chunks + reactivation 旧 chunks purge + 检索路径 archived 过滤复核 + 删除级联回归测试。
+  - **Phase 3（独立 PR · Schema FK + CLI）**：alembic 0030 加 `Knowledge.document_id` FK + ORM 同步 + 写入路径全量补丁 + 独立 CLI `cleanup_orphan_knowledge` dry-run/commit + 观测 metric。
+- **Manual 复现脚本（PR reviewer 在 staging 验证）**：
+
+  ```sql
+  -- 修复前: 含软删 doc 的 chunks
+  SELECT name, (
+    SELECT COUNT(*) FROM negentropy.knowledge k
+    WHERE k.corpus_id = c.id
+  ) AS old_count,
+  -- 修复后: 用户面口径
+  (
+    SELECT COUNT(*) FROM negentropy.knowledge k
+    WHERE k.corpus_id = c.id
+      AND COALESCE(k.metadata->>'chunk_role', 'leaf') <> 'child'
+      AND (
+        k.source_uri IS NULL
+        OR EXISTS (
+          SELECT 1 FROM negentropy.knowledge_documents d
+          WHERE d.corpus_id = k.corpus_id AND d.app_name = k.app_name
+            AND d.status = 'active'
+            AND (d.gcs_uri = k.source_uri OR d.metadata->>'origin_url' = k.source_uri)
+        )
+      )
+  ) AS new_count
+  FROM negentropy.corpus c WHERE c.name = 'Harness Engineering';
+  ```
+
+  期望：`old_count=849, new_count=14`。
