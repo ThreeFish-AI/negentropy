@@ -38,6 +38,14 @@ export type KgBuildProgressEvent = {
   relation_count?: number;
   error_message?: string | null;
   completed_at?: string | null;
+  /**
+   * 子阶段标签（仅 status=running 时存在）。后端 service.emit_phase 写入 warnings JSONB
+   * 的最后一条 _phase 条目，SSE 端点透传。可选枚举：
+   * extracting / resolving / syncing / pagerank / communities / summaries
+   */
+  phase?: string | null;
+  /** 阶段附加详情（如 processed/total/entity_count），用于扩展显示 */
+  phase_detail?: Record<string, unknown> | null;
 };
 
 type Props = {
@@ -57,6 +65,19 @@ const STATUS_LABEL: Record<NonNullable<KgBuildProgressEvent["status"]>, string> 
   timeout: "已超时",
   switched: "切换至新构建",
   error: "无法订阅",
+};
+
+/**
+ * 阶段中文标签映射。与后端 PHASE_* 常量（apps/negentropy/src/negentropy/knowledge/graph/service.py）
+ * 严格对齐：service.emit_phase 写入的 phase name 必须能被本表覆盖，否则降级为通用"构建中"。
+ */
+const PHASE_LABEL: Record<string, string> = {
+  extracting: "实体抽取中",
+  resolving: "实体消解中",
+  syncing: "一等公民同步中",
+  pagerank: "PageRank 计算中",
+  communities: "社区检测中",
+  summaries: "社区摘要生成中",
 };
 
 function isTerminal(status: KgBuildProgressEvent["status"]): boolean {
@@ -119,6 +140,11 @@ export function KgBuildProgressPill({ corpusId, enqueued, apiBase = "/api/knowle
   const percent = Math.max(0, Math.min(100, Math.round((event.progress_percent ?? 0) * 100)));
   const isRunning = status === "pending" || status === "running";
   const isError = status === "failed" || status === "error" || status === "timeout";
+  // 当处于 running 子阶段时优先显示 phase 中文标签，更精确反映"卡在哪一步"。
+  // 命中未知阶段 / 非 running 状态时降级为顶层 STATUS_LABEL，保证兼容旧后端。
+  const phaseLabel =
+    isRunning && event.phase && PHASE_LABEL[event.phase] ? PHASE_LABEL[event.phase] : null;
+  const headlineLabel = phaseLabel ?? STATUS_LABEL[status];
 
   return (
     <div
@@ -145,7 +171,7 @@ export function KgBuildProgressPill({ corpusId, enqueued, apiBase = "/api/knowle
           (status === "idle" || status === "switched") && "bg-zinc-400 dark:bg-zinc-600",
         )}
       />
-      <span className="font-medium">知识图谱：{STATUS_LABEL[status]}</span>
+      <span className="font-medium">知识图谱：{headlineLabel}</span>
       {isRunning ? (
         <span className="font-mono text-muted-foreground">{percent}%</span>
       ) : null}

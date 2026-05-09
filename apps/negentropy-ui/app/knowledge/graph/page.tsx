@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
 import {
   type GraphBuildRunRecord,
   type GraphSearchResultItem,
@@ -404,10 +405,15 @@ export default function KnowledgeGraphPage() {
                       </button>
                     </div>
                   )}
-                  {building && (
-                    <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">
-                      正在构建...
-                    </span>
+                  {/*
+                   * 复用 KgBuildProgressPill 通过 SSE（/build-runs/latest/progress）
+                   * 实时展示构建阶段（phase）+ 进度百分比 + 实体/关系实时计数。
+                   * 替代旧的静态"正在构建..."文案：旧文案在长任务（849 chunk）期间无任何反馈，
+                   * 用户体感卡死；Pill 组件能在 status=running 时显示中文阶段标签。
+                   * 即便 buildKnowledgeGraph POST 因 BFF 超时而异常，SSE 仍会推送终态。
+                   */}
+                  {building && corpusId && (
+                    <KgBuildProgressPill corpusId={corpusId} enqueued={building} />
                   )}
                 </div>
               </div>

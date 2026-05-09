@@ -399,3 +399,126 @@ async def test_build_graph_persists_canonical_model_name():
     assert result.status == "completed"
     assert repository.create_build_run_kwargs["model_name"] == "openai/gpt-5-mini"
     assert repository.create_build_run_kwargs["extractor_config"]["llm_model"] == "openai/gpt-5-mini"
+
+
+# ================================
+# Build Phase Progress Tests
+# ================================
+
+
+class PhaseTrackingFakeRepository:
+    """记录 build_graph 期间所有 update_build_run 调用，便于断言 phase 切换序列。
+
+    与 FakeGraphRepository 区别：本 fake 保留 ``update_build_run`` 的全量调用历史
+    （update_calls 列表），用于验证 service.emit_phase 写入的 _phase 条目顺序与
+    progress_percent 单调性。仅 build_graph 阶段化进度回归测试使用。
+    """
+
+    def __init__(self) -> None:
+        self.update_calls: list[dict] = []
+
+    async def create_build_run(self, **kwargs):
+        return "run-uuid"
+
+    async def clear_graph(self, corpus_id):
+        return None
+
+    async def create_entities(self, entities, corpus_id):
+        return []
+
+    async def create_relations(self, relations):
+        return None
+
+    async def update_build_run(self, **kwargs):
+        self.update_calls.append(kwargs)
+        return None
+
+    async def find_similar_entities(self, **kwargs):
+        return []
+
+
+def _extract_phase_sequence(update_calls: list[dict]) -> list[str]:
+    """从 update_build_run 调用历史中按顺序解出 _phase name 序列。"""
+    phases: list[str] = []
+    for call in update_calls:
+        warnings = call.get("warnings") or []
+        for entry in warnings:
+            if isinstance(entry, dict) and "_phase" in entry:
+                meta = entry["_phase"]
+                if isinstance(meta, dict) and "name" in meta:
+                    phases.append(meta["name"])
+    return phases
+
+
+@pytest.mark.asyncio
+async def test_build_graph_emits_phase_milestones_in_order():
+    """build_graph 应按 extracting → resolving → syncing → pagerank → communities → summaries 顺序触发 emit_phase。
+
+    回归保护：旧实现只在 chunk 循环每批结束时上报 progress_percent，五个后置阶段
+    无任何"开始"日志/进度切换。修复后每个阶段应在执行前调用 emit_phase 写入 _phase 条目，
+    SSE 端点据此透传中文标签给 KgBuildProgressPill。
+    """
+    repository = PhaseTrackingFakeRepository()
+    service = GraphService(repository=repository, config=GraphBuildConfig(llm_model="openai/gpt-5-mini"))
+
+    result = await service.build_graph(
+        corpus_id=uuid4(),
+        app_name="test-app",
+        chunks=[],  # 空 chunk：跳过实体抽取与持久化阶段，但所有 emit_phase 仍应触发
+    )
+
+    assert result.status == "completed"
+
+    phases = _extract_phase_sequence(repository.update_calls)
+    expected = ["extracting", "resolving", "syncing", "pagerank", "communities", "summaries"]
+    assert phases == expected, f"phase 序列不符合预期，实际={phases}"
+
+
+@pytest.mark.asyncio
+async def test_build_graph_progress_percent_monotonically_increases():
+    """build_graph 期间所有 update_build_run 上报的 progress_percent 应单调非递减。
+
+    回归保护：emit_phase 与 maybe_report_chunk_progress 之间若进度计算错误，
+    可能导致进度条"倒退"，影响用户对构建进展的判断。
+    """
+    repository = PhaseTrackingFakeRepository()
+    service = GraphService(repository=repository, config=GraphBuildConfig())
+
+    await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
+
+    progresses = [
+        call["progress_percent"]
+        for call in repository.update_calls
+        if "progress_percent" in call and call["progress_percent"] is not None
+    ]
+    assert len(progresses) >= 6, "至少应有 6 次进度上报（每个 phase 一次）"
+    for prev, curr in zip(progresses, progresses[1:], strict=False):
+        assert curr >= prev, f"progress_percent 不应回退：prev={prev} curr={curr}"
+
+
+@pytest.mark.asyncio
+async def test_build_graph_strips_phase_entries_from_terminal_warnings():
+    """终态 warnings 中不应残留 _phase 条目（service._strip_phase_entries 行为）。
+
+    回归保护：_phase 是运行期前端实时渲染信号；落入终态 warnings 会污染历史诊断
+    （warnings 语义混淆）。前端在 status=completed/failed 时也不依赖 _phase。
+    """
+    repository = PhaseTrackingFakeRepository()
+    service = GraphService(repository=repository, config=GraphBuildConfig())
+
+    await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
+
+    # 找到 status=completed 的最后一次 update 调用
+    terminal_call = next(
+        (c for c in reversed(repository.update_calls) if c.get("status") == "completed"),
+        None,
+    )
+    assert terminal_call is not None, "build_graph 应在结束时调用 update_build_run(status='completed')"
+
+    warnings = terminal_call.get("warnings") or []
+    phase_entries = [w for w in warnings if isinstance(w, dict) and "_phase" in w]
+    assert phase_entries == [], "终态 warnings 不应包含 _phase 运行期条目"
+
+    # _metrics 应保留（与原有 build_graph 行为一致）
+    metrics_entries = [w for w in warnings if isinstance(w, dict) and "_metrics" in w]
+    assert len(metrics_entries) == 1, "终态 warnings 应包含一条 _metrics 条目"

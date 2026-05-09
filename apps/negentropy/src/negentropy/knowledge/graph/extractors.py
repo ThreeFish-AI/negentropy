@@ -128,6 +128,7 @@ Output as JSON with the following structure:
         max_retries: int = 3,
         fallback_to_regex: bool = True,
         schema: Any | None = None,
+        llm_timeout: float = 60.0,
     ) -> None:
         """初始化 LLM 实体提取器
 
@@ -137,6 +138,9 @@ Output as JSON with the following structure:
             max_retries: 最大重试次数
             fallback_to_regex: 失败时是否回退到正则提取器
             schema: ExtractionSchema 实例，用于约束提取类型
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。litellm 默认无 client-level
+                超时；此值与 service.process_chunk 外层 ``asyncio.wait_for`` 形成双重防御，
+                避免单次 LLM 调用 hang 阻塞整个 build。覆盖 95P 长 chunk 后仍有冗余。
         """
         # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
         # 因为 __init__ 是同步的，无法调用异步 DB 查询
@@ -149,6 +153,7 @@ Output as JSON with the following structure:
         self._max_retries = max_retries
         self._fallback_to_regex = fallback_to_regex
         self._schema = schema
+        self._llm_timeout = llm_timeout
 
     async def _ensure_model_config(self) -> None:
         """异步解析模型配置（含 api_key）。
@@ -317,13 +322,16 @@ Output as JSON with the following structure:
                 safe_kwargs = {
                     k: v
                     for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format")
+                    if k not in ("model", "messages", "temperature", "response_format", "timeout")
                 }
+                # 显式 timeout：litellm 默认无 client-level 超时，单次调用 hang 会
+                # 阻塞 service.process_chunk 的 asyncio.gather；此处与 wait_for 形成双层防御。
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
+                    timeout=self._llm_timeout,
                     **safe_kwargs,
                 )
 
@@ -336,6 +344,7 @@ Output as JSON with the following structure:
                     "llm_extraction_retry",
                     attempt=attempt + 1,
                     error=str(exc),
+                    timeout_seconds=self._llm_timeout,
                 )
                 await asyncio.sleep(2**attempt)  # 指数退避
 
@@ -487,6 +496,7 @@ Output as JSON with the following structure:
         max_retries: int = 3,
         fallback_to_cooccurrence: bool = True,
         schema: Any | None = None,
+        llm_timeout: float = 60.0,
     ) -> None:
         """初始化 LLM 关系提取器
 
@@ -496,6 +506,8 @@ Output as JSON with the following structure:
             max_retries: 最大重试次数
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
             schema: ExtractionSchema 实例，用于约束关系类型
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。同 LLMEntityExtractor
+                语义：与 service.process_chunk 外层 wait_for 形成双重防御。
         """
         # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
         self._explicit_model = model
@@ -507,6 +519,7 @@ Output as JSON with the following structure:
         self._max_retries = max_retries
         self._fallback_to_cooccurrence = fallback_to_cooccurrence
         self._schema = schema
+        self._llm_timeout = llm_timeout
 
     async def _ensure_model_config(self) -> None:
         """异步解析模型配置（含 api_key）。
@@ -706,13 +719,15 @@ Output as JSON with the following structure:
                 safe_kwargs = {
                     k: v
                     for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format")
+                    if k not in ("model", "messages", "temperature", "response_format", "timeout")
                 }
+                # 显式 timeout：与 LLMEntityExtractor 同语义。
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
+                    timeout=self._llm_timeout,
                     **safe_kwargs,
                 )
 
@@ -725,6 +740,7 @@ Output as JSON with the following structure:
                     "llm_relation_extraction_retry",
                     attempt=attempt + 1,
                     error=str(exc),
+                    timeout_seconds=self._llm_timeout,
                 )
                 await asyncio.sleep(2**attempt)
 
