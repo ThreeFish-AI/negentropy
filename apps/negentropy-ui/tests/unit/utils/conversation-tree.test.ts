@@ -1132,11 +1132,11 @@ describe("buildConversationTree", () => {
       expect(syntheticTurn).toBeUndefined();
     });
 
-    it("D4 反向回滚断言：删除 isSyntheticRunId 兼容分支（手动模拟），C1 用例必失败", () => {
-      // 此用例文档化反向行为：若 isSyntheticRunId 总是返回 false（即 Phase 1 修复
-      // 被回滚），realtime + synthetic 双 turn 会同时存在 → C1 断言 turnRoots.length === 1
-      // 必失败。这里通过构造同 (threadId, runId) 完全相同的双源（伪退化）来证明
-      // 在没有合成识别时双 turn 不可避免。
+    it("D4 双 concrete turn 无 user-message 间隔时 Phase 3 允许折叠", () => {
+      // Phase 3 之前：双 concrete turn 一律拒绝折叠（ISSUE-041 保险）。
+      // Phase 3 新规则：双 concrete turn 若中间无 user-message 间隔，允许折叠。
+      // 此用例验证：两个真 runId、时间重叠、内容相同的 turn，中间没有 user-message，
+      // 应被折叠为 1 个。
       const realtime = makeTransferToAgentEvents({
         threadId: "session-A",
         runId: "uuid-1",
@@ -1145,7 +1145,6 @@ describe("buildConversationTree", () => {
         tStart: 1000,
         withTool: true,
       });
-      // 此处 hydrated 用真 runId 但故意与 realtime 不同 → 必产出 2 个 turn
       const hydratedFakeReal = makeTransferToAgentEvents({
         threadId: "session-A",
         runId: "uuid-2-different-non-synthetic",
@@ -1157,8 +1156,8 @@ describe("buildConversationTree", () => {
         events: [...realtime, ...hydratedFakeReal],
       });
       const turnRoots = tree.roots.filter((n) => n.type === "turn");
-      // 双 concrete turn（无 synthetic 标记）应保留 → 修复不会误折叠合法多 run
-      expect(turnRoots).toHaveLength(2);
+      // Phase 3：双 concrete turn 之间无 user-message → 允许折叠为 1
+      expect(turnRoots).toHaveLength(1);
     });
   });
 
@@ -1234,5 +1233,291 @@ describe("buildConversationTree", () => {
     const tree = buildConversationTree({ events });
     const reasoning = tree.nodeIndex.get(`reasoning:${stepId}`);
     expect(reasoning?.payload.content).toBe("真实 reasoning 摘要");
+  });
+
+  describe("Phase 3: 双 concrete turn 折叠闸门升级", () => {
+    it("同一 user 回合内 3 个 concrete invocation-turn 折叠为 1", () => {
+      // ADK 后端每条 event 有独立 invocationId：functionCall / functionResponse / text
+      // 映射为 runId 后产生 3 个 concrete turn，但中间无 user-message，应折叠
+      const events: AgUiEvent[] = [
+        // User 发送消息
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-phase3",
+          runId: "inv-user-1",
+          timestamp: 1000,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "thread-phase3",
+          runId: "inv-user-1",
+          messageId: "msg-user-1",
+          role: "user",
+          timestamp: 1001,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "thread-phase3",
+          runId: "inv-user-1",
+          messageId: "msg-user-1",
+          delta: "Ping",
+          timestamp: 1002,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "thread-phase3",
+          runId: "inv-user-1",
+          messageId: "msg-user-1",
+          timestamp: 1003,
+        }),
+        // Assistant functionCall（独立 invocationId）
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-phase3",
+          runId: "inv-fc-1",
+          timestamp: 1004,
+        }),
+        createTestEvent({
+          type: EventType.TOOL_CALL_START,
+          threadId: "thread-phase3",
+          runId: "inv-fc-1",
+          toolCallId: "tool-1",
+          toolCallName: "log_activity",
+          timestamp: 1005,
+        }),
+        createTestEvent({
+          type: EventType.TOOL_CALL_END,
+          threadId: "thread-phase3",
+          runId: "inv-fc-1",
+          toolCallId: "tool-1",
+          timestamp: 1006,
+        }),
+        // Assistant functionResponse（独立 invocationId）
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-phase3",
+          runId: "inv-fr-1",
+          timestamp: 1007,
+        }),
+        createTestEvent({
+          type: EventType.CUSTOM,
+          threadId: "thread-phase3",
+          runId: "inv-fr-1",
+          timestamp: 1008,
+          name: "ne.a2ui.tool_result",
+          args: { toolCallId: "tool-1", result: "ok" },
+        }),
+        // Assistant text（独立 invocationId）
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-phase3",
+          runId: "inv-text-1",
+          timestamp: 1009,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "thread-phase3",
+          runId: "inv-text-1",
+          messageId: "msg-asst-1",
+          role: "assistant",
+          timestamp: 1010,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "thread-phase3",
+          runId: "inv-text-1",
+          messageId: "msg-asst-1",
+          delta: "Pong.",
+          timestamp: 1011,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "thread-phase3",
+          runId: "inv-text-1",
+          messageId: "msg-asst-1",
+          timestamp: 1012,
+        }),
+      ];
+
+      const tree = buildConversationTree({ events });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // 4 个 concrete turn 之间无 user-message 间隔 → 全部折叠为 1 个 turn
+      expect(turnRoots).toHaveLength(1);
+      // 合并后的 turn 应包含 user text、tool-call 和 assistant text
+      const merged = turnRoots[0]!;
+      expect(merged.children.some((c) => c.type === "text" && c.role === "user")).toBe(true);
+      expect(merged.children.some((c) => c.type === "tool-call")).toBe(true);
+      expect(merged.children.some((c) => c.type === "text" && c.role === "assistant")).toBe(true);
+    });
+
+    it("user-message 间隔的两个 concrete turn 不折叠", () => {
+      // ISSUE-041 回归：两个真 runId turn 中间有 user message → 必须保留 2 个 turn
+      const events: AgUiEvent[] = [
+        // Run 1: Assistant 回复
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-phase3",
+          runId: "uuid-r1",
+          timestamp: 1000,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "thread-phase3",
+          runId: "uuid-r1",
+          messageId: "msg-1",
+          role: "assistant",
+          timestamp: 1001,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "thread-phase3",
+          runId: "uuid-r1",
+          messageId: "msg-1",
+          delta: "First reply",
+          timestamp: 1002,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "thread-phase3",
+          runId: "uuid-r1",
+          messageId: "msg-1",
+          timestamp: 1003,
+        }),
+        // User 第二条消息（=逻辑回合分隔符，独立 runId 形成 turn 边界）
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-phase3",
+          runId: "uuid-user-2",
+          timestamp: 1999,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "thread-phase3",
+          runId: "uuid-user-2",
+          messageId: "msg-user-2",
+          role: "user",
+          timestamp: 2000,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "thread-phase3",
+          runId: "uuid-user-2",
+          messageId: "msg-user-2",
+          delta: "Follow-up",
+          timestamp: 2001,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "thread-phase3",
+          runId: "uuid-user-2",
+          messageId: "msg-user-2",
+          timestamp: 2002,
+        }),
+        // Run 2: 第二次 Assistant 回复（不同 runId）
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-phase3",
+          runId: "uuid-r2",
+          timestamp: 2003,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "thread-phase3",
+          runId: "uuid-r2",
+          messageId: "msg-2",
+          role: "assistant",
+          timestamp: 2004,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "thread-phase3",
+          runId: "uuid-r2",
+          messageId: "msg-2",
+          delta: "Second reply",
+          timestamp: 2005,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "thread-phase3",
+          runId: "uuid-r2",
+          messageId: "msg-2",
+          timestamp: 2006,
+        }),
+      ];
+
+      const tree = buildConversationTree({ events });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      const assistantTurns = turnRoots.filter(
+        (t) => !t.children.some((c) => c.type === "text" && c.role === "user"),
+      );
+      // 两个 assistant turn 之间有 user-message → 不折叠，保留 2 个
+      expect(assistantTurns.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("synthetic + concrete 同 user 回合仍折叠", () => {
+      // 确保既有 synthetic turn 折叠保护不被 Phase 3 新规则破坏
+      const events: AgUiEvent[] = [
+        // Hydration 事件（无 runId，使用 threadId 作为 synthetic runId）
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "thread-synth",
+          runId: "thread-synth",
+          messageId: "msg-synth-1",
+          role: "assistant",
+          timestamp: 1001,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "thread-synth",
+          runId: "thread-synth",
+          messageId: "msg-synth-1",
+          delta: "Real reply",
+          timestamp: 1002,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "thread-synth",
+          runId: "thread-synth",
+          messageId: "msg-synth-1",
+          timestamp: 1003,
+        }),
+        // Realtime 事件（真 runId）
+        createTestEvent({
+          type: EventType.RUN_STARTED,
+          threadId: "thread-synth",
+          runId: "real-run-1",
+          timestamp: 1000,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "thread-synth",
+          runId: "real-run-1",
+          messageId: "msg-real-1",
+          role: "assistant",
+          timestamp: 1001,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "thread-synth",
+          runId: "real-run-1",
+          messageId: "msg-real-1",
+          delta: "Real reply",
+          timestamp: 1002,
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "thread-synth",
+          runId: "real-run-1",
+          messageId: "msg-real-1",
+          timestamp: 1003,
+        }),
+      ];
+
+      const tree = buildConversationTree({ events });
+      const turnRoots = tree.roots.filter((n) => n.type === "turn");
+      // Synthetic turn 应被 concrete turn 吸收（旧规则），Phase 3 不改变此行为
+      const syntheticTurn = turnRoots.find((t) => t.runId === "thread-synth");
+      expect(syntheticTurn).toBeUndefined();
+    });
   });
 });

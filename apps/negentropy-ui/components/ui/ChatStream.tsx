@@ -43,9 +43,15 @@ export function ChatStream({
         toolNodeIndex: new Map(),
       }),
     // visibleNodes 是 .filter() 产生的新数组引用，但内容变化时才需重建。
-    // 用 JSON.stringify 做轻量级变更检测（节点数量有限，性能可接受）。
+    // 依赖键需包含子节点内容长度，否则流式期间 id/status 不变但 payload.content
+    // 持续追加 → useMemo 返回旧 blocks → 流式文本不可见。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(visibleNodes.map((n) => n.id + n.status))]
+    [JSON.stringify(visibleNodes.map((n) => {
+      const childFingerprint = n.children
+        .map((c) => c.id + ':' + String(c.payload?.content ?? '').length)
+        .join(',');
+      return n.id + (n.status ?? '') + '[' + childFingerprint + ']';
+    }))]
   );
 
   const onScroll = () => {

@@ -1240,10 +1240,75 @@ describe("session-hydration", () => {
     });
   });
 
-  // Phase 2 (hydration invocationId → runId 映射) 实测分析：
-  // 2026-05-09 浏览器实机验证发现，ADK 后端每个 event 都有独立 invocationId（如
-  // functionCall / functionResponse / text 各自一个）。若直接将 invocationId 映射为
-  // runId，下游 collapseOverlappingTurns 拒绝双 concrete turn 折叠，导致单逻辑回合
-  // 被分裂为 3+ reply block。修复必须配合 turn 模型重构（按 user-message 切分 turn），
-  // 详见 docs/home-chat-rendering-rca.md "Phase 3" 段落。
+  // Phase 3: invocationId 映射 + turn 折叠规则联动
+  describe("fallbackRunId invocationId 映射", () => {
+    it("payload 仅含 invocationId 时回退为 runId", () => {
+      const result = hydrateSessionDetail(
+        [
+          {
+            id: "msg-inv-1",
+            invocationId: "inv-123",
+            threadId: "thread-inv",
+            timestamp: 1000,
+            message: { role: "assistant", content: "hello" },
+          },
+        ],
+        "session-inv",
+      );
+      // invocationId 映射为 runId → 产出的 events 的 runId 应为 inv-123
+      const runIds = new Set(
+        result.events
+          .map((e) => (e as Record<string, unknown>).runId as string | undefined)
+          .filter(Boolean),
+      );
+      expect(runIds.has("inv-123")).toBe(true);
+      // 不应 fallback 到 threadId 或 sessionId
+      expect(runIds.has("thread-inv")).toBe(false);
+      expect(runIds.has("session-inv")).toBe(false);
+    });
+
+    it("payload 仅含 invocation_id 时回退为 runId", () => {
+      const result = hydrateSessionDetail(
+        [
+          {
+            id: "msg-inv-2",
+            invocation_id: "inv-456",
+            threadId: "thread-inv2",
+            timestamp: 1000,
+            message: { role: "assistant", content: "hello" },
+          },
+        ],
+        "session-inv2",
+      );
+      const runIds = new Set(
+        result.events
+          .map((e) => (e as Record<string, unknown>).runId as string | undefined)
+          .filter(Boolean),
+      );
+      expect(runIds.has("inv-456")).toBe(true);
+    });
+
+    it("payload 同时含 runId 与 invocationId 时优先 runId", () => {
+      const result = hydrateSessionDetail(
+        [
+          {
+            id: "msg-prio",
+            runId: "real-run-id",
+            invocationId: "inv-789",
+            threadId: "thread-prio",
+            timestamp: 1000,
+            message: { role: "assistant", content: "hello" },
+          },
+        ],
+        "session-prio",
+      );
+      const runIds = new Set(
+        result.events
+          .map((e) => (e as Record<string, unknown>).runId as string | undefined)
+          .filter(Boolean),
+      );
+      expect(runIds.has("real-run-id")).toBe(true);
+      expect(runIds.has("inv-789")).toBe(false);
+    });
+  });
 });

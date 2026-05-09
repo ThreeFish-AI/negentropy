@@ -42,24 +42,18 @@ function normalizeTimestamp(value: unknown): number {
 
 // ISSUE-041 契约：当后端 ADK Web /sessions/{id} 不透传 runId / threadId 时，
 // 本函数必须回退到 sessionId 以让事件能进入 turn 桶；该回退会产生「合成 runId」
-// （runId === threadId === sessionId）。下游 message-ledger / conversation-tree
-// 已通过 isSyntheticRunId 把合成 runId 视为可与真 runId 兼并的占位符，避免
-// realtime + hydration 同一逻辑回答被分裂为两个 turn 渲染成双气泡。
-//
-// Phase 2 根治尝试（2026-05-09）：曾尝试把 ADK 后端透传的 invocationId / invocation_id
-// 加入 fallback 链以让 hydration 与 realtime 共享 runId。浏览器实测发现：
-//   - 后端每个 ADK event 都有独立 invocationId（functionCall / functionResponse / text
-//     可能各自一个 invocation），将它们映射为各自 runId 后，每个 invocation 生成
-//     独立 turn，collapseOverlappingTurns 又拒绝双 concrete turn 折叠 → 单逻辑
-//     回合被分裂为 3+ 个 reply block。
-//   - 旧 fallback（threadId / sessionId）虽然产生「合成 runId」，但事实上让所有
-//     hydration event 进入同一 turn，配合 realtime concrete runId 通过 isSyntheticRunId
-//     兼并恰好能在视觉上单气泡显示。
-// 因此 Phase 2 必须配合 turn 模型重构（Thread → Turn → Item，详见 RFC 0001 / Phase 3）：
-// 在引入 user-message 切分 turn 前，单独修改 fallback 会引入更严重的回归（每个
-// invocation 一个气泡）。本提交保留原有 fallback 行为，等待 Phase 3 一并落地。
+// Phase 3 联动落地（2026-05-09）：PR-1 升级了 collapseOverlappingTurns 的双 concrete
+// turn 折叠规则（以 user-message 为回合边界，无 user-message 间隔的同 invocation
+// turn 允许折叠）。现在可以安全地将 ADK 透传的 invocationId 映射为 runId，下游
+// 多 invocationId 产生的多个 concrete turn 会被折叠为同一逻辑回合。
+// 查找优先级：runId > invocationId(驼峰) > invocation_id(下划线) > threadId > sessionId
 function fallbackRunId(payload: AdkEventPayload, sessionId: string): string {
-  return payload.runId || payload.threadId || sessionId;
+  if (typeof payload.runId === "string" && payload.runId) return payload.runId;
+  const raw = payload as Record<string, unknown>;
+  if (typeof raw.invocationId === "string" && raw.invocationId) return raw.invocationId;
+  if (typeof raw.invocation_id === "string" && raw.invocation_id) return raw.invocation_id;
+  if (typeof payload.threadId === "string" && payload.threadId) return payload.threadId;
+  return sessionId;
 }
 
 function fallbackThreadId(payload: AdkEventPayload, sessionId: string): string {
