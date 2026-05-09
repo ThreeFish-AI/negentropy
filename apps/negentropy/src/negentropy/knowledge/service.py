@@ -474,11 +474,12 @@ class PipelineTracker:
           覆盖中间态是合法的（cancel() / complete() / fail() 路径必须能落库）。
 
         锁策略说明：本方法不使用 ``SELECT ... FOR UPDATE``，而是采用
-        "读-判-写" 模式。与 cancel API 的 ``request_pipeline_run_cancel``
-        （使用 FOR UPDATE 行锁串行化并发）形成互补：cancel 持锁写 cancelling，
-        本方法先读 cancelling 再跳过写入。两者不竞争同一把锁，不会死锁。
-        ``upsert_pipeline_run`` 以 ``expected_version=None`` 调用，不检查版本——
-        版本不匹配时的覆盖是安全的，因为上面的 cancelling 守卫已拦截危险场景。
+        "读-判-写 + 乐观并发控制" 模式。
+        - 第一道防线（pre-check）：先读 DB，若已 cancelling/cancelled 且本次非终态，
+          跳过写入并接管 status。
+        - 第二道防线（OCC）：pre-check 到 upsert 之间 cancel API 可能提交（多 worker
+          部署），upsert 携带 ``expected_version`` 做版本校验；cancel API 写入后
+          version 已递增，upsert 检测到冲突后接管 DB 权威状态，不盲目覆盖取消信号。
         """
         latest = await self._dao.get_pipeline_run(self._app_name, self._run_id)
         if (
@@ -505,14 +506,20 @@ class PipelineTracker:
         if cancellation_summary:
             payload["cancellation"] = cancellation_summary
 
-        await self._dao.upsert_pipeline_run(
+        result = await self._dao.upsert_pipeline_run(
             app_name=self._app_name,
             run_id=self._run_id,
             status=self._status,
             payload=payload,
             idempotency_key=None,
-            expected_version=None,
+            expected_version=latest.version if latest is not None else None,
         )
+        # 乐观并发冲突：cancel API 在 pre-check 与 upsert 之间写入了 cancelling/cancelled
+        if result.status == "conflict" and self._status not in ("cancelled", "completed", "failed"):
+            conflict_record = result.record
+            conflict_status = conflict_record.get("status", "") if isinstance(conflict_record, dict) else ""
+            if conflict_status in ("cancelling", "cancelled"):
+                self._status = conflict_status
 
 
 class KnowledgeService:

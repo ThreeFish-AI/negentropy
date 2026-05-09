@@ -2,7 +2,8 @@
 
 覆盖：
 - R-6 race A：start() 入口 resume 看到 cancelling/cancelled → raise PipelineCancelled
-- R-7 race B：_persist 写入前先读 DB，已 cancelling 则跳过 running 覆盖
+- R-7 race B 第一道防线（pre-check）：_persist 写入前先读 DB，已 cancelling 则跳过 running 覆盖
+- R-7 race B 第二道防线（OCC）：pre-check 通过但 upsert 版本不匹配时接管 cancelling
 - start_stage 入口检查点（in-memory event）→ raise PipelineCancelled
 - start_stage 入口检查点（DB 兜底）→ raise PipelineCancelled
 - cancel() 写入 cancelled 终态 + 当前 stage 同步标 cancelled + payload.cancellation
@@ -49,9 +50,14 @@ class _FakePipelineDao:
         idempotency_key: str | None,
         expected_version: int | None,
     ):
-        _ = (idempotency_key, expected_version)
-        self.persist_calls.append((app_name, run_id, status))
         existing = self.records.get((app_name, run_id))
+        # OCC version check：expected_version 不匹配时返回 conflict
+        if existing is not None and expected_version is not None and existing.version != expected_version:
+            return SimpleNamespace(
+                status="conflict",
+                record={"status": existing.status, "version": existing.version, "run_id": run_id},
+            )
+        self.persist_calls.append((app_name, run_id, status))
         version = (existing.version + 1) if existing else 1
         record = SimpleNamespace(
             id=f"id-{run_id}",
@@ -288,3 +294,53 @@ async def test_signal_cancel_returns_false_when_not_registered():
     assert signal_cancel("not-registered") is False
     register_cancellable_run("r1")
     assert signal_cancel("r1") is True
+
+
+class _StalePreCheckDao(_FakePipelineDao):
+    """DAO whose get_pipeline_run returns a stale record once, simulating
+    cancel API writing between _persist pre-check and upsert."""
+
+    def __init__(self, stale_record: SimpleNamespace) -> None:
+        super().__init__()
+        self._stale = stale_record
+        self._consumed = False
+
+    async def get_pipeline_run(self, app_name: str, run_id: str):
+        if not self._consumed:
+            self._consumed = True
+            return self._stale
+        return await super().get_pipeline_run(app_name, run_id)
+
+
+@pytest.mark.asyncio
+async def test_persist_occ_conflict_takes_over_cancelling():
+    """R-7 OCC 第二道防线：pre-check 读到 stale running（version=2），
+    但 cancel API 在间隙递增 version 至 3 并写入 cancelling；
+    upsert 检测到 version 2≠3 → conflict → tracker 接管 cancelling。"""
+    dao = _StalePreCheckDao(
+        stale_record=SimpleNamespace(
+            id="id-run-1",
+            run_id="run-1",
+            app_name="negentropy",
+            status="running",
+            version=2,
+            payload={},
+            updated_at=datetime.now(UTC),
+        )
+    )
+    dao.seed(app_name="negentropy", run_id="run-1", status="pending")
+    tracker = PipelineTracker(dao=dao, app_name="negentropy", operation="ingest_text", run_id="run-1")
+    await tracker.start({"corpus_id": "c1"})  # version → 2, status=running
+
+    # 模拟 cancel API 在 pre-check 之后并发写入
+    dao.records[("negentropy", "run-1")].status = "cancelling"
+    dao.records[("negentropy", "run-1")].version = 3
+
+    tracker._status = "running"
+    persist_count_before = len(dao.persist_calls)
+    await tracker._persist()
+
+    # OCC 冲突：upsert 未执行，tracker 接管 cancelling
+    assert tracker._status == "cancelling"
+    assert len(dao.persist_calls) == persist_count_before
+    assert dao.records[("negentropy", "run-1")].status == "cancelling"

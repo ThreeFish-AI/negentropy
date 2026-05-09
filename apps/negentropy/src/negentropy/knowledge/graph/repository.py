@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -2053,7 +2053,7 @@ class AgeGraphRepository(GraphRepository):
             current_status = (row.status or "").lower()
             existing_warnings = list(row.warnings or [])
 
-            def _to_record(updated_status: str, updated_warnings: list) -> BuildRunRecord:
+            def _to_record(updated_status: str, updated_warnings: list, completed_at_override=None) -> BuildRunRecord:
                 return BuildRunRecord(
                     id=row.id,
                     app_name=row.app_name,
@@ -2066,7 +2066,7 @@ class AgeGraphRepository(GraphRepository):
                     model_name=row.model_name,
                     error_message=row.error_message,
                     started_at=row.started_at,
-                    completed_at=row.completed_at,
+                    completed_at=completed_at_override if completed_at_override is not None else row.completed_at,
                     created_at=row.created_at,
                     progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
                     warnings=updated_warnings or None,
@@ -2096,7 +2096,7 @@ class AgeGraphRepository(GraphRepository):
                 },
             )
             await session.commit()
-            return (new_status, _to_record(new_status, new_warnings))
+            return (new_status, _to_record(new_status, new_warnings, completed_at_override=datetime.now(UTC)))
 
     async def finalize_stale_kg_build_runs(
         self,
