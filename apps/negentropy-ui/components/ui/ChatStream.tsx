@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { AssistantReplyBubble } from "./AssistantReplyBubble";
+import { ChatTypingIndicator } from "./ChatTypingIndicator";
 import { MessageBubble } from "./MessageBubble";
 import { ToolExecutionGroup } from "./ToolExecutionGroup";
 import { CHAT_CONTENT_RAIL_CLASS } from "./chat-layout";
@@ -19,6 +20,15 @@ type ChatStreamProps = {
    * 不参与 conversationTree / message-ledger，规避 ISSUE-031 时间窗双气泡风险。
    */
   toolProgressMap?: ToolProgressMap;
+  /**
+   * Stream 级 typing indicator 触发信号 —— 通常由父级根据
+   * `effectiveConnection ∈ {'connecting','streaming'}` 派生。
+   *
+   * 隐藏规则：当末尾 displayBlock 已是 `assistant-reply` 时（无论是否已有可见内容），
+   * stream 级 indicator 让位给 AssistantReplyBubble 内置 placeholder（同款三点动画），
+   * 实现「请求真空期 → 气泡空 → 首块流入」的无缝接力，避免双 indicator 视觉重复。
+   */
+  pending?: boolean;
 };
 
 export function ChatStream({
@@ -28,6 +38,7 @@ export function ChatStream({
   contentClassName,
   scrollToBottomTrigger,
   toolProgressMap,
+  pending = false,
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
@@ -73,6 +84,14 @@ export function ChatStream({
     }
   }, [scrollToBottomTrigger]);
 
+  // Stream 级 typing indicator 显示判定：
+  // - 父级声明 pending（effectiveConnection ∈ {connecting, streaming}）
+  // - 末尾 displayBlock 不是 assistant-reply（一旦 Assistant 气泡挂载，
+  //   就把展示职责让位给 AssistantReplyBubble 内置 placeholder，避免双 indicator）
+  const lastBlock = displayBlocks[displayBlocks.length - 1];
+  const showStandalonePending =
+    pending && (!lastBlock || lastBlock.kind !== "assistant-reply");
+
   return (
     <div
       ref={scrollRef}
@@ -83,9 +102,15 @@ export function ChatStream({
         className={`${CHAT_CONTENT_RAIL_CLASS} space-y-4 py-6 ${contentClassName ?? ""}`}
       >
         {displayBlocks.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
-            发送指令开始对话。主区会按正文顺序展示消息，并把工具过程穿插在对应位置。
-          </div>
+          // 罕见路径：极慢首次会话，pending 已 true 但 hydration 尚未到达任何 block。
+          // 此时仍优先显示 indicator，避免「发送指令开始对话」误导文案在用户已发送后出现。
+          pending ? (
+            <ChatTypingIndicator variant="standalone" />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted">
+              发送指令开始对话。主区会按正文顺序展示消息，并把工具过程穿插在对应位置。
+            </div>
+          )
         ) : (
           displayBlocks.map((block) => (
             block.kind === "message" ? (
@@ -168,6 +193,9 @@ export function ChatStream({
             )
           ))
         )}
+        {showStandalonePending && displayBlocks.length > 0 ? (
+          <ChatTypingIndicator variant="standalone" />
+        ) : null}
       </div>
     </div>
   );

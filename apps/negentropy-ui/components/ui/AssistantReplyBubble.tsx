@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { AssistantReplyDisplayBlock } from "@/types/a2ui";
 import type { ToolCallInfo, ToolProgressMap } from "@/types/common";
 import { MessageBubble, MarkdownContent } from "@/components/ui/MessageBubble";
+import { ChatTypingIndicator } from "@/components/ui/ChatTypingIndicator";
 import { ReasoningPanel, type ReasoningStepData } from "@/components/ui/ReasoningPanel";
 import { ToolExecutionGroup } from "@/components/ui/ToolExecutionGroup";
 import { extractCitationsFromToolCalls } from "@/utils/citation-parser";
@@ -116,15 +117,7 @@ export function AssistantReplyBubble({
         <div className="space-y-3">
           {reasoningSteps.length > 0 ? <ReasoningPanel steps={reasoningSteps} /> : null}
           {showWaitingPlaceholder ? (
-            <div
-              data-testid="agent-waiting-placeholder"
-              className="flex items-center gap-1.5 py-1 text-zinc-400 dark:text-zinc-500"
-              aria-label="Agent 正在思考"
-            >
-              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
-              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
-              <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
-            </div>
+            <ChatTypingIndicator variant="inline" ariaLabel="Agent 正在思考" />
           ) : null}
           {block.segments.map((segment) => {
             if (segment.kind === "text") {

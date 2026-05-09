@@ -1009,6 +1009,10 @@ export function HomeBody({
               }}
               scrollToBottomTrigger={scrollToBottomTrigger}
               toolProgressMap={toolProgressMap}
+              pending={
+                effectiveConnection === "connecting" ||
+                effectiveConnection === "streaming"
+              }
             />
             <div
               className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}

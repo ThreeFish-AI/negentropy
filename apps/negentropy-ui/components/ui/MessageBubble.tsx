@@ -9,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { getStreamingMarkdownSegments } from "@/utils/streaming-markdown";
 import { citationHref, splitCitationTokens } from "@/utils/citation-parser";
+import { ChatTypingIndicator } from "./ChatTypingIndicator";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { UserAvatar } from "./UserAvatar";
 
@@ -522,15 +523,7 @@ export function MessageBubble({
                 />
               ) : null)}
             {showWaitingPlaceholder ? (
-              <div
-                data-testid="agent-waiting-placeholder"
-                className="flex items-center gap-1.5 py-1 text-zinc-400 dark:text-zinc-500"
-                aria-label="Agent 正在思考"
-              >
-                <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
-                <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
-                <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
-              </div>
+              <ChatTypingIndicator variant="inline" ariaLabel="Agent 正在思考" />
             ) : null}
             {showStreamingIndicator ? (
               <div className="mt-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-600 dark:text-amber-300">
