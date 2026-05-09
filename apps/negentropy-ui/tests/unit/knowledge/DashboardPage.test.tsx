@@ -62,6 +62,8 @@ const makeRun = (
 /** 设置默认 mock：fetchDashboard 返回基础数据，fetchPipelines 由调用方指定 */
 function primeDashboardMock() {
   knowledgeMocks.fetchDashboardMock.mockResolvedValue(DEFAULT_DASHBOARD);
+  knowledgeMocks.fetchCorporaMock.mockResolvedValue([]);
+  knowledgeMocks.fetchGraphBuildHistoryMock.mockRejectedValue(new Error("not configured"));
 }
 
 describe("KnowledgeDashboardPage polling", () => {
