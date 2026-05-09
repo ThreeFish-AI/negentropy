@@ -1,7 +1,8 @@
 """P3-3 · OTel GenAI Semantic Conventions 单测。
 
 验证：
-- _detect_genai_system 把模型名前缀映射到正确 system；
+- extract_vendor 把模型名前缀映射到正确 system（vendor 单一事实源已下沉到
+  ``negentropy.model_names``，`instrumentation` 仅作 OTel 注入）；
 - _inject_genai_semconv_attrs 在 span 上写入完整 GenAI semconv 标准属性；
 - fail-soft：缺字段 / 异常 / 不可写 span 都不抛。
 """
@@ -14,7 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 
 # ----------------------------------------------------------------------------
-# _detect_genai_system
+# extract_vendor（取代历史上的 instrumentation._detect_genai_system）
 # ----------------------------------------------------------------------------
 
 
@@ -37,17 +38,17 @@ import pytest
         ("deepseek/deepseek-chat", "deepseek"),
     ],
 )
-def test_detect_genai_system_known_prefixes(model: str, expected: str) -> None:
-    from negentropy.instrumentation import _detect_genai_system
+def test_extract_vendor_known_prefixes(model: str, expected: str) -> None:
+    from negentropy.model_names import extract_vendor
 
-    assert _detect_genai_system(model) == expected
+    assert extract_vendor(model) == expected
 
 
 @pytest.mark.parametrize("model", ["", None, "unknown-vendor/foo", "totally-made-up-model"])
-def test_detect_genai_system_unknown_returns_none(model: str | None) -> None:
-    from negentropy.instrumentation import _detect_genai_system
+def test_extract_vendor_unknown_returns_none(model: str | None) -> None:
+    from negentropy.model_names import extract_vendor
 
-    assert _detect_genai_system(model) is None
+    assert extract_vendor(model) is None
 
 
 # ----------------------------------------------------------------------------

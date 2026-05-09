@@ -1650,3 +1650,37 @@
 - **评审补充修复（2026-05-09 第二轮）**：
   1. **失败终态 warnings 落库对称化**：原修复仅在成功分支通过 `_strip_phase_entries(build_warnings) + [{"_metrics": ...}]` 落 warnings，失败分支调用 `update_build_run` 未传 `warnings`，因 SQL `COALESCE(CAST(:warnings AS jsonb), warnings)` 会原样保留上一次 `emit_phase` 写入的 `_phase` 运行期标记，且丢失任何已累积的算法 warning。修复：把 `build_warnings` / `build_metrics` 提升到 try 之外初始化（防 UnboundLocalError），失败分支同样传入剥离 `_phase` 后的 warnings + 可选 `_metrics`（若已构造）。新增单测 `test_build_graph_failure_strips_phase_and_persists_warnings_on_early_exception` / `test_build_graph_failure_preserves_algorithm_warnings`。
   2. **Pill 挂载与 POST 在飞状态解耦**：原修复 `{building && corpusId && <KgBuildProgressPill .../>}` 将 Pill 挂载强绑定到 `building`，而 `handleBuild` 在 `finally` 里 `setBuilding(false)`——POST 因 BFF 15min 超时 abort 时 Pill 立即卸载、SSE 关闭，注释承诺的「SSE 仍会推送终态」实际无法被前端接收。修复：新增 `pillEnqueued` 状态（独立于 `building`）+ `pillSession` key，`KgBuildProgressPill` 新增 `onTerminal?(event)` 回调（延迟 `TERMINAL_DISPLAY_HOLD_MS = 4s` 触发，留终态展示窗口）；父组件在回调里 `setPillEnqueued(false)`，让 SSE 终态自驱卸载。新增 Pill 单测 `SSE 终态后通过 onTerminal 通知父组件` / `终态延迟回调中卸载组件不会泄漏 timer`。
+
+---
+
+## ISSUE-078 Langfuse Model Costs 视图把同一模型分裂成 3 行统计（2026-05-09）
+
+- **表因**：Langfuse Dashboard 「Model costs」面板显示同一个 `gpt-5-mini` 被拆成三条独立行：`openai/gpt-5-mini`（76.02K tokens）/ `gpt-5-mini`（68.22K）/ `gpt-5-mini-2025-08-07`（6K），无法准确按模型聚合统计成本与用量。
+- **根因**：
+  1. **观测口径无归一化**。[`apps/negentropy/src/negentropy/model_names.py`](../apps/negentropy/src/negentropy/model_names.py) 的 `canonicalize_model_name()` 当前是「只 strip 空白」的近 no-op，未剥 `vendor/` 前缀、未剥日期/版本后缀、无别名映射。
+  2. **三种写法源头不同**：(a) 默认 LLM `openai/gpt-5-mini` 由 [`config/model_resolver.py:32`](../apps/negentropy/src/negentropy/config/model_resolver.py) 定义，带 vendor 前缀；(b) KG 模块 `community_summarizer.py:275` / `extractors.py` / `global_search.py` 硬编码裸名 `gpt-4o-mini`；(c) OpenAI 服务端响应里 `response.model` 含具体版本日期 `gpt-5-mini-2025-08-07`，被 LiteLLM OTel callback 透传到 `gen_ai.response.model`。
+  3. **Langfuse OTel 字段优先级**：`ai.response.model` > `gen_ai.response.model` > `gen_ai.request.model`；三键任一未归一化，Langfuse 都会按原值聚合到独立 cost 行。
+  4. **设计耦合误区**：`canonicalize_model_name()` 不仅在观测链路被调用，还被 LiteLLM 调度链路使用（`build_full_model_name()`、`community_summarizer.py:74` 把 canonicalize 后的字符串存为 `self._model` 直接传给 `litellm.acompletion`）。如果让它剥 vendor 前缀，会破坏 LiteLLM 的供应商路由 —— 必须**正交分解**调度归一化与观测归一化。
+- **处理方式**：
+  1. **正交分解（P0）**：[`model_names.py`](../apps/negentropy/src/negentropy/model_names.py) 保留 `canonicalize_model_name()` / `pricing_lookup_model_name()` 现有契约不动；新增 `observability_model_name()`（裸名 + 剥日期 + 别名）与 `extract_vendor()`（vendor 单一事实源），**仅供 [`instrumentation.py`](../apps/negentropy/src/negentropy/instrumentation.py) 使用**。
+  2. **`observability_model_name()` 算法**：四步幂等管线 = strip → 剥 `_VENDOR_PREFIXES`（外层一次，大小写不敏感，含 `openai/anthropic/gemini/vertex_ai/mistral/cohere/groq/deepseek/meta/ollama/azure/bedrock/together_ai/replicate/`）→ 剥日期后缀（白名单正则 `-\d{4}-\d{2}-\d{2}$` / `-\d{8}$`，避免误伤 `gpt-4o-mini` / `text-embedding-3-large`）→ 别名映射兜底（起步空表）。
+  3. **`extract_vendor()` 算法**：原串带 `vendor/` 前缀优先；落空再用 `_VENDOR_FAMILY_PREFIXES` 按系族识别（`gpt-/o1-/o3-/o4-/chatgpt-/text-embedding- → openai`、`claude- → anthropic`、`gemini- → gemini`、`llama- → meta` 等）；全部落空返回 `None`，`gen_ai.system` 不写以避免污染未知值。
+  4. **OTel 强制注入**：`instrumentation.py:_patched_set_attributes` 去掉 `if normalized != raw` 条件分支（同 key set_attribute 是覆盖语义），**无条件 override** `gen_ai.request.model` / `gen_ai.response.model` / `gen_ai.system` 为归一化后的裸名，并新增 `langfuse.observation.model.name`（Langfuse 私有强制覆盖键，胜过 `ai.response.model`）+ `gen_ai.original_model`（保留诊断字符串供 trace 详情排查具体版本）。
+  5. **删除并行 vendor 表**：原 `instrumentation.py:29-67` 的 `_GENAI_SYSTEM_PREFIX_MAP` 与 `_detect_genai_system()` 整体删除，调用方改走 `extract_vendor()`，消除「两个并行前缀表」的 SoT 风险。
+  6. **测试覆盖**：[`test_model_names.py`](../apps/negentropy/tests/unit_tests/config/test_model_names.py) 现有 7 测试全部保留并通过；新增 13 个测试覆盖前缀剥离 / 后缀剥离 / 联动场景 / 不误伤 / 幂等性 / 大小写不敏感 / 双层前缀 / vendor 提取与系族识别。[`test_instrumentation.py`](../apps/negentropy/tests/unit_tests/observability/test_instrumentation.py) 调整原 2 个断言为裸名期望，新增 `test_patch_normalizes_dated_response_model` / `test_patch_emits_vendor_for_bare_model` 两个覆盖。
+- **评审补充修复（2026-05-09）**：
+  1. **修复孤立测试**：[`test_genai_semconv.py`](../apps/negentropy/tests/unit_tests/engine/test_genai_semconv.py) 历史依赖 `instrumentation._detect_genai_system`，本 PR 已删除该函数，导致 `test_detect_genai_system_*` 收集阶段抛 `ImportError`。修复：测试改导 `negentropy.model_names.extract_vendor` 并重命名为 `test_extract_vendor_known_prefixes` / `test_extract_vendor_unknown_returns_none`，14 + 4 共 18 个参数化样本全部沿用，断言不变。
+  2. **保留服务端实际版本诊断**：原实现仅写 `gen_ai.original_model = str(kwargs["model"])`（如 `openai/gpt-5-mini`），但服务端实际响应的具体版本（如 `gpt-5-mini-2025-08-07`）来自 `response_obj.model`，归一化后从 `gen_ai.response.model` 丢失。新增 `gen_ai.original_response_model`：仅当 `response_model` 与 `model` 不同（即归一化丢了信息）时上报，避免冗余。`test_patch_litellm_otel_cost_injects_cost_attributes` 补 `not in attributes` 断言，`test_patch_normalizes_dated_response_model` / `test_patch_emits_vendor_for_bare_model` 补 dated 期望。
+- **后续防范**：
+  1. **调度归一化与观测归一化必须正交**。任何「全局规范化」函数加新规则前先问：调用方是否横跨调度（LiteLLM `acompletion`、`build_full_model_name`、定价查表）与观测（OTel 上报、日志、监控）？若是，**必须**拆成两个函数 —— 一套契约不可同时承载两种用途。
+  2. **OTel 同 key set_attribute 是覆盖语义**：写归一化值时不要先用 `if normalized != raw` 守卫，否则 alias map 之类的「等价不同名」映射会被跳过。
+  3. **Langfuse 私有命名空间 `langfuse.observation.*` 是强制覆盖键**：当上游（如 Vercel AI SDK / LiteLLM）已经写了 `ai.response.model` / `gen_ai.response.model` 时，`langfuse.observation.model.name` 是收敛 Model Costs 视图到统一行的最后保险。
+  4. **保留诊断信息**：归一化丢失版本号会让线上排查「实际调用的是哪个具体版本」变难，必须用 `gen_ai.original_model` 等额外字段保留原始字符串。
+- **同类问题影响**：
+  1. **Reranker 路径目前未启用，但已存在绕开 LiteLLM 的实现**。[`knowledge/retrieval/reranking.py`](../apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py) 的 `LocalReranker`（`sentence_transformers.CrossEncoder.predict`）与 `APIReranker`（`httpx.AsyncClient.post` 直连 Cohere `https://api.cohere.ai/v1/rerank`）当前在 `KnowledgeService` 三个实例化点（`agents/tools/paper.py:68` / `perception.py:119` / `knowledge/api.py:226`）都未传 `reranker=`，默认 `NoopReranker()`，无实际模型调用。**未来一旦启用**，必须同步注入 OTel（`gen_ai.system` / `gen_ai.request.model` / `gen_ai.usage.*` 等）或切换到 `litellm.arerank()`（LiteLLM 1.83+ 已支持 Cohere/Voyage/Jina），否则会再次产生「未上报的模型调用」。
+  2. **KG 模块硬编码 `gpt-4o-mini` 兜底与默认 LLM 不一致**（`extractors.py:124,482,862` / `community_summarizer.py:275` / `global_search.py:389`）。归一化方案兼容裸名，本次不修；后续应作为独立 PR 把兜底改为读 `get_fallback_llm_config()`，与 `openai/gpt-5-mini` 默认对齐。
+  3. **Langfuse 历史已入库的旧分裂数据无法追溯改写**，新数据起聚合到统一行；用户在 Langfuse UI 可用过滤器并列对比新旧口径。
+- **决策依据（IEEE 风格）**：
+  - <a id="ref78-1"></a>[1] OpenTelemetry Authors, *Semantic Conventions for Generative AI*, v1.28+, "gen_ai.system / gen_ai.request.model / gen_ai.response.model," 2025. [Online]. Available: https://opentelemetry.io/docs/specs/semconv/gen-ai/
+  - <a id="ref78-2"></a>[2] Langfuse, *OpenTelemetry Integration — Attribute Mapping*, "Model attribute precedence: ai.response.model > gen_ai.response.model > gen_ai.request.model; langfuse.observation.* override namespace," 2026. [Online]. Available: https://langfuse.com/integrations/native/opentelemetry
+  - <a id="ref78-3"></a>[3] LiteLLM, *Langfuse OTEL Integration*, "litellm.success_callback = ['otel'] forwards via OTLP," 2026. [Online]. Available: https://docs.litellm.ai/docs/observability/langfuse_otel_integration

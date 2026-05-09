@@ -82,9 +82,71 @@ def test_patch_litellm_otel_cost_injects_cost_attributes(monkeypatch):
 
     OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
 
-    assert span.attributes["gen_ai.request.model"] == "openai/gpt-5-mini"
-    assert span.attributes["gen_ai.response.model"] == "openai/gpt-5-mini"
+    # 归一化后裸名上报，让 Langfuse Model Costs 视图聚合。
+    assert span.attributes["gen_ai.request.model"] == "gpt-5-mini"
+    assert span.attributes["gen_ai.response.model"] == "gpt-5-mini"
+    assert span.attributes["gen_ai.system"] == "openai"
+    # Langfuse 私有强制覆盖键。
+    assert span.attributes["langfuse.observation.model.name"] == "gpt-5-mini"
+    # 诊断字段保留原始字符串（用于 trace 详情排查）。
+    assert span.attributes["gen_ai.original_model"] == "openai/gpt-5-mini"
+    # request == response 时不重复写 original_response_model，避免冗余。
+    assert "gen_ai.original_response_model" not in span.attributes
     assert span.attributes["gen_ai.usage.cost"] == 0.12
+
+
+def test_patch_normalizes_dated_response_model(monkeypatch):
+    """OpenAI response.model 常带日期后缀（gpt-5-mini-2025-08-07），需归一化为裸名。"""
+
+    def _original_set_attributes(self, span, kwargs, response_obj):
+        self.safe_set_attribute(span, "gen_ai.request.model", kwargs.get("model"))
+        self.safe_set_attribute(span, "gen_ai.response.model", response_obj.get("model"))
+
+    monkeypatch.setattr(OpenTelemetry, "set_attributes", _original_set_attributes)
+    patch_litellm_otel_cost()
+
+    span = _FakeSpan()
+    callback = _FakeOpenTelemetryCallback()
+    kwargs = {"model": "openai/gpt-5-mini", "response_cost": 0.05}
+    response_obj = {"model": "gpt-5-mini-2025-08-07"}
+
+    OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
+
+    assert span.attributes["gen_ai.request.model"] == "gpt-5-mini"
+    assert span.attributes["gen_ai.response.model"] == "gpt-5-mini"
+    assert span.attributes["gen_ai.system"] == "openai"
+    # response.model 优先用作 Langfuse 强制覆盖键（更接近实际计费模型）。
+    assert span.attributes["langfuse.observation.model.name"] == "gpt-5-mini"
+    assert span.attributes["gen_ai.original_model"] == "openai/gpt-5-mini"
+    # response.model 含具体版本日期，归一化丢失的信息单独保留到 original_response_model。
+    assert span.attributes["gen_ai.original_response_model"] == "gpt-5-mini-2025-08-07"
+
+
+def test_patch_emits_vendor_for_bare_model(monkeypatch):
+    """硬编码裸名（如 KG 兜底 gpt-4o-mini）也能识别 vendor 写入 gen_ai.system。"""
+
+    def _original_set_attributes(self, span, kwargs, response_obj):
+        self.safe_set_attribute(span, "gen_ai.request.model", kwargs.get("model"))
+        self.safe_set_attribute(span, "gen_ai.response.model", response_obj.get("model"))
+
+    monkeypatch.setattr(OpenTelemetry, "set_attributes", _original_set_attributes)
+    patch_litellm_otel_cost()
+
+    span = _FakeSpan()
+    callback = _FakeOpenTelemetryCallback()
+    kwargs = {"model": "gpt-4o-mini", "response_cost": 0.01}
+    response_obj = {"model": "gpt-4o-mini-2024-07-18"}
+
+    OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
+
+    assert span.attributes["gen_ai.request.model"] == "gpt-4o-mini"
+    # 日期后缀剥离后归一为 gpt-4o-mini。
+    assert span.attributes["gen_ai.response.model"] == "gpt-4o-mini"
+    assert span.attributes["gen_ai.system"] == "openai"
+    assert span.attributes["langfuse.observation.model.name"] == "gpt-4o-mini"
+    assert span.attributes["gen_ai.original_model"] == "gpt-4o-mini"
+    # 裸名 request 与带日期的 response 不同，需各自保留诊断字符串。
+    assert span.attributes["gen_ai.original_response_model"] == "gpt-4o-mini-2024-07-18"
 
 
 def test_patch_litellm_otel_cost_skips_non_recording_span(monkeypatch):
@@ -155,7 +217,8 @@ def test_patch_litellm_handle_success_preserves_recording_parent_span(monkeypatc
     )
 
     assert set_attributes_calls["count"] == 1
-    assert parent_span.attributes["gen_ai.request.model"] == "openai/gpt-5-mini"
+    # 经归一化后写入裸名（与 Langfuse Model Costs 视图聚合口径一致）。
+    assert parent_span.attributes["gen_ai.request.model"] == "gpt-5-mini"
     assert parent_span.attributes["gen_ai.usage.cost"] == 0.12
     assert len(parent_span.statuses) == 1
 
