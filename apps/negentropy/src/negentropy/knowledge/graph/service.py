@@ -278,7 +278,7 @@ class GraphService:
             chunk_count=len(chunks),
         )
 
-        # 创建构建运行记录
+        # 创建构建运行记录（构建前元数据写入，使用默认 self._repository）
         run_uuid = await self._repository.create_build_run(
             app_name=app_name,
             corpus_id=corpus_id,
@@ -298,12 +298,23 @@ class GraphService:
         # 这两个变量也已绑定，except 不会触发 UnboundLocalError。
         build_warnings: list[dict[str, Any]] = []
         build_metrics: KgBuildMetrics | None = None
+        shared_session: AsyncSession | None = None
 
         try:
+            # 共享 Session：全构建生命周期复用单一 DB 连接，消除 ~2000 次 Session 创建/销毁抖动。
+            # Repository 的 _session_scope 注入模式（yield self._session + return）不接管生命周期，
+            # 每个 commit 仍正常提交事务，但底层 TCP 连接不被释放回连接池，直到 build_graph 结束。
+            from negentropy.db.session import AsyncSessionLocal
+
+            from .repository import AgeGraphRepository
+
+            shared_session = AsyncSessionLocal()
+            build_repo = AgeGraphRepository(session=shared_session)
+
             # 增量构建：跳过已处理的 chunk (Hogan et al., 2021 §6.3; Graphiti, 2025)
             prev_processed: set[str] = set()
             if build_config.incremental:
-                prev_processed = await self._repository.get_processed_chunk_ids(corpus_id, app_name)
+                prev_processed = await build_repo.get_processed_chunk_ids(corpus_id, app_name)
                 original_count = len(chunks)
                 chunks = [c for c in chunks if c.get("id") and str(c["id"]) not in prev_processed]
                 logger.info(
@@ -320,7 +331,7 @@ class GraphService:
                     )
             else:
                 # 全量构建：清除旧图谱数据
-                await self._repository.clear_graph(corpus_id)
+                await build_repo.clear_graph(corpus_id)
 
             # 分批处理
             all_entities: list[GraphNode] = []
@@ -365,7 +376,7 @@ class GraphService:
                     **extra,
                 )
                 try:
-                    await self._repository.update_build_run(
+                    await build_repo.update_build_run(
                         run_id=run_uuid,
                         status="running",
                         progress_percent=progress,
@@ -403,7 +414,7 @@ class GraphService:
                     progress_state["last_reported_chunks"] = chunks_processed
                     progress = min(chunks_processed / total_chunks, 1.0) * 0.80 if total_chunks > 0 else 0.80
                     try:
-                        await self._repository.update_build_run(
+                        await build_repo.update_build_run(
                             run_id=run_uuid,
                             status="running",
                             progress_percent=progress,
@@ -499,6 +510,18 @@ class GraphService:
                 # 节流上报（每 5 chunk 或 ≥10s）：避免 SSE 静默期超过 30s
                 await maybe_report_chunk_progress()
 
+            # 回收 litellm 内部 HTTP Session（aiohttp.ClientSession）
+            # litellm.acompletion 每次调用可能创建内部 Session 对象，
+            # 依赖 Python GC 延迟回收会产生 "Unclosed client session" 警告。
+            # 显式 gc.collect() 在 chunk 循环结束后及时回收。
+            import gc
+
+            gc.collect()
+            logger.info(
+                "chunk_extraction_gc_completed",
+                run_id=run_id,
+            )
+
             # 阶段 2：实体消解（多策略，Fellegi & Sunter, 1969）
             await emit_phase(
                 PHASE_RESOLVING,
@@ -519,12 +542,12 @@ class GraphService:
             )
             entities_to_save = await resolver.resolve(
                 new_entities=all_entities,
-                find_similar=self._repository.find_similar_entities,
+                find_similar=build_repo.find_similar_entities,
                 corpus_id=corpus_id,
             )
 
             # 持久化实体
-            await self._repository.create_entities(
+            await build_repo.create_entities(
                 entities_to_save,
                 corpus_id,
             )
@@ -579,14 +602,14 @@ class GraphService:
                 ]
                 temporal_results = await temporal_resolver.resolve_relations(
                     new_relations=relation_dicts_for_temporal,
-                    existing_lookup=self._repository.find_existing_relations,
+                    existing_lookup=build_repo.find_existing_relations,
                     corpus_id=corpus_id,
                 )
                 # 对 UPDATE/CONTRADICTION 的旧关系标记失效（提前到持久化之前）
                 now = datetime.now(UTC)
                 all_expire_ids = list({eid for resolved in temporal_results for eid in resolved.get("expire_ids", [])})
                 if all_expire_ids:
-                    await self._repository.expire_relations(all_expire_ids, now)
+                    await build_repo.expire_relations(all_expire_ids, now)
                 logger.info(
                     "temporal_resolution_completed",
                     relation_count=len(temporal_results),
@@ -600,7 +623,7 @@ class GraphService:
 
             # 持久化关系（依赖 create_relation 的 ON CONFLICT DO UPDATE 语义在 UPDATE 路径
             # 上原地覆盖 evidence，避免唯一约束 + DO NOTHING 造成的数据丢失）
-            await self._repository.create_relations(valid_relations)
+            await build_repo.create_relations(valid_relations)
 
             # 阶段 3：一等公民表双写同步（Kleppmann DDIA §11）
             await emit_phase(
@@ -615,8 +638,6 @@ class GraphService:
             # 双写同步使用独立事务 + 补偿重试：AGE 写入与 first-class 表写入
             # 在不同 session 中，失败时记录不一致以供后续修复
             try:
-                from negentropy.db.session import AsyncSessionLocal
-
                 from .entity_service import KgEntityService
 
                 kg_service = KgEntityService()
@@ -641,20 +662,23 @@ class GraphService:
                     }
                     for r in valid_relations
                 ]
-                async with AsyncSessionLocal() as sync_db:
-                    async with sync_db.begin():
-                        sync_result = await kg_service.batch_sync_from_graph_build(
-                            sync_db,
-                            nodes=node_dicts,
-                            edges=edge_dicts,
-                            corpus_id=corpus_id,
-                            app_name=app_name,
-                        )
+                async with shared_session.begin():
+                    sync_result = await kg_service.batch_sync_from_graph_build(
+                        shared_session,
+                        nodes=node_dicts,
+                        edges=edge_dicts,
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                    )
                     logger.info(
                         "kg_first_class_sync",
                         **sync_result,
                     )
             except Exception as sync_exc:
+                # shared_session.begin() 失败会自动 rollback，
+                # 但 session 可能处于非活动事务状态，显式清理确保后续阶段可用。
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append(
                     {
                         "phase": "first_class_sync",
@@ -673,16 +697,13 @@ class GraphService:
 
             # 计算 PageRank 实体重要性 (Brin & Page, 1998)
             try:
-                from negentropy.db.session import AsyncSessionLocal
-
                 from .graph_algorithms import compute_pagerank
 
-                async with AsyncSessionLocal() as pr_db:
-                    pr_result = await compute_pagerank(pr_db, corpus_id)
-                    logger.info(
-                        "pagerank_computed",
-                        entity_count=len(pr_result),
-                    )
+                pr_result = await compute_pagerank(shared_session, corpus_id)
+                logger.info(
+                    "pagerank_computed",
+                    entity_count=len(pr_result),
+                )
             except Exception as pr_exc:
                 build_warnings.append({"algorithm": "pagerank", "error": str(pr_exc)})
                 logger.warning(
@@ -697,20 +718,17 @@ class GraphService:
             # 优先使用 Leiden（保证社区内部连通性），降级到 Louvain
             levels_data: dict[int, dict[str, int]] = {}
             try:
-                from negentropy.db.session import AsyncSessionLocal
-
                 from .graph_algorithms import compute_communities
 
-                async with AsyncSessionLocal() as cm_db:
-                    levels_data = await compute_communities(cm_db, corpus_id)
-                    total_entities = sum(len(p) for p in levels_data.values())
-                    total_communities = sum(len(set(p.values())) for p in levels_data.values())
-                    logger.info(
-                        "communities_computed",
-                        levels=len(levels_data),
-                        entity_count=total_entities,
-                        community_count=total_communities,
-                    )
+                levels_data = await compute_communities(shared_session, corpus_id)
+                total_entities = sum(len(p) for p in levels_data.values())
+                total_communities = sum(len(set(p.values())) for p in levels_data.values())
+                logger.info(
+                    "communities_computed",
+                    levels=len(levels_data),
+                    entity_count=total_entities,
+                    community_count=total_communities,
+                )
             except Exception as cm_exc:
                 build_warnings.append({"algorithm": "community_detection", "error": str(cm_exc)})
                 logger.warning(
@@ -723,8 +741,6 @@ class GraphService:
 
             # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
             try:
-                from negentropy.db.session import AsyncSessionLocal
-
                 from ..ingestion.embedding import build_embedding_fn
                 from .community_summarizer import CommunitySummarizer
 
@@ -745,9 +761,9 @@ class GraphService:
                     model=normalized_llm_model,
                     embedding_fn=cs_embedding_fn,
                 )
-                async with AsyncSessionLocal() as cs_db:
+                async with shared_session.begin():
                     cs_result = await summarizer.summarize_communities(
-                        cs_db,
+                        shared_session,
                         corpus_id,
                         levels_data=levels_data if levels_data else None,
                     )
@@ -756,6 +772,8 @@ class GraphService:
                         **cs_result,
                     )
             except Exception as cs_exc:
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append({"algorithm": "community_summary", "error": str(cs_exc)})
                 logger.warning(
                     "community_summary_failed",
@@ -800,7 +818,7 @@ class GraphService:
             # 落入终态 warnings 会污染历史检视（与 _metrics 同型 sentinel 区分）。
             persisted_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
             persisted_warnings.append({"_metrics": build_metrics.to_dict()})
-            await self._repository.update_build_run(
+            await build_repo.update_build_run(
                 run_id=run_uuid,
                 status="completed",
                 entity_count=len(entities_to_save),
@@ -853,13 +871,23 @@ class GraphService:
             if build_metrics is not None:
                 failure_warnings.append({"_metrics": build_metrics.to_dict()})
 
-            # 更新构建运行状态
-            await self._repository.update_build_run(
-                run_id=run_uuid,
-                status="failed",
-                error_message=error_message,
-                warnings=failure_warnings if failure_warnings else None,
-            )
+            # 更新构建运行状态（回退到独立 Session，避免共享 Session 已损坏导致二次失败）
+            try:
+                if shared_session is not None and not shared_session.is_active:
+                    raise RuntimeError("shared session inactive")
+                await build_repo.update_build_run(
+                    run_id=run_uuid,
+                    status="failed",
+                    error_message=error_message,
+                    warnings=failure_warnings if failure_warnings else None,
+                )
+            except Exception:
+                await self._repository.update_build_run(
+                    run_id=run_uuid,
+                    status="failed",
+                    error_message=error_message,
+                    warnings=failure_warnings if failure_warnings else None,
+                )
 
             return GraphBuildResult(
                 run_id=run_id,
@@ -871,6 +899,11 @@ class GraphService:
                 elapsed_seconds=elapsed,
                 error_message=error_message,
             )
+
+        finally:
+            # 确保共享 Session 被关闭（归还连接到池）
+            if shared_session is not None:
+                await shared_session.close()
 
     async def search(
         self,

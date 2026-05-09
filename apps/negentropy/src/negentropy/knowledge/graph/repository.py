@@ -545,11 +545,36 @@ class AgeGraphRepository(GraphRepository):
         entities: list[GraphNode],
         corpus_id: UUID,
     ) -> list[str]:
-        """批量创建实体节点"""
+        """批量创建实体节点（单 Session 批量提交，消除逐条连接池抖动）"""
+        if not entities:
+            return []
+
+        query = text(f"""
+            UPDATE {self._schema}.knowledge
+            SET entity_type = :entity_type,
+                entity_confidence = :confidence,
+                metadata = COALESCE(metadata, '{{}}'::jsonb) || :metadata::jsonb
+            WHERE id = :entity_id
+        """)
+
         ids = []
+        params_list = []
         for entity in entities:
-            entity_id = await self.create_entity(entity, corpus_id)
-            ids.append(entity_id)
+            confidence = entity.metadata.get("confidence", 1.0)
+            params_list.append(
+                {
+                    "entity_id": entity.id.replace("entity:", ""),
+                    "entity_type": entity.node_type,
+                    "confidence": confidence,
+                    "metadata": str({"graph_label": entity.label}),
+                }
+            )
+            ids.append(entity.id)
+
+        async with self._session_scope() as session:
+            for params in params_list:
+                await session.execute(query, params)
+            await session.commit()
 
         logger.info(
             "entities_created_batch",
@@ -565,7 +590,20 @@ class AgeGraphRepository(GraphRepository):
         target_id: str,
         relation: GraphEdge,
     ) -> str:
-        """创建关系边
+        """创建单条关系边（委托给 _create_relation_with_session）"""
+        async with self._session_scope() as session:
+            rid = await self._create_relation_with_session(session, source_id, target_id, relation)
+            await session.commit()
+            return rid
+
+    async def _create_relation_with_session(
+        self,
+        session: AsyncSession,
+        source_id: str,
+        target_id: str,
+        relation: GraphEdge,
+    ) -> str:
+        """在给定 Session 上创建关系边（批量场景复用同一 Session）
 
         写入 kg_relations 一等公民表（SSoT），同时保留 knowledge.metadata JSONB
         作为过渡期兼容。参见 Kleppmann §11 事务内双写模式。
@@ -577,10 +615,6 @@ class AgeGraphRepository(GraphRepository):
         confidence = relation.metadata.get("confidence", 1.0)
         evidence = relation.metadata.get("evidence")
 
-        # 1. 写入 kg_relations 一等公民表
-        # 唯一约束 (source_id, target_id, relation_type) 命中时使用 DO UPDATE，
-        # 而非 DO NOTHING：否则 evidence 变更后 INSERT 被静默丢弃，再叠加
-        # TemporalResolver 的 expire 流程会导致关系被彻底抹除（既无新行又无有效旧行）。
         insert_query = text(f"""
             INSERT INTO {self._schema}.kg_relations
                 (source_id, target_id, corpus_id, app_name, relation_type,
@@ -613,46 +647,43 @@ class AgeGraphRepository(GraphRepository):
             WHERE id = :source_id
         """)
 
-        async with self._session_scope() as session:
-            await session.execute(
-                insert_query,
-                {
-                    "source_id": clean_source,
-                    "target_id": clean_target,
-                    "relation_type": relation.edge_type or "RELATED_TO",
-                    "weight": relation.weight or 1.0,
-                    "confidence": confidence,
-                    "evidence": evidence,
-                    "metadata": _json.dumps(relation.metadata or {}),
-                },
-            )
-
-            # 2. 过渡期：同时写入 JSONB（兼容旧读取路径）
-            relation_data = {
+        await session.execute(
+            insert_query,
+            {
+                "source_id": clean_source,
                 "target_id": clean_target,
-                "relation_type": relation.edge_type,
+                "relation_type": relation.edge_type or "RELATED_TO",
+                "weight": relation.weight or 1.0,
                 "confidence": confidence,
                 "evidence": evidence,
-            }
+                "metadata": _json.dumps(relation.metadata or {}),
+            },
+        )
 
-            result = await session.execute(select_query, {"source_id": clean_source})
-            row = result.fetchone()
+        # 过渡期：同时写入 JSONB（兼容旧读取路径）
+        relation_data = {
+            "target_id": clean_target,
+            "relation_type": relation.edge_type,
+            "confidence": confidence,
+            "evidence": evidence,
+        }
 
-            related_entities = []
-            if row and row.related:
-                related_entities = _json.loads(row.related) if isinstance(row.related, str) else row.related
+        result = await session.execute(select_query, {"source_id": clean_source})
+        row = result.fetchone()
 
-            related_entities.append(relation_data)
+        related_entities = []
+        if row and row.related:
+            related_entities = _json.loads(row.related) if isinstance(row.related, str) else row.related
 
-            await session.execute(
-                update_query,
-                {
-                    "source_id": clean_source,
-                    "related": _json.dumps(related_entities),
-                },
-            )
+        related_entities.append(relation_data)
 
-            await session.commit()
+        await session.execute(
+            update_query,
+            {
+                "source_id": clean_source,
+                "related": _json.dumps(related_entities),
+            },
+        )
 
         relation_id = f"relation:{source_id}:{target_id}:{relation.edge_type}"
 
@@ -670,15 +701,21 @@ class AgeGraphRepository(GraphRepository):
         self,
         relations: list[GraphEdge],
     ) -> list[str]:
-        """批量创建关系边"""
+        """批量创建关系边（单 Session 批量提交，消除逐条连接池抖动）"""
+        if not relations:
+            return []
+
         ids = []
-        for relation in relations:
-            relation_id = await self.create_relation(
-                relation.source,
-                relation.target,
-                relation,
-            )
-            ids.append(relation_id)
+        async with self._session_scope() as session:
+            for relation in relations:
+                rid = await self._create_relation_with_session(
+                    session,
+                    relation.source,
+                    relation.target,
+                    relation,
+                )
+                ids.append(rid)
+            await session.commit()
 
         logger.info("relations_created_batch", count=len(ids))
 
