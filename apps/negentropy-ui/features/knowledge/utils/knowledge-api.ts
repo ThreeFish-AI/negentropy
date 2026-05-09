@@ -1026,17 +1026,7 @@ export async function cancelPipelineRun(
       reason: opts?.reason ?? "user_cancel",
     }),
   });
-  if (res.status === 404) {
-    throw new Error("Pipeline run not found");
-  }
-  if (res.status === 409) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(`Run already in terminal state: ${body?.detail ?? res.statusText}`);
-  }
-  if (!res.ok) {
-    throw new Error(`Failed to cancel pipeline run: ${res.statusText}`);
-  }
-  return res.json();
+  return handleKnowledgeError<PipelineCancelResult>(res);
 }
 
 // ============================================================================

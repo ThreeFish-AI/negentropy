@@ -160,7 +160,7 @@ export default function KnowledgeDashboardPage() {
         // 立即刷新让卡片切换到 cancelling/cancelled；剩余收敛交给 5s 轮询
         await loadRuns().catch(() => undefined);
       } catch (err) {
-        setError(String(err));
+        setError(err instanceof Error ? err.message : String(err));
       }
     },
     [confirm, loadRuns],
@@ -196,10 +196,12 @@ export default function KnowledgeDashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load
   }, [page]);
 
-  // Bootstrap polling
+  // Bootstrap polling：仅在首次加载后无 active run 时启动（等待外部变更被观测到）；
+  // 若初始加载已含 active runs，running-state polling 负责持续轮询，无需 bootstrap 重叠。
   useEffect(() => {
     if (!hasInitialLoad) return;
     if (page !== 1) return;
+    if (hasActiveRuns(allRuns)) return;
 
     let active = true;
     let tick = 0;
@@ -236,7 +238,7 @@ export default function KnowledgeDashboardPage() {
       clearInterval(intervalId);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasInitialLoad, page]);
+  }, [hasInitialLoad, page, allRuns]);
 
   // Running-state polling
   useEffect(() => {

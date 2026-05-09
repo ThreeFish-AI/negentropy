@@ -472,6 +472,13 @@ class PipelineTracker:
           立即 raise PipelineCancelled。
         - 若本次写入态是终态（cancelled/completed/failed），照常写入 — 终态
           覆盖中间态是合法的（cancel() / complete() / fail() 路径必须能落库）。
+
+        锁策略说明：本方法不使用 ``SELECT ... FOR UPDATE``，而是采用
+        "读-判-写" 模式。与 cancel API 的 ``request_pipeline_run_cancel``
+        （使用 FOR UPDATE 行锁串行化并发）形成互补：cancel 持锁写 cancelling，
+        本方法先读 cancelling 再跳过写入。两者不竞争同一把锁，不会死锁。
+        ``upsert_pipeline_run`` 以 ``expected_version=None`` 调用，不检查版本——
+        版本不匹配时的覆盖是安全的，因为上面的 cancelling 守卫已拦截危险场景。
         """
         latest = await self._dao.get_pipeline_run(self._app_name, self._run_id)
         if (

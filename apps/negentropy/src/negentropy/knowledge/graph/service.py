@@ -381,6 +381,9 @@ class GraphService:
 
                 # DB 兜底：跨 worker 场景，cancel API 落到 worker A 时本 worker 通过 DB 感知。
                 # 用 hasattr/try 兜底兼容 mock repository（无该方法时降级为仅依赖 in-memory）。
+                # 注意：此处通过 self._repository（而非 build_repo）查询，_repository 使用
+                # _session_scope() 开启独立 session 做 SELECT，不与 build_repo 的
+                # shared_session 事务冲突，不会触发连接池竞争。
                 _get_run = getattr(self._repository, "get_build_run_by_run_id", None)
                 if _get_run is not None:
                     try:
