@@ -24,7 +24,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from negentropy.engine.utils.token_counter import TokenCounter
+import tiktoken
+
 from negentropy.logging import get_logger
 
 if TYPE_CHECKING:
@@ -33,6 +34,16 @@ if TYPE_CHECKING:
 from ..types import GraphEdge, GraphNode, KgEntityType, KgRelationType
 
 logger = get_logger("negentropy.knowledge.llm_extractors")
+
+_DEFAULT_ENCODING = "cl100k_base"
+_encoding_cache: tiktoken.Encoding | None = None
+
+
+def _get_tiktoken_encoding() -> tiktoken.Encoding:
+    global _encoding_cache
+    if _encoding_cache is None:
+        _encoding_cache = tiktoken.get_encoding(_DEFAULT_ENCODING)
+    return _encoding_cache
 
 
 def _truncate_to_token_limit(text: str, max_tokens: int = 3500) -> str:
@@ -43,7 +54,7 @@ def _truncate_to_token_limit(text: str, max_tokens: int = 3500) -> str:
     - CJK ~2 chars/token → 4000 chars ≈ 2000 tokens（仍有溢出风险）
     Token 截断确保上下文利用率最优且不超限。
     """
-    encoding = TokenCounter._get_encoding()
+    encoding = _get_tiktoken_encoding()
     tokens = encoding.encode(text)
     if len(tokens) <= max_tokens:
         return text

@@ -705,6 +705,8 @@ class GraphService:
                     entity_count=len(pr_result),
                 )
             except Exception as pr_exc:
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append({"algorithm": "pagerank", "error": str(pr_exc)})
                 logger.warning(
                     "pagerank_computation_failed",
@@ -730,6 +732,8 @@ class GraphService:
                     community_count=total_communities,
                 )
             except Exception as cm_exc:
+                if shared_session.in_transaction():
+                    await shared_session.rollback()
                 build_warnings.append({"algorithm": "community_detection", "error": str(cm_exc)})
                 logger.warning(
                     "community_detection_failed",

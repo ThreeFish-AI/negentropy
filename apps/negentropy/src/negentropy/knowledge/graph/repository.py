@@ -607,6 +607,11 @@ class AgeGraphRepository(GraphRepository):
 
         写入 kg_relations 一等公民表（SSoT），同时保留 knowledge.metadata JSONB
         作为过渡期兼容。参见 Kleppmann §11 事务内双写模式。
+
+        ON CONFLICT DO UPDATE（而非 DO NOTHING）：唯一约束 (source_id, target_id,
+        relation_type) 命中时必须原地覆盖 evidence/weight/confidence。若使用
+        DO NOTHING，evidence 变更后 INSERT 会被静默丢弃，叠加 TemporalResolver
+        的 expire 流程会导致关系被彻底抹除（既无新行又无有效旧行）。
         """
         import json as _json
 
