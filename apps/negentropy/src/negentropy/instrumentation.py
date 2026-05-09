@@ -394,8 +394,18 @@ def patch_litellm_otel_cost() -> None:
 
             # 保留诊断：原始字符串挂在 span 上，便于排查「实际调用了哪个具体版本」，
             # 与归一化后的聚合键并存不冲突。
+            # - request 侧：写 gen_ai.original_model，保留 vendor/ 前缀等调度信息；
+            # - response 侧：归一化前的 response.model 才含服务端实际版本（如
+            #   `gpt-5-mini-2025-08-07`），仅当与 request 不同（即归一化丢了信息）
+            #   才单独写一个键，避免冗余。
             if model:
                 _safe_set_span_attribute(span, "gen_ai.original_model", str(model))
+            if response_model and str(response_model) != str(model):
+                _safe_set_span_attribute(
+                    span,
+                    "gen_ai.original_response_model",
+                    str(response_model),
+                )
 
             # Extract and inject cost
             cost = _extract_total_cost(kwargs, response_obj)

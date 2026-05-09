@@ -90,6 +90,8 @@ def test_patch_litellm_otel_cost_injects_cost_attributes(monkeypatch):
     assert span.attributes["langfuse.observation.model.name"] == "gpt-5-mini"
     # 诊断字段保留原始字符串（用于 trace 详情排查）。
     assert span.attributes["gen_ai.original_model"] == "openai/gpt-5-mini"
+    # request == response 时不重复写 original_response_model，避免冗余。
+    assert "gen_ai.original_response_model" not in span.attributes
     assert span.attributes["gen_ai.usage.cost"] == 0.12
 
 
@@ -116,6 +118,8 @@ def test_patch_normalizes_dated_response_model(monkeypatch):
     # response.model 优先用作 Langfuse 强制覆盖键（更接近实际计费模型）。
     assert span.attributes["langfuse.observation.model.name"] == "gpt-5-mini"
     assert span.attributes["gen_ai.original_model"] == "openai/gpt-5-mini"
+    # response.model 含具体版本日期，归一化丢失的信息单独保留到 original_response_model。
+    assert span.attributes["gen_ai.original_response_model"] == "gpt-5-mini-2025-08-07"
 
 
 def test_patch_emits_vendor_for_bare_model(monkeypatch):
@@ -141,6 +145,8 @@ def test_patch_emits_vendor_for_bare_model(monkeypatch):
     assert span.attributes["gen_ai.system"] == "openai"
     assert span.attributes["langfuse.observation.model.name"] == "gpt-4o-mini"
     assert span.attributes["gen_ai.original_model"] == "gpt-4o-mini"
+    # 裸名 request 与带日期的 response 不同，需各自保留诊断字符串。
+    assert span.attributes["gen_ai.original_response_model"] == "gpt-4o-mini-2024-07-18"
 
 
 def test_patch_litellm_otel_cost_skips_non_recording_span(monkeypatch):
