@@ -1722,3 +1722,26 @@
 - **Phase 2 同类问题影响**：
   1. **PG 函数 `kb_hybrid_search` / `kb_rrf_search` 缺 `is_enabled` 过滤**：列入 follow-up，需要时通过 alembic 迁移修订函数体，加 `WHERE kb.is_enabled = TRUE AND COALESCE((kb.metadata->>'archived')::boolean, false) = false AND COALESCE((kb.metadata->>'searchable')::boolean, true) = true` 三态过滤。
   2. **任何「外部资源 + 内部产物」双表关系**：若两侧无 FK 仅靠 URI/Hash 软关联（如 `KnowledgeDocument` ↔ `Knowledge`、未来可能的 `Asset` ↔ `EmbeddingArtifact`），删除路径必须主动维护产物生命周期（参考本次 `_hard_delete_chunks_in_session` / `_archive_chunks_in_session` 范式）；Phase 3 通过加 `Knowledge.document_id` FK 在 DB 层兜底。
+
+- **Phase 3 补充修复（2026-05-09 第三阶段 · Schema FK + 一次性数据修复）**：
+  1. **alembic 0030 迁移 [`0030_knowledge_document_fk.py`](../apps/negentropy/src/negentropy/db/migrations/versions/0030_knowledge_document_fk.py)**：`ALTER TABLE knowledge ADD COLUMN document_id UUID NULL` + `FOREIGN KEY (document_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE` + 部分索引 `CREATE INDEX ix_knowledge_document_id ON knowledge (document_id) WHERE document_id IS NOT NULL`。**仅加列与约束、不做数据变更**，避免大表 UPDATE 长锁；downgrade 仅 DROP COLUMN，PG 元数据操作可瞬时回滚；historic 数据通过独立 CLI 一次性回填。
+  2. **ORM 同步 [`models/perception.py`](../apps/negentropy/src/negentropy/models/perception.py)**：`Knowledge.document_id: Mapped[UUID | None]` + FK to `knowledge_documents.id ondelete=CASCADE`、nullable=True（KG 类直连知识无 doc 来源，必须允许 NULL）。
+  3. **`KnowledgeChunk` dataclass + 写入路径单点 stamp**：`apps/negentropy/src/negentropy/knowledge/types.py` `KnowledgeChunk` 加 `document_id: UUID | None = None`；`_ingest_text_with_tracker` 加 `document_id` 参数，在 `_build_chunks` 之后通过 `dataclasses.replace` 单点 stamp 到每个 chunk，避免大面积改造下游函数。仅 2 个 ingest 入口（`execute_ingest_url_document_pipeline` / `execute_ingest_file_pipeline`）传入 `document_id`，其余 10 个入口（纯文本、URL、replace、rebuild、KG）保留 None。`KnowledgeRepository.add_knowledge` 的 `pg_insert.values()` 列表加入 `document_id` 字段，与既有 `pg_insert ... RETURNING` 模式一致。
+  4. **独立 CLI [`scripts/cleanup_orphan_knowledge.py`](../apps/negentropy/src/negentropy/scripts/cleanup_orphan_knowledge.py)**：`uv run python -m negentropy.scripts.cleanup_orphan_knowledge --dry-run | --commit [--corpus-id ...] [--app-name ...] [--json]`。三步流水线：① 回填 `document_id`（基于 `(corpus_id, app_name, source_uri ↔ d.gcs_uri OR d.metadata->>'origin_url')` 关联，包含软删 doc）；② 按 corpus 分组报告 `total / linked / unlinked / would_delete` 四档计数；③ `--commit` 模式才 DELETE，且仅当 `document_id IS NULL AND source_uri IS NOT NULL AND source_uri ~ '^(gs://|https?://)'`（白名单形态防误删）；整体单事务，`asyncpg` 不接受 `:param::type` cast 改用条件谓词拼接。**不放进 alembic 迁移**——DELETE 不可逆需 dry-run + 审批环节。
+  5. **观测函数 `count_orphan_knowledge`**：与 CLI 共享同一过滤口径（`document_id IS NULL` + 白名单 source_uri），返回 `{total_orphans, per_corpus[]}`，cron 接入方式：每日扫描，将 `total_orphans` 上报为 metric `negentropy.knowledge.orphan_count{corpus_id}`，`> 0` 即告警（即便三层防御兜住也作为入侵 / 异常 SQL 的 canary）。
+  6. **dev DB 实地验证**：在 user 真实数据上跑 `--dry-run` → 报告 `Harness Engineering` corpus `total=849, linked=0→849, unlinked=0, would_delete=0`，证实 user 当时走的是软删（doc 还在所以不是 FK 意义孤儿）；`--commit` 后 849 条 Knowledge 全部 `document_id` 已回填，与对应 KnowledgeDocument 建立 FK 关联。Phase 1 → Phase 3 三层防御**端到端在用户实际数据上闭环**。
+  7. **集成测试 [`test_phase3_document_fk.py`](../apps/negentropy/tests/integration_tests/knowledge/test_phase3_document_fk.py)**：8 场景覆盖 ① ORM 字段读写 ② DB 层 FK CASCADE（直接 DELETE knowledge_documents 行触发 Knowledge 级联清理）③ CLI dry-run 不落库 ④ CLI commit 落库 ⑤ KG NULL source_uri 保留 ⑥ 非白名单 source_uri 形态保留 ⑦ count_orphan_knowledge 观测函数 ⑧ migration round-trip 验证（column / FK / index 实际存在）。
+- **Phase 3 取舍说明**：
+  - **CLI 而非 alembic data migration**：DELETE 不可逆、迁移强制执行、不利于审计；CLI 提供 dry-run + JSON 报告 + scope 过滤（`--corpus-id` / `--app-name`），运维流程更稳。
+  - **白名单 `source_uri` 形态**：仅删 `gs://...` / `http(s)://...` 形态的孤儿，规避内部脏数据 / 自定义 URI 形态被误删；`source_uri IS NULL` 的 KG 类直连知识永不被本 CLI 清理（合法语义保留）。
+  - **新建 `negentropy/scripts/` 包**：与既有 `cli.py` 区分——`cli.py` 是常驻 CLI（serve / init），`scripts/` 是一次性运维工具，命名空间清晰互不冲突。
+  - **单点 stamp `document_id` 而非贯穿 `_build_chunks`**：`_build_chunks` 调用面广（hierarchical / fixed / recursive / semantic 四种策略）改动成本高；`_ingest_text_with_tracker` 是所有 doc-aware ingest 的必经之路，单点 stamp 边界清晰、blast radius 最小。
+- **Phase 3 同类问题影响**：
+  1. **任何 1:N 关联但缺 FK 的双表设计**：参考本次 0030 迁移模板（加 nullable FK + ON DELETE CASCADE + 部分索引 + 独立 CLI 历史回填）。已识别候选 follow-up：`Knowledge.embedding` ↔ `EmbeddingConfig`（embedding 配置删除时是否级联？目前是手动重建）、`KgEntity` ↔ `Knowledge.entity_type`（entity 改名 / 删除时 chunks 的元数据是否同步？目前未级联）。
+  2. **观测埋点与防御层结合**：仅靠应用层 + DB 层防御不够，必须有 metric canary 主动揭露三层防御均失守的边角场景；本 PR 的 `count_orphan_knowledge` 是范本——监控的是「不应存在的状态」而非「业务正常态」。
+  3. **大表 schema 变更**：用户曾担心大表 ALTER 锁表。0030 仅加 nullable 列 + FK 约束 + 部分索引，PG 14+ 的 `ADD COLUMN ... NULL` 是元数据级 O(1) 操作，FK 约束加上 `NOT VALID` 即可异步验证（本次未加 NOT VALID 是因为新列默认 NULL，约束不会回扫）；`CREATE INDEX IF NOT EXISTS` 用 partial index 范围已极小。生产部署可直接执行。
+- **Phase 1+2+3 整体闭环验证**：
+  1. **Phase 1 SQL 口径修正**（PR #483）：UI 立即显示正确的 `chunks: 14`；
+  2. **Phase 2 应用层级联**（PR #484）：未来软删/硬删/复活路径都会同步 chunks；
+  3. **Phase 3 Schema FK + CLI**（本 phase）：DB 层兜底 + 历史脏数据可清算；
+  4. **观测埋点**：`negentropy.knowledge.orphan_count` cron 持续监控，三层防御任何环节失守都被 canary 捕获。

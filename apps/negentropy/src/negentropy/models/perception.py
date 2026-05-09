@@ -65,6 +65,14 @@ class Knowledge(Base, UUIDMixin, TimestampMixin):
     corpus_id: Mapped[UUID] = mapped_column(
         ForeignKey(f"{NEGENTROPY_SCHEMA}.corpus.id", ondelete="CASCADE"), nullable=False
     )
+    # ISSUE-078 Phase 3：DB 层文档级 CASCADE 防御。
+    # nullable=True 因 KG 类直连知识无 doc 来源；指向 doc 的 chunks 在 doc 被删时
+    # 自动 CASCADE 清理（与 Phase 2 应用层级联形成 belt-and-suspenders）。
+    # 历史 chunks 通过独立 CLI cleanup_orphan_knowledge 一次性回填。
+    document_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(f"{NEGENTROPY_SCHEMA}.knowledge_documents.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     app_name: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(DEFAULT_EMBEDDING_DIM))
