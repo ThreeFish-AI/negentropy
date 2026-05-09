@@ -27,6 +27,48 @@ import { getKnowledgeBaseUrl } from "@/lib/server/backend-url";
 
 const getBaseUrl = getKnowledgeBaseUrl;
 
+/**
+ * BFF → 后端默认 fetch 超时（毫秒）。Node.js fetch 默认仅依赖 OS TCP keepalive
+ * （往往数分钟），长任务 hang 时前端只能等到 socket 层超时，体感像"凭空 fetch failed"。
+ * 显式 30s 上限让快查询失败时能尽早返回，长任务调用方可通过 timeoutMs 覆盖。
+ */
+export const DEFAULT_PROXY_TIMEOUT_MS = 30_000;
+
+/**
+ * 长任务超时（毫秒）：KG build 等长流程的调用方传入此常量。
+ * 15min 经验值：覆盖典型 1k chunk 全量构建（含 5 个后置阶段）后仍有冗余；
+ * 当前修复（连接池泄漏 + 阶段化进度）后正常构建应在 5min 内完成，超时一般意味着真故障。
+ * 注意：UI 通过 SSE 旁路仍可拿到最终终态作为 SSoT，POST 即便 504，KgBuildProgressPill
+ * 也会推送 completed/failed 让前端正确转入终态。
+ */
+export const LONG_TASK_PROXY_TIMEOUT_MS = 15 * 60 * 1_000;
+
+type ProxyOptions = {
+  /** 覆盖默认 30s 超时；长任务调用方建议传 LONG_TASK_PROXY_TIMEOUT_MS */
+  timeoutMs?: number;
+};
+
+/**
+ * 把 fetch 异常归类为 504（超时）或 502（其他连接失败），让前端能准确区分。
+ * 历史问题：旧版 catch 一律返回 502 KNOWLEDGE_UPSTREAM_ERROR + "TypeError: fetch failed"，
+ * 既丢失了"是超时还是别的"信号，也让用户在长任务卡住 5min 后只看到误导性错误。
+ */
+function classifyFetchError(error: unknown): { code: string; message: string; status: number } {
+  // AbortSignal.timeout 触发的中止：DOMException name === "TimeoutError"
+  if (error instanceof DOMException && error.name === "TimeoutError") {
+    return {
+      code: "KNOWLEDGE_UPSTREAM_TIMEOUT",
+      message: `Upstream request timed out: ${String(error)}`,
+      status: 504,
+    };
+  }
+  return {
+    code: "KNOWLEDGE_UPSTREAM_ERROR",
+    message: `Upstream connection failed: ${String(error)}`,
+    status: 502,
+  };
+}
+
 function extractForwardHeaders(request: Request) {
   const headers = buildAuthHeaders(request);
 
@@ -79,7 +121,7 @@ function upstreamErrorResponse(text: string, status: number) {
   );
 }
 
-export async function proxyGet(request: Request, path: string) {
+export async function proxyGet(request: Request, path: string, options: ProxyOptions = {}) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     return errorResponse(
@@ -92,6 +134,7 @@ export async function proxyGet(request: Request, path: string) {
   const upstreamUrl = new URL(path, baseUrl);
   const incomingUrl = new URL(request.url);
   upstreamUrl.search = incomingUrl.search;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS;
 
   let upstreamResponse: Response;
   try {
@@ -99,13 +142,11 @@ export async function proxyGet(request: Request, path: string) {
       method: "GET",
       headers: extractForwardHeaders(request),
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      `Upstream connection failed: ${String(error)}`,
-      502,
-    );
+    const { code, message, status } = classifyFetchError(error);
+    return errorResponse(code, message, status);
   }
 
   const text = await upstreamResponse.text();
@@ -116,7 +157,7 @@ export async function proxyGet(request: Request, path: string) {
   return NextResponse.json(JSON.parse(text));
 }
 
-export async function proxyPost(request: Request, path: string) {
+export async function proxyPost(request: Request, path: string, options: ProxyOptions = {}) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     return errorResponse(
@@ -152,6 +193,7 @@ export async function proxyPost(request: Request, path: string) {
   if (forwardBody !== undefined) {
     headers.set("content-type", "application/json");
   }
+  const timeoutMs = options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS;
 
   let upstreamResponse: Response;
   try {
@@ -160,13 +202,11 @@ export async function proxyPost(request: Request, path: string) {
       headers,
       body: forwardBody,
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      `Upstream connection failed: ${String(error)}`,
-      502,
-    );
+    const { code, message, status } = classifyFetchError(error);
+    return errorResponse(code, message, status);
   }
 
   const text = await upstreamResponse.text();
@@ -177,7 +217,11 @@ export async function proxyPost(request: Request, path: string) {
   return NextResponse.json(JSON.parse(text));
 }
 
-export async function proxyPostFormData(request: Request, path: string) {
+export async function proxyPostFormData(
+  request: Request,
+  path: string,
+  options: ProxyOptions = {},
+) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     return errorResponse(
@@ -194,6 +238,7 @@ export async function proxyPostFormData(request: Request, path: string) {
   upstreamUrl.search = incomingUrl.search;
   const headers = extractForwardHeaders(request);
   // 不设置 content-type，让浏览器自动处理 multipart/form-data 边界
+  const timeoutMs = options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS;
 
   let upstreamResponse: Response;
   try {
@@ -202,13 +247,11 @@ export async function proxyPostFormData(request: Request, path: string) {
       headers,
       body: formData,
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      `Upstream connection failed: ${String(error)}`,
-      502,
-    );
+    const { code, message, status } = classifyFetchError(error);
+    return errorResponse(code, message, status);
   }
 
   const text = await upstreamResponse.text();
@@ -230,7 +273,7 @@ export async function proxyPostFormData(request: Request, path: string) {
   return NextResponse.json(JSON.parse(text));
 }
 
-export async function proxyPatch(request: Request, path: string) {
+export async function proxyPatch(request: Request, path: string, options: ProxyOptions = {}) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     return errorResponse(
@@ -256,6 +299,7 @@ export async function proxyPatch(request: Request, path: string) {
   upstreamUrl.search = incomingUrl.search;
   const headers = extractForwardHeaders(request);
   headers.set("content-type", "application/json");
+  const timeoutMs = options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS;
 
   let upstreamResponse: Response;
   try {
@@ -264,13 +308,11 @@ export async function proxyPatch(request: Request, path: string) {
       headers,
       body: JSON.stringify(body),
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      `Upstream connection failed: ${String(error)}`,
-      502,
-    );
+    const { code, message, status } = classifyFetchError(error);
+    return errorResponse(code, message, status);
   }
 
   const text = await upstreamResponse.text();
@@ -292,7 +334,7 @@ export async function proxyPatch(request: Request, path: string) {
   return NextResponse.json(JSON.parse(text));
 }
 
-export async function proxyDelete(request: Request, path: string) {
+export async function proxyDelete(request: Request, path: string, options: ProxyOptions = {}) {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     return errorResponse(
@@ -305,6 +347,7 @@ export async function proxyDelete(request: Request, path: string) {
   const upstreamUrl = new URL(path, baseUrl);
   const incomingUrl = new URL(request.url);
   upstreamUrl.search = incomingUrl.search;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS;
 
   let upstreamResponse: Response;
   try {
@@ -313,13 +356,11 @@ export async function proxyDelete(request: Request, path: string) {
       method: "DELETE",
       headers,
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      `Upstream connection failed: ${String(error)}`,
-      502,
-    );
+    const { code, message, status } = classifyFetchError(error);
+    return errorResponse(code, message, status);
   }
 
   if (upstreamResponse.status === 204) {
@@ -355,6 +396,7 @@ export async function proxyDelete(request: Request, path: string) {
 export async function proxyGetBinary(
   request: Request,
   path: string,
+  options: ProxyOptions = {},
 ): Promise<Response> {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
@@ -368,6 +410,7 @@ export async function proxyGetBinary(
   const upstreamUrl = new URL(path, baseUrl);
   const incomingUrl = new URL(request.url);
   upstreamUrl.search = incomingUrl.search;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS;
 
   let upstreamResponse: Response;
   try {
@@ -375,13 +418,11 @@ export async function proxyGetBinary(
       method: "GET",
       headers: extractForwardHeaders(request),
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
-    return errorResponse(
-      "KNOWLEDGE_UPSTREAM_ERROR",
-      `Upstream connection failed: ${String(error)}`,
-      502,
-    );
+    const { code, message, status } = classifyFetchError(error);
+    return errorResponse(code, message, status);
   }
 
   if (!upstreamResponse.ok) {

@@ -19,7 +19,7 @@ import time
 import uuid
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -128,6 +128,38 @@ class _TTLCache:
 
 
 _graph_cache = _TTLCache(ttl_seconds=300, maxsize=256)
+
+
+# ============================================================================
+# Build Phase Constants
+# ============================================================================
+#
+# 单次 build 内的语义里程碑顺序：
+#   extracting → resolving → syncing → pagerank → communities → summaries → completed
+# 与 progress_percent 协同（前端 SSE payload 透传 phase + percent）：
+# - extracting：0.00 → 0.80（chunk 循环按比例线性递增）
+# - resolving / persisting：0.80 → 0.85
+# - syncing：0.85 → 0.90
+# - pagerank：0.90 → 0.93
+# - communities：0.93 → 0.96
+# - summaries：0.96 → 1.00
+# 失败也会落库为 failed 终态，前端 KgBuildProgressPill 解析 phase 字段渲染中文标签。
+PHASE_EXTRACTING = "extracting"
+PHASE_RESOLVING = "resolving"
+PHASE_SYNCING = "syncing"
+PHASE_PAGERANK = "pagerank"
+PHASE_COMMUNITIES = "communities"
+PHASE_SUMMARIES = "summaries"
+PHASE_COMPLETED = "completed"
+
+
+def _strip_phase_entries(warnings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """移除 warnings 列表中既有的 _phase 条目（保持单条最新阶段元数据）。
+
+    SSE 端点 / 前端 ``KgBuildProgressPill`` 都会取最后一条 _phase；保留多条历史
+    会污染前端渲染。``_metrics`` / 算法 warning 等其他条目原样保留。
+    """
+    return [w for w in warnings if "_phase" not in w]
 
 
 # ============================================================================
@@ -260,6 +292,13 @@ class GraphService:
             model_name=normalized_llm_model,
         )
 
+        # 提升到 try 之外：失败分支需要剥离 _phase 后落库 warnings，避免 DB 行残留
+        # 上一次 emit_phase 写入的运行期标记；同时让累积的 algorithm warning + 部分 _metrics
+        # 在失败时仍然可观测。即便异常发生在 try 内的早期阶段（如 get_processed_chunk_ids）
+        # 这两个变量也已绑定，except 不会触发 UnboundLocalError。
+        build_warnings: list[dict[str, Any]] = []
+        build_metrics: KgBuildMetrics | None = None
+
         try:
             # 增量构建：跳过已处理的 chunk (Hogan et al., 2021 §6.3; Graphiti, 2025)
             prev_processed: set[str] = set()
@@ -288,32 +327,133 @@ class GraphService:
             all_relations: list[GraphEdge] = []
             chunks_processed = 0
             failed_chunk_count = 0
-            build_warnings: list[dict[str, Any]] = []
             total_chunks = len(chunks)
 
             batch_size = build_config.batch_size
             semaphore = asyncio.Semaphore(build_config.max_concurrency)
 
+            # 单 chunk LLM 提取超时（秒）：包裹 entity / relation extractor.extract
+            # 防御场景：单条 chunk LLM 调用 hang 住会阻塞整个 batch 的 asyncio.gather，
+            # 上层无心跳 → SSE 端点 progress 静默 → 前端误判"卡死"。
+            # 60s 经验值：覆盖 95P 长 chunk + 3 次指数退避（litellm 内部 1+2+4=7s）后仍有冗余。
+            chunk_extract_timeout = 60.0
+
+            # 阶段化进度上报：把当前阶段元数据写入 warnings JSONB 的最后一条 _phase 条目，
+            # SSE 端点透传后由前端 KgBuildProgressPill 解析渲染中文标签。
+            # 设计决策（vs 新增 phase 列）：复用 warnings JSONB（已有 _metrics 同型条目模式）
+            # 避免 alembic 迁移；warnings 字段 SSE 端点已读取，零额外 API 改造。
+            async def emit_phase(
+                phase: str,
+                progress: float,
+                **extra: Any,
+            ) -> None:
+                """写阶段化日志 + 更新 progress_percent + 把 _phase 元数据塞入 warnings。"""
+                nonlocal build_warnings
+                phase_meta: dict[str, Any] = {
+                    "name": phase,
+                    "ts": datetime.now(UTC).isoformat(),
+                }
+                if extra:
+                    phase_meta.update(extra)
+                build_warnings = _strip_phase_entries(build_warnings)
+                build_warnings.append({"_phase": phase_meta})
+                logger.info(
+                    "graph_phase_started",
+                    run_id=run_id,
+                    phase=phase,
+                    progress_percent=round(progress, 4),
+                    **extra,
+                )
+                try:
+                    await self._repository.update_build_run(
+                        run_id=run_uuid,
+                        status="running",
+                        progress_percent=progress,
+                        warnings=list(build_warnings),
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "update_build_run_failed",
+                        run_id=str(run_uuid),
+                        phase=phase,
+                        error=str(exc),
+                    )
+
+            # chunk 循环节流上报：单批 batch 内可能 30-60s（10 chunk × 3 并发 × 单 LLM 5-10s），
+            # 仅在每批结束才上报会让 SSE 静默期 ≥ 30s，前端体感"卡死"。
+            # 双触发条件：每完成 progress_report_chunk_threshold 个 chunk 或距上次上报 ≥
+            # progress_report_min_interval_s 秒，取后到者。Lock 保护避免并发互相覆盖。
+            progress_lock = asyncio.Lock()
+            progress_report_chunk_threshold = 5
+            progress_report_min_interval_s = 10.0
+            progress_state: dict[str, float | int] = {
+                "last_reported_at": time.time(),
+                "last_reported_chunks": 0,
+            }
+
+            async def maybe_report_chunk_progress() -> None:
+                """chunk 处理过程中按节流条件上报 progress_percent（仅更新单字段，不改 warnings）。"""
+                async with progress_lock:
+                    now = time.time()
+                    delta_chunks = chunks_processed - int(progress_state["last_reported_chunks"])
+                    delta_time = now - float(progress_state["last_reported_at"])
+                    if delta_chunks < progress_report_chunk_threshold and delta_time < progress_report_min_interval_s:
+                        return
+                    progress_state["last_reported_at"] = now
+                    progress_state["last_reported_chunks"] = chunks_processed
+                    progress = min(chunks_processed / total_chunks, 1.0) * 0.80 if total_chunks > 0 else 0.80
+                    try:
+                        await self._repository.update_build_run(
+                            run_id=run_uuid,
+                            status="running",
+                            progress_percent=progress,
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            "update_build_run_failed",
+                            run_id=str(run_uuid),
+                            phase=PHASE_EXTRACTING,
+                            error=str(exc),
+                        )
+                    logger.info(
+                        "chunk_batch_progress",
+                        run_id=run_id,
+                        processed=chunks_processed,
+                        total=total_chunks,
+                        failed=failed_chunk_count,
+                        progress_percent=round(progress, 4),
+                    )
+
             async def process_chunk(
                 chunk: dict[str, Any],
                 _retries: int = 1,
             ) -> tuple[list[GraphNode], list[GraphEdge]]:
-                """处理单个知识块，LLM 提取失败时重试一次 (Nygard, 2018)"""
+                """处理单个知识块，LLM 提取失败时重试一次 (Nygard, 2018)。
+
+                LLM 调用使用 ``asyncio.wait_for`` 包裹 ``chunk_extract_timeout`` 秒超时，
+                避免单 chunk hang 阻塞整批 ``asyncio.gather``。重试时间窗内仍受 wait_for 约束。
+                """
                 async with semaphore:
                     text = chunk.get("content", "")
                     if not text:
                         return [], []
 
                     try:
-                        # 提取实体
-                        entities = await entity_extractor.extract(text, corpus_id)
+                        # 提取实体（带超时）
+                        entities = await asyncio.wait_for(
+                            entity_extractor.extract(text, corpus_id),
+                            timeout=chunk_extract_timeout,
+                        )
 
                         # 过滤低置信度实体
                         min_conf = build_config.min_entity_confidence
                         entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
 
-                        # 提取关系
-                        relations = await relation_extractor.extract(entities, text)
+                        # 提取关系（带超时）
+                        relations = await asyncio.wait_for(
+                            relation_extractor.extract(entities, text),
+                            timeout=chunk_extract_timeout,
+                        )
 
                         # 过滤低置信度关系
                         relations = [
@@ -323,11 +463,14 @@ class GraphService:
                         ]
 
                         return entities, relations
-                    except Exception:
+                    except (TimeoutError, Exception):
                         if _retries > 0:
                             await asyncio.sleep(1.0)
                             return await process_chunk(chunk, _retries - 1)
                         raise
+
+            # 阶段 1：实体/关系抽取（chunk 循环占整体进度 0.0 → 0.80）
+            await emit_phase(PHASE_EXTRACTING, 0.0, processed=0, total=total_chunks)
 
             # 批量处理
             for i in range(0, len(chunks), batch_size):
@@ -341,7 +484,9 @@ class GraphService:
                     if isinstance(result, Exception):
                         logger.warning(
                             "chunk_processing_error",
+                            run_id=run_id,
                             error=str(result),
+                            error_type=type(result).__name__,
                         )
                         failed_chunk_count += 1
                         continue
@@ -351,16 +496,19 @@ class GraphService:
                     all_relations.extend(relations)
                     chunks_processed += 1
 
-                # 进度上报 (Majors, Observability Engineering, 2022)
-                progress = min((i + len(batch)) / total_chunks, 1.0) if total_chunks > 0 else 1.0
-                try:
-                    await self._repository.update_build_run(
-                        run_id=run_uuid,
-                        status="running",
-                        progress_percent=progress,
-                    )
-                except Exception:
-                    pass  # 进度上报失败不影响构建
+                # 节流上报（每 5 chunk 或 ≥10s）：避免 SSE 静默期超过 30s
+                await maybe_report_chunk_progress()
+
+            # 阶段 2：实体消解（多策略，Fellegi & Sunter, 1969）
+            await emit_phase(
+                PHASE_RESOLVING,
+                0.82,
+                processed=chunks_processed,
+                total=total_chunks,
+                failed=failed_chunk_count,
+                entity_count=len(all_entities),
+                relation_count=len(all_relations),
+            )
 
             # 多策略实体消解 (Fellegi & Sunter, 1969)
             # Blocking → Exact → Alias → ANN → LLM verification
@@ -416,8 +564,6 @@ class GraphService:
             # 当前流程：① 先用新关系与 DB 中既有关系比对；② 对 CONTRADICTION 互斥的旧行
             # 提前 expire；③ 再让 create_relations 走 ON CONFLICT DO UPDATE 在原行就地刷新。
             try:
-                from datetime import UTC, datetime
-
                 from .temporal_resolver import TemporalResolver
 
                 temporal_resolver = TemporalResolver()
@@ -455,6 +601,14 @@ class GraphService:
             # 持久化关系（依赖 create_relation 的 ON CONFLICT DO UPDATE 语义在 UPDATE 路径
             # 上原地覆盖 evidence，避免唯一约束 + DO NOTHING 造成的数据丢失）
             await self._repository.create_relations(valid_relations)
+
+            # 阶段 3：一等公民表双写同步（Kleppmann DDIA §11）
+            await emit_phase(
+                PHASE_SYNCING,
+                0.87,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
 
             # 同步到一等公民表 (kg_entities / kg_relations)
             # 参见 Kleppmann DDIA §11: 事务内双写保证 SSoT 一致性
@@ -514,6 +668,9 @@ class GraphService:
                     error=str(sync_exc),
                 )
 
+            # 阶段 4：PageRank 实体重要性（Brin & Page, 1998）
+            await emit_phase(PHASE_PAGERANK, 0.91)
+
             # 计算 PageRank 实体重要性 (Brin & Page, 1998)
             try:
                 from negentropy.db.session import AsyncSessionLocal
@@ -532,6 +689,9 @@ class GraphService:
                     "pagerank_computation_failed",
                     error=str(pr_exc),
                 )
+
+            # 阶段 5：多层级社区检测（Traag et al., 2019）
+            await emit_phase(PHASE_COMMUNITIES, 0.94)
 
             # 多层级社区检测 (Traag et al., 2019; Edge et al., 2024)
             # 优先使用 Leiden（保证社区内部连通性），降级到 Louvain
@@ -557,6 +717,9 @@ class GraphService:
                     "community_detection_failed",
                     error=str(cm_exc),
                 )
+
+            # 阶段 6：社区摘要生成（Edge et al., Microsoft GraphRAG, 2024）
+            await emit_phase(PHASE_SUMMARIES, 0.97)
 
             # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
             try:
@@ -633,9 +796,9 @@ class GraphService:
             # 更新构建运行状态
             # metrics 无条件持久化到 warnings 尾部的 _metrics 条目，
             # 保持 warnings 本身语义：空列表 = 无异常，仅 _metrics = 正常完成
-            persisted_warnings: list[dict[str, Any]] = []
-            if build_warnings:
-                persisted_warnings.extend(build_warnings)
+            # 终态前剥离运行期 _phase 条目：阶段元数据仅服务于前端实时进度渲染，
+            # 落入终态 warnings 会污染历史检视（与 _metrics 同型 sentinel 区分）。
+            persisted_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
             persisted_warnings.append({"_metrics": build_metrics.to_dict()})
             await self._repository.update_build_run(
                 run_id=run_uuid,
@@ -681,11 +844,21 @@ class GraphService:
                 elapsed_seconds=elapsed,
             )
 
+            # 失败终态同样剥离 _phase + 持久化已累积的 warnings：
+            # 1) 与成功分支对称，确保 DB 行 warnings 列不残留运行期 _phase 标记；
+            # 2) 保留 build_warnings 中已落地的 algorithm warning（temporal_resolution /
+            #    pagerank / community_*）作为故障诊断线索；
+            # 3) 若 build_metrics 已构造则附带 _metrics 条目（异常发生在指标统计前则跳过）。
+            failure_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
+            if build_metrics is not None:
+                failure_warnings.append({"_metrics": build_metrics.to_dict()})
+
             # 更新构建运行状态
             await self._repository.update_build_run(
                 run_id=run_uuid,
                 status="failed",
                 error_message=error_message,
+                warnings=failure_warnings if failure_warnings else None,
             )
 
             return GraphBuildResult(

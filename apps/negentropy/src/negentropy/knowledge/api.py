@@ -3434,6 +3434,21 @@ async def stream_latest_kg_build_progress(
                 completed_at_iso = (
                     record.completed_at.isoformat() if isinstance(record.completed_at, datetime) else None
                 )
+
+                # 从 warnings JSONB 中提取最后一条 _phase 条目（service.emit_phase 写入），
+                # 透传给前端 KgBuildProgressPill 渲染中文阶段标签。warnings 终态会剥离 _phase
+                # （见 service._strip_phase_entries），所以 status=completed 时 phase 为 None。
+                phase: str | None = None
+                phase_detail: dict[str, Any] | None = None
+                if record.warnings:
+                    for entry in reversed(record.warnings):
+                        if isinstance(entry, dict) and "_phase" in entry:
+                            meta = entry["_phase"]
+                            if isinstance(meta, dict):
+                                phase = meta.get("name")
+                                phase_detail = meta
+                            break
+
                 payload = {
                     "run_id": record.run_id,
                     "status": record.status,
@@ -3442,6 +3457,8 @@ async def stream_latest_kg_build_progress(
                     "relation_count": int(record.relation_count or 0),
                     "error_message": record.error_message,
                     "completed_at": completed_at_iso,
+                    "phase": phase,
+                    "phase_detail": phase_detail,
                 }
                 # 仅当 payload 与上次有差异时才推送，节省客户端 reflow
                 if payload != last_payload:

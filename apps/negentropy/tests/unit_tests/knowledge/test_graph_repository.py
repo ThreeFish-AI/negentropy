@@ -278,3 +278,113 @@ class TestGraphSearchResult:
 
         assert len(result.neighbors) == 1
         assert result.neighbors[0].id == "e2"
+
+
+class TestSessionScope:
+    """``_session_scope`` 上下文管理器回归测试。
+
+    历史问题：旧版 ``_get_session`` 在 ``async with AsyncSessionLocal() as s: return s``
+    中把 session 引用泄露到上下文外，导致连接未归还到池，触发
+    ``AsyncAdaptedQueuePool: garbage collector is trying to clean up non-checked-in
+    connection`` 警告，并在大批量构建（849 chunk × 多关系 ≈ 数千次调用）下耗尽连接池，
+    使后续 ``update_build_run`` / pagerank / community 等步骤 hang。
+
+    本套测试覆盖修复后的不变量：
+    1. 自建分支：N 次操作必须有等量的 ``__aenter__`` / ``__aexit__`` 调用对，连接归还。
+    2. 注入分支：外部 session 不被接管生命周期（``__aexit__`` 不应触发）。
+    3. 异常路径：即便方法体内抛异常，``__aexit__`` 仍被调用（连接归还）。
+    """
+
+    @pytest.mark.asyncio
+    async def test_self_owned_session_returns_connection(self):
+        """自建 session 路径：每次方法调用必须 enter/exit 一次（连接归还到池）"""
+        from contextlib import asynccontextmanager
+
+        enter_count = 0
+        exit_count = 0
+        mock_session = AsyncMock(spec=AsyncSession)
+        mock_session.execute = AsyncMock()
+        mock_session.commit = AsyncMock()
+
+        @asynccontextmanager
+        async def fake_session_local():
+            nonlocal enter_count, exit_count
+            enter_count += 1
+            try:
+                yield mock_session
+            finally:
+                exit_count += 1
+
+        repo = AgeGraphRepository()  # 注意：未注入 session，走自建分支
+        with patch(
+            "negentropy.knowledge.graph.repository.AsyncSessionLocal",
+            side_effect=lambda: fake_session_local(),
+        ):
+            entity = GraphNode(
+                id="entity:t1",
+                label="X",
+                node_type="organization",
+                metadata={"confidence": 0.9},
+            )
+            for _ in range(10):
+                await repo.create_entity(entity, _CORPUS_ID)
+
+        assert enter_count == 10, "每次 create_entity 应触发一次 __aenter__"
+        assert exit_count == 10, "每次 create_entity 应触发一次 __aexit__（连接归还）"
+        assert mock_session.commit.await_count == 10
+
+    @pytest.mark.asyncio
+    async def test_injected_session_lifecycle_not_hijacked(self):
+        """注入 session 路径：外部 session 不应被 __aexit__"""
+        injected = AsyncMock(spec=AsyncSession)
+        injected.execute = AsyncMock()
+        injected.commit = AsyncMock()
+
+        repo = AgeGraphRepository(session=injected)
+
+        async with repo._session_scope() as s1:
+            assert s1 is injected
+
+        # 注入 session 不应被关闭/重新创建：再用一次仍是同一个对象
+        async with repo._session_scope() as s2:
+            assert s2 is injected
+
+        # 注入 session 的 close 由调用方负责，repository 不会调它
+        assert injected.close.await_count == 0 if hasattr(injected, "close") else True
+
+    @pytest.mark.asyncio
+    async def test_self_owned_session_releases_on_exception(self):
+        """异常路径：方法体抛错也必须归还连接（__aexit__ 仍被调用）"""
+        from contextlib import asynccontextmanager
+
+        enter_count = 0
+        exit_count = 0
+        mock_session = AsyncMock(spec=AsyncSession)
+        mock_session.execute = AsyncMock(side_effect=RuntimeError("simulated db error"))
+        mock_session.commit = AsyncMock()
+
+        @asynccontextmanager
+        async def fake_session_local():
+            nonlocal enter_count, exit_count
+            enter_count += 1
+            try:
+                yield mock_session
+            finally:
+                exit_count += 1
+
+        repo = AgeGraphRepository()
+        entity = GraphNode(
+            id="entity:t-err",
+            label="X",
+            node_type="organization",
+            metadata={"confidence": 0.9},
+        )
+        with patch(
+            "negentropy.knowledge.graph.repository.AsyncSessionLocal",
+            side_effect=lambda: fake_session_local(),
+        ):
+            with pytest.raises(RuntimeError, match="simulated db error"):
+                await repo.create_entity(entity, _CORPUS_ID)
+
+        assert enter_count == 1
+        assert exit_count == 1, "异常路径下 __aexit__ 仍必须触发以归还连接"

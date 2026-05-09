@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
+import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
 import {
   type GraphBuildRunRecord,
   type GraphSearchResultItem,
@@ -59,6 +60,14 @@ export default function KnowledgeGraphPage() {
   const [viewTab, setViewTab] = useState<"graph" | "entities">("graph");
   const [entityDetailId, setEntityDetailId] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
+  // pillEnqueued 与 building 解耦：building 只用于禁用按钮（POST 在飞），
+  // pillEnqueued 控制 KgBuildProgressPill 的挂载 + SSE 订阅生命周期，由 SSE 终态自驱卸载。
+  // 修复评审 #2：旧实现把 Pill 挂载绑定到 building，POST 因 BFF 15min 超时 abort 后
+  // Pill 立即卸载、SSE 关闭，用户无法收到真正的构建终态。
+  const [pillEnqueued, setPillEnqueued] = useState(false);
+  // pillSession 强制 Pill 在每次新构建点击时重新挂载（即便上一次终态尚未消失），
+  // 避免快速重复构建时旧 Pill 残留 + SSE 不重新订阅。
+  const [pillSession, setPillSession] = useState(0);
   const [searchResults, setSearchResults] = useState<GraphSearchResultItem[] | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
@@ -145,6 +154,9 @@ export default function KnowledgeGraphPage() {
 
   const handleBuild = useCallback(async () => {
     if (!corpusId) return;
+    // 增加 pillSession 强制 Pill 重新挂载（处理快速重复构建：上次终态展示窗口未结束就再次点击）。
+    setPillSession((prev) => prev + 1);
+    setPillEnqueued(true);
     setBuilding(true);
     setBuildError(null);
     try {
@@ -158,9 +170,16 @@ export default function KnowledgeGraphPage() {
     } catch (err) {
       setBuildError(err instanceof Error ? err.message : String(err));
     } finally {
+      // 仅释放按钮禁用态；pillEnqueued 由 KgBuildProgressPill 的 onTerminal 回调驱动卸载。
+      // 这样即便 POST 因 BFF 15min 超时 abort 抛错，SSE 仍能在真实构建结束时推送终态、
+      // Pill 收到后再让父组件 setPillEnqueued(false) 自然消失。
       setBuilding(false);
     }
   }, [corpusId, loadGraph]);
+
+  const handlePillTerminal = useCallback(() => {
+    setPillEnqueued(false);
+  }, []);
 
   const nodes = useMemo(() => (payload?.nodes || []) as GraphNode[], [payload]);
   const edges = useMemo(() => (payload?.edges || []) as GraphEdge[], [payload]);
@@ -404,10 +423,24 @@ export default function KnowledgeGraphPage() {
                       </button>
                     </div>
                   )}
-                  {building && (
-                    <span className="text-xs text-blue-600 dark:text-blue-400 animate-pulse">
-                      正在构建...
-                    </span>
+                  {/*
+                   * 复用 KgBuildProgressPill 通过 SSE（/build-runs/latest/progress）
+                   * 实时展示构建阶段（phase）+ 进度百分比 + 实体/关系实时计数。
+                   * 替代旧的静态"正在构建..."文案：旧文案在长任务（849 chunk）期间无任何反馈，
+                   * 用户体感卡死；Pill 组件能在 status=running 时显示中文阶段标签。
+                   *
+                   * 挂载策略：受 pillEnqueued 驱动而非 building——POST 即便因 BFF 15min 超时
+                   * 而 504 abort，SSE 仍持续监听后端实际构建终态；Pill 收到 SSE 终态后通过
+                   * onTerminal 回调让父组件 setPillEnqueued(false) 自然卸载。pillSession 作
+                   * key，确保新一次构建强制 Pill 重新挂载并重新订阅 SSE。
+                   */}
+                  {pillEnqueued && corpusId && (
+                    <KgBuildProgressPill
+                      key={pillSession}
+                      corpusId={corpusId}
+                      enqueued={pillEnqueued}
+                      onTerminal={handlePillTerminal}
+                    />
                   )}
                 </div>
               </div>

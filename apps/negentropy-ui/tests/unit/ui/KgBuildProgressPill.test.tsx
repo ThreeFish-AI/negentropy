@@ -145,4 +145,56 @@ describe("KgBuildProgressPill", () => {
     unmount();
     expect(es.closed).toBe(true);
   });
+
+  it("SSE 终态后通过 onTerminal 通知父组件（解耦 POST 在飞状态）", () => {
+    // 回归保护评审 #2：旧实现 Pill 挂载与 building (POST 在飞) 强绑定，
+    // POST 因 BFF 15min 超时 abort 时 Pill 立即卸载、SSE 关闭。修复后由 SSE 终态
+    // 通过 onTerminal 回调驱动父组件解除挂载，与 POST 解耦。
+    vi.useFakeTimers();
+    try {
+      const onTerminal = vi.fn();
+      render(
+        <KgBuildProgressPill corpusId="abc" enqueued={true} onTerminal={onTerminal} />,
+      );
+      const es = MockEventSource.instances[0];
+      act(() => {
+        es.send({ status: "completed", progress_percent: 1, entity_count: 5, relation_count: 3 });
+      });
+      // 终态收到后立刻关闭 SSE，但回调延迟触发以保留终态展示窗口
+      expect(es.closed).toBe(true);
+      expect(onTerminal).not.toHaveBeenCalled();
+      // 推进 4s 后回调应已触发，参数为 SSE 收到的最后一个 payload
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+      expect(onTerminal).toHaveBeenCalledTimes(1);
+      expect(onTerminal).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "completed", entity_count: 5 }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("终态延迟回调中卸载组件不会泄漏 timer", () => {
+    vi.useFakeTimers();
+    try {
+      const onTerminal = vi.fn();
+      const { unmount } = render(
+        <KgBuildProgressPill corpusId="abc" enqueued={true} onTerminal={onTerminal} />,
+      );
+      const es = MockEventSource.instances[0];
+      act(() => {
+        es.send({ status: "completed", progress_percent: 1 });
+      });
+      // 终态延迟窗口内卸载：timer 应被清理，回调不应再触发
+      unmount();
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+      expect(onTerminal).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -1618,3 +1618,35 @@
 <a id="ref1-pnpm-v11"></a>[1] pnpm contributors, "pnpm 11.0," _pnpm Blog_, 2026. [Online]. Available: https://pnpm.io/blog/releases/11.0
 
 <a id="ref2-pnpm-migration"></a>[2] pnpm contributors, "Migrating from v10 to v11," _pnpm Documentation_, 2026. [Online]. Available: https://pnpm.io/migration
+
+---
+
+## ISSUE-077 KG 构建 UI 卡死 5 分钟、后端日志 3 分钟无输出 + 全局连接池泄漏排查（2026-05-09）
+
+- **表因**：用户在 `/knowledge/graph` 页对 `Harness Engineering`（chunk_count=849）点击「构建图谱」，UI 仅静态展示「正在构建...」，期间后端日志连续 3 分钟无任何输出，第 5 分钟前端报 `Upstream connection failed: TypeError: fetch failed`。后端日志同时伴随大量 `AsyncAdaptedQueuePool: garbage collector is trying to clean up non-checked-in connection` 警告。
+- **根因**：
+  1. **致命：连接池泄漏**。[`AgeGraphRepository._get_session`](../apps/negentropy/src/negentropy/knowledge/graph/repository.py) 在 `async with AsyncSessionLocal() as session: return session` 块内 return —— `async with` 立即退出，但 session 引用被外泄给调用方 `await session.execute()/commit()`，底层连接未归还。849 chunk × 多关系 ≈ 数千次泄漏后连接池耗尽，`update_build_run` / pagerank / community_detection / community_summary 等需要新连接的步骤全部 hang，构成「3 分钟无日志」。
+  2. **进度反馈缺失**。[`graph/service.py`](../apps/negentropy/src/negentropy/knowledge/graph/service.py) 的 chunk 循环仅每批 batch（10 chunk × 3 并发，单批 30-60s）结束才上报 `progress_percent`；五个后置阶段（temporal/sync/pagerank/communities/summary）只有「完成」日志、没有「开始」日志；`update_build_run` 失败被 `except: pass` 静默吞掉。
+  3. **前端阻塞 + 无 SSE 消费**。[`/knowledge/graph` page.tsx](../apps/negentropy-ui/app/knowledge/graph/page.tsx) 的 `buildKnowledgeGraph` 是阻塞式 POST；BFF 代理 [`_proxy.ts`](../apps/negentropy-ui/app/api/knowledge/_proxy.ts) 的 fetch 没有 `AbortController`/timeout，依赖 socket idle 超时；UI 只展示静态文案。后端虽然已有 [`/build-runs/latest/progress/stream`](../apps/negentropy/src/negentropy/knowledge/api.py) SSE 端点 + [`KgBuildProgressPill`](../apps/negentropy-ui/components/ui/KgBuildProgressPill.tsx) 组件，但 `/knowledge/graph` 页面未挂载，资产闲置。
+  4. **LLM 无显式超时**。[`graph/extractors.py`](../apps/negentropy/src/negentropy/knowledge/graph/extractors.py) 中 `litellm.acompletion` 未传 `timeout`，单 chunk vendor hang 会拖死整个 `asyncio.gather`。
+- **处理方式**：
+  1. **修连接泄漏（P0 必修）**：把 `_get_session()` 改为 `@asynccontextmanager async def _session_scope()`；注入分支不接管生命周期、自建分支由 `async with AsyncSessionLocal()` 保证退出时归还连接。约 30 个调用点改造为 `async with self._session_scope() as session: ...`。
+  2. **阶段化进度埋点（P0）**：service.py 新增 `emit_phase` 内联辅助 + 5 个后置阶段开始处的 `emit_phase` 调用（resolving/syncing/pagerank/communities/summaries）+ chunk 节流上报（每 5 chunk 或 ≥10s 取后到者，asyncio.Lock 保护）；`except: pass` 改为 `logger.warning("update_build_run_failed", ...)`；阶段元数据用 warnings JSONB 中的 `_phase` sentinel（与已有 `_metrics` 同型条目模式），**无需 alembic 迁移**。
+  3. **LLM 双重超时（P0）**：`process_chunk` 用 `asyncio.wait_for(..., timeout=60)` 包裹 entity / relation extractor.extract；同时给 `LLMEntityExtractor` / `LLMRelationExtractor` 增加 `llm_timeout: float = 60.0` 参数并在 `litellm.acompletion(timeout=...)` 显式传入。
+  4. **前端复用已有资产（P1）**：`/knowledge/graph` page.tsx 挂载 `<KgBuildProgressPill corpusId enqueued={building} />` 替代静态「正在构建...」；`KgBuildProgressPill` 扩展 `phase?` 字段 + `PHASE_LABEL` 中文映射（实体抽取中 / 实体消解中 / 一等公民同步中 / PageRank 计算中 / 社区检测中 / 社区摘要生成中）；SSE 端点 payload 增加 `phase` / `phase_detail` 字段，从 warnings 末尾解出最新 `_phase`。
+  5. **BFF 显式超时（P1）**：[`_proxy.ts`](../apps/negentropy-ui/app/api/knowledge/_proxy.ts) 所有 `fetch` 增加 `signal: AbortSignal.timeout(timeoutMs)`；新增 `DEFAULT_PROXY_TIMEOUT_MS=30s` 与 `LONG_TASK_PROXY_TIMEOUT_MS=15min` 常量；KG `/graph/build` 路由调用方传长任务超时；`AbortError` 归类为 504 `KNOWLEDGE_UPSTREAM_TIMEOUT`，与 502 `KNOWLEDGE_UPSTREAM_ERROR` 区分。
+  6. **顺手修性能次优（P2）**：[`engine/adapters/postgres/association_service.py`](../apps/negentropy/src/negentropy/engine/adapters/postgres/association_service.py) 中 `expand_multi_hop` / `expand_via_ppr` 把 `async with AsyncSessionLocal()` 提到外层循环之外（整段 BFS 共享同一只读 session）；后者额外加 `depth ≤ 5` 上限校验防御组合爆炸。
+  7. **回归测试**：新增 `TestSessionScope::test_self_owned_session_returns_connection`（验证 N 次 enter/exit 配对）/ `_lifecycle_not_hijacked`（注入分支不被接管）/ `_releases_on_exception`（异常路径仍归还）；新增 `test_build_graph_emits_phase_milestones_in_order` / `_progress_percent_monotonically_increases` / `_strips_phase_entries_from_terminal_warnings` 三项 service 阶段化进度测试。
+- **后续防范**：
+  1. **anti-pattern：`async with AsyncSessionLocal() as s: return s` 永远不要写**。session 引用一旦越过 `async with` 边界，连接就泄漏；该模式应通过 PR review checklist + 后续可加自定义 ruff 规则拦截。受影响代码必须改为 `@asynccontextmanager` 工厂或让调用方显式 `async with`。
+  2. **长任务必须配套进度反馈通道**：超过 30s 的服务端流程必须输出阶段化里程碑日志（不只是「完成」日志，「开始」日志同样关键）+ progress_percent 持续刷新 + SSE / 轮询接口暴露给前端。
+  3. **`except: pass` 静默吞错的成本远高于 `logger.warning`**：本次正是因为 `update_build_run` 失败被吞，连接池耗尽症状被掩盖；今后所有 catch-all 必须打 warning。
+  4. **vendor 调用必须显式 `timeout`**：litellm / httpx / boto3 等 client 默认无 client-level 超时，单次 hang 可拖死整个并发；新增 vendor 调用时必须显式传超时。
+  5. **BFF 长连接 fetch 必须显式 `AbortSignal.timeout`**：Node fetch 默认依赖 OS TCP keepalive（数分钟），长任务用户体感「凭空 fetch failed」。区分 504 vs 502 让前端能精确地处理超时。
+- **同类问题影响**：
+  1. **全局连接管理排查结论**：已对 42 个使用 `AsyncSessionLocal()` 的文件完成 anti-pattern 排查，仅 `graph/repository.py` 一处真正的连接池泄漏；`engine/adapters/postgres/association_service.py` 两处「循环内反复建连」属性能次优（连接归还正确）已顺手优化；`core_block_service.py` 重试模式（最多 2 次循环）合规无需修改；其余 38 个文件包括 `knowledge/retrieval/repository.py`（`_session_factory()` 模式：返回 sessionmaker，调用方 `async with self._get_session_factory()() as db:`）全部合规。
+  2. KG 构建之外的长任务（如 paper ingestion、内化 reflection）若已有进度上报但前端未消费 SSE，可参考本次「复用 KgBuildProgressPill + 阶段化 emit_phase」模式补齐。
+  3. 其它通过 BFF 转发的长流程接口（如 import / export 等）也应统一接入 `LONG_TASK_PROXY_TIMEOUT_MS`，避免相似的 5 分钟 fetch failed 误导性错误。
+- **评审补充修复（2026-05-09 第二轮）**：
+  1. **失败终态 warnings 落库对称化**：原修复仅在成功分支通过 `_strip_phase_entries(build_warnings) + [{"_metrics": ...}]` 落 warnings，失败分支调用 `update_build_run` 未传 `warnings`，因 SQL `COALESCE(CAST(:warnings AS jsonb), warnings)` 会原样保留上一次 `emit_phase` 写入的 `_phase` 运行期标记，且丢失任何已累积的算法 warning。修复：把 `build_warnings` / `build_metrics` 提升到 try 之外初始化（防 UnboundLocalError），失败分支同样传入剥离 `_phase` 后的 warnings + 可选 `_metrics`（若已构造）。新增单测 `test_build_graph_failure_strips_phase_and_persists_warnings_on_early_exception` / `test_build_graph_failure_preserves_algorithm_warnings`。
+  2. **Pill 挂载与 POST 在飞状态解耦**：原修复 `{building && corpusId && <KgBuildProgressPill .../>}` 将 Pill 挂载强绑定到 `building`，而 `handleBuild` 在 `finally` 里 `setBuilding(false)`——POST 因 BFF 15min 超时 abort 时 Pill 立即卸载、SSE 关闭，注释承诺的「SSE 仍会推送终态」实际无法被前端接收。修复：新增 `pillEnqueued` 状态（独立于 `building`）+ `pillSession` key，`KgBuildProgressPill` 新增 `onTerminal?(event)` 回调（延迟 `TERMINAL_DISPLAY_HOLD_MS = 4s` 触发，留终态展示窗口）；父组件在回调里 `setPillEnqueued(false)`，让 SSE 终态自驱卸载。新增 Pill 单测 `SSE 终态后通过 onTerminal 通知父组件` / `终态延迟回调中卸载组件不会泄漏 timer`。
