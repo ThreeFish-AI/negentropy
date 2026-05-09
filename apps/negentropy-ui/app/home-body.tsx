@@ -363,7 +363,20 @@ export function HomeBody({
             ? event.runId
             : undefined;
         if (eventRunId && eventRunId !== activeRunId) {
-          return;
+          if (event.type === EventType.RUN_STARTED) {
+            // 后端返回的 runId 与前端生成的不一致时，采纳后端 runId。
+            // E2E mock 的 runId 与前端 randomUUID() 不同；生产环境后端
+            // 理应透传前端 runId，若不一致也以首个 RUN_STARTED 为准。
+            activeRunIdRef.current = eventRunId;
+          } else if (
+            event.type === EventType.RUN_FINISHED ||
+            event.type === EventType.RUN_ERROR
+          ) {
+            // 终态事件始终放行，确保 activeRunIdRef 清空 + hydration 触发，
+            // 避免连接状态卡死导致后续 Send 按钮 disabled。
+          } else {
+            return;
+          }
         }
       }
 
