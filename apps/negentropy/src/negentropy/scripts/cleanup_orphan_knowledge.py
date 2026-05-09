@@ -97,10 +97,10 @@ def _backfill_sql(*, corpus_id: str | None, app_name: str | None) -> tuple[Any, 
     """回填：对 document_id IS NULL 的行，基于 source_uri 匹配回填，优先选取 active doc。
 
     ``UPDATE ... FROM`` 仅更新子查询有匹配的行（JOIN 驱动），孤儿行自然被排除。
-    子查询中 ``DISTINCT ON (k.id) + ORDER BY`` 确保当同 corpus 内多个 doc
+    子查询中 ``DISTINCT ON (k_sub.id) + ORDER BY`` 确保当同 corpus 内多个 doc
     （active + soft-deleted）共享同一 source_uri 时，优先链接 active doc。
     """
-    extras, params = _build_scope_clauses(corpus_id=corpus_id, app_name=app_name, table_alias="k")
+    extras, params = _build_scope_clauses(corpus_id=corpus_id, app_name=app_name, table_alias="k_sub")
     sql = text(
         f"""
         UPDATE {_SCHEMA}.knowledge k
