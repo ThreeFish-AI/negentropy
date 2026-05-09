@@ -3183,32 +3183,39 @@ class KnowledgeService:
         if not record_list:
             return
 
-        storage_service = DocumentStorageService()
-        document = await storage_service.get_document_by_source_uri(
-            source_uri=source_uri,
-            corpus_id=corpus_id,
-            app_name=app_name,
-        )
-        if not document:
-            return
+        try:
+            storage_service = DocumentStorageService()
+            document = await storage_service.get_document_by_source_uri(
+                source_uri=source_uri,
+                corpus_id=corpus_id,
+                app_name=app_name,
+            )
+            if not document:
+                return
 
-        total_characters = sum(item.character_count for item in record_list)
-        avg_length = int(total_characters / len(record_list)) if record_list else 0
-        metadata_patch = {
-            "chunk_stats": {
-                "chunk_specification": getattr(chunking_config.strategy, "value", str(chunking_config.strategy)),
-                "chunk_length": avg_length,
-                "avg_paragraph_length": avg_length,
-                "paragraph_count": len(record_list),
-                "embedding_time_ms": None,
-                "embedded_tokens": int(total_characters / 4),
-                "last_chunked_at": datetime.now(UTC).isoformat(),
+            total_characters = sum(item.character_count for item in record_list)
+            avg_length = int(total_characters / len(record_list)) if record_list else 0
+            metadata_patch = {
+                "chunk_stats": {
+                    "chunk_specification": getattr(chunking_config.strategy, "value", str(chunking_config.strategy)),
+                    "chunk_length": avg_length,
+                    "avg_paragraph_length": avg_length,
+                    "paragraph_count": len(record_list),
+                    "embedding_time_ms": None,
+                    "embedded_tokens": int(total_characters / 4),
+                    "last_chunked_at": datetime.now(UTC).isoformat(),
+                }
             }
-        }
-        await storage_service.update_document_metadata(
-            document_id=document.id,
-            metadata_patch=metadata_patch,
-        )
+            await storage_service.update_document_metadata(
+                document_id=document.id,
+                metadata_patch=metadata_patch,
+            )
+        except Exception:
+            logger.warning(
+                "sync_document_chunk_stats_failed",
+                source_uri=source_uri,
+                corpus_id=str(corpus_id),
+            )
 
     def _merge_matches(
         self,

@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from negentropy.config import settings
 from negentropy.db import deps as db_deps
 from negentropy.db import session as db_session
+from negentropy.scripts import cleanup_orphan_knowledge as _cleanup_script
+from negentropy.storage import service as _storage_service
 
 
 @pytest.fixture(scope="function")
@@ -44,5 +46,10 @@ async def patch_db_globals(db_engine, monkeypatch):
 
     # Also patch deps.AsyncSessionLocal because it imports it directly
     monkeypatch.setattr(db_deps, "AsyncSessionLocal", TestAsyncSessionLocal)
+
+    # Patch storage.service.AsyncSessionLocal — it uses `from ... import AsyncSessionLocal`
+    # which binds the name at import time, so monkeypatching db_session alone is insufficient.
+    monkeypatch.setattr(_storage_service, "AsyncSessionLocal", TestAsyncSessionLocal)
+    monkeypatch.setattr(_cleanup_script, "AsyncSessionLocal", TestAsyncSessionLocal)
 
     yield

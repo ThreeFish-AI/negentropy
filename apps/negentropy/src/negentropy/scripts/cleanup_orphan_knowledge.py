@@ -96,26 +96,33 @@ def _build_scope_clauses(
 def _backfill_sql(*, corpus_id: str | None, app_name: str | None) -> tuple[Any, dict[str, Any]]:
     """回填：对 document_id IS NULL 的行，基于 source_uri 匹配回填，优先选取 active doc。
 
-    使用标量子查询 + ORDER BY 确保：当同 corpus 内多个 doc（active + soft-deleted）
-    共享同一 source_uri 时，优先链接 active doc，避免 soft-deleted doc 后续被
-    hard-delete 时 CASCADE 误删 chunks。
+    ``UPDATE ... FROM`` 仅更新子查询有匹配的行（JOIN 驱动），孤儿行自然被排除。
+    子查询中 ``DISTINCT ON (k.id) + ORDER BY`` 确保当同 corpus 内多个 doc
+    （active + soft-deleted）共享同一 source_uri 时，优先链接 active doc。
     """
     extras, params = _build_scope_clauses(corpus_id=corpus_id, app_name=app_name, table_alias="k")
     sql = text(
         f"""
         UPDATE {_SCHEMA}.knowledge k
-        SET document_id = (
-            SELECT d.id FROM {_SCHEMA}.knowledge_documents d
-            WHERE d.corpus_id = k.corpus_id
-              AND d.app_name = k.app_name
-              AND (d.gcs_uri = k.source_uri
-                   OR d.metadata->>'origin_url' = k.source_uri)
-            ORDER BY CASE WHEN d.status = 'active' THEN 0 ELSE 1 END, d.created_at DESC
-            LIMIT 1
-        )
-        WHERE k.source_uri IS NOT NULL
-          AND k.document_id IS NULL
-          {extras}
+        SET document_id = best_doc.doc_id
+        FROM (
+            SELECT DISTINCT ON (k_sub.id)
+                k_sub.id AS kid,
+                d.id AS doc_id
+            FROM {_SCHEMA}.knowledge k_sub
+            JOIN {_SCHEMA}.knowledge_documents d
+               ON d.corpus_id = k_sub.corpus_id
+              AND d.app_name = k_sub.app_name
+              AND (d.gcs_uri = k_sub.source_uri
+                   OR d.metadata->>'origin_url' = k_sub.source_uri)
+            WHERE k_sub.source_uri IS NOT NULL
+              AND k_sub.document_id IS NULL
+              {extras}
+            ORDER BY k_sub.id,
+                     CASE WHEN d.status = 'active' THEN 0 ELSE 1 END,
+                     d.created_at DESC
+        ) best_doc
+        WHERE k.id = best_doc.kid
         """
     )
     return sql, params
