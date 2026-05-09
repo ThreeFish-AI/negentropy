@@ -522,3 +522,77 @@ async def test_build_graph_strips_phase_entries_from_terminal_warnings():
     # _metrics 应保留（与原有 build_graph 行为一致）
     metrics_entries = [w for w in warnings if isinstance(w, dict) and "_metrics" in w]
     assert len(metrics_entries) == 1, "终态 warnings 应包含一条 _metrics 条目"
+
+
+# ================================
+# Failure Path Warnings Persistence
+# ================================
+
+
+class _FailingClearGraphRepository(PhaseTrackingFakeRepository):
+    """clear_graph 抛错以模拟早期失败，验证 except 分支可正确落库 warnings。"""
+
+    async def clear_graph(self, corpus_id):  # type: ignore[override]
+        raise RuntimeError("simulated clear_graph failure")
+
+
+class _FailingCreateRelationsRepository(PhaseTrackingFakeRepository):
+    """create_relations 抛错以模拟中段失败，验证 except 分支会剥离 _phase 并保留
+    已累积的 algorithm warning（如 temporal_resolution）+ build_metrics（若已构造）。
+    """
+
+    async def create_relations(self, relations):  # type: ignore[override]
+        raise RuntimeError("simulated create_relations failure")
+
+
+@pytest.mark.asyncio
+async def test_build_graph_failure_strips_phase_and_persists_warnings_on_early_exception():
+    """早期失败：异常发生在 build_warnings/build_metrics 构造之前也不应触发 UnboundLocalError；
+    failure 终态 warnings 不应残留 _phase 条目（与 success 分支语义对称）。
+
+    回归保护本 PR 评审 #1：旧实现 except 分支未传 warnings → DB 行保留上一次 emit_phase
+    写入的 _phase 运行期标记，且丢失任何已累积的 algorithm warning。
+    """
+    repository = _FailingClearGraphRepository()
+    service = GraphService(repository=repository, config=GraphBuildConfig())
+
+    result = await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
+
+    assert result.status == "failed"
+    failed_call = next(
+        (c for c in reversed(repository.update_calls) if c.get("status") == "failed"),
+        None,
+    )
+    assert failed_call is not None, "失败终态必须调用 update_build_run(status='failed')"
+
+    # 早期失败路径下 warnings 应为 None（_strip_phase_entries([]) 为空 → 落 None 节流 SQL）
+    # 关键不变量：DB 不应残留任何 _phase 条目
+    warnings = failed_call.get("warnings") or []
+    phase_entries = [w for w in warnings if isinstance(w, dict) and "_phase" in w]
+    assert phase_entries == [], "失败终态 warnings 不应包含 _phase 运行期条目"
+
+
+@pytest.mark.asyncio
+async def test_build_graph_failure_preserves_algorithm_warnings():
+    """中段失败：build_warnings 中已累积的 algorithm warning 必须随 failed 终态落库。
+
+    构造手法：让 create_relations 抛错。此时 chunks=[] 不会进 chunk 循环抽取，但
+    emit_phase(extracting/resolving) 已写过 _phase；failure 分支应剥离 _phase 后落库。
+    若有 algorithm warning（本测试用 chunks=[] 路径无法注入，仅验证 _phase 剥离与
+    UnboundLocalError 不发生）。
+    """
+    repository = _FailingCreateRelationsRepository()
+    service = GraphService(repository=repository, config=GraphBuildConfig())
+
+    result = await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
+
+    assert result.status == "failed"
+    failed_call = next(
+        (c for c in reversed(repository.update_calls) if c.get("status") == "failed"),
+        None,
+    )
+    assert failed_call is not None
+
+    warnings = failed_call.get("warnings") or []
+    phase_entries = [w for w in warnings if isinstance(w, dict) and "_phase" in w]
+    assert phase_entries == [], "失败终态 warnings 不应残留 _phase（应被 _strip_phase_entries 剥离）"

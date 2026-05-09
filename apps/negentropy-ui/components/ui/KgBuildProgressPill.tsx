@@ -54,7 +54,16 @@ type Props = {
   enqueued: boolean;
   /** 可选：传入 BFF base path（默认 /api/knowledge），便于测试覆盖 */
   apiBase?: string;
+  /**
+   * SSE 终态回调：在 status 进入 completed/failed/timeout/idle/switched/error 时触发，
+   * 让父组件解除 Pill 的"在飞"标志（与 POST 在飞状态解耦）。回调延迟 ~4s 触发，
+   * 留出展示终态的时间窗口；父组件需自行幂等处理重复触发。
+   */
+  onTerminal?: (event: KgBuildProgressEvent) => void;
 };
+
+/** 终态展示窗口（ms）：留给用户看清"已完成 / 失败"信息后再让父组件解除挂载 */
+const TERMINAL_DISPLAY_HOLD_MS = 4000;
 
 const STATUS_LABEL: Record<NonNullable<KgBuildProgressEvent["status"]>, string> = {
   pending: "排队中",
@@ -91,16 +100,32 @@ function isTerminal(status: KgBuildProgressEvent["status"]): boolean {
   );
 }
 
-export function KgBuildProgressPill({ corpusId, enqueued, apiBase = "/api/knowledge" }: Props) {
+export function KgBuildProgressPill({
+  corpusId,
+  enqueued,
+  apiBase = "/api/knowledge",
+  onTerminal,
+}: Props) {
   const [event, setEvent] = useState<KgBuildProgressEvent | null>(
     enqueued ? { status: "pending", progress_percent: 0 } : null,
   );
   const sourceRef = useRef<EventSource | null>(null);
+  const terminalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 闭包稳定化：onTerminal 由父组件每次渲染重新创建（如箭头函数），用 ref 持有最新值，
+  // 避免 useEffect 依赖膨胀导致不必要的重订阅。
+  const onTerminalRef = useRef(onTerminal);
+  useEffect(() => {
+    onTerminalRef.current = onTerminal;
+  }, [onTerminal]);
 
   useEffect(() => {
     if (!enqueued || !corpusId) {
       sourceRef.current?.close();
       sourceRef.current = null;
+      if (terminalTimerRef.current) {
+        clearTimeout(terminalTimerRef.current);
+        terminalTimerRef.current = null;
+      }
       return;
     }
     if (typeof window === "undefined" || typeof EventSource === "undefined") return;
@@ -109,6 +134,15 @@ export function KgBuildProgressPill({ corpusId, enqueued, apiBase = "/api/knowle
     const es = new EventSource(url, { withCredentials: true });
     sourceRef.current = es;
 
+    const scheduleTerminalCallback = (payload: KgBuildProgressEvent) => {
+      // 延迟通知父组件，确保用户能看到 ~4s 的终态展示后再卸载 Pill。
+      if (terminalTimerRef.current) clearTimeout(terminalTimerRef.current);
+      terminalTimerRef.current = setTimeout(() => {
+        terminalTimerRef.current = null;
+        onTerminalRef.current?.(payload);
+      }, TERMINAL_DISPLAY_HOLD_MS);
+    };
+
     es.onmessage = (msg) => {
       try {
         const payload = JSON.parse(msg.data) as KgBuildProgressEvent;
@@ -116,6 +150,7 @@ export function KgBuildProgressPill({ corpusId, enqueued, apiBase = "/api/knowle
         if (isTerminal(payload.status)) {
           es.close();
           sourceRef.current = null;
+          scheduleTerminalCallback(payload);
         }
       } catch {
         // fail-soft：忽略不可解析的 event
@@ -123,14 +158,19 @@ export function KgBuildProgressPill({ corpusId, enqueued, apiBase = "/api/knowle
     };
     es.onerror = () => {
       // 网络中断 → 停止订阅并显示 error 状态
-      setEvent((prev) => prev?.status && isTerminal(prev.status) ? prev : { status: "error" });
+      setEvent((prev) => (prev?.status && isTerminal(prev.status) ? prev : { status: "error" }));
       es.close();
       sourceRef.current = null;
+      scheduleTerminalCallback({ status: "error" });
     };
 
     return () => {
       es.close();
       sourceRef.current = null;
+      if (terminalTimerRef.current) {
+        clearTimeout(terminalTimerRef.current);
+        terminalTimerRef.current = null;
+      }
     };
   }, [enqueued, corpusId, apiBase]);
 

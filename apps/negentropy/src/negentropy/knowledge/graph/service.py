@@ -292,6 +292,13 @@ class GraphService:
             model_name=normalized_llm_model,
         )
 
+        # 提升到 try 之外：失败分支需要剥离 _phase 后落库 warnings，避免 DB 行残留
+        # 上一次 emit_phase 写入的运行期标记；同时让累积的 algorithm warning + 部分 _metrics
+        # 在失败时仍然可观测。即便异常发生在 try 内的早期阶段（如 get_processed_chunk_ids）
+        # 这两个变量也已绑定，except 不会触发 UnboundLocalError。
+        build_warnings: list[dict[str, Any]] = []
+        build_metrics: KgBuildMetrics | None = None
+
         try:
             # 增量构建：跳过已处理的 chunk (Hogan et al., 2021 §6.3; Graphiti, 2025)
             prev_processed: set[str] = set()
@@ -320,7 +327,6 @@ class GraphService:
             all_relations: list[GraphEdge] = []
             chunks_processed = 0
             failed_chunk_count = 0
-            build_warnings: list[dict[str, Any]] = []
             total_chunks = len(chunks)
 
             batch_size = build_config.batch_size
@@ -838,11 +844,21 @@ class GraphService:
                 elapsed_seconds=elapsed,
             )
 
+            # 失败终态同样剥离 _phase + 持久化已累积的 warnings：
+            # 1) 与成功分支对称，确保 DB 行 warnings 列不残留运行期 _phase 标记；
+            # 2) 保留 build_warnings 中已落地的 algorithm warning（temporal_resolution /
+            #    pagerank / community_*）作为故障诊断线索；
+            # 3) 若 build_metrics 已构造则附带 _metrics 条目（异常发生在指标统计前则跳过）。
+            failure_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
+            if build_metrics is not None:
+                failure_warnings.append({"_metrics": build_metrics.to_dict()})
+
             # 更新构建运行状态
             await self._repository.update_build_run(
                 run_id=run_uuid,
                 status="failed",
                 error_message=error_message,
+                warnings=failure_warnings if failure_warnings else None,
             )
 
             return GraphBuildResult(
