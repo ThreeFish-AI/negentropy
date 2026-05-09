@@ -3,7 +3,7 @@
  *
  * 遵循 AGENTS.md 原则：
  * - Single Source of Truth: 状态颜色和时间格式化逻辑统一管理
- * - Reuse-Driven: 供 Dashboard 和 Pipelines 页面复用
+ * - Reuse-Driven: 供 Pipeline 页面复用
  */
 
 import type { PipelineRunRecord, PipelineStageResult } from "./knowledge-api";

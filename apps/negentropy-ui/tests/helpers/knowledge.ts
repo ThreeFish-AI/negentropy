@@ -42,7 +42,7 @@ import {
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 
 export interface KnowledgeFeatureMockSet {
-  fetchDashboardMock: VitestMock;
+  fetchPipelineSummaryMock: VitestMock;
   searchKnowledgeMock: VitestMock;
   ingestTextMock: VitestMock;
   ingestUrlMock: VitestMock;
@@ -77,7 +77,7 @@ export interface KnowledgeFeatureTestHarness {
 
 export function createKnowledgeFeatureMockSet(): KnowledgeFeatureMockSet {
   return {
-    fetchDashboardMock: vi.fn(),
+    fetchPipelineSummaryMock: vi.fn(),
     searchKnowledgeMock: vi.fn(),
     ingestTextMock: vi.fn(),
     ingestUrlMock: vi.fn(),
@@ -180,7 +180,7 @@ export function createKnowledgeFeatureTestHarness(
   return {
     mocks,
     exports: {
-      fetchDashboard: (...args: unknown[]) => mocks.fetchDashboardMock(...args),
+      fetchPipelineSummary: (...args: unknown[]) => mocks.fetchPipelineSummaryMock(...args),
       searchKnowledge: (...args: unknown[]) => mocks.searchKnowledgeMock(...args),
       ingestText: (...args: unknown[]) => mocks.ingestTextMock(...args),
       ingestUrl: (...args: unknown[]) => mocks.ingestUrlMock(...args),

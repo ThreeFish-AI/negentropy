@@ -15,7 +15,7 @@ import {
 
 /**
  * Pipeline Run 卡片属性
- * 与 KnowledgeDashboard.pipeline_runs 数组元素类型兼容
+ * 与 KnowledgePipelineSummary.pipeline_runs 数组元素类型兼容
  * 扩展支持更多字段以展示丰富的概要信息
  */
 export interface PipelineRunCardProps {
@@ -232,7 +232,7 @@ function PipelineRunCardContent({
  *
  * 支持两种交互模式：
  * - link: 静态展示卡片（默认）
- * - selectable: 可选中的按钮式卡片，用于 Dashboard 融合列表
+ * - selectable: 可选中的按钮式卡片，用于 Pipeline 页面融合列表
  */
 export function PipelineRunCard(props: PipelineRunCardProps) {
   const { mode = "link", selected, onSelect } = props;

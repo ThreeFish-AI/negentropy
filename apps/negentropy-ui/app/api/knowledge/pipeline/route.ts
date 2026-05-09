@@ -1,5 +1,5 @@
 import { proxyGet } from "../_proxy";
 
 export async function GET(request: Request) {
-  return proxyGet(request, "/knowledge/dashboard");
+  return proxyGet(request, "/knowledge/pipeline");
 }

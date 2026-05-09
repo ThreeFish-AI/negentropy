@@ -2,7 +2,7 @@
  * 统一管线运行类型与适配器
  *
  * 将 KB PipelineRunRecord 与 KG GraphBuildRunRecord 统一为 UnifiedPipelineRun，
- * 使 Dashboard 能以单一列表展示两类运行记录。
+ * 使 Pipeline 页面能以单一列表展示两类运行记录。
  *
  * 遵循 AGENTS.md：
  * - Reuse-Driven: KG phase 映射为 PipelineStageResult 复用 PipelineStagesBar

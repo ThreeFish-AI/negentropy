@@ -40,7 +40,7 @@ async function getStatusBadgeSnapshot(
   };
 }
 
-function getDashboardRunsPanel(page: PageHandle) {
+function getPipelineRunsPanel(page: PageHandle) {
   return page.locator("section").filter({
     has: page.getByRole("heading", { name: "Pipeline Runs" }),
   }).first();
@@ -154,7 +154,7 @@ test("Knowledge 模块入口默认重定向到 Knowledge Base", async ({ page })
   await expect(page.getByRole("link", { name: "Knowledge Base" })).toHaveClass(/bg-foreground/);
 });
 
-test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
+test("Knowledge Pipeline 状态标签视觉一致性", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
   const sharedRuns = [
@@ -196,7 +196,7 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
     },
   ];
 
-  await page.route("**/api/knowledge/dashboard?app_name=negentropy", async (route) => {
+  await page.route("**/api/knowledge/pipeline?app_name=negentropy", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -224,33 +224,33 @@ test("Knowledge Dashboard 状态标签视觉一致性", async ({ page }) => {
   for (const theme of ["light", "dark"] as const) {
     await applyTheme(page, theme);
 
-    await page.goto("/knowledge/dashboard");
+    await page.goto("/knowledge/pipeline");
     await assertThemeSettled(page, theme);
     await expect(page.getByRole("heading", { name: "Pipeline Runs" })).toBeVisible();
 
-    const dashboardRunsPanel = getDashboardRunsPanel(page);
-    await expect(dashboardRunsPanel).toBeVisible();
+    const pipelineRunsPanel = getPipelineRunsPanel(page);
+    await expect(pipelineRunsPanel).toBeVisible();
 
     // 验证首个 Run 自动选中
     await expect(
       page.getByRole("button", { name: /run-running/i }),
     ).toHaveClass(/bg-zinc-900/);
 
-    const dashboardRunning = await getStatusBadgeSnapshot(page, "状态: running");
-    const dashboardCompleted = await getStatusBadgeSnapshot(page, "状态: completed");
-    const dashboardFailed = await getStatusBadgeSnapshot(page, "状态: failed");
+    const pipelineRunning = await getStatusBadgeSnapshot(page, "状态: running");
+    const pipelineCompleted = await getStatusBadgeSnapshot(page, "状态: completed");
+    const pipelineFailed = await getStatusBadgeSnapshot(page, "状态: failed");
 
-    await expect(dashboardRunsPanel).toHaveScreenshot(`knowledge-dashboard-runs-${theme}.png`, {
+    await expect(pipelineRunsPanel).toHaveScreenshot(`knowledge-pipeline-runs-${theme}.png`, {
       animations: "disabled",
       caret: "hide",
     });
 
-    expect(dashboardRunning.badgeClassName).toContain("inline-flex");
-    expect(dashboardRunning.badgeClassName).toContain("gap-2");
-    expect(dashboardRunning.dotClassName).toContain("animate-pulse");
-    expect(dashboardRunning.textClassName).toContain("text-amber-600");
-    expect(dashboardCompleted.textClassName).toContain("text-emerald-600");
-    expect(dashboardFailed.textClassName).toContain("text-rose-600");
+    expect(pipelineRunning.badgeClassName).toContain("inline-flex");
+    expect(pipelineRunning.badgeClassName).toContain("gap-2");
+    expect(pipelineRunning.dotClassName).toContain("animate-pulse");
+    expect(pipelineRunning.textClassName).toContain("text-amber-600");
+    expect(pipelineCompleted.textClassName).toContain("text-emerald-600");
+    expect(pipelineFailed.textClassName).toContain("text-rose-600");
   }
 });
 

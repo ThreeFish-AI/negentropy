@@ -498,7 +498,7 @@ export class InfrastructureError extends KnowledgeError {
   }
 }
 
-export interface KnowledgeDashboard {
+export interface KnowledgePipelineSummary {
   corpus_count: number;
   knowledge_count: number;
   last_build_at?: string;
@@ -969,18 +969,18 @@ async function handleKnowledgeError<T>(res: Response): Promise<T> {
 }
 
 // ============================================================================
-// Dashboard
+// Pipeline Summary
 // ============================================================================
 
-export async function fetchDashboard(
+export async function fetchPipelineSummary(
   appName?: string,
-): Promise<KnowledgeDashboard> {
+): Promise<KnowledgePipelineSummary> {
   const params = appName ? `?app_name=${encodeURIComponent(appName)}` : "";
-  const res = await fetch(`/api/knowledge/dashboard${params}`, {
+  const res = await fetch(`/api/knowledge/pipeline${params}`, {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch dashboard: ${res.statusText}`);
+    throw new Error(`Failed to fetch pipeline summary: ${res.statusText}`);
   }
   return res.json();
 }

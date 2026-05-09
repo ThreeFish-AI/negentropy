@@ -241,7 +241,7 @@ class SearchRequest(BaseModel):
     metadata_filter: dict[str, Any] | None = None
 
 
-class DashboardResponse(BaseModel):
+class PipelineSummaryResponse(BaseModel):
     corpus_count: int
     knowledge_count: int
     last_build_at: str | None = None

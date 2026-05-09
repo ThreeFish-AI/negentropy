@@ -17,7 +17,7 @@ function joinClassNames(...values: Array<string | false | null | undefined>): st
 /**
  * Pipeline 运行状态展示
  *
- * 采用 Dashboard 现有的状态点 + 文本语义，供 Dashboard / Pipelines 共享，
+ * 采用 Pipeline 页面状态语义，供 Pipeline 页面与详情面板共享，
  * 避免状态样式在多个页面漂移。
  */
 export function PipelineStatusBadge({

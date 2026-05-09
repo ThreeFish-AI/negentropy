@@ -5,12 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
-  fetchDashboard,
+  fetchPipelineSummary,
   fetchPipelines,
   upsertPipelines,
   fetchCorpora,
   fetchGraphBuildHistory,
-  KnowledgeDashboard,
+  KnowledgePipelineSummary,
   KnowledgePipelinesPayload,
   PipelineRunCard,
   PipelineRunDetailPanel,
@@ -58,8 +58,8 @@ const isSameRunsSnapshot = (a: RunsSnapshot, b: RunsSnapshot): boolean => {
   );
 };
 
-export default function KnowledgeDashboardPage() {
-  const [dashboardData, setDashboardData] = useState<KnowledgeDashboard | null>(null);
+export default function KnowledgePipelinePage() {
+  const [summaryData, setSummaryData] = useState<KnowledgePipelineSummary | null>(null);
   const [allRuns, setAllRuns] = useState<UnifiedPipelineRun[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<UnifiedPipelineRun | null>(null);
@@ -137,8 +137,8 @@ export default function KnowledgeDashboardPage() {
 
     (async () => {
       try {
-        const dashData = await fetchDashboard(APP_NAME);
-        if (active) setDashboardData(dashData);
+        const summary = await fetchPipelineSummary(APP_NAME);
+        if (active) setSummaryData(summary);
       } catch (err) {
         if (active) setError(String(err));
       }
@@ -209,28 +209,28 @@ export default function KnowledgeDashboardPage() {
   }, [loadRuns, allRuns, page]);
 
   const metrics = useMemo(() => {
-    if (!dashboardData) return [];
+    if (!summaryData) return [];
     return [
-      { label: "Corpus", value: dashboardData.corpus_count },
-      { label: "Knowledge", value: dashboardData.knowledge_count },
+      { label: "Corpus", value: summaryData.corpus_count },
+      { label: "Knowledge", value: summaryData.knowledge_count },
       {
         label: "Last Build",
-        value: dashboardData.last_build_at ? (
-          <span title={dashboardData.last_build_at}>
+        value: summaryData.last_build_at ? (
+          <span title={summaryData.last_build_at}>
             {new Intl.DateTimeFormat("zh-CN", {
               year: "numeric",
               month: "2-digit",
               day: "2-digit",
               hour: "2-digit",
               minute: "2-digit",
-            }).format(new Date(dashboardData.last_build_at))}
+            }).format(new Date(summaryData.last_build_at))}
           </span>
         ) : (
           "-"
         ),
       },
     ];
-  }, [dashboardData]);
+  }, [summaryData]);
 
   // KB 分页总量来自服务端，KG 运行在每页始终展示
   const total = kbTotal;
@@ -241,8 +241,8 @@ export default function KnowledgeDashboardPage() {
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
-        title="Dashboard"
-        description="Knowledge 指标、构建与管线概览"
+        title="Pipeline"
+        description="Pipeline 概览：指标、运行与告警"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
@@ -377,9 +377,9 @@ export default function KnowledgeDashboardPage() {
             <div className="space-y-4 pb-4 pr-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alerts</h2>
-                {dashboardData?.alerts?.length ? (
+                {summaryData?.alerts?.length ? (
                   <div className="mt-3 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
-                    {dashboardData.alerts.map((item, index) => (
+                    {summaryData.alerts.map((item, index) => (
                       <div
                         key={index}
                         className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"

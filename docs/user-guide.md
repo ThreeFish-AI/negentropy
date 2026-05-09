@@ -513,16 +513,15 @@ PLAYWRIGHT_AUTH_MODE=dev-cookie PLAYWRIGHT_AUTH=1 \
 | 导航项        | 路径                   | 功能                   |
 | :------------ | :--------------------- | :--------------------- |
 | **Base**      | `/knowledge/base`      | 语料库管理（核心入口） |
-| **Dashboard** | `/knowledge/dashboard` | 知识库仪表盘           |
+| **Pipeline**  | `/knowledge/pipeline`  | Pipeline 概览（指标 + Runs + Alerts） |
 | **Catalog**   | `/knowledge/catalog`   | 知识目录（树形结构）   |
 | **Documents** | `/knowledge/documents` | 全局文档列表           |
 | **Graph**     | `/knowledge/graph`     | 知识图谱可视化         |
-| **Pipelines** | `/knowledge/pipelines` | Pipeline 监控          |
 | **APIs**      | `/knowledge/apis`      | API 文档与测试         |
 
-### 4.2 Dashboard 仪表盘
+### 4.2 Pipeline 概览
 
-仪表盘提供知识库的全局概览，采用两栏布局：
+Pipeline 页面提供知识库管线的全局概览，采用两栏布局：
 
 - **左侧主区域**：指标卡片网格（Corpus 数量、Knowledge 数量、最后构建时间）+ Pipeline Runs 列表（含分页控制）
 - **右侧边栏**：Alerts 告警面板 + Pipeline Run 详情面板

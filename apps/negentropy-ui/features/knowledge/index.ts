@@ -38,7 +38,7 @@ export type {
 // ============================================================================
 
 export {
-  fetchDashboard,
+  fetchPipelineSummary,
   fetchCorpora,
   createCorpus,
   fetchCorpus,
@@ -131,7 +131,7 @@ export type {
   ChunkingConfig,
   SearchConfig,
   KnowledgeErrorResponse,
-  KnowledgeDashboard,
+  KnowledgePipelineSummary,
   CorpusRecord,
   ExtractorSourceKind,
   McpExtractorTargetConfig,

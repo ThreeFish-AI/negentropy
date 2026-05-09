@@ -1650,3 +1650,25 @@
 - **评审补充修复（2026-05-09 第二轮）**：
   1. **失败终态 warnings 落库对称化**：原修复仅在成功分支通过 `_strip_phase_entries(build_warnings) + [{"_metrics": ...}]` 落 warnings，失败分支调用 `update_build_run` 未传 `warnings`，因 SQL `COALESCE(CAST(:warnings AS jsonb), warnings)` 会原样保留上一次 `emit_phase` 写入的 `_phase` 运行期标记，且丢失任何已累积的算法 warning。修复：把 `build_warnings` / `build_metrics` 提升到 try 之外初始化（防 UnboundLocalError），失败分支同样传入剥离 `_phase` 后的 warnings + 可选 `_metrics`（若已构造）。新增单测 `test_build_graph_failure_strips_phase_and_persists_warnings_on_early_exception` / `test_build_graph_failure_preserves_algorithm_warnings`。
   2. **Pill 挂载与 POST 在飞状态解耦**：原修复 `{building && corpusId && <KgBuildProgressPill .../>}` 将 Pill 挂载强绑定到 `building`，而 `handleBuild` 在 `finally` 里 `setBuilding(false)`——POST 因 BFF 15min 超时 abort 时 Pill 立即卸载、SSE 关闭，注释承诺的「SSE 仍会推送终态」实际无法被前端接收。修复：新增 `pillEnqueued` 状态（独立于 `building`）+ `pillSession` key，`KgBuildProgressPill` 新增 `onTerminal?(event)` 回调（延迟 `TERMINAL_DISPLAY_HOLD_MS = 4s` 触发，留终态展示窗口）；父组件在回调里 `setPillEnqueued(false)`，让 SSE 终态自驱卸载。新增 Pill 单测 `SSE 终态后通过 onTerminal 通知父组件` / `终态延迟回调中卸载组件不会泄漏 timer`。
+
+---
+
+## ISSUE-078 Knowledge / Dashboard 二级导航更名为 Pipeline + 全链路标识符对齐（2026-05-09）
+
+- **表因**：Knowledge 模块二级 tab `Knowledge Base / Knowledge Graph / Catalog / Wiki / Documents / APIs / Dashboard` 中只有 `Dashboard` 是泛化容器名，未表达"管线运行总览"这一真实领域语义；该页面主轴是 Pipeline Runs 列表 + 指标 + Alerts，命名风格与同模块兄弟 tab 不一致。
+- **根因**：早期沿用通用「仪表盘」概念命名，未随页面演进收敛到领域名词；后续新增 `Pipeline Runs` 列表 + `KG/KB 统一展示` 后，命名与功能事实严重漂移。
+- **处理方式**：全栈链路 Dashboard → Pipeline 一次性改名（无 backward-compat alias，遵循 AGENTS.md "Single Source of Truth"）：
+  1. **后端契约**：`schemas.py:DashboardResponse` → `PipelineSummaryResponse`、`api.py: GET /knowledge/dashboard get_dashboard()` → `GET /knowledge/pipeline get_pipeline_summary()`。
+  2. **前端调用链**：`features/knowledge/utils/knowledge-api.ts:KnowledgeDashboard` 类型 → `KnowledgePipelineSummary`、`fetchDashboard()` → `fetchPipelineSummary()`、URL `/api/knowledge/dashboard` → `/api/knowledge/pipeline`；`features/knowledge/index.ts` re-export 同步。
+  3. **目录搬迁**：`app/api/knowledge/dashboard/` → `pipeline/`、`app/knowledge/dashboard/` → `pipeline/`（git mv 保留历史）；删除 `app/knowledge/pipelines/page.tsx` 旧 redirect 占位（已无价值）。
+  4. **导航 + 文案**：`KnowledgeNav.tsx` NAV_ITEMS 的 dashboard 项 → `pipeline` + `Pipeline` 标签；页面组件 `KnowledgeDashboardPage` → `KnowledgePipelinePage`，`title="Dashboard"` → `title="Pipeline"`。
+  5. **测试与视觉快照**：`tests/unit/knowledge/DashboardPage.test.tsx` git mv 为 `PipelinePage.test.tsx` + 内部 `KnowledgeDashboardPage`/`fetchDashboardMock`/`primeDashboardMock`/`DEFAULT_DASHBOARD` 全量改名；`tests/unit/ui/KnowledgeNav.test.tsx` 路由+断言改名；`tests/helpers/knowledge.ts` mock helper 改名；E2E `smoke.spec.ts` 的 route mock / goto / `toHaveScreenshot` 文件名 / 局部变量改名；视觉快照 PNG `git mv` 为新文件名（截图区域只取 Pipeline Runs panel，文案不变，基线视觉一致）。
+  6. **文档**：`docs/user-guide.md` 路由表 + 章节标题改名，删除已不存在的 `/knowledge/pipelines` 旧 redirect 行；`docs/knowledges.md` Knowledge API 描述同步；`CHANGELOG.md` 顶部新增条目；本 issue 条目作为档案。
+- **后续防范**：
+  1. **新增二级导航命名规范**：与现有兄弟保持单数英文领域名词风格，避免 `Dashboard`/`Overview`/`Index` 等泛化容器名再次混入；新模块 PR review checklist 增加该项。
+  2. **`fetchDashboard` ≠ `fetchPipelines` ≠ `fetchPipelineSummary` 三者正交**：summary 是聚合视图（指标 + 最近 N 条 runs），pipelines 是 runs 列表 CRUD；命名上以 "Summary" 后缀显式区分，避免误调。
+  3. **改名 PR 落地 checklist**：① 全局 grep 旧标识 0 命中 ② `pnpm typecheck && pnpm lint && pnpm test` 全绿 ③ E2E 视觉快照基线匹配（若截图区域文案不变可 git mv 保留基线）④ docs / CHANGELOG 同步 ⑤ 历史 issue / changelog 引用旧路径不动（档案性质）。
+- **同类问题影响**：
+  1. Memory `/memory` 路由下也存在 `Dashboard` tab（`MemoryNav`、`MemoryDashboardResponse`），本次**不改**——其语义符合"仪表盘"内涵且无 Pipeline 维度，避免一刀切误改。
+  2. Interface `/interface/dashboard` 同理保留——属于 Admin / Models 的状态总览，本次不动。
+  3. 后续若其他模块出现命名漂移（如 `KnowledgeBase` 是不是该叫 `KnowledgeRepository`），按本 issue 模板（grep 全量 + 双层 race 自检 + 测试视觉快照同步 + docs 闭环）执行。
