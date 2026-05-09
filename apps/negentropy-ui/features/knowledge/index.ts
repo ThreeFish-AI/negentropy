@@ -281,6 +281,7 @@ export type {
 export { PipelineRunCard, PipelineRunList } from "./components/PipelineRunCard";
 export type { PipelineRunCardProps } from "./components/PipelineRunCard";
 export { PipelineRunDetailPanel } from "./components/PipelineRunDetailPanel";
+export { KgRunDetailPanel } from "./components/KgRunDetailPanel";
 export { PipelineStatusBadge } from "./components/PipelineStatusBadge";
 export { PipelineStagesBar } from "./components/PipelineStagesBar";
 export { DocumentViewDialog } from "./components/DocumentViewDialog";
@@ -314,3 +315,20 @@ export {
   calculateStageWidth,
   getSortedStages,
 } from "./utils/pipeline-helpers";
+
+// ============================================================================
+// Utils (Unified Pipeline)
+// ============================================================================
+
+export type {
+  UnifiedPipelineRun,
+  KgPipelineRun,
+} from "./utils/unified-pipeline";
+
+export {
+  adaptKgRunToUnified,
+  mergeAndSortRuns,
+  hasActiveRuns,
+  kgPhasesToStages,
+  KG_PHASE_KEYS,
+} from "./utils/unified-pipeline";

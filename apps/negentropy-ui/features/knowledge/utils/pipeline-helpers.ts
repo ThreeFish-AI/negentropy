@@ -22,6 +22,7 @@ export const OPERATION_LABELS: Record<string, string> = {
   replace_source: "替换源",
   sync_source: "同步源",
   rebuild_source: "重建源",
+  graph_build: "图谱构建",
 };
 
 /**
@@ -52,6 +53,13 @@ export const STAGE_ORDER = [
   "chunk",
   "embed",
   "persist",
+  // KG 构建阶段
+  "kg_extracting",
+  "kg_resolving",
+  "kg_syncing",
+  "kg_pagerank",
+  "kg_communities",
+  "kg_summaries",
 ];
 
 /**
@@ -73,6 +81,13 @@ export const STAGE_LABELS: Record<string, string> = {
   chunk: "文本分块",
   embed: "向量化",
   persist: "持久化",
+  // KG 构建阶段
+  kg_extracting: "实体抽取",
+  kg_resolving: "实体消解",
+  kg_syncing: "一等公民同步",
+  kg_pagerank: "PageRank 计算",
+  kg_communities: "社区检测",
+  kg_summaries: "社区摘要生成",
 };
 
 /**
@@ -171,6 +186,43 @@ export const STAGE_COLORS: Record<
     completed: "bg-emerald-500",
     failed: "bg-emerald-700",
     skipped: "bg-emerald-300 dark:bg-emerald-600",
+  },
+  // KG 构建阶段颜色（violet/purple 色系区分 KB）
+  kg_extracting: {
+    running: "bg-violet-400",
+    completed: "bg-violet-500",
+    failed: "bg-violet-700",
+    skipped: "bg-violet-300 dark:bg-violet-600",
+  },
+  kg_resolving: {
+    running: "bg-purple-400",
+    completed: "bg-purple-500",
+    failed: "bg-purple-700",
+    skipped: "bg-purple-300 dark:bg-purple-600",
+  },
+  kg_syncing: {
+    running: "bg-fuchsia-400",
+    completed: "bg-fuchsia-500",
+    failed: "bg-fuchsia-700",
+    skipped: "bg-fuchsia-300 dark:bg-fuchsia-600",
+  },
+  kg_pagerank: {
+    running: "bg-indigo-400",
+    completed: "bg-indigo-500",
+    failed: "bg-indigo-700",
+    skipped: "bg-indigo-300 dark:bg-indigo-600",
+  },
+  kg_communities: {
+    running: "bg-blue-400",
+    completed: "bg-blue-500",
+    failed: "bg-blue-700",
+    skipped: "bg-blue-300 dark:bg-blue-600",
+  },
+  kg_summaries: {
+    running: "bg-cyan-400",
+    completed: "bg-cyan-500",
+    failed: "bg-cyan-700",
+    skipped: "bg-cyan-300 dark:bg-cyan-600",
   },
 };
 

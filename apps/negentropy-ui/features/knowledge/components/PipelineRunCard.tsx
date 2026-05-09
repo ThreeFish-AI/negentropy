@@ -43,6 +43,21 @@ export interface PipelineRunCardProps {
   selected?: boolean;
   /** 点击回调（仅 mode="selectable" 有效） */
   onSelect?: () => void;
+  // ---- KG 专属字段 ----
+  /** 来源类型 */
+  source?: "kb" | "kg";
+  /** KG: corpus ID */
+  corpus_id?: string;
+  /** KG: 进度百分比 */
+  progress_percent?: number;
+  /** KG: 实体数 */
+  entity_count?: number;
+  /** KG: 关系数 */
+  relation_count?: number;
+  /** KG: 模型名称 */
+  model_name?: string;
+  /** KG: 错误信息 */
+  error_message?: string;
   /** 支持扩展字段 */
   [key: string]: unknown;
 }
@@ -79,9 +94,20 @@ function PipelineRunCardContent({
   stages,
   error,
   isSelectable,
+  source = "kb",
+  entity_count,
+  relation_count,
+  model_name,
+  error_message,
+  progress_percent,
 }: PipelineRunCardProps & { isSelectable: boolean }) {
   const duration = formatDuration(duration_ms, started_at, completed_at);
-  const operationLabel = operation ? OPERATION_LABELS[operation] || operation : null;
+  const isKg = source === "kg";
+  const operationLabel = isKg
+    ? OPERATION_LABELS.graph_build
+    : operation
+      ? OPERATION_LABELS[operation] || operation
+      : null;
   const triggerLabel = trigger ? TRIGGER_LABELS[trigger] || trigger : null;
   const hasStages = stages && Object.keys(stages).length > 0;
 
@@ -103,7 +129,7 @@ function PipelineRunCardContent({
         <PipelineStatusBadge status={status} />
       </div>
 
-      {/* 第二行：操作类型 + 触发方式 + 时长 + 版本 */}
+      {/* 第二行：操作类型 + 触发方式/KG 统计 + 时长 + 版本 */}
       <div className={`mt-1.5 flex min-w-0 items-center justify-between text-[11px] ${
         isSelectable ? "opacity-70" : "text-zinc-500 dark:text-zinc-400"
       }`}>
@@ -113,21 +139,33 @@ function PipelineRunCardContent({
               <span className={isSelectable ? "font-medium" : "font-medium text-zinc-600 dark:text-zinc-300"}>
                 {operationLabel}
               </span>
-              {triggerLabel && (
+              {isKg && entity_count != null && relation_count != null && (
+                <>
+                  <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+                  <span>{entity_count} 实体 / {relation_count} 关系</span>
+                </>
+              )}
+              {!isKg && triggerLabel && (
                 <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
               )}
             </>
           )}
-          {triggerLabel && (
+          {!isKg && triggerLabel && (
             <span className="uppercase">{triggerLabel}</span>
           )}
-          {!operationLabel && !triggerLabel && (
+          {!operationLabel && (
             <span>{formatRelativeTime(updated_at)}</span>
           )}
           {duration !== "-" && (
             <>
-              <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+              <span className={isSelectable ? "" : "text-zinc-400 dark:bg-zinc-500"}>·</span>
               <span>{duration}</span>
+            </>
+          )}
+          {isKg && model_name && (
+            <>
+              <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
+              <span className="truncate max-w-[100px]">{model_name}</span>
             </>
           )}
         </div>
@@ -135,6 +173,11 @@ function PipelineRunCardContent({
           {hasTimeline && (
             <span className={isSelectable ? "opacity-60" : "text-zinc-400 dark:text-zinc-500"}>
               {startLabel ?? "-"} → {endLabel ?? "-"}
+            </span>
+          )}
+          {isKg && progress_percent != null && status?.toLowerCase() === "running" && (
+            <span className="shrink-0 tabular-nums">
+              {Math.round(progress_percent * 100)}%
             </span>
           )}
           <span className="shrink-0">v{version}</span>
@@ -151,8 +194,17 @@ function PipelineRunCardContent({
         />
       )}
 
-      {/* 第四行：失败摘要（仅失败时显示） */}
+      {/* 第四行：失败摘要 */}
       {status === "failed" && (() => {
+        // KG: 直接展示 error_message
+        if (isKg && error_message) {
+          return (
+            <p className="mt-1 truncate text-[11px] text-rose-500 dark:text-rose-400">
+              {error_message}
+            </p>
+          );
+        }
+        // KB: 从 stages 或 error 中提取
         const failedStageList = getFailedStages(stages);
         if (failedStageList.length > 0) {
           const first = failedStageList[0];
