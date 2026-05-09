@@ -1706,3 +1706,19 @@
   ```
 
   期望：`old_count=849, new_count=14`。
+
+- **Phase 2 补充修复（2026-05-09 第二阶段 · 应用层级联与软删 archive）**：
+  1. **`source_uri` 解析下沉到 storage 层**：把 `_resolve_document_source_uri`（`api.py:1957`）下沉为 `negentropy.storage.service.resolve_document_source_uri` 模块级函数，原 api.py 同名函数变为 thin wrapper 复用之，消除跨层重复（URL 类取 `metadata.origin_url`、否则取 `gcs_uri` 的统一规则）。
+  2. **硬删级联清理 chunks**：`DocumentStorageService.delete_document` 硬删分支在 `db.delete(doc)` 之前先按 `(corpus_id, app_name, source_uri)` 删除全部 Knowledge 行（hierarchical 父+子共享 source_uri，单次删除一并清理）；同事务原子提交，杜绝 FK 意义孤儿。新增 `_hard_delete_chunks_in_session` staticmethod，logger 输出 `chunks_deleted` 计数供审计。
+  3. **软删 archive chunks**：`DocumentStorageService.delete_document` 软删分支在 `doc.status='deleted'` 之前批量更新对应 chunks 的 `metadata.archived=true` 与 `is_enabled=false`，让既有 `_active_filter_expr` / `_enabled_filter_expr` 过滤生效；防止 RAG 检索仍命中已软删 doc。语义可逆——reactivation 路径会直接 hard delete 旧 chunks 让重新 ingest 写一份干净的，不必反向 unset。新增 `_archive_chunks_in_session` staticmethod，复用 `archive_knowledge_by_source` 的 `jsonb_set` 范式。
+  4. **Reactivation 清理旧 chunks**：`_reactivate_document` 在重置 doc 状态前 hard delete 旧 chunks（基于 `resolve_document_source_uri(doc)` 的旧 URI），保证「软删 archive → 复活 reingest」语义不再产生新旧 chunks 叠加；logger 加 `reactivate_purge_chunks` + `old_source_uri` 字段。
+  5. **`KnowledgeService.delete_source` 双重删除冗余说明**：`storage_service.delete_document` 已自带 chunks 清理后，service.py:1742 中的 `_repository.delete_knowledge_by_source` 不再删除（returns 0），但**保留**为 fallback 兜底，覆盖两类场景：① `source_uri` 不是 `gs://...`（如 URL 类的 `origin_url`）走不到 storage 分支；② doc 在先前路径已被硬删但 chunks 残留。加注释明确语义。
+  6. **检索路径过滤覆盖复核结论**：`semantic_search` / `keyword_search` 三态过滤（`archived` + `searchable` + `is_enabled`）齐全；`hybrid_search` / `rrf_search` 走 PG 函数 `kb_hybrid_search` / `kb_rrf_search`，函数内**未**过滤 archived/is_enabled/searchable，仅靠 Python 层后过滤检查 `_is_archived` + `_is_searchable`，**未检查** `is_enabled`——这是该 PG 函数的既有缺陷（与本 issue 解耦）。Phase 2 软删同时打 `metadata.archived=true` 与 `is_enabled=false`，前者覆盖全部 4 个检索路径，软删主目标达成；后者作为冗余防御层在 semantic/keyword 路径生效，hybrid/rrf 不生效是 follow-up。
+  7. **集成测试补强**：新增 [`test_storage_service_delete_cascade.py`](../apps/negentropy/tests/integration_tests/knowledge/test_storage_service_delete_cascade.py)，5 场景串行覆盖：硬删级联 + 邻居 doc 不误删、软删 archive + Phase 1 口径联动、reactivation 清理旧 chunks、跨 corpus 同名 source_uri 隔离、URL 类文档 origin_url 解析。GCS 客户端通过 `monkeypatch.setattr(DocumentStorageService, "_get_gcs_client", ...)` 替换为 stub，避免真实网络调用。
+- **Phase 2 取舍说明**：
+  - 软删时选「archive（标记）」而非「物理删 chunks」：保留可恢复语义；reactivation 走 hard purge 兜底。
+  - 检索路径不在本 phase 修 PG 函数过滤缺陷：`metadata.archived=true` 已覆盖目标语义；改 PG 函数需配套 alembic 迁移与降级测试，与 Phase 2 解耦。
+  - `delete_source` 保留双重删除而非清除：跨语义边界（GCS 路径 vs URL）兜底必要，幂等不影响正确性。
+- **Phase 2 同类问题影响**：
+  1. **PG 函数 `kb_hybrid_search` / `kb_rrf_search` 缺 `is_enabled` 过滤**：列入 follow-up，需要时通过 alembic 迁移修订函数体，加 `WHERE kb.is_enabled = TRUE AND COALESCE((kb.metadata->>'archived')::boolean, false) = false AND COALESCE((kb.metadata->>'searchable')::boolean, true) = true` 三态过滤。
+  2. **任何「外部资源 + 内部产物」双表关系**：若两侧无 FK 仅靠 URI/Hash 软关联（如 `KnowledgeDocument` ↔ `Knowledge`、未来可能的 `Asset` ↔ `EmbeddingArtifact`），删除路径必须主动维护产物生命周期（参考本次 `_hard_delete_chunks_in_session` / `_archive_chunks_in_session` 范式）；Phase 3 通过加 `Knowledge.document_id` FK 在 DB 层兜底。

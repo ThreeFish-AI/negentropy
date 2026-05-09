@@ -1955,14 +1955,10 @@ def _is_url_document(doc: Any) -> bool:
 
 
 def _resolve_document_source_uri(doc: Any) -> str | None:
-    metadata = doc.metadata_ or {}
-    if metadata.get("source_type") == "url":
-        origin_url = metadata.get("origin_url")
-        if isinstance(origin_url, str) and origin_url:
-            return origin_url
-    if doc.gcs_uri:
-        return doc.gcs_uri
-    return None
+    """Thin wrapper：复用 storage 层下沉后的统一实现，避免跨层重复（ISSUE-078 Phase 2）。"""
+    from negentropy.storage.service import resolve_document_source_uri as _resolve
+
+    return _resolve(doc)
 
 
 def _resolve_chunking_config_from_doc_request(

@@ -10,16 +10,39 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
-from negentropy.models.perception import KnowledgeDocument
+from negentropy.models.base import NEGENTROPY_SCHEMA
+from negentropy.models.perception import Knowledge, KnowledgeDocument
 
 from .gcs_client import GCSStorageClient, StorageError
 
 logger = get_logger("negentropy.storage.service")
+
+
+def resolve_document_source_uri(doc: KnowledgeDocument | None) -> str | None:
+    """统一解析 KnowledgeDocument 对应的 ``source_uri``。
+
+    Knowledge 行通过 ``source_uri`` 软关联到 KnowledgeDocument：
+      - URL 类文档（``metadata.source_type == 'url'``）：取 ``metadata.origin_url``；
+      - 普通上传文档：取 ``gcs_uri``。
+
+    与 ``api.py`` 同名 helper 的语义保持一致；本函数下沉到 storage 层供 storage
+    服务内部直接复用，避免跨层耦合（详见 ISSUE-078 Phase 2）。
+    """
+    if doc is None:
+        return None
+    metadata = doc.metadata_ or {}
+    if metadata.get("source_type") == "url":
+        origin_url = metadata.get("origin_url")
+        if isinstance(origin_url, str) and origin_url:
+            return origin_url
+    if doc.gcs_uri:
+        return doc.gcs_uri
+    return None
 
 
 class DocumentStorageService:
@@ -87,6 +110,90 @@ class DocumentStorageService:
             result = await db.execute(stmt)
             return result.scalar_one_or_none()
 
+    # ------------------------------------------------------------------
+    # Knowledge chunks 联动（ISSUE-078 Phase 2）
+    #
+    # KnowledgeDocument 与 Knowledge 之间没有数据库级 FK（仅靠 source_uri 文本
+    # 软关联，详见 ISSUE-078 RCA），因此 doc 删除/复活路径必须主动维护 chunks
+    # 生命周期，避免：
+    #   - 硬删后 chunks 成为孤儿（FK 意义孤儿，污染 corpus 计数与检索）
+    #   - 软删后 chunks 仍被 RAG 检索命中（污染语义 / 关键词搜索结果）
+    #   - reactivation 旧 chunks 与新 ingest 叠加（双套互不一致 chunks）
+    #
+    # 三类操作均在与 doc 同一 session 内执行，确保事务原子性。
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def _hard_delete_chunks_in_session(
+        db,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str | None,
+    ) -> int:
+        """硬删除指定 doc 对应的全部 chunks（父+子，hierarchical 共享 source_uri）。
+
+        ``source_uri IS NULL`` 时不做删除（KG 类直连知识无 doc 来源，永远不应被
+        doc 删除路径误删）；返回删除行数供日志审计。
+        """
+        if source_uri is None:
+            return 0
+        stmt = delete(Knowledge).where(
+            Knowledge.corpus_id == corpus_id,
+            Knowledge.app_name == app_name,
+            Knowledge.source_uri == source_uri,
+        )
+        result = await db.execute(stmt)
+        return result.rowcount or 0
+
+    @staticmethod
+    async def _archive_chunks_in_session(
+        db,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str | None,
+    ) -> int:
+        """软删除联动：批量给指定 doc 的全部 chunks 打 ``archived=true`` 与 ``is_enabled=false``。
+
+        语义与 ``KnowledgeService.archive_source`` 对齐（ISSUE-078 Phase 2 复用范式）：
+          - ``metadata.archived = true`` 让既有 ``_active_filter_expr`` 过滤生效，
+            chunks 不再参与 corpus 计数 / 检索；
+          - ``is_enabled = false`` 是冗余防御层，所有走 ``_enabled_filter_expr``
+            的检索路径同样会跳过它们。
+
+        软删可恢复：reactivation 路径会直接 hard delete 旧 chunks 让重新 ingest
+        写一份干净的，因此不必在此处处理 unset 反向操作。
+
+        使用 ``jsonb_set`` 原生函数（与 ``archive_knowledge_by_source`` 同范式），
+        避免 SQLAlchemy 表达式层 cast 的类型不匹配。
+        """
+        if source_uri is None:
+            return 0
+        stmt = text(
+            f"""
+            UPDATE {NEGENTROPY_SCHEMA}.knowledge
+            SET metadata = jsonb_set(
+                    COALESCE(metadata, '{{}}'::jsonb),
+                    '{{archived}}',
+                    'true'::jsonb
+                ),
+                is_enabled = FALSE
+            WHERE corpus_id = :corpus_id
+              AND app_name = :app_name
+              AND source_uri = :source_uri
+            """
+        )
+        result = await db.execute(
+            stmt,
+            {
+                "corpus_id": corpus_id,
+                "app_name": app_name,
+                "source_uri": source_uri,
+            },
+        )
+        return result.rowcount or 0
+
     @staticmethod
     def _best_effort_cleanup_gcs(
         gcs_client: GCSStorageClient,
@@ -153,6 +260,19 @@ class DocumentStorageService:
                 old_metadata=doc.metadata_,
             )
 
+            # 复活联动（ISSUE-078 Phase 2）：旧 chunks（软删时被 archive 的）必须
+            # 在重置 doc 状态前 hard delete，让随后的 markdown 重新提取 + 重新
+            # ingest 写入一份干净的；否则旧 archived chunks 与新 chunks 叠加
+            # （source_uri 相同），既污染检索（部分仍 archived 但 query 解 archive），
+            # 又让 corpus 计数与文档详情口径再次出错。
+            old_source_uri = resolve_document_source_uri(doc)
+            purged_count = await self._hard_delete_chunks_in_session(
+                db,
+                corpus_id=doc.corpus_id,
+                app_name=doc.app_name,
+                source_uri=old_source_uri,
+            )
+
             doc.status = "active"
             doc.gcs_uri = gcs_uri
             doc.original_filename = filename
@@ -175,6 +295,8 @@ class DocumentStorageService:
                 corpus_id=str(doc.corpus_id),
                 gcs_uri=gcs_uri,
                 file_hash=doc.file_hash,
+                reactivate_purge_chunks=purged_count,
+                old_source_uri=old_source_uri,
             )
             return doc
 
@@ -395,6 +517,12 @@ class DocumentStorageService:
     ) -> bool:
         """Delete document (soft or hard delete).
 
+        Phase 2（ISSUE-078）联动 Knowledge chunks 生命周期：
+          - 软删：批量 archive chunks（``metadata.archived=true`` + ``is_enabled=false``），
+            防止 RAG 检索仍命中已删 doc；语义可逆，reactivation 时由
+            ``_reactivate_document`` 直接 hard delete 旧 chunks 让重新 ingest 写一份干净的。
+          - 硬删：在同一事务内删除 chunks 后再删除 doc 行，杜绝 FK 意义孤儿。
+
         Args:
             document_id: Document UUID to delete
             corpus_id: Optional corpus UUID for validation
@@ -417,13 +545,26 @@ class DocumentStorageService:
             if not doc:
                 return False
 
+            doc_corpus_id = doc.corpus_id
+            doc_app_name = doc.app_name
+            source_uri = resolve_document_source_uri(doc)
+
             if soft_delete:
+                # 软删联动：先 archive chunks 再标记 doc，单事务原子提交。
+                archived_count = await self._archive_chunks_in_session(
+                    db,
+                    corpus_id=doc_corpus_id,
+                    app_name=doc_app_name,
+                    source_uri=source_uri,
+                )
                 doc.status = "deleted"
                 await db.commit()
                 logger.info(
                     "document_soft_deleted",
                     doc_id=str(document_id),
                     corpus_id=str(corpus_id),
+                    chunks_archived=archived_count,
+                    source_uri=source_uri,
                 )
             else:
                 # Hard delete: remove from GCS first
@@ -456,12 +597,21 @@ class DocumentStorageService:
                         error=str(exc),
                     )
 
+                # 硬删联动：先删 chunks 再删 doc，单事务原子提交，杜绝 FK 意义孤儿。
+                chunks_deleted = await self._hard_delete_chunks_in_session(
+                    db,
+                    corpus_id=doc_corpus_id,
+                    app_name=doc_app_name,
+                    source_uri=source_uri,
+                )
                 await db.delete(doc)
                 await db.commit()
                 logger.info(
                     "document_hard_deleted",
                     doc_id=str(document_id),
                     corpus_id=str(corpus_id),
+                    chunks_deleted=chunks_deleted,
+                    source_uri=source_uri,
                 )
 
             return True

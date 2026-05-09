@@ -1767,6 +1767,14 @@ class KnowledgeService:
         deleted_documents = 0
         deleted_gcs_objects = 0
 
+        # 自 ISSUE-078 Phase 2 起：DocumentStorageService.delete_document 的硬删
+        # 分支已在同一事务内级联清理对应 chunks。此处仍保留 delete_knowledge_by_source
+        # 兜底调用，覆盖 storage_service 路径未覆盖的两类场景：
+        #   1. ``source_uri`` 不是 ``gs://...``（如 URL 类的 ``origin_url``）
+        #      → 进不到上面 storage 分支，必须走仓库直接按 source_uri 清理；
+        #   2. doc 在 ``check_duplicate`` 之前已被先前删除路径硬删（chunks 残留为孤儿）
+        #      → storage_service 找不到 doc，但仓库仍能按 source_uri 兜底清理。
+        # 当 storage_service 已删除 chunks 时，此调用返回 0（语义幂等，不影响正确性）。
         if source_uri.startswith("gs://"):
             from negentropy.storage.gcs_client import StorageError
             from negentropy.storage.service import DocumentStorageService
