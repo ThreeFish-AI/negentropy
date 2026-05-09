@@ -436,4 +436,90 @@ describe("message-ledger", () => {
       expect(merged).toHaveLength(2);
     });
   });
+
+  // ISSUE-042 补丁：同时间戳下 TEXT_MESSAGE_START→CONTENT→END 的排序不被穿插
+  describe("sort tiebreaker: EVENT_TYPE_ORDER", () => {
+    it("同时间戳下 START → CONTENT → END 保持正确生命周期顺序", () => {
+      const ts = 1000;
+      const events = [
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_END,
+          threadId: "t1",
+          runId: "r1",
+          messageId: "m1",
+          timestamp: ts,
+          role: "assistant",
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "t1",
+          runId: "r1",
+          messageId: "m1",
+          timestamp: ts,
+          delta: "Hello",
+          role: "assistant",
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "t1",
+          runId: "r1",
+          messageId: "m1",
+          timestamp: ts,
+          role: "assistant",
+        }),
+      ];
+
+      const ledger = buildMessageLedger({ events });
+      // 三个事件应被聚合为 1 条 ledger entry
+      expect(ledger).toHaveLength(1);
+      // content 应正确累积（不被乱序截断）
+      expect(ledger[0]?.content).toBe("Hello");
+      // lifecycle 应为 closed（END 事件标记了关闭）
+      expect(ledger[0]?.lifecycle).toBe("closed");
+    });
+
+    it("同时间戳下不同 messageId 的事件各自独立", () => {
+      const ts = 1000;
+      const events = [
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "t1",
+          runId: "r1",
+          messageId: "m1",
+          timestamp: ts,
+          role: "assistant",
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_START,
+          threadId: "t1",
+          runId: "r1",
+          messageId: "m2",
+          timestamp: ts,
+          role: "assistant",
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "t1",
+          runId: "r1",
+          messageId: "m1",
+          timestamp: ts,
+          delta: "First",
+          role: "assistant",
+        }),
+        createTestEvent({
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          threadId: "t1",
+          runId: "r1",
+          messageId: "m2",
+          timestamp: ts,
+          delta: "Second",
+          role: "assistant",
+        }),
+      ];
+
+      const ledger = buildMessageLedger({ events });
+      expect(ledger).toHaveLength(2);
+      expect(ledger.map((e) => e.content).sort()).toEqual(["First", "Second"]);
+    });
+  });
 });

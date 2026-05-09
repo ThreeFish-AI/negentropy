@@ -213,6 +213,9 @@ export function HomeBody({
   // 中断门 — 用户主动 cancel 后短暂屏蔽 onRunFailed/onRunErrorEvent 引发的 error 状态，
   // 避免被显示成"运行错误"。100ms 窗口足以覆盖 abort 信号 round-trip。
   const userCancelledAtRef = useRef<number>(0);
+  // 并发 runId 隔离 — 记录当前活跃的 runId，过滤旧 run 的残留事件，防止双气泡。
+  // doSend 时写入新 runId，RUN_FINISHED/RUN_ERROR 后清空。
+  const activeRunIdRef = useRef<string | null>(null);
   const perThreadLlmRef = useRef<Record<string, string | null>>({});
   const perThreadThinkingRef = useRef<Record<string, boolean>>({});
   // 「无 session 时」用户预先选择的模型，待 startNewSession 后转入 perThreadLlmRef[newId]。
@@ -350,11 +353,40 @@ export function HomeBody({
 
   useEffect(() => {
     rawEventHandlerRef.current = (event) => {
+      // 并发 runId 隔离：若当前有活跃 run，过滤不属于该 run 的事件。
+      // 防止用户快速连发时旧 run 的残留事件混入新 turn → 双气泡/乱序。
+      // 无 runId 的事件（如 STATE_SNAPSHOT）不过滤，它们不绑定特定 run。
+      const activeRunId = activeRunIdRef.current;
+      if (activeRunId) {
+        const eventRunId =
+          "runId" in event && typeof event.runId === "string"
+            ? event.runId
+            : undefined;
+        if (eventRunId && eventRunId !== activeRunId) {
+          if (event.type === EventType.RUN_STARTED) {
+            // 后端返回的 runId 与前端生成的不一致时，采纳后端 runId。
+            // E2E mock 的 runId 与前端 randomUUID() 不同；生产环境后端
+            // 理应透传前端 runId，若不一致也以首个 RUN_STARTED 为准。
+            activeRunIdRef.current = eventRunId;
+          } else if (
+            event.type === EventType.RUN_FINISHED ||
+            event.type === EventType.RUN_ERROR
+          ) {
+            // 终态事件始终放行，确保 activeRunIdRef 清空 + hydration 触发，
+            // 避免连接状态卡死导致后续 Send 按钮 disabled。
+          } else {
+            return;
+          }
+        }
+      }
+
       appendRealtimeEvent(event);
       if (
         sessionId &&
         (event.type === EventType.RUN_FINISHED || event.type === EventType.RUN_ERROR)
       ) {
+        // run 终止后清空活跃 runId，允许后续 run 的事件通过。
+        activeRunIdRef.current = null;
         scheduleSessionHydration(sessionId, {
           reason: "run_terminal",
           runId:
@@ -409,6 +441,8 @@ export function HomeBody({
       return;
     }
     userCancelledAtRef.current = Date.now();
+    // 用户主动取消时清空活跃 runId，允许后续 run 立即开始。
+    activeRunIdRef.current = null;
     try {
       agent.abortRun();
     } catch (error) {
@@ -487,6 +521,8 @@ export function HomeBody({
       }
 
       const runId = randomUUID();
+      // 设置活跃 runId，过滤旧 run 的残留事件（并发隔离）。
+      activeRunIdRef.current = runId;
       const messageId = crypto.randomUUID();
       const createdAt = new Date();
       const newMessage = {
@@ -539,6 +575,7 @@ export function HomeBody({
           scheduleTitleRefresh();
         }
       } catch (error) {
+        activeRunIdRef.current = null;
         setConnectionWithMetrics("error");
         addLog("error", "run_agent_failed", { message: String(error) });
         console.warn("Failed to run agent", error);

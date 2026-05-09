@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { AssistantReplyBubble } from "./AssistantReplyBubble";
 import { MessageBubble } from "./MessageBubble";
 import { ToolExecutionGroup } from "./ToolExecutionGroup";
@@ -32,12 +32,27 @@ export function ChatStream({
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
   const visibleNodes = nodes.filter((node) => node.visibility !== "debug-only");
-  const displayBlocks = buildChatDisplayBlocks({
-    roots: visibleNodes,
-    nodeIndex: new Map(),
-    messageNodeIndex: new Map(),
-    toolNodeIndex: new Map(),
-  });
+  // useMemo 避免每个 SSE chunk 触发时都重建 display blocks（buildChatDisplayBlocks
+  // 涉及 6 层去重计算），减少不必要的子组件重渲与闪烁。
+  const displayBlocks = useMemo(
+    () =>
+      buildChatDisplayBlocks({
+        roots: visibleNodes,
+        nodeIndex: new Map(),
+        messageNodeIndex: new Map(),
+        toolNodeIndex: new Map(),
+      }),
+    // visibleNodes 是 .filter() 产生的新数组引用，但内容变化时才需重建。
+    // 依赖键需包含子节点内容长度，否则流式期间 id/status 不变但 payload.content
+    // 持续追加 → useMemo 返回旧 blocks → 流式文本不可见。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(visibleNodes.map((n) => {
+      const childFingerprint = n.children
+        .map((c) => c.id + ':' + String(c.payload?.content ?? '').length)
+        .join(',');
+      return n.id + (n.status ?? '') + '[' + childFingerprint + ']';
+    }))]
+  );
 
   const onScroll = () => {
     if (!scrollRef.current) return;

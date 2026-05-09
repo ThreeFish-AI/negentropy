@@ -757,6 +757,64 @@ function turnsOverlapInTime(a: MutableNode, b: MutableNode, toleranceSec = 60): 
   return aEnd >= bStart - toleranceSec && bEnd >= aStart - toleranceSec;
 }
 
+/**
+ * Phase 3：判定同 thread 内 keeper 与 candidate 之间是否存在含 user-text 的 turn。
+ * 用于 collapseOverlappingTurns 的「双 concrete turn」折叠闸门：
+ * - ADK 后端每条 event 有独立 invocationId，映射为 runId 后同一用户回合可能产出
+ *   多个 concrete turn（functionCall / functionResponse / text 各一个）。
+ * - 若这些 turn 之间没有 user-message，它们属于同一逻辑回合，可以安全折叠。
+ * - 若中间存在 user-message（=逻辑回合分隔符），则不可折叠。
+ */
+function hasUserTextBoundaryBetween(
+  keeper: MutableNode,
+  candidate: MutableNode,
+  threadTurns: MutableNode[],
+): boolean {
+  const keeperEnd = normalizeTimestamp(keeper.timeRange?.end ?? keeper.timestamp);
+  const candidateStart = normalizeTimestamp(candidate.timeRange?.start ?? candidate.timestamp);
+  return threadTurns.some((t) => {
+    if (t === keeper || t === candidate) return false;
+    const tStart = normalizeTimestamp(t.timeRange?.start ?? t.timestamp);
+    if (tStart <= keeperEnd || tStart >= candidateStart) return false;
+    return t.children.some((child) => child.type === "text" && child.role === "user");
+  });
+}
+
+/**
+ * Phase 3：将 candidate turn 的 children 合并到 keeper turn 中。
+ * 语义去重（text 节点按内容前缀关系、tool-call 按 toolCallId），避免重复。
+ */
+function mergeChildrenIntoKeeper(keeper: MutableNode, candidate: MutableNode): void {
+  for (const child of candidate.children) {
+    if (isAbsorbableSyntheticChild(child)) continue;
+    // Text 节点：检查是否已有语义等价的 child
+    if (child.type === "text" && (child.role === "assistant" || child.role === "developer")) {
+      const existing = findSubsumingTextNode(keeper, child);
+      if (existing) {
+        // keeper 已有覆盖此内容的 text 节点，跳过
+        continue;
+      }
+    }
+    // Tool-call：检查是否已有同 toolCallId 的 child
+    if (child.type === "tool-call" && child.toolCallId) {
+      const existing = keeper.children.some(
+        (k) => k.type === "tool-call" && k.toolCallId === child.toolCallId,
+      );
+      if (existing) continue;
+    }
+    // Step / Reasoning：检查是否已有同 id 的 child
+    if (child.id && keeper.children.some((k) => k.id === child.id)) continue;
+    // 未去重命中 → 将 child 重新挂到 keeper 下
+    child.parentId = keeper.id;
+    keeper.children.push(child);
+  }
+  // 合并时间范围
+  keeper.timeRange = {
+    start: Math.min(keeper.timeRange.start, candidate.timeRange.start),
+    end: Math.max(keeper.timeRange.end, candidate.timeRange.end),
+  };
+}
+
 function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
   const turnRoots = roots.filter((node) => node.type === "turn");
   if (turnRoots.length <= 1) return roots;
@@ -804,11 +862,45 @@ function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
         const keeper = sorted[j];
         if (!turnsOverlapInTime(keeper, candidate, 120)) continue;
 
-        // ISSUE-041: 双 concrete turn（都不是 synthetic）不折叠——两个真 runId
-        // 的 turn 可能是后端多 run 场景（如人工审批后重新启动），折叠会误丢合法 turn。
-        // 仅当 candidate 或 keeper 至少一方为 synthetic 时才允许内容级折叠。
+        // ISSUE-041 / Phase 3：双 concrete turn 折叠闸门。
+        // 旧规则（ISSUE-041）：双 concrete turn 一律拒绝折叠——两个真 runId 的 turn
+        // 可能是后端多 run 场景（如人工审批后重新启动），折叠会误丢合法 turn。
+        //
+        // Phase 3 新增：ADK 后端每条 event 有独立 invocationId，映射为 runId 后
+        // 同一用户回合产出多个 concrete turn（functionCall / functionResponse / text）。
+        // 这些 turn 之间没有 user-message（=逻辑回合分隔符），可以安全折叠。
+        // 判定方式：检查 keeper 与 candidate 时间窗之间是否存在含 user-text 的 turn。
         const bothConcrete = !isSyntheticTurnNode(candidate) && !isSyntheticTurnNode(keeper);
-        if (bothConcrete) continue;
+        if (bothConcrete) {
+          if (hasUserTextBoundaryBetween(keeper, candidate, threadTurns)) continue;
+          const keeperHasUserText = keeper.children.some(
+            (c) => c.type === "text" && c.role === "user",
+          );
+          if (keeperHasUserText) {
+            // keeper 含 user text（=同一用户回合的触发 turn），
+            // 检查前面是否已有 assistant turn：若有，说明 candidate 是对 user 消息的
+            // 独立回复（如多轮对话的下一轮），不应并入 user turn。
+            const keeperStart = normalizeTimestamp(keeper.timeRange?.start ?? keeper.timestamp);
+            const hasAssistantBeforeKeeper = threadTurns.some((t) => {
+              if (t === keeper || t === candidate || turnsToRemove.has(t.id)) return false;
+              const tEnd = normalizeTimestamp(t.timeRange?.end ?? t.timestamp);
+              return (
+                tEnd < keeperStart &&
+                t.children.some(
+                  (c) => c.type === "text" && (c.role === "assistant" || c.role === "developer"),
+                )
+              );
+            });
+            if (hasAssistantBeforeKeeper) continue;
+            // user turn 是首个 turn → 后续 assistant 均属同一回合 → 直接合并
+            mergeChildrenIntoKeeper(keeper, candidate);
+            turnsToRemove.add(candidate.id);
+            collapsed = true;
+            break;
+          }
+          // 双方均为纯 assistant turn → 退回 allCovered 检查
+          // (D3 回归保护：两个独立 round 的 assistant turn 内容不同 → 不应合并)
+        }
 
         // 检查 candidate 所有非元数据 children 是否被 keeper 覆盖
         const allCovered = candidate.children.every((child) => {
@@ -920,10 +1012,28 @@ export function buildConversationTree(
     });
   });
 
+  // ISSUE-042 补丁：conversation-tree 的 sort tiebreaker 同样曾用 localeCompare，
+  // 与 message-ledger.ts 和 session-hydration.ts 的同类问题一致。此处改用事件类型权重。
+  const EVENT_TYPE_ORDER: Record<string, number> = {
+    [EventType.RUN_STARTED]: 0,
+    [EventType.STEP_STARTED]: 1,
+    [EventType.TEXT_MESSAGE_START]: 2,
+    [EventType.TEXT_MESSAGE_CONTENT]: 3,
+    [EventType.TEXT_MESSAGE_END]: 4,
+    [EventType.TOOL_CALL_START]: 5,
+    [EventType.TOOL_CALL_ARGS]: 6,
+    [EventType.TOOL_CALL_END]: 7,
+    [EventType.TOOL_CALL_RESULT]: 8,
+    [EventType.STEP_FINISHED]: 9,
+    [EventType.RUN_FINISHED]: 10,
+    [EventType.RUN_ERROR]: 11,
+  };
   const orderedEvents = [...events].sort((a, b) => {
     const timeDiff = normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
     if (timeDiff !== 0) return timeDiff;
-    return String(a.type).localeCompare(String(b.type));
+    const aOrder = EVENT_TYPE_ORDER[String(a.type)] ?? 50;
+    const bOrder = EVENT_TYPE_ORDER[String(b.type)] ?? 50;
+    return aOrder - bOrder;
   });
 
   orderedEvents.forEach((event, eventIndex) => {

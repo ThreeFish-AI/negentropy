@@ -383,6 +383,19 @@ export function buildMessageLedger(input: {
     });
   };
 
+  // ISSUE-042 补丁：message-ledger 的 sort tiebreaker 曾用 localeCompare
+  // （TEXT_MESSAGE_CONTENT(C) < TEXT_MESSAGE_END(E) < TEXT_MESSAGE_START(S)），
+  // 导致同时间戳下 CONTENT 在 START 之前被处理，破坏消息生命周期顺序。
+  // session-hydration.ts 已改用 emitOrder，但此处遗漏。
+  // 修复：用事件类型权重保证 START→CONTENT→END→TOOL_* 的正确顺序。
+  const EVENT_TYPE_ORDER: Record<string, number> = {
+    [EventType.TEXT_MESSAGE_START]: 0,
+    [EventType.TEXT_MESSAGE_CONTENT]: 1,
+    [EventType.TEXT_MESSAGE_END]: 2,
+    [EventType.TOOL_CALL_START]: 3,
+    [EventType.TOOL_CALL_ARGS]: 4,
+    [EventType.TOOL_CALL_END]: 5,
+  };
   const orderedEvents = [...events].sort((a, b) => {
     const timeDiff =
       (typeof a.timestamp === "number" ? a.timestamp : 0) -
@@ -390,7 +403,9 @@ export function buildMessageLedger(input: {
     if (timeDiff !== 0) {
       return timeDiff;
     }
-    return String(a.type).localeCompare(String(b.type));
+    const aOrder = EVENT_TYPE_ORDER[String(a.type)] ?? 50;
+    const bOrder = EVENT_TYPE_ORDER[String(b.type)] ?? 50;
+    return aOrder - bOrder;
   });
 
   orderedEvents.forEach((event, eventIndex) => {
