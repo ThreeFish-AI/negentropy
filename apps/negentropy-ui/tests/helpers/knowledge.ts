@@ -30,6 +30,14 @@ import { PipelineRunCard, PipelineRunList } from "@/features/knowledge/component
 import { PipelineRunDetailPanel } from "@/features/knowledge/components/PipelineRunDetailPanel";
 import { PipelineStatusBadge } from "@/features/knowledge/components/PipelineStatusBadge";
 import { PipelineStagesBar } from "@/features/knowledge/components/PipelineStagesBar";
+import { KgRunDetailPanel } from "@/features/knowledge/components/KgRunDetailPanel";
+import {
+  adaptKgRunToUnified,
+  mergeAndSortRuns,
+  hasActiveRuns,
+  kgPhasesToStages,
+  KG_PHASE_KEYS,
+} from "@/features/knowledge/utils/unified-pipeline";
 
 type VitestMock = Mock<(...args: unknown[]) => unknown>;
 
@@ -44,6 +52,8 @@ export interface KnowledgeFeatureMockSet {
   deleteCorpusMock: VitestMock;
   fetchPipelinesMock: VitestMock;
   upsertPipelinesMock: VitestMock;
+  fetchCorporaMock: VitestMock;
+  fetchGraphBuildHistoryMock: VitestMock;
   fetchDocumentsMock: VitestMock;
   fetchDocumentChunksMock: VitestMock;
   fetchDocumentChunkDetailMock: VitestMock;
@@ -77,6 +87,8 @@ export function createKnowledgeFeatureMockSet(): KnowledgeFeatureMockSet {
     deleteCorpusMock: vi.fn(),
     fetchPipelinesMock: vi.fn(),
     upsertPipelinesMock: vi.fn(),
+    fetchCorporaMock: vi.fn(),
+    fetchGraphBuildHistoryMock: vi.fn(),
     fetchDocumentsMock: vi.fn(),
     fetchDocumentChunksMock: vi.fn(),
     fetchDocumentChunkDetailMock: vi.fn(),
@@ -152,6 +164,12 @@ export function createKnowledgeConfigTestExports() {
     PipelineRunDetailPanel,
     PipelineStatusBadge,
     PipelineStagesBar,
+    KgRunDetailPanel,
+    adaptKgRunToUnified,
+    mergeAndSortRuns,
+    hasActiveRuns,
+    kgPhasesToStages,
+    KG_PHASE_KEYS,
   };
 }
 
@@ -172,6 +190,8 @@ export function createKnowledgeFeatureTestHarness(
       deleteCorpus: (...args: unknown[]) => mocks.deleteCorpusMock(...args),
       fetchPipelines: (...args: unknown[]) => mocks.fetchPipelinesMock(...args),
       upsertPipelines: (...args: unknown[]) => mocks.upsertPipelinesMock(...args),
+      fetchCorpora: (...args: unknown[]) => mocks.fetchCorporaMock(...args),
+      fetchGraphBuildHistory: (...args: unknown[]) => mocks.fetchGraphBuildHistoryMock(...args),
       fetchDocuments: (...args: unknown[]) => mocks.fetchDocumentsMock(...args),
       fetchDocumentChunks: (...args: unknown[]) => mocks.fetchDocumentChunksMock(...args),
       fetchDocumentChunkDetail: (...args: unknown[]) => mocks.fetchDocumentChunkDetailMock(...args),

@@ -8,27 +8,27 @@ import {
   fetchDashboard,
   fetchPipelines,
   upsertPipelines,
+  fetchCorpora,
+  fetchGraphBuildHistory,
   KnowledgeDashboard,
   KnowledgePipelinesPayload,
-  PipelineRunRecord,
   PipelineRunCard,
   PipelineRunDetailPanel,
 } from "@/features/knowledge";
+import { KgRunDetailPanel } from "@/features/knowledge/components/KgRunDetailPanel";
+import {
+  UnifiedPipelineRun,
+  KgPipelineRun,
+  adaptKgRunToUnified,
+  mergeAndSortRuns,
+  hasActiveRuns,
+} from "@/features/knowledge/utils/unified-pipeline";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 const PAGE_SIZE = 10;
 const RUNNING_POLL_INTERVAL_MS = 5000;
 const BOOTSTRAP_POLL_INTERVAL_MS = 1000;
 const BOOTSTRAP_POLL_MAX_TICKS = 8;
-
-const hasRunningRuns = (runs: PipelineRunRecord[] | undefined): boolean => {
-  return (
-    runs?.some((run) => {
-      const status = run.status?.toLowerCase();
-      return status === "running" || status === "in_progress";
-    }) ?? false
-  );
-};
 
 interface RunsSnapshot {
   count: number;
@@ -38,7 +38,7 @@ interface RunsSnapshot {
 }
 
 const createRunsSnapshot = (
-  runs: PipelineRunRecord[] | undefined,
+  runs: UnifiedPipelineRun[] | undefined,
 ): RunsSnapshot => {
   const first = runs?.[0];
   return {
@@ -60,50 +60,75 @@ const isSameRunsSnapshot = (a: RunsSnapshot, b: RunsSnapshot): boolean => {
 
 export default function KnowledgeDashboardPage() {
   const [dashboardData, setDashboardData] = useState<KnowledgeDashboard | null>(null);
-  const [pipelinesPayload, setPipelinesPayload] = useState<KnowledgePipelinesPayload | null>(null);
+  const [allRuns, setAllRuns] = useState<UnifiedPipelineRun[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<PipelineRunRecord | null>(null);
+  const [selected, setSelected] = useState<UnifiedPipelineRun | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [retryQueue, setRetryQueue] = useState<PipelineRunRecord[]>([]);
+  const [retryQueue, setRetryQueue] = useState<UnifiedPipelineRun[]>([]);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [kbTotal, setKbTotal] = useState(0);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const bootstrapBaselineRef = useRef<RunsSnapshot | null>(null);
 
-  const applyPipelinesPayload = useCallback((data: KnowledgePipelinesPayload) => {
-    setPipelinesPayload(data);
-    setTotal(data.count ?? data.runs?.length ?? 0);
-    setError(null);
-    setSelected((prev) => {
-      if (!data.runs?.length) return null;
-      if (!prev) return data.runs[0];
-      const updated = data.runs.find((r) => r.id === prev.id);
-      return updated ?? data.runs[0];
-    });
-  }, []);
+  const applyRuns = useCallback(
+    (kbData: KnowledgePipelinesPayload, kgRuns: KgPipelineRun[]) => {
+      const merged = mergeAndSortRuns(kbData.runs ?? [], kgRuns);
+      setAllRuns(merged);
+      setKbTotal(kbData.count ?? kbData.runs?.length ?? 0);
+      setLastUpdatedAt(kbData.last_updated_at ?? null);
+      setError(null);
+      setSelected((prev) => {
+        if (!merged.length) return null;
+        if (!prev) return merged[0];
+        const updated = merged.find((r) => r.id === prev.id);
+        return updated ?? merged[0];
+      });
+    },
+    [],
+  );
 
-  const loadPipelines = useCallback(async (overridePage?: number) => {
-    const p = overridePage ?? page;
-    const data = await fetchPipelines(APP_NAME, {
-      limit: PAGE_SIZE,
-      offset: (p - 1) * PAGE_SIZE,
-    });
-    applyPipelinesPayload(data);
-    return data;
-  }, [applyPipelinesPayload, page]);
+  const loadRuns = useCallback(
+    async (overridePage?: number) => {
+      const p = overridePage ?? page;
+      const offset = (p - 1) * PAGE_SIZE;
+
+      const [pipeData, corpora] = await Promise.all([
+        fetchPipelines(APP_NAME, { limit: PAGE_SIZE, offset }),
+        fetchCorpora(APP_NAME).catch(() => []),
+      ]);
+
+      // 仅对有知识的 corpus 查询 KG history，每个 corpus 取最近 5 条
+      const activeCorpora = corpora.filter(
+        (c) => c.knowledge_count > 0,
+      );
+      const kgHistories = await Promise.all(
+        activeCorpora.map((c) =>
+          fetchGraphBuildHistory(c.id, APP_NAME, 5).catch(() => null),
+        ),
+      );
+
+      const kgRuns: KgPipelineRun[] = kgHistories
+        .filter((h) => h !== null)
+        .flatMap((h) =>
+          (h!.runs ?? []).map((r) => adaptKgRunToUnified(r, h!.corpus_id)),
+        );
+
+      applyRuns(pipeData, kgRuns);
+      return { pipeData, kgRuns };
+    },
+    [applyRuns, page],
+  );
 
   useEffect(() => {
     let active = true;
 
     (async () => {
       try {
-        const pipeData = await fetchPipelines(APP_NAME, {
-          limit: PAGE_SIZE,
-          offset: (page - 1) * PAGE_SIZE,
-        });
+        const { pipeData, kgRuns } = await loadRuns();
         if (!active) return;
-        applyPipelinesPayload(pipeData);
-        bootstrapBaselineRef.current = createRunsSnapshot(pipeData.runs);
+        const merged = mergeAndSortRuns(pipeData.runs ?? [], kgRuns);
+        bootstrapBaselineRef.current = createRunsSnapshot(merged);
         setHasInitialLoad(true);
       } catch (err) {
         if (active) setError(String(err));
@@ -122,31 +147,31 @@ export default function KnowledgeDashboardPage() {
     return () => {
       active = false;
     };
-  }, [applyPipelinesPayload, page]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load
+  }, [page]);
 
+  // Bootstrap polling
   useEffect(() => {
     if (!hasInitialLoad) return;
     if (page !== 1) return;
 
     let active = true;
     let tick = 0;
-    const baseline = bootstrapBaselineRef.current ?? createRunsSnapshot(pipelinesPayload?.runs);
+    const baseline = bootstrapBaselineRef.current ?? createRunsSnapshot(allRuns);
 
     const intervalId = setInterval(async () => {
       tick += 1;
       try {
-        const data = await fetchPipelines(APP_NAME, {
-          limit: PAGE_SIZE,
-          offset: 0,
-        });
+        const { pipeData, kgRuns } = await loadRuns();
         if (!active) return;
 
-        const nextSnapshot = createRunsSnapshot(data.runs);
+        const merged = mergeAndSortRuns(pipeData.runs ?? [], kgRuns);
+        const nextSnapshot = createRunsSnapshot(merged);
         const changed = !isSameRunsSnapshot(baseline, nextSnapshot);
-        const running = hasRunningRuns(data.runs);
+        const running = hasActiveRuns(merged);
 
         if (changed || running) {
-          applyPipelinesPayload(data);
+          applyRuns(pipeData, kgRuns);
           clearInterval(intervalId);
           return;
         }
@@ -164,15 +189,16 @@ export default function KnowledgeDashboardPage() {
       active = false;
       clearInterval(intervalId);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: pipelinesPayload?.runs removed to prevent unstable cleanup/restart cycle
-  }, [applyPipelinesPayload, hasInitialLoad, page]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasInitialLoad, page]);
 
+  // Running-state polling
   useEffect(() => {
     if (page !== 1) return;
-    if (!hasRunningRuns(pipelinesPayload?.runs)) return;
+    if (!hasActiveRuns(allRuns)) return;
 
     const intervalId = setInterval(() => {
-      loadPipelines(1).catch((err) => {
+      loadRuns(1).catch((err) => {
         setError(String(err));
       });
     }, RUNNING_POLL_INTERVAL_MS);
@@ -180,7 +206,7 @@ export default function KnowledgeDashboardPage() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [loadPipelines, pipelinesPayload?.runs, page]);
+  }, [loadRuns, allRuns, page]);
 
   const metrics = useMemo(() => {
     if (!dashboardData) return [];
@@ -206,7 +232,11 @@ export default function KnowledgeDashboardPage() {
     ];
   }, [dashboardData]);
 
-  const runs = pipelinesPayload?.runs || [];
+  // KB 分页总量来自服务端，KG 运行在每页始终展示
+  const total = kbTotal;
+
+  const selectedKbRun =
+    selected?.source === "kb" ? selected : undefined;
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -240,35 +270,35 @@ export default function KnowledgeDashboardPage() {
                     Pipeline Runs
                   </h2>
                   <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-                    <span>{pipelinesPayload?.last_updated_at || "最近 24h"}</span>
-                    {selected && (
+                    <span>{lastUpdatedAt || "最近 24h"}</span>
+                    {selectedKbRun && (
                       <button
                         className={outlineButtonClassName("neutral", "rounded-full px-3 py-1 text-[11px]")}
                         onClick={async () => {
-                          if (!selected) return;
+                          if (!selectedKbRun) return;
                           setSaveStatus("saving");
                           try {
                             await upsertPipelines({
                               app_name: APP_NAME,
-                              run_id: selected.run_id,
-                              status: selected.status || "completed",
+                              run_id: selectedKbRun.run_id,
+                              status: selectedKbRun.status || "completed",
                               payload: {
-                                started_at: selected.started_at,
-                                completed_at: selected.completed_at,
-                                duration_ms: selected.duration_ms,
-                                duration: selected.duration,
-                                trigger: selected.trigger,
-                                input: selected.input,
-                                output: selected.output,
-                                error: selected.error,
+                                started_at: selectedKbRun.started_at,
+                                completed_at: selectedKbRun.completed_at,
+                                duration_ms: selectedKbRun.duration_ms,
+                                duration: selectedKbRun.duration,
+                                trigger: selectedKbRun.trigger,
+                                input: selectedKbRun.input,
+                                output: selectedKbRun.output,
+                                error: selectedKbRun.error,
                               },
-                              expected_version: selected.version,
+                              expected_version: selectedKbRun.version,
                               idempotency_key: crypto.randomUUID(),
                             });
                             setSaveStatus("saved");
                           } catch (err) {
                             setSaveStatus(`error:${String(err)}`);
-                            setRetryQueue((prev) => [...prev, selected]);
+                            setRetryQueue((prev) => [...prev, selectedKbRun]);
                           }
                         }}
                       >
@@ -277,24 +307,36 @@ export default function KnowledgeDashboardPage() {
                     )}
                   </div>
                 </div>
-                {runs.length ? (
+                {allRuns.length ? (
                   <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
-                    {runs.map((run) => (
+                    {allRuns.map((run) => (
                       <PipelineRunCard
                         key={run.id}
                         run_id={run.run_id || run.id}
                         status={run.status}
                         version={run.version ?? 0}
-                        operation={run.operation as PipelineRunCardOperationType}
-                        trigger={run.trigger}
+                        operation={
+                          run.source === "kb"
+                            ? (run.operation as "ingest_text" | "ingest_url" | "ingest_file" | "replace_source")
+                            : undefined
+                        }
+                        trigger={run.source === "kb" ? run.trigger : undefined}
                         duration_ms={run.duration_ms}
                         started_at={run.started_at}
                         completed_at={run.completed_at}
                         stages={run.stages}
-                        error={run.error}
+                        error={run.source === "kb" ? run.error : undefined}
                         mode="selectable"
                         selected={selected?.id === run.id}
                         onSelect={() => setSelected(run)}
+                        // KG 专属字段
+                        source={run.source}
+                        corpus_id={run.source === "kg" ? run.corpus_id : undefined}
+                        entity_count={run.source === "kg" ? run.entity_count : undefined}
+                        relation_count={run.source === "kg" ? run.relation_count : undefined}
+                        model_name={run.source === "kg" ? run.model_name : undefined}
+                        error_message={run.source === "kg" ? run.error_message : undefined}
+                        progress_percent={run.source === "kg" ? run.progress_percent : undefined}
                       />
                     ))}
                   </div>
@@ -304,7 +346,6 @@ export default function KnowledgeDashboardPage() {
                 {total > 0 && (
                   <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {/* 单字符串避免 JSX 文本节点相邻被 a11y 规范化为 "X run s" */}
                       {`${total} run${total !== 1 ? "s" : ""}`}
                     </span>
                     <div className="flex items-center gap-1.5">
@@ -355,13 +396,17 @@ export default function KnowledgeDashboardPage() {
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-xs text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
                 {error
                   ? `加载失败：${error}`
-                  : `状态源：${pipelinesPayload ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
+                  : `状态源：${allRuns.length ? "已加载" : "等待加载"}${saveStatus ? ` | ${saveStatus}` : ""}`}
               </div>
 
               {selected && (
                 <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Run Detail</h2>
-                  <PipelineRunDetailPanel run={selected} />
+                  {selected.source === "kb" ? (
+                    <PipelineRunDetailPanel run={selected} />
+                  ) : (
+                    <KgRunDetailPanel run={selected} />
+                  )}
                 </div>
               )}
 
@@ -372,7 +417,7 @@ export default function KnowledgeDashboardPage() {
                     className="mt-3 rounded bg-amber-600 px-3 py-2 text-[11px] font-semibold text-white"
                     onClick={async () => {
                       const next = retryQueue[0];
-                      if (!next) return;
+                      if (!next || next.source !== "kb") return;
                       setSaveStatus("retrying");
                       try {
                         await upsertPipelines({
@@ -410,10 +455,3 @@ export default function KnowledgeDashboardPage() {
     </div>
   );
 }
-
-type PipelineRunCardOperationType =
-  | "ingest_text"
-  | "ingest_url"
-  | "ingest_file"
-  | "replace_source"
-  | undefined;
