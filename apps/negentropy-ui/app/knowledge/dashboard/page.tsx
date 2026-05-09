@@ -67,6 +67,7 @@ export default function KnowledgeDashboardPage() {
   const [retryQueue, setRetryQueue] = useState<UnifiedPipelineRun[]>([]);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [page, setPage] = useState(1);
+  const [kbTotal, setKbTotal] = useState(0);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const bootstrapBaselineRef = useRef<RunsSnapshot | null>(null);
 
@@ -74,6 +75,7 @@ export default function KnowledgeDashboardPage() {
     (kbData: KnowledgePipelinesPayload, kgRuns: KgPipelineRun[]) => {
       const merged = mergeAndSortRuns(kbData.runs ?? [], kgRuns);
       setAllRuns(merged);
+      setKbTotal(kbData.count ?? kbData.runs?.length ?? 0);
       setLastUpdatedAt(kbData.last_updated_at ?? null);
       setError(null);
       setSelected((prev) => {
@@ -230,12 +232,8 @@ export default function KnowledgeDashboardPage() {
     ];
   }, [dashboardData]);
 
-  // 分页（基于合并后的 allRuns）
-  const pagedRuns = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return allRuns.slice(start, start + PAGE_SIZE);
-  }, [allRuns, page]);
-  const total = allRuns.length;
+  // KB 分页总量来自服务端，KG 运行在每页始终展示
+  const total = kbTotal;
 
   const selectedKbRun =
     selected?.source === "kb" ? selected : undefined;
@@ -309,9 +307,9 @@ export default function KnowledgeDashboardPage() {
                     )}
                   </div>
                 </div>
-                {pagedRuns.length ? (
+                {allRuns.length ? (
                   <div className="mt-4 space-y-3 text-xs text-zinc-600 dark:text-zinc-400">
-                    {pagedRuns.map((run) => (
+                    {allRuns.map((run) => (
                       <PipelineRunCard
                         key={run.id}
                         run_id={run.run_id || run.id}

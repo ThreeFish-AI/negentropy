@@ -158,7 +158,7 @@ function PipelineRunCardContent({
           )}
           {duration !== "-" && (
             <>
-              <span className={isSelectable ? "" : "text-zinc-400 dark:bg-zinc-500"}>·</span>
+              <span className={isSelectable ? "" : "text-zinc-400 dark:text-zinc-500"}>·</span>
               <span>{duration}</span>
             </>
           )}
