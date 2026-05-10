@@ -512,7 +512,7 @@ class PipelineTracker:
             status=self._status,
             payload=payload,
             idempotency_key=None,
-            expected_version=latest.version if latest is not None else None,
+            expected_version=getattr(latest, "version", None) if latest is not None else None,
         )
         # 乐观并发冲突：cancel API 在 pre-check 与 upsert 之间写入了 cancelling/cancelled
         if result.status == "conflict" and self._status not in ("cancelled", "completed", "failed"):
