@@ -101,7 +101,7 @@ test("Facts 加载列表展示 Key/Type/Confidence", async ({ page }) => {
   await expect(page.getByText("api_design")).toBeVisible();
   await expect(page.getByText("preference").first()).toBeVisible();
   await expect(page.getByText("knowledge").first()).toBeVisible();
-  await expect(page.getByText("Confidence:").first()).toBeVisible();
+  await expect(page.getByRole("progressbar").first()).toBeVisible();
 });
 
 test("Facts 搜索框过滤结果", async ({ page }) => {
