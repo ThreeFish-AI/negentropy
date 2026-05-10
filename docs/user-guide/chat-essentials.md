@@ -198,6 +198,7 @@ sequenceDiagram
 **注意事项**：
 - 策略写 `localStorage` (`home.approval_policy`)，跨刷新保留。
 - 已接入 `ingest_paper` 工具（PDF 下载 + 知识库写入前需用户确认）。其他高风险工具待后续迭代接入。
+- 完整闭环：后端 `request_approval()` 写 `state.pending_approvals` → 前端 `ApprovalDialog` 读取并弹窗 → 用户决策 → BFF `POST /api/agui/sessions/{id}/approval_response` → 后端 `consume_approval_response()` 读取 `state.approval_responses`。
 - 协议事实：后端 `apps/negentropy/src/negentropy/agents/approval.py`（`HIGH_RISK_TOOLS` / `should_request_approval`）。
 
 ## 13. KG Build Progress 实时订阅（P3-1）

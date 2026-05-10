@@ -117,10 +117,10 @@ type SubAgentTransferCardProps = {
 
 > **进展（2026-05-10 G3 落地）**：`ingest_paper` 已接入审批流程（PDF 下载 + 知识库写入前需用户确认）。
 > - 后端：`apps/negentropy/src/negentropy/agents/approval.py`（`HIGH_RISK_TOOLS` + `should_request_approval` + `request_approval` + `consume_approval_response`）
-> - 前端：`components/ui/ApprovalPolicySelector.tsx`（dropdown + localStorage）+ `components/ui/ApprovalDialog.tsx`（state.pending_approvals 订阅 + Approve/Deny modal）
-> - 文档：`docs/observability-genai.md` 顺带说明审批 trace 要素；`docs/user-guide/chat-essentials.md` §12「审批策略」补充使用指引
-> - 单测：后端 16 + 前端 13 = 29 全过；E2E 留下一轮接入具体工具时补
-> - 留白（后续迭代）：其余高风险工具实际接入 `request_approval` + `consume_approval_response` polling；BFF `POST /api/agents/approval` 端点把 UI 响应写回 session.state；ne.approval.* CUSTOM 事件类型化
+> - 前端闭环已接通：`home-body.tsx` 从 `snapshotForDisplay.pending_approvals` 读取 → `ApprovalDialog` 弹窗 → BFF `POST /api/agui/sessions/{id}/approval_response` → 后端 `consume_approval_response` 读取
+> - `ApprovalPolicySelector` 已渲染在 toolbar 区域，策略通过 `forwardedProps.approval_policy` 透传后端
+> - 单测：后端 16 + 前端 13 = 29 全过；E2E 留后续 PR 补
+> - 留白（后续迭代）：其余高风险工具实际接入；ne.approval.* CUSTOM 事件类型化
 
 ### 目标
 - **Stop 按钮**：流式中显示，点击发送 `RUN_STOP` 信号，后端中断；类似 ChatGPT 的"Stop generating"（**已在 Phase 1 C4 落地**，参见 `home-body.tsx` `handleCancelRun`）
