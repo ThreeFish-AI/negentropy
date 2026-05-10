@@ -339,7 +339,7 @@ export function HomeBody({
   const handleApprovalRespond = useCallback(
     async (actionId: string, decision: ApprovalDecision, reason?: string) => {
       if (!sessionId || !userId) return;
-      await fetch(
+      const res = await fetch(
         `/api/agui/sessions/${encodeURIComponent(sessionId)}/approval_response`,
         {
           method: "POST",
@@ -353,6 +353,9 @@ export function HomeBody({
           }),
         },
       );
+      if (!res.ok) {
+        throw new Error(`审批响应发送失败: ${res.status}`);
+      }
     },
     [sessionId, userId],
   );
