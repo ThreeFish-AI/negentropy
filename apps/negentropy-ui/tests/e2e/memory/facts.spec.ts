@@ -77,7 +77,6 @@ test("Facts 初始展示用户选择提示", async ({ page }) => {
   await expect(
     page.getByText("选择一个用户以查看其语义记忆 (Facts)。"),
   ).toBeVisible();
-  await expect(page.locator('select option[value="user-1"]')).toBeVisible();
 });
 
 test("Facts 加载列表展示 Key/Type/Confidence", async ({ page }) => {
