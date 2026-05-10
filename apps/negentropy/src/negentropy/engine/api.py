@@ -41,6 +41,7 @@ from negentropy.config import settings
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.internalization import Fact, Memory, MemoryAuditLog
+from negentropy.models.state import UserState
 
 from .adapters.postgres.memory_automation_service import MemoryAutomationUnavailableError
 from .factories.memory import (
@@ -77,7 +78,7 @@ class MemoryItem(BaseModel):
 
 
 class MemoryListResponse(BaseModel):
-    users: list[dict[str, str]] = Field(default_factory=list)
+    users: list[dict[str, Any]] = Field(default_factory=list)
     timeline: list[MemoryItem] = Field(default_factory=list)
     policies: dict[str, Any] = Field(default_factory=dict)
 
@@ -397,6 +398,32 @@ async def get_memory_dashboard(
     )
 
 
+async def _resolve_user_profiles(user_ids: list[str]) -> dict[str, dict[str, str | None]]:
+    """批量解析用户 ID 到显示名称和头像（查询 UserState.state.profile）。
+
+    复用 knowledge/api.py 中 _resolve_user_display_names 的模式。
+    """
+    if not user_ids:
+        return {}
+    profile_map: dict[str, dict[str, str | None]] = {}
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(UserState).where(
+                UserState.app_name == settings.app_name,
+                UserState.user_id.in_(user_ids),
+            )
+        )
+        for us in result.scalars().all():
+            state = us.state or {}
+            profile = state.get("profile", {})
+            profile_map[us.user_id] = {
+                "name": profile.get("name"),
+                "picture": profile.get("picture"),
+                "email": profile.get("email"),
+            }
+    return profile_map
+
+
 @router.get("", response_model=MemoryListResponse)
 async def list_memories(
     app_name: str | None = Query(default=None),
@@ -421,7 +448,7 @@ async def list_memories(
         user_result = await db.execute(user_stmt)
         user_rows = user_result.all()
 
-        users = [{"id": row.user_id, "label": f"{row.user_id} ({row.count})"} for row in user_rows]
+        users_placeholder = [{"id": row.user_id, "count": row.count} for row in user_rows]
 
         # 获取记忆时间线
         memory_stmt = (
@@ -432,6 +459,25 @@ async def list_memories(
 
         memory_result = await db.execute(memory_stmt)
         memories = memory_result.scalars().all()
+
+    # 解析用户名称/头像（需独立 session，避免跨 session 引用）
+    unique_user_ids = [u["id"] for u in users_placeholder]
+    profiles = await _resolve_user_profiles(unique_user_ids)
+
+    users = []
+    for entry in users_placeholder:
+        p = profiles.get(entry["id"], {})
+        display_name = p.get("name") or entry["id"]
+        users.append(
+            {
+                "id": entry["id"],
+                "label": f"{display_name} ({entry['count']})",
+                "name": p.get("name"),
+                "picture": p.get("picture"),
+                "email": p.get("email"),
+                "count": entry["count"],
+            }
+        )
 
     timeline = [
         MemoryItem(
