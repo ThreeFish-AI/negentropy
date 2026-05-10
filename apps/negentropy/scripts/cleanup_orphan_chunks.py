@@ -98,6 +98,7 @@ async def _get_chunks_for_source(conn, *, corpus_id: str, app_name: str, source_
     return [
         {
             "id": str(row.id),
+            "source_uri": source_uri,
             "chunk_index": row.chunk_index,
             "created_at": row.created_at,
             "family_id": row.family_id,
@@ -158,7 +159,10 @@ async def _delete_chunks(conn, chunk_ids: list[str]) -> int:
 
 
 def _write_backup_csv(source_uri: str, chunks: list[dict], corpus_id: str) -> str:
-    """写 backup CSV 文件，返回路径。"""
+    """写 backup CSV 文件，返回路径。
+
+    ``source_uri`` 作为默认值；每个 chunk 字典若含 ``source_uri`` 键则优先使用。
+    """
     ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     filename = f"cleanup_{corpus_id[:8]}_{ts}.csv"
     filepath = Path(filename)
@@ -169,7 +173,7 @@ def _write_backup_csv(source_uri: str, chunks: list[dict], corpus_id: str) -> st
             writer.writerow(
                 [
                     c["id"],
-                    source_uri,
+                    c.get("source_uri") or source_uri,
                     c["chunk_index"],
                     c.get("role") or "",
                     str(c["created_at"]),
@@ -189,7 +193,7 @@ async def _cleanup(
     """执行清理。返回退出码（0=成功，1=有 needs_manual_review）。"""
     engine = create_async_engine(str(settings.database_url), echo=False)
     report_items: list[dict] = []
-    all_deleted_ids: list[str] = []
+    all_deleted_chunks: list[dict] = []
     exit_code = 0
 
     try:
@@ -238,7 +242,8 @@ async def _cleanup(
                         exit_code = 1
 
                 kept_ids = {c["id"] for c in latest}
-                deleted_ids = [c["id"] for c in chunks if c["id"] not in kept_ids]
+                deleted_chunks = [c for c in chunks if c["id"] not in kept_ids]
+                deleted_ids = [c["id"] for c in deleted_chunks]
 
                 item_report = {
                     "source_uri": source_uri,
@@ -251,16 +256,18 @@ async def _cleanup(
                     "sample_deleted_ids": deleted_ids[:10],
                 }
                 report_items.append(item_report)
-                all_deleted_ids.extend(deleted_ids)
+                all_deleted_chunks.extend(deleted_chunks)
 
                 print(f"    → Keep batch: {len(kept_ids)} chunks | Delete: {len(deleted_ids)} orphan chunks")
 
             # Step 4: 物理删除（仅在 --apply 时）
-            if apply and all_deleted_ids:
-                # 先写 backup CSV
+            if apply and all_deleted_chunks:
+                all_deleted_ids = [c["id"] for c in all_deleted_chunks]
+
+                # 先写 backup CSV（包含 per-chunk 元数据，便于手工恢复）
                 csv_path = _write_backup_csv(
-                    source_uri="multiple",
-                    chunks=[{"id": did} for did in all_deleted_ids],
+                    source_uri="",
+                    chunks=all_deleted_chunks,
                     corpus_id=corpus_id,
                 )
                 print(f"\n📄 Backup written to: {csv_path}")
@@ -268,8 +275,8 @@ async def _cleanup(
                 deleted = await _delete_chunks(conn, all_deleted_ids)
                 await conn.commit()
                 print(f"\n✓ Deleted {deleted} orphan chunks")
-            elif all_deleted_ids:
-                print(f"\n(Dry run) Would delete {len(all_deleted_ids)} orphan chunks. Use --apply to execute.")
+            elif all_deleted_chunks:
+                print(f"\n(Dry run) Would delete {len(all_deleted_chunks)} orphan chunks. Use --apply to execute.")
 
     finally:
         await engine.dispose()
@@ -282,7 +289,7 @@ async def _cleanup(
             "dry_run": not apply,
             "timestamp": datetime.now(UTC).isoformat(),
             "total_candidates": len(candidates),
-            "total_deleted": len(all_deleted_ids),
+            "total_deleted": len(all_deleted_chunks),
             "items": report_items,
         }
         Path(output_path).write_text(json.dumps(report, indent=2, ensure_ascii=False))
