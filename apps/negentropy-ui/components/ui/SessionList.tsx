@@ -151,7 +151,11 @@ export function SessionList({
           </p>
         ) : (
           sessions.map((session) => (
-            <div key={session.id}>
+            <div
+              key={session.id}
+              data-session-id={session.id}
+              data-active={session.id === activeId ? "true" : "false"}
+            >
               {editingId === session.id ? (
                 <input
                   value={draftTitle}

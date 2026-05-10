@@ -163,6 +163,7 @@ function isThinkingSupportedForSelection(
 
 /** Agent 类型：兼容 NdjsonHttpAgent 与测试 Mock */
 export type HomeBodyAgent = AgentLike & {
+  threadId?: string;
   isRunning: boolean;
   addMessage: (message: Message) => void;
   runAgent: (params: { runId: string }) => Promise<unknown>;
@@ -237,6 +238,9 @@ export function HomeBody({
     ((currentSessionId: string) => void) | undefined
   >(undefined);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  // Session 切换守卫：+New 点击后同步置 true，阻止 sendInput 在 agent/sessionId
+  // 同步 flush 前路由到旧 session。在 agent 重建后（useMemo 依赖 sessionId 变化）清除。
+  const switchingSessionRef = useRef(false);
 
   const addLog = useCallback(
     (
@@ -385,13 +389,18 @@ export function HomeBody({
   // 仅对「startNewSession 创建出来的新 id」消费 pending 模型选择；
   // 通过同一入口包装内联调用与 SessionList 的 onNewSession 回调，避免遗漏路径。
   const startNewSessionWithLlmTarget = useCallback(async () => {
+    switchingSessionRef.current = true;
     const newId = await startNewSession();
     if (newId) {
       pendingLlmTargetIdRef.current = newId;
       pendingThinkingTargetIdRef.current = newId;
+      // 若 guard 已将消息缓存到 pendingSendRef，回填 target 为新 session ID
+      if (pendingSendRef.current && !pendingForSessionRef.current) {
+        pendingForSessionRef.current = newId;
+      }
     }
     return newId;
-  }, [startNewSession]);
+  }, [startNewSession, pendingSendRef, pendingForSessionRef]);
 
   useEffect(() => {
     rawEventHandlerRef.current = (event) => {
@@ -708,17 +717,24 @@ export function HomeBody({
       return;
     }
 
-    if (!agent) {
-      // sessionId 已存在但 agent 尚未就绪：把指令缓存到 pendingSendRef，
-      // 待 agent 重建完毕由「自动重发 pending」Effect 接力发送（与 !sessionId
-      // 路径同源）。同时给用户可见反馈，避免 silent no-op（ISSUE-064 根因）。
+    if (!agent || switchingSessionRef.current || (agent.threadId != null && agent.threadId !== sessionId)) {
+      console.warn("[ISSUE-NEW] stale-agent guard", { switching: switchingSessionRef.current, agentThreadId: agent?.threadId ?? null, sessionId });
+      // sessionId 已存在但 agent 尚未就绪（或 agent 实例 stale —
+      // router.replace 异步 flush 导致 threadId !== 当前 sessionId）：
+      // 把指令缓存到 pendingSendRef，待 agent 重建完毕由「自动重发 pending」
+      // Effect 接力发送（与 !sessionId 路径同源）。同时给用户可见反馈，
+      // 避免 silent no-op（ISSUE-064 根因）。
       //
       // 评审 #6：连续 Send 时若上一条尚未被自动重发 Effect 消费，新一条会覆盖
       // pendingSendRef。这是有意为之（用户更可能想让"最后一条"发出），但必须给
       // 区分性 toast，让用户知道前一条已被替换，避免再次出现 silent drop。
       const hadPending = pendingSendRef.current !== null;
       pendingSendRef.current = trimmed;
-      pendingForSessionRef.current = sessionId;
+      // 切换中不设 target — 待 startNewSessionWithLlmTarget 拿到新 ID 后回填；
+      // 非切换场景（agent 尚未就绪）直接用当前 sessionId。
+      if (!switchingSessionRef.current) {
+        pendingForSessionRef.current = sessionId;
+      }
       setInputValue("");
       setScrollToBottomTrigger((prev) => prev + 1);
       if (hadPending) {
@@ -745,11 +761,20 @@ export function HomeBody({
     if (sessionId !== pendingForSessionRef.current) {
       return;
     }
+    switchingSessionRef.current = false;
     const pending = pendingSendRef.current;
     pendingSendRef.current = null;
     pendingForSessionRef.current = null;
     void doSend(pending);
   }, [agent, sessionId, doSend, pendingSendRef, pendingForSessionRef]);
+
+  // Session 切换完成后（sessionId 从 URL 同步更新）清除 switchingSessionRef。
+  // 不能依赖 [agent]——旧 agent 在 render 间不变会导致过早清除。
+  useEffect(() => {
+    if (switchingSessionRef.current) {
+      switchingSessionRef.current = false;
+    }
+  }, [sessionId]);
 
   /* Refactored: State clearing moved to handleSessionChange to avoid set-state-in-effect */
   const handleSessionChange = useCallback((newId: string | null) => {
