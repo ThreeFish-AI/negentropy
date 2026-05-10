@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Boolean, String, cast, func, select, text, update
+from sqlalchemy import delete as sql_delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -28,6 +29,19 @@ from ..types import (
 )
 
 logger = get_logger("negentropy.knowledge.repository")
+
+
+def _top_level_role_expr():
+    """构建 ``chunk_role != 'child'`` 的过滤表达式。
+
+    用 COALESCE 将 NULL chunk_role（非 hierarchical 场景）映射为 ``"leaf"``,
+    避免 NULL 与字符串比较返回 NULL 导致计数失真。
+    单一事实源：所有需要"排除 child"的计数查询共用此表达式。
+    """
+    return func.coalesce(
+        cast(Knowledge.metadata_["chunk_role"].astext, String),
+        "leaf",
+    )
 
 
 class KnowledgeRepository:
@@ -74,6 +88,57 @@ class KnowledgeRepository:
             result = await db.execute(stmt)
             corpora = result.scalars().all()
             return [self._to_corpus_record(corpus) for corpus in corpora]
+
+    async def list_corpora_with_counts(self, *, app_name: str) -> list[tuple[CorpusRecord, int, int]]:
+        """语料库列表 + 双口径 chunks 计数。
+
+        返回 ``(record, top_level_count, total_count)``：
+          - top_level_count：``chunk_role != 'child'`` 的行数（与 Document Chunks 页"14 Chunks"一致，
+            是用户感知的"chunks"）；
+          - total_count：全部 Knowledge 行数（含 child 子块，是真正参与检索的"vectors"）。
+
+        Hierarchical 切分下两者会拉开差距；其它策略下 ``chunk_role`` 不存在，两数相等。
+        """
+        role_expr = _top_level_role_expr()
+        async with self._get_session_factory()() as db:
+            stmt = (
+                select(
+                    Corpus,
+                    func.count(Knowledge.id).filter(role_expr != "child").label("top_level"),
+                    func.count(Knowledge.id).label("total"),
+                )
+                .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
+                .where(Corpus.app_name == app_name)
+                .group_by(Corpus.id)
+                .order_by(Corpus.created_at.desc())
+            )
+            result = await db.execute(stmt)
+            rows = result.all()
+            return [
+                (self._to_corpus_record(corpus), int(top_level or 0), int(total or 0))
+                for corpus, top_level, total in rows
+            ]
+
+    async def get_corpus_with_counts(self, *, corpus_id: UUID, app_name: str) -> tuple[CorpusRecord, int, int] | None:
+        """单 corpus 双口径计数；与 ``list_corpora_with_counts`` 同语义。"""
+        role_expr = _top_level_role_expr()
+        async with self._get_session_factory()() as db:
+            stmt = (
+                select(
+                    Corpus,
+                    func.count(Knowledge.id).filter(role_expr != "child").label("top_level"),
+                    func.count(Knowledge.id).label("total"),
+                )
+                .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
+                .where(Corpus.id == corpus_id, Corpus.app_name == app_name)
+                .group_by(Corpus.id)
+            )
+            result = await db.execute(stmt)
+            row = result.first()
+            if not row:
+                return None
+            corpus, top_level, total = row
+            return self._to_corpus_record(corpus), int(top_level or 0), int(total or 0)
 
     async def create_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         async with self._get_session_factory()() as db:
@@ -130,20 +195,18 @@ class KnowledgeRepository:
             await db.delete(corpus)
             await db.commit()
 
-    async def add_knowledge(
-        self, *, corpus_id: UUID, app_name: str, chunks: Iterable[KnowledgeChunk]
-    ) -> list[KnowledgeRecord]:
-        """批量添加知识块
+    @staticmethod
+    def _chunks_to_insert_values(
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        chunk_list: list[KnowledgeChunk],
+    ) -> list[dict[str, Any]]:
+        """将 KnowledgeChunk 序列展开为 pg_insert(Knowledge).values(...) 用的字典列表。
 
-        使用 PostgreSQL 的 INSERT ... RETURNING 子句一次性完成插入并获取生成的 ID。
+        单一事实源：所有写入入口（add_knowledge / replace_knowledge_by_source）共用此映射。
         """
-        chunk_list = list(chunks)
-
-        if not chunk_list:
-            return []
-
-        # 准备批量插入数据
-        values = [
+        return [
             {
                 "corpus_id": corpus_id,
                 "app_name": app_name,
@@ -159,55 +222,133 @@ class KnowledgeRepository:
             for chunk in chunk_list
         ]
 
+    @staticmethod
+    def _build_returning_clause():
+        """统一 RETURNING 字段顺序，保证 add_knowledge / replace_knowledge_by_source 行为一致。"""
+        return (
+            Knowledge.id,
+            Knowledge.corpus_id,
+            Knowledge.app_name,
+            Knowledge.content,
+            Knowledge.source_uri,
+            Knowledge.chunk_index,
+            Knowledge.character_count,
+            Knowledge.retrieval_count,
+            Knowledge.is_enabled,
+            Knowledge.metadata_,
+            Knowledge.embedding,
+            Knowledge.created_at,
+            Knowledge.updated_at,
+        )
+
+    @staticmethod
+    def _row_to_knowledge_record(row: Any) -> KnowledgeRecord:
+        """RETURNING 行 → KnowledgeRecord（与 _to_knowledge_record 用于 ORM 实例不同：此函数处理只读 Row）。"""
+        return KnowledgeRecord(
+            id=row.id,
+            corpus_id=row.corpus_id,
+            app_name=row.app_name,
+            content=row.content,
+            source_uri=row.source_uri,
+            chunk_index=row.chunk_index,
+            character_count=row.character_count,
+            retrieval_count=row.retrieval_count,
+            is_enabled=row.is_enabled,
+            metadata=row.metadata_ or {},
+            embedding=row.embedding,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
+
+    async def add_knowledge(
+        self, *, corpus_id: UUID, app_name: str, chunks: Iterable[KnowledgeChunk]
+    ) -> list[KnowledgeRecord]:
+        """批量添加知识块（追加语义）
+
+        使用 PostgreSQL 的 INSERT ... RETURNING 子句一次性完成插入并获取生成的 ID。
+        注意：本方法是纯追加，不做去重；幂等替换请使用 ``replace_knowledge_by_source``。
+        """
+        chunk_list = list(chunks)
+
+        if not chunk_list:
+            return []
+
+        values = self._chunks_to_insert_values(corpus_id=corpus_id, app_name=app_name, chunk_list=chunk_list)
+
         try:
             async with self._get_session_factory()() as db:
-                # 使用 PostgreSQL INSERT ... RETURNING 子句直接获取插入结果
-                # 避免二次查询丢失 source_uri=None 的记录
-                stmt = (
-                    pg_insert(Knowledge)
-                    .values(values)
-                    .returning(
-                        Knowledge.id,
-                        Knowledge.corpus_id,
-                        Knowledge.app_name,
-                        Knowledge.content,
-                        Knowledge.source_uri,
-                        Knowledge.chunk_index,
-                        Knowledge.character_count,
-                        Knowledge.retrieval_count,
-                        Knowledge.is_enabled,
-                        Knowledge.metadata_,
-                        Knowledge.embedding,
-                        Knowledge.created_at,
-                        Knowledge.updated_at,
-                    )
-                )
+                stmt = pg_insert(Knowledge).values(values).returning(*self._build_returning_clause())
                 result = await db.execute(stmt)
                 await db.commit()
 
                 rows = result.fetchall()
-                return [
-                    KnowledgeRecord(
-                        id=row.id,
-                        corpus_id=row.corpus_id,
-                        app_name=row.app_name,
-                        content=row.content,
-                        source_uri=row.source_uri,
-                        chunk_index=row.chunk_index,
-                        character_count=row.character_count,
-                        retrieval_count=row.retrieval_count,
-                        is_enabled=row.is_enabled,
-                        metadata=row.metadata_ or {},
-                        embedding=row.embedding,
-                        created_at=row.created_at,
-                        updated_at=row.updated_at,
-                    )
-                    for row in rows
-                ]
+                return [self._row_to_knowledge_record(row) for row in rows]
 
         except IntegrityError as exc:
             raise DatabaseError(
                 operation="batch_insert",
+                table="knowledge",
+                reason=str(exc),
+            ) from exc
+
+    async def replace_knowledge_by_source(
+        self,
+        *,
+        corpus_id: UUID,
+        app_name: str,
+        source_uri: str,
+        chunks: Iterable[KnowledgeChunk],
+    ) -> tuple[int, list[KnowledgeRecord]]:
+        """同事务 DELETE→INSERT：原子替换某 source_uri 下的全部 chunks。
+
+        - 任一阶段失败（DELETE/INSERT/RETURNING 等）→ 整个事务自动回滚；
+        - 旧数据保持原状，避免"已删旧但新未插入"的孤儿/丢失风险；
+        - ``source_uri`` 必填（None 场景请走 ``add_knowledge``，语义为追加）；
+        - 返回 (deleted_count, inserted_records)，便于上游 tracker 写 ``replaced_count``。
+        """
+        if source_uri is None:
+            # 防御式：source_uri 是 idempotent 的唯一锚点，None 必须走 append 路径
+            raise ValueError(
+                "replace_knowledge_by_source requires non-null source_uri; "
+                "use add_knowledge for source_uri=None (append) semantics."
+            )
+
+        chunk_list = list(chunks)
+
+        try:
+            async with self._get_session_factory()() as db:
+                async with db.begin():
+                    # 阶段 A：bulk DELETE（rowcount 拿到的就是删除条数）
+                    del_result = await db.execute(
+                        sql_delete(Knowledge).where(
+                            Knowledge.corpus_id == corpus_id,
+                            Knowledge.app_name == app_name,
+                            Knowledge.source_uri == source_uri,
+                        )
+                    )
+                    deleted = del_result.rowcount or 0
+
+                    if not chunk_list:
+                        # 仅删除，不插入；事务提交后返回
+                        return deleted, []
+
+                    # 阶段 B：bulk INSERT ... RETURNING
+                    values = self._chunks_to_insert_values(
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                        chunk_list=chunk_list,
+                    )
+                    ins_result = await db.execute(
+                        pg_insert(Knowledge).values(values).returning(*self._build_returning_clause())
+                    )
+                    rows = ins_result.fetchall()
+
+                # 出 db.begin() 块自动 COMMIT；异常自动 ROLLBACK
+                return deleted, [self._row_to_knowledge_record(row) for row in rows]
+
+        except IntegrityError as exc:
+            raise DatabaseError(
+                operation="replace_by_source",
                 table="knowledge",
                 reason=str(exc),
             ) from exc

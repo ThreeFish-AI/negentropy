@@ -518,6 +518,7 @@ export interface CorpusRecord {
   app_name: string;
   description?: string;
   knowledge_count: number;
+  chunk_count_total?: number | null;
   config?: Record<string, unknown>;
   rebuild_triggered?: { count: number; run_ids: string[] } | null;
 }

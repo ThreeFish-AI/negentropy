@@ -1178,7 +1178,13 @@ export default function KnowledgeBasePage() {
                     data-testid={`corpus-chunks-${corpus.id}`}
                     className="text-[11px] font-medium text-muted"
                   >
-                    chunks: {corpus.knowledge_count}
+                    {corpus.knowledge_count} chunks
+                    {corpus.chunk_count_total != null &&
+                      corpus.chunk_count_total !== corpus.knowledge_count && (
+                        <span className="opacity-60">
+                          {" · "}{corpus.chunk_count_total} vectors
+                        </span>
+                      )}
                   </span>
                   <CorpusStatusBadge corpus={corpus} />
                 </div>
