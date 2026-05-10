@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { MemoryNav } from "@/components/ui/MemoryNav";
 import {
+  MemoryTimelineCard,
   RetryableErrorBanner,
   useMemoryTimeline,
   submitAudit,
@@ -69,12 +70,6 @@ export default function MemoryAuditPage() {
     if (!selectedUserId) return timeline;
     return timeline.filter((item) => item.user_id === selectedUserId);
   }, [timeline, selectedUserId]);
-
-  const retentionColor = (score: number) => {
-    if (score >= 0.5) return "bg-emerald-500";
-    if (score >= 0.1) return "bg-amber-500";
-    return "bg-rose-500";
-  };
 
   const pendingCount = Object.keys(auditMap).length;
 
@@ -163,31 +158,9 @@ export default function MemoryAuditPage() {
                 <div className="mt-4 space-y-3">
                   {filteredTimeline.length ? (
                     filteredTimeline.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-700"
-                      >
-                        <div className="flex items-start justify-between">
-                          <p className="text-zinc-900 dark:text-zinc-100">
-                            {item.content.length > 200
-                              ? `${item.content.slice(0, 200)}...`
-                              : item.content}
-                          </p>
-                          <div className="ml-3 flex items-center gap-2 shrink-0">
-                            <span
-                              className={`h-2 w-2 rounded-full ${retentionColor(item.retention_score)}`}
-                            />
-                            <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                              {(item.retention_score * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-zinc-400 dark:text-zinc-500">
-                          <span>Type: {item.memory_type}</span>
-                          <span>Access: {item.access_count}x</span>
-                          <span>{item.created_at || "-"}</span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                      <div key={item.id}>
+                        <MemoryTimelineCard item={item} />
+                        <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg bg-zinc-50 px-2.5 py-2 text-[11px] dark:bg-zinc-800/50">
                           {(["retain", "delete", "anonymize"] as AuditAction[]).map(
                             (action) => (
                               <button
