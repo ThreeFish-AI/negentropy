@@ -94,7 +94,7 @@ export function ChatStream({
   useEffect(() => {
     if (!scrollToNodeId || !scrollRef.current) return;
     const el = scrollRef.current.querySelector(
-      `[data-node-id="${scrollToNodeId}"]`,
+      `[data-node-id="${CSS.escape(scrollToNodeId)}"]`,
     );
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });

@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { SubAgentTransferDisplaySegment } from "@/types/a2ui";
 import { cn } from "@/lib/utils";
 
-// Map agent names to display names and emoji
 const AGENT_DISPLAY: Record<string, { name: string; emoji: string }> = {
   NegentropyEngine: { name: "NE Engine", emoji: "\u{1F9E0}" },
   PerceptionFaculty: { name: "Perception", emoji: "\u{1F441}" },
@@ -23,20 +22,18 @@ function getAgentDisplay(agentName: string) {
 
 export function SubAgentTransferCard({
   segment,
-  expanded: initialExpanded = false,
 }: {
   segment: SubAgentTransferDisplaySegment;
-  expanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(initialExpanded);
+  const [expanded, setExpanded] = useState(false);
   const from = getAgentDisplay(segment.fromAgent);
   const to = getAgentDisplay(segment.toAgent);
 
   return (
     <div
       className={cn(
-        "my-1.5 rounded-md border-l-2 border-indigo-400/60 bg-indigo-50/50 px-3 py-2 dark:bg-indigo-950/20",
-        "transition-colors",
+        "my-1.5 rounded-md border-l-2 bg-indigo-50/50 px-3 py-2 transition-colors dark:bg-indigo-950/20",
+        segment.status === "error" ? "border-red-400/60" : "border-indigo-400/60",
       )}
     >
       <button

@@ -1,17 +1,10 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import type { ConversationNode } from "@/types/a2ui";
 
 /**
  * 从 ConversationNode 提取可搜索的文本，统一转小写用于匹配。
- *
- * 搜索范围：
- * - node.title（消息标题、工具名称、步骤名称等）
- * - node.summary（reasoning 阶段摘要等）
- * - node.payload.content（文本消息正文、reasoning 推理内容）
- * - node.payload.toolCallName（工具调用名称）
- * - node.payload.args（工具调用参数）
  */
 function extractSearchableText(node: ConversationNode): string {
   const parts: string[] = [];
@@ -27,6 +20,10 @@ function extractSearchableText(node: ConversationNode): string {
   }
   if (typeof node.payload.args === "string") {
     parts.push(node.payload.args);
+  } else if (node.payload.args != null) {
+    try {
+      parts.push(JSON.stringify(node.payload.args));
+    } catch { /* skip */ }
   }
 
   return parts.join(" ").toLowerCase();
@@ -34,13 +31,20 @@ function extractSearchableText(node: ConversationNode): string {
 
 export function useConversationSearch(nodes: ConversationNode[]) {
   const [query, setQuery] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [explicitlyOpen, setExplicitlyOpen] = useState(false);
 
-  const normalizedQuery = query.trim().toLowerCase();
+  // 150ms debounce — 保持输入响应性同时避免每次按键都全量扫描
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 150);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const normalizedQuery = debouncedQuery.trim().toLowerCase();
 
   const { matchingNodeIds, orderedMatches } = useMemo(() => {
-    if (!normalizedQuery) {
+    if (!normalizedQuery || normalizedQuery.length < 2) {
       return {
         matchingNodeIds: new Set<string>(),
         orderedMatches: [] as string[],
@@ -64,6 +68,13 @@ export function useConversationSearch(nodes: ConversationNode[]) {
 
   const matchCount = orderedMatches.length;
 
+  // Clamp currentIndex to valid range (handles streaming additions gracefully)
+  const safeIndex = matchCount > 0
+    ? ((currentIndex % matchCount) + matchCount) % matchCount
+    : -1;
+
+  const currentMatchNodeId = safeIndex >= 0 ? orderedMatches[safeIndex] : null;
+
   const navigateNext = useCallback(() => {
     if (matchCount === 0) return;
     setCurrentIndex((prev) => (prev + 1) % matchCount);
@@ -74,12 +85,7 @@ export function useConversationSearch(nodes: ConversationNode[]) {
     setCurrentIndex((prev) => (prev - 1 + matchCount) % matchCount);
   }, [matchCount]);
 
-  const currentMatchNodeId =
-    currentIndex >= 0 && currentIndex < matchCount
-      ? orderedMatches[currentIndex]
-      : null;
-
-  const isOpen = explicitlyOpen || query !== "" || matchCount > 0;
+  const isOpen = explicitlyOpen || query !== "";
 
   const open = useCallback(() => {
     setExplicitlyOpen(true);
@@ -87,13 +93,14 @@ export function useConversationSearch(nodes: ConversationNode[]) {
 
   const close = useCallback(() => {
     setQuery("");
-    setCurrentIndex(-1);
+    setDebouncedQuery("");
+    setCurrentIndex(0);
     setExplicitlyOpen(false);
   }, []);
 
   const handleSetQuery = useCallback((q: string) => {
     setQuery(q);
-    setCurrentIndex(-1);
+    setCurrentIndex(0);
     if (q.length > 0) {
       setExplicitlyOpen(true);
     }
@@ -105,7 +112,7 @@ export function useConversationSearch(nodes: ConversationNode[]) {
     matchingNodeIds,
     matchCount,
     /** 1-based 显示用索引（0 表示无匹配） */
-    currentIndex: matchCount > 0 ? currentIndex + 1 : 0,
+    currentIndex: safeIndex >= 0 ? safeIndex + 1 : 0,
     currentMatchNodeId,
     navigateNext,
     navigatePrev,

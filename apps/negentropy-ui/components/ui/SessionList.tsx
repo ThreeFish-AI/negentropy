@@ -195,6 +195,7 @@ export function SessionList({
                     }}
                     className="min-w-0 flex-1 px-3 py-2 text-left text-xs font-medium"
                     type="button"
+                    aria-label={session.label}
                     title={view === "active" && onRename ? "双击编辑标题" : undefined}
                   >
                     <span className="block truncate">{session.label}</span>

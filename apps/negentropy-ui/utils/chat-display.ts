@@ -691,7 +691,7 @@ function buildAssistantReplyBlock(builder: ReplyBuilder): AssistantReplyDisplayB
     (segment) =>
       segment.kind === "text"
         ? segment.streaming
-        : segment.kind === "tool-group"
+        : segment.kind === "tool-group" || segment.kind === "subagent-transfer"
           ? segment.status === "running"
           : false,
   );
@@ -739,7 +739,7 @@ function pushGroupedTools(
 const CHILD_RESPONSE_MAX_LENGTH = 200;
 
 function isTransferToAgentNode(node: ConversationNode): boolean {
-  return String(node.payload.toolCallName) === "transfer_to_agent";
+  return node.payload.toolCallName === "transfer_to_agent";
 }
 
 function createSubAgentTransferSegment(
@@ -1020,12 +1020,21 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
       return;
     }
     if (root.type === "tool-call") {
-      blocks.push(
-        createToolGroupBlock({
-          turnId: root.id,
-          nodes: [root],
-        }),
-      );
+      if (isTransferToAgentNode(root)) {
+        const builder = createReplyBuilder(root, root.id);
+        if (typeof root.payload.author === "string") {
+          builder.author = root.payload.author;
+        }
+        appendReplySegment(builder, createSubAgentTransferSegment(root, builder.author || "NegentropyEngine"));
+        blocks.push(buildAssistantReplyBlock(builder));
+      } else {
+        blocks.push(
+          createToolGroupBlock({
+            turnId: root.id,
+            nodes: [root],
+          }),
+        );
+      }
       return;
     }
     blocks.push(createSummaryBlock(root));
