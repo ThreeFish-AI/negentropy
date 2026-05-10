@@ -35,7 +35,14 @@ export interface MemoryItem {
 }
 
 export interface MemoryListPayload {
-  users: Array<{ id: string; label: string }>;
+  users: Array<{
+    id: string;
+    label: string;
+    name?: string;
+    picture?: string;
+    email?: string;
+    count: number;
+  }>;
   timeline: MemoryItem[];
   policies: Record<string, unknown>;
 }

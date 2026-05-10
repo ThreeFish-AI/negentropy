@@ -99,7 +99,7 @@ cd apps/negentropy && uv sync --extra pii-presidio
 | 页面 | 路径 | 核心功能 |
 |---|---|---|
 | Dashboard | `/memory` | 8 项指标概览（含 Avg Importance / High Importance）+ Retrieval Metrics 折叠面板 |
-| Timeline | `/memory/timeline` | 按时间倒序的卡片，含 retention 红绿灯 + 用户筛选 + 搜索 |
+| Timeline | `/memory/timeline` | 按时间分组的卡片，含双评分条（retention + importance）+ 记忆类型标识 + 用户筛选 + 搜索 |
 | Facts | `/memory/facts` | 结构化事实表，支持 History 版本链查看 + 搜索 |
 | Audit | `/memory/audit` | 审计历史 + retain/delete/anonymize 决策 |
 | Conflicts | `/memory/conflicts` | 事实冲突检视与手动解决（pending → supersede/keep_old/keep_new/merge）|
@@ -112,6 +112,21 @@ cd apps/negentropy && uv sync --extra pii-presidio
 - 🟢 ≥ 50%：健康
 - 🟠 ≥ 10%：将衰减
 - 🔴 < 10%：候选清理（自动化任务会处理）
+
+### Timeline 卡片视觉指南
+
+每张记忆卡片展示以下信息层次：
+
+1. **记忆类型标识**（顶部左侧）：彩色 pill badge 区分 6 种记忆类型，颜色与 §2 衰减率表格对应——Core (violet)、Semantic (blue)、Episodic (amber)、Procedural (green)、Preference (pink)、Fact (cyan)
+2. **双评分条**（顶部右侧）：
+   - **Retention**（Ret）：时间衰减指标，颜色逻辑同红绿灯（绿/琥珀/红）
+   - **Importance**（Imp）：权重指标，blue ≥70% / cyan 40-70% / slate <40%
+3. **内容区**（中部）：默认展示前 150 字符，超长内容可点击"展开全文"查看完整内容
+4. **元数据底栏**（底部）：访问次数、上次访问相对时间、创建日期
+
+时间线按日期分组（Today / Yesterday / 具体日期），便于定位特定时段的记忆。
+
+> 参考文献：Park et al. (2023) importance/recency/relevance 三维评分；Zep (2025) 时间分组与双时间戳；Hu et al. (2026) factual/experiential/working 记忆分类法。
 
 ### PII 锁标
 - 🔒 表示 metadata.pii_flags 命中（regex 级，仅提示，不阻断）
