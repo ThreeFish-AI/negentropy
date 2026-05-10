@@ -98,7 +98,10 @@ export function CorpusList({
                   : "text-muted/70"
               }`}
             >
-              {corpus.knowledge_count} items
+              {corpus.knowledge_count} chunks
+              {corpus.chunk_count_total != null && corpus.chunk_count_total !== corpus.knowledge_count && (
+                <span className="opacity-60">{" · "}{corpus.chunk_count_total} vectors</span>
+              )}
             </span>
           </div>
 

@@ -37,6 +37,13 @@ class CorpusResponse(BaseModel):
     description: str | None = None
     config: dict[str, Any] = Field(default_factory=dict)
     knowledge_count: int = 0
+    chunk_count_total: int | None = Field(
+        default=None,
+        description=(
+            "全量 Knowledge 行数（含 hierarchical child 子块），即实际参与检索的 vectors 总数。"
+            "仅当与 knowledge_count 不同时返回（非 hierarchical 策略下两者相等）。"
+        ),
+    )
     rebuild_triggered: dict[str, Any] | None = Field(
         default=None,
         description=(

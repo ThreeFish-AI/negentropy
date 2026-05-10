@@ -596,8 +596,18 @@ async def get_dashboard(app_name: str | None = Query(default=None)) -> Dashboard
     alerts = []
     async with AsyncSessionLocal() as db:
         corpus_count = await db.scalar(select(func.count()).select_from(Corpus).where(Corpus.app_name == resolved_app))
+        # Dashboard 计数统一为 top-level 口径（parent + leaf，排除 child），
+        # 与 corpus 列表、document chunks 页口径一致。
+        # 使用 repository 的辅助函数确保过滤逻辑是单一事实源。
+        from negentropy.knowledge.retrieval.repository import _top_level_role_expr
+
         knowledge_count = await db.scalar(
-            select(func.count()).select_from(Knowledge).where(Knowledge.app_name == resolved_app)
+            select(func.count())
+            .select_from(Knowledge)
+            .where(
+                Knowledge.app_name == resolved_app,
+                _top_level_role_expr() != "child",
+            )
         )
         last_build_at = await db.scalar(
             select(func.max(Knowledge.updated_at)).where(Knowledge.app_name == resolved_app)
@@ -615,16 +625,8 @@ async def get_dashboard(app_name: str | None = Query(default=None)) -> Dashboard
 @router.get("/base", response_model=list[CorpusResponse])
 async def list_corpora(app_name: str | None = Query(default=None)) -> list[CorpusResponse]:
     resolved_app = _resolve_app_name(app_name)
-    async with AsyncSessionLocal() as db:
-        stmt = (
-            select(Corpus, func.count(Knowledge.id))
-            .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
-            .where(Corpus.app_name == resolved_app)
-            .group_by(Corpus.id)
-            .order_by(Corpus.created_at.desc())
-        )
-        result = await db.execute(stmt)
-        rows = result.all()
+    service = _get_service()
+    rows = await service.list_corpora_with_counts(app_name=resolved_app)
 
     return [
         CorpusResponse(
@@ -633,9 +635,10 @@ async def list_corpora(app_name: str | None = Query(default=None)) -> list[Corpu
             name=corpus.name,
             description=corpus.description,
             config=_serialize_corpus_config(corpus.config or None),
-            knowledge_count=count or 0,
+            knowledge_count=top_level,
+            chunk_count_total=total if total != top_level else None,
         )
-        for corpus, count in rows
+        for corpus, top_level, total in rows
     ]
 
 
@@ -666,27 +669,21 @@ async def create_corpus(payload: CorpusCreateRequest) -> CorpusResponse:
 @router.get("/base/{corpus_id}", response_model=CorpusResponse)
 async def get_corpus(corpus_id: UUID, app_name: str | None = Query(default=None)) -> CorpusResponse:
     resolved_app = _resolve_app_name(app_name)
-    async with AsyncSessionLocal() as db:
-        stmt = (
-            select(Corpus, func.count(Knowledge.id))
-            .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
-            .where(Corpus.id == corpus_id, Corpus.app_name == resolved_app)
-            .group_by(Corpus.id)
-        )
-        result = await db.execute(stmt)
-        row = result.first()
+    service = _get_service()
+    result = await service.get_corpus_with_counts(corpus_id=corpus_id, app_name=resolved_app)
 
-    if not row:
+    if not result:
         raise HTTPException(status_code=404, detail="Corpus not found")
 
-    corpus, count = row
+    corpus, top_level, total = result
     return CorpusResponse(
         id=corpus.id,
         app_name=corpus.app_name,
         name=corpus.name,
         description=corpus.description,
         config=_serialize_corpus_config(corpus.config or None),
-        knowledge_count=count or 0,
+        knowledge_count=top_level,
+        chunk_count_total=total if total != top_level else None,
     )
 
 
