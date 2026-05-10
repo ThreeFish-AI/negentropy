@@ -10,12 +10,14 @@ import {
   fetchFacts,
   searchFacts,
   fetchFactHistory,
+  fetchMemories,
 } from "@/features/memory";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 export default function MemoryFactsPage() {
-  const [userId, setUserId] = useState("");
+  const [users, setUsers] = useState<Array<{ id: string; label: string }>>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [payload, setPayload] = useState<FactListPayload | null>(null);
@@ -43,23 +45,22 @@ export default function MemoryFactsPage() {
   }, [activeUserId]);
 
   useEffect(() => {
+    setUsersLoading(true);
+    fetchMemories(APP_NAME)
+      .then((data) => setUsers(data.users || []))
+      .catch(console.error)
+      .finally(() => setUsersLoading(false));
+  }, []);
+
+  useEffect(() => {
     loadFacts();
   }, [loadFacts]);
 
   const facts = payload?.items || [];
 
-  const handleLoadUser = () => {
-    const trimmed = userId.trim();
-    if (!trimmed) return;
-    setActiveUserId(trimmed);
-    if (activeUserId === trimmed) {
-      setError(null);
-      setIsLoading(true);
-      fetchFacts(trimmed, APP_NAME)
-        .then((data) => setPayload(data))
-        .catch((err) => setError(err))
-        .finally(() => setIsLoading(false));
-    }
+  const handleSelectUser = (value: string) => {
+    if (!value) return;
+    setActiveUserId(value);
   };
 
   const handleSearch = async () => {
@@ -126,19 +127,20 @@ export default function MemoryFactsPage() {
           <div className="pb-6">
             {/* User selection */}
             <div className="flex items-center gap-3 mb-6">
-              <input
+              <select
                 className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs w-64 dark:border-zinc-700 dark:bg-zinc-800"
-                placeholder="Enter User ID"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLoadUser()}
-              />
-              <button
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white dark:bg-zinc-800 dark:text-zinc-100"
-                onClick={handleLoadUser}
+                value={activeUserId ?? ""}
+                onChange={(e) => handleSelectUser(e.target.value)}
               >
-                Load Facts
-              </button>
+                <option value="" disabled>
+                  {usersLoading ? "加载中..." : "选择用户..."}
+                </option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.label || u.id}
+                  </option>
+                ))}
+              </select>
               {activeUserId && (
                 <>
                   <div className="h-4 w-px bg-zinc-200 mx-1 dark:bg-zinc-700" />
@@ -174,7 +176,7 @@ export default function MemoryFactsPage() {
             {!activeUserId ? (
               <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Enter a User ID to view their semantic memory (Facts).
+                  选择一个用户以查看其语义记忆 (Facts)。
                 </p>
               </div>
             ) : isLoading ? (
