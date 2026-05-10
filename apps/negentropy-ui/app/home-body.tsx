@@ -394,8 +394,10 @@ export function HomeBody({
     if (newId) {
       pendingLlmTargetIdRef.current = newId;
       pendingThinkingTargetIdRef.current = newId;
-      // 若 guard 已将消息缓存到 pendingSendRef，回填 target 为新 session ID
-      if (pendingSendRef.current && !pendingForSessionRef.current) {
+      // 若 guard 已将消息缓存到 pendingSendRef，回填 target 为新 session ID。
+      // 不检查 !pendingForSessionRef——前一次 pending 未消费时旧 target 仍残留，
+      // 需无条件覆盖为新 ID，否则 auto-send Effect 的 sessionId 匹配会失败。
+      if (pendingSendRef.current) {
         pendingForSessionRef.current = newId;
       }
     }
