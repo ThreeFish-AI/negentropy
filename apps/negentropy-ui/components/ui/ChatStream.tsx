@@ -29,6 +29,10 @@ type ChatStreamProps = {
    * 实现「请求真空期 → 气泡空 → 首块流入」的无缝接力，避免双 indicator 视觉重复。
    */
   pending?: boolean;
+  /** 搜索高亮节点集合（由 G2 对话搜索功能传入） */
+  highlightedNodeIds?: Set<string>;
+  /** 滚动到指定节点（由搜索导航触发，节点 ID 变化时自动 scrollIntoView） */
+  scrollToNodeId?: string | null;
 };
 
 export function ChatStream({
@@ -39,6 +43,8 @@ export function ChatStream({
   scrollToBottomTrigger,
   toolProgressMap,
   pending = false,
+  highlightedNodeIds,
+  scrollToNodeId,
 }: ChatStreamProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef(true);
@@ -84,6 +90,17 @@ export function ChatStream({
     }
   }, [scrollToBottomTrigger]);
 
+  // G2 对话搜索：当 scrollToNodeId 变化时，平滑滚动到目标节点。
+  useEffect(() => {
+    if (!scrollToNodeId || !scrollRef.current) return;
+    const el = scrollRef.current.querySelector(
+      `[data-node-id="${scrollToNodeId}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [scrollToNodeId]);
+
   // Stream 级 typing indicator 显示判定：
   // - 父级声明 pending（effectiveConnection ∈ {connecting, streaming}）
   // - 末尾 displayBlock 不是 assistant-reply（一旦 Assistant 气泡挂载，
@@ -112,37 +129,60 @@ export function ChatStream({
             </div>
           )
         ) : (
-          displayBlocks.map((block) => (
-            block.kind === "message" ? (
-              <MessageBubble
+          displayBlocks.map((block) => {
+            // G2 搜索高亮类：当前节点在 highlightedNodeIds 中时添加黄色 ring。
+            const highlightCls =
+              highlightedNodeIds?.has(block.nodeId)
+                ? "ring-2 ring-yellow-400/70 rounded-lg"
+                : "";
+
+            return block.kind === "message" ? (
+              <div
                 key={block.id}
-                message={block.message}
-                isSelected={selectedNodeId === block.nodeId}
-                onSelect={() => onNodeSelect?.(block.nodeId)}
-              />
+                data-node-id={block.nodeId}
+                className={highlightCls}
+              >
+                <MessageBubble
+                  message={block.message}
+                  isSelected={selectedNodeId === block.nodeId}
+                  onSelect={() => onNodeSelect?.(block.nodeId)}
+                />
+              </div>
             ) : block.kind === "assistant-reply" ? (
-              <AssistantReplyBubble
+              <div
                 key={block.id}
-                block={block}
-                isSelected={selectedNodeId === block.nodeId}
-                onSelect={onNodeSelect}
-                progressMap={toolProgressMap}
-              />
+                data-node-id={block.nodeId}
+                className={highlightCls}
+              >
+                <AssistantReplyBubble
+                  block={block}
+                  isSelected={selectedNodeId === block.nodeId}
+                  onSelect={onNodeSelect}
+                  progressMap={toolProgressMap}
+                />
+              </div>
             ) : block.kind === "tool-group" ? (
-              <ToolExecutionGroup
+              <div
                 key={block.id}
-                block={block}
-                isSelected={selectedNodeId === block.nodeId}
-                onSelect={onNodeSelect}
-                progressMap={toolProgressMap}
-              />
+                data-node-id={block.nodeId}
+                className={highlightCls}
+              >
+                <ToolExecutionGroup
+                  block={block}
+                  isSelected={selectedNodeId === block.nodeId}
+                  onSelect={onNodeSelect}
+                  progressMap={toolProgressMap}
+                />
+              </div>
             ) : block.kind === "error" ? (
               <div
                 key={block.id}
+                data-node-id={block.nodeId}
                 className={cn(
                   "rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200",
                   selectedNodeId === block.nodeId &&
                     "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  highlightCls,
                 )}
                 onClick={() => onNodeSelect?.(block.nodeId)}
               >
@@ -152,10 +192,12 @@ export function ChatStream({
             ) : block.kind === "turn-status" ? (
               <div
                 key={block.id}
+                data-node-id={block.nodeId}
                 className={cn(
                   "rounded-2xl border border-dashed border-zinc-200/80 bg-zinc-100/55 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/35 dark:text-zinc-300",
                   selectedNodeId === block.nodeId &&
                     "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  highlightCls,
                 )}
                 onClick={() => onNodeSelect?.(block.nodeId)}
               >
@@ -167,10 +209,12 @@ export function ChatStream({
             ) : (
               <div
                 key={block.id}
+                data-node-id={block.nodeId}
                 className={cn(
                   "rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900",
                   selectedNodeId === block.nodeId &&
                     "ring-1 ring-amber-300/70 dark:ring-amber-700/60",
+                  highlightCls,
                 )}
                 onClick={() => onNodeSelect?.(block.nodeId)}
               >
@@ -190,8 +234,8 @@ export function ChatStream({
                   </div>
                 ) : null}
               </div>
-            )
-          ))
+            );
+          })
         )}
         {showStandalonePending && displayBlocks.length > 0 ? (
           <ChatTypingIndicator variant="standalone" />

@@ -30,7 +30,20 @@ export function toSessionRecord(session: AguiSessionSummary): SessionRecord {
     label: session.state?.metadata?.title || createSessionLabel(session.id),
     lastUpdateTime: session.lastUpdateTime,
     archived: session.state?.metadata?.archived === true,
+    timeLabel: session.lastUpdateTime ? formatRelativeTime(session.lastUpdateTime) : undefined,
   };
+}
+
+/** 将 epoch 秒转为相对时间文本（"刚刚" / "3 分钟前" / "昨天" / "5/8"） */
+function formatRelativeTime(epochSeconds: number): string {
+  const now = Date.now() / 1000;
+  const diff = now - epochSeconds;
+  if (diff < 60) return "刚刚";
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
+  if (diff < 172800) return "昨天";
+  const d = new Date(epochSeconds * 1000);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 /**

@@ -6,6 +6,7 @@ import type { ToolCallInfo, ToolProgressMap } from "@/types/common";
 import { MessageBubble, MarkdownContent } from "@/components/ui/MessageBubble";
 import { ChatTypingIndicator } from "@/components/ui/ChatTypingIndicator";
 import { ReasoningPanel, type ReasoningStepData } from "@/components/ui/ReasoningPanel";
+import { SubAgentTransferCard } from "@/components/ui/SubAgentTransferCard";
 import { ToolExecutionGroup } from "@/components/ui/ToolExecutionGroup";
 import { extractCitationsFromToolCalls } from "@/utils/citation-parser";
 import { cn } from "@/lib/utils";
@@ -94,6 +95,7 @@ export function AssistantReplyBubble({
       return contentText.length > 0 || hasResult;
     }
     if (segment.kind === "error") return true;
+    if (segment.kind === "subagent-transfer") return true;
     return false;
   });
   const isReplyStreaming = block.segments.some(
@@ -146,6 +148,11 @@ export function AssistantReplyBubble({
             if (segment.kind === "reasoning") {
               // 已在外置 ReasoningPanel 中渲染（P2-4），此处跳过避免双重显示
               return null;
+            }
+            if (segment.kind === "subagent-transfer") {
+              return (
+                <SubAgentTransferCard key={segment.id} segment={segment} />
+              );
             }
             return (
               <div

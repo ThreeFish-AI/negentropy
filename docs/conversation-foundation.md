@@ -72,10 +72,16 @@ negentropy 把 PAO 演化为「**一核五翼**」（PerceptionFaculty / Interna
 | LangGraph | ✅ StateGraph events | ❌ | 🟡 时间穿梭 | 🟡 Neo4j 适配器 | 🟡 LangSmith |
 | AutoGen v0.4 | ✅ multi-agent group chat | ❌ | ❌ | ❌ | ❌ |
 | Semantic Kernel | 🟡 IAsyncEnumerable | ❌ | ❌ | 🟡 Memory connector | ❌ |
+| **negentropy** | ✅ AG-UI 16 事件 + Sub-Agent Transfer 可视化 | 🟡 Approval Gate（已接入 ingest_paper） | ✅ Reasoning Panel + Sub-Agent 嵌套卡片 | ✅ KG + 向量混合 | 🟡 Langfuse |
+
+**2026-05-10 更新**：
+- G1 (Sub-Agent Transfer 可视化) 已落地，参考 AutoGen v0.4 GroupChat 嵌套卡片模式
+- G2 (对话内搜索) 已落地，参考 ChatGPT / Claude Code 搜索模式
+- G3 (Approval Gate 工具接入) 已落地，`ingest_paper` 已接入审批流程
 
 **negentropy 的取长补短**：
-- 已对齐：AG-UI 事件流 + ADK 五翼调度 + LangGraph 中断思想（RFC 0002）。
-- 还可借鉴：A2UI Component Tree（用于 Sub-Agent 嵌套卡片，RFC 0002 §4.2）；LangGraph 时间穿梭（Conversation Branching，RFC 0002 §4.5）；ADK Eval harness（计划在 Phase 3 引入）。
+- 已对齐：AG-UI 事件流 + ADK 五翼调度 + LangGraph 中断思想（RFC 0002）+ Sub-Agent Transfer 可视化（G1）+ 对话内搜索（G2）+ Approval Gate 工具接入（G3）。
+- 还可借鉴：A2UI Component Tree（Sub-Agent 嵌套卡片已落地 G1，后续可进一步增强）；LangGraph 时间穿梭（Conversation Branching，RFC 0002 §4.5）；ADK Eval harness（计划在 Phase 3 引入）。
 
 ```mermaid
 quadrantChart

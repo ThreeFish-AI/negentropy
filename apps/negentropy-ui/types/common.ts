@@ -26,6 +26,8 @@ export type SessionRecord = {
   label: string;
   lastUpdateTime?: number;
   archived?: boolean;
+  /** 时间摘要（"3 分钟前" / "昨天"），由 SessionList 渲染 */
+  timeLabel?: string;
 };
 
 /**

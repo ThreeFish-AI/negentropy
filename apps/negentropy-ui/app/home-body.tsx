@@ -22,6 +22,8 @@ import {
 
 import { useAgentSubscription, type AgentLike } from "@/hooks/useAgentSubscription";
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
+import { useConversationSearch } from "@/hooks/useConversationSearch";
+import { ConversationSearchBar } from "@/components/ui/ConversationSearchBar";
 
 import { toast } from "@/lib/activity-toast";
 
@@ -318,6 +320,13 @@ export function HomeBody({
     setSelectedNodeId(null);
   }, [clearSessionServiceState]);
 
+  // G2 对话搜索：传入 conversationTree 中所有扁平节点，支持 Cmd/Ctrl+F 搜索。
+  const allNodes = useMemo(
+    () => Array.from(conversationTree.nodeIndex.values()),
+    [conversationTree.nodeIndex],
+  );
+  const search = useConversationSearch(allNodes);
+
   const {
     sessions,
     sessionListView,
@@ -505,6 +514,21 @@ export function HomeBody({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodeId]);
+
+  // G2 对话搜索：Cmd/Ctrl+F 拦截浏览器默认查找，打开搜索栏。
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        if (!search.isOpen) {
+          search.open();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.isOpen, search.open]);
 
   const doSend = useCallback(
     async (input: string) => {
@@ -975,6 +999,19 @@ export function HomeBody({
                 : "Negentropy"}
             </div>
 
+            {/* G2 对话搜索栏 */}
+            {search.isOpen && (
+              <ConversationSearchBar
+                query={search.query}
+                onQueryChange={search.setQuery}
+                matchCount={search.matchCount}
+                currentIndex={search.currentIndex}
+                onNavigateNext={search.navigateNext}
+                onNavigatePrev={search.navigatePrev}
+                onClose={search.close}
+              />
+            )}
+
             <button
               onClick={() => setShowRightPanel(!showRightPanel)}
               className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-700/80"
@@ -1013,6 +1050,8 @@ export function HomeBody({
                 effectiveConnection === "connecting" ||
                 effectiveConnection === "streaming"
               }
+              highlightedNodeIds={search.matchingNodeIds}
+              scrollToNodeId={search.currentMatchNodeId}
             />
             <div
               className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}
