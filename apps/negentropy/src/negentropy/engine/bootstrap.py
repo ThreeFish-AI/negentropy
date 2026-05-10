@@ -465,6 +465,28 @@ def apply_adk_patches():
 
                 scheduler = AsyncScheduler(poll_interval=DEFAULT_TICK_SECONDS)
                 register_skill_scheduler(scheduler)
+
+                # --- watchdog: finalize stale KG/KB pipeline runs ---
+                # cancelling 超 5min 未收敛 → cancelled; running 超 30min → failed
+                async def _pipeline_watchdog_tick() -> None:
+                    from negentropy.knowledge.dao import KnowledgeRunDao
+
+                    dao = KnowledgeRunDao()
+                    result = await dao.finalize_stale_pipeline_runs()
+                    if result["forced_failed"] > 0 or result["forced_cancelled"] > 0:
+                        logger.info(
+                            "pipeline_watchdog_finalized",
+                            forced_failed=result["forced_failed"],
+                            forced_cancelled=result["forced_cancelled"],
+                        )
+
+                scheduler.register(
+                    key="pipeline_run_watchdog",
+                    callback=_pipeline_watchdog_tick,
+                    interval_seconds=300,
+                )
+                # --- end watchdog ---
+
                 scheduler.start()
                 # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用
                 app.state.skill_scheduler = scheduler
