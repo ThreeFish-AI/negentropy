@@ -97,6 +97,7 @@ export default function MemoryConflictsPage() {
             {/* Controls */}
             <div className="mb-6 flex items-center gap-3">
               <select
+                aria-label="Filter by user"
                 className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs w-64 dark:border-zinc-700 dark:bg-zinc-800"
                 value={activeUserId ?? ""}
                 onChange={(e) => setActiveUserId(e.target.value || null)}
@@ -112,6 +113,7 @@ export default function MemoryConflictsPage() {
               </select>
               <div className="h-4 w-px bg-zinc-200 mx-1 dark:bg-zinc-700" />
               <select
+                aria-label="Filter by resolution"
                 className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-800"
                 value={resolutionFilter}
                 onChange={(e) => setResolutionFilter(e.target.value)}
