@@ -9,6 +9,7 @@ import type {
   ReplyReasoningDisplaySegment,
   ReplyTextDisplaySegment,
   ReplyToolGroupDisplaySegment,
+  SubAgentTransferDisplaySegment,
   ToolExecutionEntry,
   ToolGroupDisplayBlock,
 } from "@/types/a2ui";
@@ -37,6 +38,7 @@ function formatToolName(name: string): string {
     web_search: "Web Search",
     code_interpreter: "Code Interpreter",
     "ui.confirmation": "Confirmation",
+    transfer_to_agent: "委派至子 Agent",
   };
   return (
     toolNameMap[name] ||
@@ -689,7 +691,7 @@ function buildAssistantReplyBlock(builder: ReplyBuilder): AssistantReplyDisplayB
     (segment) =>
       segment.kind === "text"
         ? segment.streaming
-        : segment.kind === "tool-group"
+        : segment.kind === "tool-group" || segment.kind === "subagent-transfer"
           ? segment.status === "running"
           : false,
   );
@@ -734,6 +736,44 @@ function pushGroupedTools(
   blocks.push(createToolGroupBlock(input));
 }
 
+const CHILD_RESPONSE_MAX_LENGTH = 200;
+
+function isTransferToAgentNode(node: ConversationNode): boolean {
+  return node.payload.toolCallName === "transfer_to_agent";
+}
+
+function createSubAgentTransferSegment(
+  toolNode: ConversationNode,
+  fromAgent: string,
+): SubAgentTransferDisplaySegment {
+  const resultNode = getToolResultNode(toolNode);
+  const args = safeJsonParse(toolNode.payload.args);
+  const toAgent =
+    typeof args === "object" && args !== null && !Array.isArray(args)
+      ? String((args as Record<string, unknown>).agent_name || "Unknown Agent")
+      : "Unknown Agent";
+
+  let childResponse: string | undefined;
+  if (typeof resultNode?.payload.content === "string") {
+    const content = String(resultNode.payload.content).trim();
+    childResponse = content.length > CHILD_RESPONSE_MAX_LENGTH
+      ? content.slice(0, CHILD_RESPONSE_MAX_LENGTH) + "..."
+      : content || undefined;
+  }
+
+  return {
+    id: `subagent-transfer:${toolNode.id}`,
+    kind: "subagent-transfer",
+    nodeId: toolNode.id,
+    timestamp: toolNode.timeRange.start,
+    sourceOrder: toolNode.sourceOrder,
+    fromAgent,
+    toAgent,
+    status: getToolStatus(toolNode),
+    childResponse,
+  };
+}
+
 function pushGroupedToolsToReply(
   builder: ReplyBuilder,
   input: {
@@ -746,7 +786,31 @@ function pushGroupedToolsToReply(
   if (input.nodes.length === 0) {
     return;
   }
-  appendReplySegment(builder, createReplyToolGroupSegment(input));
+
+  // Split transfer_to_agent nodes from regular tool nodes
+  const transferNodes: ConversationNode[] = [];
+  const regularNodes: ConversationNode[] = [];
+  for (const node of input.nodes) {
+    if (isTransferToAgentNode(node)) {
+      transferNodes.push(node);
+    } else {
+      regularNodes.push(node);
+    }
+  }
+
+  // Emit SubAgentTransferDisplaySegment for each transfer node
+  const fromAgent = builder.author || "NegentropyEngine";
+  for (const transferNode of transferNodes) {
+    appendReplySegment(builder, createSubAgentTransferSegment(transferNode, fromAgent));
+  }
+
+  // Emit regular tool group for non-transfer nodes
+  if (regularNodes.length > 0) {
+    appendReplySegment(builder, createReplyToolGroupSegment({
+      ...input,
+      nodes: regularNodes,
+    }));
+  }
 }
 
 function collectAssistantSegmentsFromTextNode(
@@ -956,12 +1020,21 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
       return;
     }
     if (root.type === "tool-call") {
-      blocks.push(
-        createToolGroupBlock({
-          turnId: root.id,
-          nodes: [root],
-        }),
-      );
+      if (isTransferToAgentNode(root)) {
+        const builder = createReplyBuilder(root, root.id);
+        if (typeof root.payload.author === "string") {
+          builder.author = root.payload.author;
+        }
+        appendReplySegment(builder, createSubAgentTransferSegment(root, builder.author || "NegentropyEngine"));
+        blocks.push(buildAssistantReplyBlock(builder));
+      } else {
+        blocks.push(
+          createToolGroupBlock({
+            turnId: root.id,
+            nodes: [root],
+          }),
+        );
+      }
       return;
     }
     blocks.push(createSummaryBlock(root));

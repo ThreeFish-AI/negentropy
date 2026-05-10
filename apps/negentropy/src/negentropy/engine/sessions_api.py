@@ -22,6 +22,12 @@ class SessionTitleUpdateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=100)
 
 
+class ApprovalRespondRequest(BaseModel):
+    action_id: str = Field(..., min_length=1)
+    decision: str = Field(..., pattern="^(approved|denied)$")
+    reason: str | None = Field(default=None, max_length=500)
+
+
 class SessionArchiveResponse(BaseModel):
     status: str = "ok"
     archived: bool
@@ -139,3 +145,50 @@ async def unarchive_session(
         session_id=session_id,
         archived=False,
     )
+
+
+@router.post("/apps/{app_name}/users/{user_id}/sessions/{session_id}/approval_response")
+async def submit_approval_response(
+    app_name: str,
+    user_id: str,
+    session_id: str,
+    req: ApprovalRespondRequest,
+):
+    """前端 ApprovalDialog 将用户决策写回 session state.approval_responses。
+
+    后端 polling 中的 consume_approval_response 从同一字段读取，
+    从而完成「前端决策 → 后端 tool 获知」的闭环。
+    """
+    import time
+
+    service = get_session_service()
+    session = await service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    try:
+        from google.adk.events.event import Event, EventActions
+    except Exception as exc:
+        logger.warning("Failed to import ADK Event for approval response: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Session backend does not support state update",
+        ) from exc
+
+    # 合并到已有的 approval_responses 字典
+    existing = session.state.get("approval_responses", {}) if isinstance(session.state, dict) else {}
+    existing = dict(existing) if isinstance(existing, dict) else {}
+    existing[req.action_id] = {
+        "decision": req.decision,
+        "reason": req.reason,
+        "responded_at": time.time(),
+    }
+
+    state_update_event = Event(
+        invocation_id="p-" + str(uuid.uuid4()),
+        author="user",
+        actions=EventActions(state_delta={"approval_responses": existing}),
+    )
+    await service.append_event(session=session, event=state_update_event)
+
+    return {"status": "ok", "action_id": req.action_id, "decision": req.decision}

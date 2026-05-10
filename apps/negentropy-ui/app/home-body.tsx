@@ -22,6 +22,10 @@ import {
 
 import { useAgentSubscription, type AgentLike } from "@/hooks/useAgentSubscription";
 import { useConfirmationTool } from "@/hooks/useConfirmationTool";
+import { useConversationSearch } from "@/hooks/useConversationSearch";
+import { ConversationSearchBar } from "@/components/ui/ConversationSearchBar";
+import { ApprovalDialog, type ApprovalDecision } from "@/components/ui/ApprovalDialog";
+import { ApprovalPolicySelector, useApprovalPolicy } from "@/components/ui/ApprovalPolicySelector";
 
 import { toast } from "@/lib/activity-toast";
 
@@ -318,6 +322,44 @@ export function HomeBody({
     setSelectedNodeId(null);
   }, [clearSessionServiceState]);
 
+  // G2 对话搜索：传入 conversationTree 中所有扁平节点，支持 Cmd/Ctrl+F 搜索。
+  const allNodes = useMemo(
+    () => Array.from(conversationTree.nodeIndex.values()),
+    [conversationTree.nodeIndex],
+  );
+  const search = useConversationSearch(allNodes);
+
+  // G3 审批门：从 snapshot 读取 pending_approvals；用户决策写回 BFF。
+  const pendingApprovals = useMemo(
+    () => (snapshotForDisplay?.pending_approvals as Record<string, unknown> | undefined) ?? null,
+    [snapshotForDisplay],
+  );
+  const { mode: approvalPolicyMode } = useApprovalPolicy();
+
+  const handleApprovalRespond = useCallback(
+    async (actionId: string, decision: ApprovalDecision, reason?: string) => {
+      if (!sessionId || !userId) return;
+      const res = await fetch(
+        `/api/agui/sessions/${encodeURIComponent(sessionId)}/approval_response`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            app_name: APP_NAME,
+            user_id: userId,
+            action_id: actionId,
+            decision,
+            reason: reason || null,
+          }),
+        },
+      );
+      if (!res.ok) {
+        throw new Error(`审批响应发送失败: ${res.status}`);
+      }
+    },
+    [sessionId, userId],
+  );
+
   const {
     sessions,
     sessionListView,
@@ -506,6 +548,21 @@ export function HomeBody({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodeId]);
 
+  // G2 对话搜索：Cmd/Ctrl+F 拦截浏览器默认查找，打开搜索栏。
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        if (!search.isOpen) {
+          search.open();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.isOpen, search.open]);
+
   const doSend = useCallback(
     async (input: string) => {
       if (!agent || !sessionId || !input.trim()) {
@@ -555,6 +612,7 @@ export function HomeBody({
         setConnectionWithMetrics("connecting");
         agent.forwardedProps = {
           ...(agent.forwardedProps ?? {}),
+          approval_policy: { mode: approvalPolicyMode },
           selected_llm_model: selectedLlmModel ?? null,
           thinking_enabled: isThinkingSupportedForSelection(
             selectedLlmModel,
@@ -598,6 +656,7 @@ export function HomeBody({
       thinkingEnabled,
       llmModels,
       attachments,
+      approvalPolicyMode,
     ],
   );
 
@@ -975,6 +1034,22 @@ export function HomeBody({
                 : "Negentropy"}
             </div>
 
+            {/* G2 对话搜索栏 */}
+            {search.isOpen && (
+              <ConversationSearchBar
+                query={search.query}
+                onQueryChange={search.setQuery}
+                matchCount={search.matchCount}
+                currentIndex={search.currentIndex}
+                onNavigateNext={search.navigateNext}
+                onNavigatePrev={search.navigatePrev}
+                onClose={search.close}
+              />
+            )}
+
+            {/* G3 审批策略选择器 */}
+            <ApprovalPolicySelector className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" />
+
             <button
               onClick={() => setShowRightPanel(!showRightPanel)}
               className="group p-1.5 rounded-md hover:bg-zinc-200/80 text-zinc-500 transition-colors dark:text-zinc-400 dark:hover:bg-zinc-700/80"
@@ -1013,6 +1088,8 @@ export function HomeBody({
                 effectiveConnection === "connecting" ||
                 effectiveConnection === "streaming"
               }
+              highlightedNodeIds={search.matchingNodeIds}
+              scrollToNodeId={search.currentMatchNodeId}
             />
             <div
               className={`${CHAT_CONTENT_RAIL_CLASS} shrink-0 w-full pt-2 pb-6`}
@@ -1102,6 +1179,12 @@ export function HomeBody({
           </div>
         </div>
       </div>
+
+      {/* G3 审批门：pending_approvals → modal → approval_responses 闭环 */}
+      <ApprovalDialog
+        pending={pendingApprovals as Record<string, import("@/components/ui/ApprovalDialog").ApprovalRequestPayload> | null | undefined}
+        onRespond={handleApprovalRespond}
+      />
     </div>
   );
 }

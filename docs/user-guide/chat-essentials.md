@@ -82,6 +82,36 @@ sequenceDiagram
 - 同 stepId 的 started/finished 会去重；超过 50 步显示"+N 更多步骤已折叠"。
 - 不影响双气泡守卫：panel 在 bubble 内部，不计为额外 message。
 
+## 6b. Sub-Agent 委派卡片（G1 · RFC 0002 §4.2）
+
+**能做什么**：当 Root Agent 委派任务给子 Agent（如 PerceptionFaculty / KnowledgeAcquisitionPipeline）时，以嵌套卡片形式展示委派层级和状态。
+
+**怎么做**：自动行为。委派卡片显示父 Agent → 子 Agent 的名称和状态指示灯：
+- 🟢 绿色 = 完成
+- 🔵 蓝色脉冲 = 执行中
+- 🔴 红色 = 失败
+
+点击卡片可展开查看子 Agent 响应摘要。
+
+**注意事项**：
+- 最大嵌套 3 层（防布局溢出）
+- 委派卡片与普通工具卡片视觉区分（左侧 indigo 竖线 + 缩进）
+
+## 6c. 对话内搜索 (Cmd/Ctrl+F)
+
+**能做什么**：在当前会话中搜索关键词，快速定位历史消息。
+
+**怎么做**：
+1. 按 **Cmd/Ctrl+F** 打开搜索栏（位于顶部工具栏区域）。
+2. 输入关键词 → 实时匹配高亮（黄色 ring）。
+3. 按 **Enter** 跳转下一个匹配，**Shift+Enter** 跳转上一个。
+4. 按 **Escape** 或点击关闭按钮退出搜索。
+
+**注意事项**：
+- 搜索范围包括消息文本、工具名称、推理内容
+- 匹配计数显示为 `当前/总数` 格式
+- 搜索仅限当前会话已加载内容，不跨会话
+
 ## 7. 引用与跳转（P2-3 G2 · Citation）
 
 **能做什么**：当 agent 用知识库 / KG 工具检索时，回复中以 `[N]` 形式标号，气泡尾部展示「参考文献」清单，点击 `[N]` 或参考条跳 arXiv abs 页。
@@ -144,6 +174,8 @@ sequenceDiagram
 - 改名：右键会话 → 重命名（API: `PATCH /apps/{app}/users/{user}/sessions/{session}/title`）。
 - 归档：右键 → 归档（API: `POST /apps/{app}/users/{user}/sessions/{session}/archive`）。
 
+**时间标签**：每个会话下方显示最后活动时间（如"3 分钟前"、"昨天"、"5/8"）。
+
 ## 11. 可观测性 / 日志面板
 
 **能做什么**：右侧 Log 面板展示客户端结构化日志（user_cancelled_run / tool_call_id 失败等）；可一键导出 JSON。
@@ -165,7 +197,8 @@ sequenceDiagram
 
 **注意事项**：
 - 策略写 `localStorage` (`home.approval_policy`)，跨刷新保留。
-- 当前 P3-2 是协议 + UI MVP；具体高风险工具的实际拦截接入留 Phase 4（详见 [RFC 0002 §4.4](../rfcs/0002-ui-interaction-enhancements.md)）。
+- 已接入 `ingest_paper` 工具（PDF 下载 + 知识库写入前需用户确认）。其他高风险工具待后续迭代接入。
+- 完整闭环：后端 `request_approval()` 写 `state.pending_approvals` → 前端 `ApprovalDialog` 读取并弹窗 → 用户决策 → BFF `POST /api/agui/sessions/{id}/approval_response` → 后端 `consume_approval_response()` 读取 `state.approval_responses`。
 - 协议事实：后端 `apps/negentropy/src/negentropy/agents/approval.py`（`HIGH_RISK_TOOLS` / `should_request_approval`）。
 
 ## 13. KG Build Progress 实时订阅（P3-1）
