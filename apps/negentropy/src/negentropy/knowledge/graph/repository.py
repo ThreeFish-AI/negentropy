@@ -1801,8 +1801,8 @@ class AgeGraphRepository(GraphRepository):
                 relation_count = :relation_count,
                 error_message = :error_message,
                 progress_percent = COALESCE(:progress, progress_percent),
-                warnings = COALESCE(CAST(:warnings AS jsonb), warnings),
-                processed_chunk_ids = COALESCE(CAST(:chunk_ids AS jsonb), processed_chunk_ids),
+                warnings = COALESCE(CAST(:warnings AS json), warnings),
+                processed_chunk_ids = COALESCE(CAST(:chunk_ids AS json), processed_chunk_ids),
                 completed_at = CASE WHEN :status IN ('completed', 'failed', 'cancelled') THEN NOW() END
             WHERE id = :run_id
         """)
@@ -2083,7 +2083,7 @@ class AgeGraphRepository(GraphRepository):
             update_stmt = text(f"""
                 UPDATE {self._schema}.kg_build_runs
                 SET status = :status,
-                    warnings = CAST(:warnings AS jsonb),
+                    warnings = CAST(:warnings AS json),
                     completed_at = NOW()
                 WHERE id = :id
             """)
