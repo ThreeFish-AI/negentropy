@@ -596,19 +596,13 @@ async def get_dashboard(app_name: str | None = Query(default=None)) -> Dashboard
     alerts = []
     async with AsyncSessionLocal() as db:
         corpus_count = await db.scalar(select(func.count()).select_from(Corpus).where(Corpus.app_name == resolved_app))
-        # Dashboard 计数统一为 top-level 口径（parent + leaf，排除 child），
-        # 与 corpus 列表、document chunks 页口径一致。
-        # 使用 repository 的辅助函数确保过滤逻辑是单一事实源。
-        from negentropy.knowledge.retrieval.repository import _top_level_role_expr
+        # Dashboard 计数统一为 parent chunk 口径，复用 repository 的 per-corpus fallback 逻辑，
+        # 确保混合 hierarchical / non-hierarchical 语料库场景下计数准确。
+        from negentropy.knowledge.retrieval.repository import KnowledgeRepository
 
-        knowledge_count = await db.scalar(
-            select(func.count())
-            .select_from(Knowledge)
-            .where(
-                Knowledge.app_name == resolved_app,
-                _top_level_role_expr() != "child",
-            )
-        )
+        repo = KnowledgeRepository()
+        corpora_with_counts = await repo.list_corpora_with_counts(app_name=resolved_app)
+        knowledge_count = sum(parent_or_all for _, parent_or_all, _ in corpora_with_counts)
         last_build_at = await db.scalar(
             select(func.max(Knowledge.updated_at)).where(Knowledge.app_name == resolved_app)
         )
@@ -3025,6 +3019,17 @@ async def build_knowledge_graph(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"code": "NO_KNOWLEDGE", "message": "No knowledge chunks found in corpus"},
             )
+
+        # Hierarchical 语料库：仅使用 parent chunk 构建 KG，
+        # 避免 child chunk 参与实体/关系抽取造成冗余。
+        # 非 hierarchical 语料库无 parent chunk，保持全量使用。
+        from negentropy.knowledge.service import CHUNK_ROLE_PARENT
+
+        parent_items = [
+            item for item in knowledge_items if (item.metadata or {}).get("chunk_role") == CHUNK_ROLE_PARENT
+        ]
+        if parent_items:
+            knowledge_items = parent_items
 
         # 准备知识块数据（含 id 用于增量构建跳过判断）
         chunks = [

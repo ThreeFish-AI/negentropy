@@ -31,17 +31,14 @@ from ..types import (
 logger = get_logger("negentropy.knowledge.repository")
 
 
-def _top_level_role_expr():
-    """构建 ``chunk_role != 'child'`` 的过滤表达式。
+def _parent_role_expr():
+    """构建 ``chunk_role = 'parent'`` 的过滤表达式。
 
-    用 COALESCE 将 NULL chunk_role（非 hierarchical 场景）映射为 ``"leaf"``,
-    避免 NULL 与字符串比较返回 NULL 导致计数失真。
-    单一事实源：所有需要"排除 child"的计数查询共用此表达式。
+    用于 Corpus chunk 计数与 KG 构建入口，仅选取 hierarchical 切分产生的父块。
+    非 hierarchical 语料库无 parent chunk（chunk_role 为 NULL 或 'leaf'），
+    调用方需自行 fallback 到全量计数。
     """
-    return func.coalesce(
-        cast(Knowledge.metadata_["chunk_role"].astext, String),
-        "leaf",
-    )
+    return cast(Knowledge.metadata_["chunk_role"].astext, String)
 
 
 class KnowledgeRepository:
@@ -92,19 +89,17 @@ class KnowledgeRepository:
     async def list_corpora_with_counts(self, *, app_name: str) -> list[tuple[CorpusRecord, int, int]]:
         """语料库列表 + 双口径 chunks 计数。
 
-        返回 ``(record, top_level_count, total_count)``：
-          - top_level_count：``chunk_role != 'child'`` 的行数（与 Document Chunks 页"14 Chunks"一致，
-            是用户感知的"chunks"）；
+        返回 ``(record, parent_or_all_count, total_count)``：
+          - parent_or_all_count：parent chunk 数（``chunk_role = 'parent'``）。
+            非 hierarchical 语料库无 parent chunk 时 fallback 到全量计数；
           - total_count：全部 Knowledge 行数（含 child 子块，是真正参与检索的"vectors"）。
-
-        Hierarchical 切分下两者会拉开差距；其它策略下 ``chunk_role`` 不存在，两数相等。
         """
-        role_expr = _top_level_role_expr()
+        parent_expr = _parent_role_expr()
         async with self._get_session_factory()() as db:
             stmt = (
                 select(
                     Corpus,
-                    func.count(Knowledge.id).filter(role_expr != "child").label("top_level"),
+                    func.count(Knowledge.id).filter(parent_expr == "parent").label("parent_count"),
                     func.count(Knowledge.id).label("total"),
                 )
                 .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
@@ -115,18 +110,22 @@ class KnowledgeRepository:
             result = await db.execute(stmt)
             rows = result.all()
             return [
-                (self._to_corpus_record(corpus), int(top_level or 0), int(total or 0))
-                for corpus, top_level, total in rows
+                (
+                    self._to_corpus_record(corpus),
+                    int(parent_count or 0) if (parent_count or 0) > 0 else int(total or 0),
+                    int(total or 0),
+                )
+                for corpus, parent_count, total in rows
             ]
 
     async def get_corpus_with_counts(self, *, corpus_id: UUID, app_name: str) -> tuple[CorpusRecord, int, int] | None:
         """单 corpus 双口径计数；与 ``list_corpora_with_counts`` 同语义。"""
-        role_expr = _top_level_role_expr()
+        parent_expr = _parent_role_expr()
         async with self._get_session_factory()() as db:
             stmt = (
                 select(
                     Corpus,
-                    func.count(Knowledge.id).filter(role_expr != "child").label("top_level"),
+                    func.count(Knowledge.id).filter(parent_expr == "parent").label("parent_count"),
                     func.count(Knowledge.id).label("total"),
                 )
                 .outerjoin(Knowledge, Knowledge.corpus_id == Corpus.id)
@@ -137,8 +136,9 @@ class KnowledgeRepository:
             row = result.first()
             if not row:
                 return None
-            corpus, top_level, total = row
-            return self._to_corpus_record(corpus), int(top_level or 0), int(total or 0)
+            corpus, parent_count, total = row
+            parent_or_all = int(parent_count or 0) if (parent_count or 0) > 0 else int(total or 0)
+            return self._to_corpus_record(corpus), parent_or_all, int(total or 0)
 
     async def create_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         async with self._get_session_factory()() as db:
