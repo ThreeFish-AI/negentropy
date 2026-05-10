@@ -31,19 +31,6 @@ from ..types import (
 logger = get_logger("negentropy.knowledge.repository")
 
 
-def _top_level_role_expr():
-    """构建 ``chunk_role != 'child'`` 的过滤表达式。
-
-    用 COALESCE 将 NULL chunk_role（非 hierarchical 场景）映射为 ``"leaf"``,
-    避免 NULL 与字符串比较返回 NULL 导致计数失真。
-    单一事实源：所有需要"排除 child"的计数查询共用此表达式。
-    """
-    return func.coalesce(
-        cast(Knowledge.metadata_["chunk_role"].astext, String),
-        "leaf",
-    )
-
-
 def _parent_role_expr():
     """构建 ``chunk_role = 'parent'`` 的过滤表达式。
 

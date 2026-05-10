@@ -2,8 +2,8 @@
 
 覆盖：
 - replace_knowledge_by_source 的同事务语义
-- list_corpora_with_counts 的 top-level vs total 口径
-- _top_level_role_expr 的 COALESCE 行为
+- list_corpora_with_counts 的 parent_or_all vs total 口径
+- _parent_role_expr 的 CAST 行为
 """
 
 from __future__ import annotations
@@ -14,21 +14,21 @@ import pytest
 
 from negentropy.knowledge.retrieval.repository import (
     KnowledgeRepository,
-    _top_level_role_expr,
+    _parent_role_expr,
 )
 from negentropy.knowledge.types import KnowledgeChunk
 
 # ============================================================================
-# _top_level_role_expr
+# _parent_role_expr
 # ============================================================================
 
 
-def test_top_level_role_expr_produces_coalesce():
-    """_top_level_role_expr 应生成 COALESCE 表达式，将 NULL 映射为 'leaf'。"""
-    expr = _top_level_role_expr()
-    # 验证表达式可编译（不抛异常），且包含 coalesce 语义
+def test_parent_role_expr_produces_cast():
+    """_parent_role_expr 应生成 CAST 表达式，提取 metadata_->>chunk_role。"""
+    expr = _parent_role_expr()
     compiled = str(expr.compile(compile_kwargs={"literal_binds": True}))
-    assert "coalesce" in compiled.lower()
+    assert "chunk_role" in compiled
+    assert "cast" in compiled.lower()
 
 
 # ============================================================================

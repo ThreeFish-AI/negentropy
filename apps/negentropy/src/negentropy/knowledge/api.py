@@ -596,22 +596,13 @@ async def get_dashboard(app_name: str | None = Query(default=None)) -> Dashboard
     alerts = []
     async with AsyncSessionLocal() as db:
         corpus_count = await db.scalar(select(func.count()).select_from(Corpus).where(Corpus.app_name == resolved_app))
-        # Dashboard 计数统一为 parent chunk 口径（hierarchical 语料库仅计 parent 块）。
-        # 非 hierarchical 语料库无 parent chunk，fallback 到全量计数。
-        from negentropy.knowledge.retrieval.repository import _parent_role_expr
+        # Dashboard 计数统一为 parent chunk 口径，复用 repository 的 per-corpus fallback 逻辑，
+        # 确保混合 hierarchical / non-hierarchical 语料库场景下计数准确。
+        from negentropy.knowledge.retrieval.repository import KnowledgeRepository
 
-        knowledge_count = await db.scalar(
-            select(func.count())
-            .select_from(Knowledge)
-            .where(
-                Knowledge.app_name == resolved_app,
-                _parent_role_expr() == "parent",
-            )
-        )
-        if not knowledge_count:
-            knowledge_count = await db.scalar(
-                select(func.count()).select_from(Knowledge).where(Knowledge.app_name == resolved_app)
-            )
+        repo = KnowledgeRepository()
+        corpora_with_counts = await repo.list_corpora_with_counts(app_name=resolved_app)
+        knowledge_count = sum(parent_or_all for _, parent_or_all, _ in corpora_with_counts)
         last_build_at = await db.scalar(
             select(func.max(Knowledge.updated_at)).where(Knowledge.app_name == resolved_app)
         )
