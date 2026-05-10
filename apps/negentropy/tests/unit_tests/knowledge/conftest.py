@@ -9,11 +9,12 @@ stand-in for a production dependency, designed to be composed in
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 from negentropy.knowledge.dao import UpsertResult
-from negentropy.knowledge.types import KnowledgeMatch, KnowledgeRecord
+from negentropy.knowledge.types import CorpusRecord, KnowledgeMatch, KnowledgeRecord
 
 # ---------------------------------------------------------------------------
 # 1. FakeMcpSession
@@ -442,9 +443,24 @@ async def noop_llm_plan(**_):
 
 
 class FakeRepository:
-    """Repository stub whose ``delete_knowledge_by_source`` always raises."""
+    """Repository stub whose ``replace_knowledge_by_source`` always raises."""
+
+    async def get_corpus_by_id(self, corpus_id):
+        return CorpusRecord(
+            id=corpus_id,
+            app_name="negentropy",
+            name="test-corpus",
+            description=None,
+            config={},
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
 
     async def delete_knowledge_by_source(self, *, corpus_id, app_name, source_uri):
+        _ = (corpus_id, app_name, source_uri)
+        raise RuntimeError("delete failed")
+
+    async def replace_knowledge_by_source(self, *, corpus_id, app_name, source_uri, chunks):
         _ = (corpus_id, app_name, source_uri)
         raise RuntimeError("delete failed")
 
