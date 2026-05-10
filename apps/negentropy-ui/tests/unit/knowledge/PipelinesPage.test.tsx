@@ -15,7 +15,7 @@ vi.mock("@/features/knowledge", async () => {
   return createKnowledgeFeatureTestHarness(knowledgeMocks).exports;
 });
 
-import KnowledgeDashboardPage from "@/app/knowledge/dashboard/page";
+import KnowledgePipelinesPage from "@/app/knowledge/pipelines/page";
 import { resetKnowledgeFeatureMocks } from "@/tests/helpers/knowledge";
 
 const flushPromises = async () => {
@@ -29,7 +29,7 @@ const settle = async () => {
   });
 };
 
-const DEFAULT_DASHBOARD = {
+const DEFAULT_PIPELINES_DATA = {
   corpus_count: 1,
   knowledge_count: 10,
   last_build_at: "2026-03-21T10:00:00Z",
@@ -59,18 +59,18 @@ const makeRun = (
   duration_ms: overrides?.duration_ms,
 });
 
-/** 设置默认 mock：fetchDashboard 返回基础数据，fetchPipelines 由调用方指定 */
-function primeDashboardMock() {
-  knowledgeMocks.fetchDashboardMock.mockResolvedValue(DEFAULT_DASHBOARD);
+/** 设置默认 mock：fetchPipelinesData 返回基础数据，fetchPipelines 由调用方指定 */
+function primePipelinesDataMock() {
+  knowledgeMocks.fetchPipelinesDataMock.mockResolvedValue(DEFAULT_PIPELINES_DATA);
   knowledgeMocks.fetchCorporaMock.mockResolvedValue([]);
   knowledgeMocks.fetchGraphBuildHistoryMock.mockRejectedValue(new Error("not configured"));
 }
 
-describe("KnowledgeDashboardPage polling", () => {
+describe("KnowledgePipelinesPage polling", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     resetKnowledgeFeatureMocks(knowledgeMocks);
-    primeDashboardMock();
+    primePipelinesDataMock();
   });
 
   afterEach(() => {
@@ -87,7 +87,7 @@ describe("KnowledgeDashboardPage polling", () => {
         last_updated_at: "t2",
       });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
@@ -108,7 +108,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
@@ -133,7 +133,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
     expect(knowledgeMocks.fetchPipelinesMock).toHaveBeenCalledTimes(1);
 
@@ -182,7 +182,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    const { container } = render(<KnowledgeDashboardPage />);
+    const { container } = render(<KnowledgePipelinesPage />);
     await settle();
 
     const layout = Array.from(container.querySelectorAll("div")).find((element) =>
@@ -221,7 +221,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getAllByText("重建源").length).toBeGreaterThan(0);
@@ -252,7 +252,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    const { container } = render(<KnowledgeDashboardPage />);
+    const { container } = render(<KnowledgePipelinesPage />);
     await settle();
 
     const runningBadge = screen.getByLabelText("状态: running");
@@ -302,7 +302,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    const { container } = render(<KnowledgeDashboardPage />);
+    const { container } = render(<KnowledgePipelinesPage />);
     await settle();
 
     const selectedRunButton = Array.from(container.querySelectorAll("button")).find((element) =>
@@ -346,7 +346,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     const stagesSection = screen.getByText("Stages").parentElement;
@@ -399,7 +399,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getByText("Errors")).toBeInTheDocument();
@@ -436,7 +436,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.queryByText("运行级错误")).not.toBeInTheDocument();
@@ -473,7 +473,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getByText("运行级错误")).toBeInTheDocument();
@@ -506,7 +506,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getByText("Errors")).toBeInTheDocument();
@@ -544,7 +544,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getAllByText("提取结果校验").length).toBeGreaterThan(0);
@@ -583,7 +583,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getByText("Tool 契约置信度不足")).toBeInTheDocument();
@@ -620,7 +620,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getAllByText("Tool 契约不受支持").length).toBeGreaterThan(0);
@@ -656,7 +656,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.queryByText("Tool 契约不受支持")).not.toBeInTheDocument();
@@ -696,7 +696,7 @@ describe("KnowledgeDashboardPage polling", () => {
       last_updated_at: "t0",
     });
 
-    render(<KnowledgeDashboardPage />);
+    render(<KnowledgePipelinesPage />);
     await settle();
 
     expect(screen.getByText("候选字段冲突：body/content/text。")).toBeInTheDocument();

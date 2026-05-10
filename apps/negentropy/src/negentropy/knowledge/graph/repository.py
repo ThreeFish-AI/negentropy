@@ -2084,7 +2084,7 @@ class AgeGraphRepository(GraphRepository):
                 UPDATE {self._schema}.kg_build_runs
                 SET status = :status,
                     warnings = CAST(:warnings AS jsonb),
-                    completed_at = CASE WHEN :status IN ('cancelled', 'cancelling') THEN NOW() ELSE completed_at END
+                    completed_at = NOW()
                 WHERE id = :id
             """)
             await session.execute(
