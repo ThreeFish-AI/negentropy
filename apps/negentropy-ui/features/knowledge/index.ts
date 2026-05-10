@@ -38,7 +38,7 @@ export type {
 // ============================================================================
 
 export {
-  fetchDashboard,
+  fetchPipelinesData,
   cancelPipelineRun,
   fetchCorpora,
   createCorpus,
@@ -132,7 +132,7 @@ export type {
   ChunkingConfig,
   SearchConfig,
   KnowledgeErrorResponse,
-  KnowledgeDashboard,
+  KnowledgePipelinesData,
   PipelineCancelResult,
   CorpusRecord,
   ExtractorSourceKind,

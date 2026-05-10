@@ -116,7 +116,6 @@ from .schemas import (  # noqa: F401
     CorpusCreateRequest,
     CorpusResponse,
     CorpusUpdateRequest,
-    DashboardResponse,
     DeleteSourceRequest,
     DeleteSourceResponse,
     DocumentActionRequest,
@@ -158,6 +157,7 @@ from .schemas import (  # noqa: F401
     PipelineCancelRequest,
     PipelineCancelResponse,
     PipelineRunRecordResponse,
+    PipelinesResponse,
     PipelineStageResultResponse,
     PipelinesUpsertRequest,
     PipelineUpsertRecordResponse,
@@ -585,8 +585,8 @@ async def _resolve_default_extractor_routes() -> dict[str, Any]:
     return resolved_routes
 
 
-@router.get("/dashboard", response_model=DashboardResponse)
-async def get_dashboard(app_name: str | None = Query(default=None)) -> DashboardResponse:
+@router.get("/pipelines/overview", response_model=PipelinesResponse)
+async def get_pipelines_overview(app_name: str | None = Query(default=None)) -> PipelinesResponse:
     resolved_app = _resolve_app_name(app_name)
     dao = _get_dao()
     pipeline_runs = [
@@ -607,7 +607,7 @@ async def get_dashboard(app_name: str | None = Query(default=None)) -> Dashboard
             select(func.max(Knowledge.updated_at)).where(Knowledge.app_name == resolved_app)
         )
 
-    return DashboardResponse(
+    return PipelinesResponse(
         corpus_count=corpus_count or 0,
         knowledge_count=knowledge_count or 0,
         last_build_at=last_build_at.isoformat() if last_build_at else None,
