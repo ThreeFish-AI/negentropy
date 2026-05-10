@@ -7,6 +7,7 @@ import { outlineButtonClassName } from "@/components/ui/button-styles";
 import {
   ConflictItem,
   fetchConflicts,
+  fetchMemories,
   resolveConflict,
 } from "@/features/memory";
 
@@ -34,7 +35,8 @@ const RESOLUTION_COLORS: Record<string, string> = {
 };
 
 export default function MemoryConflictsPage() {
-  const [userId, setUserId] = useState("");
+  const [users, setUsers] = useState<Array<{ id: string; label: string }>>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [resolutionFilter, setResolutionFilter] = useState("");
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
@@ -42,6 +44,14 @@ export default function MemoryConflictsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [resolveStatus, setResolveStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUsersLoading(true);
+    fetchMemories(APP_NAME)
+      .then((data) => setUsers(data.users || []))
+      .catch(console.error)
+      .finally(() => setUsersLoading(false));
+  }, []);
 
   const loadConflicts = useCallback(async () => {
     setIsLoading(true);
@@ -65,11 +75,6 @@ export default function MemoryConflictsPage() {
     loadConflicts();
   }, [loadConflicts]);
 
-  const handleLoad = () => {
-    const trimmed = userId.trim();
-    setActiveUserId(trimmed || null);
-  };
-
   const handleResolve = async (conflictId: string, resolution: string) => {
     setResolveStatus("resolving");
     try {
@@ -91,30 +96,20 @@ export default function MemoryConflictsPage() {
           <div className="pb-6">
             {/* Controls */}
             <div className="mb-6 flex items-center gap-3">
-              <input
+              <select
                 className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs w-64 dark:border-zinc-700 dark:bg-zinc-800"
-                placeholder="Filter by User ID (optional)"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLoad()}
-              />
-              <button
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white dark:bg-zinc-800 dark:text-zinc-100"
-                onClick={handleLoad}
+                value={activeUserId ?? ""}
+                onChange={(e) => setActiveUserId(e.target.value || null)}
               >
-                Filter
-              </button>
-              {activeUserId && (
-                <button
-                  className={outlineButtonClassName("neutral", "rounded-lg px-3 py-2 text-xs")}
-                  onClick={() => {
-                    setUserId("");
-                    setActiveUserId(null);
-                  }}
-                >
-                  Clear
-                </button>
-              )}
+                <option value="">
+                  {usersLoading ? "Loading users..." : "All Users"}
+                </option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.label || u.id}
+                  </option>
+                ))}
+              </select>
               <div className="h-4 w-px bg-zinc-200 mx-1 dark:bg-zinc-700" />
               <select
                 className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-800"
@@ -135,9 +130,6 @@ export default function MemoryConflictsPage() {
               >
                 {isLoading ? "Loading..." : "Refresh"}
               </button>
-              {activeUserId && (
-                <span className="text-xs text-muted">Filtered: {activeUserId}</span>
-              )}
             </div>
 
             {error && (
