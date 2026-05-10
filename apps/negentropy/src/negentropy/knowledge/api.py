@@ -5616,6 +5616,9 @@ async def cleanup_orphan_chunks(
 
             if not is_complete and len(clusters) >= 2:
                 latest = clusters[-2]
+                # 回退后重新检查完整性，与 CLI 脚本保持一致
+                fb_parent_indices = sorted({c.chunk_index for c in latest if c.role != "child"})
+                is_complete = not fb_parent_indices or fb_parent_indices == list(range(len(fb_parent_indices)))
 
             kept_ids = {str(c.id) for c in latest}
             deleted_ids = [str(c.id) for c in chunks if str(c.id) not in kept_ids]
