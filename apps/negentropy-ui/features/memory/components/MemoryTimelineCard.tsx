@@ -159,7 +159,7 @@ export function MemoryTimelineCard({ item, isSearchResult }: MemoryTimelineCardP
       <div className="px-3 pb-2 pt-2">
         <p className="whitespace-pre-wrap text-xs font-medium leading-relaxed text-zinc-900 dark:text-zinc-100">
           {canExpand && !isExpanded
-            ? item.content.slice(0, CONTENT_PREVIEW_LENGTH)
+            ? [...item.content].slice(0, CONTENT_PREVIEW_LENGTH).join("")
             : item.content}
         </p>
         {canExpand && (

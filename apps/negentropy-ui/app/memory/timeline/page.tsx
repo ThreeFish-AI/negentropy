@@ -29,15 +29,21 @@ interface TimelineGroup {
     : never;
 }
 
+function toLocalDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function groupByDate(
   items: Array<{ created_at?: string; id: string }>,
 ): TimelineGroup[] {
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const now = new Date();
+  const today = toLocalDateStr(now);
+  const yesterday = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
 
   const map = new Map<string, Array<{ created_at?: string; id: string }>>();
   for (const item of items) {
-    const dateStr = (item.created_at || "").slice(0, 10) || "unknown";
+    const d = item.created_at ? new Date(item.created_at) : null;
+    const dateStr = d && !isNaN(d.getTime()) ? toLocalDateStr(d) : "unknown";
     if (!map.has(dateStr)) map.set(dateStr, []);
     map.get(dateStr)!.push(item);
   }
