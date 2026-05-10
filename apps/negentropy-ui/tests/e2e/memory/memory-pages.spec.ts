@@ -113,7 +113,7 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        users: [{ id: "user-1", label: "user-1 (3)" }],
+        users: [{ id: "user-1", label: "user-1 (3)", count: 3 }],
         timeline: [
           {
             id: "mem-1",
@@ -137,7 +137,7 @@ test("Memory Timeline 加载用户和记忆列表", async ({ page }) => {
   await page.waitForLoadState("networkidle");
 
   await expect(page.getByText("Memory Timeline")).toBeVisible();
-  await expect(page.getByText("user-1 (3)")).toBeVisible();
+  await expect(page.getByText("3 memories")).toBeVisible();
   await expect(page.getByText("Test memory content")).toBeVisible();
   await expect(page.getByText("85%")).toBeVisible();
 });
