@@ -189,6 +189,7 @@ test("Home 双气泡守卫：单轮文本回复后 assistant message-bubble coun
   // 等待新 session 在左侧 SessionList 中出现（label 由 createSessionLabel 截短，前缀稳定）
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill("hello");
+  await expect(page.getByRole("button", { name: "Send" })).toBeEnabled();
   await page.getByRole("button", { name: "Send" }).click();
 
   // 等待终态文本出现
@@ -281,6 +282,7 @@ test("Home 双气泡守卫：流式 Markdown + 终态 hydration 后 message-bubb
   await page.getByRole("button", { name: "+ New" }).click();
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill("帮我做任务分析");
+  await expect(page.getByRole("button", { name: "Send" })).toBeEnabled();
   await page.getByRole("button", { name: "Send" }).click();
 
   await expect(page.getByRole("heading", { level: 2, name: "任务分析" })).toHaveCount(1);
@@ -501,6 +503,7 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
   await page.getByRole("button", { name: "+ New" }).click();
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill("找 LLM agent memory 论文");
+  await expect(page.getByRole("button", { name: "Send" })).toBeEnabled();
   await page.getByRole("button", { name: "Send" }).click();
 
   await expect(page.getByRole("heading", { level: 2, name: "检索结果" })).toBeVisible({
@@ -686,6 +689,7 @@ test("Home 流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 fin
   await page.getByRole("button", { name: "+ New" }).click();
   await expect(page.getByText("Session home-cha", { exact: false }).first()).toBeVisible();
   await page.getByPlaceholder("输入指令...").fill('Reply with exactly: "Hello, test 1234"');
+  await expect(page.getByRole("button", { name: "Send" })).toBeEnabled();
   await page.getByRole("button", { name: "Send" }).click();
 
   // 等待 final 内容出现

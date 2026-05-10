@@ -4,12 +4,12 @@ import json
 import mimetypes
 import re
 import urllib.parse
-from datetime import datetime
+from datetime import UTC, datetime
 from io import BytesIO
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError  # noqa: F401
 from sqlalchemy import func, select
@@ -155,6 +155,8 @@ from .schemas import (  # noqa: F401
     MultiHopEvidenceEdgeItem,
     MultiHopReasonRequest,
     MultiHopReasonResponse,
+    PipelineCancelRequest,
+    PipelineCancelResponse,
     PipelineRunRecordResponse,
     PipelineStageResultResponse,
     PipelinesUpsertRequest,
@@ -2917,6 +2919,71 @@ async def upsert_pipelines(payload: PipelinesUpsertRequest) -> PipelineUpsertRes
     )
 
 
+@router.post(
+    "/pipelines/{run_id}/cancel",
+    response_model=PipelineCancelResponse,
+)
+async def cancel_pipeline_run(
+    run_id: str,
+    payload: PipelineCancelRequest = Body(default_factory=PipelineCancelRequest),  # noqa: B008
+    user: AuthUser | None = Depends(get_optional_user),
+) -> PipelineCancelResponse:
+    """协作式取消正在运行的 KB Pipeline Run。
+
+    立即返回 cancelling/cancelled/noop 状态，task 在下一个 stage 边界（通常 < 5s）
+    感知信号并写终态；多 worker 场景下依赖 DB 兜底（最长一个 stage 周期）。
+    采用条件 UPDATE 规避与 `tracker._persist` 的 race（R-7 修补）。
+
+    Errors:
+        404: Run 不存在；
+        409: Run 已是 terminal 状态（completed/failed/cancelled）。
+    """
+    from .cancellation import signal_cancel
+
+    resolved_app = _resolve_app_name(payload.app_name)
+    dao = _get_dao()
+    cancellation_meta: dict[str, Any] = {
+        "requested_at": datetime.now(UTC).isoformat(),
+        "requested_by": user.email if user else None,
+        "reason": payload.reason or "user_cancel",
+    }
+    new_status, record = await dao.request_pipeline_run_cancel(
+        app_name=resolved_app,
+        run_id=run_id,
+        cancellation_meta=cancellation_meta,
+    )
+
+    if new_status == "not_found":
+        raise HTTPException(status_code=404, detail="Pipeline run not found")
+    if new_status == "terminal":
+        current = record.status if record else "unknown"
+        raise HTTPException(
+            status_code=409,
+            detail=f"Pipeline run is in terminal state: {current}",
+        )
+
+    # 进程内 fast-path 信号；False 表示 task 在其他 worker，依赖 DB 兜底
+    in_process = signal_cancel(run_id) if record else False
+
+    record_dict: dict[str, Any] = {}
+    if record is not None:
+        record_dict = {
+            "id": str(record.id),
+            "run_id": record.run_id,
+            "status": record.status,
+            "version": record.version,
+            "updated_at": record.updated_at.isoformat() if record.updated_at else None,
+            "payload": record.payload or {},
+        }
+
+    return PipelineCancelResponse(
+        status=new_status,
+        run_id=run_id,
+        in_process=in_process,
+        record=record_dict,
+    )
+
+
 # ============================================================================
 # Knowledge Graph API Endpoints (Phase 1 Enhancement)
 # ============================================================================
@@ -3015,6 +3082,76 @@ async def build_knowledge_graph(
 
     except KnowledgeError as exc:
         raise _map_exception_to_http(exc) from exc
+
+
+@router.post(
+    "/base/{corpus_id}/graph/runs/{run_id}/cancel",
+    response_model=PipelineCancelResponse,
+)
+async def cancel_kg_build_run(
+    corpus_id: UUID,
+    run_id: str,
+    payload: PipelineCancelRequest = Body(default_factory=PipelineCancelRequest),  # noqa: B008
+    user: AuthUser | None = Depends(get_optional_user),
+) -> PipelineCancelResponse:
+    """协作式取消正在运行的 KG Build Run。
+
+    路径携带 `corpus_id` 与 `run_id`：`kg_build_runs` 表按 corpus_id 索引，路径
+    携带是 RESTful 规范；run_id 用于 KG repository 内的条件 UPDATE 定位。立即
+    返回 cancelling/cancelled/noop，task 在 emit_phase 阶段边界（最长 30s）感知
+    后写终态；进程内同 worker 通过 in-memory event 秒级感知（R-9 修补）。
+
+    Errors:
+        404: KG build run 不存在；
+        409: KG build run 已 terminal（completed/failed/cancelled）。
+    """
+    from .cancellation import signal_cancel
+
+    resolved_app = _resolve_app_name(payload.app_name)
+    cancellation_meta: dict[str, Any] = {
+        "requested_at": datetime.now(UTC).isoformat(),
+        "requested_by": user.email if user else None,
+        "reason": payload.reason or "user_cancel",
+        "corpus_id": str(corpus_id),
+    }
+
+    # Reuse default GraphService 的 repository（避免新建 connection pool）
+    graph_service = _get_graph_service()
+    repository = graph_service._repository  # 内部 Repo 引用，私有但稳定（同 build_graph 共用）
+    new_status, record = await repository.request_build_run_cancel(
+        run_id=run_id,
+        app_name=resolved_app,
+        cancellation_meta=cancellation_meta,
+    )
+
+    if new_status == "not_found":
+        raise HTTPException(status_code=404, detail="KG build run not found")
+    if new_status == "terminal":
+        current = record.status if record else "unknown"
+        raise HTTPException(
+            status_code=409,
+            detail=f"KG build run is in terminal state: {current}",
+        )
+
+    in_process = signal_cancel(run_id) if record else False
+
+    record_dict: dict[str, Any] = {}
+    if record is not None:
+        record_dict = {
+            "id": str(record.id),
+            "run_id": record.run_id,
+            "status": record.status,
+            "corpus_id": str(record.corpus_id),
+            "progress_percent": record.progress_percent,
+            "warnings": record.warnings or [],
+        }
+
+    return PipelineCancelResponse(
+        status=new_status,
+        run_id=run_id,
+        in_process=in_process,
+        record=record_dict,
+    )
 
 
 @router.get("/base/{corpus_id}/graph", response_model=dict[str, Any])

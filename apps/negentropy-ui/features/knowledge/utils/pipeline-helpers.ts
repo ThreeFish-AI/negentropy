@@ -262,6 +262,12 @@ export const getStageColor = (stageName: string, status?: string): string => {
       return colors.failed;
     case "skipped":
       return colors.skipped;
+    case "cancelling":
+      // amber 脉动：表达"取消信号已发，等待 task 在检查点退出"的中间态
+      return "bg-amber-400 animate-pulse";
+    case "cancelled":
+      // zinc 静态：用户主动取消，区别于失败 (rose) 与跳过 (zinc-300)
+      return "bg-zinc-500";
     default:
       return colors.completed;
   }
@@ -377,6 +383,12 @@ export const getPipelineStatusColor = (status?: string): string => {
       return "bg-rose-500";
     case "pending":
       return "bg-zinc-400 animate-pulse";
+    case "cancelling":
+      // 取消进行中：amber 脉动（与 running 同色调以表达"还在运行但已收到取消信号"）
+      return "bg-amber-400 animate-pulse";
+    case "cancelled":
+      // 已取消终态：zinc 静态（区别于 failed 的 rose 与 skipped 的浅 zinc）
+      return "bg-zinc-500";
     case "skipped":
       return "bg-zinc-300 dark:bg-zinc-600";
     default:
@@ -402,6 +414,10 @@ export const getPipelineStatusTextColor = (status?: string): string => {
     case "error":
       return "text-rose-600 dark:text-rose-400";
     case "pending":
+      return "text-zinc-600 dark:text-zinc-400";
+    case "cancelling":
+      return "text-amber-700 dark:text-amber-300";
+    case "cancelled":
       return "text-zinc-600 dark:text-zinc-400";
     default:
       return "text-zinc-500 dark:text-zinc-400";

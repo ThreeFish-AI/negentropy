@@ -226,6 +226,35 @@ class PipelinesUpsertRequest(BaseModel):
     expected_version: int | None = None
 
 
+class PipelineCancelRequest(BaseModel):
+    """Pipeline Run 取消请求体（KB & KG 共用）。"""
+
+    app_name: str | None = None
+    reason: str | None = Field(
+        default=None,
+        description="可选取消原因，落盘到 payload.cancellation.reason；默认 'user_cancel'。",
+    )
+
+
+class PipelineCancelResponse(BaseModel):
+    """Pipeline Run 取消响应体。
+
+    `status` 语义：
+    - `cancelled`：pending → 直接转 cancelled（task 尚未启动）；
+    - `cancelling`：running → 转 cancelling（信号已发，task 在下个检查点退出）；
+    - `noop`：已是 cancelling/cancelled（幂等命中）。
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    status: str
+    run_id: str
+    in_process: bool = Field(
+        description="True 表示进程内 fast-path 信号已送达；False 表示仅 DB 信号（依赖检查点轮询兜底）。",
+    )
+    record: dict[str, Any] = Field(default_factory=dict, description="最新 run 记录快照。")
+
+
 # ============================================================================
 # Search Schemas
 # ============================================================================

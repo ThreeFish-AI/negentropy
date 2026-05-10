@@ -21,7 +21,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -1803,7 +1803,7 @@ class AgeGraphRepository(GraphRepository):
                 progress_percent = COALESCE(:progress, progress_percent),
                 warnings = COALESCE(CAST(:warnings AS jsonb), warnings),
                 processed_chunk_ids = COALESCE(CAST(:chunk_ids AS jsonb), processed_chunk_ids),
-                completed_at = CASE WHEN :status IN ('completed', 'failed') THEN NOW() END
+                completed_at = CASE WHEN :status IN ('completed', 'failed', 'cancelled') THEN NOW() END
             WHERE id = :run_id
         """)
 
@@ -1964,6 +1964,193 @@ class AgeGraphRepository(GraphRepository):
             runs.append(run)
 
         return runs
+
+    async def get_build_run_by_run_id(
+        self,
+        run_id: str,
+        app_name: str,
+    ) -> BuildRunRecord | None:
+        """按业务 `run_id`（非 UUID 主键）查找构建记录。
+
+        cancel API 收到前端的 run_id（形如 `build-xxx-timestamp`），需要根据它定位
+        kg_build_runs 行。
+        """
+        query = text(f"""
+            SELECT id, app_name, corpus_id, run_id, status,
+                   entity_count, relation_count, extractor_config, model_name,
+                   error_message, started_at, completed_at, created_at,
+                   progress_percent, warnings
+            FROM {self._schema}.kg_build_runs
+            WHERE run_id = :run_id AND app_name = :app_name
+            LIMIT 1
+        """)
+        async with self._session_scope() as session:
+            result = await session.execute(
+                query,
+                {"run_id": run_id, "app_name": app_name},
+            )
+            row = result.fetchone()
+        if row is None:
+            return None
+        return BuildRunRecord(
+            id=row.id,
+            app_name=row.app_name,
+            corpus_id=row.corpus_id,
+            run_id=row.run_id,
+            status=row.status,
+            entity_count=row.entity_count,
+            relation_count=row.relation_count,
+            extractor_config=row.extractor_config or {},
+            model_name=row.model_name,
+            error_message=row.error_message,
+            started_at=row.started_at,
+            completed_at=row.completed_at,
+            created_at=row.created_at,
+            progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
+            warnings=row.warnings if row.warnings else None,
+        )
+
+    async def request_build_run_cancel(
+        self,
+        run_id: str,
+        app_name: str,
+        *,
+        cancellation_meta: dict[str, Any],
+    ) -> tuple[str, BuildRunRecord | None]:
+        """对 KG Build Run 发起取消（条件 UPDATE，规避 race）。
+
+        与 `KnowledgeRunDao.request_pipeline_run_cancel` 同思路：
+        - WHERE status NOT IN ('completed','failed','cancelled')；
+        - pending → cancelled（task 尚未启动 / 极少出现因 KG build 是同步入口）；
+        - running → cancelling；
+        - cancelling → noop；
+        - 元数据写入 warnings JSONB 末尾的 _cancellation 条目（与 _phase / _metrics
+          同型 sentinel 模式，避免 alembic 迁移）。
+
+        Returns:
+            (status, record):
+            - `("not_found", None)`
+            - `("terminal", record)`：完成/失败/已取消
+            - `("noop", record)`：已 cancelling
+            - `("cancelled", record)`：pending → cancelled
+            - `("cancelling", record)`：running → cancelling
+        """
+        import json as _json
+
+        async with self._session_scope() as session:
+            select_stmt = text(f"""
+                SELECT id, status, warnings, app_name, corpus_id, run_id,
+                       entity_count, relation_count, extractor_config, model_name,
+                       error_message, started_at, completed_at, created_at, progress_percent
+                FROM {self._schema}.kg_build_runs
+                WHERE run_id = :run_id AND app_name = :app_name
+                FOR UPDATE
+            """)
+            row = (await session.execute(select_stmt, {"run_id": run_id, "app_name": app_name})).fetchone()
+            if row is None:
+                return ("not_found", None)
+
+            current_status = (row.status or "").lower()
+            existing_warnings = list(row.warnings or [])
+
+            def _to_record(updated_status: str, updated_warnings: list, completed_at_override=None) -> BuildRunRecord:
+                return BuildRunRecord(
+                    id=row.id,
+                    app_name=row.app_name,
+                    corpus_id=row.corpus_id,
+                    run_id=row.run_id,
+                    status=updated_status,
+                    entity_count=row.entity_count,
+                    relation_count=row.relation_count,
+                    extractor_config=row.extractor_config or {},
+                    model_name=row.model_name,
+                    error_message=row.error_message,
+                    started_at=row.started_at,
+                    completed_at=completed_at_override if completed_at_override is not None else row.completed_at,
+                    created_at=row.created_at,
+                    progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
+                    warnings=updated_warnings or None,
+                )
+
+            if current_status in ("completed", "failed", "cancelled"):
+                return ("terminal", _to_record(row.status, existing_warnings))
+            if current_status == "cancelling":
+                return ("noop", _to_record(row.status, existing_warnings))
+
+            new_status = "cancelled" if current_status == "pending" else "cancelling"
+            new_warnings = list(existing_warnings) + [{"_cancellation": cancellation_meta}]
+
+            update_stmt = text(f"""
+                UPDATE {self._schema}.kg_build_runs
+                SET status = :status,
+                    warnings = CAST(:warnings AS jsonb),
+                    completed_at = CASE WHEN :status IN ('cancelled', 'cancelling') THEN NOW() ELSE completed_at END
+                WHERE id = :id
+            """)
+            await session.execute(
+                update_stmt,
+                {
+                    "status": new_status,
+                    "warnings": _json.dumps(new_warnings),
+                    "id": str(row.id),
+                },
+            )
+            await session.commit()
+            return (new_status, _to_record(new_status, new_warnings, completed_at_override=datetime.now(UTC)))
+
+    async def finalize_stale_kg_build_runs(
+        self,
+        *,
+        app_name: str | None = None,
+        cancelling_threshold_minutes: int = 5,
+        running_threshold_minutes: int = 30,
+    ) -> dict[str, int]:
+        """KG 看门狗：把卡死的中间态 build_run 收敛到终态。
+
+        - `running` 超 `running_threshold_minutes` 分钟无更新 → 标记为 `failed`；
+        - `cancelling` 超 `cancelling_threshold_minutes` → 强制 `cancelled`。
+        """
+        async with self._session_scope() as session:
+            stale_msg = (
+                "Pipeline was running for over "
+                + str(running_threshold_minutes)
+                + " minutes and was forcibly marked as failed."
+            )
+            failed_stmt = text(f"""
+                UPDATE {self._schema}.kg_build_runs
+                SET status = 'failed',
+                    error_message = COALESCE(error_message, :stale_msg),
+                    completed_at = NOW()
+                WHERE status = 'running'
+                  AND COALESCE(completed_at, created_at) < NOW() - (:running_threshold || ' minutes')::interval
+                  {"AND app_name = :app_name" if app_name is not None else ""}
+            """)
+            cancelled_stmt = text(f"""
+                UPDATE {self._schema}.kg_build_runs
+                SET status = 'cancelled',
+                    completed_at = NOW()
+                WHERE status = 'cancelling'
+                  AND COALESCE(completed_at, created_at) < NOW() - (:cancelling_threshold || ' minutes')::interval
+                  {"AND app_name = :app_name" if app_name is not None else ""}
+            """)
+
+            params_failed: dict[str, Any] = {
+                "running_threshold": running_threshold_minutes,
+                "stale_msg": stale_msg,
+            }
+            params_cancelled: dict[str, Any] = {"cancelling_threshold": cancelling_threshold_minutes}
+            if app_name is not None:
+                params_failed["app_name"] = app_name
+                params_cancelled["app_name"] = app_name
+
+            failed_result = await session.execute(failed_stmt, params_failed)
+            cancelled_result = await session.execute(cancelled_stmt, params_cancelled)
+            await session.commit()
+
+            return {
+                "forced_failed": failed_result.rowcount or 0,
+                "forced_cancelled": cancelled_result.rowcount or 0,
+            }
 
 
 # ============================================================================

@@ -29,6 +29,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from negentropy.logging import get_logger
 from negentropy.model_names import canonicalize_model_name
 
+from ..cancellation import (
+    is_cancelled,
+    register_cancellable_run,
+    unregister_cancellable_run,
+)
+from ..exceptions import PipelineCancelled
 from ..types import (
     GraphBuildConfig,
     GraphEdge,
@@ -292,6 +298,11 @@ class GraphService:
             model_name=normalized_llm_model,
         )
 
+        # 注册进程内 fast-path event：cancel API 调 signal_cancel(run_id) 后，
+        # emit_phase 与 process_chunk 入口的 is_cancelled 检查会立即触发退出（R-9 修补）。
+        # 无注册等价于 cancel 仅依赖 emit_phase 边界 DB-poll 兜底，延迟最长一个 phase 周期。
+        register_cancellable_run(run_id)
+
         # 提升到 try 之外：失败分支需要剥离 _phase 后落库 warnings，避免 DB 行残留
         # 上一次 emit_phase 写入的运行期标记；同时让累积的 algorithm warning + 部分 _metrics
         # 在失败时仍然可观测。即便异常发生在 try 内的早期阶段（如 get_processed_chunk_ids）
@@ -358,7 +369,36 @@ class GraphService:
                 progress: float,
                 **extra: Any,
             ) -> None:
-                """写阶段化日志 + 更新 progress_percent + 把 _phase 元数据塞入 warnings。"""
+                """写阶段化日志 + 更新 progress_percent + 把 _phase 元数据塞入 warnings。
+
+                取消检查点（R-8 + R-9）：阶段边界检查 in-memory event（O(1) 同 worker
+                fast-path）+ DB 兜底（跨 worker / 进程重启场景）。每个大阶段 < 10 次，
+                DB SELECT 开销可承受。
+                """
+                # in-memory fast-path
+                if is_cancelled(run_id):
+                    raise PipelineCancelled(run_id, last_stage=phase)
+
+                # DB 兜底：跨 worker 场景，cancel API 落到 worker A 时本 worker 通过 DB 感知。
+                # 用 hasattr/try 兜底兼容 mock repository（无该方法时降级为仅依赖 in-memory）。
+                # 注意：此处通过 self._repository（而非 build_repo）查询，_repository 使用
+                # _session_scope() 开启独立 session 做 SELECT，不与 build_repo 的
+                # shared_session 事务冲突，不会触发连接池竞争。
+                _get_run = getattr(self._repository, "get_build_run_by_run_id", None)
+                if _get_run is not None:
+                    try:
+                        latest_record = await _get_run(run_id, app_name)
+                    except Exception as poll_exc:
+                        logger.debug(
+                            "cancel_db_poll_failed",
+                            run_id=run_id,
+                            phase=phase,
+                            error=str(poll_exc),
+                        )
+                    else:
+                        if latest_record is not None and latest_record.status in ("cancelling", "cancelled"):
+                            raise PipelineCancelled(run_id, last_stage=phase)
+
                 nonlocal build_warnings
                 phase_meta: dict[str, Any] = {
                     "name": phase,
@@ -443,7 +483,14 @@ class GraphService:
 
                 LLM 调用使用 ``asyncio.wait_for`` 包裹 ``chunk_extract_timeout`` 秒超时，
                 避免单 chunk hang 阻塞整批 ``asyncio.gather``。重试时间窗内仍受 wait_for 约束。
+
+                取消检查点（R-8）：协程入口仅查 in-memory event（O(1) dict lookup），
+                **不查 DB**——chunk 数可能 1000+，DB SELECT 会成压力；DB 兜底由
+                emit_phase 阶段边界承担（最长 1 个 phase 周期感知）。
                 """
+                if is_cancelled(run_id):
+                    raise PipelineCancelled(run_id, last_stage="extracting")
+
                 async with semaphore:
                     text = chunk.get("content", "")
                     if not text:
@@ -854,6 +901,58 @@ class GraphService:
                 failed_chunk_count=failed_chunk_count,
             )
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，剥离运行期 _phase 标记，保留累积 warnings；
+            # best-effort 不回滚——已写入的 entities/relations 保留，前端通过详情面板看
+            # 「取消时进度」（chunks_processed / last_phase）。
+            elapsed = time.time() - start_time
+            cancellation_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
+            if build_metrics is not None:
+                cancellation_warnings.append({"_metrics": build_metrics.to_dict()})
+            cancellation_warnings.append(
+                {
+                    "_cancellation": {
+                        "cancelled_at": datetime.now(UTC).isoformat(),
+                        "last_stage": cancel_exc.last_stage,
+                        "elapsed_seconds": elapsed,
+                    }
+                }
+            )
+
+            try:
+                if shared_session is not None and not shared_session.is_active:
+                    raise RuntimeError("shared session inactive")
+                await build_repo.update_build_run(
+                    run_id=run_uuid,
+                    status="cancelled",
+                    warnings=cancellation_warnings if cancellation_warnings else None,
+                )
+            except Exception:
+                await self._repository.update_build_run(
+                    run_id=run_uuid,
+                    status="cancelled",
+                    warnings=cancellation_warnings if cancellation_warnings else None,
+                )
+
+            logger.info(
+                "kg_build_cancelled",
+                corpus_id=str(corpus_id),
+                run_id=run_id,
+                last_stage=cancel_exc.last_stage,
+                elapsed_seconds=elapsed,
+            )
+
+            return GraphBuildResult(
+                run_id=run_id,
+                corpus_id=corpus_id,
+                status="cancelled",
+                entity_count=0,
+                relation_count=0,
+                chunks_processed=0,
+                elapsed_seconds=elapsed,
+                error_message=None,
+            )
+
         except Exception as exc:
             elapsed = time.time() - start_time
             error_message = str(exc)
@@ -908,6 +1007,8 @@ class GraphService:
             # 确保共享 Session 被关闭（归还连接到池）
             if shared_session is not None:
                 await shared_session.close()
+            # 清理 cancellation registry，防内存泄漏
+            unregister_cancellable_run(run_id)
 
     async def search(
         self,

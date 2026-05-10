@@ -8,6 +8,12 @@ from uuid import UUID
 
 from negentropy.logging import get_logger
 
+from .cancellation import (
+    is_cancelled,
+    register_cancellable_run,
+    unregister_cancellable_run,
+)
+from .exceptions import PipelineCancelled
 from .ingestion.chunking import chunk_text, semantic_chunk_async
 
 if TYPE_CHECKING:
@@ -78,6 +84,9 @@ class PipelineTracker:
         self._error: dict[str, Any] | None = None
         self._status = "pending"
         self._current_stage: str | None = None
+        # 取消终态附加元数据：requested_at / requested_by / reason / chunks_persisted ...
+        # 由 cancel API 在请求时写入 payload.cancellation；tracker.cancel() 时在此聚合。
+        self._cancellation_summary: dict[str, Any] | None = None
 
     def _log_context(self) -> dict[str, Any]:
         return {
@@ -152,10 +161,25 @@ class PipelineTracker:
         self._input = self._normalize_dict_payload(payload.get("input"))
         self._output = self._normalize_dict_payload(payload.get("output"))
         self._error = payload.get("error")
+        # 恢复 cancellation 元数据（cancel API 已写入 payload.cancellation 时）
+        self._cancellation_summary = payload.get("cancellation")
         self._status = record.status
 
     async def start(self, input_data: dict[str, Any]) -> None:
-        """开始 Pipeline 执行"""
+        """开始 Pipeline 执行。
+
+        R-6 race A 修补：先 `resume()` 读 DB 当前状态——若 cancel API 已抢先把
+        status 写为 cancelling/cancelled（在 BackgroundTasks 启动 task 之前用户
+        已点取消），立即 raise PipelineCancelled，**不写 running 覆盖**取消信号。
+        否则 task 启动后会盲写 running，永远跑到自然结束，cancel 信号被静默吞掉。
+        """
+        await self.resume()
+        if self._status in ("cancelling", "cancelled"):
+            raise PipelineCancelled(self._run_id, last_stage=None)
+
+        # 注册进程内 fast-path Event；幂等，重复 start 不覆盖已 set 的 Event
+        register_cancellable_run(self._run_id)
+
         self._started_at = datetime.now(UTC).isoformat()
         self._input = input_data
         self._status = "running"
@@ -166,8 +190,25 @@ class PipelineTracker:
             payload={"input": self._normalize_dict_payload(input_data)},
         )
 
+    async def _check_cancel(self) -> None:
+        """协作式取消检查点：先 in-memory event（O(1)），再 DB（跨 worker 兜底）。
+
+        DB SELECT 仅在 stage 边界触发（每个 stage <30 次/run），开销可承受。
+        若发现取消信号，raise PipelineCancelled 由 execute_*_pipeline 顶层捕获。
+        """
+        if is_cancelled(self._run_id):
+            raise PipelineCancelled(self._run_id, last_stage=self._current_stage)
+
+        # DB-poll 兜底：cancel API 落到其他 worker 时，本 worker 通过 DB 感知
+        record = await self._dao.get_pipeline_run(self._app_name, self._run_id)
+        if record is not None and record.status in ("cancelling", "cancelled"):
+            raise PipelineCancelled(self._run_id, last_stage=self._current_stage)
+
     async def start_stage(self, stage: str) -> None:
         """开始阶段执行"""
+        # 取消检查点：在 stage 边界感知用户取消请求
+        await self._check_cancel()
+
         self._current_stage = stage
         self._stages[stage] = {
             "status": "running",
@@ -340,13 +381,72 @@ class PipelineTracker:
             },
         )
 
+    async def cancel(
+        self,
+        *,
+        last_stage: str | None = None,
+        summary: dict[str, Any] | None = None,
+    ) -> None:
+        """协作式取消终态写入（区别于 fail 与 complete）。
+
+        - 幂等：已是 cancelled/completed/failed 时直接 return，避免重复写入；
+        - 把当前 stage（若有）标记为 cancelled，便于前端 stages bar 直观显示
+          取消位置；
+        - 写入 cancellation summary 到 payload 供前端展示「取消时进度」（已写入
+          chunks 数、最后完成 stage 等，配合 best-effort 不回滚语义）；
+        - 触发 `pipeline_run_cancelled` 审计日志事件，与既有 `pipeline_run_*`
+          命名风格对齐（R-11 修补）。
+        """
+        if self._status in ("cancelled", "completed", "failed"):
+            return
+        now = datetime.now(UTC).isoformat()
+        target_stage = last_stage or self._current_stage
+
+        # 当前正在执行的 stage 标记为 cancelled（不污染 failed 计数）
+        if target_stage and target_stage in self._stages:
+            stage_data = self._stages[target_stage]
+            stage_started_at = stage_data.get("started_at")
+            existing_mcp_events = stage_data.get("mcp_events")
+            self._stages[target_stage] = {
+                "status": "cancelled",
+                "started_at": stage_started_at,
+                "completed_at": now,
+                "duration_ms": self._calculate_duration_ms(stage_started_at, now),
+            }
+            if existing_mcp_events:
+                self._stages[target_stage]["mcp_events"] = existing_mcp_events
+
+        self._status = "cancelled"
+        self._completed_at = now
+        self._duration_ms = self._calculate_duration_ms(self._started_at, now)
+        self._current_stage = None
+        # cancellation summary 用 payload._cancellation_summary 字段，与 _persist 协作落库
+        self._cancellation_summary = dict(summary or {}) | {
+            "cancelled_at": now,
+            "last_stage": target_stage,
+        }
+        await self._persist()
+        self._log_stage_event(
+            "pipeline_run_cancelled",
+            status=self._status,
+            payload={
+                "duration_ms": self._duration_ms,
+                "last_stage": target_stage,
+                "summary": self._cancellation_summary,
+            },
+        )
+
     async def ensure_finalized(self, error: dict[str, Any] | None = None) -> None:
-        """安全网：若 tracker 尚未处于终态（completed/failed），强制写入 failed。
+        """安全网：若 tracker 尚未处于终态（completed/failed/cancelled），强制写入 failed。
 
         在 finally 块中调用，确保无论原始异常是否被成功处理，
-        tracker 状态都不会永远停留在 running。
+        tracker 状态都不会永远停留在 running 或 cancelling。
+
+        注意：cancelling 不被视为终态——若 task 已感知 cancel 信号但因异常未完成
+        `cancel()` 调用，应交由看门狗（`finalize_stale_pipeline_runs`）超时收敛。
+        本方法不主动把 cancelling 转 cancelled，避免吞掉真实异常上下文。
         """
-        if self._status in ("completed", "failed"):
+        if self._status in ("completed", "failed", "cancelled"):
             return
         try:
             error_payload = error or {
@@ -362,7 +462,34 @@ class PipelineTracker:
             )
 
     async def _persist(self) -> None:
-        """持久化 Pipeline 状态"""
+        """持久化 Pipeline 状态。
+
+        R-7 race B 修补：写入前先读 DB——若 cancel API 已把 status 写为
+        cancelling/cancelled，本次 running 写入会**覆盖**取消信号，导致 tracker
+        在下一个检查点之前继续盲跑。修补策略：
+        - 若 DB 已 cancelling/cancelled 且本次写入态非终态（running/pending），
+          跳过写入并接管 status（self._status = DB.status），让最近的检查点
+          立即 raise PipelineCancelled。
+        - 若本次写入态是终态（cancelled/completed/failed），照常写入 — 终态
+          覆盖中间态是合法的（cancel() / complete() / fail() 路径必须能落库）。
+
+        锁策略说明：本方法不使用 ``SELECT ... FOR UPDATE``，而是采用
+        "读-判-写 + 乐观并发控制" 模式。
+        - 第一道防线（pre-check）：先读 DB，若已 cancelling/cancelled 且本次非终态，
+          跳过写入并接管 status。
+        - 第二道防线（OCC）：pre-check 到 upsert 之间 cancel API 可能提交（多 worker
+          部署），upsert 携带 ``expected_version`` 做版本校验；cancel API 写入后
+          version 已递增，upsert 检测到冲突后接管 DB 权威状态，不盲目覆盖取消信号。
+        """
+        latest = await self._dao.get_pipeline_run(self._app_name, self._run_id)
+        if (
+            latest is not None
+            and latest.status in ("cancelling", "cancelled")
+            and self._status not in ("cancelled", "completed", "failed")
+        ):
+            self._status = latest.status  # 接管 DB 权威状态
+            return
+
         payload = {
             "operation": self._operation,
             "trigger": "api",
@@ -374,15 +501,25 @@ class PipelineTracker:
             "output": self._normalize_dict_payload(self._output),
             "error": self._error,
         }
+        # 取消终态 payload 增加 cancellation 字段（best-effort 不回滚语义下的可观测性）
+        cancellation_summary = getattr(self, "_cancellation_summary", None)
+        if cancellation_summary:
+            payload["cancellation"] = cancellation_summary
 
-        await self._dao.upsert_pipeline_run(
+        result = await self._dao.upsert_pipeline_run(
             app_name=self._app_name,
             run_id=self._run_id,
             status=self._status,
             payload=payload,
             idempotency_key=None,
-            expected_version=None,
+            expected_version=getattr(latest, "version", None) if latest is not None else None,
         )
+        # 乐观并发冲突：cancel API 在 pre-check 与 upsert 之间写入了 cancelling/cancelled
+        if result.status == "conflict" and self._status not in ("cancelled", "completed", "failed"):
+            conflict_record = result.record
+            conflict_status = conflict_record.get("status", "") if isinstance(conflict_record, dict) else ""
+            if conflict_status in ("cancelling", "cancelled"):
+                self._status = conflict_status
 
 
 class KnowledgeService:
@@ -421,6 +558,10 @@ class KnowledgeService:
 
     @staticmethod
     async def _fail_pipeline_execution(tracker: PipelineTracker | None, exc: Exception) -> None:
+        # 取消不是失败：让 PipelineCancelled 穿透到顶层 except，由 tracker.cancel() 落库；
+        # 否则中间层 helper 的 `except Exception: fail; raise` 会把取消错误写成 failed 终态。
+        if isinstance(exc, PipelineCancelled):
+            return
         if not tracker:
             return
         error_payload: dict[str, Any] = {
@@ -623,6 +764,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -631,6 +776,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_ingest_url_pipeline(
         self,
@@ -714,6 +860,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
@@ -724,6 +874,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_ingest_url_document_pipeline(
         self,
@@ -856,6 +1007,10 @@ class KnowledgeService:
             )
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -864,6 +1019,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_ingest_file_pipeline(
         self,
@@ -1007,6 +1163,10 @@ class KnowledgeService:
             )
 
             return records
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             # Pipeline 失败已由 tracker 持久化，不再重新抛出。
@@ -1017,6 +1177,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_replace_source_pipeline(
         self,
@@ -1081,6 +1242,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1089,6 +1254,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_sync_source_pipeline(
         self,
@@ -1173,6 +1339,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1181,6 +1351,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_sync_document_pipeline(
         self,
@@ -1301,6 +1472,10 @@ class KnowledgeService:
             )
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1309,6 +1484,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def execute_rebuild_source_pipeline(
         self,
@@ -1453,6 +1629,10 @@ class KnowledgeService:
 
             return records
 
+        except PipelineCancelled as cancel_exc:
+            # 协作式取消：写入 cancelled 终态，区别于 fail；幂等（cancel() 内部保护）。
+            await tracker.cancel(last_stage=cancel_exc.last_stage)
+            return []
         except Exception as exc:
             await self._fail_pipeline_execution(tracker, exc)
             return []
@@ -1461,6 +1641,7 @@ class KnowledgeService:
                 await tracker.ensure_finalized()
             except Exception:
                 pass
+            unregister_cancellable_run(run_id)
 
     async def ensure_corpus(self, spec: CorpusSpec) -> CorpusRecord:
         return await self._repository.get_or_create_corpus(spec)

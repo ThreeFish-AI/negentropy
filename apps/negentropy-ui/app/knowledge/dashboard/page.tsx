@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { outlineButtonClassName } from "@/components/ui/button-styles";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import {
   fetchDashboard,
   fetchPipelines,
   upsertPipelines,
   fetchCorpora,
   fetchGraphBuildHistory,
+  cancelPipelineRun,
   KnowledgeDashboard,
   KnowledgePipelinesPayload,
   PipelineRunCard,
@@ -70,6 +72,9 @@ export default function KnowledgeDashboardPage() {
   const [kbTotal, setKbTotal] = useState(0);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const bootstrapBaselineRef = useRef<RunsSnapshot | null>(null);
+  const allRunsRef = useRef<UnifiedPipelineRun[]>(allRuns);
+  allRunsRef.current = allRuns;
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const applyRuns = useCallback(
     (kbData: KnowledgePipelinesPayload, kgRuns: KgPipelineRun[]) => {
@@ -120,6 +125,49 @@ export default function KnowledgeDashboardPage() {
     [applyRuns, page],
   );
 
+  /**
+   * 取消 Pipeline Run 的统一处理：弹 ConfirmDialog（替代浏览器原生 confirm，遵循
+   * AGENTS.md 视觉规范），用户确认后调用 cancelPipelineRun；成功后立即 refetch 让
+   * 卡片状态从 running 切换到 cancelling/cancelled，剩余收敛由现有 5s 轮询观察。
+   */
+  const handleCancelRun = useCallback(
+    async (run: UnifiedPipelineRun) => {
+      const confirmed = await confirm({
+        title: "取消 Pipeline Run",
+        message: (
+          <div className="space-y-2">
+            <p>
+              确定取消 <span className="font-mono">{run.run_id || run.id}</span>?
+            </p>
+            <p className="text-xs opacity-80">
+              已写入的数据不会回滚（best-effort 取消）；详情可在取消后展开 Run 详情查看
+              「取消时进度」。
+            </p>
+          </div>
+        ),
+        confirmLabel: "确认取消",
+        cancelLabel: "保持运行",
+        destructive: true,
+      });
+      if (!confirmed) return;
+      try {
+        if (run.source === "kb") {
+          await cancelPipelineRun(run.run_id || run.id, "kb", { appName: APP_NAME });
+        } else {
+          await cancelPipelineRun(run.run_id || run.id, "kg", {
+            appName: APP_NAME,
+            corpusId: run.corpus_id,
+          });
+        }
+        // 立即刷新让卡片切换到 cancelling/cancelled；剩余收敛交给 5s 轮询
+        await loadRuns().catch(() => undefined);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [confirm, loadRuns],
+  );
+
   useEffect(() => {
     let active = true;
 
@@ -150,10 +198,14 @@ export default function KnowledgeDashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load
   }, [page]);
 
-  // Bootstrap polling
+  // Bootstrap polling：仅在首次加载后无 active run 时启动（等待外部变更被观测到）；
+  // 若初始加载已含 active runs，running-state polling 负责持续轮询，无需 bootstrap 重叠。
+  // 使用 ref 读取最新 allRuns（不加入 deps），避免 applyRuns 更新 allRuns 后
+  // 重建 interval 导致 tick 重置。
   useEffect(() => {
     if (!hasInitialLoad) return;
     if (page !== 1) return;
+    if (hasActiveRuns(allRunsRef.current)) return;
 
     let active = true;
     let tick = 0;
@@ -329,6 +381,7 @@ export default function KnowledgeDashboardPage() {
                         mode="selectable"
                         selected={selected?.id === run.id}
                         onSelect={() => setSelected(run)}
+                        onCancel={() => handleCancelRun(run)}
                         // KG 专属字段
                         source={run.source}
                         corpus_id={run.source === "kg" ? run.corpus_id : undefined}
@@ -452,6 +505,7 @@ export default function KnowledgeDashboardPage() {
           </aside>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }
