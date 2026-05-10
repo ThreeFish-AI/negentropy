@@ -196,8 +196,7 @@ test("Knowledge Pipelines 状态标签视觉一致性", async ({ page }) => {
     },
   ];
 
-  await page.route("**/api/knowledge/pipelines?app_name=negentropy", async (route) => {
-    // Pipelines data endpoint (formerly dashboard)
+  await page.route("**/api/knowledge/pipelines/overview?app_name=negentropy", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
