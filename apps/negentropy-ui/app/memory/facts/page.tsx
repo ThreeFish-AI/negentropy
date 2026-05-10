@@ -13,6 +13,8 @@ import {
   fetchMemories,
 } from "@/features/memory";
 
+import { FactCard } from "./_components/FactCard";
+
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
 export default function MemoryFactsPage() {
@@ -188,37 +190,11 @@ export default function MemoryFactsPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {facts.map((fact) => (
-                  <div
+                  <FactCard
                     key={fact.id}
-                    className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-                  >
-                    <div className="flex items-start justify-between">
-                      <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                        {fact.key}
-                      </p>
-                      <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                        {fact.fact_type}
-                      </span>
-                    </div>
-                    <pre className="mt-3 max-h-24 overflow-auto rounded-lg bg-zinc-50 p-3 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                      {JSON.stringify(fact.value, null, 2)}
-                    </pre>
-                    <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-zinc-400 dark:text-zinc-500">
-                      <span>
-                        Confidence: {(fact.confidence * 100).toFixed(0)}%
-                      </span>
-                      {fact.valid_from && <span>From: {fact.valid_from}</span>}
-                      {fact.valid_until && <span>Until: {fact.valid_until}</span>}
-                    </div>
-                    <div className="mt-2">
-                      <button
-                        className="text-[11px] text-zinc-400 underline hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
-                        onClick={() => handleShowHistory(fact.id)}
-                      >
-                        History
-                      </button>
-                    </div>
-                  </div>
+                    fact={fact}
+                    onShowHistory={handleShowHistory}
+                  />
                 ))}
               </div>
             )}
