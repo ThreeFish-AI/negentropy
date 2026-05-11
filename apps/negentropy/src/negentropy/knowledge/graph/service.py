@@ -64,6 +64,39 @@ logger = get_logger("negentropy.knowledge.graph_service")
 
 
 @dataclass
+class _LLMCircuitBreaker:
+    """Simplified circuit breaker (Nygard, "Release It!", 2018) for KG build LLM calls.
+
+    Two-state model: CLOSED (normal) → OPEN (skip LLM, use fallback directly).
+    No HALF-OPEN state: KG builds are finite batches; the LLM either works or it
+    doesn't within the build window.
+
+    failure_threshold: consecutive LLM failures before opening the circuit.
+    Once open, all remaining chunks use fallback extractors (regex/cooccurrence)
+    which complete in <1s instead of 30-90s per LLM call.
+    """
+
+    consecutive_failures: int = 0
+    failure_threshold: int = 3
+    is_open: bool = False
+
+    def record_failure(self) -> bool:
+        """Record a failure. Returns True on CLOSED→OPEN transition."""
+        self.consecutive_failures += 1
+        if self.consecutive_failures >= self.failure_threshold and not self.is_open:
+            self.is_open = True
+            return True
+        return False
+
+    def record_success(self) -> None:
+        self.consecutive_failures = 0
+        # Once open, stay open — two-state model is CLOSED→OPEN only.
+
+    def should_skip_llm(self) -> bool:
+        return self.is_open
+
+
+@dataclass
 class BuildRunContext:
     """_init_build_run → _execute_build 的上下文传递物"""
 
@@ -396,6 +429,7 @@ class GraphService:
             all_relations: list[GraphEdge] = []
             chunks_processed = 0
             failed_chunk_count = 0
+            chunks_fallback = 0
             total_chunks = len(chunks)
 
             batch_size = build_config.batch_size
@@ -404,8 +438,14 @@ class GraphService:
             # 单 chunk LLM 提取超时（秒）：包裹 entity / relation extractor.extract
             # 防御场景：单条 chunk LLM 调用 hang 住会阻塞整个 batch 的 asyncio.gather，
             # 上层无心跳 → SSE 端点 progress 静默 → 前端误判"卡死"。
-            # 60s 经验值：覆盖 95P 长 chunk + 3 次指数退避（litellm 内部 1+2+4=7s）后仍有冗余。
-            chunk_extract_timeout = 60.0
+            # 90s 严格大于内层超时预算（2 retries × 30s litellm timeout + 1s backoff ≈ 61s），
+            # 确保内层重试 + fallback 在外层 wait_for 触发前完成。
+            chunk_extract_timeout = 90.0
+
+            # 断路器 (Nygard, "Release It!", 2018, Ch.5)：连续 LLM 失败达到阈值后，
+            # 跳过 LLM 直接使用 fallback 提取器（regex/cooccurrence），避免每个 chunk
+            # 白等 30-90s LLM 超时。两态模型 CLOSED→OPEN，无 HALF-OPEN（构建是有限批次）。
+            circuit_breaker = _LLMCircuitBreaker(failure_threshold=3)
 
             # 阶段化进度上报：把当前阶段元数据写入 warnings JSONB 的最后一条 _phase 条目，
             # SSE 端点透传后由前端 KgBuildProgressPill 解析渲染中文标签。
@@ -535,17 +575,23 @@ class GraphService:
 
             async def process_chunk(
                 chunk: dict[str, Any],
-                _retries: int = 1,
             ) -> tuple[list[GraphNode], list[GraphEdge]]:
-                """处理单个知识块，LLM 提取失败时重试一次 (Nygard, 2018)。
+                """处理单个知识块，LLM 提取失败时降级到 fallback 提取器。
 
-                LLM 调用使用 ``asyncio.wait_for`` 包裹 ``chunk_extract_timeout`` 秒超时，
-                避免单 chunk hang 阻塞整批 ``asyncio.gather``。重试时间窗内仍受 wait_for 约束。
+                韧性机制（三层防御）：
+                1. **断路器 fast-path**：连续 LLM 失败 ≥ threshold 后，跳过 LLM 直接
+                   使用 fallback（regex/cooccurrence），避免剩余 chunk 白等 30-90s。
+                2. **超时降级**：单个 extractor 超时后不重试整个 chunk（浪费 120s），
+                   而是直接调用 fallback 提取器获取基本实体/关系。
+                3. **部分结果保留**：实体提取成功 + 关系提取超时时，保留实体并使用
+                   cooccurrence fallback 获取关系，而非丢弃两者。
 
                 取消检查点（R-8）：协程入口仅查 in-memory event（O(1) dict lookup），
                 **不查 DB**——chunk 数可能 1000+，DB SELECT 会成压力；DB 兜底由
                 emit_phase 阶段边界承担（最长 1 个 phase 周期感知）。
                 """
+                nonlocal chunks_fallback
+
                 if is_cancelled(run_id):
                     raise PipelineCancelled(run_id, last_stage="extracting")
 
@@ -560,7 +606,20 @@ class GraphService:
                         run_id=run_id,
                         chunk_id=chunk_id,
                         content_length=len(text),
+                        circuit_open=circuit_breaker.is_open,
                     )
+
+                    # ── 断路器 fast-path：跳过 LLM，直接 fallback ──
+                    if circuit_breaker.should_skip_llm():
+                        chunks_fallback += 1
+                        return await _fallback_extract_chunk(text, chunk_id)
+
+                    # ── 正常 LLM 提取路径 ──
+                    # 实体提取与关系提取拆分为独立 try/except，实现部分结果保留：
+                    # - 实体成功 + 关系超时 → 保留实体，关系走 fallback
+                    # - 实体超时 → 整个 chunk 走 fallback
+                    entities: list[GraphNode] = []
+                    relations: list[GraphEdge] = []
 
                     try:
                         # 提取实体（带超时）
@@ -568,41 +627,111 @@ class GraphService:
                             entity_extractor.extract(text, corpus_id),
                             timeout=chunk_extract_timeout,
                         )
-
                         # 过滤低置信度实体
                         min_conf = build_config.min_entity_confidence
                         entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
+                    except (TimeoutError, Exception) as exc:
+                        if isinstance(exc, PipelineCancelled):
+                            raise
+                        # 实体提取失败：记录失败 + 整个 chunk 走 fallback
+                        just_opened = circuit_breaker.record_failure()
+                        if just_opened:
+                            logger.warning(
+                                "llm_circuit_breaker_opened",
+                                run_id=run_id,
+                                consecutive_failures=circuit_breaker.consecutive_failures,
+                            )
+                        logger.warning(
+                            "chunk_entity_extraction_timeout_using_fallback",
+                            run_id=run_id,
+                            chunk_id=chunk_id,
+                            timeout_s=chunk_extract_timeout,
+                        )
+                        chunks_fallback += 1
+                        return await _fallback_extract_chunk(text, chunk_id)
 
-                        # 提取关系（带超时）
+                    # 实体提取成功 → 尝试关系提取
+                    try:
                         relations = await asyncio.wait_for(
                             relation_extractor.extract(entities, text),
                             timeout=chunk_extract_timeout,
                         )
-
                         # 过滤低置信度关系
                         relations = [
                             r
                             for r in relations
                             if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
                         ]
-
+                        # LLM 全部成功 → 重置断路器
+                        circuit_breaker.record_success()
                         return entities, relations
                     except (TimeoutError, Exception) as exc:
-                        # 取消信号短路（ISSUE-080）：PipelineCancelled 不参与 retry，
-                        # 避免在已取消语境下浪费 1 次 LLM 调用窗口（最多 2×60s）。
                         if isinstance(exc, PipelineCancelled):
                             raise
-                        if isinstance(exc, TimeoutError):
+                        # 关系提取失败：保留已提取的实体，关系走 cooccurrence fallback
+                        just_opened = circuit_breaker.record_failure()
+                        if just_opened:
                             logger.warning(
-                                "chunk_processing_timeout",
+                                "llm_circuit_breaker_opened",
+                                run_id=run_id,
+                                consecutive_failures=circuit_breaker.consecutive_failures,
+                            )
+                        logger.warning(
+                            "chunk_relation_extraction_timeout_preserving_entities",
+                            run_id=run_id,
+                            chunk_id=chunk_id,
+                            entity_count=len(entities),
+                            timeout_s=chunk_extract_timeout,
+                        )
+                        chunks_fallback += 1
+                        try:
+                            from .strategy import CooccurrenceRelationExtractor
+
+                            relations = await CooccurrenceRelationExtractor().extract(entities, text)
+                            relations = [
+                                r
+                                for r in relations
+                                if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
+                            ]
+                        except Exception as fallback_exc:
+                            logger.error(
+                                "cooccurrence_fallback_also_failed",
                                 run_id=run_id,
                                 chunk_id=chunk_id,
-                                timeout_s=chunk_extract_timeout,
+                                error=str(fallback_exc),
                             )
-                        if _retries > 0:
-                            await asyncio.sleep(1.0)
-                            return await process_chunk(chunk, _retries - 1)
-                        raise
+                        return entities, relations
+
+            async def _fallback_extract_chunk(
+                text: str,
+                chunk_id: str,
+            ) -> tuple[list[GraphNode], list[GraphEdge]]:
+                """使用 fallback 提取器（regex + cooccurrence）处理 chunk。
+
+                无 LLM 调用，纯本地计算，完成时间 <1s。质量低于 LLM 提取，
+                但保证每个 chunk 至少产出基本实体/关系，避免空图。
+                """
+                from .strategy import CooccurrenceRelationExtractor, RegexEntityExtractor
+
+                try:
+                    entities = await RegexEntityExtractor().extract(text, corpus_id)
+                    min_conf = build_config.min_entity_confidence
+                    entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
+                    relations = await CooccurrenceRelationExtractor().extract(entities, text)
+                    relations = [
+                        r
+                        for r in relations
+                        if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
+                    ]
+                    return entities, relations
+                except Exception as exc:
+                    logger.error(
+                        "fallback_extraction_failed",
+                        run_id=run_id,
+                        chunk_id=chunk_id,
+                        error=str(exc),
+                    )
+                    raise
 
             # 阶段 1：实体/关系抽取（chunk 循环占整体进度 0.0 → 0.80）
             await emit_phase(PHASE_EXTRACTING, 0.0, processed=0, total=total_chunks)
@@ -954,6 +1083,8 @@ class GraphService:
                 avg_confidence=round(avg_conf, 4),
                 chunks_processed=chunks_processed,
                 chunks_failed=failed_chunk_count,
+                chunks_fallback=chunks_fallback,
+                llm_circuit_opened=circuit_breaker.is_open,
                 build_duration_ms=round(elapsed * 1000, 1),
                 algorithm_warnings=len(build_warnings),
                 community_levels=len(levels_data),
@@ -967,6 +1098,8 @@ class GraphService:
             # 落入终态 warnings 会污染历史检视（与 _metrics 同型 sentinel 区分）。
             persisted_warnings: list[dict[str, Any]] = _strip_phase_entries(build_warnings)
             persisted_warnings.append({"_metrics": build_metrics.to_dict()})
+            if circuit_breaker.is_open:
+                persisted_warnings.append({"_circuit_opened": True})
             await build_repo.update_build_run(
                 run_id=run_uuid,
                 status="completed",

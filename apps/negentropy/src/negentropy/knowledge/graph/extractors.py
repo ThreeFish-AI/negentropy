@@ -152,10 +152,10 @@ Output as JSON with the following structure:
         self,
         model: str | None = None,
         temperature: float = 0.0,
-        max_retries: int = 3,
+        max_retries: int = 2,
         fallback_to_regex: bool = True,
         schema: Any | None = None,
-        llm_timeout: float = 60.0,
+        llm_timeout: float = 30.0,
     ) -> None:
         """初始化 LLM 实体提取器
 
@@ -165,9 +165,9 @@ Output as JSON with the following structure:
             max_retries: 最大重试次数
             fallback_to_regex: 失败时是否回退到正则提取器
             schema: ExtractionSchema 实例，用于约束提取类型
-            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。litellm 默认无 client-level
-                超时；此值与 service.process_chunk 外层 ``asyncio.wait_for`` 形成双重防御，
-                避免单次 LLM 调用 hang 阻塞整个 build。覆盖 95P 长 chunk 后仍有冗余。
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。需严格小于 service 层
+                ``chunk_extract_timeout``，确保内层重试 + fallback 在外层 wait_for 触发前完成。
+                30s × 2 retries + 1s backoff ≈ 61s < 90s outer timeout.
         """
         # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
         # 因为 __init__ 是同步的，无法调用异步 DB 查询
@@ -373,7 +373,7 @@ Output as JSON with the following structure:
                     error=str(exc),
                     timeout_seconds=self._llm_timeout,
                 )
-                await asyncio.sleep(2**attempt)  # 指数退避
+                await asyncio.sleep(1.0)  # 固定 1s 退避，加速失败让 fallback 接管
 
         raise RuntimeError(f"LLM entity extraction failed after {self._max_retries} retries: {last_error}")
 
@@ -520,10 +520,10 @@ Output as JSON with the following structure:
         self,
         model: str | None = None,
         temperature: float = 0.0,
-        max_retries: int = 3,
+        max_retries: int = 2,
         fallback_to_cooccurrence: bool = True,
         schema: Any | None = None,
-        llm_timeout: float = 60.0,
+        llm_timeout: float = 30.0,
     ) -> None:
         """初始化 LLM 关系提取器
 
@@ -533,8 +533,9 @@ Output as JSON with the following structure:
             max_retries: 最大重试次数
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
             schema: ExtractionSchema 实例，用于约束关系类型
-            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。同 LLMEntityExtractor
-                语义：与 service.process_chunk 外层 wait_for 形成双重防御。
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。需严格小于 service 层
+                ``chunk_extract_timeout``，确保内层重试 + fallback 在外层 wait_for 触发前完成。
+                同 LLMEntityExtractor 语义。
         """
         # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
         self._explicit_model = model
@@ -769,7 +770,7 @@ Output as JSON with the following structure:
                     error=str(exc),
                     timeout_seconds=self._llm_timeout,
                 )
-                await asyncio.sleep(2**attempt)
+                await asyncio.sleep(1.0)  # 固定 1s 退避，加速失败让 fallback 接管
 
         raise RuntimeError(f"LLM relation extraction failed after {self._max_retries} retries: {last_error}")
 
