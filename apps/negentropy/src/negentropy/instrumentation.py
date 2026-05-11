@@ -35,36 +35,95 @@ def _normalize_model_name(model: str | None) -> str | None:
 # vendor 与裸名的单一事实源：``negentropy.model_names``。本文件仅作 OTel 注入。
 
 
+def _extract_response_model(response_obj: Any) -> str | None:
+    """从 LiteLLM response 对象中提取 model 字段，兼容 dict / object 两种形态。"""
+    if response_obj is None:
+        return None
+    if hasattr(response_obj, "get"):
+        try:
+            val = response_obj.get("model")
+            if isinstance(val, str):
+                return val
+        except Exception:
+            pass
+    val = getattr(response_obj, "model", None)
+    return val if isinstance(val, str) else None
+
+
+def _apply_model_normalization(span: Any, kwargs: dict, response_obj: Any) -> None:
+    """归一化模型名 + 注入 cost，确保 Langfuse 聚合到单一裸名行。
+
+    唯一写入 ``gen_ai.request.model``、``gen_ai.response.model`` 和
+    ``langfuse.observation.model.name`` 的入口。``_inject_genai_semconv_attrs``
+    不再写入 model 相关属性。
+    """
+    model = kwargs.get("model")
+    normalized_model = _normalize_model_name(model) if model else None
+    response_model = _extract_response_model(response_obj)
+    normalized_response_model = _normalize_model_name(response_model) if response_model else None
+
+    if not _is_writable_span(span):
+        return
+
+    # 覆盖 LiteLLM 原始写入的 request/response model（归一化裸名）
+    if normalized_model:
+        _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
+    if normalized_response_model:
+        _safe_set_span_attribute(span, "gen_ai.response.model", normalized_response_model)
+
+    # vendor 单一事实源：原串前缀优先，否则裸名系族识别。
+    system = extract_vendor(model) or extract_vendor(response_model)
+    if system:
+        _safe_set_span_attribute(span, "gen_ai.system", system)
+
+    # Langfuse 私有强制覆盖键：最高优先级，确保 Model Costs 视图收敛到同一裸名行。
+    langfuse_model = normalized_response_model or normalized_model
+    if langfuse_model:
+        _safe_set_span_attribute(span, "langfuse.observation.model.name", langfuse_model)
+
+    # 诊断字段：保留原始调度模型名，便于排查。
+    if model:
+        _safe_set_span_attribute(span, "gen_ai.original_model", str(model))
+    if response_model and str(response_model) != str(model):
+        _safe_set_span_attribute(span, "gen_ai.original_response_model", str(response_model))
+
+    # Cost
+    cost = _extract_total_cost(kwargs, response_obj)
+    if cost is not None:
+        _safe_set_span_attribute(span, "gen_ai.usage.cost", cost)
+        _safe_set_span_attribute(
+            span,
+            "langfuse.observation.cost_details",
+            json.dumps({"total": cost}),
+        )
+
+    # 补全 OTel GenAI semconv 1.28+ 非模型属性
+    _inject_genai_semconv_attrs(span, kwargs, response_obj)
+
+
 def _inject_genai_semconv_attrs(
     span: Any,
     kwargs: dict,
     response_obj: Any,
 ) -> None:
-    """在 LLM span 上写入 OpenTelemetry GenAI semconv 1.28+ 标准属性。
+    """在 LLM span 上写入 OTel GenAI semconv 1.28+ 非模型标准属性。
 
     涵盖 attribute（fail-soft，单个失败不影响其他）：
-        gen_ai.system, gen_ai.operation.name, gen_ai.request.model, gen_ai.response.model,
+        gen_ai.operation.name,
         gen_ai.request.temperature, gen_ai.request.top_p, gen_ai.request.max_tokens,
         gen_ai.usage.input_tokens, gen_ai.usage.output_tokens,
         gen_ai.response.id, gen_ai.response.finish_reasons
 
-    本函数是幂等的（重复调用同 span 仅覆盖同名 attribute）。
+    模型属性（gen_ai.request.model / gen_ai.response.model /
+    gen_ai.system / langfuse.observation.model.name）由
+    ``_apply_model_normalization`` 统一写入，本函数不再涉及。
     """
     if not _is_writable_span(span):
         return
 
     try:
-        model = kwargs.get("model")
-        normalized_model = _normalize_model_name(model) if model else None
-        # vendor 优先用原串前缀（最可靠），落空再用裸名系族识别。
-        system = extract_vendor(model) or extract_vendor(normalized_model)
-
-        if system:
-            _safe_set_span_attribute(span, "gen_ai.system", system)
-        # 当前 negentropy 仅走 chat completion 链路；TODO: 区分 embedding / tool_use
+        # gen_ai.system 已由 _apply_model_normalization 写入，此处不重复
         _safe_set_span_attribute(span, "gen_ai.operation.name", "chat")
-        if normalized_model:
-            _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
 
         # 请求参数（仅当存在时上报）
         for key, attr in (
@@ -83,18 +142,6 @@ def _inject_genai_semconv_attrs(
 
         # 响应字段
         if response_obj is not None:
-            response_model = None
-            if hasattr(response_obj, "get"):
-                try:
-                    response_model = response_obj.get("model")
-                except Exception:
-                    response_model = None
-            if response_model is None:
-                response_model = getattr(response_obj, "model", None)
-            normalized_response_model = _normalize_model_name(response_model) if response_model else None
-            if normalized_response_model:
-                _safe_set_span_attribute(span, "gen_ai.response.model", normalized_response_model)
-
             response_id = None
             if hasattr(response_obj, "get"):
                 try:
@@ -138,7 +185,6 @@ def _inject_genai_semconv_attrs(
                     finish_reasons,
                 )
     except Exception:
-        # fail-soft：观测属性丢失不能影响 LLM 主路径
         pass
 
 
@@ -356,69 +402,17 @@ def patch_litellm_otel_cost() -> None:
         if not _is_writable_span(span):
             return
 
-        original_set_attributes(self, span, kwargs, response_obj)
+        # 原始方法可能因 standard_logging_object 缺失等原因内部失败，
+        # 但它已经将 gen_ai.request.model = kwargs["model"]（原始值如
+        # "openai/gpt-5-mini"）写入 span。包裹 try/except 确保后续归一化
+        # 始终执行，覆盖原始值。
         try:
-            # 模型名归一化用于 Langfuse Model Costs 视图聚合。
-            # 同 key set_attribute 是覆盖语义，无条件写以确保 alias 表生效。
-            model = kwargs.get("model")
-            normalized_model = _normalize_model_name(model) if model else None
-            response_model = None
-            if response_obj is not None and hasattr(response_obj, "get"):
-                try:
-                    response_model = response_obj.get("model")
-                except Exception:
-                    response_model = None
-            if response_model is None and response_obj is not None:
-                response_model = getattr(response_obj, "model", None)
-            normalized_response_model = _normalize_model_name(response_model) if response_model else None
+            original_set_attributes(self, span, kwargs, response_obj)
+        except Exception:
+            pass
 
-            if not _is_writable_span(span):
-                return
-
-            if normalized_model:
-                _safe_set_span_attribute(span, "gen_ai.request.model", normalized_model)
-            if normalized_response_model:
-                _safe_set_span_attribute(span, "gen_ai.response.model", normalized_response_model)
-
-            # vendor 单一事实源：原串前缀优先，否则裸名系族识别。
-            system = extract_vendor(model) or extract_vendor(response_model)
-            if system:
-                _safe_set_span_attribute(span, "gen_ai.system", system)
-
-            # Langfuse 私有强制覆盖键：胜过 ai.response.model / gen_ai.response.model，
-            # 让 Model Costs 视图收敛到同一裸名行。优先用 response.model（含具体版本，
-            # 经归一化后仍是裸名），落空再用 request.model。
-            langfuse_model = normalized_response_model or normalized_model
-            if langfuse_model:
-                _safe_set_span_attribute(span, "langfuse.observation.model.name", langfuse_model)
-
-            # 保留诊断：原始字符串挂在 span 上，便于排查「实际调用了哪个具体版本」，
-            # 与归一化后的聚合键并存不冲突。
-            # - request 侧：写 gen_ai.original_model，保留 vendor/ 前缀等调度信息；
-            # - response 侧：归一化前的 response.model 才含服务端实际版本（如
-            #   `gpt-5-mini-2025-08-07`），仅当与 request 不同（即归一化丢了信息）
-            #   才单独写一个键，避免冗余。
-            if model:
-                _safe_set_span_attribute(span, "gen_ai.original_model", str(model))
-            if response_model and str(response_model) != str(model):
-                _safe_set_span_attribute(
-                    span,
-                    "gen_ai.original_response_model",
-                    str(response_model),
-                )
-
-            # Extract and inject cost
-            cost = _extract_total_cost(kwargs, response_obj)
-            if cost is not None:
-                _safe_set_span_attribute(span, "gen_ai.usage.cost", cost)
-                _safe_set_span_attribute(
-                    span,
-                    "langfuse.observation.cost_details",
-                    json.dumps({"total": cost}),
-                )
-
-            # P3-3 · OTel GenAI semconv 1.28+ 标准属性补全
-            _inject_genai_semconv_attrs(span, kwargs, response_obj)
+        try:
+            _apply_model_normalization(span, kwargs, response_obj)
         except Exception:
             pass
 
