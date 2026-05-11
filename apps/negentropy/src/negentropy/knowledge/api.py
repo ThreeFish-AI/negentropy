@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import mimetypes
 import re
@@ -190,6 +191,9 @@ if TYPE_CHECKING:
 
 logger = get_logger("negentropy.knowledge.api")
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
+
+# Fire-and-forget 后台任务强引用持有器（与 paper_kg_pipeline._BACKGROUND_TASKS 同型）
+_KG_BUILD_BG_TASKS: set[asyncio.Task[None]] = set()
 
 
 def _normalize_pipeline_stage_payloads(
@@ -3052,34 +3056,53 @@ async def build_knowledge_graph(
             extraction_schema_name=payload.extraction_schema,
         )
 
-        # 执行图谱构建
+        # Fire-and-forget：同步创建 build run 记录（<1s），立即返回 run_id，
+        # 实际构建在后台 asyncio.Task 中执行。前端通过轮询 build-runs/latest 获取进度。
         graph_service = _get_graph_service()
-        result = await graph_service.build_graph(
+        ctx = await graph_service._init_build_run(
             corpus_id=corpus_id,
             app_name=resolved_app,
             chunks=chunks,
             config=config,
         )
 
+        async def _run_build_background() -> None:
+            try:
+                result = await graph_service._execute_build(ctx)
+                logger.info(
+                    "api_graph_build_completed",
+                    corpus_id=str(corpus_id),
+                    run_id=result.run_id,
+                    entity_count=result.entity_count,
+                    relation_count=result.relation_count,
+                )
+            except Exception as exc:
+                logger.error(
+                    "api_graph_build_background_failed",
+                    corpus_id=str(corpus_id),
+                    run_id=ctx.run_id,
+                    error=str(exc),
+                )
+
+        task = asyncio.create_task(_run_build_background())
+        _KG_BUILD_BG_TASKS.add(task)
+        task.add_done_callback(_KG_BUILD_BG_TASKS.discard)
+
         logger.info(
-            "api_graph_build_completed",
+            "api_graph_build_enqueued",
             corpus_id=str(corpus_id),
-            run_id=result.run_id,
-            entity_count=result.entity_count,
-            relation_count=result.relation_count,
+            run_id=ctx.run_id,
+            chunk_count=len(chunks),
         )
 
         return GraphBuildResponse(
-            run_id=result.run_id,
-            corpus_id=result.corpus_id,
-            status=result.status,
-            entity_count=result.entity_count,
-            relation_count=result.relation_count,
-            chunks_processed=result.chunks_processed,
-            elapsed_seconds=result.elapsed_seconds,
-            error_message=result.error_message,
-            warnings=result.warnings,
-            failed_chunk_count=result.failed_chunk_count,
+            run_id=ctx.run_id,
+            corpus_id=corpus_id,
+            status="running",
+            entity_count=0,
+            relation_count=0,
+            chunks_processed=0,
+            elapsed_seconds=0.0,
         )
 
     except KnowledgeError as exc:

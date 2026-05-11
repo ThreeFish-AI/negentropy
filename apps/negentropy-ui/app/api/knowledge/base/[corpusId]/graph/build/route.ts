@@ -1,15 +1,15 @@
-import { LONG_TASK_PROXY_TIMEOUT_MS, proxyPost } from "../../../../_proxy";
+import { DEFAULT_PROXY_TIMEOUT_MS, proxyPost } from "../../../../_proxy";
 
 export async function POST(
   request: Request,
   context: { params: Promise<{ corpusId: string }> },
 ) {
   const { corpusId } = await context.params;
-  // KG build 是长任务（典型 1k chunk 数分钟）：默认 30s 不够；用长任务上限 15min。
-  // UI 通过 SSE 订阅 progress 端点拿到 SSoT，POST 即便超时也不影响最终态显示。
+  // 后端 fire-and-forget：_init_build_run 即刻返回 run_id，实际构建在后台 async Task 执行。
+  // 30s 足以覆盖 init 阶段（DB insert + extractor 创建）；进度通过轮询 build-runs/latest 获取。
   return proxyPost(
     request,
     `/knowledge/base/${encodeURIComponent(corpusId)}/graph/build`,
-    { timeoutMs: LONG_TASK_PROXY_TIMEOUT_MS },
+    { timeoutMs: DEFAULT_PROXY_TIMEOUT_MS },
   );
 }
