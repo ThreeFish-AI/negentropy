@@ -80,16 +80,17 @@ class _LLMCircuitBreaker:
     failure_threshold: int = 3
     is_open: bool = False
 
-    def record_failure(self) -> None:
+    def record_failure(self) -> bool:
+        """Record a failure. Returns True on CLOSED→OPEN transition."""
         self.consecutive_failures += 1
         if self.consecutive_failures >= self.failure_threshold and not self.is_open:
             self.is_open = True
+            return True
+        return False
 
     def record_success(self) -> None:
-        if self.consecutive_failures > 0:
-            self.consecutive_failures = 0
-        if self.is_open:
-            self.is_open = False
+        self.consecutive_failures = 0
+        # Once open, stay open — two-state model is CLOSED→OPEN only.
 
     def should_skip_llm(self) -> bool:
         return self.is_open
@@ -633,8 +634,8 @@ class GraphService:
                         if isinstance(exc, PipelineCancelled):
                             raise
                         # 实体提取失败：记录失败 + 整个 chunk 走 fallback
-                        circuit_breaker.record_failure()
-                        if circuit_breaker.is_open:
+                        just_opened = circuit_breaker.record_failure()
+                        if just_opened:
                             logger.warning(
                                 "llm_circuit_breaker_opened",
                                 run_id=run_id,
@@ -668,8 +669,8 @@ class GraphService:
                         if isinstance(exc, PipelineCancelled):
                             raise
                         # 关系提取失败：保留已提取的实体，关系走 cooccurrence fallback
-                        circuit_breaker.record_failure()
-                        if circuit_breaker.is_open:
+                        just_opened = circuit_breaker.record_failure()
+                        if just_opened:
                             logger.warning(
                                 "llm_circuit_breaker_opened",
                                 run_id=run_id,
