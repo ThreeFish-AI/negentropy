@@ -507,7 +507,16 @@ class AgeGraphRepository(GraphRepository):
         """创建实体节点
 
         将实体信息存储到 knowledge 表，并创建 Apache AGE 节点。
+
+        SQL 占位符注意事项：
+            ``:metadata::jsonb`` 这种「命名参数紧邻 PostgreSQL ``::`` cast 操作符」
+            的写法会破坏 SQLAlchemy 命名参数边界识别，导致 ``:metadata`` 未被翻译为
+            ``$N`` 而是原样发给 asyncpg，触发 ``syntax error at or near ":"``。
+            修复：改用 ``CAST(:metadata AS jsonb)`` —— CAST 函数边界清晰，与项目
+            ``update_build_run`` 等既有写法保持一致（参见 1804 行 ``CAST(:warnings AS json)``）。
         """
+        import json as _json
+
         # 更新 knowledge 表的实体字段
         confidence = entity.metadata.get("confidence", 1.0)
 
@@ -515,7 +524,7 @@ class AgeGraphRepository(GraphRepository):
             UPDATE {self._schema}.knowledge
             SET entity_type = :entity_type,
                 entity_confidence = :confidence,
-                metadata = COALESCE(metadata, '{{}}'::jsonb) || :metadata::jsonb
+                metadata = COALESCE(metadata, '{{}}'::jsonb) || CAST(:metadata AS jsonb)
             WHERE id = :entity_id
         """)
 
@@ -526,7 +535,7 @@ class AgeGraphRepository(GraphRepository):
                     "entity_id": entity.id.replace("entity:", ""),
                     "entity_type": entity.node_type,
                     "confidence": confidence,
-                    "metadata": str({"graph_label": entity.label}),
+                    "metadata": _json.dumps({"graph_label": entity.label}),
                 },
             )
             await session.commit()
@@ -545,15 +554,23 @@ class AgeGraphRepository(GraphRepository):
         entities: list[GraphNode],
         corpus_id: UUID,
     ) -> list[str]:
-        """批量创建实体节点（单 Session 批量提交，消除逐条连接池抖动）"""
+        """批量创建实体节点（单 Session 批量提交，消除逐条连接池抖动）
+
+        SQL 占位符注意事项参见 :py:meth:`create_entity` 文档：
+        ``CAST(:metadata AS jsonb)`` 取代 ``:metadata::jsonb`` 以规避 SQLAlchemy
+        命名参数边界识别异常；参数值必须用 ``json.dumps`` 序列化为合法 JSON 字符串
+        （而非 Python ``str(dict)`` 的单引号形式，否则 ``CAST`` 会再次报语法错误）。
+        """
         if not entities:
             return []
+
+        import json as _json
 
         query = text(f"""
             UPDATE {self._schema}.knowledge
             SET entity_type = :entity_type,
                 entity_confidence = :confidence,
-                metadata = COALESCE(metadata, '{{}}'::jsonb) || :metadata::jsonb
+                metadata = COALESCE(metadata, '{{}}'::jsonb) || CAST(:metadata AS jsonb)
             WHERE id = :entity_id
         """)
 
@@ -566,7 +583,7 @@ class AgeGraphRepository(GraphRepository):
                     "entity_id": entity.id.replace("entity:", ""),
                     "entity_type": entity.node_type,
                     "confidence": confidence,
-                    "metadata": str({"graph_label": entity.label}),
+                    "metadata": _json.dumps({"graph_label": entity.label}),
                 }
             )
             ids.append(entity.id)
@@ -620,12 +637,16 @@ class AgeGraphRepository(GraphRepository):
         confidence = relation.metadata.get("confidence", 1.0)
         evidence = relation.metadata.get("evidence")
 
+        # SQL 占位符注意事项：``:metadata::jsonb`` / ``:related::jsonb`` 命名参数紧邻
+        # ``::`` cast 会破坏 SQLAlchemy 命名参数边界识别（asyncpg 报 ``syntax error at or
+        # near ":"``）。统一改为 ``CAST(:name AS jsonb)``，与 ``update_build_run`` 等既有
+        # 写法保持一致。
         insert_query = text(f"""
             INSERT INTO {self._schema}.kg_relations
                 (source_id, target_id, corpus_id, app_name, relation_type,
                  weight, confidence, evidence_text, metadata, is_active)
             SELECT :source_id, :target_id, k.corpus_id, k.app_name,
-                   :relation_type, :weight, :confidence, :evidence, :metadata::jsonb, true
+                   :relation_type, :weight, :confidence, :evidence, CAST(:metadata AS jsonb), true
             FROM {self._schema}.knowledge k
             WHERE k.id = :source_id
             ON CONFLICT (source_id, target_id, relation_type) DO UPDATE SET
@@ -648,7 +669,7 @@ class AgeGraphRepository(GraphRepository):
         update_query = text(f"""
             UPDATE {self._schema}.knowledge
             SET metadata = COALESCE(metadata, '{{}}'::jsonb) ||
-                          jsonb_build_object('related_entities', :related::jsonb)
+                          jsonb_build_object('related_entities', CAST(:related AS jsonb))
             WHERE id = :source_id
         """)
 
