@@ -1,5 +1,6 @@
 from .action import Tool, ToolExecution
 from .base import DEFAULT_EMBEDDING_DIM, NEGENTROPY_SCHEMA, Base, TimestampMixin, Vector, fk
+from .builtin_tool import BuiltinTool
 from .internalization import Fact, Memory, MemoryAuditLog, MemoryAutomationConfig
 from .knowledge_runtime import KnowledgeGraphRun, KnowledgePipelineRun
 from .mcp import McpResourceTemplate, McpServer, McpTool
@@ -52,6 +53,8 @@ __all__ = [
     # Action
     "Tool",
     "ToolExecution",
+    # Builtin Tools
+    "BuiltinTool",
     # Observability
     "Trace",
     # Perception (知识)

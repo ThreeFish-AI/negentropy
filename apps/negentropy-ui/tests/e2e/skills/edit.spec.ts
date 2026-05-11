@@ -21,7 +21,7 @@ test.describe("Skills 编辑流程", () => {
 
     await expect(page.getByRole("heading", { name: "Edit Skill" })).toBeVisible();
     await expect(page.locator('input[placeholder="my-skill"]')).toHaveValue("edit-target");
-    await expect(page.locator('textarea[placeholder*="get_file"]')).toHaveValue("a\nb");
+    await expect(page.locator('textarea[placeholder*="Select from above"]')).toHaveValue("a\nb");
     await expect(page.getByTestId("skills-form-config-schema")).toContainText('"type": "object"');
     await expect(page.getByTestId("skills-form-default-config")).toContainText('"foo": "bar"');
   });

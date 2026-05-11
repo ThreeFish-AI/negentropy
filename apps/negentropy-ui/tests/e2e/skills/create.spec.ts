@@ -45,7 +45,7 @@ test.describe("Skills 创建流程", () => {
     await page.locator('input[placeholder="My Skill"]').fill("ArXiv Fetch");
     await page.locator('textarea[placeholder="Description of this skill"]').fill("Search and fetch arXiv papers");
     await page.locator('input[placeholder="general"]').fill("research");
-    await page.locator('textarea[placeholder*="get_file"]').fill("search_arxiv\nfetch_pdf");
+    await page.locator('textarea[placeholder*="Select from above"]').fill("search_arxiv\nfetch_pdf");
 
     await page.getByRole("button", { name: "Create", exact: true }).click();
 
