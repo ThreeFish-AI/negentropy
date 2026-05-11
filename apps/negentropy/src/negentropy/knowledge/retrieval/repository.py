@@ -786,7 +786,10 @@ class KnowledgeRepository:
         }
 
         if metadata_filter:
-            filters = " AND metadata @> :metadata_filter::jsonb"
+            # 使用 ``CAST(:name AS jsonb)`` 而非 ``:name::jsonb`` —— 后者命名参数紧邻
+            # PostgreSQL ``::`` cast 会触发 SQLAlchemy 命名参数边界识别异常，asyncpg
+            # 报 ``syntax error at or near ":"``。与 graph/repository.py 修复同口径。
+            filters = " AND metadata @> CAST(:metadata_filter AS jsonb)"
             params["metadata_filter"] = json.dumps(metadata_filter)
 
         stmt = text(
