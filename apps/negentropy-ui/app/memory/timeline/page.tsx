@@ -127,9 +127,9 @@ export default function MemoryTimelinePage() {
 
           <div className="flex min-h-0 flex-1 gap-6">
             {/* Users sidebar */}
-            <aside className="min-h-0 w-56 max-w-56 shrink-0 overflow-y-auto">
+            <aside className="min-h-0 w-52 shrink-0 overflow-y-auto">
               <div className="pb-4 pr-2">
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Users</h2>
                   <div className="mt-3 space-y-1.5">
                     {users.length ? (

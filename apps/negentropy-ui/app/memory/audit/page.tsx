@@ -109,7 +109,7 @@ export default function MemoryAuditPage() {
 
           <div className="flex min-h-0 flex-1 gap-6">
           {/* Users sidebar */}
-          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+          <aside className="min-h-0 w-52 shrink-0 overflow-y-auto">
             <div className="pb-4 pr-2">
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Users</h2>
@@ -128,7 +128,7 @@ export default function MemoryAuditPage() {
                           setAuditMap({});
                         }}
                       >
-                        <p className="text-xs font-semibold">
+                        <p className="truncate text-xs font-semibold">
                           {user.label || user.id}
                         </p>
                       </button>
