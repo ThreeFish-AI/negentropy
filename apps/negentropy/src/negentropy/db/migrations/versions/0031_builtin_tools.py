@@ -127,15 +127,15 @@ def upgrade() -> None:
             'system', 'public', 'google_search', 'Google Search',
             'Web search via Google Custom Search API. Provides real-time web search capabilities for agents.',
             'search', '1.0.0',
-            :config::jsonb, :credentials::jsonb, :config_schema::jsonb,
+            :config, :credentials, :config_schema,
             TRUE, TRUE
         )
         ON CONFLICT (name) DO NOTHING
     """
         ).bindparams(
-            config=config,
-            credentials=credentials,
-            config_schema=config_schema,
+            sa.bindparam("config", value=config, type_=sa.dialects.postgresql.JSONB),
+            sa.bindparam("credentials", value=credentials, type_=sa.dialects.postgresql.JSONB),
+            sa.bindparam("config_schema", value=config_schema, type_=sa.dialects.postgresql.JSONB),
         )
     )
 
