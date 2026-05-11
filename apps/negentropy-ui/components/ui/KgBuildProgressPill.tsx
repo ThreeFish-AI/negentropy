@@ -31,6 +31,8 @@ export type KgBuildProgressEvent = {
     | "running"
     | "completed"
     | "failed"
+    | "cancelling"
+    | "cancelled"
     | "idle"
     | "timeout"
     | "switched"
@@ -104,6 +106,8 @@ const STATUS_LABEL: Record<NonNullable<KgBuildProgressEvent["status"]>, string> 
   running: "构建中",
   completed: "已完成",
   failed: "失败",
+  cancelling: "取消中",
+  cancelled: "已取消",
   idle: "无活跃构建",
   timeout: "已超时",
   switched: "切换至新构建",
@@ -127,6 +131,7 @@ function isTerminal(status: KgBuildProgressEvent["status"]): boolean {
   return (
     status === "completed" ||
     status === "failed" ||
+    status === "cancelled" ||
     status === "idle" ||
     status === "timeout" ||
     status === "switched" ||
@@ -262,7 +267,7 @@ export function KgBuildProgressPill({
 
   const status = event.status ?? "pending";
   const percent = Math.max(0, Math.min(100, Math.round((event.progress_percent ?? 0) * 100)));
-  const isRunning = status === "pending" || status === "running";
+  const isRunning = status === "pending" || status === "running" || status === "cancelling";
   const isError = status === "failed" || status === "error" || status === "timeout";
   // 当处于 running 子阶段时优先显示 phase 中文标签，更精确反映"卡在哪一步"。
   // 命中未知阶段 / 非 running 状态时降级为顶层 STATUS_LABEL，保证兼容旧后端。
@@ -285,7 +290,7 @@ export function KgBuildProgressPill({
           "border-emerald-200/80 bg-emerald-50/40 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/20 dark:text-emerald-200",
         isError &&
           "border-red-200/80 bg-red-50/40 text-red-700 dark:border-red-800/60 dark:bg-red-950/20 dark:text-red-200",
-        (status === "idle" || status === "switched") &&
+        (status === "idle" || status === "switched" || status === "cancelled") &&
           "border-zinc-200/60 bg-zinc-50/40 text-zinc-600 dark:border-zinc-800/50 dark:bg-zinc-900/20 dark:text-zinc-300",
       )}
     >
@@ -295,7 +300,7 @@ export function KgBuildProgressPill({
           isRunning && "animate-pulse bg-violet-500",
           status === "completed" && "bg-emerald-500",
           isError && "bg-red-500",
-          (status === "idle" || status === "switched") && "bg-zinc-400 dark:bg-zinc-600",
+          (status === "idle" || status === "switched" || status === "cancelled") && "bg-zinc-400 dark:bg-zinc-600",
         )}
       />
       <span className="font-medium">知识图谱：{headlineLabel}</span>

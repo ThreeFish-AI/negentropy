@@ -391,6 +391,12 @@ export const getPipelineStatusColor = (status?: string): string => {
       return "bg-zinc-500";
     case "skipped":
       return "bg-zinc-300 dark:bg-zinc-600";
+    case "idle":
+      return "bg-zinc-500";
+    case "timeout":
+      return "bg-rose-500";
+    case "switched":
+      return "bg-zinc-500";
     default:
       return "bg-zinc-400";
   }
@@ -418,6 +424,12 @@ export const getPipelineStatusTextColor = (status?: string): string => {
     case "cancelling":
       return "text-amber-700 dark:text-amber-300";
     case "cancelled":
+      return "text-zinc-600 dark:text-zinc-400";
+    case "idle":
+      return "text-zinc-600 dark:text-zinc-400";
+    case "timeout":
+      return "text-rose-600 dark:text-rose-400";
+    case "switched":
       return "text-zinc-600 dark:text-zinc-400";
     default:
       return "text-zinc-500 dark:text-zinc-400";

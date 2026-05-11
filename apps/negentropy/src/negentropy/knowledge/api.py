@@ -3496,6 +3496,8 @@ async def get_graph_build_history(
                 "started_at": run.started_at.isoformat() if run.started_at else None,
                 "completed_at": run.completed_at.isoformat() if run.completed_at else None,
                 "created_at": run.created_at.isoformat() if run.created_at else None,
+                "progress_percent": float(run.progress_percent) if run.progress_percent else 0.0,
+                "warnings": run.warnings,
             }
             for run in runs
         ],

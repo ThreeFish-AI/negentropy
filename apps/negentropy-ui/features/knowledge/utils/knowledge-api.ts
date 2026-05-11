@@ -731,7 +731,9 @@ export type PipelineStageStatus =
   | "running"
   | "completed"
   | "failed"
-  | "skipped";
+  | "skipped"
+  | "cancelling"
+  | "cancelled";
 
 // Pipeline 操作类型
 export type PipelineOperation =
