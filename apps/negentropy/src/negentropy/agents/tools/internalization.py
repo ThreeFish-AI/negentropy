@@ -24,12 +24,27 @@ async def save_to_memory(content: str, tags: list[str] | None, tool_context: Too
     """将内容保存到长期记忆。
 
     Args:
-        content: 要保存的内容
+        content: 必须是自然语言描述句，禁止 JSON/结构化数据。
+            示例："用户偏好 TypeScript 前端开发"
+            错误示例：{"type":"preference","key":"lang","value":"TypeScript"}
         tags: 可选的标签列表
 
     Returns:
         保存结果
     """
+    from negentropy.engine.governance.content_validator import validate_memory_content
+
+    result = validate_memory_content(content)
+    if not result.is_natural_language:
+        return {
+            "status": "failed",
+            "error": (
+                f"save_to_memory content 必须是自然语言描述，而非 {result.detected_format}。"
+                "示例：'用户偏好 async-first 架构' 而非 JSON 对象。"
+                "结构化数据请使用 update_knowledge_graph。"
+            ),
+        }
+
     metadata = {"tags": tags or []}
     app_name = settings.app_name
     user_id = "anonymous"
