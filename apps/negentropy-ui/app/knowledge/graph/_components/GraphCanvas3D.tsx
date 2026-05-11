@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 
@@ -66,6 +66,7 @@ export function GraphCanvas3D({
   truncateThreshold = 500,
 }: GraphCanvas3DProps) {
   const fgRef = useRef(null);
+  const [expanding, setExpanding] = useState(false);
   const propsRef = useRef({ corpusId, asOf, onNodeClick, onSubgraphMerge });
   const { resolvedTheme } = useTheme();
 
@@ -107,8 +108,8 @@ export function GraphCanvas3D({
   }, []);
 
   const handleNodeRightClick = useCallback(async (node: { id: string | number }) => {
-    const { corpusId: cid, asOf: ao, onSubgraphMerge: merge } = propsRef.current;
-    if (!merge) return;
+    const { corpusId: cid, asOf: ao } = propsRef.current;
+    setExpanding(true);
     try {
       const data = await fetchGraphSubgraph(cid, {
         centerId: String(node.id),
@@ -118,9 +119,11 @@ export function GraphCanvas3D({
       });
       const latest = propsRef.current;
       if (latest.corpusId !== cid || latest.asOf !== ao) return;
-      merge(data.nodes, data.edges);
+      latest.onSubgraphMerge?.(data.nodes, data.edges);
     } catch (err) {
       console.error("3d_subgraph_fetch_error", err);
+    } finally {
+      setExpanding(false);
     }
   }, []);
 
@@ -177,6 +180,11 @@ export function GraphCanvas3D({
         {truncated && (
           <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
             已按 importance 截断（右键节点展开邻居）
+          </span>
+        )}
+        {expanding && (
+          <span className="rounded bg-emerald-500/90 px-2 py-1 text-white">
+            加载子图…
           </span>
         )}
       </div>
