@@ -121,19 +121,10 @@ export function ToolFormDialog({
     setTesting(true);
     setTestResult(null);
     try {
-      // 先保存当前凭证
-      const saveResponse = await fetch(`/api/interface/tools/${tool.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: configFields, credentials: credentialFields }),
-      });
-      if (!saveResponse.ok) {
-        toast.error("Failed to save before testing");
-        return;
-      }
-
       const testResponse = await fetch(`/api/interface/tools/${tool.id}/test`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: configFields, credentials: credentialFields }),
       });
       const result = await testResponse.json();
       setTestResult(result);

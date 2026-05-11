@@ -43,6 +43,7 @@ from negentropy.models.vendor_config import VendorConfig
 
 from .execution import McpToolExecutionService
 from .permissions import check_plugin_access, check_plugin_ownership, get_visible_plugin_ids
+from .tool_resolver import invalidate_tool_cache
 
 logger = get_logger("negentropy.interface.api")
 router = APIRouter(prefix="/interface", tags=["interface"])
@@ -146,6 +147,13 @@ class BuiltinToolTestResponse(BaseModel):
     success: bool
     message: str
     latency_ms: float | None = None
+
+
+class BuiltinToolTestRequest(BaseModel):
+    """测试时可选的内联配置，避免必须先保存再测试"""
+
+    config: dict[str, Any] | None = None
+    credentials: dict[str, Any] | None = None
 
 
 def _mask_credentials(credentials: dict[str, Any]) -> dict[str, Any]:
@@ -1274,7 +1282,9 @@ async def list_available_tools(
         # Builtin tools
         visible_tool_ids = await get_visible_plugin_ids(db, "builtin_tool", user)
         if visible_tool_ids:
-            stmt = select(BuiltinTool).where(BuiltinTool.id.in_(visible_tool_ids))
+            stmt = select(BuiltinTool).where(
+                and_(BuiltinTool.id.in_(visible_tool_ids), BuiltinTool.is_enabled.is_(True))
+            )
             result = await db.execute(stmt)
             builtin_tools = result.scalars().all()
             for t in builtin_tools:
@@ -1354,6 +1364,7 @@ async def create_builtin_tool(
             raise HTTPException(status_code=409, detail=f"Tool with name '{payload.name}' already exists") from exc
         await db.refresh(tool)
 
+    invalidate_tool_cache(payload.name)
     return _builtin_tool_to_response(tool)
 
 
@@ -1400,6 +1411,7 @@ async def update_builtin_tool(
         await db.commit()
         await db.refresh(tool)
 
+    invalidate_tool_cache(tool.name)
     return _builtin_tool_to_response(tool)
 
 
@@ -1421,16 +1433,20 @@ async def delete_builtin_tool(
         if tool.is_system:
             raise HTTPException(status_code=403, detail="System tools cannot be deleted, only disabled")
 
+        tool_name = tool.name
         await db.delete(tool)
         await db.commit()
+
+    invalidate_tool_cache(tool_name)
 
 
 @router.post("/tools/{tool_id}:test", response_model=BuiltinToolTestResponse)
 async def test_builtin_tool(
     tool_id: UUID,
+    payload: BuiltinToolTestRequest | None = None,
     user: AuthUser = Depends(get_current_user),
 ) -> BuiltinToolTestResponse:
-    """测试工具配置连通性"""
+    """测试工具配置连通性。支持通过请求体内联传入 config/credentials，无需先保存即可测试。"""
     import time
 
     import httpx
@@ -1444,8 +1460,10 @@ async def test_builtin_tool(
         if not tool:
             raise HTTPException(status_code=404, detail="Tool not found")
 
-    config = tool.config or {}
-    credentials = tool.credentials or {}
+    # 请求体内联参数优先，回退到 DB 存储值
+    inline = payload or BuiltinToolTestRequest()
+    config = inline.config if inline.config is not None else (tool.config or {})
+    credentials = inline.credentials if inline.credentials is not None else (tool.credentials or {})
 
     if tool.tool_type == "search" and tool.name == "google_search":
         api_key = credentials.get("api_key", "")
