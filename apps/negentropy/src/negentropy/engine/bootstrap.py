@@ -470,14 +470,30 @@ def apply_adk_patches():
                 # cancelling 超 5min 未收敛 → cancelled; running 超 30min → failed
                 async def _pipeline_watchdog_tick() -> None:
                     from negentropy.knowledge.dao import KnowledgeRunDao
+                    from negentropy.knowledge.graph.repository import AgeGraphRepository
 
+                    # KB Pipeline Runs
                     dao = KnowledgeRunDao()
                     result = await dao.finalize_stale_pipeline_runs()
-                    if result["forced_failed"] > 0 or result["forced_cancelled"] > 0:
+
+                    # KG Build Runs（独立 try/except，避免 DB 抖动影响 KB 清理路径）
+                    kg_result: dict[str, int] = {"forced_failed": 0, "forced_cancelled": 0}
+                    try:
+                        kg_repo = AgeGraphRepository()
+                        kg_result = await kg_repo.finalize_stale_kg_build_runs()
+                    except Exception:
+                        logger.exception("kg_watchdog_error")
+
+                    forced_failed = result["forced_failed"] + kg_result.get("forced_failed", 0)
+                    forced_cancelled = result["forced_cancelled"] + kg_result.get("forced_cancelled", 0)
+
+                    if forced_failed > 0 or forced_cancelled > 0:
                         logger.info(
                             "pipeline_watchdog_finalized",
-                            forced_failed=result["forced_failed"],
-                            forced_cancelled=result["forced_cancelled"],
+                            forced_failed=forced_failed,
+                            forced_cancelled=forced_cancelled,
+                            kb=result,
+                            kg=kg_result,
                         )
 
                 scheduler.register(
