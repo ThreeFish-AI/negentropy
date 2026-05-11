@@ -1806,7 +1806,20 @@ class AgeGraphRepository(GraphRepository):
         warnings: list[dict[str, Any]] | None = None,
         processed_chunk_ids: list[str] | None = None,
     ) -> None:
-        """更新构建运行状态
+        """更新构建运行状态。
+
+        状态机不变量（ISSUE-080）：
+        - 终态写入（``completed`` / ``failed`` / ``cancelled``）永远允许；
+        - 非终态写入（如 ``running`` 进度上报）仅当 DB 当前**不在终态/cancelling** 时
+          才生效。这避免 build task 的进度上报把取消 API 已写入的 ``cancelling``
+          状态回滚为 ``running``，导致 watchdog 命中失败、跨 worker DB 兜底失明、
+          UI 永远卡 CANCELLING 的连锁缺陷。
+        - ``completed_at`` 仅在写入终态时设为 ``NOW()``；非终态保留旧值，避免
+          被错误清零（既影响 watchdog 阈值计算，也丢失 cancel 请求时间锚）。
+
+        参考: M. Kleppmann, *Designing Data-Intensive Applications*, ch. 9 §9.4 —
+        以 DB 为权威协调源时，状态机迁移合法性必须在 SQL 层显式守护，避免
+        多写入路径（cancel API、build task heartbeat、watchdog）形成竞态覆盖。
 
         Args:
             progress_percent: 构建进度 0.0-1.0，用于前端进度条 (Nygard, 2018)
@@ -1815,6 +1828,9 @@ class AgeGraphRepository(GraphRepository):
         """
         import json as _json
 
+        # WHERE 子句守卫状态机：
+        # - 终态写入（含 cancel 异常处理路径）无条件允许；
+        # - 非终态写入要求 DB 当前不在终态/cancelling，否则零行 UPDATE 静默忽略。
         query = text(f"""
             UPDATE {self._schema}.kg_build_runs
             SET status = :status,
@@ -1824,12 +1840,19 @@ class AgeGraphRepository(GraphRepository):
                 progress_percent = COALESCE(:progress, progress_percent),
                 warnings = COALESCE(CAST(:warnings AS json), warnings),
                 processed_chunk_ids = COALESCE(CAST(:chunk_ids AS json), processed_chunk_ids),
-                completed_at = CASE WHEN CAST(:status AS varchar) IN ('completed', 'failed', 'cancelled') THEN NOW() END
+                completed_at = CASE
+                    WHEN CAST(:status AS varchar) IN ('completed', 'failed', 'cancelled') THEN NOW()
+                    ELSE completed_at
+                END
             WHERE id = :run_id
+              AND (
+                CAST(:status AS varchar) IN ('completed', 'failed', 'cancelled')
+                OR status NOT IN ('completed', 'failed', 'cancelled', 'cancelling')
+              )
         """)
 
         async with self._session_scope() as session:
-            await session.execute(
+            result = await session.execute(
                 query,
                 {
                     "run_id": str(run_id),
@@ -1843,6 +1866,17 @@ class AgeGraphRepository(GraphRepository):
                 },
             )
             await session.commit()
+            rowcount = result.rowcount or 0
+
+        if rowcount == 0:
+            # 零行 UPDATE：通常意味着 DB 已在终态/cancelling 且本次为非终态写入，
+            # 这是状态机守卫的正常拒绝路径；以 debug 级保留观测线索，便于 cancel 链路排查。
+            logger.debug(
+                "build_run_update_skipped_by_state_guard",
+                run_id=str(run_id),
+                attempted_status=status,
+            )
+            return
 
         logger.info(
             "build_run_updated",
@@ -2123,13 +2157,18 @@ class AgeGraphRepository(GraphRepository):
         self,
         *,
         app_name: str | None = None,
-        cancelling_threshold_minutes: int = 5,
+        cancelling_threshold_minutes: int = 2,
         running_threshold_minutes: int = 30,
     ) -> dict[str, int]:
         """KG 看门狗：把卡死的中间态 build_run 收敛到终态。
 
-        - `running` 超 `running_threshold_minutes` 分钟无更新 → 标记为 `failed`；
-        - `cancelling` 超 `cancelling_threshold_minutes` → 强制 `cancelled`。
+        - ``running`` 超 ``running_threshold_minutes`` 分钟无更新 → 标记为 ``failed``；
+        - ``cancelling`` 超 ``cancelling_threshold_minutes`` → 强制 ``cancelled``。
+
+        阈值（ISSUE-080）：``cancelling_threshold_minutes`` 默认从 5 → 2，配合
+        bootstrap 内 watchdog tick 间隔 60s，最坏兜底 ≤ 3 分钟。``running_threshold_minutes``
+        保持 30 分钟（保守，配合 ``update_build_run`` 修复后 ``completed_at`` 保留语义，
+        真实反映任务最后一次心跳时间而非任务启动时间）。
         """
         async with self._session_scope() as session:
             stale_msg = (

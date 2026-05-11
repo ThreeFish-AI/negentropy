@@ -467,7 +467,10 @@ def apply_adk_patches():
                 register_skill_scheduler(scheduler)
 
                 # --- watchdog: finalize stale KG/KB pipeline runs ---
-                # cancelling 超 5min 未收敛 → cancelled; running 超 30min → failed
+                # cancelling 超 2min 未收敛 → cancelled; running 超 30min → failed
+                # 设计（ISSUE-080）：``update_build_run`` SQL 守卫修复后，watchdog 仅作
+                # backstop，主路径由 build task 异常处理写终态承担。
+                # 60s tick × 2min 阈值 ≈ 最坏 3 分钟兜底，满足用户对"取消秒~分钟级生效"的期望。
                 async def _pipeline_watchdog_tick() -> None:
                     from negentropy.knowledge.dao import KnowledgeRunDao
                     from negentropy.knowledge.graph.repository import AgeGraphRepository
@@ -499,28 +502,11 @@ def apply_adk_patches():
                 scheduler.register(
                     key="pipeline_run_watchdog",
                     callback=_pipeline_watchdog_tick,
-                    interval_seconds=300,
+                    interval_seconds=60,
                 )
-
-                # --- watchdog: finalize stale KG build runs ---
-                async def _kg_build_watchdog_tick() -> None:
-                    from negentropy.knowledge.graph.repository import get_graph_repository
-
-                    repo = get_graph_repository()
-                    result = await repo.finalize_stale_kg_build_runs()
-                    if result["forced_failed"] > 0 or result["forced_cancelled"] > 0:
-                        logger.info(
-                            "kg_build_watchdog_finalized",
-                            forced_failed=result["forced_failed"],
-                            forced_cancelled=result["forced_cancelled"],
-                        )
-
-                scheduler.register(
-                    key="kg_build_watchdog",
-                    callback=_kg_build_watchdog_tick,
-                    interval_seconds=300,
-                )
-                # --- end KG build watchdog ---
+                # 注：旧版另外注册了 ``kg_build_watchdog`` 单独 tick KG 收敛——与上方
+                # ``_pipeline_watchdog_tick`` 内调用 ``finalize_stale_kg_build_runs``
+                # 完全重复。已合并到统一 watchdog，避免双倍 DB 压力。
 
                 scheduler.start()
                 # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用

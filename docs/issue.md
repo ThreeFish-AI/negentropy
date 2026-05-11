@@ -1743,5 +1743,33 @@
 - **后续防范**：
   1. 通信介质从 SSE 切换到 HTTP 轮询时，**必须**逐项审视原 SSE 在长连接内实现的状态机（发现期、run_id 锁、grace、idle 判定），不能假设“后端返回最新行”就语义等价；
   2. 凡“先 ack 入队、后写 DB 行”的 fire-and-forget 设计，前端轮询端点必须显式区分“尚未落库（pending）”与“无任何 run（idle）”两种语义，不可合并；
-  3. 任何“拿到新 run_id 但状态异常”的客户端分支，结尾必须显式更新 lock 或调用 stop，不允许“仅 setTimeout 后 return”的自旋。
+  3. 任何”拿到新 run_id 但状态异常”的客户端分支，结尾必须显式更新 lock 或调用 stop，不允许”仅 setTimeout 后 return”的自旋。
 - **同类问题影响**：项目内其他从 SSE 退化为轮询的进度上报场景（Pipeline RUNNING 看门狗、Job watcher 等）需用同一清单复核；新增「fire-and-forget + 进度查询」端点时，应将 `only_active` 类参数作为契约一部分而非可选优化。
+
+---
+
+## ISSUE-080 KG Build Run 取消信号被状态机回写覆盖，UI 永卡 CANCELLING（2026-05-11）
+
+- **表因**：`Knowledge → Pipelines` 点击取消 KG Build Run 后，Run 始终停留在 `CANCELLING` 状态，永不收敛到 `CANCELED`；后端处理是否真正中断也不可见。用户截图两条 runs 分别卡在 CANCELLING 2m42s 与 38m05s，远超已有 5-min watchdog 阈值，证明既非偶发也非”等一会就好”。
+- **根因**：5 处 bug 共谋形成”取消信号被自家进度上报反复回写”的竞态环：
+  1. **`update_build_run` SQL 无状态机守卫**（[`graph/repository.py`](../apps/negentropy/src/negentropy/knowledge/graph/repository.py)）：原 SQL `SET status = :status, completed_at = CASE WHEN :status IN (终态) THEN NOW() END WHERE id = :run_id`——`CASE` 无 `ELSE`，非终态写入直接把 `completed_at` 清零；且 `status` 无条件覆盖。取消 API 写入 `status='cancelling', completed_at=NOW()` 后，build task 下一次 `maybe_report_chunk_progress`（每 5 chunks / 10s）调用 `update_build_run(status='running', ...)` 直接把 `cancelling` 回滚为 `running`，watchdog 的 `WHERE status='cancelling'` 永远命中不到。
+  2. **`asyncio.gather(return_exceptions=True)` 吞 `PipelineCancelled`**（[`graph/service.py`](../apps/negentropy/src/negentropy/knowledge/graph/service.py)）：`PipelineCancelled` 继承 `Exception`（刻意避开 `BaseException`），被打包进 results 后按”chunk 失败”计入 `failed_chunk_count` 静默吞没，批处理循环继续遍历剩余所有 batches。
+  3. **`maybe_report_chunk_progress` 缺 cancel 守卫 + batches 之间缺 `is_cancelled` 检查**：与 Bug 1 联动，每 5 chunks/10s 就把 `cancelling` 改回 `running`。
+  4. **`process_chunk` 内 `except (TimeoutError, Exception)` 误吞并重试 cancel**：浪费 1 次 LLM 调用窗口（最多 2 × 60s）。
+  5. **Watchdog 间隔 300s + 阈值 5min（且重复注册）**：即便其他 bug 不存在，最坏兜底仍需 10 分钟；修复 Bug 1 后此处可缩紧。
+- **处理方式**（5 项正交修复，主修 + 顺手清理）：
+  1. **SQL 状态机守卫**：`update_build_run` SQL 加 `WHERE` 守卫——终态写入永远允许；非终态写入要求 `DB.status NOT IN (terminal, 'cancelling')`。`completed_at` CASE 加 `ELSE completed_at` 保留旧值。零行 UPDATE 走 `debug` 日志 `build_run_update_skipped_by_state_guard` 留观测线索。
+  2. **批次循环显式 re-raise PipelineCancelled**：`gather` 返回后**第一遍**遍历 results 仅识别 `PipelineCancelled` 并 re-raise，**第二遍**才走 `failed_chunk_count` 路径；批次入口加 `if is_cancelled(run_id): raise PipelineCancelled(...)` 早退。
+  3. **`process_chunk` retry 短路**：`except (TimeoutError, Exception) as exc: if isinstance(exc, PipelineCancelled): raise` 优先于 retry 判断。
+  4. **`maybe_report_chunk_progress` cancel 守卫**：函数入口 `if is_cancelled(run_id): return`。
+  5. **Watchdog 收紧 + 去重**：统一 watchdog `interval_seconds=300→60`，删除重复 `_kg_build_watchdog_tick` 注册；默认 `cancelling_threshold_minutes=5→2`。
+- **验证证据**：
+  - 单元测试 7 条（`TestUpdateBuildRunStateMachineGuard` ×4 + service 取消传播 ×3）全绿；
+  - 相关回归测试 68 条全绿（`test_graph_repository` + `test_graph_service` + `test_pipeline_tracker_cancel` + `test_cancel_api`）。
+- **后续防范**：
+  1. **状态机迁移合法性**应在 SQL 层显式守护（Kleppmann DDIA §9.4：多写入路径必须通过 SQL 约束序列化迁移合法性，而非寄望每个 call-site 正确判断）；
+  2. **协作式取消**检查点必须在所有 hot loop 入口铺设，且 `asyncio.gather(return_exceptions=True)` 后**第一遍**必须扫自定义 cancel 异常；
+  3. **任何长任务的进度心跳**必须区分”非终态写入”（保留 `completed_at` 旧值）与”终态写入”（设 `NOW()`），既保留 cancel 时间锚，也让 watchdog 阈值真实反映”最后心跳”而非”启动时间”。
+- **同类问题影响**：
+  - KB 侧 `KnowledgeRunDao` 已通过条件 UPDATE + OCC 机制规避同型 race；KG 侧本次修复使两侧语义对齐；
+  - `asyncio.gather(return_exceptions=True)` 误吞 cancel 是 Python asyncio 协作式取消的经典坑，凡使用该模式的批处理循环都需复核是否会吞掉自定义 cancel 异常。
