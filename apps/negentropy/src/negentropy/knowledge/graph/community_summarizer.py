@@ -269,23 +269,20 @@ class CommunitySummarizer:
         )
 
     async def _call_llm(self, prompt: str) -> str:
-        """调用 LLM 生成摘要"""
-        import litellm
-
+        """调用 LLM 生成摘要（带重试保障）"""
         from negentropy.config.model_resolver import get_fallback_llm_config
 
+        from .extractors import call_llm_with_retry
+
         model = self._model or get_fallback_llm_config()[0]
-        try:
-            response = await litellm.acompletion(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=200,
-            )
-            return response.choices[0].message.content or ""
-        except Exception as exc:
-            logger.warning("llm_summary_failed", model=model, error=str(exc))
-            return ""
+        result = await call_llm_with_retry(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=200,
+            context_label="community_summary",
+        )
+        return result
 
     async def _persist_summary(
         self,
