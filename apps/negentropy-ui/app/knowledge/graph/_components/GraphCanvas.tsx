@@ -35,9 +35,9 @@ if (!_registered) {
 }
 
 function nodeSize(importance?: number | null): number {
-  if (importance == null) return 22;
+  if (importance == null) return 18;
   const clamped = Math.min(Math.max(importance, 0), 1);
-  return 18 + 28 * clamped;
+  return 14 + 22 * clamped;
 }
 
 function nodeColor(node: GraphCanvasNode): string {
@@ -148,15 +148,16 @@ export function GraphCanvas({
       ],
       layout: {
         name: "fcose",
-        // fCoSE 推荐参数（Dogrusoz et al., 2009）
         quality: "default",
         animate: true,
         animationDuration: 600,
         randomize: true,
-        nodeRepulsion: () => 5000,
-        idealEdgeLength: () => 80,
-        edgeElasticity: () => 0.45,
-        gravity: 0.25,
+        nodeRepulsion: () => 1500,
+        idealEdgeLength: () => 40,
+        edgeElasticity: () => 0.8,
+        gravity: 0.6,
+        gravityRange: 2.5,
+        nodeSeparation: 30,
       } as cytoscape.LayoutOptions,
       wheelSensitivity: 0.2,
       minZoom: 0.1,
@@ -243,6 +244,12 @@ export function GraphCanvas({
       animationDuration: 400,
       randomize: false,
       quality: "default",
+      nodeRepulsion: () => 1500,
+      idealEdgeLength: () => 40,
+      edgeElasticity: () => 0.8,
+      gravity: 0.6,
+      gravityRange: 2.5,
+      nodeSeparation: 30,
     } as cytoscape.LayoutOptions).run();
   }, [elements]);
 

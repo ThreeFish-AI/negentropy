@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
@@ -41,6 +42,21 @@ const ForceGraphCanvas = dynamic(
       (m) => m.ForceGraphCanvas,
     ),
   { ssr: false },
+);
+// 3D 渲染器按需加载，避免 three.js 打入首屏 bundle
+const GraphCanvas3D = dynamic(
+  () =>
+    import("./_components/GraphCanvas3D").then((m) => ({
+      default: m.GraphCanvas3D,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex flex-1 min-h-0 items-center justify-center text-xs text-zinc-500">
+        Loading 3D...
+      </div>
+    ),
+  },
 );
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -89,8 +105,8 @@ export default function KnowledgeGraphPage() {
   const [buildError, setBuildError] = useState<string | null>(null);
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
   const [asOf, setAsOf] = useState<string | null>(null);
-  // G2: 渲染引擎切换 — Cytoscape (Phase 4 默认) / d3-force (Phase 1 兼容回退) / Sigma.js (WebGL) / Force Graph (Canvas + 粒子)
-  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph">("cytoscape");
+  // G2: 渲染引擎切换 — Cytoscape / d3-force / Sigma.js WebGL / Force Graph 2D / 3D WebGL
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("cytoscape");
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
@@ -464,13 +480,24 @@ export default function KnowledgeGraphPage() {
                       <button
                         onClick={() => setRenderer("d3")}
                         title="d3-force（Phase 1 兼容回退）"
-                        className={`px-2 py-1 font-medium ${
+                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
                           renderer === "d3"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
                         }`}
                       >
                         d3-force
+                      </button>
+                      <button
+                        onClick={() => setRenderer("3d")}
+                        title="3D WebGL（three.js + d3-force-3d，支持三维旋转）"
+                        className={`px-2 py-1 font-medium border-x border-zinc-200 dark:border-zinc-700 ${
+                          renderer === "3d"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        }`}
+                      >
+                        3D
                       </button>
                       <button
                         onClick={() => setRenderer("sigma")}
@@ -547,7 +574,25 @@ export default function KnowledgeGraphPage() {
                 )}
               </div>
               )}
-              {viewTab === "graph" && renderer === "cytoscape" && corpusId && nodes.length > 0 ? (
+              {viewTab === "graph" && renderer === "3d" && corpusId && nodes.length > 0 ? (
+                <GraphCanvas3D
+                  corpusId={corpusId}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
+                />
+              ) : viewTab === "graph" && renderer === "3d" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
+                </div>
+              ) : viewTab === "graph" && renderer === "cytoscape" && corpusId && nodes.length > 0 ? (
                 <GraphCanvas
                   corpusId={corpusId}
                   nodes={nodes}

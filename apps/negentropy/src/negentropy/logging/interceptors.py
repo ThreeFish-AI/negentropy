@@ -21,6 +21,16 @@ class RedirectStdLibHandler(logging.Handler):
             if "structlog" in record.name:
                 return
 
+            # Downgrade non-critical OTLP span export errors to WARNING
+            # (SSL timeout, connection refused, etc.) — fire-and-forget telemetry
+            if (
+                record.name == "opentelemetry.sdk._shared_internal"
+                and record.levelno >= logging.ERROR
+                and "export" in (record.getMessage() or "").lower()
+            ):
+                record.levelno = logging.WARNING
+                record.levelname = "WARNING"
+
             # Format message using stdlib's formatting (handles %s args)
             msg = self.format(record)
 
