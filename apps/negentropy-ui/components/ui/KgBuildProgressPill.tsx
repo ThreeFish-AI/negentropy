@@ -63,6 +63,13 @@ type Props = {
    * 留出展示终态的时间窗口；父组件需自行幂等处理重复触发。
    */
   onTerminal?: (event: KgBuildProgressEvent) => void;
+  /**
+   * 紧凑模式：用于 Toolbar 等需与 inline 控件（按钮组）共享水平基线的场景。
+   * - 去掉 mt-2（堆叠场景才需要的间距，会让 flex items-center 行内基线下偏 ~4px）
+   * - py-2 → py-1（与项目内 text-xs 按钮 padding 对齐，消除 8px 高差）
+   * 默认 false，保留 ToolExecutionGroup 等"工具卡片下方独立状态条"既有视觉。
+   */
+  compact?: boolean;
 };
 
 /** 终态展示窗口（ms）：留给用户看清"已完成 / 失败"信息后再让父组件解除挂载 */
@@ -132,6 +139,7 @@ export function KgBuildProgressPill({
   enqueued,
   apiBase = "/api/knowledge",
   onTerminal,
+  compact = false,
 }: Props) {
   const [event, setEvent] = useState<KgBuildProgressEvent | null>(
     enqueued ? { status: "pending", progress_percent: 0 } : null,
@@ -267,7 +275,10 @@ export function KgBuildProgressPill({
       data-testid="kg-build-progress"
       data-kg-status={status}
       className={cn(
-        "mt-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs",
+        // 通用基线：布局/形状/字号
+        "flex items-center gap-2 rounded-lg border text-xs",
+        // spacing 走互斥分支：cn 仅做字符串拼接（无 tailwind-merge），不能依赖叠加覆盖
+        compact ? "px-3 py-1" : "mt-2 px-3 py-2",
         isRunning &&
           "border-violet-200/80 bg-violet-50/40 text-violet-700 dark:border-violet-800/60 dark:bg-violet-950/20 dark:text-violet-200",
         status === "completed" &&
