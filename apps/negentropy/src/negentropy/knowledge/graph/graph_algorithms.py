@@ -30,6 +30,16 @@ from negentropy.models.base import NEGENTROPY_SCHEMA
 
 logger = get_logger("negentropy.knowledge.graph_algorithms")
 
+# Leiden 后端可用性检测：NetworkX 3.x 将 leiden_communities 定义为 dispatch wrapper，
+# hasattr() 始终返回 True 但实际调用需要 leidenalg 后端。通过 import 检测避免误判。
+_LEIDEN_AVAILABLE = False
+try:
+    import leidenalg  # noqa: F401
+
+    _LEIDEN_AVAILABLE = True
+except ImportError:
+    pass
+
 
 async def export_graph_to_networkx(
     db: AsyncSession,
@@ -267,7 +277,7 @@ async def compute_communities(
     G_undirected = G.to_undirected()
 
     # 选择算法：优先 Leiden（保证社区内部连通性，Traag et al., 2019）
-    use_leiden = algorithm != "louvain" and hasattr(nx.community, "leiden_communities")
+    use_leiden = algorithm != "louvain" and _LEIDEN_AVAILABLE
     algo_name = "leiden" if use_leiden else "louvain"
 
     # 按分辨率从高到低排列，映射为 level 0, 1, 2...

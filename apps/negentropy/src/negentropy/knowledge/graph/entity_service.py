@@ -157,7 +157,7 @@ class KgEntityService:
         src_result = await db.execute(
             sa.select(KgEntity)
             .where(
-                KgEntity.name == source_name,
+                sa.func.lower(KgEntity.name) == source_name.lower(),
                 *_corpus_filters,
             )
             .limit(1)
@@ -165,7 +165,7 @@ class KgEntityService:
         tgt_result = await db.execute(
             sa.select(KgEntity)
             .where(
-                KgEntity.name == target_name,
+                sa.func.lower(KgEntity.name) == target_name.lower(),
                 *_corpus_filters,
             )
             .limit(1)
