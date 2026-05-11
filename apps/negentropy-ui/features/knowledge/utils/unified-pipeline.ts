@@ -159,6 +159,14 @@ export function kgPhasesToStages(
       } else {
         stages[key] = { status: "skipped", reason: "前置阶段失败" };
       }
+    } else if (lowerStatus === "cancelled") {
+      if (currentIdx >= 0 && i < currentIdx) {
+        stages[key] = { status: "completed" };
+      } else if (i === currentIdx) {
+        stages[key] = { status: "cancelled" };
+      } else {
+        stages[key] = { status: "skipped", reason: "构建已取消" };
+      }
     } else {
       // running / pending / 其他
       if (currentIdx >= 0 && i < currentIdx) {
