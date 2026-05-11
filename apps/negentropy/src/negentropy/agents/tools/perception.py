@@ -25,7 +25,7 @@ from sqlalchemy import select
 
 import negentropy.db.session as db_session
 from negentropy.config import settings
-from negentropy.config.search import SearchSettings
+from negentropy.config.search import SearchProvider, SearchSettings
 from negentropy.knowledge.constants import (
     DEFAULT_KEYWORD_WEIGHT,
     DEFAULT_SEMANTIC_WEIGHT,
@@ -421,6 +421,7 @@ async def search_web(
     """执行 Web 搜索获取实时信息。
 
     使用 Google Custom Search API，内置重试机制。
+    优先从 builtin_tools 注册中心读取配置，回退到环境变量/YAML。
 
     Args:
         query: 搜索查询
@@ -439,13 +440,16 @@ async def search_web(
         return {"status": "failed", "error": "max_results must be positive"}
 
     limit = min(max_results, _MAX_RESULTS_LIMIT)
-    search_config = settings.search
+
+    # 优先从 builtin_tools 注册中心读取配置
+    search_config = await _resolve_search_config()
 
     logger.info(
         "web_search_started",
         query=query[:100],
         provider=search_config.provider.value,
         limit=limit,
+        config_source="builtin_tools" if _last_config_source == "builtin_tools" else "env_vars",
     )
 
     # 检查配置
@@ -454,7 +458,8 @@ async def search_web(
         return {
             "status": "failed",
             "error": (
-                "Google Search API not configured. Please set NE_SEARCH_GOOGLE_API_KEY and NE_SEARCH_GOOGLE_CX_ID."
+                "Google Search API not configured. "
+                "Please configure it in Interface > Tools, or set NE_SEARCH_GOOGLE_API_KEY and NE_SEARCH_GOOGLE_CX_ID."
             ),
         }
 
@@ -486,6 +491,38 @@ async def search_web(
             "status": "failed",
             "error": str(exc),
         }
+
+
+# 配置来源追踪（用于日志标注）
+_last_config_source: str = "env_vars"
+
+
+async def _resolve_search_config() -> SearchSettings:
+    """解析搜索配置：优先 builtin_tools 注册中心，回退到环境变量。"""
+    global _last_config_source
+
+    try:
+        from negentropy.interface.tool_resolver import resolve_tool_config
+
+        tool_config = await resolve_tool_config("google_search")
+        if tool_config:
+            _last_config_source = "builtin_tools"
+            credentials = tool_config.get("credentials", {})
+            api_key = credentials.get("api_key")
+            return SearchSettings(
+                provider=SearchProvider.GOOGLE,
+                google_api_key=api_key,
+                google_cx_id=tool_config.get("cx_id"),
+                max_retries=tool_config.get("max_retries", 3),
+                timeout_seconds=tool_config.get("timeout_seconds", 10.0),
+                base_backoff_seconds=tool_config.get("base_backoff_seconds", 1.0),
+                max_results=tool_config.get("max_results", 10),
+            )
+    except Exception as exc:
+        logger.debug("search_config_registry_fallback", error=str(exc))
+
+    _last_config_source = "env_vars"
+    return settings.search
 
 
 async def _search_google(

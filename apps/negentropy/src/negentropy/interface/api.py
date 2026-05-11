@@ -24,6 +24,7 @@ from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.model_config import ModelConfig
 from negentropy.models.plugin import (
+    BuiltinTool,
     McpResourceTemplate,
     McpServer,
     McpTool,
@@ -63,6 +64,7 @@ class StatsResponse(BaseModel):
     skills: dict[str, int]
     subagents: dict[str, int]
     models: dict[str, int]
+    tools: dict[str, int]
 
 
 class PermissionGrantRequest(BaseModel):
@@ -81,6 +83,100 @@ class PermissionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# =============================================================================
+# BuiltinTool Models
+# =============================================================================
+
+
+class BuiltinToolCreateRequest(BaseModel):
+    name: str
+    display_name: str | None = None
+    description: str | None = None
+    tool_type: str = "search"
+    version: str = "1.0.0"
+    config: dict[str, Any] = Field(default_factory=dict)
+    credentials: dict[str, Any] = Field(default_factory=dict)
+    config_schema: dict[str, Any] = Field(default_factory=dict)
+    is_enabled: bool = True
+    visibility: str = "private"
+
+
+class BuiltinToolUpdateRequest(BaseModel):
+    display_name: str | None = None
+    description: str | None = None
+    config: dict[str, Any] | None = None
+    credentials: dict[str, Any] | None = None
+    config_schema: dict[str, Any] | None = None
+    is_enabled: bool | None = None
+    visibility: str | None = None
+
+
+class BuiltinToolResponse(BaseModel):
+    id: UUID
+    owner_id: str
+    visibility: str
+    name: str
+    display_name: str | None = None
+    description: str | None = None
+    tool_type: str
+    version: str
+    config: dict[str, Any] = Field(default_factory=dict)
+    credentials: dict[str, Any] = Field(default_factory=dict)
+    config_schema: dict[str, Any] = Field(default_factory=dict)
+    is_enabled: bool
+    is_system: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+class BuiltinToolAvailableResponse(BaseModel):
+    """用于 SubAgent/Skill 工具挂载选择的简要信息"""
+
+    name: str
+    display_name: str | None = None
+    tool_type: str
+    is_enabled: bool
+    source: str  # "builtin" or "mcp"
+
+
+class BuiltinToolTestResponse(BaseModel):
+    success: bool
+    message: str
+    latency_ms: float | None = None
+
+
+def _mask_credentials(credentials: dict[str, Any]) -> dict[str, Any]:
+    """脱敏凭证字段：保留首尾字符，中间用 **** 替代。"""
+    masked = {}
+    for key, value in credentials.items():
+        if isinstance(value, str) and len(value) > 8:
+            masked[key] = value[:4] + "****" + value[-4:]
+        elif isinstance(value, str) and len(value) > 0:
+            masked[key] = "****"
+        else:
+            masked[key] = value
+    return masked
+
+
+def _builtin_tool_to_response(tool: BuiltinTool) -> BuiltinToolResponse:
+    return BuiltinToolResponse(
+        id=tool.id,
+        owner_id=tool.owner_id,
+        visibility=tool.visibility.value,
+        name=tool.name,
+        display_name=tool.display_name,
+        description=tool.description,
+        tool_type=tool.tool_type,
+        version=tool.version,
+        config=tool.config or {},
+        credentials=_mask_credentials(tool.credentials or {}),
+        config_schema=tool.config_schema or {},
+        is_enabled=tool.is_enabled,
+        is_system=tool.is_system,
+    )
 
 
 # =============================================================================
@@ -521,11 +617,20 @@ async def get_stats(user: AuthUser = Depends(get_current_user)) -> StatsResponse
             model_total = 0
             model_enabled = 0
 
+        # Builtin Tools
+        visible_tool_ids = await get_visible_plugin_ids(db, "builtin_tool", user)
+        tool_total = len(visible_tool_ids)
+        tool_enabled_result = await db.scalar(
+            select(func.count()).where(and_(BuiltinTool.id.in_(visible_tool_ids), BuiltinTool.is_enabled.is_(True)))
+        )
+        tool_enabled = tool_enabled_result or 0
+
     return StatsResponse(
         mcp_servers={"total": mcp_total, "enabled": mcp_enabled},
         skills={"total": skill_total, "enabled": skill_enabled},
         subagents={"total": subagent_total, "enabled": subagent_enabled},
         models={"total": model_total, "enabled": model_enabled, "vendors": vendor_total},
+        tools={"total": tool_total, "enabled": tool_enabled},
     )
 
 
@@ -1151,6 +1256,230 @@ async def get_mcp_tool_run(
         )
         events = events_result.scalars().all()
         return _mcp_tool_run_to_response(run, list(events))
+
+
+# =============================================================================
+# BuiltinTool Endpoints
+# =============================================================================
+
+
+@router.get("/tools/available", response_model=list[BuiltinToolAvailableResponse])
+async def list_available_tools(
+    user: AuthUser = Depends(get_current_user),
+) -> list[BuiltinToolAvailableResponse]:
+    """列出所有可用工具（builtin + MCP），供 SubAgent/Skill 工具挂载选择"""
+    tools: list[BuiltinToolAvailableResponse] = []
+
+    async with AsyncSessionLocal() as db:
+        # Builtin tools
+        visible_tool_ids = await get_visible_plugin_ids(db, "builtin_tool", user)
+        if visible_tool_ids:
+            stmt = select(BuiltinTool).where(BuiltinTool.id.in_(visible_tool_ids))
+            result = await db.execute(stmt)
+            builtin_tools = result.scalars().all()
+            for t in builtin_tools:
+                tools.append(
+                    BuiltinToolAvailableResponse(
+                        name=t.name,
+                        display_name=t.display_name,
+                        tool_type=t.tool_type,
+                        is_enabled=t.is_enabled,
+                        source="builtin",
+                    )
+                )
+
+        # MCP tools
+        visible_mcp_ids = await get_visible_plugin_ids(db, "mcp_server", user)
+        if visible_mcp_ids:
+            stmt = select(McpTool).where(and_(McpTool.server_id.in_(visible_mcp_ids), McpTool.is_enabled.is_(True)))
+            result = await db.execute(stmt)
+            mcp_tools = result.scalars().all()
+            for t in mcp_tools:
+                tools.append(
+                    BuiltinToolAvailableResponse(
+                        name=t.name,
+                        display_name=getattr(t, "display_name", None) or getattr(t, "title", None),
+                        tool_type="mcp",
+                        is_enabled=t.is_enabled,
+                        source="mcp",
+                    )
+                )
+
+    return tools
+
+
+@router.get("/tools", response_model=list[BuiltinToolResponse])
+async def list_builtin_tools(
+    user: AuthUser = Depends(get_current_user),
+) -> list[BuiltinToolResponse]:
+    """列出用户可见的内置工具"""
+    async with AsyncSessionLocal() as db:
+        visible_ids = await get_visible_plugin_ids(db, "builtin_tool", user)
+        if not visible_ids:
+            return []
+
+        stmt = select(BuiltinTool).where(BuiltinTool.id.in_(visible_ids)).order_by(BuiltinTool.created_at.desc())
+        result = await db.execute(stmt)
+        tools = result.scalars().all()
+
+    return [_builtin_tool_to_response(t) for t in tools]
+
+
+@router.post("/tools", response_model=BuiltinToolResponse, status_code=status.HTTP_201_CREATED)
+async def create_builtin_tool(
+    payload: BuiltinToolCreateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> BuiltinToolResponse:
+    """创建自定义工具"""
+    async with AsyncSessionLocal() as db:
+        tool = BuiltinTool(
+            owner_id=user.user_id,
+            visibility=PluginVisibility(payload.visibility),
+            name=payload.name,
+            display_name=payload.display_name,
+            description=payload.description,
+            tool_type=payload.tool_type,
+            version=payload.version,
+            config=payload.config,
+            credentials=payload.credentials,
+            config_schema=payload.config_schema,
+            is_enabled=payload.is_enabled,
+            is_system=False,
+        )
+        db.add(tool)
+        try:
+            await db.commit()
+        except IntegrityError as exc:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail=f"Tool with name '{payload.name}' already exists") from exc
+        await db.refresh(tool)
+
+    return _builtin_tool_to_response(tool)
+
+
+@router.get("/tools/{tool_id}", response_model=BuiltinToolResponse)
+async def get_builtin_tool(
+    tool_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> BuiltinToolResponse:
+    """获取工具详情"""
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "builtin_tool", tool_id, user)
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        tool = await db.get(BuiltinTool, tool_id)
+        if not tool:
+            raise HTTPException(status_code=404, detail="Tool not found")
+
+    return _builtin_tool_to_response(tool)
+
+
+@router.patch("/tools/{tool_id}", response_model=BuiltinToolResponse)
+async def update_builtin_tool(
+    tool_id: UUID,
+    payload: BuiltinToolUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> BuiltinToolResponse:
+    """更新工具配置"""
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "builtin_tool", tool_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+
+        tool = await db.get(BuiltinTool, tool_id)
+        if not tool:
+            raise HTTPException(status_code=404, detail="Tool not found")
+
+        update_data = payload.model_dump(exclude_unset=True)
+        if "visibility" in update_data:
+            update_data["visibility"] = PluginVisibility(update_data["visibility"])
+        for field, value in update_data.items():
+            setattr(tool, field, value)
+
+        await db.commit()
+        await db.refresh(tool)
+
+    return _builtin_tool_to_response(tool)
+
+
+@router.delete("/tools/{tool_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_builtin_tool(
+    tool_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> None:
+    """删除工具（仅非系统工具可删除）"""
+    async with AsyncSessionLocal() as db:
+        is_owner, error = await check_plugin_ownership(db, "builtin_tool", tool_id, user)
+        if not is_owner:
+            raise HTTPException(status_code=403, detail=error)
+
+        tool = await db.get(BuiltinTool, tool_id)
+        if not tool:
+            raise HTTPException(status_code=404, detail="Tool not found")
+
+        if tool.is_system:
+            raise HTTPException(status_code=403, detail="System tools cannot be deleted, only disabled")
+
+        await db.delete(tool)
+        await db.commit()
+
+
+@router.post("/tools/{tool_id}:test", response_model=BuiltinToolTestResponse)
+async def test_builtin_tool(
+    tool_id: UUID,
+    user: AuthUser = Depends(get_current_user),
+) -> BuiltinToolTestResponse:
+    """测试工具配置连通性"""
+    import time
+
+    import httpx
+
+    async with AsyncSessionLocal() as db:
+        has_access, error = await check_plugin_access(db, "builtin_tool", tool_id, user)
+        if not has_access:
+            raise HTTPException(status_code=403, detail=error)
+
+        tool = await db.get(BuiltinTool, tool_id)
+        if not tool:
+            raise HTTPException(status_code=404, detail="Tool not found")
+
+    config = tool.config or {}
+    credentials = tool.credentials or {}
+
+    if tool.tool_type == "search" and tool.name == "google_search":
+        api_key = credentials.get("api_key", "")
+        cx_id = config.get("cx_id", "")
+        if not api_key or not cx_id:
+            return BuiltinToolTestResponse(success=False, message="API Key or CX ID is not configured")
+
+        start = time.monotonic()
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    "https://www.googleapis.com/customsearch/v1",
+                    params={"key": api_key, "cx": cx_id, "q": "test"},
+                )
+            latency = (time.monotonic() - start) * 1000
+
+            if response.status_code == 200:
+                return BuiltinToolTestResponse(
+                    success=True,
+                    message="Google Search API connection successful",
+                    latency_ms=round(latency, 1),
+                )
+            else:
+                error_body = response.json().get("error", {})
+                error_detail = error_body.get("message", response.text[:200])
+                return BuiltinToolTestResponse(
+                    success=False,
+                    message=f"API error: {error_detail}",
+                    latency_ms=round(latency, 1),
+                )
+        except Exception as exc:
+            return BuiltinToolTestResponse(success=False, message=f"Connection failed: {exc}")
+
+    return BuiltinToolTestResponse(success=False, message=f"Test not supported for tool type: {tool.tool_type}")
 
 
 # =============================================================================
