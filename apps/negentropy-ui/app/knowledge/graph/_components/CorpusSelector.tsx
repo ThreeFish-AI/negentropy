@@ -13,7 +13,7 @@ interface CorpusSelectorProps {
 export function CorpusSelector({ value, onChange }: CorpusSelectorProps) {
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const autoSelected = useRef(false);
+  const autoSelected = useRef(!!value);
 
   useEffect(() => {
     let mounted = true;
