@@ -16,12 +16,18 @@ function statusColor(status: string) {
       return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
     case "running":
       return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+    case "cancelling":
+      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
     case "failed":
       return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+    case "cancelled":
+      return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
     default:
       return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
   }
 }
+
+const CANCELLABLE_STATUSES = new Set(["pending", "running", "cancelling"]);
 
 function formatDuration(run: GraphBuildRunRecord): string {
   if (!run.started_at) return "-";
@@ -36,9 +42,11 @@ function formatDuration(run: GraphBuildRunRecord): string {
 
 interface BuildHistoryListProps {
   runs: GraphBuildRunRecord[];
+  corpusId?: string | null;
+  onCancel?: (run: GraphBuildRunRecord) => void;
 }
 
-export function BuildHistoryList({ runs }: BuildHistoryListProps) {
+export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListProps) {
   if (!runs.length) {
     return (
       <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -60,9 +68,22 @@ export function BuildHistoryList({ runs }: BuildHistoryListProps) {
             >
               {run.status}
             </span>
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-              {formatDuration(run)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                {formatDuration(run)}
+              </span>
+              {CANCELLABLE_STATUSES.has(run.status) && onCancel && corpusId && (
+                <button
+                  type="button"
+                  className="text-[10px] text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+                  onClick={() => onCancel(run)}
+                  disabled={run.status === "cancelling"}
+                  title={run.status === "cancelling" ? "正在取消..." : "取消此构建"}
+                >
+                  {run.status === "cancelling" ? "取消中" : "取消"}
+                </button>
+              )}
+            </div>
           </div>
           <div className="mt-1.5 flex gap-3 text-[11px] text-zinc-600 dark:text-zinc-400">
             <span>实体 {run.entity_count}</span>
