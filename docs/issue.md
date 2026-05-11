@@ -1725,3 +1725,23 @@
   3. **已知限制**：session 切换（点击已有 session）存在同类 race condition 但不在本次修复范围——sidebar 切换的 `setSessionId` 路径未经过 `switchingSessionRef`，需独立处理
   4. **production standalone build 的 `router.replace` 失效**是预存基础设施问题，与本次修复无关
 - **同类问题影响**：ISSUE-059 / 061 / 063 / 064 均涉及前端状态机竞速。本 ISSUE 的 "ref 同步信号 + pending 自动重发" 模式可作为同类 race condition 修复的通用范式。
+
+---
+
+## ISSUE-079 KG Build Pill SSE→HTTP 轮询改造丢失发现期 grace + run_id 切换死循环（2026-05-11）
+
+- **表因**：评审 commit `bda0b75e`（KG Build Progress SSE → HTTP Polling）发现两个等价回归：
+  1. `ingest_paper` 返回 `kg_enqueued` 后，Pill 立刻挂载轮询新端点 `/build-runs/latest`，前端 `seenRunId` 锁到该 corpus 上一条 completed/failed 历史 run，触发 4s 后 onTerminal 卸载，**新 run 永不被跟踪**；
+  2. `KgBuildProgressPill.tsx` 的 run_id 切换分支：`seenRunId` 已锁到 A、下次 poll 拿到不同 run_id=B 且 B 已是终态时，代码 `setTimeout(poll, delay); return;` 既不更新 `seenRunId` 也不调用 `stop`，**死循环停在 pending 直到组件卸载**。
+- **根因**：
+  1. 新 REST 端点 `get_latest_kg_build_run` 一律 `only_active=False`，丢失了 SSE 端点 `stream_latest_kg_build_progress` 在 [`api.py:3593`](../apps/negentropy/src/negentropy/knowledge/api.py) 显式实现的“发现期 grace”—— `only_active=run_id_seen is None` + 10s 等待窗。`enqueue_kg_build` 用 `asyncio.create_task` fire-and-forget，`ingest_paper` 返回时 `_run_kg_build_background` 尚未走到 `create_build_run`；此时 `only_active=False` 拿到的是该 corpus 历史最后一条终态 run。
+  2. 客户端 run_id 切换分支注释“新 run 终态说明还没开始”与“终态=已结束”语义相反；该分支仅在“老锁定 + 新 run_id 已终态”时触发，逻辑上应当 `stop(payload)` 收口或刷新 `seenRunId` 让外层 `isTerminal` 收口，二者皆未发生。
+- **处理方式**：
+  1. **后端**：`get_latest_kg_build_run` 接受 `only_active: bool = Query(default=False)`；`only_active=True` 且 `record is None` 时返回 `{"status": "pending"}` 而非 `idle`，与 SSE 行为对齐。
+  2. **客户端**：`KgBuildProgressPill` 增加 `DISCOVERY_GRACE_MS = 10_000` + `buildUrl()`，在 `seenRunId === null && Date.now() - mountedAt < DISCOVERY_GRACE_MS` 时附加 `?only_active=true`；run_id 一致性处理简化为“拿到 run_id 就更新 `seenRunId` 让外层 `isTerminal` 收口”，消除自旋分支。
+  3. **测试**：补四条回归用例 — 发现期首轮带 `only_active=true` / 锁定后切到不带 / 超 grace 后切到不带 / 已锁定 run_id 收到新 run_id 终态正确收口。
+- **后续防范**：
+  1. 通信介质从 SSE 切换到 HTTP 轮询时，**必须**逐项审视原 SSE 在长连接内实现的状态机（发现期、run_id 锁、grace、idle 判定），不能假设“后端返回最新行”就语义等价；
+  2. 凡“先 ack 入队、后写 DB 行”的 fire-and-forget 设计，前端轮询端点必须显式区分“尚未落库（pending）”与“无任何 run（idle）”两种语义，不可合并；
+  3. 任何“拿到新 run_id 但状态异常”的客户端分支，结尾必须显式更新 lock 或调用 stop，不允许“仅 setTimeout 后 return”的自旋。
+- **同类问题影响**：项目内其他从 SSE 退化为轮询的进度上报场景（Pipeline RUNNING 看门狗、Job watcher 等）需用同一清单复核；新增「fire-and-forget + 进度查询」端点时，应将 `only_active` 类参数作为契约一部分而非可选优化。

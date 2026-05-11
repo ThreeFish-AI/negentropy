@@ -12,6 +12,9 @@
  * 设计原则：
  * - **轮询替代 SSE**：使用递归 setTimeout + fetch 替代 EventSource，消除长连接超时问题；
  *   瞬态网络故障通过指数退避自动恢复，连续失败 10 次才显示 "无法订阅"。
+ * - **发现期 grace**：挂载后 10s 内尚未拿到 run_id 时，使用 `?only_active=true` 让后端过滤
+ *   历史 completed/failed run；超出 grace 才接受 idle/历史终态收口。与 SSE 端点的发现期
+ *   `no_active_grace_seconds=10` 等价，规避 `enqueue_kg_build` fire-and-forget 引入的写入竞态。
  * - **轻量旁路**：组件仅读 `corpusId` + `enqueued`，自己管理轮询生命周期；
  *   不参与 message-ledger / 双气泡守卫（与 Tool Progress 同模式）。
  * - **失败软退化**：连接失败 → 显示 "无法订阅" 文案；
@@ -77,6 +80,18 @@ const BACKOFF_MAX_MS = 10000;
 /** 连续失败上限，超过后显示错误 */
 const MAX_CONSECUTIVE_ERRORS = 10;
 
+/**
+ * 发现期 grace 窗口（ms）：与 SSE 端点 `no_active_grace_seconds=10` 等价。
+ *
+ * 设计动机：`enqueue_kg_build` 是 `asyncio.create_task` fire-and-forget，
+ * `ingest_paper` 返回 `kg_enqueued` 时后台尚未走到 `GraphService.create_build_run`
+ * 的插入点。此时若直接用 `only_active=false` 轮询，会拿到该 corpus 历史上一条
+ * completed/failed run 误判为新 run 的终态。本组件在该窗口内统一使用 `only_active=true`
+ * 等待新 run 出现；超过窗口仍未见到活跃 run 才放下守护切回 `only_active=false`，
+ * 让真实终态（historic 或 idle）收口。
+ */
+const DISCOVERY_GRACE_MS = 10_000;
+
 const STATUS_LABEL: Record<NonNullable<KgBuildProgressEvent["status"]>, string> = {
   pending: "排队中",
   running: "构建中",
@@ -139,12 +154,13 @@ export function KgBuildProgressPill({
     }
     if (typeof window === "undefined") return;
 
-    const url = `${apiBase}/base/${encodeURIComponent(corpusId)}/graph/build-runs/latest`;
+    const baseUrl = `${apiBase}/base/${encodeURIComponent(corpusId)}/graph/build-runs/latest`;
     const controller = new AbortController();
+    const mountedAt = Date.now();
     let cancelled = false;
     let consecutiveErrors = 0;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    // 跟踪首次见到的 run_id，过滤掉旧 run 的终态（与 SSE 端点 run_id 锁定逻辑一致）
+    // 跟踪首次见到的 run_id，避免历史 run 的终态被误判（与 SSE 端点 run_id 锁定逻辑一致）。
     let seenRunId: string | null = null;
 
     const scheduleTerminalCallback = (payload: KgBuildProgressEvent) => {
@@ -160,10 +176,21 @@ export function KgBuildProgressPill({
       scheduleTerminalCallback(terminalPayload);
     };
 
+    /**
+     * 发现期：尚未锁定 run_id 且未超过 grace 窗口时，使用 only_active=true 让后端过滤掉
+     * 历史 completed/failed run。后端在该参数下无活跃 run 会返回 status=pending，让客户端
+     * 继续轮询而非误判为终态。超出 grace 后切回普通查询，由后端返回真实终态（idle 或历史 run）。
+     */
+    const buildUrl = (): string => {
+      const inDiscovery =
+        seenRunId === null && Date.now() - mountedAt < DISCOVERY_GRACE_MS;
+      return inDiscovery ? `${baseUrl}?only_active=true` : baseUrl;
+    };
+
     const poll = async () => {
       if (cancelled) return;
       try {
-        const res = await fetch(url, {
+        const res = await fetch(buildUrl(), {
           credentials: "include",
           signal: controller.signal,
           cache: "no-store",
@@ -173,25 +200,11 @@ export function KgBuildProgressPill({
         const payload = (await res.json()) as KgBuildProgressEvent;
         consecutiveErrors = 0;
 
-        // run_id 锁定：首次记录见到的 run_id，后续若 run_id 变化且新 run 处于终态
-        // （旧 run 已完成），继续轮询等待新 run 的活跃状态
-        if (payload.run_id && seenRunId === null) {
+        // run_id 锁定（或刷新到新 run）：拿到带 run_id 的 payload 即更新 seenRunId，
+        // 随后由统一的 isTerminal 收口。若新 run 已是终态（罕见的极速完成）也会被正确终结，
+        // 避免“旧锁定 + 新终态”分支死循环。
+        if (payload.run_id) {
           seenRunId = payload.run_id;
-        }
-        if (
-          payload.run_id &&
-          seenRunId !== null &&
-          payload.run_id !== seenRunId
-        ) {
-          if (!isTerminal(payload.status)) {
-            // 切换到新 run
-            seenRunId = payload.run_id;
-          } else {
-            // 旧 run 终态是正常的，新 run 终态说明还没开始，继续轮询
-            const delay = POLL_INTERVAL_MS;
-            timeoutId = setTimeout(poll, delay);
-            return;
-          }
         }
 
         if (isTerminal(payload.status)) {

@@ -3506,11 +3506,26 @@ async def get_graph_build_history(
 async def get_latest_kg_build_run(
     corpus_id: UUID,
     app_name: str | None = Query(default=None),
+    only_active: bool = Query(
+        default=False,
+        description=(
+            "仅返回 pending/running 的活跃 run。客户端 Pill 在锁定 run_id 前用 true 轮询，"
+            "避免拿到历史 completed/failed run 被误判为新 run 的终态（与 SSE 发现期 grace 等价）。"
+        ),
+    ),
 ) -> dict[str, Any]:
     """获取指定 corpus 最新一次 KG 构建运行的状态快照（轮询友好）。
 
     每次请求返回最新 DB 行的 JSON 快照，包含 progress_percent 与当前 phase。
-    无活跃 run 时返回 ``{"status": "idle"}``。
+
+    - ``only_active=true`` 且无活跃 run → 返回 ``{"status": "pending"}``（仍处发现期，客户端继续轮询）。
+    - ``only_active=false`` 且无任何 run → 返回 ``{"status": "idle"}``（终态）。
+
+    设计动机：``enqueue_kg_build`` 使用 ``asyncio.create_task`` fire-and-forget，
+    ``ingest_paper`` 返回 ``kg_enqueued`` 时后台尚未走到 ``GraphService.create_build_run`` 的插入点。
+    若客户端首轮就用 ``only_active=false``，会拿到该 corpus 历史上一条 completed/failed run，
+    导致 Pill 误报终态并卸载。SSE 端点（见 ``stream_latest_kg_build_progress``）通过
+    ``only_active=run_id_seen is None`` + 10s grace 显式规避，本端点通过 query 参数同等暴露。
     """
     from datetime import datetime
 
@@ -3520,11 +3535,14 @@ async def get_latest_kg_build_run(
     record = await repository.get_latest_build_run(
         corpus_id=corpus_id,
         app_name=resolved_app,
-        only_active=False,
+        only_active=only_active,
     )
 
     if record is None:
-        return {"status": "idle", "corpus_id": str(corpus_id)}
+        # only_active=True 表示客户端仍处发现期，回 "pending" 让其继续轮询；
+        # only_active=False 表示客户端已放弃发现期或允许历史 run，无 run 即真终态 "idle"。
+        status = "pending" if only_active else "idle"
+        return {"status": status, "corpus_id": str(corpus_id)}
 
     # 从 warnings JSONB 提取最后一条 _phase 条目（与 SSE 端点逻辑一致）
     phase: str | None = None
