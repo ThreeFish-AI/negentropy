@@ -15,8 +15,6 @@ import {
   fetchCorpusGraph,
 } from "@/features/knowledge";
 
-import dynamic from "next/dynamic";
-
 import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
