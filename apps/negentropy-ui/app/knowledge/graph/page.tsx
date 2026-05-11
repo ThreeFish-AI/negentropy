@@ -14,6 +14,8 @@ import {
   fetchCorpusGraph,
 } from "@/features/knowledge";
 
+import dynamic from "next/dynamic";
+
 import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
@@ -27,6 +29,19 @@ import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
 import { TimeTravelSlider } from "./_components/TimeTravelSlider";
 import { entityColor, communityColor } from "./_components/constants";
+
+const SigmaGraphCanvas = dynamic(
+  () =>
+    import("./_components/SigmaGraphCanvas").then((m) => m.SigmaGraphCanvas),
+  { ssr: false },
+);
+const ForceGraphCanvas = dynamic(
+  () =>
+    import("./_components/ForceGraphCanvas").then(
+      (m) => m.ForceGraphCanvas,
+    ),
+  { ssr: false },
+);
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 
@@ -74,8 +89,8 @@ export default function KnowledgeGraphPage() {
   const [buildError, setBuildError] = useState<string | null>(null);
   // G3: as_of 状态 — null 表示当前时刻，提供时穿梭至历史快照
   const [asOf, setAsOf] = useState<string | null>(null);
-  // G2: 渲染引擎切换 — Cytoscape (Phase 4 默认) vs d3-force (Phase 1 兼容回退)
-  const [renderer, setRenderer] = useState<"cytoscape" | "d3">("cytoscape");
+  // G2: 渲染引擎切换 — Cytoscape (Phase 4 默认) / d3-force (Phase 1 兼容回退) / Sigma.js (WebGL) / Force Graph (Canvas + 粒子)
+  const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph">("cytoscape");
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
@@ -437,7 +452,7 @@ export default function KnowledgeGraphPage() {
                     <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 text-[10px]">
                       <button
                         onClick={() => setRenderer("cytoscape")}
-                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认，支持节点交互）"
+                        title="Cytoscape.js + fCoSE 布局（Phase 4 默认）"
                         className={`px-2 py-1 font-medium ${
                           renderer === "cytoscape"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
@@ -453,9 +468,31 @@ export default function KnowledgeGraphPage() {
                           renderer === "d3"
                             ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
-                        } rounded-r-lg`}
+                        }`}
                       >
                         d3-force
+                      </button>
+                      <button
+                        onClick={() => setRenderer("sigma")}
+                        title="Sigma.js v3 WebGL 渲染（高性能，适合大图）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "sigma"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        }`}
+                      >
+                        Sigma
+                      </button>
+                      <button
+                        onClick={() => setRenderer("force-graph")}
+                        title="react-force-graph-2d（粒子流动效果，视觉表现力强）"
+                        className={`px-2 py-1 font-medium ${
+                          renderer === "force-graph"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700"
+                        } rounded-r-lg`}
+                      >
+                        Force Graph
                       </button>
                     </div>
                   )}
@@ -521,6 +558,42 @@ export default function KnowledgeGraphPage() {
                   onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "cytoscape" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
+                </div>
+              ) : viewTab === "graph" && renderer === "sigma" && corpusId && nodes.length > 0 ? (
+                <SigmaGraphCanvas
+                  corpusId={corpusId}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
+                />
+              ) : viewTab === "graph" && renderer === "sigma" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  {!corpusId
+                    ? "请选择语料库"
+                    : error
+                      ? `加载失败：${error}`
+                      : "图谱为空，请先构建"}
+                </div>
+              ) : viewTab === "graph" && renderer === "force-graph" && corpusId && nodes.length > 0 ? (
+                <ForceGraphCanvas
+                  corpusId={corpusId}
+                  nodes={nodes}
+                  edges={edges as unknown as Array<{ source: string; target: string; type?: string }>}
+                  selectedNodeId={selectedNodeId}
+                  onNodeClick={(id) => setSelectedNodeId(id || null)}
+                  asOf={asOf}
+                  onSubgraphMerge={handleSubgraphMerge}
+                />
+              ) : viewTab === "graph" && renderer === "force-graph" ? (
                 <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
                   {!corpusId
                     ? "请选择语料库"
