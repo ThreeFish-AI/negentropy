@@ -63,6 +63,22 @@ logger = get_logger("negentropy.knowledge.graph_service")
 # ============================================================================
 
 
+@dataclass
+class BuildRunContext:
+    """_init_build_run → _execute_build 的上下文传递物"""
+
+    run_id: str
+    run_uuid: UUID
+    corpus_id: UUID
+    app_name: str
+    chunks: list[dict[str, Any]]
+    config: GraphBuildConfig
+    entity_extractor: CompositeEntityExtractor
+    relation_extractor: CompositeRelationExtractor
+    start_time: float
+    normalized_llm_model: str
+
+
 @dataclass(frozen=True)
 class GraphBuildResult:
     """图谱构建结果
@@ -238,30 +254,21 @@ class GraphService:
             logger.warning("unknown_extraction_schema", schema_name=name)
         return schema
 
-    async def build_graph(
+    async def _init_build_run(
         self,
         corpus_id: UUID,
         app_name: str,
         chunks: list[dict[str, Any]],
         config: GraphBuildConfig | None = None,
-    ) -> GraphBuildResult:
-        """构建知识图谱
+    ) -> BuildRunContext:
+        """快速创建构建运行记录（<1s），返回上下文供 _execute_build 或 build_graph 使用。
 
-        从知识块中提取实体和关系，构建图谱。
-
-        Args:
-            corpus_id: 语料库 ID
-            app_name: 应用名称
-            chunks: 知识块列表，每个包含 content 和 metadata
-            config: 构建配置（可选，覆盖默认配置）
-
-        Returns:
-            构建结果统计
+        调用方可在 API 层同步 await 本方法获取 run_id 并立即返回给客户端，
+        再通过 asyncio.create_task 将实际构建推迟到后台执行。
         """
         build_config = config or self._config
         normalized_llm_model = canonicalize_model_name(build_config.llm_model)
 
-        # 按请求级 config 动态创建提取器（单例提取器无法感知 schema 变更）
         request_schema = self._resolve_schema(build_config.extraction_schema_name)
         entity_extractor = CompositeEntityExtractor(
             llm_model=build_config.llm_model,
@@ -284,7 +291,6 @@ class GraphService:
             chunk_count=len(chunks),
         )
 
-        # 创建构建运行记录（构建前元数据写入，使用默认 self._repository）
         run_uuid = await self._repository.create_build_run(
             app_name=app_name,
             corpus_id=corpus_id,
@@ -298,10 +304,51 @@ class GraphService:
             model_name=normalized_llm_model,
         )
 
-        # 注册进程内 fast-path event：cancel API 调 signal_cancel(run_id) 后，
-        # emit_phase 与 process_chunk 入口的 is_cancelled 检查会立即触发退出（R-9 修补）。
-        # 无注册等价于 cancel 仅依赖 emit_phase 边界 DB-poll 兜底，延迟最长一个 phase 周期。
         register_cancellable_run(run_id)
+
+        return BuildRunContext(
+            run_id=run_id,
+            run_uuid=run_uuid,
+            corpus_id=corpus_id,
+            app_name=app_name,
+            chunks=chunks,
+            config=build_config,
+            entity_extractor=entity_extractor,
+            relation_extractor=relation_extractor,
+            start_time=start_time,
+            normalized_llm_model=normalized_llm_model,
+        )
+
+    async def build_graph(
+        self,
+        corpus_id: UUID,
+        app_name: str,
+        chunks: list[dict[str, Any]],
+        config: GraphBuildConfig | None = None,
+    ) -> GraphBuildResult:
+        """构建知识图谱（向后兼容 wrapper：init + execute 顺序调用）。"""
+        ctx = await self._init_build_run(corpus_id, app_name, chunks, config)
+        return await self._execute_build(ctx)
+
+    async def _execute_build(
+        self,
+        ctx: BuildRunContext,
+    ) -> GraphBuildResult:
+        """执行完整 KG 构建管线。
+
+        接受 _init_build_run 创建的上下文，运行 chunk 抽取、实体消解、持久化、
+        后处理等全部阶段。成功/失败/取消均在内部写入 DB 终态。
+        """
+        build_config = ctx.config
+        entity_extractor = ctx.entity_extractor
+        relation_extractor = ctx.relation_extractor
+        run_id = ctx.run_id
+        run_uuid = ctx.run_uuid
+        corpus_id = ctx.corpus_id
+        app_name = ctx.app_name
+        chunks = ctx.chunks
+        start_time = ctx.start_time
+        normalized_llm_model = ctx.normalized_llm_model
 
         # 提升到 try 之外：失败分支需要剥离 _phase 后落库 warnings，避免 DB 行残留
         # 上一次 emit_phase 写入的运行期标记；同时让累积的 algorithm warning + 部分 _metrics
@@ -435,8 +482,10 @@ class GraphService:
             # 双触发条件：每完成 progress_report_chunk_threshold 个 chunk 或距上次上报 ≥
             # progress_report_min_interval_s 秒，取后到者。Lock 保护避免并发互相覆盖。
             progress_lock = asyncio.Lock()
-            progress_report_chunk_threshold = 5
-            progress_report_min_interval_s = 10.0
+            # 自适应节流：20 chunks → 每 1 个上报；2000 chunks → 每 10 个上报。
+            # 时间兜底从 10s 降至 5s，避免 LLM 调用 60s 超时期间前端静默过长。
+            progress_report_chunk_threshold = max(1, total_chunks // 200)
+            progress_report_min_interval_s = 5.0
             progress_state: dict[str, float | int] = {
                 "last_reported_at": time.time(),
                 "last_reported_chunks": 0,
@@ -502,8 +551,16 @@ class GraphService:
 
                 async with semaphore:
                     text = chunk.get("content", "")
+                    chunk_id = str(chunk.get("id", "?"))
                     if not text:
                         return [], []
+
+                    logger.debug(
+                        "chunk_processing_started",
+                        run_id=run_id,
+                        chunk_id=chunk_id,
+                        content_length=len(text),
+                    )
 
                     try:
                         # 提取实体（带超时）
@@ -535,6 +592,13 @@ class GraphService:
                         # 避免在已取消语境下浪费 1 次 LLM 调用窗口（最多 2×60s）。
                         if isinstance(exc, PipelineCancelled):
                             raise
+                        if isinstance(exc, TimeoutError):
+                            logger.warning(
+                                "chunk_processing_timeout",
+                                run_id=run_id,
+                                chunk_id=chunk_id,
+                                timeout_s=chunk_extract_timeout,
+                            )
                         if _retries > 0:
                             await asyncio.sleep(1.0)
                             return await process_chunk(chunk, _retries - 1)
@@ -579,8 +643,16 @@ class GraphService:
                     all_entities.extend(entities)
                     all_relations.extend(relations)
                     chunks_processed += 1
+                    logger.debug(
+                        "chunk_processing_completed",
+                        run_id=run_id,
+                        processed=chunks_processed,
+                        total=total_chunks,
+                        entity_count=len(entities),
+                        relation_count=len(relations),
+                    )
 
-                # 节流上报（每 5 chunk 或 ≥10s）：避免 SSE 静默期超过 30s
+                # 节流上报（自适应 chunk 阈值 + ≥5s 时间兜底）
                 await maybe_report_chunk_progress()
 
             # 回收 litellm 内部 HTTP Session（aiohttp.ClientSession）
