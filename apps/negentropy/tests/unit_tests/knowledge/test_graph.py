@@ -46,13 +46,55 @@ class TestRegexEntityExtractor:
         assert any("Acme Corp" in label for label in labels)
 
     @pytest.mark.asyncio
-    async def test_extract_urls(self, extractor):
-        """应提取 URL"""
+    async def test_urls_not_extracted(self, extractor):
+        """URL 不应被提取为实体（URL 不在 KgEntityType 中）"""
         text = "Visit https://example.com/docs for more information."
         entities = await extractor.extract(text, _CORPUS_ID)
         url_entities = [e for e in entities if e.node_type == "url"]
-        assert len(url_entities) >= 1
-        assert url_entities[0].metadata.get("url") == "https://example.com/docs"
+        assert len(url_entities) == 0
+
+    @pytest.mark.asyncio
+    async def test_heading_stopwords_filtered(self, extractor):
+        """section heading 碎片不应被提取为实体"""
+        text = "Acknowledgements\n\nWritten by the team. Testing One two three."
+        entities = await extractor.extract(text, _CORPUS_ID)
+        labels = [e.label for e in entities]
+        for label in labels:
+            assert "Acknowledgements" not in label
+            assert "Testing" not in label
+
+    @pytest.mark.asyncio
+    async def test_product_keyword_classification(self, extractor):
+        """含产品关键词的名称应被分类为 product"""
+        text = "Claude Code is a powerful coding assistant. GPT models are widely used."
+        entities = await extractor.extract(text, _CORPUS_ID)
+        product_entities = [e for e in entities if e.node_type == "product"]
+        assert len(product_entities) >= 1
+
+    @pytest.mark.asyncio
+    async def test_concept_suffix_classification(self, extractor):
+        """含概念后缀的名称应被分类为 concept"""
+        text = "The Digital Audio Workstation supports Level Editor features."
+        entities = await extractor.extract(text, _CORPUS_ID)
+        concept_entities = [e for e in entities if e.node_type == "concept"]
+        assert len(concept_entities) >= 1
+
+    @pytest.mark.asyncio
+    async def test_default_type_is_other(self, extractor):
+        """无法判定的名称应分类为 other 而非 person"""
+        text = "Some Random Name appeared in the document."
+        entities = await extractor.extract(text, _CORPUS_ID)
+        random_entities = [e for e in entities if e.label == "Some Random Name"]
+        assert len(random_entities) == 1
+        assert random_entities[0].node_type == "other"
+
+    @pytest.mark.asyncio
+    async def test_regex_extraction_confidence(self, extractor):
+        """regex 提取的实体应有较低置信度"""
+        text = "John Smith and Jane Doe attended the conference."
+        entities = await extractor.extract(text, _CORPUS_ID)
+        for entity in entities:
+            assert entity.metadata.get("confidence", 1.0) <= 0.7
 
     @pytest.mark.asyncio
     async def test_empty_text(self, extractor):

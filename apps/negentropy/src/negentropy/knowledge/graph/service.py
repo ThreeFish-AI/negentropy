@@ -503,12 +503,18 @@ class GraphService:
                     **extra,
                 )
                 try:
-                    await build_repo.update_build_run(
-                        run_id=run_uuid,
-                        status="running",
-                        progress_percent=progress,
-                        warnings=list(build_warnings),
-                    )
+                    update_kwargs: dict[str, Any] = {
+                        "run_id": run_uuid,
+                        "status": "running",
+                        "progress_percent": progress,
+                        "warnings": list(build_warnings),
+                    }
+                    # 从 extra 中提取中间态计数（可选，仅 resolving 之后阶段有值）
+                    if "entity_count" in extra:
+                        update_kwargs["entity_count"] = extra["entity_count"]
+                    if "relation_count" in extra:
+                        update_kwargs["relation_count"] = extra["relation_count"]
+                    await build_repo.update_build_run(**update_kwargs)
                 except Exception as exc:
                     logger.warning(
                         "update_build_run_failed",
@@ -832,6 +838,7 @@ class GraphService:
             id_to_label: dict[str, str] = {e.id.replace("entity:", ""): e.label for e in entities_to_save if e.label}
 
             valid_relations = []
+            self_loops_removed = 0
             for relation in all_relations:
                 # 查找源和目标实体
                 source_id = relation.source
@@ -843,17 +850,29 @@ class GraphService:
                 if target_id in label_to_id:
                     target_id = label_to_id[target_id]
 
-                # 确保源和目标都存在
-                if source_id and target_id and source_id != target_id:
-                    updated_relation = GraphEdge(
-                        source=source_id,
-                        target=target_id,
-                        label=relation.label,
-                        edge_type=relation.edge_type,
-                        weight=relation.weight,
-                        metadata=relation.metadata,
-                    )
-                    valid_relations.append(updated_relation)
+                # 确保源和目标都存在且非自环
+                if not source_id or not target_id:
+                    continue
+                if source_id == target_id:
+                    self_loops_removed += 1
+                    continue
+                updated_relation = GraphEdge(
+                    source=source_id,
+                    target=target_id,
+                    label=relation.label,
+                    edge_type=relation.edge_type,
+                    weight=relation.weight,
+                    metadata=relation.metadata,
+                )
+                valid_relations.append(updated_relation)
+
+            logger.info(
+                "relation_filtering_completed",
+                run_id=run_id,
+                raw_count=len(all_relations),
+                valid_count=len(valid_relations),
+                self_loops_removed=self_loops_removed,
+            )
 
             # B2: 时态事实冲突检测 (Snodgrass & Ahn, 1985)
             # 必须在 create_relations 之前运行：否则在「同 (s,t,type) 但 evidence 变更」的
@@ -967,7 +986,12 @@ class GraphService:
                 )
 
             # 阶段 4：PageRank 实体重要性（Brin & Page, 1998）
-            await emit_phase(PHASE_PAGERANK, 0.91)
+            await emit_phase(
+                PHASE_PAGERANK,
+                0.91,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
 
             # 计算 PageRank 实体重要性 (Brin & Page, 1998)
             try:
@@ -988,7 +1012,12 @@ class GraphService:
                 )
 
             # 阶段 5：多层级社区检测（Traag et al., 2019）
-            await emit_phase(PHASE_COMMUNITIES, 0.94)
+            await emit_phase(
+                PHASE_COMMUNITIES,
+                0.94,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
 
             # 多层级社区检测 (Traag et al., 2019; Edge et al., 2024)
             # 优先使用 Leiden（保证社区内部连通性），降级到 Louvain
@@ -1015,7 +1044,12 @@ class GraphService:
                 )
 
             # 阶段 6：社区摘要生成（Edge et al., Microsoft GraphRAG, 2024）
-            await emit_phase(PHASE_SUMMARIES, 0.97)
+            await emit_phase(
+                PHASE_SUMMARIES,
+                0.97,
+                entity_count=len(entities_to_save),
+                relation_count=len(valid_relations),
+            )
 
             # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
             try:
@@ -1086,7 +1120,7 @@ class GraphService:
                 chunks_fallback=chunks_fallback,
                 llm_circuit_opened=circuit_breaker.is_open,
                 build_duration_ms=round(elapsed * 1000, 1),
-                algorithm_warnings=len(build_warnings),
+                algorithm_warnings=sum(1 for w in _strip_phase_entries(build_warnings) if "algorithm" in w),
                 community_levels=len(levels_data),
                 community_count_by_level={lv: len(set(p.values())) for lv, p in levels_data.items()},
             )
