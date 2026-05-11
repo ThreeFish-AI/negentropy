@@ -485,7 +485,26 @@ def apply_adk_patches():
                     callback=_pipeline_watchdog_tick,
                     interval_seconds=300,
                 )
-                # --- end watchdog ---
+
+                # --- watchdog: finalize stale KG build runs ---
+                async def _kg_build_watchdog_tick() -> None:
+                    from negentropy.knowledge.graph.repository import get_graph_repository
+
+                    repo = get_graph_repository()
+                    result = await repo.finalize_stale_kg_build_runs()
+                    if result["forced_failed"] > 0 or result["forced_cancelled"] > 0:
+                        logger.info(
+                            "kg_build_watchdog_finalized",
+                            forced_failed=result["forced_failed"],
+                            forced_cancelled=result["forced_cancelled"],
+                        )
+
+                scheduler.register(
+                    key="kg_build_watchdog",
+                    callback=_kg_build_watchdog_tick,
+                    interval_seconds=300,
+                )
+                # --- end KG build watchdog ---
 
                 scheduler.start()
                 # 把 scheduler 挂在 app.state 防止被 GC + 便于单测/shutdown 引用
