@@ -1803,7 +1803,7 @@ class AgeGraphRepository(GraphRepository):
                 progress_percent = COALESCE(:progress, progress_percent),
                 warnings = COALESCE(CAST(:warnings AS json), warnings),
                 processed_chunk_ids = COALESCE(CAST(:chunk_ids AS json), processed_chunk_ids),
-                completed_at = CASE WHEN :status IN ('completed', 'failed', 'cancelled') THEN NOW() END
+                completed_at = CASE WHEN CAST(:status AS varchar) IN ('completed', 'failed', 'cancelled') THEN NOW() END
             WHERE id = :run_id
         """)
 
