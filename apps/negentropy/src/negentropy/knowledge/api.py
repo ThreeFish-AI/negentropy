@@ -3502,6 +3502,57 @@ async def get_graph_build_history(
 # - HTML Living Standard, Server-Sent Events (https://html.spec.whatwg.org/multipage/server-sent-events.html)
 
 
+@router.get("/base/{corpus_id}/graph/build-runs/latest")
+async def get_latest_kg_build_run(
+    corpus_id: UUID,
+    app_name: str | None = Query(default=None),
+) -> dict[str, Any]:
+    """获取指定 corpus 最新一次 KG 构建运行的状态快照（轮询友好）。
+
+    每次请求返回最新 DB 行的 JSON 快照，包含 progress_percent 与当前 phase。
+    无活跃 run 时返回 ``{"status": "idle"}``。
+    """
+    from datetime import datetime
+
+    resolved_app = _resolve_app_name(app_name)
+    repository = _get_graph_service()._repository  # noqa: SLF001
+
+    record = await repository.get_latest_build_run(
+        corpus_id=corpus_id,
+        app_name=resolved_app,
+        only_active=False,
+    )
+
+    if record is None:
+        return {"status": "idle", "corpus_id": str(corpus_id)}
+
+    # 从 warnings JSONB 提取最后一条 _phase 条目（与 SSE 端点逻辑一致）
+    phase: str | None = None
+    phase_detail: dict[str, Any] | None = None
+    if record.warnings:
+        for entry in reversed(record.warnings):
+            if isinstance(entry, dict) and "_phase" in entry:
+                meta = entry["_phase"]
+                if isinstance(meta, dict):
+                    phase = meta.get("name")
+                    phase_detail = meta
+                break
+
+    completed_at_iso = record.completed_at.isoformat() if isinstance(record.completed_at, datetime) else None
+
+    return {
+        "run_id": record.run_id,
+        "status": record.status,
+        "progress_percent": float(record.progress_percent or 0.0),
+        "entity_count": int(record.entity_count or 0),
+        "relation_count": int(record.relation_count or 0),
+        "error_message": record.error_message,
+        "completed_at": completed_at_iso,
+        "phase": phase,
+        "phase_detail": phase_detail,
+    }
+
+
 @router.get("/base/{corpus_id}/graph/build-runs/latest/progress/stream")
 async def stream_latest_kg_build_progress(
     corpus_id: UUID,
