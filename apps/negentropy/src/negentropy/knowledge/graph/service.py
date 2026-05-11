@@ -445,9 +445,11 @@ class GraphService:
             async def maybe_report_chunk_progress() -> None:
                 """chunk 处理过程中按节流条件上报 progress_percent（仅更新单字段，不改 warnings）。
 
-                取消守卫（ISSUE-080）：同 worker fast-path——cancel 信号已 set 时
-                跳过本次 update。SQL 层 ``update_build_run`` 已有状态机守卫兜底
-                （非终态写入不会回滚 cancelling），此处仅是减少日志噪音 + 早出节流。
+                取消守卫（ISSUE-080）：in-memory ``is_cancelled`` 仅覆盖**同 worker**
+                场景（cancel API 与 build task 在同一进程内通过 ``asyncio.Event`` 通信）；
+                跨 worker 场景下此检查不生效，正确性由 SQL 层 ``update_build_run`` 的
+                状态机 WHERE 守卫兜底（非终态写入不会回滚 cancelling）。
+                此处 fast-path 仅是同 worker 内减少日志噪音 + 早出节流的优化。
                 """
                 if is_cancelled(run_id):
                     return
