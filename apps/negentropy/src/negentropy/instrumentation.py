@@ -109,14 +109,14 @@ def _inject_genai_semconv_attrs(
     """在 LLM span 上写入 OTel GenAI semconv 1.28+ 非模型标准属性。
 
     涵盖 attribute（fail-soft，单个失败不影响其他）：
-        gen_ai.system, gen_ai.operation.name,
+        gen_ai.operation.name,
         gen_ai.request.temperature, gen_ai.request.top_p, gen_ai.request.max_tokens,
         gen_ai.usage.input_tokens, gen_ai.usage.output_tokens,
         gen_ai.response.id, gen_ai.response.finish_reasons
 
     模型属性（gen_ai.request.model / gen_ai.response.model /
-    langfuse.observation.model.name）由 ``_apply_model_normalization`` 统一写入，
-    本函数不再涉及。
+    gen_ai.system / langfuse.observation.model.name）由
+    ``_apply_model_normalization`` 统一写入，本函数不再涉及。
     """
     if not _is_writable_span(span):
         return
