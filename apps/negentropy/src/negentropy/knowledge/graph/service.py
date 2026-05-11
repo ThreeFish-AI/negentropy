@@ -768,34 +768,34 @@ class GraphService:
             # 阶段 1：实体/关系抽取（chunk 循环占整体进度 0.0 → 0.80）
             await emit_phase(PHASE_EXTRACTING, 0.0, processed=0, total=total_chunks)
 
-            # 批量处理
+            # 批量处理：as_completed 逐个完成逐个上报，避免 gather 全部完成后
+            # tally 循环微秒级跑完导致进度从 0 跳到 batch_size。
+            # semaphore 仍限制实际 LLM 并发为 max_concurrency，调用效率不变。
             for i in range(0, len(chunks), batch_size):
-                # 批次入口取消检查点（ISSUE-080）：in-memory event O(1) 快路径，
-                # 避免在 cancel 已 set 后仍发起整批 gather 浪费调度与日志。
+                # 批次入口取消检查点（ISSUE-080）
                 if is_cancelled(run_id):
                     raise PipelineCancelled(run_id, last_stage=PHASE_EXTRACTING)
 
                 batch = chunks[i : i + batch_size]
-                results = await asyncio.gather(
-                    *[process_chunk(chunk) for chunk in batch],
-                    return_exceptions=True,
-                )
+                pending = [asyncio.ensure_future(process_chunk(chunk)) for chunk in batch]
 
-                # 关键（ISSUE-080）：PipelineCancelled 优先于其它异常显式 re-raise，
-                # 防止被 ``return_exceptions=True`` 打包后误计入 failed_chunk_count
-                # 静默吞没——这是原版导致 cancel 信号在 chunk loop 内丢失、批次继续
-                # 处理直到下一个 phase 边界才被感知的根因。
-                for result in results:
-                    if isinstance(result, PipelineCancelled):
-                        raise result
-
-                for result in results:
-                    if isinstance(result, Exception):
+                for coro in asyncio.as_completed(pending):
+                    try:
+                        result = await coro
+                    except PipelineCancelled:
+                        # 取消同批剩余任务（ISSUE-080）：避免 cancel 信号
+                        # 在 chunk loop 内丢失、批次继续处理直到下一个 phase
+                        # 边界才被感知。
+                        for t in pending:
+                            if not t.done():
+                                t.cancel()
+                        raise
+                    except Exception as exc:
                         logger.warning(
                             "chunk_processing_error",
                             run_id=run_id,
-                            error=str(result),
-                            error_type=type(result).__name__,
+                            error=str(exc),
+                            error_type=type(exc).__name__,
                         )
                         failed_chunk_count += 1
                         continue
@@ -812,9 +812,8 @@ class GraphService:
                         entity_count=len(entities),
                         relation_count=len(relations),
                     )
-
-                # 节流上报（自适应 chunk 阈值 + ≥5s 时间兜底）
-                await maybe_report_chunk_progress()
+                    # 每个 chunk 完成后即上报（自适应节流仍在生效）
+                    await maybe_report_chunk_progress()
 
             # 回收 litellm 内部 HTTP Session（aiohttp.ClientSession）
             # litellm.acompletion 每次调用可能创建内部 Session 对象，
