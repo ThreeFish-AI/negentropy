@@ -25,6 +25,8 @@ class KgBuildMetrics:
     avg_confidence: float = 0.0
     chunks_processed: int = 0
     chunks_failed: int = 0
+    chunks_fallback: int = 0  # 使用 fallback 提取器（regex/cooccurrence）的 chunk 数
+    llm_circuit_opened: bool = False  # 断路器是否在构建期间触发
     build_duration_ms: float = 0.0
     algorithm_warnings: int = 0
     community_levels: int = 0
