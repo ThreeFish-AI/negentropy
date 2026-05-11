@@ -3,7 +3,8 @@
 验证：
 - extract_vendor 把模型名前缀映射到正确 system（vendor 单一事实源已下沉到
   ``negentropy.model_names``，`instrumentation` 仅作 OTel 注入）；
-- _inject_genai_semconv_attrs 在 span 上写入完整 GenAI semconv 标准属性；
+- _apply_model_normalization 统一写入模型名归一化 + cost 属性；
+- _inject_genai_semconv_attrs 写入非模型 GenAI semconv 标准属性；
 - fail-soft：缺字段 / 异常 / 不可写 span 都不抛。
 """
 
@@ -103,7 +104,7 @@ def _make_response_obj(
 
 
 def test_inject_genai_full_attributes_for_anthropic_chat() -> None:
-    from negentropy.instrumentation import _inject_genai_semconv_attrs
+    from negentropy.instrumentation import _apply_model_normalization
 
     span = _make_writable_span()
     kwargs = {
@@ -119,7 +120,7 @@ def test_inject_genai_full_attributes_for_anthropic_chat() -> None:
         finish_reasons=["stop"],
     )
 
-    _inject_genai_semconv_attrs(span, kwargs, response)
+    _apply_model_normalization(span, kwargs, response)
 
     captured = span._captured
     assert captured["gen_ai.system"] == "anthropic"
@@ -158,7 +159,7 @@ def test_inject_genai_skips_unknown_system() -> None:
 
 def test_inject_genai_handles_missing_usage_and_choices() -> None:
     """response 无 usage / choices 时不抛，仅写出存在字段。"""
-    from negentropy.instrumentation import _inject_genai_semconv_attrs
+    from negentropy.instrumentation import _apply_model_normalization
 
     span = _make_writable_span()
     kwargs = {"model": "gpt-5.4-turbo"}
@@ -169,7 +170,7 @@ def test_inject_genai_handles_missing_usage_and_choices() -> None:
         finish_reasons=[],
     )
 
-    _inject_genai_semconv_attrs(span, kwargs, response)
+    _apply_model_normalization(span, kwargs, response)
 
     captured = span._captured
     assert captured["gen_ai.system"] == "openai"
@@ -202,7 +203,7 @@ def test_inject_genai_skips_when_span_not_writable() -> None:
 
 def test_inject_genai_fail_soft_on_response_exception() -> None:
     """response_obj 访问抛异常时不应向上传播。"""
-    from negentropy.instrumentation import _inject_genai_semconv_attrs
+    from negentropy.instrumentation import _apply_model_normalization
 
     span = _make_writable_span()
     response = MagicMock()
@@ -216,8 +217,8 @@ def test_inject_genai_fail_soft_on_response_exception() -> None:
     response.usage.completion_tokens = 5
 
     # 不抛
-    _inject_genai_semconv_attrs(span, {"model": "gpt-4"}, response)
-    # 仍能写入基础字段（system + operation.name + request.model）
+    _apply_model_normalization(span, {"model": "gpt-4"}, response)
+    # 仍能写入基础字段（system + operation.name）
     assert span._captured.get("gen_ai.system") == "openai"
 
 

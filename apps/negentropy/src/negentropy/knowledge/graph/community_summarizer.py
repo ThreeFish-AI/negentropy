@@ -272,7 +272,9 @@ class CommunitySummarizer:
         """调用 LLM 生成摘要"""
         import litellm
 
-        model = self._model or "gpt-4o-mini"
+        from negentropy.config.model_resolver import get_fallback_llm_config
+
+        model = self._model or get_fallback_llm_config()[0]
         try:
             response = await litellm.acompletion(
                 model=model,

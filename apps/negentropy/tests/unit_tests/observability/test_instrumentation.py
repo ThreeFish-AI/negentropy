@@ -272,3 +272,68 @@ def test_log_success_event_skips_non_recording_current_span(monkeypatch):
     )
 
     assert span.attributes == {}
+
+
+def test_normalization_runs_even_if_original_set_attributes_raises(monkeypatch):
+    """original_set_attributes 抛异常时归一化仍应执行。"""
+
+    def _boom_set_attributes(self, span, kwargs, response_obj):
+        raise ValueError("simulated missing standard_logging_object")
+
+    monkeypatch.setattr(OpenTelemetry, "set_attributes", _boom_set_attributes)
+    patch_litellm_otel_cost()
+
+    span = _FakeSpan()
+    callback = _FakeOpenTelemetryCallback()
+    kwargs = {"model": "openai/gpt-5-mini", "response_cost": 0.08}
+    response_obj = {"model": "gpt-5-mini-2025-08-07"}
+
+    OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
+
+    # 归一化在 original 失败后仍然执行
+    assert span.attributes["gen_ai.request.model"] == "gpt-5-mini"
+    assert span.attributes["gen_ai.response.model"] == "gpt-5-mini"
+    assert span.attributes["langfuse.observation.model.name"] == "gpt-5-mini"
+    assert span.attributes["gen_ai.system"] == "openai"
+
+
+def test_normalization_handles_embedding_model(monkeypatch):
+    """Embedding 模型名（gemini/text-embedding-004）也应剥离 vendor 前缀。"""
+
+    def _original_set_attributes(self, span, kwargs, response_obj):
+        self.safe_set_attribute(span, "gen_ai.request.model", kwargs.get("model"))
+
+    monkeypatch.setattr(OpenTelemetry, "set_attributes", _original_set_attributes)
+    patch_litellm_otel_cost()
+
+    span = _FakeSpan()
+    callback = _FakeOpenTelemetryCallback()
+    kwargs = {"model": "gemini/text-embedding-004"}
+    response_obj = {"model": "text-embedding-004"}
+
+    OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
+
+    assert span.attributes["gen_ai.request.model"] == "text-embedding-004"
+    assert span.attributes["gen_ai.system"] == "gemini"
+    assert span.attributes["langfuse.observation.model.name"] == "text-embedding-004"
+
+
+def test_normalization_handles_bare_model_name(monkeypatch):
+    """裸名（gpt-4o-mini）经归一化后保持不变。"""
+
+    def _original_set_attributes(self, span, kwargs, response_obj):
+        self.safe_set_attribute(span, "gen_ai.request.model", kwargs.get("model"))
+
+    monkeypatch.setattr(OpenTelemetry, "set_attributes", _original_set_attributes)
+    patch_litellm_otel_cost()
+
+    span = _FakeSpan()
+    callback = _FakeOpenTelemetryCallback()
+    kwargs = {"model": "gpt-4o-mini"}
+    response_obj = {"model": "gpt-4o-mini"}
+
+    OpenTelemetry.set_attributes(callback, span, kwargs, response_obj)
+
+    assert span.attributes["gen_ai.request.model"] == "gpt-4o-mini"
+    assert span.attributes["langfuse.observation.model.name"] == "gpt-4o-mini"
+    assert span.attributes["gen_ai.system"] == "openai"
