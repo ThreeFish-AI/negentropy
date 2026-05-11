@@ -86,6 +86,11 @@ class _DynamicLiteLlm(LiteLlm):
             # 即使回退到默认模型，也记录用户意图到 OTel span。
             selected = _selected_root_llm.get()
             if selected:
+                _logger.warning(
+                    "dynamic_litellm_fallback_to_default",
+                    user_selected_model=selected,
+                    fallback_model=self.model,
+                )
                 span = trace.get_current_span()
                 if span and span.is_recording():
                     span.set_attribute("negentropy.user_selected_model", observability_model_name(selected) or selected)
@@ -126,10 +131,15 @@ class _DynamicLiteLlm(LiteLlm):
                 # 将用户意图和实际模型写入 OTel span，便于 Langfuse 排查。
                 span = trace.get_current_span()
                 if span and span.is_recording():
-                    orig_bare = observability_model_name(orig_model) or orig_model
-                    new_bare = observability_model_name(new_model) or new_model
-                    span.set_attribute("negentropy.user_selected_model", orig_bare)
-                    span.set_attribute("negentropy.effective_model", new_bare)
+                    user_intent = _selected_root_llm.get()
+                    span.set_attribute(
+                        "negentropy.user_selected_model",
+                        observability_model_name(user_intent)
+                        or user_intent
+                        or observability_model_name(new_model)
+                        or new_model,
+                    )
+                    span.set_attribute("negentropy.effective_model", observability_model_name(new_model) or new_model)
                 async for resp in super().generate_content_async(llm_request, stream=stream):
                     yield resp
             finally:
