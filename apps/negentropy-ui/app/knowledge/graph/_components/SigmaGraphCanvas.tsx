@@ -45,6 +45,8 @@ function buildGraph(
       y: Math.random() * 500,
       size: nodeSize(n.importance),
       color: nodeColor(n),
+      __origType: n.type,
+      __origCommunity: n.community_id,
     });
   }
   const validIds = new Set(nodes.map((n) => n.id));
@@ -73,6 +75,7 @@ export function SigmaGraphCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sigmaRef = useRef<InstanceType<typeof import("sigma").default> | null>(null);
   const graphRef = useRef<ReturnType<typeof buildGraph> | null>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
   const [expanding, setExpanding] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -165,17 +168,15 @@ export function SigmaGraphCanvas({
         sigma.refresh();
       });
       ro.observe(containerRef.current);
-
-      // cleanup 在外层处理
-      return () => {
-        ro.disconnect();
-      };
+      roRef.current = ro;
     };
 
     init();
 
     return () => {
       killed = true;
+      roRef.current?.disconnect();
+      roRef.current = null;
       sigmaRef.current?.kill();
       sigmaRef.current = null;
       graphRef.current = null;
@@ -198,6 +199,8 @@ export function SigmaGraphCanvas({
         y: Math.random() * 500,
         size: nodeSize(n.importance),
         color: nodeColor(n),
+        __origType: n.type,
+        __origCommunity: n.community_id,
       });
     }
     const validIds = new Set(nodes.map((n) => n.id));
@@ -266,19 +269,6 @@ export function SigmaGraphCanvas({
 
     sigmaRef.current?.refresh();
   }, [selectedNodeId, nodes, isDark]);
-
-  // 保存原始类型/社区信息到节点属性，用于选中态恢复颜色
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph) return;
-    graph.forEachNode((node) => {
-      const n = nodes.find((nd) => nd.id === node);
-      if (n) {
-        graph.setNodeAttribute(node, "__origType", n.type);
-        graph.setNodeAttribute(node, "__origCommunity", n.community_id);
-      }
-    });
-  }, [nodes]);
 
   const truncated = nodes.length >= truncateThreshold;
 
