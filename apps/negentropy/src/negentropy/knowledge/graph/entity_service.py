@@ -66,10 +66,11 @@ class KgEntityService:
         """
         from negentropy.models.perception import KgEntity
 
-        # 检查是否已存在（幂等）
+        # 检查是否已存在（幂等），使用 canonical_name 匹配以命中索引
+        canonical = name.strip().lower()
         existing = await db.execute(
             sa.select(KgEntity).where(
-                KgEntity.name == name,
+                KgEntity.canonical_name == canonical,
                 KgEntity.entity_type == entity_type,
                 KgEntity.corpus_id == corpus_id if corpus_id else True,
             )
@@ -101,6 +102,7 @@ class KgEntityService:
             corpus_id=corpus_id,
             app_name=app_name,
             name=name,
+            canonical_name=canonical,
             entity_type=entity_type,
             confidence=confidence,
             embedding=embedding,
@@ -157,7 +159,7 @@ class KgEntityService:
         src_result = await db.execute(
             sa.select(KgEntity)
             .where(
-                sa.func.lower(KgEntity.name) == source_name.lower(),
+                KgEntity.canonical_name == source_name.strip().lower(),
                 *_corpus_filters,
             )
             .limit(1)
@@ -165,7 +167,7 @@ class KgEntityService:
         tgt_result = await db.execute(
             sa.select(KgEntity)
             .where(
-                sa.func.lower(KgEntity.name) == target_name.lower(),
+                KgEntity.canonical_name == target_name.strip().lower(),
                 *_corpus_filters,
             )
             .limit(1)
