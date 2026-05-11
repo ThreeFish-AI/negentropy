@@ -1772,4 +1772,26 @@
   3. **任何长任务的进度心跳**必须区分”非终态写入”（保留 `completed_at` 旧值）与”终态写入”（设 `NOW()`），既保留 cancel 时间锚，也让 watchdog 阈值真实反映”最后心跳”而非”启动时间”。
 - **同类问题影响**：
   - KB 侧 `KnowledgeRunDao` 已通过条件 UPDATE + OCC 机制规避同型 race；KG 侧本次修复使两侧语义对齐；
+
+---
+
+## ISSUE-020 Memory content 字段被写入结构化 JSON 而非自然语言
+
+- **表因**：Memory Timeline UI 上 Semantic 类型记忆显示为 JSON 对象（如 `{"id":"verify-dev-fix:...","type":"verification_task",...}`），用户无法从卡片中理解记忆含义。
+- **根因**：
+  1. `InternalizationFaculty` 指令中有"输出的 Markdown/JSON 必须严格符合 Schema 定义"（`faculties/internalization.py:50`），Agent 据此将 `save_to_memory` 的 content 参数填入结构化 JSON；
+  2. `save_to_memory()` 函数（`agents/tools/internalization.py:23-88`）对 content 参数无格式校验，JSON 畅通无阻地写入 `memories.content` 字段；
+  3. `save_to_memory` docstring 对 content 参数无格式约束说明，Agent LLM 看不到"必须是自然语言"的提示。
+- **处理方式**：
+  1. 新建 `engine/governance/content_validator.py` — 零依赖同步 JSON 检测工具（`validate_memory_content()`）；
+  2. `save_to_memory()` 加入 fail-fast 校验 — 检测到 JSON 时返回 `{"status": "failed", "error": "..."}` 并附带正确用法示例，引导 Agent 自我修正；
+  3. `InternalizationFaculty` 指令 — 将"格式严谨：输出的 Markdown/JSON 必须严格符合 Schema 定义"替换为"Memory 写入约束：content 必须是自然语言描述句，严禁传入 JSON 对象"；
+  4. 单元测试 13 条全绿，回归测试 34 条全绿。
+- **后续防范**：
+  1. Agent 工具的 content/docstring 应显式声明格式要求，不可留白让 LLM 自行推断；
+  2. Agent 指令中涉及"格式"的措辞需区分**工具输出格式**（JSON Schema 用于 API）和**记忆存储格式**（自然语言用于人可读）；
+  3. 记忆写入路径应建立格式守卫（至少是同步快速检测），防止非预期格式入库。
+- **同类问题影响**：
+  - `add_memory_typed()`（`memory_service.py:1450`）同样无格式校验，后续若 Agent 通过 `memory_write` 工具写入 JSON 也会出现同类问题，可考虑在此路径补充校验；
+  - `_simple_consolidate()` 路径存储的原始对话格式（`[User] text`）虽非 JSON 但也非语义记忆，可作为后续优化项。
   - `asyncio.gather(return_exceptions=True)` 误吞 cancel 是 Python asyncio 协作式取消的经典坑，凡使用该模式的批处理循环都需复核是否会吞掉自定义 cancel 异常。
