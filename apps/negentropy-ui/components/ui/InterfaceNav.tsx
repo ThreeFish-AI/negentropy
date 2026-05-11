@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/interface/subagents", label: "SubAgents" },
   { href: "/interface/mcp", label: MCP_HUB_LABEL },
   { href: "/interface/skills", label: "Skills" },
+  { href: "/interface/tools", label: "Tools" },
 ];
 
 export function InterfaceNav({

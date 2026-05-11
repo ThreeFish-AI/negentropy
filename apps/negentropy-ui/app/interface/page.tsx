@@ -10,6 +10,7 @@ interface Stats {
   skills: { total: number; enabled: number };
   subagents: { total: number; enabled: number };
   models: { total: number; enabled: number; vendors: number };
+  tools: { total: number; enabled: number };
 }
 
 export default function InterfacePage() {
@@ -47,8 +48,8 @@ export default function InterfacePage() {
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
             {isAdmin
-              ? "Manage Models, SubAgents, MCP servers, and Skills for your AI agents."
-              : "Manage SubAgents, MCP servers, and Skills for your AI agents."}
+              ? "Manage Models, SubAgents, MCP servers, Skills, and Tools for your AI agents."
+              : "Manage SubAgents, MCP servers, Skills, and Tools for your AI agents."}
           </p>
 
           {loading ? (
@@ -56,7 +57,7 @@ export default function InterfacePage() {
           ) : error ? (
             <div className="text-sm text-red-500">{error}</div>
           ) : (
-            <div className={`grid gap-4 ${isAdmin ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+            <div className={`grid gap-4 ${isAdmin ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
               {isAdmin && (
                 <StatCard
                   title="Models"
@@ -87,6 +88,13 @@ export default function InterfacePage() {
                 href="/interface/skills"
                 description="Reusable skill modules"
               />
+              <StatCard
+                title="Tools"
+                total={stats?.tools?.total || 0}
+                enabled={stats?.tools?.enabled || 0}
+                href="/interface/tools"
+                description="Builtin tool configurations"
+              />
             </div>
           )}
 
@@ -94,7 +102,7 @@ export default function InterfacePage() {
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
               Quick Links
             </h2>
-            <div className={`grid gap-4 ${isAdmin ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+            <div className={`grid gap-4 ${isAdmin ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
               {isAdmin && (
                 <QuickLink
                   href="/interface/models"
@@ -116,6 +124,11 @@ export default function InterfacePage() {
                 href="/interface/skills"
                 title="Create Skill"
                 description="Define reusable prompt templates"
+              />
+              <QuickLink
+                href="/interface/tools"
+                title="Configure Tool"
+                description="Manage builtin tool integrations"
               />
             </div>
           </div>

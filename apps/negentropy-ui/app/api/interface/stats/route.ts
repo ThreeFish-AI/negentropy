@@ -13,6 +13,7 @@ interface InterfaceStatsResponse {
   skills: { total: number; enabled: number };
   subagents: { total: number; enabled: number };
   models: { total: number; enabled: number; vendors: number };
+  tools: { total: number; enabled: number };
 }
 
 const getBaseUrl = getAguiBaseUrl;
@@ -43,6 +44,7 @@ const defaultStats: InterfaceStatsResponse = {
   skills: { total: 0, enabled: 0 },
   subagents: { total: 0, enabled: 0 },
   models: { total: 0, enabled: 0, vendors: 0 },
+  tools: { total: 0, enabled: 0 },
 };
 
 export async function GET(request: NextRequest) {
