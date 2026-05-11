@@ -47,7 +47,9 @@ _INSTRUCTION = """
 
 ## 约束 (Constraints)
 - **严禁重复 (DRY Principle)**：不要创建副本。如果存在，请引用链接。
-- **格式严谨 (Strict Formatting)**：输出的 Markdown/JSON 必须严格符合 Schema 定义。
+- **Memory 写入约束 (Natural Language Only)**：调用 save_to_memory 时，
+  content 参数**必须**是自然语言描述句（如 "用户偏好 async-first 架构"），
+  严禁传入 JSON 对象。结构化数据请使用 update_knowledge_graph 写入 facts 表。
 - **数据主权 (Data Sovereignty)**：你是记忆的守护者，未经允许不得轻易删除核心记忆。
 """
 
