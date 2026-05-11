@@ -440,6 +440,7 @@ export default function KnowledgeGraphPage() {
                       corpusId={corpusId}
                       enqueued={pillEnqueued}
                       onTerminal={handlePillTerminal}
+                      compact
                     />
                   )}
                 </div>

@@ -412,4 +412,33 @@ describe("KgBuildProgressPill", () => {
       vi.useRealTimers();
     }
   });
+
+  // ----- Layout 契约：保护 compact 变体的两种 spacing 配方，禁止互相回退 -----
+  // 背景：KgBuildProgressPill 同时被 ToolExecutionGroup（块级堆叠场景，需 mt-2 py-2）
+  // 与 Knowledge Graph Toolbar（行内并排，需去 mt-2、py-1 与按钮组对齐基线）使用。
+  // 由于 lib/utils.ts 的 cn 仅做字符串拼接（无 tailwind-merge），不能依赖叠加覆盖；
+  // 组件内部以互斥分支输出 className，本组用例锁定该契约，防止后续误改回退。
+  it("默认 compact=false 时保留 mt-2 py-2（保护 ToolExecutionGroup 堆叠场景）", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonRes({ status: "running", progress_percent: 0.5 }),
+    );
+    render(<KgBuildProgressPill corpusId="abc" enqueued={true} />);
+    await act(async () => {});
+    const pill = screen.getByTestId("kg-build-progress");
+    expect(pill).toHaveClass("mt-2");
+    expect(pill).toHaveClass("py-2");
+    expect(pill).not.toHaveClass("py-1");
+  });
+
+  it("compact=true 时去除 mt-2 并用 py-1（Toolbar 内与按钮组水平对齐）", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonRes({ status: "running", progress_percent: 0.5 }),
+    );
+    render(<KgBuildProgressPill corpusId="abc" enqueued={true} compact />);
+    await act(async () => {});
+    const pill = screen.getByTestId("kg-build-progress");
+    expect(pill).not.toHaveClass("mt-2");
+    expect(pill).toHaveClass("py-1");
+    expect(pill).not.toHaveClass("py-2");
+  });
 });
