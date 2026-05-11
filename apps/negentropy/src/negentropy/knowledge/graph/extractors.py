@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import os
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
@@ -34,6 +35,66 @@ if TYPE_CHECKING:
 from ..types import GraphEdge, GraphNode, KgEntityType, KgRelationType
 
 logger = get_logger("negentropy.knowledge.llm_extractors")
+
+# ============================================================================
+# KG LLM 调用全局配置（环境变量可覆盖）
+# ============================================================================
+# 单次 litellm.acompletion 超时（秒）。5 min 确保复杂提取场景充分等待。
+KG_LLM_TIMEOUT_SECONDS: float = float(os.environ.get("KG_LLM_TIMEOUT_SECONDS", "300"))
+# 全链路最大重试次数（不论嵌套层级，总重试不超过此值）。
+# SDK 层 num_retries=0 禁用隐形重试，由应用层统一管控。
+KG_LLM_MAX_RETRIES: int = int(os.environ.get("KG_LLM_MAX_RETRIES", "3"))
+
+
+async def call_llm_with_retry(
+    *,
+    model: str,
+    messages: list[dict[str, str]],
+    temperature: float = 0.3,
+    max_tokens: int | None = None,
+    context_label: str = "kg_llm",
+) -> str:
+    """带重试的 LLM 调用（KG 系统全局统一保障）。
+
+    策略：SDK 层 ``num_retries=0`` 禁用隐形重试，应用层统一管控。
+    单次超时 ``KG_LLM_TIMEOUT_SECONDS``，最大重试 ``KG_LLM_MAX_RETRIES`` 次。
+    所有失败后返回空字符串（由调用方决定降级行为）。
+    """
+    import litellm
+
+    last_error: Exception | None = None
+    for attempt in range(KG_LLM_MAX_RETRIES):
+        try:
+            kwargs: dict[str, Any] = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "timeout": KG_LLM_TIMEOUT_SECONDS,
+                "num_retries": 0,
+                "max_retries": 0,
+            }
+            if max_tokens is not None:
+                kwargs["max_tokens"] = max_tokens
+            response = await litellm.acompletion(**kwargs)
+            return response.choices[0].message.content or ""
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                f"{context_label}_retry",
+                attempt=attempt + 1,
+                max_retries=KG_LLM_MAX_RETRIES,
+                error=str(exc),
+            )
+            if attempt < KG_LLM_MAX_RETRIES - 1:
+                await asyncio.sleep(1.0)
+
+    logger.error(
+        f"{context_label}_exhausted",
+        error=str(last_error),
+        max_retries=KG_LLM_MAX_RETRIES,
+    )
+    return ""
+
 
 _DEFAULT_ENCODING = "cl100k_base"
 _encoding_cache: tiktoken.Encoding | None = None
@@ -152,22 +213,23 @@ Output as JSON with the following structure:
         self,
         model: str | None = None,
         temperature: float = 0.0,
-        max_retries: int = 2,
+        max_retries: int = KG_LLM_MAX_RETRIES,
         fallback_to_regex: bool = True,
         schema: Any | None = None,
-        llm_timeout: float = 30.0,
+        llm_timeout: float = KG_LLM_TIMEOUT_SECONDS,
     ) -> None:
         """初始化 LLM 实体提取器
 
         Args:
             model: LLM 模型名称（默认使用配置中的 chat_model）
             temperature: 生成温度（0.0 确保一致性）
-            max_retries: 最大重试次数
+            max_retries: 应用层最大重试次数（默认 ``KG_LLM_MAX_RETRIES``）。
+                SDK 层已通过 ``num_retries=0`` 禁用隐形重试，全链路重试仅此一层管控。
             fallback_to_regex: 失败时是否回退到正则提取器
             schema: ExtractionSchema 实例，用于约束提取类型
-            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。需严格小于 service 层
-                ``chunk_extract_timeout``，确保内层重试 + fallback 在外层 wait_for 触发前完成。
-                30s × 2 retries + 1s backoff ≈ 61s < 90s outer timeout.
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒，默认 ``KG_LLM_TIMEOUT_SECONDS``）。
+                service 层 ``chunk_extract_timeout`` = max_retries × llm_timeout + backoff，确保外层
+                预算覆盖内层重试。
         """
         # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
         # 因为 __init__ 是同步的，无法调用异步 DB 查询
@@ -341,7 +403,7 @@ Output as JSON with the following structure:
                 f'"description": "...", "confidence": 0.9}}]}}'
             )
 
-        # 重试逻辑
+        # 重试逻辑（全链路唯一重试层；SDK 层 num_retries=0 已禁用隐形重试）
         last_error = None
         for attempt in range(self._max_retries):
             try:
@@ -349,16 +411,27 @@ Output as JSON with the following structure:
                 safe_kwargs = {
                     k: v
                     for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format", "timeout")
+                    if k
+                    not in (
+                        "model",
+                        "messages",
+                        "temperature",
+                        "response_format",
+                        "timeout",
+                        "num_retries",
+                        "max_retries",
+                    )
                 }
-                # 显式 timeout：litellm 默认无 client-level 超时，单次调用 hang 会
-                # 阻塞 service.process_chunk 的 asyncio.gather；此处与 wait_for 形成双层防御。
+                # num_retries=0 + max_retries=0：禁用 litellm/OpenAI SDK 内部隐形重试，
+                # 全链路重试由本 for 循环统一管控（上限 KG_LLM_MAX_RETRIES）。
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
                     timeout=self._llm_timeout,
+                    num_retries=0,
+                    max_retries=0,
                     **safe_kwargs,
                 )
 
@@ -370,6 +443,7 @@ Output as JSON with the following structure:
                 logger.warning(
                     "llm_extraction_retry",
                     attempt=attempt + 1,
+                    max_retries=self._max_retries,
                     error=str(exc),
                     timeout_seconds=self._llm_timeout,
                 )
@@ -520,22 +594,20 @@ Output as JSON with the following structure:
         self,
         model: str | None = None,
         temperature: float = 0.0,
-        max_retries: int = 2,
+        max_retries: int = KG_LLM_MAX_RETRIES,
         fallback_to_cooccurrence: bool = True,
         schema: Any | None = None,
-        llm_timeout: float = 30.0,
+        llm_timeout: float = KG_LLM_TIMEOUT_SECONDS,
     ) -> None:
         """初始化 LLM 关系提取器
 
         Args:
             model: LLM 模型名称
             temperature: 生成温度
-            max_retries: 最大重试次数
+            max_retries: 应用层最大重试次数（默认 ``KG_LLM_MAX_RETRIES``）。
             fallback_to_cooccurrence: 失败时是否回退到共现提取器
             schema: ExtractionSchema 实例，用于约束关系类型
-            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒）。需严格小于 service 层
-                ``chunk_extract_timeout``，确保内层重试 + fallback 在外层 wait_for 触发前完成。
-                同 LLMEntityExtractor 语义。
+            llm_timeout: 单次 ``litellm.acompletion`` 超时（秒，默认 ``KG_LLM_TIMEOUT_SECONDS``）。
         """
         # 惰性解析模型配置（含 api_key），延迟到首次 _extract_with_llm 调用
         self._explicit_model = model
@@ -739,7 +811,7 @@ Output as JSON with the following structure:
                 f'"description": "...", "evidence": "...", "confidence": 0.9}}]}}'
             )
 
-        # 重试逻辑
+        # 重试逻辑（全链路唯一重试层；SDK 层 num_retries=0 已禁用隐形重试）
         last_error = None
         for attempt in range(self._max_retries):
             try:
@@ -747,15 +819,25 @@ Output as JSON with the following structure:
                 safe_kwargs = {
                     k: v
                     for k, v in self._model_kwargs.items()
-                    if k not in ("model", "messages", "temperature", "response_format", "timeout")
+                    if k
+                    not in (
+                        "model",
+                        "messages",
+                        "temperature",
+                        "response_format",
+                        "timeout",
+                        "num_retries",
+                        "max_retries",
+                    )
                 }
-                # 显式 timeout：与 LLMEntityExtractor 同语义。
                 response = await litellm.acompletion(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self._temperature,
                     response_format={"type": "json_object"},
                     timeout=self._llm_timeout,
+                    num_retries=0,
+                    max_retries=0,
                     **safe_kwargs,
                 )
 
@@ -767,6 +849,7 @@ Output as JSON with the following structure:
                 logger.warning(
                     "llm_relation_extraction_retry",
                     attempt=attempt + 1,
+                    max_retries=self._max_retries,
                     error=str(exc),
                     timeout_seconds=self._llm_timeout,
                 )

@@ -435,17 +435,19 @@ class GraphService:
             batch_size = build_config.batch_size
             semaphore = asyncio.Semaphore(build_config.max_concurrency)
 
-            # 单 chunk LLM 提取超时（秒）：包裹 entity / relation extractor.extract
-            # 防御场景：单条 chunk LLM 调用 hang 住会阻塞整个 batch 的 asyncio.gather，
-            # 上层无心跳 → SSE 端点 progress 静默 → 前端误判"卡死"。
-            # 90s 严格大于内层超时预算（2 retries × 30s litellm timeout + 1s backoff ≈ 61s），
-            # 确保内层重试 + fallback 在外层 wait_for 触发前完成。
-            chunk_extract_timeout = 90.0
+            # 单 chunk LLM 提取超时（秒）：包裹 entity / relation extractor.extract。
+            # 由全局配置推导：max_retries × timeout + backoff，确保外层预算覆盖内层重试。
+            from .extractors import KG_LLM_MAX_RETRIES, KG_LLM_TIMEOUT_SECONDS
+
+            chunk_extract_timeout = KG_LLM_MAX_RETRIES * KG_LLM_TIMEOUT_SECONDS + KG_LLM_MAX_RETRIES
 
             # 断路器 (Nygard, "Release It!", 2018, Ch.5)：连续 LLM 失败达到阈值后，
             # 跳过 LLM 直接使用 fallback 提取器（regex/cooccurrence），避免每个 chunk
-            # 白等 30-90s LLM 超时。两态模型 CLOSED→OPEN，无 HALF-OPEN（构建是有限批次）。
+            # 白等 LLM 超时。两态模型 CLOSED→OPEN，无 HALF-OPEN（构建是有限批次）。
             circuit_breaker = _LLMCircuitBreaker(failure_threshold=3)
+
+            # 协同取消信号：断路器 OPEN 时 set，同批并发 chunk 立即跳过 LLM 走 fallback。
+            llm_cancel = asyncio.Event()
 
             # 阶段化进度上报：把当前阶段元数据写入 warnings JSONB 的最后一条 _phase 条目，
             # SSE 端点透传后由前端 KgBuildProgressPill 解析渲染中文标签。
@@ -616,7 +618,7 @@ class GraphService:
                     )
 
                     # ── 断路器 fast-path：跳过 LLM，直接 fallback ──
-                    if circuit_breaker.should_skip_llm():
+                    if circuit_breaker.should_skip_llm() or llm_cancel.is_set():
                         chunks_fallback += 1
                         return await _fallback_extract_chunk(text, chunk_id)
 
@@ -642,6 +644,7 @@ class GraphService:
                         # 实体提取失败：记录失败 + 整个 chunk 走 fallback
                         just_opened = circuit_breaker.record_failure()
                         if just_opened:
+                            llm_cancel.set()  # 通知同批并发 chunk 停止 LLM
                             logger.warning(
                                 "llm_circuit_breaker_opened",
                                 run_id=run_id,
@@ -656,7 +659,29 @@ class GraphService:
                         chunks_fallback += 1
                         return await _fallback_extract_chunk(text, chunk_id)
 
-                    # 实体提取成功 → 尝试关系提取
+                    # 实体提取成功 → 检查断路器再尝试关系提取
+                    if llm_cancel.is_set():
+                        # 断路器在实体提取后打开了，关系直接走 fallback
+                        chunks_fallback += 1
+                        try:
+                            from .strategy import CooccurrenceRelationExtractor
+
+                            relations = await CooccurrenceRelationExtractor().extract(entities, text)
+                            relations = [
+                                r
+                                for r in relations
+                                if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
+                            ]
+                        except Exception as fallback_exc:
+                            relations = []
+                            logger.error(
+                                "cooccurrence_fallback_also_failed",
+                                run_id=run_id,
+                                chunk_id=chunk_id,
+                                error=str(fallback_exc),
+                            )
+                        return entities, relations
+
                     try:
                         relations = await asyncio.wait_for(
                             relation_extractor.extract(entities, text),
@@ -677,6 +702,7 @@ class GraphService:
                         # 关系提取失败：保留已提取的实体，关系走 cooccurrence fallback
                         just_opened = circuit_breaker.record_failure()
                         if just_opened:
+                            llm_cancel.set()  # 通知同批并发 chunk 停止 LLM
                             logger.warning(
                                 "llm_circuit_breaker_opened",
                                 run_id=run_id,

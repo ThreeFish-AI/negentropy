@@ -384,19 +384,16 @@ class GlobalSearchService:
         return await self._call_llm(prompt, max_tokens=500) or "（Reduce 阶段未能产出最终答案）"
 
     async def _call_llm(self, prompt: str, max_tokens: int) -> str:
-        import litellm
-
         from negentropy.config.model_resolver import get_fallback_llm_config
 
+        from .extractors import call_llm_with_retry
+
         model = self._model or get_fallback_llm_config()[0]
-        try:
-            response = await litellm.acompletion(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=max_tokens,
-            )
-            return (response.choices[0].message.content or "").strip()
-        except Exception as exc:
-            logger.warning("global_search_llm_failed", model=model, error=str(exc))
-            return ""
+        result = await call_llm_with_retry(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=max_tokens,
+            context_label="global_search",
+        )
+        return result.strip()
