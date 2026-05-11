@@ -43,10 +43,73 @@ export const DEFAULT_PROXY_TIMEOUT_MS = 30_000;
  */
 export const LONG_TASK_PROXY_TIMEOUT_MS = 15 * 60 * 1_000;
 
+/**
+ * Transient 错误自动重试配置。
+ *
+ * 设计动机：Knowledge Graph 后端 fire-and-forget 构建期间，后端连接池或上游
+ * 网络偶发抖动会让 BFF fetch 抛 ``TypeError: fetch failed`` 或上游响应 502/503/504。
+ * 前端 ``KgBuildProgressPill`` 虽然已有 10 次外层指数退避，但每次失败都会让用户
+ * 短暂看到误导性错误。在 BFF 层增加一段透明 retry 把瞬态错误吸收掉，让前端
+ * 只在持续性故障时才看到错误。
+ *
+ * 触发条件（transient）：
+ *  - fetch 抛错且**非** ``DOMException(TimeoutError)``（即 fetch failed /
+ *    ECONNRESET / ECONNREFUSED / socket hang up 等连接层瞬态错误）
+ *  - upstream Response.status ∈ {502, 503, 504}
+ *
+ * 不触发（不重试）：
+ *  - TimeoutError（请求级超时，重试只会拉长用户等待）
+ *  - 4xx 客户端错误（重试无意义）
+ *  - 5xx 但非 502/503/504（应用层错误，重试无效）
+ *
+ * 启用范围：默认 ``undefined``（保留向后兼容），调用方按端点显式启用。
+ *   - 已启用：``GET /knowledge/base/:id/graph/build-runs/latest``（轮询）
+ *   - 未启用：POST（避免重复 enqueue 副作用，如 KG 构建重复触发）
+ */
+export type RetryOptions = {
+  /** 总尝试次数（首次 + 重试），如 attempts=3 即首次 + 2 次重试 */
+  attempts: number;
+  /** 每次重试前的退避毫秒数序列；长度应 ≥ attempts-1，超出 attempts-1 的项被忽略 */
+  backoffMs: number[];
+};
+
+/** 默认轮询端点的重试配置：3 次尝试，200ms / 500ms 退避 */
+export const POLLING_RETRY: RetryOptions = {
+  attempts: 3,
+  backoffMs: [200, 500],
+};
+
 type ProxyOptions = {
   /** 覆盖默认 30s 超时；长任务调用方建议传 LONG_TASK_PROXY_TIMEOUT_MS */
   timeoutMs?: number;
+  /**
+   * Transient 错误自动重试。默认不启用（兼容旧调用方）；
+   * 调用方按端点语义显式启用（仅 GET 推荐启用，POST 重试会触发副作用）。
+   */
+  retry?: RetryOptions;
 };
+
+/** 上游响应被视作 transient 的状态码集合 */
+const TRANSIENT_UPSTREAM_STATUSES = new Set([502, 503, 504]);
+
+/**
+ * 判定 fetch 抛错是否属于 transient（值得重试）。
+ *
+ * ``DOMException(TimeoutError)`` 来自 ``AbortSignal.timeout()``：请求级超时
+ * 由调用方通过 ``timeoutMs`` 显式设定，重试只会让超时累加、用户等待更久，
+ * 因此**不**视作 transient。其余 fetch 错误（fetch failed / ECONNRESET /
+ * ECONNREFUSED / socket hang up 等）均为连接层瞬态，可重试。
+ */
+function isTransientFetchError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === "TimeoutError") {
+    return false;
+  }
+  return true;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * 把 fetch 异常归类为 504（超时）或 502（其他连接失败），让前端能准确区分。
@@ -136,25 +199,58 @@ export async function proxyGet(request: Request, path: string, options: ProxyOpt
   upstreamUrl.search = incomingUrl.search;
   const timeoutMs = options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS;
 
-  let upstreamResponse: Response;
-  try {
-    upstreamResponse = await fetch(upstreamUrl, {
-      method: "GET",
-      headers: extractForwardHeaders(request),
-      cache: "no-store",
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-  } catch (error) {
-    const { code, message, status } = classifyFetchError(error);
-    return errorResponse(code, message, status);
+  // Transient retry-loop：connection-layer 抛错 / 上游 502/503/504 时按退避序列
+  // 重试，吸收 fire-and-forget 后端构建期间的连接池抖动；非 transient 错误（4xx /
+  // TimeoutError / 5xx 非 502-504）立即返回。详见 ``RetryOptions`` 文档。
+  const retry = options.retry;
+  const attempts = retry?.attempts ?? 1;
+  const backoffMs = retry?.backoffMs ?? [];
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let upstreamResponse: Response;
+    try {
+      upstreamResponse = await fetch(upstreamUrl, {
+        method: "GET",
+        headers: extractForwardHeaders(request),
+        cache: "no-store",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (error) {
+      // 仅 transient 且还有剩余 attempt 时退避重试
+      if (isTransientFetchError(error) && attempt < attempts) {
+        await sleep(backoffMs[attempt - 1] ?? 0);
+        continue;
+      }
+      const { code, message, status } = classifyFetchError(error);
+      return errorResponse(code, message, status);
+    }
+
+    // 上游 502/503/504 也按 transient 处理（fire-and-forget 后端瞬态不可达）
+    if (TRANSIENT_UPSTREAM_STATUSES.has(upstreamResponse.status) && attempt < attempts) {
+      // 读取并丢弃响应体，避免连接保持半开（Node fetch 不主动消费会延后 GC）
+      try {
+        await upstreamResponse.text();
+      } catch {
+        /* ignore drain errors */
+      }
+      await sleep(backoffMs[attempt - 1] ?? 0);
+      continue;
+    }
+
+    const text = await upstreamResponse.text();
+    if (!upstreamResponse.ok) {
+      return upstreamErrorResponse(text, upstreamResponse.status);
+    }
+    return NextResponse.json(JSON.parse(text));
   }
 
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return upstreamErrorResponse(text, upstreamResponse.status);
-  }
-
-  return NextResponse.json(JSON.parse(text));
+  // 理论不可达：retry-loop 内每个分支都有 return 或 continue（continue 仅在
+  // attempt<attempts 时才走），最后一次必定走到 return。兜底以满足 TS 控制流分析。
+  return errorResponse(
+    "KNOWLEDGE_UPSTREAM_ERROR",
+    "Upstream temporarily unavailable after retries",
+    502,
+  );
 }
 
 export async function proxyPost(request: Request, path: string, options: ProxyOptions = {}) {
