@@ -4,11 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import {
   type GraphBuildRunRecord,
   type GraphSearchResultItem,
   type KnowledgeGraphPayload,
   buildKnowledgeGraph,
+  cancelPipelineRun,
   fetchCorpusGraph,
 } from "@/features/knowledge";
 
@@ -78,6 +80,7 @@ export default function KnowledgeGraphPage() {
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
   >(null);
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const loadGraph = useCallback(
     async (cid: string) => {
@@ -176,6 +179,39 @@ export default function KnowledgeGraphPage() {
       setBuilding(false);
     }
   }, [corpusId, loadGraph]);
+
+  const handleCancelBuildRun = useCallback(
+    async (run: GraphBuildRunRecord) => {
+      if (!corpusId) return;
+      const confirmed = await confirm({
+        title: "取消图谱构建",
+        message: (
+          <div className="space-y-2">
+            <p>
+              确定取消构建 <span className="font-mono">{run.run_id}</span>?
+            </p>
+            <p className="text-xs opacity-80">
+              已写入的实体和关系不会回滚（best-effort 取消）。
+            </p>
+          </div>
+        ),
+        confirmLabel: "确认取消",
+        cancelLabel: "保持运行",
+        destructive: true,
+      });
+      if (!confirmed) return;
+      try {
+        await cancelPipelineRun(run.run_id || run.id, "kg", {
+          appName: APP_NAME,
+          corpusId,
+        });
+        await loadGraph(corpusId);
+      } catch (err) {
+        console.error("cancel_build_failed", err);
+      }
+    },
+    [confirm, corpusId, loadGraph],
+  );
 
   const handlePillTerminal = useCallback(() => {
     setPillEnqueued(false);
@@ -773,7 +809,7 @@ export default function KnowledgeGraphPage() {
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                   构建历史
                 </h3>
-                <BuildHistoryList runs={runs} />
+                <BuildHistoryList runs={runs} corpusId={corpusId} onCancel={handleCancelBuildRun} />
               </div>
 
               {/* Path Explorer */}
@@ -806,6 +842,7 @@ export default function KnowledgeGraphPage() {
           </aside>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }

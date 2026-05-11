@@ -144,6 +144,7 @@ class BuildRunRecord:
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
+    updated_at: datetime | None = None
     progress_percent: float = 0.0
     warnings: list[dict[str, Any]] | None = None
 
@@ -1768,9 +1769,9 @@ class AgeGraphRepository(GraphRepository):
 
         query = text(f"""
             INSERT INTO {self._schema}.kg_build_runs
-                (id, app_name, corpus_id, run_id, status, extractor_config, model_name, started_at)
+                (id, app_name, corpus_id, run_id, status, extractor_config, model_name, started_at, updated_at)
             VALUES
-                (:id, :app_name, :corpus_id, :run_id, 'running', CAST(:config AS jsonb), :model, NOW())
+                (:id, :app_name, :corpus_id, :run_id, 'running', CAST(:config AS jsonb), :model, NOW(), NOW())
         """)
 
         async with self._session_scope() as session:
@@ -1840,6 +1841,7 @@ class AgeGraphRepository(GraphRepository):
                 progress_percent = COALESCE(:progress, progress_percent),
                 warnings = COALESCE(CAST(:warnings AS json), warnings),
                 processed_chunk_ids = COALESCE(CAST(:chunk_ids AS json), processed_chunk_ids),
+                updated_at = NOW(),
                 completed_at = CASE
                     WHEN CAST(:status AS varchar) IN ('completed', 'failed', 'cancelled') THEN NOW()
                     ELSE completed_at
@@ -1978,7 +1980,7 @@ class AgeGraphRepository(GraphRepository):
         query = text(f"""
             SELECT id, app_name, corpus_id, run_id, status,
                    entity_count, relation_count, extractor_config, model_name,
-                   error_message, started_at, completed_at, created_at,
+                   error_message, started_at, completed_at, created_at, updated_at,
                    progress_percent, warnings
             FROM {self._schema}.kg_build_runs
             WHERE corpus_id = :corpus_id AND app_name = :app_name
@@ -2013,6 +2015,7 @@ class AgeGraphRepository(GraphRepository):
                 started_at=row.started_at,
                 completed_at=row.completed_at,
                 created_at=row.created_at,
+                updated_at=row.updated_at,
                 progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
                 warnings=row.warnings if row.warnings else None,
             )
@@ -2033,7 +2036,7 @@ class AgeGraphRepository(GraphRepository):
         query = text(f"""
             SELECT id, app_name, corpus_id, run_id, status,
                    entity_count, relation_count, extractor_config, model_name,
-                   error_message, started_at, completed_at, created_at,
+                   error_message, started_at, completed_at, created_at, updated_at,
                    progress_percent, warnings
             FROM {self._schema}.kg_build_runs
             WHERE run_id = :run_id AND app_name = :app_name
@@ -2061,6 +2064,7 @@ class AgeGraphRepository(GraphRepository):
             started_at=row.started_at,
             completed_at=row.completed_at,
             created_at=row.created_at,
+            updated_at=row.updated_at,
             progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
             warnings=row.warnings if row.warnings else None,
         )
@@ -2096,7 +2100,7 @@ class AgeGraphRepository(GraphRepository):
             select_stmt = text(f"""
                 SELECT id, status, warnings, app_name, corpus_id, run_id,
                        entity_count, relation_count, extractor_config, model_name,
-                       error_message, started_at, completed_at, created_at, progress_percent
+                       error_message, started_at, completed_at, created_at, updated_at, progress_percent
                 FROM {self._schema}.kg_build_runs
                 WHERE run_id = :run_id AND app_name = :app_name
                 FOR UPDATE
@@ -2123,6 +2127,7 @@ class AgeGraphRepository(GraphRepository):
                     started_at=row.started_at,
                     completed_at=completed_at_override if completed_at_override is not None else row.completed_at,
                     created_at=row.created_at,
+                    updated_at=row.updated_at,
                     progress_percent=float(row.progress_percent) if row.progress_percent else 0.0,
                     warnings=updated_warnings or None,
                 )
@@ -2139,7 +2144,8 @@ class AgeGraphRepository(GraphRepository):
                 UPDATE {self._schema}.kg_build_runs
                 SET status = :status,
                     warnings = CAST(:warnings AS json),
-                    completed_at = NOW()
+                    completed_at = NOW(),
+                    updated_at = NOW()
                 WHERE id = :id
             """)
             await session.execute(
@@ -2182,7 +2188,7 @@ class AgeGraphRepository(GraphRepository):
                     error_message = COALESCE(error_message, :stale_msg),
                     completed_at = NOW()
                 WHERE status = 'running'
-                  AND COALESCE(completed_at, created_at) < NOW() - (:running_threshold || ' minutes')::interval
+                  AND COALESCE(updated_at, created_at) < NOW() - (:running_threshold || ' minutes')::interval
                   {"AND app_name = :app_name" if app_name is not None else ""}
             """)
             cancelled_stmt = text(f"""
@@ -2190,7 +2196,7 @@ class AgeGraphRepository(GraphRepository):
                 SET status = 'cancelled',
                     completed_at = NOW()
                 WHERE status = 'cancelling'
-                  AND COALESCE(completed_at, created_at) < NOW() - (:cancelling_threshold || ' minutes')::interval
+                  AND COALESCE(updated_at, created_at) < NOW() - (:cancelling_threshold || ' minutes')::interval
                   {"AND app_name = :app_name" if app_name is not None else ""}
             """)
 
