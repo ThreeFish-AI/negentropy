@@ -68,6 +68,7 @@ export function SubAgentFormDialog({
   const [templates, setTemplates] = useState<NegentropyTemplate[]>([]);
   const [selectedTemplateName, setSelectedTemplateName] = useState("");
   const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
+  const [availableTools, setAvailableTools] = useState<Array<{ name: string; display_name: string | null; source: string }>>([]);
 
   const applyTemplate = (template: NegentropyTemplate) => {
     setFormData({
@@ -134,6 +135,27 @@ export function SubAgentFormDialog({
         }
       } catch {
         // keep silent; select will fall back to Default-only option
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const response = await fetch("/api/interface/tools/available");
+        if (response.ok) {
+          const data = await response.json();
+          if (mounted) {
+            setAvailableTools(data);
+          }
+        }
+      } catch {
+        // keep silent; available tools is optional
       }
     })();
     return () => {
@@ -444,14 +466,44 @@ export function SubAgentFormDialog({
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Tools (one per line)
+                      Tools
                     </label>
+                    {availableTools.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {availableTools.map((t) => {
+                          const currentTools = formData.tools.split("\n").map((s) => s.trim()).filter(Boolean);
+                          const isSelected = currentTools.includes(t.name);
+                          return (
+                            <button
+                              key={t.name}
+                              type="button"
+                              onClick={() => {
+                                const tools = formData.tools.split("\n").map((s) => s.trim()).filter(Boolean);
+                                const next = isSelected
+                                  ? tools.filter((n) => n !== t.name)
+                                  : [...tools, t.name];
+                                setFormData({ ...formData, tools: next.join("\n") });
+                              }}
+                              className={
+                                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors " +
+                                (isSelected
+                                  ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
+                                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700")
+                              }
+                            >
+                              <span className="text-[10px] opacity-60">{t.source === "builtin" ? "●" : "◆"}</span>
+                              {t.display_name || t.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                     <textarea
                       value={formData.tools}
                       onChange={(e) => setFormData({ ...formData, tools: e.target.value })}
                       className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      rows={4}
-                      placeholder="get_file&#10;write_file"
+                      rows={3}
+                      placeholder="Select from above or type tool names (one per line)"
                     />
                   </div>
                 </div>
