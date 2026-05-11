@@ -667,6 +667,7 @@ class GraphService:
                                 if r.metadata.get("confidence", 1.0) >= build_config.min_relation_confidence
                             ]
                         except Exception as fallback_exc:
+                            relations = []
                             logger.error(
                                 "cooccurrence_fallback_also_failed",
                                 run_id=run_id,
