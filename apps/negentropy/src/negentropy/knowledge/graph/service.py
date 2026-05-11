@@ -443,7 +443,16 @@ class GraphService:
             }
 
             async def maybe_report_chunk_progress() -> None:
-                """chunk 处理过程中按节流条件上报 progress_percent（仅更新单字段，不改 warnings）。"""
+                """chunk 处理过程中按节流条件上报 progress_percent（仅更新单字段，不改 warnings）。
+
+                取消守卫（ISSUE-080）：in-memory ``is_cancelled`` 仅覆盖**同 worker**
+                场景（cancel API 与 build task 在同一进程内通过 ``asyncio.Event`` 通信）；
+                跨 worker 场景下此检查不生效，正确性由 SQL 层 ``update_build_run`` 的
+                状态机 WHERE 守卫兜底（非终态写入不会回滚 cancelling）。
+                此处 fast-path 仅是同 worker 内减少日志噪音 + 早出节流的优化。
+                """
+                if is_cancelled(run_id):
+                    return
                 async with progress_lock:
                     now = time.time()
                     delta_chunks = chunks_processed - int(progress_state["last_reported_chunks"])
@@ -521,7 +530,11 @@ class GraphService:
                         ]
 
                         return entities, relations
-                    except (TimeoutError, Exception):
+                    except (TimeoutError, Exception) as exc:
+                        # 取消信号短路（ISSUE-080）：PipelineCancelled 不参与 retry，
+                        # 避免在已取消语境下浪费 1 次 LLM 调用窗口（最多 2×60s）。
+                        if isinstance(exc, PipelineCancelled):
+                            raise
                         if _retries > 0:
                             await asyncio.sleep(1.0)
                             return await process_chunk(chunk, _retries - 1)
@@ -532,11 +545,24 @@ class GraphService:
 
             # 批量处理
             for i in range(0, len(chunks), batch_size):
+                # 批次入口取消检查点（ISSUE-080）：in-memory event O(1) 快路径，
+                # 避免在 cancel 已 set 后仍发起整批 gather 浪费调度与日志。
+                if is_cancelled(run_id):
+                    raise PipelineCancelled(run_id, last_stage=PHASE_EXTRACTING)
+
                 batch = chunks[i : i + batch_size]
                 results = await asyncio.gather(
                     *[process_chunk(chunk) for chunk in batch],
                     return_exceptions=True,
                 )
+
+                # 关键（ISSUE-080）：PipelineCancelled 优先于其它异常显式 re-raise，
+                # 防止被 ``return_exceptions=True`` 打包后误计入 failed_chunk_count
+                # 静默吞没——这是原版导致 cancel 信号在 chunk loop 内丢失、批次继续
+                # 处理直到下一个 phase 边界才被感知的根因。
+                for result in results:
+                    if isinstance(result, PipelineCancelled):
+                        raise result
 
                 for result in results:
                     if isinstance(result, Exception):

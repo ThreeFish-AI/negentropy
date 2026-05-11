@@ -390,3 +390,123 @@ class TestSessionScope:
 
         assert enter_count == 1
         assert exit_count == 1, "异常路径下 __aexit__ 仍必须触发以归还连接"
+
+
+class TestUpdateBuildRunStateMachineGuard:
+    """``update_build_run`` SQL 状态机不变量回归（ISSUE-080）。
+
+    历史 bug：原 SQL 无 WHERE 守卫，``status='running'`` 的进度上报会把 cancel API
+    已写入的 ``cancelling`` 状态回滚为 ``running``，并把 ``completed_at`` 清零，
+    导致 watchdog 永远命中不到、跨 worker DB 兜底失明、UI 永远卡 CANCELLING。
+
+    本套测试覆盖修复后的 SQL 守卫不变量：
+    1. SQL 文本必须包含状态机 WHERE 守卫（防止 SQL 重构丢失关键约束）；
+    2. SQL 文本必须包含 ``completed_at`` 的 ``ELSE completed_at`` 保留分支；
+    3. 零行 UPDATE（被守卫拒绝）走 debug 日志路径，不触发 ``build_run_updated`` 误报；
+    4. 非零行 UPDATE 触发 ``build_run_updated`` info 日志（正常路径不回归）。
+    """
+
+    @pytest.fixture
+    def captured_query(self):
+        """捕获 ``session.execute`` 传入的 SQL 文本与参数，便于断言。"""
+        return {"sql": None, "params": None, "rowcount": 1}
+
+    @pytest.fixture
+    def mock_session_factory(self, captured_query):
+        """构造 AsyncSessionLocal mock：session.execute 捕获 SQL 并返回可控 rowcount。"""
+        from contextlib import asynccontextmanager
+
+        def make(rowcount: int = 1):
+            captured_query["rowcount"] = rowcount
+
+            async def fake_execute(stmt, params=None):
+                captured_query["sql"] = str(stmt)
+                captured_query["params"] = params
+                result = MagicMock()
+                result.rowcount = captured_query["rowcount"]
+                return result
+
+            mock_session = AsyncMock(spec=AsyncSession)
+            mock_session.execute = fake_execute
+            mock_session.commit = AsyncMock()
+
+            @asynccontextmanager
+            async def fake_session_local():
+                yield mock_session
+
+            return mock_session, fake_session_local
+
+        return make
+
+    @pytest.mark.asyncio
+    async def test_sql_contains_state_machine_where_guard(self, captured_query, mock_session_factory):
+        """SQL 必须包含 WHERE 守卫：终态写入允许 OR 非终态写入要求 DB 非终态/cancelling。"""
+        _mock, factory = mock_session_factory(rowcount=1)
+        repo = AgeGraphRepository()
+        with patch(
+            "negentropy.knowledge.graph.repository.AsyncSessionLocal",
+            side_effect=lambda: factory(),
+        ):
+            await repo.update_build_run(run_id=uuid4(), status="running", progress_percent=0.3)
+
+        sql = captured_query["sql"]
+        # WHERE 守卫的两个核心子句必须存在
+        assert "status NOT IN" in sql, "缺少非终态写入守卫（DB 当前不在终态/cancelling 才允许）"
+        assert "'cancelling'" in sql, "WHERE 守卫必须显式排除 cancelling 状态"
+        assert "completed" in sql and "failed" in sql, "WHERE 守卫必须涵盖完整终态集合"
+
+    @pytest.mark.asyncio
+    async def test_sql_preserves_completed_at_on_non_terminal_writes(self, captured_query, mock_session_factory):
+        """``completed_at`` 必须含 ``ELSE completed_at`` 分支：非终态写入保留旧值，避免被 NULL 清零。"""
+        _mock, factory = mock_session_factory(rowcount=1)
+        repo = AgeGraphRepository()
+        with patch(
+            "negentropy.knowledge.graph.repository.AsyncSessionLocal",
+            side_effect=lambda: factory(),
+        ):
+            await repo.update_build_run(run_id=uuid4(), status="running")
+
+        sql = captured_query["sql"]
+        assert "ELSE completed_at" in sql, (
+            "completed_at CASE 分支必须保留旧值（ELSE completed_at），"
+            "否则非终态写入会把 cancel 请求时间锚清零，watchdog 阈值计算失真"
+        )
+
+    @pytest.mark.asyncio
+    async def test_zero_row_update_goes_to_debug_log_not_info(self, captured_query, mock_session_factory):
+        """零行 UPDATE（被状态机守卫拒绝）应走 debug 日志，不应误发 ``build_run_updated`` info 日志。"""
+        _mock, factory = mock_session_factory(rowcount=0)
+        repo = AgeGraphRepository()
+        with patch(
+            "negentropy.knowledge.graph.repository.AsyncSessionLocal",
+            side_effect=lambda: factory(),
+        ):
+            with patch("negentropy.knowledge.graph.repository.logger") as mock_logger:
+                await repo.update_build_run(run_id=uuid4(), status="running", progress_percent=0.5)
+
+        # 守卫拒绝路径：debug 记录线索 + 完全不发 build_run_updated info（避免运维误导）
+        info_event_names = [call.args[0] for call in mock_logger.info.call_args_list if call.args]
+        assert "build_run_updated" not in info_event_names, (
+            "零行 UPDATE 应走 debug 日志路径，不应触发 build_run_updated info（运维误导风险）"
+        )
+        debug_event_names = [call.args[0] for call in mock_logger.debug.call_args_list if call.args]
+        assert "build_run_update_skipped_by_state_guard" in debug_event_names, (
+            "零行 UPDATE 必须留下 debug 观测线索，便于 cancel 链路排查"
+        )
+
+    @pytest.mark.asyncio
+    async def test_non_zero_row_update_emits_info_log(self, captured_query, mock_session_factory):
+        """正常 UPDATE（rowcount > 0）必须触发 ``build_run_updated`` info 日志（happy path 回归）。"""
+        _mock, factory = mock_session_factory(rowcount=1)
+        repo = AgeGraphRepository()
+        with patch(
+            "negentropy.knowledge.graph.repository.AsyncSessionLocal",
+            side_effect=lambda: factory(),
+        ):
+            with patch("negentropy.knowledge.graph.repository.logger") as mock_logger:
+                await repo.update_build_run(run_id=uuid4(), status="completed", entity_count=10)
+
+        info_event_names = [call.args[0] for call in mock_logger.info.call_args_list if call.args]
+        assert "build_run_updated" in info_event_names, (
+            "正常 UPDATE 必须触发 build_run_updated info 日志（happy path 不可回归）"
+        )
