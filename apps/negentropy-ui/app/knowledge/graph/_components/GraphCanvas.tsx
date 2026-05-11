@@ -25,42 +25,13 @@ import fcose from "cytoscape-fcose";
 import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
+import type { GraphCanvasNode, GraphCanvasEdge, GraphCanvasProps } from "./types";
 
 // fCoSE 注册一次即可（重复 register 会被 cytoscape 内部 no-op 处理）
 let _registered = false;
 if (!_registered) {
   cytoscape.use(fcose);
   _registered = true;
-}
-
-interface GraphCanvasNode {
-  id: string;
-  label?: string;
-  type?: string;
-  importance?: number | null;
-  community_id?: number | null;
-}
-
-interface GraphCanvasEdge {
-  source: string;
-  target: string;
-  type?: string;
-}
-
-interface GraphCanvasProps {
-  corpusId: string;
-  nodes: GraphCanvasNode[];
-  edges: GraphCanvasEdge[];
-  selectedNodeId: string | null;
-  onNodeClick: (nodeId: string) => void;
-  asOf?: string | null;
-  /** 父组件可选回调：双击展开子图后通知父组件合并节点 */
-  onSubgraphMerge?: (
-    nodes: GraphCanvasNode[],
-    edges: GraphCanvasEdge[],
-  ) => void;
-  /** 节点上限提示阈值；超过时显示截断提示 */
-  truncateThreshold?: number;
 }
 
 function nodeSize(importance?: number | null): number {
