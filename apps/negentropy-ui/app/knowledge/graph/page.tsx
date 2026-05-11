@@ -403,10 +403,10 @@ export default function KnowledgeGraphPage() {
         description="实体关系视图与构建历史"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 py-4">
+        <div className="flex min-h-0 flex-1 gap-6 px-6 pt-4">
           {/* Main content area */}
-          <div className="min-h-0 min-w-0 flex-[2.2] overflow-y-auto">
-            <div className="space-y-4 pb-4 pr-2">
+          <div className="min-h-0 min-w-0 flex-[2.2] flex flex-col overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 pr-2">
               {/* Toolbar */}
               <div className="flex items-center justify-between">
                 <CorpusSelector value={corpusId} onChange={setCorpusId} />
@@ -521,7 +521,7 @@ export default function KnowledgeGraphPage() {
                   onSubgraphMerge={handleSubgraphMerge}
                 />
               ) : viewTab === "graph" && renderer === "cytoscape" ? (
-                <div className="flex h-[600px] items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
                   {!corpusId
                     ? "请选择语料库"
                     : error
@@ -529,7 +529,7 @@ export default function KnowledgeGraphPage() {
                       : "图谱为空，请先构建"}
                 </div>
               ) : viewTab === "graph" ? (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="min-h-0 flex-1 flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     Graph Canvas
@@ -541,7 +541,7 @@ export default function KnowledgeGraphPage() {
                     </div>
                   )}
                 </div>
-                <div className="mt-3 flex h-[500px] items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
+                <div className="mt-3 flex flex-1 min-h-0 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
                   {!corpusId ? (
                     <div className="text-center">
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -658,7 +658,7 @@ export default function KnowledgeGraphPage() {
               </div>
               ) : (
               /* Entity List View */
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
                   实体列表
                 </h2>

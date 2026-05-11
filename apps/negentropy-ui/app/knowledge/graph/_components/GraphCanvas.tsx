@@ -243,7 +243,14 @@ export function GraphCanvas({
       }
     });
 
+    // 容器尺寸变化时同步 cytoscape viewport
+    const ro = new ResizeObserver(() => {
+      cy.resize();
+    });
+    ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       cy.destroy();
       cyRef.current = null;
     };
@@ -285,7 +292,7 @@ export function GraphCanvas({
   const truncated = nodes.length >= truncateThreshold;
 
   return (
-    <div className="relative h-[600px] w-full rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="relative min-h-0 flex-1 w-full rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div ref={containerRef} className="h-full w-full" />
       <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-[10px]">
         <span className="rounded bg-zinc-900/70 px-2 py-1 text-white">
