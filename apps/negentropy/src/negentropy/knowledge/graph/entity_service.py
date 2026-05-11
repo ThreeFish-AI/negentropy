@@ -66,19 +66,34 @@ class KgEntityService:
         """
         from negentropy.models.perception import KgEntity
 
-        # 检查是否已存在（幂等），使用 canonical_name 匹配以命中索引
+        # 检查是否已存在（幂等），仅使用 (corpus_id, canonical_name) 匹配
+        # 与 UNIQUE 约束 uq_kg_entity_corpus_name 对齐，避免同名称不同 entity_type 时
+        # SELECT 漏匹配导致 INSERT 触发 UniqueViolationError（Issue 0 根因修复）
         canonical = name.strip().lower()
         existing = await db.execute(
             sa.select(KgEntity).where(
                 KgEntity.canonical_name == canonical,
-                KgEntity.entity_type == entity_type,
                 KgEntity.corpus_id == corpus_id if corpus_id else True,
             )
         )
         existing_rec = existing.scalar_one_or_none()
 
         if existing_rec is not None:
-            # 更新已有记录
+            # entity_type 优先级：更具体的类型优先于泛化类型
+            _TYPE_PRECEDENCE = {
+                "person": 10,
+                "organization": 9,
+                "location": 8,
+                "product": 7,
+                "event": 6,
+                "concept": 5,
+                "document": 4,
+                "other": 1,
+            }
+            old_score = _TYPE_PRECEDENCE.get(existing_rec.entity_type, 0)
+            new_score = _TYPE_PRECEDENCE.get(entity_type, 0)
+            if new_score > old_score:
+                existing_rec.entity_type = entity_type
             if confidence > existing_rec.confidence:
                 existing_rec.confidence = confidence
             if embedding is not None:
@@ -248,16 +263,17 @@ class KgEntityService:
 
         for node in nodes:
             try:
-                await self.sync_entity_from_knowledge(
-                    db,
-                    knowledge_id=UUID(node.get("id", "00000000-0000-0000-0000-000000000000")),
-                    name=node.get("label") or node.get("id", "unknown"),
-                    entity_type=node.get("node_type", "UNKNOWN"),
-                    confidence=float(node.get("confidence", 0)),
-                    metadata=node.get("metadata"),
-                    corpus_id=corpus_id,
-                    app_name=app_name,
-                )
+                async with db.begin_nested():  # SAVEPOINT: 单条失败仅回滚此 savepoint
+                    await self.sync_entity_from_knowledge(
+                        db,
+                        knowledge_id=UUID(node.get("id", "00000000-0000-0000-0000-000000000000")),
+                        name=node.get("label") or node.get("id", "unknown"),
+                        entity_type=node.get("node_type", "UNKNOWN"),
+                        confidence=float(node.get("confidence", 0)),
+                        metadata=node.get("metadata"),
+                        corpus_id=corpus_id,
+                        app_name=app_name,
+                    )
                 entities_synced += 1
             except Exception as exc:
                 logger.warning(
@@ -270,15 +286,16 @@ class KgEntityService:
 
         for edge in edges:
             try:
-                await self.sync_relation(
-                    db,
-                    source_name=edge.get("source", ""),
-                    target_name=edge.get("target", ""),
-                    relation_type=edge.get("edge_type") or edge.get("label", "related_to"),
-                    weight=float(edge.get("weight", 1.0)),
-                    evidence_text=edge.get("evidence_text"),
-                    corpus_id=corpus_id,
-                )
+                async with db.begin_nested():  # SAVEPOINT: 单条失败仅回滚此 savepoint
+                    await self.sync_relation(
+                        db,
+                        source_name=edge.get("source", ""),
+                        target_name=edge.get("target", ""),
+                        relation_type=edge.get("edge_type") or edge.get("label", "related_to"),
+                        weight=float(edge.get("weight", 1.0)),
+                        evidence_text=edge.get("evidence_text"),
+                        corpus_id=corpus_id,
+                    )
                 relations_synced += 1
             except Exception as exc:
                 logger.warning(

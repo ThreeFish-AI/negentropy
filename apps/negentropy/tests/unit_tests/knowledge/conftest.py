@@ -570,6 +570,18 @@ class FakeEntityDbSession:
     async def refresh(self, obj):
         pass
 
+    def begin_nested(self):
+        """模拟 SAVEPOINT 上下文（KgEntityService.batch_sync_from_graph_build 使用）。"""
+
+        class _NestedTxnCtx:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+        return _NestedTxnCtx()
+
 
 class _FakeExecuteResult:
     """模拟 db.execute() 返回的结果对象。"""

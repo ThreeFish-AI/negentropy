@@ -181,6 +181,16 @@ class TestBatchSyncFromGraphBuild:
         mock_db.flush = AsyncMock()
         mock_db.add = MagicMock()
 
+        # mock begin_nested() 返回支持 async with 协议的对象（SAVEPOINT 隔离）
+        class _NestedTxnCtx:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+        mock_db.begin_nested = MagicMock(return_value=_NestedTxnCtx())
+
         nodes = [
             {"id": str(uuid4()), "label": "Entity A", "node_type": "person", "confidence": 0.9},
             {"id": str(uuid4()), "label": "Entity B", "node_type": "org", "confidence": 0.8},

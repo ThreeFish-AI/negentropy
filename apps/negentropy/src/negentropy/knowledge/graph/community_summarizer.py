@@ -93,15 +93,37 @@ class CommunitySummarizer:
         Returns:
             统计信息 {"communities_summarized": int, "errors": int}
         """
-        if levels_data is not None:
+        if levels_data:
             return await self._summarize_multi_level(db, corpus_id, levels_data)
 
         if community_entities is None:
             community_entities = await self._load_communities(db, corpus_id)
 
         if not community_entities:
-            logger.info("no_communities_found", corpus_id=str(corpus_id))
-            return {"communities_summarized": 0, "errors": 0}
+            # 降级：若 community 检测产出为空，但实体表非空，
+            # 将所有实体作为单一全局社区生成一条摘要，确保 GraphRAG Global Search
+            # 仍可命中 query-focused 召回（Edge et al., 2024）。
+            fallback_entities = await self._load_all_entities(db, corpus_id)
+            if not fallback_entities:
+                logger.info("no_communities_found", corpus_id=str(corpus_id))
+                return {"communities_summarized": 0, "errors": 0}
+            logger.info(
+                "no_communities_generating_global_summary",
+                corpus_id=str(corpus_id),
+                entity_count=len(fallback_entities),
+            )
+            try:
+                summary = await self._summarize_one(0, fallback_entities)
+                await self._persist_summary(db, corpus_id, summary, level=0)
+                await db.commit()
+                return {"communities_summarized": 1, "errors": 0}
+            except Exception as exc:
+                logger.warning(
+                    "global_fallback_summary_failed",
+                    corpus_id=str(corpus_id),
+                    error=str(exc),
+                )
+                return {"communities_summarized": 0, "errors": 1}
 
         summarized = 0
         errors = 0
@@ -207,6 +229,32 @@ class CommunitySummarizer:
         )
 
         return {"communities_summarized": total_summarized, "errors": total_errors}
+
+    async def _load_all_entities(
+        self,
+        db: AsyncSession,
+        corpus_id: UUID,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        """加载语料库的全部活跃实体（按 importance / confidence 排序），用作全局降级摘要。"""
+        from negentropy.models.base import NEGENTROPY_SCHEMA
+
+        query = text(f"""
+            SELECT name, entity_type, confidence
+            FROM {NEGENTROPY_SCHEMA}.kg_entities
+            WHERE corpus_id = :corpus_id AND is_active = true
+            ORDER BY importance_score DESC NULLS LAST, confidence DESC, mention_count DESC
+            LIMIT :limit
+        """)
+        result = await db.execute(query, {"corpus_id": str(corpus_id), "limit": limit})
+        return [
+            {
+                "name": row[0],
+                "entity_type": row[1],
+                "confidence": float(row[2]) if row[2] else 0.0,
+            }
+            for row in result
+        ]
 
     async def _load_communities(
         self,

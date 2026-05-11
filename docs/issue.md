@@ -1775,6 +1775,39 @@
 
 ---
 
+## ISSUE-081 KG Build Dual-Write 因 SELECT/INSERT 列不一致触发事务级联崩溃（2026-05-12）
+
+- **表因**：单次 KG Build（20 chunks）耗时 18 分钟，317 个实体仅同步 22 个、444 条关系同步 0 条，PageRank / Community / Summary 三个下游阶段全部 `*_skipped_empty_graph`。日志中 ~740 条 `Can't operate on closed transaction` warning 与 1 条 `UniqueViolationError`。
+- **根因**（"第一块多米诺骨牌"+ 级联链路）：
+  1. **根因**：[`entity_service.sync_entity_from_knowledge`](../apps/negentropy/src/negentropy/knowledge/graph/entity_service.py) 幂等 SELECT 使用 `(canonical_name, entity_type, corpus_id)` 三列匹配，而 UNIQUE 约束 `uq_kg_entity_corpus_name` 仅覆盖 `(corpus_id, canonical_name)` 两列。当同一 canonical_name（如 `claude.ai`）以不同 `entity_type` (`product` → `organization`) 先后出现，SELECT 查不到已有记录 → INSERT 触发 `UniqueViolationError` → SAVEPOINT 缺失 + `shared_session.begin()` 包裹整个 batch_sync → session 进入 closed-transaction 状态 → 后续 295 个实体 + 全部 444 条关系全部 "closed transaction" 级联失败。
+  2. **放大器 1（Dual-Write 缺 SAVEPOINT 隔离）**：[`entity_service.batch_sync_from_graph_build`](../apps/negentropy/src/negentropy/knowledge/graph/entity_service.py) 逐条 try/except 但未用 `begin_nested()`，单条 IntegrityError 即崩整体事务。
+  3. **放大器 2（LLM 退避策略与 Cloudflare 不匹配）**：[`extractors.py`](../apps/negentropy/src/negentropy/knowledge/graph/extractors.py) 固定 `asyncio.sleep(1.0)`。Cloudflare 120s Proxy Read Timeout 返回 524，应用层 1s 后立即重试连续撞墙，3 次重试浪费 ~360s。应用层超时设 300s > Cloudflare 120s 进一步保证每次都先被代理斩断。
+  4. **放大器 3（实体提取低信噪比）**：LLM 提取了大量泛化术语（"CSS"、"JSON"、"agent"、"spec"、"app"）、日期（"Published Nov 26, 2025"）、URL、文件名（"claude-progress.txt"）、源码引用（"LevelEditor.tsx:892"）作为实体，污染图谱并提高 SAVEPOINT 冲突触发面。
+  5. **可见性短板**：18 分钟构建中 chunk 处理无 INFO 级日志，仅 1 次 `chunk_batch_progress` 输出，用户/工程师感知不到正在做什么。
+- **处理方式**（7 项正交修复，按依赖关系排序）：
+  1. **根因修复（Issue 0）**：`sync_entity_from_knowledge` 的 SELECT 移除 `entity_type` 列条件，与 UNIQUE 约束对齐；命中已有记录时按 type_precedence（person > organization > location > product > event > concept > document > other）更新 `entity_type`。
+  2. **SAVEPOINT 防御层（Issue 1）**：`batch_sync_from_graph_build` 中每条 entity/relation 操作包裹在 `async with db.begin_nested()` 中，单条失败仅回滚该 SAVEPOINT。
+  3. **下游阶段 Session 状态恢复（Issue 2）**：`_execute_build` 在 PageRank / Community / Summary 三个阶段开始前各加 `if shared_session.in_transaction(): await shared_session.rollback()` 防御。
+  4. **LLM 退避策略（Issue 3）**：抽出 `_compute_retry_backoff()` 统一函数 — 检测 524 / timeout 采用递增退避（30s, 60s, 90s, cap 120s + jitter），普通错误指数退避（cap 10s）。`KG_LLM_TIMEOUT_SECONDS` 默认 `300 → 110`（低于 Cloudflare 120s），让应用层先于代理斩断连接。
+  5. **实体质量过滤（Issue 4）**：新增 `_GENERIC_ENTITY_STOPWORDS` frozenset + `is_noise_entity()` — 过滤泛化停用词、URL、日期字符串（regex）、文件名（扩展名 regex）、源码引用（`name:digits` regex）、过短（≤ 2）/ 过长（> 150）实体；strategy.py 的 `RegexEntityExtractor._is_valid_name` 复用同一函数。LLM prompt 显式约束"不提取 CSS / HTML / app / UI / 日期 / URL / 文件名"。
+  6. **进度可见性（Issue 5）**：chunk_processing 起止日志升至 INFO 含 chunk_index / total_chunks / elapsed_ms / mode（5 种路径区分）；小批次（≤ 50 chunks）进度上报间隔 5s → 2s。
+  7. **空社区降级（Issue 6）**：`CommunitySummarizer.summarize_communities` 当 community_entities 为空但实体表非空时，调用 `_load_all_entities()` 加载 Top-200（按 importance_score / confidence / mention_count）实体作为单一全局社区生成 level=0 摘要，确保 GraphRAG Global Search 仍有 query-focused 召回基线。
+- **验证证据**：
+  - 单元测试：`tests/unit_tests/knowledge/` 669 通过（仅 1 个 pre-existing `test_extraction_llm_plan` 失败与本次改动无关）；
+  - 新增 SAVEPOINT 路径 fake session 支持（`conftest.py` 加 `begin_nested()`，`test_graph_entity_service.py` mock 对应行为）；
+  - 静态：5 个修改源文件全部通过 `ast.parse` 校验。
+- **后续防范**：
+  1. **数据库幂等 SELECT 必须与 UNIQUE 约束的列集严格一致**：任何 "存在则更新，否则插入" 的应用层逻辑都要审视 SELECT 谓词列集是否完全等于（或更宽于）UNIQUE 约束列集，否则将产生"应用层未察觉但 DB 唯一约束触发"的悖论。
+  2. **batch 处理的事务隔离必须用 SAVEPOINT 而非 try/except**：SQLAlchemy 的 `session.begin()` context manager 一旦内部抛异常进入 rollback 后，整个 session 进入 closed state，后续操作必失败。逐条 try/except 必须配合 `begin_nested()` 才能实现真正的错误隔离（Kleppmann DDIA §7.3 嵌套事务）。
+  3. **跨网关的 timeout 设计必须先调研代理层超时**：Cloudflare 默认 100-120s Proxy Read Timeout 是隐式上界，应用层 timeout 必须 < 该值并配合 524 错误的指数退避策略，否则陷入"3 次重试 3 次撞墙"的死循环。
+  4. **LLM 提取必须配合显式 stopword 过滤**：单靠 confidence 阈值不足以剔除泛化噪声（LLM 对 "CSS" 也会给 0.9 confidence），需要结合领域停用词 + 正则模式（日期 / URL / 文件名 / 源码引用）双层过滤。
+- **同类问题影响**：
+  - 任何使用 `db.add() + db.flush()` 风格的批量同步路径都需复核是否套用 `begin_nested()`；
+  - 项目内其他依赖 LiteLLM 经 Cloudflare 代理调用的路径（如 embedding / chat completion）若 timeout > 110s 都存在 524 风险；
+  - 任何对 `kg_entities` / `kg_relations` 表的多入口写入路径（如未来的 `merge_entities` / 外部 ingestion）都需复核 SELECT 谓词是否对齐 UNIQUE 约束。
+
+---
+
 ## ISSUE-020 Memory content 字段被写入结构化 JSON 而非自然语言
 
 - **表因**：Memory Timeline UI 上 Semantic 类型记忆显示为 JSON 对象（如 `{"id":"verify-dev-fix:...","type":"verification_task",...}`），用户无法从卡片中理解记忆含义。
