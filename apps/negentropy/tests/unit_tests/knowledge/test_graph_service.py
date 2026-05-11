@@ -621,3 +621,218 @@ async def test_build_graph_failure_preserves_algorithm_warnings():
     warnings = failed_call.get("warnings") or []
     phase_entries = [w for w in warnings if isinstance(w, dict) and "_phase" in w]
     assert phase_entries == [], "失败终态 warnings 不应残留 _phase（应被 _strip_phase_entries 剥离）"
+
+
+# ================================
+# Cancellation Propagation Tests (ISSUE-080)
+# ================================
+#
+# 背景：旧版 chunk 批处理循环 `asyncio.gather(return_exceptions=True)` 误将
+# PipelineCancelled 当作普通 chunk 失败吞没，循环继续遍历剩余 batches。叠加
+# `maybe_report_chunk_progress` 缺少 cancel 守卫 + `update_build_run` SQL 无状态机
+# 守卫，cancelling 信号被 build task 的进度上报反复回写为 running，UI 永远卡住。
+#
+# 本套测试覆盖修复后的不变量：
+# 1. chunk 内抛 PipelineCancelled 必须在 gather 返回后立即 re-raise，不能进入
+#    failed_chunk_count 路径，build_graph 终态必须为 cancelled；
+# 2. 批次入口的 in-memory cancel 检查必须在下一批 LLM 调用前生效，避免浪费整批
+#    chunks 的提取调度；
+# 3. `maybe_report_chunk_progress` 必须在 cancel 已 set 时早出，不调用 update_build_run。
+
+
+def _make_fake_extractor_class(side_effect):
+    """工厂：构造一个 stub CompositeEntityExtractor/RelationExtractor 类，
+    其 ``extract`` 调用走入注入的 side_effect（捕获 call_count + 触发 cancel + 抛异常）。
+    """
+
+    class FakeExtractor:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def extract(self, *args, **kwargs):
+            return await side_effect(*args, **kwargs)
+
+    return FakeExtractor
+
+
+@pytest.mark.asyncio
+async def test_pipeline_cancelled_in_gather_propagates_to_terminal_cancelled():
+    """ISSUE-080 R1：process_chunk 中抛出的 PipelineCancelled 必须穿透 gather
+    re-raise，build_graph 终态为 cancelled，而非被静默吞没为 failed_chunk。
+
+    回归保护：旧实现 ``for result in results: if isinstance(result, Exception):
+    failed_chunk_count += 1`` 把 PipelineCancelled 也计入失败计数，循环继续遍历
+    剩余所有 batches，导致 cancel 信号在 chunk loop 内丢失、UI 永远卡 CANCELLING。
+    """
+    from negentropy.knowledge.exceptions import PipelineCancelled
+
+    call_count = {"n": 0}
+
+    async def cancelling_extract(*args, **kwargs):
+        call_count["n"] += 1
+        # 第一次调用即抛 PipelineCancelled；按 batch_size，整批 gather 收到混合异常时
+        # 需仍能让外层捕获 cancel 终态。
+        raise PipelineCancelled(run_id="test-run", last_stage="extracting")
+
+    FakeExtractorClass = _make_fake_extractor_class(cancelling_extract)
+    repository = PhaseTrackingFakeRepository()
+    service = GraphService(repository=repository, config=GraphBuildConfig())
+
+    chunks = [{"id": f"c{i}", "content": f"text-{i}"} for i in range(4)]
+
+    with (
+        _patch_build_graph(repository),
+        patch(
+            "negentropy.knowledge.graph.service.CompositeEntityExtractor",
+            FakeExtractorClass,
+        ),
+        patch(
+            "negentropy.knowledge.graph.service.CompositeRelationExtractor",
+            FakeExtractorClass,
+        ),
+    ):
+        result = await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=chunks)
+
+    assert result.status == "cancelled", (
+        f"build_graph 终态必须为 cancelled（PipelineCancelled 必须穿透 gather re-raise），实际={result.status}"
+    )
+    # cancel 终态写入必须发生
+    cancelled_call = next(
+        (c for c in reversed(repository.update_calls) if c.get("status") == "cancelled"),
+        None,
+    )
+    assert cancelled_call is not None, "cancel 终态 update_build_run(status='cancelled') 必须被调用"
+
+
+@pytest.mark.asyncio
+async def test_cancel_between_batches_short_circuits_next_batch():
+    """ISSUE-080 R2：批次入口的 in-memory cancel 检查必须在下一批 LLM 调用前生效。
+
+    构造：单 chunk 一批，首批正常完成后通过 signal_cancel 触发取消，第二批应被
+    批次入口 ``if is_cancelled(run_id): raise PipelineCancelled`` 短路，不再调用
+    extractor。
+    """
+    from negentropy.knowledge.cancellation import (
+        _registry_size,
+        register_cancellable_run,
+        signal_cancel,
+    )
+
+    captured_run_ids: list[str] = []
+
+    def capturing_register(run_id: str):
+        captured_run_ids.append(run_id)
+        return register_cancellable_run(run_id)
+
+    call_count = {"n": 0}
+
+    async def conditional_extract(*args, **kwargs):
+        call_count["n"] += 1
+        # 第一批的第一个 chunk 完成后立即触发 cancel；下一批不应再被调用。
+        if call_count["n"] == 1 and captured_run_ids:
+            signal_cancel(captured_run_ids[-1])
+        return []  # 返回空实体，避免触发后续 resolver/persistence 路径
+
+    FakeExtractorClass = _make_fake_extractor_class(conditional_extract)
+    repository = PhaseTrackingFakeRepository()
+    # batch_size=1 强制每个 chunk 独立一批；max_concurrency=1 避免 gather 并发干扰断言。
+    service = GraphService(
+        repository=repository,
+        config=GraphBuildConfig(batch_size=1, max_concurrency=1),
+    )
+
+    chunks = [{"id": f"c{i}", "content": f"text-{i}"} for i in range(5)]
+
+    initial_registry = _registry_size()
+    with (
+        _patch_build_graph(repository),
+        patch(
+            "negentropy.knowledge.graph.service.CompositeEntityExtractor",
+            FakeExtractorClass,
+        ),
+        patch(
+            "negentropy.knowledge.graph.service.CompositeRelationExtractor",
+            FakeExtractorClass,
+        ),
+        patch(
+            "negentropy.knowledge.graph.service.register_cancellable_run",
+            side_effect=capturing_register,
+        ),
+    ):
+        result = await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=chunks)
+
+    assert result.status == "cancelled", f"build_graph 必须以 cancelled 终态退出，实际={result.status}"
+    # 关键不变量：批次入口短路后，extractor 不应被剩余 chunks 调用。
+    # entity_extractor 调用 1 次（首批触发 cancel），relation_extractor 也调用 1 次（同一首批），共 ≤ 2 次。
+    # 严格断言：≤ 2 << 5（chunks 总数），证明剩余 chunks 未进入 process_chunk。
+    assert call_count["n"] <= 2, (
+        f"批次入口 in-memory cancel 检查失效——cancel 后仍调用 extractor {call_count['n']} 次（应 ≤ 2）"
+    )
+    # 注册表必须清理（finally 块的 unregister_cancellable_run 不可回归）
+    assert _registry_size() == initial_registry, "cancellation registry 必须在 build_graph 结束后清理"
+
+
+@pytest.mark.asyncio
+async def test_maybe_report_chunk_progress_skips_when_cancelled():
+    """ISSUE-080 R3：cancel 已 set 后，chunk 进度上报必须早出，不再发起
+    ``update_build_run(status='running', ...)`` 调用——否则原 SQL 守卫修复前会
+    把 cancelling 回写为 running（即便修复后 SQL 守卫拒之，多余的调用也是噪音）。
+
+    构造：batch_size=2、chunks=4（两批），首批完成后触发 cancel；统计 cancel 后
+    再发出的 ``update_build_run(status='running')`` 调用应为 0。
+    """
+    from negentropy.knowledge.cancellation import register_cancellable_run, signal_cancel
+
+    captured_run_ids: list[str] = []
+
+    def capturing_register(run_id: str):
+        captured_run_ids.append(run_id)
+        return register_cancellable_run(run_id)
+
+    cancel_triggered = {"after_call": 2}  # 第二次 extract 调用后触发（首批 2 chunks 完成）
+    call_count = {"n": 0}
+
+    async def conditional_extract(*args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == cancel_triggered["after_call"] and captured_run_ids:
+            signal_cancel(captured_run_ids[-1])
+        return []
+
+    FakeExtractorClass = _make_fake_extractor_class(conditional_extract)
+    repository = PhaseTrackingFakeRepository()
+    service = GraphService(
+        repository=repository,
+        config=GraphBuildConfig(batch_size=2, max_concurrency=2),
+    )
+
+    chunks = [{"id": f"c{i}", "content": f"text-{i}"} for i in range(4)]
+
+    with (
+        _patch_build_graph(repository),
+        patch(
+            "negentropy.knowledge.graph.service.CompositeEntityExtractor",
+            FakeExtractorClass,
+        ),
+        patch(
+            "negentropy.knowledge.graph.service.CompositeRelationExtractor",
+            FakeExtractorClass,
+        ),
+        patch(
+            "negentropy.knowledge.graph.service.register_cancellable_run",
+            side_effect=capturing_register,
+        ),
+    ):
+        result = await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=chunks)
+
+    assert result.status == "cancelled"
+    # 取出 chunk 节流上报的 running 调用：维度 = (status='running' AND progress 单字段更新)。
+    # emit_phase 也会写 status='running' 但带 warnings；maybe_report_chunk_progress 只传 progress。
+    chunk_progress_running_calls = [
+        c for c in repository.update_calls if c.get("status") == "running" and "warnings" not in c
+    ]
+    # 首批完成后触发 cancel；理论上 maybe_report_chunk_progress 节流间隔 10s 也可能不触发首次上报。
+    # 关键不变量：cancel 后绝无第二次进度上报（即便有首次，count 也 ≤ 1）。
+    assert len(chunk_progress_running_calls) <= 1, (
+        f"cancel 后 maybe_report_chunk_progress 不应再发起 update_build_run，"
+        f"实际节流上报 {len(chunk_progress_running_calls)} 次"
+    )
