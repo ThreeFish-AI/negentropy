@@ -22,6 +22,7 @@ from contextvars import ContextVar
 from typing import Any
 
 from google.adk.models.lite_llm import LiteLlm
+from opentelemetry import trace
 
 from negentropy.config.model_resolver import (
     apply_llm_thinking_override,
@@ -30,6 +31,7 @@ from negentropy.config.model_resolver import (
     resolve_subagent_model_name,
 )
 from negentropy.logging import get_logger
+from negentropy.model_names import observability_model_name
 
 _logger = get_logger("negentropy.agents.dynamic_model")
 
@@ -81,6 +83,14 @@ class _DynamicLiteLlm(LiteLlm):
             _logger.warning("dynamic_litellm_resolve_failed", exc_info=True)
 
         if override is None:
+            # 即使回退到默认模型，也记录用户意图到 OTel span。
+            selected = _selected_root_llm.get()
+            if selected:
+                span = trace.get_current_span()
+                if span and span.is_recording():
+                    span.set_attribute("negentropy.user_selected_model", observability_model_name(selected) or selected)
+                    span.set_attribute("negentropy.effective_model", observability_model_name(self.model) or self.model)
+                    span.set_attribute("negentropy.model_fallback", True)
             async for resp in super().generate_content_async(llm_request, stream=stream):
                 yield resp
             return
@@ -113,6 +123,13 @@ class _DynamicLiteLlm(LiteLlm):
                     original_model=orig_model,
                     override_model=new_model,
                 )
+                # 将用户意图和实际模型写入 OTel span，便于 Langfuse 排查。
+                span = trace.get_current_span()
+                if span and span.is_recording():
+                    orig_bare = observability_model_name(orig_model) or orig_model
+                    new_bare = observability_model_name(new_model) or new_model
+                    span.set_attribute("negentropy.user_selected_model", orig_bare)
+                    span.set_attribute("negentropy.effective_model", new_bare)
                 async for resp in super().generate_content_async(llm_request, stream=stream):
                     yield resp
             finally:
@@ -139,7 +156,13 @@ class DynamicRootLiteLlm(_DynamicLiteLlm):
         selected = _selected_root_llm.get()
         if selected:
             resolved = await resolve_llm_config_by_model_name(selected)
-            if resolved is None:
+            if resolved is not None:
+                _logger.info(
+                    "dynamic_root_llm_resolved",
+                    selected_model=selected,
+                    resolved_model=resolved[0],
+                )
+            else:
                 _logger.warning(
                     "dynamic_root_llm_unknown_model",
                     selected_model=selected,
@@ -165,6 +188,12 @@ class DynamicSubagentLiteLlm(_DynamicLiteLlm):
         if model_id:
             resolved = await resolve_llm_config_by_model_name(model_id)
             if resolved is not None:
+                _logger.info(
+                    "dynamic_subagent_llm_resolved",
+                    agent_name=agent_name,
+                    requested_model=model_id,
+                    resolved_model=resolved[0],
+                )
                 return resolved
             _logger.warning(
                 "dynamic_subagent_llm_unknown_model",
