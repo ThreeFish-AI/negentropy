@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CorpusRecord, fetchCorpora } from "@/features/knowledge";
 
 const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
@@ -13,12 +13,19 @@ interface CorpusSelectorProps {
 export function CorpusSelector({ value, onChange }: CorpusSelectorProps) {
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const autoSelected = useRef(!!value);
 
   useEffect(() => {
     let mounted = true;
     fetchCorpora(APP_NAME)
       .then((data) => {
-        if (mounted) setCorpora(data);
+        if (mounted) {
+          setCorpora(data);
+          if (!autoSelected.current && data.length > 0) {
+            autoSelected.current = true;
+            onChange(data[0].id);
+          }
+        }
       })
       .catch(console.error)
       .finally(() => {
@@ -27,7 +34,7 @@ export function CorpusSelector({ value, onChange }: CorpusSelectorProps) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [onChange]);
 
   return (
     <div className="flex items-center gap-2">
