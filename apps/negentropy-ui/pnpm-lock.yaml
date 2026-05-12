@@ -110,6 +110,9 @@ importers:
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      three-spritetext:
+        specifier: ^1.10.0
+        version: 1.10.0(three@0.184.0)
       zod:
         specifier: 3.24.4
         version: 3.24.4
@@ -4135,6 +4138,12 @@ packages:
     engines: {node: '>=12'}
     peerDependencies:
       three: '>=0.179'
+
+  three-spritetext@1.10.0:
+    resolution: {integrity: sha512-t08iP1FCU1lQh8T5MmCpdijKgas8GDHJE0LqMGBuVu3xqMMpFnEZhTlih7FlxLPQizHIGoumUSpfOlY1GO/Tgg==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      three: '>=0.86.0'
 
   three@0.184.0:
     resolution: {integrity: sha512-wtTRjG92pM5eUg/KuUnHsqSAlPM296brTOcLgMRqEeylYTh/CdtvKUvCyyCQTzFuStieWxvZb8mVTMvdPyUpxg==}
@@ -9048,6 +9057,10 @@ snapshots:
       float-tooltip: 1.7.5
       kapsule: 1.16.3
       polished: 4.3.1
+      three: 0.184.0
+
+  three-spritetext@1.10.0(three@0.184.0):
+    dependencies:
       three: 0.184.0
 
   three@0.184.0: {}
