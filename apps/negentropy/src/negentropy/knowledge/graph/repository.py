@@ -1843,13 +1843,15 @@ class AgeGraphRepository(GraphRepository):
                 processed_chunk_ids = COALESCE(CAST(:chunk_ids AS json), processed_chunk_ids),
                 updated_at = NOW(),
                 completed_at = CASE
-                    WHEN CAST(:status AS varchar) IN ('completed', 'failed', 'cancelled') THEN NOW()
+                    WHEN CAST(:status AS varchar) IN (
+                        'completed', 'completed_with_errors', 'failed', 'cancelled'
+                    ) THEN NOW()
                     ELSE completed_at
                 END
             WHERE id = :run_id
               AND (
-                CAST(:status AS varchar) IN ('completed', 'failed', 'cancelled')
-                OR status NOT IN ('completed', 'failed', 'cancelled', 'cancelling')
+                CAST(:status AS varchar) IN ('completed', 'completed_with_errors', 'failed', 'cancelled')
+                OR status NOT IN ('completed', 'completed_with_errors', 'failed', 'cancelled', 'cancelling')
               )
         """)
 
@@ -1899,7 +1901,7 @@ class AgeGraphRepository(GraphRepository):
             FROM {self._schema}.kg_build_runs
             WHERE corpus_id = :corpus_id
               AND app_name = :app_name
-              AND status = 'completed'
+              AND status IN ('completed', 'completed_with_errors')
               AND processed_chunk_ids IS NOT NULL
             ORDER BY completed_at DESC
             LIMIT 1

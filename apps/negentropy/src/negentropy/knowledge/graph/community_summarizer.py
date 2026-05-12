@@ -114,9 +114,12 @@ class CommunitySummarizer:
             )
             try:
                 summary = await self._summarize_one(0, fallback_entities)
-                await self._persist_summary(db, corpus_id, summary, level=0)
+                emb_failed = await self._persist_summary(db, corpus_id, summary, level=0)
                 await db.commit()
-                return {"communities_summarized": 1, "errors": 0}
+                result: dict[str, Any] = {"communities_summarized": 1, "errors": 0}
+                if emb_failed:
+                    result["embeddings_failed"] = 1
+                return result
             except Exception as exc:
                 logger.warning(
                     "global_fallback_summary_failed",
@@ -127,6 +130,7 @@ class CommunitySummarizer:
 
         summarized = 0
         errors = 0
+        embeddings_failed = 0
 
         for community_id, entities in community_entities.items():
             if not entities:
@@ -134,8 +138,10 @@ class CommunitySummarizer:
 
             try:
                 summary = await self._summarize_one(community_id, entities)
-                await self._persist_summary(db, corpus_id, summary, level=1)
+                emb_failed = await self._persist_summary(db, corpus_id, summary, level=1)
                 summarized += 1
+                if emb_failed:
+                    embeddings_failed += 1
             except Exception as exc:
                 errors += 1
                 logger.warning(
@@ -152,9 +158,13 @@ class CommunitySummarizer:
             total=len(community_entities),
             summarized=summarized,
             errors=errors,
+            embeddings_failed=embeddings_failed,
         )
 
-        return {"communities_summarized": summarized, "errors": errors}
+        result = {"communities_summarized": summarized, "errors": errors}
+        if embeddings_failed:
+            result["embeddings_failed"] = embeddings_failed
+        return result
 
     async def _summarize_multi_level(
         self,
@@ -189,6 +199,7 @@ class CommunitySummarizer:
 
         total_summarized = 0
         total_errors = 0
+        total_embeddings_failed = 0
 
         for level, partition in levels_data.items():
             # 按 community_id 分组
@@ -207,8 +218,10 @@ class CommunitySummarizer:
                     continue
                 try:
                     summary = await self._summarize_one(community_id, entities)
-                    await self._persist_summary(db, corpus_id, summary, level=level)
+                    emb_failed = await self._persist_summary(db, corpus_id, summary, level=level)
                     total_summarized += 1
+                    if emb_failed:
+                        total_embeddings_failed += 1
                 except Exception as exc:
                     total_errors += 1
                     logger.warning(
@@ -226,9 +239,13 @@ class CommunitySummarizer:
             levels=len(levels_data),
             total_summarized=total_summarized,
             total_errors=total_errors,
+            total_embeddings_failed=total_embeddings_failed,
         )
 
-        return {"communities_summarized": total_summarized, "errors": total_errors}
+        ml_result: dict[str, Any] = {"communities_summarized": total_summarized, "errors": total_errors}
+        if total_embeddings_failed:
+            ml_result["embeddings_failed"] = total_embeddings_failed
+        return ml_result
 
     async def _load_all_entities(
         self,
@@ -366,15 +383,18 @@ class CommunitySummarizer:
 
         # 计算摘要 embedding（G1 Global Search 依赖；失败降级为不写入）
         embedding_value: list[float] | None = None
+        embedding_failed = False
         if self._embedding_fn is not None:
             try:
                 embedding_value = await self._embedding_fn(summary.summary_text)
             except Exception as exc:
+                embedding_failed = True
                 logger.warning(
                     "summary_embedding_failed",
                     community_id=summary.community_id,
                     level=level,
                     error=str(exc),
+                    text_preview=summary.summary_text[:100],
                 )
 
         import json
@@ -434,3 +454,4 @@ class CommunitySummarizer:
             }
 
         await db.execute(query, params)
+        return embedding_failed

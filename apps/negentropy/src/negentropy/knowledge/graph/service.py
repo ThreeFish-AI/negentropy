@@ -925,24 +925,66 @@ class GraphService:
 
             # 重新映射关系中的实体 ID
             label_to_id = {e.label: e.id for e in entities_to_save}
+            # 规范化标签映射（处理大小写/空格差异）
+            norm_label_to_id: dict[str, str] = {}
+            for e in entities_to_save:
+                if e.label:
+                    norm = e.label.strip().lower()
+                    if norm not in norm_label_to_id:
+                        norm_label_to_id[norm] = e.id
             # ID → Label 反向映射（用于双写时传递实体名称而非 UUID）
             id_to_label: dict[str, str] = {e.id.replace("entity:", ""): e.label for e in entities_to_save if e.label}
 
+            def _resolve_ref(ref: str, field_name: str) -> str | None:
+                """解析关系端点引用：label → ID / hash → 规范化查找 / UUID 直通"""
+                if not ref:
+                    return None
+                # 1. 精确标签匹配
+                if ref in label_to_id:
+                    return label_to_id[ref]
+                # 2. 规范化标签匹配（大小写/空格容差）
+                norm = ref.strip().lower()
+                if norm in norm_label_to_id:
+                    return norm_label_to_id[norm]
+                # 3. ID 反向查找（hash-like 或 UUID 短格式）
+                clean = ref.replace("entity:", "")
+                if clean in id_to_label:
+                    resolved_label = id_to_label[clean]
+                    if resolved_label in label_to_id:
+                        return label_to_id[resolved_label]
+                # 4. 32 位十六进制哈希：尝试模糊匹配（取实体名哈希比较）
+                if len(ref) == 32 and all(c in "0123456789abcdef" for c in ref):
+                    logger.warning(
+                        "relation_endpoint_hash_unresolved",
+                        run_id=run_id,
+                        field=field_name,
+                        ref=ref,
+                        hint="LLM 输出了 MD5 哈希作为实体引用，无法映射到已知实体",
+                    )
+                    return None
+                # 5. 已经是 UUID 格式，直接返回
+                if ref in id_to_label or ref in {e.id for e in entities_to_save}:
+                    return ref
+                # 6. 无法解析的引用
+                logger.warning(
+                    "relation_endpoint_unresolved",
+                    run_id=run_id,
+                    field=field_name,
+                    ref=ref[:64],
+                )
+                return None
+
             valid_relations = []
             self_loops_removed = 0
+            unresolved_endpoints = 0
             for relation in all_relations:
                 # 查找源和目标实体
-                source_id = relation.source
-                target_id = relation.target
-
-                # 如果 source/target 是 label，需要映射
-                if source_id in label_to_id:
-                    source_id = label_to_id[source_id]
-                if target_id in label_to_id:
-                    target_id = label_to_id[target_id]
+                source_id = _resolve_ref(relation.source, "source")
+                target_id = _resolve_ref(relation.target, "target")
 
                 # 确保源和目标都存在且非自环
                 if not source_id or not target_id:
+                    unresolved_endpoints += 1
                     continue
                 if source_id == target_id:
                     self_loops_removed += 1
@@ -963,6 +1005,7 @@ class GraphService:
                 raw_count=len(all_relations),
                 valid_count=len(valid_relations),
                 self_loops_removed=self_loops_removed,
+                unresolved_endpoints=unresolved_endpoints,
             )
 
             # B2: 时态事实冲突检测 (Snodgrass & Ahn, 1985)
@@ -1236,9 +1279,19 @@ class GraphService:
             persisted_warnings.append({"_metrics": build_metrics.to_dict()})
             if circuit_breaker.is_open:
                 persisted_warnings.append({"_circuit_opened": True})
+
+            # 区分 completed vs completed_with_errors：
+            # 当关键算法阶段（社区检测、摘要生成、PageRank）存在 warning 时，
+            # 标记为 completed_with_errors 以便前端/运维感知部分功能降级。
+            algo_warnings = [w for w in _strip_phase_entries(build_warnings) if "algorithm" in w]
+            has_critical_algo_failure = any(
+                w.get("algorithm") in ("community_detection", "community_summary", "pagerank") for w in algo_warnings
+            )
+            final_status = "completed_with_errors" if has_critical_algo_failure else "completed"
+
             await build_repo.update_build_run(
                 run_id=run_uuid,
-                status="completed",
+                status=final_status,
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
                 warnings=persisted_warnings if persisted_warnings else None,
@@ -1259,7 +1312,7 @@ class GraphService:
             return GraphBuildResult(
                 run_id=run_id,
                 corpus_id=corpus_id,
-                status="completed",
+                status=final_status,
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
                 chunks_processed=chunks_processed,
@@ -1936,7 +1989,7 @@ class GraphService:
                 text(f"""
                     SELECT
                         COUNT(*) AS total,
-                        COUNT(*) FILTER (WHERE status = 'completed') AS succeeded,
+                        COUNT(*) FILTER (WHERE status IN ('completed', 'completed_with_errors')) AS succeeded,
                         COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - started_at))), 0) AS avg_duration_sec
                     FROM {NEGENTROPY_SCHEMA}.kg_build_runs
                     WHERE corpus_id = :cid
