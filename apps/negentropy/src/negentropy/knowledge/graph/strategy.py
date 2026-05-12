@@ -17,6 +17,7 @@ from uuid import UUID, uuid4
 from negentropy.logging import get_logger
 
 from ..types import GraphEdge, GraphNode
+from .extractors import is_noise_entity
 
 logger = get_logger("negentropy.knowledge.graph")
 
@@ -160,13 +161,8 @@ class RegexEntityExtractor(EntityExtractor):
         if any(w.lower() in self._HEADING_STOPWORDS for w in words):
             return False
         # 复用 LLM 提取器的统一噪声检测（停用词 / URL / 文件名 / 日期等）
-        try:
-            from .extractors import is_noise_entity
-
-            if is_noise_entity(name):
-                return False
-        except Exception:
-            pass
+        if is_noise_entity(name):
+            return False
         return True
 
     async def extract(

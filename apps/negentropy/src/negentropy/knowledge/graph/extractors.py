@@ -189,6 +189,51 @@ _FILE_NAME_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# 知名 JS/TS 生态产品/框架白名单（小写）。
+# 这些命名虽然以 .js/.ts 结尾貌似文件名，但属于具备明确语义的产品实体，
+# 优先于 _FILE_NAME_PATTERN 过滤逻辑短路放行，避免误伤高价值实体。
+_FRAMEWORK_NAME_WHITELIST: frozenset[str] = frozenset(
+    {
+        "node.js",
+        "vue.js",
+        "next.js",
+        "nuxt.js",
+        "nest.js",
+        "three.js",
+        "react.js",
+        "express.js",
+        "ember.js",
+        "backbone.js",
+        "angular.js",
+        "alpine.js",
+        "d3.js",
+        "moment.js",
+        "chart.js",
+        "p5.js",
+        "lit.js",
+        "preact.js",
+        "solid.js",
+        "qwik.js",
+        "remix.js",
+        "astro.js",
+        "gatsby.js",
+        "svelte.js",
+        "marko.js",
+        "knockout.js",
+        "jquery.js",
+        "lodash.js",
+        "video.js",
+        "anime.js",
+        "fabric.js",
+        "paper.js",
+        "babylon.js",
+        "pixi.js",
+        "phaser.js",
+        "leaflet.js",
+        "mapbox.js",
+    }
+)
+
 
 def is_noise_entity(name: str) -> bool:
     """判断实体名称是否为噪声/无意义提取。
@@ -197,6 +242,9 @@ def is_noise_entity(name: str) -> bool:
     - 长度过短（≤ 2 字符）或过长（> 150 字符）
     - 命中通用停用词表
     - URL / 文件名 / 源码引用 / 日期字符串等非实体片段
+
+    白名单短路：知名 JS/TS 生态框架名（如 Node.js / Vue.js / Three.js）
+    虽形似文件名但属高价值产品实体，需放行。
     """
     if name is None:
         return True
@@ -206,6 +254,9 @@ def is_noise_entity(name: str) -> bool:
     lower = stripped.lower()
     if lower in _GENERIC_ENTITY_STOPWORDS:
         return True
+    # 知名 JS/TS 框架优先短路（必须放在 _FILE_NAME_PATTERN 检查之前）
+    if lower in _FRAMEWORK_NAME_WHITELIST:
+        return False
     if lower.startswith(("http://", "https://", "ftp://", "ssh://")):
         return True
     if _DATE_ENTITY_PATTERN.match(stripped):
