@@ -925,6 +925,7 @@ export default function KnowledgeGraphPage() {
                   key={corpusId}
                   corpusId={corpusId}
                   corpusConfig={corpusRecord.config as Record<string, unknown> | undefined}
+                  llmModels={llmModels}
                   onConfigSaved={() => {
                     fetchCorpora(APP_NAME).then(setCorpora).catch(() => {});
                   }}

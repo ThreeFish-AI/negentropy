@@ -13,12 +13,14 @@ interface ModelConfigPanelProps {
   corpusId: string;
   corpusConfig: Record<string, unknown> | undefined;
   onConfigSaved: () => void;
+  llmModels?: ModelConfigItem[];
 }
 
 export function ModelConfigPanel({
   corpusId,
   corpusConfig,
   onConfigSaved,
+  llmModels: llmModelsProp,
 }: ModelConfigPanelProps) {
   const corpusModels = (corpusConfig?.models ?? {}) as CorpusModelsConfig;
   const [llmConfigId, setLlmConfigId] = useState<string>(
@@ -33,18 +35,24 @@ export function ModelConfigPanel({
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchModelConfigs({ modelType: "llm", enabled: true })
-      .then(setLlmModels)
-      .catch(() => {});
+    if (llmModelsProp) {
+      setLlmModels(llmModelsProp);
+    } else {
+      fetchModelConfigs({ modelType: "llm", enabled: true })
+        .then(setLlmModels)
+        .catch(() => {});
+    }
     fetchModelConfigs({ modelType: "embedding", enabled: true })
       .then(setEmbeddingModels)
       .catch(() => {});
-  }, []);
+  }, [llmModelsProp]);
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const models: CorpusModelsConfig = {
         llm_config_id: llmConfigId || undefined,
@@ -58,6 +66,7 @@ export function ModelConfigPanel({
       setTimeout(() => setSaved(false), 2000);
       onConfigSaved();
     } catch (err) {
+      setSaveError("保存失败，请重试");
       console.error("save_model_config_failed", err);
     } finally {
       setSaving(false);
@@ -132,6 +141,9 @@ export function ModelConfigPanel({
       >
         {saving ? "保存中..." : saved ? "已保存" : "保存"}
       </button>
+      {saveError && (
+        <p className="mt-1 text-[10px] text-red-600 dark:text-red-400">{saveError}</p>
+      )}
     </div>
   );
 }
