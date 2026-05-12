@@ -31,15 +31,66 @@ from negentropy.models.base import NEGENTROPY_SCHEMA
 
 logger = get_logger("negentropy.knowledge.graph_algorithms")
 
-# Leiden 后端可用性检测：NetworkX 3.x 将 leiden_communities 定义为 dispatch wrapper，
-# hasattr() 始终返回 True 但实际调用需要 leidenalg 后端。通过 import 检测避免误判。
+# Leiden 后端可用性检测：NetworkX 3.x 的 `nx.community.leiden_communities` 是
+# dispatch wrapper —— **不会自动派发到 leidenalg 后端**，调用时反而以
+# `NotImplementedError: 'leiden_communities' is not implemented by 'networkx' backend`
+# 形式失败（参 issue.md ISSUE-028）。统一改为直接经由 igraph + leidenalg 调用
+# `leidenalg.find_partition`，规避 NX dispatch 误用。两个依赖同时具备时才启用。
 _LEIDEN_AVAILABLE = False
 try:
-    import leidenalg  # noqa: F401
+    import igraph as _ig_probe  # noqa: F401
+    import leidenalg as _leidenalg_probe  # noqa: F401
 
     _LEIDEN_AVAILABLE = True
 except ImportError:
     pass
+
+
+def _run_leiden(G_undirected: Any, *, resolution: float, seed: int) -> list[set[str]]:
+    """直接经由 igraph + leidenalg 计算 Leiden 社区，规避 NetworkX dispatch wrapper。
+
+    Args:
+        G_undirected: NetworkX 无向 (Multi)Graph，节点 id 为 str(uuid)。
+        resolution: 分辨率参数（RBConfigurationVertexPartition）。
+        seed: 随机种子，保证可复现性 (Traag et al., 2019)。
+
+    Returns:
+        ``list[set[str]]``：每个 set 是一个社区的节点 id 集合，顺序按社区索引。
+
+    Raises:
+        ImportError: 当 ``igraph`` / ``leidenalg`` 缺失时；调用方应捕获并降级到 Louvain。
+    """
+    import igraph as ig
+    import leidenalg
+
+    nodes = list(G_undirected.nodes())
+    node_to_idx = {n: i for i, n in enumerate(nodes)}
+    edges: list[tuple[int, int]] = []
+    weights: list[float] = []
+    for u, v, data in G_undirected.edges(data=True):
+        edges.append((node_to_idx[u], node_to_idx[v]))
+        weights.append(float(data.get("weight") or 1.0))
+
+    g = ig.Graph(n=len(nodes), edges=edges, directed=False)
+    if weights:
+        g.es["weight"] = weights
+        partition = leidenalg.find_partition(
+            g,
+            leidenalg.RBConfigurationVertexPartition,
+            weights="weight",
+            resolution_parameter=resolution,
+            seed=seed,
+        )
+    else:
+        # 无边场景：partition 为每个节点单独成簇，传入 weights 会触发 ig 报错。
+        partition = leidenalg.find_partition(
+            g,
+            leidenalg.RBConfigurationVertexPartition,
+            resolution_parameter=resolution,
+            seed=seed,
+        )
+
+    return [{nodes[i] for i in cluster} for cluster in partition]
 
 
 async def export_graph_to_networkx(
@@ -141,7 +192,13 @@ async def compute_pagerank(
 
     for i in range(0, len(rank_items), batch_size):
         chunk = rank_items[i : i + batch_size]
-        values_clause = ", ".join(f"(:eid_{j}, :score_{j})" for j in range(len(chunk)))
+        # PostgreSQL UPDATE-FROM-VALUES：内联 `AS v(col type, ...)` 不被 PG 接受
+        # （会触发 `syntax error at or near "uuid"`，asyncpg 透传上游报错）。
+        # 统一采用「占位符级 CAST」：在 VALUES 内对每个占位符显式 `CAST(:p AS uuid/double precision)`，
+        # AS 子句仅声明列名。该范式同样适用于 psycopg3 / pg-protocol bridge。
+        values_clause = ", ".join(
+            f"(CAST(:eid_{j} AS uuid), CAST(:score_{j} AS double precision))" for j in range(len(chunk))
+        )
         params = {"cid": str(corpus_id)}
         for j, (entity_id_str, score) in enumerate(chunk):
             params[f"eid_{j}"] = entity_id_str
@@ -151,8 +208,8 @@ async def compute_pagerank(
             text(f"""
                 UPDATE {schema}.kg_entities e
                 SET importance_score = v.score
-                FROM (VALUES {values_clause}) AS v(eid uuid, score float)
-                WHERE e.id = v.eid AND e.corpus_id = :cid
+                FROM (VALUES {values_clause}) AS v(eid, score)
+                WHERE e.id = v.eid AND e.corpus_id = CAST(:cid AS uuid)
             """),
             params,
         )
@@ -309,12 +366,9 @@ async def compute_communities(
     for level, res in enumerate(sorted_resolutions):
         try:
             if use_leiden:
-                communities = nx.community.leiden_communities(
-                    G_undirected,
-                    weight="weight",
-                    resolution=res,
-                    seed=seed,
-                )
+                # 经由 igraph + leidenalg 计算；NetworkX 高层 `leiden_communities`
+                # 是 dispatch wrapper、不会派发到 leidenalg 后端（详见 _run_leiden 文档）。
+                communities = _run_leiden(G_undirected, resolution=res, seed=seed)
             else:
                 communities = nx.community.louvain_communities(
                     G_undirected,
@@ -332,7 +386,36 @@ async def compute_communities(
                 resolution=res,
                 error=str(exc),
             )
-            continue
+            # Leiden 失败时一次性降级到 Louvain，避免后续 level 重复触发同型异常
+            if use_leiden:
+                use_leiden = False
+                algo_name = "louvain"
+                logger.warning(
+                    "leiden_fallback_to_louvain",
+                    corpus_id=str(corpus_id),
+                    level=level,
+                    error=str(exc),
+                )
+                try:
+                    communities = nx.community.louvain_communities(
+                        G_undirected,
+                        weight="weight",
+                        resolution=res,
+                        threshold=threshold,
+                        seed=seed,
+                    )
+                except Exception as fallback_exc:
+                    logger.warning(
+                        "community_computation_failed",
+                        corpus_id=str(corpus_id),
+                        algorithm=algo_name,
+                        level=level,
+                        resolution=res,
+                        error=str(fallback_exc),
+                    )
+                    continue
+            else:
+                continue
 
         partition: dict[str, int] = {}
         for community_idx, community_set in enumerate(communities):
@@ -367,7 +450,8 @@ async def compute_communities(
 
         for i in range(0, len(partition_items), batch_size):
             chunk = partition_items[i : i + batch_size]
-            values_clause = ", ".join(f"(:eid_{j}, :cid_{j})" for j in range(len(chunk)))
+            # 同 compute_pagerank：占位符级 CAST 替代内联 `AS v(col type)` 写法。
+            values_clause = ", ".join(f"(CAST(:eid_{j} AS uuid), :cid_{j})" for j in range(len(chunk)))
             params = {"corpus_id": str(corpus_id)}
             for j, (entity_id_str, community_id) in enumerate(chunk):
                 params[f"eid_{j}"] = entity_id_str
@@ -377,8 +461,8 @@ async def compute_communities(
                 text(f"""
                     UPDATE {schema}.kg_entities e
                     SET community_id = v.cid
-                    FROM (VALUES {values_clause}) AS v(eid uuid, cid int)
-                    WHERE e.id = v.eid AND e.corpus_id = :corpus_id
+                    FROM (VALUES {values_clause}) AS v(eid, cid)
+                    WHERE e.id = v.eid AND e.corpus_id = CAST(:corpus_id AS uuid)
                 """),
                 params,
             )

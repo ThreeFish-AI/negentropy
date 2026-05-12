@@ -317,18 +317,39 @@ class CommunitySummarizer:
         )
 
     async def _call_llm(self, prompt: str) -> str:
-        """调用 LLM 生成摘要（带重试保障）"""
-        from negentropy.config.model_resolver import get_fallback_llm_config
+        """调用 LLM 生成摘要（带重试保障）。
+
+        通过 ``resolve_llm_config()`` 解析 DB 配置，把厂商参数（``drop_params`` 等）
+        透传到 ``call_llm_with_retry``；规避 ``temperature=0.3`` 与 gpt-5 系列模型
+        ``UnsupportedParamsError`` 的同型问题（参 issue.md ISSUE-029）。
+        """
+        from negentropy.config.model_resolver import (
+            get_fallback_llm_config,
+            resolve_llm_config,
+        )
 
         from .extractors import call_llm_with_retry
 
-        model = self._model or get_fallback_llm_config()[0]
+        try:
+            resolved_model, extra_kwargs = await resolve_llm_config()
+        except Exception:
+            # 解析失败兜底硬编码默认值（含 drop_params=True）
+            resolved_model, extra_kwargs = get_fallback_llm_config()
+
+        if self._model:
+            model = self._model
+            # caller 已显式指定 model：仅保留与凭证/语义无关的安全字段，避免 vendor 错配
+            extra_kwargs = {k: v for k, v in extra_kwargs.items() if k in ("drop_params",)}
+        else:
+            model = resolved_model
+
         result = await call_llm_with_retry(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
             max_tokens=200,
             context_label="community_summary",
+            extra_kwargs=extra_kwargs,
         )
         return result
 

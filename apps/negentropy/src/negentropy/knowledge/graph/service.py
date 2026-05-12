@@ -580,11 +580,18 @@ class GraphService:
                     progress_state["last_reported_at"] = now
                     progress_state["last_reported_chunks"] = chunks_processed
                     progress = min(chunks_processed / total_chunks, 1.0) * 0.80 if total_chunks > 0 else 0.80
+                    # extracting 阶段累计计数同步落库（issue.md ISSUE-031）：
+                    # 此为 resolver 前的原始累计（含跨 chunk 同义实体），UI/SSE 在 progress<0.82
+                    # 阶段可见单调增长；resolving 阶段会回填去重后的最终值。
+                    current_entity_count = len(all_entities)
+                    current_relation_count = len(all_relations)
                     try:
                         await build_repo.update_build_run(
                             run_id=run_uuid,
                             status="running",
                             progress_percent=progress,
+                            entity_count=current_entity_count,
+                            relation_count=current_relation_count,
                         )
                     except Exception as exc:
                         logger.warning(
@@ -600,12 +607,20 @@ class GraphService:
                         total=total_chunks,
                         failed=failed_chunk_count,
                         progress_percent=round(progress, 4),
+                        total_entities=current_entity_count,
+                        total_relations=current_relation_count,
                     )
 
             async def process_chunk(
                 chunk: dict[str, Any],
+                chunk_index: int,
             ) -> tuple[list[GraphNode], list[GraphEdge]]:
                 """处理单个知识块，LLM 提取失败时降级到 fallback 提取器。
+
+                Args:
+                    chunk_index: 调度时预分配的 1-based 序号（issue.md ISSUE-030 修复）；
+                        替代 ``chunks_processed + 1`` 运行时读取，规避并发竞态导致多 chunk
+                        同时日志 `chunk_index=1` / `=11` 的观测性问题。
 
                 韧性机制（三层防御）：
                 1. **断路器 fast-path**：连续 LLM 失败 ≥ threshold 后，跳过 LLM 直接
@@ -649,7 +664,7 @@ class GraphService:
                         "chunk_processing_started",
                         run_id=run_id,
                         chunk_id=chunk_id,
-                        chunk_index=chunks_processed + 1,
+                        chunk_index=chunk_index,
                         total_chunks=total_chunks,
                         content_length=len(text),
                         circuit_open=circuit_breaker.is_open,
@@ -822,7 +837,13 @@ class GraphService:
                     raise PipelineCancelled(run_id, last_stage=PHASE_EXTRACTING)
 
                 batch = chunks[i : i + batch_size]
-                pending = [asyncio.ensure_future(process_chunk(chunk)) for chunk in batch]
+                # chunk_index 在调度时一次性预分配（issue.md ISSUE-030 修复）：
+                # 同批并发 chunk 在协程内并发读 chunks_processed 导致竞态，
+                # 这里改为 1-based 全局序号 (batch 起始 i + 批内 offset + 1)，互斥唯一。
+                pending = [
+                    asyncio.ensure_future(process_chunk(chunk, chunk_index=i + offset + 1))
+                    for offset, chunk in enumerate(batch)
+                ]
 
                 for coro in asyncio.as_completed(pending):
                     try:
