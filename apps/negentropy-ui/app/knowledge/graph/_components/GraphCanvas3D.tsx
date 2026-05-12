@@ -53,8 +53,7 @@ function nodeRadius3D(importance?: number | null): number {
 }
 
 // react-force-graph-3d 的 nodeVal 被解释为"体积量"：实际渲染球体半径 = cbrt(val) * nodeRelSize。
-// nodeRelSize 默认 4，本文件未通过 <ForceGraph3D> props 覆盖，保持默认。
-// 将球体统一缩至默认 2/3，避免球体过大遮挡上方标签。
+// 将球体统一缩至默认 2/3（nodeRelSize 默认 4，现通过 props 覆盖），避免球体过大遮挡上方标签。
 const NODE_REL_SIZE = 2.67;
 // 球面与标签底边的世界单位间隙，保证最小节点也能清晰浮于球体之上。
 const LABEL_GAP = 3;
