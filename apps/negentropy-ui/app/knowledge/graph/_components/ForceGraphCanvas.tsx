@@ -113,7 +113,7 @@ export function ForceGraphCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const graphRef = useRef<unknown>(null);
   const [expanding, setExpanding] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 700, height: 500 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ForceGraph2D, setForceGraph2D] = useState<React.ComponentType<any> | null>(null);
   const { resolvedTheme } = useTheme();
@@ -257,7 +257,7 @@ export function ForceGraphCanvas({
       }
     >
       <div ref={containerRef} className="h-full w-full">
-        {ForceGraph2D && (
+        {ForceGraph2D && dimensions.width > 0 && dimensions.height > 0 && (
           <ForceGraph2D
             ref={graphRef}
             graphData={graphData}

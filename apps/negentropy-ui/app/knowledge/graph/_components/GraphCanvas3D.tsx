@@ -68,13 +68,32 @@ export function GraphCanvas3D({
   truncateThreshold = 500,
 }: GraphCanvas3DProps) {
   const fgRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [expanding, setExpanding] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const propsRef = useRef({ corpusId, asOf, onNodeClick, onSubgraphMerge });
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     propsRef.current = { corpusId, asOf, onNodeClick, onSubgraphMerge };
   }, [corpusId, asOf, onNodeClick, onSubgraphMerge]);
+
+  // react-force-graph-3d 默认使用 window.innerWidth/Height，导致 Flex 布局溢出。
+  // 通过 ResizeObserver 追踪容器尺寸并传递显式 width/height 约束 Canvas。
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const update = () => {
+      setDimensions({
+        width: el.clientWidth,
+        height: Math.max(400, el.clientHeight),
+      });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const validIds = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
 
@@ -174,7 +193,6 @@ export function GraphCanvas3D({
 
   return (
     <GraphCanvasFrame
-      className="overflow-hidden"
       stats={{ nodes: nodes.length, edges: edges.length, suffix: "3D WebGL" }}
       badges={
         <>
@@ -191,31 +209,37 @@ export function GraphCanvas3D({
         </>
       }
     >
-      <ForceGraph3D
-        ref={fgRef}
-        graphData={graphData}
-        nodeLabel="label"
-        nodeColor={getNodeColor}
-        nodeVal={getNodeVal}
-        nodeOpacity={0.95}
-        nodeThreeObject={getNodeThreeObject}
-        nodeThreeObjectExtend={true}
-        linkColor={() => "#a1a1aa"}
-        linkOpacity={0.4}
-        linkWidth={0.8}
-        linkDirectionalArrowLength={3.5}
-        linkDirectionalArrowRelPos={1}
-        backgroundColor={bgColor}
-        onNodeClick={handleNodeClick}
-        onNodeRightClick={handleNodeRightClick}
-        onBackgroundClick={() => propsRef.current.onNodeClick("")}
-        cooldownTicks={150}
-        warmupTicks={20}
-        d3AlphaDecay={0.02}
-        d3VelocityDecay={0.4}
-        enableNodeDrag={true}
-        showNavInfo={false}
-      />
+      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }}>
+        {dimensions.width > 0 && dimensions.height > 0 && (
+          <ForceGraph3D
+            ref={fgRef}
+            width={dimensions.width}
+            height={dimensions.height}
+            graphData={graphData}
+            nodeLabel="label"
+            nodeColor={getNodeColor}
+            nodeVal={getNodeVal}
+            nodeOpacity={0.95}
+            nodeThreeObject={getNodeThreeObject}
+            nodeThreeObjectExtend={true}
+            linkColor={() => "#a1a1aa"}
+            linkOpacity={0.4}
+            linkWidth={0.8}
+            linkDirectionalArrowLength={3.5}
+            linkDirectionalArrowRelPos={1}
+            backgroundColor={bgColor}
+            onNodeClick={handleNodeClick}
+            onNodeRightClick={handleNodeRightClick}
+            onBackgroundClick={() => propsRef.current.onNodeClick("")}
+            cooldownTicks={150}
+            warmupTicks={20}
+            d3AlphaDecay={0.02}
+            d3VelocityDecay={0.4}
+            enableNodeDrag={true}
+            showNavInfo={false}
+          />
+        )}
+      </div>
     </GraphCanvasFrame>
   );
 }
