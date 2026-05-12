@@ -165,11 +165,17 @@ export function GraphCanvas3D({
         : "rgba(255,255,255,0.7)";
       sprite.padding = 1;
       sprite.textHeight = 3;
+      sprite.borderWidth = 0.5;
+      sprite.borderRadius = 2;
+      sprite.material.depthWrite = false;
+      sprite.renderOrder = 999;
       const val = nodeMeta.get(String(node.id))?.val ?? 3;
-      sprite.position.set(0, val + 2, 0);
+      const effectiveVal =
+        String(node.id) === selectedNodeId ? val * 1.5 : val;
+      sprite.position.set(0, effectiveVal + 3, 0);
       return sprite;
     },
-    [isDark, nodeMeta],
+    [isDark, nodeMeta, selectedNodeId],
   );
 
   return (
