@@ -52,6 +52,12 @@ function nodeRadius3D(importance?: number | null): number {
   return 2 + 6 * clamped;
 }
 
+// react-force-graph-3d 的 nodeVal 被解释为"体积量"：实际渲染球体半径 = cbrt(val) * nodeRelSize。
+// nodeRelSize 默认 4，本文件未通过 <ForceGraph3D> props 覆盖，保持默认。
+const NODE_REL_SIZE = 4;
+// 球面与标签底边的世界单位间隙，保证最小节点也能清晰浮于球体之上。
+const LABEL_GAP = 1.5;
+
 function nodeColorFn(node: GraphCanvasNode): string {
   if (node.community_id != null) return communityColor(node.community_id);
   return entityColor(node.type);
@@ -178,20 +184,23 @@ export function GraphCanvas3D({
     (node: { id: string | number; label?: string }) => {
       const text = node.label ?? String(node.id).slice(0, 8);
       const sprite = new SpriteText(text);
-      sprite.color = isDark ? "#e4e4e7" : "#27272a";
-      sprite.backgroundColor = isDark
-        ? "rgba(9,9,11,0.55)"
-        : "rgba(255,255,255,0.7)";
-      sprite.padding = 1;
+      // 纯文字风格：去边框 + 去背景，与 2D 引擎 ForceGraphCanvas 视觉对齐。
+      sprite.color = isDark ? "#f4f4f5" : "#18181b";
+      sprite.backgroundColor = "rgba(0,0,0,0)";
+      sprite.padding = 0;
       sprite.textHeight = 3;
-      sprite.borderWidth = 0.5;
-      sprite.borderRadius = 2;
+      sprite.borderWidth = 0;
+      // 保留 dd1a6c85 引入的深度修复：标签穿透其他球体始终可见。
       sprite.material.depthWrite = false;
       sprite.renderOrder = 999;
+
       const val = nodeMeta.get(String(node.id))?.val ?? 3;
       const effectiveVal =
         String(node.id) === selectedNodeId ? val * 1.5 : val;
-      sprite.position.set(0, effectiveVal + 3, 0);
+      // 球体实际半径 = cbrt(val) * nodeRelSize（val 是体积量，非半径）。
+      // sprite 以中心为锚点，故位置 = 半径 + 半个文字高 + 视觉间隙。
+      const radius = Math.cbrt(effectiveVal) * NODE_REL_SIZE;
+      sprite.position.set(0, radius + sprite.textHeight / 2 + LABEL_GAP, 0);
       return sprite;
     },
     [isDark, nodeMeta, selectedNodeId],
