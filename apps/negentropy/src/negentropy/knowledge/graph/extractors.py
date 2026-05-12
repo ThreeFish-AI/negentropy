@@ -289,14 +289,31 @@ async def call_llm_with_retry(
     temperature: float = 0.3,
     max_tokens: int | None = None,
     context_label: str = "kg_llm",
+    extra_kwargs: dict[str, Any] | None = None,
 ) -> str:
     """带重试的 LLM 调用（KG 系统全局统一保障）。
 
     策略：SDK 层 ``num_retries=0`` 禁用隐形重试，应用层统一管控。
     单次超时 ``KG_LLM_TIMEOUT_SECONDS``，最大重试 ``KG_LLM_MAX_RETRIES`` 次。
     所有失败后返回空字符串（由调用方决定降级行为）。
+
+    Args:
+        extra_kwargs: 由 ``resolve_llm_config()`` 解析得到的厂商透传参数（含
+            ``api_key`` / ``api_base`` / ``drop_params`` / ``reasoning_effort`` 等）；
+            采用 ``setdefault`` 合并，不覆盖本函数显式管理的字段（``model`` /
+            ``messages`` / ``temperature`` / ``timeout`` / ``num_retries`` /
+            ``max_retries`` / ``max_tokens``）。
     """
     import litellm
+
+    # 全局兜底：等价 LiteLLM 业界标准开关，确保 SDK 在遇到厂商不支持的参数
+    # （如 gpt-5 不接受 temperature≠1）时静默丢弃而非抛 UnsupportedParamsError。
+    # 即使 caller 未传 extra_kwargs 也生效；幂等设置，重复赋值无副作用。
+    if not getattr(litellm, "drop_params", False):
+        litellm.drop_params = True
+
+    # 应用层重试与超时不可被外部覆盖（避免误用 SDK 内置 num_retries 致重试放大）
+    _PROTECTED_KEYS = {"model", "messages", "temperature", "timeout", "num_retries", "max_retries", "max_tokens"}
 
     last_error: Exception | None = None
     for attempt in range(KG_LLM_MAX_RETRIES):
@@ -311,6 +328,11 @@ async def call_llm_with_retry(
             }
             if max_tokens is not None:
                 kwargs["max_tokens"] = max_tokens
+            if extra_kwargs:
+                for k, v in extra_kwargs.items():
+                    if k in _PROTECTED_KEYS:
+                        continue
+                    kwargs.setdefault(k, v)
             response = await litellm.acompletion(**kwargs)
             return response.choices[0].message.content or ""
         except Exception as exc:

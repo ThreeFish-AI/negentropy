@@ -47,7 +47,7 @@ class KgEntityService:
         metadata: dict | None = None,
         corpus_id: UUID | None = None,
         app_name: str = "negentropy",
-    ) -> None:
+    ) -> bool:
         """从 knowledge 记录同步实体到 kg_entities 表（双写）
 
         此方法应在 AgeGraphRepository.create_entity() 之后调用，
@@ -63,6 +63,11 @@ class KgEntityService:
             metadata: 额外元数据
             corpus_id: 所属语料库 ID
             app_name: 应用名称（默认 "negentropy"）
+
+        Returns:
+            ``True`` 表示创建了新的 kg_entities 行；``False`` 表示命中既有行做幂等更新。
+            调用方据此区分 ``created`` / ``updated``，避免误把幂等更新当新增计入指标
+            （参 issue.md ISSUE-032）。
         """
         from negentropy.models.perception import KgEntity
 
@@ -110,7 +115,7 @@ class KgEntityService:
                     "mention_count": existing_rec.mention_count,
                 },
             )
-            return
+            return False
 
         # 创建新记录
         new_entity = KgEntity(
@@ -149,6 +154,7 @@ class KgEntityService:
                 "corpus_id": str(corpus_id) if corpus_id else None,
             },
         )
+        return True
 
     async def sync_relation(
         self,
@@ -161,11 +167,16 @@ class KgEntityService:
         evidence_text: str | None = None,
         corpus_id: UUID | None = None,
         app_name: str = "negentropy",
-    ) -> None:
+    ) -> bool:
         """同步关系到 kg_relations 表
 
         通过名称匹配找到 source/target 实体后创建关系。
         如果任一端点不存在，则跳过（延迟创建）。
+
+        Returns:
+            ``True`` 表示新行插入；``False`` 表示跳过（端点缺失 / 重复三元组）。
+            调用方按返回值累加 ``relations_synced`` / ``relations_skipped`` 计数，
+            构成 SSoT 闭环；避免"未抛异常 = 成功"导致计数虚高（issue.md ISSUE-032）。
         """
         from negentropy.models.perception import KgEntity, KgRelation
 
@@ -192,15 +203,20 @@ class KgEntityService:
         tgt = tgt_result.scalar_one_or_none()
 
         if src is None or tgt is None:
-            logger.debug(
+            # 端点缺失：日志级别提升到 warning 便于运维定位（之前 debug 不可见，
+            # 导致 152→143 静默丢失 9 条关系长期未被发现，参 issue.md ISSUE-032）。
+            logger.warning(
                 "kg_relation_skipped",
                 extra={
                     "source": source_name,
                     "target": target_name,
-                    "reason": "endpoint not found in kg_entities",
+                    "relation_type": relation_type,
+                    "reason": "endpoint_not_found",
+                    "src_resolved": src is not None,
+                    "tgt_resolved": tgt is not None,
                 },
             )
-            return
+            return False
 
         # 检查是否已存在相同关系
         existing = await db.execute(
@@ -213,7 +229,16 @@ class KgEntityService:
             .limit(1)
         )
         if existing.scalar_one_or_none() is not None:
-            return
+            logger.debug(
+                "kg_relation_skipped",
+                extra={
+                    "source": source_name,
+                    "target": target_name,
+                    "relation_type": relation_type,
+                    "reason": "duplicate_triple",
+                },
+            )
+            return False
 
         relation = KgRelation(
             source_id=src.id,
@@ -236,6 +261,7 @@ class KgEntityService:
                 "type": relation_type,
             },
         )
+        return True
 
     async def batch_sync_from_graph_build(
         self,
@@ -258,13 +284,17 @@ class KgEntityService:
         Returns:
             统计信息 {"entities_synced": N, "relations_synced": M}
         """
-        entities_synced = 0
-        relations_synced = 0
+        entities_created = 0
+        entities_updated = 0
+        entities_failed = 0
+        relations_created = 0
+        relations_skipped = 0
+        relations_failed = 0
 
         for node in nodes:
             try:
                 async with db.begin_nested():  # SAVEPOINT: 单条失败仅回滚此 savepoint
-                    await self.sync_entity_from_knowledge(
+                    created = await self.sync_entity_from_knowledge(
                         db,
                         knowledge_id=UUID(node.get("id", "00000000-0000-0000-0000-000000000000")),
                         name=node.get("label") or node.get("id", "unknown"),
@@ -274,8 +304,12 @@ class KgEntityService:
                         corpus_id=corpus_id,
                         app_name=app_name,
                     )
-                entities_synced += 1
+                if created:
+                    entities_created += 1
+                else:
+                    entities_updated += 1
             except Exception as exc:
+                entities_failed += 1
                 logger.warning(
                     "batch_sync_entity_failed",
                     extra={
@@ -287,7 +321,7 @@ class KgEntityService:
         for edge in edges:
             try:
                 async with db.begin_nested():  # SAVEPOINT: 单条失败仅回滚此 savepoint
-                    await self.sync_relation(
+                    inserted = await self.sync_relation(
                         db,
                         source_name=edge.get("source", ""),
                         target_name=edge.get("target", ""),
@@ -296,8 +330,12 @@ class KgEntityService:
                         evidence_text=edge.get("evidence_text"),
                         corpus_id=corpus_id,
                     )
-                relations_synced += 1
+                if inserted:
+                    relations_created += 1
+                else:
+                    relations_skipped += 1
             except Exception as exc:
+                relations_failed += 1
                 logger.warning(
                     "batch_sync_relation_failed",
                     extra={
@@ -306,18 +344,32 @@ class KgEntityService:
                     },
                 )
 
+        # entities_synced / relations_synced 字段含义升级（issue.md ISSUE-032）：
+        # 仅统计真实新增行；调用方与历史端点保持字段名兼容（旧含义"未抛异常即计数"
+        # 已修正为"实际写入"）。skipped / failed / updated 显式拆分供运维诊断。
+        entities_synced = entities_created
+        relations_synced = relations_created
+
         logger.info(
             "kg_batch_sync_completed",
             extra={
                 "entities_synced": entities_synced,
+                "entities_updated": entities_updated,
+                "entities_failed": entities_failed,
                 "relations_synced": relations_synced,
+                "relations_skipped": relations_skipped,
+                "relations_failed": relations_failed,
                 "corpus_id": str(corpus_id) if corpus_id else None,
             },
         )
 
         return {
             "entities_synced": entities_synced,
+            "entities_updated": entities_updated,
+            "entities_failed": entities_failed,
             "relations_synced": relations_synced,
+            "relations_skipped": relations_skipped,
+            "relations_failed": relations_failed,
         }
 
     async def get_top_entities(

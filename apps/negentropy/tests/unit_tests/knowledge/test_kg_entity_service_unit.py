@@ -574,7 +574,11 @@ class TestBatchSyncFromGraphBuild:
     # -- 1. 全部节点和边处理完毕 --
 
     async def test_batch_sync_processes_all_nodes_and_edges(self, service, db):
-        """正常输入应处理所有节点和边，返回正确的计数。"""
+        """正常输入应处理所有节点；relations 端点已注册时计入 synced。
+
+        通过让 entity SELECT 返回空（驱使 entities_created+=1），关系 SELECT
+        返回伪 source/target 命中，模拟"端点已就绪"。
+        """
         nodes = [
             {"id": str(uuid4()), "label": "NodeA", "node_type": "CONCEPT"},
             {"id": str(uuid4()), "label": "NodeB", "node_type": "TECH"},
@@ -583,15 +587,53 @@ class TestBatchSyncFromGraphBuild:
             {"source": "NodeA", "target": "NodeB", "edge_type": "USES"},
         ]
 
-        # 模拟 execute 对实体查询返回空（全部新建）
+        src_stub = _make_entity_ns(name="NodeA")
+        tgt_stub = _make_entity_ns(name="NodeB")
+        call_idx = [0]
+
         async def _fake_execute(stmt):
-            return _FakeExecuteResult([])
+            stmt_str = str(stmt).lower()
+            # 关系 SELECT 表名为 kg_relations；entity SELECT 表名为 kg_entities
+            if "kg_relations" in stmt_str:
+                return _FakeExecuteResult([])  # 无重复关系
+            call_idx[0] += 1
+            # 前 2 次 entity SELECT（来自 entity sync 的 canonical_name 查询）→ 不存在
+            if call_idx[0] <= 2:
+                return _FakeExecuteResult([])
+            # 后续 2 次 entity SELECT（sync_relation 的 src/tgt 查询）→ 命中
+            if call_idx[0] == 3:
+                return _FakeExecuteResult([src_stub])
+            return _FakeExecuteResult([tgt_stub])
 
         with patch.object(db, "execute", side_effect=_fake_execute):
             result = await service.batch_sync_from_graph_build(db, nodes=nodes, edges=edges, corpus_id=_CORPUS_ID)
 
+        # entities_synced 现在只统计 created；空 SELECT → 全部 created
         assert result["entities_synced"] == 2
+        # 端点命中 + 无重复 → relations_synced=1
         assert result["relations_synced"] == 1
+        # 新计数字段：skipped/updated/failed 应为 0
+        assert result["relations_skipped"] == 0
+        assert result["entities_updated"] == 0
+
+    async def test_batch_sync_relations_skipped_when_endpoint_missing(self, service, db):
+        """端点缺失的关系应计入 relations_skipped，而非 relations_synced（ISSUE-032）。"""
+        edges = [
+            {"source": "Ghost1", "target": "Ghost2", "edge_type": "VANISHED"},
+            {"source": "Ghost3", "target": "Ghost4", "edge_type": "VANISHED"},
+        ]
+
+        async def _fake_execute(stmt):
+            # 所有 SELECT 返回空 → src/tgt 始终 None
+            return _FakeExecuteResult([])
+
+        with patch.object(db, "execute", side_effect=_fake_execute):
+            result = await service.batch_sync_from_graph_build(db, nodes=[], edges=edges, corpus_id=_CORPUS_ID)
+
+        # 修复前：relations_synced=2（虚高）；修复后：synced=0, skipped=2
+        assert result["relations_synced"] == 0
+        assert result["relations_skipped"] == 2
+        assert result["relations_failed"] == 0
 
     # -- 2. 单个节点失败不影响其他节点 --
 
@@ -646,15 +688,26 @@ class TestBatchSyncFromGraphBuild:
     # -- 4. 空输入返回零计数 --
 
     async def test_batch_sync_empty_inputs_returns_zeros(self, service, db):
-        """空的 nodes 和 edges 列表应返回 {0, 0}。"""
+        """空的 nodes 和 edges 列表应返回所有计数为 0。"""
         result = await service.batch_sync_from_graph_build(db, nodes=[], edges=[])
 
-        assert result == {"entities_synced": 0, "relations_synced": 0}
+        # 计数字段升级（ISSUE-032）：synced/updated/failed/skipped 分开统计
+        assert result["entities_synced"] == 0
+        assert result["entities_updated"] == 0
+        assert result["entities_failed"] == 0
+        assert result["relations_synced"] == 0
+        assert result["relations_skipped"] == 0
+        assert result["relations_failed"] == 0
 
     # -- 5. 统计准确性 --
 
     async def test_batch_sync_statistics_accuracy(self, service, db):
-        """成功/失败计数应准确反映实际处理情况。"""
+        """成功/失败计数应准确反映实际处理情况。
+
+        修复后语义（ISSUE-032）：
+        - entities_synced = 真实新建行数；
+        - relations_synced = 真实新插入行数；端点缺失时进 relations_skipped。
+        """
         nodes = [
             {"id": str(uuid4()), "label": "N1", "node_type": "T"},
             {"id": str(uuid4()), "label": "N2", "node_type": "T"},
@@ -666,13 +719,16 @@ class TestBatchSyncFromGraphBuild:
         ]
 
         async def _fake_execute(stmt):
+            # 全部空 → entities 全部 created；relations 端点未命中 → 全部 skipped
             return _FakeExecuteResult([])
 
         with patch.object(db, "execute", side_effect=_fake_execute):
             result = await service.batch_sync_from_graph_build(db, nodes=nodes, edges=edges, corpus_id=_CORPUS_ID)
 
         assert result["entities_synced"] == 3
-        assert result["relations_synced"] == 2
+        # 端点未在 fake_execute 提供 → relations 应全部 skipped 而非 synced
+        assert result["relations_synced"] == 0
+        assert result["relations_skipped"] == 2
 
 
 # ===================================================================

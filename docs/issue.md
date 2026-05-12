@@ -1828,3 +1828,47 @@
   - `add_memory_typed()`（`memory_service.py:1450`）同样无格式校验，后续若 Agent 通过 `memory_write` 工具写入 JSON 也会出现同类问题，可考虑在此路径补充校验；
   - `_simple_consolidate()` 路径存储的原始对话格式（`[User] text`）虽非 JSON 但也非语义记忆，可作为后续优化项。
   - `asyncio.gather(return_exceptions=True)` 误吞 cancel 是 Python asyncio 协作式取消的经典坑，凡使用该模式的批处理循环都需复核是否会吞掉自定义 cancel 异常。
+
+---
+
+## ISSUE-082 KG Build 管线七项级联缺陷端到端修复（2026-05-12）
+
+- **表因**：一次 20-chunk 的 KG Build（corpus `43bacd7e-...`，~520s）日志中并发暴露 7 个相互独立的缺陷。名义结果 `entity_count=98 relation_count=152`、`status=completed`，但实际：
+  - PageRank UPDATE 抛 `syntax error at or near "uuid"` → `importance_score` 全为 NULL；
+  - Leiden 三次 `'leiden_communities' is not implemented by 'networkx' backend` → `community_count_by_level={}`；
+  - Community Summary LLM 三次 `gpt-5 models … don't support temperature=0.3` → 1 个 fallback "global community" 摘要生成失败；
+  - Embedding 上游 `400 request body doesn't contain valid prompts` → 社区摘要无 embedding + Graph Search 退化到关键字模式；
+  - 三个并发 chunk 同时 log `chunk_index=1` / `=11` → 观测性失真；
+  - extracting 阶段 `build_run_updated entity_count=0 relation_count=0` 持续 8 分钟 → UI 进度 80% 但计数恒为 0；
+  - `kg_first_class_sync relations_synced=152` 与最终 `graph_loaded edge_count=143` 不一致 → 9 条关系神秘消失。
+- **根因**（按缺陷编号正交分解）：
+  1. **PageRank/Community UPDATE SQL**：[`graph_algorithms.py:142-158`](../apps/negentropy/src/negentropy/knowledge/graph/graph_algorithms.py) 与同文件 `compute_communities` 共用 `FROM (VALUES …) AS v(eid uuid, score float)` 内联类型声明 — **PostgreSQL 不接受 AS 子句内联类型**，应改为占位符级 `CAST(:p AS uuid)` 显式转型。
+  2. **Leiden 后端误用**：NetworkX 3.x 的 `nx.community.leiden_communities` 是 dispatch wrapper — **不会自动派发到 leidenalg backend**，调用时反而抛 `NotImplementedError`。必须经由 `igraph + leidenalg.find_partition` 直连。
+  3. **drop_params 未透传**：[`extractors.py::call_llm_with_retry`](../apps/negentropy/src/negentropy/knowledge/graph/extractors.py) 自构建 `kwargs` 但既未读取 `resolve_llm_config()` 返回的 `drop_params=True`，也未全局设置 `litellm.drop_params`。导致 `temperature=0.3` 经过 gpt-5 系列触发 `UnsupportedParamsError`。
+  4. **Embedding 上游 400**：本地 Gemini 翻译代理（`localhost:3392` / `NATIVE_GEMINI_BASE_URL`）对 `:batchEmbedContents` 兼容不全 — **同 ISSUE-020 / ISSUE-026 同型**；代码侧无 actionable hint，运维难以快速定位环境问题。
+  5. **chunk_index 并发竞态**：[`service.py::process_chunk`](../apps/negentropy/src/negentropy/knowledge/graph/service.py) 内 `chunks_processed + 1` 非原子读，semaphore 限 3 并发同读 0/10 → log 中 3 条 `chunk_index=1` 同时出现。观测性 bug。
+  6. **extracting 阶段计数静默**：`maybe_report_chunk_progress` 仅更新 `progress_percent`，未把 `len(all_entities) / len(all_relations)` 累计同步到 `build_run`；resolving 阶段才补 132/152。
+  7. **relations_synced 计数虚高**：[`entity_service.sync_relation`](../apps/negentropy/src/negentropy/knowledge/graph/entity_service.py) 在端点缺失 / 重复三元组时 **silent return**（非 raise），caller `try: … relations_synced += 1` 把跳过当成功。152 → 143 静默丢失 9 条关系长期不可观测（日志级别 `debug`）。
+- **处理方式**（7 项最小干预正交修复，提交 949d77e1）：
+  1. **PageRank/Community SQL**：[`graph_algorithms.py:142-160`、`368-384`](../apps/negentropy/src/negentropy/knowledge/graph/graph_algorithms.py) 改为 `CAST(:eid_n AS uuid)` / `CAST(:cid AS uuid)` 占位符级显式 cast；AS 子句仅声明列名。同型扫荡覆盖两处。
+  2. **Leiden 直连**：[`graph_algorithms.py:34-89`](../apps/negentropy/src/negentropy/knowledge/graph/graph_algorithms.py) 增 `_run_leiden()` 经由 `igraph + leidenalg.RBConfigurationVertexPartition`；`compute_communities` 替换原 dispatch wrapper 调用；首层 Leiden 失败一次性降级到 Louvain，避免多 resolution 重复触发同型错误。[`pyproject.toml`](../apps/negentropy/pyproject.toml) 追加 `igraph>=0.11` hard dep（与 `leidenalg>=0.10` 协同）。
+  3. **drop_params 透传**：[`extractors.py:285-340`](../apps/negentropy/src/negentropy/knowledge/graph/extractors.py) `call_llm_with_retry` 增可选参数 `extra_kwargs: dict`，幂等设置 `litellm.drop_params = True`，按 `_PROTECTED_KEYS = {"model","messages","temperature","timeout","num_retries","max_retries","max_tokens"}` 过滤外部覆盖；[`community_summarizer.py::_call_llm`](../apps/negentropy/src/negentropy/knowledge/graph/community_summarizer.py) 解析 `resolve_llm_config()` 后透传 `extra_kwargs`（caller 显式指定 model 时仅保留 `drop_params` 字段避免凭证错配）。
+  4. **Embedding hint**：[`embedding.py::_build_embedding_failure_hint`](../apps/negentropy/src/negentropy/knowledge/ingestion/embedding.py) 检测已知"invalid prompts"模式 → 输出含 `NATIVE_GEMINI_BASE_URL` / 切换 openai embedding 建议的 actionable hint，写入 `embedding_request_failed` / `batch_embedding_request_failed` 结构化日志的 `hint` 字段。
+  5. **chunk_index 预分配**：[`service.py:824-832`](../apps/negentropy/src/negentropy/knowledge/graph/service.py) 在批次调度时 `enumerate(batch)` 注入 1-based 全局序号 `i + offset + 1`；`process_chunk(chunk_index: int)` 签名增加该参数，消除并发竞态。
+  6. **extracting 累计计数**：[`service.py::maybe_report_chunk_progress`](../apps/negentropy/src/negentropy/knowledge/graph/service.py) 同步落 `entity_count=len(all_entities) / relation_count=len(all_relations)`；`chunk_batch_progress` 结构化日志同步输出 `total_entities / total_relations`。
+  7. **sync_relation 返回 bool**：[`entity_service.sync_relation`](../apps/negentropy/src/negentropy/knowledge/graph/entity_service.py) 改返回 `bool`（True=新插入，False=跳过）；端点缺失日志级别 `debug → warning`；[`batch_sync_from_graph_build`](../apps/negentropy/src/negentropy/knowledge/graph/entity_service.py) 按返回值累加 `relations_created / relations_skipped / relations_failed`（同样 `entities_created / entities_updated / entities_failed`），日志与返回 dict 同步透出新字段。`sync_entity_from_knowledge` 同型修改。
+- **验证证据**：
+  - 新增 `tests/unit_tests/knowledge/test_kg_build_pipeline_fixes.py` 9 条 UT 锁定 7 项修复契约（PageRank SQL CAST / Leiden via leidenalg / drop_params 透传 / Embedding hint / sync_relation bool 返回）；
+  - `tests/unit_tests/knowledge/test_kg_entity_service_unit.py` 与 `test_graph_entity_service.py` 三条既有 UT 升级 — 之前实为"silent assertion of bug"（把跳过当成功），现校正为 `relations_synced=0 + relations_skipped=2`；
+  - `uv run pytest tests/unit_tests/knowledge` 678 通过（1 pre-existing 失败 `test_extraction_llm_plan` 与本次无关）；`uv run ruff check` 全绿；
+  - 浏览器实机验证按 [Browser Validation Protocol](agents/browser-validation.md) 在用户主 profile 完成；端到端 KG Build 后 SQL `SELECT importance_score, community_id FROM kg_entities WHERE corpus_id=...` 非 NULL、`SELECT level, community_id FROM kg_community_summaries` 多条非空摘要、`kg_first_class_sync relations_synced` 与 `graph_loaded edge_count` 数值一致（差额由 `relations_skipped` 明示）。
+- **后续防范**（跨上下文准则）：
+  1. **PostgreSQL UPDATE-FROM-VALUES 范式**：批量 UPSERT/UPDATE 一律采用占位符级 `CAST(:p AS type)`，禁用 `AS v(col type)` 内联类型 — 后者在 asyncpg / psycopg3 / pg-protocol bridge 多驱动行为不一致。
+  2. **NetworkX 3.x dispatch wrapper 边界**：调用 `nx.community.*` 前必须确认是否为 dispatch wrapper（隐式 backend 派发会以 `NotImplementedError` 形式出现而非明确 `ImportError`）。Leiden / Modularity 类算法一律走 `igraph + leidenalg` / `cdlib` 直连。
+  3. **LiteLLM 入口 drop_params 强制兜底**：所有 `litellm.acompletion / aembedding` 入口必须传 `drop_params=True` 或进程级 `litellm.drop_params = True`。`call_llm_with_retry` 已统一注入，新增 LLM 调用入口应复用本函数。
+  4. **Silent return = silent data loss**：服务层任何"幂等跳过"必须以返回值或专属计数器外露；调用方按返回值累加 `success/skip/fail`，禁用"未抛异常 = 成功"语义。
+  5. **Phase-level cumulative reporting**：节流上报路径除 progress 外，业务计数必须同步落库；UI 应避免"进度走 80% 但计数为 0"的反直觉体验。
+- **同类问题影响**：
+  - `apps/negentropy/src/negentropy/knowledge/graph/` 全部 SQL 中的 `VALUES … AS v(col type)` 已扫荡（仅 PageRank、Communities 两处，全部修复）；未来新增类似 UPDATE-FROM-VALUES 路径需复核同型缺陷；
+  - 其他 `nx.community.*` 高层 API 调用入口（如未来引入 `nx.community.label_propagation_communities`、`nx.community.greedy_modularity_communities` 等）需确认是否同样依赖 dispatch backend；
+  - 任何 service 层"幂等跳过"（如 `merge_entities` / `dedupe_relations` / `upsert_*`）需复核是否区分返回值 / 计数器；调用方计数若依赖"未抛异常"语义，需同步重构。

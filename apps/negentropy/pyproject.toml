@@ -45,6 +45,7 @@ dependencies = [
     "numpy>=1.26",                  # Sparse matrix power iteration for PageRank (Brin & Page, 1998)
     "scipy>=1.12",                  # Scientific computing backend for NetworkX graph algorithms
     "leidenalg>=0.10",              # Leiden community detection backend (Traag et al., 2019)
+    "igraph>=0.11",                 # leidenalg 依赖；NetworkX 3.x leiden_communities 是 dispatch wrapper，必须经由 igraph 直连
     "arxiv>=2.1",                   # arXiv API client for paper curation tools (search_papers / ingest_paper)
     "jinja2>=3.1.4",                # Sandboxed template rendering for Skills Layer 2 prompt_template
     "packaging>=24.0",              # SemVer parsing for Skill template version validation
