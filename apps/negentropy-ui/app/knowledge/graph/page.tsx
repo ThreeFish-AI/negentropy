@@ -111,14 +111,25 @@ export default function KnowledgeGraphPage() {
   // G2: 渲染引擎切换 — Cytoscape / d3-force / Sigma.js WebGL / Force Graph 2D / 3D WebGL
   const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("cytoscape");
   // 右侧抽屉收起状态；localStorage 持久化，SSR 安全（初值 true，挂载后读取覆盖）。
+  // 设计要点（修复挂载期闪烁 + storage 噪声）：
+  //   1) 用 hasHydratedRef 区分「初始挂载 read」与「用户交互 write」——挂载阶段
+  //      第二个 effect 不能把默认值 "1" 回写到 localStorage，否则会瞬间覆盖用户上次
+  //      持久化的 "0"，并向其他 tab 的 storage 监听者推送一段虚假的 open→close 序列。
+  //   2) 暴露 sidebarHydrated 给 JSX，用于条件性挂载 `transition-[width]` —— 让 read
+  //      effect 写入持久值之前不要播放动画，避免首屏可见的 200ms 开→收过场。
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [sidebarHydrated, setSidebarHydrated] = useState(false);
+  const hasHydratedRef = useRef(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const v = window.localStorage.getItem(SIDEBAR_STATE_KEY);
     if (v !== null) setSidebarOpen(v === "1");
+    hasHydratedRef.current = true;
+    setSidebarHydrated(true);
   }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!hasHydratedRef.current) return; // 跳过挂载首跑，由 read effect 真实生效后再持久化用户交互
     window.localStorage.setItem(SIDEBAR_STATE_KEY, sidebarOpen ? "1" : "0");
   }, [sidebarOpen]);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -818,17 +829,19 @@ export default function KnowledgeGraphPage() {
             )}
           </button>
 
-          {/* Sidebar — 抽屉式收起：w-72 ↔ w-0 平滑过渡；收起时内容透明并禁用交互 */}
+          {/* Sidebar — 抽屉式收起：w-72 ↔ w-0 平滑过渡；收起时内容透明并禁用交互。
+              `transition-[width]` 在 hydration 完成后才挂上，避免首屏从默认 `w-72`
+              同步切到 localStorage 持久值 `w-0` 时播放可见的 200ms 关闭动画。 */}
           <aside
-            className={`relative min-h-0 flex-shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-in-out ${
-              sidebarOpen ? "w-72" : "w-0"
-            }`}
+            className={`relative min-h-0 flex-shrink-0 overflow-y-auto overflow-x-hidden ${
+              sidebarHydrated ? "transition-[width] duration-200 ease-in-out" : ""
+            } ${sidebarOpen ? "w-72" : "w-0"}`}
             aria-hidden={!sidebarOpen}
           >
             <div
-              className={`w-72 space-y-4 pb-4 pr-2 transition-opacity duration-150 ${
-                sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
+              className={`w-72 space-y-4 pb-4 pr-2 ${
+                sidebarHydrated ? "transition-opacity duration-150" : ""
+              } ${sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
             >
               {/* Entity Detail */}
               <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">

@@ -75,13 +75,24 @@ export function GraphCanvasFrame({
     const el = frameRef.current as FullscreenCapableElement | null;
     if (!el) return;
     const current = getFullscreenElement();
-    if (current === el) {
-      const doc = document as FullscreenCapableDocument;
-      if (doc.exitFullscreen) await doc.exitFullscreen();
-      else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
-    } else {
-      if (el.requestFullscreen) await el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+    // requestFullscreen / exitFullscreen 返回 Promise，可能因以下原因 reject：
+    //   - 用户拒绝浏览器权限弹窗
+    //   - 页面位于无 `allow="fullscreen"` 的跨域 iframe
+    //   - 已有其它元素占据全屏（DOM 状态竞争）
+    //   - Safari `webkitRequestFullscreen` 在部分上下文返回非 Promise 或异常
+    // 不捕获就会冒泡为 unhandled promise rejection，污染控制台。
+    // 这里降级为 console.warn（保留可观测性但不打断用户交互）。
+    try {
+      if (current === el) {
+        const doc = document as FullscreenCapableDocument;
+        if (doc.exitFullscreen) await doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+      } else {
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      }
+    } catch (err) {
+      console.warn("graph_canvas_fullscreen_toggle_failed", err);
     }
   }, []);
 

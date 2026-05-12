@@ -53,11 +53,16 @@ interface BuildHistoryListProps {
 export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListProps) {
   const [page, setPage] = useState(0);
   // 采用 React 19 推荐的「render 期间根据 props 调整 state」范式（替代 useEffect+setState
-  // 的级联渲染），当 runs.length 变化时同步重置分页索引。
+  // 的级联渲染），当底层数据刷新时同步重置分页索引。
   // 参考：https://react.dev/learn/you-might-not-need-an-effect
-  const [prevRunsLength, setPrevRunsLength] = useState(runs.length);
-  if (prevRunsLength !== runs.length) {
-    setPrevRunsLength(runs.length);
+  //
+  // 比较对象选择 `runs` 引用而非 `runs.length`：父组件的 `useMemo(() => …, [payload])`
+  // 在 payload 改变（切换语料库 / 时间穿梭 / 构建后重拉）时整体重建 `runs` 数组。
+  // 若按长度比较，两个语料库恰好拥有等长构建历史时切换不会触发重置，用户会停留在
+  // 例如「第 2 页」却看着另一个语料库的数据。引用比较覆盖一切刷新场景。
+  const [prevRuns, setPrevRuns] = useState(runs);
+  if (prevRuns !== runs) {
+    setPrevRuns(runs);
     setPage(0);
   }
 
