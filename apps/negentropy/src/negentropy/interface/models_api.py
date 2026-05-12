@@ -737,13 +737,22 @@ async def ping_embedding_model(
         result = await _ping_embedding(full_model_name, effective_api_key, effective_api_base, text)
         latency_ms = int((time.monotonic() - start_time) * 1000)
         result["latency_ms"] = latency_ms
-        logger.info(
-            "model_embed_ping_ok",
-            vendor=payload.vendor,
-            model_name=payload.model_name,
-            latency_ms=latency_ms,
-            dimensions=result.get("dimensions"),
-        )
+        if result.get("status") == "ok":
+            logger.info(
+                "model_embed_ping_ok",
+                vendor=payload.vendor,
+                model_name=payload.model_name,
+                latency_ms=latency_ms,
+                dimensions=result.get("dimensions"),
+            )
+        else:
+            logger.warning(
+                "model_embed_ping_failed",
+                vendor=payload.vendor,
+                model_name=payload.model_name,
+                latency_ms=latency_ms,
+                message=result.get("message"),
+            )
         return result
 
     except Exception as exc:
