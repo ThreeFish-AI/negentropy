@@ -107,6 +107,11 @@ async def compute_pagerank(
     """
     import networkx as nx
 
+    # 防御性 session 健康检查：上游 phase 异常可能让 session 处于非活动事务态，
+    # 直接 SELECT 会抛 "Can't operate on closed transaction"。
+    if db.in_transaction():
+        await db.rollback()
+
     G, id_to_name = await export_graph_to_networkx(db, corpus_id)
 
     if G.number_of_nodes() == 0:
@@ -267,6 +272,10 @@ async def compute_communities(
 
     if resolutions is None:
         resolutions = [0.5, 1.0, 2.0]
+
+    # 防御性 session 健康检查（同 compute_pagerank）。
+    if db.in_transaction():
+        await db.rollback()
 
     G, id_to_name = await export_graph_to_networkx(db, corpus_id)
 

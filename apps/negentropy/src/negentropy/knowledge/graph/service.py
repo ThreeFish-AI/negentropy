@@ -453,6 +453,13 @@ class GraphService:
             # SSE 端点透传后由前端 KgBuildProgressPill 解析渲染中文标签。
             # 设计决策（vs 新增 phase 列）：复用 warnings JSONB（已有 _metrics 同型条目模式）
             # 避免 alembic 迁移；warnings 字段 SSE 端点已读取，零额外 API 改造。
+            # 阶段耗时跟踪：在 emit_phase 触发时计算上一阶段 elapsed_ms，便于排查
+            # 各阶段性能瓶颈（如 extracting 80s vs syncing 0.5s）。
+            phase_timing: dict[str, Any] = {
+                "prev_name": None,
+                "prev_started_at": None,
+            }
+
             async def emit_phase(
                 phase: str,
                 progress: float,
@@ -489,6 +496,14 @@ class GraphService:
                             raise PipelineCancelled(run_id, last_stage=phase)
 
                 nonlocal build_warnings
+                now_ts = time.time()
+                prev_phase_name = phase_timing["prev_name"]
+                prev_phase_elapsed_ms: float | None = None
+                if phase_timing["prev_started_at"] is not None:
+                    prev_phase_elapsed_ms = round((now_ts - float(phase_timing["prev_started_at"])) * 1000, 1)
+                phase_timing["prev_name"] = phase
+                phase_timing["prev_started_at"] = now_ts
+
                 phase_meta: dict[str, Any] = {
                     "name": phase,
                     "ts": datetime.now(UTC).isoformat(),
@@ -497,12 +512,16 @@ class GraphService:
                     phase_meta.update(extra)
                 build_warnings = _strip_phase_entries(build_warnings)
                 build_warnings.append({"_phase": phase_meta})
+                log_extra: dict[str, Any] = dict(extra)
+                if prev_phase_elapsed_ms is not None:
+                    log_extra["prev_phase"] = prev_phase_name
+                    log_extra["prev_phase_elapsed_ms"] = prev_phase_elapsed_ms
                 logger.info(
                     "graph_phase_started",
                     run_id=run_id,
                     phase=phase,
                     progress_percent=round(progress, 4),
-                    **extra,
+                    **log_extra,
                 )
                 try:
                     update_kwargs: dict[str, Any] = {
@@ -970,6 +989,10 @@ class GraphService:
             await build_repo.create_relations(valid_relations)
 
             # 阶段 3：一等公民表双写同步（Kleppmann DDIA §11）
+            # 进入 syncing 前清空残留事务状态，防止 resolving 阶段抛异常后
+            # session 处于非活动事务态，导致下文 `shared_session.begin()` 重抛错。
+            if shared_session.in_transaction():
+                await shared_session.rollback()
             await emit_phase(
                 PHASE_SYNCING,
                 0.87,
