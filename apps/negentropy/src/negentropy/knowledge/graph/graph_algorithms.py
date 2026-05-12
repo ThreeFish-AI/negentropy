@@ -451,7 +451,7 @@ async def compute_communities(
         for i in range(0, len(partition_items), batch_size):
             chunk = partition_items[i : i + batch_size]
             # 同 compute_pagerank：占位符级 CAST 替代内联 `AS v(col type)` 写法。
-            values_clause = ", ".join(f"(CAST(:eid_{j} AS uuid), :cid_{j})" for j in range(len(chunk)))
+            values_clause = ", ".join(f"(CAST(:eid_{j} AS uuid), CAST(:cid_{j} AS integer))" for j in range(len(chunk)))
             params = {"corpus_id": str(corpus_id)}
             for j, (entity_id_str, community_id) in enumerate(chunk):
                 params[f"eid_{j}"] = entity_id_str

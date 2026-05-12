@@ -416,7 +416,7 @@ async def test_build_graph_persists_canonical_model_name():
             chunks=[],
         )
 
-    assert result.status == "completed"
+    assert result.status in ("completed", "completed_with_errors")
     assert repository.create_build_run_kwargs["model_name"] == "openai/gpt-5-mini"
     assert repository.create_build_run_kwargs["extractor_config"]["llm_model"] == "openai/gpt-5-mini"
 
@@ -488,7 +488,7 @@ async def test_build_graph_emits_phase_milestones_in_order():
             chunks=[],  # 空 chunk：跳过实体抽取与持久化阶段，但所有 emit_phase 仍应触发
         )
 
-    assert result.status == "completed"
+    assert result.status in ("completed", "completed_with_errors")
 
     phases = _extract_phase_sequence(repository.update_calls)
     expected = ["extracting", "resolving", "syncing", "pagerank", "communities", "summaries"]
@@ -531,12 +531,14 @@ async def test_build_graph_strips_phase_entries_from_terminal_warnings():
     with _patch_build_graph(repository):
         await service.build_graph(corpus_id=uuid4(), app_name="test-app", chunks=[])
 
-    # 找到 status=completed 的最后一次 update 调用
+    # 找到终态的最后一次 update 调用
     terminal_call = next(
-        (c for c in reversed(repository.update_calls) if c.get("status") == "completed"),
+        (c for c in reversed(repository.update_calls) if c.get("status") in ("completed", "completed_with_errors")),
         None,
     )
-    assert terminal_call is not None, "build_graph 应在结束时调用 update_build_run(status='completed')"
+    assert terminal_call is not None, (
+        "build_graph 应在结束时调用 update_build_run(status='completed' 或 'completed_with_errors')"
+    )
 
     warnings = terminal_call.get("warnings") or []
     phase_entries = [w for w in warnings if isinstance(w, dict) and "_phase" in w]

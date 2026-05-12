@@ -36,6 +36,76 @@ _LEGAL_SUFFIXES = re.compile(
     re.IGNORECASE,
 )
 
+# Token 重叠阈值
+_JACCARD_THRESHOLD = 0.55
+
+
+def _extract_tokens(normalized_label: str) -> set[str]:
+    """从规范化标签中提取有意义的 token（过滤停用词和短 token）
+
+    括号内的内容（如缩写）也会被提取为独立 token。
+    """
+    _STOPWORDS = frozenset({"the", "a", "an", "of", "in", "for", "and", "or", "to", "with", "by", "on", "at"})
+    tokens = set()
+    # 提取括号内内容作为额外 token（如 "(GANs)" → "gans"）
+    for m in re.finditer(r"\(([^)]+)\)", normalized_label):
+        inner = m.group(1).strip().lower()
+        for t in inner.split():
+            if len(t) >= 2 and t not in _STOPWORDS:
+                tokens.add(t)
+    # 移除括号后提取主体 token
+    cleaned = re.sub(r"\([^)]*\)", "", normalized_label).strip()
+    for t in cleaned.split():
+        if len(t) >= 2 and t not in _STOPWORDS:
+            tokens.add(t)
+    return tokens
+
+
+def _should_merge_by_tokens(
+    norm_a: str,
+    tokens_a: set[str],
+    norm_b: str,
+    tokens_b: set[str],
+) -> bool:
+    """判断两个实体是否应基于 token 重叠合并
+
+    合并条件（满足任一）：
+    1. 子串包含：较短的规范化标签是较长标签的子串（≥4 字符）
+    2. Token 子集：短标签的 token 集合是长标签 token 集合的子集（且非空）
+    3. 词干子集：去除尾部 s/es 后的 token 子集匹配（处理 GAN/GANs 类差异）
+    4. 高 Jaccard 重叠：token 集合 Jaccard ≥ 阈值
+    """
+    # 条件 1: 子串包含（至少 4 字符，避免 "AI" 匹配到所有含 "ai" 的字符串）
+    short, long = (norm_a, norm_b) if len(norm_a) <= len(norm_b) else (norm_b, norm_a)
+    if len(short) >= 4 and short in long:
+        return True
+
+    # 条件 2: Token 子集（如 "sonnet 4.5" 的 token 完全包含在 "claude sonnet 4.5" 中）
+    if tokens_a and tokens_b:
+        smaller, larger = (tokens_a, tokens_b) if len(tokens_a) <= len(tokens_b) else (tokens_b, tokens_a)
+        if smaller <= larger:
+            return True
+
+    # 条件 3: 词干子集匹配（GAN→gan 匹配 GANs→gan）
+    if tokens_a and tokens_b:
+
+        def _stem(s: str) -> str:
+            return re.sub(r"s$", "", s) if len(s) > 2 else s
+
+        stems_a = {_stem(t) for t in tokens_a}
+        stems_b = {_stem(t) for t in tokens_b}
+        smaller_stems, larger_stems = (stems_a, stems_b) if len(stems_a) <= len(stems_b) else (stems_b, stems_a)
+        if smaller_stems and smaller_stems <= larger_stems:
+            return True
+
+    # 条件 4: Jaccard 系数
+    if not tokens_a or not tokens_b:
+        return False
+    intersection = tokens_a & tokens_b
+    union = tokens_a | tokens_b
+    jaccard = len(intersection) / len(union) if union else 0.0
+    return jaccard >= _JACCARD_THRESHOLD
+
 
 # Unicode NFC + 小写 + 去除首尾空白的规范化
 def normalize_label(label: str) -> str:
@@ -126,6 +196,12 @@ class EntityResolver:
                 else:
                     label_type_to_primary[dedup_key] = idx
 
+        # Stage 1.5: Token 重叠检测 — 捕获缩写/别名/子串变体
+        # 跨 block 对比：对 Stage 1 未合并的同类型实体计算 token Jaccard 系数，
+        # 解决 "GAN" vs "Generative Adversarial Networks (GANs)" 类问题。
+        token_merged = self._token_overlap_stage(new_entities, merged_secondary)
+        merged_secondary.update(token_merged)
+
         # Stage 2: 向量 ANN 查找（对未合并的实体）
         remaining = [i for i in range(len(new_entities)) if i not in merged_secondary]
 
@@ -141,6 +217,7 @@ class EntityResolver:
                 "entity_resolution_completed",
                 total=len(new_entities),
                 merged=len(merged_secondary),
+                token_overlap_merged=len(token_merged),
                 remaining=len(result),
             )
 
@@ -151,6 +228,62 @@ class EntityResolver:
         conf_a = (a.metadata or {}).get("confidence", 0.0)
         conf_b = (b.metadata or {}).get("confidence", 0.0)
         return 0 if conf_a >= conf_b else 1
+
+    def _token_overlap_stage(
+        self,
+        entities: list[GraphNode],
+        already_merged: set[int],
+    ) -> set[int]:
+        """Stage 1.5: Token 重叠检测 — 跨 block 捕获缩写/别名/子串变体
+
+        对同 entity_type 的未合并实体，计算 token Jaccard 系数与子串包含关系，
+        合并高重叠或子串匹配的实体对。典型场景：
+          - "GAN" vs "Generative Adversarial Networks (GANs)"
+          - "RetroForge" vs "RetroForge - 2D Retro Game Maker"
+          - "Sonnet 4.5" vs "Claude Sonnet 4.5"
+        """
+        merged: set[int] = set()
+        # 按类型分组未合并的实体
+        type_groups: dict[str, list[int]] = defaultdict(list)
+        for i in range(len(entities)):
+            if i not in already_merged and i not in merged:
+                type_groups[entities[i].node_type or "other"].append(i)
+
+        for _etype, indices in type_groups.items():
+            # primary 集合：记录每个 primary 的 token 集合和规范化标签
+            primaries: list[tuple[int, set[str], str]] = []
+            for idx in indices:
+                if idx in merged:
+                    continue
+                entity = entities[idx]
+                norm = normalize_label(entity.label or "")
+                tokens = _extract_tokens(norm)
+                if not tokens:
+                    continue
+
+                matched = False
+                for pi, (p_idx, p_tokens, p_norm) in enumerate(primaries):
+                    if p_idx in merged:
+                        continue
+                    if _should_merge_by_tokens(norm, tokens, p_norm, p_tokens):
+                        # 保留置信度更高的
+                        if self._pick_primary(entities[p_idx], entity) == 1:
+                            merged.add(p_idx)
+                            primaries[pi] = (idx, tokens, norm)
+                        else:
+                            merged.add(idx)
+                        matched = True
+                        break
+
+                if not matched:
+                    primaries.append((idx, tokens, norm))
+
+        if merged:
+            logger.info(
+                "token_overlap_merged",
+                merged_count=len(merged),
+            )
+        return merged
 
     async def _ann_stage(
         self,
