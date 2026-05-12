@@ -11,9 +11,14 @@ import {
   type GraphBuildRunRecord,
   type GraphSearchResultItem,
   type KnowledgeGraphPayload,
+  type CorpusModelsConfig,
+  type CorpusRecord,
+  type ModelConfigItem,
   buildKnowledgeGraph,
   cancelPipelineRun,
   fetchCorpusGraph,
+  fetchCorpora,
+  fetchModelConfigs,
 } from "@/features/knowledge";
 
 import { BuildButton } from "./_components/BuildButton";
@@ -26,6 +31,7 @@ import { GlobalSearchPanel } from "./_components/GlobalSearchPanel";
 import { GraphCanvas } from "./_components/GraphCanvas";
 import { GraphCanvasFrame } from "./_components/GraphCanvasFrame";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
+import { ModelConfigPanel } from "./_components/ModelConfigPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
@@ -90,6 +96,8 @@ function nodeRadius(importance?: number): number {
 
 export default function KnowledgeGraphPage() {
   const [corpusId, setCorpusId] = useState<string | null>(null);
+  const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
+  const [llmModels, setLlmModels] = useState<ModelConfigItem[]>([]);
   const [payload, setPayload] = useState<KnowledgeGraphPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -137,6 +145,17 @@ export default function KnowledgeGraphPage() {
     import("d3-force").Simulation<GraphNodePos, undefined> | null
   >(null);
   const { confirm, confirmDialog } = useConfirmDialog();
+
+  const corpusRecord = useMemo(
+    () => corpora.find((c) => c.id === corpusId) ?? null,
+    [corpora, corpusId],
+  );
+
+  useEffect(() => {
+    fetchModelConfigs({ modelType: "llm", enabled: true })
+      .then(setLlmModels)
+      .catch(() => {});
+  }, []);
 
   const loadGraph = useCallback(
     async (cid: string) => {
@@ -219,8 +238,20 @@ export default function KnowledgeGraphPage() {
     setBuilding(true);
     setBuildError(null);
     try {
+      // 从 corpus config 解析 LLM 模型名
+      const modelsConfig = (corpusRecord?.config as Record<string, unknown> | undefined)?.models as CorpusModelsConfig | undefined;
+      const llmConfigId = modelsConfig?.llm_config_id;
+      let llmModelName: string | undefined;
+      if (llmConfigId) {
+        const item = llmModels.find((m) => m.id === llmConfigId);
+        if (item) {
+          llmModelName = `${item.vendor}/${item.model_name}`;
+        }
+      }
+
       const result = await buildKnowledgeGraph(corpusId, {
         enable_llm_extraction: true,
+        ...(llmModelName ? { llm_model: llmModelName } : {}),
       });
       if (result.status === "failed") {
         setBuildError(result.error_message ?? "构建失败");
@@ -234,7 +265,7 @@ export default function KnowledgeGraphPage() {
       // Pill 收到后再让父组件 setPillEnqueued(false) 自然消失。
       setBuilding(false);
     }
-  }, [corpusId, loadGraph]);
+  }, [corpusId, corpusRecord, llmModels, loadGraph]);
 
   const handleCancelBuildRun = useCallback(
     async (run: GraphBuildRunRecord) => {
@@ -457,7 +488,7 @@ export default function KnowledgeGraphPage() {
               {/* Toolbar — 三段式：左 CorpusSelector / 中 SearchBar / 右 viewTab+渲染器+构建按钮+Pill */}
               <div className="flex items-center gap-3">
                 {/* 左 */}
-                <CorpusSelector value={corpusId} onChange={setCorpusId} />
+                <CorpusSelector value={corpusId} onChange={setCorpusId} onCorporaLoaded={setCorpora} />
 
                 {/* 中（仅图谱视图 + 已选语料库时显示）*/}
                 <div className="flex-1 min-w-0 flex justify-center">
@@ -887,6 +918,19 @@ export default function KnowledgeGraphPage() {
                   </p>
                 )}
               </div>
+
+              {/* Model Settings */}
+              {corpusId && corpusRecord && (
+                <ModelConfigPanel
+                  key={corpusId}
+                  corpusId={corpusId}
+                  corpusConfig={corpusRecord.config as Record<string, unknown> | undefined}
+                  llmModels={llmModels}
+                  onConfigSaved={() => {
+                    fetchCorpora(APP_NAME).then(setCorpora).catch(() => {});
+                  }}
+                />
+              )}
 
               {/* G1: GraphRAG Global Search — 全局问答 */}
               {corpusId && (
