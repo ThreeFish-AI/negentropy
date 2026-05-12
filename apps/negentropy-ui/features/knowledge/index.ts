@@ -75,6 +75,8 @@ export {
   unarchiveDocument,
   // Model Configs
   fetchModelConfigs,
+  // Corpus Update
+  updateCorpus,
   // Graph Enhanced API (Phase 1)
   buildKnowledgeGraph,
   fetchCorpusGraph,

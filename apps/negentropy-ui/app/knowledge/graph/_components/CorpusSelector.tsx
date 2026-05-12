@@ -8,9 +8,10 @@ const APP_NAME = process.env.NEXT_PUBLIC_AGUI_APP_NAME || "negentropy";
 interface CorpusSelectorProps {
   value: string | null;
   onChange: (corpusId: string) => void;
+  onCorporaLoaded?: (corpora: CorpusRecord[]) => void;
 }
 
-export function CorpusSelector({ value, onChange }: CorpusSelectorProps) {
+export function CorpusSelector({ value, onChange, onCorporaLoaded }: CorpusSelectorProps) {
   const [corpora, setCorpora] = useState<CorpusRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const autoSelected = useRef(!!value);
@@ -21,6 +22,7 @@ export function CorpusSelector({ value, onChange }: CorpusSelectorProps) {
       .then((data) => {
         if (mounted) {
           setCorpora(data);
+          onCorporaLoaded?.(data);
           if (!autoSelected.current && data.length > 0) {
             autoSelected.current = true;
             onChange(data[0].id);
@@ -34,7 +36,7 @@ export function CorpusSelector({ value, onChange }: CorpusSelectorProps) {
     return () => {
       mounted = false;
     };
-  }, [onChange]);
+  }, [onChange, onCorporaLoaded]);
 
   return (
     <div className="flex items-center gap-2">
