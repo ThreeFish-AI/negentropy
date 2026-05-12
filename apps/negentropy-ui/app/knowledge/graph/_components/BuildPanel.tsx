@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
+
 import { outlineButtonClassName } from "@/components/ui/button-styles";
 import type { GraphBuildRunRecord } from "@/features/knowledge";
+
+const BUILD_HISTORY_PAGE_SIZE = 5;
 
 interface BuildPanelProps {
   building: boolean;
@@ -47,6 +51,16 @@ interface BuildHistoryListProps {
 }
 
 export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListProps) {
+  const [page, setPage] = useState(0);
+  // 采用 React 19 推荐的「render 期间根据 props 调整 state」范式（替代 useEffect+setState
+  // 的级联渲染），当 runs.length 变化时同步重置分页索引。
+  // 参考：https://react.dev/learn/you-might-not-need-an-effect
+  const [prevRunsLength, setPrevRunsLength] = useState(runs.length);
+  if (prevRunsLength !== runs.length) {
+    setPrevRunsLength(runs.length);
+    setPage(0);
+  }
+
   if (!runs.length) {
     return (
       <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -55,9 +69,15 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
     );
   }
 
+  const totalPages = Math.max(1, Math.ceil(runs.length / BUILD_HISTORY_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const start = currentPage * BUILD_HISTORY_PAGE_SIZE;
+  const pageRuns = runs.slice(start, start + BUILD_HISTORY_PAGE_SIZE);
+  const showPager = runs.length > BUILD_HISTORY_PAGE_SIZE;
+
   return (
     <div className="mt-3 space-y-2">
-      {runs.map((run) => (
+      {pageRuns.map((run) => (
         <div
           key={run.run_id}
           className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-700"
@@ -102,6 +122,29 @@ export function BuildHistoryList({ runs, corpusId, onCancel }: BuildHistoryListP
           )}
         </div>
       ))}
+      {showPager && (
+        <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+          <button
+            type="button"
+            disabled={currentPage === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            className="rounded border border-zinc-200 px-2 py-0.5 hover:bg-zinc-50 disabled:opacity-30 disabled:hover:bg-transparent dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            上一页
+          </button>
+          <span>
+            第 {currentPage + 1} / {totalPages} 页 · 共 {runs.length} 条
+          </span>
+          <button
+            type="button"
+            disabled={currentPage >= totalPages - 1}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            className="rounded border border-zinc-200 px-2 py-0.5 hover:bg-zinc-50 disabled:opacity-30 disabled:hover:bg-transparent dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            下一页
+          </button>
+        </div>
+      )}
     </div>
   );
 }

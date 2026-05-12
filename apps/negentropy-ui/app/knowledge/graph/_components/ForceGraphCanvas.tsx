@@ -18,6 +18,7 @@ import { useTheme } from "next-themes";
 import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
+import { GraphCanvasFrame } from "./GraphCanvasFrame";
 import type { GraphCanvasNode, GraphCanvasEdge, GraphCanvasProps } from "./types";
 
 function nodeSize(importance?: number | null): number {
@@ -238,7 +239,23 @@ export function ForceGraphCanvas({
   );
 
   return (
-    <div className="relative min-h-0 flex-1 w-full rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <GraphCanvasFrame
+      stats={{ nodes: nodes.length, edges: edges.length, suffix: "Force Canvas" }}
+      badges={
+        <>
+          {truncated && (
+            <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
+              已按 importance 截断（双击节点展开邻居）
+            </span>
+          )}
+          {expanding && (
+            <span className="rounded bg-emerald-500/90 px-2 py-1 text-white">
+              加载子图…
+            </span>
+          )}
+        </>
+      }
+    >
       <div ref={containerRef} className="h-full w-full">
         {ForceGraph2D && (
           <ForceGraph2D
@@ -271,21 +288,6 @@ export function ForceGraphCanvas({
           />
         )}
       </div>
-      <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-[10px]">
-        <span className="rounded bg-zinc-900/70 px-2 py-1 text-white">
-          {nodes.length} 节点 · {edges.length} 边 · Canvas
-        </span>
-        {truncated && (
-          <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
-            已按 importance 截断（双击节点展开邻居）
-          </span>
-        )}
-        {expanding && (
-          <span className="rounded bg-emerald-500/90 px-2 py-1 text-white">
-            加载子图…
-          </span>
-        )}
-      </div>
-    </div>
+    </GraphCanvasFrame>
   );
 }

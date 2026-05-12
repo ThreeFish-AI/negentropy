@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
+import SpriteText from "three-spritetext";
 
 import { fetchGraphSubgraph } from "@/features/knowledge";
 
 import { entityColor, communityColor } from "./constants";
+import { GraphCanvasFrame } from "./GraphCanvasFrame";
 
 // ForceGraph3D 仅在客户端加载，避免 three.js SSR 问题。
 // react-force-graph-3d 导出 ClassComponent，用 any 绕过 dynamic() 的 FC 约束。
@@ -146,10 +148,49 @@ export function GraphCanvas3D({
   );
 
   const bgColor = resolvedTheme === "dark" ? "#09090b" : "#ffffff";
+  const isDark = resolvedTheme === "dark";
   const truncated = nodes.length >= truncateThreshold;
 
+  // three-spritetext 为每个节点生成持久 3D 文字（不依赖 hover tooltip），
+  // 与 2D/Sigma/Cytoscape 渲染器视觉对齐。参考 react-force-graph 官方
+  // text-nodes 范式：nodeThreeObjectExtend=true 保留原始球体（含 selected
+  // 高亮），sprite 在球体上方叠加。
+  const getNodeThreeObject = useCallback(
+    (node: { id: string | number; label?: string }) => {
+      const text = node.label ?? String(node.id).slice(0, 8);
+      const sprite = new SpriteText(text);
+      sprite.color = isDark ? "#e4e4e7" : "#27272a";
+      sprite.backgroundColor = isDark
+        ? "rgba(9,9,11,0.55)"
+        : "rgba(255,255,255,0.7)";
+      sprite.padding = 1;
+      sprite.textHeight = 3;
+      const val = nodeMeta.get(String(node.id))?.val ?? 3;
+      sprite.position.set(0, val + 2, 0);
+      return sprite;
+    },
+    [isDark, nodeMeta],
+  );
+
   return (
-    <div className="relative min-h-0 flex-1 w-full rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden">
+    <GraphCanvasFrame
+      className="overflow-hidden"
+      stats={{ nodes: nodes.length, edges: edges.length, suffix: "3D WebGL" }}
+      badges={
+        <>
+          {truncated && (
+            <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
+              已按 importance 截断（右键节点展开邻居）
+            </span>
+          )}
+          {expanding && (
+            <span className="rounded bg-emerald-500/90 px-2 py-1 text-white">
+              加载子图…
+            </span>
+          )}
+        </>
+      }
+    >
       <ForceGraph3D
         ref={fgRef}
         graphData={graphData}
@@ -157,6 +198,8 @@ export function GraphCanvas3D({
         nodeColor={getNodeColor}
         nodeVal={getNodeVal}
         nodeOpacity={0.95}
+        nodeThreeObject={getNodeThreeObject}
+        nodeThreeObjectExtend={true}
         linkColor={() => "#a1a1aa"}
         linkOpacity={0.4}
         linkWidth={0.8}
@@ -173,21 +216,6 @@ export function GraphCanvas3D({
         enableNodeDrag={true}
         showNavInfo={false}
       />
-      <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-1 text-[10px]">
-        <span className="rounded bg-zinc-900/70 px-2 py-1 text-white">
-          {nodes.length} 节点 · {edges.length} 边
-        </span>
-        {truncated && (
-          <span className="rounded bg-amber-500/90 px-2 py-1 text-white">
-            已按 importance 截断（右键节点展开邻居）
-          </span>
-        )}
-        {expanding && (
-          <span className="rounded bg-emerald-500/90 px-2 py-1 text-white">
-            加载子图…
-          </span>
-        )}
-      </div>
-    </div>
+    </GraphCanvasFrame>
   );
 }

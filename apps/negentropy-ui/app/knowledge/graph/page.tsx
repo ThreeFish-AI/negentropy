@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { KnowledgeNav } from "@/components/ui/KnowledgeNav";
 import { KgBuildProgressPill } from "@/components/ui/KgBuildProgressPill";
@@ -15,6 +16,7 @@ import {
   fetchCorpusGraph,
 } from "@/features/knowledge";
 
+import { BuildButton } from "./_components/BuildButton";
 import { BuildHistoryList, BuildPanel } from "./_components/BuildPanel";
 import { CorpusSelector } from "./_components/CorpusSelector";
 import { EntityDetailPanel } from "./_components/EntityDetailPanel";
@@ -22,12 +24,15 @@ import { EntityListPanel } from "./_components/EntityListPanel";
 import { EvidenceChainPanel } from "./_components/EvidenceChainPanel";
 import { GlobalSearchPanel } from "./_components/GlobalSearchPanel";
 import { GraphCanvas } from "./_components/GraphCanvas";
+import { GraphCanvasFrame } from "./_components/GraphCanvasFrame";
 import { GraphStatsPanel } from "./_components/GraphStatsPanel";
 import { NeighborExplorer } from "./_components/NeighborExplorer";
 import { PathExplorer } from "./_components/PathExplorer";
 import { SearchBar } from "./_components/SearchBar";
 import { TimeTravelSlider } from "./_components/TimeTravelSlider";
 import { entityColor, communityColor } from "./_components/constants";
+
+const SIDEBAR_STATE_KEY = "kg.sidebarOpen";
 
 const SigmaGraphCanvas = dynamic(
   () =>
@@ -105,6 +110,17 @@ export default function KnowledgeGraphPage() {
   const [asOf, setAsOf] = useState<string | null>(null);
   // G2: 渲染引擎切换 — Cytoscape / d3-force / Sigma.js WebGL / Force Graph 2D / 3D WebGL
   const [renderer, setRenderer] = useState<"cytoscape" | "d3" | "sigma" | "force-graph" | "3d">("cytoscape");
+  // 右侧抽屉收起状态；localStorage 持久化，SSR 安全（初值 true，挂载后读取覆盖）。
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = window.localStorage.getItem(SIDEBAR_STATE_KEY);
+    if (v !== null) setSidebarOpen(v === "1");
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SIDEBAR_STATE_KEY, sidebarOpen ? "1" : "0");
+  }, [sidebarOpen]);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const simulationRef = useRef<
     import("d3-force").Simulation<GraphNodePos, undefined> | null
@@ -416,15 +432,6 @@ export default function KnowledgeGraphPage() {
   const selectedNode =
     nodes.find((n) => n.id === selectedNodeId) || null;
 
-  const entityStats = useMemo(() => {
-    const byType: Record<string, number> = {};
-    nodes.forEach((n) => {
-      const t = n.type || "other";
-      byType[t] = (byType[t] || 0) + 1;
-    });
-    return { total: nodes.length, edges: edges.length, byType };
-  }, [nodes, edges]);
-
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <KnowledgeNav
@@ -432,14 +439,48 @@ export default function KnowledgeGraphPage() {
         description="实体关系视图与构建历史"
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex min-h-0 flex-1 gap-6 px-6 pt-4">
+        <div className="flex min-h-0 flex-1 gap-2 px-6 pt-4 pb-4">
           {/* Main content area */}
           <div className="min-h-0 min-w-0 flex-[2.2] flex flex-col overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col gap-4 pr-2">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between">
+              {/* Toolbar — 三段式：左 CorpusSelector / 中 SearchBar / 右 viewTab+渲染器+构建按钮+Pill */}
+              <div className="flex items-center gap-3">
+                {/* 左 */}
                 <CorpusSelector value={corpusId} onChange={setCorpusId} />
-                <div className="flex items-center gap-3">
+
+                {/* 中（仅图谱视图 + 已选语料库时显示）*/}
+                <div className="flex-1 min-w-0 flex justify-center">
+                  {viewTab === "graph" && corpusId && (
+                    <div className="relative w-full max-w-[420px]">
+                      <SearchBar
+                        corpusId={corpusId}
+                        onResults={setSearchResults}
+                        onClear={() => setSearchResults(null)}
+                      />
+                      {searchResults && searchResults.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-60 overflow-y-auto space-y-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                          {searchResults.map((item, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => setSelectedNodeId(item.entity.id)}
+                              className="flex items-center justify-between rounded border border-zinc-100 px-2 py-1 cursor-pointer hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                            >
+                              <span className="text-xs text-zinc-700 dark:text-zinc-300">
+                                {item.entity.label || item.entity.id.slice(0, 8)}
+                              </span>
+                              <span className="text-[10px] text-zinc-400">
+                                {item.combined_score.toFixed(3)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 右 */}
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700">
                     <button
                       onClick={() => setViewTab("graph")}
@@ -521,6 +562,14 @@ export default function KnowledgeGraphPage() {
                       </button>
                     </div>
                   )}
+                  {/* 构建图谱（紧凑型）— 从右侧栏迁入工具栏；保留与 viewTab 无关地展示，
+                     未选语料库时按钮自禁用并 title 提示。 */}
+                  <BuildButton
+                    building={building}
+                    corpusId={corpusId}
+                    lastBuildError={buildError}
+                    onBuild={handleBuild}
+                  />
                   {/*
                    * 复用 KgBuildProgressPill 通过 SSE（/build-runs/latest/progress）
                    * 实时展示构建阶段（phase）+ 进度百分比 + 实体/关系实时计数。
@@ -543,35 +592,6 @@ export default function KnowledgeGraphPage() {
                   )}
                 </div>
               </div>
-
-              {/* Content Area */}
-              {viewTab === "graph" && corpusId && (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <SearchBar
-                  corpusId={corpusId}
-                  onResults={setSearchResults}
-                  onClear={() => setSearchResults(null)}
-                />
-                {searchResults && searchResults.length > 0 && (
-                  <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
-                    {searchResults.map((item, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setSelectedNodeId(item.entity.id)}
-                        className="flex items-center justify-between rounded border border-zinc-100 dark:border-zinc-800 px-2 py-1 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                      >
-                        <span className="text-xs text-zinc-700 dark:text-zinc-300">
-                          {item.entity.label || item.entity.id.slice(0, 8)}
-                        </span>
-                        <span className="text-[10px] text-zinc-400">
-                          {item.combined_score.toFixed(3)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              )}
               {viewTab === "graph" && renderer === "3d" && corpusId && nodes.length > 0 ? (
                 <GraphCanvas3D
                   corpusId={corpusId}
@@ -644,134 +664,123 @@ export default function KnowledgeGraphPage() {
                       ? `加载失败：${error}`
                       : "图谱为空，请先构建"}
                 </div>
-              ) : viewTab === "graph" ? (
-              <div className="min-h-0 flex-1 flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    Graph Canvas
-                  </h2>
-                  {entityStats.total > 0 && (
-                    <div className="flex gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
-                      <span>{entityStats.total} 实体</span>
-                      <span>{entityStats.edges} 关系</span>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 flex flex-1 min-h-0 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
-                  {!corpusId ? (
-                    <div className="text-center">
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        请选择语料库
-                      </p>
-                    </div>
-                  ) : error ? (
-                    <p className="text-xs text-red-600 dark:text-red-400">
-                      加载失败：{error}
-                    </p>
-                  ) : renderer === "d3" ? (
-                    <svg
-                      ref={svgRef}
-                      width="100%"
-                      height="100%"
-                      className="rounded-xl bg-white/60 dark:bg-zinc-800/60"
-                    >
-                      <g className="graph-layer">
-                        {!layout.length ? null : <>
-                        {edges.map((edge, index) => {
-                          const source = layout.find(
-                            (node) => node.id === edge.source,
-                          );
-                          const target = layout.find(
-                            (node) => node.id === edge.target,
-                          );
-                          if (!source || !target) return null;
-                          return (
-                            <g key={`${edge.source}-${edge.target}-${index}`}>
-                              <line
-                                x1={source.x}
-                                y1={source.y}
-                                x2={target.x}
-                                y2={target.y}
-                                stroke="#d4d4d8"
-                                strokeWidth={1}
-                                strokeOpacity={0.6}
-                              />
-                              {edge.label && (
-                                <text
-                                  x={(source.x + target.x) / 2}
-                                  y={(source.y + target.y) / 2}
-                                  fontSize={8}
-                                  fill="#a1a1aa"
-                                  textAnchor="middle"
-                                >
-                                  {edge.label}
-                                </text>
-                              )}
-                            </g>
-                          );
-                        })}
-                        {layout.map((node) => (
-                          <g
-                            key={node.id}
-                            onClick={() => setSelectedNodeId(node.id)}
-                            className="cursor-pointer"
-                          >
-                            <circle
-                              cx={node.x}
-                              cy={node.y}
-                              r={
-                                selectedNodeId === node.id
-                                  ? Math.max(
-                                      nodeRadius(node.importance) + 4,
-                                      12,
-                                    )
-                                  : nodeRadius(node.importance)
-                              }
-                              fill={
-                                node.community_id != null
-                                  ? communityColor(node.community_id)
-                                  : entityColor(node.type)
-                              }
-                              stroke={
-                                selectedNodeId === node.id
-                                  ? "#18181b"
-                                  : "none"
-                              }
-                              strokeWidth={selectedNodeId === node.id ? 2 : 0}
-                              fillOpacity={
-                                selectedNodeId === node.id ? 1 : 0.85
-                              }
-                            />
-                            <text
-                              x={node.x}
-                              y={node.y + 20}
-                              fontSize={9}
-                              textAnchor="middle"
-                              fill="#52525b"
-                              className="dark:fill-zinc-400"
+              ) : viewTab === "graph" && renderer === "d3" && corpusId && nodes.length > 0 ? (
+                <GraphCanvasFrame
+                  stats={{ nodes: nodes.length, edges: edges.length, suffix: "d3 SVG" }}
+                >
+                  <svg
+                    ref={svgRef}
+                    width="100%"
+                    height="100%"
+                    className="h-full w-full rounded-2xl"
+                  >
+                    <g className="graph-layer">
+                      {!layout.length ? null : (
+                        <>
+                          {edges.map((edge, index) => {
+                            const source = layout.find(
+                              (node) => node.id === edge.source,
+                            );
+                            const target = layout.find(
+                              (node) => node.id === edge.target,
+                            );
+                            if (!source || !target) return null;
+                            return (
+                              <g key={`${edge.source}-${edge.target}-${index}`}>
+                                <line
+                                  x1={source.x}
+                                  y1={source.y}
+                                  x2={target.x}
+                                  y2={target.y}
+                                  stroke="#d4d4d8"
+                                  strokeWidth={1}
+                                  strokeOpacity={0.6}
+                                />
+                                {edge.label && (
+                                  <text
+                                    x={(source.x + target.x) / 2}
+                                    y={(source.y + target.y) / 2}
+                                    fontSize={8}
+                                    fill="#a1a1aa"
+                                    textAnchor="middle"
+                                  >
+                                    {edge.label}
+                                  </text>
+                                )}
+                              </g>
+                            );
+                          })}
+                          {layout.map((node) => (
+                            <g
+                              key={node.id}
+                              onClick={() => setSelectedNodeId(node.id)}
+                              className="cursor-pointer"
                             >
-                              {node.label || node.id.slice(0, 8)}
-                            </text>
-                          </g>
-                        ))}
-                        </>}
-                      </g>
-                    </svg>
-                  ) : (
-                    <div className="text-center space-y-3">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        暂无图谱数据
-                      </p>
-                      <BuildPanel
-                        building={building}
-                        corpusId={corpusId}
-                        lastBuildError={buildError}
-                        onBuild={handleBuild}
-                      />
-                    </div>
+                              <circle
+                                cx={node.x}
+                                cy={node.y}
+                                r={
+                                  selectedNodeId === node.id
+                                    ? Math.max(
+                                        nodeRadius(node.importance) + 4,
+                                        12,
+                                      )
+                                    : nodeRadius(node.importance)
+                                }
+                                fill={
+                                  node.community_id != null
+                                    ? communityColor(node.community_id)
+                                    : entityColor(node.type)
+                                }
+                                stroke={
+                                  selectedNodeId === node.id
+                                    ? "#18181b"
+                                    : "none"
+                                }
+                                strokeWidth={selectedNodeId === node.id ? 2 : 0}
+                                fillOpacity={
+                                  selectedNodeId === node.id ? 1 : 0.85
+                                }
+                              />
+                              <text
+                                x={node.x}
+                                y={node.y + 20}
+                                fontSize={9}
+                                textAnchor="middle"
+                                fill="#52525b"
+                                className="dark:fill-zinc-400"
+                              >
+                                {node.label || node.id.slice(0, 8)}
+                              </text>
+                            </g>
+                          ))}
+                        </>
+                      )}
+                    </g>
+                  </svg>
+                </GraphCanvasFrame>
+              ) : viewTab === "graph" && renderer === "d3" ? (
+                <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  <p>
+                    {!corpusId
+                      ? "请选择语料库"
+                      : error
+                        ? `加载失败：${error}`
+                        : "图谱为空，请先构建"}
+                  </p>
+                  {corpusId && !error && nodes.length === 0 && (
+                    <BuildPanel
+                      building={building}
+                      corpusId={corpusId}
+                      lastBuildError={buildError}
+                      onBuild={handleBuild}
+                    />
                   )}
                 </div>
-              </div>
+              ) : viewTab === "graph" ? (
+                <div className="flex flex-1 min-h-0 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                  请选择渲染器
+                </div>
               ) : (
               /* Entity List View */
               <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -794,26 +803,33 @@ export default function KnowledgeGraphPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <aside className="min-h-0 min-w-0 w-72 flex-shrink-0 overflow-y-auto">
-            <div className="space-y-4 pb-4 pr-2">
-              {/* Build action (when graph exists) */}
-              {corpusId && (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    构建
-                  </h3>
-                  <div className="mt-2">
-                    <BuildPanel
-                      building={building}
-                      corpusId={corpusId}
-                      lastBuildError={buildError}
-                      onBuild={handleBuild}
-                    />
-                  </div>
-                </div>
-              )}
+          {/* 抽屉 Toggle 按钮 — 始终位于 main 与 aside 之间，方便收起/展开 */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+            title={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
+            className="self-start mt-2 flex h-12 w-5 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:text-zinc-900 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            {sidebarOpen ? (
+              <ChevronRight className="h-3 w-3" />
+            ) : (
+              <ChevronLeft className="h-3 w-3" />
+            )}
+          </button>
 
+          {/* Sidebar — 抽屉式收起：w-72 ↔ w-0 平滑过渡；收起时内容透明并禁用交互 */}
+          <aside
+            className={`relative min-h-0 flex-shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200 ease-in-out ${
+              sidebarOpen ? "w-72" : "w-0"
+            }`}
+            aria-hidden={!sidebarOpen}
+          >
+            <div
+              className={`w-72 space-y-4 pb-4 pr-2 transition-opacity duration-150 ${
+                sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
               {/* Entity Detail */}
               <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
