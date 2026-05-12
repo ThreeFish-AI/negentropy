@@ -453,6 +453,13 @@ class GraphService:
             # SSE 端点透传后由前端 KgBuildProgressPill 解析渲染中文标签。
             # 设计决策（vs 新增 phase 列）：复用 warnings JSONB（已有 _metrics 同型条目模式）
             # 避免 alembic 迁移；warnings 字段 SSE 端点已读取，零额外 API 改造。
+            # 阶段耗时跟踪：在 emit_phase 触发时计算上一阶段 elapsed_ms，便于排查
+            # 各阶段性能瓶颈（如 extracting 80s vs syncing 0.5s）。
+            phase_timing: dict[str, Any] = {
+                "prev_name": None,
+                "prev_started_at": None,
+            }
+
             async def emit_phase(
                 phase: str,
                 progress: float,
@@ -489,6 +496,14 @@ class GraphService:
                             raise PipelineCancelled(run_id, last_stage=phase)
 
                 nonlocal build_warnings
+                now_ts = time.time()
+                prev_phase_name = phase_timing["prev_name"]
+                prev_phase_elapsed_ms: float | None = None
+                if phase_timing["prev_started_at"] is not None:
+                    prev_phase_elapsed_ms = round((now_ts - float(phase_timing["prev_started_at"])) * 1000, 1)
+                phase_timing["prev_name"] = phase
+                phase_timing["prev_started_at"] = now_ts
+
                 phase_meta: dict[str, Any] = {
                     "name": phase,
                     "ts": datetime.now(UTC).isoformat(),
@@ -497,12 +512,16 @@ class GraphService:
                     phase_meta.update(extra)
                 build_warnings = _strip_phase_entries(build_warnings)
                 build_warnings.append({"_phase": phase_meta})
+                log_extra: dict[str, Any] = dict(extra)
+                if prev_phase_elapsed_ms is not None:
+                    log_extra["prev_phase"] = prev_phase_name
+                    log_extra["prev_phase_elapsed_ms"] = prev_phase_elapsed_ms
                 logger.info(
                     "graph_phase_started",
                     run_id=run_id,
                     phase=phase,
                     progress_percent=round(progress, 4),
-                    **extra,
+                    **log_extra,
                 )
                 try:
                     update_kwargs: dict[str, Any] = {
@@ -533,7 +552,9 @@ class GraphService:
             # 自适应节流：20 chunks → 每 1 个上报；2000 chunks → 每 10 个上报。
             # 时间兜底从 10s 降至 5s，避免 LLM 调用 60s 超时期间前端静默过长。
             progress_report_chunk_threshold = max(1, total_chunks // 200)
-            progress_report_min_interval_s = 5.0
+            # 小批次场景（≤ 50 chunks）每 chunk 耗时占比大，需要更密集的进度上报；
+            # 大批次场景（> 50 chunks）保留 5s 兜底避免 DB 写入压力。
+            progress_report_min_interval_s = 2.0 if total_chunks <= 50 else 5.0
             progress_state: dict[str, float | int] = {
                 "last_reported_at": time.time(),
                 "last_reported_chunks": 0,
@@ -603,16 +624,33 @@ class GraphService:
                 if is_cancelled(run_id):
                     raise PipelineCancelled(run_id, last_stage="extracting")
 
+                chunk_start_ts = time.time()
+                chunk_id = str(chunk.get("id", "?"))
+
+                def _log_chunk_done(entities: list[GraphNode], relations: list[GraphEdge], mode: str) -> None:
+                    elapsed_ms = round((time.time() - chunk_start_ts) * 1000, 1)
+                    logger.info(
+                        "chunk_extraction_finished",
+                        run_id=run_id,
+                        chunk_id=chunk_id,
+                        mode=mode,
+                        entity_count=len(entities),
+                        relation_count=len(relations),
+                        elapsed_ms=elapsed_ms,
+                    )
+
                 async with semaphore:
                     text = chunk.get("content", "")
-                    chunk_id = str(chunk.get("id", "?"))
                     if not text:
+                        _log_chunk_done([], [], mode="empty")
                         return [], []
 
-                    logger.debug(
+                    logger.info(
                         "chunk_processing_started",
                         run_id=run_id,
                         chunk_id=chunk_id,
+                        chunk_index=chunks_processed + 1,
+                        total_chunks=total_chunks,
                         content_length=len(text),
                         circuit_open=circuit_breaker.is_open,
                     )
@@ -620,7 +658,9 @@ class GraphService:
                     # ── 断路器 fast-path：跳过 LLM，直接 fallback ──
                     if circuit_breaker.should_skip_llm() or llm_cancel.is_set():
                         chunks_fallback += 1
-                        return await _fallback_extract_chunk(text, chunk_id)
+                        fb_entities, fb_relations = await _fallback_extract_chunk(text, chunk_id)
+                        _log_chunk_done(fb_entities, fb_relations, mode="fallback_fast_path")
+                        return fb_entities, fb_relations
 
                     # ── 正常 LLM 提取路径 ──
                     # 实体提取与关系提取拆分为独立 try/except，实现部分结果保留：
@@ -657,7 +697,9 @@ class GraphService:
                             timeout_s=chunk_extract_timeout,
                         )
                         chunks_fallback += 1
-                        return await _fallback_extract_chunk(text, chunk_id)
+                        fb_entities, fb_relations = await _fallback_extract_chunk(text, chunk_id)
+                        _log_chunk_done(fb_entities, fb_relations, mode="fallback_entity_timeout")
+                        return fb_entities, fb_relations
 
                     # 实体提取成功 → 检查断路器再尝试关系提取
                     if llm_cancel.is_set():
@@ -680,6 +722,7 @@ class GraphService:
                                 chunk_id=chunk_id,
                                 error=str(fallback_exc),
                             )
+                        _log_chunk_done(entities, relations, mode="entity_llm_relation_cooccurrence")
                         return entities, relations
 
                     try:
@@ -695,6 +738,7 @@ class GraphService:
                         ]
                         # LLM 全部成功 → 重置断路器
                         circuit_breaker.record_success()
+                        _log_chunk_done(entities, relations, mode="llm_full")
                         return entities, relations
                     except (TimeoutError, Exception) as exc:
                         if isinstance(exc, PipelineCancelled):
@@ -732,6 +776,7 @@ class GraphService:
                                 chunk_id=chunk_id,
                                 error=str(fallback_exc),
                             )
+                        _log_chunk_done(entities, relations, mode="entity_llm_relation_fallback")
                         return entities, relations
 
             async def _fallback_extract_chunk(
@@ -804,7 +849,7 @@ class GraphService:
                     all_entities.extend(entities)
                     all_relations.extend(relations)
                     chunks_processed += 1
-                    logger.debug(
+                    logger.info(
                         "chunk_processing_completed",
                         run_id=run_id,
                         processed=chunks_processed,
@@ -944,6 +989,10 @@ class GraphService:
             await build_repo.create_relations(valid_relations)
 
             # 阶段 3：一等公民表双写同步（Kleppmann DDIA §11）
+            # 进入 syncing 前清空残留事务状态，防止 resolving 阶段抛异常后
+            # session 处于非活动事务态，导致下文 `shared_session.begin()` 重抛错。
+            if shared_session.in_transaction():
+                await shared_session.rollback()
             await emit_phase(
                 PHASE_SYNCING,
                 0.87,
@@ -1011,6 +1060,9 @@ class GraphService:
                 )
 
             # 阶段 4：PageRank 实体重要性（Brin & Page, 1998）
+            # 确保 session 干净：前序阶段失败可能导致 session 处于非活动事务状态
+            if shared_session.in_transaction():
+                await shared_session.rollback()
             await emit_phase(
                 PHASE_PAGERANK,
                 0.91,
@@ -1037,6 +1089,8 @@ class GraphService:
                 )
 
             # 阶段 5：多层级社区检测（Traag et al., 2019）
+            if shared_session.in_transaction():
+                await shared_session.rollback()
             await emit_phase(
                 PHASE_COMMUNITIES,
                 0.94,
@@ -1069,6 +1123,8 @@ class GraphService:
                 )
 
             # 阶段 6：社区摘要生成（Edge et al., Microsoft GraphRAG, 2024）
+            if shared_session.in_transaction():
+                await shared_session.rollback()
             await emit_phase(
                 PHASE_SUMMARIES,
                 0.97,

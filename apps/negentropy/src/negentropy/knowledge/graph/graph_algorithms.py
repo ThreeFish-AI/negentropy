@@ -22,6 +22,7 @@ import asyncio
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import exc as sa_exc
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,7 +108,18 @@ async def compute_pagerank(
     """
     import networkx as nx
 
-    G, id_to_name = await export_graph_to_networkx(db, corpus_id)
+    # 防御性 session 健康检查：仅在事务进入 invalid 状态时回滚，
+    # 避免误伤调用方在同一 session 上的健康进行中事务。
+    try:
+        G, id_to_name = await export_graph_to_networkx(db, corpus_id)
+    except sa_exc.PendingRollbackError as recover_exc:
+        logger.warning(
+            "pagerank_session_invalid_recovering",
+            corpus_id=str(corpus_id),
+            error=str(recover_exc),
+        )
+        await db.rollback()
+        G, id_to_name = await export_graph_to_networkx(db, corpus_id)
 
     if G.number_of_nodes() == 0:
         logger.info("pagerank_skipped_empty_graph", corpus_id=str(corpus_id))
@@ -268,7 +280,17 @@ async def compute_communities(
     if resolutions is None:
         resolutions = [0.5, 1.0, 2.0]
 
-    G, id_to_name = await export_graph_to_networkx(db, corpus_id)
+    # 防御性 session 健康检查（同 compute_pagerank）：仅在事务 invalid 时回滚。
+    try:
+        G, id_to_name = await export_graph_to_networkx(db, corpus_id)
+    except sa_exc.PendingRollbackError as recover_exc:
+        logger.warning(
+            "communities_session_invalid_recovering",
+            corpus_id=str(corpus_id),
+            error=str(recover_exc),
+        )
+        await db.rollback()
+        G, id_to_name = await export_graph_to_networkx(db, corpus_id)
 
     if G.number_of_nodes() == 0:
         logger.info("communities_skipped_empty_graph", corpus_id=str(corpus_id))

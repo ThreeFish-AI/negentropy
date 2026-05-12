@@ -21,6 +21,8 @@ import asyncio
 import hashlib
 import json
 import os
+import random
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
@@ -39,11 +41,245 @@ logger = get_logger("negentropy.knowledge.llm_extractors")
 # ============================================================================
 # KG LLM 调用全局配置（环境变量可覆盖）
 # ============================================================================
-# 单次 litellm.acompletion 超时（秒）。5 min 确保复杂提取场景充分等待。
-KG_LLM_TIMEOUT_SECONDS: float = float(os.environ.get("KG_LLM_TIMEOUT_SECONDS", "300"))
+# 单次 litellm.acompletion 超时（秒）。
+# 默认 110s < Cloudflare 120s Proxy Read Timeout，避免 524 错误。
+KG_LLM_TIMEOUT_SECONDS: float = float(os.environ.get("KG_LLM_TIMEOUT_SECONDS", "110"))
 # 全链路最大重试次数（不论嵌套层级，总重试不超过此值）。
 # SDK 层 num_retries=0 禁用隐形重试，由应用层统一管控。
 KG_LLM_MAX_RETRIES: int = int(os.environ.get("KG_LLM_MAX_RETRIES", "3"))
+
+
+# ============================================================================
+# 实体质量过滤 — 噪声实体检测
+# ============================================================================
+# 通用泛化术语、技术缩写、UI 元素等，不应作为知识图谱实体。
+# LLM 经常将这些泛化名词识别为 "concept" 或 "other"，污染图谱信噪比。
+_GENERIC_ENTITY_STOPWORDS: frozenset[str] = frozenset(
+    {
+        # 数据/文件格式
+        "css",
+        "html",
+        "json",
+        "xml",
+        "yaml",
+        "yml",
+        "csv",
+        "sql",
+        "http",
+        "https",
+        "url",
+        "uri",
+        "ftp",
+        "ssh",
+        # 泛化技术术语
+        "api",
+        "app",
+        "apps",
+        "application",
+        "ui",
+        "ux",
+        "sdk",
+        "cli",
+        "ide",
+        "mcp",
+        "rpc",
+        "rest",
+        "graphql",
+        "dom",
+        # 泛化名词
+        "key",
+        "value",
+        "spec",
+        "config",
+        "settings",
+        "module",
+        "modules",
+        "component",
+        "components",
+        "feature",
+        "features",
+        "option",
+        "options",
+        "parameter",
+        "parameters",
+        "variable",
+        "variables",
+        "function",
+        "functions",
+        "method",
+        "methods",
+        "class",
+        "classes",
+        "object",
+        "objects",
+        "instance",
+        "instances",
+        "type",
+        "types",
+        "data",
+        "file",
+        "files",
+        "path",
+        "paths",
+        # 泛化流程/角色术语
+        "agent",
+        "agents",
+        "generator",
+        "evaluator",
+        "processor",
+        "handler",
+        "manager",
+        "builder",
+        "parser",
+        "loader",
+        "runner",
+        "tester",
+        "planner",
+        "validator",
+        "scheduler",
+        "executor",
+        # UI 元素
+        "panel",
+        "panels",
+        "button",
+        "buttons",
+        "tab",
+        "tabs",
+        "form",
+        "forms",
+        "dialog",
+        "dialogs",
+        "menu",
+        "menus",
+        "card",
+        "cards",
+        "list",
+        "lists",
+        "grid",
+        "grids",
+        "modal",
+        "modals",
+        "popup",
+        "popups",
+        "toast",
+        "toasts",
+        # 杂项
+        "tool",
+        "tools",
+        "task",
+        "tasks",
+        "step",
+        "steps",
+        "phase",
+        "phases",
+        "stage",
+        "stages",
+    }
+)
+
+# 噪声实体名称的正则模式（用于过滤误识别为实体的非实体片段）
+_DATE_ENTITY_PATTERN = re.compile(
+    r"^(?:published|updated|created|posted)?\s*"
+    r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}$",
+    re.IGNORECASE,
+)
+_CODE_REF_PATTERN = re.compile(r".+:\d+$")  # "LevelEditor.tsx:892"
+_FILE_NAME_PATTERN = re.compile(
+    r".+\.(?:txt|sh|json|md|py|js|ts|tsx|jsx|yaml|yml|toml|cfg|ini|conf|env|lock)$",
+    re.IGNORECASE,
+)
+
+# 知名 JS/TS 生态产品/框架白名单（小写）。
+# 这些命名虽然以 .js/.ts 结尾貌似文件名，但属于具备明确语义的产品实体，
+# 优先于 _FILE_NAME_PATTERN 过滤逻辑短路放行，避免误伤高价值实体。
+_FRAMEWORK_NAME_WHITELIST: frozenset[str] = frozenset(
+    {
+        "node.js",
+        "vue.js",
+        "next.js",
+        "nuxt.js",
+        "nest.js",
+        "three.js",
+        "react.js",
+        "express.js",
+        "ember.js",
+        "backbone.js",
+        "angular.js",
+        "alpine.js",
+        "d3.js",
+        "moment.js",
+        "chart.js",
+        "p5.js",
+        "lit.js",
+        "preact.js",
+        "solid.js",
+        "qwik.js",
+        "remix.js",
+        "astro.js",
+        "gatsby.js",
+        "svelte.js",
+        "marko.js",
+        "knockout.js",
+        "jquery.js",
+        "lodash.js",
+        "video.js",
+        "anime.js",
+        "fabric.js",
+        "paper.js",
+        "babylon.js",
+        "pixi.js",
+        "phaser.js",
+        "leaflet.js",
+        "mapbox.js",
+    }
+)
+
+
+def is_noise_entity(name: str) -> bool:
+    """判断实体名称是否为噪声/无意义提取。
+
+    过滤策略：
+    - 长度过短（≤ 2 字符）或过长（> 150 字符）
+    - 命中通用停用词表
+    - URL / 文件名 / 源码引用 / 日期字符串等非实体片段
+
+    白名单短路：知名 JS/TS 生态框架名（如 Node.js / Vue.js / Three.js）
+    虽形似文件名但属高价值产品实体，需放行。
+    """
+    if name is None:
+        return True
+    stripped = name.strip()
+    if len(stripped) <= 2 or len(stripped) > 150:
+        return True
+    lower = stripped.lower()
+    if lower in _GENERIC_ENTITY_STOPWORDS:
+        return True
+    # 知名 JS/TS 框架优先短路（必须放在 _FILE_NAME_PATTERN 检查之前）
+    if lower in _FRAMEWORK_NAME_WHITELIST:
+        return False
+    if lower.startswith(("http://", "https://", "ftp://", "ssh://")):
+        return True
+    if _DATE_ENTITY_PATTERN.match(stripped):
+        return True
+    if _CODE_REF_PATTERN.match(stripped):
+        return True
+    if _FILE_NAME_PATTERN.match(stripped):
+        return True
+    return False
+
+
+def _compute_retry_backoff(error_str: str, attempt: int) -> float:
+    """计算重试退避时长（秒）。
+
+    针对网关超时（Cloudflare 524 等）采用更长的递增退避，
+    避免短间隔重试连续触发同一类超时浪费配额。
+    """
+    is_gateway_timeout = "524" in error_str or "timeout" in error_str.lower() or "timed out" in error_str.lower()
+    if is_gateway_timeout:
+        # 30s, 60s, 90s (cap 120s) + jitter
+        return min(30.0 * (attempt + 1) + random.uniform(0, 5), 120.0)
+    # 普通错误：指数退避 1s, 2s, 4s (cap 10s) + jitter
+    return min(2.0**attempt + random.uniform(0, 1), 10.0)
 
 
 async def call_llm_with_retry(
@@ -79,14 +315,16 @@ async def call_llm_with_retry(
             return response.choices[0].message.content or ""
         except Exception as exc:
             last_error = exc
+            backoff = _compute_retry_backoff(str(exc), attempt)
             logger.warning(
                 f"{context_label}_retry",
                 attempt=attempt + 1,
                 max_retries=KG_LLM_MAX_RETRIES,
+                backoff_seconds=round(backoff, 1),
                 error=str(exc),
             )
             if attempt < KG_LLM_MAX_RETRIES - 1:
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(backoff)
 
     logger.error(
         f"{context_label}_exhausted",
@@ -205,6 +443,15 @@ Important:
 - Extract entities in their original language (Chinese, English, etc.)
 - Only include entities explicitly mentioned in the text
 - Assign confidence based on how clearly the entity is identified
+
+CRITICAL — Avoid noise extraction:
+- Do NOT extract generic terms or common abbreviations such as "CSS", "HTML", "JSON",
+  "API", "UI", "app", "key", "spec", "config", "panel", "button", "agent", "generator",
+  "evaluator", etc. These are not specific named entities.
+- Do NOT extract dates ("Nov 26, 2025"), URLs, file names ("foo.txt"), or
+  source-code references ("LevelEditor.tsx:892") as entities.
+- A good entity should be a SPECIFIC named thing meaningful in a cross-document
+  knowledge graph (proper nouns, product names, organizations, people, etc.).
 
 Output as JSON with the following structure:
 {{"entities": [{{"name": "...", "type": "...", "description": "...", "confidence": 0.9}}]}}"""
@@ -440,14 +687,17 @@ Output as JSON with the following structure:
 
             except Exception as exc:
                 last_error = exc
+                backoff = _compute_retry_backoff(str(exc), attempt)
                 logger.warning(
                     "llm_extraction_retry",
                     attempt=attempt + 1,
                     max_retries=self._max_retries,
+                    backoff_seconds=round(backoff, 1),
                     error=str(exc),
                     timeout_seconds=self._llm_timeout,
                 )
-                await asyncio.sleep(1.0)  # 固定 1s 退避，加速失败让 fallback 接管
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
 
         raise RuntimeError(f"LLM entity extraction failed after {self._max_retries} retries: {last_error}")
 
@@ -471,12 +721,18 @@ Output as JSON with the following structure:
             return []
 
         results = []
+        filtered_count = 0
         for entity_data in entities:
             if not isinstance(entity_data, dict):
                 continue
 
             name = entity_data.get("name", "").strip()
             if not name:
+                continue
+
+            # 过滤噪声实体（停用词 / URL / 文件名 / 源码引用 / 日期等）
+            if is_noise_entity(name):
+                filtered_count += 1
                 continue
 
             entity_type = entity_data.get("type", KgEntityType.OTHER.value)
@@ -492,6 +748,12 @@ Output as JSON with the following structure:
             )
             results.append(result)
 
+        if filtered_count:
+            logger.debug(
+                "noise_entities_filtered",
+                filtered_count=filtered_count,
+                kept_count=len(results),
+            )
         return results
 
     def _generate_entity_id(self, name: str, corpus_id: UUID) -> str:
@@ -846,14 +1108,17 @@ Output as JSON with the following structure:
 
             except Exception as exc:
                 last_error = exc
+                backoff = _compute_retry_backoff(str(exc), attempt)
                 logger.warning(
                     "llm_relation_extraction_retry",
                     attempt=attempt + 1,
                     max_retries=self._max_retries,
+                    backoff_seconds=round(backoff, 1),
                     error=str(exc),
                     timeout_seconds=self._llm_timeout,
                 )
-                await asyncio.sleep(1.0)  # 固定 1s 退避，加速失败让 fallback 接管
+                if attempt < self._max_retries - 1:
+                    await asyncio.sleep(backoff)
 
         raise RuntimeError(f"LLM relation extraction failed after {self._max_retries} retries: {last_error}")
 
