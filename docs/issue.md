@@ -1872,3 +1872,28 @@
   - `apps/negentropy/src/negentropy/knowledge/graph/` 全部 SQL 中的 `VALUES … AS v(col type)` 已扫荡（仅 PageRank、Communities 两处，全部修复）；未来新增类似 UPDATE-FROM-VALUES 路径需复核同型缺陷；
   - 其他 `nx.community.*` 高层 API 调用入口（如未来引入 `nx.community.label_propagation_communities`、`nx.community.greedy_modularity_communities` 等）需确认是否同样依赖 dispatch backend；
   - 任何 service 层"幂等跳过"（如 `merge_entities` / `dedupe_relations` / `upsert_*`）需复核是否区分返回值 / 计数器；调用方计数若依赖"未抛异常"语义，需同步重构。
+
+---
+
+## ISSUE-083 KG 3D 引擎节点标签带边框 + 小节点标签嵌入球体（2026-05-12）
+
+- **表因**：Knowledge Graph 3D 引擎下，节点标签呈现两处视觉缺陷：(a) 每个标签外围有可见矩形边框 + 背景盒，与 2D 引擎的纯文字风格不一致；(b) 低 importance（小球）节点的标签文字嵌入球体内部，被球面遮蔽。
+- **根因**（正交分解）：
+  1. **边框/背景源自显式配置**：[`GraphCanvas3D.tsx::getNodeThreeObject`](../apps/negentropy-ui/app/knowledge/graph/_components/GraphCanvas3D.tsx) 第 177-198 行配置 `sprite.borderWidth = 0.5`、`sprite.borderRadius = 2` 与不透明 `backgroundColor`，是上一次"标签被球体遮挡"修复（commit `dd1a6c85`）为强化视觉边界引入的副作用，与 2D 引擎纯文字范式相悖；
+  2. **位置公式错把 volume 当作 radius**：原 `sprite.position.set(0, effectiveVal + 3, 0)` 把 `val`（即 `nodeRadius3D(importance)` 返回值 ∈ [2, 8]）直接当作球体**半径**使用 — 但 `react-force-graph-3d` 将 `nodeVal` 视为**体积量**，实际渲染半径为 `Math.cbrt(val) * nodeRelSize`（`nodeRelSize` 默认 4）。当 `val=2` 时实际半径 ≈ 5.04 而 sprite 中心 y=5，导致 sprite 整体落入球体内部。
+- **处理方式**（最小干预单文件修复）：
+  1. **去边框去背景**：[`GraphCanvas3D.tsx`](../apps/negentropy-ui/app/knowledge/graph/_components/GraphCanvas3D.tsx) 内 `sprite.borderWidth = 0`、`sprite.backgroundColor = "rgba(0,0,0,0)"`、`sprite.padding = 0`；文字色提升对比度（dark `#f4f4f5` zinc-100 / light `#18181b` zinc-900），与 [`ForceGraphCanvas.tsx`](../apps/negentropy-ui/app/knowledge/graph/_components/ForceGraphCanvas.tsx) 2D 引擎对比层级对齐；
+  2. **位置公式按实际半径计算**：模块作用域新增常量 `NODE_REL_SIZE = 4`（与 `<ForceGraph3D>` 默认值同步）、`LABEL_GAP = 1.5`；位置改为 `sprite.position.set(0, Math.cbrt(effectiveVal) * NODE_REL_SIZE + sprite.textHeight / 2 + LABEL_GAP, 0)`，即「球体真实半径 + 半个文字高 + 视觉间隙」；
+  3. **保留 dd1a6c85 引入的深度修复**：`material.depthWrite = false` + `renderOrder = 999` 不动，标签穿透其他球体始终可见。
+- **验证证据**：
+  - `pnpm --filter negentropy-ui typecheck` 通过；`pnpm --filter negentropy-ui lint --max-warnings=0` 通过；
+  - 浏览器 `evaluate_script` 复刻完整公式校验：对 `importance ∈ {0, 0.5, 1.0}` × `selected ∈ {false, true}` 共 6 + 1 默认值组合，标签底边距球面恒为 1.5 单位，所有情形下**无嵌入**。最小节点（val=2）实际半径 5.04，标签 y=8.04，底边 6.54；最大选中节点（val=12）半径 9.16，y=12.16，底边 10.66；
+  - 用户生产服务器运行 standalone build 且正在构建语料库 KG，为避免破坏会话不进行强制重启 — 最终像素级视觉确认在下次 dev/build 周期完成。
+- **后续防范**：
+  1. **三方库参数语义边界**：`react-force-graph-3d` 的 `nodeVal` 是**体积量**而非半径，类似 `d3.scaleSqrt / scaleCbrt` 量纲转换；任何后续依赖球体实际几何的渲染（如标签、晕圈、ray hit area）必须经 `Math.cbrt(val) * nodeRelSize` 换算，禁止把 `val` 字面理解为半径；
+  2. **跨引擎视觉一致性约束**：5 种图谱引擎（2D Force / 3D / Sigma / Cytoscape / Cosmograph）应共享同一套「标签风格」契约 — 默认纯文字、可读对比度、必要时启用深度排序。引入背景/边框需有明确理由且全引擎同步；
+  3. **修复回归隐患**：本次修复回退 dd1a6c85 引入的 `borderWidth/borderRadius/backgroundColor` 部分但保留其深度排序部分。后续若再次需要为 3D 标签加视觉强化（如选中态高亮），应优先考虑文字加粗/放大/颜色，而非回退背景盒。
+- **同类问题影响**：
+  - 其他依赖 `nodeVal` 派生几何的代码位（如 `ForceGraphCanvas.tsx` 中 `node.x! + size` 这类基于 `size` 直接做空间计算的逻辑）已正确使用 radius 量纲，无需改动；
+  - Sigma / Cytoscape 引擎使用自有 size 体系，未受影响；
+  - 若未来引入 4D / WebGPU 引擎实现，需复核其 size 参数语义并同步修正本类公式。
