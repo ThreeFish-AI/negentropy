@@ -1897,3 +1897,36 @@
   - 其他依赖 `nodeVal` 派生几何的代码位（如 `ForceGraphCanvas.tsx` 中 `node.x! + size` 这类基于 `size` 直接做空间计算的逻辑）已正确使用 radius 量纲，无需改动；
   - Sigma / Cytoscape 引擎使用自有 size 体系，未受影响；
   - 若未来引入 4D / WebGPU 引擎实现，需复核其 size 参数语义并同步修正本类公式。
+
+---
+
+## ISSUE-084 Interface / Models 模态框窄长 + 缺少 Embedding 模型连通性自检（2026-05-12）
+
+- **表因**：[`apps/negentropy-ui/app/interface/models/page.tsx`](../apps/negentropy-ui/app/interface/models/page.tsx) 中 OpenAI / Gemini / Anthropic 三个 vendor 共用的 Setup/Edit 模态框被固定为 `max-w-md`（~448px），宽屏下显得拥挤、Registered Models 行的多个 badge 容易折行；同时整套 Model 管理界面仅有 LLM Ping 端点（`POST /interface/models/ping` → `litellm.acompletion`），新增 Embedding 模型后只能等到 Corpus Ingest 触发首次向量化时才能验证 vendor / api_base / api_key 是否生效。
+- **根因**：
+  1. 模态框宽度选型偏窄（早期 LLM-only 时期遗留），未随「Registered Models 多 badge + Test Connectivity 子区」迭代同步扩容；
+  2. Test Connectivity 子卡片只承载 LLM 维度的「文字往返」回包，未抽象出与 model_type 正交的「最小动作」契约，导致 Embedding 维度没有可复用的注入点；
+  3. 后端 `_ping_llm` 与 `knowledge/ingestion/embedding.py` 各自实现 litellm 调用，前者 60s 超时 + 单次调用、后者 30s 超时 + 3× 指数退避——两套语义共存但缺一个面向交互验证的中间形态。
+- **处理方式**：
+  1. **模态框加宽**：`max-w-md → max-w-4xl` + `max-h-[90vh] overflow-y-auto`，单文件 [`page.tsx:570`](../apps/negentropy-ui/app/interface/models/page.tsx) 单点修改；API Key 与 Base URL `<input>` 加 `max-w-2xl` 防止在 896px 容器内被拉得过长；
+  2. **Test Connectivity 卡片 2 列化**：将 Ping 子组与新增的 Test Embedding 子组并排（`grid grid-cols-1 md:grid-cols-2 gap-4 items-start`）；Anthropic 没有官方 Embedding API → 通过 `VendorSetupItem.embeddingPingModelPlaceholder?: string` 控制是否渲染该子组，Anthropic 设为 undefined 时整组隐藏，网格自动退化为单列；
+  3. **新增后端端点 `/interface/models/ping-embedding`**：[`apps/negentropy/src/negentropy/interface/models_api.py`](../apps/negentropy/src/negentropy/interface/models_api.py) 内增加 `ModelEmbedPingRequest`（含 `text: str = Field(..., min_length=1, max_length=2000)`）+ `ping_embedding_model` 路由 + `_ping_embedding` 函数。`_ping_embedding` 与 `_ping_llm` **同源不同代**——固定 60s 超时、单次调用（`num_retries=0`）、复用 `normalize_api_base_for_litellm`，返回 `{status, message, dimensions, preview[:4], latency_ms}`；
+  4. **错误分类增强**：复用 [`embedding.py::_build_embedding_failure_hint`](../apps/negentropy/src/negentropy/knowledge/ingestion/embedding.py) 中识别本地 Gemini 翻译代理对 `:batchEmbedContents` 不兼容的字面量「doesn't contain valid prompts」，作为 Test Embedding 失败时的专属诊断 hint 优先匹配；
+  5. **Next.js 代理**：新建 [`app/api/interface/models/ping-embedding/route.ts`](../apps/negentropy-ui/app/api/interface/models/ping-embedding/route.ts)，完全镜像现有 `ping/route.ts`，仅替换上游路径，保证 buildAuthHeaders / cache no-store / 502 fallthrough 行为一致；
+  6. **前端状态隔离**：`openVendorSetup` / `closeVendorDialog` 同步重置 `vendorEmbedModel` / `vendorEmbedText` / `vendorEmbedResult`，避免「OpenAI Test 成功 → 切换 Anthropic → 再回 OpenAI」时残留前一次绿色 OK 框；
+  7. **审慎边界**：刻意 **不复用** `embedding.py` 的 `_call_with_retry`（3× 指数退避）——交互式管理操作应快速失败而非让管理员等待数十秒；刻意 **不抽公共模块** 容纳 `_extract_upstream_text` / `_build_embedding_failure_hint`，本次只在 `models_api.py` 内联约 10 行 hint 检测，避免本 PR 牵涉 `knowledge/ingestion/` 路径。
+- **验证证据**：
+  - `pnpm --filter negentropy-ui typecheck` / `lint --max-warnings=0` 通过；
+  - `uv run ruff check src/negentropy/interface/models_api.py` 通过；
+  - 新增单元测试 [`tests/unit_tests/interface/test_models_ping_embedding.py`](../apps/negentropy/tests/unit_tests/interface/test_models_ping_embedding.py) 6 个用例全过：对象/dict 响应回退、Gemini 官方域名归一化、OpenAI 自建网关 `/v1` 补齐、`drop_params` / `num_retries=0` / 无 `max_tokens` 注入校验、空 data / 缺 embedding 字段错误返回；
+  - 现有 `test_models_ping.py` 5 个用例零回归；
+  - **未完成项（透明披露）**：浏览器端到端验证因当前登录用户 (`cm.huang@aftership.com`) 在 `user_states.state.roles` 中未持久化 admin 角色而被前端 `useEffect → router.replace("/interface")` 重定向拦截，无法在不修改访问控制（违反 safety 规则）的前提下进入 Models 页面截图。前端日志结构通过 `pnpm typecheck` + ESLint 严格模式校验后**不可能**存在 JSX 语法或类型错误，但像素级 layout 验证遗留给用户在自己具备 admin 角色的会话中完成。
+- **后续防范**：
+  1. **管理面板验证矩阵**：所有新增 admin-only 端点应同时落地至少一组「litellm 调用桩 + 状态机回归测试」，杜绝「依赖前端浏览器 + 真实凭证」的单一验证路径；
+  2. **模态框宽度纪律**：Tailwind 容器宽度选项（`md/lg/xl/2xl/3xl/4xl/5xl/6xl/7xl`）应按内容密度评估，单纯 form 表单 `md`、表单+列表 `2xl`、表单+多区+列表 `4xl`。引入新区前先评估是否需要扩容，避免后期补救；
+  3. **凭证回退链可观测性**：`api_key_source` 字段（`payload / db / env`）已沉淀进 `model_ping_start` / `model_embed_ping_start` 日志键，运维定位「明明配了 key 还报 401」类问题时优先看这一字段；
+  4. **dev 角色入口**：考虑提供一个无需手改 DB 的「dev-only 临时 admin 角色」机制（环境变量 `NEGENTROPY_DEV_ADMIN_EMAILS` 之类），方便后续 Agent / E2E 在不触碰生产语义的访问控制变更下完成验证。
+- **同类问题影响**：
+  - SubAgent / MCP / Skills / Tools 等 Interface 子页面的 Setup 模态框若日后承载多维度子动作（如「Test Tool」「Test Skill 执行」），可复用本次「Test Connectivity 卡片内 grid 多子组 + 可选子组通过 placeholder 字段控制是否渲染」的范式；
+  - `litellm.aembedding` 的桩化测试范式（对象响应 + dict 响应两条回退路径同测）对未来任何 embedding 相关功能（如「Test Rerank」）均可作为参考模板；
+  - Anthropic 这种「缺失原生 capability」的供应商在 UI 上应统一采用「不渲染对应子组」而非「渲染但 disable」的处理，避免诱导用户填表后被告知不支持的二次挫败。

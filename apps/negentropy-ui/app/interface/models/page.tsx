@@ -26,6 +26,8 @@ interface VendorSetupItem {
   helpUrl: string;
   baseUrlPlaceholder: string;
   pingModelPlaceholder: string;
+  /** 当存在时渲染 Test Embedding 子组；undefined 表示该供应商无原生 embedding API（如 Anthropic）。 */
+  embeddingPingModelPlaceholder?: string;
 }
 
 const VENDOR_SETUP_CONFIG: VendorSetupItem[] = [
@@ -35,6 +37,7 @@ const VENDOR_SETUP_CONFIG: VendorSetupItem[] = [
     helpUrl: "https://platform.openai.com/api-keys",
     baseUrlPlaceholder: "https://api.openai.com/v1",
     pingModelPlaceholder: "gpt-4o-mini",
+    embeddingPingModelPlaceholder: "text-embedding-3-small",
   },
   {
     value: "anthropic",
@@ -42,6 +45,7 @@ const VENDOR_SETUP_CONFIG: VendorSetupItem[] = [
     helpUrl: "https://console.anthropic.com/settings/keys",
     baseUrlPlaceholder: "https://api.anthropic.com",
     pingModelPlaceholder: "claude-haiku-4-5-20251001",
+    // Anthropic 无官方 Embedding API → 不设置 embeddingPingModelPlaceholder。
   },
   {
     value: "gemini",
@@ -49,6 +53,7 @@ const VENDOR_SETUP_CONFIG: VendorSetupItem[] = [
     helpUrl: "https://aistudio.google.com/apikey",
     baseUrlPlaceholder: "https://generativelanguage.googleapis.com",
     pingModelPlaceholder: "gemini-2.5-flash",
+    embeddingPingModelPlaceholder: "text-embedding-004",
   },
 ];
 
@@ -56,6 +61,14 @@ interface PingResult {
   status: "ok" | "error";
   message: string;
   latency_ms?: number;
+}
+
+interface EmbedResult {
+  status: "ok" | "error";
+  message: string;
+  latency_ms?: number;
+  dimensions?: number;
+  preview?: number[];
 }
 
 export default function ModelsPage() {
@@ -84,6 +97,12 @@ export default function ModelsPage() {
   const [vendorPingModel, setVendorPingModel] = useState("");
   const [vendorPinging, setVendorPinging] = useState(false);
   const [vendorPingResult, setVendorPingResult] = useState<PingResult | null>(null);
+
+  // Test Embedding（与 Ping 并列的子组；Anthropic 不渲染该组，但状态可无害保留）
+  const [vendorEmbedModel, setVendorEmbedModel] = useState("");
+  const [vendorEmbedText, setVendorEmbedText] = useState("");
+  const [vendorEmbedTesting, setVendorEmbedTesting] = useState(false);
+  const [vendorEmbedResult, setVendorEmbedResult] = useState<EmbedResult | null>(null);
 
   // Registered Models (model_configs) — 全量加载后按 vendor 本地过滤，避免来回请求。
   const [registeredModels, setRegisteredModels] = useState<ModelConfigRecord[]>([]);
@@ -144,6 +163,9 @@ export default function ModelsPage() {
     setVendorApiKeyChanged(false);
     setVendorPingModel("");
     setVendorPingResult(null);
+    setVendorEmbedModel("");
+    setVendorEmbedText("");
+    setVendorEmbedResult(null);
     setVendorDialogOpen(true);
   };
 
@@ -155,6 +177,9 @@ export default function ModelsPage() {
     setVendorApiKeyChanged(false);
     setVendorPingModel("");
     setVendorPingResult(null);
+    setVendorEmbedModel("");
+    setVendorEmbedText("");
+    setVendorEmbedResult(null);
   };
 
   const handleVendorSave = async () => {
@@ -254,6 +279,47 @@ export default function ModelsPage() {
       });
     } finally {
       setVendorPinging(false);
+    }
+  };
+
+  const handleVendorEmbeddingTest = async () => {
+    if (!vendorDialogVendor) return;
+    const modelName = vendorEmbedModel.trim();
+    const text = vendorEmbedText.trim();
+    if (!modelName || !text) return;
+    setVendorEmbedTesting(true);
+    setVendorEmbedResult(null);
+    try {
+      const payload = {
+        vendor: vendorDialogVendor,
+        model_name: modelName,
+        text,
+        config: {},
+        api_base: vendorApiBase.trim() || null,
+        api_key: vendorApiKeyChanged ? vendorApiKey.trim() || null : null,
+      };
+      const response = await fetch("/api/interface/models/ping-embedding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setVendorEmbedResult({
+          status: "error",
+          message: data.error || `HTTP ${response.status}`,
+        });
+        return;
+      }
+      const data = await response.json();
+      setVendorEmbedResult(data);
+    } catch (err) {
+      setVendorEmbedResult({
+        status: "error",
+        message: err instanceof Error ? err.message : "网络错误",
+      });
+    } finally {
+      setVendorEmbedTesting(false);
     }
   };
 
@@ -501,7 +567,7 @@ export default function ModelsPage() {
             onClose={closeVendorDialog}
             busy={vendorSaving}
             containerClassName="p-4"
-            contentClassName="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+            contentClassName="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
             contentProps={{ role: "dialog", "aria-modal": true }}
           >
             {vendorDialogVendor && (() => {
@@ -527,7 +593,7 @@ export default function ModelsPage() {
                           setVendorApiKeyChanged(true);
                         }}
                         placeholder={isEditing ? "留空则保持不变" : ""}
-                        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-mono dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-mono dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                       />
                       {isEditing && (
                         <p className="mt-1 text-[10px] text-zinc-400">
@@ -545,7 +611,7 @@ export default function ModelsPage() {
                         value={vendorApiBase}
                         onChange={(e) => setVendorApiBase(e.target.value)}
                         placeholder={vcInfo?.baseUrlPlaceholder}
-                        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                       />
                     </div>
 
@@ -553,43 +619,137 @@ export default function ModelsPage() {
                       <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         Test Connectivity
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={vendorPingModel}
-                          onChange={(e) => setVendorPingModel(e.target.value)}
-                          placeholder={vcInfo?.pingModelPlaceholder}
-                          className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleVendorPing}
-                          disabled={vendorPinging || !vendorPingModel.trim()}
-                          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-50"
-                        >
-                          {vendorPinging ? "Pinging..." : "Ping"}
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-zinc-400">
-                        发送 &quot;Ping, give me a pong&quot; 验证模型连通性。常用模型示例：{vcInfo?.pingModelPlaceholder}
-                      </p>
-                      {vendorPingResult && (
-                        <div
-                          className={`rounded-lg px-3 py-1.5 text-xs whitespace-pre-wrap ${
-                            vendorPingResult.status === "ok"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
-                              : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                          }`}
-                        >
-                          {vendorPingResult.message}
-                          {vendorPingResult.latency_ms != null &&
-                            vendorPingResult.latency_ms > 0 && (
-                              <span className="ml-1 opacity-60">
-                                ({vendorPingResult.latency_ms}ms)
-                              </span>
-                            )}
+                      <div
+                        className={
+                          vcInfo?.embeddingPingModelPlaceholder
+                            ? "grid grid-cols-1 md:grid-cols-2 gap-4 items-start"
+                            : ""
+                        }
+                      >
+                        {/* Ping 子组 */}
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
+                            Ping
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={vendorPingModel}
+                              onChange={(e) => setVendorPingModel(e.target.value)}
+                              placeholder={vcInfo?.pingModelPlaceholder}
+                              className="flex-1 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleVendorPing}
+                              disabled={vendorPinging || !vendorPingModel.trim()}
+                              className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-50"
+                            >
+                              {vendorPinging ? "Pinging..." : "Ping"}
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-zinc-400">
+                            发送 &quot;Ping, give me a pong&quot; 验证模型连通性。常用模型示例：{vcInfo?.pingModelPlaceholder}
+                          </p>
+                          {vendorPingResult && (
+                            <div
+                              className={`rounded-lg px-3 py-1.5 text-xs whitespace-pre-wrap ${
+                                vendorPingResult.status === "ok"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                                  : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                              }`}
+                            >
+                              {vendorPingResult.message}
+                              {vendorPingResult.latency_ms != null &&
+                                vendorPingResult.latency_ms > 0 && (
+                                  <span className="ml-1 opacity-60">
+                                    ({vendorPingResult.latency_ms}ms)
+                                  </span>
+                                )}
+                            </div>
+                          )}
                         </div>
-                      )}
+
+                        {/* Test Embedding 子组（Anthropic 无原生 Embedding API，整组不渲染） */}
+                        {vcInfo?.embeddingPingModelPlaceholder && (
+                          <div className="space-y-2">
+                            <div className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
+                              Test Embedding
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={vendorEmbedModel}
+                                onChange={(e) => setVendorEmbedModel(e.target.value)}
+                                placeholder={vcInfo.embeddingPingModelPlaceholder}
+                                className="flex-1 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleVendorEmbeddingTest}
+                                disabled={
+                                  vendorEmbedTesting ||
+                                  !vendorEmbedModel.trim() ||
+                                  !vendorEmbedText.trim()
+                                }
+                                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20 transition-colors disabled:opacity-50"
+                              >
+                                {vendorEmbedTesting ? "Testing..." : "Test"}
+                              </button>
+                            </div>
+                            <textarea
+                              value={vendorEmbedText}
+                              onChange={(e) => setVendorEmbedText(e.target.value)}
+                              placeholder="请输入测试文本（如：天气真好）"
+                              rows={2}
+                              maxLength={2000}
+                              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 resize-none"
+                            />
+                            <p className="text-[10px] text-zinc-400">
+                              调用 Embedding API 对文本求向量，输出维度、延迟与前 4 维预览。常用模型示例：{vcInfo.embeddingPingModelPlaceholder}
+                            </p>
+                            {vendorEmbedResult && (
+                              <div
+                                className={`rounded-lg px-3 py-1.5 text-xs whitespace-pre-wrap ${
+                                  vendorEmbedResult.status === "ok"
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                                    : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                                }`}
+                              >
+                                {vendorEmbedResult.status === "ok" ? (
+                                  <>
+                                    <div>
+                                      OK ✓
+                                      {vendorEmbedResult.dimensions != null && (
+                                        <span className="ml-1">· {vendorEmbedResult.dimensions} dims</span>
+                                      )}
+                                      {vendorEmbedResult.latency_ms != null &&
+                                        vendorEmbedResult.latency_ms > 0 && (
+                                          <span className="ml-1 opacity-60">· {vendorEmbedResult.latency_ms}ms</span>
+                                        )}
+                                    </div>
+                                    {vendorEmbedResult.preview && vendorEmbedResult.preview.length > 0 && (
+                                      <div className="mt-0.5 font-mono opacity-80">
+                                        [{vendorEmbedResult.preview.map((v) => v.toFixed(3)).join(", ")}, ...]
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    {vendorEmbedResult.message}
+                                    {vendorEmbedResult.latency_ms != null &&
+                                      vendorEmbedResult.latency_ms > 0 && (
+                                        <span className="ml-1 opacity-60">
+                                          ({vendorEmbedResult.latency_ms}ms)
+                                        </span>
+                                      )}
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Registered Models — 按 model_type 分组 */}
