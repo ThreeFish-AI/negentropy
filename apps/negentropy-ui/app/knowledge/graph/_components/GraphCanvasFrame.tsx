@@ -32,7 +32,7 @@ export interface GraphCanvasFrameProps {
   badges?: ReactNode;
   /** 渲染器 DOM（容器 div / ForceGraph3D / etc.） */
   children: ReactNode;
-  /** 扩展类名（例如 GraphCanvas3D 需要 overflow-hidden） */
+  /** 扩展类名（追加到基础样式） */
   className?: string;
 }
 
@@ -97,7 +97,7 @@ export function GraphCanvasFrame({
   }, []);
 
   const baseClass =
-    "relative min-h-0 flex-1 w-full rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 data-[fullscreen=true]:bg-white data-[fullscreen=true]:dark:bg-zinc-900";
+    "relative min-h-0 flex-1 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 data-[fullscreen=true]:bg-white data-[fullscreen=true]:dark:bg-zinc-900";
 
   return (
     <div
