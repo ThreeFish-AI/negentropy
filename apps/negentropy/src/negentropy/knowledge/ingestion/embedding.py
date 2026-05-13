@@ -148,6 +148,9 @@ async def _call_with_retry(
     Raises:
         最后一次重试的异常
     """
+    # 局部 import 避免与 graph.extractors 的循环依赖（embedding 是 ingestion 子模块）。
+    from negentropy.knowledge.graph.extractors import _is_non_retryable_error
+
     last_exc = None
     for attempt in range(1, max_retries + 1):
         try:
@@ -163,6 +166,17 @@ async def _call_with_retry(
             )
         except Exception as exc:
             last_exc = exc
+            # 凭证 / 路由 / 参数类终态错误：立即抛出，由上层包成 EmbeddingFailed
+            # 并触发降级路径（如 global_search 退化按 entity_count 排序）。
+            if _is_non_retryable_error(exc):
+                logger.warning(
+                    "embedding_non_retryable",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    context=context,
+                    attempt=attempt,
+                )
+                raise
             logger.warning(
                 "embedding_retry",
                 attempt=attempt,
