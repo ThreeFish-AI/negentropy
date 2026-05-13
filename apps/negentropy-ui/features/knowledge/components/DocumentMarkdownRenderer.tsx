@@ -1,10 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { cn } from "@/lib/utils";
 import { MermaidDiagram } from "@/components/ui/MermaidDiagram";
+
+import "highlight.js/styles/github.css";
 
 interface DocumentMarkdownRendererProps {
   content: string;
@@ -41,6 +43,81 @@ function isAbsoluteUrl(src: string): boolean {
  */
 function extractFilename(src: string): string {
   return src.split("/").pop() || src;
+}
+
+type ImageState = "loading" | "loaded" | "error";
+
+function DocumentImage({
+  src,
+  alt,
+  corpusId,
+  documentId,
+  appName,
+}: {
+  src: string;
+  alt?: string;
+  corpusId: string;
+  documentId: string;
+  appName?: string;
+}) {
+  const [imgState, setImgState] = useState<ImageState>("loading");
+
+  const resolvedSrc = isAbsoluteUrl(src)
+    ? src
+    : buildAssetProxyUrl(extractFilename(src), corpusId, documentId, appName);
+
+  return (
+    <figure className="my-3">
+      {imgState === "loading" && (
+        <div className="flex items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-8 dark:border-zinc-700 dark:bg-zinc-800">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+        </div>
+      )}
+
+      {imgState === "error" && (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 dark:border-zinc-600 dark:bg-zinc-800">
+          <svg
+            className="mb-2 h-8 w-8 text-zinc-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <span className="max-w-xs truncate text-xs text-zinc-500 dark:text-zinc-400">
+            {alt || extractFilename(src)}
+          </span>
+          <span className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+            Image failed to load
+          </span>
+        </div>
+      )}
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={resolvedSrc}
+        alt={alt || ""}
+        loading="lazy"
+        className={cn(
+          "max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700",
+          imgState === "loaded" ? "block" : "hidden",
+        )}
+        onLoad={() => setImgState("loaded")}
+        onError={() => setImgState("error")}
+      />
+
+      {alt && imgState === "loaded" && (
+        <figcaption className="mt-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          {alt}
+        </figcaption>
+      )}
+    </figure>
+  );
 }
 
 export function DocumentMarkdownRenderer({
@@ -90,30 +167,17 @@ export function DocumentMarkdownRenderer({
         remarkPlugins={defaultRemarkPlugins}
         rehypePlugins={defaultRehypePlugins}
         components={{
-          img({ src, alt, ...props }) {
+          img({ src, alt }) {
             if (!src || typeof src !== "string") return null;
-
-            const resolvedSrc = isAbsoluteUrl(src)
-              ? src
-              : buildAssetProxyUrl(
-                  extractFilename(src),
-                  corpusId,
-                  documentId,
-                  appName,
-                );
-
             return (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={resolvedSrc}
-                alt={alt || ""}
-                loading="lazy"
-                className="max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700"
-                onError={(e) => {
-                  const el = e.target as HTMLImageElement;
-                  el.style.display = "none";
-                }}
-                {...props}
+              <DocumentImage
+                src={src}
+                alt={alt || undefined}
+                corpusId={corpusId}
+                documentId={documentId}
+                appName={appName}
+                // pass through any remaining props via key to suppress warning
+                key={`${src}-${alt}`}
               />
             );
           },
@@ -140,7 +204,7 @@ export function DocumentMarkdownRenderer({
           },
           table({ children }) {
             return (
-              <div className="overflow-x-auto">
+              <div className="my-4 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
                 <table>{children}</table>
               </div>
             );
