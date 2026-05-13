@@ -849,7 +849,7 @@ Output as JSON with the following structure:
                     chunk_len=chunk_len,
                     kept=len(results),
                     dropped=dropped,
-                    cap=len(results) + dropped - dropped,  # 即 cap = len(results)
+                    cap=len(results),
                 )
 
         # stats 回写（供 service 层聚合到 KgBuildMetrics）

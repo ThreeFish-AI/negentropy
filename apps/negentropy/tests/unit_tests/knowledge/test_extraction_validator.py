@@ -106,14 +106,23 @@ class TestApplyTypeOverrides:
         assert source is None
 
     def test_ai_product_pattern_explicit_cases(self) -> None:
-        """直接验证正则覆盖范围，避免回归。"""
-        assert AI_PRODUCT_PATTERN.match("Claude")
+        """正则仅兜底带版本/规格后缀的型号变体；裸名由 known_entities 白名单覆盖。"""
+        # 带版本号或规格后缀的型号变体应命中
         assert AI_PRODUCT_PATTERN.match("GPT-4")
-        assert AI_PRODUCT_PATTERN.match("ChatGPT")
+        assert AI_PRODUCT_PATTERN.match("GPT-4o")
         assert AI_PRODUCT_PATTERN.match("Gemini Pro")
+        assert AI_PRODUCT_PATTERN.match("Gemini 1.5 Flash")
         assert AI_PRODUCT_PATTERN.match("Llama 3.1")
         assert AI_PRODUCT_PATTERN.match("o1-preview")
-        # 真人名不应命中
+        assert AI_PRODUCT_PATTERN.match("Claude 3.7 Sonnet")
+        # 裸名不再命中正则（由 known_entities 白名单接管）
+        assert not AI_PRODUCT_PATTERN.match("Claude")
+        assert not AI_PRODUCT_PATTERN.match("ChatGPT")
+        # 真人复合名（首段虽命中触发词，但尾段为非型号 token）不应命中
+        assert not AI_PRODUCT_PATTERN.match("Claude Shannon")
+        assert not AI_PRODUCT_PATTERN.match("Claude Monet")
+        assert not AI_PRODUCT_PATTERN.match("Gemini Cricket")
+        # 完全无触发词的真人名也不应命中
         assert not AI_PRODUCT_PATTERN.match("Sam Altman")
         assert not AI_PRODUCT_PATTERN.match("Yann LeCun")
 

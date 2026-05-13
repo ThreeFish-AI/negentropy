@@ -37,9 +37,14 @@ KNOWN_ENTITIES_PATH: Path = Path(__file__).with_name("known_entities.yml")
 
 # AI 产品兜底规则：捕获 known_entities.yml 未覆盖的型号变体（如 "Claude 3.7 Sonnet"）。
 # 仅当 LLM 给出的类型为 person 时启用——避免误改正确的 product 类型。
+#
+# 设计：要求触发词后跟随至少一个"型号样式"后缀（数字开头或已知规格关键字），
+# 避免把真人复合名（如 "Claude Shannon" / "Claude Monet" / "Gemini Cricket"）
+# 误改为产品；裸名（"Claude" / "GPT-4" / "ChatGPT"）由 known_entities 白名单覆盖。
 AI_PRODUCT_PATTERN: re.Pattern[str] = re.compile(
-    r"^(claude|gpt[- ]?\d?|chatgpt|gemini|llama|mistral|copilot|github\s+copilot|o1)"
-    r"(?:[- ]?[\w.]+)*$",
+    r"^(?:claude|gpt|chatgpt|gemini|llama|mistral|copilot|github\s+copilot|o1)"
+    r"(?:[\s.\-]+(?:\d[\w.]*"
+    r"|opus|sonnet|haiku|pro|ultra|mini|turbo|preview|max|nano|flash|large|medium|small))+$",
     re.IGNORECASE,
 )
 
