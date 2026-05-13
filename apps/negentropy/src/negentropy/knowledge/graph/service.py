@@ -938,7 +938,19 @@ class GraphService:
 
             # 将实体消解的合并映射注入 label_to_id，使 _resolve_ref 能解析
             # 被合并掉的旧实体标签（如 "Prithvi Rajasakeran" → "Prithvi Rajasekaran"）
-            for old_label, surviving_label in resolution.merge_map.items():
+            # 先解析传递链：merge_map 可能包含 A→B, B→C 的链式映射，
+            # 需将所有 old_label 指向最终的存留实体。
+            _resolved_merge: dict[str, str] = {}
+            for old_label, mid_label in resolution.merge_map.items():
+                current = mid_label
+                visited = {old_label, mid_label}
+                while current in resolution.merge_map:
+                    current = resolution.merge_map[current]
+                    if current in visited:
+                        break  # 防御环路
+                    visited.add(current)
+                _resolved_merge[old_label] = current
+            for old_label, surviving_label in _resolved_merge.items():
                 surviving_id = label_to_id.get(surviving_label)
                 if surviving_id and old_label not in label_to_id:
                     label_to_id[old_label] = surviving_id
@@ -1328,7 +1340,7 @@ class GraphService:
             communities_summarized = cs_result.get("communities_summarized", 0)
             fallback_used = cs_result.get("fallback_used", 0)
             has_embedding_degradation = communities_summarized > 0 and embeddings_failed >= communities_summarized
-            has_llm_fallback = fallback_used > 0
+            has_llm_fallback = communities_summarized > 0 and fallback_used >= communities_summarized
             if has_embedding_degradation or has_llm_fallback:
                 persisted_warnings.append(
                     {
