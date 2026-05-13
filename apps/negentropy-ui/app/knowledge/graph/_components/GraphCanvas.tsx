@@ -288,7 +288,7 @@ export function GraphCanvas({
         </>
       }
     >
-      <div ref={containerRef} className="h-full w-full" />
+      <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
     </GraphCanvasFrame>
   );
 }
