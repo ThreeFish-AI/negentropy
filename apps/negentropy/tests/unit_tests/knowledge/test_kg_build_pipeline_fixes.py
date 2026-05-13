@@ -249,11 +249,13 @@ async def test_community_summarizer_propagates_drop_params_to_llm():
 
     assert result == "summary text"
     assert captured["model"] == "openai/gpt-5-mini"
-    # 当 caller 显式指定 model 时，extra_kwargs 仅保留 drop_params（避免 vendor 凭证错配）
+    # 当 caller 显式指定 model 时，保留凭证透传字段 (api_key/api_base/drop_params)，
+    # 仅丢弃 temperature 等模型选择类参数（避免 OPENAI_API_KEY 丢失导致 LLM 全量失败）
     extra = captured.get("extra_kwargs") or {}
     assert extra.get("drop_params") is True
-    # api_key 不应在 caller 显式 model 路径中被透传
-    assert "api_key" not in extra
+    assert extra.get("api_key") == "sk-x"
+    # temperature 等非凭证字段应被丢弃
+    assert "temperature" not in extra
 
 
 # =====================================================================

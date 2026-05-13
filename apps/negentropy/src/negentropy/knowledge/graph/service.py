@@ -911,11 +911,12 @@ class GraphService:
             resolver = EntityResolver(
                 ann_threshold=build_config.semantic_dedup_threshold or 0.85,
             )
-            entities_to_save = await resolver.resolve(
+            resolution = await resolver.resolve(
                 new_entities=all_entities,
                 find_similar=build_repo.find_similar_entities,
                 corpus_id=corpus_id,
             )
+            entities_to_save = resolution.entities
 
             # 持久化实体
             await build_repo.create_entities(
@@ -934,6 +935,28 @@ class GraphService:
                         norm_label_to_id[norm] = e.id
             # ID → Label 反向映射（用于双写时传递实体名称而非 UUID）
             id_to_label: dict[str, str] = {e.id.replace("entity:", ""): e.label for e in entities_to_save if e.label}
+
+            # 将实体消解的合并映射注入 label_to_id，使 _resolve_ref 能解析
+            # 被合并掉的旧实体标签（如 "Prithvi Rajasakeran" → "Prithvi Rajasekaran"）
+            # 先解析传递链：merge_map 可能包含 A→B, B→C 的链式映射，
+            # 需将所有 old_label 指向最终的存留实体。
+            _resolved_merge: dict[str, str] = {}
+            for old_label, mid_label in resolution.merge_map.items():
+                current = mid_label
+                visited = {old_label, mid_label}
+                while current in resolution.merge_map:
+                    current = resolution.merge_map[current]
+                    if current in visited:
+                        break  # 防御环路
+                    visited.add(current)
+                _resolved_merge[old_label] = current
+            for old_label, surviving_label in _resolved_merge.items():
+                surviving_id = label_to_id.get(surviving_label)
+                if surviving_id and old_label not in label_to_id:
+                    label_to_id[old_label] = surviving_id
+                    norm_old = old_label.strip().lower()
+                    if norm_old not in norm_label_to_id:
+                        norm_label_to_id[norm_old] = surviving_id
 
             def _resolve_ref(ref: str, field_name: str) -> str | None:
                 """解析关系端点引用：label → ID / hash → 规范化查找 / UUID 直通"""
@@ -1197,6 +1220,7 @@ class GraphService:
             )
 
             # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
+            cs_result: dict[str, Any] = {}
             try:
                 from ..ingestion.embedding import build_embedding_fn
                 from .community_summarizer import CommunitySummarizer
@@ -1205,8 +1229,32 @@ class GraphService:
                 # 召回依赖 kg_community_summaries.embedding；若 embedding 配置不可用
                 # （旧环境 / 单测），降级为不写 embedding，由 GlobalSearchService 的
                 # _has_summary_embeddings 探测后自动回退到 entity_count 排序。
+                # 从 corpus.config['models']['embedding_config_id'] 提取语料库专用
+                # embedding 配置，确保社区摘要与文档 chunks 使用同一向量空间。
+                cs_embedding_config_id: str | None = None
                 try:
-                    cs_embedding_fn = build_embedding_fn()
+                    from sqlalchemy import text as sa_text
+
+                    from negentropy.models.base import NEGENTROPY_SCHEMA
+
+                    cfg_row = await shared_session.execute(
+                        sa_text(f"""
+                            SELECT config FROM {NEGENTROPY_SCHEMA}.corpus
+                            WHERE id = :cid
+                        """),
+                        {"cid": str(corpus_id)},
+                    )
+                    cfg_val = cfg_row.scalar()
+                    if isinstance(cfg_val, dict):
+                        models_cfg = cfg_val.get("models")
+                        if isinstance(models_cfg, dict):
+                            eid = models_cfg.get("embedding_config_id")
+                            if eid is not None:
+                                cs_embedding_config_id = str(eid)
+                except Exception:
+                    pass  # 查询失败 → 使用全局默认
+                try:
+                    cs_embedding_fn = build_embedding_fn(cs_embedding_config_id)
                 except Exception as ef_exc:
                     cs_embedding_fn = None
                     logger.warning(
@@ -1283,11 +1331,30 @@ class GraphService:
             # 区分 completed vs completed_with_errors：
             # 当关键算法阶段（社区检测、摘要生成、PageRank）存在 warning 时，
             # 标记为 completed_with_errors 以便前端/运维感知部分功能降级。
+            # 同样检测社区摘要 embedding 大面积失败和 LLM fallback 降级。
             algo_warnings = [w for w in _strip_phase_entries(build_warnings) if "algorithm" in w]
             has_critical_algo_failure = any(
                 w.get("algorithm") in ("community_detection", "community_summary", "pagerank") for w in algo_warnings
             )
-            final_status = "completed_with_errors" if has_critical_algo_failure else "completed"
+            embeddings_failed = cs_result.get("embeddings_failed", 0)
+            communities_summarized = cs_result.get("communities_summarized", 0)
+            fallback_used = cs_result.get("fallback_used", 0)
+            has_embedding_degradation = communities_summarized > 0 and embeddings_failed >= communities_summarized
+            has_llm_fallback = communities_summarized > 0 and fallback_used >= communities_summarized
+            if has_embedding_degradation or has_llm_fallback:
+                persisted_warnings.append(
+                    {
+                        "algorithm": "community_summary_embedding",
+                        "embeddings_failed": embeddings_failed,
+                        "communities_summarized": communities_summarized,
+                        "fallback_used": fallback_used,
+                    }
+                )
+            final_status = (
+                "completed_with_errors"
+                if (has_critical_algo_failure or has_embedding_degradation or has_llm_fallback)
+                else "completed"
+            )
 
             await build_repo.update_build_run(
                 run_id=run_uuid,

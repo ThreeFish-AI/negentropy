@@ -22,7 +22,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import defaultdict
-from typing import Any
+from typing import Any, NamedTuple
 
 from negentropy.logging import get_logger
 
@@ -38,6 +38,8 @@ _LEGAL_SUFFIXES = re.compile(
 
 # Token 重叠阈值
 _JACCARD_THRESHOLD = 0.55
+# 编辑距离相似度阈值（difflib.SequenceMatcher.ratio）
+_EDIT_DISTANCE_THRESHOLD = 0.80
 
 
 def _extract_tokens(normalized_label: str) -> set[str]:
@@ -104,7 +106,21 @@ def _should_merge_by_tokens(
     intersection = tokens_a & tokens_b
     union = tokens_a | tokens_b
     jaccard = len(intersection) / len(union) if union else 0.0
-    return jaccard >= _JACCARD_THRESHOLD
+    if jaccard >= _JACCARD_THRESHOLD:
+        return True
+
+    # 条件 5: 编辑距离 — 捕获单字符拼写变体（如 "rajasakeran" vs "rajasekaran"）
+    # 仅对相似长度的标签触发，避免将短缩写与全称匹配
+    if len(norm_a) >= 4 and len(norm_b) >= 4:
+        len_ratio = min(len(norm_a), len(norm_b)) / max(len(norm_a), len(norm_b))
+        if len_ratio >= 0.8:
+            from difflib import SequenceMatcher
+
+            similarity = SequenceMatcher(None, norm_a, norm_b).ratio()
+            if similarity >= _EDIT_DISTANCE_THRESHOLD:
+                return True
+
+    return False
 
 
 # Unicode NFC + 小写 + 去除首尾空白的规范化
@@ -123,6 +139,13 @@ def blocking_key(entity: GraphNode) -> str:
     norm = normalize_label(entity.label or "")
     prefix = norm[:3] if len(norm) >= 3 else norm
     return f"{prefix}|{entity.node_type or 'other'}"
+
+
+class ResolutionResult(NamedTuple):
+    """实体消解结果：包含存留实体列表与合并映射"""
+
+    entities: list[GraphNode]
+    merge_map: dict[str, str]  # old_label → surviving_label
 
 
 class EntityResolver:
@@ -153,8 +176,8 @@ class EntityResolver:
         new_entities: list[GraphNode],
         find_similar: Any,  # Callable for ANN lookup
         corpus_id: Any,
-    ) -> list[GraphNode]:
-        """执行多策略实体消解，返回去重后的实体列表
+    ) -> ResolutionResult:
+        """执行多策略实体消解，返回去重后的实体列表与合并映射
 
         Args:
             new_entities: 待消解的新实体列表
@@ -162,10 +185,10 @@ class EntityResolver:
             corpus_id: 语料库 ID
 
         Returns:
-            去重后的实体列表（重复实体已被合并）
+            ResolutionResult(entities=存留实体列表, merge_map=合并映射)
         """
         if not new_entities:
-            return new_entities
+            return ResolutionResult(entities=new_entities, merge_map={})
 
         # Stage 0: Blocking — 按 blocking_key 分组
         blocks: dict[str, list[int]] = defaultdict(list)
@@ -175,6 +198,8 @@ class EntityResolver:
 
         # 已合并的实体索引
         merged_secondary: set[int] = set()
+        # 合并映射：被合并实体的 label → 存留实体的 label
+        merge_map: dict[str, str] = {}
 
         # Stage 1: 精确匹配 (block 内规范化标签 + 实体类型匹配)
         label_type_to_primary: dict[str, int] = {}
@@ -183,24 +208,23 @@ class EntityResolver:
                 entity = new_entities[idx]
                 dedup_key = f"{normalize_label(entity.label or '')}|{entity.node_type or 'other'}"
                 if dedup_key in label_type_to_primary:
-                    # 合并：保留置信度更高的
-                    # _pick_primary 返回 0 表示 primary_idx 胜出（保持现有 primary），
-                    # 返回 1 表示 idx 胜出（替换 primary）。直接与 primary_idx 比较是错误的：
-                    # 仅在 primary_idx == 0 时偶然正确，否则总是触发 swap，导致丢失高置信度实体。
                     primary_idx = label_type_to_primary[dedup_key]
                     if self._pick_primary(new_entities[primary_idx], new_entities[idx]) == 1:
                         merged_secondary.add(primary_idx)
+                        merge_map[new_entities[primary_idx].label or ""] = new_entities[idx].label or ""
                         label_type_to_primary[dedup_key] = idx
                     else:
                         merged_secondary.add(idx)
+                        merge_map[new_entities[idx].label or ""] = new_entities[primary_idx].label or ""
                 else:
                     label_type_to_primary[dedup_key] = idx
 
         # Stage 1.5: Token 重叠检测 — 捕获缩写/别名/子串变体
         # 跨 block 对比：对 Stage 1 未合并的同类型实体计算 token Jaccard 系数，
         # 解决 "GAN" vs "Generative Adversarial Networks (GANs)" 类问题。
-        token_merged = self._token_overlap_stage(new_entities, merged_secondary)
+        token_merged, token_merge_map = self._token_overlap_stage(new_entities, merged_secondary)
         merged_secondary.update(token_merged)
+        merge_map.update(token_merge_map)
 
         # Stage 2: 向量 ANN 查找（对未合并的实体）
         remaining = [i for i in range(len(new_entities)) if i not in merged_secondary]
@@ -221,7 +245,7 @@ class EntityResolver:
                 remaining=len(result),
             )
 
-        return result
+        return ResolutionResult(entities=result, merge_map=merge_map)
 
     def _pick_primary(self, a: GraphNode, b: GraphNode) -> int:
         """选择主实体（置信度更高者），返回 0 选 a，返回 1 选 b"""
@@ -233,7 +257,7 @@ class EntityResolver:
         self,
         entities: list[GraphNode],
         already_merged: set[int],
-    ) -> set[int]:
+    ) -> tuple[set[int], dict[str, str]]:
         """Stage 1.5: Token 重叠检测 — 跨 block 捕获缩写/别名/子串变体
 
         对同 entity_type 的未合并实体，计算 token Jaccard 系数与子串包含关系，
@@ -241,8 +265,12 @@ class EntityResolver:
           - "GAN" vs "Generative Adversarial Networks (GANs)"
           - "RetroForge" vs "RetroForge - 2D Retro Game Maker"
           - "Sonnet 4.5" vs "Claude Sonnet 4.5"
+
+        Returns:
+            (merged_indices, merge_map) 元组
         """
         merged: set[int] = set()
+        merge_map: dict[str, str] = {}
         # 按类型分组未合并的实体
         type_groups: dict[str, list[int]] = defaultdict(list)
         for i in range(len(entities)):
@@ -269,9 +297,11 @@ class EntityResolver:
                         # 保留置信度更高的
                         if self._pick_primary(entities[p_idx], entity) == 1:
                             merged.add(p_idx)
+                            merge_map[entities[p_idx].label or ""] = entity.label or ""
                             primaries[pi] = (idx, tokens, norm)
                         else:
                             merged.add(idx)
+                            merge_map[entity.label or ""] = entities[p_idx].label or ""
                         matched = True
                         break
 
@@ -283,7 +313,7 @@ class EntityResolver:
                 "token_overlap_merged",
                 merged_count=len(merged),
             )
-        return merged
+        return merged, merge_map
 
     async def _ann_stage(
         self,

@@ -113,12 +113,14 @@ class CommunitySummarizer:
                 entity_count=len(fallback_entities),
             )
             try:
-                summary = await self._summarize_one(0, fallback_entities)
+                summary, used_fallback = await self._summarize_one(0, fallback_entities)
                 emb_failed = await self._persist_summary(db, corpus_id, summary, level=0)
                 await db.commit()
                 result: dict[str, Any] = {"communities_summarized": 1, "errors": 0}
                 if emb_failed:
                     result["embeddings_failed"] = 1
+                if used_fallback:
+                    result["fallback_used"] = 1
                 return result
             except Exception as exc:
                 logger.warning(
@@ -131,15 +133,18 @@ class CommunitySummarizer:
         summarized = 0
         errors = 0
         embeddings_failed = 0
+        fallback_used = 0
 
         for community_id, entities in community_entities.items():
             if not entities:
                 continue
 
             try:
-                summary = await self._summarize_one(community_id, entities)
+                summary, used_fb = await self._summarize_one(community_id, entities)
                 emb_failed = await self._persist_summary(db, corpus_id, summary, level=1)
                 summarized += 1
+                if used_fb:
+                    fallback_used += 1
                 if emb_failed:
                     embeddings_failed += 1
             except Exception as exc:
@@ -159,11 +164,14 @@ class CommunitySummarizer:
             summarized=summarized,
             errors=errors,
             embeddings_failed=embeddings_failed,
+            fallback_used=fallback_used,
         )
 
-        result = {"communities_summarized": summarized, "errors": errors}
+        result: dict[str, Any] = {"communities_summarized": summarized, "errors": errors}
         if embeddings_failed:
             result["embeddings_failed"] = embeddings_failed
+        if fallback_used:
+            result["fallback_used"] = fallback_used
         return result
 
     async def _summarize_multi_level(
@@ -200,6 +208,7 @@ class CommunitySummarizer:
         total_summarized = 0
         total_errors = 0
         total_embeddings_failed = 0
+        total_fallback_used = 0
 
         for level, partition in levels_data.items():
             # 按 community_id 分组
@@ -217,9 +226,11 @@ class CommunitySummarizer:
                 if not entities:
                     continue
                 try:
-                    summary = await self._summarize_one(community_id, entities)
+                    summary, used_fb = await self._summarize_one(community_id, entities)
                     emb_failed = await self._persist_summary(db, corpus_id, summary, level=level)
                     total_summarized += 1
+                    if used_fb:
+                        total_fallback_used += 1
                     if emb_failed:
                         total_embeddings_failed += 1
                 except Exception as exc:
@@ -240,11 +251,14 @@ class CommunitySummarizer:
             total_summarized=total_summarized,
             total_errors=total_errors,
             total_embeddings_failed=total_embeddings_failed,
+            total_fallback_used=total_fallback_used,
         )
 
         ml_result: dict[str, Any] = {"communities_summarized": total_summarized, "errors": total_errors}
         if total_embeddings_failed:
             ml_result["embeddings_failed"] = total_embeddings_failed
+        if total_fallback_used:
+            ml_result["fallback_used"] = total_fallback_used
         return ml_result
 
     async def _load_all_entities(
@@ -308,8 +322,13 @@ class CommunitySummarizer:
         self,
         community_id: int,
         entities: list[dict[str, Any]],
-    ) -> CommunitySummary:
-        """为单个社区生成摘要"""
+    ) -> tuple[CommunitySummary, bool]:
+        """为单个社区生成摘要
+
+        Returns:
+            (CommunitySummary, used_fallback) 元组，used_fallback 为 True 表示
+            LLM 调用失败后使用了实体列表拼接降级文本。
+        """
         top_entities = [e["name"] for e in entities[:10]]
 
         prompt = _SUMMARY_PROMPT.format(
@@ -321,16 +340,21 @@ class CommunitySummarizer:
         )
 
         summary_text = await self._call_llm(prompt)
+        used_fallback = False
 
         if not summary_text:
             summary_text = f"Community of {len(entities)} related entities: {', '.join(top_entities[:5])}"
+            used_fallback = True
 
-        return CommunitySummary(
-            community_id=community_id,
-            summary_text=summary_text.strip(),
-            entity_count=len(entities),
-            relation_count=0,
-            top_entities=top_entities[:5],
+        return (
+            CommunitySummary(
+                community_id=community_id,
+                summary_text=summary_text.strip(),
+                entity_count=len(entities),
+                relation_count=0,
+                top_entities=top_entities[:5],
+            ),
+            used_fallback,
         )
 
     async def _call_llm(self, prompt: str) -> str:
@@ -355,8 +379,17 @@ class CommunitySummarizer:
 
         if self._model:
             model = self._model
-            # caller 已显式指定 model：仅保留与凭证/语义无关的安全字段，避免 vendor 错配
-            extra_kwargs = {k: v for k, v in extra_kwargs.items() if k in ("drop_params",)}
+            # caller 已显式指定 model：保留凭证透传字段，仅丢弃模型选择类参数
+            _CREDENTIAL_KEYS = frozenset(
+                {
+                    "api_key",
+                    "api_base",
+                    "api_version",
+                    "api_type",
+                    "drop_params",
+                }
+            )
+            extra_kwargs = {k: v for k, v in extra_kwargs.items() if k in _CREDENTIAL_KEYS}
         else:
             model = resolved_model
 
