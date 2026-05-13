@@ -256,7 +256,7 @@ export function ForceGraphCanvas({
         </>
       }
     >
-      <div ref={containerRef} className="h-full w-full">
+      <div ref={containerRef} style={{ position: "absolute", inset: 0 }}>
         {ForceGraph2D && dimensions.width > 0 && dimensions.height > 0 && (
           <ForceGraph2D
             ref={graphRef}
