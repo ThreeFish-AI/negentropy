@@ -432,6 +432,11 @@ class GraphService:
             chunks_fallback = 0
             total_chunks = len(chunks)
 
+            # 抽取质量观测累加器（由 process_chunk 内 nonlocal 写入；聚合到 KgBuildMetrics）
+            over_extraction_chunks = 0
+            type_override_count = 0
+            density_samples: list[float] = []
+
             batch_size = build_config.batch_size
             semaphore = asyncio.Semaphore(build_config.max_concurrency)
 
@@ -635,6 +640,7 @@ class GraphService:
                 emit_phase 阶段边界承担（最长 1 个 phase 周期感知）。
                 """
                 nonlocal chunks_fallback
+                nonlocal over_extraction_chunks, type_override_count
 
                 if is_cancelled(run_id):
                     raise PipelineCancelled(run_id, last_stage="extracting")
@@ -685,11 +691,30 @@ class GraphService:
                     relations: list[GraphEdge] = []
 
                     try:
-                        # 提取实体（带超时）
+                        # 提取实体（带超时）+ 收集 chunk 级抽取质量信号（密度截断 / 类型重判）
+                        from .extraction_validator import ChunkExtractionStats
+
+                        chunk_stats = ChunkExtractionStats()
                         entities = await asyncio.wait_for(
-                            entity_extractor.extract(text, corpus_id),
+                            entity_extractor.extract(text, corpus_id, stats_out=chunk_stats),
                             timeout=chunk_extract_timeout,
                         )
+                        # 抽取质量信号累加（同协程内 await 之后立即累加，与下游 nonlocal 互不冲突）
+                        if chunk_stats.density_truncated:
+                            over_extraction_chunks += 1
+                        type_override_count += chunk_stats.type_override_count
+                        if chunk_stats.entity_density_per_kchar > 0.0:
+                            density_samples.append(chunk_stats.entity_density_per_kchar)
+                        if chunk_stats.density_truncated or chunk_stats.type_override_count:
+                            logger.warning(
+                                "chunk_extraction_quality_signal",
+                                run_id=run_id,
+                                chunk_id=chunk_id,
+                                density_truncated=chunk_stats.density_truncated,
+                                density_dropped=chunk_stats.density_dropped_count,
+                                type_overrides=chunk_stats.type_override_count,
+                                density_per_kchar=round(chunk_stats.entity_density_per_kchar, 2),
+                            )
                         # 过滤低置信度实体
                         min_conf = build_config.min_entity_confidence
                         entities = [e for e in entities if e.metadata.get("confidence", 1.0) >= min_conf]
@@ -1255,6 +1280,15 @@ class GraphService:
                 if entities_to_save
                 else 0.0
             )
+            # 抽取密度 P95（按千字符实体数）：样本不足 2 时退化为 max
+            if len(density_samples) >= 2:
+                from statistics import quantiles
+
+                # n=20 → 19 个切点，第 18 个即 P95；列表长度 < 20 时 quantiles 仍可用
+                density_p95 = quantiles(density_samples, n=20, method="inclusive")[18]
+            else:
+                density_p95 = max(density_samples) if density_samples else 0.0
+
             build_metrics = KgBuildMetrics(
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
@@ -1268,6 +1302,9 @@ class GraphService:
                 algorithm_warnings=sum(1 for w in _strip_phase_entries(build_warnings) if "algorithm" in w),
                 community_levels=len(levels_data),
                 community_count_by_level={lv: len(set(p.values())) for lv, p in levels_data.items()},
+                over_extraction_chunks=over_extraction_chunks,
+                type_override_count=type_override_count,
+                entity_density_p95=round(density_p95, 2),
             )
 
             # 更新构建运行状态
