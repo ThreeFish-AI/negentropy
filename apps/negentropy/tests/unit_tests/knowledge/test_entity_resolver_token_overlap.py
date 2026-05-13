@@ -226,9 +226,9 @@ class TestResolveWithTokenOverlap:
             _make_entity("React", "product", confidence=0.9),
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=uuid4())
-        labels = {e.label for e in result}
+        labels = {e.label for e in result.entities}
         # GAN 和 GANs 应被合并为一个
-        assert len(result) == 2
+        assert len(result.entities) == 2
         assert "React" in labels
         # 保留的应是高置信度的那个
         assert any("Generative" in lbl or "GAN" in lbl for lbl in labels)
@@ -243,4 +243,4 @@ class TestResolveWithTokenOverlap:
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=uuid4())
         # 两个完全相同的实体应被精确匹配合并
-        assert len(result) == 1
+        assert len(result.entities) == 1

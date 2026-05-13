@@ -107,7 +107,7 @@ class TestEntityResolverExactMatch:
             _make_entity("openai", "organization"),  # 规范化后相同
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
-        assert len(result) == 1
+        assert len(result.entities) == 1
 
     async def test_removes_suffix_duplicates(self):
         resolver = EntityResolver()
@@ -116,7 +116,7 @@ class TestEntityResolverExactMatch:
             _make_entity("OpenAI Inc.", "organization"),  # 去后缀后相同
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
-        assert len(result) == 1
+        assert len(result.entities) == 1
 
     async def test_keeps_different_entities(self):
         resolver = EntityResolver()
@@ -125,7 +125,7 @@ class TestEntityResolverExactMatch:
             _make_entity("Google", "organization"),
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
-        assert len(result) == 2
+        assert len(result.entities) == 2
 
     async def test_keeps_different_types(self):
         resolver = EntityResolver()
@@ -134,18 +134,18 @@ class TestEntityResolverExactMatch:
             _make_entity("Apple", "product"),
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
-        assert len(result) == 2
+        assert len(result.entities) == 2
 
     async def test_empty_input(self):
         resolver = EntityResolver()
         result = await resolver.resolve([], find_similar=None, corpus_id=None)
-        assert result == []
+        assert result.entities == []
 
     async def test_single_entity(self):
         resolver = EntityResolver()
         entities = [_make_entity("OpenAI", "organization")]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
-        assert len(result) == 1
+        assert len(result.entities) == 1
 
     async def test_keeps_higher_confidence(self):
         resolver = EntityResolver()
@@ -154,8 +154,8 @@ class TestEntityResolverExactMatch:
             _make_entity("OpenAI Inc.", "organization", confidence=0.95),
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
-        assert len(result) == 1
-        assert result[0].metadata["confidence"] == 0.95
+        assert len(result.entities) == 1
+        assert result.entities[0].metadata["confidence"] == 0.95
 
     async def test_keeps_higher_confidence_when_primary_idx_ge_1(self):
         # 回归：dedup 命中发生在 primary_idx >= 1 时，应保留高置信度实体
@@ -167,8 +167,8 @@ class TestEntityResolverExactMatch:
             _make_entity("OpenAI Inc.", "organization", confidence=0.7),
         ]
         result = await resolver.resolve(entities, find_similar=None, corpus_id=None)
-        assert len(result) == 2
-        labels = {e.label: e.metadata["confidence"] for e in result}
+        assert len(result.entities) == 2
+        labels = {e.label: e.metadata["confidence"] for e in result.entities}
         assert "Google" in labels
         # 关键断言：保留的是 0.95 的 OpenAI，而非 0.7 的 OpenAI Inc.
         assert "OpenAI" in labels
@@ -197,8 +197,8 @@ class TestEntityResolverANN:
 
         result = await resolver.resolve(entities, find_similar=fake_find_similar, corpus_id=uuid4())
         # OpenAI 应被 ANN 合并，Google 保留
-        assert len(result) == 1
-        assert result[0].label == "Google"
+        assert len(result.entities) == 1
+        assert result.entities[0].label == "Google"
 
     async def test_ann_skips_same_name(self):
         resolver = EntityResolver(ann_threshold=0.85)
@@ -218,7 +218,7 @@ class TestEntityResolverANN:
 
         result = await resolver.resolve(entities, find_similar=fake_find_similar, corpus_id=uuid4())
         # 同名不算合并
-        assert len(result) == 1
+        assert len(result.entities) == 1
 
     async def test_ann_error_does_not_crash(self):
         resolver = EntityResolver(ann_threshold=0.85)
@@ -238,4 +238,4 @@ class TestEntityResolverANN:
 
         result = await resolver.resolve(entities, find_similar=failing_find_similar, corpus_id=uuid4())
         # ANN 失败不应丢失实体
-        assert len(result) == 1
+        assert len(result.entities) == 1
