@@ -69,6 +69,15 @@ def unregister_cancellable_run(run_id: str) -> None:
     _CANCEL_EVENTS.pop(run_id, None)
 
 
+def get_cancel_event(run_id: str) -> asyncio.Event | None:
+    """返回 run_id 对应的 cancel Event（如已注册），否则 None。
+
+    下游消费者（如 MCP client）通过此函数获取 Event 引用，
+    在长时间操作中监听取消信号，无需耦合 registry 内部实现。
+    """
+    return _CANCEL_EVENTS.get(run_id)
+
+
 def _registry_size() -> int:
     """仅用于测试：返回当前 registry 大小，验证内存泄漏防护。"""
     return len(_CANCEL_EVENTS)
