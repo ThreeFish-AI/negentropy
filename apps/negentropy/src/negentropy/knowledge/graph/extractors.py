@@ -35,6 +35,11 @@ if TYPE_CHECKING:
     pass
 
 from ..types import GraphEdge, GraphNode, KgEntityType, KgRelationType
+from .extraction_validator import (
+    ChunkExtractionStats,
+    apply_type_overrides,
+    enforce_density_cap,
+)
 
 logger = get_logger("negentropy.knowledge.llm_extractors")
 
@@ -466,6 +471,29 @@ Important:
 - Only include entities explicitly mentioned in the text
 - Assign confidence based on how clearly the entity is identified
 
+Density guideline (precision over recall):
+- Aim for at most ~1 core entity per 200 characters of input.
+- A chunk of ~1000 characters should rarely exceed 5-6 entities.
+- Prefer fewer high-confidence entities over exhaustive listing; downstream
+  pipelines (entity resolution, community detection, summarization) suffer more
+  from false positives than from minor recall gaps.
+
+Classification guideline (resolve common confusions):
+- AI models / products → product, NOT person.
+  Examples: Claude, GPT-4, GPT-4o, Gemini, Llama, Mistral, ChatGPT, Copilot, o1.
+- AI vendors / labs → organization, NOT person.
+  Examples: Anthropic, OpenAI, Google DeepMind, Meta AI, Mistral AI.
+- Real human individuals (full names of identifiable people) → person.
+  Examples: Sam Altman, Dario Amodei, Yann LeCun.
+- Frameworks / libraries / CLI tools → product.
+  Examples: LangChain, LlamaIndex, Next.js, Playwright, Claude Code.
+
+Reasoning steps (think silently, output only JSON):
+1. List candidate mentions you see in the text.
+2. For each candidate, ask: "Is this a human individual, an organization, an AI model/product, or a generic concept?"
+3. Drop generic terms, duplicates, and noise (see CRITICAL section below).
+4. Emit at most what the density guideline allows; if you must trim, keep the highest-confidence ones.
+
 CRITICAL — Avoid noise extraction:
 - Do NOT extract generic terms or common abbreviations such as "CSS", "HTML", "JSON",
   "API", "UI", "app", "key", "spec", "config", "panel", "button", "agent", "generator",
@@ -563,6 +591,8 @@ Output as JSON with the following structure:
         self,
         text: str,
         corpus_id: UUID,
+        *,
+        stats_out: ChunkExtractionStats | None = None,
     ) -> list[GraphNode]:
         """从文本中提取实体节点
 
@@ -571,6 +601,8 @@ Output as JSON with the following structure:
         Args:
             text: 输入文本
             corpus_id: 语料库 ID
+            stats_out: 可选的 chunk 级 stats 收集器；service 层每 chunk 创建一个空实例
+                传入，调用结束后读取累计的 type_override_count / density_truncated 等字段。
 
         Returns:
             提取的实体节点列表
@@ -585,7 +617,7 @@ Output as JSON with the following structure:
         )
 
         try:
-            results = await self._extract_with_llm(text)
+            results = await self._extract_with_llm(text, stats=stats_out)
 
             entities = []
             seen = set()
@@ -598,18 +630,22 @@ Output as JSON with the following structure:
                 # 生成稳定的实体 ID（基于名称哈希）
                 entity_id = self._generate_entity_id(name, corpus_id)
 
+                metadata: dict[str, Any] = {
+                    "description": result.description,
+                    "confidence": result.confidence,
+                    "source": "llm_extraction",
+                    "source_text": result.source_text,
+                    "corpus_id": str(corpus_id),
+                    "model": self._model,
+                }
+                # 透传后置校验信号（type_override_source / original_type），便于审计回滚
+                metadata.update(result.metadata)
+
                 entity = GraphNode(
                     id=entity_id,
                     label=name,
                     node_type=result.entity_type,
-                    metadata={
-                        "description": result.description,
-                        "confidence": result.confidence,
-                        "source": "llm_extraction",
-                        "source_text": result.source_text,
-                        "corpus_id": str(corpus_id),
-                        "model": self._model,
-                    },
+                    metadata=metadata,
                 )
                 entities.append(entity)
                 seen.add(name)
@@ -636,11 +672,16 @@ Output as JSON with the following structure:
 
             raise
 
-    async def _extract_with_llm(self, text: str) -> list[EntityExtractionResult]:
+    async def _extract_with_llm(
+        self,
+        text: str,
+        stats: ChunkExtractionStats | None = None,
+    ) -> list[EntityExtractionResult]:
         """使用 LLM 提取实体
 
         Args:
             text: 输入文本
+            stats: 可选 stats 收集器，转发给 ``_parse_entity_response`` 写入。
 
         Returns:
             实体提取结果列表
@@ -649,6 +690,7 @@ Output as JSON with the following structure:
 
         # Token 感知截断：英文 4000 chars ≈ 1000 token（浪费），CJK 4000 chars ≈ 2000 token（风险）
         truncated_text = _truncate_to_token_limit(text, max_tokens=3500)
+        chunk_len = len(truncated_text)
 
         prompt = self.EXTRACTION_PROMPT.format(text=truncated_text)
 
@@ -705,7 +747,7 @@ Output as JSON with the following structure:
                 )
 
                 content = response.choices[0].message.content
-                return self._parse_entity_response(content)
+                return self._parse_entity_response(content, chunk_len=chunk_len, stats=stats)
 
             except Exception as exc:
                 last_error = exc
@@ -723,14 +765,22 @@ Output as JSON with the following structure:
 
         raise RuntimeError(f"LLM entity extraction failed after {self._max_retries} retries: {last_error}")
 
-    def _parse_entity_response(self, content: str) -> list[EntityExtractionResult]:
-        """解析 LLM 响应为实体列表
+    def _parse_entity_response(
+        self,
+        content: str,
+        chunk_len: int = 0,
+        stats: ChunkExtractionStats | None = None,
+    ) -> list[EntityExtractionResult]:
+        """解析 LLM 响应为实体列表，并应用后置校验（类型重判 + 密度截断）。
 
         Args:
             content: LLM 返回的 JSON 字符串
+            chunk_len: 当前 chunk 的字符长度，用于推导密度上限；为 0 时不做密度截断
+                （便于单元测试与 corpus 外的 ad-hoc 调用复用）。
+            stats: 可选的 stats 收集器；若提供，本函数会累加 type_override_count 等字段。
 
         Returns:
-            实体提取结果列表
+            实体提取结果列表（已应用噪声过滤、类型重判与密度截断）。
         """
         try:
             data = json.loads(content)
@@ -744,6 +794,7 @@ Output as JSON with the following structure:
 
         results = []
         filtered_count = 0
+        type_override_count = 0
         for entity_data in entities:
             if not isinstance(entity_data, dict):
                 continue
@@ -761,12 +812,23 @@ Output as JSON with the following structure:
             if entity_type not in KgEntityType.all_values():
                 entity_type = KgEntityType.OTHER.value
 
+            # 类型重判：known_entities 白名单覆盖 + AI 产品 regex 兜底
+            original_type = entity_type
+            corrected_type, override_source = apply_type_overrides(name, entity_type)
+            entity_type = corrected_type
+            metadata: dict[str, Any] = {}
+            if override_source is not None:
+                metadata["type_override_source"] = override_source
+                metadata["original_type"] = original_type
+                type_override_count += 1
+
             result = EntityExtractionResult(
                 name=name,
                 entity_type=entity_type,
                 description=entity_data.get("description"),
                 confidence=float(entity_data.get("confidence", 1.0)),
                 source_text=entity_data.get("source_text"),
+                metadata=metadata,
             )
             results.append(result)
 
@@ -776,6 +838,28 @@ Output as JSON with the following structure:
                 filtered_count=filtered_count,
                 kept_count=len(results),
             )
+
+        # 密度截断（chunk_len > 0 时启用）
+        dropped = 0
+        if chunk_len > 0 and results:
+            results, dropped = enforce_density_cap(results, chunk_len)
+            if dropped:
+                logger.warning(
+                    "entity_density_truncated",
+                    chunk_len=chunk_len,
+                    kept=len(results),
+                    dropped=dropped,
+                    cap=len(results),
+                )
+
+        # stats 回写（供 service 层聚合到 KgBuildMetrics）
+        if stats is not None:
+            stats.type_override_count += type_override_count
+            stats.density_dropped_count += dropped
+            stats.density_truncated = stats.density_truncated or dropped > 0
+            if chunk_len > 0:
+                stats.entity_density_per_kchar = (len(results) / chunk_len) * 1000.0
+
         return results
 
     def _generate_entity_id(self, name: str, corpus_id: UUID) -> str:
@@ -869,6 +953,8 @@ Important:
 - Only create relationships between entities from the provided list
 - Use the most specific and descriptive relationship type available
 - Include the exact text evidence when possible
+- Limit total relations to at most ceil(entity_count * 1.2); skip weak or inferred links
+  to avoid combinatorial pairing. Quality beats quantity.
 
 Output as JSON with the following structure:
 {{"relations": [{{"source": "...", "target": "...", "type": "...",
@@ -1268,18 +1354,21 @@ class CompositeEntityExtractor:
         self,
         text: str,
         corpus_id: UUID,
+        *,
+        stats_out: ChunkExtractionStats | None = None,
     ) -> list[GraphNode]:
         """从文本中提取实体
 
         Args:
             text: 输入文本
             corpus_id: 语料库 ID
+            stats_out: 可选的 chunk 级 stats 收集器，仅在 LLM 抽取路径下生效。
 
         Returns:
             提取的实体节点列表
         """
         if self._enable_llm and self._llm_extractor:
-            return await self._llm_extractor.extract(text, corpus_id)
+            return await self._llm_extractor.extract(text, corpus_id, stats_out=stats_out)
 
         # 禁用 LLM 时直接使用正则
         from .strategy import RegexEntityExtractor

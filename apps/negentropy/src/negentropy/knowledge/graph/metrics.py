@@ -32,5 +32,10 @@ class KgBuildMetrics:
     community_levels: int = 0
     community_count_by_level: dict[int, int] = field(default_factory=dict)
 
+    # ── 抽取质量观测（来源：extraction_validator 后置校验信号） ──
+    over_extraction_chunks: int = 0  # 触发密度截断的 chunk 数
+    type_override_count: int = 0  # known_entities / regex 改判次数（按实体计）
+    entity_density_p95: float = 0.0  # 单 chunk 实体数 / chunk 字符长度 × 1000 的 P95
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
