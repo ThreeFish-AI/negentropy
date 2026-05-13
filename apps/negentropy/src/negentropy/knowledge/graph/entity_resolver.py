@@ -281,9 +281,12 @@ class EntityResolver:
         remaining = [i for i in range(len(new_entities)) if i not in merged_secondary]
 
         if remaining and find_similar is not None:
-            ann_merged, ann_id_merge_map = await self._ann_stage(new_entities, remaining, find_similar, corpus_id)
+            ann_merged, ann_id_merge_map, ann_merge_map = await self._ann_stage(
+                new_entities, remaining, find_similar, corpus_id, id_merge_map
+            )
             merged_secondary.update(ann_merged)
             id_merge_map.update(ann_id_merge_map)
+            merge_map.update(ann_merge_map)
 
         # 返回未被合并的实体
         result = [new_entities[i] for i in range(len(new_entities)) if i not in merged_secondary]
@@ -381,25 +384,52 @@ class EntityResolver:
         remaining_indices: list[int],
         find_similar: Any,
         corpus_id: Any,
-    ) -> tuple[set[int], dict[str, str]]:
+        prior_id_merge_map: dict[str, str] | None = None,
+    ) -> tuple[set[int], dict[str, str], dict[str, str]]:
         """Stage 2: 向量 ANN 查找 + 合并
 
+        Args:
+            entities: 全量实体列表。
+            remaining_indices: 经 Stage 1/1.5 后存留的实体索引。
+            find_similar: 向量相似度查询回调。
+            corpus_id: 语料库 ID。
+            prior_id_merge_map: Stage 1/1.5 已建立的 id_merge_map，
+                用于将 secondary 标签命中回溯到最终存留 id。
+
         Returns:
-            (merged_indices, id_merge_map) 元组。
+            (merged_indices, id_merge_map, merge_map) 三元组。
             id_merge_map 的 value 可能为 DB 既有实体的 UUID（不存在于本批 entities 中），
             供下游关系端点重写直接跳到 DB 存留 id。
+            merge_map 同步维护被合并实体的 label → similar_name（DB 实体名称）映射，
+            确保下游 label_to_id fallback 路径能正确解析 ANN 合并的实体。
         """
         merged: list[int] = []
         id_merge_map: dict[str, str] = {}
+        merge_map: dict[str, str] = {}
+        _prior = prior_id_merge_map or {}
 
-        # 已确认为 primary 的规范化标签集合（含类型）→ 同时记录每个 key 对应的 entity_id，
-        # 便于本批内 ANN 命中后回填到 id_merge_map。
-        primary_keys: dict[str, str] = {}
+        # 存留实体的规范化标签集合（含类型）→ 存留实体 id。
+        # 从 remaining_indices 填充，确保 primary_keys 指向真正的存留实体。
+        survivor_keys: dict[str, str] = {}
+        for i in remaining_indices:
+            e = entities[i]
+            key = f"{normalize_label(e.label or '')}|{e.node_type or 'other'}"
+            survivor_keys[key] = e.id
+
+        # 被合并 secondary 的标签 → 通过 _prior 回溯到最终存留 id。
+        # 用于 ANN 返回的 similar_name 命中 secondary 标签时，仍能正确定位存留实体。
+        secondary_survivor_keys: dict[str, str] = {}
         for i in range(len(entities)):
             if i not in remaining_indices:
                 e = entities[i]
                 key = f"{normalize_label(e.label or '')}|{e.node_type or 'other'}"
-                primary_keys[key] = e.id
+                if key not in survivor_keys:
+                    # 通过 prior_id_merge_map 回溯到存留者
+                    final_id = _prior.get(e.id, e.id)
+                    secondary_survivor_keys[key] = final_id
+
+        # 合并：survivor 优先（精确匹配），secondary 作为 fallback（经回溯后的 id）
+        combined_keys: dict[str, str] = {**secondary_survivor_keys, **survivor_keys}
 
         for idx in remaining_indices:
             entity = entities[idx]
@@ -422,19 +452,27 @@ class EntityResolver:
                 if similar_name == entity.label:
                     continue
                 similar_key = f"{normalize_label(similar_name)}|{entity.node_type or 'other'}"
-                if similar_key in primary_keys:
-                    # 命中本批已存在的 primary
-                    merged.append(idx)
-                    id_merge_map[entity.id] = primary_keys[similar_key]
-                    break
+                if similar_key in combined_keys:
+                    # 命中本批其他存留实体（或经回溯的 secondary 标签）。
+                    # 排除自合并：combined_keys 中该 key 指向的 id 可能是自身
+                    # （如 "OpenAI" vs "OpenAI Inc." 经 normalize_label 后 key 相同）。
+                    target_id = combined_keys[similar_key]
+                    if target_id == entity.id:
+                        # 规范化碰撞但实际是同一实体 → 跳过，交由 DB 路径判定
+                        pass
+                    else:
+                        merged.append(idx)
+                        id_merge_map[entity.id] = target_id
+                        break
                 # 高置信度匹配直接合并到 DB 既有实体：
                 # similar_id 是 DB UUID（非本批 entities 中的 id），关系端点重写时
-                # 需要跳到该 DB 实体。同时登记 primary_keys 以便同批后续短路命中。
+                # 需要跳到该 DB 实体。同时登记 combined_keys 以便同批后续短路命中。
                 if score >= self._ann_threshold:
                     merged.append(idx)
                     id_merge_map[entity.id] = str(similar_id)
-                    primary_keys[similar_key] = str(similar_id)
+                    combined_keys[similar_key] = str(similar_id)
+                    merge_map[entity.label or ""] = similar_name
                     break
                 # 边界区域暂不合并（LLM 验证留给后续迭代）
 
-        return set(merged), id_merge_map
+        return set(merged), id_merge_map, merge_map

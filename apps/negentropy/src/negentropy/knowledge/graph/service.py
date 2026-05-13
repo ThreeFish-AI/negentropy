@@ -957,6 +957,8 @@ class GraphService:
 
             # 标签级合并映射注入 label_to_id（保留旧逻辑作为 fallback，
             # 覆盖 LLM 直接输出 label 字符串作为 source/target 的边界场景）。
+            # 同时将 DB UUID 端点（ANN Stage 2 命中 kg_entities 既有实体）注入 id_to_label，
+            # 确保下游 sync_relation 的 canonical_name 查找能命中。
             for old_label, surviving_label in (resolution.merge_map or {}).items():
                 surviving_id = label_to_id.get(surviving_label)
                 if surviving_id and old_label not in label_to_id:
@@ -964,10 +966,25 @@ class GraphService:
                     norm_old = old_label.strip().lower()
                     if norm_old not in norm_label_to_id:
                         norm_label_to_id[norm_old] = surviving_id
+                # ANN→DB UUID 场景：surviving_label 是 DB 实体名称（不在 entities_to_save 中），
+                # surviving_id 为 None；但仍需将 old_label → surviving_label 映射注入 label_to_id，
+                # 以便 _resolve_ref 的标签级 fallback 路径能正确解析到 DB 实体名称。
+                elif not surviving_id and old_label not in label_to_id:
+                    label_to_id[old_label] = surviving_label
 
             # 存留实体 id 集合（用于 UUID/hash 直通判定）
             _surviving_ids: set[str] = {e.id for e in entities_to_save}
             _surviving_clean_ids: set[str] = {e.id.replace("entity:", "") for e in entities_to_save}
+
+            # ANN→DB UUID 反向映射：DB UUID → DB 实体名称，
+            # 用于 sync_relation 的 canonical_name 查找与 _resolve_ref 的标签级 fallback。
+            # 仅当 id_merge_map 的 value 不在本批存留实体中时，才视为外部 DB UUID。
+            db_uuid_to_label: dict[str, str] = {}
+            for _old_id, _surviving_id in id_merge_map.items():
+                if _surviving_id not in _surviving_clean_ids and _surviving_id not in _surviving_ids:
+                    _label = id_to_label.get(_old_id)
+                    if _label and _label in label_to_id:
+                        db_uuid_to_label[_surviving_id] = label_to_id[_label]
 
             def _resolve_ref(ref: str, field_name: str) -> str | None:
                 """解析关系端点引用。
@@ -986,9 +1003,32 @@ class GraphService:
                 # 1. ID 级直查：被合并实体 id → 存留 id（权威映射）
                 clean = ref.replace("entity:", "")
                 if clean in id_merge_map:
-                    return id_merge_map[clean]
+                    resolved = id_merge_map[clean]
+                    # 存活检查：如果 resolved 是本批存留实体的 id（hex hash），
+                    # 直接返回；如果 resolved 是 DB UUID（kg_entities.id），
+                    # 需要转写为 label 以便下游 _create_relation_with_session（基于
+                    # knowledge.id）和 sync_relation（基于 canonical_name）能正确处理。
+                    if resolved in _surviving_clean_ids or resolved in _surviving_ids:
+                        return ref if ref.startswith("entity:") else f"entity:{clean}"
+                    # DB UUID → label → label_to_id fallback
+                    if resolved in db_uuid_to_label:
+                        return db_uuid_to_label[resolved]
+                    # resolved 是 DB UUID 但无 label 映射 → 标记 unresolved
+                    logger.warning(
+                        "relation_endpoint_db_uuid_unresolved",
+                        run_id=run_id,
+                        field=field_name,
+                        ref=ref[:64],
+                        resolved_id=resolved[:36],
+                    )
+                    return None
                 if ref in id_merge_map:
-                    return id_merge_map[ref]
+                    resolved = id_merge_map[ref]
+                    if resolved in _surviving_clean_ids or resolved in _surviving_ids:
+                        return ref
+                    if resolved in db_uuid_to_label:
+                        return db_uuid_to_label[resolved]
+                    return None
 
                 # 2. ID 已是存留实体（无需重写）
                 if clean in _surviving_clean_ids or ref in _surviving_ids:
@@ -1127,8 +1167,14 @@ class GraphService:
                 ]
                 edge_dicts = [
                     {
-                        "source": id_to_label.get(r.source.replace("entity:", ""), r.source.replace("entity:", "")),
-                        "target": id_to_label.get(r.target.replace("entity:", ""), r.target.replace("entity:", "")),
+                        "source": id_to_label.get(
+                            r.source.replace("entity:", ""),
+                            db_uuid_to_label.get(r.source.replace("entity:", ""), r.source.replace("entity:", "")),
+                        ),
+                        "target": id_to_label.get(
+                            r.target.replace("entity:", ""),
+                            db_uuid_to_label.get(r.target.replace("entity:", ""), r.target.replace("entity:", "")),
+                        ),
                         "edge_type": r.edge_type,
                         "label": r.label,
                         "weight": r.weight,

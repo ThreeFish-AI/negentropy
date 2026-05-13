@@ -323,8 +323,8 @@ def _compute_retry_backoff(error_str: str, attempt: int) -> float:
         [2] M. T. Nygard, *Release It! Design and Deploy Production-Ready Software*,
             2nd ed., Pragmatic Bookshelf, 2018, ch. 5 (Stability Patterns).
     """
-    # 普通错误的指数退避基线（用于 floor 计算与默认返回）
-    default_backoff = min(2.0**attempt + random.uniform(0, 1), 10.0)
+    # 指数退避基线（不含 jitter，用于 retry_after 的 floor 计算）
+    base_backoff = min(2.0**attempt, 10.0)
 
     is_gateway_timeout = "524" in error_str or "timeout" in error_str.lower() or "timed out" in error_str.lower()
     if is_gateway_timeout:
@@ -338,11 +338,11 @@ def _compute_retry_backoff(error_str: str, attempt: int) -> float:
         retry_after = _extract_retry_after_seconds(error_str)
         if retry_after is not None:
             # floor: 至少不低于默认指数退避（防止 retry_after=1 反而加速）
-            # cap: 最多 120s（防止 retry_after=3600 阻塞构建）
-            return min(max(retry_after, default_backoff), 120.0) + random.uniform(0, 1)
+            # cap: 最多 120s（防止 retry_after=3600 阻塞构建）+ 单层 jitter
+            return min(max(retry_after, base_backoff), 120.0) + random.uniform(0, 1)
 
     # 普通错误：指数退避 1s, 2s, 4s (cap 10s) + jitter
-    return default_backoff
+    return min(base_backoff + random.uniform(0, 1), 10.0)
 
 
 async def call_llm_with_retry(

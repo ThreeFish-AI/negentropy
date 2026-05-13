@@ -83,26 +83,26 @@ class TestRetryAfterHonored:
         """关键回归：Cloudflare 502 + retry_after=60 → backoff ≥ 60s。"""
         err = "litellm.BadGatewayError: OpenAIException - Error code: 502 - {'type': 'bad gateway', 'retry_after': 60}"
         backoff = _compute_retry_backoff(err, attempt=0)
-        # floor=max(60, default_backoff≈1)=60；jitter[0,1]
-        assert 60.0 <= backoff <= 61.5
+        # floor=max(60, base_backoff=1.0)=60；单层 jitter[0,1)
+        assert 60.0 <= backoff <= 61.0
 
     def test_503_with_retry_after_15_uses_15(self):
         err = "503 Service Unavailable. Retry-After: 15"
         backoff = _compute_retry_backoff(err, attempt=0)
-        assert 15.0 <= backoff <= 16.5
+        assert 15.0 <= backoff <= 16.0
 
     def test_429_with_retry_after_capped_at_120(self):
         """超长 retry_after 被 cap 到 120s，防止构建阻塞。"""
         err = "429 Too Many Requests, retry_after: 3600"
         backoff = _compute_retry_backoff(err, attempt=0)
-        assert backoff <= 121.5  # 120 + jitter[0,1.5]
+        assert backoff <= 121.0  # 120 + 单层 jitter[0,1)
 
     def test_502_retry_after_1_does_not_accelerate(self):
         """retry_after=1 比指数退避更快时，应使用 floor（默认退避）。"""
         err = "502 Bad Gateway, retry_after: 1"
-        # attempt=3: default = min(2^3 + jitter, 10) = 8-9
+        # attempt=3: base_backoff = min(2^3, 10) = 8.0
         backoff = _compute_retry_backoff(err, attempt=3)
-        # floor=max(1, 8-9)=8-9，加 jitter[0,1] 后 8-10
+        # floor=max(1, 8.0)=8.0，加 jitter[0,1) 后 8.0-9.0
         assert backoff >= 8.0
 
 
