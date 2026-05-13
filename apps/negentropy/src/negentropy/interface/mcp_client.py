@@ -537,12 +537,8 @@ class McpClientService:
             )
             result.duration_ms = int((time.time() - start_time) * 1000)
             return result
-        except McpCancelledError as exc:
-            return McpToolCallResult(
-                success=False,
-                error=f"MCP tool call cancelled: {exc}",
-                duration_ms=int((time.time() - start_time) * 1000),
-            )
+        except McpCancelledError:
+            raise
         except TimeoutError:
             return McpToolCallResult(
                 success=False,
@@ -824,14 +820,8 @@ class McpClientService:
             )
             result.tool_result.duration_ms = int((time.time() - start_time) * 1000)
             return result
-        except McpCancelledError as exc:
-            return McpToolCallWithResourcesResult(
-                tool_result=McpToolCallResult(
-                    success=False,
-                    error=f"MCP tool call cancelled: {exc}",
-                    duration_ms=int((time.time() - start_time) * 1000),
-                ),
-            )
+        except McpCancelledError:
+            raise
         except TimeoutError:
             return McpToolCallWithResourcesResult(
                 tool_result=McpToolCallResult(
