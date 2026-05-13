@@ -1804,6 +1804,7 @@ class DataExtractorProvider:
         filename: str | None = None,
         content_type: str | None = None,
         tracker: Any | None = None,
+        cancel_event: Any | None = None,
     ) -> ExtractedDocumentResult:
         targets = resolve_targets(corpus_config, source_kind)
         if not targets:
@@ -1842,6 +1843,7 @@ class DataExtractorProvider:
                 tracker=tracker,
                 stage_name=stage_name,
                 llm_config_id=llm_config_id,
+                cancel_event=cancel_event,
             )
             attempts.append(attempt["attempt"])
 
@@ -1908,6 +1910,7 @@ class DataExtractorProvider:
         tracker: Any | None = None,
         stage_name: str | None = None,
         llm_config_id: str | None = None,
+        cancel_event: Any | None = None,
     ) -> dict[str, Any]:
         # 超时兜底: 当 target 未显式配置 timeout_ms 时，按 source_kind 填充合理默认值
         if not target.timeout_ms:
@@ -2106,6 +2109,7 @@ class DataExtractorProvider:
                     plan=plan,
                     tracker=tracker,
                     stage_name=stage_name,
+                    cancel_event=cancel_event,
                 )
                 invocation_trace.append(
                     {
@@ -2189,6 +2193,7 @@ class DataExtractorProvider:
         plan: AdaptiveToolInvocationPlan,
         tracker: Any | None = None,
         stage_name: str | None = None,
+        cancel_event: Any | None = None,
     ) -> tuple[Any, dict[str, Any], dict[str, str]]:
         """调用 MCP 工具并在同会话内拉取所有 ResourceLink 动态资源。
 
@@ -2213,6 +2218,7 @@ class DataExtractorProvider:
                 timeout_seconds=(target.timeout_ms / 1000.0) if target.timeout_ms else None,
                 external_event_sink=event_sink,
                 resolve_resource_links=True,
+                cancel_event=cancel_event,
             )
             return (
                 execution.call_result,
@@ -2341,6 +2347,7 @@ async def extract_source(
     filename: str | None = None,
     content_type: str | None = None,
     tracker: Any | None = None,
+    cancel_event: Any | None = None,
 ) -> ExtractedDocumentResult:
     targets = resolve_targets(corpus_config, source_kind)
     if not targets:
@@ -2363,6 +2370,7 @@ async def extract_source(
         filename=filename,
         content_type=content_type,
         tracker=tracker,
+        cancel_event=cancel_event,
     )
 
 

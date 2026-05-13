@@ -9,6 +9,7 @@ from uuid import UUID
 from negentropy.logging import get_logger
 
 from .cancellation import (
+    get_cancel_event,
     is_cancelled,
     register_cancellable_run,
     unregister_cancellable_run,
@@ -597,14 +598,20 @@ class KnowledgeService:
         tracker: PipelineTracker | None = None,
     ) -> tuple[str, ExtractedDocumentResult]:
         """提取 URL 内容，返回 (plain_text, 完整结果)"""
-        result = await extract_source(
-            app_name=app_name,
-            corpus_id=corpus_id,
-            corpus_config=await self._get_corpus_config(corpus_id),
-            source_kind=ROUTE_URL,
-            url=url,
-            tracker=tracker,
-        )
+        cancel_event = get_cancel_event(tracker.run_id) if tracker else None
+        try:
+            result = await extract_source(
+                app_name=app_name,
+                corpus_id=corpus_id,
+                corpus_config=await self._get_corpus_config(corpus_id),
+                source_kind=ROUTE_URL,
+                url=url,
+                tracker=tracker,
+                cancel_event=cancel_event,
+            )
+        except Exception as exc:
+            self._raise_if_mcp_cancelled(exc, tracker)
+            raise
         return result.plain_text, result
 
     async def _extract_file_content(
@@ -637,16 +644,22 @@ class KnowledgeService:
         content_type: str | None,
         tracker: PipelineTracker | None = None,
     ) -> ExtractedDocumentResult:
-        result = await extract_source(
-            app_name=app_name,
-            corpus_id=corpus_id,
-            corpus_config=await self._get_corpus_config(corpus_id),
-            source_kind=resolve_source_kind(filename=filename, content_type=content_type),
-            content=content,
-            filename=filename,
-            content_type=content_type,
-            tracker=tracker,
-        )
+        cancel_event = get_cancel_event(tracker.run_id) if tracker else None
+        try:
+            result = await extract_source(
+                app_name=app_name,
+                corpus_id=corpus_id,
+                corpus_config=await self._get_corpus_config(corpus_id),
+                source_kind=resolve_source_kind(filename=filename, content_type=content_type),
+                content=content,
+                filename=filename,
+                content_type=content_type,
+                tracker=tracker,
+                cancel_event=cancel_event,
+            )
+        except Exception as exc:
+            self._raise_if_mcp_cancelled(exc, tracker)
+            raise
         return result
 
     @staticmethod
@@ -665,6 +678,18 @@ class KnowledgeService:
             }
             raise ValueError(f"Extractor produced empty document after normalization: {diagnostics}")
         return plain_text or markdown
+
+    @staticmethod
+    def _raise_if_mcp_cancelled(exc: Exception, tracker: PipelineTracker | None) -> None:
+        """若异常为 McpCancelledError，转换为 PipelineCancelled 向上传播。
+
+        集中在 _extract_file_document / _extract_url_content 层做转换，
+        让顶层 execute_*_pipeline 的现有 ``except PipelineCancelled`` 处理逻辑无需变更。
+        """
+        from negentropy.interface.mcp_client import McpCancelledError
+
+        if isinstance(exc, McpCancelledError) and tracker:
+            raise PipelineCancelled(tracker.run_id, last_stage=tracker.current_stage) from None
 
     # =========================================================================
     # Pipeline 创建与执行（支持异步后台任务）

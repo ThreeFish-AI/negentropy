@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import tempfile
 from collections.abc import Callable
@@ -17,7 +18,7 @@ from negentropy.logging import get_logger
 from negentropy.models.plugin import McpServer, McpTool, McpToolRun, McpToolRunEvent, McpTrialAsset
 from negentropy.storage.gcs_client import GCSStorageClient
 
-from .mcp_client import McpClientService, McpResourceContent, McpToolCallResult
+from .mcp_client import McpCancelledError, McpClientService, McpResourceContent, McpToolCallResult
 
 logger = get_logger("negentropy.interface.execution")
 
@@ -96,6 +97,7 @@ class McpToolExecutionService:
         external_event_sink: Callable[[dict[str, Any]], None] | None = None,
         resolve_resource_links: bool = False,
         resource_concurrency: int = 4,
+        cancel_event: asyncio.Event | None = None,
     ) -> ExecutionResult:
         tool = await self._db.scalar(select(McpTool).where(McpTool.server_id == server.id, McpTool.name == tool_name))
         initial_payload = _json_safe(arguments or {})
@@ -227,6 +229,7 @@ class McpToolExecutionService:
                     resource_concurrency=resource_concurrency,
                     event_callback=handle_client_event,
                     stderr_callback=handle_stderr,
+                    cancel_event=cancel_event,
                 )
                 result = bundle.tool_result
                 resolved_resources = bundle.resources
@@ -244,8 +247,11 @@ class McpToolExecutionService:
                     timeout_seconds=timeout_seconds,
                     event_callback=handle_client_event,
                     stderr_callback=handle_stderr,
+                    cancel_event=cancel_event,
                 )
             tool_called = True
+        except McpCancelledError:
+            raise
         except Exception as exc:  # noqa: BLE001
             result = McpToolCallResult(success=False, error=str(exc))
             tool_called = False
