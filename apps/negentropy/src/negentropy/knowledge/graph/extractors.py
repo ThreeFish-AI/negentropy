@@ -268,18 +268,81 @@ def is_noise_entity(name: str) -> bool:
     return False
 
 
+_TRANSIENT_PROVIDER_HINTS = (
+    "502",
+    "503",
+    "429",
+    "bad gateway",
+    "service unavailable",
+    "rate limit",
+    "too many requests",
+)
+
+
+def _extract_retry_after_seconds(error_str: str) -> float | None:
+    """从错误体中提取 retry_after 数值（秒）。
+
+    支持两种来源：
+      1. JSON body 形式：``'retry_after': 60`` / ``"retry_after": "60"``。
+         Cloudflare / LiteLLM 等代理常以 JSON 错误体回传此字段。
+      2. HTTP header 形式：``Retry-After: 60``。RFC 9110 §10.2.3 规范字段。
+
+    Returns:
+        提取到的整数秒数，未匹配时返回 ``None``。
+    """
+    # JSON body：'retry_after': N 或 "retry_after": "N"
+    m = re.search(r"""['"]retry_after['"]\s*:\s*['"]?(\d+)['"]?""", error_str)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    # HTTP header：Retry-After: N
+    m = re.search(r"Retry-After\s*:\s*(\d+)", error_str, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    return None
+
+
 def _compute_retry_backoff(error_str: str, attempt: int) -> float:
     """计算重试退避时长（秒）。
 
-    针对网关超时（Cloudflare 524 等）采用更长的递增退避，
-    避免短间隔重试连续触发同一类超时浪费配额。
+    优先级：
+      1. **网关超时**（Cloudflare 524 / "timeout"）：30s, 60s, 90s（cap 120s）+ jitter，
+         避免短间隔重试连续触发同一类超时浪费配额。
+      2. **服务端显式 retry_after**（仅当错误指示瞬时故障：502 / 503 / 429 等）：
+         尊重服务端建议，但叠加 floor（≥ 默认指数退避）防止反向加速，cap 120s 防超长阻塞。
+         参考 RFC 9110 §10.2.3：``Retry-After`` 是服务端对客户端的速率提示，应予尊重。
+      3. **普通错误**：指数退避 1s, 2s, 4s（cap 10s）+ jitter。
+
+    参考文献：
+        [1] R. T. Fielding et al., "HTTP semantics," IETF RFC 9110, §10.2.3, 2022.
+        [2] M. T. Nygard, *Release It! Design and Deploy Production-Ready Software*,
+            2nd ed., Pragmatic Bookshelf, 2018, ch. 5 (Stability Patterns).
     """
+    # 普通错误的指数退避基线（用于 floor 计算与默认返回）
+    default_backoff = min(2.0**attempt + random.uniform(0, 1), 10.0)
+
     is_gateway_timeout = "524" in error_str or "timeout" in error_str.lower() or "timed out" in error_str.lower()
     if is_gateway_timeout:
         # 30s, 60s, 90s (cap 120s) + jitter
         return min(30.0 * (attempt + 1) + random.uniform(0, 5), 120.0)
+
+    # retry_after 仅对瞬时故障生效（避免对真正不可重试错误盲目延长）
+    lower = error_str.lower()
+    is_transient_provider_error = any(hint in lower for hint in _TRANSIENT_PROVIDER_HINTS)
+    if is_transient_provider_error:
+        retry_after = _extract_retry_after_seconds(error_str)
+        if retry_after is not None:
+            # floor: 至少不低于默认指数退避（防止 retry_after=1 反而加速）
+            # cap: 最多 120s（防止 retry_after=3600 阻塞构建）
+            return min(max(retry_after, default_backoff), 120.0) + random.uniform(0, 1)
+
     # 普通错误：指数退避 1s, 2s, 4s (cap 10s) + jitter
-    return min(2.0**attempt + random.uniform(0, 1), 10.0)
+    return default_backoff
 
 
 async def call_llm_with_retry(

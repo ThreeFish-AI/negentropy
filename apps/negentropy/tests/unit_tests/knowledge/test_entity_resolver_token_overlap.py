@@ -133,7 +133,7 @@ class TestTokenOverlapStage:
             _make_entity("GAN", "concept", confidence=0.8),
             _make_entity("Generative Adversarial Networks (GANs)", "concept", confidence=0.9),
         ]
-        merged, merge_map = self.resolver._token_overlap_stage(entities, set())
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, set())
         # 低置信度的 GAN 应被合并
         assert len(merged) == 1
         assert entities[0].id in [entities[i].id for i in merged] or entities[1].id in [entities[i].id for i in merged]
@@ -144,7 +144,7 @@ class TestTokenOverlapStage:
             _make_entity("RetroForge", "product", confidence=0.85),
             _make_entity("RetroForge - 2D Retro Game Maker", "product", confidence=0.9),
         ]
-        merged, merge_map = self.resolver._token_overlap_stage(entities, set())
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, set())
         assert len(merged) == 1
 
     def test_partial_name_merged(self):
@@ -153,7 +153,7 @@ class TestTokenOverlapStage:
             _make_entity("Sonnet 4.5", "product", confidence=0.8),
             _make_entity("Claude Sonnet 4.5", "product", confidence=0.9),
         ]
-        merged, merge_map = self.resolver._token_overlap_stage(entities, set())
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, set())
         assert len(merged) == 1
 
     def test_different_entities_not_merged(self):
@@ -163,7 +163,7 @@ class TestTokenOverlapStage:
             _make_entity("Vue", "product", confidence=0.9),
             _make_entity("Angular", "product", confidence=0.9),
         ]
-        merged, merge_map = self.resolver._token_overlap_stage(entities, set())
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, set())
         assert len(merged) == 0
 
     def test_different_types_not_merged(self):
@@ -172,7 +172,7 @@ class TestTokenOverlapStage:
             _make_entity("Claude", "product", confidence=0.9),
             _make_entity("Claude", "person", confidence=0.9),
         ]
-        merged, merge_map = self.resolver._token_overlap_stage(entities, set())
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, set())
         assert len(merged) == 0
 
     def test_higher_confidence_preserved(self):
@@ -181,7 +181,7 @@ class TestTokenOverlapStage:
             _make_entity("Claude Code", "product", confidence=0.7),
             _make_entity("Claude Code CLI", "product", confidence=0.95),
         ]
-        merged, merge_map = self.resolver._token_overlap_stage(entities, set())
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, set())
         assert len(merged) == 1
         # 低置信度的短名称应被合并（是 secondary）
         assert entities[0].id in [entities[i].id for i in merged]
@@ -193,7 +193,7 @@ class TestTokenOverlapStage:
             _make_entity("Prithvi Rajasekaran", "person", confidence=0.8),
             _make_entity("Prithvi Rajasakeran", "person", confidence=0.9),
         ]
-        merged, merge_map = self.resolver._token_overlap_stage(entities, set())
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, set())
         # 编辑距离检测将 "ek" vs "ke" 拼写变体识别为相似，执行合并
         assert len(merged) == 1
 
@@ -205,7 +205,7 @@ class TestTokenOverlapStage:
         ]
         # 模拟 Entity A 已被 Stage 1 合并
         already_merged = {0}
-        merged, merge_map = self.resolver._token_overlap_stage(entities, already_merged)
+        merged, merge_map, id_merge_map = self.resolver._token_overlap_stage(entities, already_merged)
         # 只有 Entity B 参与，没有配对对象
         assert len(merged) == 0
 

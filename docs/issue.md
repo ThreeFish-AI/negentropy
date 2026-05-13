@@ -1930,3 +1930,39 @@
   - SubAgent / MCP / Skills / Tools 等 Interface 子页面的 Setup 模态框若日后承载多维度子动作（如「Test Tool」「Test Skill 执行」），可复用本次「Test Connectivity 卡片内 grid 多子组 + 可选子组通过 placeholder 字段控制是否渲染」的范式；
   - `litellm.aembedding` 的桩化测试范式（对象响应 + dict 响应两条回退路径同测）对未来任何 embedding 相关功能（如「Test Rerank」）均可作为参考模板；
   - Anthropic 这种「缺失原生 capability」的供应商在 UI 上应统一采用「不渲染对应子组」而非「渲染但 disable」的处理，避免诱导用户填表后被告知不支持的二次挫败。
+
+---
+
+## ISSUE-085 KG 构建管线四项级联缺陷：事务冲突、关系端点 45% 流失、日志双身份、retry_after 失尊（2026-05-13）
+
+- **表因**：一次完整 KG 构建（20 chunks，6.5 分钟）日志暴露多处缺陷：① 终态被降级为 `completed_with_errors`，warning `community_summary_failed error=A transaction is already begun on this Session.`；② 75 条原始关系经 resolving 阶段后 34 条端点 unresolved（45% 流失），日志聚集出现 `entity:57cff7c895...` 等 32-hex hash ref（出现 15 次同一目标）；③ `build_run_updated` 日志 `run_id=f3c60faa-...` 与外层 `run_id=build-5ac15262-...` 双身份割裂；④ Cloudflare 502 错误返回 `retry_after: 60` 但 `_compute_retry_backoff` 仅按指数退避 1.1s 立刻重试。
+- **根因**：
+  1. **事务双管理**：[`apps/negentropy/src/negentropy/knowledge/graph/service.py`](../apps/negentropy/src/negentropy/knowledge/graph/service.py) B3 阶段在 try 块内对 `shared_session` 直接 `execute(SELECT FROM corpus)` 隐式 auto-begin 了事务；紧随的 `async with shared_session.begin():` 触发 SQLAlchemy 2.x `InvalidRequestError`。二阶问题：[`community_summarizer.py`](../apps/negentropy/src/negentropy/knowledge/graph/community_summarizer.py) 三处 `await db.commit()` 与外层 `begin()` 形成双重事务，违反"事务边界单一来源"。
+  2. **id 映射断链**：[`entity_resolver.py:ResolutionResult`](../apps/negentropy/src/negentropy/knowledge/graph/entity_resolver.py) 仅暴露 `merge_map: dict[str, str]`（label→label），无 id 维度；service.py:937 的 `id_to_label` 仅覆盖存留实体。extractors 将 `GraphEdge.source/target` 设为 SHA256 哈希 id（`entity:<32-hex>`），关系端点经 resolver 后引用被合并实体 hash 时 `_resolve_ref` 链 4 层查找均 miss。**更深的二阶缺陷**：`_ann_stage` 只返回 `set[int]`、不维护任何 merge_map，使得 ANN 命中 DB 既有实体（survivor 是 DB UUID、不在 new_entities 中）的场景 100% 落入 unresolved（修复前未爆发是因为该路径触发量低）。
+  3. **日志字段语义割裂**：`kg_build_runs` 表存在两个标识 `id`（UUID PK）+ `run_id`（VARCHAR `build-<hex>-<ts>` 人类可读），[`repository.py:1885-1891`](../apps/negentropy/src/negentropy/knowledge/graph/repository.py) 的 `build_run_updated` 日志字段名是 `run_id` 但传值是 UUID PK 字符串化，与 `build_run_created` 日志中 `run_id=人类可读字符串` 跨条目语义不一致。
+  4. **502 误退避**：[`extractors.py:_compute_retry_backoff`](../apps/negentropy/src/negentropy/knowledge/graph/extractors.py) 仅识别"网关超时（524/timeout）"与"普通错误"两类，未解析错误体中的 `retry_after` 字段（JSON body 或 HTTP header），Cloudflare 502 + 显式 60s 建议被指数退避 1.1s 覆盖。
+- **处理方式**：
+  1. **B3 事务剥离**：service.py B3 阶段使用独立 `AsyncSessionLocal()` 创建专用会话（与 emit_phase 通过 `_session_scope()` 走独立 session 同模式）：corpus 配置查询 + summarizer 调用全部走该独立会话，shared_session 不再涉入；summarizer 内部三处 `db.commit()` 全部移除，由独立 session 出口统一 commit / 异常 rollback。
+  2. **id_merge_map 上升为一等返回值**：`ResolutionResult` 新增 `id_merge_map: dict[str, str]` 字段；Stage 1 (Exact) / Stage 1.5 (Token) / Stage 2 (ANN) 三阶段同步维护，特别是 `_ann_stage` 签名变更为 `tuple[set[int], dict[str, str]]`，在命中 DB 既有实体时记录 `entity.id → str(similar_db_id)`；`resolve()` 末尾调用新增工具函数 `_flatten_chain` 展平 label / id 两条链路的传递映射（A→B→C ⇒ A→C, B→C）。service.py:927-998 重写 `_resolve_ref`：优先级 ID 直查 → 已是存留 id 原值返回 → 标签级 fallback；删除"32 位 hex hash unresolved"专属分支（已被 id_merge_map 覆盖）。
+  3. **日志双字段**：[`repository.py:update_build_run`](../apps/negentropy/src/negentropy/knowledge/graph/repository.py) 与抽象基类同步增加可选参数 `human_run_id: str | None = None`，`build_run_updated` / `build_run_update_skipped_by_state_guard` / `build_run_created` 三处日志统一输出 `run_uuid=<DB PK> + run_id=<人类可读>` 双字段；service.py 所有调用点（emit_phase、extracting progress、final update、cancel、failed）传入 `human_run_id=run_id`。
+  4. **retry_after 解析**：新增 `_extract_retry_after_seconds(error_str)` 同时支持 JSON body（`'retry_after': N`）和 HTTP header（`Retry-After: N`）；`_compute_retry_backoff` 仅在错误命中 `_TRANSIENT_PROVIDER_HINTS`（502/503/429/bad gateway/rate limit/too many requests）时启用；叠加 floor（≥ 默认指数退避防反向加速）与 cap（≤ 120s 防超长阻塞）+ jitter 防羊群。
+- **验证证据**：
+  - 单元测试：新增 [`test_extractors_retry_backoff.py`](../apps/negentropy/tests/unit_tests/knowledge/test_extractors_retry_backoff.py) 18 个用例（JSON / HTTP header 解析、502+retry_after 尊重、429 cap 至 120s、retry_after=1 不加速、400 非瞬时故障不被错误延长、524 优先级高于 retry_after）；新增 [`test_entity_resolver.py::TestEntityResolverIdMergeMap`](../apps/negentropy/tests/unit_tests/knowledge/test_entity_resolver.py) 6 个用例（Exact / Token / ANN 三 stage 各自 id 映射 + ANN→DB UUID 跨表 + 多跳传递链展平 + 空输入 / 无合并空字典）；新增 `TestFlattenChain` 5 个用例（单跳/二跳/三跳/环路防御/空字典）；适配既有 `test_resolve_ref.py` 结构断言（`id_merge_map` 引用 + 移除 `relation_endpoint_hash_unresolved`）与 `test_entity_resolver_token_overlap.py` 3-tuple 解包；
+  - 范围覆盖：affected 7 个测试文件 158 项断言全过；KG 单元测试目录 788/788 通过（pre-existing 单个 `test_extraction_llm_plan.py::test_build_llm_invocation_plan_returns_none_when_serialization_fails` 失败与本次修复完全无关，git stash 已验证）；
+  - **修复指标对比**：
+    - `unresolved_endpoints` / `raw_count`：日志中 34/75 ≈ 45% → 预期 < 5%（id_merge_map 直查命中率）；
+    - `community_summary_failed` 警告：1 次 → 0 次；
+    - 终态 `status`：`completed_with_errors` → `completed`；
+    - `build_run_updated` 字段一致性：单字段 `run_id=UUID` → 双字段 `run_uuid` + `run_id`；
+    - **未完成项（透明披露）**：端到端浏览器回归遵循 [browser-validation 协议](../docs/agents/browser-validation.md) 需用户在自有 Chrome 主 profile 操作真实语料库 corpus，本次未在 agent 上下文执行——本修复全由单元测试与结构断言保障。
+- **后续防范**：
+  1. **事务边界单一来源**：service / repository / domain 模块层级应明确"谁开 begin / 谁负责 commit"的契约；domain service（如 summarizer）只负责写入，事务边界由 application service 持有，杜绝跨层双重事务管理；
+  2. **多策略消解的 ID 维度必维护**：任何"按 label 合并"的策略都必须同步暴露 ID 映射（new_id → surviving_id），下游不应被迫从 label 反推 id；新增 stage 时（如未来 LLM 验证）必须遵循此契约；
+  3. **传递链展平作为通用工具**：`_flatten_chain` 应作为消解管线的强制收尾步骤，防止多跳合并的中间节点丢失；
+  4. **日志字段命名规范**：DB PK（UUID）与业务可读 ID 共存时，日志字段名应分别为 `<entity>_uuid` 与 `<entity>_id`，双字段并存输出避免跨条目语义割裂；
+  5. **Provider retry hint 尊重**：RFC 9110 §10.2.3 `Retry-After` 是服务端速率提示的标准契约，所有外部调用的重试退避都应优先识别并尊重；仅在错误明确表示瞬时故障（502/503/429）时启用以避免误用。
+- **同类问题影响**：
+  - **事务双管理**：项目内任何"service 层 `async with session.begin():` + domain 模块内部 `commit()`" 的组合都需复核，PageRank / TemporalResolver / first-class sync 等阶段建议同步审视是否存在隐式 auto-begin 残留；
+  - **ID 映射断链**：未来如引入额外的"按某属性合并"策略（embedding 聚类、LLM 仲裁、规则映射等），必须强制返回 ID 映射；HippoRAG / LightRAG 等检索阶段若有类似实体规范化逻辑，需复用 `id_merge_map` + `_flatten_chain` 范式；
+  - **provider retry 策略**：所有 LiteLLM 调用点（KG 抽取、社区摘要、Test Connectivity、Wiki Publish 等）应统一走 `_compute_retry_backoff`，避免单点遗漏。
+
