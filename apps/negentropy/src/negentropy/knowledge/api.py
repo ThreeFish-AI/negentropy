@@ -26,7 +26,7 @@ from negentropy.models.perception import Corpus, Knowledge, KnowledgeDocument, W
 from negentropy.models.plugin import McpServer, McpTool
 from negentropy.models.pulse import UserState
 
-from .api_helpers import _map_exception_to_http, _resolve_app_name
+from .api_helpers import _map_exception_to_http, _resolve_app_name, _resolve_corpus_model_ids
 from .constants import (
     DEFAULT_KEYWORD_WEIGHT,
     DEFAULT_SEARCH_LIMIT,
@@ -3276,8 +3276,12 @@ async def search_knowledge_graph(
 
     try:
         # 生成查询向量（embedding 不可用时降级为 None）
+        # 注入 Corpus 自己绑定的 embedding_config_id，与 ingestion 写入 chunk
+        # embedding 时同一份配置 → 同一向量空间 → 余弦相似度有意义。
         query_embedding: list[float] | None = None
-        embedding_fn = build_embedding_fn()
+        async with AsyncSessionLocal() as _emb_db:
+            embedding_config_id, _ = await _resolve_corpus_model_ids(_emb_db, corpus_id)
+        embedding_fn = build_embedding_fn(embedding_config_id)
         try:
             query_embedding = await embedding_fn(payload.query)
         except Exception as emb_exc:
@@ -3979,7 +3983,10 @@ async def multi_hop_reason_knowledge_graph(
         # 早退分支返回空答案。
         if not seed_ids:
             try:
-                fb_embedding_fn = build_embedding_fn()
+                # 与上游 chunk embedding 同一份模型配置，确保 hybrid_search 召回有意义。
+                async with AsyncSessionLocal() as _fb_db:
+                    fb_emb_id, _ = await _resolve_corpus_model_ids(_fb_db, corpus_id)
+                fb_embedding_fn = build_embedding_fn(fb_emb_id)
                 fb_query_embedding = await fb_embedding_fn(payload.query)
                 fb_graph_service = _get_graph_service()
                 fb_hybrid = await fb_graph_service.search(
@@ -4123,16 +4130,24 @@ async def global_search_knowledge_graph(
         max_communities=payload.max_communities,
     )
 
-    embedding_fn = build_embedding_fn()
-    query_embedding: list[float] | None = None
-    try:
-        query_embedding = await embedding_fn(payload.query)
-    except Exception as exc:
-        logger.warning("api_global_search_embedding_failed", error=str(exc))
-
-    service = GlobalSearchService(max_communities=payload.max_communities)
-
     async with AsyncSessionLocal() as db:
+        # 解 Corpus 自己绑定的 embedding / LLM 模型；缺省时 (None, None) 走全局默认。
+        # 关键：用 corpus 自己的 embedding_config_id 覆盖 _DEFAULT_EMBEDDING_MODEL，
+        # 与 ingestion 写入摘要 embedding 时使用同一份配置（同一向量空间）。
+        embedding_config_id, llm_config_id = await _resolve_corpus_model_ids(db, corpus_id)
+
+        embedding_fn = build_embedding_fn(embedding_config_id)
+        query_embedding: list[float] | None = None
+        try:
+            query_embedding = await embedding_fn(payload.query)
+        except Exception as exc:
+            logger.warning("api_global_search_embedding_failed", error=str(exc))
+
+        service = GlobalSearchService(
+            max_communities=payload.max_communities,
+            llm_config_id=llm_config_id,
+        )
+
         result = await service.search(
             db,
             corpus_id=corpus_id,

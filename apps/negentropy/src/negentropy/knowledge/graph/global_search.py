@@ -97,10 +97,21 @@ class GlobalSearchService:
         model: str | None = None,
         map_concurrency: int = 5,
         max_communities: int = 10,
+        llm_config_id: str | UUID | None = None,
     ) -> None:
+        """
+        Args:
+            model: 显式指定 LLM 模型名（``vendor/model``）；非空时优先于 ``llm_config_id``。
+            map_concurrency: Map 阶段的最大并发数（``asyncio.Semaphore``）。
+            max_communities: 候选社区数上限。
+            llm_config_id: 可选 ``model_configs.id``（``corpus.config['models']['llm_config_id']``）；
+                None 表示走 ``resolve_llm_config()`` 全局默认。设置时使用语料库专属凭证 +
+                ``api_base``，与 ingestion 阶段写入摘要时的模型保持同一配置源。
+        """
         self._model = canonicalize_model_name(model) if model else None
         self._semaphore = asyncio.Semaphore(map_concurrency)
         self._max_communities = max_communities
+        self._llm_config_id = llm_config_id
 
     async def search(
         self,
@@ -179,9 +190,24 @@ class GlobalSearchService:
             )
 
         if not evidence:
+            # 区分两种「零证据」语义，避免基础设施故障被伪装成内容缺失：
+            #   a) candidates_total>0 但全部 map 失败 → LLM 凭证 / 路由问题，
+            #      运维侧可立刻检查后端模型配置，而非误以为是语料缺失；
+            #   b) （理论上 candidates 已非空才进到这分支，无 b 情况，但保留兜底文案）。
+            answer = (
+                f"全局检索失败：候选社区 {len(candidates)} 个，但所有 Map 阶段 LLM 调用均失败。"
+                "请检查后端 LLM 模型配置（api_key / api_base / 模型可用性）并查看服务日志。"
+                if candidates
+                else "所有社区均无与查询相关的信息。"
+            )
+            logger.warning(
+                "global_search_all_map_failed",
+                corpus_id=str(corpus_id),
+                candidates_total=len(candidates),
+            )
             return GlobalSearchResult(
                 query=query,
-                answer="所有社区均无与查询相关的信息。",
+                answer=answer,
                 evidence=[],
                 candidates_total=len(candidates),
                 latency_ms=(time.time() - start) * 1000,
@@ -384,16 +410,46 @@ class GlobalSearchService:
         return await self._call_llm(prompt, max_tokens=500) or "（Reduce 阶段未能产出最终答案）"
 
     async def _call_llm(self, prompt: str, max_tokens: int) -> str:
-        from negentropy.config.model_resolver import get_fallback_llm_config
+        """调用 LLM（带重试 + 凭证透传）。
+
+        与 ``community_summarizer._call_llm`` 对齐：通过 ``resolve_llm_config*``
+        把 ``api_key`` / ``api_base`` / ``drop_params`` 等厂商参数透传到
+        ``call_llm_with_retry``，避免「硬编码默认模型 + 无凭证」导致 LiteLLM
+        默认走 OpenAI 且报 ``AuthenticationError``。
+
+        优先级：``self._model`` （caller 显式）> ``self._llm_config_id`` （Corpus 绑定）
+        > ``resolve_llm_config()`` （全局默认）> ``get_fallback_llm_config()`` （硬编码）。
+        """
+        from negentropy.config.model_resolver import (
+            get_fallback_llm_config,
+            resolve_llm_config,
+            resolve_llm_config_by_id,
+        )
 
         from .extractors import call_llm_with_retry
 
-        model = self._model or get_fallback_llm_config()[0]
+        try:
+            if self._llm_config_id is not None:
+                resolved_model, extra_kwargs = await resolve_llm_config_by_id(self._llm_config_id)
+            else:
+                resolved_model, extra_kwargs = await resolve_llm_config()
+        except Exception:
+            resolved_model, extra_kwargs = get_fallback_llm_config()
+
+        if self._model:
+            # caller 已显式指定 model：保留凭证透传字段，丢弃模型选择类参数
+            _CREDENTIAL_KEYS = frozenset({"api_key", "api_base", "api_version", "api_type", "drop_params"})
+            extra_kwargs = {k: v for k, v in extra_kwargs.items() if k in _CREDENTIAL_KEYS}
+            model = self._model
+        else:
+            model = resolved_model
+
         result = await call_llm_with_retry(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
             max_tokens=max_tokens,
             context_label="global_search",
+            extra_kwargs=extra_kwargs,
         )
         return result.strip()

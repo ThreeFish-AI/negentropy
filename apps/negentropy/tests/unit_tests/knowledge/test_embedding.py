@@ -138,3 +138,111 @@ class TestCallWithRetry:
         assert sleep_durations[0] == pytest.approx(1.0)
         assert sleep_durations[1] == pytest.approx(2.0)
         assert sleep_durations[2] == pytest.approx(4.0)
+
+
+class TestNonRetryableFailFast:
+    """凭证 / 路由类错误必须 fail-fast，不可重试到 max_retries。
+
+    回归 Fix 3：embedding `_call_with_retry` 接入 `_is_non_retryable_error`。
+    """
+
+    @pytest.mark.asyncio
+    async def test_authentication_error_does_not_retry(self):
+        """模拟 LiteLLM AuthenticationError → 第一次失败立即抛出，不再重试。"""
+        from litellm.exceptions import AuthenticationError
+
+        call_count = 0
+
+        async def auth_fail():
+            nonlocal call_count
+            call_count += 1
+            raise AuthenticationError(
+                message="The api_key client option must be set",
+                llm_provider="openai",
+                model="gpt-4o-mini",
+            )
+
+        with pytest.raises(AuthenticationError):
+            await _call_with_retry(
+                auth_fail,
+                max_retries=3,
+                base_backoff=0.01,
+                timeout=5.0,
+                context="test",
+            )
+
+        assert call_count == 1, "AuthenticationError 应在第 1 次后立即终止，不重试"
+
+    @pytest.mark.asyncio
+    async def test_not_found_error_does_not_retry(self):
+        """模拟 LiteLLM NotFoundError (404 路由不存在) → 立即抛出。"""
+        from litellm.exceptions import NotFoundError
+
+        call_count = 0
+
+        async def nf_fail():
+            nonlocal call_count
+            call_count += 1
+            raise NotFoundError(
+                message="no Route matched with those values",
+                llm_provider="gemini",
+                model="text-embedding-004",
+            )
+
+        with pytest.raises(NotFoundError):
+            await _call_with_retry(
+                nf_fail,
+                max_retries=3,
+                base_backoff=0.01,
+                timeout=5.0,
+                context="test",
+            )
+
+        assert call_count == 1, "NotFoundError 应在第 1 次后立即终止，不重试"
+
+    @pytest.mark.asyncio
+    async def test_text_pattern_matched_non_retryable(self):
+        """LiteLLM 包装层把上游错误重包成 generic Exception 时，文本模式兜底依然命中。"""
+
+        class _GenericWrap(Exception):
+            pass
+
+        call_count = 0
+
+        async def text_match_fail():
+            nonlocal call_count
+            call_count += 1
+            # 包含 'AuthenticationError' 文本，应被字符串模式识别为不可重试。
+            raise _GenericWrap("Caught AuthenticationError: api_key missing")
+
+        with pytest.raises(_GenericWrap):
+            await _call_with_retry(
+                text_match_fail,
+                max_retries=3,
+                base_backoff=0.01,
+                timeout=5.0,
+                context="test",
+            )
+
+        assert call_count == 1, "文本模式兜底应在第 1 次后立即终止"
+
+    @pytest.mark.asyncio
+    async def test_transient_error_still_retries(self):
+        """ConnectionError 等可恢复错误仍应正常重试到上限（保证不破坏既有行为）。"""
+        call_count = 0
+
+        async def transient_fail():
+            nonlocal call_count
+            call_count += 1
+            raise ConnectionError("transient")
+
+        with pytest.raises(ConnectionError):
+            await _call_with_retry(
+                transient_fail,
+                max_retries=3,
+                base_backoff=0.01,
+                timeout=5.0,
+                context="test",
+            )
+
+        assert call_count == 3, "transient 错误仍应重试到 max_retries"

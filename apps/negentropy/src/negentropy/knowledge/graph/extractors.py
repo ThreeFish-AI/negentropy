@@ -350,6 +350,58 @@ def _compute_retry_backoff(error_str: str, attempt: int) -> float:
     return min(base_backoff + random.uniform(0, 1), 10.0)
 
 
+# ============================================================================
+# 不可重试错误识别 — fail-fast 防御
+# ============================================================================
+# 凭证 / 路由 / 参数类一次性错误：重试无法恢复，应立即放弃，避免 N×退避浪费。
+# 字符串模式作为 isinstance 之外的兜底：LiteLLM 偶尔会把上游错误重包成
+# 通用 ``Exception`` 或 ``APIError``，仅靠类名匹配会漏。
+_NON_RETRYABLE_ERROR_PATTERNS: tuple[str, ...] = (
+    "AuthenticationError",
+    "NotFoundError",
+    "BadRequestError",
+    "PermissionDeniedError",
+    "UnsupportedParamsError",
+    "ContextWindowExceededError",
+    "InvalidRequestError",
+    "no route matched",  # 自建网关 404 提示
+    "api_key client option must be set",  # OpenAI SDK 未配置 key 的固定文案
+    "api key not found",
+)
+
+
+def _is_non_retryable_error(exc: BaseException) -> bool:
+    """识别凭证 / 路由 / 参数类一次性错误。
+
+    捕获策略：
+      1. 优先 ``isinstance`` 匹配 ``litellm.exceptions`` 中的显式异常类（强契约）；
+      2. 退化为类名 + 错误文本模式（防御 LiteLLM 包装层把异常重包成 generic
+         ``Exception`` / ``APIError``）。
+
+    Returns:
+        ``True`` 表示该错误重试无意义；调用方应立即终止外层循环。
+    """
+    try:
+        import litellm.exceptions as _lle  # 局部 import 避免顶层硬依赖
+
+        _NON_RETRYABLE_TYPES: tuple[type[BaseException], ...] = (
+            _lle.AuthenticationError,
+            _lle.NotFoundError,
+            _lle.BadRequestError,
+            _lle.PermissionDeniedError,
+            _lle.UnsupportedParamsError,
+            _lle.ContextWindowExceededError,
+        )
+        if isinstance(exc, _NON_RETRYABLE_TYPES):
+            return True
+    except Exception:  # noqa: BLE001 - litellm 未装或重命名时降级到文本匹配
+        pass
+
+    text_blob = f"{type(exc).__name__}: {exc}"
+    lower = text_blob.lower()
+    return any(pat.lower() in lower for pat in _NON_RETRYABLE_ERROR_PATTERNS)
+
+
 async def call_llm_with_retry(
     *,
     model: str,
@@ -405,6 +457,15 @@ async def call_llm_with_retry(
             return response.choices[0].message.content or ""
         except Exception as exc:
             last_error = exc
+            # 凭证 / 路由 / 参数类终态错误：立即放弃，避免 N×退避空转浪费配额与延迟。
+            if _is_non_retryable_error(exc):
+                logger.error(
+                    f"{context_label}_non_retryable",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    attempt=attempt + 1,
+                )
+                return ""
             backoff = _compute_retry_backoff(str(exc), attempt)
             logger.warning(
                 f"{context_label}_retry",
