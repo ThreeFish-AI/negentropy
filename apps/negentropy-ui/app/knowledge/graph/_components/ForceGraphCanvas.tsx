@@ -214,9 +214,9 @@ export function ForceGraphCanvas({
       }
       ctx.globalAlpha = 1;
 
-      // 标签（缩放足够大时显示）
-      const fontSize = Math.max(10 / globalScale, 4);
-      if (fontSize > 4 && globalScale > 0.5) {
+      // 标签（始终显示，缩小时隐藏避免过于拥挤）
+      if (globalScale > 0.3) {
+        const fontSize = Math.max(12 / globalScale, 3.5);
         ctx.font = `${fontSize}px system-ui, sans-serif`;
         ctx.fillStyle = isDark ? "#d4d4d8" : "#27272a";
         ctx.textAlign = "center";
