@@ -410,15 +410,17 @@ class GraphRepository(ABC):
         entity_count: int = 0,
         relation_count: int = 0,
         error_message: str | None = None,
+        human_run_id: str | None = None,
     ) -> None:
         """更新构建运行状态
 
         Args:
-            run_id: 运行记录 ID
+            run_id: 运行记录 ID（DB PK，UUID）
             status: 新状态
             entity_count: 实体数量
             relation_count: 关系数量
             error_message: 错误信息
+            human_run_id: 人类可读 run_id（``build-<hex>-<ts>``），仅用于日志补全。
         """
         pass
 
@@ -1788,8 +1790,11 @@ class AgeGraphRepository(GraphRepository):
             )
             await session.commit()
 
+        # 双字段日志：``run_uuid`` 为 DB PK，``run_id`` 为人类可读 ``build-<hex>-<ts>``。
+        # 与 ``build_run_updated`` 字段命名保持一致，便于跨日志检索。
         logger.info(
             "build_run_created",
+            run_uuid=str(run_uuid),
             run_id=run_id,
             corpus_id=str(corpus_id),
         )
@@ -1806,6 +1811,7 @@ class AgeGraphRepository(GraphRepository):
         progress_percent: float | None = None,
         warnings: list[dict[str, Any]] | None = None,
         processed_chunk_ids: list[str] | None = None,
+        human_run_id: str | None = None,
     ) -> None:
         """更新构建运行状态。
 
@@ -1826,6 +1832,11 @@ class AgeGraphRepository(GraphRepository):
             progress_percent: 构建进度 0.0-1.0，用于前端进度条 (Nygard, 2018)
             warnings: 非致命警告列表（如 PageRank 收敛失败）
             processed_chunk_ids: 增量构建已处理的 chunk ID 列表
+            human_run_id: 人类可读的 run_id（``build-<short>-<ts>``）。仅用于日志
+                字段补全；DB 写入仍以 UUID PK 为准。传入后 ``build_run_updated`` 与
+                ``build_run_update_skipped_by_state_guard`` 同时输出 ``run_uuid`` +
+                ``run_id`` 双字段，串联 service.py 层的人类可读 run_id 与 repository
+                层的 DB PK，便于跨日志与跨 worker 排障。
         """
         import json as _json
 
@@ -1877,14 +1888,18 @@ class AgeGraphRepository(GraphRepository):
             # 这是状态机守卫的正常拒绝路径；以 debug 级保留观测线索，便于 cancel 链路排查。
             logger.debug(
                 "build_run_update_skipped_by_state_guard",
-                run_id=str(run_id),
+                run_uuid=str(run_id),
+                run_id=human_run_id,
                 attempted_status=status,
             )
             return
 
+        # 双字段日志：``run_uuid`` 为 DB PK（持久化主键），``run_id`` 为人类可读
+        # ``build-<hex>-<ts>``（service 层局部变量名），便于跨日志/跨 worker 串联。
         logger.info(
             "build_run_updated",
-            run_id=str(run_id),
+            run_uuid=str(run_id),
+            run_id=human_run_id,
             status=status,
             entity_count=entity_count,
             relation_count=relation_count,

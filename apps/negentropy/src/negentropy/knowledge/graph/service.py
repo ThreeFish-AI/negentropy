@@ -531,6 +531,7 @@ class GraphService:
                 try:
                     update_kwargs: dict[str, Any] = {
                         "run_id": run_uuid,
+                        "human_run_id": run_id,
                         "status": "running",
                         "progress_percent": progress,
                         "warnings": list(build_warnings),
@@ -544,7 +545,8 @@ class GraphService:
                 except Exception as exc:
                     logger.warning(
                         "update_build_run_failed",
-                        run_id=str(run_uuid),
+                        run_uuid=str(run_uuid),
+                        run_id=run_id,
                         phase=phase,
                         error=str(exc),
                     )
@@ -593,6 +595,7 @@ class GraphService:
                     try:
                         await build_repo.update_build_run(
                             run_id=run_uuid,
+                            human_run_id=run_id,
                             status="running",
                             progress_percent=progress,
                             entity_count=current_entity_count,
@@ -601,7 +604,8 @@ class GraphService:
                     except Exception as exc:
                         logger.warning(
                             "update_build_run_failed",
-                            run_id=str(run_uuid),
+                            run_uuid=str(run_uuid),
+                            run_id=run_id,
                             phase=PHASE_EXTRACTING,
                             error=str(exc),
                         )
@@ -950,6 +954,17 @@ class GraphService:
             )
 
             # 重新映射关系中的实体 ID
+            #
+            # 关系端点重写策略（缺陷 2 修复）：
+            # extractors 在抽取阶段以 SHA256 哈希填充 GraphEdge.source/target
+            # （格式 ``entity:<32-hex>``）。经多策略 resolver 后，被合并的实体
+            # 不在 ``entities_to_save`` 中，旧实现 ``id_to_label`` 仅覆盖存留实体，
+            # 导致这些哈希 ref 在 _resolve_ref 链中全程 miss，最终 unresolved。
+            #
+            # 修复：使用 resolver 暴露的 ``id_merge_map`` 作为权威映射（已展平传递链
+            # 且覆盖 Exact / Token / ANN 三阶段，含 ANN→DB UUID 跨表场景），
+            # _resolve_ref 优先以 id 直查；保留 label 链作为防御性 fallback
+            # （覆盖 LLM 误输出 label 字符串而非 id 的情况）。
             label_to_id = {e.label: e.id for e in entities_to_save}
             # 规范化标签映射（处理大小写/空格差异）
             norm_label_to_id: dict[str, str] = {}
@@ -961,59 +976,104 @@ class GraphService:
             # ID → Label 反向映射（用于双写时传递实体名称而非 UUID）
             id_to_label: dict[str, str] = {e.id.replace("entity:", ""): e.label for e in entities_to_save if e.label}
 
-            # 将实体消解的合并映射注入 label_to_id，使 _resolve_ref 能解析
-            # 被合并掉的旧实体标签（如 "Prithvi Rajasakeran" → "Prithvi Rajasekaran"）
-            # 先解析传递链：merge_map 可能包含 A→B, B→C 的链式映射，
-            # 需将所有 old_label 指向最终的存留实体。
-            _resolved_merge: dict[str, str] = {}
-            for old_label, mid_label in resolution.merge_map.items():
-                current = mid_label
-                visited = {old_label, mid_label}
-                while current in resolution.merge_map:
-                    current = resolution.merge_map[current]
-                    if current in visited:
-                        break  # 防御环路
-                    visited.add(current)
-                _resolved_merge[old_label] = current
-            for old_label, surviving_label in _resolved_merge.items():
+            # 权威 ID 映射：被合并实体 id → 存留 id（含 DB UUID 跨表场景）
+            # ``resolution.id_merge_map`` 由 EntityResolver 在三 stage 内统一维护并展平。
+            id_merge_map: dict[str, str] = dict(resolution.id_merge_map or {})
+
+            # 标签级合并映射注入 label_to_id（保留旧逻辑作为 fallback，
+            # 覆盖 LLM 直接输出 label 字符串作为 source/target 的边界场景）。
+            # 同时将 DB UUID 端点（ANN Stage 2 命中 kg_entities 既有实体）注入 id_to_label，
+            # 确保下游 sync_relation 的 canonical_name 查找能命中。
+            for old_label, surviving_label in (resolution.merge_map or {}).items():
                 surviving_id = label_to_id.get(surviving_label)
                 if surviving_id and old_label not in label_to_id:
                     label_to_id[old_label] = surviving_id
                     norm_old = old_label.strip().lower()
                     if norm_old not in norm_label_to_id:
                         norm_label_to_id[norm_old] = surviving_id
+                # ANN→DB UUID 场景：surviving_label 是 DB 实体名称（不在 entities_to_save 中），
+                # surviving_id 为 None；但仍需将 old_label → surviving_label 映射注入 label_to_id，
+                # 以便 _resolve_ref 的标签级 fallback 路径能正确解析到 DB 实体名称。
+                elif not surviving_id and old_label not in label_to_id:
+                    label_to_id[old_label] = surviving_label
+
+            # 存留实体 id 集合（用于 UUID/hash 直通判定）
+            _surviving_ids: set[str] = {e.id for e in entities_to_save}
+            _surviving_clean_ids: set[str] = {e.id.replace("entity:", "") for e in entities_to_save}
+
+            # ANN→DB UUID 反向映射：DB UUID → DB 实体名称，
+            # 用于 sync_relation 的 canonical_name 查找与 _resolve_ref 的标签级 fallback。
+            # 仅当 id_merge_map 的 value 不在本批存留实体中时，才视为外部 DB UUID。
+            db_uuid_to_label: dict[str, str] = {}
+            for _old_id, _surviving_id in id_merge_map.items():
+                if _surviving_id not in _surviving_clean_ids and _surviving_id not in _surviving_ids:
+                    _label = id_to_label.get(_old_id)
+                    if _label and _label in label_to_id:
+                        db_uuid_to_label[_surviving_id] = label_to_id[_label]
 
             def _resolve_ref(ref: str, field_name: str) -> str | None:
-                """解析关系端点引用：label → ID / hash → 规范化查找 / UUID 直通"""
+                """解析关系端点引用。
+
+                优先级（由权威到防御性 fallback）：
+                  1. ID 级直查：``ref`` 是 ``entity:<hash>``，先去 ``entity:`` 前缀，
+                     若在 ``id_merge_map`` 中 → 直接返回存留 id（含 DB UUID 跨表场景）。
+                  2. ID 已是存留实体 → 原值返回。
+                  3. 标签级 fallback（覆盖 LLM 误输出 label 的边界场景）：精确 →
+                     规范化 → ID 反查标签链。
+                  4. 全部失败 → 记录 warning 返回 None。
+                """
                 if not ref:
                     return None
-                # 1. 精确标签匹配
+
+                # 1. ID 级直查：被合并实体 id → 存留 id（权威映射）
+                clean = ref.replace("entity:", "")
+                if clean in id_merge_map:
+                    resolved = id_merge_map[clean]
+                    # 存活检查：如果 resolved 是本批存留实体的 id（hex hash），
+                    # 直接返回；如果 resolved 是 DB UUID（kg_entities.id），
+                    # 需要转写为 label 以便下游 _create_relation_with_session（基于
+                    # knowledge.id）和 sync_relation（基于 canonical_name）能正确处理。
+                    if resolved in _surviving_clean_ids or resolved in _surviving_ids:
+                        return ref if ref.startswith("entity:") else f"entity:{clean}"
+                    # DB UUID → label → label_to_id fallback
+                    if resolved in db_uuid_to_label:
+                        return db_uuid_to_label[resolved]
+                    # resolved 是 DB UUID 但无 label 映射 → 标记 unresolved
+                    logger.warning(
+                        "relation_endpoint_db_uuid_unresolved",
+                        run_id=run_id,
+                        field=field_name,
+                        ref=ref[:64],
+                        resolved_id=resolved[:36],
+                    )
+                    return None
+                if ref in id_merge_map:
+                    resolved = id_merge_map[ref]
+                    if resolved in _surviving_clean_ids or resolved in _surviving_ids:
+                        return ref
+                    if resolved in db_uuid_to_label:
+                        return db_uuid_to_label[resolved]
+                    return None
+
+                # 2. ID 已是存留实体（无需重写）
+                if clean in _surviving_clean_ids or ref in _surviving_ids:
+                    # 规范化为 ``entity:<hash>`` 与下游 GraphEdge 一致
+                    return ref if ref.startswith("entity:") else f"entity:{clean}"
+
+                # 3. 标签级 fallback：精确 label
                 if ref in label_to_id:
                     return label_to_id[ref]
-                # 2. 规范化标签匹配（大小写/空格容差）
+                # 3a. 规范化 label
                 norm = ref.strip().lower()
                 if norm in norm_label_to_id:
                     return norm_label_to_id[norm]
-                # 3. ID 反向查找（hash-like 或 UUID 短格式）
-                clean = ref.replace("entity:", "")
+                # 3b. ID → label → label_to_id 间接查找（覆盖未在 id_merge_map 中的边界）
                 if clean in id_to_label:
                     resolved_label = id_to_label[clean]
                     if resolved_label in label_to_id:
                         return label_to_id[resolved_label]
-                # 4. 32 位十六进制哈希：尝试模糊匹配（取实体名哈希比较）
-                if len(ref) == 32 and all(c in "0123456789abcdef" for c in ref):
-                    logger.warning(
-                        "relation_endpoint_hash_unresolved",
-                        run_id=run_id,
-                        field=field_name,
-                        ref=ref,
-                        hint="LLM 输出了 MD5 哈希作为实体引用，无法映射到已知实体",
-                    )
-                    return None
-                # 5. 已经是 UUID 格式，直接返回
-                if ref in id_to_label or ref in {e.id for e in entities_to_save}:
-                    return ref
-                # 6. 无法解析的引用
+
+                # 4. 全部失败：unresolved
                 logger.warning(
                     "relation_endpoint_unresolved",
                     run_id=run_id,
@@ -1132,8 +1192,14 @@ class GraphService:
                 ]
                 edge_dicts = [
                     {
-                        "source": id_to_label.get(r.source.replace("entity:", ""), r.source.replace("entity:", "")),
-                        "target": id_to_label.get(r.target.replace("entity:", ""), r.target.replace("entity:", "")),
+                        "source": id_to_label.get(
+                            r.source.replace("entity:", ""),
+                            db_uuid_to_label.get(r.source.replace("entity:", ""), r.source.replace("entity:", "")),
+                        ),
+                        "target": id_to_label.get(
+                            r.target.replace("entity:", ""),
+                            db_uuid_to_label.get(r.target.replace("entity:", ""), r.target.replace("entity:", "")),
+                        ),
                         "edge_type": r.edge_type,
                         "label": r.label,
                         "weight": r.weight,
@@ -1245,63 +1311,79 @@ class GraphService:
             )
 
             # B3: 社区摘要生成 (Edge et al., Microsoft GraphRAG, 2024)
+            #
+            # 事务边界设计（缺陷 1 修复）：
+            # 旧实现使用 ``async with shared_session.begin():`` 包裹 summarizer，
+            # 但 SQLAlchemy 2.x 中本阶段前若有 ``shared_session.execute(SELECT ...)``
+            # 直接调用会隐式 auto-begin，再 begin() 抛 ``A transaction is already
+            # begun on this Session``。同时 summarizer 内部 ``db.commit()`` 与外层
+            # begin() 形成双重事务管理，违反"事务边界单一来源"原则。
+            #
+            # 修复：剥离独立 ``AsyncSessionLocal()`` 会话（与 emit_phase 通过
+            # ``_session_scope()`` 走独立 session 的模式一致），corpus 配置查询与
+            # summarizer 全部走该独立会话，shared_session 不再涉入；summarizer
+            # 内部 commit 已移除，由本阶段末尾统一 commit / 异常 rollback。
             cs_result: dict[str, Any] = {}
             try:
+                from negentropy.db.session import AsyncSessionLocal
+
                 from ..ingestion.embedding import build_embedding_fn
                 from .community_summarizer import CommunitySummarizer
 
-                # 注入 embedding_fn — G1 GraphRAG Global Search 的 query-focused
-                # 召回依赖 kg_community_summaries.embedding；若 embedding 配置不可用
-                # （旧环境 / 单测），降级为不写 embedding，由 GlobalSearchService 的
-                # _has_summary_embeddings 探测后自动回退到 entity_count 排序。
-                # 从 corpus.config['models']['embedding_config_id'] 提取语料库专用
-                # embedding 配置，确保社区摘要与文档 chunks 使用同一向量空间。
-                cs_embedding_config_id: str | None = None
-                try:
-                    from sqlalchemy import text as sa_text
+                async with AsyncSessionLocal() as cs_session:
+                    # 1. 读取语料库 embedding 配置（与 chunk embeddings 同向量空间）
+                    cs_embedding_config_id: str | None = None
+                    try:
+                        from sqlalchemy import text as sa_text
 
-                    from negentropy.models.base import NEGENTROPY_SCHEMA
+                        from negentropy.models.base import NEGENTROPY_SCHEMA
 
-                    cfg_row = await shared_session.execute(
-                        sa_text(f"""
-                            SELECT config FROM {NEGENTROPY_SCHEMA}.corpus
-                            WHERE id = :cid
-                        """),
-                        {"cid": str(corpus_id)},
+                        cfg_row = await cs_session.execute(
+                            sa_text(f"""
+                                SELECT config FROM {NEGENTROPY_SCHEMA}.corpus
+                                WHERE id = :cid
+                            """),
+                            {"cid": str(corpus_id)},
+                        )
+                        cfg_val = cfg_row.scalar()
+                        if isinstance(cfg_val, dict):
+                            models_cfg = cfg_val.get("models")
+                            if isinstance(models_cfg, dict):
+                                eid = models_cfg.get("embedding_config_id")
+                                if eid is not None:
+                                    cs_embedding_config_id = str(eid)
+                    except Exception:
+                        pass  # 查询失败 → 使用全局默认
+
+                    # 2. 构建 embedding_fn（失败降级为 None，由 GlobalSearchService 回退到
+                    # entity_count 排序）
+                    try:
+                        cs_embedding_fn = build_embedding_fn(cs_embedding_config_id)
+                    except Exception as ef_exc:
+                        cs_embedding_fn = None
+                        logger.warning(
+                            "community_summary_embedding_fn_unavailable",
+                            error=str(ef_exc),
+                        )
+
+                    # 3. 调用 summarizer（内部不 commit，由本阶段末尾统一提交）
+                    summarizer = CommunitySummarizer(
+                        model=normalized_llm_model,
+                        embedding_fn=cs_embedding_fn,
                     )
-                    cfg_val = cfg_row.scalar()
-                    if isinstance(cfg_val, dict):
-                        models_cfg = cfg_val.get("models")
-                        if isinstance(models_cfg, dict):
-                            eid = models_cfg.get("embedding_config_id")
-                            if eid is not None:
-                                cs_embedding_config_id = str(eid)
-                except Exception:
-                    pass  # 查询失败 → 使用全局默认
-                try:
-                    cs_embedding_fn = build_embedding_fn(cs_embedding_config_id)
-                except Exception as ef_exc:
-                    cs_embedding_fn = None
-                    logger.warning(
-                        "community_summary_embedding_fn_unavailable",
-                        error=str(ef_exc),
-                    )
-
-                summarizer = CommunitySummarizer(
-                    model=normalized_llm_model,
-                    embedding_fn=cs_embedding_fn,
-                )
-                async with shared_session.begin():
                     cs_result = await summarizer.summarize_communities(
-                        shared_session,
+                        cs_session,
                         corpus_id,
                         levels_data=levels_data if levels_data else None,
                     )
+                    await cs_session.commit()
                     logger.info(
                         "community_summaries_generated",
                         **cs_result,
                     )
             except Exception as cs_exc:
+                # 独立 session 已由 ``async with`` 管理生命周期；shared_session
+                # 不再涉入本阶段。保留 shared_session 兜底以防御后续阶段误用。
                 if shared_session.in_transaction():
                     await shared_session.rollback()
                 build_warnings.append({"algorithm": "community_summary", "error": str(cs_exc)})
@@ -1395,6 +1477,7 @@ class GraphService:
 
             await build_repo.update_build_run(
                 run_id=run_uuid,
+                human_run_id=run_id,
                 status=final_status,
                 entity_count=len(entities_to_save),
                 relation_count=len(valid_relations),
@@ -1448,12 +1531,14 @@ class GraphService:
                     raise RuntimeError("shared session inactive")
                 await build_repo.update_build_run(
                     run_id=run_uuid,
+                    human_run_id=run_id,
                     status="cancelled",
                     warnings=cancellation_warnings if cancellation_warnings else None,
                 )
             except Exception:
                 await self._repository.update_build_run(
                     run_id=run_uuid,
+                    human_run_id=run_id,
                     status="cancelled",
                     warnings=cancellation_warnings if cancellation_warnings else None,
                 )
@@ -1504,6 +1589,7 @@ class GraphService:
                     raise RuntimeError("shared session inactive")
                 await build_repo.update_build_run(
                     run_id=run_uuid,
+                    human_run_id=run_id,
                     status="failed",
                     error_message=error_message,
                     warnings=failure_warnings if failure_warnings else None,
@@ -1511,6 +1597,7 @@ class GraphService:
             except Exception:
                 await self._repository.update_build_run(
                     run_id=run_uuid,
+                    human_run_id=run_id,
                     status="failed",
                     error_message=error_message,
                     warnings=failure_warnings if failure_warnings else None,

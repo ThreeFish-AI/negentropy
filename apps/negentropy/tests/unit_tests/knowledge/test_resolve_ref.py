@@ -1,23 +1,21 @@
 """
 _resolve_ref 多步降级解析 单元测试
 
-验证 service.py 中关系端点解析的 6 条路径：
-  1. 精确标签匹配 (label → id)
-  2. 规范化标签匹配 (大小写/空格容差)
-  3. ID 反向查找 (entity:xxx → label → id)
-  4. 32 位十六进制哈希检测 → None
-  5. UUID 直通
-  6. 无法解析 → None
+验证 service.py 中关系端点解析的路径优先级（缺陷 2 修复后）：
+  1. ID 级直查：id_merge_map[clean_ref] → 存留 id（含 DB UUID 跨表场景）
+  2. 已是存留 id → 原值返回
+  3. 标签级 fallback：精确 → 规范化 → id_to_label → label_to_id 间接链
+  4. 全部失败 → 记录 warning 返回 None
 
-注：_resolve_ref 是 build_graph 内的闭包，无法直接导入。
-本测试通过重建相同的映射表与解析逻辑来验证行为正确性，
-同时使用 inspect.getsource 验证生产代码结构回归。
+注：本测试文件中的 ``_resolve_ref`` helper 是旧逻辑的本地复现，
+用于覆盖标签 fallback 路径；缺陷 2 修复主线由 ``test_entity_resolver.py::
+TestEntityResolverIdMergeMap`` 与生产代码 inspect.getsource 结构断言覆盖。
+_resolve_ref 是 build_graph 内的闭包，无法直接导入。
 """
 
 from __future__ import annotations
 
 import inspect
-import re
 from uuid import uuid4
 
 from negentropy.knowledge.graph.service import GraphService
@@ -244,11 +242,16 @@ class TestResolveRefStructure:
         source = inspect.getsource(GraphService)
         assert "norm_label_to_id" in source
 
-    def test_has_hash_detection(self):
-        """确认存在 32 位十六进制哈希检测"""
+    def test_consumes_id_merge_map(self):
+        """缺陷 2 修复后：_resolve_ref 应优先以 id_merge_map 作为权威映射。
+
+        旧实现的 ``len(ref) == 32`` 哈希启发式已删除——现在被合并实体的
+        ``entity:<32-hex>`` 不再依赖结构特征推断，而由 resolver 暴露的
+        id_merge_map 直接重写。
+        """
         source = inspect.getsource(GraphService)
-        # 验证包含 len==32 的哈希检测逻辑
-        assert re.search(r"len\(ref\)\s*==\s*32", source) is not None
+        assert "id_merge_map" in source
+        assert "resolution.id_merge_map" in source
 
     def test_has_id_reverse_lookup(self):
         """确认存在 id_to_label 反向查找"""
@@ -260,10 +263,15 @@ class TestResolveRefStructure:
         source = inspect.getsource(GraphService)
         assert "unresolved_endpoints" in source
 
-    def test_has_hash_warning_log(self):
-        """确认哈希检测有 warning 日志"""
+    def test_no_legacy_hash_branch(self):
+        """缺陷 2 修复后：``relation_endpoint_hash_unresolved`` 日志已删除。
+
+        旧实现使用 ``len(ref) == 32 and all hex`` 启发式识别 LLM 输出的 hash，
+        但这是症状而非根因——根因是被合并实体的 id 未被纳入 id_merge_map。
+        修复后 id_merge_map 直接处理这类情形，该日志分支不再被触发，删除。
+        """
         source = inspect.getsource(GraphService)
-        assert "relation_endpoint_hash_unresolved" in source
+        assert "relation_endpoint_hash_unresolved" not in source
 
     def test_has_unresolved_warning_log(self):
         """确认无法解析的引用有 warning 日志"""

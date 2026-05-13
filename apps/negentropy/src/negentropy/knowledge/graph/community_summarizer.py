@@ -64,6 +64,14 @@ class CommunitySummarizer:
     对 Louvain 社区检测结果生成 LLM 摘要，支持全局检索模式。
     若注入 ``embedding_fn``，会在持久化时同步计算并写入 summary embedding，
     供后续 GlobalSearchService 的 Map 阶段做余弦排序。
+
+    事务边界（重要）：
+        本类仅负责 SQL 写入，**不在内部 commit**。调用方负责事务上下文：
+        典型用法是在 ``_session_scope()`` 上下文内调用 ``summarize_communities``，
+        由 session_scope 出口统一 commit / 异常路径 rollback。
+        理由：旧实现内部 ``db.commit()`` 与外层 ``async with session.begin():``
+        双重事务管理会触发 SQLAlchemy ``A transaction is already begun on this
+        Session`` 异常（参见 plan: kg-build-fix 缺陷 1）。
     """
 
     def __init__(
@@ -115,7 +123,10 @@ class CommunitySummarizer:
             try:
                 summary, used_fallback = await self._summarize_one(0, fallback_entities)
                 emb_failed = await self._persist_summary(db, corpus_id, summary, level=0)
-                await db.commit()
+                # 事务边界已上移到调用方（service.py 的 _session_scope() 出口统一 commit）：
+                # 旧实现在此处 ``await db.commit()`` 与外层 ``async with session.begin():``
+                # 双重事务管理会触发 ``A transaction is already begun on this Session``。
+                # 改由调用方持有事务上下文，本方法仅负责写入。
                 result: dict[str, Any] = {"communities_summarized": 1, "errors": 0}
                 if emb_failed:
                     result["embeddings_failed"] = 1
@@ -155,7 +166,7 @@ class CommunitySummarizer:
                     error=str(exc),
                 )
 
-        await db.commit()
+        # 事务边界由调用方持有（_session_scope 上下文出口统一 commit）。
 
         logger.info(
             "communities_summarized",
@@ -242,7 +253,7 @@ class CommunitySummarizer:
                         error=str(exc),
                     )
 
-        await db.commit()
+        # 事务边界由调用方持有（_session_scope 上下文出口统一 commit）。
 
         logger.info(
             "multi_level_communities_summarized",
