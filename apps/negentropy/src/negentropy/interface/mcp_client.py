@@ -717,6 +717,16 @@ class McpClientService:
                                 resource_uris.append(str(uri))
                                 seen.add(str(uri))
 
+                    # 也扫描 structuredContent.image_assets 中的 resource_uri
+                    sc = tool_result.structured_content
+                    if isinstance(sc, dict):
+                        for asset in sc.get("image_assets") or []:
+                            if isinstance(asset, dict):
+                                uri = asset.get("resource_uri")
+                                if isinstance(uri, str) and uri and uri not in seen:
+                                    resource_uris.append(uri)
+                                    seen.add(uri)
+
                     if not resource_uris:
                         return McpToolCallWithResourcesResult(tool_result=tool_result)
 
