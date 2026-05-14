@@ -103,7 +103,6 @@ function DocumentImage({
       <img
         src={resolvedSrc}
         alt={alt || ""}
-        loading="lazy"
         className={cn(
           "max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700",
           imgState === "loaded" ? "block" : "hidden",
