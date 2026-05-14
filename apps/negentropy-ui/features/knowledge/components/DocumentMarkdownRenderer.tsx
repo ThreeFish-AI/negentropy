@@ -5,8 +5,9 @@ import ReactMarkdown from "react-markdown";
 import { defaultRemarkPlugins, defaultRehypePlugins } from "@/utils/markdown-plugins";
 import { cn } from "@/lib/utils";
 import { MermaidDiagram } from "@/components/ui/MermaidDiagram";
+import rehypeHighlight from "rehype-highlight";
 
-import "highlight.js/styles/github.css";
+import "./highlight-theme.css";
 
 interface DocumentMarkdownRendererProps {
   content: string;
@@ -165,7 +166,7 @@ export function DocumentMarkdownRenderer({
     >
       <ReactMarkdown
         remarkPlugins={defaultRemarkPlugins}
-        rehypePlugins={defaultRehypePlugins}
+        rehypePlugins={[...defaultRehypePlugins, rehypeHighlight]}
         components={{
           img({ src, alt }) {
             if (!src || typeof src !== "string") return null;
