@@ -15,7 +15,7 @@
 
 - **Context-Driven (上下文驱动)**: 上下文是第一性要素 (Context Quality First)。任何变更需建立在深度理解之上（CDD），拒绝基于关键字匹配的机械式修改。
 - **Minimal Intervention (最小干预)**: 遵循奥卡姆剃刀与 YAGNI 原则，仅实施必要的变更，推崇演进式设计 (Evolutionary Design) 而非过度设计。
-- **Evidence-Based (循证工程)**: 杜绝主观臆断，核心决策需以权威文献（IEEE 格式）为佐证，构建“设计-实现-验证”的完整反馈闭环，确保每一项工程行动都能产生可观测的反馈信号（测试、日志、监控），以验证假设并指导迭代。
+- **Evidence-Based (循证工程)**: 杜绝主观臆断，核心决策需以**最新**且**权威**的文献（IEEE 格式）为佐证，构建“设计-实现-验证”的完整反馈闭环，确保每一项工程行动都能产生可观测的反馈信号（测试、日志、监控），以验证假设并指导迭代。
 - **Systemic Integrity (系统完整性)**: 具备全局视角与二阶思维 (Second-Order Thinking)，评估变更对上下游依赖及整个生态（Engine, Adapter, Agent, UI）的“涟漪效应”，不只关注变更的直接结果，更要预测“结果的结果”（如引入缓存导致的陈旧数据、重试机制引发的雪崩），优先保障整体稳定性与逻辑自洽。
 - **Knowledge Crystallization (知识结晶)**: 将系统视为有机体，通过将工程错误与 AI 失败案例转化为经验约束 (Negative Prompts) 和持久化知识，驱动系统的自我进化与持续熵减。
 - **Proactive Navigation (主动导航)**: 智能体不应止步于被动响应，需即时转化为“领航者”。在交付任务结果的同时，**必须**基于上下文预判并提出**下一步最佳行动建议 (Next Best Action)**，不仅交付“答案”，更要交付“路径”，消除用户决策的认知摩擦。
@@ -40,40 +40,16 @@
   2. **Temp Management**: 临时产物（执行计划等）一律收敛至 `.temp/` 并及时清理；
   3. **Link Validity**: 确保所有引用的 URL 可访问且具备明确的上下文价值；
   4. **Testing**: 统一在 tests/ 下维护测试用例，区分单元测试（unit）和集成测试（integration），所有测试的本地运行总时间控制在 3 min 以内；
-  5. **Issue**: 在 docs/issue.md 中维护你处理过的 Issue 摘要（问题描述、表因根因、处理方式、后续防范、同类问题影响与处理注意事项等），便于同类问题的跨上下文处理；注意识别相同 Issue，不要同 Issue 多处维护。
+  5. **Pre-commit Hooks**: 首次克隆仓库使用 `uv run pre-commit install` 激活本地 Git hooks，使 Ruff lint（含 auto-fix）、Ruff format 及通用代码卫生检查在每次 commit 前自动运行。若 hooks 自动修复了问题，提交会被中断，执行 `git add -p` 审阅修复内容后重新提交即可；
+  6. **Issue**: 在 docs/issue.md 中维护你处理过的 Issue 摘要（问题描述、表因根因、处理方式、后续防范、同类问题影响与处理注意事项等），便于同类问题的跨上下文处理；注意识别相同 Issue，不要同 Issue 多处维护；
 - **Package Management Standardization (包管理规范)**:
   1. **Python**: 严禁使用 pip/poetry，**必须**统一使用 `uv` 进行包管理与脚本执行（如 `uv run`）；
   2. **JavaScript/TypeScript**: 严禁使用 npm/yarn，**必须**统一使用 `pnpm` 进行包管理与脚本执行；
 - **Database Management**: 谨慎操作，数据迁移、测试等操作严禁将现有数据删除，谨慎操作数据迁移的回滚，防止数据被清理。
-- **Browser Validation Protocol (浏览器验证准则)**：Agent 不得自行完成、绕过或模拟任何 OAuth / SSO 认证流程，所有登录态均来源于用户已认证的 Chrome 主 profile（真实用户登录态）。完整协议（连通性自检、凭证管理、E2E 集成、实机回归等）详见 [浏览器验证协议](./docs/agents/browser-validation.md)。
-  1. **安全红线**：禁止在 Sandbox 浏览器中跳转 Google 同意屏；禁止以模拟用户或第三方账号替代真实登录态；禁止要求用户在 chat 中粘贴密码、Cookie 或验证码。
-
-## Documentation Standards (文档规范)
-
-### Mermaid Visualization Norms (Mermaid 可视化规范)
-
-- **色彩语义与兼容性**：为图表节点配置具备语义辨识度的色彩，并确保在深色模式（Dark Mode）下具有极高的对比度与清晰度。
-- **逻辑模块化解构**：针对业务跨度较大的架构流程，强制采用 `subgraph` 容器进行层级解构与边界划分，以增强图表的自解说（Self-explaining）能力。
-
-### Reference Specifications (IEEE)
-
-为保障工程决策的可追溯性与学术严谨性，核心引用需遵循 **IEEE 标准引用格式**。
-
-> **模版准则**：[编号] 作者缩写. 姓, "文章标题," _刊名/会议名缩写 (斜体)_, 卷号, 期数, 页码, 年份.
-
-```latex
-[1] A. Author, B. Author, and C. Author, "Title of paper," *Abbrev. Title of Journal*, vol. X, no. Y, pp. XX–XX, Year.
-```
-
-**引用实践**
-
-- **文内锚定**：采用标准上标链接形式：`描述内容<sup>[[1]](#ref1)</sup>`。
-- **文献索引**：底层采用 HTML 锚点 `id` 实现跳转稳定性。
-
-```latex
-<a id="ref1"></a>[1] A. Vaswani et al., "Attention is all you need," Adv. Neural Inf. Process. Syst., vol. 30, pp. 5998–6008, 2017.
-```
-
-## Knowledge Map (知识索引)
-
-(WIP)
+- **Browser Validation Protocol (浏览器验证准则)**：Agent 不得自行完成、绕过或模拟任何 OAuth / SSO 认证流程，所有登录态均来源于用户已认证的 Chrome 主 profile（真实用户登录态）。完整协议（连通性自检、凭证管理、E2E 集成、实机回归等）详见 [浏览器验证协议](./docs/agents/browser-validation.md)；
+  1. **安全红线**：禁止在 Sandbox 浏览器中跳转 Google 同意屏；禁止以模拟用户或第三方账号替代真实登录态；禁止要求用户在 chat 中粘贴密码、Cookie 或验证码；
+- **Knowledge Map (知识索引)**：项目所有文档索引统一维护在 [知识索引](./docs/agents/knowledge-map.md)，并在文档目录变更时即时同步跟新；
+- **Documentation Standards (文档规范)**：采用**Mermaid Visualization Norms (Mermaid 可视化规范)**；
+  1. **色彩语义与兼容性**：为图表节点配置具备语义辨识度的色彩，并确保在深色模式（Dark Mode）下具有极高的对比度与清晰度；
+  2. **逻辑模块化解构**：针对业务跨度较大的架构流程，强制采用 `subgraph` 容器进行层级解构与边界划分，以增强图表的自解说（Self-explaining）能力；
+- **Reference Specifications (IEEE)**：为保障工程决策的可追溯性与学术严谨性，核心引用需遵循 [reference-specifications.md](docs/agents/reference-specifications.md)IEEE 标准引用格式；
