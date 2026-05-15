@@ -50,6 +50,8 @@
   1. **安全红线**：禁止在 Sandbox 浏览器中跳转 Google 同意屏；禁止以模拟用户或第三方账号替代真实登录态；禁止要求用户在 chat 中粘贴密码、Cookie 或验证码；
 - **Knowledge Map (知识索引)**：项目所有文档索引统一维护在 [知识索引](./docs/agents/knowledge-map.md)，并在文档目录变更时即时同步跟新；
 - **Documentation Standards (文档规范)**：采用**Mermaid Visualization Norms (Mermaid 可视化规范)**；
-  1. **色彩语义与兼容性**：为图表节点配置具备语义辨识度的色彩，并确保在深色模式（Dark Mode）下具有极高的对比度与清晰度；
-  2. **逻辑模块化解构**：针对业务跨度较大的架构流程，强制采用 `subgraph` 容器进行层级解构与边界划分，以增强图表的自解说（Self-explaining）能力；
+  1. 采用**Mermaid Visualization Norms (Mermaid 可视化规范)**；
+     - **色彩语义与兼容性**：为图表节点配置具备语义辨识度的色彩，并确保在深色模式（Dark Mode）下具有极高的对比度与清晰度；
+     - **逻辑模块化解构**：针对业务跨度较大的架构流程，强制采用 `subgraph` 容器进行层级解构与边界划分，以增强图表的自解说（Self-explaining）能力；
+  2. 文档需要引入必要的浏览器实操截图时，需自行通过默认浏览器打开相关页面，通过实操现场截图并保留到文档路径进行文档引用；
 - **Reference Specifications (IEEE)**：为保障工程决策的可追溯性与学术严谨性，核心引用需遵循 [reference-specifications.md](docs/agents/reference-specifications.md)IEEE 标准引用格式；
