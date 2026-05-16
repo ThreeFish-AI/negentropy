@@ -279,14 +279,14 @@ test.describe("Dashboard 子页面", () => {
     await page.goto("/dashboard");
     await page.getByText("Faculty Health Inspector").click();
 
-    // Drawer 内容
-    await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+    // Drawer 内容（精确匹配避免命中"Close drawer" backdrop button）
+    await expect(page.getByRole("button", { name: "Close", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Run Now" })).toBeVisible();
     await expect(page.getByText("Payload").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Run Now" }).click();
 
     // run 完成后 Drawer 仍然可见（不强求关闭，但应没崩）
-    await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Close", exact: true })).toBeVisible();
   });
 });
